@@ -2165,6 +2165,55 @@ is allocated, it is allocated in the file scope.
 }  /* composite_type */
 
 
+static a_boolean types_distinguishable(a_type_ptr orig_type_1,
+                                       a_type_ptr orig_type_2,
+                                       a_boolean  *params_all_compatible)
+/*
+Return TRUE if the types type_1 and type_2 are distinguishable by overload
+resolution.  If they are not distinguishable and they are not compatible,
+set *params_all_compatible to FALSE (but do not change it otherwise; it's
+cumulative over all the parameters).
+*/
+{
+  a_boolean  reference_dropped = FALSE, distinguishable = FALSE;
+  a_type_ptr type_1 = orig_type_1;
+  a_type_ptr type_2 = orig_type_2;
+
+  /* See if one of the types is a reference to the other type,
+     e.g., T and T&. */
+  if (is_reference_type(type_1)) {
+    type_1 = type_referenced(type_1);
+    reference_dropped = TRUE;
+  }  /* if */
+  if (is_reference_type(type_2)) {
+    type_2 = type_referenced(type_2);
+    reference_dropped = TRUE;
+  }  /* if */
+  /* If neither top-level type was a reference, drop the type qualifiers
+     (it's impossible to distinguish between T, const T, and volatile T,
+     but it's possible to distinguish between T&, const T&, and
+     volatile T&). */
+  if (!reference_dropped) {
+    type_1 = skip_typerefs(type_1);
+    type_2 = skip_typerefs(type_2);
+  }  /* if */
+  /* Now compare the types. */
+  if (!types_are_compatible(type_1, type_2)) {
+    /* The two types are distinguishable. */
+    distinguishable = TRUE;
+  } else {
+    /* The types are indistinguishable.  See if the original types are
+       compatible (meaning the same type, roughly).  This is useful to know
+       in issuing the right error message. */
+    if (*params_all_compatible &&
+        !types_are_compatible(orig_type_1, orig_type_2)) {
+      *params_all_compatible = FALSE;
+    }  /* if */
+  }  /* if */
+  return distinguishable;
+}  /* types_distinguishable */
+
+
 a_boolean overload_distinguishable(a_symbol_ptr  old_sym_ptr,
                                    a_type_ptr    new_type,
                                    an_error_code *err_code)
@@ -2179,9 +2228,12 @@ Only callable in C++ mode.  See ARM 13.
 */
 {
   a_boolean        distinguishable, params_all_compatible;
-  a_boolean        old_is_list, reference_dropped;
-  a_type_ptr       old_type, old_param_type, new_param_type;
+  a_boolean        old_is_list;
+  a_type_ptr       old_type;
   a_param_type_ptr old_param, new_param;
+  a_routine_type_supplement_ptr
+                   old_extra_info, new_extra_info;
+  a_type_ptr       old_this_param_type, new_this_param_type;
 
   db_enter(5, "overload_distinguishable");
   *err_code = ec_no_error;
@@ -2193,17 +2245,32 @@ Only callable in C++ mode.  See ARM 13.
     old_is_list = FALSE;
   }  /* if */
   new_type = skip_typerefs(new_type);
+  new_extra_info = new_type->variant.routine.extra_info;
   do {
     /* See if old_sym_ptr and new_type are distinguishable. */
     distinguishable = FALSE;
     params_all_compatible = TRUE;
     old_type = old_sym_ptr->variant.routine->type;
     old_type = skip_typerefs(old_type);
+    old_extra_info = old_type->variant.routine.extra_info;
     /* See if the types are sufficiently different that they are
        distinguishable by overload resolution. */
+    /* See if the "this" parameter is distinguishable if it exists.
+       Note that if one function has a "this" parameter and the other
+       does not, they cannot be distinguished on that basis. */
+    old_this_param_type = old_extra_info->implicit_this_param_type;
+    new_this_param_type = new_extra_info->implicit_this_param_type;
+    if (old_this_param_type != NULL && new_this_param_type != NULL &&
+        types_distinguishable(old_this_param_type, new_this_param_type,
+                              &params_all_compatible)) {
+      /* "this" parameter types are distinguishable; this probably means
+         one function is const or volatile and the other isn't. */
+      distinguishable = TRUE;
+      goto distinguishable_determined;
+    }  /* if */
     /* Compare the parameter types. */
-    for (old_param = old_type->variant.routine.extra_info->param_type_list,
-         new_param = new_type->variant.routine.extra_info->param_type_list;
+    for (old_param = old_extra_info->param_type_list,
+         new_param = new_extra_info->param_type_list;
          old_param != NULL || new_param != NULL;
          old_param = old_param->next, new_param = new_param->next) {
       if (old_param == NULL || new_param == NULL) {
@@ -2212,39 +2279,11 @@ Only callable in C++ mode.  See ARM 13.
         distinguishable = TRUE;
         goto distinguishable_determined;
       } else {
-        old_param_type = old_param->type;
-        new_param_type = new_param->type;
-        /* See if one of the types is a reference to the other type,
-           e.g., T and T&. */
-        reference_dropped = FALSE;
-        if (is_reference_type(old_param_type)) {
-          old_param_type = type_referenced(old_param_type);
-          reference_dropped = TRUE;
-        }  /* if */
-        if (is_reference_type(new_param_type)) {
-          new_param_type = type_referenced(new_param_type);
-          reference_dropped = TRUE;
-        }  /* if */
-        /* If neither top-level type was a reference, drop the type
-           qualifiers (it's impossible to distinguish between T, const T,
-           and volatile T, but it's possible to distinguish between
-           T&, const T&, and volatile T&). */
-        if (!reference_dropped) {
-          old_param_type = skip_typerefs(old_param_type);
-          new_param_type = skip_typerefs(new_param_type);
-        }  /* if */
-        /* Now compare the types. */
-        if (!types_are_compatible(old_param_type, new_param_type)) {
-          /* The two types are distinguishable. */
+        /* See if the types are distinguishable. */
+        if (types_distinguishable(old_param->type, new_param->type,
+                                  &params_all_compatible)) {
           distinguishable = TRUE;
           goto distinguishable_determined;
-        }  /* if */
-        /* The types are indistinguishable.  See if they're compatible
-           (meaning the same type, roughly).  This is useful to know in
-           issuing the right error message. */
-        if (params_all_compatible &&
-            !types_are_compatible(old_param->type, new_param->type)) {
-          params_all_compatible = FALSE;
         }  /* if */
       }  /* if */
     }  /* for */
@@ -2288,28 +2327,144 @@ If arg_is_constant is TRUE, the actual argument is a constant and arg_constant
 points to the constant value.
 */
 {
-  an_error_code warning_suggested;
+  a_boolean             less_desirable_case;
+  an_error_code         warning_suggested;
+  a_boolean             downward_cast;
+  a_base_class_ptr      bcp;
+  a_derivation_step_ptr dsp;
 
-  arg_match->match_level = aml_none;
-  arg_match->downward_cast_levels = 0;
   if (is_error_type(arg_type) || is_error_type(param_type)) {
     /* An error type matches anything, but not very well. */
     arg_match->match_level = aml_error;
-  } else {
-#if 0
-#else
-    if (impl_conversion(arg_type, arg_is_constant, arg_constant, param_type,
-                        /*suppress_extensions=*/TRUE,
-                        ec_incompatible_param, &warning_suggested)) {
-      /* Match with standard conversions. */
-      arg_match->match_level = aml_std_conversion;
-      arg_match->warning_suggested = warning_suggested;
-    } else {
-      /* No match. */
-      arg_match->match_level = aml_none;
-    }  /* if */
-#endif
+    goto have_level;
   }  /* if */
+  /* Try an exact match or one involving trivial conversions.  This is
+     case [1] in the ARM.  Trivial conversions are
+       From:      To:
+       T          T&
+       T&         T
+       T          qualified T
+       T*         (qualified T)*
+     The conversions T[] --> T* and T(args) --> (*T)(args), listed in the
+     ARM as trivial conversions, are done automatically in expression
+     processing.  Cases that involve
+       From:      To:
+       T*         (qualified T)*
+       T&         (qualified T)&
+     (the latter coming from T& --> T --> qualified T --> (qualified T)&)
+     are considered worse than those that do not involve them.
+  */
+  /* Remove a "&" from the arg type if there is one (T& --> T).
+     Note that if the arg type is qualified the reference should
+     not be detected.  Typedefs, however, do not hurt. */
+  if (is_reference_type(arg_type) && !is_qualified_type(arg_type)) {
+    arg_type = type_referenced(arg_type);
+  }  /* if */
+  less_desirable_case = FALSE;
+  /* Remove parts of the param type that could be added by trivial
+     conversions, hoping thereby to end up with the arg type. */
+  for (;;) {
+    /* Remove qualifiers for the param type if there are any
+       (T -> qualified T).  Take typedefs off too. */
+    param_type = skip_typerefs(param_type);
+    if (is_pointer(param_type)) {
+      /* The parameter type is a pointer.  Check for the 
+         "T* --> (qualified T)*" case. */
+      if (is_pointer_type(arg_type)) {
+        a_type_ptr param_type_pointed_to = type_pointed_to(param_type);
+        if (is_qualified_type(param_type_pointed_to)) {
+          /* arg_type is a pointer type, and param_type is a pointer type
+             that points to a qualified type.  Check to see if the types
+             pointed to are the same.  This has to be checked here because
+             we don't want to actually construct the pointer to the
+             unqualified type to allow the check to be done in the usual
+             place below. */
+          a_type_ptr arg_type_pointed_to = type_pointed_to(arg_type);
+          param_type_pointed_to = skip_typerefs(param_type_pointed_to);
+          if (types_are_compatible(arg_type_pointed_to,
+                                   param_type_pointed_to)) {
+            /* This is the "T* --> (qualified T)*" case.  This is one of
+               the cases that's less desirable. */
+            arg_match->match_level = aml_exact_qualified;
+            goto have_level;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      /* Since the pointer case cannot be further altered by trivial
+         conversions, exit the loop now. */
+      break;
+    } else if (is_reference(param_type)) {
+      /* The parameter type is a reference.  Drop the reference
+         (T --> T&). */
+      param_type = type_referenced(param_type);
+      /* If the underlying type is qualified, we have the
+         "T& --> (qualified T)&" case, which is less desirable. */
+      if (is_qualified_type(param_type)) {
+        /* T& --> (qualified T)&.  This can be altered further by trivial
+           conversions, so remember that this case has occurred and keep
+           looping. */
+        param_type = skip_typerefs(param_type);
+        less_desirable_case = TRUE;
+      }  /* if */
+    } else {
+      /* Not a pointer or reference.  Exit the loop. */
+      break;
+    }  /* if */
+  }  /* for */
+  /* We've now done transformations for all the trivial conversions that
+     are possible.  See if the underlying types are the same. */
+  if (types_are_compatible(arg_type, param_type)) {
+    if (!less_desirable_case) {
+      /* Exact match, or one involving trivial conversions. */
+      arg_match->match_level = aml_exact;
+    } else {
+      /* Match involving the less desirable trivial conversions. */
+      arg_match->match_level = aml_exact_qualified;
+    }  /* if */
+    goto have_level;
+  }  /* if */
+  /* Try a match involving promotions.  This is case [2] in the ARM.
+     Promotions are the default argument promotions (integral promotions
+     and float --> double). */
+  if (types_are_compatible(default_argument_promotion(arg_type), param_type)) {
+    arg_match->match_level = aml_promotion;
+    goto have_level;
+  }  /* if */
+  /* Try a match involving standard conversions.  This is case [3] in
+     the ARM. */
+  if (impl_conversion(arg_type, arg_is_constant, arg_constant, param_type,
+                      /*suppress_extensions=*/TRUE,
+                      ec_incompatible_param, &warning_suggested)) {
+    /* Match with standard conversions. */
+    arg_match->match_level = aml_std_conversion;
+    arg_match->warning_suggested = warning_suggested;
+    /* If the cast is from a pointer to a class to a base class to something
+       else, set downward_cast_levels. */
+    if (is_pointer(arg_type) &&
+        is_class_struct_union_type(type_pointed_to(arg_type))) {
+      if (related_class_pointers(arg_type, param_type, &downward_cast, &bcp)) {
+        /* Cast to base class.  Count levels in the cast. */
+        for (arg_match->downward_cast_levels = 0, dsp = bcp->derivation;
+             dsp != NULL;
+             arg_match->downward_cast_levels++, dsp = dsp->next) {}
+      } else {
+        /* Some other cast, i.e., cast to "void *" or the like.
+           This is less desirable than any cast cast to a base class,
+           so put in a very large number. */
+        arg_match->downward_cast_levels = ULONG_MAX;
+      }  /* if */
+    }  /* if */
+    goto have_level;
+  }  /* if */
+  /* Try a match involving user-defined conversions.  This is case [4]
+     in the ARM. */
+#if 0
+  unimplemented
+#endif
+  /* Case [5] in the ARM, match with ellipsis, is handled by the caller. */
+  /* No match is possible. */
+  arg_match->match_level = aml_none;
+have_level:;
 }  /* determine_argument_match_level */
 
 
