@@ -389,12 +389,6 @@ Bit flags for calls of f_types_are_compatible et al.
 			   This flag is used in Microsoft-bugs mode only, to
 			   deal with a bug in redeclaration of static data
 			   members. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#define TCF_IGNORE_SIGNEDNESS 0x100
-			/* Two integral types are deemed compatible if they
-			   differ only in signedness.  This flag is used in
-			   Microsoft C mode only. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;

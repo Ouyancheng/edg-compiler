@@ -2656,14 +2656,8 @@ for exact pointer equality.
             /* In C++, each enum type is a distinct type and is not compatible
                with any other type. */
           } else {
-            if ((type_1->variant.integer.int_kind ==
-                                           type_2->variant.integer.int_kind
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                 || ((flags & TCF_IGNORE_SIGNEDNESS) &&
-                     integral_types_the_same_except_for_signedness(type_1,
-                                                                   type_2))
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                           ) &&
+            if (type_1->variant.integer.int_kind ==
+                                           type_2->variant.integer.int_kind &&
                 type_1->variant.integer.wchar_t_type ==
                                         type_2->variant.integer.wchar_t_type &&
                 type_1->variant.integer.bool_type ==
