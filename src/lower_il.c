@@ -2272,6 +2272,51 @@ found_base_class:;
 
 #endif /* ABI_CHANGES_FOR_RTTI */
 
+static an_expr_node_ptr select_lvalue_at_offset(an_expr_node_ptr  node,
+                                                a_type_ptr        class_type,
+                                                a_targ_size_t     offset,
+                                                a_type_ptr        type)
+/*
+Make an expression node that is an lvalue for an entity at the given offset
+in the object of type class_type pointed to by node.  The entity should have
+the given type.  Return a pointer to the new node.  (class_type may differ
+from type_pointed_to(node->type) in that it may be the corresponding "type
+as a subobject.")
+*/
+{
+  a_field_ptr  field;
+
+  /* If the given offset corresponds to a field we can use that field to form
+     the lvalue (the usual case).  Otherwise (e.g., for optimized empty base
+     classes), we use pointer arithmetic. */
+  field = field_at_offset_if_any(class_type, offset);
+  if (field == NULL || field->is_bit_field) {
+    /* No appropriate field; use some pointer arithmetic instead. */
+    if (offset != 0) {
+      a_type_ptr char_ptr_type =
+                    make_pointer_type(integer_type((an_integer_kind)ik_char));
+      node = add_cast_if_necessary(node, char_ptr_type);
+      node->next = node_for_integer_constant((long)offset,
+                                             targ_size_t_int_kind);
+      node = make_operator_node((an_expr_operator_kind)eok_padd,
+                                char_ptr_type, node);
+    }  /* if */
+    node = add_cast_if_necessary(node, make_pointer_type(type));
+  } else {
+    /* Create a field selection operation and add the appropriate cast
+       if needed. */
+    node = field_lvalue_selection_expr(node, field);
+    if (type != field->type) {
+      /* Presumably this is an optimized empty base class: it has no
+         associated field and instead we use the field whose offset it
+         shares. */
+      node = add_cast_if_necessary(node, make_pointer_type(type));
+    }  /* if */
+  }  /* if */
+  return node;
+}  /* select_lvalue_at_offset */
+
+
 static an_expr_node_ptr make_vbase_class_lvalue(
                                               an_expr_node_ptr node,
                                               a_base_class_ptr bcp,
@@ -2317,9 +2362,8 @@ object if complete_object is TRUE.  Return a pointer to the new node.
     }
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     /* Select the data section for the virtual base class. */
-    node = field_lvalue_selection_expr(node,
-                                       field_at_offset(data_section_class_type,
-                                                       data_section_offset));
+    node = select_lvalue_at_offset(node, data_section_class_type,
+                                   data_section_offset, bcp->type);
   } else {
     /* We do not know whether or not we have a complete object, so we must
        go indirect through a pointer to get to the virtual base class. */
@@ -2422,7 +2466,6 @@ pointer to the new node.
        and the base class entries have the type of the base class itself
        (that's what step_class_type will contain). */
     for (; dsp != NULL; dsp = dsp->next) {
-      a_field_ptr  base_field;
       /* The base class entry pointed to by dsp->base_class is the base
          class entry relative to the original class type.  Find the base
          class entry for this step relative to the intermediate class we
@@ -2442,34 +2485,8 @@ pointer to the new node.
         internal_error("make_base_class_lvalue: node has wrong type");
       }  /* if */
 #endif /* CHECKING */
-      /* There usually exists a field at the right offset.  There won't be
-         one in some cases involving empty base class optimizations. */
-      base_field = field_at_offset_if_any(node_class_type, step_bcp->offset);
-      if (base_field == NULL || base_field->is_bit_field) {
-        /* No appropriate field; use some pointer arithmetic instead. */
-        if (step_bcp->offset != 0) {
-          a_type_ptr char_ptr_type =
-                     make_pointer_type(integer_type((an_integer_kind)ik_char));
-          node = add_cast_if_necessary(node, char_ptr_type);
-          node->next = node_for_integer_constant((long)step_bcp->offset,
-                                                 targ_size_t_int_kind);
-          node = make_operator_node((an_expr_operator_kind)eok_padd,
-                                    char_ptr_type, node);
-        }  /* if */
-        node = add_cast_if_necessary(node,
-                                     make_pointer_type(step_bcp->type));
-      } else {
-        /* Create a field selection to select the next non-virtual base
-           class. */
-        node = field_lvalue_selection_expr(node, base_field);
-        if (step_bcp->type != base_field->type) {
-          /* Presumably this is an optimized empty base class: it has no
-             associated field and instead we use the field whose offset it
-             shares. */
-          node = add_cast_if_necessary(node,
-                                       make_pointer_type(step_bcp->type));
-        }  /* if */
-      }  /* if */
+      node = select_lvalue_at_offset(node, node_class_type,
+                                     step_bcp->offset, step_bcp->type);
       step_class_type = derivation_bcp->type;
     }  /* for */
   }  /* if */
