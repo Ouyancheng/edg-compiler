@@ -4620,7 +4620,7 @@ list.
   a_scope_ptr             sp;
 
   /* Only the file scope has a dynamic-inits list -- dynamic init entries
-     generated for namespace scopes go on the file scope list, and in funtcion
+     generated for namespace scopes go on the file scope list, and in function
      and block scopes dynamic initialization is handled by statements. */
   ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
   sp = ssep->il_scope;
