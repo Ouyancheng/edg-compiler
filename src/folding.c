@@ -2329,7 +2329,9 @@ if everything went fine.
         internal_error("do_pdiff: size of object pointed to is zero");
       }  /* if */
 #endif /* CHECKING */
-      difference /= object_type->size;
+      /* The cast in the following is to ensure that the division is
+         a signed division, since difference might be negative. */
+      difference /= (a_targ_ptrdiff_t)object_type->size;
       if (difference >= TARG_PTRDIFF_T_MIN &&
           difference <= TARG_PTRDIFF_T_MAX) {
         set_constant_kind(result, (a_constant_repr_kind)ck_integer);

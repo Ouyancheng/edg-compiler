@@ -1,5 +1,10 @@
 Version 2.12
 
+11/10/92 Folding of pointer difference
+
+The folding of pointer difference of constant addresses has been
+corrected so that it deals correctly with negative results.
+
 11/10/92 Token-wise handling of pcc compound assignment operator variants
 
 The variant forms of compound assignment operators allowed in pcc mode
