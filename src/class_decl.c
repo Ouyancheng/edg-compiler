@@ -5956,6 +5956,10 @@ to indicate whether the class/struct/union is actually defined.
             }  /* if */
             if (member_storage_class == (a_storage_class)sc_static) {
               /* Static data member. */
+              if (is_void_type(local_type)) {
+                error(ec_incomplete_type_not_allowed);
+                local_type = error_type();
+              }  /* if */
               if (is_union_type(class_type)) {
                 pos_error(ec_static_not_allowed, &decl_start_pos);
               } else if (is_local_class) {
