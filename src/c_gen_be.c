@@ -1757,10 +1757,10 @@ Dump an enum.  Print the associated source name if there is one.
         write_integer_constant(f_C_output, constant);
         enum_value = *constant;
       }  /* if */
-      incr_integer_value(&enum_value.variant.integer_value);
       constant = constant->next;
       if (constant == NULL) break;
       fputc(',', f_C_output);
+      incr_integer_value(&enum_value.variant.integer_value);
     }  /* for */
     indent -= 2;
     fputc('}', f_C_output);
