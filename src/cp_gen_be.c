@@ -194,6 +194,12 @@ typedef struct a_name_context {
 			/* The scope that defines the name context, or
 			   NULL for a name context for a block without
 			   an associated scope. */
+  a_scope_ptr	innermost_scope;
+			/* The innermost scope that this context is inside
+			   of.  If assoc_scope != NULL, innermost_scope is
+			   the same as assoc_scope.  Otherwise, it is the
+			   scope of the nearest context with
+			   assoc_scope != NULL. */
   an_access_specifier
 		access;	/* When putting out a class, the current default
 			   access for a member declaration. */
@@ -361,6 +367,8 @@ scope is NULL for a block without an associated scope.
   }  /* if */
   /* Initialize the entry. */
   ncp->assoc_scope = scope;
+  ncp->innermost_scope = (scope != NULL) ? scope :
+                                           curr_name_context->innermost_scope;
   ncp->access = (an_access_specifier)as_public;
   ncp->fixups = NULL;
   /* Put the entry on the stack. */
@@ -4574,7 +4582,7 @@ Output the initializer, if any, for the indicated variable.
 
   /* Push the name context class(es) for a class member. */
   push_class_name_context_if_member(&var->source_corresp);
-  get_variable_initializer(var, curr_name_context->assoc_scope,
+  get_variable_initializer(var, curr_name_context->innermost_scope,
                            &init_kind, &initializer);
   switch (init_kind) {
     case initk_none:
