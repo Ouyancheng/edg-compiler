@@ -1948,7 +1948,8 @@ scope is that of a class definition.
         if (defines_something && C_dialect == C_dialect_cplusplus) {
           pos_error(ec_type_definition_not_allowed, &param_type_pos);
           param_type_ptr = error_type();
-        } else if (C_dialect == C_dialect_cplusplus &&
+        } else if (decl_scope_level != DEPTH_OF_FILE_SCOPE &&
+                   member_function_parent_type == NULL &&
                    is_or_contains_local_type(param_type_ptr)) {
           pos_error(ec_local_type_not_allowed, &param_type_pos);
         }  /* if */
@@ -8060,15 +8061,6 @@ and for the instantiation of template functions.
   (void)check_function_return_type(rout_type,
                                    &rout_ptr->source_corresp.decl_position,
                                    /*is_call=*/FALSE);
-#if 0
-  /* Similarly, check for value parameters that must be passed using a copy
-     constructor. */
-  for (ptp = rout_type->variant.routine.extra_info->param_type_list;
-       ptp != NULL;
-       ptp = ptp->next) {
-    set_arg_transfer_method_flag(ptp);
-  }  /* for */
-#endif /* if 0 */
   rtsp = rout_type->variant.routine.extra_info;
   if (class_type != NULL && !(flags & SFB_NO_CLASS_REACTIVATION)) {
     /* Push a class symbol reactivation scope, to make class member names
@@ -8076,7 +8068,7 @@ and for the instantiation of template functions.
     push_class_reactivation_scope(class_type);
   }  /* if */
   is_instantiation = (flags & SFB_IS_INSTANTIATION) != 0;
-  scope_number = (func_info == NULL || is_instantiation) ?
+  scope_number = (is_instantiation) ?
                         NO_SCOPE_NUMBER : func_info->scope_number;
   /* Push the name scope for the routine body. */
   scope_ptr = push_scope((a_scope_kind)sck_function, scope_number,
@@ -8091,66 +8083,63 @@ and for the instantiation of template functions.
                         make_param_variable(rtsp->implicit_this_param_type,
                                             (a_storage_class)sc_auto);
   }  /* if */
-  check_assertion(func_info != NULL);
-  if (func_info != NULL) {
-    if (!is_instantiation) {
-      /* Parameter symbols that were created in the prototype scope (and then
-         removed in pop_scope) have to be reentered in the function scope; they
-         will be transformed in to variable symbols.  Also, in C mode, types
-         that were defined in the prototype scope need to reactivated now so
-         that they will be available in the current scope. */
-      if (func_info->prototype_scope_symbols != NULL) {
-        reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
-      }  /* if */
+  if (!is_instantiation) {
+    /* Parameter symbols that were created in the prototype scope (and then
+       removed in pop_scope) have to be reentered in the function scope; they
+       will be transformed in to variable symbols.  Also, in C mode, types
+       that were defined in the prototype scope need to reactivated now so
+       that they will be available in the current scope. */
+    if (func_info->prototype_scope_symbols != NULL) {
+      reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
     }  /* if */
-    /* If the parameters are old-style, process a set of declarations.
-       If they are new-style, declare the identifiers that appeared in
-       the function prototype. */
-    if (flags & SFB_OLD_STYLE_PARAM_DECL) {
-      /* Old-style id list. */
-      if (func_info->param_id_list == NULL) {
-        /* No parameters to declare. */
-      } else {
-        /* When the id list was originally scanned, sk_parameter symbols were
-           created but not actually entered into the symbol table, since there
-           was no scope in which to enter them.  Now that the function scope
-           has been created, enter the param names. */
-        for (param_id = func_info->param_id_list;
-             param_id != NULL;
-             param_id = param_id->next) {
-          check_assertion(param_id->symbol != NULL);
-          reenter_symbol(param_id->symbol, decl_scope_level,
-                         /*suppress_error=*/FALSE);
-        }  /* for */
-      }  /* if */
-    }  /* if */
-    if (rtsp->prototyped && func_info->any_prototype_names_omitted) {
-      /* New-style (function prototype) for which at least one of the param
-         names was omitted in the prototype.  In C this is not valid on a
-         function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
-      if (C_dialect != C_dialect_cplusplus) {
-        error(ec_all_proto_params_must_be_named);
-      }  /* if */
-    }  /* if */
-    param_id = func_info->param_id_list;
-    ptp = rtsp->param_type_list;
-    /* Be sure param-id and param-type lists are in sync. */
-    check_assertion((param_id == NULL) == (ptp == NULL));
-    for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
-      /* Declare each parameter identifier to have the associated type
-         from the parameter type list. */
-      decl_parameter(param_id, ptp, is_instantiation);
-      /* Be sure param-id and param-type lists are in sync. */
-      check_assertion((param_id->next == NULL) == (ptp->next == NULL));
-    }  /* for */
-    if (!is_instantiation) {
-      /* Free the list of parameter ids, now that it is no longer needed. */
-      free_param_id_list(&(func_info->param_id_list));
-    }  /* if */
-    /* Set the assoc_param_type field in each of the parameter variables. */
-    fixup_parameters(scope_ptr->variant.routine.parameters,
-                     rtsp->param_type_list);
   }  /* if */
+  /* If the parameters are old-style, process a set of declarations.
+     If they are new-style, declare the identifiers that appeared in
+     the function prototype. */
+  if (flags & SFB_OLD_STYLE_PARAM_DECL) {
+    /* Old-style id list. */
+    if (func_info->param_id_list == NULL) {
+      /* No parameters to declare. */
+    } else {
+      /* When the id list was originally scanned, sk_parameter symbols were
+         created but not actually entered into the symbol table, since there
+         was no scope in which to enter them.  Now that the function scope
+         has been created, enter the param names. */
+      for (param_id = func_info->param_id_list;
+           param_id != NULL;
+           param_id = param_id->next) {
+        check_assertion(param_id->symbol != NULL);
+        reenter_symbol(param_id->symbol, decl_scope_level,
+                       /*suppress_error=*/FALSE);
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  if (rtsp->prototyped && func_info->any_prototype_names_omitted) {
+    /* New-style (function prototype) for which at least one of the param
+       names was omitted in the prototype.  In C this is not valid on a
+       function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
+    if (C_dialect != C_dialect_cplusplus) {
+      error(ec_all_proto_params_must_be_named);
+    }  /* if */
+  }  /* if */
+  param_id = func_info->param_id_list;
+  ptp = rtsp->param_type_list;
+  /* Be sure param-id and param-type lists are in sync. */
+  check_assertion((param_id == NULL) == (ptp == NULL));
+  for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
+    /* Declare each parameter identifier to have the associated type
+       from the parameter type list. */
+    decl_parameter(param_id, ptp, is_instantiation);
+    /* Be sure param-id and param-type lists are in sync. */
+    check_assertion((param_id->next == NULL) == (ptp->next == NULL));
+  }  /* for */
+  if (!is_instantiation) {
+    /* Free the list of parameter ids, now that it is no longer needed. */
+    free_param_id_list(&(func_info->param_id_list));
+  }  /* if */
+  /* Set the assoc_param_type field in each of the parameter variables. */
+  fixup_parameters(scope_ptr->variant.routine.parameters,
+                   rtsp->param_type_list);
   /* Enter the constructor initializers.  If the current token is a ":",
      explicit initialization for the constructor follows, but even without
      an explicit initializer, any implicit initializers should be recorded. */
