@@ -5866,7 +5866,7 @@ Remove the cleanup action cap_to_remove from the current context.
   /* Find the entry on the list. */
   for (prev_cap = NULL, cap = curr_context->cleanup_actions;
        cap != cap_to_remove;
-       cap = cap->next) {
+       prev_cap = cap, cap = cap->next) {
     check_assertion_str(cap != NULL, "remove_cleanup_action: entry not found");
   }  /* for */
   /* Remove this entry from the list. */
