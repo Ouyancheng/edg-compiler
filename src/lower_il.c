@@ -1960,10 +1960,10 @@ should be specified as NULL.
 }  /* make_function_type */
 
 
-static a_routine_ptr make_routine(char            *name,
-                                  a_storage_class rout_storage_class,
-                                  a_type_ptr      return_type,
-                                  a_type_ptr      param_1_type)
+static a_routine_ptr make_rout_entry(char            *name,
+                                     a_storage_class rout_storage_class,
+                                     a_type_ptr      return_type,
+                                     a_type_ptr      param_1_type)
 /*
 Make a routine entry for a function with the given name, prototyped as
 having a parameter with type param_1_type and returning return_type,
@@ -1995,7 +1995,7 @@ be specified as NULL.  The name may be NULL.
   /* Add the routine to the file scope list. */
   add_to_routines_list(rout, /*at_file_scope=*/TRUE);
   return rout;
-}  /* make_routine */
+}  /* make_rout_entry */
 
 
 static a_scope_ptr make_routine_definition(a_routine_ptr          rout_ptr,
@@ -2046,8 +2046,8 @@ its return type is return_type.
 */
 {
   if (*routine == NULL) {
-    *routine = make_routine(name, (a_storage_class)sc_extern, return_type,
-                            (a_type_ptr)NULL);
+    *routine = make_rout_entry(name, (a_storage_class)sc_extern, return_type,
+                               (a_type_ptr)NULL);
     (*routine)->type->variant.routine.extra_info->prototyped = FALSE;
   }  /* if */
   return *routine;
@@ -5878,9 +5878,9 @@ and a source pointer.  The routine must have a "this" parameter.
     }  /* if */
 #endif /* CHECKING */
     /* Additional parameter types, if any, are added below. */
-    new_routine = make_routine((char *)NULL, (a_storage_class)sc_static,
-                               routine_type->variant.routine.return_type,
-                               this_param_type);
+    new_routine = make_rout_entry((char *)NULL, (a_storage_class)sc_static,
+                                  routine_type->variant.routine.return_type,
+                                  this_param_type);
     new_rtsp = new_routine->type->variant.routine.extra_info;
 #if CHECKING
     /* The routine is not allowed to be one that returns its value via
@@ -6487,9 +6487,9 @@ pointer to the routine.
   (void)memcpy(name, prefix, (int)prefix_len);
   (void)strcpy(name+prefix_len, module_id);
   /* Make a type and routine entry for the routine. */
-  init_rout = make_routine(name, (a_storage_class)sc_unspecified,
-                           integer_type((an_integer_kind)ik_char),
-                           (a_type_ptr)NULL);
+  init_rout = make_rout_entry(name, (a_storage_class)sc_unspecified,
+                              integer_type((an_integer_kind)ik_char),
+                              (a_type_ptr)NULL);
   /* Make a memory region, scope, and block for the init routine definition. */
   *init_rout_scope = make_routine_definition(init_rout, /*make_return=*/TRUE,
                                              il_region);
