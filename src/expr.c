@@ -8317,7 +8317,8 @@ static void keep_enum_in_result_type(a_type_ptr op1_type,
                                      a_type_ptr *result_type)
 /*
 If both of the operands have the same enumerated type, keep that information
-in the result type.
+in the result type.  *result_type is set already, but if appropriate it
+is modified to indicate that is affiliated with the enum type.
 */
 {
   a_type_ptr op1_enum, op2_enum;
@@ -8334,26 +8335,34 @@ in the result type.
       if (op1_enum != NULL && op1_enum == op2_enum) {
         /* Both types are the same enum type, so keep the enum tag in
            the result type. */
-#if CHECKING
-        if (!is_integral_or_enum_type(*result_type)) {
-          internal_error(
+        an_integer_kind result_kind;
+        check_assertion_str(is_integral_or_enum_type(*result_type),
                         "keep_enum_in_result_type: bad result type for enums");
-        }  /* if */
-#endif /* CHECKING */
-        if (skip_typerefs(*result_type)->variant.integer.int_kind ==
-                                          op1_enum->variant.integer.int_kind) {
-          /* The result type has the same size/sign as the enum types, so
-             use the enum type as the result type. */
-          *result_type = op1_enum;
+        result_kind = skip_typerefs(*result_type)->variant.integer.int_kind;
+        if (result_kind == op1_type->variant.integer.int_kind) {
+          /* Normal case -- the result type is the same integral type as
+             the operand types.  Use the operand type instead because it
+             includes the enum affiliation. */
+          *result_type = op1_type;
         } else {
-          /* In some cases involving bit-fields in pcc mode that get widened
-             to unsigned int instead of int, create a tagged version of the
-             unsigned type.  Note that the type is not shared, but this case
-             should not come up often. */
-          op1_type = alloc_type((a_type_kind)tk_integer);
-          *op1_type = **result_type;
-          op1_type->variant.integer.enum_type = FALSE;
-          op1_type->variant.integer.enum_info.affiliated_type = op1_enum;
+          /* The enum operands have types different than the result type,
+             which means they are smaller than int and promote to the
+             result type.  Find or create a version of the result type that
+             includes the enum affiliation. */
+          a_constant_ptr enum_con =
+                             op1_enum->variant.integer.enum_info.constant_list;
+          /* See if the type of the first enum constant is the right type. */
+          if (enum_con != NULL &&
+              result_kind == enum_con->type->variant.integer.int_kind) {
+            *result_type = enum_con->type;
+          } else {
+            /* Make the needed type. */
+            a_type_ptr new_type = alloc_type((a_type_kind)tk_integer);
+            *new_type = **result_type;
+            new_type->variant.integer.enum_type = FALSE;
+            new_type->variant.integer.enum_info.affiliated_type = op1_enum;
+            *result_type = new_type;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

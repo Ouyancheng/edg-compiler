@@ -1,5 +1,17 @@
 Version 2.37
 
+9/16/97   Abort eliminated on use of incomplete enum in "?" in pcc mode
+
+The following program, which uses an enumerator from an enum within
+a "?" operation inside the definition of the enum, no longer aborts
+in pcc mode:
+
+  enum {
+    E1,
+    E2 = 1 ? E1 : E1,
+    E3
+  };
+
 9/16/97   Microsoft compatibility: __declspec(novtable)
 
 In Microsoft compatibility mode, __declspec(novtable) is now implemented
