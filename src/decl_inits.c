@@ -431,7 +431,7 @@ for unions and aggregates at that level).
              (is_error_type(local_type) && brace_flag)) {
     /* Initialization of an array (complete or incomplete), struct, or
        union.  The result will be an aggregate constant except when an
-       array of char is initialized by an string.  The initial
+       array of char is initialized by a string.  The initial
        values can either appear inside a brace-enclosed list, or at
        the current level. */
 #if 0
