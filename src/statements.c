@@ -3207,15 +3207,19 @@ block under the "try" in a function try block.
   a_struct_stmt_kind      kind;
   a_statement_ptr         block_stmt;
 
-  if (!is_statement_expr) {
-    /* Allocate a block statement and add it to the statements list. */
-    block_stmt = add_statement((a_statement_kind)stmk_block);
-  } else {
+#if GNU_EXTENSIONS_ALLOWED
+  if (is_statement_expr) {
     /* A GNU statement expression.  Do not link the statement into
        the current statement on the statement stack. */
     block_stmt = alloc_statement((a_statement_kind)stmk_block);
     block_stmt->variant.block.extra_info->is_statement_expression = TRUE;
     set_stmt_source_position(block_stmt->position, pos_curr_token);
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    /* Allocate a block statement and add it to the statements list. */
+    block_stmt = add_statement((a_statement_kind)stmk_block);
   }  /* if */
   stmt_update_source_sequence_list(block_stmt);
   if (!generated_statement) {
