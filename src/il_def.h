@@ -303,6 +303,9 @@ typedef enum /*an_il_entry_kind*/ {
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
+/* For storing an il entry kind more compactly. */
+typedef a_byte a_byte_il_entry_kind;
+
 /* Macro to test whether or not an entry kind is a string kind. */
 #define is_string_entry_kind(entry_kind) \
   ((entry_kind) == iek_id_name || (entry_kind) == iek_string_text || \
@@ -395,9 +398,6 @@ typedef struct a_source_range {
 		end_position;
 			/* Ending source position of a range of text. */
 } a_source_range;
-
-/* For storing an il entry kind more compactly. */
-typedef a_byte a_byte_il_entry_kind;
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 /*
