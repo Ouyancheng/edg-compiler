@@ -1,5 +1,13 @@
 Version 3.0
 
+4/28/02  Minimal inlining: temporary must be used to pass local static
+
+Minimal inlining has been changed so that it always uses a temporary
+to pass a local static variable into an inlined call.  Without this, it
+was possible for the flow of control to get back to the function
+having the local variable and for the value of the variable to be
+changed.
+
 4/28/02  C++-generating back end: explicit call of destructor not qualified
 
 The C++-generating back end was always using a qualified name for the

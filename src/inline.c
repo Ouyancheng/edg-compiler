@@ -304,9 +304,12 @@ body have side effects).
       is_constant_valued = TRUE;
     } else if (!local_vars_change &&
                var->source_corresp.is_local_to_function &&
-               !var->address_taken) {
+               !var->address_taken &&
+               !has_static_storage_duration(var->storage_class)) {
       /* This is a local variable, and local variables are invariant
-         over the lifetime of the call. */
+         over the lifetime of the call.  Local static variables are
+         excluded because the flow of control can get back to the same
+         function and change a static variable's value. */
       is_constant_valued = TRUE;
     } else if (!other_vars_change) {
       /* The values of all variables are invariant over the lifetime
