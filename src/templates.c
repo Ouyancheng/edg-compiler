@@ -2546,26 +2546,11 @@ Instantiate the body of the template function associated with tip.
   if (tssp->pending_instantiations >= max_pending_instantiations) {
     /* This function instantiation occurs within the context of other
        instantiations of the same function template.  When the number of
-       such instantiations-in-progress exceeds a configuration
-       constant value, we assume this to be runaway recursion -- for
-       for instance (to give a rather unlikely example):
-
-       template <int i> class A {
-         void f() {
-           A<i+1> a;
-           a.f();
-         }
-       };
-       void main() {
-         A<1> a;
-         a.f();
-       }
+       such instantiations-in-progress exceeds a specified value,
+       we assume this to be runaway recursion.
 
        Note that this can only catch recursive instantiations of inline
-       functions.  Runaway instantiations of out-of-line functions can
-       not be detected this way because they are instantiated serially
-       not recursively.
-    */
+       functions, and instantiations done during instantiation wrapup. */
     sym_error(ec_runaway_recursive_instantiation, rout_sym);
     goto done;
   }  /* if */
@@ -2782,6 +2767,13 @@ and the class instantiation will detect the runaway case.
     internal_error("define_template_static_data_member: sym already def'd");
   }  /* if */
 #endif /* CHECKING */
+  if (tssp->pending_instantiations >= max_pending_instantiations) {
+    /* This instantiation occurs within the context of other instantiations
+       of the same static data member.  When the number of such instantiations
+       exceeds a specified limit, we assume this to be a runaway recursion. */
+    sym_error(ec_runaway_recursive_instantiation, static_data_member_sym);
+    goto done;
+  }  /* if */
   /* If the type of the static data member is a template class, make sure
      it is instantiated. */
   complete_type_is_needed(var_ptr->type);
@@ -2831,6 +2823,7 @@ and the class instantiation will detect the runaway case.
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
+  ++(tssp->pending_instantiations);
   /* Call mark_defined *after* the template instantiation scope is pushed --
      correct behavior for source sequence entry generation depends on it. */
   mark_defined(static_data_member_sym, &tip->template_sym->decl_position);
@@ -2866,6 +2859,7 @@ and the class instantiation will detect the runaway case.
   process_curr_construct_pragmas(static_data_member_sym,
                                  (a_statement_ptr)NULL);
   pop_template_instantiation_scope();
+  --(tssp->pending_instantiations);
   /* Usually template static data members are instantiated "on demand" and
      so the referenced flag will already have been set.  But if the
      instantiation mode says to instantiate whether or not there is
@@ -2873,11 +2867,15 @@ and the class instantiation will detect the runaway case.
      the back-end will be sure to generate the function. */ 
   var_ptr->source_corresp.referenced = TRUE;
   var_ptr->is_template_static_data_member = TRUE;
-  tip->already_instantiated = TRUE;
 #if 0
   /* Note that Microsoft decl_modifiers are not processed on static
      data member definitions.  Microsoft does not allow this either. */
 #endif /* 0 */
+done:
+  /* The already instantiated flag is set even if certain error conditions
+     (such as runaway instantiation) to prevent the compiler from attempting
+     to instantiate this static data member again. */
+  tip->already_instantiated = TRUE;
   db_exit();
 }  /* define_template_static_data_member */
 
