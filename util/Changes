@@ -1,5 +1,11 @@
 Version 2.35
 
+2/7/97   Memory allocation error in prelinker
+
+Under certain circumstances the prelinker would not allocate sufficient
+memory for the construction of the command line used to recompile a
+file.  This has been fixed.
+
 1/3/97   Invariant name used in "removed" error codes
 
 The enumeration name used for "removed" error messages has been changed

@@ -2213,7 +2213,7 @@ hold the command.
 
   /* Allocate the command line with twice the space needed to make room
      for added escape characters. */
-  length = (strlen(part1) + strlen(part2)) * 2;
+  length = (strlen(part1) + strlen(part2) + strlen(part3)) * 2;
   command = (char *)pl_malloc_with_check(length);
   to = command;
   for (pass = 1; pass <= 3; pass++) {
