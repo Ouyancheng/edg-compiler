@@ -10065,6 +10065,8 @@ instantiation information file.  Return TRUE if it is present.
   a_boolean	found = FALSE;
 
   if (!auto_instantiation_initialized) {
+    /* Get the list of entities to be instantiated, if this has not already
+       been done. */
     any_instantiations_assigned_to_this_translation_unit =
                                        init_auto_instantiation_information();
     auto_instantiation_initialized = TRUE;
@@ -10095,6 +10097,13 @@ if one already exists.
 {
   FILE		*f_ii_file;
 
+  if (!auto_instantiation_initialized) {
+    /* Open the instantiation information file, if it has not already been
+       opened. */
+    any_instantiations_assigned_to_this_translation_unit =
+                                       init_auto_instantiation_information();
+    auto_instantiation_initialized = TRUE;
+  }  /* if */
   if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
     /* The name of the instantiation information file should have already
        been determined when the file was opened as part of automatic
