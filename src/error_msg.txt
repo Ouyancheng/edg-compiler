@@ -747,7 +747,7 @@ ec_bad_ptr_dynamic_cast_operand;;"the operand of a pointer dynamic_cast must be 
 ec_bad_ref_dynamic_cast_operand;;"the operand of a reference dynamic_cast must be an lvalue of a complete class type"
 ec_dynamic_cast_operand_must_be_polymorphic;;"the operand of a runtime dynamic_cast must have a polymorphic class type"
 ec_cl_bool_option_only_in_cplusplus;;"bool option can be used only when compiling C++"
-ec_bad_storage_class_on_condition_decl;;"invalid storage class for condition declaration"
+REMOVED;ec_bad_storage_class_on_condition_decl;;"invalid storage class for condition declaration"
 ec_array_type_not_allowed;;"an array type is not allowed here"
 ec_exp_assign;;"expected an \"=\""
 ec_exp_declarator_in_condition_decl;;"expected a declarator in condition declaration"
