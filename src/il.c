@@ -3781,7 +3781,7 @@ fields, and add it to the file-scope types list.
 }  /* add_placeholder_for_namespace_type */
 
 
-static void add_placeholder_for_class_instantiation(a_type_ptr  type_ptr)
+void add_placeholder_for_class_instantiation(a_type_ptr  type_ptr)
 /*
 When an instantiation occurs in the midst of a class definition, the
 instantiation may be dependent upon nested types from the class.  The
