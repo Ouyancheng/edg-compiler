@@ -14922,8 +14922,8 @@ data member specified by tip.
            happen if the entity is specialized in the other translation
            unit. */
         tip = NULL;
-    }  /* if */
       }  /* if */
+    }  /* if */
   }  /* if */
   if (tip == NULL) {
     /* This can occur when no corresponding instance could be found in the
@@ -15569,7 +15569,8 @@ Determine the type of "line" that was read from an exported template file.
   an_exported_template_line_type	type;
 
   for (type = (an_exported_template_line_type)((int)etlt_none + 1);
-       type < etlt_last; type++) {
+       (int)type < (int)etlt_last;
+       type = (an_exported_template_line_type)((int)type + 1)) {
     char	*line_type_name;
     line_type_name = exported_template_line_type_names[(int)type];
     /* This routine requires that all type names be three characters. */
