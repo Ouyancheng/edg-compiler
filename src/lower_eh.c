@@ -3891,7 +3891,6 @@ invocation of the front end.
 #if ABI_CHANGES_FOR_RTTI
   typeinfo_tinfo_field = NULL;
   user_type_info_type = NULL;
-  vtbl_for_type_info = NULL;
 #if RUNTIME_USES_NAMESPACES
   fake_std_namespace = NULL;
 #endif /* RUNTIME_USES_NAMESPACES */
@@ -3917,6 +3916,9 @@ invocation of the front end.
   free_thrown_object_routine = NULL;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   /* Variables in lower_eh.h: */
+#if ABI_CHANGES_FOR_RTTI
+  vtbl_for_type_info = NULL;
+#endif /* ABI_CHANGES_FOR_RTTI */
 #if GENERATE_EH_TABLES
   /* Make a constant for the maximum region number, also used for the
      null region number.  */
