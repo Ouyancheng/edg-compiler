@@ -2215,7 +2215,8 @@ for handling virtual bases and functions.
         (fp = class_type->variant.class_struct_union.field_list) != NULL &&
         !is_error_type(fp->type)) {
 #if CHECKING
-      check_assertion_str2(fp->next == NULL && is_array_type(fp->type) &&
+      check_assertion_str2((fp->next == NULL || is_union_type(class_type)) &&
+                           is_array_type(fp->type) &&
                            is_incomplete_type(fp->type),
                            "do_class_layout: unexpected field in zero-size",
                            "struct (microsoft C mode)");
