@@ -1241,8 +1241,7 @@ position).
   /* If the member is protected, it can only be accessed through an object
      or pointer of a type to which we have member access (ARM 11.5). */
   if (!member_locator->access_control_error_reported) {
-    check_protected_member_access(member_sym, *class_struct_union_type,
-                                  &member_locator->source_position);
+    check_protected_member_access(member_locator, *class_struct_union_type);
   }  /* if */
   /* Do nothing if the type is already okay (which it almost always
      will be). */
@@ -1253,7 +1252,9 @@ position).
     if (bcp != NULL) {
       /* Cast the left operand to the proper type. */
       base_class_cast_operand(operand_1, bcp, is_arrow_operator,
-                              /*check_cast_access=*/TRUE, expression_kind);
+                              /*check_cast_access=*/
+                                !member_locator->access_control_error_reported,
+                              expression_kind);
       *class_struct_union_type = bcp->type;
     } else {
       /* The classes are not related.  Error. */
