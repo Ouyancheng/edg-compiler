@@ -2508,6 +2508,9 @@ special function kind (e.g., constructor, destructor), if any.
     } else {
       rtn->special_kind = spec_kind;
     }  /* if */
+    /* If this is a user-defined conversion or an overloaded operator,
+       check for errors in the argument list. */
+    check_operator_function_params(rtn, &locator->source_position);
     if (spec_kind == (a_special_function_kind)sfk_constructor) {
       /* Set the pointer to the constructor symbol in the class symbol
          supplement. */
@@ -3764,7 +3767,7 @@ routine body is generated at this time.
      entry and add it to the routines list for the current scope. */
   rout_sym = decl_member_function(&locator, class_type, rout_type,
                                   (an_access_specifier)as_public,
-                                  /*is_inline=*/ TRUE, /*is_virtual=*/ FALSE,
+                                  /*is_inline=*/TRUE, /*is_virtual=*/FALSE,
                                   sfkind);
   rout_sym->variant.routine->compiler_generated = TRUE;
   db_exit();
