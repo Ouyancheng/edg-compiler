@@ -7165,6 +7165,10 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       lower_typeid(expr);
       break;
 #endif /* ABI_CHANGES_FOR_RTTI */
+    case enk_runtime_sizeof:
+      /* enk_runtime_sizeof is used for C only and should not appear in
+         C++ IL. */
+      unexpected_condition_str("lower_expr: enk_runtime_sizeof");
     case enk_object_lifetime:
       unexpected_condition_str("lower_expr: enk_object_lifetime not at top");
     case enk_condition:
