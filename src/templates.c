@@ -5351,16 +5351,40 @@ the diagnostic is suppressed.
 }  /* check_for_invalid_instantiation */
 
 
+static a_decl_flag_set merge_declarator_flags(a_decl_flag_set dso_flags,
+                                              a_decl_flag_set do_flags)
+/*
+Some flags normally set by decl_specifiers cannot be determined until
+declarator has run.  For example, a parenthesized constructor declarator is
+not recognized as such until the declarator has been scanned.
+
+dso_flags are the flags produced by decl_specifier and do_flags those
+produced by declarator. The relevant bits of the latter are merged into the
+former and the resulting value is returned.
+*/
+{
+  a_decl_flag_set result = dso_flags;
+
+  if (do_flags & DO_IS_CONSTRUCTOR) {
+    result |= DSO_CONSTRUCTOR;
+  }  /* if */
+  if (do_flags & DO_IS_DESTRUCTOR) {
+    result |= DSO_DESTRUCTOR;
+  }  /* if */
+  return result;
+}  /* merge_declarator_flags */
+
+
 static void check_for_declaration_errors(a_decl_flag_set   dso_flags,
-					 a_type_ptr	   type,
+                                         a_type_ptr        type,
                                          a_symbol_locator  *locator,
-					 a_source_position *pos)
+                                         a_source_position *pos)
 /*
 This routine is used to detect certain kinds of errors related to
 the processing of a declaration in a function template declaration,
 explicit instantiation or specialization.  
 
-dso_flags and type are the values returned from decl_specifiers and
+dso_flags is a set of flags produced by decl_specifiers; type is produced by
 declarator. pos is the position to be used if a diagnostic is issued.
 */
 {
@@ -5536,7 +5560,9 @@ information.
          previously reported error. */
       set_to_named_error_locator(*locator);
     }  /* if */
-    check_for_declaration_errors(*dso_flags, *type, locator, &decl_start_pos);
+    check_for_declaration_errors(
+                             merge_declarator_flags(*dso_flags, *do_flags),
+                             *type, locator, &decl_start_pos);
     func_info->is_inline = ((*dso_flags & DSO_INLINE) != 0);
     /* Note whether this is a function type that comes from a typedef.  The
        setting is checked later if this turns out to be a function template
@@ -10434,10 +10460,10 @@ any non-empty template parameter lists that were scanned.
         if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
 #endif /* RECORD_TEMPLATES_IN_IL */
       } else if (is_function_type(type)) {
-        sym = function_template_declaration(decl_state, &locator,
-                                            &func_info, storage_class,
-                                            &decl_modifiers, type, dso_flags,
-					    &decl_start_pos);
+        sym = function_template_declaration(
+                 decl_state, &locator, &func_info, storage_class,
+                 &decl_modifiers, type,
+                 merge_declarator_flags(dso_flags, do_flags), &decl_start_pos);
         complete_function_template_decl(decl_state, sym, &func_info,
                                         &tssp, &locator.source_position);
 #if RECORD_TEMPLATES_IN_IL
@@ -10868,7 +10894,8 @@ that follows.
         sym = normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
       }  /* if */
     }  /* if */
-    check_for_declaration_errors(dso_flags, type, &locator, &decl_start_pos);
+    check_for_declaration_errors(merge_declarator_flags(dso_flags, do_flags),
+                                 type, &locator, &decl_start_pos);
     /* Issue diagnostic on an incomplete-type in an exception specification. */
     report_exception_spec_errors(&func_info);
     if (is_error_locator(locator)) {
@@ -13433,7 +13460,8 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   if (sym == NULL) {
     sym = normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
   }  /* if */
-  check_for_declaration_errors(dso_flags, type, &locator, start_pos);
+  check_for_declaration_errors(merge_declarator_flags(dso_flags, do_flags),
+                               type, &locator, start_pos);
   if (sym == NULL) {
     /* No symbol was found.  If the declarator has a function type
        then say that the name is undefined.  If it was not a function

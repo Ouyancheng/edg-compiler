@@ -1,9 +1,23 @@
 Version 2.42
 
+6/18/99  Inappropriate diagnostics on parenthesized constructor and
+         destructor declarators
+
+The front end used to issue errors and warnings on this example:
+
+  struct S {
+    (S)();
+    (~S)();
+  };
+  (S::S)() {}
+  (S::~S)() {}
+
+This is now fixed.
+
 6/18/99  Warn on use of types without name linkage in entities with linkage
 
-Warnings are now issued when an entity with linkage is declared using
-a type with no name linkage. For example,
+Warnings (or errors in strict mode) are now issued when an entity with
+linkage is declared using a type with no name linkage. For example:
 
   typedef struct {} *ptr_to_nameless; // typedef type has no linkage
   void f(ptr_to_nameless); // warning: f has linkage, but its parameter
@@ -39,20 +53,6 @@ constants (which are represented as structs after lowering) are considered
 constant arguments and can therefore be used directly in place of the
 corresponding parameter within the inlined function call (no copy to a
 temporary is needed).
-
-6/14/99  Inappropriate diagnostics on parenthesized constructors and
-         destructors
-
-The front-end used to issue errors and warnings on this example:
-
-  struct S {
-    S();
-    ~S();
-  };
-  (S::S)() {}
-  (S::~S)() {}
-
-This is now fixed.
 
 6/14/99  Abort in default argument expression processing on use of
          field selection for template static member function

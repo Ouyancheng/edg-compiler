@@ -530,7 +530,7 @@ ec_called_function_redeclared_inline;;"%n redeclared \"inline\" after being call
 REMOVED;ec_vacuous_destructor_name_mismatch;;"destructor name does not match left operand of \"->\" or \".\""
 ec_bad_storage_class_on_template_decl;;"invalid storage class for a template declaration"
 ec_no_access_to_type_cfront_mode;;"%n is an inaccessible type (allowed for cfront compatibility)"
-ec_return_type_not_allowed;;"a return type is not allowed"
+REMOVED;ec_return_type_not_allowed;;"a return type is not allowed"
 ec_invalid_instantiation_argument;;"invalid explicit instantiation declaration"
 ec_not_instantiatable_entity;;"%nf is not an entity that can be instantiated"
 ec_compiler_generated_function_cannot_be_instantiated;;"compiler generated %n cannot be explicitly instantiated"
@@ -1010,6 +1010,8 @@ ec_extra_bits_ignored;;"declared size for bit field is larger than the size of t
 ec_constructor_type_mismatch;;"type used as constructor name does not match type %t"
 ec_type_with_no_linkage_in_var_with_linkage;;"use of a type with no linkage to declare a variable with linkage"
 ec_type_with_no_linkage_in_function;;"use of a type with no linkage to declare a function"
+ec_return_type_on_constructor;;"return type may not be specified on a constructor"
+ec_return_type_on_destructor;;"return type may not be specified on a destructor"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

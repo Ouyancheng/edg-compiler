@@ -3187,8 +3187,12 @@ is a that of a constructor.
       clear_token_cache(&cache, /*reusable=*/FALSE);
       /* Put the current token in the cache. */
       cache_curr_token(&cache);
-      /* Advance to what may be the left paren. */
-      if (get_token() == tok_lparen) {
+      /* Skip right parentheses that may enclose the declarator---e.g.,
+         "struct S { (((S)))(); };"---and advance to what may be a left
+         parenthesis: */
+      while (get_token() == tok_rparen) { cache_curr_token(&cache); }
+      /* A left parenthesis presumably starts a parameter declaration list: */
+      if (curr_token == tok_lparen) {
         /* Cache the left parenthesis. */
         cache_curr_token(&cache);
         /* Advance past it.  If the next token is a right paren or
@@ -4875,6 +4879,9 @@ process_class_specifier:
               class_type = ssep->assoc_type;
               check_assertion(class_type != NULL &&
                               is_class_struct_union_type(class_type));
+              /* The following test will not succeed if the constructor
+                 declaration is parenthesized; in that case, the test is
+                 repeated in scan_real_declarator_id. */
               if (is_constructor_decl(class_type)) {
                 basic_type = bt_no_type;
                 *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;

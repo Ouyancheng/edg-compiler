@@ -3137,6 +3137,19 @@ to FALSE if the entity being declared is not initializable.
           }  /* if */
         }  /* if */
       }  /* if */
+    } else {
+      /* The declarator id is not qualified. */
+      if (scope_stack[depth_scope_stack].kind
+                                 == (a_scope_kind)sck_class_struct_union) {
+        /* Check if we have a constructor. Trying to find it out while
+           scanning the specifiers might have failed because the scanning had
+           to stop at an opening parenthesis. However, we might have
+           "struct S { (S)(); }". Note that destructors aren't a problem
+           because of the distinctive leading tilde. */
+        if (is_constructor_decl(scope_stack[depth_scope_stack].assoc_type)) {
+          *is_constructor = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (err) {
       /* An error occurred while scanning the identifier -- use an error
@@ -3931,7 +3944,7 @@ function_lparen:
          source for a constructor declaration. */
       if (!is_unknown_type(specifiers_type) &&
           !(input_flags & DI_NO_TYPE_SPECIFIERS)) {
-        pos_error(ec_return_type_not_allowed, &declarator_pos);
+        pos_error(ec_return_type_on_constructor, &declarator_pos);
       }  /* if */
       complete_type = make_reference_type(member_parent_type);
     } else if (*is_destructor) {
@@ -3940,7 +3953,7 @@ function_lparen:
         complete_type = error_type();
       } else {
         if (!(input_flags & DI_NO_TYPE_SPECIFIERS)) {
-          pos_error(ec_return_type_not_allowed, &declarator_pos);
+          pos_error(ec_return_type_on_destructor, &declarator_pos);
         } else if (derived_type == NULL || !is_function_type(derived_type)) {
           pos_error(ec_bad_destructor_decl, &declarator_pos);
         }  /* if */

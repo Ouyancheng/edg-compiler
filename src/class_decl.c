@@ -7628,7 +7628,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
       } else {
         /* A warning in C++. */
         char  buffer[8];
-        sprintf(buffer, "%d", max_size_allowed);
+        sprintf(buffer, "%ld", max_size_allowed);
         pos_st_warning(ec_extra_bits_ignored, &error_position, buffer);
       }  /* if */
       bit_field_size = max_size_allowed;
@@ -10022,8 +10022,10 @@ to be returned to the caller.
             decl_info.storage_class = (a_storage_class)sc_unspecified;
           }  /* if */
         }  /* if */
+        decl_info.is_constructor = 
+                                 (decl_info.do_flags & DO_IS_CONSTRUCTOR) != 0;
+        decl_info.is_destructor = (decl_info.do_flags & DO_IS_DESTRUCTOR) != 0;
       }  /* if */
-      if (locator.is_destructor_name) decl_info.is_destructor = TRUE;
     }  /* if */
     remove_stop_token(tok_colon);
     remove_stop_token(tok_try);
