@@ -26,12 +26,21 @@ they are put out for class template instantiations.  Defined in
 host_envir.h, both flags require GENERATE_SOURCE_SEQUENCE_LISTS to be set.
 Both are FALSE by default.
 
-8/17/94  Diagnostic on type qualifier applied to reference type
+8/17/94  Restriction on type qualifier applied to reference type
 
 We used to issue a warning that the construct was meaningless.  In fact it
 now violates the C++ grammar, so we modified the text of the diagnostic
 and issue an error in strict ANSI mode.  Undiagnosed by cfront, it is still
 accepted with a warning in default mode.
+
+Also, a bug related to this has been fixed.  If one uses a typedef to
+circumvent the syntax restriction, the type qualifier is supposed to be
+ignored (WP 8.3.2).  A change has been made to do exactly that, and in
+general qualifiers will no longer appear on reference types.  For example:
+
+  typedef int & RI;
+  const RI x;            // The type for x is now recorded as "reference
+                         //   to int" rather than "const reference to int"
 
 8/17/94  Diagnostic severity on missing initializer
 
@@ -40,9 +49,9 @@ following cases in which an initializer is missing:
   o  a variable of class (or array-of-class) type where there are const
      and/or ref members (used to be es_error)
   o  an object this is created by a new expression with a type that is
-       --  const qualified (used to be es_warning)
-       --  a class (or array of class) where there are const and/or ref
-           members (used to be es_error)
+     -- const qualified (used to be es_warning)
+     -- a class (or array of class) where there are const and/or ref
+        members (used to be es_error)
 Now the cases are handled consistently, but the severities may be reduced
 by a command line option.
 
