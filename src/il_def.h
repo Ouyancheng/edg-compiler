@@ -1190,6 +1190,13 @@ typedef struct a_class_type_supplement {
 			   within the scope of the class, including nested
 			   classes.  This pointer is NULL when the class
 			   has been declared but not defined. */
+  a_template_arg_ptr
+		template_arg_list;
+			/* For classes that are instantiations of a class
+			   template, a list of entries describing the "actual
+			   arguments" on which the instantiation is based.
+			   This pointer is NULL for ordinary classes that are
+			   not generated from a template. */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   a_routine_ptr	assoc_operator_new_routine,
 		assoc_operator_delete_routine;
