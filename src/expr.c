@@ -7917,14 +7917,15 @@ for non-class operands).  This routine is called only in C++ mode.
             *err = TRUE;
             *processed = TRUE;
             (void)user_defined_conversion_possible(
-                                            operand, eff_type_cast_to,
-                                            /*need_lvalue_result=*/TRUE,
-                                            /*is_copy_initialization=*/FALSE,
-                                            /*is_reference_binding=*/TRUE,
-                                            /*processed_arg=*/FALSE,
-                                            &conversion,
-                                            (a_conv_descr *)NULL,
-                                            &failed);
+                                         operand, eff_type_cast_to,
+                                         /*need_lvalue_result=*/TRUE,
+                                         /*is_copy_initialization=*/FALSE,
+                                         /*orig_is_copy_initialization=*/FALSE,
+                                         /*is_reference_binding=*/TRUE,
+                                         /*processed_arg=*/FALSE,
+                                         &conversion,
+                                         (a_conv_descr *)NULL,
+                                         &failed);
           }  /* if */
         } else if (is_template_param_type(operand->type)) {
           /* A template parameter type could be a class type, so assume that
@@ -7940,14 +7941,16 @@ for non-class operands).  This routine is called only in C++ mode.
       /* Normal case (not a cast to a reference type). */
       /* Check for user-defined conversions, but not when casting to void. */
       if (!is_void_type(type_cast_to)) {
-        if (user_defined_conversion_possible(operand, type_cast_to,
-                                             /*need_lvalue_result=*/FALSE,
-                                             /*is_copy_initialization=*/FALSE,
-                                             /*is_reference_binding=*/FALSE,
-                                             /*processed_arg=*/FALSE,
-                                             &conversion,
-                                             &ctor_arg_conversion,
-                                             &failed)) {
+        if (user_defined_conversion_possible(
+                                         operand, type_cast_to,
+                                         /*need_lvalue_result=*/FALSE,
+                                         /*is_copy_initialization=*/FALSE,
+                                         /*orig_is_copy_initialization=*/FALSE,
+                                         /*is_reference_binding=*/FALSE,
+                                         /*processed_arg=*/FALSE,
+                                         &conversion,
+                                         &ctor_arg_conversion,
+                                         &failed)) {
           /* A user-defined conversion can be done. */
           /* Force the result to an rvalue because the cast is not
              to a reference type (otherwise, when a conversion function
@@ -16142,6 +16145,7 @@ This routine is also called in C99 and GNU C modes.
                                           required_type,
                                           /*try_bitwise_copy=*/TRUE,
                                           /*is_copy_initialization=*/TRUE,
+                                          /*orig_is_copy_initialization=*/TRUE,
                                           /*is_reference_binding=*/FALSE,
                                           /*processed_arg=*/FALSE,
                                           &conversion,

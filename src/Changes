@@ -1,5 +1,22 @@
 Version 3.4
 
+9/22/03  Microsoft compat: explicit constructors and copy-initialization
+
+In Microsoft bugs mode, some instances of copy-initialization are
+treated as direct-initialization to emulate the behavior of MSVC++.
+However, constructors marked explicit were considered in such
+cases, and MSVC++ does not do that.  Now, the EDG front end
+ignores explicit constructors in such cases.
+
+  struct ParamColor {
+    explicit ParamColor(const unsigned char& inValue);
+    ParamColor(const unsigned long& inData);
+  };
+  int main() {
+    ParamColor backgroundColor = 0;  // Formerly ambiguous in Microsoft bugs
+                                     // mode
+  }
+
 9/18/03  Partial ordering failure on dependent qualified name in return type
 
 In certain cases, the partial ordering implementation would fail to prefer
