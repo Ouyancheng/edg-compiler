@@ -7241,18 +7241,24 @@ Dump the "name" of an object lifetime (really, some identifying information
 about it).
 */
 {
-  char *str;
+  char            *str;
 
   switch (olp->kind) {
+    case olk_block_after_label: str = "block_after_label"; break;
     case olk_global_static:     str = "global_static";     break;
     case olk_block:             str = "block";             break;
-    case olk_block_after_label: str = "block_after_label"; break;
     case olk_function_static:   str = "function_static";   break;
     case olk_expr_temporary:    str = "expr_temporary";    break;
     case olk_constructor_init:  str = "constructor_init";  break;
     default:                    str = "???";               break;
   }  /* switch */
   fprintf(f_debug, "%s [", str);
+  if (olp->kind == (an_object_lifetime_kind)olk_block_after_label) {
+    fputs("==> ", f_debug);
+    do {
+      olp = olp->parent_lifetime;
+    } while (olp->kind == (an_object_lifetime_kind)olk_block_after_label);
+  }  /* if */
   if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
     db_scope((a_scope_ptr)olp->entity.ptr);
   } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_none) {
@@ -7406,8 +7412,16 @@ stack, a string supplied by the caller, and the object lifetime "name".
   an_object_lifetime_ptr  parent = olp->parent_lifetime;
 
   fprintf(f_debug, "OL-%.4d..", (int)pos_curr_token.seq);
+  if (olp->kind == (an_object_lifetime_kind)olk_block_after_label) {
+    while (parent->kind == (an_object_lifetime_kind)olk_block_after_label) {
+      parent = parent->parent_lifetime;
+    }  /* while */
+    parent = parent->parent_lifetime;
+  }  /* if */
   for (; parent != NULL; parent = parent->parent_lifetime) {
-    fputs("..", f_debug);
+    if (parent->kind != (an_object_lifetime_kind)olk_block_after_label) {
+      fputs("..", f_debug);
+    }  /* if */
   }  /* for */
   if (str != NULL) fputs(str, f_debug);
   db_object_lifetime_name(olp);
@@ -7556,7 +7570,6 @@ lifetimes, since those are never bound.
     case olk_expr_temporary:
       switch (entity_kind) {
         case iek_expr_node:
-        case iek_block:
         case iek_new_delete_supplement:
         case iek_dynamic_init:
           /* Okay. */
@@ -7677,31 +7690,61 @@ the most part, it is useless if it has no dynamic initializations associated
 with it.  Entries associated with scopes must also have no child entries.
 */
 {
-  a_boolean    is_useless = FALSE;
+  a_boolean               is_useless = FALSE;
+  an_object_lifetime_ptr  child;
 
   if (olp->destructions != NULL) {
     /* Useless = FALSE. */
   } else {
     switch (olp->entity.kind) {
       case iek_scope:
-        switch (((a_scope_ptr)olp->entity.ptr)->kind) {
-          case sck_file:
+      case iek_block:
+        switch (olp->kind) {
+          case olk_global_static:
             /* The file scope object lifetime is preserved if it has any
                "implicit children" -- i.e., any function scope object
                lifetimes that are not useless; the latter point to the
                file scope as parent_lifetime. */
-            if (any_function_scope_lifetime_entries) break;
-          case sck_function:
-            /* File and function scope object lifetimes are preserved if
-               they have children, since the latter point to the former as
-               parent_lifetime. */
-            if (olp->child_lifetime != NULL) break;
+            if (!any_function_scope_lifetime_entries) is_useless = TRUE;
+            break;
+          case olk_block:
+            if (olp->child_lifetime == NULL) {
+              is_useless = TRUE;
+            } else if (olp->parent_lifetime ==
+                                      scope_stack[DEPTH_OF_FILE_SCOPE].
+                                               curr_scope_object_lifetime) {
+              /* This must be the lifetime for a function scope.  If it has
+                 any children, then even if it has no destructions it is
+                 retained in the IL. */
+            } else {
+              /* This is the lifetime for an inner block within a function.
+                 It is retained in IL inspite of having no destructions only
+                 if it is the head of list of olk_block_after_label entries.
+                 Check the list of children. */
+              is_useless = TRUE;
+              for (child = olp->child_lifetime;
+                   child != NULL;
+                   child = child->next) {
+                if (child->kind ==
+                       (an_object_lifetime_kind)olk_block_after_label) {
+                  is_useless = FALSE;
+                  break;
+                }  /* if */
+              }  /* for */
+            }  /* if */
+            break;
+#if CHECKING
+          case olk_constructor_init:
+          case olk_function_static:
+            /* Should not have been created unless there were destructions. */
           default:
-            is_useless = TRUE;
+            /* Should not be bound to a block or scope entity. */
+            unexpected_condition_str2("is_useless_object_lifetime:",
+                                "bad object lifetime kind for scope or block");
+#endif /* CHECKING */
         }  /* switch */
         break;
       case iek_expr_node:
-      case iek_block:
       case iek_dynamic_init:
       case iek_none:
         is_useless = TRUE;
@@ -7712,7 +7755,8 @@ with it.  Entries associated with scopes must also have no child entries.
         /* Useless = FALSE. */
         break;
       default:
-        internal_error("is_useless_object_lifetime: bad il entry kind");
+        unexpected_condition_str2("is_useless_object_lifetime:",
+                                  "bad il entry kind");
 #endif /* CHECKING */
     }  /* switch */
   }  /* if */
@@ -7820,6 +7864,14 @@ return it to the appropriate available list.
   /* Determine whether the entry needs to be kept in the IL at all.  If not,
      modify all related pointers and then return it to an available list. */
   if (is_useless_object_lifetime(olp)) {
+#if DEBUG
+    if (db_flag_is_set("dump_lifetimes")) {
+      if (olp->kind != (an_object_lifetime_kind)olk_expr_temporary ||
+          long_lifetime_temps) {
+        db_object_lifetime_with_indentation(olp, "Discarding: ");
+      }  /* if */
+    }  /* if */
+#endif /* DEBUG */
     /* Unlink the object lifetime entry from its parent, children, and
        siblings. */
     parent = olp->parent_lifetime;
@@ -7876,7 +7928,10 @@ return it to the appropriate available list.
     } else {
       /* Be sure an object lifetime that is being left in the IL has been
          bound to some other IL entity. */
-      check_assertion(olp->entity.ptr != NULL);
+      check_assertion_str(olp->entity.ptr != NULL ||
+                          olp->kind ==
+                              (an_object_lifetime_kind)olk_block_after_label,
+                          "pop_object_lifetime: useful lifetime is unbound");
       if (is_implicit_child) {
         /* This is an object lifetime for a function scope that will remain
            in the IL.  Set the global variable to assure that the file scope
