@@ -462,9 +462,18 @@ the macro db_sym_trace to call this function.
   an_il_entry_kind	kind;
   a_boolean		result = FALSE;
 
-  entry = il_entry_for_symbol_null_okay(sym, &kind);
-  if (entry != NULL) {
-    result = db_trace(flag_name, entry, kind);
+  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    /* For an overload set, return TRUE if any member has a traced name. */
+    for (sym = sym->variant.overloaded_function.symbols;
+         sym != NULL; sym = sym->next) {
+      result = f_db_sym_trace(flag_name, sym);
+      if (result) break;
+    }  /* for */
+  } else {
+    entry = il_entry_for_symbol_null_okay(sym, &kind);
+    if (entry != NULL) {
+      result = db_trace(flag_name, entry, kind);
+    }  /* if */
   }  /* if */
   return result;
 }  /* f_db_sym_trace */
