@@ -7098,7 +7098,7 @@ qualified name.
                                              (&locator_for_curr_id,
                                               qualifier_sym->parent.class_type,
                                               IDL_NO_OPTIONS);
-        } else if (qualifier_sym != NULL && !qualifier_is_type &&
+        } else if (qualifier_sym != NULL && !qualifier_sym->is_class_member &&
                    qualifier_sym->parent.namespace_ptr != NULL) {
           type_sym = namespace_qualified_id_lookup
                                           (&locator_for_curr_id,
