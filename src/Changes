@@ -1,5 +1,13 @@
 Version 2.39
 
+8/6/98    Cast to reference type that can be done directly, versus using
+          conversion function
+
+A cast to a reference type that can be done directly (by reinterpreting
+an object as a different type) is now done that way even if there is
+also a way to do the conversion using a conversion function returning
+a reference type.
+
 8/5/98    Order of type check for nonstatic data member
 
 An internal error in set_type_size resulted from performing the type

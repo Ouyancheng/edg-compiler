@@ -6555,9 +6555,24 @@ C++ mode.
          we know we have an error.  That's the reason that
          user_defined_conversion_possible is not called. */
       if (is_class_struct_union_type(operand->type)) {
-        a_type_ptr eff_type_cast_to = type_pointed_to(type_cast_to);
-        a_boolean  ambiguous;
-        if (conversion_from_class_possible(operand, eff_type_cast_to,
+        a_type_ptr   eff_type_cast_to = type_pointed_to(type_cast_to);
+        a_boolean    ambiguous;
+        a_boolean    ref_to_const, ref_to_const_volatile;
+        a_boolean    binding_to_rvalue_allowed, dropping_qualifiers;
+        a_symbol_ptr function_symbol;
+        if (direct_reference_binding_possible(operand,
+                                              operand->type,
+                                              type_cast_to,
+                                              &ref_to_const,
+                                              &ref_to_const_volatile,
+                                              &binding_to_rvalue_allowed,
+                                              &dropping_qualifiers,
+                                              &function_symbol)) {
+          /* The operand can be cast directly to the reference type,
+             so don't look for a way to do the cast using a conversion
+             function. */
+        } else if (conversion_from_class_possible(
+                                           operand, eff_type_cast_to,
                                            (a_builtin_type_kind_set)BTK_NONE,
                                            /*need_lvalue_result=*/TRUE,
                                            /*is_copy_initialization=*/FALSE,

@@ -42,15 +42,6 @@ static a_boolean conversion_to_class_possible(
                             a_conv_descr             *ctor_arg_conversion,
                             a_boolean                *ambiguous,
                             a_candidate_function_ptr *ambiguity_list);
-static a_boolean direct_reference_binding_possible(
-                                       an_operand   *source_operand,
-                                       a_type_ptr   source_type,
-                                       a_type_ptr   dest_type,
-                                       a_boolean    *ref_to_const,
-                                       a_boolean    *ref_to_const_volatile,
-                                       a_boolean    *binding_to_rvalue_allowed,
-                                       a_boolean    *dropping_qualifiers,
-                                       a_symbol_ptr *function_symbol);
 
 
 static void clear_conv_descr(a_conv_descr_ptr conv)
@@ -8050,7 +8041,7 @@ is static; otherwise, it is automatic.  This is needed for cases like
 }  /* adjust_top_temporary_for_binding_to_reference */
 
 
-static a_boolean direct_reference_binding_possible(
+a_boolean direct_reference_binding_possible(
                                        an_operand   *source_operand,
                                        a_type_ptr   source_type,
                                        a_type_ptr   dest_type,

@@ -482,6 +482,17 @@ extern void prep_elision_initializer_operand(
                                             an_error_code      err_code,
                                             a_dynamic_init_ptr *dip);
 
+
+extern a_boolean direct_reference_binding_possible(
+                                       an_operand   *source_operand,
+                                       a_type_ptr   source_type,
+                                       a_type_ptr   dest_type,
+                                       a_boolean    *ref_to_const,
+                                       a_boolean    *ref_to_const_volatile,
+                                       a_boolean    *binding_to_rvalue_allowed,
+                                       a_boolean    *dropping_qualifiers,
+                                       a_symbol_ptr *function_symbol);
+
 extern void prep_initializer_operand(
                                   an_operand    *source_operand,
                                   a_type_ptr    dest_type,
