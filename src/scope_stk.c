@@ -2896,11 +2896,6 @@ End a name scope by popping an entry off the scope stack.
       /* Eliminate all function bodies for unneeded functions.  Note that
          the function declarations are not removed at this point. */
       eliminate_bodies_of_unneeded_functions();
-#if 0
-      /* Change classes that are needed but for which a definition is not
-         needed into declarations. */
-      eliminate_unneeded_class_definitions(il_scope);
-#endif /* if 0 */
       /* Set the "keep_in_il" flag for all file-scope IL entries that must
          be kept to maintain the integrity of the IL. */
       il_entry_prefix_of(il_scope).keep_in_il = FALSE;
