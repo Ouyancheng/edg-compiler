@@ -2276,13 +2276,10 @@ will be involved in overloading.
             other_decl->kind != (a_symbol_kind)sk_variable &&
             !is_main_function) {
           /* C++ function -- type compatibility check is required. */
-          if (decls_at_same_scope &&
-              type->variant.routine.extra_info->prototyped) {
+          if (decls_at_same_scope) {
             /* *overload_symbol is set for cases in which the current symbol
                may be added to an overload list.  Note that overloading across
-               scopes is not allowed, nor is overloading involving functions
-               with old-style param declarations (i.e., those for which the
-               prototyped flag is not set.)  *overload_symbol may end up being
+               scopes is not allowed.  Also, *overload_symbol may end up being
                cleared latter. */
             *overload_symbol = other_decl;
           }  /* if */
@@ -2324,12 +2321,6 @@ will be involved in overloading.
                 if (types_are_compatible(tp, type)) {
                   /* Other_decl matches the current declaration.  Null out
                      *overload_symbol in case it was set. */
-                  *overload_symbol = NULL;
-                  break;
-                } else if (!tp->variant.routine.extra_info->prototyped) {
-                  /* other_decl represents a function with old-style param
-                     list.  It doesn't match and overloading is impossible. */
-                  other_decl = NULL;
                   *overload_symbol = NULL;
                   break;
                 }  /* if */
