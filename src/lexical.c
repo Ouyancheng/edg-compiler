@@ -4947,6 +4947,13 @@ This routine cannot be used when fetching raw preprocessing tokens.
   a_cached_token_ptr	ctp = NULL;
 
   db_enter(3, "next_token");
+  if (in_preprocessing_directive && curr_token == tok_newline) {
+    /* If we have reached the end of a preprocessing directive, don't attempt
+       to scan tokens past the end.  Return a tok_newline without actually
+       looking at the next token. */
+    ntoken = tok_newline;
+    goto done;
+  }  /* if */
   /* If we are currently rescanning tokens from a cache then we should
      just be able to fetch the token kind from the next token on the
      list to be rescanned.  This code does not handle some of the more complex
@@ -4983,6 +4990,7 @@ This routine cannot be used when fetching raw preprocessing tokens.
        the rescan list. */
     rescan_cached_tokens(&cache);
   }  /* if */
+done:
   db_exit();
   return ntoken;
 }  /* next_token */
@@ -5006,6 +5014,14 @@ cannot be used when fetching raw preprocessing tokens.
   a_cached_token_ptr	ctp = NULL;
 
   db_enter(3, "next_two_tokens");
+  if (in_preprocessing_directive && curr_token == tok_newline) {
+    /* If we have reached the end of a preprocessing directive, don't attempt
+       to scan tokens past the end.  Return a tok_newline without actually
+       looking at the next token. */
+    ntoken = tok_newline;
+    *token_2 = tok_error;
+    goto done;
+  }  /* if */
   /* If we are currently rescanning tokens from a cache then we should
      just be able to fetch the token kind from the next token on the
      list to be rescanned.  This code does not handle some of the more complex
@@ -5054,6 +5070,7 @@ cannot be used when fetching raw preprocessing tokens.
        that the "next" token remains on the rescan list. */
     rescan_cached_tokens(&cache);
   }  /* if */
+done:
   db_exit();
   return ntoken;
 }  /* next_two_tokens */
