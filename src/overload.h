@@ -380,6 +380,14 @@ extern void combine_unneeded_selector_with_operand(
                                            an_operand *bound_function_selector,
                                            an_operand *operand);
 
+extern void cast_pointer_for_field_selection(
+                               an_operand        *operand_1,
+                               a_boolean         *is_arrow_operator,
+                               a_symbol_ptr      member_sym,
+                               a_symbol_ptr      projection_member_sym,
+                               a_boolean         access_control_error_reported,
+                               a_source_position *member_pos);
+
 extern a_boolean variable_this_exists(a_variable_ptr *this_var);
 
 extern void make_this_variable_operand(a_variable_ptr this_var,

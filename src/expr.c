@@ -1518,67 +1518,6 @@ is after the closing parenthesis of the argument list.
 }  /* scan_ctor_arguments */
 
 
-static void cast_pointer_for_field_selection(
-                                   an_operand         *operand_1,
-                                   a_type_ptr         class_struct_union_type,
-                                   a_boolean          *is_arrow_operator,
-                                   a_symbol_locator   *member_locator)
-/*
-Adjust the left operand of a "->" or "." operation, if necessary, to make
-it point to a class/struct/union of the type containing the indicated member.
-This is significant in C++, where the member may be in a base class of the
-left-operand class, and baseward casts are needed.  operand_1 is the left
-operand; class_struct_union_type is its type; *is_arrow_operator is TRUE
-for "->", FALSE for "." (it will be set to TRUE on return if the operation
-is normalized into "->" form); member_locator is a locator for the member
-symbol (possibly a projection symbol).
-*/
-{
-  a_symbol_ptr     member_sym = member_locator->specific_symbol;
-  a_type_ptr       desired_class = member_sym->parent.class_type;
-  a_base_class_ptr bcp;
-
-  /* This routine is similar to make_this_pointer_operand. */
-  /* Drop any typedefs on the class type. */
-  class_struct_union_type = skip_typerefs(class_struct_union_type);
-  /* If the member is protected, it can only be accessed through an object
-     or pointer of a type to which we have member access (ARM 11.5). */
-  if (!member_locator->access_control_error_reported) {
-    check_protected_member_access(member_sym, &member_locator->source_position,
-				  class_struct_union_type);
-  }  /* if */
-  /* Do nothing if the type is already okay (which it almost always
-     will be; only in cases involving qualified names can it be different). */
-  if (class_struct_union_type != desired_class) {
-    /* Some adjustment is required.  Find out how the classes are
-       related to one another. */
-    bcp = find_base_class_of(class_struct_union_type, desired_class);
-    check_assertion(bcp != NULL);
-    /* Cast the left operand to the proper type. */
-    base_class_cast_operand(operand_1, bcp, is_arrow_operator,
-                            /*check_cast_access=*/
-                               !member_locator->access_control_error_reported,
-                            /*is_implicit_cast=*/TRUE,
-                            /*implicit_in_naming=*/FALSE,
-                            /*is_object_pointer=*/TRUE);
-  }  /* if */
-  /* If the member symbol is a projection symbol (i.e., it's inherited
-     into the class where it is being referenced), cast the left operand
-     down to the base class in which the fundamental symbol is defined.
-     There's no access check on this part of the cast because the access
-     to the fundamental base class was checked as part of determining access
-     to the symbol. */
-  if (member_sym->kind == (a_symbol_kind)sk_projection) {
-    bcp = member_sym->variant.projection.extra_info->fundamental_base_class;
-    base_class_cast_operand(operand_1, bcp, is_arrow_operator,
-                            /*check_cast_access=*/FALSE,
-                            /*is_implicit_cast=*/TRUE,
-                            /*implicit_in_naming=*/TRUE,
-                            /*is_object_pointer=*/TRUE);
-  }  /* if */
-}  /* cast_pointer_for_field_selection */
-
-
 static a_routine_ptr routine_from_function_operand(an_operand *operand)
 /*
 operand is the operand identifying the function to call in a normal call.
@@ -1685,22 +1624,6 @@ Syntax:
          becomes the operand. */
       copy_operand(operand, bound_function_selector);
       conv_class_operand_to_object_pointer(bound_function_selector);
-      /* If the member symbol is a projection symbol (i.e., it's inherited
-         into the class where it is being referenced), cast the operand
-         down to the base class in which the fundamental symbol is defined.
-         There's no access check on this part of the cast because the access
-         to the fundamental base class was checked as part of determining
-         access to the symbol. */
-      if (member_function_symbol->kind == (a_symbol_kind)sk_projection) {
-        a_base_class_ptr bcp = member_function_symbol->variant.projection.
-                                            extra_info->fundamental_base_class;
-        base_class_cast_operand(bound_function_selector, bcp,
-                                (a_boolean *)NULL,
-                                /*check_cast_access=*/FALSE,
-                                /*is_implicit_cast=*/TRUE,
-                                /*implicit_in_naming=*/TRUE,
-                                /*is_object_pointer=*/TRUE);
-      }  /* if */
       /* We can use an indefinite function operand whether the operator()
          function is overloaded or not. */
       make_indefinite_function_operand(member_function_symbol,
@@ -2689,6 +2612,7 @@ qualified_name_check:
     } else {
       rep = ref_entry(member_sym, &member_position);
     }  /* if */
+    projection_member_sym = locator_for_curr_id.specific_symbol;
     /* Do ambiguity and access control checking on the member.  For overloaded
        functions, this checks ambiguity but not access (which can be different
        for each function in the set). */
@@ -2712,9 +2636,11 @@ qualified_name_check:
           rvalue_result = !is_arrow_operator && is_an_rvalue(operand_1);
           /* This operation uses the left-side operand, so cast the
              operand to the type of the member symbol. */
-          cast_pointer_for_field_selection(operand_1, class_struct_union_type,
-                                           &is_arrow_operator,
-                                           &locator_for_curr_id);
+          cast_pointer_for_field_selection(operand_1, &is_arrow_operator,
+                                           member_sym, projection_member_sym,
+                                           locator_for_curr_id.
+                                                 access_control_error_reported,
+                                           &member_position);
           do_field_selection_operation(operand_1, orig_class_struct_union_type,
                                        is_arrow_operator, rvalue_result,
                                        member_sym, &member_position, rep,
@@ -2744,11 +2670,20 @@ nonstatic_member_function:
               /* The function will require a "this" pointer, so get a pointer
                  (rather than an rvalue) for the first operand. */
               conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
-              /* Cast the selector to the class of the member symbol. */
-              cast_pointer_for_field_selection(operand_1,
-                                               class_struct_union_type,
-                                               &is_arrow_operator,
-                                               &locator_for_curr_id);
+              if (member_sym->kind == (a_symbol_kind)sk_member_function) {
+                /* For a simple non-overloaded function, adjust the selector
+                   to point to the proper class.  We don't do this for the
+                   cases that go through overload resolution, since that
+                   adjustment is done there (it might not be done if a
+                   static member function is selected). */
+                cast_pointer_for_field_selection(operand_1,
+                                                 &is_arrow_operator,
+                                                 member_sym,
+                                                 projection_member_sym,
+                                                 locator_for_curr_id.
+                                                 access_control_error_reported,
+                                                 &member_position);
+              }  /* if */
               /* Make an operand for the function with the selector bound
                  to it. */
               do_member_function_selection_operation(operand_1,

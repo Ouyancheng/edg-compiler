@@ -3668,97 +3668,80 @@ value -- is used to select the member referenced).
 }  /* combine_unneeded_selector_with_operand */
 
 
-static a_type_ptr underlying_selector_class(an_operand *selector)
+void cast_pointer_for_field_selection(
+                               an_operand        *operand_1,
+                               a_boolean         *is_arrow_operator,
+                               a_symbol_ptr      member_sym,
+                               a_symbol_ptr      projection_member_sym,
+                               a_boolean         access_control_error_reported,
+                               a_source_position *member_pos)
 /*
-Extract and return the class type underlying the given selector.  If the
-class type cannot be determined, return NULL.  If there is an error in
-the selector, return an error type.  The "underlying type" is the class
-type of the object or pointer used to make the selection; any implicit
-base class casts on top of that object are ignored in determining the
-underlying type.
+Adjust the left operand of a "->" or "." operation, if necessary, to make
+it point to a class/struct/union of the type containing the member.
+This is significant in C++, where the member may be in a base class of the
+left-operand class, and baseward casts are needed.  operand_1 is the left
+operand; *is_arrow_operator is TRUE for "->", FALSE for "." (it will be set
+to TRUE on return if the operation is normalized into "->" form);
+member_sym is the referenced member (possibly a projection symbol, but the
+presence or absence of a projection is ignored); projection_member_sym is
+either the same as member_sym or a projection thereof, or, for a reference
+to an overloaded function, the symbol for the overload set or a projection
+thereof -- it identifies the symbol that was actually named in the member
+reference, and a projection symbol on it is significant;
+access_control_error_reported is TRUE if an access control error has
+already been reported; *member_pos gives the source position of the
+member name reference.
 */
 {
-  a_type_ptr       underlying_type = NULL;
-  an_expr_node_ptr expr;
-  a_constant_ptr   con;
+  a_type_ptr       desired_class = projection_member_sym->parent.class_type;
+  a_type_ptr       class_struct_union_type;
+  a_base_class_ptr bcp;
 
-  switch (selector->kind) {
-    case ok_expression:
-      /* Expression.  Drop implicit base class casts. */
-      for (expr = selector->variant.expression;
-           is_operation_node(expr) &&
-             expr->variant.operation.kind ==
-                                  (an_expr_operator_kind)eok_base_class_cast &&
-             expr->variant.operation.compiler_generated;
-           expr = expr->variant.operation.operands) {}
-      if (is_pointer_type(expr->type)) {
-        underlying_type = type_pointed_to(expr->type);
-      }  /* if */
-      break;
-    case ok_constant:
-      /* Constant.  See if it is the address of a variable. */
-      con = &selector->variant.constant;
-      if (con_is_exact_addr_of_variable(con)) {
-        underlying_type = con->variant.address.variant.variable->type;
-      }  /* if */
-      break;
-    case ok_error:
-      break;
-#if CHECKING
-    default:
-      internal_error("underlying_selector_class: bad operand kind");
-#endif /* CHECKING */
-  }  /* switch */
-  if (underlying_type != NULL) {
-    underlying_type = skip_typerefs(underlying_type);
-#if CHECKING
-    if (!is_immediate_class_type(underlying_type) &&
-        !is_error_type(underlying_type)) {
-      internal_error("underlying_selector_class: bad underlying type");
-    }  /* if */
-#endif /* CHECKING */
+  /* This routine is similar to make_this_pointer_operand. */
+  class_struct_union_type = operand_1->type;
+  if (*is_arrow_operator) {
+    class_struct_union_type = type_pointed_to(class_struct_union_type);
   }  /* if */
-  return underlying_type;
-}  /* underlying_selector_class */
-
-
-static void f_catch_up_check_protected_member_access(
-                                   a_symbol_ptr      sym,
-                                   an_operand        *bound_function_selector,
-                                   a_source_position *err_pos)
-/*
-This routine implements the access control check mandated by ARM 11.5, which
-requires that a protected member be accessed only through a pointer or
-object of a type to which we have member access.  This routine is used
-specifically for the case where an overloaded function is a protected
-member.  After overloaded_function_catch_up, this routine is called to
-do the catch-up on the protected check.  sym points to the symbol for
-the function being referenced.  *bound_function_selector is the selector
-being used to access the function.  *err_pos is the source position for
-an error.
-*/
-{
-  a_type_ptr       class_type;
-
-  /* Get the underlying type from the selector. */
-  class_type = underlying_selector_class(bound_function_selector);
-  /* Do the access check. */
-  f_check_protected_member_access(sym, err_pos, class_type);
-}  /* f_catch_up_check_protected_member_access */
-
-
-/*
-If sym is a protected member, do the access check of ARM 11.5.  sym
-is being accessed through the selector "selector".  *err_pos is the
-source position for an error.  This is being done after
-overloaded_function_catch_up.
-*/
-#define catch_up_check_protected_member_access(sym, selector, err_pos)\
-{ if (access_for_symbol(fundamental_symbol_of(sym)) ==                \
-                                (an_access_specifier)as_protected) {  \
-    f_catch_up_check_protected_member_access(sym, selector, err_pos); \
-  }  /* if */                                                         \
-}  /* catch_up_check_protected_member_access */
+  /* Drop any typedefs on the class type. */
+  class_struct_union_type = skip_typerefs(class_struct_union_type);
+  check_assertion(is_immediate_class_type(class_struct_union_type));
+  /* If the member is protected, it can only be accessed through an object
+     or pointer of a type to which we have member access (ARM 11.5). */
+  if (!access_control_error_reported) {
+    check_protected_member_access(member_sym, member_pos,
+				  class_struct_union_type);
+  }  /* if */
+  /* Do nothing if the type is already okay (which it almost always
+     will be; only in cases involving qualified names can it be different). */
+  if (class_struct_union_type != desired_class) {
+    /* Some adjustment is required.  Find out how the classes are
+       related to one another. */
+    bcp = find_base_class_of(class_struct_union_type, desired_class);
+    check_assertion(bcp != NULL);
+    /* Cast the left operand to the proper type. */
+    base_class_cast_operand(operand_1, bcp, is_arrow_operator,
+                            /*check_cast_access=*/
+                                                !access_control_error_reported,
+                            /*is_implicit_cast=*/TRUE,
+                            /*implicit_in_naming=*/FALSE,
+                            /*is_object_pointer=*/TRUE);
+  }  /* if */
+  /* If the member symbol is a projection symbol (i.e., it's inherited
+     into the class where it is being referenced), cast the left operand
+     down to the base class in which the fundamental symbol is defined.
+     There's no access check on this part of the cast because the access
+     to the fundamental base class was checked as part of determining access
+     to the symbol. */
+  if (projection_member_sym->kind == (a_symbol_kind)sk_projection) {
+    bcp = projection_member_sym->variant.projection.extra_info->
+                                                        fundamental_base_class;
+    base_class_cast_operand(operand_1, bcp, is_arrow_operator,
+                            /*check_cast_access=*/FALSE,
+                            /*is_implicit_cast=*/TRUE,
+                            /*implicit_in_naming=*/TRUE,
+                            /*is_object_pointer=*/TRUE);
+  }  /* if */
+}  /* cast_pointer_for_field_selection */
 
 
 a_boolean variable_this_exists(a_variable_ptr *this_var)
@@ -3950,7 +3933,10 @@ case).  call_position gives the source position of the call.
   if (routine_type_is_nonstatic_member_function(routine_type)) {
     /* The function needs a selector. */
     if (!*have_selector) {
-      /* Try to generate a selector. */
+      /* We don't have a selector.  Try to generate one. */
+      /* Get the symbol used to name the function, which shows the inheritance
+         relationship between the naming class and the actual class of the
+         function. */
       a_symbol_ptr sym = overloaded_function_symbol;
       a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
       if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function &&
@@ -3992,14 +3978,17 @@ case).  call_position gives the source position of the call.
       }  /* if */
       *have_selector = TRUE;
     } else {
+      a_boolean is_arrow_operator = TRUE;
       /* We have a selector. */
-      if (!access_error_reported) {
-        /* Do the ARM 11.5 access checking for the type of selector used
-           to access a protected member. */
-        catch_up_check_protected_member_access(function_symbol,
-                                               bound_function_selector,
-                                               call_position);
-      }  /* if */
+      /* Cast the selector to the class of the member symbol. */
+      /* Also do the ARM 11.5 access checking for the type of selector used
+         to access a protected member. */
+      cast_pointer_for_field_selection(bound_function_selector,
+                                       &is_arrow_operator,
+                                       function_symbol,
+                                       overloaded_function_symbol,
+                                       access_error_reported,
+                                       call_position);
     }  /* if */
     /* Bind the function to the selector. */
     bind_member_function_operand_to_selector(function_operand,
@@ -5688,9 +5677,9 @@ static void prep_special_selector_operand(an_operand *operand,
 /*
 For unconventional "this" arguments, convert the selector to an object
 pointer and cast it to a base class if necessary.  This is needed for
-operator functions and conversion functions, but not for function calls
-using the usual notation (in those cases, the base class cast is done
-as part of the "->" or ".").  operand gives the selector, and routine_type
+conversion functions, but not for function calls using the usual notation
+or for operator functions (in those cases, the "catch up" processing
+does the base class cast).  operand gives the selector, and routine_type
 gives the type of the routine being called.
 */
 {
@@ -6209,18 +6198,13 @@ functions could still apply).
             if (member_is_best_match) {
               /* The function selected is a non-static member function.
                  Therefore, the first argument is to be used as the selector
-                 object.  We must convert it to an object pointer and then
-                 cast it to a base class if necessary. */
+                 object. */
               bound_function_selector = &arg_operand_list->operand;
               /* Issue any warning about the "this" parameter detected while
                  evaluating the alternatives. */
               issue_warning_from_arg_match_summary(
                                            arg_match,
                                            &bound_function_selector->position);
-              /* Make a pointer for the selector, and cast it to a base class
-                 if necessary. */
-              prep_special_selector_operand(bound_function_selector,
-                                            routine_type);
               /* The "real" argument list starts with the second argument. */
               arg_operand = arg_operand->next;
               arg_match = arg_match->next;
@@ -6232,6 +6216,10 @@ functions could still apply).
               a_type_ptr       result_type= function_symbol->parent.class_type;
               an_expr_node_ptr assign_node, lhs_node, rhs_node;
 
+              /* Make a pointer for the selector, and adjust its type if
+                 necessary. */
+              prep_special_selector_operand(bound_function_selector,
+                                            routine_type);
               /* Cast the source operand to the right type. */
               prep_assignment_operand(&arg_operand->operand,
                                       result_type,
@@ -6271,10 +6259,14 @@ functions could still apply).
                    ellipsis. */
                 if (param != NULL) param = param->next;
               }  /* for */
+              have_selector = member_is_best_match;
+              if (have_selector) {
+                /* Convert the selector to a pointer. */
+                conv_class_operand_to_object_pointer(bound_function_selector);
+              }  /* if */
               /* Do the things that would have been done to the symbol but
                  weren't because the specific symbol was not known, and build
                  an operand for the function. */
-              have_selector = member_is_best_match;
               make_resolved_overloaded_function_operand(
                                                  proj_function_symbol,
                                                  member_is_best_match ?

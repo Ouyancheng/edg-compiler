@@ -1,6 +1,18 @@
 Version 2.39
 
-8/1/97    C++-generating back end: specialization to represent partial
+8/2/98    p->f(), where f is a static member function: p not cast to base
+
+The standard is not entirely clear on this, but we believe that on a
+call p->f(), where the selected function f is a static member function,
+p -- which is evaluated but then discarded -- should not be cast to
+a base class if the function comes from a base class of p.  This
+matters if the cast causes an access or ambiguity error.  Formerly,
+the cast was done if and only if f is not an overloaded function.  Now,
+it is not done in all cases.
+
+This is related to the changes of 5/29/98.
+
+8/1/98    C++-generating back end: specialization to represent partial
           instantiation put out too soon
 
 When a friend declaration was an instance of function template and its
