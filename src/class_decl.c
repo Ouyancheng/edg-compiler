@@ -5060,6 +5060,11 @@ and "class_type" indicates the class in which the declaration occurs.
     type_error(ec_ambiguous_base_class, bcp->type);
     set_to_error_locator(locator_for_curr_id);
     goto done;
+  } else if (locator_for_curr_id.specific_symbol->kind ==
+                                              (a_symbol_kind)sk_undefined) {
+    /* Not a valid member of a valid base class.  Error has already been
+       issued. */
+    goto done;
   }  /* if */
   /* Look up the name without class qualification.  This will show whether
      the name has already been declared and if not give us the projection
