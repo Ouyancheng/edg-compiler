@@ -1073,11 +1073,12 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->base_class, a_base_class_ptr, iek_base_class);
       }
       break;
-    case iek_virtual_derivation:
+    case iek_base_class_derivation:
       {
-        a_virtual_derivation_ptr ptr = (a_virtual_derivation_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_virtual_derivation_ptr,
-                       iek_virtual_derivation);
+        a_base_class_derivation_ptr ptr =
+                                       (a_base_class_derivation_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_base_class_derivation_ptr,
+                       iek_base_class_derivation);
         walk_list(ptr->derivation, a_derivation_step_ptr, iek_derivation_step);
       }
       break;
@@ -1092,9 +1093,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                   iek_base_class);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
         remap_ptr(ptr->pointer_base_class, a_base_class_ptr, iek_base_class);
-        walk_list(ptr->derivation, a_derivation_step_ptr, iek_derivation_step);
-        walk_list(ptr->paths_to_virtual_base_class, a_virtual_derivation_ptr,
-                  iek_virtual_derivation);
+        walk_list(ptr->derivation, a_base_class_derivation_ptr,
+                  iek_base_class_derivation);
         walk_list(ptr->overriding_virtual_functions,
                   an_overriding_virtual_function_ptr,
                   iek_overriding_virtual_function);

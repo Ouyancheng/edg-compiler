@@ -102,7 +102,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(an_access_adjustment),
   sizeof(an_overriding_virtual_function),
   sizeof(a_derivation_step),
-  sizeof(a_virtual_derivation),
+  sizeof(a_base_class_derivation),
   sizeof(a_base_class),
   sizeof(a_class_list_entry),
   sizeof(a_routine_list_entry),

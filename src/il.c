@@ -71,7 +71,7 @@ static unsigned long
 		num_routine_list_entries_allocated,
 		num_overriding_virtual_functions_allocated,
 		num_derivation_steps_allocated,
-		num_virtual_derivations_allocated,
+		num_base_class_derivations_allocated,
 		num_base_classes_allocated,
 		num_template_args_allocated,
 		num_template_param_type_descrs_allocated,
@@ -445,7 +445,6 @@ base class itself), for debug purposes.
   fputs("\n  ", f_debug);
   for (i = depth; i > 0; --i) fputs("  ", f_debug);
   fputs("[[ virtual ", f_debug);
-  db_access_control(bcp->access);
   fprintf(f_debug, " base class %s", bcp->type->source_corresp.name);
   fprintf(f_debug, " (pointer offset = %lu", bcp->pointer_offset);
   if (bcp->pointer_base_class != NULL) {
@@ -478,7 +477,9 @@ Dump a direct base class entry, for debug purposes.
   if (bcp->is_virtual) {
     fputs("virtual ", f_debug);
   }  /* if */
+#if 0
   db_access_control(bcp->access);
+#endif /* if 0 */
   fprintf(f_debug, " base class %s", tp->source_corresp.name);
   if (bcp->is_virtual) {
     fprintf(f_debug, " (pointer offset = %lu", bcp->pointer_offset);
@@ -536,23 +537,41 @@ static void db_indirect_base_class(a_base_class *bcp)
 Dump an indirect base class entry, for debug purposes.
 */
 {
-  a_derivation_step_ptr  dsp;
+  a_derivation_step_ptr        dsp;
+  a_base_class_derivation_ptr  bcdp;
 
   fputs("\n    ", f_debug);
   db_type_name(bcp->type);
   fprintf(f_debug, ", at offset %lu", bcp->offset);
-  if (bcp->is_virtual) fputs(", is_virtual", f_debug);
-  if (bcp->ambiguous) fputs(", ambiguous", f_debug);
-  fputs(", path = ", f_debug);
-  dsp = bcp->derivation;
-  if (dsp == NULL) {
-    fputs("<null>", f_debug);
+  if (bcp->is_virtual) fputs(", virtual", f_debug);
+  if (bcp->ambiguous) fputs(", ambig", f_debug);
+  bcdp = bcp->derivation;
+  if (bcdp == NULL) {
+    fputs(", null derivation", f_debug);
   } else {
-    for (; dsp != NULL; dsp = dsp->next) {
-      fprintf(f_debug, "==>%s",
-              (dsp->base_class == NULL || dsp->base_class->type == NULL) ?
-                  "<???>" : dsp->base_class->type->source_corresp.name);
-    }  /* for */
+    fprintf(f_debug, ", path%s = ", bcdp->next != NULL ? "s" : "");
+    for (;;) {
+      dsp = bcdp->path;
+      if (dsp == NULL) {
+        fputs("<null>", f_debug);
+      } else {
+        for (; dsp != NULL; dsp = dsp->next) {
+          fputs("==>", f_debug);
+          if (dsp->base_class == NULL || dsp->base_class->type == NULL) {
+            fputs("<???>", f_debug);
+          } else {
+            db_type_name(dsp->base_class->type);
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      if (bcp->is_virtual && bcdp->preferred &&
+          bcp->derivation->next != NULL) {
+        fputs(" (pref'd)", f_debug);
+      }  /* if */
+      bcdp = bcdp->next;
+      if (bcdp == NULL) break;
+      fputs("; ", f_debug);
+    }  /* if */
   }  /* if */
 }  /* db_indirect_base_class */
 
@@ -3255,44 +3274,70 @@ Allocate and initialize a derivation step entry and return a pointer to it.
 }  /* alloc_derivation_step */
 
 
-a_virtual_derivation_ptr alloc_virtual_derivation(void)
+a_base_class_derivation_ptr alloc_base_class_derivation(void)
 /*
 Allocate and initialize a virtual derivation entry and return a pointer to it.
 */
 {
-  a_virtual_derivation_ptr  vdp;
+  a_base_class_derivation_ptr  bcdp;
 
-  db_enter(5, "alloc_virtual_derivation");
-  vdp = (a_virtual_derivation_ptr)alloc_il(sizeof(a_virtual_derivation));
+  db_enter(5, "alloc_base_class_derivation");
+  bcdp = (a_base_class_derivation_ptr)
+                              alloc_il(sizeof(a_base_class_derivation));
 #if DEBUG
-  num_virtual_derivations_allocated++;
+  num_base_class_derivations_allocated++;
 #endif /* DEBUG */
-  vdp->next          = NULL;
-  vdp->derivation    = NULL;
-  vdp->first         = FALSE;
-  vdp->preferred     = FALSE;
-  vdp->direct        = FALSE;
-  vdp->normal_access = (an_access_specifier)as_public;
+  bcdp->next       = NULL;
+  bcdp->path       = NULL;
+  bcdp->preferred  = FALSE;
+  bcdp->direct     = FALSE;
+  bcdp->access     = (an_access_specifier)as_public;
   db_exit();
-  return vdp;
-}  /* alloc_virtual_derivation */
+  return bcdp;
+}  /* alloc_base_class_derivation */
 
 
-a_virtual_derivation_ptr first_virtual_derivation_of(a_base_class_ptr  bcp)
+a_base_class_derivation_ptr preferred_virtual_derivation_of(
+                                                     a_base_class_ptr  bcp)
 /*
-bcp is a pointer to a virtual base class.  Return a pointer to virtual
-derivation entry associated with bcp that is marked "first", meaning its
-path represents the first appearance in a depth-first left-to-right scan
-of the derivation graph.
+Return a pointer to the base class derivation entry associated with virtual
+base class bcp that is marked "preferred", namely, the one with the greatest
+accessibility of a public member in the context of the most derived class.
 */
 {
-  a_virtual_derivation_ptr  vdp;
+  a_base_class_derivation_ptr  bcdp = bcp->derivation;
 
-  check_assertion(bcp->is_virtual);
-  vdp = bcp->paths_to_virtual_base_class;
-  while (!vdp->first) vdp = vdp->next;
-  return vdp;
-}  /* first_virtual_derivation_of */
+  while (!bcdp->preferred) {
+    bcdp = bcdp->next;
+    /* Assertion will fail if preferred flag has not yet been set. */
+    check_assertion(bcdp != NULL)
+  }  /* while */
+  return bcdp;
+}  /* preferred_derivation_of */
+
+
+a_base_class_derivation_ptr direct_virtual_derivation_of(
+                                                     a_base_class_ptr  bcp)
+/*
+Return a pointer to the base class derivation entry associated with virtual
+base class bcp that is marked "direct".  It will return NULL if there is
+no direct derivation.
+*/
+{
+  a_base_class_derivation_ptr  bcdp;
+
+  if (bcp->direct) {
+    bcdp = bcp->derivation;
+    while (!bcdp->direct) {
+      bcdp = bcdp->next;
+      /* Assertion will fail if direct flag has not been set. */
+      check_assertion(bcdp != NULL)
+    }  /* while */
+  } else {
+    bcdp = NULL;
+  }  /* if */
+  return bcdp;
+}  /* direct_derivation_of */
 
 
 an_overriding_virtual_function_ptr alloc_overriding_virtual_function(void)
@@ -3400,13 +3445,11 @@ to it.
   bcp->is_virtual                      = FALSE;
   bcp->direct                          = FALSE;
   bcp->ambiguous                       = FALSE;
-  bcp->access                          = (an_access_specifier)as_public;
   bcp->offset                          = 0;
   bcp->pointer_offset                  = 0;
   bcp->pointer_base_class              = NULL;
   bcp->derivation                      = NULL;
   bcp->overriding_virtual_functions    = NULL;
-  bcp->paths_to_virtual_base_class     = NULL;
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
   bcp->complete_subobject              = FALSE;
   bcp->pointer_offset_is_set           = FALSE;
@@ -5665,7 +5708,12 @@ class need not be an immediate base class.
   a_derivation_step_ptr dsp;
 
   /* Add a base class cast for each step in the derivation. */
-  for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
+#if 0
+/* This needs to be fixed. */
+#endif
+  for (dsp = preferred_derivation_of(bcp)->path;
+       dsp != NULL;
+       dsp = dsp->next) {
     node = make_operator_node((an_expr_operator_kind)eok_base_class_cast,
                               make_pointer_type(dsp->base_class->type), node);
   }  /* for */
@@ -6705,8 +6753,8 @@ Display and return the amount of space used for various IL tables.
                 an_overriding_virtual_function_ptr);
   db_space_used("derivation steps", num_derivation_steps_allocated,
                 a_derivation_step);
-  db_space_used("virtual derivations", num_virtual_derivations_allocated,
-                a_virtual_derivation);
+  db_space_used("virtual derivations", num_base_class_derivations_allocated,
+                a_base_class_derivation);
   db_space_used("base class", num_base_classes_allocated, a_base_class);
   db_space_used("template args", num_template_args_allocated, a_template_arg);
   db_space_used("templ param type descrs",
@@ -6891,6 +6939,7 @@ of the front end.
   num_class_list_entries_allocated       = 0;
   num_routine_list_entries_allocated     = 0;
   num_derivation_steps_allocated         = 0;
+  num_base_class_derivations_allocated   = 0;
   num_base_classes_allocated             = 0;
   num_template_args_allocated            = 0;
   num_template_param_type_descrs_allocated

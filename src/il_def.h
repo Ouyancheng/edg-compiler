@@ -273,8 +273,8 @@ typedef enum /*an_il_entry_kind*/ {
   iek_overriding_virtual_function,
 			/* an_overriding_virtual_function */
   iek_derivation_step,  /* a_derivation_step */
-  iek_virtual_derivation,
-			/* a_virtual_derivation */
+  iek_base_class_derivation,
+			/* a_base_class_derivation */
   iek_base_class,	/* a_base_class */
   iek_class_list_entry, /* a_class_list_entry */
   iek_routine_list_entry,
@@ -357,7 +357,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_access_adjustment */		"access-adjustment",
 /* iek_overriding_virtual_function */ 	"overriding-virtual-function",
 /* iek_derivation_step */		"derivation-step",
-/* iek_virtual_derivation */		"virtual-derivation",
+/* iek_base_class_derivation */		"base-class-derivation",
 /* iek_base_class */			"base-class",
 /* iek_class_list_entry */		"class-list-entry",
 /* iek_routine_list_entry */		"routine-list-entry",
@@ -1521,18 +1521,17 @@ typedef struct a_derivation_step {
 } a_derivation_step;
 
 
-typedef struct a_virtual_derivation *a_virtual_derivation_ptr;
-typedef struct a_virtual_derivation {
-  /* Entry identifying one of any number of alternative derivations for an
-     associated virtual base class.  The first in a list of these entries
-     will be the preferred derivation. */
-  a_virtual_derivation_ptr
+typedef struct a_base_class_derivation *a_base_class_derivation_ptr;
+typedef struct a_base_class_derivation {
+  /* Entry identifying the unique derivation of a nonvirtual base class or
+     one of one or more of alternative derivations of a virtual base class. */
+  a_base_class_derivation_ptr
 		next;
 			/* Next in a linked list of virtual derivation entries
 			   representing the various derivations specified for
 			   a given virtual base class. */
   a_derivation_step_ptr
-		derivation;
+		path;
 			/* Pointer to (all or part) of the path from the
 			   derived class to the associated virtual base class.
 			   If direct is TRUE, the derivation consists of a
@@ -1555,11 +1554,6 @@ typedef struct a_virtual_derivation {
   unsigned int	direct:1;
 			/* TRUE if the associated base class is a direct
 			   base class as a result of this derivation. */
-  unsigned int	first:1;
-			/* TRUE if this derivation is the first encountered
-			   on a depth-first left-to-right traversal of the
-			   direct and indirect base classes of the current
-			   derived class. */
   unsigned int	preferred:1;
 			/* TRUE if this derivation is "preferred" because it
 			   affords better access from the derived class to the
@@ -1569,11 +1563,13 @@ typedef struct a_virtual_derivation {
 			   and a direct derivation is preferred over an
 			   indirect derivation. */
   an_access_specifier
-		normal_access;
-			/* The access to a public member of the associated
-			   virtual base class within the context of the
-			   derived class. */
-} a_virtual_derivation;
+                access; /* The kind of derivation (public, protected, or
+                           private) specified for the final step of the
+			   derivation pointed to by path.  This is tantamount
+			   to the access specified from the associated base
+			   class to the class directly derived from it. */
+  an_access_specifier
+} a_base_class_derivation;
 
 
 typedef struct a_base_class {
@@ -1597,7 +1593,7 @@ typedef struct a_base_class {
 			   of a direct base class derived from it. */
   unsigned int	direct:1;
 			/* TRUE if this is a direct base class of
-			   derived_class. */
+			   derived_class in any of its derivations. */
   unsigned int	is_virtual:1;
 			/* TRUE if this is a virtual base class (whether
 			   directly or indirectly inherited). */
@@ -1623,12 +1619,6 @@ typedef struct a_base_class {
 			   scheme used to emulate cfront's ordering algorithm
 			   involves visiting a base class more than once.) */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-  an_access_specifier
-                access; /* The kind of derivation (public, protected, or
-                           private) from this base class to the class directly
-                           derived from it.  Indirect base classes (when
-                           direct is FALSE) retain the direct base class
-                           value. */
   a_targ_size_t	offset;
 			/* The byte offset from the start of the current
 			   derived class to the data section of this base
@@ -1669,8 +1659,14 @@ typedef struct a_base_class {
 			   pointer_base_class is non-NULL, pointer_offset
 			   specifies the offset (within derived_class) of a
 			   pointer field in the base class pointed to. */
-  a_derivation_step_ptr
+  a_base_class_derivation_ptr
 		derivation;
+			/* If is_virtual is FALSE, pointer to a single entry
+			   describing the derivation of derived_class from
+			   this base class; if is_virtual is TRUE, pointer to
+			   a linked list of entries describing one or more
+			   alternative derivations. */
+#if 0
 			/* Pointer to (part or all of) the "casting path"
 			   from derived_class (implicitly at the start of the
 			   derivation) to this base class.  The linked list
@@ -1707,12 +1703,7 @@ typedef struct a_base_class {
 			   is given by the paths_to_virtual_base_class list
 			   for F's virtual base class V, which has two
 			   derivations, ==>E==>C==>V and ==>E==>D==>V. */
-  a_virtual_derivation_ptr
-		paths_to_virtual_base_class;
-			/* Non-NULL if and only if is_virtual is TRUE, a
-			   pointer to a linked list of one or more entries
-			   describing the alternative derivation paths to
-			   this virtual base class. */
+#endif /* if 0 */
   an_overriding_virtual_function_ptr
 		overriding_virtual_functions;
 			/* Pointer to a linked list of entries representing
