@@ -7734,7 +7734,7 @@ explicitly specified (rather than defaulted to "int").
      destructor for which a definition was supplied outside of the
      class definition.  Clear this value when any other member function
      is processed.  This is used to emulate a cfront name lookup bug.
-     See check_for_cfront_name_lookup_bug in symbol_tbl.h for more
+     See check_for_cfront_name_lookup_bug in symbol_tbl.c for more
      information. */
   if (is_member_function_def) {
     if (cfront_compatibility_mode) {

@@ -4469,8 +4469,9 @@ must a tag.  Projection symbols are not considered in the lookup.
 }  /* curr_scope_id_lookup */
 
 
-int compare_source_positions(a_source_position	*pos1,
-			     a_source_position  *pos2)
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+static int compare_source_positions(a_source_position	*pos1,
+			            a_source_position  *pos2)
 /*
 Compare two source positions.
 
@@ -4495,7 +4496,6 @@ Compare two source positions.
 }  /* compare_source_positions */
 
 
-#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
 static a_symbol_ptr check_for_cfront_name_lookup_bug
 					(a_type_ptr                class_type,
 					 a_symbol_ptr	           sym,
@@ -4504,7 +4504,7 @@ static a_symbol_ptr check_for_cfront_name_lookup_bug
 /*
 Cfront 2.1 has a bug that causes a global identifier to be found when
 a member of a class or one of its base classes should actually be found.
-The following code illustrated an instance in which the bug occurs:
+The following code illustrates an instance in which the bug occurs:
 
 struct B   {
 	void func(const char*);	// Needs to be here
@@ -4531,7 +4531,7 @@ For the bad lookup to occur:
 
 1. A member in a base class must have the same name as an identifier
    at the global scope.  Any member kind is OK -- it can be a function,
-   static data member, or nonstatic data members.  Member type names don't
+   static data member, or nonstatic data member.  Member type names don't
    apply because a nested type will be promoted to the global scope by
    cfront which disallows a later declaration of a type with the same name
    at the global scope.
@@ -4542,7 +4542,7 @@ For the bad lookup to occur:
 
 3. No other member function definition -- even one for an unrelated class
    may appear between the destructor and the offending reference.
-   This has the affect that the bad lookup applies to only one class at
+   This has the effect that the bad lookup applies to only one class at
    any given point in time.
 
 The global variable last_ctor_or_dtor_sym is set by function_declaration
