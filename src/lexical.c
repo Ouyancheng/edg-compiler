@@ -5157,6 +5157,14 @@ This routine may only be called in C++ mode.
   }  /* if */
   start_position = pos_curr_token;
   orig_error_position = error_position;
+  if (C_dialect != C_dialect_cplusplus) {
+    /* Skip qualifier, destructor, and operator processing if not in C++
+       mode.  If we have an identifier go to the code that updates the
+       locator.  If we don't have an identifier, simply return. */
+    result = curr_token == tok_identifier;
+    if (result) goto wrapup;
+    goto exit;
+  }  /* if */
   /* Look for a leading unary "::".  Don't be fooled by "::new" and
      "::delete". */
   if (curr_token == tok_colon_colon && !is_global_new_or_delete()) {
@@ -5177,7 +5185,7 @@ This routine may only be called in C++ mode.
       ((next_tok = next_two_tokens(&next_tok_2)) == tok_colon_colon ||
 				        next_tok == tok_lt)) ||
       /* Check for a things like "int::~". */
-      (((dtor_class_type = type_keyword()) != NULL) &&
+      (dtor_must_be_nonclass && ((dtor_class_type = type_keyword()) != NULL) &&
        (next_tok = next_two_tokens(&next_tok_2)) == tok_colon_colon &&
         next_tok_2 == tok_compl)) {
     /* Look up the identifier to see if it could be a class name.  Note that
@@ -5530,6 +5538,7 @@ This routine may only be called in C++ mode.
     }  /* if */
     /* The name can be an operator name like "operator+". */
     (void)get_opname();
+wrapup:
     /* The current token must now be the final identifier of the
        qualified name, e.g., "x" in "A::B::x".  In the destructor and
        operator name cases, curr_token has been changed to
