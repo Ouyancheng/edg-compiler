@@ -10115,6 +10115,9 @@ continue_with_declaration:
       /* The anonymous union variable is marked as referenced, as are all
          unnamed entities.  So its type is also marked referenced. */
       type_ptr->source_corresp.referenced = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      set_autonomous_tag_decl_flag(type_ptr, /*is_definition=*/TRUE);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else if (extern_implied && is_enum_type(type_ptr)) {
       /* This is a declaration like
                       extern "C" enum E { e1, e2, e3 };

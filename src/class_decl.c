@@ -6140,18 +6140,18 @@ Scan the body of a class definition, including the base classes list.
                              ec_useless_decl, &decl_start_pos);
             }  /* if */
           }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+          if (local_declares_something || is_anonymous_union) {
+            /* This is a free-standing declaration of a class, struct,
+               union, or enum. */
+            set_autonomous_tag_decl_flag(member_type,
+                                         local_defines_something);
+          }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           if (is_anonymous_union) {
             /* Don't just skip on to the next declaration --
                decl_nonstatic_data_member needs to be called. */
           } else {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-            if (local_declares_something) {
-              /* This is a free-standing declaration of a class, struct,
-                 union, or enum. */
-              set_autonomous_tag_decl_flag(member_type,
-                                           local_defines_something);
-            }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
             /* Bypass the semicolon and skip to the next declaration. */
             (void)get_token();
             discard_curr_construct_pragmas();
