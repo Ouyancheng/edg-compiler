@@ -904,12 +904,12 @@ set, leave it alone.  Also compute and set the alignment requirement.
     alignment = 1;  /* Default */
     switch(type_ptr->kind) {
       case tk_error:
+      case tk_unknown:
         /* Use an arbitrary non-zero size for an error type.  This is
            important so that error types do not appear to be incomplete
            types. */
         size = 1;
         break;
-      case tk_unknown:
       case tk_void:
       case tk_routine:
       case tk_typeref:

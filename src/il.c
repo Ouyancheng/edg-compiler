@@ -2798,7 +2798,7 @@ end.
   if (il_unknown_type == NULL) {
     il_unknown_type = (a_type_ptr)alloc_fe(sizeof(a_type));
     clear_type(il_unknown_type, (a_type_kind)tk_unknown);
-    /* set_type_size is not called on purpose. */
+    set_type_size(il_unknown_type);
   }  /* if */
   return il_unknown_type;
 }  /* unknown_type */
