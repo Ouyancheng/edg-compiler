@@ -3710,7 +3710,7 @@ file scope.
             use the tag symbol. */
           if (!is_tag_symbol(fund_sym)) break;
           tag_symbol = sym;
-       }  /* if */
+        }  /* if */
       }  /* for */
       /* If no symbol was found and there is a tag symbol saved within the
          loop, use it. */
