@@ -9286,16 +9286,6 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
          declaration or a template instance. */
       new_sym = find_matching_template_instance(sym, type);
       if (new_sym != NULL) {
-        /* Issue an error if there is an exception specification on the
-           instance declared in the instantiation directive. */
-        if (exceptions_enabled) {
-          if (skip_typerefs(type)->variant.routine.extra_info->
-                                         exception_specification != NULL) {
-            pos_diagnostic(es_discretionary_error,
-                           ec_exception_specification_not_allowed,
-                           &func_info.throw_position);
-          }  /* if */
-        }  /* if */
         /* Update the flags for the symbol found. */
         update_instantiation_flags(new_sym, kind, start_pos,
                                    /*is_class_instantiation=*/FALSE,
