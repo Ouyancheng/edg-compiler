@@ -1,5 +1,17 @@
 Version 2.32
 
+1/31/96   Internal error or abort on invalid nested class in a class template
+
+2.31 introduced a bug what could cause an abort or internal error when
+a program contains an invalid nested class definition.  This has
+been fixed.  The following case gets an internal error on version 2.31.
+If the indicated line is removed, the internal error changes to an abort.
+
+  template < class T > class B {
+    class C :;
+    void f(){}  // remove this line to get an abort
+  };
+
 1/31/96   Internal error on scan for enk_temp_inits in array new
 
 An array new of a class whose default constructor has default arguments

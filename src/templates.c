@@ -831,9 +831,12 @@ list passed in.  The pointer to the start of the list is returned.
 #endif /* DEBUG */
     }  /* if */
     if (start_found_list != NULL &&
-        ctp->token_sequence_number == start_found_list->last_token_number) {
+        (ctp->token_sequence_number == start_found_list->last_token_number ||
+         start_found_list->last_token_number == NO_TOKEN_SEQUENCE_NUMBER)) {
       /* We've found the last token of the first entry on the "start found"
-         list.  Move the entry to the completed list. */
+         list.  Move the entry to the completed list.  The test for
+         NO_TOKEN_SEQUENCE_NUMBER is present for error cases in which
+         the last token of the body was not found. */
       a_template_cache_segment_ptr	tcsp = start_found_list;
       start_found_list = tcsp->next;
       tcsp->next = complete_list;
@@ -928,6 +931,10 @@ returned to the caller.
   }  /* if */
   for (tcsp = cache_segments; tcsp != NULL; tcsp = next_tcsp) {
     next_tcsp = tcsp->next;
+    /* A missing last_token_number indicates that an error occurred
+       while scanning the class definition and no ending token was found.
+       Don't attempt to remove the body from the template. */ 
+    if (tcsp->last_token_number == NO_TOKEN_SEQUENCE_NUMBER) continue;
     switch (tcsp->symbol->kind) {
       case sk_member_function:
         /* A separate copy of the token cache is already maintained for
