@@ -1593,11 +1593,10 @@ added to the scope symbols list and is not linked into the symbol table.
 
 
 a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
-                                       a_type_ptr         class_type,
                                        a_source_position  *pos)
 /*
 Create a symbol for a tagless class, struct, or union symbol.  Do not enter
-into the symbol table.
+it into the symbol table.
 */
 {
   a_symbol_ptr  sym;
@@ -1611,10 +1610,6 @@ into the symbol table.
   }  /* if */
   sym = alloc_symbol(sym_kind, unnamed_class_symbol_header, pos);
   sym->decl_scope = scope_stack[decl_scope_level].number;
-  /* Although the symbol header has a name of sorts, it should not appear
-     in the type, so NULL it out after the call to set_source_corresp. */
-  set_source_corresp(&(class_type->source_corresp), sym);
-  class_type->source_corresp.name = NULL;
   db_exit();
   return sym;
 }  /* make_unnamed_class_symbol */
