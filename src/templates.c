@@ -11125,7 +11125,8 @@ set, and its source sequence entry, if any, has been put out.)
         case sk_function_template:
           il_template_entry->kind = (a_template_kind)templk_function;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-          if (prototype_instantiations_in_il) {
+          if (prototype_instantiations_in_il &&
+              nonclass_prototype_instantiations) {
             a_symbol_ptr  proto_sym = prototype_template_of(sym);
             il_template_entry->prototype_instantiation.routine =
                                   template_supplement_for_symbol(proto_sym)
@@ -11138,7 +11139,8 @@ set, and its source sequence entry, if any, has been put out.)
         case sk_member_function:
           il_template_entry->kind = (a_template_kind)templk_member_function;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-          if (prototype_instantiations_in_il) {
+          if (prototype_instantiations_in_il &&
+              nonclass_prototype_instantiations) {
             il_template_entry->prototype_instantiation.routine =
                                                      sym->variant.routine.ptr;
           } else {
@@ -11149,7 +11151,8 @@ set, and its source sequence entry, if any, has been put out.)
         case sk_static_data_member:
           il_template_entry->kind = (a_template_kind)templk_static_data_member;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-          if (prototype_instantiations_in_il) {
+          if (prototype_instantiations_in_il &&
+              nonclass_prototype_instantiations) {
             il_template_entry->prototype_instantiation.variable =
                                      sym->variant.static_data_member.variable;
           } else {
