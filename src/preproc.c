@@ -32,13 +32,16 @@ preproc.c -- Preprocessing directives.
  
 typedef enum /*a_pp_directive_kind*/ {
   /* Enumeration of preprocessing directives. */
-  ppd_not_valid,
   ppd_if, ppd_ifdef, ppd_ifndef, ppd_elif, ppd_else,
   ppd_endif, ppd_include, ppd_define, ppd_undef, ppd_line,
-  ppd_error, ppd_pragma, ppd_null, ppd_linedef, ppd_ident
+  ppd_error, ppd_pragma, ppd_null, ppd_linedef, ppd_ident,
 #if ALIAS_DIRECTIVE
-  , ppd_alias
+  ppd_alias,
 #endif /* ALIAS_DIRECTIVE */
+#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
+  ppd_assert, ppd_unassert,
+#endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
+  ppd_not_valid
 } a_pp_directive_kind;
 
 typedef struct a_pp_if_stack_entry *a_pp_if_stack_entry_ptr;
@@ -162,6 +165,14 @@ the "#" the current token (at least logically).
       /* #alias directive. */
       kind = ppd_alias;
 #endif /* ALIAS_DIRECTIVE */
+#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
+    } else if (curr_id_is("assert")) {
+      /* #assert directive (an AT&T extension in System V release 4). */
+      kind = ppd_assert;
+    } else if (curr_id_is("unassert")) {
+      /* #unassert directive (an AT&T extension in System V release 4). */
+      kind = ppd_unassert;
+#endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
     } else {
       kind = ppd_not_valid;
     }  /* if */
@@ -949,6 +960,14 @@ execute the preprocessor directive.
       proc_alias();
       break;
 #endif /* ALIAS_DIRECTIVE */
+#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
+    case ppd_assert:
+      proc_assert();
+      break;
+    case ppd_unassert:
+      proc_unassert();
+      break;
+#endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
     case ppd_null:
       /* Null directive -- ignore. */
       break;

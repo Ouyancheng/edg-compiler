@@ -3680,6 +3680,18 @@ end_id_scan:
       /* As the first token on a line, "#" opens a preprocessing directive.
          "#" and "##" are also allowed within the body of a #define
          (for stringizing and pasting).  */
+#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
+      /* An AT&T System V release 4 extension uses #name(tokens) in a
+         preprocessing #if to test an #assert predicate name. */
+      if (in_pp_if_expression) {
+        /* Scan the #name(tokens) and create a 1 (TRUE) or 0 (FALSE) constant
+           value accordingly. */
+        curr_char_loc++;
+        ctoken = make_pp_int_constant(scan_assert_predicate_reference() ?
+                                                                      1L : 0L);
+        goto end_of_token_scan;
+      }  /* if */
+#endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
       if (C_dialect != C_dialect_pcc && in_preprocessing_directive) {
         /* We recognize and return these preprocessing tokens even if
            we do not know that we are in the body of a #define; this

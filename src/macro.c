@@ -2297,9 +2297,6 @@ Scan and process a #define directive.
   a_token_kind    constant_token_kind = tok_error;
   a_boolean       need_end_of_token_marker;
   static char     str_end_of_token_marker[1] = { END_OF_TOKEN_MARKER };
-#if DEBUG
-  char            *temp_ptr;
-#endif /* DEBUG */
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -2579,6 +2576,7 @@ Scan and process a #define directive.
     end_of_cpp_string = NULL;
 #if DEBUG
     if (debug_level >= 3) {
+      char *temp_ptr;  /* Doesn't need to be registered. */
       fprintf(f_debug, "Definition of macro %s:\n",
                        assoc_symbol->header->identifier);
       if (object_like) {
@@ -2673,8 +2671,481 @@ def_done:;
   /* Drop any local pointer registrations. */
   registered_pointers = save_registered_pointers;
   db_exit();
-  return;
 }  /* proc_define */
+
+
+#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
+/*
+Data structure to contain definitions of #assert predicates.  (They are an
+AT&T System V release 4 preprocessing extension).
+*/
+typedef struct an_assert_value *an_assert_value_ptr;
+typedef struct an_assert_value {
+  /* One value of an #assert predicate. */
+  an_assert_value_ptr
+		next;	/* Pointer to the next value for the same predicate,
+			   if any. */
+  char		*value;	/* Value of the predicate: a character string
+			   terminated by a null and made up of the characters
+			   of the tokens in the token-sequence separated by
+			   blanks. */
+} an_assert_value;
+typedef struct an_assert_predicate *an_assert_predicate_ptr;
+typedef struct an_assert_predicate {
+  /* Definition of one #assert predicate name and any associated values. */
+  an_assert_predicate_ptr
+		next;	/* Next #assert predicate entry, if any. */
+  char		*name;	/* Predicate name.  Null-terminated, no leading "#". */
+  an_assert_value_ptr
+		values;	/* List of values for this predicate name.  (A given
+			   predicate may have several values.) */
+} an_assert_predicate;
+static an_assert_predicate_ptr
+		assert_predicates;
+			/* List of all the #assert predicates currently
+			   defined.  This is a simple linear list because we
+			   don't expect too many of these. */
+
+
+static an_assert_predicate_ptr find_predicate_entry(
+                                             char                    *name,
+                                             sizeof_t                name_len,
+                                             an_assert_predicate_ptr *prev_app)
+/*
+Find the #assert predicate entry for the name "name" of length "name_len"
+and return a pointer to it, or return NULL if there is no such entry.
+If there is an entry, also set *prev_app to point to the entry preceding
+it on the list, or NULL if it is the first entry on the list.
+*/
+{
+  an_assert_predicate_ptr app;
+
+  /* Search the list of defined predicates looking for a matching name. */
+  for (*prev_app = NULL, app = assert_predicates;
+       app != NULL;
+       *prev_app = app, app = app->next) {
+    if (strlen(app->name) == name_len &&
+        memcmp(app->name, name, (int)len_of_curr_token) == 0) {
+      /* Found it. */
+      break;
+    }  /* if */
+  }  /* for */
+  return app;
+}  /* find_predicate_entry */
+
+
+static an_assert_predicate_ptr find_or_make_predicate_entry(char     *name,
+                                                            sizeof_t name_len)
+/*
+Find an existing predicate entry for the name given by "name" of length
+"name_len", or create one if one does not exist, and return a pointer to
+the entry in either case.
+*/
+{
+  an_assert_predicate_ptr app, prev_app;
+
+  /* Find an entry if one exists already. */
+  app = find_predicate_entry(name, name_len, &prev_app);
+  if (app == NULL) {
+    /* Make a new entry because one does not already exist. */
+    app = (an_assert_predicate_ptr)alloc_fe(sizeof(an_assert_predicate));
+    app->next   = assert_predicates;
+    assert_predicates = app;
+    /* The name must be copied to front end storage since it's currently
+       part of the source line. */
+    app->name   = alloc_fe((sizeof_t)(name_len+1));
+    memcpy(app->name, name, (int)name_len);
+    app->name[name_len] = '\0';
+    app->values = NULL;
+  }  /* if */
+  return app;
+}  /* find_or_make_predicate_entry */
+
+
+static char *collect_optional_assert_token_sequence(a_boolean *err)
+/*
+Collect the optional token-sequence for an #assert or #unassert as a character
+string in macro_buffer, and return a pointer to the beginning of the string.
+Return NULL if there was no token sequence.  Allocation in macro_buffer
+begins at the start, so the caller must know that macro_buffer is not in
+use currently.  On return, next_avail_in_macro_buffer will indicate the
+character position after the terminating null in the string.  Return *err
+TRUE if there was some error.
+*/
+{
+  char          *start_loc = NULL;
+  unsigned long paren_count;
+
+  *err = FALSE;
+  /* The directive can end here, after the name, or there can be a list
+     of tokens enclosed in parentheses. */
+  if (get_token() == tok_newline) {
+    /* The directive ends with the predicate name, as in "#assert name". */
+  } else if (curr_token != tok_lparen) {
+    /* Error -- expected a left parenthesis. */
+    error(ec_exp_lparen);
+    *err = TRUE;
+  } else {
+    /* The opening parenthesis is present.  Scan the tokens until the
+       closing parenthesis. */
+    paren_count = 0;
+    /* macro_buffer starts out empty. */
+    start_loc = next_avail_in_macro_buffer = macro_buffer;
+    while (get_token() != tok_newline && curr_token != tok_end_of_source) {
+      /* Count parentheses within the loop, because nested parentheses
+         matter, as in
+           #assert xyz(aaa(bbb)ccc)
+      */
+      /* If you change this, see scan_assert_predicate_reference as well. */
+      if (curr_token == tok_rparen) {
+        /* Exit the loop on the proper closing parenthesis. */
+        if (paren_count == 0) break;
+        paren_count--;
+      } else if (curr_token == tok_lparen) {
+        paren_count++;
+      }  /* if */
+      /* Put the text of the current token and a blank (as a token separator)
+         into macro_buffer.  White space is not significant and is not
+         saved. */
+      ensure_macro_buffer_space(len_of_curr_token+1);
+      memcpy(next_avail_in_macro_buffer, start_of_curr_token,
+             (int)len_of_curr_token);
+      next_avail_in_macro_buffer += len_of_curr_token;
+      *next_avail_in_macro_buffer++ = ' ';
+    }  /* while */
+    /* Add a null character to end the token sequence. */
+    ensure_macro_buffer_space(1);
+    *next_avail_in_macro_buffer++ = '\0';
+    /* We now have in macro_buffer a character string representing the
+       token-sequence. */
+    /* Check for the closing parenthesis. */
+    if (!required_token(tok_rparen, ec_exp_rparen)) *err = TRUE;
+  }  /* if */
+  return start_loc;
+}  /* collect_optional_assert_token_sequence */
+
+
+static an_assert_value_ptr find_assert_value(an_assert_predicate_ptr app,
+                                             char                    *value,
+                                             an_assert_value_ptr     *prev_avp)
+/*
+Look for an existing value of the #assert predicate indicated by app that
+matches value.  If one is found, return a pointer to it, and set *prev_avp to
+point to the previous value on the list, or NULL if the value entry is the
+first on the list.  If no appropriate value entry is found, return NULL.
+*/
+{
+  an_assert_value_ptr ptr;
+
+  for (*prev_avp = NULL, ptr = app->values;
+       ptr != NULL;
+       *prev_avp = ptr, ptr = ptr->next) {
+    if (strcmp(ptr->value, value) == 0) break;
+  }  /* for */
+  return ptr;
+}  /* find_assert_value */
+
+
+static void add_assert_value(char                    *value,
+                             an_assert_predicate_ptr app)
+/*
+Make an #assert predicate value entry for the given value and add it to the
+front of the value list for the predicate pointed to by app.  value is
+null-terminated.  Do not add the value if it exists already on the list.
+*/
+{
+  an_assert_value_ptr avp, prev_avp;
+
+  /* If the value is already present, do not add it again. */
+  if (find_assert_value(app, value, &prev_avp) == NULL) {
+    avp = (an_assert_value_ptr)alloc_fe(sizeof(an_assert_value));
+    /* Put the new value entry on the front of the value list. */
+    avp->next = app->values;
+    app->values = avp;
+    /* Copy the value string into freshly-allocated storage for it. */
+    avp->value = strcpy(alloc_fe((sizeof_t)(strlen(value)+1)), value);
+  }  /*if */
+}  /* add_assert_value */
+
+
+void proc_assert(void)
+/*
+Scan and process an #assert directive.  This is an AT&T extension in System V
+release 4.  Its form is
+
+  #assert name ( token-list )
+
+or
+
+  #assert name
+
+The defined name can be tested in #if expressions by writing
+
+  #if #name( token-list )
+
+which is true if one of the asserted values of #name is the indicated
+token-list.
+*/
+{
+  an_assert_predicate_ptr predicate_entry;
+  char                    *token_str;
+  a_boolean               err = FALSE;
+
+  db_enter(3, "proc_assert");
+  /* Get the predicate identifier. */
+  if (get_token() != tok_identifier) {
+    /* Error -- expected an identifier. */
+    error(ec_exp_identifier);
+    err = TRUE;
+  } else {
+    /* Find or make a predicate entry for the name. */
+    predicate_entry = find_or_make_predicate_entry(start_of_curr_token,
+                                                   len_of_curr_token);
+    /* Collect the optional token sequence in macro_buffer. */
+    token_str = collect_optional_assert_token_sequence(&err);
+  }  /* if */
+  /* If there was no error, install the assertion value. */
+  if (err) {
+    some_error_in_curr_directive = TRUE;
+  } else {
+#if DEBUG
+    if (debug_level >= 3) {
+      fprintf(f_debug, "Processing #assert %s", predicate_entry->name);
+      if (token_str != NULL) fprintf(f_debug, " ( %s )", token_str);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
+    /* Only add a value if there was a token sequence. */
+    if (token_str != NULL) add_assert_value(token_str, predicate_entry);
+  }  /* if */
+  db_exit();
+}  /* proc_assert */
+
+
+void proc_unassert(void)
+/*
+Scan and process an #unassert directive.  This is an AT&T extension in System V
+release 4.  Its form is
+
+  #unassert name ( token-list )
+
+or
+
+  #unassert name
+
+*/
+{
+  an_assert_predicate_ptr predicate_entry, prev_app;
+  an_assert_value_ptr     predicate_value, prev_avp;
+  char                    *token_str;
+  a_boolean               err = FALSE;
+
+  db_enter(3, "proc_unassert");
+  /* Get the predicate identifier. */
+  if (get_token() != tok_identifier) {
+    /* Error -- expected an identifier. */
+    error(ec_exp_identifier);
+    err = TRUE;
+  } else {
+    /* Find any predicate entry for the name.  Do not create one if one is
+       not found. */
+    predicate_entry = find_predicate_entry(start_of_curr_token,
+                                           len_of_curr_token, &prev_app);
+    /* Collect the optional token sequence in macro_buffer. */
+    token_str = collect_optional_assert_token_sequence(&err);
+  }  /* if */
+  /* If there was no error, do the #unassert. */
+  if (err) {
+    some_error_in_curr_directive = TRUE;
+  } else {
+    if (predicate_entry == NULL) {
+      /* There's no existing entry, so there's nothing to undo. */
+    } else {
+#if DEBUG
+      if (debug_level >= 3) {
+        fprintf(f_debug, "Processing #unassert %s", predicate_entry->name);
+        if (token_str != NULL) fprintf(f_debug, " ( %s )", token_str);
+        fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
+      if (token_str) {
+        /* There was no token sequence, so remove the entire predicate, not
+           just one value. */
+        if (prev_app == NULL) {
+          /* It's first on the list. */
+          assert_predicates = predicate_entry->next;
+        } else {
+          prev_app->next = predicate_entry->next;
+        }  /* if */
+      } else {
+        /* There was a token sequence, so look for a value entry with that
+           value. */
+        predicate_value = find_assert_value(predicate_entry, token_str,
+                                            &prev_avp);
+        if (predicate_value == NULL) {
+          /* There is no existing value like the one we want, so do nothing. */
+        } else {
+          /* Remove the value entry. */
+          if (prev_avp == NULL) {
+            /* The value is first on the list. */
+            predicate_entry->values = predicate_value->next;
+          } else {
+            prev_avp->next = predicate_value->next;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  db_exit();
+}  /* proc_unassert */
+
+
+a_boolean scan_assert_predicate_reference(void)
+/*
+Scan a reference to an #assert predicate in a preprocessing #if.  Its form
+is
+
+  #name(token-sequence)
+
+Return TRUE if token-sequence exists as a value for the #assert predicate
+indicated by "name", FALSE if not.
+*/
+{
+  a_boolean               result = FALSE;
+  a_boolean               save_fetch_pp_tokens = fetch_pp_tokens;
+  a_boolean               save_expand_macros = expand_macros;
+  an_assert_predicate_ptr app, prev_app;
+  an_assert_value_ptr     matched_value, old_matched_value;
+  sizeof_t                matched_len;
+  char                    *after_matched_str;
+  unsigned long           paren_count;
+
+  db_enter(4, "scan_assert_predicate_reference");
+  fetch_pp_tokens = TRUE;
+  expand_macros = FALSE;
+  if (get_token() != tok_identifier) {
+    /* Error -- expected an identifier. */
+    error(ec_exp_identifier);
+    some_error_in_curr_directive = TRUE;
+  } else {
+    /* Look up the predicate name. */
+    app = find_predicate_entry(start_of_curr_token, len_of_curr_token,
+                               &prev_app);
+    /* Scan the token list whether or not the predicate name is defined. */
+    if (get_token() != tok_lparen) {
+      /* Error -- expected a left parenthesis. */
+      error(ec_exp_lparen);
+      some_error_in_curr_directive = TRUE;
+    } else {
+      /* Scan the token sequence.  We don't actually build the token string;
+         instead, we keep track of the string matched in a value string
+         so far.  As soon as we can no longer match the text so far to
+         anything in the values, we give up (the predicate is false). */
+      /* matched_value points to a value entry, and the assertion is that
+         the first match_len characters of that value's string match the
+         token sequence scanned so far (including blanks after each token).
+         If matched_value == NULL, no value matches the string so far, and
+         we're just scanning for the closing parenthesis. */
+      matched_value = NULL;
+      if (app != NULL) matched_value = app->values;
+      matched_len = 0;
+      paren_count = 0;
+      /* Get tokens until the closing parenthesis is found. */
+      while (get_token() != tok_newline && curr_token != tok_end_of_source) {
+        /* Count parentheses within the loop, because nested parentheses
+           matter, as in
+             #if  #xyz(aaa(bbb)ccc)
+        */
+        /* If you change this, see collect_optional_assert_token_sequence
+           as well. */
+        if (curr_token == tok_rparen) {
+          /* Exit the loop on the proper closing parenthesis. */
+          if (paren_count == 0) break;
+          paren_count--;
+        } else if (curr_token == tok_lparen) {
+          paren_count++;
+        }  /* if */
+        if (matched_value != NULL) {
+try_match_again:
+          /* See if the text of the token just scanned can be added to the
+             string matched so far.  Also check for the blank as a token
+             delimiter after the token string. */
+          after_matched_str = matched_value->value + matched_len;
+          if (memcmp(after_matched_str,
+                     start_of_curr_token, (int)len_of_curr_token) == 0 &&
+              *(after_matched_str+len_of_curr_token) == ' ') {
+            /* The new token matches the continuation of the matched string,
+               so change the matched string length to include the added
+               text. */
+            matched_len += len_of_curr_token+1;
+          } else {
+            /* Mismatch.  Look for another value entry later on the list
+               that starts with the currently matched string, and then try to
+               match the new token against the continuation of that string. */
+            old_matched_value = matched_value;
+            while ((matched_value = matched_value->next) != NULL) {
+              /* Go try the match again if the new matched_value starts with
+                 the same characters matched in the old_matched_value. */
+              if (memcmp(matched_value->value, old_matched_value->value,
+                         (int)matched_len) == 0) {
+                goto try_match_again;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+        }  /* if */
+      }  /* while */
+      /* Check for the closing parenthesis.  required_token cannot be used
+         because it would do an inappropriate flush on error.  Also, we
+         don't want to advance to the next token after the ")". */
+      if (curr_token != tok_rparen) {
+        error(ec_exp_rparen);
+        some_error_in_curr_directive = TRUE;
+        matched_value = NULL;
+      }  /* if */
+      /* The result is TRUE if we have an entire value string that matches
+         the entire token sequence (i.e., we have a matching string and
+         the next thing after it is the terminating null character). */
+      if (matched_value != NULL &&
+          matched_value->value[matched_len] == '\0') result = TRUE;
+    }  /* if */
+  }  /* if */
+  if (curr_token != tok_rparen) {
+    /* If the construct was not properly closed with a right parenthesis,
+       make the current token (e.g., tok_newline) be scanned again.
+       Without this, we could run off the end of the #if directive. */
+    curr_char_loc = start_of_curr_token;
+  }  /* if */
+  fetch_pp_tokens = save_fetch_pp_tokens;
+  expand_macros = save_expand_macros;
+  db_exit();
+  return result;
+}  /* scan_assert_predicate_reference */
+
+
+void enter_assert_predicate(char *value,
+                            char *name)
+/*
+Enter an #assert predicate with name "name" and value "value".  This is
+used for predefined predicates (see fe_init.c).  CAREFUL:  The value string
+must have an extra blank at the end, as in
+
+  enter_assert_predicate("m68k ", "machine");
+
+*/
+{
+  an_assert_predicate_ptr app;
+
+#if CHECKING
+  if (strlen(value) > 0 && value[strlen(value)-1] != ' ') {
+    internal_error("enter_assert_predicate: value must have blank at the end");
+  }  /* if */
+#endif /* CHECKING */
+  /* Find or make a predicate entry for the name. */
+  app = find_or_make_predicate_entry(name, (sizeof_t)strlen(name));
+  /* If there's no existing entry for the value, add one. */
+  add_assert_value(value, app);
+}  /* enter_assert_predicate */
+#endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 
 
 #if DEBUG
@@ -2743,6 +3214,9 @@ to avoid an 8-character external name uniqueness conflict with
   macro_arg_list = NULL;
   end_of_macro_arg_list = NULL;
   registered_pointers = NULL;
+#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
+  assert_predicates = NULL;
+#endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 #if DEBUG
   num_macro_params_allocated    = 0;
   num_macro_defs_allocated      = 0;
