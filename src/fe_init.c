@@ -518,7 +518,7 @@ Initialize things related to preprocessing.
          to be a literal constant. */
     }  /* if */
     if (err) {
-      str_command_line_error("invalid macro definition: ", du_str);
+      str_command_line_error(ec_cl_invalid_macro_definition, du_str);
     }  /* if */
     du_ptr = du_ptr->next;
   }  /* while */
@@ -552,7 +552,7 @@ Initialize things related to preprocessing.
       }  /* if */
     }  /* if */
     if (err) {
-      str_command_line_error("invalid macro undefinition: ", du_str);
+      str_command_line_error(ec_cl_invalid_macro_undefinition, du_str);
     }  /* if */
     du_ptr = du_ptr->next;
   }  /* while */
@@ -714,10 +714,10 @@ Open the preprocessing output file.
                                    /*update_mode=*/FALSE,
                                    &cannot_open, &bad_name);
     if (bad_name) {
-      str_command_line_error("invalid preprocessor output file ",
+      str_command_line_error(ec_cl_invalid_preprocessor_output_file,
                              pp_file_name);
     } else if (cannot_open) {
-      str_command_line_error("cannot open preprocessor output file ",
+      str_command_line_error(ec_cl_cannot_open_preprocessor_output_file,
                              pp_file_name);
     }  /* if */
   }  /* if */
@@ -742,7 +742,7 @@ Open the intermediate language file.
          IL file.  If the input file is stdin, the name cannot be
          generated. */
       if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) == 0) {
-        str_command_line_error("IL file name must be specified if input is ",
+        str_command_line_error(ec_cl_il_file_must_be_specified,
                                primary_source_file_name);
       }  /* if */
       il_file_name = derived_name(primary_source_file_name, IL_FILE_SUFFIX);
@@ -760,7 +760,7 @@ Open the intermediate language file.
        IL file name.  If the input file is stdin, the name cannot be
        generated. */
     if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) == 0) {
-      str_command_line_error("IL file name must be specified if input is ",
+      str_command_line_error(ec_il_file_must_be_specified:
                              primary_source_file_name);
     }  /* if */
     il_file_name = derived_name(primary_source_file_name, IL_FILE_SUFFIX);
@@ -770,9 +770,9 @@ Open the intermediate language file.
                                  /*update_mode=*/BACK_END_SHOULD_BE_CALLED,
                                  &cannot_open, &bad_name);
   if (bad_name) {
-    str_command_line_error("invalid IL output file ", il_file_name);
+    str_command_line_error(ec_cl_invalid_il_output_file, il_file_name);
   } else if (cannot_open) {
-    str_command_line_error("cannot open IL output file ", il_file_name);
+    str_command_line_error(ec_cl_cannot_open_il_output_file, il_file_name);
   }  /* if */
 #if BACK_END_SHOULD_BE_CALLED
 have_il_file:;

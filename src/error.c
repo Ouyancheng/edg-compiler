@@ -953,7 +953,6 @@ error code.
     case ec_exp_asm_string:
       m = "expected an asm string";
       break;
-#if ASM_FUNCTION_ALLOWED
     case ec_asm_func_must_be_prototyped:
       m = "an asm function must be prototyped";
       break;
@@ -1026,7 +1025,6 @@ error code.
     case ec_bad_asm_return_type:
       m = "the return value may not have this asm type";
       break;
-#endif /* ASM_FUNCTION_ALLOWED */
     case ec_file_delete_error:
       m = "error while deleting file %sq";
       break;
@@ -2010,11 +2008,9 @@ error code.
     case ec_omitted_throw_specification:
       m = "omission of throw specification is incompatible with previous %nd";
       break;
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
     case ec_cannot_create_instantiation_information_file:
       m = "could not create instantiation information file %sq";
       break;
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
     case ec_non_arith_operation_in_templ_arg:
       m = "non-arithmetic operation not allowed in nontype template argument";
       break;
@@ -2068,6 +2064,121 @@ error code.
       break;
     case ec_unimplemented_keyword:
       m = "%no is reserved for future use as a keyword";
+      break;
+    case ec_cl_invalid_macro_definition:
+      m = "invalid macro definition: ";
+      break;
+    case ec_cl_invalid_macro_undefinition:
+      m = "invalid macro undefinition: ";
+      break;
+    case ec_cl_invalid_preprocessor_output_file:
+      m = "invalid preprocessor output file ";
+      break;
+    case ec_cl_cannot_open_preprocessor_output_file:
+      m = "cannot open preprocessor output file ";
+      break;
+    case ec_cl_il_file_must_be_specified:
+      m = "IL file name must be specified if input is ";
+      break;
+    case ec_cl_invalid_il_output_file:
+      m = "invalid IL output file ";
+      break;
+    case ec_cl_cannot_open_il_output_file:
+      m = "cannot open IL output file ";
+      break;
+    case ec_cl_invalid_C_output_file:
+      m = "invalid C output file ";
+      break;
+    case ec_cl_cannot_open_C_output_file:
+      m = "cannot open C output file ";
+      break;
+    case ec_cl_error_in_debug_option_argument:
+      m = "error in debug option argument";
+      break;
+    case ec_cl_invalid_option:
+      m = "invalid option: ";
+      break;
+    case ec_cl_back_end_requires_il_file:
+      m = "back end requires name of IL file";
+      break;
+    case ec_cl_could_not_open_il_file:
+      m = "could not open IL file ";
+      break;
+    case ec_cl_invalid_number:
+      m = "invalid number: ";
+      break;
+    case ec_cl_incorrect_host_id:
+      m = "incorrect host CPU id";
+      break;
+    case ec_cl_invalid_instantiation_mode:
+      m = "invalid instantiation mode: ";
+      break;
+    case ec_cl_missing_include_directory:
+      m = "missing include file directory name";
+      break;
+    case ec_cl_invalid_error_limit:
+      m = "invalid error limit: ";
+      break;
+    case ec_cl_invalid_raw_listing_output_file:
+      m = "invalid raw-listing output file ";
+      break;
+    case ec_cl_cannot_open_raw_listing_output_file:
+      m = "cannot open raw-listing output file ";
+      break;
+    case ec_cl_invalid_xref_output_file:
+      m = "invalid cross-reference output file ";
+      break;
+    case ec_cl_cannot_open_xref_output_file:
+      m = "cannot open cross-reference output file ";
+      break;
+    case ec_cl_invalid_error_output_file:
+      m = "invalid error output file ";
+      break;
+    case ec_cl_cannot_open_error_output_file:
+      m = "cannot open error output file ";
+      break;
+    case ec_cl_vtbl_option_only_in_cplusplus:
+      m =
+      "virtual function tables can only be suppressed (-V) when compiling C++";
+      break;
+    case ec_cl_anachronism_option_only_in_cplusplus:
+      m = "anachronism option (-O) can be used only when compiling C++";
+      break;
+    case ec_cl_instantiation_option_only_in_cplusplus:
+      m = "instantiation mode (-t) can be used only when compiling C++";
+      break;
+    case ec_cl_auto_instantiation_option_only_in_cplusplus:
+      m =
+       "automatic instantiation mode (-T) can be used only when compiling C++";
+      break;
+    case ec_cl_implicit_inclusion_option_only_in_cplusplus:
+      m =
+   "implicit template inclusion mode (-B) can be used only when compiling C++";
+      break;
+    case ec_cl_exceptions_option_only_in_cplusplus:
+      m = "exception handling option (-x) can be used only when compiling C++";
+      break;
+    case ec_cl_strict_ansi_incompatible_with_pcc:
+      m = "strict ANSI mode is incompatible with K&R mode";
+      break;
+    case ec_cl_strict_ansi_incompatible_with_cfront:
+      m = "strict ANSI mode is incompatible with cfront mode";
+      break;
+    case ec_cl_missing_source_file_name:
+      m = "missing source_file name";
+      break;
+    case ec_cl_output_file_incompatible_with_multiple_inputs:
+      m =
+        "output files may not be specified when compiling several input files";
+      break;
+    case ec_cl_too_many_arguments:
+      m = "too many arguments on command line";
+      break;
+    case ec_cl_no_output_file_needed:
+      m = "-o was specified, but no output file is needed";
+      break;
+    case ec_cl_il_display_requires_il_file_name:
+      m = "IL display requires name of IL file";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
@@ -4621,8 +4732,8 @@ An assertion has failed.  Abort the compilation.
 #endif /* CHECKING */
 
 
-DOES_NOT_RETURN str_command_line_error(char *error_message,
-                                       char *concat_string)
+DOES_NOT_RETURN str_command_line_error(an_error_code error_code,
+                                       char          *concat_string)
 /*
 Write a command-line error message concatenated with concat_string, and
 terminate the compilation.
@@ -4631,7 +4742,7 @@ terminate the compilation.
   error_position.seq = 0;
   error_position.column = SP_COL_CMD_LINE;
   init_error_params();
-  error_msg_strings[1] = error_message;
+  error_msg_strings[1] = error_text(error_code);
   error_msg_strings[2] = concat_string;
   construct_message_segments("%s1%s2");
 
@@ -4643,12 +4754,12 @@ terminate the compilation.
 }  /* str_command_line_error */
 
 
-DOES_NOT_RETURN command_line_error(char *error_message)
+DOES_NOT_RETURN command_line_error(an_error_code error_code)
 /*
 Write a command-line error message, and terminate the compilation.
 */
 {
-  str_command_line_error(error_message, "");
+  str_command_line_error(error_code, "");
 }  /* command_line_error */
 
 #if CHECKING

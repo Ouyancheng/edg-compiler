@@ -3453,22 +3453,22 @@ where file.cil specifies the IL file.  Output is to stdout.
       case 'd':
         /* Scan debug argument */
         if (proc_debug_option(argv[optind]+2)) {
-          command_line_error("error in debug option argument");
+          command_line_error(ec_cl_error_in_debug_option_argument);
         }  /* if */
         break;
 #endif /* DEBUG */
       default:
-        str_command_line_error("invalid option: ", argv[optind]);
+        str_command_line_error(ec_cl_invalid_option, argv[optind]);
     }  /* switch */
     optind++;
   }  /* while */
   if (optind != argc - 1) {
-    command_line_error("IL display requires name of IL file");
+    command_line_error(ec_cl_il_display_requires_il_file_name);
   }  /* if */
   file_name = argv[optind];
   f_il_input = fopen(file_name, "rb");
   if (f_il_input == NULL) {
-    str_command_line_error("could not open IL file ", file_name);
+    str_command_line_error(ec_cl_could_not_open_il_file, file_name);
   }  /* if */
   /* Read the file-scope IL. */
   il_read(f_il_input);

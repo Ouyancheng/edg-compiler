@@ -40,7 +40,9 @@ typedef enum /*an_error_severity*/ {
 #endif /* ifndef HOST_ENVIR_H */
 
 /*
-Symbolic codes for errors and other diagnostics.
+Symbolic codes for errors and other diagnostics.  If an error message
+is removed, its error code should be preserved and not reassigned
+to a new message to facilitate the use of message catalogs.
 */
 typedef enum /*an_error_code*/ {
   ec_no_error,       /* To take value 0, so other codes will be non-zero. */
@@ -232,7 +234,6 @@ typedef enum /*an_error_code*/ {
   ec_unrecognized_char_escape,
   ec_undefined_preproc_id,
   ec_exp_asm_string,
-#if ASM_FUNCTION_ALLOWED
   ec_asm_func_must_be_prototyped,
   ec_bad_asm_func_ellipsis,
   ec_asm_with_non_function,
@@ -257,7 +258,6 @@ typedef enum /*an_error_code*/ {
   ec_asm_leaf_has_no_expansion_lines,
   ec_cannot_ref_untyped_asm_return,
   ec_bad_asm_return_type,
-#endif /* ASM_FUNCTION_ALLOWED */
   ec_file_delete_error,
   ec_integer_to_float_conversion,
   ec_float_to_float_conversion,
@@ -581,9 +581,7 @@ typedef enum /*an_error_code*/ {
   ec_previously_included_throw_type,
   ec_no_exception_support,
   ec_omitted_throw_specification,
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
   ec_cannot_create_instantiation_information_file,
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   ec_non_arith_operation_in_templ_arg,
   ec_local_type_in_nonlocal_var,
   ec_local_type_in_function,
@@ -601,7 +599,44 @@ typedef enum /*an_error_code*/ {
   ec_bad_access_decl_ambiguous_name,
   ec_bad_member_type_in_ptr_to_member,
   ec_ellipsis_on_operator_function,
-  ec_unimplemented_keyword
+  ec_unimplemented_keyword,
+  ec_cl_invalid_macro_definition,
+  ec_cl_invalid_macro_undefinition,
+  ec_cl_invalid_preprocessor_output_file,
+  ec_cl_cannot_open_preprocessor_output_file,
+  ec_cl_il_file_must_be_specified,
+  ec_cl_invalid_il_output_file,
+  ec_cl_cannot_open_il_output_file,
+  ec_cl_invalid_C_output_file,
+  ec_cl_cannot_open_C_output_file,
+  ec_cl_error_in_debug_option_argument,
+  ec_cl_invalid_option,
+  ec_cl_back_end_requires_il_file,
+  ec_cl_could_not_open_il_file,
+  ec_cl_invalid_number,
+  ec_cl_incorrect_host_id,
+  ec_cl_invalid_instantiation_mode,
+  ec_cl_missing_include_directory,
+  ec_cl_invalid_error_limit,
+  ec_cl_invalid_raw_listing_output_file,
+  ec_cl_cannot_open_raw_listing_output_file,
+  ec_cl_invalid_xref_output_file,
+  ec_cl_cannot_open_xref_output_file,
+  ec_cl_invalid_error_output_file,
+  ec_cl_cannot_open_error_output_file,
+  ec_cl_vtbl_option_only_in_cplusplus,
+  ec_cl_anachronism_option_only_in_cplusplus,
+  ec_cl_instantiation_option_only_in_cplusplus,
+  ec_cl_auto_instantiation_option_only_in_cplusplus,
+  ec_cl_implicit_inclusion_option_only_in_cplusplus,
+  ec_cl_exceptions_option_only_in_cplusplus,
+  ec_cl_strict_ansi_incompatible_with_pcc,
+  ec_cl_strict_ansi_incompatible_with_cfront,
+  ec_cl_missing_source_file_name,
+  ec_cl_output_file_incompatible_with_multiple_inputs,
+  ec_cl_too_many_arguments,
+  ec_cl_no_output_file_needed,
+  ec_cl_il_display_requires_il_file_name
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
@@ -723,9 +758,9 @@ extern a_line_number update_file_index(struct a_source_file *src_file,
                                        a_line_number        physical_line,
                                        long                 file_pos);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-extern DOES_NOT_RETURN command_line_error(char *error_message);
-extern DOES_NOT_RETURN str_command_line_error(char *error_message,
-                                              char *fill_in_string);
+extern DOES_NOT_RETURN command_line_error(an_error_code error_code);
+extern DOES_NOT_RETURN str_command_line_error(an_error_code error_code,
+                                              char          *fill_in_string);
 extern void pos_st_diagnostic(an_error_severity error_severity,
                               an_error_code     error_code,
                               a_source_position *error_pos,

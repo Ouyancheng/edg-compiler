@@ -8910,9 +8910,10 @@ Generate old-style (K&R/pcc) C from the intermediate language.
                                   /*update_mode=*/FALSE,
                                   &cannot_open, &bad_name);
     if (bad_name) {
-      str_command_line_error("invalid C output file ", C_output_file_name);
+      str_command_line_error(ec_cl_invalid_C_output_file, C_output_file_name);
     } else if (cannot_open) {
-      str_command_line_error("cannot open C output file ", C_output_file_name);
+      str_command_line_error(ec_cl_cannot_open_C_output_file,
+                             C_output_file_name);
     }  /* if */
     /* Make Purify happy. */
     purify_discard_memory(C_output_file_name);
@@ -9093,7 +9094,7 @@ from the primary source file name in the IL information.
       case 'd':
         /* Scan debug argument */
         if (proc_debug_option(argv[optind]+2)) {
-          command_line_error("error in debug option argument");
+          command_line_error(ec_cl_error_in_debug_option_argument);
         }  /* if */
         break;
 #endif /* DEBUG */
@@ -9105,16 +9106,16 @@ from the primary source file name in the IL information.
         break;
 #endif /* ifdef CFE */
       default:
-        str_command_line_error("invalid option: ", argv[optind]);
+        str_command_line_error(ec_cl_invalid_option, argv[optind]);
     }  /* switch */
     optind++;
   }  /* while */
   if (optind != argc - 1) {
-    command_line_error("back end requires name of IL file");
+    command_line_error(ec_cl_back_end_requires_il_file);
   }  /* if */
   f_il_input = fopen(argv[optind], "rb");
   if (f_il_input == NULL) {
-    str_command_line_error("could not open IL file ", argv[optind]);
+    str_command_line_error(ec_cl_could_not_open_il_file, argv[optind]);
   }  /* if */
   /* Read the file-scope IL. */
   il_read(f_il_input);

@@ -83,7 +83,7 @@ Scan an argument option as a decimal number, and return its value.
   }  /* for */
   goto return_point;
 number_error:
-  str_command_line_error("invalid number: ", optstr);
+  str_command_line_error(ec_cl_invalid_number, optstr);
 return_point:
   return result;
 }  /* scan_optarg_number */
@@ -126,7 +126,7 @@ Process the arguments on the command line that invoked the compiler.
         lhostid != (HOSTID2 ^ HOSTID_MASK) &&
 #endif /* ifdef HOSTID2 */
                                              ) {
-      command_line_error("incorrect host CPU id");
+      command_line_error(ec_cl_incorrect_host_id);
     }  /* if */
   }
 #endif /* ifdef HOSTID */
@@ -242,7 +242,7 @@ Process the arguments on the command line that invoked the compiler.
           } else if (strcmp(instantiation_mode_string, "local") == 0) {
             instantiation_mode = tim_local;
           } else {
-            str_command_line_error("invalid instantiation mode: ",
+            str_command_line_error(ec_cl_invalid_instantiation_mode,
       			           instantiation_mode_string);
           }  /* if */
         }  /* if */
@@ -328,7 +328,7 @@ Process the arguments on the command line that invoked the compiler.
         if (*optarg == '-') {
           /* Directory name was probably omitted; next option was taken
              as the directory name. */
-          command_line_error("missing include file directory name");
+          command_line_error(ec_cl_missing_include_directory);
         }  /* if */
         add_to_include_search_path(optarg);
         break;
@@ -347,7 +347,7 @@ Process the arguments on the command line that invoked the compiler.
            compilation). */
         error_limit = scan_optarg_number(optarg);
         if (error_limit <= 0) {
-          str_command_line_error("invalid error limit: ", optarg);
+          str_command_line_error(ec_cl_invalid_error_limit, optarg);
         }  /* if */
         break;
       case 'L':
@@ -359,10 +359,10 @@ Process the arguments on the command line that invoked the compiler.
                                          /*update_mode=*/FALSE,
                                          &cannot_open, &bad_name);
         if (bad_name) {
-          str_command_line_error("invalid raw-listing output file ",
+          str_command_line_error(ec_cl_invalid_raw_listing_output_file,
                                  optarg);
         } else if (cannot_open) {
-          str_command_line_error("cannot open raw-listing output file ",
+          str_command_line_error(ec_cl_cannot_open_raw_listing_output_file,
                                  optarg);
         }  /* if */
         break;
@@ -373,10 +373,10 @@ Process the arguments on the command line that invoked the compiler.
                                        /*update_mode=*/FALSE,
                                        &cannot_open, &bad_name);
         if (bad_name) {
-          str_command_line_error("invalid cross-reference output file ",
+          str_command_line_error(ec_cl_invalid_xref_output_file,
                                  optarg);
         } else if (cannot_open) {
-          str_command_line_error("cannot open cross-reference output file ",
+          str_command_line_error(ec_cl_cannot_open_xref_output_file,
                                  optarg);
         }  /* if */
         break;
@@ -385,10 +385,10 @@ Process the arguments on the command line that invoked the compiler.
            redirection is not well supported. */
         reopen_error_output_file(optarg, &cannot_open, &bad_name);
         if (bad_name) {
-          str_command_line_error("invalid error output file ",
+          str_command_line_error(ec_cl_invalid_error_output_file,
                                  optarg);
         } else if (cannot_open) {
-          str_command_line_error("cannot open error output file ",
+          str_command_line_error(ec_cl_cannot_open_error_output_file,
                                  optarg);
         }  /* if */
         break;
@@ -414,7 +414,7 @@ Process the arguments on the command line that invoked the compiler.
 #if DEBUG
         /* Set debug level. */
         if (proc_debug_option(optarg)) {
-	  command_line_error("error in debug option argument");
+	  command_line_error(ec_cl_error_in_debug_option_argument);
 	}  /* if */
         init_debug_level = debug_level;
         break;
@@ -431,56 +431,44 @@ Process the arguments on the command line that invoked the compiler.
 #ifdef DID_GOTO_UNKNOWN_OPTION
 unknown_option:
 #endif /* ifdef DID_GOTO_UNKNOWN_OPTION */
-        str_command_line_error("invalid option: ", optarg);
+        str_command_line_error(ec_cl_invalid_option, optarg);
     }  /* switch */
   }  /* while */
   /* Check for the use of C++ options when the dialect being compiled
      is not C++. */
   if (C_dialect != C_dialect_cplusplus) {
     if (allow_anachronisms != DEFAULT_ALLOW_ANACHRONISMS) {
-      command_line_error
-        ("anachronism option (-O) can be used only when compiling C++");
+      command_line_error(ec_cl_anachronism_option_only_in_cplusplus);
     }  /* if */
     if (suppress_virtual_function_table_definition) {
-      command_line_error(
-      "virtual function tables can only be suppressed (-V) when compiling C++"
-                         );
+      command_line_error(ec_cl_vtbl_option_only_in_cplusplus);
     }  /* if */
     if (instantiation_mode_string != NULL) {
-      command_line_error(
-      "instantiation mode (-t) can be used only when compiling C++");
+      command_line_error(ec_cl_instantiation_option_only_in_cplusplus);
     }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (automatic_instantiation_mode != DEFAULT_AUTOMATIC_INSTANTIATION_MODE) {
-      command_line_error(
-      "automatic instantiation mode (-T) can be used only when compiling C++");
+      command_line_error(ec_cl_auto_instantiation_option_only_in_cplusplus);
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
     if (implicit_template_inclusion_mode !=
                                     DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE) {
-      command_line_error(
-  "implicit template inclusion mode (-B) can be used only when compiling C++");
+      command_line_error(ec_cl_implicit_inclusion_option_only_in_cplusplus);
     }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     if (exceptions_enabled != DEFAULT_EXCEPTIONS_ENABLED) {
-      if (!exceptions_enabled) {
-        command_line_error(
-        "support for exceptions can be disabled (-x) only when compiling C++");
-      } else {
-        command_line_error(
-         "support for exceptions can be enabled (-x) only when compiling C++");
-      }  /* if */
+      command_line_error(ec_cl_exceptions_option_only_in_cplusplus);
     }  /* if */
   }  /* if */
   if (strict_ansi_mode) {
     /* Strict ANSI mode is incompatible with K&R/pcc mode. */
     if (C_dialect == C_dialect_pcc) {
-      command_line_error("strict ANSI mode is incompatible with K&R mode");
+      command_line_error(ec_cl_strict_ansi_incompatible_with_pcc);
     }  /* if */
     /* Strict ANSI mode is incompatible with cfront compatibility mode. */
     if (cfront_compatibility_mode) {
-      command_line_error("strict ANSI mode is incompatible with cfront mode");
+      command_line_error(ec_cl_strict_ansi_incompatible_with_cfront);
     }  /* if */
     /* Strict ANSI mode is incompatible with allowing anachronisms.  Don't
        give an error if allow anachronisms is the default -- quietly
@@ -524,7 +512,7 @@ unknown_option:
 
   /* Pick up the source file name. */
   if (optind >= argc) {
-    command_line_error("missing source file name");
+    command_line_error(ec_cl_missing_source_file_name);
   }  /* if */
   optarg = argv[optind++];
   /* If the name is "-", use stdin for input. */
@@ -548,15 +536,14 @@ unknown_option:
        that specify output files) cannot be used, because they only specify
        one file. */
     if (ofile_name != NULL || f_raw_listing != NULL || f_xref_info != NULL) {
-      command_line_error(
-       "output files may not be specified when compiling several input files");
+      command_line_error(ec_cl_output_file_incompatible_with_multiple_inputs);
     }  /* if */
   }  /* if */
 #else /* !COMPILE_MULTIPLE_SOURCE_FILES */
   /* Multiple source files cannot be compiled. */
   /* Check that all command-line arguments were taken. */
   if (optind < argc) {
-    command_line_error("too many arguments on command line");
+    command_line_error(ec_cl_too_many_arguments);
   }  /* if */
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
 
@@ -589,7 +576,7 @@ unknown_option:
   /* If the -o option appeared, its file should have been taken for
      something. */
   if (ofile_name != NULL) {
-    command_line_error("-o was specified, but no output file is needed");
+    command_line_error(ec_cl_no_output_file_needed);
   }  /* if */
 }  /* proc_command_line */
 
