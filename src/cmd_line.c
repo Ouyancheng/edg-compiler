@@ -1608,6 +1608,9 @@ common_cfront_mode_settings:
     /* Set features implied by Microsoft compatibility. */
     targ_enum_types_can_be_smaller_than_int = FALSE;
     stack_referenced_include_directories = TRUE;
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+    allow_nonstandard_anonymous_unions = TRUE;
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   } else {
     il_header.microsoft_16_mode = FALSE;
   }  /* if */

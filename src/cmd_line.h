@@ -535,6 +535,21 @@ EXTERN a_calling_convention
 			   convention. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+EXTERN a_boolean
+		allow_nonstandard_anonymous_unions
+#if VAR_INITIALIZERS
+                                = DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+#endif /* VAR_INITIALIZERS */
+                                                                            ;
+			/* If TRUE, a set of extensions is supported that
+			   permits features similar to C++ anonymous unions
+			   (1) in C mode and (2) with structs (in both C
+			   and C++) and classes (in C++) as well.  This
+			   functionality emulates an extension provided by
+			   Microsoft C and C++ compilers. */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+
 EXTERN a_boolean
 		wchar_t_is_keyword
 #if VAR_INITIALIZERS
