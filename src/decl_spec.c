@@ -1715,11 +1715,18 @@ the template.
              During prototype instantiation we have to assume that T can be a
              valid class name.  Therefore "class T x" is treated as synonymous
              with "T x".  In addition, "friend class T" is also supported. */
-          a_type_ptr  proxy_type = proxy_class_for_template_param(
+          if (is_friend_decl || tag_sym->is_class_member) {
+            /* If the form is similar to "struct T::X", we must preserve the
+               elaborator (for disambiguation purposes).  So use a proxy
+               class instead of the raw template parameter entity.  For a
+               case like "friend class T;" we must also ensure that the
+               returned symbol is a class type. */
+            a_type_ptr  proxy_type = proxy_class_for_template_param(
                                                    tag_sym->variant.type.ptr);
-          proxy_type->kind = type_kind;
-          tag_sym = (a_symbol_ptr)proxy_type->source_corresp.assoc_info;
-          tag_sym->kind = tag_kind;
+            proxy_type->kind = type_kind;
+            tag_sym = (a_symbol_ptr)proxy_type->source_corresp.assoc_info;
+            tag_sym->kind = tag_kind;
+          }  /* if */
 #if CHECKING
         } else if (any_cfront_mode()) {
           /* Cfront bug that allows this:
