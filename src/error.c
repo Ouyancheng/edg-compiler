@@ -206,6 +206,13 @@ typedef struct a_msg_segment {
 				   displayed; the pointer to the scope is in
 				   error_msg_scopes[]; for sk_function_template
 				   only. */
+      a_byte_boolean
+		trans_unit;	/* True if the translation unit should be
+				   displayed under certain circumstances.
+				   In the primary translation unit, it is
+				   displayed for secondary translation units.
+				   In secondary translation units, it is
+				   displayed for all translation units. */
     } symbol;
   } variant;
 } a_msg_segment;
@@ -1196,6 +1203,37 @@ symbol_name:
     form_source_position(&sym->decl_position, error_pos, " (declared ", ")",
                          "(at end of source)", seg_ptr);
   }  /* if */
+  /* Add the translation unit associated with the symbol. */
+  if (seg_ptr->variant.symbol.trans_unit) {
+    a_boolean			add_trans_unit = FALSE;
+    a_translation_unit_ptr	tup = NULL;
+    if (sym->decl_scope == NO_SCOPE_NUMBER) {
+      /* No translation unit is available for a symbol with no scope. */
+    } else {
+      tup = trans_unit_for_symbol(sym);
+      if (is_primary_translation_unit) {
+        /* In primary translation units,  only include the translation unit
+           for symbols from secondary translation units. */
+        add_trans_unit = tup != curr_translation_unit;
+      } else {
+        /* In secondary translation units, include the translation unit for
+           all symbols. */
+        add_trans_unit = TRUE;
+      }  /* if */
+    }  /* if */
+    if (add_trans_unit) {
+      /* Add the translation unit to the message. */
+      add_string_to_segment(" (", seg_ptr);
+      /* This message code includes the explanatory text (e.g.,
+         "from translation unit"). */
+      add_string_to_segment(error_text(ec_from_trans_unit), seg_ptr);
+      add_string_to_segment("\"", seg_ptr);
+      add_string_to_segment(tup->source_file->file_name,
+                            seg_ptr);
+      add_string_to_segment("\"", seg_ptr);
+      add_string_to_segment(")", seg_ptr);
+    }  /* if */
+  }  /* if */
 }  /* form_symbol_summary */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -1283,6 +1321,7 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
           curr_segment->variant.symbol.force_template_name_output = FALSE;
           curr_segment->variant.symbol.decl_pos = FALSE;
           curr_segment->variant.symbol.template_args = FALSE;
+          curr_segment->variant.symbol.trans_unit = FALSE;
           msg_ptr++;
           /* Check for formatting options. */
           if (*msg_ptr == 'f') {
@@ -1313,6 +1352,11 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
           if (*msg_ptr == 'd') {
             /* Display the declaration position following the entity name. */
             curr_segment->variant.symbol.decl_pos = TRUE;
+            msg_ptr++;
+          }  /* if */
+          if (*msg_ptr == 'T') {
+            /* Display the translation unit under certain conditions. */
+            curr_segment->variant.symbol.trans_unit = TRUE;
             msg_ptr++;
           }  /* if */
 #endif /* STANDALONE_UTILITY_PROGRAM */

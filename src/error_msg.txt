@@ -468,7 +468,7 @@ ec_ambiguous_conversion_function;;"more than one conversion function from %t1 to
 ec_ambiguous_conversion_to_builtin;;"more than one conversion function from %t to a built-in type applies:"
 ec_const_member;INTERNAL;"const %n"
 ec_reference_member;INTERNAL;"reference %n"
-ec_ambiguous_function_add_on;INTERNAL;"%np"
+ec_ambiguous_function_add_on;INTERNAL;"%npT"
 ec_builtin_operator_add_on;INTERNAL;"built-in operator %sq"
 ec_ambiguous_by_inheritance_add_on;INTERNAL;"%no (ambiguous by inheritance)"
 ec_addr_of_constructor_or_destructor;;"a constructor or destructor may not have its address taken"
@@ -1214,6 +1214,7 @@ ec_va_start_requires_ellipsis_function;;"va_start should only appear in a functi
 ec_cl_short_enums_requires_gcc_mode;;"the \"short_enums\" option is only valid in GNU C mode"
 ec_bad_export_info_file;;"invalid export information file %sq1 at line number %s2"
 ec_statement_expression_in_function_only;;"statement expressions are only allowed in block scope"
+ec_from_trans_unit;INTERNAL;"from translation unit "
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
