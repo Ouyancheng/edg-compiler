@@ -45,7 +45,7 @@ typedef enum /* a_pch_event_kind */ {
 /*
 Table of names of PCH event kinds.
 */
-char		*pch_event_kind_names[(int)pchek_last+1]
+EXTERN char	*pch_event_kind_names[(int)pchek_last+1]
 #if VAR_INITIALIZERS
 = { "none",
     "command_line",

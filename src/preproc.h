@@ -51,7 +51,7 @@ typedef enum /*a_pp_directive_kind*/ {
 /*
 Table of names of PCH event kinds.
 */
-char		*pp_directive_kind_names[(int)ppd_not_valid+1]
+EXTERN char	*pp_directive_kind_names[(int)ppd_not_valid+1]
 #if VAR_INITIALIZERS
 = { "if",
     "ifdef",
