@@ -2024,8 +2024,10 @@ instead of the caret line.
       curr_column = 1;
       /* Process each individual character until the newline is found. */
       for (;;) {
-        /* Exit on the newline at the end of the source line. */
-        if ((ch = *loc_in_line++) == '\n') goto end_of_loop;
+        /* Exit on the newline or carriage return/newline at the end of the
+           source line. */
+        if ((ch = *loc_in_line++) == '\n' ||
+            (ch == '\r' && *loc_in_line == '\n')) goto end_of_loop;
         put_char(ch);
       }  /* for */
 

@@ -1,5 +1,11 @@
 Version 3.1
 
+10/29/02 Carriage return in error output
+
+The source line displayed as part of a diagnostic message could include
+a trailing carriage return if one was present on the original source
+line.  This has been fixed.
+
 10/27/02 Deduction problem with cv-qualified typedef
 
 The template argument deduction/matching process could fail when a type
