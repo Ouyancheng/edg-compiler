@@ -1030,6 +1030,7 @@ typedef struct a_decl_modifiers_block {
 			/* A bit-vector of flags representing additional
 			   declarative information (e.g.,  via the __declspec
 			   mechanism in Microsoft compatibility mode). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   char		*uuid_string;
 			/* Pointer to a string representing the argument of
 			   a uuid decl-modifier (in Microsoft-compatibility
@@ -1044,6 +1045,7 @@ typedef struct a_decl_modifiers_block {
 			/* Pointer to a string representing the argument of an
 			   allocate decl-modifier (in Microsoft-compatibility
 			   mode). */
+#endif /* MICROSOFT_EXTENTIONS_ALLOWED */
 } a_decl_modifiers_block;
 
 

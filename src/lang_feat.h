@@ -387,6 +387,26 @@ are supported (e.g., in Microsoft 16-bit mode).
 #endif /* ifndef DEFAULT_FAR_CODE_POINTERS */
 #endif /* NEAR_AND_FAR_ALLOWED */
 
+
+/*
+Flag that is TRUE when extensions are allowed for additional declaration
+modifiers.  It should always be TRUE when support for Microsoft extensions
+is included.  (The decl-modifiers mechanism is a hook by which an
+implementation can provide a certain class of custom extensions; the only
+decl-modifiers currently supported by EDG are for Microsoft compatibility.)
+*/
+#ifndef DECL_MODIFIERS_IN_USE
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define DECL_MODIFIERS_IN_USE TRUE          /* Do not change this. */
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define DECL_MODIFIERS_IN_USE FALSE         /* You can change this. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ifndef DECL_MODIFIERS_IN_USER */
+#if MICROSOFT_EXTENSIONS_ALLOWED && !DECL_MODIFIERS_IN_USE
+ #error -- DECL_MODIFIERS_IN_USE must be true when \
+           MICROSOFT_EXTENSIONS_ALLOWED is true
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DECL_MODIFIERS_IN_USE */
+
 /*
 Flag that indicates the version of the Microsoft compiler that should
 be emulated in Microsoft mode.  This enables or disables particular

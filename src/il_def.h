@@ -2430,17 +2430,6 @@ EXTERN char *calling_convention_names[(int)cc_last]
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
-Determine whether any decl modifiers are being used.  This value is used
-to decide whether the variable and routine entries should include a
-decl modifiers field.
-*/
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#define DECL_MODIFIERS_IN_USE TRUE
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define DECL_MODIFIERS_IN_USE FALSE
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-/*
 Enumeration of declaration modifiers that are accepted.  The enumeration values
 are used to create bit masks that are used to represent the modifiers.
 */

@@ -2358,8 +2358,11 @@ created; the caller must set it.
   return ext_sym;
 }  /* create_external_symbol_for_linked_entity */
 
-
 #if DECL_MODIFIERS_IN_USE
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/* ARGSUSED */ /* is_redecl and is_definition are only used in Microsoft
+                  mode. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void update_routine_decl_modifiers(a_routine_ptr               routine,
                                    a_decl_modifiers_block_ptr  new_modifiers,
                                    a_source_position           *position,
@@ -2389,6 +2392,7 @@ diagnostics.
         invalid_modifier = FALSE;
         invalid_redecl = FALSE;
         switch (bit_number) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
           case dmt_dllimport:
           case dmt_dllexport:
             /* Any previous declaration must have been declared
@@ -2406,6 +2410,7 @@ diagnostics.
           case dmt_nothrow:
           case dmt_noreturn:
             break;
+#endif /* MICROSOFT_EXTENTIONS_ALLOWED */
           default:
             invalid_modifier = TRUE;
             break;
@@ -2439,6 +2444,9 @@ diagnostics.
 }  /* update_routine_decl_modifiers */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/* ARGSUSED */ /* is_redecl is only used in Microsoft mode. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void update_variable_decl_modifiers(a_variable_ptr              variable,
                                     a_decl_modifiers_block_ptr  new_modifiers,
                                     a_source_position           *position,
@@ -2467,6 +2475,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
         invalid_modifier = FALSE;
         invalid_redecl = FALSE;
         switch (bit_number) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
           case dmt_dllimport:
           case dmt_dllexport:
             /* Any previous declaration must have been declared
@@ -2478,6 +2487,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
             break;
           case dmt_thread:
             break;
+#endif /* MICROSOFT_EXTENTIONS_ALLOWED */
           default:
             invalid_modifier = TRUE;
             break;
@@ -8997,6 +9007,7 @@ continue_with_declaration:
            code are definitions. */
         is_variable_def = TRUE;
 #if DECL_MODIFIERS_IN_USE
+#if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode) {
           /* "selectany" is allowed only on variables that have static
               initialization and external linkage. */
@@ -9005,6 +9016,7 @@ continue_with_declaration:
             local_decl_modifiers.flags &= ~DM_SELECTANY;
           }  /* if */
         }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Copy the decl-modifiers into the variable entry. */
         update_variable_decl_modifiers(var_ptr, &local_decl_modifiers,
                                        &locator.source_position,
@@ -9113,7 +9125,7 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
         if (is_variable_def) srk_flags |= SRK_DEFINITION;
-#if DECL_MODIFIERS_IN_USE
+#if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode) {
           /* "selectany" is allowed only on variables that have static
               initialization and external linkage. */
@@ -9126,7 +9138,7 @@ continue_with_declaration:
             local_decl_modifiers.flags &= ~DM_SELECTANY;
           }  /* if */
         }  /* if */
-#endif /* DECL_MODIFIERS_IN_USE */
+#endif /* MICROSOFT_EXTENTIONS_ALLOWED */
         decl_variable(&locator, local_storage_class, local_type_ptr,
                       declarator_ssep, srk_flags, &local_decl_modifiers,
                       &symbol_ptr, &linkage, &old_type, &ext_sym,
@@ -9194,7 +9206,7 @@ continue_with_declaration:
         /* Fetch the type of the symbol again, since it might have been
            changed if it was an incomplete array and was initialized. */
         if (var_ptr != NULL) local_type_ptr = var_ptr->type;
-#if DECL_MODIFIERS_IN_USE
+#if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode &&
             (decl_modifiers.flags &
              ~(local_decl_modifiers.flags) & DM_SELECTANY)) {
@@ -9213,7 +9225,7 @@ continue_with_declaration:
             /* Error in initializer. */
           }  /* if */        
         }  /* if */
-#endif /* DECL_MODIFIERS_IN_USE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (is_old_style_param_decl) {
         /* Don't worry about missing initializer. */
       } else if (is_variable_def && !is_error_locator(locator) &&

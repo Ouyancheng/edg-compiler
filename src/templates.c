@@ -5662,9 +5662,9 @@ type based on the template argument list and the template parameter list
        processing. */
     a_source_position    saved_pos_curr_token;
     a_source_position    saved_error_position;
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if DECL_MODIFIERS_IN_USE
     a_source_position	 locator_position;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* DECL_MODIFIERS_IN_USE */
     a_template_cache_ptr tcp;
 
     /* Push the template instantiation scope.  Note that the instance symbol
@@ -5699,9 +5699,9 @@ type based on the template argument list and the template parameter list
                                           (a_scope_kind)sck_class_struct_union;
     parent_class = templ_sym->is_class_member ? templ_sym->parent.class_type
                                               : (a_type_ptr)NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if DECL_MODIFIERS_IN_USE
     locator_position = pos_curr_token;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* DECL_MODIFIERS_IN_USE */
     if (tssp->variant.function.pending_partial_instantiations >=
                                                   max_pending_instantiations) {
       sym_error(ec_runaway_recursive_instantiation, templ_sym);
@@ -5748,9 +5748,9 @@ type based on the template argument list and the template parameter list
       tip->declared_type = form_declared_type(rout_type, &func_info);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       done_with_func_info(func_info);
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if DECL_MODIFIERS_IN_USE
       locator_position = locator.source_position;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* DECL_MODIFIERS_IN_USE */
     }  /* if */
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;

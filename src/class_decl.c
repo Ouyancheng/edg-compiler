@@ -10365,17 +10365,16 @@ to be returned to the caller.
     /* Loop for additional declarators. */
   } while (loop_token(tok_comma));
 next_declaration:;
-  if (any_decl_other_than_nonstatic_data_member &&
-      (decl_info.decl_modifiers.get_property_name != NULL ||
-       decl_info.decl_modifiers.put_property_name != NULL)) {
-      /* __declspec(property(...)) is allowed only on nonstatic data
-         members. */
-    pos_diagnostic(es_discretionary_error,
-                   ec_declspec_property_not_allowed,
-                   &decl_start_pos);
-  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
+    if (any_decl_other_than_nonstatic_data_member &&
+        (decl_info.decl_modifiers.get_property_name != NULL ||
+         decl_info.decl_modifiers.put_property_name != NULL)) {
+        /* __declspec(property(...)) is allowed only on nonstatic data
+           members. */
+      pos_diagnostic(es_discretionary_error, ec_declspec_property_not_allowed,
+                     &decl_start_pos);
+    }  /* if */
     /* Restore the default name linkage if a linkage specification appeared
        among the decl-specifiers. */
     if (dso_flags & DSO_LINKAGE_SPEC_DECL) pop_name_linkage();
