@@ -757,6 +757,9 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if MICROSOFT_EXTENSIONS_ALLOWED
             walk_string_ptr(ptr->variant.integer.uuid_string,
                             iek_other_text, 0);
+#if DO_IL_LOWERING
+            clear_pointer_if_remapping(ptr->variant.integer.uuid_variable);
+#endif /* DO_IL_LOWERING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
             break;

@@ -5033,8 +5033,8 @@ static a_type_ptr underlying_uuidof_type(a_type_ptr uuidof_type,
 /*
 Extract and return the underlying type of uuidof_type, for a __uuidof
 operator.  Levels like "array of" and "pointer to" are removed.
-If the underlying type is not a class with an associated uuid, return
-NULL.  If the underlying type might be a class with an associated
+If the underlying type is not a class or enum with an associated uuid,
+return NULL.  If the underlying type might be a class with an associated
 uuid, but we can't tell for sure because there are template parameters
 involved, set *template_case to TRUE.  If we can't tell because
 of an error type, set *err TRUE.  Overall, returned-type != NULL
@@ -5044,6 +5044,8 @@ means the type had no uuid or more than one uuid.  *err == TRUE means
 there was an error type somewhere in the type.
 */
 {
+  a_boolean  is_enum;
+
   if (is_array_type(uuidof_type)) {
     /* Reduce an array type to the underlying element type. */
     uuidof_type = underlying_array_element_type(uuidof_type);
@@ -5051,8 +5053,10 @@ there was an error type somewhere in the type.
     /* Reduce a pointer to the underlying type. */
     uuidof_type = type_pointed_to(uuidof_type);
   }  /* if */
-  if (!is_class_struct_union_type(uuidof_type)) {
-    /* uuidof_type is not a class type, which is generally an error. */
+  uuidof_type = skip_typerefs(uuidof_type);
+  is_enum = is_immediate_enum_type(uuidof_type);
+  if (!is_class_struct_union_type(uuidof_type) && !is_enum) {
+    /* uuidof_type is not a class or enum type, which is generally an error. */
     if (is_template_param_type(uuidof_type)) {
       /* A template parameter type could be a class type. */
       *template_case = TRUE;
@@ -5067,9 +5071,13 @@ there was an error type somewhere in the type.
     /* A template-dependent class type.  We must be in a prototype
        instantiation.  Assume the type has a uuid. */
     *template_case = TRUE;
+  } else if (is_enum) {
+    if (uuidof_type->variant.integer.uuid_string == NULL) {
+      /* No uuid on this enum. */
+      uuidof_type = NULL;
+    }  /* if */
   } else {
     /* uuidof_type is a class type. */
-    uuidof_type = skip_typerefs(uuidof_type);
     if (uuidof_type->variant.class_struct_union.is_template_class) {
       /* Templates don't have a uuid themselves -- the uuid of a template
          argument type is used.  There must be only one argument with a

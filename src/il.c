@@ -3685,10 +3685,8 @@ nonidentical.
                   /* eq = FALSE; -- already set. */
                 } else {
                   /* Compare the uuid strings. */
-                  eq = strcmp(uuid_type1->variant.class_struct_union.
-                                                 extra_info->uuid_string,
-                              uuid_type2->variant.class_struct_union.
-                                                 extra_info->uuid_string) == 0;
+                  eq = strcmp(uuid_string_of_type(uuid_type1),
+                              uuid_string_of_type(uuid_type2)) == 0;
                 }  /* if */
               }
               break;

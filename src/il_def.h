@@ -3989,6 +3989,14 @@ typedef struct a_type {
 		*uuid_string;
 			/* Pointer to a character string representing the
 			   argument of a uuid decl-modifier (enums only). */
+#if DO_IL_LOWERING
+      a_variable_ptr
+		uuid_variable;
+			/* When IL lowering is done and field uuid_string is
+			   non-NULL, this points to a variable of type _GUID
+			   that is initialized to reflect the value of the
+			   string. */
+#endif /* DO_IL_LOWERING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
     } integer;

@@ -7351,6 +7351,22 @@ i.e., rewrite them as though they had been declared with [*].
   return new_type;
 }  /* remove_assoc_vla_dimensions */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+char *uuid_string_of_type(a_type_ptr  type) {
+  char  *result;
+
+  type = skip_typerefs(type);
+  if (is_immediate_class_type(type)) {
+    result = type->variant.class_struct_union.extra_info->uuid_string;
+  } else if (is_immediate_enum_type(type)) {
+    result = type->variant.integer.uuid_string;
+  } else {
+    result = NULL;
+  }  /* if */
+  return result;
+}  /* uuid_string_of_type */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 

@@ -406,7 +406,7 @@ declaration of a class member.
               }  /* if */
               /* Do error checking on the string. */
               if (is_valid_GUID_string(str, length)) {
-                decl_modifiers->uuid_string=alloc_il((sizeof_t)length+1);
+                decl_modifiers->uuid_string = alloc_il((sizeof_t)length+1);
                 /* Copy the string, lower-casing hex letters so that
                    strcmp can be used to compare strings. */
                 { char		*src = str;
@@ -2795,10 +2795,12 @@ to indicate whether an enumeration is actually defined.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (!C_mode() && microsoft_mode &&
       extended_decl_info.decl_modifiers.uuid_string != NULL) {
-    if (enum_type->variant.integer.uuid_string != NULL) {
+    char *prev_uuid_string = uuid_string_of_type(enum_type);
+
+    if (prev_uuid_string != NULL) {
       /* Issue an error if __declspec(uuid(...)) strings are present and
          they aren't identical. */
-      if (strcmp(enum_type->variant.integer.uuid_string,
+      if (strcmp(prev_uuid_string,
                  extended_decl_info.decl_modifiers.uuid_string) != 0) {
         pos_diagnostic(es_discretionary_error,
                        ec_decl_modifiers_incompatible_with_previous_decl,

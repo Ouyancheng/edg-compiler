@@ -8777,32 +8777,41 @@ allocated integer constant.
 }  /* conv_uuid_constant */
 
 
-static a_variable_ptr uuid_variable_for_type(a_type_ptr class_type)
+static a_variable_ptr uuid_variable_for_type(a_type_ptr type)
 /*
-Return a pointer to the uuid variable for the indicated class type, creating
-the variable if necessary.  This relates to the Microsoft extensions
+Return a pointer to the uuid variable for the indicated class or enum type,
+creating the variable if necessary.  This relates to the Microsoft extensions
 that deal with GUIDs for the COM by way of the __declspec(uuid(...))
 modifier and the __uuidof() expression operator.  The uuid variable is
 initialized with the right values for the uuid associated with the
-class type.  class_type is NULL to request the uuid variable for a null
+class or enum type.  type is NULL to request the uuid variable for a null
 GUID.
 */
 {
-  a_class_type_supplement_ptr ctsp;
+  a_variable_ptr              *p_uuid_var;
   a_variable_ptr              uuid_var;
+  char                        *uuid_string;
 
-  if (class_type != NULL) {
-    check_assertion(is_immediate_class_type(class_type));
-    ctsp = class_type->variant.class_struct_union.extra_info;
-    uuid_var = ctsp->uuid_variable;
+  if (type != NULL) {
+    if (is_immediate_class_type(type)) {
+      p_uuid_var = &type->variant.class_struct_union.extra_info->uuid_variable;
+      uuid_string = type->variant.class_struct_union.extra_info->uuid_string;
+    } else if (is_immediate_enum_type(type)) {
+      p_uuid_var = &type->variant.integer.uuid_variable;
+      uuid_string = type->variant.integer.uuid_string;
+    } else {
+      unexpected_condition_str("uuid_variable_for_type: bad type kind");
+    }  /* if */
   } else {
     /* NULL GUID is wanted. */
-    uuid_var = null_guid_variable;
+    p_uuid_var = &null_guid_variable;
+    uuid_string = "00000000-0000-0000-0000-000000000000";
   }  /* if */
+  uuid_var = *p_uuid_var;
   if (uuid_var == NULL) {
     a_memory_region_number
                    region_to_switch_back_to;
-    char           *ptr;
+    char           *ptr = uuid_string;
     a_constant_ptr aggr, con1, con2, con3, con4, prev_con;
     int            i;
 
@@ -8815,14 +8824,7 @@ GUID.
     uuid_var = make_lowered_variable((char *)NULL, /*already_il_name=*/TRUE,
                                      make_guid_type(),
                                      (a_storage_class)sc_static);
-    if (class_type != NULL) {
-      ctsp->uuid_variable = uuid_var;
-      ptr = ctsp->uuid_string;
-    } else {
-      /* NULL GUID is wanted. */
-      null_guid_variable = uuid_var;
-      ptr = "00000000-0000-0000-0000-000000000000";
-    }  /* if */
+    *p_uuid_var = uuid_var;
     switch_to_file_scope_region(&region_to_switch_back_to);
     /* Convert the uuid string to a list of initializer constants. */
     /* The string looks like ("h" is a hexadecimal digit):
@@ -8884,10 +8886,10 @@ void lower_uuidof(a_constant *con)
 Lower a constant generated for the Microsoft C++ extension __uuidof().
 Its value is the address of a struct of type _GUID, which provides
 information about the __declspec(uuid(...)) attribute with which the
-associated class was declared.
+associated class or enum was declared.
 */
 {
-  a_type_ptr     class_type = con->variant.address.variant.type;
+  a_type_ptr     type = con->variant.address.variant.type;
   a_type_ptr     orig_con_type = con->type;
   a_source_correspondence
                  orig_source_corresp;
@@ -8897,7 +8899,7 @@ associated class was declared.
   orig_source_corresp = con->source_corresp;
   /* Create the initialized uuid variable for the type, if it doesn't
      exist already. */
-  uuid_var = uuid_variable_for_type(class_type);
+  uuid_var = uuid_variable_for_type(type);
   /* Replace the constant with one that is the address of the uuid
      variable, cast to the right type.  The cast is needed at least
      to add "const", but it also covers any mismatch between the runtime
