@@ -6450,7 +6450,10 @@ expression node.  options is a set of options for the copy.
     case dik_constructor:
       if (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR) {
         /* Instantiate referenced routines in a default argument expression. */
-        instantiate_routine(dip->variant.constructor.ptr);
+        /* Watch out for prototype instantiations. */
+        if (dip->variant.constructor.ptr != NULL) {
+          instantiate_routine(dip->variant.constructor.ptr);
+        }  /* if */
       }  /* if */
       new_dip->variant.constructor.args =
                          copy_list_of_expr_trees(dip->variant.constructor.args,
