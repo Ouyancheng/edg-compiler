@@ -1078,6 +1078,10 @@ typedef struct a_template_instance {
 			   not a "real" instance but a kind of template for a
 			   member function or a static data member).  Otherwise
 			   (i.e., usually) NULL. */
+  a_symbol_ptr	prototype_scope_symbols;
+			/* For member and nonmember functions, a list of
+			   symbols in the prototype scope, linked on the
+			   next_in_scope field.  NULL if none. */
   a_bit_field	instantiation_required:1;
 			/* TRUE if a routine body or static data member
 			   definition needs to be generated for this instance.
