@@ -732,53 +732,26 @@ specified.  FIXED_ADDRESS_FOR_MMAP is used to provide the address.
 #endif /* ifndef FIXED_ADDRESS_FOR_MMAP */
 
 /*
-When using precompiled headers, the front end must be able to
-be able to allocate IL memory regions at the same address that
-was used in the compilation that generated the precompiled header file.
-This may be accomplished either by using memory mapped memory for the
-memory regions, or by allocating a fixed size memory block that is
-used for all non-memory region allocations until such time that
-the precompiled header has been written and/or read, or until we
-decide that no precompiled header can be used.
-
-This flag is TRUE if the fixed size memory block (called initialization
-memory) should be used.
-*/
-#ifndef USE_INITIALIZATION_MEMORY
-#if USE_MMAP_FOR_MEMORY_REGIONS || !SUPPORT_PRECOMPILED_HEADERS
-#define USE_INITIALIZATION_MEMORY FALSE
-#else /* !(USE_MMAP_FOR_MEMORY_REGIONS || !SUPPORT_PRECOMPILED_HEADERS) */
-#define USE_INITIALIZATION_MEMORY TRUE
-#endif/* USE_MMAP_FOR_MEMORY_REGIONS || !SUPPORT_PRECOMPILED_HEADERS */
-#endif /* ifndef USE_INITIALIZATION_MEMORY */
-
-#if SUPPORT_PRECOMPILED_HEADERS
-#if USE_MMAP_FOR_MEMORY_REGIONS == USE_INITIALIZATION_MEMORY
-  #error -- When SUPPORT_PRECOMPILED_HEADERS is TRUE, either \
-            USE_MMAP_FOR_MEMORY_REGIONS or USE_INITIALIZATION_MEMORY \
-	    must be TRUE.  Both may not be TRUE.
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS == USE_INITIALIZATION_MEMORY */
-#endif /* SUPPORT_PRECOMPILED_HEADERS */
-
-/*
 When using precompiled headers, it must be possible to duplicate the memory
 allocation done by the process that created the precompiled header.  This
 may be accomplished either by allocating the IL memory blocks in separate
 memory allocated by memory mapping, or by using a special block of
-"initialization" that will be used for all memory allocations that
-precede the allocation of the actual memory blocks that could be part
-of a precompiled header.  This parameter specifies the size of the
-initialization memory block to be used.
+memory that will be used for all memory region allocations.  This
+memory is allocated early in the compilation so as not to be
+affected by things that may vary from one compilation to the next.
+This parameter specifies the default size of the block of memory
+to be allocated when precompiled headers are being used.  This value
+may be overridden by a command line option.
 */
-#if USE_INITIALIZATION_MEMORY
-#ifndef INITIALIZATION_MEMORY_SIZE
+#if !USE_MMAP_FOR_MEMORY_REGIONS
+#ifndef DEFAULT_PREALLOCATED_PCH_MEM_SIZE
 #if __MSDOS__
-#define INITIALIZATION_MEMORY_SIZE 16384
+#define DEFAULT_PREALLOCATED_PCH_MEM_SIZE (1024 * 1024)
 #else /* !__MSDOS__ */
-#define INITIALIZATION_MEMORY_SIZE 262144  /* 256 * 1024 */
+#define DEFAULT_PREALLOCATED_PCH_MEM_SIZE (1024 * 1024 * 8)
 #endif /* __MSDOS__ */
-#endif /* ifndef INITIALIZATION_MEMORY_SIZE */
-#endif /* USE_INITIALIZATION_MEMORY */
+#endif /* ifndef DEFAULT_PREALLOCATED_PCH_MEM_SIZE */
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
 
 /*
