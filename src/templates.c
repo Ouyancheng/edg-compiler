@@ -14764,10 +14764,7 @@ keyword.
     decl_state.orig_decl_level = depth_scope_stack;
   }  /* if */
   if (export_present) {
-    if (decl_state.is_member_decl) {
-      /* Member declarations cannot be declared export. */
-      pos_error(ec_exported_member_decl, export_pos);
-    } else if (scope_stack[depth_scope_stack].within_unnamed_namespace) {
+    if (scope_stack[depth_scope_stack].within_unnamed_namespace) {
       /* A template in an unnamed namespace cannot be declared export. */
       pos_error(ec_exported_in_unnamed_namespace, export_pos);
     }  /* if */
