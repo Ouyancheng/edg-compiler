@@ -4657,11 +4657,15 @@ would not be considered "identical", since the type qualifiers are different.
 }  /* eq_constants */
 
 
-a_boolean expr_tree_contains_template_param_constant(an_expr_node_ptr  node,
-                                                     a_constant_ptr    cp)
+a_boolean expr_tree_contains_template_param_constant(
+					an_expr_node_ptr		node,
+					a_constant_ptr			cp,
+					a_template_nesting_depth	depth)
 /*
-cp is either a pointer to a simple template parameter constant or else
-NULL (indicating any template param constant will do).  If cp is NULL, return
+cp is either a pointer to a simple template parameter constant or else NULL
+(indicating any template param constant will do).  If cp is NULL, depth
+specifies the template nesting depth that the constant must match, or is
+NO_NESTING_DEPTH if any nesting depth is acceptable.  If cp is NULL, return
 TRUE if node is or contains any template parameter constant.  If it is not
 NULL, return TRUE if node refers to that particular constant directly or
 contains it among its operands (in a position that can be deduced from).
@@ -4677,8 +4681,12 @@ contains it among its operands (in a position that can be deduced from).
   if (node->kind == (an_expr_node_kind)enk_constant) {
     cp2 = node->variant.constant;
     if (cp2->kind == (a_constant_repr_kind)ck_template_param) {
+      /* If not looking for a specific template parameter, this is a match
+         if either we're not looking for a specific nesting depth, or if the
+         nesting depths match. */
       if (cp == NULL) {
-        found = TRUE;
+        found = depth == NO_NESTING_DEPTH ||
+                depth == cp->variant.template_param.variant.coordinates.depth;
       } else {
         found = eq_constants(cp, cp2);
       }  /* if */
@@ -4686,7 +4694,8 @@ contains it among its operands (in a position that can be deduced from).
   } else if (node->kind == (an_expr_node_kind)enk_operation && cp == NULL) {
     for (op = node->variant.operation.operands; op != NULL; op = op->next) {
       if (expr_tree_contains_template_param_constant(op,
-                                                     (a_constant_ptr)NULL)) {
+                                                     (a_constant_ptr)NULL,
+                                                     NO_NESTING_DEPTH)) {
         found = TRUE;
         break;
       }  /* if */

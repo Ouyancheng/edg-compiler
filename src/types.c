@@ -6528,6 +6528,11 @@ static a_type_ptr
 static a_constant_ptr
 		specific_template_param_constant;
 
+/* The nesting depth of the template parameter to be found by
+   ttt_is_or_contains_template_param. */
+static a_template_nesting_depth
+		specific_nesting_depth;
+
 /* TRUE if only deduced contexts should be considered by
    ttt_contains_template_param_constant. */
 static a_boolean
@@ -6559,8 +6564,12 @@ which case that particular parameter must be present.
     /* Only a ck_template_param constant can be or contain a template
        param constant, and it must. */
     if (specific_template_param_constant == NULL) {
-      /* Any template param constant will do. */
-      found = TRUE;
+      /* When not looking for a specific template parameter, this is a match
+         if either we're not looking for a specific nesting depth, or if the
+         nesting depths match. */
+      found = specific_nesting_depth == NO_NESTING_DEPTH ||
+              specific_nesting_depth ==
+                          cp->variant.template_param.variant.coordinates.depth;
     } else if (cp->variant.template_param.kind ==
                             (a_template_param_constant_kind)tpck_expression) {
       /* Look for a particular template param constant in the expression tree.
@@ -6569,7 +6578,8 @@ which case that particular parameter must be present.
       if (!deduced_contexts_only &&
           expr_tree_contains_template_param_constant(
                                       cp->variant.template_param.variant.expr,
-                                      specific_template_param_constant)) {
+                                      specific_template_param_constant,
+                                      specific_nesting_depth)) {
         found = TRUE;
       }  /* if */
     } else if (eq_constants(cp, specific_template_param_constant)) {
@@ -6602,7 +6612,8 @@ based on the specified template parameter constant.
       count = type_ptr->variant.array.variant.element_count_expr;
       if (expr_tree_contains_template_param_constant(
                                         count,
-                                        specific_template_param_constant)) {
+                                        specific_template_param_constant,
+                                        specific_nesting_depth)) {
         found = TRUE;
       }  /* if */
     } else if (type_ptr->variant.array.is_template_dependent_size_array) {
@@ -6693,8 +6704,11 @@ types, i.e., also for nonreal classes.
   a_boolean  found = FALSE;
 
   if (is_template_param(type_ptr)) {
-    if (specific_template_param_type == NULL ||
-        identical_types(type_ptr, specific_template_param_type)) {
+    if ((specific_template_param_type == NULL ||
+        identical_types(type_ptr, specific_template_param_type)) &&
+        (specific_nesting_depth == NO_NESTING_DEPTH ||
+         type_ptr->variant.template_param.extra_info->coordinates.depth ==
+                                                     specific_nesting_depth)) {
       *force_end_of_traversal = found = TRUE;
     }  /* if */
   } else if (find_all_dependent_types &&
@@ -7422,6 +7436,7 @@ it is or contains a tk_template_param type entry or a nonreal class.
        or constant will do. */
     specific_template_param_type = NULL;
     specific_template_param_constant = NULL;
+    specific_nesting_depth = NO_NESTING_DEPTH;
     deduced_contexts_only = FALSE;
     find_all_dependent_types = TRUE;
     result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
@@ -7450,6 +7465,38 @@ a template parameter constant.
        or constant will do. */
     specific_template_param_type = NULL;
     specific_template_param_constant = NULL;
+    specific_nesting_depth = NO_NESTING_DEPTH;
+    deduced_contexts_only = FALSE;
+    find_all_dependent_types = FALSE;
+    result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
+                                ttt_flags);
+  }  /* if */
+  return result;
+}  /* is_or_contains_template_param */
+
+
+a_boolean is_or_contains_template_param_at_depth(
+				a_type_ptr			type_ptr,
+				a_template_nesting_depth	depth)
+/*
+Return TRUE if the type pointed to by type_ptr is itself a tk_template_param
+type entry with the specified nesting depth, or is a type tree containing such
+a type or a type containing a template parameter constant.
+*/
+{
+  a_boolean result = FALSE;
+
+  /* Template parameter types come up only in C++ mode. */
+  if (!C_mode()) {
+    a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                                 TTT_PARAM_TYPES |
+                                                 TTT_TEMPLATE_ARGS);
+
+    /* Setting these pointers to NULL indicates that any template param type
+       or constant will do. */
+    specific_template_param_type = NULL;
+    specific_template_param_constant = NULL;
+    specific_nesting_depth = depth;
     deduced_contexts_only = FALSE;
     find_all_dependent_types = FALSE;
     result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
@@ -7478,6 +7525,7 @@ parameter can be deduced.
      or constant will do. */
   specific_template_param_type = NULL;
   specific_template_param_constant = NULL;
+  specific_nesting_depth = NO_NESTING_DEPTH;
   deduced_contexts_only = TRUE;
   find_all_dependent_types = FALSE;
   return (traverse_type_tree(type_ptr,
@@ -7523,6 +7571,7 @@ containing such a reference to the type.
   /* This indicates that only a specific template parameter may be found. */
   specific_template_param_type = tparam_type;
   specific_template_param_constant = NULL;
+  specific_nesting_depth = NO_NESTING_DEPTH;
   deduced_contexts_only = FALSE;
   find_all_dependent_types = FALSE;
   return (traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
@@ -7567,6 +7616,7 @@ in the type tree represented by tp.
      found. */
   specific_template_param_constant = cp;
   specific_template_param_type = NULL;
+  specific_nesting_depth = NO_NESTING_DEPTH;
   deduced_contexts_only = FALSE;
   find_all_dependent_types = FALSE;
   return (traverse_type_tree(tp, ttt_contains_template_param_constant,

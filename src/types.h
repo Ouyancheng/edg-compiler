@@ -676,6 +676,9 @@ extern a_boolean is_or_contains_unnamed_or_local_type(a_type_ptr  type_ptr,
 extern a_boolean contains_type_with_no_name_linkage(a_type_ptr type_ptr);
 extern a_boolean is_template_dependent_type(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_template_param(a_type_ptr  type_ptr);
+extern a_boolean is_or_contains_template_param_at_depth(
+				a_type_ptr			type_ptr,
+				a_template_nesting_depth	depth);
 extern void set_type_involves_deduced_template_param(a_type_ptr  rout_type);
 extern a_boolean is_or_contains_specific_template_param
 						(a_type_ptr  type_ptr,

@@ -1,5 +1,16 @@
 Version 3.4
 
+9/29/03  Spurious error on member partial specialization
+
+A spurious error was issued if a nontype template parameter in a partial
+specialization declaration used the type of an enclosing template parameter.
+This has been fixed.
+
+  template <class T> struct A {
+    template <T t, T t2> struct B {};
+    template <T t> struct B<t,t> {};
+  };
+
 9/26/03  Abort in find_member_function_template
 
 An abort could occur in find_member_function_template if a class template

@@ -693,8 +693,9 @@ extern a_boolean eq_constants(a_constant *cp1,
                               a_constant *cp2);
 
 extern a_boolean expr_tree_contains_template_param_constant(
-                                             an_expr_node_ptr  node,
-                                             a_constant_ptr    cp);
+					an_expr_node_ptr		node,
+					a_constant_ptr			cp,
+					a_template_nesting_depth	depth);
 
 extern a_boolean nontype_templ_arg_constant_references_non_external_entity(
                                                       a_constant_ptr constant);

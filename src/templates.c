@@ -10238,9 +10238,9 @@ the type specified by tp.
 }  /* template_param_used_in_type */
 
 
-static void check_partial_spec_template_param_usage
-                         (a_tmpl_decl_state_ptr	decl_state,
-                          a_symbol_ptr		sym)
+static void check_partial_spec_template_param_usage(
+					a_tmpl_decl_state_ptr	decl_state,
+					a_symbol_ptr		sym)
 /*
 This routine performs various checks to ensure that the template parameter
 list and template argument list of a partial specialization are valid.
@@ -10269,8 +10269,13 @@ list and template argument list of a partial specialization are valid.
     a_boolean		error_on_this_param = FALSE;
     if (param_sym->kind == (a_symbol_kind)sk_constant) {
       /* The type of a nontype parameter is not allowed to reference another
-         template parameter. */
-      if (tpp->variant.constant.type_involves_template_param) {
+         template parameter.  For purposes of this test, only consider
+         template parameters of the current nesting depth so that parameters
+         of an enclosing template are not considered. */
+      if (tpp->variant.constant.type_involves_template_param &&
+          is_or_contains_template_param_at_depth(
+                                          tpp->variant.constant.ptr->type,
+                                          decl_state->nesting_depth)) {
         pos_sy_error(ec_partial_spec_param_depends_on_templ_param,
                      &param_sym->decl_position, param_sym);
         any_errors = TRUE;
@@ -10306,7 +10311,8 @@ list and template argument list of a partial specialization are valid.
     for (tap = templ_arg_list; tap != NULL; tap = tap->next) {
       if (is_nontype_templ_arg(tap)) {
         a_constant_ptr	cp = tap->variant.constant;
-        if (is_or_contains_template_param(cp->type)) {
+        if (is_or_contains_template_param_at_depth(
+                                        cp->type, decl_state->nesting_depth)) {
           error(ec_partial_spec_arg_depends_on_templ_param);
           tap->variant.constant = alloc_error_constant();
         } else if (cp->kind == (a_constant_repr_kind)ck_template_param &&
