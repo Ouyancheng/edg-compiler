@@ -28,7 +28,7 @@ This is now fixed.
 
 8/23/99  Assertion failure when defining a file-scope variable in a namespace
 
-The front end used to abort its processing when encountering the definition
+The front end used to abort its processing when it encountered the definition
 of a file scope variable in a namespace.  For example,
 
   extern int i;
