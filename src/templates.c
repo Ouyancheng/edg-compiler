@@ -27,7 +27,6 @@ templates.c -- Support for C++ templates.
 /* Additional header files. */
 #include "disambig.h"
 #include "folding.h"
-#include "statements.h"
 #if NEED_NAME_MANGLING
 #include "lower_name.h"
 #endif /* NEED_NAME_MANGLING */
@@ -80,13 +79,19 @@ typedef enum /* a_template_info_line_type */ {
   tilt_instantiation_dir_name,	/* Used by driver. */
   tilt_instantiation_file_name,
   tilt_last
+  /* Lint comments to disable warnings that the driver line types are
+     not used. */
+  /*lint -esym(749,a_template_info_line_type::tilt_command_line)*/
+  /*lint -esym(749,a_template_info_line_type::tilt_curr_dir)*/
+  /*lint -esym(749,a_template_info_line_type::tilt_file_name)*/
+  /*lint -esym(749,a_template_info_line_type::tilt_instantiation_dir_name)*/
 } a_template_info_line_type;
 
 /*
 The template information line type string to be written to the
 file for the various line type kinds.
 */
-static char	*line_type_names[tilt_last+1] = {
+static char	*line_type_names[(int)tilt_last+1] = {
   /* tilt_command_line */		"cmd",
   /* tilt_curr_dir */			"dir",
   /* tilt_file_name */			"fnm",
@@ -276,7 +281,8 @@ static unsigned long
 #endif /* DEBUG */
 
 #if CHECKING
-a_boolean	any_friend_state_changed;
+static a_boolean
+		any_friend_state_changed;
 			/* TRUE if any template declarations had their friend
 			   status changed between the initial scan and the
 			   later prescan. */
@@ -1836,11 +1842,11 @@ might not be able to if the template itself has not yet been defined.
       /* Push a template instantiation scope.  The real values of the
          the template arguments will be associated with the template
          parameter names. */
-      (void)push_template_instantiation_scope(body_cache->decl_info,
-					      class_type,
-					      (a_routine_ptr)NULL,
-					      instance_sym, template_sym,
-					      template_arg_list);
+      push_template_instantiation_scope(body_cache->decl_info,
+					class_type,
+					(a_routine_ptr)NULL,
+					instance_sym, template_sym,
+					template_arg_list);
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
       reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -1973,11 +1979,11 @@ Display the contents of list of template cache segment entries.
 {
   int	count;
   for (count = 0; tcsp != NULL; tcsp = tcsp->next, count++) {
-    fprintf(f_debug, "Entry %0d\n", count);
+    fprintf(f_debug, "Entry %d\n", count);
     fprintf(f_debug, "Symbol: ");
     db_symbol(tcsp->symbol, "", 6);
-    fprintf(f_debug, "  first_token_number: %0lu\n", tcsp->first_token_number);
-    fprintf(f_debug, "  last_token_number: %0lu\n", tcsp->last_token_number);
+    fprintf(f_debug, "  first_token_number: %lu\n", tcsp->first_token_number);
+    fprintf(f_debug, "  last_token_number: %lu\n", tcsp->last_token_number);
     fprintf(f_debug, "  before_first_token: %p\n",
             (void*)tcsp->before_first_token);
     fprintf(f_debug, "  last_token: %p\n", (void*)tcsp->last_token);
@@ -2177,7 +2183,7 @@ associated with tssp, and remove the tokens from the token cache.
        while scanning the class definition and no ending token was found.
        Don't attempt to remove the body from the template. */ 
     if (tcsp->last_token_number == NO_TOKEN_SEQUENCE_NUMBER) continue;
-     switch (tcsp->symbol->kind) {
+    switch (tcsp->symbol->kind) {
       case sk_member_function:
       case sk_class_template:
       case sk_function_template:
@@ -2190,11 +2196,11 @@ associated with tssp, and remove the tokens from the token cache.
           a_cached_token_ptr	ctp;
           replace_body_with_semicolon(tcsp);
           ctp = first_token;
-            while (ctp != NULL) {
-              a_cached_token_ptr	next_ctp = ctp->next;
-              free_cached_token_from_reusable_cache(
+          while (ctp != NULL) {
+            a_cached_token_ptr	next_ctp = ctp->next;
+            free_cached_token_from_reusable_cache(
                                 class_cache, ctp, /*keep_pragma_tokens=*/TRUE);
-              ctp = next_ctp;
+            ctp = next_ctp;
           }  /* while */
         }
         break;
@@ -2203,7 +2209,7 @@ associated with tssp, and remove the tokens from the token cache.
         tssp = tcsp->template_info;
         /* Only extract the body of the nested class if it is a
            "standalone" nested class (i.e., one that is not anonymous
-	   and is not followed by a declarator). */
+           and is not followed by a declarator). */
         if (!tcsp->template_info->
                          variant.class_template.not_standalone_nested_class) {
           a_cached_token_ptr	first_token = tcsp->before_first_token->next;
@@ -2285,10 +2291,10 @@ A pointer to the head of the list is returned in tcsp.
      same as the namespace in which the template was defined. */
   cssp->referencing_namespace = 
                  scope_stack[depth_innermost_namespace_scope].assoc_namespace;
-  (void)push_template_instantiation_scope(tssp->cache.decl_info,
-					  prototype_type,
-					  (a_routine_ptr)NULL, instance_sym,
-					  template_sym, template_arg_list);
+  push_template_instantiation_scope(tssp->cache.decl_info,
+				    prototype_type,
+				    (a_routine_ptr)NULL, instance_sym,
+				    template_sym, template_arg_list);
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -2416,7 +2422,6 @@ supplement already associated with ft_symbol.
          during the prototype instantiation.  This is used to match this
          declaration with the symbol generated by the prototype
          instantiation. */
-      a_symbol_list_entry_ptr   slep;
       sym = NULL;
       for (slep = corresp_prototype_tag_sym->
                variant.class_struct_union.extra_info->conversion_template_list;
@@ -2474,7 +2479,7 @@ supplement already associated with ft_symbol.
                                                   curr_token_sequence_number) {
             /* sym is the template function symbol for ft_symbol. */
             break;
-         }  /* if */
+          }  /* if */
         }  /* if */
       }  /* for */
     }  /* if */
@@ -2625,10 +2630,10 @@ Instantiate the body of the template function associated with tip.
      list comes from the enclosing class that is reactivated by
      push_template_instantiation_scope and the value from the routine
      entry (which should be NULL) is not used. */
-  (void)push_template_instantiation_scope(tcp->decl_info,
-					  (a_type_ptr)NULL, rout_ptr,
-					  rout_sym, template_sym,
-					  rout_ptr->template_arg_list);
+  push_template_instantiation_scope(tcp->decl_info,
+				    (a_type_ptr)NULL, rout_ptr,
+				    rout_sym, template_sym,
+				    rout_ptr->template_arg_list);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   {
@@ -2816,12 +2821,12 @@ and the class instantiation will detect the runaway case.
      arguments will be associated with the template parameter names. */
   /* For static data members, the argument list comes from the enclosing
      class that is reactivated by push_template_instantiation_scope. */
-  (void)push_template_instantiation_scope(tssp->cache.decl_info,
-                                          (a_type_ptr)NULL,
-                                          (a_routine_ptr)NULL,
-                                          static_data_member_sym,
-                                          tip->template_sym,
-                                          (a_template_arg_ptr)NULL);
+  push_template_instantiation_scope(tssp->cache.decl_info,
+                                    (a_type_ptr)NULL,
+                                    (a_routine_ptr)NULL,
+                                    static_data_member_sym,
+                                    tip->template_sym,
+                                    (a_template_arg_ptr)NULL);
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -3254,11 +3259,11 @@ included in the search.
            up to before the class definition.  Instead, the entry will be
            added directly into the current list. */
       } else {
-        (void)push_template_instantiation_scope(tssp->cache.decl_info,
-                                                (a_type_ptr)NULL,
-                                                (a_routine_ptr)NULL,
-                                                sym, class_template_sym,
-                                                *new_list);
+        push_template_instantiation_scope(tssp->cache.decl_info,
+                                          (a_type_ptr)NULL,
+                                          (a_routine_ptr)NULL,
+                                          sym, class_template_sym,
+                                          *new_list);
         scope_pushed = TRUE;
         /* Allow the instantiation to float up, if appropriate. */
         new_insert_point = scope_stack[DEPTH_OF_FILE_SCOPE].
@@ -3360,7 +3365,6 @@ another template parameter.
          tpp = tpp->next,
            specified_tap = specified_tap == NULL
                                               ? NULL : specified_tap->next) {
-      a_template_arg_ptr	tap;
       a_boolean			is_type_param;
       is_type_param = tpp->param_symbol->kind == (a_symbol_kind)sk_type;
       tap = alloc_template_arg(is_type_param);
@@ -3445,7 +3449,7 @@ are deduced.
                                 (a_source_position*)NULL);
   }  /* if */
   /* For the nth template parameter find the nth template argument. */
-  for (tap = *templ_arg_list; pos > 1; pos--, tap = tap->next);
+  for (tap = *templ_arg_list; pos > 1; pos--) tap = tap->next;
   return tap;
 }  /* get_template_arg_by_list_pos */
 
@@ -3464,7 +3468,7 @@ a specified parameter.
 
   tpp = templ_param_list;
   /* For the nth template parameter find the nth template parameter. */
-  for (; pos > 1; pos--, tpp = tpp->next);
+  for (; pos > 1; pos--) tpp = tpp->next;
   return tpp;
 }  /* get_template_param_by_list_pos */
 
@@ -4007,7 +4011,6 @@ points to the template parameter list.
                that results from the substitution of the template
                argument values will be checked later. */
             a_class_symbol_supplement_ptr	ttp_cssp;
-            a_type_ptr				ttp;
             ttp = templ_type->source_corresp.parent.class_type;
             ttp_cssp = symbol_supplement_for_class(ttp);
             if (ttp_cssp->template_param_for_proxy_class != NULL) {
@@ -4041,208 +4044,204 @@ points to the template parameter list.
     if (templ_type_kind != type_kind) {
       /* No match. */
     } else {
-      if (match) {
-        /* No need to check further. */
-      } else {
-        switch (type->kind) {
-          case tk_class:
-          case tk_struct:
-          case tk_union:
-            match = matches_template_type_for_class_type(type, templ_type,
-                                                         templ_arg_list,
-                                                         templ_param_list);
-            if (!match && (flags & MTT_ALLOW_CONVERSION) != 0) {
-              a_base_class_ptr	bcp;
-              /* See if the type matches a base class type of actual argument
-                 type.  This is allows a Derived<T> to be passed to a function
-                 expecting a Base<T> as an argument. */
-              bcp = type->variant.class_struct_union.extra_info->base_classes;
-              while (bcp != NULL) {
-                match = matches_template_type_for_class_type(bcp->type,
-                                                             templ_type,
-                                                             templ_arg_list,
-                                                             templ_param_list);
-                if (match) break;
-                bcp = bcp->next;
-              }  /* while */
+      switch (type->kind) {
+        case tk_class:
+        case tk_struct:
+        case tk_union:
+          match = matches_template_type_for_class_type(type, templ_type,
+                                                       templ_arg_list,
+                                                       templ_param_list);
+          if (!match && (flags & MTT_ALLOW_CONVERSION) != 0) {
+            a_base_class_ptr	bcp;
+            /* See if the type matches a base class type of actual argument
+               type.  This is allows a Derived<T> to be passed to a function
+               expecting a Base<T> as an argument. */
+            bcp = type->variant.class_struct_union.extra_info->base_classes;
+            while (bcp != NULL) {
+              match = matches_template_type_for_class_type(bcp->type,
+                                                           templ_type,
+                                                           templ_arg_list,
+                                                           templ_param_list);
+              if (match) break;
+              bcp = bcp->next;
+            }  /* while */
+          }  /* if */
+          break;
+        case tk_typeref:
+          if (!type_qualifiers_match(type, templ_type)) {
+            /* Not a match. */
+          } else {
+            /* Qualifiers match.  See if the underlying types do, too. */
+            tp = type->variant.typeref.type;
+            ttp = templ_type->variant.typeref.type;
+            match = matches_template_type(tp, ttp, templ_arg_list,
+                                          templ_param_list,
+                                          new_flags);
+          }  /* if */
+          break;
+        case tk_array:
+          /* Array types match if their element types match and the number of
+             elements is the same. */
+          if (type->variant.array.is_variable_size_array &&
+              templ_type->variant.array.is_variable_size_array) {
+            /* Both the type and the template type have variable size
+               arrays.  This should only occur when comparing two
+               types that are actually template types during partial
+               ordering comparisons. */
+            an_expr_node_ptr expr;
+            an_expr_node_ptr templ_expr;
+            expr = type->variant.array.variant.element_count_expr;
+            templ_expr = templ_type->
+                                    variant.array.variant.element_count_expr;
+            if (expr->kind == (an_expr_node_kind)enk_constant &&
+                templ_expr->kind == (an_expr_node_kind)enk_constant) {
+              a_constant_ptr cp = expr->variant.constant;
+              a_constant_ptr templ_cp = templ_expr->variant.constant;
+              match = matches_template_constant(cp, templ_cp,
+                                                templ_arg_list,
+                                                templ_param_list);
             }  /* if */
-            break;
-          case tk_typeref:
-            if (!type_qualifiers_match(type, templ_type)) {
-              /* Not a match. */
-            } else {
-              /* Qualifiers match.  See if the underlying types do, too. */
-              tp = type->variant.typeref.type;
-              ttp = templ_type->variant.typeref.type;
-              match = matches_template_type(tp, ttp, templ_arg_list,
-                                            templ_param_list,
-                                            new_flags);
+          } else if (templ_type->variant.array.is_variable_size_array) {
+            /* The type from the template has a variable size.  If the
+               variable size is a constant that refers to a template
+               parameter, then this could be a match. */
+            an_expr_node_ptr expr;
+            expr = templ_type->variant.array.variant.element_count_expr;
+            if (expr->kind == (an_expr_node_kind)enk_constant) {
+              a_constant_ptr cp = expr->variant.constant;
+              a_targ_size_t  elements;
+              elements = type->variant.array.variant.number_of_elements;
+              match = matches_template_array_bound(elements, cp,
+                                                   templ_arg_list,
+                                                   templ_param_list);
             }  /* if */
-            break;
-          case tk_array:
-            /* Array types match if their element types match and the number of
-               elements is the same. */
-            if (type->variant.array.is_variable_size_array &&
-                templ_type->variant.array.is_variable_size_array) {
-              /* Both the type and the template type have variable size
-                 arrays.  This should only occur when comparing two
-                 types that are actually template types during partial
-                 ordering comparisons. */
-              an_expr_node_ptr expr;
-              an_expr_node_ptr templ_expr;
-              expr = type->variant.array.variant.element_count_expr;
-              templ_expr = templ_type->
-                                      variant.array.variant.element_count_expr;
-              if (expr->kind == (an_expr_node_kind)enk_constant &&
-                  templ_expr->kind == (an_expr_node_kind)enk_constant) {
-                a_constant_ptr cp = expr->variant.constant;
-                a_constant_ptr templ_cp = templ_expr->variant.constant;
-                match = matches_template_constant(cp, templ_cp,
-                                                  templ_arg_list,
-                                                  templ_param_list);
-              }  /* if */
-            } else if (templ_type->variant.array.is_variable_size_array) {
-              /* The type from the template has a variable size.  If the
-                 variable size is a constant that refers to a template
-                 parameter, then this could be a match. */
-              an_expr_node_ptr expr;
-              expr = templ_type->variant.array.variant.element_count_expr;
-              if (expr->kind == (an_expr_node_kind)enk_constant) {
-                a_constant_ptr cp = expr->variant.constant;
-                a_targ_size_t  elements;
-                elements = type->variant.array.variant.number_of_elements;
-                match = matches_template_array_bound(elements, cp,
-                                                     templ_arg_list,
-                                                     templ_param_list);
-              }  /* if */
-            } else if (type->variant.array.variant.number_of_elements !=
-                        templ_type->variant.array.variant.number_of_elements) {
-              /* Both have constant bounds but the number of elements do
-                 not match. */
-            } else {
-              /* The bounds match. */
-              match = TRUE;
-            }  /* if */
-            /* If the bounds match, check the element type. */
-            if (match) {
-              tp = type->variant.array.element_type;
-              ttp = templ_type->variant.array.element_type;
-              match = matches_template_type(tp, ttp, templ_arg_list,
-                                            templ_param_list,
-                                            new_flags);
-            }  /* if */
-            break;
-          case tk_pointer:
-            /* Pointer matches pointer and reference matches reference, but
-               they can't be mixed. */
-            if (type->variant.pointer.is_reference !=
-                           templ_type->variant.pointer.is_reference) {
-              /* Not a match. */
-            } else {
-              tp = type->variant.pointer.type;
-              ttp = templ_type->variant.pointer.type;
-              match = matches_template_type(tp, ttp, templ_arg_list,
-                                            templ_param_list,
-                                            new_flags);
-            }  /* if */
-            break;
-          case tk_ptr_to_member:
-            /* For ptr-to-member types, there needs to be a match on both the
-               member types and the class-of-which-a-member. */
-            tp = type->variant.ptr_to_member.type;
-            ttp = templ_type->variant.ptr_to_member.type;
-            if (matches_template_type(tp, ttp, templ_arg_list,
-                                      templ_param_list,
-                                      new_flags)) {
-              tp = type->variant.ptr_to_member.class_of_which_a_member;
-              ttp = templ_type->variant.ptr_to_member.class_of_which_a_member;
-              match = (matches_template_type(tp, ttp, templ_arg_list,
-                                             templ_param_list,
-                                             new_flags));
-            }  /* if */
-            break;
-          case tk_routine:
-            /* For routine types there has to be a match both on the return
-               types and on all the parameter types.  In addition, the
-               has-ellipsis flags should be set the same. */
-            tp = type->variant.routine.return_type;
-            ttp = templ_type->variant.routine.return_type;
-            if (matches_template_type(tp, ttp, templ_arg_list,
-                                      templ_param_list,
-                                      new_flags) &&
-                (type->variant.routine.extra_info->has_ellipsis ==
-                    templ_type->variant.routine.extra_info->has_ellipsis)) {
-              /* Return type and ellipsis are okay.  Check the param types. */
-              ptp = type->variant.routine.extra_info->param_type_list;
-              tptp = templ_type->variant.routine.extra_info->param_type_list;
-              for (;;) {
-                if (ptp == NULL || tptp == NULL) {
-                  /* One or both of the param type lists is exhausted.  It's a
-                     match only if they're both done. */
-                  match = (ptp == tptp);
-                  break;
-                }  /* if */
-                tp = ptp->type;
-                ttp = tptp->type;
-                if (!matches_template_type(tp, ttp, templ_arg_list,
+          } else if (type->variant.array.variant.number_of_elements !=
+                      templ_type->variant.array.variant.number_of_elements) {
+            /* Both have constant bounds but the number of elements do
+               not match. */
+          } else {
+            /* The bounds match. */
+            match = TRUE;
+          }  /* if */
+          /* If the bounds match, check the element type. */
+          if (match) {
+            tp = type->variant.array.element_type;
+            ttp = templ_type->variant.array.element_type;
+            match = matches_template_type(tp, ttp, templ_arg_list,
+                                          templ_param_list,
+                                          new_flags);
+          }  /* if */
+          break;
+        case tk_pointer:
+          /* Pointer matches pointer and reference matches reference, but
+             they can't be mixed. */
+          if (type->variant.pointer.is_reference !=
+                         templ_type->variant.pointer.is_reference) {
+            /* Not a match. */
+          } else {
+            tp = type->variant.pointer.type;
+            ttp = templ_type->variant.pointer.type;
+            match = matches_template_type(tp, ttp, templ_arg_list,
+                                          templ_param_list,
+                                          new_flags);
+          }  /* if */
+          break;
+        case tk_ptr_to_member:
+          /* For ptr-to-member types, there needs to be a match on both the
+             member types and the class-of-which-a-member. */
+          tp = type->variant.ptr_to_member.type;
+          ttp = templ_type->variant.ptr_to_member.type;
+          if (matches_template_type(tp, ttp, templ_arg_list,
+                                    templ_param_list,
+                                    new_flags)) {
+            tp = type->variant.ptr_to_member.class_of_which_a_member;
+            ttp = templ_type->variant.ptr_to_member.class_of_which_a_member;
+            match = (matches_template_type(tp, ttp, templ_arg_list,
                                            templ_param_list,
-                                           new_flags)) {
-                  /* The first param type for which there is a mismatch causes
-                     a mismatch for the entire type.  No need to keep
-                     looping. */
-                  break;
-                }  /* if */
-                ptp = ptp->next;
-                tptp = tptp->next;
-              }  /* for */
-              if (match) {
-                /* The routine types match so far.  Make sure the implicit
-                   this parameters, if present, match. */
-                tp =  type->variant.routine.extra_info->
-                                                     implicit_this_param_type;
-                ttp =  templ_type->variant.routine.extra_info->
-                                                     implicit_this_param_type;
-                if (tp == NULL || ttp == NULL) {
-                  /* One or both of the types does not have an implicit
-                     this parameter.  This is okay if they are both NULL. 
-                     It is also okay if the type has no implicit this type
-                     the unknown implicit this type flag was passed in, and
-                     the other this parameter type has no qualifiers. */
-                  if (tp == ttp) {
-                    /* They are both NULL, this is a match. */
-                    match = TRUE;
-                  } else if (ttp == NULL) {
-                    /* The template type is NULL and the other type is not.
-                       This is not a match. */
-                    match = FALSE;
-                  } else { /* tp == NULL */
-                    /* The template type is not NULL.  This is a match when
-                       the unknown implicit this flag is set and the this
-                       parameter from the template has no qualifiers. */
-                    match = FALSE;
-                    if ((flags & MTT_UNKNOWN_IMPLICIT_THIS_TYPE) != 0) {
-                      /* Get the type pointed to by the this parameter. */
-                      a_type_ptr	this_type = type_pointed_to(ttp);
-                      match = get_type_qualifiers(this_type) ==
-                                                (a_type_qualifier_set)TQ_NONE;
-                    }  /* if */
+                                           new_flags));
+          }  /* if */
+          break;
+        case tk_routine:
+          /* For routine types there has to be a match both on the return
+             types and on all the parameter types.  In addition, the
+             has-ellipsis flags should be set the same. */
+          tp = type->variant.routine.return_type;
+          ttp = templ_type->variant.routine.return_type;
+          if (matches_template_type(tp, ttp, templ_arg_list,
+                                    templ_param_list,
+                                    new_flags) &&
+              (type->variant.routine.extra_info->has_ellipsis ==
+                  templ_type->variant.routine.extra_info->has_ellipsis)) {
+            /* Return type and ellipsis are okay.  Check the param types. */
+            ptp = type->variant.routine.extra_info->param_type_list;
+            tptp = templ_type->variant.routine.extra_info->param_type_list;
+            for (;;) {
+              if (ptp == NULL || tptp == NULL) {
+                /* One or both of the param type lists is exhausted.  It's a
+                   match only if they're both done. */
+                match = (ptp == tptp);
+                break;
+              }  /* if */
+              tp = ptp->type;
+              ttp = tptp->type;
+              if (!matches_template_type(tp, ttp, templ_arg_list,
+                                         templ_param_list,
+                                         new_flags)) {
+                /* The first param type for which there is a mismatch causes
+                   a mismatch for the entire type.  No need to keep
+                   looping. */
+                break;
+              }  /* if */
+              ptp = ptp->next;
+              tptp = tptp->next;
+            }  /* for */
+            if (match) {
+              /* The routine types match so far.  Make sure the implicit
+                 this parameters, if present, match. */
+              tp =  type->variant.routine.extra_info->
+                                                   implicit_this_param_type;
+              ttp =  templ_type->variant.routine.extra_info->
+                                                   implicit_this_param_type;
+              if (tp == NULL || ttp == NULL) {
+                /* One or both of the types does not have an implicit
+                   this parameter.  This is okay if they are both NULL. 
+                   It is also okay if the type has no implicit this type
+                   the unknown implicit this type flag was passed in, and
+                   the other this parameter type has no qualifiers. */
+                if (tp == ttp) {
+                  /* They are both NULL, this is a match. */
+                  match = TRUE;
+                } else if (ttp == NULL) {
+                  /* The template type is NULL and the other type is not.
+                     This is not a match. */
+                  match = FALSE;
+                } else { /* tp == NULL */
+                  /* The template type is not NULL.  This is a match when
+                     the unknown implicit this flag is set and the this
+                     parameter from the template has no qualifiers. */
+                  match = FALSE;
+                  if ((flags & MTT_UNKNOWN_IMPLICIT_THIS_TYPE) != 0) {
+                    /* Get the type pointed to by the this parameter. */
+                    a_type_ptr	this_type = type_pointed_to(ttp);
+                    match = get_type_qualifiers(this_type) ==
+                                              (a_type_qualifier_set)TQ_NONE;
                   }  /* if */
-                } else {
-                  /* They both have implicit this parameters, make sure the
-                     types match. */
-                  match = matches_template_type(tp, ttp, templ_arg_list,
-                                                templ_param_list,
-                                                new_flags);
                 }  /* if */
+              } else {
+                /* They both have implicit this parameters, make sure the
+                   types match. */
+                match = matches_template_type(tp, ttp, templ_arg_list,
+                                              templ_param_list,
+                                              new_flags);
               }  /* if */
             }  /* if */
-            break;
-          default:
-            /* They are simple types -- these are leaf nodes in a type tree.
-               Check for identity. */
-            match = identical_types(templ_type, type);
-        }  /* switch */
-      }  /* if */
+          }  /* if */
+          break;
+        default:
+          /* They are simple types -- these are leaf nodes in a type tree.
+             Check for identity. */
+          match = identical_types(templ_type, type);
+      }  /* switch */
     }  /* if */
   }  /* if */
 #if DEBUG
@@ -5062,11 +5061,11 @@ It is FALSE if the instantiation scope was pushed by the caller.
 	check_assertion(daefp != NULL);
         if (push_instantiation_scope) {
           /* Push the template instantiation scope. */
-          (void)push_template_instantiation_scope(daefp->cache.decl_info,
-                                                  (a_type_ptr)NULL, rout_ptr,
-                                                  tip->instance_sym,
-                                                  tip->template_sym,
-                                                  rout_ptr->template_arg_list);
+          push_template_instantiation_scope(daefp->cache.decl_info,
+                                            (a_type_ptr)NULL, rout_ptr,
+                                            tip->instance_sym,
+                                            tip->template_sym,
+                                            rout_ptr->template_arg_list);
         }  /* if */
         /* The function prototype scope should be reactivated and its symbols
            reentered because parameter names hide names from enclosing scopes
@@ -5538,11 +5537,11 @@ type based on the template argument list and the template parameter list
     tcp = &tssp->variant.function.decl_cache;
     /* Increment the count of pending instantiations of this template. */
     ++(tssp->variant.function.pending_partial_instantiations);
-    (void)push_template_instantiation_scope(tcp->decl_info,
-					    (a_type_ptr)NULL,
-					    (a_routine_ptr)NULL,
-					    (a_symbol_ptr)NULL, templ_sym,
-					    templ_arg_list);
+    push_template_instantiation_scope(tcp->decl_info,
+				      (a_type_ptr)NULL,
+				      (a_routine_ptr)NULL,
+				      (a_symbol_ptr)NULL, templ_sym,
+				      templ_arg_list);
     /* Reactivate any pragmas that should be bound to the generated
        instance. */
     reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -5888,7 +5887,7 @@ type should not be used in the matching process.
         /* In nondeclarative contexts, the implicit this parameter types must
            match exactly. */
         match = identical_types(curr_type, new_type);
-     }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   if (match) {
@@ -6175,7 +6174,6 @@ and create a function instantiation entry to bind the two symbols together.
 */
 {
   a_symbol_ptr                      sym;
-  a_template_symbol_supplement_ptr  tssp;
   a_template_instance_ptr           tip;
   a_type_ptr                        tp;
   a_scope_number                    corresp_prototype_decl_scope;
@@ -6314,21 +6312,23 @@ and create a function instantiation entry to bind the two symbols together.
   /* sym is the template symbol for which member function rout_sym is an
      instantiation.  Create the function instantiation entry and set the
      pointers to bind them together. */
-  tip = alloc_template_instance();
-  tip->template_sym = sym;
-  tssp = sym->variant.routine.instance_ptr->template_info;
-  update_befriending_classes_for_function(tssp,
-					  rout_sym->variant.routine.ptr);
-  /* Link the new entry to the start of the instantiation list of the
-     function template. */
-  tip->next = tssp->variant.function.instantiations;
-  tssp->variant.function.instantiations = tip;
-  /* Make the function instantiation entry and its associated symbol
-     point at each other. */
-  tip->instance_sym = rout_sym;
-  rout_sym->variant.routine.instance_ptr = tip;
-  /* Mark the routine entry as an instance of a member function template. */
-  rout_sym->variant.routine.ptr->is_template_function = TRUE;
+  { a_template_symbol_supplement_ptr  tssp;
+    tip = alloc_template_instance();
+    tip->template_sym = sym;
+    tssp = sym->variant.routine.instance_ptr->template_info;
+    update_befriending_classes_for_function(tssp,
+  					    rout_sym->variant.routine.ptr);
+    /* Link the new entry to the start of the instantiation list of the
+       function template. */
+    tip->next = tssp->variant.function.instantiations;
+    tssp->variant.function.instantiations = tip;
+    /* Make the function instantiation entry and its associated symbol
+       point at each other. */
+    tip->instance_sym = rout_sym;
+    rout_sym->variant.routine.instance_ptr = tip;
+    /* Mark the routine entry as an instance of a member function template. */
+    rout_sym->variant.routine.ptr->is_template_function = TRUE;
+  }
 error_exit:
   db_exit();
 }  /* find_member_function_template */
@@ -6349,7 +6349,6 @@ Also, add the instance to the definitions list for the template.
   a_scope_number                    corresp_prototype_decl_scope;
   a_type_ptr                        tp, member_type;
   a_symbol_ptr                      sym;
-  a_template_symbol_supplement_ptr  tssp;
   a_variable_ptr                    vp;
 
   db_enter(3, "find_static_data_member_template");
@@ -6401,7 +6400,8 @@ Also, add the instance to the definitions list for the template.
     /* sym is the template symbol with which static_data_member_sym is
        associated.  Create a static data member def entry and set the pointers
        to bind them all together. */
-    a_template_instance_ptr  tip = alloc_template_instance();
+    a_template_instance_ptr		tip = alloc_template_instance();
+    a_template_symbol_supplement_ptr	tssp;
     static_data_member_sym->variant.static_data_member.instance_ptr = tip;
     tip->instance_sym = static_data_member_sym;
     tip->template_sym = sym;
@@ -7298,11 +7298,9 @@ initially used when processing the declaration of a partial specialization.
            template <class T1, class T2> struct A<T1*, T2*, int> { ... };
          The template argument list for the prototype instantiation should
           be "T1*, T2*, int". */
-      a_class_type_supplement_ptr	prototype_ctsp;
       a_class_type_supplement_ptr	partial_spec_nonreal_ctsp;
       partial_spec_nonreal_ctsp = partial_spec_nonreal_sym->variant.
                 class_struct_union.type->variant.class_struct_union.extra_info;
-      prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
       prototype_ctsp->template_arg_list =
                                   partial_spec_nonreal_ctsp->template_arg_list;
       /* Just as with a normal instance, in the prototype instantiation of a
@@ -7630,7 +7628,6 @@ instantiation.
   a_template_symbol_supplement_ptr  tssp;
   a_token_cache                     local_token_cache;
   a_type_kind                       type_kind;
-  a_boolean			    err;
   a_token_set_array                 stop_tokens;
   a_source_position                 friend_pos;
   a_boolean			    is_nested_class_definition = FALSE;
@@ -7686,6 +7683,7 @@ instantiation.
   if (microsoft_mode) {
     /* Scan any Microsoft extended decl modifiers that may be present
        such as __single_inheritance. */
+    a_boolean	err = FALSE;
     clear_decl_modifiers_block(&decl_modifiers);
     scan_microsoft_extended_decl_modifiers(
          /*is_class_decl=*/TRUE, decl_state->is_member_decl, &decl_modifiers,
@@ -7730,6 +7728,7 @@ instantiation.
     if (decl_state->is_template_friend ||
         locator_for_curr_id.is_qualified_name ||
         locator_for_curr_id.is_template_id) {
+      a_boolean	err = FALSE;
       sym = coalesce_and_lookup_generalized_identifier
                              (GID_CLASS_TEMPLATE_REQUIRED, ilm_linkage, &err);
       /* If the class name is a template ID, then this is probably a
@@ -7908,7 +7907,6 @@ instantiation.
     suppress_redecl_error = TRUE;
   }  /* if */
   if (!decl_state->decl_scope_err) {
-    a_boolean	err = FALSE;
     if (!locator.is_qualified_name) {
       if (sym != NULL) {
         /* Unless this is a friend declaration, an unqualified name must refer
@@ -7930,12 +7928,6 @@ instantiation.
                                           decl_state, partial_spec_nonreal_sym,
                                           &locator, is_definition);
       }  /* if */
-    }  /* if */
-    if (err) {
-      sym = NULL;
-      suppress_redecl_error = TRUE;
-      set_to_named_error_locator(locator);
-      decl_state->decl_scope_err = TRUE;
     }  /* if */
   }  /* if */
   {
@@ -8330,7 +8322,7 @@ cache the expected tokens.
   if (!skip_params) {
     /* See if the beginning of the declaration consists of template
        parameter clauses that are all of the form "template <>". */
-   while (curr_token == tok_template) {
+    while (curr_token == tok_template) {
       (void)get_token();
       if (curr_token != tok_lt) continue;
       (void)get_token();
@@ -8886,11 +8878,11 @@ resulting constant is stored in the pointer pointed to by "constant".
        passed to push_scope is NULL because we don't yet know which instance
        is being instantiated.  Also note that a class type is not being
        passed for the same reason. */
-    (void)push_template_instantiation_scope(param_ptr->cache.decl_info,
-  					    (a_type_ptr)NULL,
-					    (a_routine_ptr)NULL,
-					    (a_symbol_ptr)NULL,
-					    template_sym, arg_list);
+    push_template_instantiation_scope(param_ptr->cache.decl_info,
+  				      (a_type_ptr)NULL,
+				      (a_routine_ptr)NULL,
+				      (a_symbol_ptr)NULL,
+				      template_sym, arg_list);
     /* Rescan the tokens of the function declaration. */
     rescan_reusable_cache(&param_ptr->cache.tokens);
     /* Scan the declaration specifiers. */
@@ -8911,11 +8903,11 @@ resulting constant is stored in the pointer pointed to by "constant".
       /* Push the template instantiation scope.  See note above regarding
          the instance symbol and class type. */
       a_template_cache_ptr	tcp = &param_ptr->default_arg.cache;
-      (void)push_template_instantiation_scope(tcp->decl_info,
-    					      (a_type_ptr)NULL,
-					      (a_routine_ptr)NULL,
-					      (a_symbol_ptr)NULL,
-					      template_sym, arg_list);
+      push_template_instantiation_scope(tcp->decl_info,
+					(a_type_ptr)NULL,
+					(a_routine_ptr)NULL,
+					(a_symbol_ptr)NULL,
+					template_sym, arg_list);
       rescan_reusable_cache(&tcp->tokens);
       *constant = fs_constant((a_constant_repr_kind)ck_error);
       delayed_scan_of_template_default_arg_expr(constant_type, *constant);
@@ -8955,11 +8947,11 @@ existing type is simply used.
        is being instantiated.  Also note that a class type is not being
        passed for the same reason. */
     a_template_cache_ptr	tcp = &param_ptr->default_arg.cache;
-    (void)push_template_instantiation_scope(tcp->decl_info,
-                                            (a_type_ptr)NULL,
-					    (a_routine_ptr)NULL,
-					    (a_symbol_ptr)NULL,
-					    template_sym, arg_list);
+    push_template_instantiation_scope(tcp->decl_info,
+                                      (a_type_ptr)NULL,
+				      (a_routine_ptr)NULL,
+				      (a_symbol_ptr)NULL,
+				      template_sym, arg_list);
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
     rescan_reusable_cache(&tcp->tokens);
@@ -10568,11 +10560,11 @@ that follows.
       check_template_nesting_depth(sym, &decl_start_pos, decl_state);
       type->variant.class_struct_union.is_specialized = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      { a_boolean	is_definition;
+      { a_boolean	decl_is_definition;
         /* The specialization should be marked as an autonomous declaration. */
-        is_definition = ((dso_flags & DSO_DEFINES_SOMETHING) != 0);
-        set_autonomous_tag_decl_flag(type, is_definition);
-        if (!is_definition) {
+        decl_is_definition = ((dso_flags & DSO_DEFINES_SOMETHING) != 0);
+        set_autonomous_tag_decl_flag(type, decl_is_definition);
+        if (!decl_is_definition) {
           (void)set_src_seq_secondary_decl_type((char *)type, type,
                                                 /*new_style_spec=*/TRUE);
         }  /* if */
@@ -11549,7 +11541,7 @@ later check whether a specified name was included in that list.
 */
 {
   register unsigned            hash_value = 0;
-  register char                *ptr;
+  register unsigned char       *ptr;
   an_instance_lookup_entry_ptr ilp    = NULL;
   int                          bucket_number;
   int			       length;
@@ -11558,23 +11550,23 @@ later check whether a specified name was included in that list.
   /* Hash the symbol's identifier.  This involves taking the identifier's
      first 3, last 3, and middle 3 characters.  Of course, if the identifier
      has 9 or fewer characters, take the entire identifier. */
-  ptr = name;
+  ptr = (unsigned char *)name;
   if (length > 9) {
-    hash_value = (unsigned int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr;
-    ptr = name + (length >> 1) - 1;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr;
-    ptr = name + length - 3;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr;
+    hash_value = *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr;
+    ptr = (unsigned char *)name + (length >> 1) - 1;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr;
+    ptr = (unsigned char *)name + length - 3;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr;
   } else {
     register int a;
     for (a = 0; a < length; a++) {
-      hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
+      hash_value = (hash_value * HASH_FACTOR) + *ptr++;
     }  /* for */
   }  /* if */
   /* Look in the symbol bucket saving the position in case this symbol needs
@@ -11977,7 +11969,6 @@ defer_inline is TRUE.
   tssp = template_supplement_for_symbol(tip->template_sym);
 #if DEBUG
   if (debug_level >= 5 || db_flag_is_set("uirf")) {
-    a_symbol_ptr sym = tip->instance_sym;
     fprintf(f_debug, "Setting instantiation_required flag to %s for ",
             value ? "TRUE" : "FALSE");
     db_symbol(tip->instance_sym, "", 0);
@@ -12930,7 +12921,7 @@ should be used.
   an_instantiation_directive_ptr  idp;
   an_il_entry_kind                kind;
 
-  if (!source_sequence_entries_disallowed) {
+  if (!source_sequence_entries_disallowed) /*lint !e506*/ {
     idp = alloc_instantiation_directive();
     idp->position = *pos;
     idp->entity.ptr = il_entry_for_symbol(sym, &kind);
@@ -13180,7 +13171,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
          a match is an error.  The Microsoft compiler silently ignores
          such failures.  Even so, issue a warning for an explicit
          instantiation and a remark for an "extern template". */
-      an_error_severity	severity_if_not_found = es_error;
+      severity_if_not_found = es_error;
       if (microsoft_bugs && !is_pragma) {
         severity_if_not_found = kind == (a_pragma_kind)pk_do_not_instantiate
                                               ? (an_error_severity)es_remark

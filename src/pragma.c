@@ -25,7 +25,6 @@ pragma.c -- Routines to support #pragma directives
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
-#include "statements.h"
 #if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -51,7 +50,7 @@ static a_pragma_kind_description_ptr add_pragma_kind_description
 		       a_boolean	     global,
 		       a_boolean	     automatically_include_in_il,
 		       a_boolean	     make_text_not_tokens,
-		       a_boolean	     expand_macros,
+		       a_boolean	     p_expand_macros,
 		       a_boolean	     processing_C_code,
 		       a_boolean	     ignore_in_back_end,
 		       an_error_severity     error_severity)
@@ -89,7 +88,7 @@ but cannot be referenced by name in a pragma directive.
   /* Pragmas scanned as text instead of tokens must not have macros expanded
      or processing_C_code set. */
   check_assertion_str2(make_text_not_tokens ?
-                       !expand_macros && !processing_C_code : TRUE,
+                       !p_expand_macros && !processing_C_code : TRUE,
                        "add_pragma_kind_description:",
 		       "invalid make_text_not_tokens arguments");
   /* Allocate a new entry. */
@@ -128,7 +127,7 @@ but cannot be referenced by name in a pragma directive.
   pkdp->global = global;
   pkdp->automatically_include_in_il = automatically_include_in_il;
   pkdp->make_text_not_tokens = make_text_not_tokens;
-  pkdp->expand_macros = expand_macros;
+  pkdp->expand_macros = p_expand_macros;
   pkdp->processing_C_code = processing_C_code;
   pkdp->ignore_in_back_end = ignore_in_back_end;
   pkdp->is_pseudo_pragma = is_pseudo_pragma;
@@ -156,7 +155,7 @@ static a_pragma_kind_description_ptr add_next_construct_pragma_kind_description
 		       a_boolean	     may_bind_to_stmt,
 		       a_boolean	     automatically_include_in_il,
 		       a_boolean	     make_text_not_tokens,
-		       a_boolean	     expand_macros,
+		       a_boolean	     p_expand_macros,
 		       a_boolean	     processing_C_code,
 		       a_boolean	     ignore_in_back_end,
 		       an_error_severity     error_severity)
@@ -175,7 +174,7 @@ used for creating pbk_next_construct pragmas.
             (a_generic_pragma_function_ptr)processing_function,
             is_pseudo_pragma, may_bind_to_decl, may_bind_to_stmt,
 	    /*global=*/FALSE, automatically_include_in_il,
-            make_text_not_tokens, expand_macros, processing_C_code,
+            make_text_not_tokens, p_expand_macros, processing_C_code,
             ignore_in_back_end, error_severity);
 }  /* add_next_construct_pragma_kind_description */
 
@@ -188,7 +187,7 @@ static a_pragma_kind_description_ptr add_immediate_pragma_kind_description
 		       a_boolean	     global,
 		       a_boolean	     automatically_include_in_il,
 		       a_boolean	     make_text_not_tokens,
-		       a_boolean	     expand_macros,
+		       a_boolean	     p_expand_macros,
 		       a_boolean	     processing_C_code,
 		       a_boolean	     ignore_in_back_end,
 		       an_error_severity     error_severity)
@@ -202,7 +201,7 @@ used for creating pbk_immediate pragmas.
             (a_generic_pragma_function_ptr)processing_function,
 	    is_pseudo_pragma, /*may_bind_to_decl=*/FALSE,
             /*may_bind_to_expr=*/FALSE, global, automatically_include_in_il,
-            make_text_not_tokens, expand_macros, processing_C_code,
+            make_text_not_tokens, p_expand_macros, processing_C_code,
             ignore_in_back_end, error_severity);
 }  /* add_immediate_pragma_kind_description */
 
@@ -215,7 +214,7 @@ static a_pragma_kind_description_ptr add_other_pragma_kind_description
 		       a_boolean	     global,
 		       a_boolean	     automatically_include_in_il,
 		       a_boolean	     make_text_not_tokens,
-		       a_boolean	     expand_macros,
+		       a_boolean	     p_expand_macros,
 		       a_boolean	     processing_C_code,
 		       a_boolean	     ignore_in_back_end,
 		       an_error_severity     error_severity)
@@ -229,7 +228,7 @@ used for creating pbk_other pragmas.
             (a_generic_pragma_function_ptr)processing_function,
 	    is_pseudo_pragma, /*may_bind_to_decl=*/FALSE,
             /*may_bind_to_expr=*/FALSE, global, automatically_include_in_il,
-            make_text_not_tokens, expand_macros, processing_C_code,
+            make_text_not_tokens, p_expand_macros, processing_C_code,
             ignore_in_back_end, error_severity);
 }  /* add_other_pragma_kind_description */
 
@@ -1062,7 +1061,7 @@ the pragmas.
   *curr_list_of_curr_construct_pragmas() = NULL;
   for(; ppp != NULL; ppp = ppp->next) {
     a_next_construct_pragma_function_ptr ncpfp;
-    a_boolean				 error = FALSE;
+    a_boolean				 err = FALSE;
     pkdp = ppp->descr_ptr;
     /* Make sure that the binding information in the pragma description
        is consistent with the argument list.  Issue diagnostics for
@@ -1074,7 +1073,7 @@ the pragmas.
       /* The pragma binding does not match the kind of construct being
          processed.  Issue a diagnostic. */
       an_error_code	error_code;
-      error = TRUE;
+      err = TRUE;
       if (pkdp->error_severity != es_none) {
         if (pkdp->may_bind_to_decl) {
           error_code = ec_pragma_must_precede_declaration;
@@ -1085,7 +1084,7 @@ the pragmas.
         pos_diagnostic(pkdp->error_severity, error_code, &ppp->id_position);
       }  /* if */
     }  /* if */
-    if (!error) {
+    if (!err) {
       ncpfp = pkdp->variant.next_construct_processing_function;
       if (pkdp->automatically_include_in_il) {
         /* Create an IL entry for pragmas that should automatically be
@@ -1442,7 +1441,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/TRUE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
-		 /*ignore_in_back_end=*/!BACK_END_IS_CP_GEN_BE,
+		 /*ignore_in_back_end=*/!BACK_END_IS_CP_GEN_BE, /*lint !e506*/
                  es_error);
 #if INCLUDE_EDG_TEST_PRAGMAS
   (void)add_next_construct_pragma_kind_description

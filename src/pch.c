@@ -88,7 +88,7 @@ static a_pch_saved_variable_ptr
 			   lists.  Each element points to an array of
 			   saved variable entries. */
 
-static int	num_of_saved_variable_lists /* = 0 */;
+static int	num_of_saved_variable_lists = 0;
 			/* Number of entries in the saved variable array list
 			   that have been used. */
 
@@ -215,7 +215,7 @@ value passed by the caller.
   pch_read_value(section_in_file);
 #if DEBUG
   if (section_in_file != section) {
-    fprintf(f_debug, "Incorrect file section ID: expected %0d, got %0d\n",
+    fprintf(f_debug, "Incorrect file section ID: expected %d, got %d\n",
             section, section_in_file);
     fprintf(f_debug, "  (expected name: %s, got name: %s\n",
             file_section_names[(int)section],
@@ -325,7 +325,7 @@ Ensure that file_name_buffer has at least size_needed bytes in it.
 If not, expand file_name_buffer by reallocating it.
 */
 #define ensure_file_name_buffer_space(fnb, size_needed)                 \
-{ if ((fnb).size < size_needed) {                     			  \
+{ if ((fnb).size < (size_needed)) {                    			  \
     expand_file_name_buffer(&(fnb), (sizeof_t)(size_needed));              \
   }  /* if */                                                          \
 }  /* ensure_file_name_buffer_space */
@@ -339,7 +339,8 @@ directory name is being used, a pointer to the original name is returned.
 */
 {
   char				*result;
-  static a_file_name_buffer	buffer;  /* Staticly initialized. */
+  static a_file_name_buffer	buffer; /*lint !e727*/
+                                        /* Statically initialized. */
 
   if (pch_dir_name == NULL || is_absolute_file_name(file_name)) {
     result = file_name;
@@ -438,7 +439,7 @@ file.
   pch_event_list_tail = pep;
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("pch_event")) {
-    fprintf(f_debug, "Added PCH event: %s, value=%s, line %0lu, col %0d\n",
+    fprintf(f_debug, "Added PCH event: %s, value=%s, line %lu, col %d\n",
             pch_event_kind_names[(int)pep->kind],
             pep->value == NULL ? "(NULL)" : pep->value,
             pep->position.seq, pep->position.column);
@@ -451,7 +452,7 @@ file.
 void add_command_line_pch_event(a_pch_event_kind	kind,
                                 an_option_kind		opt_kind,
 				a_boolean		opt_value,
-				char			*optarg)
+				char			*opt_arg)
 /*
 Add a precompiled header event to the list of events associated with
 the command line.
@@ -466,11 +467,11 @@ the command line.
   pep = alloc_pch_event(kind);
   pep->variant.cl_option.kind = opt_kind;
   pep->variant.cl_option.opt_value = opt_value;
-  if (optarg != NULL) {
+  if (opt_arg != NULL) {
     /* Command line events are reused for multiple source files so
        the value string must be allocated in general memory. */
-    pep->value = (char *)alloc_general((sizeof_t)(strlen(optarg) + 1));
-    (void)strcpy(pep->value, optarg);
+    pep->value = (char *)alloc_general((sizeof_t)(strlen(opt_arg) + 1));
+    (void)strcpy(pep->value, opt_arg);
   }  /* if */
   /* Add this entry to the list. */
   if (pch_cmd_line_event_list_head == NULL) {
@@ -500,7 +501,7 @@ Display a PCH event for debugging purposes.
   fprintf(f_debug, "Event kind: %s", pch_event_kind_names[(int)pep->kind]);
   switch (pep->kind) {
     case pchek_command_line:
-      fprintf(f_debug, ", option kind: %0d", pep->variant.cl_option.kind);
+      fprintf(f_debug, ", option kind: %d", pep->variant.cl_option.kind);
       fprintf(f_debug, ", option value: %s",
               pep->variant.cl_option.opt_value ? "TRUE" : "FALSE");
       break;
@@ -512,7 +513,7 @@ Display a PCH event for debugging purposes.
       unexpected_condition();
   }  /* switch */
   fprintf(f_debug, ", value: %s", pep->value == NULL ? "(NULL)" : pep->value);
-  fprintf(f_debug, ", seq: %0lu, column: %0lu\n", pep->position.seq,
+  fprintf(f_debug, ", seq: %lu, column: %lu\n", pep->position.seq,
           (unsigned long)pep->position.column);
 }  /* db_pch_event */
 #endif /* DEBUG */
@@ -709,7 +710,7 @@ file currently being compiled.  If not, remove the associated file.
 */
 {
   char		*assoc_pch_file_name;
-  a_boolean	remove = FALSE;
+  a_boolean	remove_file = FALSE;
 
   db_enter(3, "remove_assoc_pch_file_if_not_being_used");
   /* Append the PCH file prefix to the primary source file base name. */
@@ -721,14 +722,14 @@ file currently being compiled.  If not, remove the associated file.
     /* The file does not exist -- nothing to do. */
   } else if (!using_a_pch_file) {
      /* We're not using a PCH file, remove the old one. */
-     remove = TRUE;
+     remove_file = TRUE;
   } else if (compare_file_names(assoc_pch_file_name,
                                 pch_input_file_name) != 0) {
     /* The PCH file in use is not associated with this file -- remove the
        associated file. */
-    remove = TRUE;
+    remove_file = TRUE;
   }  /* if */
-  if (remove) {
+  if (remove_file) {
 #if DEBUG
     if (debug_level >= 3) {
       fprintf(f_debug, "Removing PCH file: %s\n", assoc_pch_file_name);
@@ -903,18 +904,18 @@ child files encountered.
 {
   db_enter(5, "write_list_of_file_timestamps");
   for (; sfp != NULL; sfp = sfp->next) {
-    time_t	time;
+    time_t	mod_time;
     /* Only do this for include files, not for the primary source file
        or for the source file entry associated with a primary source
        file from which precompiled header information has been restored. */
     if (sfp->is_include_file) {
-      (void)get_file_modification_time(sfp->full_name, &time);
+      (void)get_file_modification_time(sfp->full_name, &mod_time);
       pch_write_string(sfp->full_name);
-      pch_write_value(time);
+      pch_write_value(mod_time);
 #if DEBUG
       if (debug_level >= 5) {
         fprintf(f_debug, "Writing file timestamp for %s, time is %ld\n",
-                sfp->full_name, time);
+                sfp->full_name, mod_time);
       }  /* if */
 #endif /* DEBUG */
     }  /* if */
@@ -1167,7 +1168,7 @@ in exactly the same manner as that in which they were created.
   a_mem_block_header_ptr	mbhp = mem_region_table[number];
 #if DEBUG
   if (debug_level >= 4) {
-    fprintf(f_debug, "Writing memory region %0d\n", number);
+    fprintf(f_debug, "Writing memory region %d\n", number);
   }  /* if */
 #endif /* DEBUG */
   while (mbhp != NULL) {
@@ -1226,7 +1227,7 @@ the PCH file.
     record_mapped_mem_block(mahp->addr, mahp->size);
 #if DEBUG
     if (debug_level >= 5) {
-      fprintf(f_debug, "Mapped bytes from %p for %0lu bytes from PCH\n",
+      fprintf(f_debug, "Mapped bytes from %p for %lu bytes from PCH\n",
               mahp->addr, (unsigned long)mahp->size);
     }  /* if */
 #endif /* DEBUG */
@@ -1245,7 +1246,7 @@ file.  See write_a_memory_region for more information.
 
 #if DEBUG
   if (debug_level >= 4) {
-    fprintf(f_debug, "Reading memory region %0d\n", number);
+    fprintf(f_debug, "Reading memory region %d\n", number);
   }  /* if */
 #endif /* DEBUG */
   for (;;) {
@@ -1463,7 +1464,7 @@ write out the precompiled header file.
       size_needed = HOST_ALLOCATION_INCREMENT * total_mem_blocks_allocated;
       size_needed = (size_needed / 1024) + 1;
       /* Convert the size needed to a string. */
-      (void)sprintf(size_string, "%0luK", (unsigned long)size_needed);
+      (void)sprintf(size_string, "%luK", (unsigned long)size_needed);
       str_warning(ec_not_enough_preallocated_memory, size_string);
     } else if (large_mem_block_needed) {
       pos_warning(ec_program_entity_too_large_for_pch,
@@ -1612,8 +1613,8 @@ and make the modification times match the current values for the files.
 {
   a_boolean	match = TRUE;
 
- check_file_section_id(pfs_include_file_info);
- for (;;) {
+  check_file_section_id(pfs_include_file_info);
+  for (;;) {
     char	*file_name;
     time_t	time_from_file;
     time_t	curr_time;
@@ -1852,7 +1853,7 @@ directory.  Return TRUE if an applicable PCH was found.
     fprintf(f_debug, "Event list of this file:\n");
     for (pep = pch_event_list_head; pep != NULL; pep = pep->next) {
       db_pch_event(pep);
-   }  /* for */
+    }  /* for */
   }  /* if */
 #endif /* DEBUG */
   best_result_so_far = null_source_position;
@@ -1872,9 +1873,9 @@ directory.  Return TRUE if an applicable PCH was found.
     if (!open_pch_input_file(file_name)) continue;
     pch_input_file_name = file_name;
 #if DEBUG
-  if (debug_level >= 4) {
-    fprintf(f_debug, "Checking %s for applicability\n", file_name);
-  }  /* if */
+    if (debug_level >= 4) {
+      fprintf(f_debug, "Checking %s for applicability\n", file_name);
+    }  /* if */
 #endif /* DEBUG */
     /* See if this PCH file can be used. */
     last_matching_event = pch_is_applicable();
@@ -1886,7 +1887,7 @@ directory.  Return TRUE if an applicable PCH was found.
       fprintf(f_debug, "PCH file %s, applicable: %s",
               file_name, is_applicable ? "TRUE" : "FALSE");
       if (is_applicable) {
-        fprintf(f_debug, ", seq: %0lu, column: %0lu\n",
+        fprintf(f_debug, ", seq: %lu, column: %lu\n",
                 (unsigned long)last_matching_event->position.seq,
                 (unsigned long)last_matching_event->position.column);
       } else {
