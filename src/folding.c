@@ -553,6 +553,8 @@ set on entry.
        base class.  Check accessibility at each step and generate the
        necessary casts. */
     access_okay = TRUE;
+    /* No access checking in prototype instantiations. */
+    if (is_template_dependent_context()) check_cast_access = FALSE;
     orig_type = type_pointed_to(constant_1->type);
     curr_type = skip_typerefs(orig_type);
     for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
@@ -971,6 +973,8 @@ If there is an error, it is issued at *err_pos.
                   derived_class_type, bcp->type);
     set_error_constant(result);
   } else {
+    /* No access checking in prototype instantiations. */
+    if (is_template_dependent_context()) check_cast_access = FALSE;
     if (check_cast_access) {
       /* Check the accessibility of the base class.  (Recall that casts
          to derived types can be done implicitly.) */

@@ -1913,6 +1913,8 @@ routine is only used in C++ mode.
        base class.  Check accessibility at each step and generate the
        necessary casts. */
     access_okay = TRUE;
+    /* No access checking in prototype instantiations. */
+    if (is_template_dependent_context()) check_cast_access = FALSE;
     curr_type = type_pointed_to((*p_node)->type);
     curr_type = skip_typerefs(curr_type);
     for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
@@ -2129,6 +2131,8 @@ source position to be used for errors.  This routine is only used in C++ mode.
                   new_class_pointed_to, bcp->type);
     *p_node = error_node();
   } else {
+    /* No access checking in prototype instantiations. */
+    if (is_template_dependent_context()) check_cast_access = FALSE;
     if (check_cast_access) {
       /* Check the accessibility of the base class.  (Recall that casts
          to derived types can be done implicitly.) */
