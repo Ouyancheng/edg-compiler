@@ -1,6 +1,12 @@
 Version 2.07
 
-6/23/92  Implemented copy of array of classes using copy constructor
+6/24/92  Warning on delete of pointer to incomplete class.
+
+A warning is now issued on a delete of a pointer to an incomplete class,
+because it's not possible to know in such a case whether or not the
+class has a destructor that's supposed to be called.
+
+6/23/92  Implemented copy of array of classes using copy constructor.
 
   struct A { A(); A(const A&); };
   struct B { A a[2]; };
@@ -11,7 +17,7 @@ The copy of B::a in the generated copy constructor for B must use a copy
 constructor to copy each element of a.  Previously, this caused a
 segmentation violation.  (cfront gives "sorry, not implemented".)
 
-6/22/92  Fixed bug in setting storage class on mutiply declared functions
+6/22/92  Fixed bug in setting storage class on mutiply declared functions.
 
 In the following case:
 
@@ -22,7 +28,7 @@ the function is now marked as internally linked with a storage class of
 "static".  Before, it was given external linkage and "unspecified"
 storage class.
 
-6/19/92  Support for "asm declarations"
+6/19/92  Support for "asm declarations".
 
 "asm" is now treated as a token, even in C mode.  An asm "declaration"
 (at file scope) and an asm "statement" (at function or block scope) is
@@ -32,7 +38,7 @@ list pointed to from the current scope, and the asm entry points to the
 asm string; statements of kind stmk_asm now point to an asm entry rather
 than directly to an asm string.
 
-6/17/92  Recognition of new keywords -- temporary
+6/17/92  Recognition of new keywords -- temporary.
 
 Warnings are issued when "catch", "template", "throw", and "try" are
 encountered in a source program.  The warnings will be eliminated when
@@ -98,7 +104,8 @@ That provides more information for aliasing analysis.
 6/5/92  Added support for various diagnostic message fill-ins.
 
 Support was added to allow type and symbol names to be inserted in
-diagnostic messages along with strings.
+diagnostic messages.  Many error calls were changed and many error
+messages were reworded to take advantage of this feature.
 
 6/4/92  Destructor inheritance disallowed.
 
