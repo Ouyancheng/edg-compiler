@@ -8765,7 +8765,7 @@ a conversion of 0 to a pointer type.
 {
   a_boolean allowed = TRUE;
 
-  if (conversion->std.pointer_normalization_needed) {
+  if (conversion->std.pointer_normalization_needed && !microsoft_mode) {
     /* Conversion of 0 to a pointer type, or of a pointer to object type
        to void *, is not allowed on a nontype template argument. */
     allowed = FALSE;
