@@ -1,5 +1,17 @@
 Version 2.45
 
+8/23/00  Microsoft compatibility: "charizing" macro operator
+
+In Microsoft mode, the combination of the special token #@ followed by a macro
+parameter is replaced by the corresponding argument surrounded by single
+quotes (') on expansion.  If necessary, backslashes (\) are inserted to escape
+special characters.
+
+  #define MC(x) #@ x
+  char c = MC(*);     // Expands to: char c = '*';
+  char d = MC(\000);  // Expands to: char d = '\000';
+  char e = MC('o');   // Expands to: char e = '\'o\''; (not valid code)
+
 8/22/00  C++-generating back end: spurious scope qualification on namespace
          scope declaration
 

@@ -1052,7 +1052,8 @@ white space will also be deleted).
 
 
 static sizeof_t stringized_arg(a_macro_arg_ptr map,
-                               char            **src_loc)
+                               char            **src_loc,
+                               a_boolean       charize)
 /*
 Generate the "stringized" version of the macro argument indicated by map,
 store it into the current source line at *src_loc, and increment
@@ -1061,6 +1062,9 @@ the stringized version of an argument.  Return the length of the
 stringized version.  If src_loc is NULL, the output is not stored, so
 the overall function of this routine is just to compute and return the
 length of the stringized version.
+This function also supports a Microsoft extension that makes the "#@" operator
+produce a "charized" version of the argument (i.e., a character literal).
+In such cases, charize is TRUE.
 */
 {
   register sizeof_t len = 0;
@@ -1071,7 +1075,7 @@ length of the stringized version.
 
   /* Put out initial quote. */
   len++;
-  if (src_loc != NULL) *(*src_loc)++ = '"';
+  if (src_loc != NULL) *(*src_loc)++ = charize ? '\'' : '"';
   /* Scan through the raw text of the argument, stopping at the end.
      Delete end of token markers.  Keep track of when we are inside of
      a character constant or string literal, and put out a "\" in front
@@ -1106,10 +1110,12 @@ length of the stringized version.
          a token.  Note that all white space has already been standardized
          to a single blank so that is all we have to check for. */
       if (ch != ' ') start_of_token = FALSE;
-      if (within_char_literal && (ch == '"' || ch == '\\')) {
+      if (within_char_literal &&
+          (ch == (charize ? '\'' : '"') || ch == '\\')) {
         /* Escape " and \ within a character constant or string literal.
            Note that the quotes delimiting string literals are
-           replaced too. */
+           replaced too.  (When charizing, the single quote rather than the
+           double quote needs escaping.) */
         len++;
         if (src_loc != NULL) *(*src_loc)++ = '\\';
       }  /* if */
@@ -1120,7 +1126,7 @@ length of the stringized version.
   }  /* for */
   /* Put out final quote. */
   len++;
-  if (src_loc != NULL) *(*src_loc)++ = '"';
+  if (src_loc != NULL) *(*src_loc)++ = charize ? '\'' : '"';
 
   return (len);
 }  /* stringized_arg */
@@ -1550,9 +1556,11 @@ hence its name should not be changed.
               map->raw_text[1] == LE_INERT_MACRO) sect_len -= LE_ESCAPE_LEN;
           break;
         case rt_stringized_raw_argument:
-          /* Determine the length of the stringized version of the
-             argument. */
-          sect_len = stringized_arg(map, (char **)NULL);
+        case rt_charized_raw_argument:
+          /* Determine the length of the stringized version of the argument
+             (or the charized version in some Microsoft macros). */
+          sect_len = stringized_arg(map, (char **)NULL,
+                                    rts_kind == rt_charized_raw_argument);
           break;
         case rt_argument:
           /* Note that the length here is without any source modifications
@@ -2277,9 +2285,11 @@ end_arg_expansion:;
             }
             break;
           case rt_stringized_raw_argument:
-            /* Generate the text of the stringized version of the argument,
-               in the right place. */
-            (void)stringized_arg(map, &src_loc);
+          case rt_charized_raw_argument:
+            /* Generate the text of the stringized (or charized) version of
+               the argument, in the right place. */
+            (void)stringized_arg(map, &src_loc,
+                                 rts_kind == rt_charized_raw_argument);
             goto copy_done;
           case rt_argument:
             /* Note that any applicable source modifications will be added
@@ -2740,8 +2750,10 @@ the macro definition.
         put_str_to_temp_text_buffer("##");
         break;
       case rt_stringized_raw_argument:
-        /* #parameter */
-        put_ch_to_temp_text_buffer('#');
+      case rt_charized_raw_argument:
+        /* #parameter or #@parameter */
+        put_str_to_temp_text_buffer(
+                           rts_kind == rt_charized_raw_argument ? "#" : "#@");
         put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
         break;
       case rt_argument:
@@ -2823,6 +2835,10 @@ beginning of the encoding of the replacement list.
           break;
         case rt_stringized_raw_argument:
           fprintf(f_debug, "  stringized raw argument %lu\n",
+                           (unsigned long)rts_number);
+          break;
+        case rt_charized_raw_argument:
+          fprintf(f_debug, "  charized raw argument %lu\n",
                            (unsigned long)rts_number);
           break;
         case rt_argument:
@@ -3152,20 +3168,28 @@ Scan and process a #define directive.
           }  /* if */
           any_white_space_skipped = FALSE;
         }  /* if */
-        if (curr_token == tok_sharp && !object_like &&
-            end_of_cpp_string == NULL) {
+        if ((curr_token == tok_sharp 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+             || (microsoft_mode && curr_token == tok_charize)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            ) && !object_like && end_of_cpp_string == NULL) {
           /* "#" -- Must be followed by a parameter name.  Note that this is
              ignored in an object-like macro.  See standard, 3.8.3.2.
              "#" is recognized in pcc preprocessing mode, but not inside
              of string literals (the test of "end_of_cpp_string" makes sure
-             that we don't do this substitution in string literals). */
+             that we don't do this substitution in string literals).
+             "#@" -- Recognized in Microsoft mode only: similar to the
+             stringizing "#" operator, but it produces a character literal
+             instead of a string literal. */
           (void)mdefn_get_token(param_list, &param_num,
                                 &any_white_space_skipped);
           if (param_num == 0) {
             error(ec_exp_macro_param);
           } else {
-            put_start_of_non_text_section(rt_stringized_raw_argument,
-                                          param_num);
+            put_start_of_non_text_section(
+                        (curr_token == tok_sharp) ? rt_stringized_raw_argument
+                                                  : rt_charized_raw_argument,
+                        param_num);
             need_end_of_token_marker = TRUE;
             (void)mdefn_get_token(param_list, &param_num,
                                   &any_white_space_skipped);

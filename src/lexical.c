@@ -6918,6 +6918,14 @@ check_start_of_pp_directive:
 		     *(curr_char_loc+1) == ':' && first_char_is_digraph) {
 	    ctoken = tok_paste;
 	    curr_char_loc += 2;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (microsoft_mode &&
+                     *curr_char_loc == '@' && !first_char_is_digraph) {
+            /* In Microsoft mode, a macro definition "#define M(x) #@x" causes
+               "M(a)" to be expanded to 'a'. */
+	    ctoken = tok_charize;
+	    curr_char_loc++;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 	  } else {
 	    ctoken = tok_sharp;
 	  } /* if */

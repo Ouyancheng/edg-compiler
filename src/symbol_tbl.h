@@ -439,6 +439,9 @@ typedef enum /*a_repl_text_seq_kind*/ {
 			/* Same as rt_raw_argument, but argument raw string is
 			   turned into a string literal (see standard,
 			   3.8.3.2). */
+  rt_charized_raw_argument,
+			/* Same as rt_stringized_raw_argument, but argument raw string is
+			   turned into a char literal instead (Microsoft extension). */
   rt_argument		/* Macro-expanded string for argument.  Followed by 3
 			   bytes containing the argument number, as for 
 			   rt_raw_argument. */

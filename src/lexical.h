@@ -163,6 +163,7 @@ typedef enum /*a_token_kind*/ {
   tok_based,
   tok_uuidof,
   tok_assume,
+  tok_charize,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_microsoft_asm,
 #if NEAR_AND_FAR_ALLOWED
@@ -244,7 +245,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__cdecl", "__declspec", "__fastcall", "__inline", "__forceinline",
    "__stdcall", "__unaligned", "__try", "__finally", "__leave", "__except",
    "__int8", "__int16", "__int32", "__int64", "__based",
-   "__uuidof", "__assume",
+   "__uuidof", "__assume", "#@",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__asm",
 #if NEAR_AND_FAR_ALLOWED
@@ -580,6 +581,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_based */
    (an_opname_kind)onk_none,          /* tok_uuidof */
    (an_opname_kind)onk_none,          /* tok_assume */
+   (an_opname_kind)onk_none,          /* tok_charize */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_microsoft_asm */
 #if NEAR_AND_FAR_ALLOWED
