@@ -359,7 +359,8 @@ typedef enum /*an_error_code*/ {
   ec_bad_default_arg_type,
   ec_return_type_cannot_distinguish_functions,
   ec_no_conversion_constructor,
-  ec_function_qualifier_not_allowed
+  ec_function_qualifier_not_allowed,
+  ec_bad_virtual_decl
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
