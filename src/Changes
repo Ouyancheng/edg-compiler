@@ -1,5 +1,24 @@
 Version 3.6
 
+12/23/04 Spurious overload resolution ambiguities, built-in operators and
+         multiple conversion functions returning same effective type
+
+In some cases, overload resolution incorrectly diagnosed an ambiguity
+on a case of applying conversion functions to the operands of a built-in
+operator, when the class involved has more than one conversion function
+returning effectively the same type (e.g., operator int() and
+operator int&()).  Now fixed.
+
+  typedef int *P ;
+  struct A {
+    operator const P & () const;
+    operator P & ();
+  };
+  int main() {
+    A a;
+    return a != a;  // Formerly got spurious ambiguity error
+  }
+
 12/22/04 Overload resolution: templates and determining best candidate
 
 We were surprised to discover that we had implemented one of the

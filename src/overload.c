@@ -7867,11 +7867,16 @@ routine type, assuming that the value will be converted to an rvalue.
 }  /* rvalue_return_type_of */
 
 
-static a_symbol_ptr find_conversion_function(a_type_ptr class_type,
-                                             a_type_ptr dest_type)
+static a_symbol_ptr find_conversion_function(
+                                            a_type_ptr              class_type,
+                                            a_type_ptr              dest_type,
+                                            a_symbol_list_entry_ptr stop_on)
 /*
 See if there is a conversion function that converts class_type (a class type)
 to dest_type.  If so, return a pointer to the symbol.  If not, return NULL.
+If stop_on is non-NULL, stop looking upon encountering that entry in
+the list of conversion functions of the class (the stop is before that
+entry is processed, so NULL is returned if it is encountered).
 
 Note:  This looks like a general-purpose routine, but it's not.  It won't
 deal with differences like
@@ -7897,7 +7902,7 @@ type appears on the list of conversion functions.
   dest_type = skip_typerefs(dest_type);
   /* Examine each conversion function from the source class. */
   for (slep = symbol_supplement_for_class(class_type)->conversion_list;
-       slep != NULL;
+       slep != NULL && slep != stop_on;
        slep = slep->next) {
     conversion_symbol = slep->symbol;
     reduce_projection_symbol_to_fundamental_symbol(conversion_symbol);
@@ -8659,18 +8664,21 @@ the target type to be used).
 
 
 static a_boolean specific_type_previously_handled(
-                                  a_type_ptr specific_type,
-                                  a_type_ptr class_type,
-                                  a_type_ptr previous_class_type_considered,
-                                  a_type_ptr previous_specific_type_considered)
+                     a_type_ptr              specific_type,
+                     a_type_ptr              class_type,
+                     a_symbol_list_entry_ptr stop_on,
+                     a_type_ptr              previous_class_type_considered,
+                     a_type_ptr              previous_specific_type_considered)
 /*
 Helper routine for try_corresp_builtin_operands_match.  Return TRUE if
 specific_type has already been tried as a target specific type.
-class_type, if non-NULL, indicates the current operand class type.
-previous_class_type_considered, if non-NULL, indicates the type of a
-previous class operand already considered; previous_specific_type_considered,
-if non-NULL, indicates the type of a previous non-class operand already
-considered.
+class_type, if non-NULL, indicates the current operand class type,
+and in that case stop_on, if non-NULL, indicates the entry on the
+conversion functions list of class_type that is currently being
+considered.  previous_class_type_considered, if non-NULL, indicates
+the type of a previous class operand already considered;
+previous_specific_type_considered, if non-NULL, indicates the type
+of a previous non-class operand already considered.
 */
 {
   a_boolean previously_handled = FALSE;
@@ -8689,12 +8697,23 @@ considered.
        to the specific type we're considering. */
     if (same_entities(class_type, previous_class_type_considered) ||
         find_conversion_function(previous_class_type_considered,
-                                 specific_type) != NULL) {
+                                 specific_type,
+                                 (a_symbol_list_entry_ptr)NULL) != NULL) {
       /* This specific type was tried when the first operand was
          processed, so do not try it again (if we did, it would
          look like an ambiguity). */
       previously_handled = TRUE;
     }  /* if */
+  } else if (class_type != NULL && stop_on != NULL &&
+             find_conversion_function(class_type,
+                                      specific_type,
+                                      stop_on) != NULL) {
+    /* The specific type was already handled as the result type of a
+       previous conversion function for the current operand class type.
+       (For example, a conversion function returning int and one
+       returning int & have the same effective type if we're looking
+       for an rvalue.) */
+    previously_handled = TRUE;
   }  /* if */
   return previously_handled;
 }  /* specific_type_previously_handled */
@@ -8766,16 +8785,19 @@ unchanged.
 
 
 static void adjust_specific_type_for_previous_operand(
-                              a_type_ptr     *specific_type,
-                              a_type_ptr     class_type,
-                              an_opname_kind kind,
-                              a_type_ptr     previous_class_type_considered,
-                              a_type_ptr     previous_specific_type_considered)
+                     a_type_ptr              *specific_type,
+                     a_type_ptr              class_type,
+                     a_symbol_list_entry_ptr stop_on,
+                     an_opname_kind          kind,
+                     a_type_ptr              previous_class_type_considered,
+                     a_type_ptr              previous_specific_type_considered)
 /*
 We are considering the type given by *specific_type as the operation
 type for a built-in operation.  If *specific_type is the result type of a
 conversion function, class_type indicates the class type of the operand;
-otherwise, it is NULL.  The kind of operation is indicated by kind.
+otherwise, it is NULL.  If class_type is non-NULL, stop_on, if non-NULL,
+indicates the entry on the conversion functions list of class_type that
+is currently being considered.  The kind of operation is indicated by kind.
 If there was a previous operand, the previous class type considered and
 the previous specific type considered are given by the like-named
 parameters; otherwise, they are NULL.  Adjust *specific_type as necessary
@@ -8837,7 +8859,7 @@ for the previous operand.
              type, because using this new type would repeat a previous analysis
              and likely result in an apparent ambiguity. */
           if (specific_type_previously_handled(
-                                          *specific_type, class_type,
+                                          *specific_type, class_type, stop_on,
                                           previous_class_type_considered,
                                           previous_specific_type_considered)) {
             *specific_type = orig_specific_type;
@@ -8916,13 +8938,13 @@ in some way, e.g., two pointers that must have the same type.
              previous operand.  If it is, ignore it. */
           specific_type = return_type;
           if (!specific_type_previously_handled(
-                                          specific_type, class_type,
+                                          specific_type, class_type, slep,
                                           previous_class_type_considered,
                                           previous_specific_type_considered)) {
             /* Try matching the operands, with the chosen specific type. */
             any_approp_conversion_function_this_operand = TRUE;
             adjust_specific_type_for_previous_operand(
-                                            &specific_type, class_type,
+                                            &specific_type, class_type, slep,
                                             kind,
                                             previous_class_type_considered,
                                             previous_specific_type_considered);
@@ -8962,6 +8984,7 @@ in some way, e.g., two pointers that must have the same type.
         /* If the type has been previously handled, ignore it. */
         if (!specific_type_previously_handled(
                                           specific_type, (a_type_ptr)NULL,
+                                          (a_symbol_list_entry_ptr)NULL,
                                           previous_class_type_considered,
                                           previous_specific_type_considered)) {
           previous_specific_type_considered = specific_type;
@@ -8986,10 +9009,12 @@ in some way, e.g., two pointers that must have the same type.
         /* If the type has been previously handled, ignore it. */
         if (!specific_type_previously_handled(
                                           specific_type, (a_type_ptr)NULL,
+                                          (a_symbol_list_entry_ptr)NULL,
                                           previous_class_type_considered,
                                           previous_specific_type_considered)) {
           adjust_specific_type_for_previous_operand(
                                             &specific_type, (a_type_ptr)NULL,
+                                            (a_symbol_list_entry_ptr)NULL,
                                             kind,
                                             previous_class_type_considered,
                                             previous_specific_type_considered);
