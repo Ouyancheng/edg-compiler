@@ -555,33 +555,33 @@ and 3.1.3.4 in the ANSI C standard).
 Set variables describing the attributes of the character entity to be
 used to match the type "char".
 */
-#define set_basic_centity_attributes_for_char()                       \
+#define set_basic_char_centity_attributes()                           \
 { centity_mask = TARG_UCHAR_MAX;                                      \
-}  /* set_basic_centity_attributes_for_char */
-#define set_centity_attributes_for_char()                             \
-{ set_basic_centity_attributes_for_char();                            \
+}  /* set_basic_char_centity_attributes */
+#define set_char_centity_attributes()                                 \
+{ set_basic_char_centity_attributes();                                \
   centity_size = TARG_CHAR_BIT;                                       \
   centity_is_signed = targ_has_signed_chars;                          \
-}  /* set_centity_attributes_for_char */
+}  /* set_char_centity_attributes */
 
 
 /*
 Set variables describing the attributes of the character entity to be
 used to match the type "wchar_t".
 */
-#define set_basic_centity_attributes_for_wchar_t()                    \
+#define set_basic_wchar_t_centity_attributes()                        \
 { /* Make the sign bit. */                                            \
   unsigned long sign_bit = (unsigned long)1 <<                        \
                               ((TARG_SIZEOF_WCHAR_T*TARG_CHAR_BIT)-1);\
   /* Combine the sign bit with all the bits below the sign bit to     \
      get the full mask. */                                            \
   centity_mask = sign_bit | (sign_bit - 1);                           \
-}  /* set_basic_centity_attributes_for_wchar_t */
-#define set_centity_attributes_for_wchar_t()                          \
-{ set_basic_centity_attributes_for_wchar_t();                         \
+}  /* set_basic_wchar_t_centity_attributes */
+#define set_wchar_t_centity_attributes()                              \
+{ set_basic_wchar_t_centity_attributes();                             \
   centity_size = TARG_SIZEOF_WCHAR_T*TARG_CHAR_BIT;                   \
   centity_is_signed = int_kind_is_signed[(int)TARG_WCHAR_T_INT_KIND]; \
-}  /* set_centity_attributes_for_wchar_t */
+}  /* set_wchar_t_centity_attributes */
 
 
 void conv_char_literal(unsigned long num_chars,
@@ -630,7 +630,7 @@ processing).
     int_kind = (an_integer_kind)TARG_WCHAR_T_INT_KIND;
     determine_wide_char_constant_size(temp_ptr, num_chars, /*add_null=*/FALSE,
                                       &constant_size, &num_elems);
-    set_centity_attributes_for_wchar_t();
+    set_wchar_t_centity_attributes();
     centity_bits = TARG_SIZEOF_WCHAR_T * TARG_CHAR_BIT;
   } else {
      /* Normal character constant. */
@@ -640,7 +640,7 @@ processing).
       int_kind = (an_integer_kind)ik_int;
     }  /* if */
     constant_size = num_chars;
-    set_centity_attributes_for_char();
+    set_char_centity_attributes();
     centity_bits = TARG_CHAR_BIT;
   }  /* if */
   con_type = integer_type(int_kind);
@@ -765,11 +765,11 @@ processing).
     temp_ptr++;
     determine_wide_char_constant_size(temp_ptr, num_chars, /*add_null=*/TRUE,
                                       &constant_size, &num_elems);
-    set_basic_centity_attributes_for_wchar_t();
+    set_basic_wchar_t_centity_attributes();
   } else {
     /* Normal string literal. */
     constant_size = num_elems = num_chars+1;  /* "+1" is space for the null. */
-    set_basic_centity_attributes_for_char();
+    set_basic_char_centity_attributes();
   }  /* if */
   /* Allocate enough space to hold the final string, including the null
      added to it. */
