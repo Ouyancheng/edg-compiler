@@ -3709,6 +3709,8 @@ on the basis that MSVC++ prefers copy constructors over other functions.
     a_type_qualifier_set
                   qualifiers;
     a_boolean     is_cctor1, is_cctor2;
+    reduce_projection_symbol_to_fundamental_symbol(sym1);
+    reduce_projection_symbol_to_fundamental_symbol(sym2);
     check_assertion(sym1->kind == (a_symbol_kind)sk_routine ||
                     sym1->kind == (a_symbol_kind)sk_member_function);
     check_assertion(sym2->kind == (a_symbol_kind)sk_routine ||
