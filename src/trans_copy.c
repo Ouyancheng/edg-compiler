@@ -35,6 +35,12 @@ trans_copy.c -- Copy IL from secondary translation units to the
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
 
+#if !SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+/* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED is needed if IL walking
+   is used, so this shouldn't be an extra requirement. */
+ #error -- trans_copy.c requires scope orphaned list processing
+#endif /* !SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+
 
 /*
 Flag that is TRUE if we are in the setup phase for trans_copy.c.
@@ -1594,7 +1600,6 @@ to the secondary translation unit.
   }  /* for */
   if (pointers_block != NULL) pointers_block->last_pragma = prev_pragma;
   if (scope->kind == (a_scope_kind)sck_file) {
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
     if (*any_removed_function_bodies) {
       /* Remove scope orphaned list entries for eliminated functions. */
 #if MAINTAIN_NEEDED_FLAGS
@@ -1603,7 +1608,6 @@ to the secondary translation unit.
       }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
     }  /* if */
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
     /* Mark the entries on the il_header nontag_types_used_in_exception_or_rtti
        list that shouldn't be copied.  Every type must stay on the list
        in the secondary IL, because the fact that the type exists in the
@@ -2679,7 +2683,6 @@ moved or merged from the secondary IL, it must be done here.
 #endif /* ONE_INSTANTIATION_PER_OBJECT || MAINTAIN_NEEDED_FLAGS */
 }  /* finish_moved_entity_processing */
 
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
 static void finish_scope_orphaned_list_processing(
                                     a_scope_orphaned_list_header_ptr solh_list)
@@ -2718,7 +2721,6 @@ The current translation unit is the primary translation unit.
   }  /* for */
 }  /* finish_scope_orphaned_list_processing */
 
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
 void copy_secondary_trans_unit_IL_to_primary(void)
 /*
@@ -2801,10 +2803,8 @@ therefore will not be copied.
     finish_trans_unit_copy(top_scope);
     merge_il_headers(tup);
     finish_moved_entity_processing(top_scope);
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
     finish_scope_orphaned_list_processing(
                                    tup->il_header.scope_orphaned_list_headers);
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if DEBUG
     if (debug_level >= 1) {
       fprintf(f_debug, "Done wrapping up copy from sec trans unit %s:\n",
