@@ -1005,7 +1005,7 @@ in C99 mode to represent a compound literal.
      outside of functions do not use enk_temp_init so they are not
      seen here (the front end creates an initialized static variable
      for them). */
-  dip->variable = var = make_local_temporary(temp_type);
+  dip->variable = var = make_lowered_temporary(temp_type);
   if (dip->is_partially_initialized_compound_literal) {
     var->is_partially_initialized = TRUE;
   }  /* if */
