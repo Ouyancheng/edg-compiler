@@ -3253,7 +3253,8 @@ NULL.
           a_variable_ptr  vp = ctsp->assoc_scope->variables;
           /* Diagnose undefined and unused member functions: */
           for (; rp != NULL; rp = rp->next) {
-            if (rp->source_corresp.referenced || rp->is_virtual) {
+            if (rp->source_corresp.referenced ||
+                (rp->is_virtual && !rp->pure_virtual)) {
               if (!routine_defined(rp)) {
                 pos_sy_error(ec_never_defined,
                              &rp->source_corresp.decl_position,

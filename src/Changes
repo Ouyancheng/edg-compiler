@@ -1,5 +1,18 @@
 Version 2.45
 
+8/14/00  Spurious error on pure virtual function declared in unnamed namespace
+
+The front end used to issue a spurious error on pure virtual functions
+declared (but not defined) in an unnamed namespace.
+
+  namespace {
+    struct S {
+      virtual void f() = 0;  // Used to trigger an error.
+    };
+  }
+
+This is now fixed.
+
 8/14/00  Microsoft compatibility: block-scope class member redeclaration
 
 In Microsoft mode, the front end now accepts a redeclaration of a class
