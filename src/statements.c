@@ -1584,10 +1584,10 @@ a structured statement has ended.
     add_to_control_flow_descr_list(
        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
   }  /* if */
-  /* If there are any remaining current construct pragmas on the list,
-     call a routine that will issue diagnostic (if appropriate) and
-     free the entries. */
-  dispose_of_remaining_curr_construct_pragmas();
+  /* There should be no entries left on the curr_construct_pragmas list when
+     the statement stack is popped. */
+  check_assertion_str2(sssep->curr_construct_pragmas == NULL,
+		       "pop_stmt_stack:", "curr_construct_pragmas != NULL");
   scope_stack[depth_scope_stack].curr_construct_pragma_list_is_on_stmt_stack =
                       sssep->saved_curr_construct_pragma_list_is_on_stmt_stack;
   /* Pop the stack. */
@@ -3240,8 +3240,12 @@ only).
 rescan_statement:
   get_another_statement = FALSE;
   /* Move cached #pragma declarations (if any) to the current scope stack
-     entry so they can be examined and acted upon in subsequent processing. */
-  if (select_curr_construct_pragmas(/*is_decl=*/FALSE)) {
+     entry so they can be examined and acted upon in subsequent processing.
+     If we have already scanned a label, any pragmas between the label and
+     the statement may be added to the existing list.  Otherwise, the
+     list is expected to have been cleared. */
+  if (select_curr_construct_pragmas(/*is_decl=*/FALSE,
+                                    /*add_to_list=*/get_another_statement)) {
     /* If a lint-style "notreached" comment was detected, suppress the
        warning on unreachable code. */
     check_lint_notreached_state();
@@ -3525,7 +3529,8 @@ branching into it is disallowed).
       /* Move cached #pragma declarations (if any) to the current scope stack
          entry so they can be examined and acted upon in processing the
          implicit return. */
-      if (select_curr_construct_pragmas(/*is_decl=*/FALSE)) {
+      if (select_curr_construct_pragmas(/*is_decl=*/FALSE,
+				        /*add_to_list=*/FALSE)) {
         /* Check for a lint-style "notreached" comment -- it will affect
            diagnostics in check_void_return_okay. */
         check_lint_notreached_state();

@@ -539,16 +539,6 @@ return FALSE.
 }  /* select_curr_construct_pragmas */
 
 
-void dispose_of_remaining_curr_construct_pragmas(void)
-/*
-*/
-{
-#if 0
-  /* Issue diagnostics on unused pragmas and free the pragma entries. */
-#endif
-}  /* dispose_of_remaining_curr_construct_pragmas */
-
-
 static add_pragma_to_il(a_pending_pragma_ptr  ppp,
                         an_il_entry_kind      entity_kind,
                         char                  *entity_ptr,

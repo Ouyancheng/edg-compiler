@@ -7680,10 +7680,10 @@ End a name scope by popping an entry off the scope stack.
   }  /* if */
   /* Determine the memory region to restore for the outer scope. */
   new_memory_region_number = ssep->prev_il_memory_region;
-  /* If there are any remaining current construct pragmas on the list,
-     call a routine that will issue diagnostic (if appropriate) and
-     free the entries. */
-  dispose_of_remaining_curr_construct_pragmas();
+  /* There should be no entries left on the curr_construct_pragmas list when
+     the scope stack is popped. */
+  check_assertion_str2(ssep->curr_construct_pragmas == NULL,
+		       "pop_scope_stack:", "curr_construct_pragmas != NULL");
   /* Pop the stack. */
   if (--depth_scope_stack >= 0) {
     /* The stack is not empty, so do anything necessary to activate the
