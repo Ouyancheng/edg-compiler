@@ -1998,21 +1998,21 @@ this function points to a tree that includes a dynamic-init entry.
              lower-level list.  In either case, however, if a comma was
              just taken, it is "extra" and no extra comma should be allowed
              outside the loop. */
-          if (!any_more_initializers) {
-            /* We already know nothing follows. */
-          } else if (curr_token == tok_rbrace) {
+          if (curr_token == tok_rbrace) {
             took_extra_comma = any_more_initializers;
             any_more_initializers = FALSE;
           } else if (designator_coming((a_boolean *)NULL)) {
             /* A designator ends a non-brace-enclosed list of initializers,
                but if it is brace-enclosed then an upcoming designator means
                more initializers are following. */
-            if (!brace_flag) {
-              /* The comma really indicated that the are more initializers at
+            if (!any_more_initializers) {
+              error(ec_exp_comma);
+            } else if (!brace_flag) {
+              /* The comma really indicated that there are more initializers at
                  a previous level.  Record it has been seen. */
               init_info->comma_seen = TRUE;
-              any_more_initializers = FALSE;
             }  /* if */
+            any_more_initializers = brace_flag;
           }  /* if */
         }  /* if */
         /* Keep looping while there are more initializers. */
