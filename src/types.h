@@ -311,16 +311,12 @@ typedef unsigned int an_itf_flag_set;
 			   of the IL.  Basically, two types are
 			   IL-identical if no cast is needed to assign
 			   a value of one type to an entity of the
-			   other type.  This routine should never be
-			   called directly; it's meant to be called
-			   only by the macros identical_types and
-			   il_identical_types, which do the initial
-			   test for exact pointer equality. */
+			   other type. */
 
 #define ITF_UNKNOWN_THIS_CLASS_TYPE 0x02
 			/* TRUE if the this class type may not
 			   be known yet.  When this flag is set, a
-			   NULL this class type is ignored. */
+			   NULL "this" class type is ignored. */
 
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_NO_FLAGS))
