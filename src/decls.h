@@ -356,7 +356,6 @@ void decl_function_template(a_symbol_locator            *locator,
                             a_decl_modifiers_block_ptr  decl_modifiers,
                             a_template_decl_info_ptr    templ_decl_info,
                             a_scope_depth               orig_decl_level,
-                            a_template_decl_ptr         template_decl,
                             a_boolean                   is_specialization);
 
 extern void handler_declaration(a_statement_ptr     sp,

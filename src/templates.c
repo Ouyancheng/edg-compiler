@@ -11917,7 +11917,6 @@ information returned from decl_specifiers and declarator.
   decl_function_template(locator, type, func_info, &sym, storage_class,
                          decl_modifiers, decl_state->decl_info,
                          decl_state->effective_decl_level,
-                         (a_template_decl_ptr)NULL,
                          decl_state->is_specialization);
   if (func_info->is_definition) {
     

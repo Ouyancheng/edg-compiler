@@ -5460,12 +5460,9 @@ skip_overloading:;
 }  /* decl_routine */
 
 
-#if !DECL_MODIFIERS_IN_USE || \
-    !(GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL)
+#if !DECL_MODIFIERS_IN_USE
 /* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
-               /* template_decl is used only when source sequence entries are
-                  recorded for prototype instantiations. */
-#endif /* !DECL_MODIFIERS_IN_USE || !(GENERATE_SOURCE_SEQUENCE...) */
+#endif /* !DECL_MODIFIERS_IN_USE */
 void decl_function_template(a_symbol_locator            *locator,
                             a_type_ptr                  type_ptr,
                             a_func_info_block           *func_info,
@@ -5474,7 +5471,6 @@ void decl_function_template(a_symbol_locator            *locator,
                             a_decl_modifiers_block_ptr  decl_modifiers,
                             a_template_decl_info_ptr    templ_decl_info,
                             a_scope_depth               orig_decl_level,
-                            a_template_decl_ptr         template_decl,
                             a_boolean                   is_specialization)
 /*
 Roughly speaking, this routine does for function templates what
@@ -5488,8 +5484,7 @@ be part of an overload set, it may have been previously declared (but not
 defined), and it may be an out-of-line definition of a member function of a
 class template.  orig_decl_level is the nearest enclosing scope that
 is not a template declaration scope.  is_specialization is TRUE if this
-is a template specialization declaration.  If prototype instantiations are
-recorded in the IL, the template header is passed via template_decl.
+is a template specialization declaration.
 */
 {
   a_symbol_ptr                      sym = NULL;
