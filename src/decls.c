@@ -8462,7 +8462,8 @@ A sk_namespace_projection is created and added to the symbol table for the
 current scope.
 */
 {
-  a_symbol_ptr             sym, overload_sym, other_decl, fund_sym;
+  a_symbol_ptr             sym, fund_sym, overload_sym, other_decl,
+                             fund_other_decl;
   a_boolean                err = FALSE;
   a_symbol_locator         locator;
   a_boolean                is_list = FALSE;
@@ -8544,6 +8545,8 @@ current scope.
         /* Look for a declaration of the same name in the current scope. */
         (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
         other_decl = locator.specific_symbol;
+        fund_other_decl = (other_decl == NULL) ?
+                                     NULL : fundamental_symbol_of(other_decl);
         overload_sym = NULL;
         if (is_function_symbol(sym) ||
             sym->kind == (a_symbol_kind)sk_function_template) {
@@ -8556,9 +8559,8 @@ current scope.
             sym = sym->variant.overloaded_function.symbols;
           }  /* if */
           if (other_decl != NULL) {
-            fund_sym = fundamental_symbol_of(other_decl);
-            if (is_function_symbol(fund_sym) ||
-                fund_sym->kind == (a_symbol_kind)sk_function_template) {
+            if (is_function_symbol(fund_other_decl) ||
+                fund_other_decl->kind == (a_symbol_kind)sk_function_template) {
               /* Overloading is okay. */
               overload_sym = other_decl;
             } else {
@@ -8567,26 +8569,54 @@ current scope.
             }  /* if */
           }  /* if */
         }  /* if */
+        fund_sym = fundamental_symbol_of(sym);
         if (other_decl != NULL && overload_sym == NULL &&
             is_file_or_namespace_scope(ssep) &&
-            symbols_are_lookup_equivalent(fundamental_symbol_of(sym),
-                                          fundamental_symbol_of(other_decl))) {
+            symbols_are_lookup_equivalent(fund_sym, fund_other_decl)) {
           /* This is a duplicate using declaration of something other than a
              function or function template.  7.3.3 [namespace.udecl] para 7
              says duplicates are allowed in file or namespace scope, so ignore
              the declaration. */
         } else {
           a_using_decl_ptr  prev_udp = NULL;
-          a_boolean         redecl_error = FALSE;
+          a_boolean         suppress_redecl_error = FALSE;
           /* Create the new sk_namespace_projection symbol(s). */
-          if (!is_tag_symbol(sym)) {
+          if (!is_tag_symbol(fund_sym)) {
             /* Check if we missed a tag symbol; it should be imported too. */
-            import_any_hidden_tags(other_decl, nsp, &prev_udp, &redecl_error);
+            import_any_hidden_tags(other_decl, nsp, &prev_udp,
+                                     &suppress_redecl_error);
+          }  /* if */
+          /* If we're importing a typedef that redeclares an existing type
+             to the same name, inhibit the declaration error. */
+          if (fund_other_decl != NULL &&
+              fund_sym->kind == (a_symbol_kind)sk_type) {
+            a_symbol_ptr  prev_tag_sym = NULL;
+            if (is_tag_symbol(fund_other_decl)) {
+              /* If the previous declaration was a tag name, and the new
+                 declaration is also a tag name, we should have caught the
+                 duplicate earlier. */
+              check_assertion(!is_tag_symbol(fund_sym));
+              prev_tag_sym = fund_other_decl;
+            } else {
+              /* Look up a tag in the current scope: */
+              clear_specific_symbol(locator);
+              prev_tag_sym = curr_scope_id_lookup(
+                                   &locator,
+                                   IDL_MUST_BE_TAG | IDL_PROJ_SYMBOL_ALLOWED);
+            }  /* if */
+            if (prev_tag_sym != NULL) {
+              /* There was a previous tag.  If the newly imported type is
+                 identical to the tagged type, suppress the redeclaration
+                 error. */
+              a_type_ptr  tp1 = type_symbol_type(prev_tag_sym);
+              a_type_ptr  tp2 = type_symbol_type(fund_sym);
+              if (identical_types(tp1, tp2)) { suppress_redecl_error = TRUE; }
+            }  /* if */
           }  /* if */
           for (; sym != NULL; sym = is_list ? sym->next : NULL) {
             create_nonmember_using_declaration(sym, &overload_sym, other_decl,
                                                nsp, &prev_udp, is_list,
-                                               redecl_error);
+                                               suppress_redecl_error);
           }  /* for */
         }  /* if */
       }  /* if */
