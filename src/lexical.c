@@ -383,10 +383,15 @@ for pp-tokens.
   if (curr_token == tok_identifier) {
     /* Identifier -- save a pointer to the symbol header.  If the name
        is a qualified name, save the pointer to the qualified name symbol. */
-    if (locator_for_curr_id.qualified_name_symbol != NULL) {
+    if (locator_for_curr_id.specific_symbol != NULL) {
+#if CHECKING
+      /* A specific symbol should be a C++ qualified name. */
+      if (!locator_for_curr_id.is_qualified_name) {
+        internal_error("cache_curr_token: specific symbol not qualified name");
+      }  /* if */
+#endif /* CHECKING */
       ctp->extra_info_kind = (a_token_extra_info_kind)teik_qualified_name;
-      ctp->variant.qualified_name_symbol =
-                                     locator_for_curr_id.qualified_name_symbol;
+      ctp->variant.qualified_name_symbol = locator_for_curr_id.specific_symbol;
     } else {
       ctp->extra_info_kind = (a_token_extra_info_kind)teik_identifier;
       ctp->variant.identifier_header = locator_for_curr_id.symbol_header;
@@ -477,7 +482,8 @@ in C++.
     /* The symbol is a normal symbol. */
     make_locator_for_symbol(sym, locator);
   }  /* if */
-  locator->qualified_name_symbol = sym;
+  locator->specific_symbol = sym;
+  locator->is_qualified_name = TRUE;
 }  /* make_locator_for_qualified_name_symbol */
 
 
@@ -3589,11 +3595,9 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       ctoken = tok_identifier;
       do {} while (is_id_char[*(++curr_char_loc)-CHAR_MIN]);
       end_of_curr_token = curr_char_loc - 1;
-      /* Save the position of the identifier in the locator.  This is done 
+      /* Clear the symbol locator for the current identifier.  This is done 
          even if the identifier is not looked up in the symbol table. */
-      copy_source_position(pos_curr_token,
-                           locator_for_curr_id.source_position);
-      locator_for_curr_id.qualified_name_symbol = NULL;
+      clear_locator(&locator_for_curr_id, &pos_curr_token);
       if ((fetch_pp_tokens || in_preprocessing_directive) && !expand_macros) {
         /* Raw preprocessing tokens wanted, so do not look up the
            identifier. */
@@ -4166,9 +4170,9 @@ qualified name of the form
    etc.
 
 If a qualified name is next, scan it and look up the qualified name,
-set qualified_name_symbol in locator_for_curr_id to point to the symbol
+set specific_symbol in locator_for_curr_id to point to the symbol
 for the qualified identifier, and return TRUE.  This is recognized only
-in C++ mode.  If a qualified name is not next, leave qualified_name_symbol
+in C++ mode.  If a qualified name is not next, leave specific_symbol
 set to NULL and return FALSE.
 */
 {
@@ -4179,9 +4183,9 @@ set to NULL and return FALSE.
 
   if (C_dialect == C_dialect_cplusplus) {
     if (curr_token == tok_identifier) {
-      if (locator_for_curr_id.qualified_name_symbol != NULL) {
-        /* The current token is already a qualified name. */
-        is_qualified_name = TRUE;
+      if (locator_for_curr_id.specific_symbol != NULL) {
+        /* The current token is already a qualified name or specific symbol. */
+        is_qualified_name = locator_for_curr_id.is_qualified_name;
         okay = TRUE;
       } else {
         /* See if there is a class qualifier (the "A::" part of "A::x"), and
@@ -4223,7 +4227,7 @@ set to NULL and return FALSE.
             if (name_symbol != NULL) {
               /* The name was found. */
               okay = TRUE;
-              locator_for_curr_id.qualified_name_symbol = name_symbol;
+              locator_for_curr_id.specific_symbol = name_symbol;
             } else {
               /* The identifier could not be found in the class. */
               if (class_scope != NO_SCOPE_NUMBER) {
@@ -4233,12 +4237,12 @@ set to NULL and return FALSE.
           }  /* if */
           if (!okay) {
             /* For the error cases, set the current locator to an error locator
-               with qualified_name_symbol pointing to a newly-created error
+               with specific_symbol pointing to a newly-created error
                symbol of kind sk_undefined. */
             /* See make_locator_for_qualified_name_symbol; it depends on an
                error qualified name having type sk_undefined. */
             set_to_error_locator(locator_for_curr_id);
-            locator_for_curr_id.qualified_name_symbol =
+            locator_for_curr_id.specific_symbol =
                         enter_symbol((a_symbol_kind)sk_undefined,
                                      &locator_for_curr_id,
                                      decl_scope_level,
@@ -4247,7 +4251,7 @@ set to NULL and return FALSE.
           }  /* if */
           /* Clear the symbol list to be neat. */
           symbol_list_for_curr_id = NULL;
-          is_qualified_name = TRUE;
+          locator_for_curr_id.is_qualified_name = is_qualified_name = TRUE;
           error_position = start_position;
           /* Since we're returning a pseudo-token, set pos_curr_token.
              This is desirable so token caching does not have to save two
@@ -4259,7 +4263,7 @@ set to NULL and return FALSE.
       if (debug_level >= 4) {
         if (is_qualified_name) {
           fprintf(f_debug, "get_qualified_name: name = %s\n",
-                locator_for_curr_id.qualified_name_symbol->header->identifier);
+                  locator_for_curr_id.specific_symbol->header->identifier);
         } else {
           fprintf(f_debug, "get_qualified_name: not qualified name\n");
         }  /* if */

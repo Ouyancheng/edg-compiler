@@ -380,12 +380,9 @@ typedef struct a_symbol_header {
 } a_symbol_header;
 
 typedef struct a_symbol_locator {
-  /* Used to store information about the location of a symbol
-     table entry.  Typically returned by "find_symbol" to
-     facilitate a fast entry of that symbol by a subsequent
-     "enter_symbol" call. */
-  /* IF YOU CHANGE THE STRUCTURE OF THIS ENTRY: change make_locator_for_symbol
-     in symbol_tbl.c. */
+  /* Data structure used to store information about an identifier token.
+     Can be used to look up the identifier or enter it into the symbol
+     table. */
   a_symbol_header_ptr
 		symbol_header;
 			/* The symbol header for the list of symbols with the
@@ -395,10 +392,17 @@ typedef struct a_symbol_locator {
 		source_position;
 			/* The source position to be used when this symbol
 			   is entered. */
-  a_symbol_ptr	qualified_name_symbol;
-			/* If the identifier was actually a C++ qualified-name
-			   (e.g., "A::x"), this points to the symbol for the
-			   qualified name.  Otherwise, it is NULL. */
+  a_symbol_ptr	specific_symbol;
+			/* If the identifier is known to refer to a specific
+			   symbol, this points to that symbol; otherwise, NULL.
+			   This field is set when the identifier is looked up
+			   (e.g., by normal_id_lookup) and when the identifier
+			   is a C++ qualified name (see following). */
+  a_byte_boolean
+		is_qualified_name;
+			/* TRUE if the "identifier" is a C++ qualified-name
+			   (e.g., "A::x").  specific_symbol points to the
+			   proper symbol. */
 } a_symbol_locator;
 
 #define SYMBOL_TABLE_SIZE 599
@@ -704,16 +708,22 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 #define get_symbol_of_kind(des_kind, ptr)			      \
   while (((ptr) != NULL) && ((ptr)->kind != (des_kind))) (ptr) = (ptr)->next;
 
+/*
+Clear a symbol locator.
+*/
+#define clear_locator(locator, position)                              \
+{ (locator)->symbol_header = NULL;                                    \
+  (locator)->source_position = *position;                             \
+  (locator)->specific_symbol = NULL;                                  \
+  (locator)->is_qualified_name = FALSE;                               \
+}  /* clear_locator */
+
 /* Return TRUE if two locators indicate the same symbol. */
 #define are_locators_for_same_symbol(loc1, loc2)                      \
   ((loc1).symbol_header == (loc2).symbol_header)
 
 /* Set a symbol locator to a dummy value indicating an error. */
-#define set_to_error_locator(loc)                                     \
-{ (loc).symbol_header = NULL;                                         \
-  copy_source_position(error_position, (loc).source_position);        \
-  (loc).qualified_name_symbol = NULL;                                 \
-}  /* set_to_error_locator */
+#define set_to_error_locator(loc) clear_error_locator(&loc, &error_position)
 
 /* Test a locator to see if it is an error locator. */
 #define is_error_locator(loc) ((loc).symbol_header == NULL)
