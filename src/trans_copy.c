@@ -855,68 +855,6 @@ classes and routines there may be other reasons for keeping the entity.
   (entry_should_be_copied(ptr) || entry_should_overwrite_primary_entry(ptr))
 
 
-static a_boolean befriending_lists_need_to_be_merged(
-                                                  a_class_list_entry_ptr list1,
-                                                  a_class_list_entry_ptr list2)
-/*
-Return TRUE if the indicated befriending_classes lists are not identical
-and therefore require merging.
-*/
-{
-  a_boolean need_merge = FALSE;
-
-  if (list1 != NULL || list2 != NULL) {
-    a_class_list_entry_ptr clep1, clep2;
-    /* Try a first pass on the assumption that the entries will be in the
-       same order.  list1 and list2 are updated to point past the initial
-       matching sequence, if any. */
-    for (;
-         list1 != NULL && list2 != NULL;
-         list1 = list1->next, list2 = list2->next) {
-      if (!same_entities(list1->class_type, list2->class_type)) break;
-    }  /* for */
-    if (list1 == NULL && list2 == NULL) {
-      /* The lists matched up in the same order. */
-      /* need_merge = FALSE;  -- already set. */
-    } else {
-      /* Try the match in any order on the remaining entries. */
-      for (clep1 = list1; clep1 != NULL; clep1 = clep1->next) {
-        for (clep2 = list2; clep2 != NULL; clep2 = clep2->next) {
-          if (same_entities(clep1->class_type, clep2->class_type)) break;
-        }  /* for */
-        if (clep2 == NULL) {
-          need_merge = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
-    }  /* if */
-  }  /* if */
-  return need_merge;
-}  /* befriending_lists_need_to_be_merged */
-
-
-static a_boolean class_befriending_lists_need_to_be_merged(a_type_ptr type1,
-                                                           a_type_ptr type2)
-/*
-Return TRUE if the befriending_classes lists of the two indicated
-classes need to be merged.
-*/
-{
-  a_boolean                   need_merge = FALSE;
-  a_class_type_supplement_ptr ctsp1 =
-                                  type1->variant.class_struct_union.extra_info;
-  a_class_type_supplement_ptr ctsp2 =
-                                  type2->variant.class_struct_union.extra_info;
-
-  check_assertion(ctsp1 != NULL && ctsp2 != NULL);
-  if (befriending_lists_need_to_be_merged(ctsp1->befriending_classes,
-                                          ctsp2->befriending_classes)) {
-    need_merge = TRUE;
-  }  /* if */
-  return need_merge;
-}  /* class_befriending_lists_need_to_be_merged */
-
-
 static void process_variable_if_unneeded_non_template(a_variable_ptr variable)
 /*
 If we're processing the current secondary translation unit only to
@@ -1284,16 +1222,6 @@ to the secondary translation unit.
       /* The type is a duplicate of one elsewhere and should be discarded. */
       keep_on_list = FALSE;
     }  /* if */
-    if (!keep_on_list && !C_mode() && is_immediate_class_type(type) &&
-        class_befriending_lists_need_to_be_merged(
-                                    type,
-                                    (a_type_ptr)canonical_il_entry_of(type))) {
-      /* For the most part, this type is a duplicate of one elsewhere,
-         but it does happen to have some additional befriending information,
-         so mark it to have that information merged. */
-      keep_on_list = TRUE;
-      mark_to_merge(type, iek_type);
-    }  /* if */
 #if DEBUG
     if (db_trace("trans_copy", type, iek_type)) {
       fprintf(f_debug, "prepare_for_trans_unit_copy, ");
@@ -1306,6 +1234,11 @@ to the secondary translation unit.
     if (keep_on_list) {
       prev_type = type;
       any_members_to_process = TRUE;
+      if (!C_mode() && is_immediate_class_type(type)) {
+        /* Clear befriending lists so they are not copied.  They will be
+           rebuilt later. */
+        type->variant.class_struct_union.extra_info->befriending_classes= NULL;
+      }  /* if */
     } else {
       /* Remove this entry from the list. */
       if (prev_type == NULL) {
@@ -1429,20 +1362,6 @@ to the secondary translation unit.
         /* The inline flag merging below gets done against the primary IL
            routine. */
         corresp_routine = (a_routine_ptr)transitive_copy_address_of(routine);
-      } else if (!C_mode() &&
-                 befriending_lists_need_to_be_merged(
-                                       routine->befriending_classes,
-                                       corresp_routine->befriending_classes)) {
-        /* For the most part, this routine is a duplicate of one elsewhere,
-           but it does happen to have some additional befriending information,
-           so mark it to have that information merged. */
-        keep_on_list = TRUE;
-        mark_to_merge(routine, iek_routine);
-#if MAINTAIN_NEEDED_FLAGS
-        /* Eliminate any default argument object lifetimes associated with
-           the routine, because we don't want to copy those. */
-        eliminate_routine_default_arg_object_lifetimes(routine);
-#endif /* MAINTAIN_NEEDED_FLAGS */
       } else {
         /* The routine is a duplicate of one elsewhere and should be
            discarded. */
@@ -1484,6 +1403,9 @@ to the secondary translation unit.
     if (keep_on_list) {
       prev_routine = routine;
       any_members_to_process = TRUE;
+      /* Clear befriending lists so they are not copied.  They will be
+         rebuilt later. */
+      routine->befriending_classes = NULL;
     } else {
       /* Remove this entry from the list. */
       if (prev_routine == NULL) {
@@ -1703,37 +1625,7 @@ the primary translation unit, respectively) that are being merged.
 }  /* merge_object_lifetimes */
 
 
-static void merge_befriending_classes_lists(a_class_list_entry_ptr *plist1,
-                                            a_class_list_entry_ptr list2,
-                                            a_boolean              trace)
-/*
-Merge the befriending lists pointed to by *plist1 and list2, and
-update *plist1 to point to the merged list.  trace is TRUE if we
-should generate debug output.
-*/
-{
-  a_class_list_entry_ptr clep1, clep2, clep2_next, list1 = *plist1;
-
-  for (clep2 = list2; clep2 != NULL; clep2 = clep2_next) {
-    clep2_next = clep2->next;
-    for (clep1 = list1; clep1 != NULL; clep1 = clep1->next) {
-      if (same_entities(clep1->class_type, clep2->class_type)) break;
-    }  /* for */
-    if (clep1 == NULL) {
-      /* Add the entry from clep2 to the *plist1 list. */
-#if DEBUG
-      if (trace) {
-        clep2->next = NULL;
-        db_class_list(clep2);
-      }  /* if */
-#endif /* DEBUG */
-      clep2->next = *plist1;
-      *plist1 = clep2;
-    }  /* if */
-  }  /* for */
-}  /* merge_befriending_classes_lists */
-
-
+/*ARGSUSED*/
 static void merge_class_details(a_type_ptr type,
                                 a_type_ptr primary_type)
 /*
@@ -1742,40 +1634,11 @@ or is otherwise being merged with, the class "type" from a secondary
 translation unit.  Do merging of minor information.
 */
 {
-  a_class_type_supplement_ptr ctsp =
-                                   type->variant.class_struct_union.extra_info;
-  a_class_type_supplement_ptr primary_ctsp =
-                           primary_type->variant.class_struct_union.extra_info;
-  a_boolean                   trace = FALSE;
-
-  check_assertion(ctsp != NULL && primary_ctsp != NULL);
-#if DEBUG
-  if (db_trace("friendship", type, iek_type) &&
-      primary_ctsp->befriending_classes != NULL &&
-      ctsp->befriending_classes != NULL) {
-    trace = TRUE;
-    fprintf(f_debug, "Merging befriending lists:\n");
-    db_entity_info((char *)type, iek_type);
-    if (db_flag_is_set("friendship")) {
-      fprintf(f_debug, "befriending_classes list:\n");
-      db_class_list(type->variant.class_struct_union.
-                                              extra_info->befriending_classes);
-    }  /* if */
-    db_entity_info((char *)primary_type, iek_type);
-    if (db_flag_is_set("friendship")) {
-      fprintf(f_debug, "befriending_classes list:\n");
-      db_class_list(primary_type->variant.class_struct_union.
-                                              extra_info->befriending_classes);
-    }  /* if */
-    fprintf(f_debug, "entries added to list:\n");
-  }  /* if */
-#endif /* DEBUG */
-  merge_befriending_classes_lists(&primary_ctsp->befriending_classes,
-                                  ctsp->befriending_classes,
-                                  trace);
+  /* Does nothing at present. */
 }  /* merge_class_details */
 
 
+/*ARGSUSED*/
 static void merge_routine_details(a_routine_ptr rout,
                                   a_routine_ptr primary_rout)
 /*
@@ -1784,30 +1647,7 @@ or is otherwise being merged with, the routine rout from a secondary
 translation unit.  Do merging of minor information.
 */
 {
-  a_boolean trace = FALSE;
-
-#if DEBUG
-  if (db_trace("friendship", rout, iek_routine) &&
-      primary_rout->befriending_classes != NULL &&
-      rout->befriending_classes != NULL) {
-    trace = TRUE;
-    fprintf(f_debug, "Merging befriending lists:\n");
-    db_entity_info((char *)rout, iek_routine);
-    if (db_flag_is_set("friendship")) {
-      fprintf(f_debug, "befriending_classes list:\n");
-      db_class_list(rout->befriending_classes);
-    }  /* if */
-    db_entity_info((char *)primary_rout, iek_routine);
-    if (db_flag_is_set("friendship")) {
-      fprintf(f_debug, "befriending_classes list:\n");
-      db_class_list(primary_rout->befriending_classes);
-    }  /* if */
-    fprintf(f_debug, "entries added to list:\n");
-  }  /* if */
-#endif /* DEBUG */
-  merge_befriending_classes_lists(&primary_rout->befriending_classes,
-                                  rout->befriending_classes,
-                                  trace);
+  /* Does nothing at present. */
 }  /* merge_routine_details */
 
 
@@ -2071,9 +1911,8 @@ unit set to the primary translation unit.
         }  /* if */
         if (!entry_should_overwrite_primary_entry(type)) {
           /* No overwriting is needed, so we're done.  This happens,
-             for example, when the only reason for merging is to merge
-             the befriending lists, or when the class is marked to be
-             merged because some of its members need to be merged. */
+             for example, when the only reason the class is marked to be
+             merged is that some of its members need to be merged. */
         } else {
           /* Copy this type and its definition, overwriting the
              existing primary type.  Move the primary IL type
@@ -2278,9 +2117,7 @@ unit set to the primary translation unit.
         add_to_list = FALSE;
         merge_routine_details(corresp_routine, primary_routine);
         if (!entry_should_overwrite_primary_entry(routine)) {
-          /* No overwriting is needed, so we're done.  This happens,
-             for example, when the only reason for merging is to merge
-             the befriending lists. */
+          /* No overwriting is needed, so we're done. */
         } else {
           /* Copy this routine and its definition, overwriting the
              existing primary routine.  Move the primary IL routine
@@ -2722,6 +2559,76 @@ The current translation unit is the primary translation unit.
 }  /* finish_scope_orphaned_list_processing */
 
 
+static void rebuild_scope_befriending_lists(a_scope_ptr scope);
+
+
+static void rebuild_type_list_befriending_lists(a_type_ptr type_list)
+/*
+Rebuild the befriending lists for classes on the indicated list of types.
+*/
+{
+  a_type_ptr type;
+
+  for (type = type_list; type != NULL; type = type->next) {
+    if (is_immediate_class_type(type)) {
+      a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+      a_class_list_entry_ptr      clep, befriending_clep;
+      a_routine_list_entry_ptr    rlep;
+      for (clep = ctsp->friend_classes;
+           clep != NULL;
+           clep = clep->next) {
+        a_type_ptr                  friend_class = clep->class_type;
+        a_class_type_supplement_ptr friend_ctsp =
+                           friend_class->variant.class_struct_union.extra_info;
+        befriending_clep = alloc_list_entry_for_class();
+        befriending_clep->class_type = type;
+        befriending_clep->next = friend_ctsp->befriending_classes;
+        friend_ctsp->befriending_classes = befriending_clep;
+      }  /* for */
+      for (rlep = ctsp->friend_routines;
+           rlep != NULL;
+           rlep = rlep->next) {
+        a_routine_ptr friend_routine = rlep->routine;
+        befriending_clep = alloc_list_entry_for_class();
+        befriending_clep->class_type = type;
+        befriending_clep->next = friend_routine->befriending_classes;
+        friend_routine->befriending_classes = befriending_clep;
+      }  /* for */
+      if (ctsp->assoc_scope != NULL) {
+        rebuild_scope_befriending_lists(ctsp->assoc_scope);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* rebuild_type_list_befriending_lists */
+
+
+static void rebuild_scope_befriending_lists(a_scope_ptr scope)
+/*
+Visit the classes and routines in the indicated scope and its subscopes,
+and rebuild the befriending lists.  They have previously been cleared.
+*/
+{
+  a_namespace_ptr nsp;
+
+  rebuild_type_list_befriending_lists(scope->types);
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      rebuild_scope_befriending_lists(nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+  if (scope->kind == (a_scope_kind)sck_file) {
+    /* Visit orphan lists to get local types. */
+    a_scope_orphaned_list_header_ptr solhp;
+    for (solhp = il_header.scope_orphaned_list_headers;
+         solhp != NULL;
+         solhp = solhp->next) {
+      rebuild_type_list_befriending_lists(solhp->orphaned_types);
+    }  /* for */
+  }  /* if */
+}  /* rebuild_scope_befriending_lists */
+
+
 void copy_secondary_trans_unit_IL_to_primary(void)
 /*
 Copy IL from any secondary translation units to the primary translation
@@ -2812,12 +2719,16 @@ therefore will not be copied.
     }  /* if */
 #endif /* DEBUG */
   }  /* for */
-  /* Sweep the primary translation unit IL tree and look for any
-     pointers to entities in secondary translation units that it uses,
-     and rewrite the pointers as the corresponding primary IL entities. */
-  in_primary_il_reference_rewrite = TRUE;
-  rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary();
-  in_primary_il_reference_rewrite = FALSE;
+  if (!C_mode()) {
+    /* Sweep the primary translation unit IL tree and look for any
+       pointers to entities in secondary translation units that it uses,
+       and rewrite the pointers as the corresponding primary IL entities. */
+    in_primary_il_reference_rewrite = TRUE;
+    rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary();
+    in_primary_il_reference_rewrite = FALSE;
+    /* Rebuild the befriending lists. */
+    rebuild_scope_befriending_lists(il_header.primary_scope);
+  }  /* if */
   /* Finish processing on function bodies moved to the primary IL,
      including IL lowering if appropriate.  Do this also on any
      function bodies in the primary IL whose lowering was delayed.
@@ -3081,7 +2992,6 @@ primary IL.
               }
               break;
             case iek_template_arg:
-            case iek_class_list_entry:
               break;
             default:
               err = TRUE;
@@ -3121,6 +3031,14 @@ do the termination test.
   } else {
     il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited;
     prune = FALSE;
+    /* Clear befriending lists, which will be rebuilt later. */
+    if (kind == iek_class_type_supplement) {
+      a_class_type_supplement_ptr ctsp = (a_class_type_supplement_ptr)ptr;
+      ctsp->befriending_classes = NULL;
+    } else if (kind == iek_routine) {
+      a_routine_ptr routine = (a_routine_ptr)ptr;
+      routine->befriending_classes = NULL;
+    }  /* if */
   }  /* if */
   return prune;
 }  /* rewrite_secondary_termination_test */
