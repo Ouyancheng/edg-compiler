@@ -15447,8 +15447,11 @@ Return TRUE if a translation unit was pushed, FALSE if not.
   check_assertion(etfp != NULL);
   if (etfp->translation_unit == NULL) {
     /* The translation unit has not been loaded yet.  Load it now. */
-    load_exported_template_file(etfp);
-    push_trans_unit = TRUE;
+    if (total_errors == 0) {
+      /* Don't load a new translation unit if any errors have occurred. */
+      load_exported_template_file(etfp);
+      push_trans_unit = TRUE;
+    }  /* if */
   } else if (etfp->translation_unit != curr_translation_unit) {
     push_trans_unit = TRUE;
   }  /* if */
@@ -15654,7 +15657,13 @@ data member specified by tip.
   if (tip->exported_template_file != NULL) {
     /* Find the corresponding template instance in the translation unit
        containing the template definition. */
-    tip = find_corresponding_instance(tip);
+    if (total_errors == 0) {
+      tip = find_corresponding_instance(tip);
+    } else {
+      /* Suppress the instantiation of exported templates once an error
+         has occurred. */
+      tip = NULL;
+    }  /* if */
     if (tip != NULL) {
       /* Reset the can_be_instantiated flag so that it will be re-evaluated
          below.  */
