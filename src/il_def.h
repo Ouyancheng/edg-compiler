@@ -2887,6 +2887,12 @@ typedef struct a_variable {
 			   a dynamic init entry will also be supplied. */
 #endif /* ifdef CIL */
   } initializer;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_type_ptr	declared_type;
+			/* The type as it actually appears in the declaration
+			   of the variable at the point of its definition;
+			   NULL if there is no defining declaration. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #ifdef FIL
   a_variable_ptr
                 base_var;
@@ -3227,6 +3233,12 @@ typedef struct a_routine {
 			   functions of a given class.  When is_virtual is
 			   FALSE, this field is undefined. */
 #endif /* ifdef CIL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_type_ptr	declared_type;
+			/* The type as it actually appears in the declaration
+			   of the routine at the point of its definition; NULL
+			   if there is no defining declaration. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #ifdef FIL
   a_byte_boolean
                 is_fortran_entry;

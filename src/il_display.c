@@ -1612,6 +1612,9 @@ Display the indicated variable.
     default:
       (void)printf("**BAD INITIALIZATION KIND**\n");
   }  /* switch */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  disp_ptr("declared_type", ptr->declared_type, iek_type);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #ifdef FFE
   if (ptr->storage_class == (a_storage_class)sc_associated ||
       ptr->storage_class == (a_storage_class)sc_pointer_based) {
@@ -1919,6 +1922,9 @@ Display the indicated routine.
                        (unsigned long)ptr->virtual_function_number);
   }  /* if */
 #endif /* ifdef CFE */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  disp_ptr("declared_type", ptr->declared_type, iek_type);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #ifdef FFE
   disp_boolean("is_fortran_entry", (a_boolean)ptr->is_fortran_entry);
   disp_ptr("local_routine_scope", (char *)ptr->local_routine_scope, iek_scope);

@@ -467,6 +467,9 @@ the file scope, do not process it (but record an orphan in the latter case).
             internal_error("walk_entry_and_subtree: bad variable init kind");
 #endif  /* CHECKING */
         }  /* switch */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #ifdef FFE
         remap_ptr(ptr->base_var, a_variable_ptr, iek_variable);
         remap_ptr(ptr->function_result_var_function, a_routine_ptr,
@@ -511,6 +514,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
                   iek_class_list_entry);
 #endif /* ifdef CFE */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #ifdef FFE
         walk_ptr(ptr->local_routine_scope, a_scope_ptr, iek_scope);
 #endif /* ifdef FFE */

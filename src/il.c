@@ -5002,6 +5002,9 @@ to it.
   vp->initialization_rewritten_as_assignment = FALSE;
 #endif /* DO_IL_LOWERING */
 #endif /* ifdef CIL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  vp->declared_type               = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #ifdef FIL
   vp->by_address                  = FALSE;
   vp->base_var                    = NULL;
@@ -5347,6 +5350,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->contains_try_block      = FALSE;
   rp->befriending_classes     = NULL;
   rp->virtual_function_number = 0;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  rp->declared_type           = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #ifdef FIL
   rp->is_fortran_entry        = FALSE;
   rp->local_routine_scope     = NULL;
@@ -7081,8 +7087,8 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       a_symbol_ptr            sym;
       a_boolean               lparen_printed = FALSE;
       a_boolean               autonomous = FALSE;
-      a_type_ptr              entity_type = NULL;
-      a_boolean               is_secondary_decl = FALSE;
+      a_type_ptr              declared_type = NULL;
+      a_boolean               is_secondary_decl = FALSE, print_type = FALSE;
 
       if (ssep->entity.ptr == NULL) {
         fputs(" <null entity ptr>", f_debug);
@@ -7090,11 +7096,12 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         if (kind == (an_il_entry_kind)iek_src_seq_secondary_decl) {
           a_src_seq_secondary_decl_ptr  sssdp =
                                (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
+          scp =
           scp = &((a_variable_ptr)sssdp->entity.ptr)->source_corresp;
           pos = &sssdp->decl_position;
           if (sssdp->autonomous_tag_decl) autonomous = TRUE;
           is_secondary_decl = TRUE;
-          entity_type = sssdp->entity_type;
+          declared_type = sssdp->entity_type;
         } else {
           scp = &((a_variable_ptr)ssep->entity.ptr)->source_corresp;
           pos = &scp->decl_position;
@@ -7133,30 +7140,32 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         }  /* if */
         fputc('"', f_debug);
         if (is_secondary_decl) {
-          if (entity_type == NULL) {
-            if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
-              /* Don't report a NULL type -- that's what's expected. */
-            } else {
-              fprintf(f_debug, ", type = ***NULL***");
-            }  /* if */
-          } else if ((sym->kind == (a_symbol_kind)sk_routine ||
-                      sym->kind == (a_symbol_kind)sk_member_function) &&
-                     identical_types(routine_symbol_type(sym), entity_type)) {
-            /* Don't bother displaying the type. */
-          } else if ((sym->kind == (a_symbol_kind)sk_variable ||
-                      sym->kind == (a_symbol_kind)sk_static_data_member) &&
-                     identical_types(sym->variant.variable.ptr->type,
-                                     entity_type)) {
-            /* Don't bother displaying the type. */
-          } else {            
-            fprintf(f_debug, ", type = \"");
-            if (entity_type->source_corresp.name != NULL) {
-              db_type_name(entity_type);
-            } else {
-              db_abbreviated_type(entity_type);
-            }  /* if */
-            fputc('"', f_debug);
+          if (declared_type == NULL && is_tag_symbol(sym)) {
+            /* Don't report a NULL type -- that's what's expected. */
+          } else {
+            print_type = TRUE;
           }  /* if */
+        } else if (kind == (an_il_entry_kind)iek_variable ||
+                   kind == (an_il_entry_kind)iek_routine) {
+          if (kind == (an_il_entry_kind)iek_variable) {
+            declared_type = ((a_variable_ptr)ssep->entity.ptr)->declared_type;
+          } else {
+            declared_type = ((a_routine_ptr)ssep->entity.ptr)->declared_type;
+          }  /* if */
+          print_type = TRUE;
+        }  /* if */
+        if (print_type) {
+          fprintf(f_debug, " (");
+          if (declared_type == NULL) {
+            fputs("type = ***NULL***", f_debug);
+          } else if (declared_type->source_corresp.name != NULL) {
+            fputc('"', f_debug);
+            db_type_name(declared_type);
+            fputc('"', f_debug);
+          } else {
+            db_abbreviated_type(declared_type);
+          }  /* if */
+          fputc(')', f_debug);
         }  /* if */
       }  /* if */
     }  /* if */
