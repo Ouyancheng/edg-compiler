@@ -373,6 +373,22 @@ to).
 }  /* pointer_referenced_type */
 
 
+a_type_ptr type_referenced(a_type_ptr ref_type)
+/*
+Return the type referenced by the given reference type (i.e., the type pointed
+to).
+*/
+{
+  a_type_ptr tp = skip_typerefs(ref_type);
+#if CHECKING
+  if (tp->kind != (a_type_kind)tk_reference) {
+    internal_error("type_referenced: not a reference type");
+  }  /* if */
+#endif /* CHECKING */
+  return(tp->variant.pointer_type_pointed_to);
+}  /* type_referenced */
+
+
 a_boolean f_is_const_qualified_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a const-qualified type (3.1.2.5).

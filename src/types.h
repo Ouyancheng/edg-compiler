@@ -51,6 +51,7 @@ extern a_boolean is_aggregate_or_union_type(a_type_ptr tp);
 
 extern a_type_ptr array_element_type(a_type_ptr array_type);
 extern a_type_ptr pointer_referenced_type(a_type_ptr pointer_type);
+extern a_type_ptr type_referenced(a_type_ptr pointer_type);
 
 #define is_const_qualified_type(tp)                                   \
   ((tp)->kind == (a_type_kind)tk_typeref && f_is_const_qualified_type(tp))
