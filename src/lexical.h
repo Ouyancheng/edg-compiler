@@ -1177,9 +1177,11 @@ extern void flush_tokens(void);
 extern void lexical_init(void);
 /* Flush until the tok_end_of_source terminating a token cache is found. */
 #define flush_past_token_cache_terminator()			\
-  while (curr_token != tok_end_of_source) (void)get_token();	\
-  /* Advance past the end-of-source token. */			\
-  (void)get_token();
+  {								\
+    while (curr_token != tok_end_of_source) (void)get_token();	\
+    /* Advance past the end-of-source token. */			\
+    (void)get_token();						\
+  }
 
 #if DEBUG
 /* Show space used in the lexical routines, for debugging purposes. */
