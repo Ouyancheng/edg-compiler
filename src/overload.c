@@ -4124,6 +4124,67 @@ check_next_function:;
   return match_is_better;
 }  /* match_is_better_on_at_least_one_arg */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static an_arg_match_level worst_arg_match_level_for_candidate_arg(
+                                            a_candidate_function_ptr candidate)
+/*
+Return the argument match level for the worst argument match of the
+given candidate function.
+*/
+{
+  an_arg_match_level       worst_match = (an_arg_match_level)aml_exact;
+  an_arg_match_summary_ptr amsp;
+
+  for (amsp = candidate->arg_matches; amsp != NULL; amsp = amsp->next) {
+    if (amsp->match_level > worst_match) {
+      worst_match = amsp->match_level;
+    }  /* if */
+  }  /* for */
+  return worst_match;
+}  /* worst_arg_match_level_for_candidate_arg */
+
+
+static a_candidate_function_ptr select_best_gpp_candidate(
+                                           a_candidate_function_ptr candidates)
+/*
+g++ has an "extension" that chooses one function match over
+another if the worst conversion for its arguments is not as bad
+as the worst conversion for another function's arguments.
+candidates gives the set of candidate functions.
+If there is a function that is least-worst, return a pointer to
+its candidate function entry.  Otherwise, return NULL.
+*/
+{
+  a_candidate_function_ptr cfp, best_cfp = NULL;
+  an_arg_match_level       worst_match, best_worst_match = aml_none;
+
+  for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
+    if (best_cfp != NULL &&
+        same_candidate_function(best_cfp, cfp)) {
+      /* This function is the same as the best one, so skip it. */
+    } else {
+      worst_match = worst_arg_match_level_for_candidate_arg(cfp);
+      if (worst_match < best_worst_match) {
+        /* A new best function. */
+        best_cfp = cfp;
+        best_worst_match = worst_match;
+      } else if (worst_match > best_worst_match) {
+        /* The worst match for this candidate is worse than the best
+           worst match we've seen previously, so ignore it. */
+      } else {
+        /* A tie between the best so far and this one, so neither
+           one is best.  Note that best_worst_match remains set so
+           that only better functions will be considered in the
+           rest of the list. */
+        best_cfp = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return best_cfp;
+}  /* select_best_gpp_candidate */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static a_boolean function_candidate_with_same_sig_as_builtin_present(
                                   a_candidate_function_ptr builtin_cfp,
@@ -4460,6 +4521,24 @@ end_func_winnow:;
       /* There are some error matches, and we have more than one "best"
          function, so the problem is undecidable. */
       *undecidable_because_of_error = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (gpp_mode && number_in_best_match_set == 0) {
+      /* g++ has an "extension" that chooses one function match over
+         another if the worst conversion for its arguments is not as bad
+         as the worst conversion for another function's arguments.
+         This is tested after we've determined that we would get an
+         error by the standard rules, so no standard-conforming
+         program is affected.  This extension is still present in g++ 3.4. */
+      best_cfp = select_best_gpp_candidate(candidates);
+      if (best_cfp != NULL) {
+        /* There's a single best function under the g++ extension.
+           Take the others out of the best-match set. */
+        for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
+          cfp->in_best_match_set = (cfp == best_cfp);
+        }  /* for */
+        number_in_best_match_set = 1;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
 create_final_list:
     /* Make the final list.  If overall_ambiguity is TRUE, use the

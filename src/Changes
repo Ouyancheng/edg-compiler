@@ -1,5 +1,16 @@
 Version 3.5
 
+7/20/04  GNU C++ mode overload resolution extension
+
+g++ in its non-pedantic mode has an extension to the overload
+resolution process to select the best function: if the standard
+process finds no best function, the full set of candidate functions
+is examined to find the worst conversion on an argument for
+each candidate.  If one function has a better worst conversion
+than all the others, it is chosen as the best function.  Note that
+this is done after the standard process has failed, so in theory
+it cannot change the meaning of any standard-conforming program.
+
 7/20/04  Hidden name table refinement for class types hidden by nontags
 
 When a nontag class member was hiding a tag entity in an enclosing scope,
