@@ -5253,7 +5253,7 @@ only in C++ mode.
 }  /* f_get_destructor_name */
 
 
-static a_boolean get_opname(a_type_ptr class_type)
+static void get_opname(a_type_ptr class_type)
 /*
 The current token is the token "operator" at the start of an operator name,
 like "operator+".  Scan the name and build a locator for the operator name
