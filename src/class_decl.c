@@ -3243,9 +3243,6 @@ when the function is defined in the friend declaration.
       while (end_of_list->next != NULL) end_of_list = end_of_list->next;
       end_of_list->next = clep;
     }  /* if */
-
-    clep->next = rout_ptr->befriending_classes;
-    rout_ptr->befriending_classes = clep;
     /* Now add the routine to the friends list for the current class. */
     ctsp = class_type->variant.class_struct_union.extra_info;
     rlep = alloc_list_entry_for_routine();
