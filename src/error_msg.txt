@@ -821,6 +821,7 @@ ec_cl_explicit_option_only_in_cplusplus;;"option \"explicit\" can be used only w
 ec_explicit_not_allowed;;"\"explicit\" is not allowed"
 ec_conflicts_with_predeclared_type_info;;"declaration conflicts with %sq (reserved class name)"
 ec_array_member_initialization;;"only \"()\" is allowed as initializer for array %n"
+ec_virtual_function_template;;"\"virtual\" is not allowed in a function template declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
