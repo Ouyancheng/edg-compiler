@@ -3815,6 +3815,10 @@ enum an_expr_node_kind_tag {
 			   code above those nodes, so after IL lowering this
 			   node is not necessarily the top node in the
 			   expression tree.  C++ only. */
+  enk_address_of_ellipsis,
+			/* Used to represent nonstandard construct "&..."
+			   (when ALLOW_ADDRESS_OF_ELLIPSIS is TRUE, to support
+			   starg.h macro va_start). */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   enk_lowered_eh_construct,
 			/* Used to represent a partially-lowered exception
@@ -4295,7 +4299,7 @@ typedef struct an_expr_node {
 #endif /* ifdef FIL */
   bitfield_to_avoid_codecenter_warnings();
   union {
-    /* When kind == enk_error, no variant fields. */
+    /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */
     /* When kind == enk_operation: */
     struct {
       an_expr_operator_kind

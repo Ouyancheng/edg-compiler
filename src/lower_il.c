@@ -5788,6 +5788,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   switch (expr->kind) {
     case enk_routine_address:
     case enk_field:
+    case enk_address_of_ellipsis:
       /* No processing required. */
       break;
     case enk_variable:

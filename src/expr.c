@@ -249,6 +249,7 @@ should be suppressed.
     case enk_variable_address:
     case enk_routine_address:
     case enk_field:
+    case enk_address_of_ellipsis:
       break;
     case enk_operation:
       has_side_effects = operation_has_side_effects(node, &suppress);

@@ -1489,6 +1489,7 @@ base class casts and virtual function calls.
 
   switch (node->kind) {
     case enk_error:
+    case enk_address_of_ellipsis:
       /* Complete object type is not known. */
       break;
     case enk_variable:
