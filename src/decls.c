@@ -237,7 +237,8 @@ Initialize the fields of the specified decl-pos block.
   decl_pos_block->decl_pos = null_source_position;
   decl_pos_block->storage_class_pos = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  decl_pos_block->end_decl_pos = null_source_position;
+  decl_pos_block->identifier_range.start = null_source_position;
+  decl_pos_block->identifier_range.end = null_source_position;
   decl_pos_block->specifiers_range.start = null_source_position;
   decl_pos_block->specifiers_range.end = null_source_position;
   decl_pos_block->declarator_range.start = null_source_position;
@@ -6839,10 +6840,12 @@ Return a pointer to the variable that is declared.
   sym->variant.variable.ptr->declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  sym->variant.variable.ptr->source_corresp.specifiers_range =
-                                         decl_pos_block.specifiers_range;
-  sym->variant.variable.ptr->source_corresp.declarator_range =
-                                         decl_pos_block.declarator_range;
+  {
+  a_decl_position_supplement_ptr  dpsp = sym->variant.variable.ptr->
+                                                source_corresp.decl_pos_info;
+  dpsp->specifiers_range = decl_pos_block.specifiers_range;
+  dpsp->declarator_range = decl_pos_block.declarator_range;
+  }
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   mark_variable_value_set(sym);
   srk_flags = SRK_DECLARATION | SRK_DEFINITION;
@@ -8421,10 +8424,13 @@ continue_with_declaration:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           if (symbol_ptr->kind == (a_symbol_kind)sk_routine ||
               symbol_ptr->kind == (a_symbol_kind)sk_member_function) {
-            symbol_ptr->variant.routine.ptr->source_corresp.specifiers_range =
-                                             decl_pos_block.specifiers_range;
-            symbol_ptr->variant.routine.ptr->source_corresp.declarator_range =
-                                             decl_pos_block.declarator_range;
+            a_decl_position_supplement_ptr  dpsp;
+            dpsp = symbol_ptr->variant.routine.ptr->
+                                      source_corresp.decl_pos_info;
+            if (dpsp != NULL) {
+              dpsp->specifiers_range = decl_pos_block.specifiers_range;
+              dpsp->declarator_range = decl_pos_block.declarator_range;
+            }  /* if */
           }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           done_with_func_info(func_info);
@@ -8684,6 +8690,18 @@ continue_with_declaration:
                      &func_info, declarator_ssep, SRK_DECLARATION,
                      &local_decl_modifiers, &symbol_ptr, &linkage, &old_type,
                      &ext_sym);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        if (symbol_ptr->kind == (a_symbol_kind)sk_routine ||
+            symbol_ptr->kind == (a_symbol_kind)sk_member_function) {
+          a_decl_position_supplement_ptr  dpsp;
+          dpsp = symbol_ptr->variant.routine.ptr->
+                                      source_corresp.decl_pos_info;
+          if (dpsp != NULL) {
+            dpsp->specifiers_range = decl_pos_block.specifiers_range;
+            dpsp->declarator_range = decl_pos_block.declarator_range;
+          }  /* if */
+        }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       } else {
         /* A variable declaration. */
         a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
@@ -8799,10 +8817,12 @@ continue_with_declaration:
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (is_variable_def) {
-        var_ptr->source_corresp.specifiers_range =
-                                         decl_pos_block.specifiers_range;
-        var_ptr->source_corresp.declarator_range =
-                                         decl_pos_block.declarator_range;
+        a_decl_position_supplement_ptr  dpsp = var_ptr->
+                                               source_corresp.decl_pos_info;
+        if (dpsp != NULL) {
+          dpsp->specifiers_range = decl_pos_block.specifiers_range;
+          dpsp->declarator_range = decl_pos_block.declarator_range;
+        }  /* if */
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       incomplete_type_error_reported = FALSE;

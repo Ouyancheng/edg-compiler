@@ -154,6 +154,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if ONE_INSTANTIATION_PER_OBJECT
   sizeof(a_per_instantiation_needed_flags_entry),
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  sizeof(a_decl_position_supplement),
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

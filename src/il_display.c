@@ -473,9 +473,14 @@ Display the indicated source correspondence entry.
 #endif /* NEED_NAME_MANGLING */
   disp_source_position("  decl_position", &scp->decl_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  disp_source_position("  decl_end_position", &scp->decl_end_position);
-  disp_source_range("  specifiers_range", &scp->specifiers_range);
-  disp_source_range("  declarator_range", &scp->declarator_range);
+  if (scp->decl_pos_info != NULL) {
+    disp_source_range("  identifier_range",
+                      &scp->decl_pos_info->identifier_range);
+    disp_source_range("  specifiers_range",
+                      &scp->decl_pos_info->specifiers_range);
+    disp_source_range("  declarator_range",
+                      &scp->decl_pos_info->declarator_range);
+  }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #ifdef CFE
   if (scp->is_class_member) {

@@ -185,6 +185,13 @@ extern a_template_ptr alloc_template(void);
 extern a_macro_ptr alloc_macro(void);
 #endif /* RECORD_MACROS_IN_IL */
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+extern void clear_decl_position_supplement(a_decl_position_supplement *dpsp);
+
+extern a_decl_position_supplement_ptr alloc_decl_position_supplement
+                                                  (a_boolean  at_file_scope);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 extern char *alloc_text_of_string_literal(sizeof_t size);

@@ -2650,6 +2650,9 @@ are tied to a particular source occurrence.
   sc->is_class_member   = FALSE;
   sc->parent.class_type = NULL;
   sc->access            = (an_access_specifier)as_public;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  sc->decl_pos_info     = NULL;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* break_source_corresp */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -2797,6 +2800,9 @@ Copy a constant entry from "from" to "to".
   /* Same holds for source_sequence pointers. */
   to->source_corresp.source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  to->source_corresp.decl_pos_info = NULL;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* copy_constant */
 
 
@@ -5491,6 +5497,9 @@ Copy the type entry "from" to "to".
   *to = *from;
   to->next = next_ptr;
   to->based_types = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  to->source_corresp.decl_pos_info = NULL;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (from_kind == (a_type_kind)tk_array ||
       from_kind == (a_type_kind)tk_routine) {
     if (from_kind == (a_type_kind)tk_routine) {

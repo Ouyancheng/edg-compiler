@@ -135,14 +135,14 @@ typedef struct a_decl_pos_block *a_decl_pos_block_ptr;
 typedef struct a_decl_pos_block {
   a_source_position
 		decl_pos;
-			/* Start position of coalesced identifier. */
+			/* Source position of the identifier. */
   a_source_position
 		storage_class_pos;
 			/* Source position of storage-class, if any. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position
-		end_decl_pos;
-			/* End position of coalesced identifier. */
+  a_source_range
+		identifier_range;
+			/* Start and end positions of coalesced identifier. */
   a_source_range
 		specifiers_range;
 			/* Start and end positions of decl-specifiers. */

@@ -998,6 +998,14 @@ created for this entity; otherwise, it is NULL.
         } else
 #endif /* RECORD_TEMPLATES_IN_IL */
         scptr->decl_position = *source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        if (scptr->decl_pos_info == NULL) {
+          scptr->decl_pos_info =
+                       alloc_decl_position_supplement(in_file_scope(scptr));
+        } else {        
+          clear_decl_position_supplement(scptr->decl_pos_info);
+        }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
     }  /* if */
   }  /* if */

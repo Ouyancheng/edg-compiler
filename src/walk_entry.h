@@ -363,6 +363,13 @@ pointers.
 #else /* !ONE_INSTANTIATION_PER_OBJECT */
 #define walk_per_instantiation_needed_flags(ptr) /* Nothing */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+#define walk_decl_position_supplement(ptr) \
+  walk_ptr((ptr).decl_pos_info, a_decl_position_supplement_ptr, \
+           iek_decl_position_supplement)
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+#define walk_decl_position_supplement(ptr) /* Nothing */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #define walk_source_corresp(ptr) \
 { walk_string_ptr((ptr).name, iek_id_name, 0); \
   walk_unmangled_name(ptr); \
@@ -370,6 +377,7 @@ pointers.
   remap_source_sequence_entry(ptr); \
   clear_pointer_if_remapping((ptr).assoc_info); \
   walk_per_instantiation_needed_flags(ptr); \
+  walk_decl_position_supplement(ptr); \
 }  /* walk_source_corresp */
 #endif /* NEEDED_FLAG_WALK */
 
@@ -1460,6 +1468,11 @@ do_set_proper_definition_needed_flag:
       }
       break;
 #endif /* RECORD_MACROS_IN_IL */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    case iek_decl_position_supplement:
+      /* No pointers. */
+      break;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if !NEEDED_FLAG_WALK
     case iek_object_lifetime:
       {

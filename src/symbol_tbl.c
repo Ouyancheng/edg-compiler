@@ -1008,6 +1008,17 @@ scope for the symbol must still be active.
   } else {
     /* Set the source position. */
     sc->decl_position = sp->decl_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (sc->decl_pos_info != NULL) {
+      /* If decl_position is being reset, assume that the related source
+         position information (which should be tied to the same declaration)
+         has been invalidated. */
+      clear_decl_position_supplement(sc->decl_pos_info);
+    } else if (sp->decl_position.seq != 0) {
+      /* Create a decl-position-supplement for this entry. */
+      sc->decl_pos_info = alloc_decl_position_supplement(in_file_scope(sc));
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   /* Clear the referenced flag.  It was set to TRUE in
      set_default_source_corresp, so that unassociated entities will

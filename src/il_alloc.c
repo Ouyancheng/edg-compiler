@@ -117,6 +117,10 @@ static unsigned long
 static unsigned long
 		num_macros_allocated;
 #endif /* RECORD_MACROS_IN_IL */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+static unsigned long
+		num_decl_position_supplements_allocated;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
 static unsigned long
 		num_per_instantiation_needed_flags_entries_allocated;
@@ -2595,7 +2599,48 @@ fields, and return a pointer to it.
 }  /* alloc_macro */
 
 #endif /* RECORD_MACROS_IN_IL */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+
+void clear_decl_position_supplement(a_decl_position_supplement_ptr  dpsp)
+/*
+Clear the fields of the specified decl-position-supplement entry.
+*/
+{
+  dpsp->identifier_range.start = null_source_position;
+  dpsp->identifier_range.end = null_source_position;
+  dpsp->specifiers_range.start = null_source_position;
+  dpsp->specifiers_range.end = null_source_position;
+  dpsp->declarator_range.start = null_source_position;
+  dpsp->declarator_range.end = null_source_position;
+}  /* clear_decl_position_supplement */
+
+
+a_decl_position_supplement_ptr alloc_decl_position_supplement(
+                                                    a_boolean  at_file_scope)
+/*
+Allocate a decl-position-supplement entry in the appropriate memory region,
+initialize its fields, and return a pointer to it.
+*/
+{
+  a_decl_position_supplement_ptr  dpsp;
+
+  if (at_file_scope) {
+    dpsp = (a_decl_position_supplement_ptr)alloc_il(
+                                     sizeof(a_decl_position_supplement));
+  } else {
+    dpsp = (a_decl_position_supplement_ptr)alloc_cil(
+                                     sizeof(a_decl_position_supplement));
+  }  /* if */
 #if DEBUG
+  num_decl_position_supplements_allocated++;
+#endif /* DEBUG */
+  clear_decl_position_supplement(dpsp);
+  return dpsp;
+}  /* alloc_decl_position_supplement */
+
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if DEBUG
+
 unsigned long show_il_alloc_space_used(unsigned long grand_total)
 /*
 Display and return the amount of space used for various IL tables.
@@ -2716,6 +2761,11 @@ Display and return the amount of space used for various IL tables.
 #if RECORD_MACROS_IN_IL
   db_space_used("macros", num_macros_allocated, a_macro);
 #endif /* RECORD_MACROS_IN_IL */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  db_space_used("decl-position supplement",
+                num_decl_position_supplements_allocated,
+                a_decl_position_supplement);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
   db_space_used("per inst needed flags",
                 num_per_instantiation_needed_flags_entries_allocated,
@@ -2765,11 +2815,7 @@ in il_init.)
   def_source_corresp.parent.class_type = NULL;
   def_source_corresp.decl_position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  def_source_corresp.decl_end_position = null_source_position;
-  def_source_corresp.specifiers_range.start = null_source_position;
-  def_source_corresp.specifiers_range.end = null_source_position;
-  def_source_corresp.declarator_range.start = null_source_position;
-  def_source_corresp.declarator_range.end = null_source_position;
+  def_source_corresp.decl_pos_info = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* access is set to "public" because "no access restriction" is the default
      for everything except class members.  For the latter the field must be
@@ -2891,6 +2937,9 @@ in il_init.)
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(num_macros_allocated),
 #endif /* RECORD_MACROS_IN_IL */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      pch_saved_var_array_elem(num_decl_position_supplements_allocated),
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
       pch_saved_var_array_elem(
                          num_per_instantiation_needed_flags_entries_allocated),
@@ -2998,6 +3047,7 @@ of the front end.
 #if RECORD_MACROS_IN_IL
   num_macros_allocated                   = 0;
 #endif /* RECORD_MACROS_IN_IL */
+  num_decl_position_supplements_allocated = 0;
 #if ONE_INSTANTIATION_PER_OBJECT
   num_per_instantiation_needed_flags_entries_allocated = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */

@@ -439,6 +439,10 @@ typedef enum /*an_il_entry_kind*/ {
   iek_per_instantiation_needed_flags_entry,
 			/* a_per_instantiation_needed_flags_entry */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  iek_decl_position_supplement,
+			/* a_decl_position_supplement */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -555,6 +559,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_per_instantiation_needed_flags_entry */
 					"per-instantiation-needed-flags-entry",
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+/* iek_decl_position_supplement */	"decl-position-supplement",
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -848,6 +855,38 @@ typedef struct a_per_instantiation_needed_flags_entry {
 
 #endif /* ifdef CIL */
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+/* Additional source position information relating to the declaration of the
+   associated IL entry. */
+typedef struct a_decl_position_supplement *a_decl_position_supplement_ptr;
+typedef struct a_decl_position_supplement {
+  a_source_range
+		identifier_range;
+			/* If the associated IL entry has an explicitly
+			   declared name, the source positions corresponding
+			   to the start and end of the sequence of tokens that
+			   represent the identifier, as explicitly spelled in
+			   the source program (e.g., possibly including
+			   qualifiers and a template argument list, if they
+			   were specified explicitly).  Both positions may be
+			   null_source_position. */
+  a_source_range
+		specifiers_range;
+			/* If the declaration of the associated IL entry
+			   involves declaration-specifiers, the source
+			   positions corresponding to the start and end of the
+			   declaration-specifiers of the declaration.  Both
+			   positions may be null_source_position. */
+  a_source_range
+		declarator_range;
+			/* If the declaration of the associated IL entry
+			   involves a declarator, the source positions
+			   corresponding to the start and end of the
+			   declarator.  Both positions may be
+			   null_source_position. */
+} a_decl_position_supplement;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
 
 typedef struct a_source_correspondence {
   /* Structure placed within several IL constructs to tie the IL construct
@@ -891,29 +930,11 @@ typedef struct a_source_correspondence {
 			   source name, to indicate the place where the
 			   entity appeared without being named. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position
-		decl_end_position;
-			/* If decl_position is specified, the end of the
-			   sequence of tokens that corresponds to the
-			   identifier, as explicitly spelled in the source
-			   program (e.g., including "<template-args>" if they
-			   were specified explicitly).  May be
-			   null_source_position if decl_position does not
-			   refer to an explicit name in the source. */
-  a_source_range
-		specifiers_range;
-			/* If decl_position is specified and the declaration
-			   involves declaration-specifiers, the source
-			   positions corresponding to the start and end of the
-			   declaration-specifier of the declaration.  Both
-			   positions may be null_source_position. */
-  a_source_range
-		declarator_range;
-			/* If decl_position is specified and the declaration
-			   involves a declarator, the source positions
-			   corresponding to the start and end of the
-			   declarator.  Both positions may be
-			   null_source_position. */
+  a_decl_position_supplement_ptr
+		decl_pos_info;
+			/* When decl_position is specified, pointer to a
+			   block containing addition source position
+			   information about the declaration.  May be NULL. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #ifdef CIL
   a_bit_field /* an_access_specifier */
