@@ -4467,7 +4467,8 @@ An internal error has occurred.  Write the given message and abort.
 
 
 DOES_NOT_RETURN assertion_failed(char	*filename,
-		                 int	 line_number)
+		                 int	 line_number,
+				 char   *string)
 /*
 An assertion has failed.  Abort the compilation.
 */
@@ -4488,8 +4489,13 @@ An assertion has failed.  Abort the compilation.
     filename += overflow;
   }  /* if */
   
-  sprintf(buffer, "assertion failed at: \"%s\", line %0d\n", 
-          filename, line_number);
+  if (string == NULL) {
+    sprintf(buffer, "assertion failed at: \"%s\", line %0d\n",
+            filename, line_number);
+  } else {
+    sprintf(buffer, "assertion \"%s\" failed at: \"%s\", line %0d\n", string,
+            filename, line_number);
+  }  /* if */
   internal_error(buffer);
 }  /* assertion_failed */
 

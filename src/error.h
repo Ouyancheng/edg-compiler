@@ -656,20 +656,29 @@ Error routines.
 #if CHECKING
 extern DOES_NOT_RETURN internal_error(char *error_message);
 extern DOES_NOT_RETURN assertion_failed(char *filename,
-			                int  line_number);
+			                int  line_number,
+					char *string);
 
 /* Macro to test an assertion and generate an internal error if
    the condition is not TRUE.  The macro expands to nothing when checking
    code is not being used. */
 #define check_assertion(test)						\
-  if (!(test)) assertion_failed(__FILE__, __LINE__);
+  if (!(test)) assertion_failed(__FILE__, __LINE__, NULL);
 /* Macro that generates an assertion failed internal error.  Intended to
    be used in the else clause of an if statement or the default case of a
    switch statement that is not intended to be reached. */
-#define unexpected_condition()  assertion_failed(__FILE__, __LINE__)
+#define unexpected_condition()  assertion_failed(__FILE__, __LINE__, NULL)
+/* Macros that are the same as above except that a string describing the
+   assertion is provided. */
+#define check_assertion_str(test, string)				\
+  if (!(test)) assertion_failed(__FILE__, __LINE__, string);
+#define unexpected_condition_str(string)  				\
+  assertion_failed(__FILE__, __LINE__, string)
 #else /* !CHECKING */
 #define check_assertion(test) /* Nothing */
+#define check_assertion_str(test, string) /* Nothing */
 #define unexpected_condition()    /* Nothing */
+#define unexpected_condition_str(string)    /* Nothing */
 #endif /* CHECKING */
 /* Make sure "a_symbol", "a_type" and "a_source_file" are known as struct
    tags before their uses below.  Otherwise, the declarations would be in
