@@ -1032,7 +1032,7 @@ so that any necessary system-specific code can be inserted.
 }  /* reopen_source_file */
 
 
-static a_boolean okay_as_output_file(char *file_name)
+a_boolean okay_as_output_file(char *file_name)
 /*
 Return TRUE if the given file name is acceptable as an output file.
 This involves (potentially) not just checks on the file system permissions,

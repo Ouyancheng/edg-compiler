@@ -1,5 +1,14 @@
 Version 2.42
 
+6/28/99  Specifying an invalid output file name as a PCH file
+
+The front end will not permit a file name to be used as an output file
+if its suffix suggests that is really a source file.  Although such files
+could not be used as precompiled header files, when writing a PCH file,
+the PCH mechanism would remove the old version of a PCH file before
+checking whether the name is invalid.  This could result in the removal
+of a source file.  The error is now issued earlier.
+
 6/27/99  Linkage of inline template functions
 
 If a function template was first declared without the inline specifier and

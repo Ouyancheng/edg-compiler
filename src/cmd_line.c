@@ -1243,6 +1243,18 @@ by a command line option.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
+static void check_pch_file_name(char *file_name)
+/*
+Make sure the specified file name is acceptable as an output file.
+If it is not acceptable, issue an error.
+*/
+{
+  if (!okay_as_output_file(file_name)) {
+    str_command_line_error(ec_cl_invalid_pch_output_file, file_name);
+  }  /* if */
+}  /* check_pch_file_name */
+
+
 #if COMPILE_MULTIPLE_SOURCE_FILES
 static char	**argv_file_list;
 static int	argc_file_list;
@@ -1723,6 +1735,8 @@ common_cfront_mode_settings:
         pch_output_file_name = opt_arg;
         automatic_pch_processing = FALSE;
         use_precompiled_header = FALSE;
+        /* Make sure the specified name is acceptable as a PCH file name. */
+        check_pch_file_name(opt_arg);
         break;
       case optk_use_pch:
         /* Use a precompiled header file as part of this compilation. */
@@ -1732,6 +1746,8 @@ common_cfront_mode_settings:
         precompiled_header_processing_required = TRUE;
         automatic_pch_processing = FALSE;
         create_precompiled_header = FALSE;
+        /* Make sure the specified name is acceptable as a PCH file name. */
+        check_pch_file_name(opt_arg);
         break;
       case optk_pch:
         /* Do automatic precompiled header processing as part of this

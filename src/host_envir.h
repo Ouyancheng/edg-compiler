@@ -1550,6 +1550,9 @@ extern FILE *open_output_file(char          *file_name,
                               a_boolean     update_mode,
                               a_boolean     *cannot_open,
                               a_boolean     *bad_name);
+
+a_boolean okay_as_output_file(char *file_name);
+
 /* Open an input file. */
 extern FILE *open_input_file(char          *file_name,
                              a_boolean     binary_file);
