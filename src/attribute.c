@@ -1315,20 +1315,34 @@ a_type_ptr apply_attributes_to_typedef(an_attribute_ptr attributes,
 Apply the attributes to the indicated type, which is a new typedef.
 */
 {
-  a_type_ptr copy;
+  a_type_ptr copy, underlying_type = skip_typerefs(tp);
   a_type_ptr union_type;
 
-  copy = copy_type_and_apply_attributes(attributes, tp, /*is_typedef=*/TRUE);
-  /* The transparent union attribute applies to the original type as
-     well as the typedef. */
-  if (is_union_type(copy)) {
-    union_type = skip_typerefs(copy);
-    if (union_type->variant.class_struct_union.is_transparent) {
-      check_assertion(is_union_type(tp));
-      skip_typerefs(tp)->variant.class_struct_union.is_transparent = TRUE;
+  if ((attributes->kind == (an_attribute_kind)ak_transparent_union &&
+       attributes->next == NULL) ||
+      (is_immediate_class_type(underlying_type) &&
+       underlying_type->variant.class_struct_union.originally_unnamed) ||
+      (is_immediate_enum_type(underlying_type) &&
+       underlying_type->variant.class_struct_union.originally_unnamed)) {
+    /* The transparent_union attribute always applies to the underlying type.
+       Hence, if it is the only attribute, we can apply it directly to that
+       underlying type.  Similarly, if this type is acquiring the typedef
+       name for linkage purposes (class and enum types only), the attributes
+       can directly be applied to the unnamed underlying type. */
+    apply_attributes_to_type(attributes, underlying_type, /*is_typedef=*/TRUE);
+    copy = underlying_type;
+  } else {
+    copy = copy_type_and_apply_attributes(attributes, tp, /*is_typedef=*/TRUE);
+    /* The transparent union attribute applies to the original type as
+       well as the typedef. */
+    if (is_union_type(copy)) {
+      union_type = skip_typerefs(copy);
+      if (union_type->variant.class_struct_union.is_transparent) {
+        check_assertion(is_union_type(tp));
+        skip_typerefs(tp)->variant.class_struct_union.is_transparent = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
-
   return copy;
 }  /* apply_attributes_to_typedef */
 
