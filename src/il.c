@@ -1216,7 +1216,7 @@ Dump debug information on the destructor part of a dynamic initialization
 entry.
 */
 {
-  fputs("destructor: ", f_debug);
+  fputs("dtor: ", f_debug);
   if (dtor != NULL) {
     db_name(&dtor->source_corresp);
     fputs("()", f_debug);
@@ -1235,25 +1235,19 @@ dik_constructor.
 {
   an_expr_node_ptr  arg;
 
-  fputs("constructor ", f_debug);
+  fputs("ctor: ", f_debug);
   db_name(&dip->variant.constructor.ptr->source_corresp);
   db_function_param_list(dip->variant.constructor.ptr->type);
+  if (dip->destructor != NULL) {
+    fputs("; ", f_debug);
+    db_destructor(dip->destructor);
+  }  /* if */
   if ((arg = dip->variant.constructor.args) == NULL) {
-    if (dip->destructor != NULL) {
-      fputs("; ", f_debug);
-      db_destructor(dip->destructor);
-    }  /* if */
-    (void)fputc('\n', f_debug);
+    fputs("\n", f_debug);
   } else {
-    fputs(", args =\n", f_debug);
+    fputs("; ctor args =\n", f_debug);
     for (; arg != NULL; arg = arg->next) {
-      db_expr_node(arg, level);
-    }  /* if */
-    if (dip->destructor != NULL) {
-      int a;
-      for (a = 0; a < level; a++) fputs(" ", f_debug);
-      db_destructor(dip->destructor);
-      (void)fputc('\n', f_debug);
+      db_expr_node(arg, level+2);
     }  /* if */
   }  /* if */
 }  /* db_constructor_initializer */
