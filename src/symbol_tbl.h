@@ -401,6 +401,12 @@ typedef struct a_class_symbol_supplement {
 			   entry for each target type for which a conversion
 			   is defined.  Inherited conversion functions are
 			   represented by projection symbols. */
+  a_delayed_scan_fixup_ptr
+		delayed_scan_fixup_list;
+			/* Pointer to a list of entities used in the token
+			   caching and delayed scanning scheme required for
+			   C++ member functions (routine bodies and default
+			   arguments). */
   unsigned int	any_nonpublic_members:1;
 			/* TRUE if the class contains any members declared
 			   private or protected. */
@@ -438,6 +444,8 @@ typedef struct a_class_symbol_supplement {
   unsigned int  any_ref_member:1;
 			/* TRUE if this class has any fields of reference
 			   type. */
+  unsigned int  any_nested_classes:1;
+			/* TRUE if this class has any nested classes. */
 } a_class_symbol_supplement;
 
 
@@ -879,13 +887,12 @@ typedef struct a_scope_stack_entry {
 			   a constant indicating the address of a local
 			   variable. */
   a_delayed_scan_fixup_ptr
-		delayed_scan_fixup_list,
 		last_delayed_scan_fixup;
 			/* Defined for sck_class_struct_union scopes only:
-			   the head and tail of a list of entities used in
-			   the token caching and delayed scanning scheme
-			   required for C++ member functions (routine bodies
-			   and default arguments). */
+			   the tail of a list of entities used in the token
+			   caching and delayed scanning scheme required for
+			   C++ member functions (routine bodies and default
+			   arguments). */
   /* The following pointers are the end pointers for the lists begun
      in the current IL scope entry.  They are needed only while the scope
      is active (to add entries to the ends of lists), and are therefore

@@ -843,6 +843,7 @@ state.
         cssp->destructor = NULL;
         cssp->assignment_operator = NULL;
         cssp->conversion_list = NULL;
+        cssp->delayed_scan_fixup_list = NULL;
         cssp->any_nonpublic_members = FALSE;
         cssp->constructor_required = FALSE;
         cssp->destructor_required = FALSE;
@@ -852,6 +853,7 @@ state.
         cssp->assignment_by_bitwise_copy_allowed = FALSE;
         cssp->target_of_user_defined_conversion = FALSE;
         cssp->any_ref_member = FALSE;
+        cssp->any_nested_classes = FALSE;
       }
       break;
     case sk_variable:
@@ -3448,7 +3450,6 @@ for the function scope case; it must be NULL in other cases.
   ssep->array_type_fixup_list    = NULL;
   ssep->extern_type_fixup_list   = NULL;
   ssep->shareable_constants_list = NULL;
-  ssep->delayed_scan_fixup_list  = NULL;
   ssep->last_delayed_scan_fixup  = NULL;
   ssep->last_parameter           = NULL;
   ssep->last_constant            = NULL;
