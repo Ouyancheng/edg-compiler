@@ -2056,8 +2056,8 @@ typedef struct a_constant {
 #if RECORD_FORM_OF_NAME_REFERENCE
       a_name_reference_ptr
 		name_reference;
-			/* The form of the expression that the creation of
-			   this entry. */
+			/* The form of the expression that caused the creation
+			   of this entry. */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
       a_bit_field
 		cast_to_base:1;
