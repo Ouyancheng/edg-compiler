@@ -415,7 +415,7 @@ static void db_access_adjustment(an_access_adjustment_ptr aap)
   }  /* switch */
   fputs("    ", f_debug);
   db_access_control(aap->access);
-  fprintf(" \"%s\" = %s ", sc->name, str);
+  fprintf(f_debug, " \"%s\" = %s ", sc->name, str);
   db_name(sc);
   fputc('\n', f_debug);
 }  /* db_access_adjustment */
