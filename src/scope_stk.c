@@ -171,53 +171,59 @@ Dump decl-pos information for the specified symbol (for debugging).
 */
 {
   a_decl_position_supplement_ptr  dpsp;
-  a_source_correspondence         *scp = source_corresp_entry_for_symbol(sym);
+  a_source_correspondence         *scp;
 
-  if (scp != NULL) {
-    fprintf(f_debug, " ");
-    db_symbol_name(sym);
-    fprintf(f_debug, " <%s>, decl_position: %lu/%lu",
-                     symbol_kind_names[(int)sym->kind],
-                     scp->decl_position.seq, scp->decl_position.column);
-    dpsp = scp->decl_pos_info;
-    if (dpsp == NULL) {
-      fputs(", no decl-pos info\n", f_debug);
-    } else {
-      fputc('\n', f_debug);
-      if (dpsp->specifiers_range.start.seq != 0 ||
-          dpsp->specifiers_range.end.seq != 0) {
-        fprintf(f_debug, "    specifiers range:  %4lu/%-3lu -- %4lu/%-3lu\n",
-                         dpsp->specifiers_range.start.seq,
-                         dpsp->specifiers_range.start.column,
-                         dpsp->specifiers_range.end.seq,
-                         dpsp->specifiers_range.end.column);
-      }  /* if */
-      if (dpsp->declarator_range.start.seq != 0 ||
-          dpsp->declarator_range.end.seq != 0) {
-        fprintf(f_debug, "    declarator range:  %4lu/%-3lu -- %4lu/%-3lu\n",
-                         dpsp->declarator_range.start.seq,
-                         dpsp->declarator_range.start.column,
-                         dpsp->declarator_range.end.seq,
-                         dpsp->declarator_range.end.column);
-      }  /* if */
-      if (dpsp->identifier_range.start.seq != 0 ||
-          dpsp->identifier_range.end.seq != 0) {
-        fprintf(f_debug, "    identifier range:  %4lu/%-3lu -- %4lu/%-3lu\n",
-                         dpsp->identifier_range.start.seq,
-                         dpsp->identifier_range.start.column,
-                         dpsp->identifier_range.end.seq,
-                         dpsp->identifier_range.end.column);
-      }  /* if */
-      if (sym->kind == (a_symbol_kind)sk_variable ||
-          sym->kind == (a_symbol_kind)sk_static_data_member) {
-        a_variable_ptr  vp = sym->variant.variable.ptr;
-        if (vp->init_kind != (an_init_kind)initk_none) {
-          fprintf(f_debug,
-                  "    initializer range: %4lu/%-3lu -- %4lu/%-3lu\n",
-                  vp->initializer_range.start.seq,
-                  vp->initializer_range.start.column,
-                  vp->initializer_range.end.seq,
-                  vp->initializer_range.end.column);
+  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    sym = sym->variant.overloaded_function.symbols;
+    for (; sym != NULL; sym = sym->next) db_decl_pos_info(sym);
+  } else if (!sym->is_error && sym->decl_position.seq != 0) {
+    scp = source_corresp_entry_for_symbol(sym);
+    if (scp != NULL) {
+      fprintf(f_debug, " ");
+      db_symbol_name(sym);
+      fprintf(f_debug, " <%s>, decl_position: %lu/%lu",
+                       symbol_kind_names[(int)sym->kind],
+                       scp->decl_position.seq, scp->decl_position.column);
+      dpsp = scp->decl_pos_info;
+      if (dpsp == NULL) {
+        fputs(", no decl-pos info\n", f_debug);
+      } else {
+        fputc('\n', f_debug);
+        if (dpsp->specifiers_range.start.seq != 0 ||
+            dpsp->specifiers_range.end.seq != 0) {
+          fprintf(f_debug, "    specifiers range:  %4lu/%-3lu -- %4lu/%-3lu\n",
+                           dpsp->specifiers_range.start.seq,
+                           dpsp->specifiers_range.start.column,
+                           dpsp->specifiers_range.end.seq,
+                           dpsp->specifiers_range.end.column);
+        }  /* if */
+        if (dpsp->declarator_range.start.seq != 0 ||
+            dpsp->declarator_range.end.seq != 0) {
+          fprintf(f_debug, "    declarator range:  %4lu/%-3lu -- %4lu/%-3lu\n",
+                           dpsp->declarator_range.start.seq,
+                           dpsp->declarator_range.start.column,
+                           dpsp->declarator_range.end.seq,
+                           dpsp->declarator_range.end.column);
+        }  /* if */
+        if (dpsp->identifier_range.start.seq != 0 ||
+            dpsp->identifier_range.end.seq != 0) {
+          fprintf(f_debug, "    identifier range:  %4lu/%-3lu -- %4lu/%-3lu\n",
+                           dpsp->identifier_range.start.seq,
+                           dpsp->identifier_range.start.column,
+                           dpsp->identifier_range.end.seq,
+                           dpsp->identifier_range.end.column);
+        }  /* if */
+        if (sym->kind == (a_symbol_kind)sk_variable ||
+            sym->kind == (a_symbol_kind)sk_static_data_member) {
+          a_variable_ptr  vp = sym->variant.variable.ptr;
+          if (vp->init_kind != (an_init_kind)initk_none) {
+            fprintf(f_debug,
+                    "    initializer range: %4lu/%-3lu -- %4lu/%-3lu\n",
+                    vp->initializer_range.start.seq,
+                    vp->initializer_range.start.column,
+                    vp->initializer_range.end.seq,
+                    vp->initializer_range.end.column);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -238,11 +244,7 @@ debugging).
     fprintf(f_debug, "decl-pos info for ");
     db_scope(scope_ptr);
     fprintf(f_debug, "\n");
-    for (; sym != NULL; sym = sym->next_in_scope) {
-      if (!sym->is_error && sym->decl_position.seq != 0) {
-        db_decl_pos_info(sym);
-      }  /* if */
-    }  /* for */
+    for (; sym != NULL; sym = sym->next_in_scope) db_decl_pos_info(sym);
   }  /* if */
 }  /* db_decl_pos_info_for_scope */
 
@@ -3242,6 +3244,22 @@ unit.
   a_symbol_ptr			sym;
 
   db_enter(3, "wrapup_scope");
+#if DEBUG
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (debug_level != 3 || db_flag_is_set("dump_decl_pos_info")) {
+    switch(kind) {
+      case sck_func_prototype:
+      case sck_namespace_extension:
+      case sck_namespace_reactivation:
+        break;
+      case sck_namespace:
+        if (!is_namespace_wrapup) break;
+      default:
+        db_decl_pos_info_for_scope(scope_ptr, pointers_block);
+    }  /* switch */
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* DEBUG */
   if (kind == (a_scope_kind)sck_namespace_extension ||
       kind == (a_scope_kind)sck_namespace_reactivation) {
     /* Symbol processing is not done for namespace extension and
@@ -3260,13 +3278,6 @@ unit.
                                                             is_nonreal_class) {
       is_prototype_instantiation = TRUE;
     }  /* if */
-#if DEBUG
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (db_flag_is_set("dump_decl_pos_info")) {
-      db_decl_pos_info_for_scope(scope_ptr, pointers_block);
-    }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#endif /* DEBUG */
     /* Remove the symbols declared in this scope from the symbol table.
        Check for unreferenced symbols, and issue warnings for those. */
     for (sym = pointers_block->symbols;
