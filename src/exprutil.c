@@ -582,6 +582,7 @@ at the start of a major expression.
   new_entry->is_default_arg_expression = FALSE;
   new_entry->is_template_arg_expression = FALSE;
   new_entry->in_return_by_cctor_expression = FALSE;
+  new_entry->fold_constant_addr_exprs = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   if (expr_stack != NULL) {
@@ -593,10 +594,18 @@ at the start of a major expression.
                                          expr_stack->is_default_arg_expression;
   }  /* if */
   expr_stack = new_entry;
-  /* Constant addressing expressions should be folded to constants inside
-     constant expressions.  This is set late so that
+  /* Do special handling for constant expressions.  This is done late so that
      curr_expr_kind_is_const can be used. */
-  expr_stack->fold_constant_addr_exprs = curr_expr_kind_is_const();
+  if (curr_expr_kind_is_const()) {
+    /* Constant addressing expressions should be folded to constants inside
+       constant expressions. */
+    expr_stack->fold_constant_addr_exprs = TRUE;
+    /* Constant expressions are always evaluated even when inside a
+       not-evaluated expression.  For example, in sizeof(int[1+1])
+       the 1+1 must be evaluated. */
+    expr_stack->evaluated = TRUE;
+    expr_stack->potentially_evaluated = TRUE;
+  }  /* if */
 }  /* push_expr_stack */
 
 
