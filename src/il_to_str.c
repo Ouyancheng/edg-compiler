@@ -1571,6 +1571,51 @@ Do the output in the way described by octl.
 }  /* form_pm_constant */
 
 
+static a_boolean types_match_ignoring_qualifiers(a_type_ptr type_1,
+                                                 a_type_ptr type_2)
+/*
+Return TRUE if type_1 and type_2 are the same type ignoring type qualifiers.
+This is used in deciding whether a particular lvalue formulation should
+be used for an address constant; the differences allowed are ones that
+can be bridged by a cast on an lvalue address.  This routine is similar to
+same_type_with_added_qualifiers, but simpler, and needed here because
+in il_to_str we can't use routines that aren't available to back ends
+and standalone utility programs.
+*/
+{
+  a_boolean types_match = FALSE;
+
+  type_1 = skip_typerefs(type_1);
+  type_2 = skip_typerefs(type_2);
+  if (type_1 == type_2) {
+    types_match = TRUE;
+  } else if (type_1->kind != type_2->kind) {
+    /* Type kinds do not match, so types do not match. */
+    /* types_match = FALSE; -- already set. */
+  } else if (type_1->kind == (a_type_kind)tk_pointer) {
+    /* Continue at the next level for pointers. */
+    types_match = types_match_ignoring_qualifiers(type_pointed_to(type_1),
+                                                  type_pointed_to(type_2));
+  } else if (type_1->kind == (a_type_kind)tk_ptr_to_member &&
+             pm_class_type(type_1) == pm_class_type(type_2)) {
+    /* Continue at the next level for pointers to members. */
+    types_match = types_match_ignoring_qualifiers(pm_member_type(type_1),
+                                                  pm_member_type(type_2));
+  } else if (!C_mode() &&
+             type_1->kind == (a_type_kind)tk_array &&
+             !type_1->variant.array.is_variable_size_array &&
+             !type_2->variant.array.is_variable_size_array &&
+             type_1->variant.array.variant.number_of_elements ==
+                            type_2->variant.array.variant.number_of_elements) {
+    /* Continue at the next level for arrays (in C++ mode, the qualifiers on
+       array element types count as qualifiers on the array). */
+    types_match = types_match_ignoring_qualifiers(array_element_type(type_1),
+                                                  array_element_type(type_2));
+  }  /* if */
+  return types_match;
+}  /* types_match_ignoring_qualifiers */
+
+
 static a_boolean type_matches_desired_type(a_type_ptr type,
                                            a_type_ptr desired_type,
                                            a_boolean  will_use_as_addr,
@@ -1588,9 +1633,7 @@ in the match-up.  If type decay is used in making the match, return
   *type_decay_used = FALSE;
   /* Check for the same type, ignoring qualifier differences. */
   if (type == desired_type ||  /* For speed. */
-      same_type_with_added_qualifiers(type, desired_type,
-                                      /*ignore_qualifiers=*/TRUE,
-                                      (a_boolean *)NULL)) {
+      types_match_ignoring_qualifiers(type, desired_type)) {
     type_matches = TRUE;
   } else if (will_use_as_addr) {
     /* Check for the decay cases.  Note that this is checked only when the
@@ -1605,9 +1648,7 @@ in the match-up.  If type decay is used in making the match, return
        above. */
     if (is_array_type(type)) {
       a_type_ptr element_type = array_element_type(type);
-      if (same_type_with_added_qualifiers(element_type, desired_type,
-                                          /*ignore_qualifiers=*/TRUE,
-                                          (a_boolean *)NULL)) {
+      if (types_match_ignoring_qualifiers(element_type, desired_type)) {
         type_matches = TRUE;
         *type_decay_used = TRUE;
       }  /* if */
@@ -2016,8 +2057,7 @@ precedence confusion.  Do the output in the way described by octl.
     }  /* if */
     if (need_char_star_cast) final_cast_needed = TRUE;
   }  /* if */
-  if (!final_cast_needed &&
-      !types_are_compatible(achieved_type, desired_type)) {
+  if (achieved_type != desired_type) {
     /* The proper type couldn't be achieved with address operators, so we
        need a final cast to adjust the type.  One important category of cases
        this handles is cases that require just qualification adjustments. */
