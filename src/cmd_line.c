@@ -329,6 +329,7 @@ Process the arguments on the command line that invoked the compiler.
         cfront_compatibility_mode = TRUE;
         /* This option implies C++ dialect. */
         C_dialect = C_dialect_cplusplus;
+        allow_anachronisms = TRUE;
         break;
       case 'n':
         /* Run just the front end to do syntax checking; do not run the back
