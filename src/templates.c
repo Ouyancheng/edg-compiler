@@ -1763,6 +1763,28 @@ and create a function instantiation entry to bind the two symbols together.
   if (is_constructor_symbol(rout_sym)) {
     sym = corresp_prototype_tag_sym->
                          variant.class_struct_union.extra_info->constructor;
+  } else if (rout_sym->variant.routine.ptr->special_kind ==
+                                    (a_special_function_kind)sfk_conversion) {
+    /* Look through the conversion routines of the prototype instantiation. */
+    a_conversion_list_entry_ptr   clep;
+
+    sym = NULL;
+    for (clep = corresp_prototype_tag_sym->
+                      variant.class_struct_union.extra_info->conversion_list;
+         clep != NULL;
+         clep = clep->next) {
+      if (clep->symbol->decl_position.seq == rout_sym->decl_position.seq &&
+          clep->symbol->decl_position.column ==
+                                             rout_sym->decl_position.column) {
+        /* clep->symbol is the template function symbol for rout_sym. */
+#if 0
+        /* Eventually we need a more reliable technique than relying on
+           declaration position. */
+#endif /* if 0 */
+        sym = clep->symbol;
+        break;
+      }  /* if */
+    }  /* for */
   } else {
     /* Get the scope in which the members of the class represented by
        corresp_prototype_tag_sym were declared. */
