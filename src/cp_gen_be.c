@@ -257,9 +257,6 @@ typedef int a_gen_name_options_set;
 #define GN_DECLARATION 0x2
 			/* This use of the name is a declaration or
 			   definition, rather than a use. */
-#define GN_PARENS_IF_GLOBAL_QUALIFIER 0x4
-			/* Put parentheses around the name if it begins
-			   with a "::" global qualifier. */
 
 
 /* Needed because of forward references: */
@@ -1578,13 +1575,12 @@ entity is a template class, add the template arguments.
 }  /* gen_unqualified_name */
 
 
-static void gen_class_qualifier(a_type_ptr             class_type,
-                                a_boolean              bound_function,
-                                a_gen_name_options_set options)
+static void gen_class_qualifier(a_type_ptr class_type,
+                                a_boolean  bound_function)
 /*
 Generate a class qualifier (e.g., "A::B::") that identifies the indicated
 class type.  If bound_function is TRUE, this class qualifier is for a
-reference to a bound function.  options gives a set of options for gen_name.
+reference to a bound function.
 */
 {
   /* Ignore anonymous union levels. */
@@ -1610,17 +1606,16 @@ reference to a bound function.  options gives a set of options for gen_name.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Use recursion to handle multiple levels of nesting. */
-    gen_name(&class_type->source_corresp, iek_type, options);
+    gen_name(&class_type->source_corresp, iek_type, GN_NO_OPTIONS);
     write_tok_str("::");
   }  /* if */
 }  /* gen_class_qualifier */
 
 
-static void gen_namespace_qualifier(a_namespace_ptr        nsp,
-                                    a_gen_name_options_set options)
+static void gen_namespace_qualifier(a_namespace_ptr nsp)
 /*
 Generate a namespace qualifier (e.g., "A::B::") that identifies the indicated
-namespace.  options gives a set of options for gen_name.
+namespace.
 */
 {
   /* If the namespace at this level is unnamed, skip it and move up one
@@ -1630,7 +1625,7 @@ namespace.  options gives a set of options for gen_name.
   }  /* while */
   if (nsp != NULL) {
     /* Use recursion to handle multiple levels of nesting. */
-    gen_name(&nsp->source_corresp, iek_namespace, options);
+    gen_name(&nsp->source_corresp, iek_namespace, GN_NO_OPTIONS);
     write_tok_str("::");
   }  /* if */
 }  /* gen_namespace_qualifier */
@@ -1648,13 +1643,10 @@ suppress the qualifier (because it seems to be unnecessary) if
 GN_FORCE_QUALIFIED_NAME is set in options (this is used for things
 like pointer-to-member constants, which must have the form of a
 qualified name).  The current use of the name is in a declaration or
-definition if GN_DECLARATION is set in options.  Put parentheses
-around the name if it begins with a "::" global qualifier and
-GN_PARENS_IF_GLOBAL_QUALIFIER is set in options.
+definition if GN_DECLARATION is set in options.
 */
 {
   a_boolean force_qualified_name = (options & GN_FORCE_QUALIFIED_NAME) != 0;
-  a_boolean need_closing_paren = FALSE;
 
   /* If the name is a member of a class or namespace in C++, output the
      class or namespace qualifier. */
@@ -1671,8 +1663,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is set in options.
            for the class and the name is not hidden. */
       } else {
         /* Use a qualified name. */
-        gen_class_qualifier(class_type, /*bound_function=*/FALSE,
-                            options & GN_PARENS_IF_GLOBAL_QUALIFIER);
+        gen_class_qualifier(class_type, /*bound_function=*/FALSE);
       }  /* if */
     } else if (scp->parent.namespace_ptr != NULL) {
       /* The entity is a member of a namespace. */
@@ -1682,24 +1673,16 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is set in options.
         /* A qualified name is not needed, because we're inside a name context
            for the namespace and the name is not hidden. */
       } else {
-        gen_namespace_qualifier(nsp, options & GN_PARENS_IF_GLOBAL_QUALIFIER);
+        gen_namespace_qualifier(nsp);
       }  /* if */
     } else if (scp->qualification_needed && !(options & GN_DECLARATION)) {
       /* This is a reference to a file-scope entity from within a class
          or function, so add a leading "::".  Don't do this on the
          declaration of a name. */
-      if (options & GN_PARENS_IF_GLOBAL_QUALIFIER) {
-        /* Put parentheses around this name to avoid confusion with a
-           preceding name. For example:  "A::B ::C" is put out as
-           "A::B (::C)". */
-        write_tok_ch('(');
-        need_closing_paren = TRUE;
-      }  /* if */
       write_tok_str("::");
     }  /* if */
   }  /* if */
   gen_unqualified_name(scp, entry_kind);
-  if (need_closing_paren) write_tok_ch(')');
 }  /* gen_name */
 
 
@@ -1776,7 +1759,19 @@ a definition.
     /* If a leading "::" will be put on the name, put parentheses around
        the whole name to avoid making the "::" look like a qualifier
        on a name in the type specifiers list. */
-    gen_name(scp, entry_kind, GN_DECLARATION | GN_PARENS_IF_GLOBAL_QUALIFIER);
+    a_source_correspondence *top_scp = scp;
+    for (;;) {
+      if (top_scp->is_class_member) {
+        top_scp = &top_scp->parent.class_type->source_corresp;
+      } else if (top_scp->parent.namespace_ptr != NULL) {
+        top_scp = &top_scp->parent.namespace_ptr->source_corresp;
+      } else {
+        break;
+      }  /* if */
+    }  /* for */
+    if (top_scp->qualification_needed) write_tok_ch('(');
+    gen_name(scp, entry_kind, GN_DECLARATION);
+    if (top_scp->qualification_needed) write_tok_ch(')');
   }  /* if */
 }  /* gen_decl_name */
 
@@ -3294,8 +3289,7 @@ declaration following this one is such a continuation.
                                                  FTO_NO_OPTIONS,
                            &octl);
       /* Write the (qualified) name. */
-      gen_class_qualifier(class_type, /*bound_function=*/FALSE,
-                          GN_NO_OPTIONS);
+      gen_class_qualifier(class_type, /*bound_function=*/FALSE);
       gen_unqualified_name(&type->source_corresp, iek_type);
       /* Write the second part of the declarator. */
       form_type_second_part_simple(under_type, /*under_lhs_declarator=*/FALSE,
@@ -3849,8 +3843,7 @@ this selection.
        is not the class indicated by the pointer. */
     selection_class = skip_typerefs(selection_class);
     if (selection_class != naming_class) {
-      gen_class_qualifier(naming_class, /*bound_function=*/FALSE,
-                          GN_NO_OPTIONS);
+      gen_class_qualifier(naming_class, /*bound_function=*/FALSE);
     }  /* if */
   }  /* if */
   gen_field_reference(field_expr);
@@ -4676,7 +4669,7 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
   if (suppress_virtual && rout->is_virtual) {
     /* The routine being called is a virtual function, and we're supposed
        to suppress its virtual-ness in this call, so use a qualified name. */
-    gen_class_qualifier(naming_class, /*bound_function=*/TRUE, GN_NO_OPTIONS);
+    gen_class_qualifier(naming_class, /*bound_function=*/TRUE);
     gen_unqualified_name(&rout->source_corresp, iek_routine);
   } else {
     /* Normal case. */
@@ -4691,8 +4684,7 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
           /* Use a qualified name for an explicit constructor call (a Microsoft
              extension). */
           rout->special_kind == (a_special_function_kind)sfk_constructor) {
-        gen_class_qualifier(naming_class, /*bound_function=*/TRUE,
-                            GN_NO_OPTIONS);
+        gen_class_qualifier(naming_class, /*bound_function=*/TRUE);
       }  /* if */
     }  /* if */
     gen_unqualified_name(&rout->source_corresp, iek_routine);
@@ -5898,8 +5890,7 @@ Generate code for a class member or nonmember using-declaration.
        then valid access declarations as input should produce valid access
        declarations as output. */
     /* Write the access declaration, which is just a qualified name. */
-    gen_class_qualifier(udp->qualifier.class_type, /*bound_function=*/FALSE,
-                        GN_NO_OPTIONS);
+    gen_class_qualifier(udp->qualifier.class_type, /*bound_function=*/FALSE);
   } else {
     /* A nonmember using-declaration. */
     write_tok_str("using ");
@@ -5907,7 +5898,7 @@ Generate code for a class member or nonmember using-declaration.
     if (nsp == NULL) {
       write_tok_str("::");
     } else {
-      gen_namespace_qualifier(nsp, GN_NO_OPTIONS);
+      gen_namespace_qualifier(nsp);
     }  /* if */
   }  /* if */
   gen_unqualified_name(scp, entry_kind);
