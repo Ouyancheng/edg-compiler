@@ -351,25 +351,25 @@ information, such as its address and translation unit.
   fprintf(f_debug, "address = %lx", (unsigned long)entry);
   fprintf(f_debug, ", in %s trans unit\n", in_secondary_trans_unit(entry) ?
                                              "secondary" : "primary");
-  /* Display the correspondence chain. */
-  fprintf(f_debug, "corresp =");
-  for (curr = entry;;) {
-    char *next = trans_unit_corresp_pointer_of(curr);
-    if (next == NULL) {
-      if (curr == entry) {
-        fprintf(f_debug, " NULL");
+  if (in_secondary_trans_unit(entry)) {
+    /* Display the correspondence chain. */
+    fprintf(f_debug, "corresp =");
+    for (curr = entry;;) {
+      char *next = checked_trans_unit_corresp_pointer_of(curr);
+      if (next == NULL) {
+        if (curr == entry) {
+          fprintf(f_debug, " NULL");
+        }  /* if */
+        break;
+      } else if (next == curr) {
+        fprintf(f_debug, " (points to self)");
+        break;
       }  /* if */
-      break;
-    } else if (next == curr) {
-      fprintf(f_debug, " (points to self)");
-      break;
-    }  /* if */
-    fprintf(f_debug, " %lx", (unsigned long)next);
-    if (in_secondary_trans_unit(next)) {
-      fprintf(f_debug, "(secondary)");
-    }  /* if */
-    curr = next;
-  }  /* for */
+      fprintf(f_debug, " %lx", (unsigned long)next);
+      if (!in_secondary_trans_unit(next)) break;
+      curr = next;
+    }  /* for */
+  }  /* if */
   fprintf(f_debug, "\n");
 }  /* db_entity_info */
 
