@@ -563,6 +563,7 @@ check_abbreviation()
 --no_nonstd_qualifier_deduction
 --no_nonstd_using_decl
 --no_old_specializations
+--no_parse_function_templates
 --no_pch_messages
 --no_pch_verbose
 --no_preproc_only
@@ -594,6 +595,7 @@ check_abbreviation()
 --optimize
 --output
 --pack_alignment
+--parse_function_templates
 --patch
 --pch
 --pch_dir
@@ -1041,6 +1043,8 @@ process_option()
          --no_sun | \
          --dep_name | \
          --no_dep_name | \
+         --parse_function_templates | \
+         --no_parse_function_templates | \
          --ignore_std | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
