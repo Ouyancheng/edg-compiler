@@ -9119,7 +9119,7 @@ encountered, whatever their other characteristics, are included.
 
 void add_token_cache_to_string(a_token_cache_ptr	cache)
 /*
-Go through the a token cache and add the tokens to the string that is
+Go through a token cache and add the tokens to the string that is
 being constructed that represents the tokens in the cache.
 */
 {
