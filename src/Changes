@@ -1,5 +1,14 @@
 Version 3.6
 
+4/6/05   GNU and Microsoft compatibility: Incomplete dependent base classes
+
+In GNU and Microsoft C++ modes the front end now accepts any kind of incomplete
+dependent base class.  For example:
+
+  template<typename T> struct S {
+    struct N: S<T> {};  // Previously an error.  Now accepted in GNU and
+  };                    // Microsoft modes.
+
 4/6/05   Limit on number of operands in GNU extended asm constructs
 
 In GNU modes, the front end formerly imposed a limit of no more than 10
