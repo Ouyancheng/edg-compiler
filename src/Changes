@@ -1,5 +1,19 @@
 Version 2.42
 
+4/24/99  C++-generating back end: comma lists, typedef for unnamed class
+
+The C++-generating back end's approach for deciding whether to put out
+two variable declarations as a comma list would in some cases decide
+to put out a comma list when one was not required.  This was correct
+output, but not what was intended.  The cases where this was done
+involved a typedef for an unnamed class or enum.  Now fixed.
+
+  typedef struct {} X;
+  void test() {
+    X* xp1;
+    X* xp2;  // Formerly put out as part of comma list
+  }
+
 4/22/99  C++-generating back end: abort building hidden name table
 
 With support for class name injection introduced in version 2.41, an

@@ -2722,7 +2722,12 @@ it is a typedef.
   a_type_ptr  unqual_type;
 
   type = type_specifier_of_type(type);
-  unqual_type = skip_typerefs(type);
+  /* Remove cv-qualifiers but not typedefs. */
+  unqual_type = type;
+  while (unqual_type->kind == (a_type_kind)tk_typeref &&
+         !typeref_is_typedef(unqual_type)) {
+    unqual_type = unqual_type->variant.typeref.type;
+  }  /* while */
   kind = unqual_type->kind;
   /* Look for a comma list (a) if the underlying type is an unnamed tag, and
      (b) always in a for-init. */
