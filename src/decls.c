@@ -1164,6 +1164,10 @@ storage_class are the type and storage class for the parameter.
   a_param_id_ptr          new_param_id;
 
   if (func_info != NULL) {
+#if 0
+    /* Note that there is no way to know whether this is a redeclaration
+       error after the call to enter_symbol. */
+#else
     /* See if this identifier name already appears on the list.  If
        so, generate an error and represent the parameter with an error
        locator.  That means a param id is created for it. */
@@ -1171,6 +1175,21 @@ storage_class are the type and storage class for the parameter.
         param_id_on_list(locator, func_info->param_id_list)) {
       error(ec_dupl_param_name);
       set_to_error_locator(*locator);
+    }  /* if */
+#endif /* if 0 */
+    /* Enter a parameter symbol in the symbol table, checking for duplicate
+       parameters in so doing.  Parameter symbols are entered in the
+       function prototype scope only; the corresponding symbol in the function
+       scope itself is a variable symbol for which the variable's
+       is_parameter flag is set to TRUE. */
+    if (!is_error_locator(*locator) &&
+        param_id_on_list(locator, func_info->param_id_list)) {
+      error(ec_dupl_param_name);
+      set_to_error_locator(*locator);
+    }  /* if */
+    if (!is_error_locator(*locator)) {
+      (void)enter_symbol((a_symbol_kind)sk_parameter, locator,
+                         depth_scope_stack, /*suppress_redecl_error=*/FALSE);
     }  /* if */
     new_param_id = alloc_param_id();
     /* Put the proper location into the parameter id entry. */
@@ -6424,8 +6443,10 @@ prototype scope) now that we are in the body of the function.
        curr_symbol != NULL;
        curr_symbol = next_symbol) {
     next_symbol = curr_symbol->next_in_scope;
-    reenter_symbol(curr_symbol, depth_scope_stack, /*suppress_error=*/TRUE);
-    curr_symbol->reentered_from_prototype_scope = TRUE;
+    if (curr_symbol->kind != (a_symbol_kind)sk_parameter) {
+      reenter_symbol(curr_symbol, depth_scope_stack, /*suppress_error=*/TRUE);
+      curr_symbol->reentered_from_prototype_scope = TRUE;
+    }  /* if */
   }  /* for */
 }  /* reactivate_prototype_scope_symbols */
 
