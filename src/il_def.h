@@ -992,7 +992,7 @@ Macro that returns the trans_unit_corresp for an IL entry that has a source
 correspondence.
 */
 #define trans_unit_corresp_of(ptr)					\
-  ((ptr)->source_corresp.trans_unit_corresp)
+  (((a_source_correspondence*)(ptr))->trans_unit_corresp)
 
 /*
 Macro that returns the canonical IL entry pointer for an IL entry that
@@ -1000,8 +1000,8 @@ has a source correspondence.  If the entry has no correspondence pointer,
 a NULL pointer is returned.
 */
 #define canonical_il_entry_of(ptr)					\
-  (((a_source_correspondence*)(ptr))->trans_unit_corresp != NULL ?	\
-   ((a_source_correspondence*)(ptr))->trans_unit_corresp->canonical : NULL)
+  (char*)(trans_unit_corresp_of(ptr) != NULL ? trans_unit_corresp_of(ptr) \
+                                             : NULL)
 
 
 typedef struct a_source_correspondence *a_source_correspondence_ptr;
