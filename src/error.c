@@ -1241,6 +1241,9 @@ error code.
       m =
        "none of the available operator new() functions matches these operands";
       break;
+    case ec_delete_already_declared:
+      m = "operator delete() may not be overloaded";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -432,7 +432,8 @@ typedef enum /*an_error_code*/ {
   ec_extra_semicolon,
   ec_nonstd_const_member,
   ec_delete_of_const_pointer,
-  ec_no_matching_new_function
+  ec_no_matching_new_function,
+  ec_delete_already_declared
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
