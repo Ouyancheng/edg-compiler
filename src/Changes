@@ -1,5 +1,15 @@
 Version 2.37
 
+9/21/97   Partial lowering of exception handling: cleanup state when
+          lifetime of entity overlaps temporaries in inner lifetime
+
+The change made in 2.36 involving the overlaps_temps_in_inner_lifetime
+flag was incomplete for the partial-lowering configuration.  The
+cleanup_state_to_set_when_starting_destruction field in the
+destructible_entity_descr built by IL lowering was not updated for the
+last-destroyed of such temporaries.  This is only significant for
+back ends that use the destructible_entity_descr built by IL lowering.
+
 9/21/97   Abort generating exception handling tables for aggregate
 
 An abort in IL lowering, which occurred while generating exception

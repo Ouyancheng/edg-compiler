@@ -2866,7 +2866,6 @@ variable to a zero value.
                             insert_location);
 }  /* reset_conditional_flag_var */
 
-#if GENERATE_EH_TABLES
 
 static void adjust_cleanup_state_for_inner_lifetime_temporaries(
                                                    a_dynamic_init_ptr temp_dip,
@@ -2877,13 +2876,18 @@ destructible temporaries in an inner object lifetime are still in existence.
 temp_dip points to the destruction for one of those temporaries.
 Update the region table information for the temporary and those
 following it in its object lifetime so that the cleanup list includes
-the temporaries and then the outer-lifetime entity.  This may involve
-cloning some of the region table entries for the temporaries, since
-currently the last temporary points past the outer-lifetime entity
-to the next thing to be destroyed after that.  The region table entry
-for dip has already been created.
+the temporaries and then the outer-lifetime entity.
 */
+#if GENERATE_EH_TABLES
+/*
+This may involve cloning some of the region table entries for the
+temporaries, since currently the last temporary points past the
+outer-lifetime entity to the next thing to be destroyed after that.
+The region table entry for dip has already been created.
+*/
+#endif /* GENERATE_EH_TABLES */
 {
+#if GENERATE_EH_TABLES
   a_destructible_entity_descr_ptr dedp = temp_dip->destructible_entity_descr;
 
   if (dedp->next_in_region_table == NULL) {
@@ -2912,11 +2916,22 @@ for dip has already been created.
   if (temp_dip != temp_dip->lifetime->destructions) {
     clone_region_table_entry_list(temp_dip, dedp->next_in_region_table);
   }  /* if */
+#else /* !GENERATE_EH_TABLES */
+  /* Find the last destruction entry for a temporary and reset its
+     cleanup_state_to_set_when_starting_destruction to dip. */
+  { a_dynamic_init_ptr last_dip;
+    a_destructible_entity_descr_ptr last_dedp;
+    for (last_dip = temp_dip;
+         last_dip->next_in_destruction_list != NULL;
+         last_dip = last_dip->next_in_destruction_list) {}
+    last_dedp = last_dip->destructible_entity_descr;
+    last_dedp->cleanup_state_to_set_when_starting_destruction = dip;
+  }    
+#endif /* GENERATE_EH_TABLES */
   curr_context->latest_initialization = temp_dip;
   set_curr_cleanup_state_to_latest_initialization();
 }  /* adjust_cleanup_state_for_inner_lifetime_temporaries */
 
-#endif /* GENERATE_EH_TABLES */
 
 static void add_dyn_init_cleanup(a_dynamic_init_ptr     dip,
                                  an_init_pos_descr_ptr  ipdp,
@@ -2964,6 +2979,7 @@ Any code needed is inserted at *insert_location.
     make_dyn_init_region_table_entry(dip,
                                      prev_initialization,
                                      insert_location);
+#endif /* GENERATE_EH_TABLES */
     /* Check for entities initialized during an inner lifetime, which
        may mean the entity overlaps with temporaries created in that inner
        lifetime. */
@@ -2988,7 +3004,6 @@ Any code needed is inserted at *insert_location.
          region table for that last temporary, which was not cloned because
          it's not needed. */
     } else
-#endif /* GENERATE_EH_TABLES */
     /* Do not insert code here; this is the "else" of an "if". */
     {
       insert_code_to_indicate_cleanup_state(context->curr_cleanup_state,
