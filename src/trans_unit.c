@@ -191,9 +191,14 @@ This routine is used when saving the translation unit state.  It clears the
 depth_in_scope_stack field of any scopes on the scope stack.
 */
 {
-  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+  a_scope_stack_entry_ptr  ssep;
 
-  for (; ssep != NULL;
+  /* Clear the information about using-directives in scopes on the scope
+     stack. */
+  set_active_using_list_scope_depths(depth_scope_stack,
+                                     /*set_value=*/FALSE,
+                                     NO_DECL_SEQUENCE_NUMBER);
+  for (ssep = &scope_stack[depth_scope_stack]; ssep != NULL;
        ssep = ssep->kind == (a_scope_kind)sck_file ? NULL : ssep - 1) {
     a_scope_ptr	scope = ssep->il_scope;
     if (scope != NULL) {
@@ -210,9 +215,9 @@ depth_in_scope_stack field of any scopes on the scope stack that have
 associated IL scopes.
 */
 {
-  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+  a_scope_stack_entry_ptr  ssep;
 
-  for (; ssep != NULL;
+  for (ssep = &scope_stack[depth_scope_stack]; ssep != NULL;
        ssep = ssep->kind == (a_scope_kind)sck_file ? NULL : ssep - 1) {
     a_scope_ptr	scope = ssep->il_scope;
     /* Note that if a scope is on the stack more than once, this will have
@@ -221,6 +226,10 @@ associated IL scopes.
       scope->depth_in_scope_stack = scope_depth_of(ssep);
     }  /* if */
   }  /* for */
+  /* Reset the active using list flags to the values. */
+  set_active_using_list_scope_depths(depth_scope_stack,
+                                     /*set_value=*/TRUE,
+                                     get_effective_decl_seq());
 }  /* set_scope_stack_related_information */
 
 

@@ -961,7 +961,7 @@ declaration is scanned and are used as placeholders between instantiations.
 }  /* restore_default_template_params */
 
 
-static void set_active_using_list_scope_depths(
+void set_active_using_list_scope_depths(
 				a_scope_depth		starting_depth,
                                 a_boolean		set_value,
 				a_decl_sequence_number	effective_decl_seq)

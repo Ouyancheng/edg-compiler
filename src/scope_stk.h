@@ -996,6 +996,11 @@ extern void set_needed_flags_at_end_of_file_scope(a_scope_ptr scope);
 
 a_boolean keep_function_body_for_possible_inlining(a_routine_ptr routine);
 
+extern void set_active_using_list_scope_depths(
+				a_scope_depth		starting_depth,
+                                a_boolean		set_value,
+				a_decl_sequence_number	effective_decl_seq);
+
 extern void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp);
 
 extern void wrapup_namespace_scopes(a_scope_ptr scope_ptr);
