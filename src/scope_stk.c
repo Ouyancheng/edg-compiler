@@ -2507,12 +2507,10 @@ been completed.
          then we need to walk the subtree of the class; if not, we can ignore
          it. */
       if (tp->source_corresp.needed) {
-        if (tp->variant.class_struct_union.definition_needed) {
-          /* Walk the class subtree.  Clear the needed flag first, else the
-             subtree walk will not be done. */
-          tp->source_corresp.needed = FALSE;
-          mark_as_needed((char *)tp, (an_il_entry_kind)iek_type);
-        }  /* if */
+        /* Walk the class subtree, if appropriate.  Clear the needed flag
+           first, else the subtree walk will not be done. */
+        tp->source_corresp.needed = FALSE;
+        mark_as_needed((char *)tp, (an_il_entry_kind)iek_type);
       }  /* if */
       ctsp = tp->variant.class_struct_union.extra_info;
       if (ctsp != NULL && ctsp->assoc_scope != NULL) {
