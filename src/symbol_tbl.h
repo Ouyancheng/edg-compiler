@@ -1052,8 +1052,9 @@ extern void make_type_conversion_locator(a_type_ptr         type,
                                          a_source_position  *pos);
 
 extern a_symbol_ptr global_operator_new_or_delete_symbol(
-                                                 an_opname_kind     opname,
-                                                 a_source_position  *pos);
+                                          an_opname_kind     opname,
+                                          a_source_position  *pos,
+                                          a_boolean          make_default_new);
 
 extern an_access_specifier access_for_symbol(a_symbol_ptr sym_ptr);
 
