@@ -1,5 +1,17 @@
 Version 2.36
 
+5/12/97   Microsoft compatibility: lvalue casts in C++ mode
+
+In Microsoft Visual C++, casting an lvalue to its own type leaves it an
+lvalue.  This behavior has been supported for a while.  However, now
+(a) this behavior is supported in C++ only in Microsoft bugs mode,
+and (b) no IL is generated for the cast (an eok_lvalue_cast operator is
+no longer generated); this eliminates some internal error cases.
+For example:
+
+  int i;
+  int &r = (int)i;  // Got internal error in Microsoft C++ mode
+
 5/9/97    Microsoft compatibility: missing closing parenthesis on defined(...)
 
 The Microsoft compiler allows the closing parenthesis on the preprocessor

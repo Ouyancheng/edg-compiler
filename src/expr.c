@@ -5512,11 +5512,12 @@ static void lvalue_cast(a_type_ptr type_cast_to,
                         an_operand *result)
 /*
 Cast an operand for an lvalue (result) to a new type.  This "lvalue cast" is
-only done in pcc mode.
+only done in C mode.
 */
 {
   an_expr_node_ptr temp_node;
 
+  check_assertion_str(C_mode(), "lvalue_cast: lvalue cast in C++ mode");
   /* Build an expression node for the lvalue cast.  Note that this is done
      even if the lvalue address is represented by a constant. */
   temp_node = make_node_from_operand(result);
@@ -6163,13 +6164,10 @@ and C++ functional-notation type conversions.
             conv_lvalue_to_rvalue(operand);
             /* Do the cast to void as an expression. */
             cast_operand_to_void(operand, type_cast_to);
-          } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                     || microsoft_mode
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                  ) &&
-              is_an_lvalue(operand) &&
-              still_an_lvalue(source_type, type_cast_to)) {
+          } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode ||
+                     (microsoft_mode && (C_mode() || microsoft_bugs))) &&
+                     is_an_lvalue(operand) &&
+                     still_an_lvalue(source_type, type_cast_to)) {
             /* In pcc, SVR4 C, or Microsoft mode, some lvalues cast to
                other types remain lvalues (e.g., int to unsigned). */
             /* Use a special "lvalue cast" operator.  Always do the cast on
@@ -6182,7 +6180,11 @@ and C++ functional-notation type conversions.
                the code in conv_lvalue_to_rvalue that removes the cast if
                the cast lvalue is then converted to an rvalue (the usual
                case). */
-            lvalue_cast(type_cast_to, operand);
+            /* Skip the lvalue cast if the cast doesn't change the type.
+               That's the only case that should come up in C++. */
+            if (!identical_types(source_type, type_cast_to)) {
+              lvalue_cast(type_cast_to, operand);
+            }  /* if */
           } else {
             /* Not an lvalue cast or a cast to void. */
             /* Convert lvalue --> rvalue unless casting to a reference type
