@@ -7830,6 +7830,28 @@ symbol, and view_sym is either the same as symbol or a projection thereof.
     view_sym = symbol;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (view_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    /* Find the symbol in the overload set that corresponds to symbol,
+       because if it is a projection symbol it is relevant in
+       computing the access. */
+    a_symbol_ptr sym, fund_sym;
+    fund_sym = fundamental_symbol_of(symbol);
+    check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function);
+    /* Go from an instance of a template back to the template symbol. */
+    if (fund_sym->variant.routine.ptr->template_arg_list != NULL) {
+      fund_sym = fund_sym->variant.routine.instance_ptr->template_sym;
+    }  /* if */
+    for (sym = view_sym->variant.overloaded_function.symbols;
+         ;
+         sym = sym->next) {
+      check_assertion_str(sym != NULL,
+              "have_access_across_derivations: sym not found in overload set");
+      if (fundamental_symbol_of(sym) == fund_sym) {
+        view_sym = sym;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   if (view_sym->kind == (a_symbol_kind)sk_projection) {
     /* The view symbol is a projection symbol. */
     bcp = view_sym->variant.projection.extra_info->fundamental_base_class;

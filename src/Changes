@@ -1,5 +1,26 @@
 Version 3.3
 
+7/18/03  Access checking on member template in presence of using-declaration
+
+A spurious access error was sometimes generated on a use of an
+overloaded member function template, when a using-declaration in a
+derived class made it accessible.  Now fixed.
+
+  class Base {
+    protected:
+      template <typename T>
+      void f(const T &) { }
+      void f(const int &) { }
+  };
+  class Derived : public Base {
+    public:
+      using Base::f;
+  };
+  int main() {
+     Derived d;
+     d.f(7.0); // Formerly got access error
+  }
+
 7/17/03  alignment-of operator for incomplete types
 
 Previously, the front end silently accepted alignment-of operators (e.g.,
