@@ -2207,7 +2207,7 @@ modified syntax):
 		__inline
 
 	type-qualifier:
-		__stdcall
+		__cdecl
 		__fastcall
 		__stdcall
 
@@ -2458,8 +2458,12 @@ Returns TRUE if there is an error in the specifiers.
           if (!(input_flags & DSI_STORAGE_CLASS_SPECIFIER_ALLOWED)) {
             pos_error(ec_storage_class_not_allowed, &specifier_start_pos);
             err = TRUE;
+          } else if (input_flags & DSI_IS_CONDITION_DECL) {
+            pos_error(ec_bad_storage_class_on_condition_decl,
+                      &specifier_start_pos);
+            err = TRUE;
           } else {
-            /* There were no errors, update decl_modifiers to reflect
+            /* There were no errors; update decl_modifiers to reflect
                this specifier. */
             *decl_modifiers |= new_modifiers;
             if (is_parameter) {
