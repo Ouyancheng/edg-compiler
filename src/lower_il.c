@@ -34,7 +34,9 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 #include "layout.h"
 #include "il_walk.h"
 #include "templates.h"
+#if LOWER_EXTERN_INLINE
 #include "fe_wrapup.h"
+#endif /* LOWER_EXTERN_INLINE */
 #endif /* DO_IL_LOWERING */
 
 /* Only include this code if it is needed.  The first few routines are
