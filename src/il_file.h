@@ -100,6 +100,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_derivation_step),
   sizeof(a_base_class),
   sizeof(a_class_list_entry),
+  sizeof(a_routine_list_entry),
   sizeof(a_class_type_supplement),
   sizeof(a_constructor_init),
   sizeof(an_asm_entry),
