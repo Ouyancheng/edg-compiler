@@ -1786,21 +1786,27 @@ a definition.
     gen_unqualified_name(scp, entry_kind);
   } else {
     /* Use a normal, possibly-qualified name */
-    a_boolean need_closing_paren = FALSE;
+    a_boolean              may_need_parens = TRUE, need_closing_paren = FALSE;
     a_gen_name_options_set options = GN_DECLARATION;
     /* If a leading "::" will be put on the name, put parentheses around
        the whole name to avoid making the "::" look like a qualifier
        on a name in the type specifiers list. */
-    if (entry_kind == iek_routine &&
-        (((a_routine_ptr)scp)->special_kind ==
-                                    (a_special_function_kind)sfk_conversion ||
-         ((a_routine_ptr)scp)->special_kind ==
-                                    (a_special_function_kind)sfk_constructor ||
-         ((a_routine_ptr)scp)->special_kind ==
-                                    (a_special_function_kind)sfk_destructor)) {
-      /* Parentheses are not needed around a conversion function,
-         constructor, or destructor, because they do not have return types. */
-    } else {
+    if (entry_kind == iek_routine) {
+      a_routine_ptr rout = (a_routine_ptr)scp;
+      if (rout->special_kind == (a_special_function_kind)sfk_conversion ||
+          rout->special_kind == (a_special_function_kind)sfk_constructor ||
+          rout->special_kind == (a_special_function_kind)sfk_destructor) {
+        /* Parentheses are not needed around a conversion function,
+           constructor, or destructor, because they do not have return
+           types. */
+        may_need_parens = FALSE;
+      } else if (skip_typerefs(rout->type)->variant.routine.
+                                   return_type->kind == (a_type_kind)tk_void) {
+        /* Parentheses are not needed when the return type is void. */
+        may_need_parens = FALSE;
+      }  /* if */
+    }  /* if */
+    if (may_need_parens) {
       options |= GN_PARENS_IF_GLOBAL_QUALIFIER;
     }  /* if */
     gen_name(scp, entry_kind, options, &need_closing_paren);
