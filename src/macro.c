@@ -1823,6 +1823,7 @@ associated global variables will also have been set).
   a_line_number   line_number;
   a_boolean       at_end_of_source;
   a_boolean       delete_source_from_loc_was_set_on_entry = FALSE;
+  unsigned long   saved_macro_depth = macro_depth;
   a_boolean       too_many_args_diag_given = FALSE;
   a_macro_arg_ptr map, prev_end_of_macro_arg_list = end_of_macro_arg_list;
   /* The following is used by various macros.  It is therefore important to
@@ -1878,7 +1879,6 @@ associated global variables will also have been set).
   }  /* if */
 #endif /* DEBUG */
   copy_source_position(pos_curr_token, start_pos);
-  macro_depth++;
   /* If possible, clear the macro buffer (a buffer where characters of
      expansions are put).  This is tricky in that we can't clear the
      macro buffer while there are expanded macro calls earlier in the
@@ -1996,6 +1996,7 @@ end_scan_for_macro_modifs:;
   } else if (mdp->object_like) {
     /* "Object-like" macro (has no arguments).  Or, a special predefined
        macro, which might have arguments. */
+    macro_depth++;
     got_proper_closing_token = TRUE;
     /* A NULL replacement text pointer indicates one of the special predefined
        macros that must be handled by code. */
@@ -2115,6 +2116,7 @@ end_scan_for_macro_modifs:;
       /* "(" was found, so this is a macro call.  Scan the argument values
          and save them in the parameter list blocks (in both raw and
          macro-expanded form). */
+      macro_depth++;
       fetch_pp_tokens = TRUE;
       expand_macros = FALSE;
       /* Get the "(" as a token, and delete its characters. */
@@ -2657,7 +2659,7 @@ return_point:
                      (int)(next_avail_in_macro_buffer - macro_buffer));
   }  /* if */
 #endif /* DEBUG */
-  macro_depth--;
+  macro_depth = saved_macro_depth;
   db_exit();
   return (ctoken);
 }  /* macro_invocation */
