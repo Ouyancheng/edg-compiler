@@ -7374,13 +7374,13 @@ the IL entry.  A cross-reference entry for a definition will be put out.
     sym_ptr->decl_position = *source_position;
     set_decl_sequence_number(sym_ptr);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* The source position in the IL entry is not updated until after
-       the source sequence list is updated.  This is to assure that a
-       secondary declaration entry gets the right source position in the
-       case of a redeclaration. */
+    /* The source position in the IL entry and the defined flag in the symbol
+       are not updated until after
+       the source sequence list is updated. */
 #else
     scptr = source_corresp_entry_for_symbol(sym_ptr);
     if (scptr != NULL) scptr->decl_position = *source_position;
+    sym_ptr->defined = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   /* Update the cross reference file if it exists and if this is not a
@@ -7398,13 +7398,17 @@ the IL entry.  A cross-reference entry for a definition will be put out.
        recorded as a secondary declaration. */
     sym_update_source_sequence_list(sym_ptr, source_position,
                                     /*is_primary_decl=*/!sym_ptr->defined);
-    if (!sym_ptr->defined) {
-      scptr = source_corresp_entry_for_symbol(sym_ptr);
-      if (scptr != NULL) scptr->decl_position = *source_position;
-    }  /* if */
+  }  /* if */
+  if (!sym_ptr->defined) {
+    /* The source position in the IL entry is updated only after the source
+       sequence list is updated to assure that a secondary declaration entry
+       gets the right source position in the case of a redeclaration. */
+    scptr = source_corresp_entry_for_symbol(sym_ptr);
+    if (scptr != NULL) scptr->decl_position = *source_position;
+    /* Similarly, the defined flag is also set late. */
+    sym_ptr->defined = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
-  sym_ptr->defined = TRUE;
 }  /* mark_defined */
 
 
