@@ -1334,14 +1334,14 @@ The syntax is:
 See also 3.6.6.4.
 */
 {
-  register a_statement_ptr sp;
-  register an_expr_node_ptr
-                           return_expr = NULL;
-  a_routine_ptr            rout;
-  a_type_ptr               return_type, routine_type;
-  a_boolean                void_return_used = FALSE;
-  a_seq_number             return_seq;
-  a_seq_number             expr_seq;
+  a_statement_ptr    sp;
+  an_expr_node_ptr   return_expr = NULL;
+  a_dynamic_init_ptr dip = NULL;
+  a_routine_ptr      rout;
+  a_type_ptr         return_type, routine_type;
+  a_boolean          void_return_used = FALSE;
+  a_seq_number       return_seq;
+  a_seq_number       expr_seq;
 
   db_enter(3, "return_statement");
   check_for_unreachable_code();
@@ -1393,7 +1393,8 @@ See also 3.6.6.4.
     expr_seq = pos_curr_token.seq;
     /* Scan the return expression and convert it to the function type. */
     return_expr = scan_return_expression(return_type,
-                                         ec_bad_return_value_type);
+                                         ec_bad_return_value_type,
+                                         &dip);
   }  /* if */
   /* If a return expression was found in a void function (which is allowed
      in cfront mode) generate an expression statement that is output
@@ -1409,6 +1410,7 @@ See also 3.6.6.4.
   /* Allocate the return statement. */
   sp = add_statement((a_statement_kind)stmk_return);
   sp->expr = return_expr;
+  sp->variant.dynamic_init = dip;
   sp->seq_number = return_seq;
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
