@@ -411,7 +411,7 @@ we keep scanning till the end of the declarator and return leaving both
            contrary to our reading of the ARM.  For example:
              class A { A(int); };
              A a(int(x));
-           Cfront takes "int(x)" to be a an argument to the constructor and
+           Cfront takes "int(x)" to be an argument to the constructor and
            treats "a" as a variable, but the ARM requires "int(x)" to be a
            declaration and therefore "a" must be a function.  (Note that it
            is a param-decl-vs-arg-expr context if both real and abstract
