@@ -561,6 +561,10 @@ typedef struct a_src_seq_secondary_decl {
   unsigned int	friend_decl:1;
 			/* TRUE when the declaration is a friend declaration;
 			   "entity" will refer to a routine or class. */
+  unsigned int	member_constant_decl:1;
+			/* TRUE when the declaration is an "in-class" static
+			   data member declaration for which an initializer
+			   was specified (9.5.2). */
   bitfield_to_avoid_codecenter_warnings();
 } a_src_seq_secondary_decl;
 

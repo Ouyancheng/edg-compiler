@@ -8954,6 +8954,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       a_boolean                     lparen_printed = FALSE;
       a_boolean                     autonomous = FALSE;
       a_boolean                     is_friend = FALSE;
+      a_boolean                     member_const = FALSE;
       a_type_ptr                    declared_type = NULL;
       a_boolean                     print_type = FALSE;
       a_src_seq_secondary_decl_ptr  sssdp = NULL;
@@ -8970,6 +8971,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           pos = &sssdp->decl_position;
           if (sssdp->autonomous_tag_decl) autonomous = TRUE;
           if (sssdp->friend_decl) is_friend = TRUE;
+          if (sssdp->member_constant_decl) member_const = TRUE;
         } else {
           scp = source_corresp_for_il_entry(
                                          ssep->entity.ptr,
@@ -9009,6 +9011,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         }  /* if */
         if (autonomous) {
           fprintf(f_debug, "%sautonomous decl",
+                           (lparen_printed ? ", " : " ("));
+          lparen_printed = TRUE;
+        }  /* if */
+        if (member_const) {
+          fprintf(f_debug, "%smember constant decl",
                            (lparen_printed ? ", " : " ("));
           lparen_printed = TRUE;
         }  /* if */
@@ -9176,8 +9183,9 @@ and return a pointer to it.
   sssdp->entity.kind   = (a_byte_il_entry_kind)iek_none;
   sssdp->entity.ptr    = NULL;
   sssdp->declared_type = NULL;
-  sssdp->autonomous_tag_decl = FALSE;
-  sssdp->friend_decl         = FALSE;
+  sssdp->autonomous_tag_decl  = FALSE;
+  sssdp->friend_decl          = FALSE;
+  sssdp->member_constant_decl = FALSE;
 #if CHECKING
   sssdp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

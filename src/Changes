@@ -14,6 +14,8 @@ initializers -- for instance:
 
 A static data member declaration inside its class definition may now
 specify an initializer if the member has const integral type (see 9.5.2).
+When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, member_constant_decl, a new
+field in a_src_seq_secondary_decl, will be set.
 
 4/7/95   IL CHANGE:  defined flag in a_variable.
 

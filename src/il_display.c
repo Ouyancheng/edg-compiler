@@ -3192,6 +3192,7 @@ Display the indicated source sequence secondary declaration entry.
   disp_ptr("declared_type", (char *)sssdp->declared_type, iek_type);
   if (sssdp->autonomous_tag_decl) disp_boolean("autonomous_tag_decl", TRUE);
   if (sssdp->friend_decl) disp_boolean("friend_decl", TRUE);
+  if (sssdp->member_const_decl) disp_boolean("member_const_decl", TRUE);
 }  /* disp_src_seq_secondary_decl */
 
 
