@@ -12339,8 +12339,6 @@ done to determine whether a precompiled header may be used.
   /* Variables in lexical.h: */
   depth_input_stack = -1;
   curr_ise = NULL;
-  seq_number_last_read = 0;
-  curr_seq_number = 0;
   orig_line_modif_list = NULL;
   end_orig_line_modif_list = NULL;
   source_line_modif_list = NULL;
@@ -12394,6 +12392,8 @@ of the front end.
 */
 {
   /* Variables in lexical.h: */
+  curr_seq_number = 0;
+  seq_number_last_read = 0;
   avail_orig_line_modifs = NULL;
   avail_source_line_modifs = NULL;
   sequence_id_for_source_line_modifs = 0;

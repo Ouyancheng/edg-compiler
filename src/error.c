@@ -4369,10 +4369,6 @@ are handled in error_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
-  /* Register variables that must be saved and restored when switching
-     between translation units. */
-  register_trans_unit_variable(head_of_file_index_list);
-  register_trans_unit_variable(tail_of_file_index_list);
 }  /* error_one_time_init */
 
 
@@ -4381,7 +4377,6 @@ void error_trans_unit_init(void)
 Initialize variables that are specific to a given translation unit.
 */
 {
-  clear_file_index_list();
 }  /* error_trans_unit_init */
 
 
@@ -4392,6 +4387,7 @@ of each compilation.
 */
 {
   catastrophe_has_occurred = FALSE;
+  clear_file_index_list();
   memzero((char *)recorded_diagnostic_table,
           sizeof(recorded_diagnostic_table));
 }  /* error_init */

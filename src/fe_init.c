@@ -849,11 +849,13 @@ Open the primary source file, push the input stack, and get the
 first line of the file.
 */
 {
-  /* Clear the primary source file pointer.  This is done just in case the
-     primary source file has already been opened for PCH prefix processing.
-     If we don't reset the primary source file, push_input_stack
-     will try to use the old source file as the parent. */
-  il_header.primary_source_file = NULL;
+  if (is_primary_translation_unit) {
+    /* Clear the primary source file pointer.  This is done just in case the
+       primary source file has already been opened for PCH prefix processing.
+       If we don't reset the primary source file, push_input_stack
+       will try to use the old source file as the parent. */
+    il_header.primary_source_file = NULL;
+  }  /* if */
   open_file_and_push_input_stack(
                strcpy(alloc_il((sizeof_t)(strlen(primary_source_file_name)+1)),
                       primary_source_file_name),
