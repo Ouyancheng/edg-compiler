@@ -7558,7 +7558,7 @@ Called only in long lifetime temporaries mode.
   if (need_to_destroy_temps) {
     /* Go through the list of destructions, find the ones for temporaries,
        and generate destruction code. */
-    for (dip = curr_context->curr_cleanup_state;
+    for (dip = curr_context->latest_initialization;
          dip != NULL;
          dip = dip->next_in_destruction_list) {
       if (dip->has_temporary_lifetime &&
@@ -7850,6 +7850,50 @@ lifetime.  The lifetime must be present on the current context stack.
 }  /* context_for_lifetime */
 
 
+static a_dynamic_init_ptr effective_curr_cleanup_state(void)
+/*
+Return the effective value of curr_context->curr_cleanup_state.  Deal
+with cases where the current value is outside of the current lifetime,
+and with unordered cases.
+*/
+{
+  a_dynamic_init_ptr cleanup_state = curr_context->curr_cleanup_state;
+
+  if (cleanup_state == NULL) {
+    /* Nothing to check. */
+  } else if (cleanup_state->lifetime != curr_object_lifetime) {
+    /* If the current cleanup state is not in the current lifetime, the
+       cleanup list for the current lifetime should be considered empty.
+       This happens when cleanup code has been emitted for a lifetime inside
+       the current one, and the current lifetime has no associated
+       destructions (there may be cleanup associated with the lifetime
+       itself). */
+    cleanup_state = NULL;
+  } else if (cleanup_state->unordered) {
+    /* Find the first cleanup in a set of unordered cleanups, because all of
+       them must be done. */
+    a_dynamic_init_ptr dip, first_in_unordered_set = NULL;
+    for (dip = curr_object_lifetime->destructions;
+         ;
+         dip = dip->next_in_destruction_list) {
+      check_assertion(dip != NULL);
+      if (dip->unordered) {
+        if (first_in_unordered_set == NULL) {
+          /* Remember the first in a set of unordered entries. */
+          first_in_unordered_set = dip;
+        }  /* if */
+      } else {
+        first_in_unordered_set = NULL;
+      }  /* if */
+      /* Stop on reaching the cleanup entry we are looking for. */
+      if (dip == cleanup_state) break;
+    }  /* for */
+    cleanup_state = first_in_unordered_set;
+  }  /* if */
+  return cleanup_state;
+}  /* effective_curr_cleanup_state */
+
+
 static a_boolean gen_cleanup_actions_or_check_if_needed(
                                         an_object_lifetime_ptr outer_lifetime,
                                         an_insert_location_ptr insert_location,
@@ -7864,18 +7908,12 @@ code.
 */
 {
   a_boolean              any_cleanup_needed = FALSE, skip_temporaries = FALSE;
-  a_dynamic_init_ptr     dip = curr_context->curr_cleanup_state;
+  a_dynamic_init_ptr     dip;
   an_object_lifetime_ptr lifetime = curr_object_lifetime;
 
   /* Do nothing at all if there are no lifetimes involved. */
   if (outer_lifetime != NULL) {
-    /* If the current cleanup state is not in the current lifetime, the
-       cleanup list for the current lifetime should be considered empty.
-       This happens when cleanup code has been emitted for a lifetime inside
-       the current one, and the current lifetime has no associated
-       destructions (there may be cleanup associated with the lifetime
-       itself). */
-    if (dip != NULL && dip->lifetime != lifetime) dip = NULL;
+    dip = effective_curr_cleanup_state();
     /* Loop outward through the indicated scopes.  At each level, there may
        be destructions from the current position back to the beginning
        of the lifetime, and there may be cleanup actions associated with the

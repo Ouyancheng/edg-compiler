@@ -1,5 +1,27 @@
 Version 2.34
 
+10/29/96 Missing destructions in the presence of unordered initializations
+
+Since the C++ sequence point rules provide only a partial ordering on
+the order of evaluation of expressions, they also provide only a
+partial ordering on the order of initializations in expressions.
+In some cases involving overloaded function calls, copy constructor
+calls, and unordered expressions one or more temporaries were
+not destroyed.
+
+  struct A {
+    A();
+    A(const A&);
+    ~A();
+  }a ;
+  A f();
+  void g(A, const A&);
+  void g(int, int);
+  int main () {
+    g(a, f());  // Two temporaries, one not destroyed
+                // a and f() unordered with respect to one another
+  }
+
 10/29/96 Microsoft-style asm blocks in templates and member functions
 
 Formerly, Microsoft-style asm blocks were not supported in contexts
