@@ -400,7 +400,7 @@ ec_no_matching_operator_function;;"none of the available operator functions matc
 ec_ambiguous_operator_function;;"more than one operator %sq matches these operands:"
 ec_bad_arg_type_for_operator_new;;"first parameter of allocation function must be of type \"size_t\""
 ec_bad_return_type_for_op_new;;"allocation function requires \"void *\" return type"
-ec_bad_return_type_for_op_delete;;"deallocation function requires \"void *\" return type"
+ec_bad_return_type_for_op_delete;;"deallocation function requires \"void\" return type"
 ec_bad_first_arg_type_for_operator_delete;;"first parameter of deallocation function must be of type \"void *\""
 ec_bad_second_arg_type_for_operator_delete;;"second parameter of deallocation function must be of type \"size_t\""
 ec_type_must_be_object_type;;"type must be an object type"
