@@ -7146,10 +7146,14 @@ next_declaration:
          "aggregate" objects (ARM 8.4.1). */
       if (!class_aggregate_ruled_out) cssp->is_class_aggregate = TRUE;
       /* Issue a diagnostic on a class with no user-defined constructor and
-         with one or more members with reference or const type.  Note that
-         this check is done before compiler-generated constructors, if any,
-         are entered. */
+         with one or more nonstatic data members with reference or const type.
+         This check must be done before compiler-generated constructors, if
+         any, are entered.  (No diagnostic is issued on a const member that
+         has a default constructor, since it will be initialized properly
+         when the default constructor for the current class is generated. */
       if (any_const_or_ref_fields && cssp->constructor == NULL) {
+        /* The current class has at least one const or ref nonstatic data
+           member. */
         if (is_union_type(class_type)) {
           /* Note that we do not do this check for unions.  This is partly
              because a union may have a mixture of const and non-const
@@ -7157,35 +7161,60 @@ next_declaration:
              need to be initialized. */
         } else {
           a_symbol_ptr  sym;
+          a_boolean     any_diagnostics_issued = FALSE;
 
-          if (!cssp->is_class_aggregate) {
-            /* Issue an error for a non-aggregate class, since there's no other
-               way to initialize an object of the class. */
-            pos_sy_start_error(ec_no_ctor_but_const_or_ref_member,
-                               &error_position, tag_sym);
-          } else {
-            /* Issue a warning for an aggregate class.  If an attempt is made
-               to declare an object without appropriate initialization, an
-               error will be issued.  For example:
-                 class A { const int i; };     // Just a warning
-                 A x = { 0 };                  // Okay -- ARM 8.4.1
-                 A y = x;                      // Probably okay -- ARM 8.4.1
-                 A z;                          // Error will be issued       */
-            pos_sy_start_warning(ec_no_ctor_but_const_or_ref_member,
-                                 &error_position, tag_sym);
-          }  /* if */
           /* List each of the uninitialized const or ref member. */
           for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
             if (sym->kind == (a_symbol_kind)sk_field) {
-              a_type_ptr  tp = sym->variant.field.ptr->type;
+              a_type_ptr     tp = sym->variant.field.ptr->type;
+              an_error_code  error_code;
+
               if (is_reference_type(tp)) {
-                sym_add_diag_info(ec_reference_member, sym);
+                /* Member of reference type must be explicitly initialized. */
+                error_code = ec_reference_member;
               } else if (is_const_qualified_type(tp)) {
-                sym_add_diag_info(ec_const_member, sym);
+                /* Usually, a member of const type must be explicitly
+                   initialized. */
+                if (is_class_struct_union_type(tp) &&
+                    symbol_supplement_for_class(tp)->has_default_constructor) {
+                  /* A const data member that has its own default constructor
+                     will be initialized when the default constructor for the
+                     current class is generated.  So skip this one and keep
+                     looking. */
+                  continue;
+                }  /* if */
+                error_code = ec_const_member;
+              } else {
+                /* Not a const or ref member.  Keep looking. */
+                continue;
               }  /* if */
+              if (!any_diagnostics_issued) {
+                /* This is the first field for which a diagnostic should be
+                   issued.  Put out the "head" of the message first. */
+                if (!cssp->is_class_aggregate) {
+                  /* Issue an error for a non-aggregate class, since there's
+                     no other way to initialize an object of the class. */
+                  pos_sy_start_error(ec_no_ctor_but_const_or_ref_member,
+                                     &error_position, tag_sym);
+                } else {
+                  /* Issue a warning for an aggregate class.  If an attempt
+                     is made to declare an object without appropriate
+                     initialization, an error will be issued.  For example:
+                       class A { const int i; };  // Just a warning
+                       A x = { 0 };               // Okay -- ARM 8.4.1
+                       A y = x;                   // Probably okay -- ARM 8.4.1
+                       A z;                       // Error will be issued    */
+                  pos_sy_start_warning(ec_no_ctor_but_const_or_ref_member,
+                                       &error_position, tag_sym);
+                }  /* if */
+                any_diagnostics_issued = TRUE;
+              }  /* if */
+              sym_add_diag_info(error_code, sym);
             }  /* if */
           }  /* for */
-          end_error();
+          if (any_diagnostics_issued) {
+            end_error();
+          }  /* if */
         }  /* if */
       }  /* if */
       if (!is_nonreal_instantiation) {

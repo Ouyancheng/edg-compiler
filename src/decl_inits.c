@@ -2266,6 +2266,11 @@ scan_paren:
             /* We don't issue diagnostics on initializing union members,
                partly because it's not well defined what should happen when
                const and non-const members are mixed, */
+          } else if (is_const_qualified && cssp != NULL &&
+                     cssp->constructor != NULL) {
+            /* A const qualified field may be initialized without an explicit
+               initializer it is of class type and there is a default
+               constructor for the class. */
           } else {
              /* There may be more than one uninitialized const or ref field,
                 so we wait to collect them all before issuing the error. */
