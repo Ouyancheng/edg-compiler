@@ -1545,10 +1545,6 @@ scope is that of a class definition.
   extra_info->arg_pragma = arg_pragma;
   arg_pragma = (an_arg_pragma_kind)apk_none;
   extra_info->param_type_list = NULL;
-  if (is_destructor && curr_token != tok_rparen) {
-    /* Destructors are allowed no arguments. */
-    error(ec_too_many_params_for_destructor);
-  }  /* if */
   if (curr_token == tok_rparen) {
     if (C_dialect == C_dialect_cplusplus) {
       /* In C++ f() is equivalent to f(void).  Leave param_type_list empty. */
@@ -1558,10 +1554,15 @@ scope is that of a class definition.
       extra_info->prototyped = FALSE;
     }  /* if */
   } else if (curr_token == tok_ellipsis && C_dialect == C_dialect_cplusplus) {
-    /* In C++ f(...) is legal, though it is not recommended since is not
-       portable (ARM 8.3). */
-    extra_info->prototyped = TRUE;
-    extra_info->has_ellipsis = TRUE;
+    if (is_destructor) {
+      /* Destructors are allowed no arguments. */
+      error(ec_too_many_params_for_destructor);
+    } else {
+      /* In C++ f(...) is legal, though it is not recommended since is not
+         portable (ARM 8.3). */
+      extra_info->prototyped = TRUE;
+      extra_info->has_ellipsis = TRUE;
+    }  /* if */
     /* Advance past the ellipsis. */
     (void)get_token();
   } else {
@@ -1619,6 +1620,11 @@ scope is that of a class definition.
           /* param_type_list is already NULL. */
           done = TRUE;
         } else {
+          if (is_destructor && last_param_type == NULL) {
+            /* Destructors are allowed no arguments.  Issue an error on the
+               first param. */
+            error(ec_too_many_params_for_destructor);
+          }  /* if */
           if (defines_something && C_dialect == C_dialect_cplusplus) {
             pos_error(ec_type_definition_not_allowed, &param_type_pos);
             param_type_ptr = error_type();
