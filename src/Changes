@@ -9010,7 +9010,7 @@ calls.
 5/16/95  Template argument deduction; references to arrays and functions
 
 In template argument deduction, a parameter will now not be deduced to
-be a reference to an array or a reference to function it it isn't that
+be a reference to an array or a reference to function if it isn't that
 already.  For example, a parameter of type "const T&" matched up with
 an argument that is a character string will be deduced as "char *&"
 instead of "char (&)[n]".  On the other hand, if the parameter were
@@ -12484,7 +12484,7 @@ a file that has previously been explicitly or implicitly included.
 9/27/94  Implicit inclusion and specializations
 
 The compiler was incorrectly doing an implicit inclusion when
-one was not necessary because the a specialization had been provided
+one was not necessary because a specialization had been provided
 in the source file being compiled.  This has been fixed.
 
 9/26/94  NEED_NAME_MANGLING without IL lowering
@@ -13647,7 +13647,7 @@ cfront modes.
 
 6/14/94 Invalid template operator function internal error
 
-If a the declaration of a template operator function contained an
+If the declaration of a template operator function contained an
 invalid class qualifier an internal error could result.  This
 has been corrected.
 
@@ -18917,7 +18917,7 @@ noninitialization of const and ref members has been modified.
       A a2 = a1;          // Okay (as before)
       A a3;               // Error (used to be a warning)
 
-(3)  An error is now issued (instead of a warning) when a the ctor-
+(3)  An error is now issued (instead of a warning) when the ctor-
      initializer list in a constructor definition for a class with
      const or ref members fails to specify initialization for all the
      const or ref members in the class.  For example:
