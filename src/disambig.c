@@ -901,12 +901,27 @@ types separated by commas (when single_type_required is FALSE).
   a_boolean	      prev_do_not_clear_specific_symbol;
   a_disambig_state    state;
   a_boolean	      result = TRUE;
+  a_boolean	      is_implicit_template_type;
+  a_symbol_ptr	      specific_sym = locator_for_curr_id.specific_symbol;
 
   db_enter(3, "f_is_decl_not_expr");
+  /* Determine whether the current identifier is a synthesized template
+     parameter type symbol created in implicit_typename mode.  If so,
+     we must do additional checking for casts to determine that the
+     syntax really looks like a cast, because we can't be positive that
+     the identifier was really intended to be a type. */
+  is_implicit_template_type = 
+        curr_token == tok_identifier && implicit_typename_enabled &&
+        specific_sym != NULL && specific_sym->kind == (a_symbol_kind)sk_type &&
+        specific_sym->variant.type->kind == (a_type_kind)tk_template_param &&
+        specific_sym->variant.type->variant.template_param.kind ==
+                                       (a_template_param_type_kind)tptk_member;
   /* The ambiguous cases all begin a type name followed by a left
      parenthesis.   Check for this case first to quickly discard most
      cases. */
-  if (next_token() == tok_lparen && is_type_start(/*is_expr_context=*/TRUE)) {
+  if ((next_token() == tok_lparen ||
+      (is_cast(flags) && is_implicit_template_type)) &&
+      is_type_start(/*is_expr_context=*/TRUE)) {
     /* Initialize the token cache. */
     init_disambig_state(&state);
     if (curr_token == tok_identifier) {
@@ -916,7 +931,13 @@ types separated by commas (when single_type_required is FALSE).
          the prescanning process should not cause it to be cleared. */
       prev_do_not_clear_specific_symbol =
                             locator_for_curr_id.do_not_clear_specific_symbol;
-      locator_for_curr_id.do_not_clear_specific_symbol = TRUE;
+      if (!is_implicit_template_type) {
+        /* Unless this is an implicit template type symbol, ensure that the
+           specific symbol for this locator is not cleared.  For implicit
+           template type symbols we want it to be cleared because when it
+           is looked up again later, it might be determined to be a nontype. */
+        locator_for_curr_id.do_not_clear_specific_symbol = TRUE;
+      }  /* if */
     }  /* if */
     /* Scan forward as far as required to determine whether this is a
        declaration.  Each token that is encountered is cached away, so

@@ -1,5 +1,14 @@
 Version 2.35
 
+2/18/97  Spurious error in template definition containing potential cast
+
+The front end erroneously treated constructs such as "(T::x ...)" as a
+cast when implicit_typename is enabled.  This has been fixed.
+
+  template<class T> struct A {
+    enum E { e1 = (T::x + T::y) };
+  };
+
 2/17/97  Conversion of float to integer when using simulated host integers
 
 When converting from a floating point value to an integer when
