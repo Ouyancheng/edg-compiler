@@ -2850,8 +2850,10 @@ Scan and process a #define directive.
     get_symbol_of_kind((a_symbol_kind)sk_macro, assoc_symbol);
     if (assoc_symbol == NULL) {
       /* No such macro, so #define can be done. */
-    } else if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
-      /* The macro is predefined, and therefore cannot be redefined. */
+    } else if (assoc_symbol->variant.macro_def->cannot_be_redefined &&
+               curr_command_line_macro_def == NULL) {
+      /* The macro is predefined, and therefore cannot be redefined (except
+         on the command line). */
       /* In Microsoft mode, this is just a warning. */
       diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
                  ec_cannot_redef_predef_macro);
@@ -3160,13 +3162,16 @@ Scan and process a #define directive.
     db_dump_macro_def(assoc_symbol, object_like, param_list, buffer_start);
 #endif /* DEBUG */
     mdp = NULL;
-    if (redefinition && curr_command_line_macro_def == NULL) {
+    if (redefinition &&
+        (curr_command_line_macro_def == NULL ||
+         assoc_symbol->variant.macro_def->cannot_be_redefined)) {
       /* This is a redefinition of a previous macro.  Check that the
          redefinition is benign (see standard, 3.8.3, constraints).
          Both definitions have to be object-like or function-like, and the
          replacement text and parameter list have to have the same spelling
          after white space is standardized.  Redefinitions on the command line
-         are fine. */
+         are always fine if they were not predefined; if they were predefined
+         then the redefinition must be benign. */
       sizeof_t new_length = next_avail_in_macro_buffer - buffer_start;
       mdp = assoc_symbol->variant.macro_def;
       if ((a_boolean)mdp->object_like == object_like &&
