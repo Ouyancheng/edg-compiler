@@ -5157,8 +5157,11 @@ instantiations are recorded in the IL.
   sym->variant.routine.ptr = rp;
   set_source_corresp(&rp->source_corresp, sym);
   if (locator->is_class_member) {
-    set_class_membership(sym, &rp->source_corresp,
-                         locator->parent.class_type);
+    a_type_ptr  parent_type = locator->parent.class_type;
+    if (parent_type->kind == (a_type_kind)tk_template_param) {
+      parent_type = proxy_class_for_template_param(parent_type);
+    }  /* if */
+    set_class_membership(sym, &rp->source_corresp, parent_type);
   } else if (locator->parent.namespace_ptr != NULL) {
     set_namespace_membership(sym, &rp->source_corresp,
                              locator->parent.namespace_ptr);

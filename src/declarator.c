@@ -1915,8 +1915,15 @@ declaration.
     if (is_nonstatic_member_function &&
         qualifiers == TQ_NONE && !qualifier_err) {
       /* This is a nonstatic member function declared within the definition
-         of the class indicated, but without significant qualifiers. */
-      this_class = member_function_parent_type;
+         of the class indicated, but without significant qualifiers.  Get the
+         proxy class if necessary. */
+      if (member_function_parent_type->kind ==
+                                             (a_type_kind)tk_template_param) {
+        this_class = proxy_class_for_template_param(
+                                                 member_function_parent_type);
+      } else {
+        this_class = member_function_parent_type;
+      }  /* if */
     }  /* if */
     /* The implicit "this" param type will be either "pointer to class-type"
        or, if there was a const qualifier on the function, "pointer to const
