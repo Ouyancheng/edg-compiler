@@ -2564,7 +2564,7 @@ if any errors were detected.
     nonspec_psp = pl_find_symbol(nonspec_name, (a_pl_symbol_ptr)NULL,
                                  /*add=*/TRUE, &is_new);
 #if DEBUG
-    if (debug_level >= 1) {
+    if (pl_debug_level >= 1) {
       fprintf(stderr, "original name: %s\n", psp->name);
       fprintf(stderr, "nonspecialized name: %s\n", nonspec_name);
     }  /* if */
