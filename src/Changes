@@ -1,5 +1,17 @@
 Version 3.1
 
+8/5/02   ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS and throws
+
+When ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS is TRUE (not the
+default), a "?" operator whose first operand is constant is
+rewritten as simply the second operand or the third operand.
+This wasn't done right when one of them is a throw expression.
+Now fixed.
+
+  int main() {
+    int i = (true ? throw 4 : 5);
+  }
+
 8/5/02   C-generating back end: avoid "inline" as entity name
 
 "inline" has been added to the list of known C keywords used

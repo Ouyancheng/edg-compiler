@@ -5952,6 +5952,11 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
     if (curr_expr_kind_is_const()) {
       /* In constant expressions we must always fold. */
       do_folding = TRUE;
+    } else if (operand_2 != NULL &&
+               !identical_types(operand_2->type, operand_3->type)) {
+      /* Can't fold cases where the operand types do not match (e.g.,
+         because one is a throw and the other is not). */
+      /* do_folding = FALSE; -- already set. */
 #if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
     } else if (curr_object_lifetime == NULL ||
                curr_object_lifetime->destructions == NULL) {
