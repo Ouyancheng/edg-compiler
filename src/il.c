@@ -8846,7 +8846,8 @@ eliminated, if appropriate.
                    ssep != NULL;
                    ssep = ssep->next) {
                 scp = source_corresp_for_il_entry(ssep->entity.ptr,
-                                                  ssep->entity.kind);
+                                                  (an_il_entry_kind)ssep->
+                                                                entity.kind);
                 if (scp != NULL) {
                   check_assertion(scp->source_sequence_entry == ssep ||
                                   scp->source_sequence_entry == NULL);
