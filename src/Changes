@@ -1,5 +1,12 @@
 Version 3.0
 
+2/19/02  Problem setting DEFAULT_DEPENDENT_NAME_PROCESSING to TRUE
+
+Setting DEFAULT_DEPENDENT_NAME_PROCESSING did not have the intended
+effect because it did not also result in the setting of
+nonclass_prototype_instantiations, which is a prerequisite of doing
+dependent name processing.  This has been fixed.
+
 2/18/02  Name hiding by template parameters
 
 The hidden name table used to not record name hiding by template parameters.

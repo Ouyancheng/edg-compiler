@@ -595,9 +595,16 @@ EXTERN a_boolean
 			   name processing is not being done. */
 
 EXTERN a_boolean
-		nonclass_prototype_instantiations;
+		nonclass_prototype_instantiations
+#if VAR_INITIALIZERS
+                                        = DEFAULT_DEPENDENT_NAME_PROCESSING
+#endif /* VAR_INITIALIZERS */
+                                                                           ;
 			/* TRUE if nonclass template declarations should
-			   have prototype instantiations performed on them. */
+			   have prototype instantiations performed on them.
+			   This is initialized to the same value as
+			   do_dependent_name_processing because it is a
+			   prerequisite. */
 
 EXTERN a_boolean
 		defer_friend_instantiation;
