@@ -263,6 +263,9 @@ EXTERN a_token_sequence_number
 			/* The value used to indicate that no sequence number
 			   is present. */
 
+#define MAX_TOKEN_SEQUENCE_NUMBER (~(a_token_sequence_number)(0))
+			/* The largest possible token sequence number. */
+
 
 /* These includes are placed here so that a_token_kind will be defined
    for general use before including these files. */

@@ -611,12 +611,16 @@ is_generalized_identifier_start to coalesce it in case it is the
 beginning of something like a qualified name.  When coalescing identifiers,
 make sure that we are not fetching tokens beyond the end of the cache
 that contains the entire statement.  If an attempt is made to do so,
-return tok_end_of_source.
+return tok_end_of_source.  When tok_end_of_source is returned, the
+current token sequence number is set to the largest possible value so that
+when the tokens are copied from the source cache to the new cache that
+all tokens up the the end-of-cache marker will be copied.
 */
 #define get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache) \
   if (coalesce_ids) {						\
     if (curr_token_sequence_number >= last_tsn_in_cache) {		\
       curr_token = tok_end_of_source;					\
+      curr_token_sequence_number = MAX_TOKEN_SEQUENCE_NUMBER;		\
     } else {								\
       (void)get_token();						\
       (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL); \
