@@ -1901,16 +1901,20 @@ after_entry_from_class:
           remap_ptr(ptr->assoc_operator_new_routine, a_routine_ptr,
                     iek_routine);
 #if !DO_IL_LOWERING
-          set_proper_routine_definition_needed_flag(
+          if (ptr->assoc_operator_new_routine != NULL) {
+            set_proper_routine_definition_needed_flag(
                                               ptr->assoc_operator_new_routine);
+          }  /* if */
 #endif /* !DO_IL_LOWERING */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
           remap_ptr(ptr->assoc_operator_delete_routine, a_routine_ptr,
                     iek_routine);
 #if !DO_IL_LOWERING
-          set_proper_routine_definition_needed_flag(
+          if (ptr->assoc_operator_delete_routine != NULL) {
+            set_proper_routine_definition_needed_flag(
                                            ptr->assoc_operator_delete_routine);
+          }  /* if */
 #endif /* !DO_IL_LOWERING */
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
