@@ -1771,6 +1771,7 @@ this function points to a tree that includes a dynamic-init entry.
                members into which to put them. */
             error(ec_too_many_initializer_values);
             context.type = error_type();
+            any_more_members = TRUE;
           }  /* if */
         }  /* if */
         /* Determine the type of the member being initialized. */
