@@ -821,7 +821,7 @@ static void function_declarator(a_type_ptr        *new_type_ptr,
                                 a_boolean         is_nonstatic_member_function,
                                 a_boolean         is_constructor,
                                 a_boolean         is_destructor,
-                                a_boolean         is_specialization)
+                                a_boolean         disallow_default_args)
 /*
 Scan a function declarator (3.5.4.3), or an array declarator in an
 abstract declarator (3.5.5).  Allocate and return in *new_type_ptr an
@@ -837,8 +837,8 @@ otherwise it is NULL.  When it is non-NULL, is_nonstatic_member_function
 will distinguish static from nonstatic member functions when the current
 scope is that of a class definition.  is_constructor or is_destructor is
 TRUE if previous processing had determined that this is a constructor or
-destructor declaration, respectively.  is_specialization is TRUE if this
-declaration is a template specialization.
+destructor declaration, respectively.  If disallow_default_args is TRUE
+issue an error if a default argument expression is encountered.
 */
 {
   a_param_type_ptr        ptp;
@@ -864,7 +864,6 @@ declaration is a template specialization.
   a_boolean               dangling_type_specifier = FALSE;
   a_boolean               defines_something;
   a_boolean               default_arg_expr_allowed = FALSE;
-  a_boolean               is_pragma_scope = FALSE;
   a_boolean               may_be_copy_constructor = FALSE;
   a_boolean               bad_first_param_for_copy_constructor = FALSE;
   a_source_position       pos_of_first_param_type;
@@ -956,34 +955,21 @@ declaration is a template specialization.
          int f(int, char *)
 
     */
-    if (any_params && C_dialect == C_dialect_cplusplus) {
-      a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
-      while (ssep->kind == (a_scope_kind)sck_class_reactivation) {
-        --ssep;
-      }  /* if */
-      if (ssep->kind == (a_scope_kind)sck_pragma) {
-        /* Disallow default arguments in function declarations within a
-           pragma. */
-        is_pragma_scope = TRUE;
-      } else if (is_specialization) {
-        /* Disallow default arguments on specializations of template
-           functions. */
-      } else {
-        /* In C++ mode a default argument may be declared with the parameter
-           unless the function is a user-defined overloaded operator (except
-           operator()(), as an extension) or a user-defined conversion.  Note
-           that locator may be NULL (e.g., with abstract declarators). */
-        /* operator new(), new[](), delete(), and delete[]() can also take
-           default arguments in the second and successive arguments -- this
-           is implied by ARM 13.4, which excludes those operators from the
-           restrictions that are listed for overloaded operators in general.
-           We don't set the flag till after the first parameter has been seen,
-           however; see below. */
-        if (locator != NULL && !locator->is_conversion_name &&
-            (!locator->is_operator_name ||
-             locator->variant.opname == (an_opname_kind)onk_function_call)) {
-          default_arg_expr_allowed = TRUE;
-        }  /* if */
+    if (any_params && !disallow_default_args) {
+      /* In C++ mode a default argument may be declared with the parameter
+         unless the function is a user-defined overloaded operator (except
+         operator()(), as an extension) or a user-defined conversion.  Note
+         that locator may be NULL (e.g., with abstract declarators). */
+      /* operator new(), new[](), delete(), and delete[]() can also take
+         default arguments in the second and successive arguments -- this
+         is implied by ARM 13.4, which excludes those operators from the
+         restrictions that are listed for overloaded operators in general.
+         We don't set the flag till after the first parameter has been seen,
+         however; see below. */
+      if (locator != NULL && !locator->is_conversion_name &&
+          (!locator->is_operator_name ||
+           locator->variant.opname == (an_opname_kind)onk_function_call)) {
+        default_arg_expr_allowed = TRUE;
       }  /* if */
     }  /* if */
     /* Push a function prototype scope for the parameters. */
@@ -1234,7 +1220,7 @@ declaration is a template specialization.
           }  /* if */
         }  /* if */
         if (C_dialect == C_dialect_cplusplus && !default_arg_expr_allowed &&
-            !is_pragma_scope && !is_specialization) {
+            !disallow_default_args) {
           if (last_param_type == extra_info->param_type_list) {
             /* The first parameter on the list has just been processed. */
             if (locator != NULL && locator->is_operator_name &&
@@ -2866,6 +2852,7 @@ The syntax is:
                   left_call_conv, inner_left_call_conv, unbound_call_conv;
   a_type_qualifier_set
                   left_qualifiers, inner_left_qualifiers, unbound_qualifiers;
+  a_boolean       disallow_default_args;
 
   db_enter(3, "r_declarator");
   set_err_pos_to_curr_token();
@@ -3150,10 +3137,22 @@ function_lparen:
            top-most type, so we don't want to fetch the extra function info. */
         if (derived_type != NULL) func_info = NULL;
       }  /* if */
+      /* Pass in a flag to indicate whether default arguments are allowed at
+         all.  They should be disallowed on top-level function declarations
+         for explicit template instantiations and template specializations --
+         for instance:
+           template <class T> void f(T) { ... }
+           template<> void f(int=0);
+           template void f(char=0);
+      */
+      disallow_default_args = C_mode() ||
+                              (func_info != NULL &&
+                               (input_flags & (DI_IS_SPECIALIZATION |
+                                               DI_IS_EXPLICIT_INSTANTIATION)));
       function_declarator(&new_type_ptr, func_info, locator,
                           member_parent_type, is_nonstatic_member_function,
                           is_constructor, is_destructor,
-                          (input_flags & DI_IS_SPECIALIZATION) != 0);
+                          disallow_default_args);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (func_info != NULL) {
         /* Record the source sequence entry in func_info even if there was
