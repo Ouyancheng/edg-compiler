@@ -1,5 +1,19 @@
 Version 2.29
 
+5/2/95   bool
+
+The bool type is now implemented.  bool, true, and false are new keywords.
+The feature is enabled by --bool and disabled by --no_bool; the default
+is established by DEFAULT_BOOL_IS_KEYWORD.  A preprocessing flag (by
+default _BOOL) indicates whether or not the feature is enabled, so
+header files can be self-adjusting.
+
+The IL contains a new operator, eok_bool_cast; it is rewritten (as a
+"!= 0" test) by IL lowering.  Operations like "!=" return bool, and
+IL lowering rewrites that to C form as well.
+
+The name mangling code for bool is "b".
+
 5/2/95   Maximum class size (again) and maximum base class offset
 
 A new configuration flag, TARG_MAX_BASE_CLASS_OFFSET, has been added,
