@@ -18,7 +18,7 @@ program as the front end is produced.
 */
 
 /* For the main-program version, get global variables defined. */
-#ifdef STANDALONE_UTILITY_PROGRAM
+#ifdef STANDALONE_IL_DISPLAY
 #define EXTERN /*empty*/
 #define VAR_INITIALIZERS 1
 #endif /* ifdef STANDALONE_UTILITY_PROGRAM */
@@ -26,10 +26,12 @@ program as the front end is produced.
 #include "basics.h"
 #include "host_envir.h"
 
-/* At the moment, this code is only needed in the standalone il_display
-   program.  If a call of il_display is added in the front end, one
-   would need to account for that here. */
-#define NEED_IL_DISPLAY STANDALONE_UTILITY_PROGRAM
+/* This code is only needed if the IL is to be displayed, either in the
+standalone il_display program or as part of the front end.  For a standalone
+il_display program, the makefile should define STANDALONE_IL_DISPLAY.  To
+include il_display into a frontend, that makefile should define
+NEED_IL_DISPLAY and a call of il_display added in the front end.
+*/
 #if NEED_IL_DISPLAY
 
 #include "il_display.h"
