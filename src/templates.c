@@ -7048,9 +7048,12 @@ Place the tokens for a template parameter into a token cache.
 
 static
 void scan_a_template_parameter_declaration(a_symbol_locator *param_locator,
-					   a_type_ptr       *param_type_ptr)
+					   a_type_ptr       *param_type_ptr,
+					   a_boolean	    *is_unnamed)
 /*
-Scan the declaration of a single template nontype parameter.
+Scan the declaration of a single template nontype parameter.  If the
+parameter is unnamed, and is_unnamed is not NULL, return a flag indicating
+whether the nontype parameter is unnamed.
 */
 {
   a_decl_flag_set              do_flags;
@@ -7077,10 +7080,15 @@ Scan the declaration of a single template nontype parameter.
     warning(ec_missing_type_specifier);
   }  /* if */
   /* Scan the declarator. */
-  declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags,
-             *param_type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
-             param_locator, param_type_ptr,
-             &declarator_ssep, (a_func_info_block_ptr)NULL);
+  declarator(DI_REAL_DECLARATOR_ALLOWED | DI_ABSTRACT_DECLARATOR_ALLOWED,
+             &do_flags, *param_type_ptr,
+             /*member_parent_type=*/(a_type_ptr)NULL, param_locator,
+             param_type_ptr, &declarator_ssep,
+             (a_func_info_block_ptr)NULL);
+  if (is_unnamed != NULL) {
+    /* Return a flag indicating whether the parameter is unnamed. */
+    *is_unnamed = (do_flags & DO_REAL_DECLARATOR_SCANNED) == 0;
+  }  /* if */
   /* Adjust the type if necessary (for example, "array of x"
      becomes "pointer to x"). */
   adjust_parameter_type(param_type_ptr, /*restrict_qualified=*/FALSE);
@@ -7139,6 +7147,7 @@ to represent the template parameters.
     a_boolean	   def_arg_cache_used = FALSE;
     a_constant_ptr default_arg_constant;
     a_type_ptr	   default_arg_type;
+    a_token_kind   next_tok;
     a_token_kind   second_token;
 
     /* If we've unexpectedly reached the end of the template parameter list,
@@ -7156,9 +7165,11 @@ to represent the template parameters.
     /* Determine whether this is a "type-argument" (a parameter that
        represents a type) or a "arg-declaration" (a parameter that represents
        a constant). */
+    next_tok = next_two_tokens(tok_identifier, &second_token);
     if ((curr_token == tok_class || curr_token == tok_typename) &&
-        next_two_tokens(tok_identifier, &second_token) == tok_identifier &&
-        second_token != tok_colon_colon) {
+        ((next_tok == tok_comma ||
+          next_tok == tok_gt || next_tok == tok_assign) ||
+        (next_tok == tok_identifier && second_token != tok_colon_colon))) {
       /* A type-argument. Note that there is a possible ambiguity here:
          template <class T> vs. template <class T X>, where in the second
          case T is already declared.  One could argue that the second is an
@@ -7170,13 +7181,20 @@ to represent the template parameters.
          exists when "typename" is used.  If the name that follows "class"
          or "typename" is a simple identifier (i.e., not a qualified name)
          we assume it to be a type parameter. */
+      a_boolean	is_unnamed = FALSE;
       /* Bypass "class" or "typename". */
       (void)get_token();
-      /* Enter a type symbol in the symbol table.  It is made (for now) to
-         point to an error type, to make everything work smoothly during
-         preliminary scanning of the body of the class. */
-      sym = enter_symbol((a_symbol_kind)sk_type, &locator_for_curr_id,
-                         decl_scope_level, /*suppress_redecl_error=*/FALSE);
+      if (curr_token == tok_identifier) {
+        /* Enter a type symbol in the symbol table.  It is made (for now) to
+           point to an error type, to make everything work smoothly during
+           preliminary scanning of the body of the class. */
+        sym = enter_symbol((a_symbol_kind)sk_type, &locator_for_curr_id,
+                           decl_scope_level, /*suppress_redecl_error=*/FALSE);
+      } else {
+        sym = make_unnamed_template_param_symbol((a_symbol_kind)sk_type,
+                                                 &pos_curr_token);
+        is_unnamed = TRUE;
+      }  /* if */
       /* Allocate a template-param type.  This type is for front-end use
          only and will not appear in the IL passed on to the back end.  It
          is therefore not added to any scope types list. */
@@ -7187,6 +7205,12 @@ to represent the template parameters.
                                coordinates.position = template_param_list_pos;
       set_type_size(template_param_type);
       set_source_corresp(&template_param_type->source_corresp, sym);
+      if (is_unnamed) {
+        /* Reset the name in the source correspondence entry.  An unnamed
+           type is represented by NULL, not "<unnamed>" as indicated by the
+           symbol header. */
+        template_param_type->source_corresp.name = NULL;
+      }  /* if */
       /* The type symbol for the template parameter points for now to the
          template-param type -- "for now", since it will be replaced with
          an actual type during instantiation of the class or function. */
@@ -7194,7 +7218,7 @@ to represent the template parameters.
       sym->is_template_param = TRUE;
       mark_defined(sym, &sym->decl_position);
       /* Bypass the identifier. */
-      (void)get_token();
+      if (!is_unnamed) (void)get_token();
       if (curr_token == tok_assign) {
         /* Scan the default value for a type argument. */
 	has_default_arg = TRUE;
@@ -7210,23 +7234,30 @@ to represent the template parameters.
         }  /* if */
       }  /* if */
     } else if (curr_token != tok_template) {
-      a_type_ptr           param_type_ptr;
-      a_symbol_locator     param_locator;
-      a_constant_ptr       param_con;
+      a_type_ptr	param_type_ptr;
+      a_symbol_locator	param_locator;
+      a_constant_ptr	param_con;
+      a_boolean		is_unnamed;
       /* Not a type-argument, so treat it as an arg-declaration.  If this
          template declaration happens to be of a function rather than a class,
          arg-declarations are not allowed.  That will be detected later. */
-      scan_a_template_parameter_declaration(&param_locator, &param_type_ptr);
+      scan_a_template_parameter_declaration(&param_locator, &param_type_ptr,
+                                            &is_unnamed);
 #if 0
       /* Check here for types for which constants cannot be created?  E.g.,
          the program would not be able to declare a constant class object or
          a constant array.  Likewise, should reference types be permitted?
          Should a constant with an error type be created for such cases? */
 #endif /* if 0 */
-      /* Enter a symbol and bind a template param constant to it. At each
+      /* Create a symbol and bind a template param constant to it. At each
          point of instantiation an actual constant will be substituted. */
-      sym = enter_symbol((a_symbol_kind)sk_constant, &param_locator,
-                         decl_scope_level, /*suppress_redecl_error=*/FALSE);
+      if (!is_unnamed) {
+        sym = enter_symbol((a_symbol_kind)sk_constant, &param_locator,
+                           decl_scope_level, /*suppress_redecl_error=*/FALSE);
+      } else {
+        sym = make_unnamed_template_param_symbol((a_symbol_kind)sk_constant,
+                                                 &pos_curr_token);
+      }  /* if */
       sym->variant.constant = param_con =
                          fs_constant((a_constant_repr_kind)ck_template_param);
       param_con->type = param_type_ptr;
@@ -7237,6 +7268,12 @@ to represent the template parameters.
       param_con->variant.template_param.
                         variant.coordinates.position = template_param_list_pos;
       set_source_corresp(&param_con->source_corresp, sym);
+      if (is_unnamed) {
+        /* Reset the name in the source correspondence entry.  An unnamed
+           type is represented by NULL, not "<unnamed>" as indicated by the
+           symbol header. */
+        param_con->source_corresp.name = NULL;
+      }  /* if */
       const_type_involves_template_param = 
 				is_or_contains_template_param(param_type_ptr);
       sym->is_template_param = TRUE;
@@ -7399,7 +7436,8 @@ resulting constant is stored in the pointer pointed to by "constant".
     /* Rescan the tokens of the function declaration. */
     rescan_reusable_cache(&param_ptr->cache.tokens);
     /* Scan the declaration specifiers. */
-    scan_a_template_parameter_declaration(&param_locator, &constant_type);
+    scan_a_template_parameter_declaration(&param_locator, &constant_type,
+                                          (a_boolean*)NULL);
     /* Skip past any tokens remaining in the cache.  Extra tokens will
        be present under certain error conditions and when a default argument
        has been supplied. */

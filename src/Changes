@@ -1,5 +1,12 @@
 Version 2.37
 
+7/24/97   Unnamed template parameters
+
+Unnamed template parameters are now supported.
+
+  template <class,int> struct A {};
+  A<char,1> a1;
+
 7/22/97   Value of enumerator based on expression containing template
           parameters
 

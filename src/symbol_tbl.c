@@ -3620,6 +3620,26 @@ table.
 }  /* make_unnamed_namespace_symbol */
 
 
+a_symbol_ptr make_unnamed_template_param_symbol(a_symbol_kind		kind,
+						a_source_position	*pos)
+/*
+Create a symbol for an unnamed template parameter.  Such symbols are not
+entered into the symbol table.  Each unnamed template parameter is given
+a unique symbol header.
+*/
+{
+  a_symbol_ptr		sym;
+  a_symbol_header_ptr	sym_hdr;
+
+  sym_hdr = alloc_symbol_header();
+  sym_hdr->identifier = "<unnamed>";
+  sym_hdr->identifier_length = 9;
+  sym = alloc_symbol(kind, sym_hdr, pos);
+  sym->decl_scope = scope_stack[decl_scope_level].number;
+  return sym;
+}  /* make_unnamed_template_param_symbol */
+
+
 a_symbol_ptr make_anonymous_parent_object_symbol(a_symbol_kind      kind,
                                                  a_source_position  *pos,
                                                  a_scope_number     decl_scope)

@@ -2297,6 +2297,10 @@ extern a_boolean is_unnamed_tag_symbol(a_symbol_ptr  sym);
 
 extern a_symbol_ptr make_unnamed_namespace_symbol(a_source_position  *pos);
 
+extern
+a_symbol_ptr make_unnamed_template_param_symbol(a_symbol_kind		kind,
+						a_source_position	*pos);
+
 extern a_symbol_ptr unnamed_field_symbol(void);
 
 extern a_symbol_ptr make_anonymous_parent_object_symbol(
