@@ -134,7 +134,7 @@ extern void form_type_qualifier(
 extern void form_microsoft_qualifier(
                      a_type_qualifier_set                  qualifiers,
                      a_boolean                             need_trailing_space,
-                     an_il_to_str_output_control_block_ptr octl)
+                     an_il_to_str_output_control_block_ptr octl);
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #endif /* ifdef CFE */
 
