@@ -36,15 +36,6 @@ It's all one bits, truncated to fit in a TARG_REGION_NUMBER_INT_KIND integer.
 EXTERN a_cleanup_region_number
 		null_eh_region_number;
 
-/*
-Current position in the cleanup region table.  This is the point at which
-cleanup should start if an exception were thrown at the current position
-in the program.  __eh_curr_region gets set to this value.  (This value
-is maintained, and code is generated to make __eh_curr_region track it.)
-*/
-EXTERN a_cleanup_region_number
-		curr_cleanup_region_number;
-
 
 extern void define_scope_class_typeinfo_vars(a_scope_ptr scope);
 
@@ -63,18 +54,12 @@ extern a_variable_ptr make_caught_object_address_var(void);
 
 extern a_cleanup_region_number cleanup_region_number(a_dynamic_init_ptr dip);
 
-extern void set_eh_curr_region(a_cleanup_region_number region_number,
-                               an_insert_location      *insert_location);
+extern void set_curr_cleanup_region_number(
+                                    a_cleanup_region_number region_number,
+                                    an_insert_location      *insert_location);
 
-extern a_constant_ptr make_region_table_entry(
-                              an_init_pos_descr_ptr   ipdp,
-                              a_routine_ptr           routine,
-                              a_boolean               is_delete,
-                              a_variable_ptr          conditional_flag_var,
-                              a_handle_number         conditional_flag_handle,
-                              a_cleanup_region_number next_region_number,
-                              a_cleanup_region_number *region_number,
-                              an_insert_location      *insert_location);
+extern void set_curr_cleanup_state(a_dynamic_init_ptr cleanup_state,
+                                   an_insert_location *insert_location);
 
 extern void make_dyn_init_region_table_entry(
                                           a_dynamic_init_ptr dip,

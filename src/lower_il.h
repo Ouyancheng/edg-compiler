@@ -187,13 +187,19 @@ typedef struct a_destructible_entity_descr {
 			   of an unordered set, this number will be the number
 			   of the first member of the set. */
 #endif /* DO_UNORDERED_EH_PROCESSING */
-  a_cleanup_region_number
-		region_number_to_set_when_starting_destruction;
+  a_dynamic_init_ptr
+		cleanup_state_to_set_when_starting_destruction;
 			/* When destroying this entity when exceptions are
-			   enabled, this is the region number to establish
-			   as the current region number when beginning the
-			   destruction.  It's the next region table entry to
-			   process after this entity is destroyed. */
+			   enabled, this is the cleanup state to establish
+			   as current when beginning the destruction.  It's
+			   the next destruction to process after this
+			   entity is destroyed. */
+#if DO_UNORDERED_EH_PROCESSING
+			/* In the presence of unordered initializations in the
+			   IL, this indicates the first entry in a set of
+			   unordered destructions, and in that way differs from
+			   next_in_region_table. */
+#endif /* DO_UNORDERED_EH_PROCESSING */
   a_constant_ptr
 		region_table_entry;
 			/* When exceptions are enabled, this points to the
@@ -227,6 +233,18 @@ EXTERN a_destructible_entity_descr_ptr
 		avail_destructible_entity_descrs;
 			/* List of destructible entity descriptions that
 			   have been freed and are available for reuse. */
+
+/*
+Current cleanup position.  That is, a pointer to the dynamic initialization
+entry for the first destruction to be done if one wishes to exit from the
+current location in the program.  Further cleanups are attached to the
+first entry.  Differs from the latest_initialization field in a_context
+in that this variable gets updated as destructions are generated when
+cleaning up on exit from a lifetime.
+*/
+EXTERN a_dynamic_init_ptr
+		curr_cleanup_state;
+
 
 #if DEBUG
 /*
@@ -331,19 +349,18 @@ typedef struct a_context {
 			   are generated (e.g., at the end of a block or
 			   on a goto or return), so it stays indicating
 			   the "most-constructed" state.  That's different
-			   than curr_cleanup_region_number, which is
-			   updated on destructions. */
+			   than curr_cleanup_state, which is updated on
+			   destructions. */
   an_object_lifetime_ptr
 		saved_curr_object_lifetime;
 			/* Used to save/restore the global variable
 			   curr_object_lifetime over push_context/
 			   pop_context. */
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
-  a_cleanup_region_number
-		saved_curr_cleanup_region_number;
+  a_dynamic_init_ptr
+		saved_curr_cleanup_state;
 			/* Used to save/restore the global variable
-			   curr_cleanup_region_number over push_context/
-			   pop_context. */
+			   curr_cleanup_state over push_context/pop_context. */
   a_variable_ptr
 		try_frame;
 			/* For a context associated with a "try" block, this

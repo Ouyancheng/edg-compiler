@@ -441,19 +441,19 @@ scope, or the lifetime from the parent context, will be used.
   context->new_lifetime = new_lifetime;
   /* If this context begins a new object lifetime, set curr_object_lifetime.
      Also save the old value for restoration by pop_context.  Likewise save
-     curr_cleanup_region_number. */
+     curr_cleanup_state. */
   if (new_lifetime) {
     context->saved_curr_object_lifetime = curr_object_lifetime;
     curr_object_lifetime = lifetime;
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
-    context->saved_curr_cleanup_region_number = curr_cleanup_region_number;
+    context->saved_curr_cleanup_state = curr_cleanup_state;
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 #if CHECKING
   } else {
     /* Clear entries to be neat, even though they are not used. */
     context->saved_curr_object_lifetime = NULL;
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
-    context->saved_curr_cleanup_region_number = null_eh_region_number;
+    context->saved_curr_cleanup_state = NULL;
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 #endif /* CHECKING */
   }  /* if */
@@ -479,11 +479,11 @@ Pop an entry off the context stack.
 
   if (context->new_lifetime) {
     /* This context has its own object lifetime, so curr_object_lifetime
-       and curr_cleanup_region_number are restored to what they were
-       at push_context time. */
+       and curr_cleanup_state are restored to what they were at push_context
+       time. */
     curr_object_lifetime = context->saved_curr_object_lifetime;
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
-    curr_cleanup_region_number = context->saved_curr_cleanup_region_number;
+    curr_cleanup_state = context->saved_curr_cleanup_state;
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   } else {
     /* This context does not have its own object lifetime, so the
@@ -6060,6 +6060,7 @@ Do initial processing on a dynamic initialization entry that indicates
 destruction.  That includes allocating the destructible entity description
 entry and generating code to initialize any conditional flag.  Any generated
 code is inserted at *insert_location, and *insert_location is updated.
+If insert_location == NULL, no initialization code is generated.
 */
 {
   /* Allocate a destructible entity description entry pointed to by
@@ -6091,15 +6092,17 @@ code is inserted at *insert_location, and *insert_location is updated.
        order and would not need the flags for this case). */
 #endif /* DO_UNORDERED_EH_PROCESSING */
     add_conditional_flag(dip);
-    init_conditional_flag_var(dip->destructible_entity_descr->
+    if (insert_location != NULL) {
+      init_conditional_flag_var(dip->destructible_entity_descr->
                                                           conditional_flag_var,
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
-                              dip->destructible_entity_descr->
+                                dip->destructible_entity_descr->
                                                        conditional_flag_handle,
 #else /* !DO_LOWERING_OF_EXCEPTION_HANDLING */
-                              (a_handle_number)0,
+                                (a_handle_number)0,
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
-                              insert_location);
+                                insert_location);
+    }  /* if */
   }  /* if */
 }  /* initial_processing_on_destructible_initialization */
 
@@ -6181,7 +6184,7 @@ lifetime begins at the start of a switch clause.
 
   curr_object_lifetime = curr_context->lifetime = lifetime;
   curr_context->latest_initialization = NULL;
-  /* curr_cleanup_region_number is not changed on purpose. */
+  /* curr_cleanup_state is not changed on purpose. */
   if (!switch_clause) {
     /* Set up the context field to watch for the appearance of the
        statement that begins the next label lifetime.  The switch clause
@@ -6332,12 +6335,12 @@ are enabled.
       clone_region_table_entry_list(dip, first_nontemp_after_temps);
       if (need_regions_for_temps) {
         /* The entry for the first temporary need not be cloned, but its
-           region_number_to_set_when_starting_destruction pointer needs to
+           cleanup_state_to_set_when_starting_destruction pointer needs to
            be updated so we set the right region number when we do the
            destruction. */
         first_temp->destructible_entity_descr->
-                              region_number_to_set_when_starting_destruction =
-                                                    cleanup_region_number(dip);
+                              cleanup_state_to_set_when_starting_destruction =
+                                                                           dip;
       }  /* if */
     }  /* if */
     /* The current position is at the beginning of the regions for the
@@ -6345,8 +6348,8 @@ are enabled.
        destroying them, otherwise at the first region for a nontemp. */
     dip = need_regions_for_temps ? first_temp : first_nontemp;
     curr_context->latest_initialization = dip;
-    curr_cleanup_region_number = cleanup_region_number(dip);
-    /* set_eh_curr_region is not called on purpose. */
+    curr_cleanup_state = dip;
+    /* set_curr_cleanup_state is not called on purpose. */
   }  /* if */
 }  /* adjust_region_table_to_remove_long_lifetime_temps */
 
@@ -6404,11 +6407,11 @@ Called only in long lifetime temporaries mode.
   }  /* if */
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
   if (exceptions_enabled && any_temps_destroyed) {
-    /* Set the current region number, but not if the current statement
+    /* Set the current cleanup state, but not if the current statement
        is a label (because in that case it will be set in a moment
        anyway). */
     if ((*statement)->kind != (a_statement_kind)stmk_label) {
-      set_eh_curr_region(curr_cleanup_region_number, &insert_location);
+      set_curr_cleanup_state(curr_cleanup_state, &insert_location);
     }  /* if */
   }  /* if */
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
@@ -6960,9 +6963,9 @@ Do IL lowering of the indicated statement and everything under it.
       case stmk_label:
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
         if (exceptions_enabled) {
-          /* Exceptions are enabled.  Set __eh_curr_region. */
+          /* Exceptions are enabled.  Set the cleanup state. */
           set_insert_location(statement, &insert_location);
-          set_eh_curr_region(curr_cleanup_region_number, &insert_location);
+          set_curr_cleanup_state(curr_cleanup_state, &insert_location);
         }  /* if */
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
         break;
@@ -8325,7 +8328,7 @@ so they're not reachable.  Do nothing if olp is NULL.
         free_destructible_entity_descr(dip->destructible_entity_descr);
         dip->destructible_entity_descr = NULL;
       }  /* if */
-    }  /* while */
+    }  /* for */
     if (detach) {
       /* Unbind this object lifetime from its attached entity. */
       /* Label lifetimes don't have two-way binding with an entity. */

@@ -1599,22 +1599,34 @@ updated.
 }  /* assign_to_eh_curr_region */
 
 
-void set_eh_curr_region(a_cleanup_region_number region_number,
-                        an_insert_location      *insert_location)
+void set_curr_cleanup_region_number(a_cleanup_region_number region_number,
+                                    an_insert_location      *insert_location)
 /*
-Set curr_cleanup_region_number (the destruction region that applies at
-the current location in the program) to region_number, and generate code at
-*insert_location to set the global variable __eh_curr_region to indicate
-that region number.
+Generate code at *insert_location to record the fact that the current
+cleanup region number is region_number.  set_curr_cleanup_state should
+usually be called rather than calling this routine directly.
 */
 {
   an_expr_node_ptr node;
 
-  curr_cleanup_region_number = region_number;
   node = node_for_integer_constant((long)region_number,
                                    TARG_REGION_NUMBER_INT_KIND);
   assign_to_eh_curr_region(node, insert_location);
-}  /* set_eh_curr_region */
+}  /* set_curr_cleanup_region_number */
+
+
+void set_curr_cleanup_state(a_dynamic_init_ptr cleanup_state,
+                            an_insert_location *insert_location)
+/*
+Set curr_cleanup_state (the cleanup state that applies at the current
+location in the program) to cleanup_state, and generate code at
+*insert_location to record that information.
+*/
+{
+  curr_cleanup_state = cleanup_state;
+  set_curr_cleanup_region_number(cleanup_region_number(cleanup_state),
+                                 insert_location);
+}  /* set_curr_cleanup_state */
 
 
 /*
@@ -1766,7 +1778,7 @@ the aggregate constant.
 }  /* add_region_table_entry */
 
 
-a_constant_ptr make_region_table_entry(
+static a_constant_ptr make_region_table_entry(
                               an_init_pos_descr_ptr   ipdp,
                               a_routine_ptr           routine,
                               a_boolean               is_delete,
@@ -1885,7 +1897,7 @@ required for unordered destructions.
      table for the initial entry.  The final entry (so far) points to
      the first region number past the ordered set, i.e., the original
      next region number from the initial entry.  The region_number
-     and region_number_to_set_when_starting_destruction fields of the
+     and cleanup_state_to_set_when_starting_destruction fields of the
      entries after the first are set to the region number of the first
      entry so that the entire block will be put into the cleanup chain
      and kept there until the destruction for the initial entry is
@@ -1899,9 +1911,8 @@ required for unordered destructions.
                                               get_next_region_number(next_dip);
     set_next_region_number(next_dip, dedp->region_number);
     set_next_region_number(dip, next_region_number_past_ordered_set);
-    dedp->region_number =
-      dedp->region_number_to_set_when_starting_destruction =
-                                                      next_dedp->region_number;
+    dedp->region_number = next_dedp->region_number;
+    dedp->cleanup_state_to_set_when_starting_destruction = next_dip;
   }  /* if */
 }  /* maintain_unordered_destructions_set */
 
@@ -1913,7 +1924,7 @@ void make_dyn_init_region_table_entry(a_dynamic_init_ptr dip,
 /*
 Add an entry to the region table (which describes destructible objects)
 for the initialization described by dip.  The entry will point to
-next_dip/curr_cleanup_region_number as its next region.  The initialization
+next_dip/curr_cleanup_state as its next region.  The initialization
 must have an attached destructible entity description, and the
 conditional_flag_var field of that entry must be filled in if
 appropriate (if a conditional flag variable is indicated, a region
@@ -1924,11 +1935,10 @@ necessary.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
-	
+
   check_assertion(dedp != NULL);
   dedp->next_in_region_table = next_dip;
-  dedp->region_number_to_set_when_starting_destruction =
-                                                    curr_cleanup_region_number;
+  dedp->cleanup_state_to_set_when_starting_destruction = curr_cleanup_state;
   dedp->region_table_entry =
              make_region_table_entry(&dedp->init_pos_descr,
                                      dip->destructor,
@@ -1936,7 +1946,7 @@ necessary.
                                             is_freeing_of_storage_on_exception,
                                      dedp->conditional_flag_var,
                                      dedp->conditional_flag_handle,
-                                     curr_cleanup_region_number,
+                                     cleanup_region_number(curr_cleanup_state),
                                      &dedp->region_number,
                                      insert_location);
 #if DO_UNORDERED_EH_PROCESSING
@@ -2015,7 +2025,7 @@ next_in_region_table pointer), stopping before the entry stop_before.
   /* Link the clone to the proper next entry. */
   next_region_number = cleanup_region_number(next_dip);
   set_next_region_number(dip, next_region_number);
-  dedp->region_number_to_set_when_starting_destruction = next_region_number;
+  dedp->cleanup_state_to_set_when_starting_destruction = next_dip;
 #if DO_UNORDERED_EH_PROCESSING
   if (dip->unordered) {
     /* The destruction is unordered with respect to some surrounding
@@ -2587,8 +2597,9 @@ Do IL lowering for an stmk_try_block statement.
   (void)insert_assignment_statement(try_frame_region_number,
                                     (an_expr_operator_kind)eok_iassign,
                                     node_for_integer_constant(
-                                              (long)curr_cleanup_region_number,
-                                              TARG_REGION_NUMBER_INT_KIND),
+                                                  (long)cleanup_region_number(
+                                                           curr_cleanup_state),
+                                                  TARG_REGION_NUMBER_INT_KIND),
                                     &insert_location);
   /* Change the original stmk_try_block statement into an if statement
      that looks like
@@ -2691,7 +2702,7 @@ IL lowering for exceptions.
   region_table_aggr_con = NULL;
   next_avail_region_number = 0;
   any_try_blocks_in_function = FALSE;
-  curr_cleanup_region_number = null_eh_region_number;
+  curr_cleanup_state = NULL;
 }  /* eh_function_lower_init */
 
 

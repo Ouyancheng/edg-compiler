@@ -798,7 +798,7 @@ and return a pointer to it.
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
   dedp->conditional_flag_handle = 0;
   dedp->region_number = null_eh_region_number;
-  dedp->region_number_to_set_when_starting_destruction = null_eh_region_number;
+  dedp->cleanup_state_to_set_when_starting_destruction = NULL;
   dedp->region_table_entry = NULL;
   dedp->next_in_region_table = NULL;
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
@@ -1568,6 +1568,22 @@ A pointer to the expression created is returned.
 }  /* make_vec_cctor_call */
 
 
+static void add_object_lifetime_to_function_scope(a_scope_ptr scope)
+/*
+Add an object lifetime to the indicated scope (a function scope).  The
+scope should not have an object lifetime.
+*/
+{
+  an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
+
+  check_assertion(scope->lifetime == NULL);
+  curr_object_lifetime = il_header.primary_scope->lifetime;
+  push_object_lifetime(iek_scope, (char *)(scope),
+                       (an_object_lifetime_kind)olk_block);
+  curr_object_lifetime = saved_curr_object_lifetime;
+}  /* add_object_lifetime_to_function_scope */
+
+
 /*
 Structure used by push_generated_routine_context/pop_generated_routine_context
 to save/restore state information.
@@ -1579,8 +1595,8 @@ typedef struct a_generated_routine_context {
   a_scope_depth	depth_innermost_function_scope;
   a_scope_ptr	innermost_function_scope;
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
-  a_cleanup_region_number
-		curr_cleanup_region_number;
+  a_dynamic_init_ptr
+		curr_cleanup_state;
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 } a_generated_routine_context;
 
@@ -1604,16 +1620,11 @@ grcontext is a local variable used to save state for later restoration.
   grcontext->depth_innermost_function_scope = depth_innermost_function_scope;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
-  grcontext->curr_cleanup_region_number = curr_cleanup_region_number;
+  grcontext->curr_cleanup_state = curr_cleanup_state;
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   grcontext->innermost_function_scope = innermost_function_scope;
   innermost_function_scope = scope;
-  { an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
-    curr_object_lifetime = il_header.primary_scope->lifetime;
-    push_object_lifetime(iek_scope, (char *)(scope),
-                         (an_object_lifetime_kind)olk_block);
-    curr_object_lifetime = saved_curr_object_lifetime;
-  }
+  add_object_lifetime_to_function_scope(scope);
   push_context(&grcontext->context, scope, (an_object_lifetime_ptr)NULL);
 }  /* push_generated_routine_context */
 
@@ -1642,7 +1653,7 @@ Pop function corresponding to push_generated_routine_context.
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   innermost_function_scope = grcontext->innermost_function_scope;
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
-  curr_cleanup_region_number = grcontext->curr_cleanup_region_number;
+  curr_cleanup_state = grcontext->curr_cleanup_state;
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   depth_innermost_function_scope = grcontext->depth_innermost_function_scope;
   done_with_memory_region(region_number);
@@ -1973,11 +1984,12 @@ and not for constructor_init entries in destructors.
   check_assertion(dedp != NULL);
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
   if (exceptions_enabled) {
-    /* Set the region number to what it should be after the destruction,
+    /* Set the cleanup state to what it should be after the destruction,
        because as soon as we start the destruction it's the destructor's
        job to deal with partial destruction. */
-    set_eh_curr_region(dedp->region_number_to_set_when_starting_destruction,
-                       insert_location);
+    set_curr_cleanup_state(
+                          dedp->cleanup_state_to_set_when_starting_destruction,
+                          insert_location);
   }  /* if */
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   effective_insert_loc = insert_location;
@@ -3064,10 +3076,8 @@ do_assignment:;
         make_dyn_init_region_table_entry(dip,
                                          eff_context->latest_initialization,
                                          insert_location);
-        /* Insert code to set eh_curr_region to the region number for the
-           cleanup for this initialization, because we've done the
-           initialization now. */
-        set_eh_curr_region(cleanup_region_number(dip), insert_location);
+        /* Insert code to set the current cleanup state. */
+        set_curr_cleanup_state(dip, insert_location);
       }  /* if */
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
       /* Record this dynamic initialization as the last encountered in the
@@ -3187,11 +3197,12 @@ and *insert_location is updated.
     a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
     /* Put the entity position in the destructible_entity_descr. */
     copy_init_pos_descr(ipdp, &dedp->init_pos_descr);
-    /* Set the region number to what it should be after the destruction,
+    /* Set the cleanup state to what it should be after the destruction,
        because as soon as we start the destruction it's the destructor's
        job to deal with partial destruction. */
-    set_eh_curr_region(dedp->region_number_to_set_when_starting_destruction,
-                       insert_location);
+    set_curr_cleanup_state(
+                          dedp->cleanup_state_to_set_when_starting_destruction,
+                          insert_location);
   }  /* if */
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   add_destructor_call(dip->destructor, ipdp, have_complete_object,
@@ -3596,9 +3607,9 @@ The subtree of the node has not yet been lowered.
         make_dyn_init_region_table_entry(dyn_init_to_free_storage,
                                          curr_context->latest_initialization,
                                          &insert_location);
-        /* Set the region number to the delete cleanup entry. */
-        set_eh_curr_region(cleanup_region_number(dyn_init_to_free_storage),
-                           &insert_location);
+        /* Set the cleanup state to the delete cleanup entry. */
+        set_curr_cleanup_state(dyn_init_to_free_storage,
+                               &insert_location);
         /* Set the conditional_flag variable to nonzero. */
         set_conditional_flag_var(dyn_init_to_free_storage->
                                destructible_entity_descr->conditional_flag_var,
@@ -4520,8 +4531,8 @@ constructor scope, and also lower the user code.
   a_variable_ptr     this_param_var = scope->variant.routine.parameters;
   an_expr_node_ptr   if_node;
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
-  a_variable_ptr     cond_var;
-  a_handle_number    cond_var_handle;
+  a_destructible_entity_descr_ptr
+                     dedp;
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 
@@ -4576,9 +4587,9 @@ constructor scope, and also lower the user code.
                                        call_node->type, this_param_node);
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
       if (exceptions_enabled) {
-        an_insert_location      expr_insert_location;
-        a_cleanup_region_number new_cleanup_region_number;
-        an_init_pos_descr       ipd;
+        an_insert_location expr_insert_location;
+        a_dynamic_init_ptr dyn_init_to_free_storage;
+
         /* Exceptions are enabled.  Record the allocation so it can
            be freed if a throw occurs while this routine is running. */
         /* "this = new_rout(size)" is turned into
@@ -4589,27 +4600,42 @@ constructor scope, and also lower the user code.
         assign_node = make_operator_node((an_expr_operator_kind)eok_comma,
                                          this_param_node->type, assign_node);
         set_expr_insert_location(this_param_node, &expr_insert_location);
-        /* Make a conditional flag variable that is set to nonzero if the
-           allocation is done. */
-        cond_var = 
-                 make_lowered_temporary(integer_type((an_integer_kind)ik_int));
-        /* Assign it a number in the object address table. */
-        cond_var_handle = object_addr_table_index();
+        /* Make a dynamic initialization entry that describes the deletion. */
+        dyn_init_to_free_storage =
+                             alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+        dyn_init_to_free_storage->destructor =
+                                           ctsp->assoc_operator_delete_routine;
+        dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
+        dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
+        /* The front end is supposed to guarantee that a constructor of
+           this kind has an object lifetime even if it has no other
+           destructions. */
+        check_assertion_str(scope->lifetime != NULL,
+                            "lower_constructor_code: no lifetime");
+        /* Add the dynamic initialization to the object lifetime list. */
+        add_to_end_of_destructions_list(dyn_init_to_free_storage,
+                                        scope->lifetime);
+        /* Allocate a destructible entity description and add a conditional
+           flag variable. */
+        /* Note that NULL for the insert location here indicates that
+           no initialization code should be added (it gets added below). */
+        initial_processing_on_destructible_initialization(
+                                                    dyn_init_to_free_storage,
+                                                    (an_insert_location*)NULL);
+        dedp = dyn_init_to_free_storage->destructible_entity_descr;
+        set_var_indirect_init_pos_descr(this_param_var,
+                                        &dedp->init_pos_descr);
         /* Set the conditional_flag variable to nonzero.  The code to
            initialize it to zero is inserted later in this routine. */
-        set_conditional_flag_var(cond_var, &expr_insert_location);
+        set_conditional_flag_var(dedp->conditional_flag_var,
+                                 &expr_insert_location);
         /* Add the cleanup region table entry. */
-        set_var_indirect_init_pos_descr(this_param_var, &ipd);
-        (void)make_region_table_entry(&ipd,
-                                      ctsp->assoc_operator_delete_routine,
-                                      /*is_delete=*/TRUE,
-                                      cond_var,
-                                      cond_var_handle,
-                                      null_eh_region_number,
-                                      &new_cleanup_region_number,
-                                      &expr_insert_location);
-        /* Set the region number to the delete cleanup entry. */
-        set_eh_curr_region(new_cleanup_region_number, &expr_insert_location);
+        make_dyn_init_region_table_entry(dyn_init_to_free_storage,
+                                         (a_dynamic_init_ptr)NULL,
+                                         &expr_insert_location);
+        /* Set the cleanup state to the delete cleanup entry. */
+        set_curr_cleanup_state(dyn_init_to_free_storage,
+                               &expr_insert_location);
       }  /* if */
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
       /* Make "(this = new_rout(size)) != NULL". */
@@ -4659,7 +4685,9 @@ constructor scope, and also lower the user code.
            enclose_routine_in_if is called so that the initialization is
            done at the right place (i.e., outside the "if"). */
         set_block_start_insert_location(scope->assoc_block, &insert_location);
-        init_conditional_flag_var(cond_var, cond_var_handle, &insert_location);
+        init_conditional_flag_var(dedp->conditional_flag_var,
+                                  dedp->conditional_flag_handle,
+                                  &insert_location);
       }  /* if */
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
     }  /* if */
@@ -4724,37 +4752,33 @@ at *insert_location, and *insert_location is updated.
 
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
 
-static a_cleanup_region_number assign_dtor_init_cleanup_region_number(
-                                                        a_dynamic_init_ptr dip)
+static void assign_dtor_init_cleanup_region_number(a_dynamic_init_ptr dip)
 /*
 Assign a cleanup region number to the indicated destruction (from
 the constructor_inits list of a destructor) and to its successors.
-Return the region number assigned.  These region numbers are assigned
-early so that the next region number is available when each entry
-is processed.
+These region numbers are assigned early so that the next region number
+is available when each entry is processed.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
   a_dynamic_init_ptr              next_dip = dip->next_in_destruction_list;
-  a_cleanup_region_number         region_number, next_region_number;
+  a_cleanup_region_number         region_number;
 
   /* Each destruction gets a region number one higher than the region
      number of the next destruction, or the next available number
-     (probably 0) if there is no next destruction.  Note that the
+     (zero) if there is no next destruction.  Note that the
      recursive call here reverses the entries, which gives entry
      numbers in the desired order. */
   if (next_dip != NULL) {
-    next_region_number = assign_dtor_init_cleanup_region_number(next_dip);
+    assign_dtor_init_cleanup_region_number(next_dip);
     /* Note that these entries cannot require a conditional flag.  Otherwise,
        we would have to count an entry for it too. */
-    region_number = next_region_number + 1;
+    region_number = cleanup_region_number(next_dip) + 1;
   } else {
-    next_region_number = null_eh_region_number;
     region_number = 0;  /* That is, the first region number. */
   }  /* if */
   dedp->region_number = region_number;
-  dedp->region_number_to_set_when_starting_destruction = next_region_number;
-  return region_number;
+  dedp->cleanup_state_to_set_when_starting_destruction = next_dip;
 }  /* assign_dtor_init_cleanup_region_number */
 
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
@@ -4782,8 +4806,7 @@ is inserted at *insert_location.
     make_dtor_init_region_table_entries(next_dip, insert_location);
   }  /* if */
   /* Do the first entry on the list. */
-  curr_cleanup_region_number =
-                          dedp->region_number_to_set_when_starting_destruction;
+  curr_cleanup_state = dedp->cleanup_state_to_set_when_starting_destruction;
   make_dyn_init_region_table_entry(dip, next_dip, insert_location);
 #if CHECKING
   check_assertion_str(dedp->conditional_flag_var == NULL,
@@ -4992,7 +5015,7 @@ destructor scope, and also lower the user code.
              first_prologue_destruction =
                        first_prologue_destruction->next_in_destruction_list) {}
       }  /* if */
-      (void)assign_dtor_init_cleanup_region_number(first_prologue_destruction);
+      assign_dtor_init_cleanup_region_number(first_prologue_destruction);
     }  /* if */
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
     /* Generate a destructor call for each data member that appears on the
@@ -5054,11 +5077,10 @@ destructor scope, and also lower the user code.
          information recorded. */
       make_dtor_init_region_table_entries(first_prologue_destruction,
                                           &prologue_insert_location);
-      /* Set the region number at the end of the prologue (i.e., just before
-         going into user code) to the first cleanup region for the wrapper
-         cleanup. */
-      set_eh_curr_region(cleanup_region_number(first_prologue_destruction),
-                         &prologue_insert_location);
+      /* Set the cleanup state at the end of the prologue (i.e., just before
+         going into user code) to the first cleanup for the wrapper. */
+      set_curr_cleanup_state(first_prologue_destruction,
+                             &prologue_insert_location);
     } /* if */
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   }  /* if */
