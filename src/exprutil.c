@@ -9097,7 +9097,12 @@ prep_elision_initializer_operand.
             }  /* if */
           } else {
             /* Anachronism is not allowed. */
-            error_in_operand(ec_bad_nonconst_ref_init, source_operand);
+            /* Use a different message for the case where the type is right but
+               the operand is an rvalue. */
+            error_in_operand(type_is_correct_or_derived ?
+                               ec_nonconst_ref_init_from_rvalue :
+                               ec_bad_nonconst_ref_init,
+                             source_operand);
             err = TRUE;
           }  /* if */
         }  /* if */
