@@ -7158,12 +7158,9 @@ member declaration, respectively.
   }  /* if */
   if (decl_info->is_member_template) set_to_named_error_locator(*locator);
   /* Create the variable entry for the static data member. */
-  /* The storage class of static data members is sc_static until they are
-     promoted to external linkage, at which time the storage class will
-     become sc_extern or sc_unspecified (depending on whether or not a
-     definition is provided).  All static data member variables are allocated
-     in the file scope memory region and put on the variables list for the
-     current class. */
+  /* All static data member variables are allocated in the file scope memory
+     region and put on the variables list for the current class.  The storage
+     class will usually be set to extern (except sometimes in cfront mode). */
   var = make_variable(member_type, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
   /* If this is a member template declaration, don't add it to the variables
      list (in part to avoid problems caused by an invalid scope). */
@@ -7190,7 +7187,7 @@ member declaration, respectively.
     /* Ordinarily a static data member gets sc_extern storage class, which
        is promoted to sc_unspecified if a definition is seen.  In cfront mode,
        the storage is sc_static (already set), which is changed to sc_extern
-       or sc_unspecified when during a final fixup pass. */
+       or sc_unspecified during a final fixup pass. */
     var->storage_class = (a_storage_class)sc_extern;
   }  /* if */
   var->source_corresp.access = class_state->access;
