@@ -1,9 +1,10 @@
 Version 2.16
 
-4/24/93  Name mangling code put in separate file
+4/25/93  IL lowering code broken up
 
-The name mangling code from lower_il.c has been broken out into a
-separate file lower_name.c.
+The code in lower_il.c (formerly a 12,000 line file) has been split into
+lower_il.c, lower_name.c (for name mangling code), and lower_init.c (for
+initialization, new/delete, and constructor/destructor code).
 
 4/24/93  Bug in computing base class offsets
 
