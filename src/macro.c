@@ -3482,8 +3482,10 @@ Scan and process a #define directive.
        is text saved in the macro buffer to be inserted at the beginning of
        the preprocessed output line.  This happens when a macro identifier
        immediately precedes a #define and the #define is encountered while
-       looking for the parenthesis following the macro name. */
-    if (line_start_source_line_modif == NULL) {
+       looking for the parenthesis following the macro name.  Also do
+       not reset the macro buffer if this #define appears within a macro
+       argument list. */
+    if (line_start_source_line_modif == NULL && macro_depth == 0) {
       next_avail_in_macro_buffer = macro_buffer;
     }  /* if */
     buffer_start = next_avail_in_macro_buffer;

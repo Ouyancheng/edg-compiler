@@ -1,5 +1,17 @@
 Version 3.3
 
+6/22/03  Abort in get_token: bad lexical escape on #define in macro arguments
+
+In some cases, the appearance of a #define within a macro argument
+list confused the front end and resulted in an abort in get_token
+("bad lexical escape").  Now fixed.
+
+  #define N d
+  #define M(j)j
+  M(N,
+  #define O 1
+  )
+
 6/19/03  Microsoft mode: Treatment of exception specifications
 
 In Microsoft bugs mode, the front end used to discard all exception
