@@ -177,7 +177,9 @@ Similar to walk_list, but expands to nothing in the NEEDED_FLAG_WALK mode.
 /*
 Similar to walk_list, but used to walk lists attached to a scope.  If the
 local variable do_only_needed_entries_on_lists is TRUE, walk the list but
-call walk_ptr only on those entries with the "needed" flag TRUE.
+call walk_ptr only on those entries with the "needed" flag TRUE (and on
+those, clear the keep_in_il flag before doing the walk, to deal with
+entities that can be redeclared and whose subtrees can therefore change).
 In NEEDED_FLAG_WALK mode, expands to nothing.  When MAINTAIN_NEEDED_FLAGS
 is FALSE, expands to a simple walk_list.
 */
@@ -194,6 +196,7 @@ is FALSE, expands to a simple walk_list.
     ptr_type *ptr_ptr = &(ptr); \
     for (; *ptr_ptr != NULL; ptr_ptr = &(*ptr_ptr)->next) { \
       if ((*ptr_ptr)->source_corresp.needed) { \
+        il_entry_prefix_of(*ptr_ptr).keep_in_il = FALSE; \
         walk_ptr(*ptr_ptr, ptr_type, (entry_kind)); \
       }  /* if */ \
     }  /* for */ \
@@ -1114,9 +1117,13 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_scope_ptr  ptr = (a_scope_ptr)entry_ptr;
         a_scope_kind kind = ptr->kind;
 #if MAINTAIN_NEEDED_FLAGS && !NEEDED_FLAG_WALK
+        /* Certain lists have their entries processed only if the "needed"
+           flag is set, when walking the file scope or a namespace scope
+           to set the "keep_in_il" flag. */
         a_boolean    do_only_needed_entries_on_lists =
-                                              (walking_to_set_keep_in_il &&
-                                               kind == (a_scope_kind)sck_file);
+                                       (walking_to_set_keep_in_il &&
+                                        (kind == (a_scope_kind)sck_file ||
+                                         kind == (a_scope_kind)sck_namespace));
 #endif /* MAINTAIN_NEEDED_FLAGS && !NEEDED_FLAG_WALK */
         remap_next_ptr(ptr->next, a_scope_ptr, iek_scope);
         switch (kind) {

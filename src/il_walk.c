@@ -479,22 +479,26 @@ can be NULL to indicate that the corresponding function is unnecessary.
 #define UNDEF_WALK_ENTRY_MACROS_AT_END
 #include "walk_entry.h"
 
+
 /*
 Given an IL entry at entry_ptr with kind entry_kind, return TRUE if the
 entry's subtree should not be walked at this time.  This is used when
 setting the "needed" or "keep_in_il" flags.  Entities that can be
 defined or redeclared later (e.g., classes) shouldn't have their subtrees
 walked until after there is no longer the possibility of the subtree changing.
+end_of_file_scope_needed_flags_phase is set to TRUE in a phase where subtrees
+should finally be walked.  Entities local to functions are always fully
+walked immediately.
 */
 #define should_not_walk_subtree(entry_ptr, entry_kind) \
- (((entry_kind) == iek_type && \
-   is_immediate_class_type((a_type_ptr)(entry_ptr)) && \
-   !end_of_file_scope_needed_flags_phase && \
-   !((a_type_ptr)(entry_ptr))->source_corresp.is_local_to_function && \
-   !((a_type_ptr)(entry_ptr))->declared_in_function_prototype) || \
-  ((entry_kind) == iek_variable && \
-   !end_of_file_scope_needed_flags_phase && \
-   !((a_variable_ptr)(entry_ptr))->source_corresp.is_local_to_function))
+ (!end_of_file_scope_needed_flags_phase && \
+  (((entry_kind) == iek_type && \
+    is_immediate_class_type((a_type_ptr)(entry_ptr)) && \
+    !((a_type_ptr)(entry_ptr))->source_corresp.is_local_to_function && \
+    !((a_type_ptr)(entry_ptr))->declared_in_function_prototype) || \
+   ((entry_kind) == iek_variable && \
+    !((a_variable_ptr)(entry_ptr))->source_corresp.is_local_to_function) || \
+   ((entry_kind) == iek_routine)))
 
 
 static a_boolean prune_needed_flag_il_walk(char             *entry_ptr,
@@ -563,8 +567,12 @@ its subtree has been walked.
            scope is popped off the stack. */
       } else {
         /* This is a previously-defined function that has just been
-           identified as needed.  We may be able to dispose of the memory
-           region now. */
+           identified as needed. */
+        /* The IL will not be changing any more, so walk it to note what
+           needs to be kept in the IL (specifically, what in the file scope
+           memory region needs to be kept in the IL). */
+        mark_to_keep_in_il((char *)scope, iek_scope);
+        /* We may be able to dispose of the memory region now. */
         check_for_done_with_memory_region(scope_region_number);
       }  /* if */
     }  /* if */
@@ -628,7 +636,9 @@ void mark_to_keep_in_il(char             *entry_ptr,
                         an_il_entry_kind entry_kind)
 /*
 Set the "keep_in_il" flag in the indicated entity, and also on everything it
-references.
+references.  When this is called for the file-scope scope entry, the lists
+of variables, routines, etc. of that scope are walked in a special way:
+only the entries marked as "needed" are marked to keep in the IL.
 */
 {
   an_il_walk_state saved_state;
@@ -668,6 +678,7 @@ or redeclaration).
   a_source_sequence_entry_ptr  ssep;
   a_src_seq_secondary_decl_ptr sec_decl;
   char                         *entry_ptr;
+  a_boolean                    assoc_entry_keep_in_il;
 
   for (ssep = scope->source_sequence_list;
        ssep != NULL;
@@ -682,11 +693,12 @@ or redeclaration).
       entry_ptr = ssep->entity.ptr;
     }  /* if */
     /* See if the associated IL entity is marked with keep_in_il. */
-    if (il_entry_prefix_of(entry_ptr).keep_in_il) {
-      /* Yes, so mark the source sequence entry (and the secondary
-         declaration entry too, if there is one). */
-      il_entry_prefix_of(ssep).keep_in_il = TRUE;
-      if (sec_decl != NULL) il_entry_prefix_of(sec_decl).keep_in_il = TRUE;
+    assoc_entry_keep_in_il = il_entry_prefix_of(entry_ptr).keep_in_il;
+    /* Mark the source sequence entry the same way (and the secondary
+       declaration entry too, if there is one). */
+    il_entry_prefix_of(ssep).keep_in_il = assoc_entry_keep_in_il;
+    if (sec_decl != NULL) {
+      il_entry_prefix_of(sec_decl).keep_in_il = assoc_entry_keep_in_il;
     }  /* if */
   }  /* for */
 }  /* set_keep_in_il_on_source_sequence_entries */
