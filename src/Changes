@@ -17,14 +17,6 @@ class member of the same name.  For example:
 
 This is now fixed.
 
-8/20/04  Microsoft compatibility: dllimport/dllexport and threads
-
-In Microsoft modes, the front end now issues an error for thread-local
-variables declared with dllimport/dllexport (previously, such variable
-declarations were silently accepted).  For example:
-
-  __declspec(dllimport thread) int e;  // Now an error.
-
 8/19/04  GNU mode: Empty attributes
 
 In GNU C and C++ modes the front end now accepts empty GNU attributes.
