@@ -17,7 +17,7 @@ well as changes in cp_gen_be.c itself.)  For example:
   int A::N::f() { return ++x; }
 
 Before, the reference to "x" was put out as "A::N::x" in the generated
-C++, which resulted in a access error.  Now it is put out simply as "x".
+C++, which resulted in an access error.  Now it is put out simply as "x".
 
 11/24/97  C++-generating back end: qualified names for extern "C" entities
 
