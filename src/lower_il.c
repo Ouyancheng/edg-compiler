@@ -36,13 +36,6 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 #include "layout.h"
 #include "mem_manage.h"
 
-/*
-IL lowering is only needed in this compilation if the source language
-is C++, there are no errors, and lowering hasn't been suppressed.
-*/
-#define il_lowering_needed()                                          \
-  (C_dialect == C_dialect_cplusplus && !suppress_il_lowering &&       \
-   total_errors == 0)
 
 /*
 This switch controls whether or not types and static variables that are local
@@ -71,6 +64,15 @@ code; if one wants compatibility with cfront in that mode, this option
 should be set to FALSE.)
 */
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED CFRONT_OBJECT_CODE_COMPATIBILITY
+
+
+/*
+IL lowering is only needed in this compilation if the source language
+is C++, there are no errors, and lowering hasn't been suppressed.
+*/
+#define il_lowering_needed()                                          \
+  (C_dialect == C_dialect_cplusplus && !suppress_il_lowering &&       \
+   total_errors == 0)
 
 
 static a_boolean
@@ -4347,6 +4349,58 @@ function table is for class_type itself.  Place the mangled name at
 #undef VTBL_STR
 }  /* mangled_vtbl_name */
 
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+
+static void mangle_promoted_entity_name(a_source_correspondence *scp,
+                                        a_routine_ptr           routine)
+/*
+scp points to the source correspondence field of an entity that is being
+promoted out of the routine "routine" (or one of its block scopes) to
+the file scope.  Give the entity a mangled name if necessary (e.g.,
+if the function is a template function).
+*/
+{
+  sizeof_t mangled_name_length, alloc_length, name_length, routine_name_length;
+  char     *mangled_name, *store_at;
+
+  if (routine->is_instantiation && routine->source_corresp.name != NULL &&
+      scp->name != NULL && !scp->name_has_been_mangled) {
+    /* The routine is an instantiation of a template, so name mangling is
+       needed.  Without it, two instances of the same function might promote
+       two instances of the same entity to file scope.  Everything about them
+       looks the same, so they would clash. */
+    /* The encoding is the original name, two underscores, and the
+       mangled name of the routine.  Note that the routine name has not
+       been mangled yet. */
+    name_length = strlen(scp->name);
+    check_assertion(!routine->source_corresp.name_has_been_mangled);
+    routine_name_length =
+                       mangled_function_name(routine,
+                                             /*suppress_param_encoding=*/FALSE,
+                                             (char *)NULL);
+    mangled_name_length = name_length + 2 + routine_name_length;
+    /* Allocate space for the mangled name and build it.  The old name is
+       just thrown away. */
+    alloc_length = mangled_name_length + 1;
+    mangled_name = alloc_il(alloc_length);
+#if DEBUG
+    allocated_name_string_length += alloc_length;
+#endif /* DEBUG */
+    (void)strcpy(mangled_name, scp->name);
+    store_at = mangled_name + name_length;
+    *store_at++ = '_';
+    *store_at++ = '_';
+    (void)mangled_function_name(routine, /*suppress_param_encoding=*/FALSE,
+                                store_at);
+    /* Store the final null. */
+    mangled_name[mangled_name_length] = '\0';
+    scp->name = mangled_name;
+    scp->name_has_been_mangled = TRUE;
+  }  /* if */
+}  /* mangle_promoted_entity_name */
+
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+
 
 static void lower_source_correspondence(
                                        a_source_correspondence *source_corresp)
@@ -5733,16 +5787,29 @@ Promote the constants on the scope list to the file scope.
 }  /* promote_constants */
 
 
-static void promote_types(a_scope_ptr scope)
+#if !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+/*ARGSUSED*/ /* <-- routine is only used when local entities are promoted. */
+#endif /* !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+static void promote_types(a_scope_ptr   scope,
+                          a_routine_ptr routine)
 /*
 Promote the types on the scope list to the file scope.  Types promoted
 will be inserted at the point indicated by type_promotion_insert_location.
+If routine is non-NULL, the scope is (directly or indirectly) part of the
+indicated function (as opposed to a class).
 */
 {
   a_type_ptr  type, next_type;
 
   for (type = scope->types; type != NULL; type = next_type) {
     next_type = type->next;
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+    if (routine != NULL) {
+      /* Mangle the name if necessary (e.g., if it is part of a template
+         function). */
+      mangle_promoted_entity_name(&type->source_corresp, routine);
+    }  /* if */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
     if (type_promotion_insert_location != NULL) {
       /* Insert at the indicated point. */
       type->next = *type_promotion_insert_location;
@@ -5757,9 +5824,15 @@ will be inserted at the point indicated by type_promotion_insert_location.
 }  /* promote_types */
 
 
-static void promote_variables(a_scope_ptr scope)
+#if !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+/*ARGSUSED*/ /* <-- routine is only used when local entities are promoted. */
+#endif /* !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+static void promote_variables(a_scope_ptr   scope,
+                              a_routine_ptr routine)
 /*
 Promote the variables on the scope list to the file scope.
+If routine is non-NULL, the scope is (directly or indirectly) part of the
+indicated function (as opposed to a class).
 */
 {
   a_variable_ptr variable, next_variable;
@@ -5768,6 +5841,13 @@ Promote the variables on the scope list to the file scope.
        variable != NULL;
        variable = next_variable) {
     next_variable = variable->next;
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+    if (routine != NULL) {
+      /* Mangle the name if necessary (e.g., if it is part of a template
+         function). */
+      mangle_promoted_entity_name(&variable->source_corresp, routine);
+    }  /* if */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
     add_to_variables_list(variable, /*at_file_scope=*/TRUE);
   }  /* for */
   scope->variables = NULL;
@@ -5809,8 +5889,8 @@ the promotion process makes the virtual functions unfindable.
        types, promote them into the file scope. */
     if (scope != NULL) {
       promote_constants(scope);
-      promote_types(scope);
-      promote_variables(scope);
+      promote_types(scope, (a_routine_ptr)NULL);
+      promote_variables(scope, (a_routine_ptr)NULL);
       promote_routines(scope);
     }  /* if */
   }  /* if */
@@ -11675,22 +11755,24 @@ by things that will be in the file scope.
 }  /* local_entities_should_be_promoted */
 
 
-static void promote_local_entities_to_file_scope(a_scope_ptr scope)
+static void promote_local_entities_to_file_scope(a_scope_ptr   scope,
+                                                 a_routine_ptr routine)
 /*
 Promote the local types and static variables of the indicated
-scope and its subscopes to the file scope.
+scope and its subscopes to the file scope.  The scope is (directly or
+indirectly) part of the indicated routine.
 */
 {
   a_scope_ptr block_scope;
 
   /* Promote the local entities to file scope. */
-  promote_types(scope);
-  promote_variables(scope);
+  promote_types(scope, routine);
+  promote_variables(scope, routine);
   /* Visit all block scopes. */
   for (block_scope = scope->scopes;
        block_scope != NULL;
        block_scope = block_scope->next) {
-    promote_local_entities_to_file_scope(block_scope);
+    promote_local_entities_to_file_scope(block_scope, routine);
   }  /* for */
 }  /* promote_local_entities_to_file_scope */
 
@@ -11985,8 +12067,10 @@ C++ to C, so that a C back end can handle it without change.
     if (!lowering_file_scope) {
       /* Look at the function scope and its subscopes and promote local
          types and static variables to the file scope where appropriate. */
+      check_assertion(scope->kind == (a_scope_kind)sck_function);
       if (local_entities_should_be_promoted(scope)) {
-        promote_local_entities_to_file_scope(scope);
+        promote_local_entities_to_file_scope(scope,
+                                             scope->variant.routine.ptr);
       }  /* if */
     }  /* if */
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
