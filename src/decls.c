@@ -5845,6 +5845,11 @@ recorded in the IL, the template header is passed via template_decl.
                           (storage_class == (a_storage_class)sc_extern) ?
                                 (a_name_linkage_kind)nlk_cplusplus_external :
                                 (a_name_linkage_kind)nlk_internal;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (prototype_instantiations_in_il) {
+      add_to_routines_list(rout_ptr, NO_SCOPE_DEPTH);
+    }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   } else {
     if (func_info->is_inline) {
       if (!rout_ptr->is_inline) {

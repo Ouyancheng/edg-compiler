@@ -6668,6 +6668,11 @@ in-class member function declarations.)
     rtn->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
     rtn->storage_class = (a_storage_class)sc_extern;
   }  /* if */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (prototype_instantiations_in_il) {
+    add_to_routines_list(rtn, NO_SCOPE_DEPTH);
+  }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (!is_error_locator(*locator)) {
     /* Update cross-reference information, etc. */
     if (func_info->is_definition) {

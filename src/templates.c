@@ -2582,11 +2582,6 @@ user later during real instantiations.
        inserted to mark the end of the cached token stream. If necessary, keep
        flushing until end-of-source is found. */
     flush_past_token_cache_terminator();
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (prototype_instantiations_in_il) {
-      add_to_routines_list(rout_ptr, NO_SCOPE_DEPTH);
-    }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   db_exit();
 }  /* function_prototype_instantiation */
@@ -3836,6 +3831,10 @@ prototype instantiation is considered as a potential match.
     if (class_type->variant.class_struct_union.is_nonreal_class) {
       class_type->size = 1;
       class_type->alignment = 1;
+      if (prototype_instantiations_in_il &&
+          scope_stack[depth_scope_stack].in_prototype_instantiation) {
+        add_to_types_list(class_type, NO_SCOPE_DEPTH);
+      }  /* if */
     } else if (sym != prototype_sym) {
       /* Update the friend information associated with this template.
          These are the classes that declared this template as a friend. */
