@@ -2033,13 +2033,15 @@ Display the name of an expression operator.
     case eok_value_bit_field:   s = "eok_value_bit_field";        break;
     case eok_extract_bit_field: s = "eok_extract_bit_field";      break;
     case eok_pm_field:          s = "eok_pm_field";               break;
+    case eok_points_to_static:  s = "eok_points_to_static";       break;
+    case eok_lvalue_dot_static: s = "eok_lvalue_dot_static";      break;
+    case eok_rvalue_dot_static: s = "eok_rvalue_dot_static";      break;
     case eok_shiftl:            s = "eok_shiftl";                 break;
     case eok_shiftr:            s = "eok_shiftr";                 break;
     case eok_and:               s = "eok_and";                    break;
     case eok_or:                s = "eok_or";                     break;
     case eok_xor:               s = "eok_xor";                    break;
     case eok_comma:             s = "eok_comma";                  break;
-    case eok_static_selection:  s = "eok_static_selection";       break;
     case eok_virtual_function_ptr:
                                 s = "eok_virtual_function_ptr";   break;
     case eok_vacuous_destructor_call:

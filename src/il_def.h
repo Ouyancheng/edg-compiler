@@ -5086,7 +5086,7 @@ enum an_expr_node_kind_tag {
                            variables can be used, but only in cases where
                            the address will not actually be used. */
 #ifdef CIL
-  enk_field,            /* Used in an eok_field or eok_value_field
+  enk_field,            /* Used in an eok_field, eok_value_field, etc.
                            operation to indicate the field. */
   enk_temp_init,	/* Initialization of a temporary within an
 			   expression.  C++ only. */
@@ -5405,20 +5405,32 @@ enum an_expr_operator_kind_tag {
 			   the pointer-to-member.  The result is the address
 			   of the field.  This is the C++ "->*" operator (for
 			   pointers to DATA members). */
+  eok_points_to_static,	/* Static member selection p->m.  The first operand
+			   is a pointer to a class; if is evaluated and
+			   discarded.  The second operand is a reference to
+			   a static member, whose value is passed through;
+			   it is an lvalue if the result is used as an lvalue.
+			   C++ only, and eliminated by IL lowering. */
+  eok_lvalue_dot_static,
+			/* Static member selection lval.m.  The first operand
+			   is an lvalue for a class; if is evaluated and
+			   discarded.  The second operand is a reference to
+			   a static member, whose value is passed through;
+			   it is an lvalue if the result is used as an lvalue.
+			   C++ only, and eliminated by IL lowering. */
+  eok_rvalue_dot_static,
+			/* Static member selection rval.m.  The first operand
+			   is a class rvalue; if is evaluated and discarded.
+			   The second operand is a reference to a static
+			   member, whose value is passed through; it is an
+			   lvalue if the result is used as an lvalue.
+			   C++ only, and eliminated by IL lowering. */
   eok_shiftl,           /* Left shift ("<<" operator). */
   eok_shiftr,           /* Right shift (">>" operator). */
   eok_and,              /* Bitwise and ("&" operator). */
   eok_or,               /* Bitwise or ("|" operator). */
   eok_xor,              /* Exclusive or ("^" operator). */
   eok_comma,            /* The comma operator. */
-  eok_static_selection,	/* Static selection, e.g., p->m where m is a static
-			   member.  The first operand (p) is evaluated and
-			   discarded.  The second operand (m) is evaluated and
-			   returned as the value of the expression.  Semantics
-			   are effectively the same as eok_comma, including
-			   the fact that the second operand can be an lvalue
-			   or an rvalue.  C++ only, and eliminated by IL
-			   lowering. */
   eok_virtual_function_ptr,
 			/* Produce a normal function pointer for a C++ virtual
 			   member function.  This is (only) used to implement
@@ -7670,9 +7682,9 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "f+=", "f-=", "f*=", "f/=",
    "p+=", "p-=",
    "<<=", ">>=", "&=", "|=", "^=",
-   "[]", "->", "v.", "b->", "bv.", "b.", "->*",
+   "[]", "->", "v.", "b->", "bv.", "b.", "->*", "->s", "l.s", "r.s"
    "<<", ">>",
-   "&", "|", "^", ",", "s->",
+   "&", "|", "^", ",",
    "virt func ptr",
    "vacuous dtor",
    "value vacuous dtor",
