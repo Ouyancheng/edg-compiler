@@ -5980,19 +5980,10 @@ Scan the body of a class definition, including the base classes list.
           /* A malformed declaration was detected by decl_specifiers.  Issue
              errors indicating that an identifier (= a declarator) is missing,
              along with a semicolon.  Then branch to the bottom of the loop. */
-          a_token_kind  next_tok;
-          if (curr_token == tok_identifier &&
-              ((next_tok = next_token()) == tok_semicolon ||
-               next_tok == tok_comma || next_tok == tok_assign ||
-               next_tok == tok_lbracket || next_tok == tok_lparen)) {
-            /* Even though the current token is a type name, it looks more
-               like a declarator with a following ";" or "," or "=". */
-          } else {
-            set_err_pos_to_curr_token();
-            if (!local_declares_something) error(ec_exp_identifier);
-            error(ec_exp_semicolon);
-            goto next_declaration;
-          }  /* if */
+          set_err_pos_to_curr_token();
+          if (!local_declares_something) error(ec_exp_identifier);
+          error(ec_exp_semicolon);
+          goto next_declaration;
         }  /* if */
         if (curr_token == tok_semicolon) {
           /* There's no declarator following the declaration specifier.  This

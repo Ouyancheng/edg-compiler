@@ -7960,32 +7960,10 @@ no_get_token:
            class B; typedef class {...} B...    <== Error detected elsewhere
            class C; typedef class C {...} C...  <== Legal
          Note that this logic works for both C++ and standard C. */
-      if (curr_token == tok_identifier &&
-          *storage_class != (a_storage_class)sc_typedef) {
-        determine_curr_token_type_symbol(/*is_new_type_name=*/FALSE);
-      }  /* if */
-      if (is_type_specifier() ||
-          (C_dialect == C_dialect_cplusplus &&
-           *storage_class != (a_storage_class)sc_typedef &&
-           determined_curr_token_type_symbol &&
-           curr_token_type_symbol != NULL &&
-           curr_token_type_symbol->decl_scope ==
-                                     scope_stack[decl_scope_level].number)) {
-        /* The current token is either a type keyword or a type name; treat
-           it as the start of a new declaration.  Missing punctuation and
-           the error will be handled by the caller. */
-        dangling_type_specifier = TRUE;
-        goto exit_loop;
-      } else if (curr_token == tok_identifier &&
-                 locator_for_curr_id.is_qualified_name &&
-                 locator_for_curr_id.specific_symbol != NULL &&
-                 (is_constructor_symbol(locator_for_curr_id.specific_symbol) ||
-                  is_destructor_symbol(locator_for_curr_id.specific_symbol))) {
-        /* In this case we find a class or enum definition followed by what
-           can only be a constructor or destructor declaration, e.g.,
-             class A { A(); ...} A::A()...
-           This is not caught with the others because the type specifier is
-           omitted.  The missing semicolon will be handled by the caller. */
+      if (is_type_specifier()) {
+        /* The current token is either a type keyword; treat it as the start
+           of a new declaration.  The error on missing punctuation will be
+           handled by the caller. */
         dangling_type_specifier = TRUE;
         goto exit_loop;
       }  /* if */
@@ -9858,22 +9836,10 @@ continue_with_declaration:
         }  /* if */
       }  /* if */
     }  /* if */
-  } else if (dangling_type_specifier && (curr_token != tok_identifier ||
-             ((next_tok = next_token()) != tok_semicolon &&
-              next_tok != tok_comma && next_tok != tok_assign &&
-              next_tok != tok_lbracket && next_tok != tok_lparen))) {
-    /* A class, struct, union, or enum declaration was followed by a
-       a type specifier keyword or else by an identifier that is a type name
-       and that is not followed by a comma, semicolon, or equal sign.  In
-       other words, issue a missing-semicolon error on the following:
-           class A;
-           class B {...} A ...
-       where A is probably the start of a new declaration.  However, don't
-       put out that error in this case:
-           class A;
-           class B {...} A;
-       where the semicolon following A in the second line makes it clear that
-       A was intended to be a declarator. */
+  } else if (dangling_type_specifier) {
+    /* A class, struct, union, or enum definition was followed by a
+       a type specifier keyword.  Issue a missing-semicolon error, since
+       the type specifier can be taken as introducing a new declaration. */
     set_err_pos_to_curr_token();
     if (!declares_something) error(ec_exp_identifier);
     error(ec_exp_semicolon);
