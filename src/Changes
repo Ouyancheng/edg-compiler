@@ -287,7 +287,8 @@ form is generally preferred.  For example:
 
 The original form is now preserved.
 
-12/2/03  Microsoft mode: Spurious correspondence error with dllimport/dllexport
+12/2/03  Microsoft compatibility: Spurious correspondence error with
+         dllimport/dllexport
 
 When compiling multiple translation units in Microsoft mode, the front end
 incorrectly treated as incompatible routine declarations that only differ
@@ -344,7 +345,7 @@ destroy the members and bases of the class.  Now fixed.
     }
   };
 
-11/26/03 Microsoft mode: Spurious class type correspondence error
+11/26/03 Microsoft compatibility: Spurious class type correspondence error
 
 When simultaneously processing multiple translation units in Microsoft mode,
 the front end sometimes issued a spurious correspondence error on class types.
@@ -849,7 +850,7 @@ by parentheses, etc.).  Now fixed.
   };
   template <class T> int A<T>::i = x ? 0 : 1;
 
-10/17/03 Microsoft mode: Friend definitions in templates
+10/17/03 Microsoft compatibility: Friend definitions in templates
 
 In Microsoft mode, the front end did not always report duplicate definitions
 arising from instantiating the bodies of friend function definitions appearing
@@ -1211,7 +1212,8 @@ dependent qualified name.  Now fixed.
     f(a);  // spurious ambiguity reported on this call
   }
 
-9/17/03  Microsoft mode: Static data members and derived class qualifiers
+9/17/03  Microsoft compatibility: Static data members and derived class
+         qualifiers
 
 In Microsoft mode, the front end accepts static data member definitions
 using derived class qualifiers (see Changes entry of 4/27/98).  However,
@@ -1394,7 +1396,7 @@ requires that, and adding the limitation fixes an EDG bug with
 a #line put out in the middle of an output line when textual
 preprocessed output is requested for such a case.
 
-9/3/03   Microsoft mode: Nonstandard friend class template
+9/3/03   Microsoft compatibility: Nonstandard friend class template
 
 In Microsoft mode, the front end now accepts a friend class template without
 a leading template parameter clause if the referenced template is visible.
@@ -1442,7 +1444,7 @@ template specializations.  For example:
   template<> __attribute__((deprecated))  // Now accepted in GNU C++ mode.
         void f<void>() {}                 // Previously an error.
 
-8/27/03  Microsoft mode: Abort while removing source sequence entry
+8/27/03  Microsoft compatibility: Abort while removing source sequence entry
 
 When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS was set to
 TRUE, the front end sometimes triggered an internal error in Microsoft mode
@@ -1535,8 +1537,8 @@ line-splice continations), which does not work.  Now working again.
     "48003403" \
   }
 
-8/21/03  Microsoft mode: Abort in C++-generating back end due to missing
-         declared_type
+8/21/03  Microsoft compatibility: Abort in C++-generating back end due to
+         missing declared_type
 
 When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE and
 NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is FALSE, the
@@ -2331,7 +2333,7 @@ rejected.  Now fixed.
 
   inline f() { static const int x[5] = {0}; }  // Accepted now in C99
 
-7/21/03  Microsoft mode: Exception specifications on redeclarations
+7/21/03  Microsoft compatibility: Exception specifications on redeclarations
 
 In Microsoft mode (with exceptions enabled and microsoft_version >= 1300),
 the front end now only issues a warning on function and member function
@@ -2384,7 +2386,7 @@ it eliminates a spurious error.
     f<int>();
  }
 
-7/18/03  Microsoft mode: explicit overriding
+7/18/03  Microsoft compatibility: explicit overriding
 
 In Microsoft mode, the front end now accepts declarations of virtual
 member functions with a class qualifier to indicate that only the 
@@ -2540,7 +2542,7 @@ set.
 The default Microsoft version number is now "1310".  This corresponds
 to the value of _MSC_VER used with Visual C++ 7.1.
 
-7/16/03  Microsoft mode: internal error on in-class specialization
+7/16/03  Microsoft compatibility: internal error on in-class specialization
 
 When EXPENSIVE_CHECKING is enabled, an internal error would occur
 in Microsoft mode when a Microsoft in-class specialization with
@@ -2612,7 +2614,7 @@ This caused IL lowering to generate an internal try-block, which
 is not supposed to happen when ABI_CHANGES_FOR_PLACEMENT_DELETE
 is FALSE.  Now fixed (the operator delete is not called on an exception).
 
-7/15/03  Microsoft mode: __declspec(intrin_type)
+7/15/03  Microsoft compatibility: __declspec(intrin_type)
 
 The front end now accepts the Microsoft specifier __declspec(intrin_type).
 This specifier only has an effect when it appears on a class type definition.
@@ -2744,13 +2746,13 @@ Cfront-like ABI, the size recorded in the type of such an array
 was for the correct number of members, so it did not match
 the size of the array as dimensioned.  Now fixed.
 
-7/7/03   Microsoft mode: __declspec(noinline)
+7/7/03   Microsoft compatibility: __declspec(noinline)
 
 In Microsoft mode, the front end now accepts the __declspec(noinline)
 specifier.  When specified on a function declaration, it indicates that
 a back end should not attempt to inline the function.
 
-7/2/03   Microsoft mode: __declspec(align(...))
+7/2/03   Microsoft compatibility: __declspec(align(...))
 
 In Microsoft mode, the front end now accepts declaration specifiers of the
 form __declspec(align(x)), where x is an integer literal that is a power of
@@ -2811,7 +2813,7 @@ Now the diagnostic has been weakened to a warning.
     __asm ("nop" : : : "bx", "bx");  // Warning: "bx" clobbered twice
   }                                  // (previously a hard error).
 
-6/27/03  Microsoft mode: __declspec(deprecated)
+6/27/03  Microsoft compatibility: __declspec(deprecated)
 
 In Microsoft mode, the front end now supports the __declspec(deprecated)
 specifier.  Using an entity marked with this specifier results in a warning
@@ -2958,7 +2960,7 @@ list confused the front end and resulted in an abort in get_token
   #define O 1
   )
 
-6/19/03  Microsoft mode: Treatment of exception specifications
+6/19/03  Microsoft compatibility: Treatment of exception specifications
 
 In Microsoft bugs mode, the front end used to discard all exception
 specifications, except for those of the form "throw (...)" (see also
@@ -2994,7 +2996,7 @@ mismatches that were previously ignored are now warned about.  For example:
     virtual void f() {}  // Now a warning when microsoft_version >= 1300.
   };                     // (Previously silently ignored.) 
 
-6/20/03  Microsoft mode: #pragma pack(show)
+6/20/03  Microsoft compatibility: #pragma pack(show)
 
 The front end now recognizes a new form of "#pragma pack": When its argument
 is the simple identifier "show", the front end issues a warning with the
@@ -3849,7 +3851,7 @@ and for the Cfront-like ABI IL lowering changes the return type.
 This is an IL CHANGE, though it is not visible for those who use
 IL lowering.
 
-5/5/03   Microsoft mode: Name linkage of variable redeclarations
+5/5/03   Microsoft compatibility: Name linkage of variable redeclarations
 
 In nonstrict modes (including Microsoft mode) the front end issues a warning
 when a variable redeclaration conflicts in name linkage with the original
@@ -3897,7 +3899,7 @@ syntax errors.  For example:
 
 This is now fixed.
 
-5/1/03   Microsoft mode: Redeclaration of dllexport functions
+5/1/03   Microsoft compatibility: Redeclaration of dllexport functions
 
 In Microsoft mode, when a function first declared with a dllexport modifier
 was redeclared without such a modifier, the front end used to issue a warning
@@ -5970,7 +5972,7 @@ corrected.  It came up in C mode with multiple translation units,
 where the declaration of a function is unprototyped in one
 translation unit and prototyped in another.
 
-12/23/02 Microsoft mode: pointer minus void *
+12/23/02 Microsoft compatibility: pointer minus void *
 
 In Microsoft mode (C and C++), a pointer minus a void * is
 now allowed.  A warning is issued.
@@ -6056,7 +6058,8 @@ Now fixed.
     f(1);
   }
 
-12/14/02 Microsoft mode: do-nothing cast to array type allowed and ignored
+12/14/02 Microsoft compatibility: do-nothing cast to array type allowed
+         and ignored
 
 In Microsoft bugs mode in C++, a do-nothing cast to an array type is
 now allowed and ignored, as an old-style cast, functional-notation cast,
@@ -9772,7 +9775,7 @@ One nit that was not done correctly: long double constants should not
 have the "L" suffix -- they should be double constants, with no suffix.
 Now fixed.
 
-2/23/02  Microsoft mode: overload resolution, template constructors
+2/23/02  Microsoft compatibility: overload resolution, template constructors
 
 MSVC++ has some quirks related to overload resolution involving
 template copy constructors.  These quirks are slightly different
@@ -9816,7 +9819,8 @@ the following example:
 
 This is now fixed.
 
-2/18/02  Microsoft mode: overload resolution, reference versus non-reference
+2/18/02  Microsoft compatibility: overload resolution, reference versus
+         non-reference
 
 An idiosyncrasy of MSVC++ overload resolution related to comparing two
 parameters when one is a reference and the other is not (see Changes
@@ -10598,7 +10602,7 @@ e.g., an IL write/read error, especially if the constructor is
 inlinable and is removed from the IL tree because all references
 were expanded inline.
 
-12/9/01  Microsoft mode: (void *)1 allowed as case label constant
+12/9/01  Microsoft compatibility: (void *)1 allowed as case label constant
 
 MSVC++ allows integral constants cast to pointer types as case label
 constants, as in
@@ -10755,7 +10759,7 @@ in destructors even if there are no members or bases to destroy,
 in partial-eh-lowering configurations (DO_FULL_PORTABLE_EH_LOWERING
 set to FALSE).
 
-11/18/01 Microsoft mode: const var as operand of "?" operator
+11/18/01 Microsoft compatibility: const var as operand of "?" operator
 
 A previous change (see 11/14/00 entry below) dropped cv-qualifiers
 on operands of "?".  It turns out MSVC++ doesn't do this when the
@@ -14282,7 +14286,7 @@ an aggregate member is initialized (which is pointless, because only
 the last initialization is retained).  This could result in various
 kinds of problems, including aborts.
 
-12/7/00  Microsoft mode: errors in #pragma pack parentheses
+12/7/00  Microsoft compatibility: errors in #pragma pack parentheses
 
 In Microsoft mode, missing opening or closing parentheses in a
 #pragma pack are now diagnosed with warnings.
@@ -14353,7 +14357,7 @@ be used).
 The C-generating back end now puts out parameter names on function
 declarations When RECORD_NAME_IN_PARAM_TYPE_ENTRY is TRUE.
 
-11/24/00 Microsoft mode: __uuidof and templates
+11/24/00 Microsoft compatibility: __uuidof and templates
 
 The Microsoft extension operator __uuidof has interesting behavior when
 applied to a template -- it returns the uuid for the template argument
@@ -14461,7 +14465,8 @@ they are treated like other extern functions instead of like functions with
 internal linkage.)  However, unlike other extern function definitions, they
 are not always marked as referenced.
 
-11/14/00 Microsoft mode: cv-qualifiers dropped on non-class operands of "?"
+11/14/00 Microsoft compatibility: cv-qualifiers dropped on non-class
+         operands of "?"
 
 In Microsoft bugs mode, cv-qualifiers are now dropped on the second and
 third operands of a "?" operator if those operands are lvalues and have
@@ -15278,7 +15283,7 @@ Compilation errors occurred in il_display.c when building an IL display
 program configured with PROTOTYPE_INSTANTIATIONS_IN_IL equal to TRUE.
 (See also entry of 8/21/00.)
 
-8/29/00  Microsoft mode: bad output of IL display program
+8/29/00  Microsoft compatibility: bad output of IL display program
 
 A bug introduced in version 2.44 caused the IL display program to output
 "**BAD-SIZED-INT-KIND**" for Microsoft sized integer types (like __int64).
@@ -17571,8 +17576,8 @@ the initialization of a member or variable.  Now fixed.
     might_throw();
   }
 
-2/1/00   Microsoft mode: freeing-on-exception entry for array new that uses
-         non-array delete
+2/1/00   Microsoft compatibility: freeing-on-exception entry for array new
+         that uses non-array delete
 
 In Microsoft mode, an array new operation can use a non-array operator
 new if no operator new[] is found.  If placement delete applies, the
@@ -17581,8 +17586,8 @@ initialization entry that requests the deletion was left in the IL tree
 by IL lowering, which is incorrect because the deletion is done by a
 runtime routine.  The entry is now removed.
 
-1/31/00  Microsoft mode: block extern declaration not linked to a later
-         redeclaration
+1/31/00  Microsoft compatibility: block extern declaration not linked to
+         a later redeclaration
 
 The implementation of the Microsoft compatibility feature documented in the
 Changes entry of 10/6/99 caused the front end not to link an initial block
@@ -22822,7 +22827,7 @@ incorrectly for constructors, destructors, and conversion functions,
 because it included a return type in the declaration.  The return type
 is now suppressed.
 
-1/24/99   Microsoft mode array new and delete
+1/24/99   Microsoft compatibility: array new and delete
 
 A refinement of the 5/2/98 change for array new and delete in Microsoft mode:
 
@@ -23265,7 +23270,8 @@ The C++-generating back end has been changed not to call
 f_types_are_compatible.  This was the only thing standing in the way of
 building a standalone C++-generating back end.
 
-11/29/98  Microsoft mode: user-defined conversions on relational operators
+11/29/98  Microsoft compatibility: user-defined conversions on relational
+          operators
 
 The MSVC++ compiler does not look for user-defined conversions to pointer
 types for the built-in operators >, <, >=, and <=.  In Microsoft bugs mode,
@@ -28543,7 +28549,7 @@ is derived from B which is derived from A, the generated IL would
 have a cast to B * marked with implicit_step_of_explicit_cast, followed
 by a cast to A * not so marked.
 
-7/10/97   Microsoft mode: asm --> __asm, long long --> __int64
+7/10/97   Microsoft compatibility: asm --> __asm, long long --> __int64
 
 In Microsoft mode, asm statements are now always put out using the __asm
 keyword, and __int64 is always put out instead of "long long".
@@ -35308,8 +35314,8 @@ now controlled by global variable remove_qualifiers_from_param_types.
 Its value is configured by DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES.
 (Note: REMOVE_QUALIFIERS_FROM_PARAM_TYPES is no longer used.)
 
-5/2/96  Microsoft mode: functions returning classes considered to return
-        lvalues
+5/2/96  Microsoft compatibility: functions returning classes considered
+        to return lvalues
 
 In Microsoft compatibility mode, functions that return values of a class
 type are now considered to return lvalues.
