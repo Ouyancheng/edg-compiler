@@ -2958,17 +2958,17 @@ from decl_specifiers only.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (!C_mode() || *qualifiers != TQ_NONE) {
+    if (!C_mode() && *qualifiers != TQ_NONE) {
       /* Type qualifiers are not allowed on function types. */
       if (is_function_type(*type_ptr) ||
           (is_array_type(*type_ptr) &&
            is_function_type(underlying_array_element_type(*type_ptr)))) {
         an_error_severity  severity;
 
-        /* Put out a warning instead of an error in Microsoft and cfront
-           compatibility modes -- but don't the qualifiers. */
+        /* Put out a remark instead of an error in Microsoft and cfront
+           compatibility modes -- but don't add the qualifiers. */
         if (microsoft_mode || any_cfront_mode()) {
-          severity = es_warning;
+          severity = es_remark;
         } else {
           severity = es_discretionary_error;
           /* Note that err is not set for this discretionary error.  That's
@@ -2976,9 +2976,7 @@ from decl_specifiers only.
              the qualifiers are ignored, there are no side-effects in the
              IL, etc. */
         }  /* if */
-        pos_diagnostic((microsoft_mode || any_cfront_mode()) ?
-                             es_warning : es_discretionary_error,
-                       ec_cv_qualified_function_type, qualifier_pos);
+        pos_diagnostic(severity, ec_cv_qualified_function_type, qualifier_pos);
         *qualifiers = TQ_NONE;
       }  /* if */
     }  /* if */
