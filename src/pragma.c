@@ -482,6 +482,7 @@ return FALSE.
            the next element. */
         curr_token_pragmas = next_ppp;
       }  /* if */
+      ppp->next = NULL;
       /* If the entry is not being moved to the new list, free it. */
       if (!add_to_new_list) free_pending_pragma(ppp);
     } else {
@@ -589,12 +590,17 @@ or sp pointer must be supplied.  The IL entry is then added to the IL.
   is_bound_to_curr_construct = pkdp->binding_kind == pbk_next_construct;
   /* A symbol pointer or statement pointer may only be supplied for
      pbk_next_construct pragmas. */
-  check_assertion_str
-        (is_bound_to_curr_construct && ((sym == NULL) != (sp == NULL)),
-        "create_il_entry_for_pragma: invalid next_construct call");
-  check_assertion_str
-         (!is_bound_to_curr_construct && (sym == NULL && sp == NULL),
-          "create_il_entry_for_pragma: binding kind/argument mismatch");
+#if CHECKING
+  if (is_bound_to_curr_construct) {
+    check_assertion_str
+          ((sym == NULL) != (sp == NULL),
+          "create_il_entry_for_pragma: invalid next_construct call");
+  } else {
+    check_assertion_str
+           (sym == NULL && sp == NULL,
+            "create_il_entry_for_pragma: binding kind/argument mismatch");
+  }  /* if */
+#endif /* CHECKING */
   if (is_bound_to_curr_construct) {
     if (sym != NULL) {
       entity = il_entry_for_symbol(sym, &entity_kind);
