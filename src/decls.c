@@ -250,9 +250,9 @@ This routine is called to handle class member declarators in which a
 qualified name appears in place of the simple member name -- when, for
 instance, the user writes
             class A { int A::f(); };
-instead of the syntax that the ARM requires, namely:
+instead of the syntax that the ARM apparently requires, namely:
             class A { int f(); };
-Though it is "non-standard" (at this time), the latter is accepted by cfront.
+Though it is "non-standard" (at this time), the former is accepted by cfront.
 However, cfront 2.1 does not accept either of the following, though they may
 seem to be consistent variations on the same theme:
             class A { int ::A::f(); };
@@ -3299,16 +3299,12 @@ otherwise it is NULL.  The syntax is:
           }  /* if */
 #endif /* CHECKING */
           if (is_unknown_curr_class_member()) {
-            /* We have the case checked for.  After issuing the warning,
-               simply skip over the superfluous class name and "::" and
-               continue processing as though they had not been seen.  If
-               we had called get_qualified_name without advancing past them,
-               an error would have been issued reporting that the name is
-               not a member of the class.  It isn't yet. */
-            pos_warning(ec_qualified_name_in_member_decl, &declarator_pos);
-            /* Advance past the class name. */
+            /* We have the case checked for.  Skip over the superfluous class
+               name and "::" and continue processing as though they had not
+               been seen.  If we had called get_qualified_name without
+               advancing past them, an error would have been issued reporting
+               that the name is not a member of the class.  It isn't yet. */
             (void)get_token();
-            /* Advance past the "::". */
             (void)get_token();
             /* The current token will now be the identifier for the member
                being declared. */
