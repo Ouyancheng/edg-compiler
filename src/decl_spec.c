@@ -2145,9 +2145,9 @@ process_class_specifier:
         }  /* if */
         /* Look up the identifier as a type symbol, if it has not already been
            looked up. */
-        curr_token_type_symbol = curr_type_symbol(input_flags &
-                                                        DSI_IS_NEW_TYPE_NAME,
-                                                  /*in_prescan=*/FALSE);
+        curr_token_type_symbol =
+                    curr_type_symbol((input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
+                                     /*in_prescan=*/FALSE);
         if (curr_token_type_symbol != NULL) {
           if (sign != sign_none || size != size_none) {
             /* We are in pcc mode, in which adjectival modification of a
