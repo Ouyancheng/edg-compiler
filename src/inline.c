@@ -961,22 +961,71 @@ If not, *failed is set.
           (void)insert_expr_statement(expr, insert_location);
         }
         break;
+      case stmk_while:
+      case stmk_end_test_while:
+        if (is_expr_insert_location(insert_location)) {
+          /* Cannot inline this case in an expression context. */
+          goto cannot_inline;
+        }  /* if */
+        /* Copy the dependent statement. */
+        set_statement_creation_insert_location(&sub_insert_location);
+        expand_statement_inline(statement->variant.loop_statement,
+                                &sub_insert_location, inlinable, failed);
+        stmt = sub_insert_location.variant.stmt;
+        /* Copy the "while" statement. */
+        new_statement = copy_inlined_statement(statement, insert_location);
+        new_statement->expr = stmt_expr;
+        new_statement->variant.loop_statement = stmt;
+        break;
+      case stmk_for:
+        { a_statement_ptr  init_stmt;
+          an_expr_node_ptr increment_expr;
+          if (is_expr_insert_location(insert_location)) {
+            /* Cannot inline this case in an expression context. */
+            goto cannot_inline;
+          }  /* if */
+          /* Copy the initialization statement. */
+          set_statement_creation_insert_location(&sub_insert_location);
+          expand_statement_inline(statement->variant.for_loop.extra_info->
+                                                                initialization,
+                                  &sub_insert_location, inlinable, failed);
+          init_stmt = sub_insert_location.variant.stmt;
+          /* Copy the dependent statement. */
+          set_statement_creation_insert_location(&sub_insert_location);
+          expand_statement_inline(statement->variant.for_loop.statement,
+                                  &sub_insert_location, inlinable, failed);
+          stmt = sub_insert_location.variant.stmt;
+          /* Copyt the increment expression. */
+          increment_expr =
+             copy_expr_tree(statement->variant.for_loop.extra_info->increment);
+          set_expr_result_not_used(increment_expr);
+          /* Copy the "for" statement.  This does not use
+             copy_inlined_statement because it needs to copy the for loop
+             supplement. */
+          new_statement = alloc_statement((a_statement_kind)stmk_for);
+          set_stmt_pos_to_code_pos_for_lowering(new_statement);
+          insert_statement(new_statement, insert_location);
+          new_statement->expr = stmt_expr;
+          new_statement->variant.for_loop.statement = stmt;
+          new_statement->variant.for_loop.extra_info->initialization=init_stmt;
+          new_statement->variant.for_loop.extra_info->increment=increment_expr;
+        }
+        break;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       case stmk_decl:
         /* Statement that marks the location of declarations.  Ignored here. */
         break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      case stmk_while:
-      case stmk_end_test_while:
-      case stmk_for:
       case stmk_asm:
       case stmk_switch:
       case stmk_try_block:
       default:
 cannot_inline_ever:
         /* This statement cannot be inlined in any context. */
-        *failed = TRUE;
         *inlinable = FALSE;
+cannot_inline:
+        /* This statement cannot be inlined in this case. */
+        *failed = TRUE;
         break;
     }  /* switch */
   }  /* if */
