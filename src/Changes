@@ -1,5 +1,18 @@
 Version 2.24
 
+6/29/94 IL CHANGE: name changes related to exception specifications
+
+The names of types defined to support exceptions specifications have been
+changed to conform with the usage in the ARM and elsewhere:
+
+  a_throw_specification   ==> an_exception_specification
+  a_throw_spec_type       ==> an_exception_specification_type
+
+Also, exception_specification replaces throw_specification to designate
+the field in a_routine_type_supplement, and iek_exception_specification
+and iek_exception_specification_type now appear as members of the
+enumeration an_il_entry_kind.
+
 6/29/94 IL CHANGE: representation of field offset
 
 The field bit_offset in a_field has been replaced with two fields, offset,
