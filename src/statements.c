@@ -184,11 +184,11 @@ Routine to display an entry of type a_control_flow_descr, for debugging
 purposes.
 */
 {
-  a_variable_ptr  vp;
+  a_dynamic_init_ptr  dip;
 
   switch (cfdp->kind) {
     case cfdk_block:
-      fprintf(f_debug, "block #%lu (line %lu)", cfdp->id_number,
+      fprintf(f_debug, "block (#%lu, line %lu)", cfdp->id_number,
               cfdp->source_pos.seq);
       if (cfdp->variant.block.is_catch_block) {
         fprintf(f_debug, ", catch");
@@ -218,31 +218,30 @@ purposes.
       }  /* if */
       break;
     case cfdk_goto:
-      fprintf(f_debug, "goto %s (line %lu)",
+      fprintf(f_debug, "goto %s (#%lu, line %lu)",
               cfdp->variant.goto_statement.ptr->
                            variant.label.ptr->source_corresp.name,
-              cfdp->source_pos.seq);
+              cfdp->id_number, cfdp->source_pos.seq);
       break;
     case cfdk_label:
-      fprintf(f_debug, "%s:",
+      fprintf(f_debug, "label \"%s\" (#%lu, line %lu)",
               cfdp->variant.label_statement->
-                           variant.label.ptr->source_corresp.name);
+                           variant.label.ptr->source_corresp.name,
+              cfdp->id_number, cfdp->source_pos.seq);
       break;
     case cfdk_init:
-      fprintf(f_debug, "initializing ");
-      vp = NULL;
-      if (cfdp->variant.init_statement->variant.dynamic_init != NULL) {
-        vp = cfdp->variant.init_statement->variant.dynamic_init->variable;
+      fprintf(f_debug, "initialization");
+      dip = cfdp->variant.init_statement->variant.dynamic_init;
+      if (dip != NULL && dip->variable != NULL) {
+        fputs(" of \"", f_debug);
+        db_name(&dip->variable->source_corresp);
+        fputc('"', f_debug);
       }  /* if */
-      if (vp == NULL) {
-        fputs("???", f_debug);
-      } else {
-        db_name(&vp->source_corresp);
-      }  /* if */
-      fprintf(f_debug, " (line %lu)", cfdp->source_pos.seq);
+      fprintf(f_debug, " (#%lu, line %lu)", cfdp->id_number,
+              cfdp->source_pos.seq);
       break;
     case cfdk_end_of_block:
-      fprintf(f_debug, "EOB (line %lu)",
+      fprintf(f_debug, "EOB (#%lu, line %lu)", cfdp->id_number,
               cfdp->source_pos.seq);
       if (cfdp->variant.start_of_block != NULL) {
         fprintf(f_debug, " for block #%lu",
@@ -250,12 +249,13 @@ purposes.
       }  /* if */
       break;
     case cfdk_case_label:
-      fprintf(f_debug, "case label (line %lu)", cfdp->source_pos.seq);
+      fprintf(f_debug, "case label (#%lu, line %lu)", cfdp->id_number,
+              cfdp->source_pos.seq);
       break;
     default:
       fprintf(f_debug, "***UNKNOWN KIND***");
   }  /* switch */
-  fprintf(f_debug, "\t[#%lu]\n", cfdp->id_number);
+  fputc('\n', f_debug);
 }  /* db_cfd */
 
 
@@ -321,8 +321,26 @@ parent entries (i.e., the blocks which contain it), for debugging purposes.
     }  /* while */
   }  /* if */
 }  /* db_cfd_and_parents */
-#endif /* DEBUG */
 
+
+static void db_cfd_with_indentation(a_control_flow_descr_ptr  cfdp)
+/*
+Display a control flow description in a special format, for use when
+dump_control_flow has been enabled at the command line.  The display line
+includes the current sequence number, indentation corresponding to the depth
+of parent block, and the control flow entry itself.
+*/
+{
+  a_control_flow_descr_ptr  parent = cfdp->parent;
+
+  fprintf(f_debug, "CF-%.4d    ", (int)pos_curr_token.seq);
+  for (; parent != NULL; parent = parent->parent) {
+    fputs("  ", f_debug);
+  }  /* for */
+  db_cfd(cfdp);
+}  /* db_object_lifetime_with_indentation */
+
+#endif /* DEBUG */
 
 static a_control_flow_descr_ptr alloc_control_flow_descr(
                                                a_control_flow_descr_kind kind)
@@ -1048,6 +1066,11 @@ initializing declarations.
   }  /* if */
   /* Set the tail pointer to point to the new entry. */
   end_of_control_flow_descr_list = new_cfdp;
+#if DEBUG
+  if (db_flag_is_set("dump_control_flow")) {
+    db_cfd_with_indentation(new_cfdp);
+  }  /* if */
+#endif /* DEBUG */
 done:;
 #if DEBUG
   if (debug_level >= 4) {
@@ -1734,18 +1757,20 @@ current structured statement.
        control_flow_descr_list. */
     cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
     cfdp->variant.block.object_lifetime = olp;
-    if (scope != NULL && scope->kind == (a_scope_kind)sck_block &&
-        scope->variant.assoc_handler != NULL) {
-      /* This block represents the compound statement immediately within a
-         catch clause. */
-      cfdp->variant.block.is_catch_block = TRUE;
-      cfdp->variant.block.is_within_catch_or_try_block = TRUE;
-      sssep->is_catch_clause = TRUE;
-    } else if (sssep[-1].kind == (a_struct_stmt_kind)ssk_try_block) {
-      /* This block represents the compound statement immediately within a
-         try block statement. */
-      cfdp->variant.block.is_try_block = TRUE;
-      cfdp->variant.block.is_within_catch_or_try_block = TRUE;
+    if (depth_stmt_stack > 0) {
+      if (scope != NULL && scope->kind == (a_scope_kind)sck_block &&
+          scope->variant.assoc_handler != NULL) {
+        /* This block represents the compound statement immediately within a
+           catch clause. */
+        cfdp->variant.block.is_catch_block = TRUE;
+        cfdp->variant.block.is_within_catch_or_try_block = TRUE;
+        sssep->is_catch_clause = TRUE;
+      } else if (sssep[-1].kind == (a_struct_stmt_kind)ssk_try_block) {
+        /* This block represents the compound statement immediately within a
+           try block statement. */
+        cfdp->variant.block.is_try_block = TRUE;
+        cfdp->variant.block.is_within_catch_or_try_block = TRUE;
+      }  /* if */
     }  /* if */
     add_to_control_flow_descr_list(cfdp);
   }  /* if */
@@ -1918,7 +1943,7 @@ structured statement stack.
   a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack[depth_stmt_stack];
   int                            depth;
 
-  if (C_mode() && sssep->kind == (a_struct_stmt_kind)ssk_compound) {
+  if (sssep->kind == (a_struct_stmt_kind)ssk_compound) {
     /* If stmt is a label statement, create the new object lifetime
        unconditionally.  If it's a block statement, create it only if a label
        was defined in the nested block that was just terminated -- that is, if
@@ -2230,7 +2255,7 @@ See also 3.6.4.1.
   pop_stmt_stack();
   /* If appropriate create an entry to represent the object lifetime for the
      last label defined within the context that has just terminated. */
-  push_last_label_object_lifetime(sp);
+  if (!C_mode()) push_last_label_object_lifetime(sp);
 
   db_exit();
 }  /* if_statement */
@@ -2315,7 +2340,7 @@ See also 3.6.4.2.
   pop_stmt_stack();
   /* If appropriate create an entry to represent the object lifetime for the
      last label defined within the context that has just terminated. */
-  push_last_label_object_lifetime(sp);
+  if (!C_mode()) push_last_label_object_lifetime(sp);
 
   db_exit();
 }  /* switch_statement */
@@ -2369,7 +2394,7 @@ See also 3.6.5.1.
   pop_stmt_stack();
   /* If appropriate create an entry to represent the object lifetime for the
      last label defined within the context that has just terminated. */
-  push_last_label_object_lifetime(sp);
+  if (!C_mode()) push_last_label_object_lifetime(sp);
 
   db_exit();
 }  /* while_statement */
@@ -2429,7 +2454,7 @@ See also 3.6.5.2.
   pop_stmt_stack();
   /* If appropriate create an entry to represent the object lifetime for the
      last label defined within the context that has just terminated. */
-  push_last_label_object_lifetime(sp);
+  if (!C_mode()) push_last_label_object_lifetime(sp);
 
   db_exit();
 }  /* do_statement */
@@ -2635,7 +2660,7 @@ either an expression statement or a declaration statement.
   pop_stmt_stack();
   /* If appropriate create an entry to represent the object lifetime for the
      last label defined within the context that has just terminated. */
-  push_last_label_object_lifetime(sp);
+  if (!C_mode()) push_last_label_object_lifetime(sp);
 
   db_exit();
 }  /* for_statement */
