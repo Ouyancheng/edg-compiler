@@ -15,7 +15,7 @@ itself a private nested class.  Now fixed.
   class C {
     class X { };
     class A : X {
-      X *p;            // Spurious error elminated
+      X *p;            // Spurious error eliminated
     };
     class B {
       X *p;            // Still an error (in strict mode)
