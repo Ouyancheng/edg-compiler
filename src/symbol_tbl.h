@@ -1468,6 +1468,12 @@ typedef struct a_template_symbol_supplement {
 			   instantiations that can be generated for a given
 			   function.  This field records the number of unused
 			   instantiations that have been performed so far. */
+      a_pending_instantiation_count
+		pending_partial_instantiations;
+			/* The number of partial instantiations of this
+                           template that are in the process of being
+			   instantiated.  Used to detect runaway recursive
+			   instantiations. */
       a_bit_field
 		template_param_not_in_function_type:1;
 			/* TRUE if the function template has template

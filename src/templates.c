@@ -5207,7 +5207,7 @@ type based on the template argument list and the template parameter list
        cause problems if errors occur while rescanning the declaration. */
     tcp = &tssp->variant.function.decl_cache;
     /* Increment the count of pending instantiations of this template. */
-    ++(tssp->pending_instantiations);
+    ++(tssp->variant.function.pending_partial_instantiations);
     (void)push_template_instantiation_scope(tcp->decl_info,
 					    (a_type_ptr)NULL,
 					    (a_routine_ptr)NULL,
@@ -5234,9 +5234,14 @@ type based on the template argument list and the template parameter list
 #if MICROSOFT_EXTENSIONS_ALLOWED
     locator_position = pos_curr_token;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (tssp->pending_instantiations >= MAX_PENDING_INSTANTIATIONS) {
+    if (tssp->variant.function.pending_partial_instantiations >=
+                                                  MAX_PENDING_INSTANTIATIONS) {
       sym_error(ec_runaway_recursive_instantiation, templ_sym);
       rout_type = create_error_routine_type(templ_rout, parent_class);
+      /* Flush to the end of the declaration cache. */
+      while (curr_token != tok_end_of_source) (void)get_token();
+      /* Skip past the tok_end_of_source. */
+      (void)get_token();
     } else if (parent_class != NULL) {
       rout_type = scan_member_declaration(parent_class, templ_rout, tip);
 #if 0
@@ -5364,7 +5369,7 @@ type based on the template argument list and the template parameter list
   /* Pop the template instantiation scope. */
   pop_template_instantiation_scope();
   /* Decrement the count of pending instantiations of this template. */
-  --(tssp->pending_instantiations);
+  --(tssp->variant.function.pending_partial_instantiations);
   switch_back_to_original_region(region_to_switch_back_to);
   /* Function instantiation entries are not marked for actual instantiation
      (that is, for generation of the function body) until there is an
