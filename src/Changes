@@ -1,5 +1,18 @@
 Version 2.14, February 12, 1993
 
+02/17/93  Error recovery when scanning a template class reference
+
+Certain error cases caused an incorrectly formed symbol locator to
+be created which later caused an internal error.  This has been
+corrected.
+
+template <class T, int i> class A {
+public:
+	void f();
+};
+template <class T, int i> void A<class T, int (i>::f(){}
+
+
 02/15/93  Using a specific definition as an incomplete type
 
 Use of a specific definition of a class template inside its definition

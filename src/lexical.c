@@ -4773,12 +4773,12 @@ a routine to lookup the appropriate instance (or generate one if needed).
 */
 {
   a_source_position               start_position;
+  a_source_position               locator_pos;
   a_template_param_ptr            param_ptr;
   a_template_param_ptr            first_param_ptr;
   a_template_arg_ptr              arg_list = NULL;
   a_template_arg_ptr              last_arg = NULL;
   a_symbol_ptr                    new_sym = NULL;
-  a_symbol_locator                orig_locator;
   a_boolean                       any_errors = FALSE;
   a_memory_region_number          region_to_switch_back_to;
 
@@ -4788,7 +4788,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   /* Save source position for error reporting. */
   start_position = pos_curr_token;
   /* Save the current locator. */
-  orig_locator = locator_for_curr_id;
+  locator_pos = locator_for_curr_id.source_position;
   if (next_token() != tok_lt) {
      /* There is no template argument list.  If we are in an instantiation of
         this class template, use the symbol associated with the innermost
@@ -4923,10 +4923,11 @@ normal_exit:
      identifier and the locator should point to the template class that we
      have just looked up. */
   curr_token = tok_identifier;
-  /* Restore the original locator but update it to reflect the new symbol
-     that is being returned by this routine. */
-  locator_for_curr_id = orig_locator;
+  /* Update the locator to reflect the new symbol that is being returned
+     and restore the source position of the beginning of the template
+     class reference. */
   locator_for_curr_id.specific_symbol = new_sym;
+  locator_pos = locator_for_curr_id.source_position;
   /* Set source position for error reporting. */
   error_position = start_position;
 
