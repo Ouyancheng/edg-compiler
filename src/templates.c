@@ -7975,7 +7975,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   a_type_ptr			    rout_type = NULL;
   a_decl_flag_set		    dso_flags;
   a_boolean			    is_member_decl;
-  a_type_ptr	      		    parent_class;
+  a_type_ptr	      		    parent_class = NULL;
   a_boolean			    trans_unit_pushed;
 
   db_enter(4, "make_template_function");
@@ -8271,7 +8271,13 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
      set. */
   /* Note that if the instance required flag is already set, it will not
      be cleared by this call. */ 
-  set_instance_required(sym, /*value=*/FALSE, SIR_NONE);
+  if (parent_class == NULL || 
+      !parent_class->variant.class_struct_union.is_prototype_instantiation) {
+    /* Don't create an instantiations required entry for an instance of a
+       prototype instantiation template.  This can occur when a Microsoft
+       in-class specialization occurs in a prototype instantiation. */
+    set_instance_required(sym, /*value=*/FALSE, SIR_NONE);
+  }  /* if */
   /* If the translation unit stack was pushed above, pop it now. */
   if (trans_unit_pushed) pop_translation_unit_stack();
   /* Now that the instance has been added to the list, other instantiations
@@ -15326,12 +15332,7 @@ that follows.
         pos_error(ec_inherited_member_not_allowed, &locator.source_position);
         reduce_projection_symbol_to_fundamental_symbol(sym);
       }  /* if */
-      if (is_prototype_instantiation_context()) {
-        /* A Microsoft specialization in a prototype instantiation.  Don't
-           attempt to match this to a declaration. */
-        sym = NULL;  
-      } else if (is_function_type(type) &&
-                 is_function_or_template_symbol(sym)) {
+      if (is_function_type(type) && is_function_or_template_symbol(sym)) {
         sym = find_matching_template_instance(
                         sym, type, locator.template_arg_list,
                         (a_boolean)locator.is_template_id,
