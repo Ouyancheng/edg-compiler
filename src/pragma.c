@@ -640,7 +640,6 @@ there is additional processing to be done.
 {
   a_pragma_ptr             pp;
   a_memory_region_number   region_to_switch_back_to;
-  a_boolean                in_fs_memory = FALSE;
   a_scope_depth            scope_depth = depth_scope_stack;
   a_source_correspondence  *scp = NULL;
 
@@ -657,8 +656,6 @@ there is additional processing to be done.
          the local context. */
       if (is_global) {
         scope_depth = DEPTH_OF_FILE_SCOPE;
-        /* Force a change to the file-scope memory region, if needed. */
-        in_fs_memory = TRUE;
       } else {
         /* Make sure that this scope is one to which a pragma can be
            attached.  If the current scope has no associated IL scope,
@@ -710,8 +707,6 @@ there is additional processing to be done.
       check_assertion_str2(scp != NULL, "add_pragma_to_il:",
                            "invalid entity kind (no source corresp)");
       if (in_file_scope(entity_ptr)) {
-        /* Force a change to the file-scope memory region, if needed. */
-        in_fs_memory = TRUE;
         if (!C_mode() &&
             (scp->is_class_member || scp->parent.namespace_ptr != NULL)) {
           /* For class and namespace members we will use the corresponding IL
@@ -726,16 +721,7 @@ there is additional processing to be done.
       /* Set the has_associated_pragma field. */
       scp->has_associated_pragma = TRUE;
     }  /* if */
-    if (in_fs_memory) {
-      switch_to_file_scope_region(&region_to_switch_back_to);
-#if CHECKING
-    } else if (scope_depth == depth_innermost_namespace_scope) {
-      /* No need to switch to the file-scope memory region because that's the
-         default. */
-      check_assertion_str(curr_il_region_number == FILE_SCOPE_REGION_NUMBER,
-                          "add_pragma_to_il: memory region mismatch");
-#endif /* CHECKING */
-    }  /* if */
+    switch_to_scope_region(scope_depth, &region_to_switch_back_to);
     pp = alloc_pragma(ppp->descr_ptr->kind);
     pp->position = ppp->pragma_position;
     pp->pragma_text = ppp->pragma_text;
@@ -745,9 +731,7 @@ there is additional processing to be done.
       pp->entity.ptr = entity_ptr;
     }  /* if */
     add_to_pragma_list(pp, scope_depth, scp);
-    if (in_fs_memory) {
-      switch_back_to_original_region(region_to_switch_back_to);
-    }  /* if */
+    switch_back_to_original_region(region_to_switch_back_to);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
                                 ppp->source_sequence_entry);

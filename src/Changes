@@ -1,5 +1,11 @@
 Version 2.43
 
+12/2/99  Internal error when pragma appears in template argument list
+
+An internal error could occur if a pragma occurred in a function body
+immediately before a template-id or as part of the template-id.  This
+has been fixed.
+
 12/1/99  Microsoft compatibility: conversion of pointer to function to
          void * in overloading
 
