@@ -1,5 +1,20 @@
 Version 2.43
 
+12/1/99  Microsoft compatibility: conversion of pointer to function to
+         void * in overloading
+
+In Microsoft mode, a pointer to function can now be implicitly converted
+to "void *" in overload resolution.  (Formerly, this was allowed only
+outside of overload resolution.)
+
+  void f(const void *);
+  void f(int);
+  int main () {
+    void (*pf)() = 0;
+    f(pf);  // Now allowed in Microsoft mode.
+    return 0;
+  }
+
 12/1/99  static_cast of float literal to integral type in constant expression
 
 A static_cast of a floating-point literal to an integral type is now

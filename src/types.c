@@ -3656,8 +3656,12 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
                "void *" if the pointer will fit in a "void *".
                ARM 4.6 (pointer conversions).  This is no longer
                allowed in standard C++, but we allow it as an extension. */
-            if (!suppress_extensions &&
-                dest_of_ptr_cast_big_enough(source_type, dest_type)) {
+            if (microsoft_mode) {
+              /* Allowed without a warning in Microsoft mode. */
+              okay = TRUE;
+              std_conv->pointer_normalization_needed = TRUE;
+            } else if (!suppress_extensions &&
+                       dest_of_ptr_cast_big_enough(source_type, dest_type)) {
               okay = TRUE;
               std_conv->pointer_normalization_needed = TRUE;
               std_conv->warning_suggested = default_warning_code;
