@@ -1,5 +1,19 @@
 Version 2.28
 
+2/9/95   Generalized support of "asm functions"
+
+When ASM_FUNCTION_ALLOWED is TRUE, asm functions are recognized and passed
+uninterpreted to the back end.  They are represented in the IL like ordinary
+functions, except that they have a storage class of sc_asm and the function
+body (pointed to from the associated scope entry) is represented by an
+stmk_asm statement; the latter points to an asm entry for which
+is_asm_func_body is TRUE and which points to a NULL-terminated string
+containing the text that appeared in the source.  Comments are removed
+unless INCLUDE_ASM_FUNCTION_COMMENTS is TRUE.
+
+Furthermore, when ASM_FUNCTION_ALLOWED is TRUE, "__asm" is accepted as a
+synonym for "asm".
+
 2/7/95   Address of string as initial value of local static in pcc mode
 
 When the address of a string is the initial value of a static variable
