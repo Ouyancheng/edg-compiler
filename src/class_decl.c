@@ -5727,6 +5727,11 @@ Scan the body of a class definition, including the base classes list.
   is_template_instantiation = (scope_stack[depth_scope_stack].kind ==
                                      (a_scope_kind)sck_template_instantiation);
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+#if 0
+/* Is this the right place to call it? */
+#else /* if !0 */
+  process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
+#endif /* if 0 */
   cssp = tag_sym->variant.class_struct_union.extra_info;
   if (cssp->is_prototype_instantiation) {
     /* This is a prototype instantiation, so the resulting class is "nonreal"
@@ -6479,6 +6484,12 @@ Scan the body of a class definition, including the base classes list.
                    That will suppress any warnings about unused parameters
                    or variable arguments. */
                 record_lint_argsused_and_varargs_state(rout_sym);
+#if 0
+/* Is this the right place to call it? */
+#else /* if !0 */
+                process_curr_construct_pragmas(rout_sym,
+                                               (a_statement_ptr)NULL);
+#endif /* if 0 */
                 remove_stop_token(tok_comma);
                 /* Cache the tokens comprising the function definition
                    so that they can be rescanned once the entire class
@@ -6511,6 +6522,12 @@ Scan the body of a class definition, including the base classes list.
                 goto next_declaration;
               } else {
                 /* Not a function definition. */
+#if 0
+/* Is this the right place to call it? */
+#else /* if !0 */
+                process_curr_construct_pragmas(rout_sym,
+                                               (a_statement_ptr)NULL);
+#endif /* if 0 */
                 if (curr_token == tok_assign) {
                   /* Look for a pure specifier ("= 0"), which may appear on
                      virtual functions. */
@@ -6571,6 +6588,12 @@ Scan the body of a class definition, including the base classes list.
             typedef_sym_ptr->variant.type->source_corresp.access = access;
             typedef_sym_ptr->variant.type->
                           source_corresp.class_of_which_a_member = class_type;
+#if 0
+/* Is this the right place to call it? */
+#else /* if !0 */
+            process_curr_construct_pragmas(typedef_sym_ptr,
+                                           (a_statement_ptr)NULL);
+#endif /* if 0 */
           } else if (curr_token == tok_assign &&
                      is_scalar_type(local_type) &&
                      is_const_qualified_type(local_type) &&
