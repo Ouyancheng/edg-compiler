@@ -415,9 +415,8 @@ back ends that care.
 
 The typedef in the following example was incorrectly removed as
 "unneeded", when in fact it is referenced from the parameter variable
-types.  Now fixed.  This bug is not visible in versions with
-DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES set to FALSE, which
-is the default when cfront object code compatibility is selected.
+types.  Now fixed.  This bug is not visible in versions that write out
+an IL file.
 
   typedef float * volatile * volatile pfv;
   void D( pfv y, pfv x, float a, int n ) {
