@@ -109,7 +109,7 @@ extern a_type_ptr composite_type(a_type_ptr type_1,
 extern a_boolean overload_distinguishable(a_symbol_ptr old_sym_ptr,
                                           a_type_ptr   new_type,
                                           a_symbol_ptr *exact_match_symbol);
-extern a_type_ptr make_file_scope_type(a_type_ptr type);
+extern a_type_ptr make_file_scope_type(a_type_ptr old_type);
 
 /*
 Return the type of the variable (lvalue) represented by node.  This mainly
