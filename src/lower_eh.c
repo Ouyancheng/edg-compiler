@@ -459,6 +459,8 @@ allocated in the file scope memory region.
   a_constant_ptr   typeinfo_con, offset_con, flags_con;
   unsigned long    flags_value;
   a_targ_size_t    offset;
+  a_base_class_derivation_ptr
+                   preferred_derivation;
 
   /* The current region is already the file scope memory region when
      this routine is called. */
@@ -518,9 +520,10 @@ allocated in the file scope memory region.
       if (bcp->ambiguous) {
         flags_value |= BCS_AMBIGUOUS;
       }  /* if */
+      preferred_derivation = preferred_derivation_of(bcp);
       if (access_to_end_of_path((an_access_specifier)as_public,
-                                bcp->derivation->path,
-                                bcp->derivation) ==
+                                preferred_derivation->path,
+                                preferred_derivation) ==
                                              (an_access_specifier)as_public) {
         /* BCS_PUBLIC flag is TRUE if there is public access to the base class.
            For non-direct base classes, the access indicated is the best

@@ -1,5 +1,12 @@
 Version 2.30
 
+6/16/95  Access to complicated virtual base classes in runtime base class info
+
+The runtime base class information generated for exception handling and
+RTTI contains access information for indirect base classes.  In some
+complicated cases involving virtual bases, the access information was
+not accurate.  Now fixed.
+
 6/15/95  Complete object type of a typeid
 
 node_complete_object_type has been changed so it can deal with an enk_typeid
