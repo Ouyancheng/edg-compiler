@@ -200,6 +200,7 @@ extern a_symbol_ptr curr_scope_tag_symbol(a_symbol_kind tag_kind);
 extern a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_symbol_locator  *locator,
                                   a_boolean         check_for_vacuous_decl,
+                                  a_boolean         is_ref_within_new_expr,
                                   a_scope_depth     *effective_decl_level,
                                   a_boolean         *tag_resolution);
 
