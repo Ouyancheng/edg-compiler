@@ -12688,7 +12688,7 @@ Determines whether a template instance pointer refers to a function that
 is static or inline (i.e., is not an external function).  Functions
 within unnamed namespaces are treated as having internal linkage for
 purposes of this test.  Also determines whether a template static
-data member a member of an unnamed namespace.
+data member is a member of an unnamed namespace.
 */
 {
   a_boolean     result = FALSE;
