@@ -1831,7 +1831,9 @@ this function points to a tree that includes a dynamic-init entry.
           if (!any_more_members) {
             /* There are more undesignated initializers, but we've run out of
                members into which to put them. */
-            if (gcc_mode) {
+            if (gcc_mode && kind == (a_type_kind)tk_array) {
+              /* In GNU C mode, excess array initializers are ignored (with
+                 a warning). */
               if (!discard_initializers) {
                 warning(ec_excess_initializers_ignored);
               }  /* if */
