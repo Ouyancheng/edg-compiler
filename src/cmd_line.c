@@ -969,6 +969,7 @@ is enabled.
 */
 {
   bool_is_keyword = FALSE;
+  wchar_t_is_keyword = FALSE;
   explicit_keyword_enabled = FALSE;
 #if !RUNTIME_USES_TYPENAME
   typename_enabled = FALSE;
