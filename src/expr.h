@@ -40,7 +40,7 @@ a_boolean new_or_delete_type_requires_array_handling(a_type_ptr type);
 
 extern an_expr_node_ptr scan_switch_expression(void);
 
-extern an_expr_node_ptr scan_void_expression(void);
+extern an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop);
 
 extern void scan_default_arg_expr(a_param_type_ptr ptp);
 
@@ -76,7 +76,9 @@ extern void scan_template_argument_constant_expression(a_type_ptr param_type,
 extern void scan_constant_initializer_expression(a_type_ptr required_type,
                                                  a_constant *constant);
 
-extern an_expr_node_ptr scan_boolean_controlling_expression(void);
+extern an_expr_node_ptr scan_boolean_controlling_expression(
+                                                   a_boolean is_condition_expr,
+                                                   a_boolean repeated_in_loop);
 
 /*
 Macro that is TRUE if the node is an operation node.
