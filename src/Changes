@@ -1,5 +1,17 @@
 Version 2.30
 
+8/26/95  Adding linkage kinds
+
+Adding linkage kinds beyond "C" and "C++" has been made easier: there
+is now an array name_linkage_kind_names in il_def.h to go along with
+the a_name_linkage_kind enumeration.  It is no longer necessary to
+modify the code in linkage_specification in decls.c.  Also: the
+macros routine_linkages_are_compatible and routine_linkages_are_identical
+have been moved from types.c to types.h so they can be used everywhere,
+amd the il_to_str display routines now display a linkage kind in a
+function type (for non-compilable output) if the linkage is not compatible
+with the default linkage.
+
 8/25/95  Incomplete array as final field in Microsoft C++ mode
 
 In C, as an extension, it is allowed to declare the final field of a
