@@ -5471,10 +5471,12 @@ routine is called only in C++ mode.
     /* A surrogate function was selected.  Convert the class object to
        a pointer to function using the conversion function, then call
        the function pointed to. */
+    a_symbol_ptr base_conv_sym;
     a_type_ptr   conversion_type;
     a_conv_descr conversion;
     clear_conv_descr(&conversion);
-    conversion.routine = surrogate_function_conv_sym->variant.routine.ptr;
+    base_conv_sym = fundamental_symbol_of(surrogate_function_conv_sym);
+    conversion.routine = base_conv_sym->variant.routine.ptr;
     conversion_type = return_type_of(conversion.routine->type);
     conversion.routine_symbol = surrogate_function_conv_sym;
     copy_operand(bound_function_selector, function_operand);
