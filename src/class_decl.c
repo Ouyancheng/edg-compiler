@@ -5624,7 +5624,7 @@ member declaration, respectively.
   } else if (is_abstract_class_type(member_type)) {
     /* Abstract class objects are prohibited (ARM 10.3). */
     report_abstract_class_object(ec_abstract_class_object_not_allowed,
-                                 class_type, &locator->source_position);
+                                 member_type, &locator->source_position);
   }  /* if */
   if (class_state->is_local_class) {
     /* Static data members are not allowed in local classes. */
