@@ -1,5 +1,20 @@
 Version 3.4
 
+8/5/03   Missing error (and abort) on invalid partial specialization
+
+The front end failed to diagnose an invalid out-of-class partial
+specialization in which a template parameter of the partial specialization
+was used in the type of the partial specialization, but in a way in which
+the parameter could not be deduced.  The front end could abort on such
+cases.  Now fixed.
+
+  template <class T> struct A {
+    template <class U> class B;
+  };
+  template<class T> struct A<T>::B<char> { };
+  A<int> ai;
+
+
 8/5/03   Internal error on instantiation pragma in template
 
 An internal error would occur if an instantiation pragma appeared in

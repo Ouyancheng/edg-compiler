@@ -10267,6 +10267,7 @@ list and template argument list of a partial specialization are valid.
         pos_sy2_error(ec_not_used_in_partial_spec_arg_list,
                       &param_sym->decl_position, param_sym, prototype_sym);
         any_errors = TRUE;
+        decl_state->decl_scope_err = TRUE;
       } /* if */
     }  /* if */
   } /* for */
@@ -10695,28 +10696,31 @@ the necessary processing can be done.
   a_symbol_ptr				parent_templ_sym;
   a_template_symbol_supplement_ptr	parent_tssp;
 
-  oocpsp = alloc_out_of_class_partial_spec();
-  check_assertion(sym->is_class_member);
-  parent_class = sym->parent.class_type;
-  parent_sym = (a_symbol_ptr)parent_class->source_corresp.assoc_info;
-  parent_templ_sym = template_symbol_for_class_symbol(parent_sym);
-  parent_tssp = template_supplement_for_symbol(parent_templ_sym);
-  oocpsp->symbol = sym;
-  set_template_cache_info(&oocpsp->cache, &decl_state->decl_token_cache,
-                          decl_state->decl_info);
-  /* Prevent the declaration token cache from being freed. */
-  decl_state->decl_token_cache_used = TRUE;
-  /* Save a copy of the template declaration state information. */
-  oocpsp->tmpl_decl_state = alloc_fe_of_type(a_tmpl_decl_state);
-  *(oocpsp->tmpl_decl_state) = *decl_state;
-  add_partial_spec_to_existing_instantiations(parent_templ_sym, parent_tssp,
-                                              oocpsp);
-  /* Add this to the list of out-of-class partial specializations for the
-     enclosing class.  Note this must be done after the partial specialization
-     has been added to existing instantiations. */
-  oocpsp->next = parent_tssp->
+  if (member_template_param_list_matches_class(decl_state, sym,
+                                               &sym->decl_position)) {
+    check_assertion(sym->is_class_member);
+    parent_class = sym->parent.class_type;
+    parent_sym = (a_symbol_ptr)parent_class->source_corresp.assoc_info;
+    parent_templ_sym = template_symbol_for_class_symbol(parent_sym);
+    parent_tssp = template_supplement_for_symbol(parent_templ_sym);
+    oocpsp = alloc_out_of_class_partial_spec();
+    oocpsp->symbol = sym;
+    set_template_cache_info(&oocpsp->cache, &decl_state->decl_token_cache,
+                            decl_state->decl_info);
+    /* Prevent the declaration token cache from being freed. */
+    decl_state->decl_token_cache_used = TRUE;
+    /* Save a copy of the template declaration state information. */
+    oocpsp->tmpl_decl_state = alloc_fe_of_type(a_tmpl_decl_state);
+    *(oocpsp->tmpl_decl_state) = *decl_state;
+    add_partial_spec_to_existing_instantiations(parent_templ_sym, parent_tssp,
+                                                oocpsp);
+    /* Add this to the list of out-of-class partial specializations for the
+       enclosing class.  Note this must be done after the partial
+       specialization has been added to existing instantiations. */
+    oocpsp->next = parent_tssp->
                              variant.class_template.out_of_class_partial_specs;
-  parent_tssp->variant.class_template.out_of_class_partial_specs = oocpsp;
+    parent_tssp->variant.class_template.out_of_class_partial_specs = oocpsp;
+  }  /* if */
 }  /* create_out_of_class_entry_for_partial_spec */
 
 
@@ -14856,7 +14860,8 @@ any non-empty template parameter lists that were scanned.
     /* If this is an out-of-class declaration of a partial specialization,
        create a special entry used to instantiate declarations of this
        partial specialization. */
-    if (decl_state->partial_spec_outside_of_class_template) {
+    if (decl_state->partial_spec_outside_of_class_template &&
+        !decl_state->decl_scope_err) {
       create_out_of_class_entry_for_partial_spec(decl_state, sym);
     }  /* if */
   } else if (nonclass_prototype_instantiations && sym != NULL) {

@@ -7518,8 +7518,8 @@ containing such a reference to the type.
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
-                                               TTT_TEMPLATE_ARGS);
-
+                                               TTT_TEMPLATE_ARGS |
+					       TTT_DEDUCED_CONTEXTS_ONLY);
   /* This indicates that only a specific template parameter may be found. */
   specific_template_param_type = tparam_type;
   specific_template_param_constant = NULL;
@@ -7541,7 +7541,8 @@ by tparam_template.
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
-                                               TTT_TEMPLATE_ARGS);
+                                               TTT_TEMPLATE_ARGS |
+					       TTT_DEDUCED_CONTEXTS_ONLY);
 
   specific_template_template_param = tparam_template;
   return (traverse_type_tree(type_ptr,
@@ -7559,7 +7560,8 @@ in the type tree represented by tp.
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
-                                               TTT_TEMPLATE_ARGS);
+                                               TTT_TEMPLATE_ARGS |
+					       TTT_DEDUCED_CONTEXTS_ONLY);
 
   /* This indicates that only a specific template param constant may be
      found. */
