@@ -1083,26 +1083,6 @@ end_of_routine:
 }  /* make_typeinfo_var */
 
 
-a_variable_ptr get_typeinfo_var(a_type_ptr type)
-/*
-Return a pointer to the previously-created typeinfo variable for the
-indicated type.  When lowering a function scope, generate the variable
-if necessary.
-*/
-{
-  a_variable_ptr typeinfo_var = type->typeinfo_var;
-
-  /* typedefs and cv-qualified types are not allowed at this level. */
-  check_assertion(type->kind != (a_type_kind)tk_typeref ||
-                  is_or_was_ptr_to_member_function_type(type) ||
-                  is_or_was_ptr_to_data_member_type(type));
-  if (typeinfo_var == NULL) {
-    check_assertion_str(!lowering_file_scope, "missing typeinfo variable");
-    typeinfo_var = make_typeinfo_var(type);
-  }  /* if */
-  return typeinfo_var;
-} /* get_typeinfo_var */
-
 #if ABI_CHANGES_FOR_RTTI
 
 /*
@@ -1322,6 +1302,37 @@ because the caller does not need it.
   eff_type = underlying_type(eff_type);
   return eff_type;
 }  /* eff_type_for_typeinfo */
+
+
+a_variable_ptr get_typeinfo_var(a_type_ptr type)
+/*
+Return a pointer to the previously-created typeinfo variable for the
+indicated type.  When lowering a function scope, generate the variable
+if necessary.
+*/
+{
+  a_variable_ptr typeinfo_var = type->typeinfo_var;
+
+  /* typedefs and cv-qualified types are not allowed at this level. */
+  check_assertion(type->kind != (a_type_kind)tk_typeref ||
+                  is_or_was_ptr_to_member_function_type(type) ||
+                  is_or_was_ptr_to_data_member_type(type));
+  if (typeinfo_var == NULL) {
+    /* typeinfo variables for types should have been generated already,
+       except for local types and for types like pointer types which
+       have a different underlying effective type. */
+#if CHECKING
+    an_eh_type_flags_set flags_value;
+    check_assertion_str(!lowering_file_scope ||
+                        eff_type_for_typeinfo(type, &flags_value,
+                                              (a_variable_ptr *)NULL)->
+                                                          typeinfo_var != NULL,
+                        "missing typeinfo variable");
+#endif /* CHECKING */
+    typeinfo_var = make_typeinfo_var(type);
+  }  /* if */
+  return typeinfo_var;
+} /* get_typeinfo_var */
 
 #if DO_FULL_PORTABLE_EH_LOWERING
 

@@ -1,5 +1,15 @@
 Version 3.0
 
+4/13/02  Abort ("missing typeinfo variable") on typeid of pointer type
+
+IL lowering aborted on generating the typeinfo variable for a typeid for
+a pointer or reference type.  Now fixed.
+
+  #include <typeinfo>
+  const std::type_info *__runtime_typeinfo[] = {
+    &typeid(const int *)
+  };
+
 4/11/02  C++-generating back end, prototype instantiations, ->* and .*
 
 The operators .* and ->* were swapped in output from the C++-generating
