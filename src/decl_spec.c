@@ -225,10 +225,10 @@ caution when modifying this routine.
          a colon has a different meaning in an expression context than
          in a declaration context (namely, it may belong to a ?: operator). */
       if (tag_sym != NULL) {
-        a_type_ptr	tag_type = type_symbol_type(tag_sym);
         /* The tag has already appeared in the current scope. */
-        if (is_incomplete_type(tag_type) &&
-            (!C_mode() || !tag_currently_being_defined(tag_type))) {
+        if (!tag_sym->defined &&
+            (!C_mode() ||
+             !tag_currently_being_defined(type_symbol_type(tag_sym)))) {
           /* Resolution of a previous incomplete declaration.  In C mode, make
              sure that an incomplete type is not in the process of being
              defined. */
@@ -965,6 +965,15 @@ to indicate whether an enumeration is actually defined.
     enum_type->source_corresp.access = access;
     enum_type->source_corresp.class_of_which_a_member =
                                                 class_of_which_a_member;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode) {
+      /* In Microsoft compatibility mode enum types can be declared without
+         being defined and can also be used.  The use requires that the size
+         be set. */
+      check_assertion(!targ_enum_types_can_be_smaller_than_int);
+      set_type_size(enum_type);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Wait to add the type to the types list; it should not be added
        until the closing brace of the full definition appears, to get the
        IL list in the right order. */
