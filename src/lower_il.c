@@ -6056,7 +6056,7 @@ there are no statements on the list.
          the address to establish identity, but in this case we can because
          the generated statement is presumably part of the expansion of
          the statement that's now a no-op. */
-      *statement = *(statement->next);
+      copy_statement(statement->next, statement);
     }  /* if */
     /* Keep track of the last statement (so far) in the statement list. */
     last_statement = statement;
@@ -6206,15 +6206,15 @@ Turn the indicated statement into a block statement with a copy of the
 original statement under it.
 */
 {
-  a_statement_ptr copy_statement;
+  a_statement_ptr stmt_copy;
 
   /* Make a copy of the original statement. */
-  copy_statement = alloc_statement(statement->kind);
-  *copy_statement = *statement;
-  copy_statement->next = NULL;
+  stmt_copy = alloc_statement(statement->kind);
+  copy_statement(statement, stmt_copy);
+  stmt_copy->next = NULL;
   /* Turn the statement into a block statement. */
   set_statement_kind(statement, (a_statement_kind)stmk_block);
-  statement->variant.block.statements = copy_statement;
+  statement->variant.block.statements = stmt_copy;
   clear_stmt_source_position(statement->position);
 }  /* turn_statement_into_block */
 
