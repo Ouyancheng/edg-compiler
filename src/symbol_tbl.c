@@ -384,6 +384,8 @@ and indentation is the indentation desired.
         (void)sprintf(buffer, "sc_%s",
 	              db_storage_class_names[(int)var->storage_class]);
         put_string(buffer);
+        (void)str_name_linkage(buffer, &(var->source_corresp));
+        put_string(buffer);
         if (var->is_parameter) put_string("is param");
         type = var->type;
       }  /* if */
@@ -408,6 +410,8 @@ and indentation is the indentation desired.
         if (rp->compiler_generated) put_string("compiler generated");
         (void)sprintf(buffer, "sc_%s",
                       db_storage_class_names[(int)rp->storage_class]);
+        put_string(buffer);
+        (void)str_name_linkage(buffer, &(rp->source_corresp));
         put_string(buffer);
         type = rp->type;
       }  /* if */
