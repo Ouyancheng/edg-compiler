@@ -1315,7 +1315,7 @@ which do the initial test for exact pointer equality.
         case tk_error:
         case tk_unknown:
         case tk_void:
-           /* No further check needed.  The types are identical. */
+          /* No further check needed.  The types are identical. */
           identical = TRUE;
           break;
         case tk_integer:
@@ -1486,6 +1486,16 @@ not compared.
     if (!list1_prototyped && !list2_prototyped) {
       /* Both parameter lists are old-style, so they are compatible. */
       compatible = TRUE;
+    } else if (C_dialect == C_dialect_cplusplus &&
+               list1_prototyped != list2_prototyped) {
+      /* In C++ mode, consider an unprototyped function not to be
+         compatible with a prototyped function.  That is not something
+         that is spelled out by the ARM, since unprototyped functions
+         are an anachronism, but it seems sensible. */
+      /* Note that there is some code later in this routine that is
+         made useless by the test here, but it seems safer to keep it in
+         in case the code here is taken back out. */
+      compatible = FALSE;
     } else {
       /* At least one of the function types has a prototyped parameter list. */
       list1 = rtsp1->param_type_list;
@@ -1562,13 +1572,16 @@ a_boolean f_types_are_compatible(a_type_ptr type_1,
                                  a_type_ptr type_2,
                                  a_boolean  allow_error_type)
 /*
-Compare two types for compatibility.  See section 3.1.2.6 in the standard.
-An error type is considered compatible with any other type if allow_error_type
-is TRUE; otherwise an error type is compatible with no other type including an
-error type. This routine always checks for compatibility of type-qualifiers.
-This routine should never be called directly; it's meant to be called only by
-the macros types_are_compatible and types_are_strictly_compatible, which do
-the initial test for exact pointer equality.
+Compare two types for compatibility.  In C, that means the types are the
+same or almost the same; see section 3.1.2.6 in the ANSI C standard.
+In C++, the compatible-type rules from C do not apply, so the test is
+for types that are truly the same.  An error type is considered
+compatible with any other type if allow_error_type is TRUE; otherwise an
+error type is compatible with no other type including an error type.
+This routine always checks for compatibility of type-qualifiers.  This
+routine should never be called directly; it's meant to be called only by
+the macros types_are_compatible and types_are_strictly_compatible, which
+do the initial test for exact pointer equality.
 */
 {
   register a_boolean            compat = FALSE;
@@ -1576,7 +1589,11 @@ the initial test for exact pointer equality.
 
   db_enter(5, "f_types_are_compatible");
 
-  if (!type_qualifiers_match(type_1, type_2)) {
+  /* Although the macros do the type_1 == type_2 test, repeat it here
+     so it's present for the recursive calls. */
+  if (type_1 == type_2) {
+    compat = TRUE;
+  } else if (!type_qualifiers_match(type_1, type_2)) {
     /* The type qualifiers do not match, so the types are not compatible. */
     /* compat = FALSE;  -- Already set. */
   } else {
@@ -1635,15 +1652,20 @@ the initial test for exact pointer equality.
           }  /* if */
           break;
         case tk_array:
-          /* For arrays, if both have sizes the sizes must be the same.  The
-             element types must be compatible. */
+          /* For arrays, if both have sizes the sizes must be the same.
+             In C++, the sizes must be the same whether or not the arrays
+             have sizes.  The element types must be compatible. */
           if (f_types_are_compatible(type_1->variant.array.element_type,
                                      type_2->variant.array.element_type,
                                      allow_error_type)) {
-            if (type_1->variant.array.number_of_elements == 0 ||
-                type_2->variant.array.number_of_elements == 0 ||
-                type_1->variant.array.number_of_elements ==
+            if (type_1->variant.array.number_of_elements ==
                 type_2->variant.array.number_of_elements) {
+              compat = TRUE;
+            } else if (C_dialect != C_dialect_cplusplus &&
+                       (type_1->variant.array.number_of_elements == 0 ||
+                        type_2->variant.array.number_of_elements == 0)) {
+              /* C mode: incomplete arrays are compatible with any other
+                 size. */
               compat = TRUE;
             }  /* if */
           }  /* if */

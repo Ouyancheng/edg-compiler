@@ -1,5 +1,12 @@
 Version 2.12
 
+11/10/92 C "compatible type" rules disabled
+
+ANSI C has a definition of "compatible types," which may be the same
+type or slightly different types (e.g., int[] and int[5]).  C++ does
+not have such a concept, so those relaxations have been disabled in
+C++ mode.
+
 11/10/92 Function template declared "inline"
 
 The inline keyword is now accepted on a function template declaration.
