@@ -6619,7 +6619,6 @@ next_declaration:
 }  /* scan_class_definition */
 
 
-/*ARGSUSED*/ /* <-- because "is_friend_decl" is unused if !CHECKING. */
 a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
                           a_boolean  is_friend_decl,
                           a_boolean  is_ref_within_new_expr,
@@ -6765,7 +6764,19 @@ to indicate whether the class/struct/union is actually defined.
     if (tag_sym != NULL) {
       /* Check for tag mismatch.  This can only happen when an instance of a
          class template is being referenced in an elaborated type specifier. */
-      if (tag_sym->kind != tag_kind) {
+      if (tag_sym->kind == (a_symbol_kind)sk_type) {
+#if CHECKING
+        if (tag_sym->variant.type->kind != (a_type_kind)tk_template_param) {
+          internal_error("class_specifier: unexpected type for tag sym");
+        }  /* if */
+#endif /* CHECKING */
+        /* Template param used in with a class-key -- for instance:
+             template <class T> class A {
+               class T x;
+             };
+           During prototype instantiation we have to assume that T can be a
+           valid class name.  It is treated as synonymous with "T x". */
+      } else if (tag_sym->kind != tag_kind) {
 #if CHECKING
         if (!is_template_class_symbol(tag_sym)) {
           internal_error("class_specifier: unexpected tag mismatch");
@@ -6816,21 +6827,29 @@ skip_tag_scan:
                         (C_dialect == C_dialect_cplusplus &&
                          curr_token == tok_colon && !is_ref_within_new_expr);
   if (tag_sym != NULL && C_dialect == C_dialect_cplusplus) {
-    a_class_symbol_supplement_ptr  cssp;
-
-    cssp = tag_sym->variant.class_struct_union.extra_info;
-    if (cssp->class_template != NULL) {
-      if (is_class_definition && tag_sym->defined) {
-        /* This template class has already been instantiated. */
-        pos_sy_error(ec_already_defined, &locator.source_position, tag_sym);
-        error_tag_sym = tag_sym;
+    if (tag_sym->kind == (a_symbol_kind)sk_type) {
+      if (is_class_definition) {
+        /* Attempting to redefine a template parameter name.  Let enter_symbol
+           issue an error. */
         tag_sym = NULL;
-        set_to_named_error_locator(locator);
-        err = TRUE;
-      } else if (is_class_definition ||
-                 (curr_token == tok_semicolon && !is_friend_decl)) {
-        /* We have a specific declaration of a template class. */
-        cssp->is_specific_template_def = TRUE;
+      }  /* if */
+    } else {
+      a_class_symbol_supplement_ptr  cssp;
+
+      cssp = tag_sym->variant.class_struct_union.extra_info;
+      if (cssp->class_template != NULL) {
+        if (is_class_definition && tag_sym->defined) {
+          /* This template class has already been instantiated. */
+          pos_sy_error(ec_already_defined, &locator.source_position, tag_sym);
+          error_tag_sym = tag_sym;
+          tag_sym = NULL;
+          set_to_named_error_locator(locator);
+          err = TRUE;
+        } else if (is_class_definition ||
+                   (curr_token == tok_semicolon && !is_friend_decl)) {
+          /* We have a specific declaration of a template class. */
+          cssp->is_specific_template_def = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6880,6 +6899,9 @@ skip_tag_scan:
                                          (a_name_linkage_kind)nlk_internal;
       }  /* if */
     }  /* if */
+  } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
+    /* Use of template parameter name as a proxy tag name during a
+       prototype instantiation. */
   } else {
     /* Using an existing type.  Fetch the type pointer from it. */
     class_type = tag_sym->variant.class_struct_union.type;
@@ -6909,7 +6931,13 @@ skip_tag_scan:
       err = TRUE;
     }  /* if */
   }  /* if */
-  *type_ptr = err ? error_type() : class_type;
+  if (err) {
+    *type_ptr = error_type();
+  } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
+    *type_ptr = tag_sym->variant.type;
+  } else {
+    *type_ptr = class_type;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     db_symbol(tag_sym, "tag_sym: ", 4);
