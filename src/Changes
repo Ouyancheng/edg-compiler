@@ -1,5 +1,22 @@
 Version 3.5
 
+5/28/04  Spurious errors involving member templates
+
+In some relatively rare situations the front end issued spurious correspondence
+errors on entities with types based on member template instantiations.  For
+example, compiling two files with the following identical content in multiple
+translation unit mode triggered such a spurious error.
+
+  namespace S {
+    template<unsigned> struct P {};
+    template<typename T> struct L {
+      template<typename T> struct N {};
+      P<sizeof(N<T>)>  *p;  // Spurious correspondence error on member p.
+    };
+  }
+
+This is now fixed.
+
 5/28/04  Internal error declaring enum type in return type of main
 
 An internal error would occur if an enum type was first declared as the
