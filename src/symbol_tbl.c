@@ -1115,6 +1115,23 @@ depth to determine the namespace.  If sym or scp is NULL, ignore the entity.
 }  /* set_namespace_membership */
 
 
+void set_membership_in_source_corresp(a_source_correspondence  *scp,
+                                      a_symbol_ptr             sym)
+/*
+Set the class/namespace membership information in the source correspondence
+information pointed to by scp based on the membership information in the
+symbol entry pointed to by sym.
+*/
+{
+  if (sym->is_class_member) {
+    set_class_membership((a_symbol_ptr)NULL, scp, sym->parent.class_type);
+  } else if (sym->parent.namespace_ptr != NULL) {
+    set_namespace_membership((a_symbol_ptr)NULL, scp,
+                             sym->parent.namespace_ptr);
+  }  /* if */
+}  /* set_membership_in_source_corresp */
+
+
 #if !RECORD_SCOPE_DEPTH_IN_IL
 /*ARGSUSED*/ /* <-- depth is only used when local entities are promoted. */
 #endif /* !RECORD_SCOPE_DEPTH_IN_IL */
@@ -1125,7 +1142,7 @@ static void set_source_corresp_with_scope_depth(a_source_correspondence *sc,
 Set the source correspondence to point to a given symbol that for which
 the scope is not still active.  This routine works by temporarily
 changing the scope of the symbol to NO_SCOPE_NUMBER and calling
-set_source_corresp.  The scope number is the set to its original value
+set_source_corresp.  The scope number is set to its original value
 and the scope depth is set to the value passed by the caller.
 */
 {
@@ -3187,7 +3204,15 @@ ct_symbol is the symbol of the class template.
   sym->variant.class_struct_union.extra_info->class_template = ct_symbol;
   /* Make the declaration scope the same as the class template's. */
   sym->decl_scope = ct_symbol->decl_scope;
-
+  /* Set the new symbol to have the same class or namespace membership as
+     the template from which it was created. */
+  if (ct_symbol->is_class_member) {
+    set_class_membership(sym, (a_source_correspondence *)NULL,
+                         ct_symbol->parent.class_type);
+  } else if (ct_symbol->parent.namespace_ptr != NULL) {
+    set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                             ct_symbol->parent.namespace_ptr);
+  }  /* if */
   return sym;
 }  /* make_template_class_symbol */
 
@@ -3205,7 +3230,15 @@ table, since it is accessed from the associated function instantiation entry.
   /* Template functions will be in the same scope as the template (which
      should always be the file scope. */
   sym->decl_scope = templ_sym->decl_scope;;
-
+  /* Set the new symbol to have the same class or namespace membership as
+     the template from which it was created. */
+  if (templ_sym->is_class_member) {
+    set_class_membership(sym, (a_source_correspondence *)NULL,
+                         templ_sym->parent.class_type);
+  } else if (templ_sym->parent.namespace_ptr != NULL) {
+    set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                             templ_sym->parent.namespace_ptr);
+  }  /* if */
   return sym;
 }  /* make_template_function_symbol */
 

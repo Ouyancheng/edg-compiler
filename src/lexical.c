@@ -6631,11 +6631,14 @@ following cases:
 	A::operator int
 	A::~A()	
 	A:: ... anything except * ...
+	NS::i
+	NS::A::i
 	i
 	operator =
 	operator int
 	~A		When options & GID_DTOR_RECOGNIZED = TRUE
 	A<int>		Template reference will be coalesced
+	NS::A<int>	Template reference will be coalesced
         int::~int	When options & GID_VACUOUS_DTOR_RECOGNIZED = TRUE
 
 Returns FALSE and sets curr_token to tok_ptr_to_member for:
@@ -6816,17 +6819,18 @@ qualified name.
          do another lookup without the requirement that a class be found. */
       might_be_vacuous_dtor = next_tok_2 == tok_compl;
       /* The lookup of a class name in a qualified name is done as a
-         "must be class" lookup.  If, however, the name being scanned is
-         followed by a "<" we don't yet know whether this is a template
-         reference or simply a less than sign.  We must assume it could
-         be a less than sign and do a normal (nonclass) lookup. This
-         should not make any difference for file scope lookups because
-         class template names cannot coexist with other names at
-         file scope.  A normal lookup must also be done when scanning
-         what might be a use of a "." in place of "::" as a qualifier.  We
-         don't know whether the "." is being used as a qualifier or as
-         a field selection operator so we need to do a normal lookup
-         and then decide based on the type of the thing we find. */
+         "must be class (or namespace)" lookup.  If, however, the name
+         being scanned is followed by a "<" we don't yet know whether this
+         is a template reference or simply a less than sign.  We must
+         assume it could be a less than sign and do a normal
+         (nonclass) lookup. This should not make any difference for
+         file scope lookups because class template names cannot
+         coexist with other names at file scope.  A normal lookup must
+         also be done when scanning what might be a use of a "." in
+         place of "::" as a qualifier.  We don't know whether the "."
+         is being used as a qualifier or as a field selection operator
+         so we need to do a normal lookup and then decide based on the
+         type of the thing we find. */
       if (next_tok == tok_lt || qualifier_separator == tok_period) {
         lookup_kind = IDL_NO_OPTIONS;
       } else {
@@ -6943,6 +6947,7 @@ qualified name.
       for (;;) {
         /* Keep looping while there are more levels of class qualification.
            Exit from loop is in the middle. */
+        a_symbol_ptr	prev_qualifier_sym = qualifier_sym;
         if (qualifier_sym == NULL || err ||
             qualifier_sym->kind == (a_symbol_kind)sk_class_template) {
           /* The identifier is followed by a "::" but is not a class symbol. */
@@ -6997,13 +7002,16 @@ qualified name.
                             is_vacuous_dtor);
           }  /* if */
         }  /* if */
-        /* Skip over the class-name, and the "::". */
+        /* Skip over the class-name, and the "::".  After the two get_token
+           calls, the current token will be whatever follows the
+           qualifier. */
         (void)get_token();
-        if (get_token() != tok_identifier ||
-            next_two_tokens_if_qualifier_delimiter(qualifier_separator,
-                                                   &next_tok_2) !=
-                                                       qualifier_separator) {
-          /* Not an identifier followed by "::", so end the loop. */
+        (void)get_token();
+        next_tok = next_two_tokens_if_qualifier_delimiter
+                                            (qualifier_separator, &next_tok_2);
+        if (curr_token != tok_identifier ||
+            (next_tok != qualifier_separator && next_tok != tok_lt)) {
+          /* Not an identifier followed by "::" or "<", so end the loop. */
           break;
         }  /* if */
         /* There is another level of qualification.  Search for the identifier
@@ -7030,12 +7038,21 @@ qualified name.
 	    err = TRUE;
 	    qualifier_sym = NULL;
           } else {
+            an_id_lookup_options_set	lookup_options;
+            /* The lookup of a class name in a qualified name is done as a
+               "must be class (or namespace)" lookup.  If, however, the name
+               being scanned is followed by a "<" we don't yet know whether
+               this is a template reference or simply a less than sign.
+               We must assume it could be a less than sign and do a normal
+               (nonclass) lookup. */
+            lookup_options = next_tok == tok_lt ? IDL_NO_OPTIONS :
+                                                IDL_MUST_BE_CLASS_OR_NAMESPACE;
             if (qualifier_is_type) {
               /* Look up the name in the class specified by the qualifier
                  that has been scanned so far. */
               qualifier_sym = class_qualified_id_lookup
                                          (&locator_for_curr_id, qualifier_type,
-                                          IDL_MUST_BE_CLASS_OR_NAMESPACE);
+                                          lookup_options);
               /* If the class lookup fails, and a vacuous destructor is
                  allowed, do another lookup without the requirement that
                  a class be found. */
@@ -7055,7 +7072,7 @@ qualified name.
               qualifier_sym = namespace_qualified_id_lookup
                                          (&locator_for_curr_id,
                                           qualifier_namespace,
-                                          IDL_MUST_BE_CLASS_OR_NAMESPACE);
+                                          lookup_options);
               /* If the namespace lookup fails, and a vacuous destructor is
                  allowed, do another lookup without the requirement that
                  a class be found.  This could occur for a vacuous
@@ -7072,6 +7089,29 @@ qualified name.
                 }  /* if */
               }  /* if */
             }  /* if */
+          }  /* if */
+          if (qualifier_sym != NULL &&
+              (qualifier_sym->kind == (a_symbol_kind)sk_class_template ||
+               next_tok == tok_lt)) {
+            /* Process a template reference.  This is considered a potential
+               template reference if the symbol points to a class template
+               or if the next token is a "<" (the latter case is handled here
+               for error recovery purposes). */
+            qualifier_sym = coalesce_template_class_reference(qualifier_sym,
+                                                              options, &err);
+            /* We can only now determine whether this template reference is
+               followed by a "::".  If it is not, break out of the qualifier
+               loop. */
+            if (next_token() != tok_colon_colon) break;
+          } else if (next_tok == tok_lt) {
+            /* The qualified name is followed by a "<" but this is not a
+               template reference.  Reset qualifier_sym to the value it had
+               before the lookup was done.  Clear the specific_symbol
+               field in the symbol locator.  Break out of the qualifier
+               scanning loop as this must be the final identifier. */
+            qualifier_sym = prev_qualifier_sym;
+            clear_specific_symbol(locator_for_curr_id);
+            break;
           }  /* if */
         }  /* if */
         type_position = pos_curr_token;

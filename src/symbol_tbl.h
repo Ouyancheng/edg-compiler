@@ -2773,6 +2773,9 @@ extern void set_namespace_membership(a_symbol_ptr             sym,
                                      a_source_correspondence  *scp,
                                      a_namespace_ptr          nsp);
 
+extern void set_membership_in_source_corresp(a_source_correspondence  *scp,
+                                             a_symbol_ptr             sym);
+
 extern a_boolean namespace_is_enclosed_by_scope(a_symbol_ptr             sym,
                                                 a_scope_stack_entry_ptr  ssep);
 /*

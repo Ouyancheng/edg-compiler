@@ -1462,6 +1462,7 @@ included in the search.
     class_type->variant.class_struct_union.extra_info->
                                             template_arg_list = *new_list;
     set_source_corresp(&(class_type->source_corresp), sym);
+    set_membership_in_source_corresp(&(class_type->source_corresp), sym);
     /* All template instantiations have C++ external linkage, but mark it as
        internally linked for now.  The name linkage will be fixed up later,
        along with nontemplate classes.  This assures uniform processing of
@@ -2588,6 +2589,7 @@ type based on the template argument list and the template parameter list
     rp->is_inline = templ_rout->is_inline;
     rp->is_template_function = TRUE;
     set_source_corresp(&rp->source_corresp, sym);
+    set_membership_in_source_corresp(&rp->source_corresp, sym);
     rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
     update_routine_decl_modifiers(rp, decl_modifiers,
                                   &locator.source_position,
@@ -3620,6 +3622,7 @@ that make up the declaration and do a prototype instantiation.
   a_boolean                         is_template_friend = FALSE;
   a_boolean                         in_prototype_instantiation;
   a_source_position                 friend_pos;
+  a_scope_depth			    effective_decl_level;
 
   db_enter(3, "class_template_declaration");
   if (curr_token == tok_typedef || curr_token == tok_auto ||
@@ -3634,6 +3637,19 @@ that make up the declaration and do a prototype instantiation.
     is_template_friend = TRUE;
     friend_pos = pos_curr_token;
     token = next_token();
+  }  /* if */
+  /* Determine the scope into which this template should be entered. 
+     Friend templates are entered into the nearest enclosing namespace
+     scope.  Normal (i.e., nonfriends) are entered into the current
+     scope.  The test whether this is a valid template declaration scope
+     is done elsewhere. */
+  if (is_template_friend) {
+    effective_decl_level = depth_innermost_namespace_scope;
+  } else {
+#if 0
+    /* More processing required here for member templates. */
+#endif /* 0 */
+    effective_decl_level = depth_innermost_namespace_scope;
   }  /* if */
   if (token == tok_class || token == tok_struct || token == tok_union) {
     switch (token) {
@@ -3775,9 +3791,14 @@ that make up the declaration and do a prototype instantiation.
 	 have been merged to do the test. */
       check_template_param_default_args(templ_params);
       if (sym == NULL) {
-	/* Enter the symbol at file scope. */
+	/* Enter the symbol at the scope indicated by effective_decl_level. */
 	sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
-			   DEPTH_OF_FILE_SCOPE, suppress_redecl_error);
+			   effective_decl_level, suppress_redecl_error);
+        if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+          set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                                   scope_stack[effective_decl_level].
+                                            il_scope->variant.assoc_namespace);
+        }  /* if */
 	tssp = sym->variant.template_info;
 	is_redecl = FALSE;
       }	/* if */
@@ -3823,6 +3844,8 @@ that make up the declaration and do a prototype instantiation.
         prototype_type = alloc_type(tssp->variant.class_template.type_kind);
         prototype_sym->variant.class_struct_union.type = prototype_type;
         set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
+        set_membership_in_source_corresp(&(prototype_type->source_corresp),
+                                         prototype_sym);
         prototype_type->source_corresp.name_linkage =
                                            (a_name_linkage_kind)nlk_internal;
         prototype_sym->defined = TRUE;
