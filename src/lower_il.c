@@ -51,17 +51,6 @@ static a_boolean
 		lowering_file_scope;
 			/* TRUE if lowering the file scope's IL, FALSE if
 			   lowering a routine scope's IL. */
-static a_type_ptr
-		type_promotion_class;
-			/* If non-NULL, this is the file-scope class out
-			   of which types are being promoted by promote_types.
-			   NULL if promoting out of a function. */
-static a_type_ptr
-		type_promotion_insert_location;
-			/* If type_promotion_class != NULL, this indicates
-			   the type after which promoted types should be
-			   inserted, or NULL to indicate insertion at the
-			   beginning of the file-scope types list. */
 
 #if DEBUG
 /*
@@ -139,6 +128,9 @@ static void gen_expr_conditional_destruction_var_initializations(void);
 static a_boolean check_for_troublesome_ptr_to_member_constant(
                                                      a_constant_ptr constant,
                                                      a_variable_ptr *temp_var);
+static void promote_class_members(a_type_ptr  class_type,
+                                  a_scope_ptr promotion_scope,
+                                  a_type_ptr  *insert_pointer);
 
 
 static void clear_insert_location(an_insert_location *insert_location,
@@ -2871,7 +2863,7 @@ generated if the virtual function table for the class must be defined in
 this compilation, because a pointer to the destructor must be put in the
 virtual function table.  This routine is meant to be called from the
 front end proper rather than from within IL lowering.  It must be called
-at the end of the translation unit, before IL lowering is done for
+at the end of the translation unit, but before IL lowering is done for
 the file scope memory region.
 */
 {
@@ -3340,12 +3332,12 @@ in the indicated scope.
 Note that the virtual function table variables were created during
 prelowering; this routine adds initial values to those variables if
 appropriate.  This routine is called at the beginning of lowering of
-the file scope, because it must be called (1) after all function
+each memory region, because it must be called (1) after all function
 definitions have been seen (because deciding on defining virtual function
 tables depends on knowing whether member functions of the class are
-defined in the present compilation) and (2) before classes have been
-lowered (because that destroys the list of member functions, including
-virtual functions, needed in this process).
+defined in the present compilation) and (2) before members have been
+promoted out of classes (because that destroys the list of member
+functions, including virtual functions, needed in this process).
 */
 {
   a_type_ptr  type;
@@ -3456,14 +3448,11 @@ this routine to do a relatively simple copy of the all the fields.
     /* Put the struct type on the file-scope types list right after the
        associated type.  This is done instead of calling add_to_types_list
        because we want to get the type at the right place on the list.
-       If the class type is the last entry on the some types list,
+       If the class type is the last entry on some type list,
        use add_to_types_list to get the last_type pointer updated. */
     if (class_type->next == NULL) {
       /* The class type is the last on a list.  See if the list is one of the
          ones being tracked in the scope stack. */
-#if 0
-      /* Improve this? */
-#endif /* 0 */
       for (scope_depth = depth_scope_stack; scope_depth >= 0; scope_depth--) {
         if (class_type == scope_stack[scope_depth].last_type) {
           /* Found the list.  Add the subobject type to its end. */
@@ -3515,9 +3504,7 @@ void prelower_class_type(a_type_ptr class_type)
 Do processing that is required early in lowering for the indicated class
 type.  Such processing builds information that is necessary during the
 lowering process, but does not modify the class type.  Note that this
-routine assumes the class type is as complete as it will ever get; if
-the prelowering should not be done if the type is currently incomplete, call
-prelower_class_type_if_complete instead.
+routine assumes the class type is as complete as it will ever get.
 */
 {
   a_class_type_supplement_ptr ctsp;
@@ -3619,20 +3606,6 @@ prelower_class_type_if_complete instead.
 }  /* prelower_class_type */
 
 
-static void prelower_class_type_if_complete(a_type_ptr class_type)
-/*
-Do pre-lowering of a class type, but only if the class type is complete.
-*/
-{
-  a_class_type_supplement_ptr ctsp;
-
-  ctsp = class_type->variant.class_struct_union.extra_info;
-  if (ctsp != NULL && ctsp->assoc_scope != NULL) {
-    prelower_class_type(class_type);
-  }  /* if */
-}  /* prelower_class_type_if_complete */
-
-
 static void lower_template_arg(a_template_arg_ptr template_arg)
 /*
 Do IL lowering of the indicated template argument and everything under it.
@@ -3662,199 +3635,6 @@ under it.
 }  /* lower_template_arg_list */
 
 
-static void promote_constants(a_scope_ptr scope)
-/*
-Promote the constants on the scope list to the file scope.
-*/
-{
-  a_constant_ptr constant, next_constant;
-
-  for (constant = scope->constants;
-       constant != NULL;
-       constant = next_constant) {
-    next_constant = constant->next;
-    add_to_constants_list(constant, /*at_file_scope=*/TRUE);
-  }  /* for */
-  scope->constants = NULL;
-}  /* promote_constants */
-
-
-static void promote_type_out_of_class(a_type_ptr type)
-/*
-Promote the indicated type out of the class indicated by type_promotion_class
-(or a class nested within that file-scope class) to after the entry indicated
-by type_promotion_insert_location.
-*/
-{
-  if (type->kind == (a_type_kind)tk_typeref &&
-      type->variant.typeref.is_placeholder_for_file_scope_type) {
-    /* There are some strange but infrequent cases.  For example:
-         struct A {
-           typedef int I;
-           TMPL<I> aa;
-         };
-       The TMPL<I> type will have been put onto the file-scope types list
-       immediately.  When I is promoted out of A, it must end up before
-       TMPL<I>.  This is accomplished by placing a placeholder entry for
-       TMPL<I> on the class type list to indicate the point at which the
-       template reference appeared.  When the placeholder is promoted, we
-       move the file-scope TMPL<I> to the right place on the list, i.e.,
-       after type_promotion_insert_location. */
-    a_type_ptr curr_type, prev_type;
-    a_type_ptr fs_type = type->variant.typeref.type;
-    if (type_promotion_insert_location == fs_type) {
-      /* The entry is already at the right place on the list.  Leave it
-         alone. */
-      goto end_of_insertion;
-    }  /* if */
-    /* Find the file-scope entry by searching from the beginning of
-       the file-scope types list. */
-    for (prev_type = NULL, curr_type = il_header.primary_scope->types;
-         curr_type != fs_type;
-         prev_type = curr_type, curr_type = curr_type->next) {
-      check_assertion_str(curr_type != NULL,
-                          "promote_type_out_of_class: ran off end");
-    }  /* for */
-    /* Remove the entry from the file-scope types list. */
-    if (prev_type == NULL) {
-      il_header.primary_scope->types = fs_type->next;
-    } else {
-      prev_type->next = fs_type->next;
-    }  /* if */
-    /* Now continue with the removed type as the one to be inserted. */
-    type = fs_type;
-  }  /* if */
-  /* Insert the type at the right spot. */
-  if (type_promotion_insert_location == NULL) {
-    /* Insert at the beginning of the list. */
-    type->next = il_header.primary_scope->types;
-    il_header.primary_scope->types = type;
-  } else {
-    type->next = type_promotion_insert_location->next;
-    type_promotion_insert_location->next = type;
-  }  /* if */
-  if (type->next == NULL) {
-    /* This is the final type on the file-scope types list.  Keep the "last"
-       pointer updated. */
-    scope_stack[DEPTH_OF_FILE_SCOPE].last_type = type;
-  }  /* if */
-  /* Set the suggested insert location after the type just inserted. */
-  type_promotion_insert_location = type;
-end_of_insertion:;
-}  /* promote_type_out_of_class */
-
-
-#if !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-/*ARGSUSED*/ /* <-- routine is only used when local entities are promoted. */
-#endif /* !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-static void promote_types(a_scope_ptr   scope,
-                          a_routine_ptr routine)
-/*
-Promote the types on the scope list to the file scope.  If
-type_promotion_class is non-NULL, the type is being promoted out of that
-file-scope class or a class nested therein.  If routine is non-NULL,
-the scope is (directly or indirectly) part of the indicated function
-(as opposed to a class).
-*/
-{
-  a_type_ptr type, next_type;
-
-  for (type = scope->types; type != NULL; type = next_type) {
-    next_type = type->next;
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-    if (routine != NULL) {
-      /* Mangle the name if necessary (e.g., if it is part of a template
-         function). */
-      mangle_promoted_entity_name(&type->source_corresp, routine);
-    }  /* if */
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-    if (type_promotion_class != NULL) {
-      /* We're promoting out of a file-scope class.  Determine the right
-         insert location and do the promotion. */
-      promote_type_out_of_class(type);
-    } else {
-      /* We're promoting out of a function, so the order doesn't matter.
-         Add to the end of the list. */
-      add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
-    }  /* if */
-  }  /* for */
-  scope->types = NULL;
-}  /* promote_types */
-
-
-#if !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-/*ARGSUSED*/ /* <-- routine is only used when local entities are promoted. */
-#endif /* !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-static void promote_variables(a_scope_ptr   scope,
-                              a_routine_ptr routine)
-/*
-Promote the variables on the scope list to the file scope.
-If routine is non-NULL, the scope is (directly or indirectly) part of the
-indicated function (as opposed to a class).
-*/
-{
-  a_variable_ptr variable, next_variable;
-
-  for (variable = scope->variables;
-       variable != NULL;
-       variable = next_variable) {
-    next_variable = variable->next;
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-    if (routine != NULL) {
-      /* Mangle the name if necessary (e.g., if it is part of a template
-         function). */
-      mangle_promoted_entity_name(&variable->source_corresp, routine);
-    }  /* if */
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-    add_to_variables_list(variable, /*at_file_scope=*/TRUE);
-  }  /* for */
-  scope->variables = NULL;
-}  /* promote_variables */
-
-
-static void promote_routines(a_scope_ptr scope)
-/*
-Promote the routines on the scope list to the file scope.
-*/
-{
-  a_routine_ptr routine, next_routine;
-
-  for (routine = scope->routines; routine != NULL; routine = next_routine) {
-    next_routine = routine->next;
-    add_to_routines_list(routine, /*at_file_scope=*/TRUE);
-  }  /* for */
-  scope->routines = NULL;
-}  /* promote_routines */
-
-
-static void promote_class_members(a_type_ptr class_type)
-/*
-Promote member functions, static data members, and local types of the
-indicated type into file scope.  Note that this promotion must
-be done after all virtual function tables have been generated for the class
-(including those needed in classes derived from this class), because
-the promotion process makes the virtual functions unfindable.
-*/
-{
-  a_class_type_supplement_ptr ctsp;
-  a_scope_ptr                 scope;
-
-  class_type = skip_typerefs(class_type);  /* Probably not needed. */
-  ctsp = class_type->variant.class_struct_union.extra_info;
-  if (ctsp != NULL) {
-    scope = ctsp->assoc_scope;
-    /* If the class has static data members, member functions, or local
-       types, promote them into the file scope. */
-    if (scope != NULL) {
-      promote_constants(scope);
-      promote_types(scope, (a_routine_ptr)NULL);
-      promote_variables(scope, (a_routine_ptr)NULL);
-      promote_routines(scope);
-    }  /* if */
-  }  /* if */
-}  /* promote_class_members */
-
-
 static void lower_class_struct_union_type(a_type_ptr class_type)
 /*
 Do IL lowering on the indicated class/struct/union type.
@@ -3877,10 +3657,15 @@ Do IL lowering on the indicated class/struct/union type.
       for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
         lower_type(bcp->type);
       }  /* for */
-      /* Lower the member functions, local types, etc. */
+      /* Lower the member functions, local types, etc.  Note that nothing
+         is promoted out of the class at this point; the promotions get done
+         at the end of lowering the memory region of which this is a class.
+         Note that in the case of a local class, the promotion may be done
+         at the end of lowering the function scope memory region, and this
+         routine is not called until later (when processing orphans for
+         the file scope).  In that case, the scope is already empty here
+         and the erstwhile members get lowered in their promoted positions. */
       lower_scope(ctsp->assoc_scope);
-      /* Promote members into the file scope. */
-      promote_class_members(class_type);
     }  /* if */
     /* Lower the template argument list, if any. */
     lower_template_arg_list(ctsp->template_arg_list);
@@ -3900,35 +3685,10 @@ Do IL lowering of the indicated list of types and everything under it.
 */
 {
   a_type_ptr type;
-  a_boolean  is_file_scope_list;
 
-  /* See if the list we are handling is the one for the file scope. */
-  is_file_scope_list = (type_list == il_header.primary_scope->types);
-  if (is_file_scope_list) {
-    /* When lowering the file-scope list, maintain a suggested insert
-       position for types promoted out of classes and into the file scope. */
-    type_promotion_insert_location = NULL;
-  }  /* if */
   for (type = type_list; type != NULL; type = type->next) {
     lower_type(type);
-    if (is_immediate_class_type(type)) {
-      /* There is special processing for class types.  The reason this is
-         not done directly by lower_type is that promotion of types
-         inside of classes into the file scope must be done in the right
-         order.  We hit types in arbitrary order in lower_type (because it's
-         called from lots of places).  Here, we know we're dealing with a
-         type list and can process the classes in the order they appear
-         on the type list.  Since all classes appear on a type list somewhere,
-         we will process them all eventually and all in order within a
-         given type list. */
-      if (is_file_scope_list) type_promotion_class = type;
-      lower_class_struct_union_type(type);
-      if (is_file_scope_list) type_promotion_class = NULL;
-    }  /* if */
-    /* Remember the previous type as an insert location. */
-    if (is_file_scope_list) type_promotion_insert_location = type;
   }  /* for */
-  if (is_file_scope_list) type_promotion_insert_location = NULL;
 }  /* lower_type_list */
 
 
@@ -3942,6 +3702,10 @@ Do IL lowering of the indicated type and everything under it.
   a_based_type_list_member_ptr
 		btlmp;
 
+  /* Note that within this routine "lower_os_type" need not be used.
+     The fact that we are lowering a type means we are lowering the
+     file scope and therefore no other type can be in a different
+     memory region. */
   if (!visited_yet(type)) {
     mark_as_visited(type);
     lower_source_correspondence(&type->source_corresp);
@@ -4069,9 +3833,7 @@ Do IL lowering of the indicated type and everything under it.
       case tk_class:
       case tk_struct:
       case tk_union:
-        /* Classes are lowered by lower_class_struct_union_type in a separate
-           pass through the data structure.  Here, just do pre-lowering. */
-        prelower_class_type_if_complete(type);
+        lower_class_struct_union_type(type);
         break;
       case tk_typeref:
         lower_type(type->variant.typeref.type);
@@ -4099,7 +3861,9 @@ types in other scopes.
 */
 {
   if (crossing_into_file_scope(type)) {
-    /* Don't follow a pointer from the function scope into the file scope. */
+    /* Don't follow a pointer from the function scope into the file scope,
+       but record the file scope entry as a potential orphan so it will
+       be found later when lowering the file scope. */
     record_orphaned_il_entry(type, iek_type);
   } else {
     lower_type(type);
@@ -6779,6 +6543,250 @@ Do IL lowering of the indicated statement and everything under it.
   }  /* if */
 }  /* lower_statement */
 
+
+static void promote_constants(a_scope_ptr scope)
+/*
+Promote the constants on the constants list of the indicated scope
+(a class scope) into the file scope.
+*/
+{
+  a_constant_ptr constant, next_constant;
+
+  /* Why is promotion into the file scope?  Because there are no constants
+     on the constants lists of function and block scopes otherwise, so
+     it seems unwise to put any there in this case.  Besides, the constants
+     we are promoting here are rare -- they're member constants of classes,
+     which are an extension (enum constants don't appear on the constant
+     list).  Note that since we are promoting constants out of a class,
+     all the constants will already be allocated in the file scope memory
+     region (fortunately). */
+  /* Promote the constants to the end of the file-scope constants list. */
+  for (constant = scope->constants;
+       constant != NULL;
+       constant = next_constant) {
+    next_constant = constant->next;
+    add_to_constants_list(constant, /*at_file_scope=*/TRUE);
+  }  /* for */
+}  /* promote_constants */
+
+
+static void promote_variables(a_scope_ptr scope)
+/*
+Promote the static variables on the variables list of the indicated scope
+(a class scope) into the file scope.
+*/
+{
+  a_variable_ptr variable, next_variable;
+
+  /* Why is promotion into the file scope?  Well, we are promoting static
+     data members here, and local classes cannot have static data members.
+     That means the only cases that come up involve promoting static data
+     members out of file-scope classes or classes nested within them.
+     For those, the file scope is the right place to promote to. */
+  /* Promote the variables to the end of the proper variables list. */
+  for (variable = scope->variables;
+       variable != NULL;
+       variable = next_variable) {
+    next_variable = variable->next;
+    add_to_variables_list(variable, /*at_file_scope=*/TRUE);
+  }  /* for */
+}  /* promote_variables */
+
+
+static void promote_routines(a_scope_ptr scope)
+/*
+Promote the routines on the routines list of the indicated scope (a class
+scope) into the file scope.
+*/
+{
+  a_routine_ptr routine, next_routine;
+
+  /* Why is promotion into the file scope?  Because routines are only
+     allowed in the file scope and in class scopes. */
+  for (routine = scope->routines; routine != NULL; routine = next_routine) {
+    next_routine = routine->next;
+    add_to_routines_list(routine, /*at_file_scope=*/TRUE);
+  }  /* for */
+  scope->routines = NULL;
+}  /* promote_routines */
+
+
+static void promote_types(a_scope_ptr scope,
+                          a_scope_ptr promotion_scope,
+                          a_type_ptr  *insert_pointer)
+/*
+Promote the types on the types list of the indicated scope (a class scope)
+into the scope promotion_scope.  *insert_pointer indicates the insertion
+position, and is updated after the insertion.
+*/
+{
+  a_type_ptr type, next_type;
+
+  /* Promote the types to the end of the proper types list.  Also promote
+     members out of any classes encountered on the types list. */
+  /* See if there is anything to promote. */
+  type = scope->types;
+  if (type != NULL) {
+    for (; type != NULL; type = next_type) {
+      next_type = type->next;
+      if (type->kind == (a_type_kind)tk_typeref &&
+          type->variant.typeref.is_placeholder_for_file_scope_type) {
+        /* This type is a placeholder typeref that indicates the point at
+           which a file-scope type appeared in the class.  For example:
+             template<class T> struct TMPL {};
+             struct A {
+               typedef int I;
+               TMPL<I> a;
+             };
+           The type for TMPL<I> was placed immediately into the file scope,
+           preceding A.  When I is promoted out of A, it must end up in
+           front of TMPL<I>.  That's accomplished by placing a placeholder
+           type on the types list of A to indicate the spot where TMPL<I>
+           appeared.  TMPL<I> is removed from the file-scope list when
+           encountered there in the promotion process, and then put back
+           at the right spot when the placeholder appears. */
+        type = type->variant.typeref.type;
+        /* Go on to promote the class' members and put the file-scope type
+           on the file-scope list. */
+      }  /* if */
+      /* If the type is a class, promote its members. */
+      if (is_immediate_class_type(type)) {
+        promote_class_members(type, promotion_scope, insert_pointer);
+      }  /* if */
+      if (*insert_pointer == NULL) {
+        type->next = promotion_scope->types;
+        promotion_scope->types = type;
+      } else {
+        type->next = (*insert_pointer)->next;
+        (*insert_pointer)->next = type;
+      }  /* if */
+      *insert_pointer = type;
+    }  /* for */
+    /* Clear the list of promoted types.  Since the scope is for a class,
+       we know it cannot be on the scope stack now, and therefore we do
+       not need to update a corresponding last pointer. */
+    scope->types = NULL;
+  }  /* if */
+}  /* promote_types */
+
+
+static void promote_class_members(a_type_ptr  class_type,
+                                  a_scope_ptr promotion_scope,
+                                  a_type_ptr  *insert_pointer)
+/*
+Promote the members of the class class_type out of the class.  Most
+members are promoted into the file scope.  Types are promoted into
+promotion_scope, at the position indicated by *insert_position, and
+*insert_position is updated.
+*/
+{
+  a_class_type_supplement_ptr ctsp;
+  a_scope_ptr                 scope;
+
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  if (ctsp != NULL) {
+    scope = ctsp->assoc_scope;
+    /* If the class has constants, static data members, member functions,
+       or local types, promote them out of the class scope. */
+    if (scope != NULL) {
+      /* Constants, static data members, and member functions are promoted
+         to the file scope. */
+      promote_constants(scope);
+      promote_variables(scope);
+      promote_routines(scope);
+      /* Types are promoted to promotion_scope. */
+      promote_types(scope, promotion_scope, insert_pointer);
+    }  /* if */
+  }  /* if */
+}  /* promote_class_members */
+
+
+static a_scope_depth scope_depth_for_scope(a_scope_ptr scope)
+/*
+See if the indicated scope appears in the scope stack.  If so, return the
+index of the associated entry in the stack.  If not, return NO_SCOPE_DEPTH.
+*/
+{
+  a_scope_depth depth;
+
+  for (depth = depth_scope_stack; depth != NO_SCOPE_DEPTH; depth--) {
+    if (scope_stack[depth].il_scope == scope) {
+      /* Found it. */
+      break;
+    }  /* if */
+  }  /* for */
+  return depth;
+}  /* scope_depth_for_scope */
+
+
+static void do_scope_class_member_promotion(a_scope_ptr scope)
+/*
+Do promotion of members of classes out of those classes in the indicated
+scope and all subscopes.
+*/
+{
+  a_type_ptr    type, insert_pointer;
+  a_scope_ptr   block_scope;
+  a_scope_depth depth;
+
+  /* Visit all types to find all classes. */
+  /* Note that when processing a function or block scope we will be crossing
+     into the file scope here, but these types are truly local types
+     and are not used in the file scope, so it's okay to promote their
+     members now.  In fact, it's necessary -- we have to update the scope
+     types and variables pointers before they are recorded in the orphan
+     lists.  Note that in that case the class has not been lowered yet
+     when the members are promoted out of it, and that's as intended.
+     The members must be promoted out, but the lowering cannot be done yet
+     (because if you did the lowering, you wouldn't know where to stop
+     lowering, because you wouldn't know where the local types shade over
+     into normal file-scope types). */
+  /* See if there are any types to process. */
+  type = scope->types;
+  if (type != NULL) {
+    insert_pointer = NULL;
+    for (; type != NULL; type = type->next) {
+      /* If the type is a class, promote its members out of the class. */
+      if (is_immediate_class_type(type)) {
+        a_class_symbol_supplement_ptr
+                     cssp;
+        a_symbol_ptr assoc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+        if (assoc_sym != NULL &&
+            (cssp = symbol_supplement_for_class(type)) != NULL &&
+            cssp->referenced_by_placeholder_typeref) {
+          /* This type is on the file scope types list but it was created while
+             scanning a class definition.  There is a placeholder typeref
+             within the class to indicate the point at which the class should
+             go, and that's where promotion of class members should happen,
+             so do nothing now except taking the type out of the list. */
+          if (insert_pointer == NULL) {
+            scope->types = type->next;
+          } else {
+            insert_pointer->next = type->next;
+          }  /* if */
+          /* Do not update insert_pointer at the end of the loop. */
+          continue;
+        } else {
+          /* Normal case. */
+          promote_class_members(type, scope, &insert_pointer);
+        }  /* if */
+      }  /* if */
+      insert_pointer = type;
+    }  /* for */
+    /* If this scope is in the scope_stack, update its last_type pointer. */
+    depth = scope_depth_for_scope(scope);
+    if (depth != NO_SCOPE_DEPTH) {
+      scope_stack[depth].last_type = insert_pointer;
+    }  /* if */
+  }  /* if */
+  /* Visit all block scopes. */
+  for (block_scope = scope->scopes;
+       block_scope != NULL;
+       block_scope = block_scope->next) {
+    do_scope_class_member_promotion(block_scope);
+  }  /* for */
+}  /* do_scope_class_member_promotion */
+
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
 
 static a_boolean local_entities_should_be_promoted(a_scope_ptr scope)
@@ -6800,7 +6808,7 @@ by things that will be in the file scope.
   if (scope->kind == (a_scope_kind)sck_function ||
       scope->kind == (a_scope_kind)sck_block) {
     /* Function or block scope. */
-    /* Look for local static variables with destructors.  That would force
+    /* Look for a local static variable with a destructor.  That would force
        the variable to be at the file scope. */
     for (var = scope->variables; var != NULL; var = var->next) {
       if (var->init_kind == (an_init_kind)initk_dynamic) {
@@ -6822,30 +6830,23 @@ by things that will be in the file scope.
     }  /* if */
 #endif /* CHECKING */
     /* Class scope. */
-    if (scope->constants != NULL ||
-        scope->types != NULL ||
-        scope->variables != NULL) {
-      /* The class has its own local constants, types (including nested
-         classes), or variables, so it must be promoted.  This test is
-         probably not as refined as it could be, but that's not
-         important. */
-      promotion_needed = TRUE;
-    } else {
-      /* See if the class has defined member functions (just the existence
-         of member functions is not enough, since all classes have an
-         assignment operator function). */
-      for (rout = scope->routines; rout != NULL; rout = rout->next) {
-        if (rout->assoc_scope != NULL_region_number) {
-          promotion_needed = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
-    }  /* if */
+    /* See if the class has defined member functions (just the existence
+       of member functions is not enough, since all classes have an
+       assignment operator function).  The member function definition
+       will have its own memory region, so anything from this function
+       that it references must be in the file scope. */
+    for (rout = scope->routines; rout != NULL; rout = rout->next) {
+      if (rout->assoc_scope != NULL_region_number) {
+        promotion_needed = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
   }  /* if */
   if (!promotion_needed) {
     /* If nothing in this scope forces promotion, look at any subscopes.
        If something there requires promotion, the local entities of this
-       scope will also have to be promoted. */
+       scope will also have to be promoted (because the promoted entities
+       might refer to the types etc. of the surrounding scopes). */
     /* Visit all types to find all class types and their scopes. */
     for (type = scope->types; type != NULL; type = type->next) {
       if (is_immediate_class_type(type)) {
@@ -6875,15 +6876,46 @@ static void promote_local_entities_to_file_scope(a_scope_ptr   scope,
 /*
 Promote the local types and static variables of the indicated
 scope and its subscopes to the file scope.  The scope is (directly or
-indirectly) part of the indicated routine.
+indirectly) part of the indicated routine.  Note that the entities
+being promoted have not been lowered yet; they will get lowered (as
+normal list members, not as orphans) as part of the lowering of
+the file scope memory region.
 */
 {
-  a_scope_ptr block_scope;
+  a_type_ptr     type, next_type;
+  a_variable_ptr variable, next_variable;
+  a_scope_ptr    block_scope;
+  a_scope_depth  depth;
 
-  /* Promote the local entities to file scope. */
-  promote_types(scope, routine);
-  promote_variables(scope, routine);
-  /* Visit all block scopes. */
+  /* See if there is anything to promote. */
+  type = scope->types;
+  variable = scope->variables;
+  if (type != NULL || variable != NULL) {
+    depth = scope_depth_for_scope(scope);
+    /* Promote local types to file scope. */
+    for (; type != NULL; type = next_type) {
+      next_type = type->next;
+      /* Mangle the name if necessary (e.g., if it is part of a template
+         function). */
+      mangle_promoted_entity_name(&type->source_corresp, routine);
+      add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
+    }  /* for */
+    /* Clear the types list now that all types have been promoted. */
+    scope->types = NULL;
+    if (depth != NO_SCOPE_DEPTH) scope_stack[depth].last_type = NULL;
+    /* Promote local static variables to file scope. */
+    for (; variable != NULL; variable = next_variable) {
+      next_variable = variable->next;
+      /* Mangle the name if necessary (e.g., if it is part of a template
+         function). */
+      mangle_promoted_entity_name(&variable->source_corresp, routine);
+      add_to_variables_list(variable, /*at_file_scope=*/TRUE);
+    }  /* for */
+    /* Clear the variables list now that all variables have been promoted. */
+    scope->variables = NULL;
+    if (depth != NO_SCOPE_DEPTH) scope_stack[depth].last_variable = NULL;
+  }  /* if */
+  /* Visit all block scopes and promote the local entities therein. */
   for (block_scope = scope->scopes;
        block_scope != NULL;
        block_scope = block_scope->next) {
@@ -7037,7 +7069,7 @@ Do IL lowering of the indicated scope and everything under it.
   }  /* if */
   lower_constant_list(scope->constants);
   if (lowering_file_scope) {
-    /* Lower the file-scope lists or lists for a class scope. */
+    /* Lower the file-scope lists or the lists for a class scope. */
     lower_type_list(scope->types);
     lower_variable_list(scope->variables);
     if (scope->kind == (a_scope_kind)sck_class_struct_union &&
@@ -7065,18 +7097,29 @@ Do IL lowering of the indicated scope and everything under it.
     /* In function and block scopes, the types and variables lists point into
        the file scope memory region, and are not lowered at this time.
        They are lowered as part of lowering the file scope memory region. */
-    /* Note that an entry for this scope will have already been placed on
-       the il_header.orphaned_il_list. */
+    /* Note that an entry for this scope will be placed on the
+       il_header.orphaned_il_list if either of those pointers is non-NULL.
+       The entry is created after IL lowering runs so that IL lowering
+       can alter those local lists. */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+    /* If there is reason to promote the local types and static variables
+       to the file scope, do that now and clear the lists.  That makes the
+       promoted entities part of the file scope and no longer orphans. */
+    if (scope->kind == (a_scope_kind)sck_function) {
+      if (local_entities_should_be_promoted(scope)) {
+        promote_local_entities_to_file_scope(scope,
+                                             scope->variant.routine.ptr);
+      }  /* if */
+    }  /* if */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
   }  /* if */
   lower_variable_list(scope->nonstatic_variables);
   lower_label_list(scope->labels);
   lower_routine_list(scope->routines);
   lower_asm_entry_list(scope->asm_entries);
-  /* In functions and blocks, the dynamic inits are also pointed to from
-     stmk_init statements, so they need not be handled here.  At file scope
-     the dynamic inits are not pointed to from elsewhere and must be handled
-     now. */
   if (scope->kind == (a_scope_kind)sck_file) {
+    /* Generate code to handle file-scope dynamic initializations and
+       the corresponding destructions. */
     lower_file_scope_dynamic_inits();
     make_code_to_invoke_file_scope_init_and_term_routines();
   } else if (scope->kind == (a_scope_kind)sck_function) {
@@ -7152,8 +7195,7 @@ not reachable from the normal file-scope IL tree.
   char                    *entry_ptr;
 
   /* First lower the list of orphaned types and variables from function
-     and block scopes.  This is done as a separate step so that the class
-     types can be processed in the original source order. */
+     and block scopes. */
   for (oilp = il_header.orphaned_il_list; oilp != NULL; oilp = oilp->next) {
     lower_type_list(oilp->orphaned_types);
     lower_variable_list(oilp->orphaned_variables);
@@ -7227,19 +7269,6 @@ C++ to C, so that a C back end can handle it without change.
       push_context(&context, il_header.primary_scope,
                    /*subscope_region=*/FALSE);
     }  /* if */
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-    if (!lowering_file_scope) {
-      /* Look at the function scope and its subscopes and promote local
-         types and static variables to the file scope where appropriate.
-         This must be done before name mangling so different name mangling
-         can be done on names promoted out of template functions. */
-      check_assertion(scope->kind == (a_scope_kind)sck_function);
-      if (local_entities_should_be_promoted(scope)) {
-        promote_local_entities_to_file_scope(scope,
-                                             scope->variant.routine.ptr);
-      }  /* if */
-    }  /* if */
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
     /* Do name mangling.  This must be done early when original type
        information is available (for example, references are still
        references and not yet pointers). */
@@ -7255,14 +7284,17 @@ C++ to C, so that a C back end can handle it without change.
          are not linked into the file scope memory region IL tree, so they have
          to be found through a separate list. */
       lower_orphaned_entries();
+    } else {
+      /* Pop the file-scope context that was put around the function scope
+         context. */
+      pop_context();
     }  /* if */
+    /* Promote class members out of the classes. */
+    do_scope_class_member_promotion(scope);
     /* Add definitions for any typeinfo variables generated for classes.
-       This must be done late so that all types marked with used_in_exception
-       have been encountered already. */
+       This must be done late so that all the required typeinfo variables
+       will have been created already. */
     define_scope_class_typeinfo_vars(scope);
-    /* Pop the file-scope context that was put around the function scope
-       context. */
-    if (!lowering_file_scope) pop_context();
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
   }  /* if */
   db_exit();
@@ -7319,8 +7351,6 @@ of the front end.
   pure_virtual_called_routine = NULL;
   vptp_type = NULL;
   mptr_type = NULL;
-  type_promotion_class = NULL;
-  type_promotion_insert_location = NULL;
 #if DEBUG
   allocated_name_string_length  = 0;
   num_cleanup_actions_allocated = 0;
