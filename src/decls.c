@@ -3941,11 +3941,19 @@ on for use in generating cross-reference output describing this declaration.
                         "decl_routine: missing SRK_DEFINITION");
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (!C_mode() &&
-      (is_function_def || !source_sequence_entries_disallowed)) {
-    if (func_info->declared_type != NULL &&
-        skip_typerefs(func_info->declared_type)->
-                variant.routine.extra_info->prototyped) {
+  if (!C_mode()) {
+    /* When the declared_type was created (in declarator), the default args
+       were ignored.  If appropriate, copy them from type_ptr to the
+       declared_type now (i.e., before composite_type is called). */
+    if (is_friend_decl) {
+      /* The default arg tokens were cached and will be scanned during
+         default arg fixup, once the entire class body has been scanned; at
+         that time the default args in the declared type will be updated. */
+    } else if (!is_function_def && source_sequence_entries_disallowed) {
+      /* The declared_type is not used. */
+    } else if (func_info->declared_type != NULL &&
+               skip_typerefs(func_info->declared_type)->
+                                variant.routine.extra_info->prototyped) {
       copy_routine_type_default_args(type_ptr, func_info->declared_type);
     }  /* if */
   }  /* if */
