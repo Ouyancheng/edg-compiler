@@ -343,7 +343,8 @@ typedef enum /*an_error_code*/ {
   ec_bad_union_field,
   ec_overloaded_function_types_too_similar,
   ec_bad_rvalue_array,
-  ec_exp_operator
+  ec_exp_operator,
+  ec_inherited_member_not_allowed
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

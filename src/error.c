@@ -1,4 +1,4 @@
-/******************************************************************************
+	/******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
 * Edison Design Group C Front End                            - | \^/ | -      *
@@ -964,6 +964,9 @@ error code.
       break;
     case ec_exp_operator:
       m = "expected an operator";
+      break;
+    case ec_inherited_member_not_allowed:
+      m = "inherited member is not allowed";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
