@@ -872,15 +872,6 @@ EXTERN a_boolean
 			   character after the first in an identifier.
 			   Also used in scanning pp-numbers. */
 
-#if 0
-#else
-EXTERN a_boolean
-		lint_notreached_flag;
-			/* Set to TRUE when a lint-style "notreached" comment
-			   is detected; reset at the start of each
-			   statement. */
-#endif
-
 /*
 Data structure used to save information about a token so that the token
 can be cached and then rescanned.  Note that this is never done with

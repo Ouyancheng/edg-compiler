@@ -6898,11 +6898,6 @@ of the front end.
      syntax error. */
   clear_stop_tokens();
   curr_token_pragmas = NULL;
-#if 0
-#else
-  lint_notreached_flag = FALSE;
-#endif
-
   /* Static variables in lexical.c: */
   curr_input_stream = NULL;
   eof_read_on_curr_input_stream = FALSE;
