@@ -9391,6 +9391,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           }  /* if */
           rout_type = skip_typerefs(rout_type);
           rtsp = rout_type->variant.routine.extra_info;
+          lower_normal_expr(operand_node);
           /* If the routine has a "this" parameter or caller-supplied
              result location, lower them separately. */
           if (rtsp->implicit_this_param_type != NULL) {
