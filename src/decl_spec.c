@@ -1118,6 +1118,11 @@ caution when modifying this routine.
               }  /* if */
             } while (!done);
           }  /* if */
+        } else if (is_injected_class_symbol(tag_sym)) {
+          /* A symbol representing an injected class name.  Use the tag symbol
+             associated with the class in its place. */
+          tag_sym = (a_symbol_ptr)tag_sym->variant.type.ptr->
+                                                 source_corresp.assoc_info;
         } else if (!C_mode() && tag_sym->kind == (a_symbol_kind)sk_type) {
           /* The tag is a template parameter type.  A diagnostic will have
              been issued in curr_tag_symbol.  This usage is still supported
