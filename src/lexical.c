@@ -8940,7 +8940,7 @@ can be avoided.
       } else if (ch == '#') {
         /* The beginning of a preprocessing directive.  We don't know what
            token follows the directive, so assume it can be a qualifier. */
-        delim_does_not_follow = FALSE;
+        /* delim_does_not_follow = FALSE;  -- already set. */
       } else {
         /* Some other operator, e.g., ";" or "(", so delimiter does not
            follow the token. */
