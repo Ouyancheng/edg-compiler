@@ -3369,7 +3369,7 @@ precedence confusion.
           a_type_ptr source_type = node->variant.operation.operands->type;
           if (is_pointer_type(source_type) &&
               is_class_struct_union_type(type_pointed_to(source_type))) {
-            a_type_ptr con_type = node->type;
+            a_type_ptr con_type = skip_typerefs(node->type);
             a_type     type_copy;
             check_assertion(con_type->kind == (a_type_kind)tk_pointer);
             type_copy = *con_type;
@@ -3542,8 +3542,10 @@ when appropriate.
       a_type_ptr underlying_dest_type = type_pointed_to(dest_type);
       if (is_class_struct_union_type(underlying_source_type) &&
           is_class_struct_union_type(underlying_dest_type) &&
-          find_base_class_of(underlying_source_type,
-                             underlying_dest_type) != NULL) {
+          /* Note that find_base_class_of is not used because it would
+             instantiate the source type. */
+          find_direct_base_class_of(underlying_source_type,
+                                    underlying_dest_type) != NULL) {
         /* reinterpret_cast<Base &>(Derived_lvalue) */
         is_reinterpret_cast = TRUE;
       }  /* if */
