@@ -8316,9 +8316,6 @@ The scope is the top scope in a memory region.
   visit_object_lifetime_tree(scope->lifetime, detach);
   if (scope->kind == (a_scope_kind)sck_function) {
     visit_object_lifetime_tree(
-                         scope->variant.routine.lifetime_of_constructor_inits,
-                         detach);
-    visit_object_lifetime_tree(
                          scope->variant.routine.lifetime_of_local_static_vars,
                          detach);
     if (detach) {
