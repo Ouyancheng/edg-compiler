@@ -5318,15 +5318,13 @@ cache the expected tokens.
   if (!skip_params) {
     /* See if the beginning of the declaration consists of template
        parameter clauses that are all of the form "template <>". */
-   while (is_full_specialization && curr_token == tok_template) {
+   while (curr_token == tok_template) {
       (void)get_token();
-       /* Exit the loop if a template parameter list is missing.  The
-          error recovery is better this way. */
-      if (curr_token != tok_lt) break;
+      if (curr_token != tok_lt) continue;
       (void)get_token();
       if (curr_token != tok_gt) {
         is_full_specialization = FALSE;
-        break;
+        continue;
       }  /* if */
       (void)get_token();
     }  /* while */
@@ -6841,6 +6839,7 @@ lists must by non-empty.
         template_decl_info->enclosing_template_decl = prev_template_decl_info;
         prev_template_decl_info = template_decl_info;
         push_template_declaration_scope(template_decl_info);
+        check_assertion(!decl_state->is_full_specialization);
         decl_state->number_of_template_decl_scopes++;
         /* Save a pointer to the template declaration information in the
            scope stack entry. */
