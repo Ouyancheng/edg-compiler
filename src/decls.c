@@ -9434,38 +9434,43 @@ diagnostics.
 {
   /* Not a class or namespace member named "main". */
   a_routine_type_supplement_ptr  rtsp;
-  a_type_ptr                     return_type, int_type;
+  a_type_ptr                     return_type;
 
-  /* Perform some error checking that is specific to C++. */
+  /* Perform some error checking that is specific to C++ and C99. */
   return_type = skip_typerefs(type)->variant.routine.return_type;
-  int_type = integer_type((an_integer_kind)ik_int);
-  if (!identical_types(return_type, int_type)) {
-    /* main must return "int" (3.6.1). */
-    pos_diagnostic(strict_ansi_mode ?
-                     strict_ansi_discretionary_severity : es_warning,
-                   ec_bad_return_type_on_main, pos);
+  if (c99_mode || !C_mode()) {
+    a_type_ptr  int_type = integer_type((an_integer_kind)ik_int);
+    if (!identical_types(return_type, int_type)) {
+      /* main must return "int" (3.6.1). */
+      pos_diagnostic(strict_ansi_mode ?
+                       strict_ansi_discretionary_severity : es_warning,
+                     ec_bad_return_type_on_main, pos);
+    }  /* if */
+    /* "inline" isn't allowed in C++ and C99 modes. */
+    if (*is_inline) {
+      pos_error(ec_inline_main, pos);
+      *is_inline = FALSE;
+    }  /* if */
   }  /* if */
-  rtsp = skip_typerefs(type)->variant.routine.extra_info;
-  if (rtsp->routine_name_linkage_is_explicit) {
-    pos_warning(ec_linkage_specifier_not_allowed, pos);
-    rtsp->routine_name_linkage_is_explicit = FALSE;
-  }  /* if */
-  rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
-  if (rtsp->exception_specification != NULL) {
-    /* main() cannot have a throw specification, since there's no
-       call stack to unwind from main. */
-    pos_warning(ec_exception_specification_not_allowed,
-                &func_info->throw_position);
-    rtsp->exception_specification = NULL;
-  }  /* if */
-  /* "inline" and "static" are not allowed (ARM 3.4). */
-  if (*declared_storage_class == (a_storage_class)sc_static) {
-    pos_error(ec_static_not_allowed, pos);
-    *declared_storage_class = (a_storage_class)sc_unspecified;
-  }  /* if */
-  if (*is_inline) {
-    pos_error(ec_inline_main, pos);
-    *is_inline = FALSE;
+  if (!C_mode()) {
+    rtsp = skip_typerefs(type)->variant.routine.extra_info;
+    if (rtsp->routine_name_linkage_is_explicit) {
+      pos_warning(ec_linkage_specifier_not_allowed, pos);
+      rtsp->routine_name_linkage_is_explicit = FALSE;
+    }  /* if */
+    rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
+    if (rtsp->exception_specification != NULL) {
+      /* main() cannot have a throw specification, since there's no
+         call stack to unwind from main. */
+      pos_warning(ec_exception_specification_not_allowed,
+                  &func_info->throw_position);
+      rtsp->exception_specification = NULL;
+    }  /* if */
+    /* "static" are not allowed (ARM 3.4). */
+    if (*declared_storage_class == (a_storage_class)sc_static) {
+      pos_error(ec_static_not_allowed, pos);
+      *declared_storage_class = (a_storage_class)sc_unspecified;
+    }  /* if */
   }  /* if */
 }  /* check_main_function */
 
@@ -9940,9 +9945,6 @@ continue_with_declaration:
                              locator.specific_symbol->
                                           parent.namespace_ptr == NULL));
             func_info.is_main_function = is_main_function = TRUE;
-            check_main_function(&func_info, local_type_ptr,
-                                &declared_storage_class, &inline_specified,
-                                &locator.source_position);
           }  /* if */
         } else {
           /* C mode. */
@@ -9951,11 +9953,12 @@ continue_with_declaration:
             /* Not a static function named "main".  This is not an option
                in C++ (ARM 3.4). */
             func_info.is_main_function = is_main_function = TRUE;
-            if (c99_mode && inline_specified) {
-              pos_error(ec_inline_main, &locator.source_position);
-              inline_specified = FALSE;
-            }  /* if */
           }  /* if */
+        }  /* if */
+        if (is_main_function) {
+          check_main_function(&func_info, local_type_ptr,
+                              &declared_storage_class, &inline_specified,
+                              &locator.source_position);
         }  /* if */
       } else if (declared_storage_class == (a_storage_class)sc_typedef &&
                  (do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF)) {
