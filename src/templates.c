@@ -14767,9 +14767,13 @@ data member specified by tip.
     /* If the template was defined in an exported template file, make sure
        that file is loaded as a translation unit. */
     ensure_exported_template_file_is_loaded(tip);
+    /* Pop the file scope of the original translation unit. */
+    pop_scope();
     /* Push the translation unit containing the template definition onto the
        stack.  This will make it the current translation unit. */
     push_translation_unit_stack(tip->exported_template_file->translation_unit);
+    /* Push the file scope of the new translation unit. */
+    push_file_scope(/*is_reactivation=*/TRUE);
     /* Find the corresponding template instance in the translation unit
        containing the template definition. */
     tip = find_corresponding_instance(tip);
@@ -14793,8 +14797,12 @@ data member specified by tip.
     }  /* if */
   }  /* if */
   if (orig_tip->exported_template_file != NULL) {
+    /* Pop the file scope of the new translation unit. */
+    pop_scope();
     /* Restore the previously active translation unit. */
     pop_translation_unit_stack();
+    /* Push the file scope of the original translation unit. */
+    push_file_scope(/*is_reactivation=*/TRUE);
   }  /* if */
   error_position = saved_error_position;
   pos_curr_token = saved_pos_curr_token;
