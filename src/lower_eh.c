@@ -2620,7 +2620,7 @@ Do IL lowering for an stmk_try_block statement.
                     ehse_try_region_number_field);
   region_number = context_cleanup_region_number(curr_context);
   (void)insert_assignment_statement(try_frame_region_number,
-                                    (an_expr_operator_kind)eok_passign,
+                                    (an_expr_operator_kind)eok_iassign,
                                     node_for_integer_constant(
                                                   (long)region_number,
                                                   TARG_REGION_NUMBER_INT_KIND),
