@@ -441,6 +441,25 @@ done:
 }  /* is_illegal_abstract_class_type */
 
 
+a_boolean class_with_copy_constructor_or_destructor(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++ class type that has a copy constructor
+and/or a destructor.
+*/
+{
+  a_boolean                     answer = FALSE;
+  a_class_symbol_supplement_ptr cssp;
+
+  if (is_class_struct_union_type(tp)) {
+    cssp = symbol_supplement_for_class(tp);
+    if (cssp != NULL) {
+      answer = (cssp->has_copy_constructor || cssp->destructor != NULL);
+    }  /* if */
+  }  /* if */
+  return answer;
+}  /* class_with_copy_constructor_or_destructor */
+
+
 a_boolean is_aggregate_or_union_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a union or aggregate type (array, struct,
@@ -2063,7 +2082,7 @@ is allocated, it is allocated in the file scope.
   a_type_ptr       comp_type;
   a_type_ptr       base_type_1, base_type_2;
   a_boolean        add_const, add_volatile;
-  a_type_ptr       comp_elem, comp_param_type;
+  a_type_ptr       comp_elem, comp_param_type, param_type;
   a_targ_size_t    num_elems;
   a_param_type_ptr list1, list2, param1, param2;
   a_boolean        list1_prototyped, list2_prototyped;
@@ -2265,14 +2284,13 @@ is allocated, it is allocated in the file scope.
               for (param1 = list1,  param2 = list2;
                    param1 != NULL;
                    param1 = param1->next, param2 = param2->next) {
-                comp_param = alloc_param_type(/*at_file_scope=*/TRUE);
                 if (param1 == param1_on_which_first_loop_failed) {
                   /* Little optimization: when we get to the parameters on
                      which the loop above failed, use the composite type
                      already formed.  This is nice when that type is something
                      distinct from the two parameter types.  Without this
                      trick, that type would be lost. */
-                  comp_param->type = comp_param_type;
+                  param_type = comp_param_type;
                 } else {
                   /* For the other parameter pairs, we call composite_type.
                      For the parameters preceding the key pair, composite_type
@@ -2280,9 +2298,10 @@ is allocated, it is allocated in the file scope.
                      the original types; for parameters following that pair,
                      composite_type must be called because it has not been
                      called yet for those parameters. */
-                  comp_param->type = composite_type(param1->type,
-                                                    param2->type);
+                  param_type = composite_type(param1->type, param2->type);
                 }  /* if */
+                comp_param = alloc_param_type(param_type,
+                                              /*at_file_scope=*/TRUE);
                 /* Form the composite of the C++ default argument expressions;
                    it's guaranteed that at most one of the parameter lists
                    has a default argument expression. */
@@ -2537,14 +2556,14 @@ to it.
 */
 {
   a_param_type_ptr new_param, new_param_list, end_new_param_list;
+  a_type_ptr       new_param_type;
 
   new_param_list = end_new_param_list = NULL;
   for (; old_param != NULL; old_param = old_param->next) {
-    new_param = alloc_param_type(/*at_file_scope=*/TRUE);
+    new_param_type = make_file_scope_type(old_param->type);
+    new_param = alloc_param_type(new_param_type, /*at_file_scope=*/TRUE);
     *new_param = *old_param;
-    if (new_param->type != NULL) {
-      new_param->type = make_file_scope_type(old_param->type);
-    }  /* if */
+    new_param->type = new_param_type;
     new_param->next = NULL;
     if (new_param_list == NULL) {
       new_param_list = new_param;
