@@ -1496,6 +1496,29 @@ explicitly enabled or disabled.
 #endif /* ifndef EMBEDDED_C_ALLOWED */
 
 /*
+Flag that is TRUE if Embedded C (ISO/IEC TR 18037) should be enabled by
+default.  If this macro is defined, set the "default enabled" macro for
+each of the sub-features (e.g., DEFAULT_FIXED_POINT_ENABLED).
+*/
+#ifndef DEFAULT_EMBEDDED_C_ENABLED
+#define DEFAULT_EMBEDDED_C_ENABLED EMBEDDED_C_ALLOWED
+#else  /* ifdef DEFAULT_EMBEDDED_C_ENABLED */
+
+#ifndef DEFAULT_FIXED_POINT_ENABLED
+#define DEFAULT_FIXED_POINT_ENABLED DEFAULT_EMBEDDED_C_ENABLED
+#endif /* ifndef DEFAULT_FIXED_POINT_ENABLED  */
+
+#ifndef DEFAULT_NAMED_ADDRESS_SPACES_ENABLED
+#define DEFAULT_NAMED_ADDRESS_SPACES_ENABLED DEFAULT_EMBEDDED_C_ENABLED
+#endif /* ifndef DEFAULT_NAMED_ADDRESS_SPACES_ENABLED  */
+
+#ifndef DEFAULT_NAMED_REGISTERS_ENABLED
+#define DEFAULT_NAMED_REGISTERS_ENABLED DEFAULT_EMBEDDED_C_ENABLED
+#endif /* ifndef DEFAULT_NAMED_REGISTERS_ENABLED  */
+
+#endif /* ifndef DEFAULT_EMBEDDED_C_ENABLED */
+
+/*
 Flag that is TRUE if the IL and the front end code supporting Embedded C
 (ISO/IEC TR 18037) fixed-point extensions (e.g., support for _Fract and _Accum
 types) should be enabled.  Having this TRUE means the back end is prepared to
