@@ -715,14 +715,14 @@ typedef struct a_base_class {
   a_base_class_ptr
                 next;
 			/* Next in linked list of base class entries. */
-  a_type_ptr    class;
+  a_type_ptr    type;
                         /* Pointer to the tk_class or tk_struct type entry
 			   representing a base class of the current derived
 			   class.  (Unions may not be used as base classes.) */
   unsigned int	direct:1;
 			/* TRUE if this is a direct base class of the current
 			   class. */
-  unsigned int	virtual:1;
+  unsigned int	is_virtual:1;
 			/* TRUE if this is a virtual base class (whether
 			   directly or indirectly inherited). */
   unsigned int	ambiguous:1;
@@ -734,9 +734,10 @@ typedef struct a_base_class {
 			   accessible in the current class, or else it is a
 			   direct base class. */
   an_access_specifier
-                access; /* The kind of derivation (public or private), as
-			   indicated by the access specifier on the base
-			   class for the current derived class. */
+                access; /* If direct is TRUE, the kind of derivation (public,
+			   protected, or private) indicated by the access
+			   specifier on the base class for the current derived
+			   class; if direct is FALSE, field is undefined. */
   a_targ_size_t	offset;
 			/* The byte offset from the start of the current
 			   derived class to the data section of this base
@@ -762,7 +763,7 @@ typedef struct a_class_list_entry {
   a_class_list_entry_ptr
                 next;
 			/* Next in a linked list of class list entries. */
-  a_type_ptr    class;
+  a_type_ptr    class_type;
 			/* The tk_class, tk_struct, or tk_union type entry. */
 } a_class_list_entry;
 

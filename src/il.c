@@ -305,21 +305,21 @@ static void db_direct_base_class(a_base_class *bcp,
 Dump a direct base class entry, for debug purposes.
 */
 {
-  a_type     *tp = bcp->class;
+  a_type     *tp = bcp->type;
   a_field    *fp;
   int        i;
 
   fputs("\n  ", f_debug);
   for (i = depth; i > 0; --i) fputs("  ", f_debug);
   fputs("[[ ", f_debug);
-  if (bcp->virtual) {
+  if (bcp->is_virtual) {
     fputs("virtual ", f_debug);
   }  /* if */
   db_access_control(bcp->access);
   fprintf(f_debug, " base class %s (%soffset = %lu)",
-		   tp->source_corresp.name, bcp->virtual ? "pointer " : "",
+		   tp->source_corresp.name, bcp->is_virtual ? "pointer " : "",
                    bcp->offset);
-  if (!bcp->virtual) {
+  if (!bcp->is_virtual) {
     bcp = tp->variant.class_struct_union.extra_info->base_classes;
     while (bcp != NULL) {
       if (bcp->direct) db_direct_base_class(bcp, depth+1);
@@ -340,7 +340,7 @@ static void db_virtual_base_class(a_base_class *bcp)
 Dump a virtual base class entry, for debug purposes.
 */
 {
-  a_type       *tp = bcp->class;
+  a_type       *tp = bcp->type;
   a_field      *fp;
   
   fprintf(f_debug, "  [( virtual base class %s (offset = %lu)",
@@ -465,7 +465,7 @@ class_struct_union:
         if (ctsp != NULL) bcp = ctsp->base_classes;
         for (; bcp != NULL; bcp = bcp->next) {
           if (bcp->direct) db_direct_base_class(bcp, 0);
-          if (bcp->virtual) any_virtual_base_classes = TRUE;
+          if (bcp->is_virtual) any_virtual_base_classes = TRUE;
         } /* for */
         fputc('\n', f_debug);
         fp = tp->variant.class_struct_union.field_list;
@@ -478,7 +478,7 @@ class_struct_union:
           if (any_virtual_base_classes) {
             fputs("  collected virtual base classes:\n", f_debug);
             for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-              if (bcp->virtual) db_virtual_base_class(bcp);
+              if (bcp->is_virtual) db_virtual_base_class(bcp);
             }  /* for */
           }  /* if */
           if (vp != NULL) {
@@ -1680,8 +1680,8 @@ to it.
   num_base_classes_allocated++;
 #endif
   bcp->next           = NULL;
-  bcp->class          = NULL;
-  bcp->virtual        = FALSE;
+  bcp->type           = NULL;
+  bcp->is_virtual     = FALSE;
   bcp->direct	      = FALSE;
   bcp->ambiguous      = FALSE;
   bcp->is_accessible  = FALSE;
@@ -1733,7 +1733,7 @@ Allocate a class-list-entry, initialize its fields, and return a pointer to it.
   num_class_list_entries_allocated++;
 #endif /* DEBUG */
   clep->next  = NULL;
-  clep->class = NULL;
+  clep->class_type = NULL;
 
   return clep;
 }  /* alloc_list_entry_for_class */
