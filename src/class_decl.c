@@ -8567,10 +8567,12 @@ respectively.
          diagnostic about a nonstandard base type (anything other than int,
          unsigned int, and signed int). */
       if (C_mode() && strict_ansi_mode) {
-        if (unqual_type->variant.integer.enum_type ||
-            (unqual_type->variant.integer.int_kind !=
+        if (c99_mode && is_bool_type(unqual_type)) {
+          /* C99 allows _Bool. */
+        } else if (unqual_type->variant.integer.enum_type ||
+                   (unqual_type->variant.integer.int_kind !=
                                         (an_integer_kind)ik_int &&
-             unqual_type->variant.integer.int_kind !=
+                    unqual_type->variant.integer.int_kind !=
                                         (an_integer_kind)ik_unsigned_int)) {
           pos_diagnostic(strict_ansi_error_severity, ec_nonstd_bit_field_type,
                          &decl_info->decl_start_pos);
