@@ -1874,13 +1874,15 @@ the scope being pushed.
             ssep->depth_innermost_function_scope = depth_scope_stack;
     innermost_function_scope = sp;
 #if DO_IL_LOWERING
-    /* Determine whether this is a function for which we need to
-       compute string literal sequence numbers.  These are computed for
-       routines for which there is the potential of having multiple copies
-       in a program. */
-    check_assertion(assoc_routine != NULL);
-    ssep->assign_string_literal_sequence_numbers =
+    if (!C_mode() && !ssep->in_prototype_instantiation) {
+      /* Determine whether this is a function for which we need to
+         compute string literal sequence numbers.  These are computed for
+         routines for which there is the potential of having multiple copies
+         in a program. */
+      check_assertion(assoc_routine != NULL);
+      ssep->assign_string_literal_sequence_numbers =
                          routine_might_exist_in_multiple_copies(assoc_routine);
+    }  /* if */
 #endif /* DO_IL_LOWERING */
   } else if (kind == (a_scope_kind)sck_file) {
     /* Note (1) depth_innermost_namespace_scope is set to the file scope's
