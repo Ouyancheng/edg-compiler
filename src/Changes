@@ -1,5 +1,15 @@
 Version 2.32
 
+6/12/96 Assigning a "name for linkage purposes" to a type
+
+Except in cfront-compatibility mode, the source_corresp.name field of an
+unnamed type that is defined in a typedef declaration is no longer filled
+in with the typedef name if the declaration appears inside a function:
+
+  void f() {
+    typedef struct { ... } S;     // unnamed struct has no linkage and so
+  }                               //   gets no "name for linkage purposes"
+
 6/11/96 IL lowering: integral promotion on operand of bool cast
 
 When IL lowering rewrites a cast to bool as a "!= 0" operation, it now does
