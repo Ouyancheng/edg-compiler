@@ -4260,12 +4260,14 @@ file we simply return.
 				     /*replace_suffix=*/TRUE,
 				     &full_file_name, &display_name);
       if (f_source != NULL) {
+        a_file_inclusion_state fstate;
         /* A related source file was found.  Make sure that the name of the
            file found is not the same as the file we started with.  This
            could occur if the user included a .c file that contains a
-           template declaration. */
-        if (strcmp(full_file_name, sfp->full_name) != 0) {
-	  a_file_inclusion_state fstate;
+           template declaration.  Also make sure that this file has not
+           previously been included. */
+        if (strcmp(full_file_name, sfp->full_name) != 0 &&
+            !find_include_history(full_file_name, &fstate, /*create=*/FALSE)) {
 #if DEBUG
           if (debug_level >= 3) {
             fprintf(f_debug, "  Including text from '%s'\n", full_file_name);

@@ -500,6 +500,10 @@ extern a_boolean suppress_subsequent_include_of_file
 				(char                   *full_name,
 				 a_file_inclusion_state *fstate);
 
+extern a_boolean find_include_history(char                        *full_name,
+	    		              a_file_inclusion_state_ptr  fstate,
+			              a_boolean		          create);
+
 extern a_byte get_ifg_state(void);
 extern void set_ifg_state(a_byte new_state);
 

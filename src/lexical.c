@@ -1927,18 +1927,21 @@ a pointer.
 }  /* alloc_include_file_history */
 
 
-static void find_include_history(char                        *full_name,
-				 a_file_inclusion_state_ptr  fstate)
+a_boolean find_include_history(char                        *full_name,
+	    		       a_file_inclusion_state_ptr  fstate,
+			       a_boolean		   create)
 /*
 Examine the file history to see if "full_name" has been seen before. If
-it has, return a pointer to its history record in ret_hist, otherwise create
-a new history record, attach it to the file history chain, and return
-a pointer to the new entry in fstate. Also, set first_time if the
-the latter case.
+it has, return a pointer to its history record in ret_hist, otherwise
+if create is TRUE, create a new history record, attach it to the file
+history chain, and return a pointer to the new entry in fstate. Also, set
+first_time if the the latter case.  Return TRUE if the file was
+found in the list.
 */
 {
   an_include_file_history_ptr	ifhp;
   an_include_file_history_ptr	prev_ifhp;
+  a_boolean			found = FALSE;
 
   /* Get the file identification information for the file that is to
      be included. */
@@ -1951,10 +1954,11 @@ the latter case.
     if (file_ids_are_equal(ifhp->full_name, ifhp->file_id,
                            full_name, fstate->file_id)) {
       /* We've found a match. */
+      found = TRUE;
       break;
     }  /* if */
   }  /* for */
-  if (ifhp != NULL) {
+  if (ifhp != NULL || !create) {
     /* An entry was found -- this file has been included before. */
   } else {
     /* This file has not been included before.  Create a new file history
@@ -1971,6 +1975,7 @@ the latter case.
     }  /* if */
   }  /* if */
   fstate->include_history = ifhp;
+  return found;
 }  /* find_include_history */
 
 
@@ -2063,7 +2068,7 @@ no effect.
   a_boolean	result;
   /* Find an existing include file history record for this file, or create
      one if none exists. */
-  find_include_history(full_name, fstate);
+  find_include_history(full_name, fstate, /*create=*/TRUE);
   result = suppress_subsequent_include(fstate->include_history);
   return result;
 } /* suppress_subsequent_include_of_file */
