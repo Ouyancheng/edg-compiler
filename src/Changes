@@ -1,5 +1,12 @@
 Version 2.42
 
+3/31/99  Internal error in add_dyn_init_cleanup: no temps
+
+A bug in setting the overlaps_temps_in_inner_lifetime flag caused an
+internal error in add_dyn_init_cleanup on processing an array new
+in Microsoft mode with exceptions enabled.  This showed up only
+in versions with NEW_CAN_BE_FOLDED_INTO_CTOR set to FALSE.
+
 3/31/99  Microsoft compatibility: class name injection enabled in
          Microsoft mode
 
