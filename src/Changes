@@ -1,5 +1,18 @@
 Version 2.42
 
+8/10/99  Microsoft compatibility: improvement in __asm support
+
+The handling of Microsoft __asm directives has been modified to preserve
+the spacing of text within the directive.  Formerly spaces were introduced
+between tokens, which could render assembler code invalid.  In addition
+to preserving the spacing, C++ style comments can now be preserved by
+setting INCLUDE_COMMENTS_IN_ASM_FUNC_BODY.
+
+IL CHANGE: The is_asm_block field has been removed from the an_asm_entry
+structure.  In addition,  the string pointed to by asm_string now contains
+the opening and closing braces ("{" and "}") when the string represents
+a brace-enclosed Microsoft asm block.
+
 8/10/99  Support for surrogate functions
 
 When the expression preceding the opening parenthesis of a call has

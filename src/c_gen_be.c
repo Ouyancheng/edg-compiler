@@ -5380,10 +5380,13 @@ Generate an asm function body, including the opening and closing braces.
 p is a pointer to the start of a null-terminated string.
 */
 {
-  char *eol;
+  char		*eol;
+  a_boolean	add_braces;
 
+  /* Add braces unless the string already has them. */
+  add_braces = *p != '{';
   write_space();
-  write_tok_ch('{');
+  if (add_braces) write_tok_ch('{');
   for (; (eol = strchr(p, '\n')) != NULL; p = eol+1) {
     /* Write a sequence of characters ending with a newline. */
     *eol = '\0';
@@ -5392,7 +5395,7 @@ p is a pointer to the start of a null-terminated string.
     *eol = '\n';
   }  /* for */
   write_str(p);
-  write_tok_ch('}');
+  if (add_braces) write_tok_ch('}');
 }  /* dump_asm_function_body */
 
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */

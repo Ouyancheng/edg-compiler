@@ -5023,7 +5023,8 @@ rescan_statement:
       return_statement();
       break;
     case tok_asm:
-      /* Asm "declaration" (ARM 7.3). */
+    case tok_microsoft_asm:
+      /* Asm "declaration" (ARM 7.3) or Microsoft mode asm block. */
       asm_statement();
       break;
     case tok_try:

@@ -299,17 +299,16 @@ Install the keywords in the symbol table.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* "__asm" and "_asm" are accepted in Microsoft mode. */
-    enter_underscore_keywords((a_token_kind)tok_asm, "__asm");
-  } else
+    enter_underscore_keywords((a_token_kind)tok_microsoft_asm, "__asm");
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here -- this is the "else" of an "if". */
-  {
 #if ASM_FUNCTION_ALLOWED
+  if (!microsoft_mode) {
     /* Enter "__asm" as a synonym for "asm" -- it too maps to tok_asm.  Note
        that in strict ANSI C mode, "__asm" is recognized but "asm" is not. */
     enter_keyword((a_token_kind)tok_asm, "__asm");
-#endif /* ASM_FUNCTION_ALLOWED */
   }  /* if */
+#endif /* ASM_FUNCTION_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
     /* Enter C++ keywords that are not also C keywords. */
     enter_keyword((a_token_kind)tok_catch,     "catch");

@@ -125,10 +125,10 @@ static unsigned long
 static unsigned long
 		num_per_instantiation_needed_flags_entries_allocated;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if ASM_SUPPORT_NEEDED
 static unsigned long
 		asm_function_body_space_allocated;
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ASM_SUPPORT_NEEDED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* DEBUG */
 
@@ -1543,12 +1543,11 @@ to it.
   set_default_source_corresp(ap->source_corresp);
   ap->next = NULL;
   ap->asm_string = NULL;
-  ap->is_asm_block = FALSE;
   db_exit();
   return ap;
 }  /* alloc_asm_entry */
 
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if ASM_SUPPORT_NEEDED
 
 char *alloc_asm_function_body(sizeof_t  len)
 /*
@@ -1561,7 +1560,7 @@ Allocate space for an asm function body and return a pointer to it.
   return (char *)alloc_cil(len);
 }  /* alloc_asm_function_body */
 
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ASM_SUPPORT_NEEDED */
 
 a_label_ptr alloc_label(void)
 /*
@@ -2844,10 +2843,10 @@ Display and return the amount of space used for various IL tables.
 #endif /* ORPHAN_PROCESSING_NEEDED */
   db_space_used("IL entry prefix", num_il_entry_prefixes_allocated,
                 an_il_entry_prefix);
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if ASM_SUPPORT_NEEDED
   db_space_used_other("asm function bodies",
                       asm_function_body_space_allocated, "");
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ASM_SUPPORT_NEEDED */
 
   db_space_used_total();
 
@@ -3007,9 +3006,9 @@ in il_init.)
       pch_saved_var_array_elem(
                          num_per_instantiation_needed_flags_entries_allocated),
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if ASM_SUPPORT_NEEDED
       pch_saved_var_array_elem(asm_function_body_space_allocated),
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ASM_SUPPORT_NEEDED */
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -3117,9 +3116,9 @@ of the front end.
 #if ONE_INSTANTIATION_PER_OBJECT
   num_per_instantiation_needed_flags_entries_allocated = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if ASM_SUPPORT_NEEDED
   asm_function_body_space_allocated      = 0;
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ASM_SUPPORT_NEEDED */
 #endif /* DEBUG */
 }  /* il_alloc_init */
 

@@ -6489,19 +6489,6 @@ Generate code for the indicated statement.
       break;
     case stmk_asm:
       /* asm statement. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (statement->variant.asm_entry->is_asm_block) {
-        /* In Microsoft mode an asm statement may have the form
-           "__asm { ... }", with a sequence of individual asm statements
-           between the braces.  In other words, it looks just like the body
-           of an asm function. */
-        write_tok_str("__asm {");
-        write_code_string(statement->variant.asm_entry->
-                                       asm_string->variant.string.value);
-        write_tok_ch('}');
-        break;
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (microsoft_mode) {
         /* If generating code for processing by the Microsoft compiler the
            form "__asm("...")" is not accepted.  Use "__asm ..." instead. */

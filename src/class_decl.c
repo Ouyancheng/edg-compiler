@@ -11031,7 +11031,7 @@ nested classes when their definition appears outside of the class template.
           goto next_declaration;
         }  /* if */
         /* Check for an (illegal) asm declaration. */
-        if (curr_token == tok_asm) {
+        if (curr_token == tok_asm || curr_token == tok_microsoft_asm) {
           /* An asm declaration is not allowed in a class definition, but
              scan it anyway (after issuing the error). */
           (void)asm_declaration(/*asm_decl_allowed=*/FALSE,

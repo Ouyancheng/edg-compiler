@@ -7473,20 +7473,23 @@ where declarations and executable statements may not be mingled, an asm
 
 In Microsoft mode support is provided for additional syntax:
 
-  asm { asm-instruction-list } ;opt
-  asm asm-instruction ;opt
+  __asm { asm-instruction-list } ;opt
+  __asm asm-instruction ;opt
 
 where an asm-instruction-list is a semi-colon-delimited list of asm
 instructions (unquoted).
+
+Microsoft asm blocks are converted into a string when the __asm token
+is encountered.  The string is pointed to by curr_token_asm_string and
+is saved and restored as needed by the token caching mechanism.
 */
 {
   a_constant        asm_string;
   an_asm_entry_ptr  ap = NULL;
   a_source_position asm_pos;
-  a_boolean         is_asm_block = FALSE;
 
   db_enter(3, "asm_declaration");
-  check_assertion(curr_token == tok_asm);
+  check_assertion(curr_token == tok_asm || curr_token == tok_microsoft_asm);
   if (!asm_decl_allowed) {
     /* An asm declaration is not allowed in the current scope. */
     error(ec_asm_decl_not_allowed);
@@ -7497,89 +7500,39 @@ instructions (unquoted).
     cannot_bind_to_curr_construct();
   }  /* if */
   copy_source_position(pos_curr_token, asm_pos);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
-    /* In Microsoft mode the token after the asm must be fetched in pp-token
-       mode. */
-    fetch_pp_tokens = TRUE;
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Skip past the "asm". */
-  (void)get_token();
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
-    /* Because this token is fetched in pp_tokens mode, there could be newline
-       tokens.  Skip over any newlines that are found before the start of the
-       asm. */
-    while (curr_token == tok_newline) (void)get_token();
-    /* Restore the flag to do normal token fetching. */
-    fetch_pp_tokens = FALSE;
-    if (!is_asm_statement) {
-      /* A Microsoft asm statement may not appear at file scope. */
-    } else if (curr_token == tok_lparen) {
-      /* Fall through for normal processing. */
-    } else {
-      if (curr_token == tok_lbrace) {
-      /* In Microsoft mode an asm statement may have the form "__asm { ... }",
-         with a sequence of individual asm statements between the braces.  In
-         other words, it looks just like the body of an asm function. */
-        is_asm_block = TRUE;
-        add_stop_token(tok_rbrace);
-      } else {
-        /* In Microsoft mode one may also write "__asm xxx" -- i.e., the
-           parens may be omitted and a quoted string is not used. */
-        /* is_asm_block is already set to FALSE. */
-        /* Don't advance to the next token -- scan_asm_block assumes the
-           current token is the one preceding the first token of the asm
-           block (which it is -- namely tok_lbrace -- when the "{ ... }"
-           form is used). */
-      }  /* if */
-      clear_constant(&asm_string, (a_constant_repr_kind)ck_string);
-      /* Scan the block of asm statements and copy the tokens into a string. */
-      asm_string.variant.string.value = scan_asm_block(is_asm_block);
-      asm_string.variant.string.length =
-                                  strlen(asm_string.variant.string.value) + 1;
-      asm_string.type = string_type(asm_string.variant.string.length);
-      if (is_asm_block) {
-        /* Check for and skip the closing brace. */
-        (void)required_token(tok_rbrace, ec_exp_rbrace);
-        remove_stop_token(tok_rbrace);
-        /* Check for and skip the optional semicolon. */
-        if (curr_token == tok_semicolon) (void)get_token();
-      } else {
-        if (curr_token == tok_semicolon || curr_token == tok_newline) {
-          (void)get_token();
-        }  /* if */
-      }  /* if */
-      goto make_asm_entry;
-    }  /* if */
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Check for and skip the opening parenthesis. */
-  (void)required_token(tok_lparen, ec_exp_lparen);
-  add_stop_token(tok_rparen);
-  /* Scan the enclosed string. */
-  if (curr_token != tok_string_literal) {
-    syntax_error(ec_exp_asm_string);
-    set_error_constant(&asm_string);
-  } else {
-    copy_constant(&const_for_curr_token, &asm_string);
+  if (curr_token == tok_microsoft_asm) {
+    clear_constant(&asm_string, (a_constant_repr_kind)ck_string);
+    /* The asm string is already allocated in IL memory. */
+    asm_string.variant.string.value = curr_token_asm_string;
+    asm_string.variant.string.length = strlen(curr_token_asm_string) + 1;
+    asm_string.type = string_type(asm_string.variant.string.length);
+    /* Bypass the Microsoft asm token. */
     (void)get_token();
+  } else {
+    /* Skip past the "asm". */
+    (void)get_token();
+    /* Check for and skip the opening parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_stop_token(tok_rparen);
+    /* Scan the enclosed string. */
+    if (curr_token != tok_string_literal) {
+      syntax_error(ec_exp_asm_string);
+      set_error_constant(&asm_string);
+    } else {
+      copy_constant(&const_for_curr_token, &asm_string);
+      (void)get_token();
+    }  /* if */
+    /* Check for and skip the closing parenthesis. */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_stop_token(tok_rparen);
+    /* Check for and skip the semicolon. */
+    (void)required_token(tok_semicolon, ec_exp_semicolon);
   }  /* if */
-  /* Check for and skip the closing parenthesis. */
-  (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_stop_token(tok_rparen);
-  /* Check for and skip the semicolon. */
-  (void)required_token(tok_semicolon, ec_exp_semicolon);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-make_asm_entry:
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Update the IL. */
   if (asm_decl_allowed) {
     /* Allocate and set the asm-entry. */
     ap = alloc_asm_entry();
     ap->asm_string = alloc_unshared_constant(&asm_string);
-    ap->is_asm_block = is_asm_block;
     copy_source_position(asm_pos, ap->source_corresp.decl_position);
     if (!is_asm_statement) {
       /* Add the asm entry to the list for the current scope.  This is only
@@ -8811,9 +8764,10 @@ of local variables (and types, etc.) of functions and in blocks.
   need_semicolon_remove_stop_token = TRUE;
   /* Set the flags for calling decl_specifiers. */
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED;
-  if (curr_token == tok_asm) {
+  if (curr_token == tok_asm || curr_token == tok_microsoft_asm) {
 #if ASM_FUNCTION_ALLOWED
-    if (!function_definition_allowed || next_token() == tok_lparen) {
+    if (curr_token == tok_microsoft_asm ||
+        !function_definition_allowed || next_token() == tok_lparen) {
 #endif /* ASM_FUNCTION_ALLOWED */
       /* Scan the asm declaration. */
       (void)asm_declaration(/*asm_decl_allowed=*/!is_old_style_param_decl,

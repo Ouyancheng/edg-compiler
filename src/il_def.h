@@ -5074,14 +5074,9 @@ typedef struct an_asm_entry {
 		asm_string;
 			/* Constant containing a string representing an asm
 			   definition argument (an uninterpreted line of
-			   assembly language) if is_asm_block is FALSE or a
-			   sequence of such lines if is_asm_block is TRUE. */
-  a_byte_boolean
-		is_asm_block;
-			/* FALSE if asm_string represents a single line of
-			   assembler, TRUE if it may represent multiple lines
-			   (e.g., for a Microsoft brace-enclosed asm
-			   statement). */
+			   assembly language).  In Microsoft mode, this can
+			   also contain a sequence of lines enclosed in
+			   braces. */
 } an_asm_entry;
 
 

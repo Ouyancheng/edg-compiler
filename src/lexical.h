@@ -162,6 +162,7 @@ typedef enum /*a_token_kind*/ {
   tok_uuidof,
   tok_assume,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  tok_microsoft_asm,
 #if NEAR_AND_FAR_ALLOWED
   tok_near,
   tok_far,
@@ -243,6 +244,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__int8", "__int16", "__int32", "__int64", "__based",
    "__uuidof", "__assume",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+   "__asm",
 #if NEAR_AND_FAR_ALLOWED
     "__near", "__far",
 #endif /* NEAR_AND_FAR_ALLOWED */
@@ -568,6 +570,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_uuidof */
    (an_opname_kind)onk_none,          /* tok_assume */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+   (an_opname_kind)onk_none,          /* tok_microsoft_asm */
 #if NEAR_AND_FAR_ALLOWED
    (an_opname_kind)onk_none,          /* tok_near */
    (an_opname_kind)onk_none,          /* tok_far */
@@ -1189,20 +1192,28 @@ EXTERN a_boolean
 			   from a cache or when there are pragmas that
 			   are associated with the current token. */
 
-#if ASM_FUNCTION_ALLOWED
+EXTERN char	*curr_token_asm_string;
+			/* When curr_token == tok_microsoft_asm, this points
+			   to the associated asm string. */
+
+
+#if ASM_SUPPORT_NEEDED
+
 EXTERN a_boolean
 		in_asm_function_body;
 			/* TRUE if processing takes place during the scan of
 			   an asm function body. */
-#endif /* ASM_FUNCTION_ALLOWED */
 
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_boolean
 		in_asm_block_or_function;
 			/* TRUE if processing takes place during the scan of
 			   an asm function body or a Microsoft-style asm
 			   block. */
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+
+extern void copy_from_source_to_asm_func_buffer(char *stop_char,
+                                                char *after_comment_stop_char);
+
+#endif /* ASM_SUPPORT_NEEDED */
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 EXTERN a_source_position
@@ -1332,7 +1343,8 @@ enum a_token_extra_info_kind_tag {
   teik_constant,	/* Extra information for a literal constant. */
   teik_pragma,		/* Extra information for a pragma. */
   teik_pp_token,        /* Extra information for a pp token. */
-  teik_extracted_body   /* Extra information for an extracted template body. */
+  teik_extracted_body,  /* Extra information for an extracted template body. */
+  teik_asm_string	/* Extra information for a Microsoft asm block. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_token_extra_info_kind;
@@ -1390,6 +1402,9 @@ typedef struct a_cached_token {
 			/* When a template body is removed from a token
 			   cache, the semicolon after the member declaration
 			   is annotated with an extract template descriptor. */
+    /* When extra_info_kind == teik_asm_string: */
+    char	*asm_string;
+			/* The string representing a Microsoft asm block. */
   } variant;
 } a_cached_token;
 

@@ -36,6 +36,18 @@ instead passed on to the back end verbatim.
 #endif /* ifndef ASM_FUNCTION_ALLOWED */
 
 /*
+Flag that is true if the asm string manipulation routines and data
+structures are needed.  These are needed when asm functions are allowed
+or when Microsoft extensions (including Microsoft asms) are allowed.
+*/
+#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#define ASM_SUPPORT_NEEDED TRUE
+#else /* !(ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED) */
+#define ASM_SUPPORT_NEEDED FALSE
+#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+
+
+/*
 Flag that is TRUE if assignment to "this" (a C++ anachronism) should
 be allowed.  This affects the source language accepted.  If assignment
 to "this" is allowed, the interface to and wrapper code within constructors
@@ -572,17 +584,19 @@ features (e.g., suffixes for constants) are allowed.
 /*
 Flag that is TRUE if comments appearing within the text of an asm function
 body should be preserved as part of the string representation (and passed
-on to the back end).  May be TRUE only if ASM_FUNCTION_ALLOWED is TRUE.
+on to the back end).  This also controls whether comments are preserved
+in Microsoft asms.  May be TRUE only if ASM_FUNCTION_ALLOWED or
+MICROSOFT_EXTENSIONS_ALLOWED is TRUE.
 */
 #ifndef INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
 #define INCLUDE_COMMENTS_IN_ASM_FUNC_BODY FALSE
 #endif /* ifndef INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
-#if !ASM_FUNCTION_ALLOWED
+#if !ASM_FUNCTION_ALLOWED && !MICROSOFT_EXTENSIONS_ALLOWED
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
  #error -- INCLUDE_COMMENTS_IN_ASM_FUNC_BODY cannot be true unless       \
-           ASM_FUNCTION_ALLOWED is true
+           ASM_FUNCTION_ALLOWED or MICROSOFT_EXTENSIONS_ALLOWED is true
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
-#endif /* !ASM_FUNCTION_ALLOWED  */
+#endif /* !ASM_FUNCTION_ALLOWED && !MICROSOFT_EXTENSIONS_ALLOWED  */
 
 /*
 Flag that is TRUE if "#pragma pack(n)" and command-line option

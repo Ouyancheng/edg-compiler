@@ -320,6 +320,10 @@ static a_stop_token_stack_entry_ptr
 			/* List of stop token stack entries that have been
 			   freed and are available for reuse. */
 
+static a_boolean
+		scanning_microsoft_asm;
+			/* TRUE while scanning a Microsoft asm. */
+
 /*
 Flag that indicates whether a dollar sign was found in any identifiers.
 Used in strict ANSI mode to make sure that this diagnostic is only given
@@ -779,6 +783,9 @@ This is used to save tokens for later rescanning.
     /* Identifier -- save information about it. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_identifier;
     ctp->variant.locator = locator_for_curr_id;
+  } else if (curr_token == tok_microsoft_asm) {
+    ctp->extra_info_kind = (a_token_extra_info_kind)teik_asm_string;
+    ctp->variant.asm_string = curr_token_asm_string;
   } else if (is_literal_constant_token(curr_token)) {
     /* Literal constant -- save the constant's value. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_constant;
@@ -936,16 +943,11 @@ is actually the first token to not be included in the cache.
 }  /* copy_tokens_from_cache */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- because "inside_microsoft_asm" is only used
-                    in Microsoft mode. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static
 a_boolean cache_token_stream_until_matching_token(
 				a_token_cache		*cache,
                                 a_boolean		coalesce_ids,
-				a_token_sequence_number last_tsn_in_cache,
-				a_boolean		inside_microsoft_asm)
+				a_token_sequence_number last_tsn_in_cache)
 /*
 Given curr_token of '(', '[', or '{', copy tokens into the token cache
 specified by cache up to but not including the corresponding closing token,
@@ -961,19 +963,12 @@ be coalesced.  This should be done when the stop token set includes
 tokens that can appear in an expression, which means that the
 caching process must be able to determine whether a "<" starts
 a template argument list or is just a less-than sign.
-
-inside_microsoft_asm is TRUE when this routine is called recursively to
-scan the tokens in a Microsoft __asm block.
 */
 {
   a_token_kind  closing_token;
   int           paren_count = 0, bracket_count = 0, brace_count = 0;
   a_boolean	done = FALSE;
   a_boolean	err = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_token_kind	prev_token = curr_token;
-  a_boolean	skip_this_token;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "cache_token_stream_until_matching_token");
   /* Determine the closing token that corresponds to curr_token. */
@@ -995,17 +990,6 @@ scan the tokens in a Microsoft __asm block.
   while (!done && (curr_token != closing_token ||
                    paren_count != 0 || bracket_count != 0 ||
 		   brace_count != 0)) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    a_boolean	is_asm_block;
-    if (inside_microsoft_asm && curr_token == tok_semicolon) {
-      /* Discard asm comments, but retain the ";" that began the comment. */
-      if (!coalesce_ids) cache_curr_token(cache);
-      get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
-      while (curr_token != tok_newline && curr_token != tok_end_of_source) {
-        (void)get_token();
-      }  /* while */
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Never scan past a zero level right brace.  This prevents
        caching past the end of a class or function in the event of
        a mismatched paren or bracket. */
@@ -1013,116 +997,31 @@ scan the tokens in a Microsoft __asm block.
       err = TRUE;
       break;
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Check for the start of a Microsoft-style asm block.  This can
-       take one of two forms:
- 
-                asm { asm-instructions }
-		asm asm-instruction newline-or-right-brace
-
-       The asm-instruction(s) are fetches as pp-tokens, and so must be
-       handled specially during the caching process.   Microsoft does not
-       support standard asms of the form "asm (...)", so anything that starts
-       with asm is assumed to be a Microsoft asm.  All tokens from the "asm"
-       to the final token of the asm are cached as pp-tokens.  When
-       a single line asm is terminated by a right brace, the right brace
-       is not cached as a pp-token. */
-    is_asm_block = prev_token == tok_asm && microsoft_mode;
-    skip_this_token = FALSE;
-    if (is_asm_block) {
-      skip_this_token = TRUE;
-      /* Reset prev_token as this code can go to the next iteration of
-         the loop without updating prev_token below. */
-      prev_token = tok_error;
-      /* Because this token is fetched in pp_tokens mode, there could be
-         newline tokens.  Skip over any newlines that are found before the
-         start of the asm. */
-      while (curr_token == tok_newline) (void)get_token();
-      if (curr_token == tok_lbrace) {
-        /* Call this routine recursively to scan the brace enclosed asm
-           block. */
-        err = cache_token_stream_until_matching_token(
-                                        cache, coalesce_ids, last_tsn_in_cache,
-                                        /*inside_microsoft_asm=*/TRUE);
-        if (err) {
-          /* Switch out of pp-token mode. */
-          in_asm_block_or_function = FALSE;
-          fetch_pp_tokens = FALSE;
-          break;
-        }  /* if */
-      } else {
-        /* An asm that is not enclosed in braces.  Take all tokens up to a
-           newline or a right brace. */
-        while (curr_token != tok_newline && curr_token != tok_rbrace &&
-               curr_token != tok_end_of_source) {
-          if (curr_token == tok_semicolon) {
-            /* Discard asm comments. */
-            while (curr_token != tok_newline &&
-                   curr_token != tok_end_of_source) {
-              (void)get_token();
-            }  /* while */
-            continue;
-          }  /* if */
-          if (!coalesce_ids) cache_curr_token(cache);
-          get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
-        }  /* while */
-        if (curr_token == tok_rbrace) {
-          /* This is a single-line __asm that is terminated by a right brace.
-             In this case, the right brace should not be considered part of
-             the __asm.  Reset pp-token mode before the token is cached. */
-          in_asm_block_or_function = FALSE;
-          fetch_pp_tokens = FALSE;
-          is_asm_block = FALSE;
-          skip_this_token = FALSE;
-          continue;
-        }  /* if */
-      }  /* if */
+    /* Count paired tokens within the skip. */
+    if (closing_token == tok_rbrace) { /*lint !e539*/
+      /* When looking for a right brace, don't consider any other
+         delimiters.  Braces can't be nested inside parens, brackets,
+         etc. */
+      switch (curr_token) {
+        case tok_lbrace:                         brace_count++;   break;
+        case tok_rbrace:    if (brace_count > 0) brace_count--;   break;
+        default:;
+      }  /* switch */
+    } else {
+      switch (curr_token) {
+        case tok_lparen:                           paren_count++;   break;
+        case tok_rparen:    if (paren_count > 0)   paren_count--;   break;
+        case tok_lbracket:                         bracket_count++; break;
+        case tok_rbracket:  if (bracket_count > 0) bracket_count--; break;
+        case tok_lbrace:                           brace_count++;   break;
+        case tok_rbrace:    if (brace_count > 0) brace_count--;     break;
+        default:;
+      }  /* switch */
     }  /* if */
-    if (!skip_this_token) {
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Count paired tokens within the skip. */
-      if (closing_token == tok_rbrace) { /*lint !e539*/
-        /* When looking for a right brace, don't consider any other
-           delimiters.  Braces can't be nested inside parens, brackets,
-           etc. */
-        switch (curr_token) {
-          case tok_lbrace:                         brace_count++;   break;
-          case tok_rbrace:    if (brace_count > 0) brace_count--;   break;
-          default:;
-        }  /* switch */
-      } else {
-        switch (curr_token) {
-          case tok_lparen:                           paren_count++;   break;
-          case tok_rparen:    if (paren_count > 0)   paren_count--;   break;
-          case tok_lbracket:                         bracket_count++; break;
-          case tok_rbracket:  if (bracket_count > 0) bracket_count--; break;
-          case tok_lbrace:                           brace_count++;   break;
-          case tok_rbrace:    if (brace_count > 0) brace_count--;     break;
-          default:;
-        }  /* switch */
-      }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Always stop the flush on end of source. */
     if (curr_token == tok_end_of_source) break;
     /* None of the conditions was satisfied, so keep going. */
     if (!coalesce_ids) cache_curr_token(cache);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (curr_token == tok_asm && microsoft_mode) {
-      /* This is the start of a __asm block.  Switch into pp-token mode.
-         This must be done after the __asm is cached but before the token
-         after __asm is fetched. */
-      in_asm_block_or_function = TRUE;
-      fetch_pp_tokens = TRUE;
-    }  /* if */
-    if (is_asm_block) {
-      /* The end of an asm block.  Switch out of pp-token mode. */
-      in_asm_block_or_function = FALSE;
-      fetch_pp_tokens = FALSE;
-    }  /* if */
-    prev_token = curr_token;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
   }  /* while */
   db_exit();
@@ -1156,9 +1055,6 @@ be copies to the new cache.
   a_token_sequence_number	first_tsn = curr_token_sequence_number;
   a_token_sequence_number	last_tsn;
   a_token_sequence_number	last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_token_kind			prev_token = tok_error;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "cache_token_stream_with_coalesce_flag");
   if (coalesce_ids) {
@@ -1190,86 +1086,16 @@ be copies to the new cache.
      ')', ']', or '}' is reached. */
   while (stop_tokens[(int)curr_token] == 0) {
     a_boolean	err;
-    a_boolean	is_asm_block = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    a_boolean	one_line_asm;
-    /* Check for the start of a Microsoft-style asm block.  This can
-       take one of two forms:
-
-		asm { asm-instructions }
-		asm asm-instruction newline-or-right-brace
-
-       The asm-instruction(s) are fetches as pp-tokens, and so must be
-       handled specially during the caching process.   Microsoft does not
-       support standard asms of the form "asm (...)", so anything that starts
-       with asm is assumed to be a Microsoft asm.  All tokens from the "asm"
-       to the final token of the asm are cached as pp-tokens.  When
-       a single line asm is terminated by a right brace, the right brace
-       is not cached as a pp-token. */
-    is_asm_block = prev_token == tok_asm && microsoft_mode;
-    if (is_asm_block) {
-      /* Discard any newline tokens between __asm and the start of the
-         directive. */
-      if (curr_token == tok_newline) (void)get_token();
-      one_line_asm = curr_token != tok_lbrace;
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (curr_token == tok_lparen || curr_token == tok_lbracket ||
         curr_token == tok_lbrace) {
       err = cache_token_stream_until_matching_token(
-                                        cache, coalesce_ids, last_tsn_in_cache,
-                                        is_asm_block);
+                                       cache, coalesce_ids, last_tsn_in_cache);
       if (err) break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (is_asm_block) {
-      /* An asm that is not enclosed in braces.  Take all tokens up to a
-         newline or a right brace. */
-      while (curr_token != tok_newline && curr_token != tok_rbrace &&
-             curr_token != tok_end_of_source) {
-        if (curr_token == tok_semicolon) {
-          /* Discard asm comments but retain the ";" that began the comment. */
-          if (!coalesce_ids) cache_curr_token(cache);
-          get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
-          while (curr_token != tok_newline &&
-                 curr_token != tok_end_of_source) {
-            (void)get_token();
-          }  /* while */
-          continue;
-        }  /* if */
-        if (!coalesce_ids) cache_curr_token(cache);
-        get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
-      }  /* while */
-      if (curr_token == tok_rbrace) {
-        /* This is a single-line __asm that is terminated by a right brace.
-           In this case, the right brace should not be considered part of
-           the __asm.  Reset pp-token mode before the token is cached. 
-           These are reset again below, but the code below must be executed
-           so that the stop token test will be done. */
-        in_asm_block_or_function = FALSE;
-        fetch_pp_tokens = FALSE;
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     /* Stop immediately when end of source is reached. */
     if (curr_token == tok_end_of_source) break;
     /* Add the current token to the cache and advance to its successor. */
     if (!coalesce_ids) cache_curr_token(cache);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (curr_token == tok_asm && microsoft_mode) {
-      /* This is the start of a __asm block.  Switch into pp-token mode.
-         This must be done after the __asm is cached but before the token
-         after __asm is fetched. */
-      in_asm_block_or_function = TRUE;
-      fetch_pp_tokens = TRUE;
-    }  /* if */
-    if (is_asm_block) {
-      /* The end of an asm block.  Switch out of pp-token mode. */
-      in_asm_block_or_function = FALSE;
-      fetch_pp_tokens = FALSE;
-      if (one_line_asm && stop_tokens[(int)curr_token] != 0) break;
-    }  /* if */
-    prev_token = curr_token;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
   }  /* while */
   /* Leave error_position associated with what is now curr_token. */
@@ -1685,6 +1511,10 @@ an equivalent change.
                                     (a_token_extra_info_kind)teik_identifier) {
     /* For an identifier, restore the locator. */
     locator_for_curr_id = ctp->variant.locator;
+  } else if (ctp->extra_info_kind == 
+                                    (a_token_extra_info_kind)teik_asm_string) {
+    /* For a Microsoft asm token, restore the asm string pointer. */
+    curr_token_asm_string = ctp->variant.asm_string;
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
@@ -1761,6 +1591,10 @@ an equivalent change.
                                     (a_token_extra_info_kind)teik_identifier) {
     /* For an identifier, restore the locator. */
     locator_for_curr_id = ctp->variant.locator;
+  } else if (ctp->extra_info_kind == 
+                                    (a_token_extra_info_kind)teik_asm_string) {
+    /* For a Microsoft asm token, restore the asm string pointer. */
+    curr_token_asm_string = ctp->variant.asm_string;
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
@@ -4723,11 +4557,11 @@ source text (end of token, start of expansion, end of expansion).
 /* If asm functions are allowed, also delete comments if inside an asm
    function body.  The comments are copied to the asm string before they
    are deleted. */
-#if ASM_FUNCTION_ALLOWED
+#if ASM_BUFFER_NEEDED
 #define or_in_asm_function_body() || in_asm_function_body
-#else /* !ASM_FUNCTION_ALLOWED */
+#else /* !ASM_SUPPORT_NEEDED */
 #define or_in_asm_function_body() /* Nothing */
-#endif /* ASM_FUNCTION_ALLOWED  */
+#endif /* ASM_SUPPORT_NEEDED */
 #define need_to_delete_comment()                                      \
   ((((generate_pp_output && !do_not_put_curr_line_in_pp_output) ||    \
      f_raw_listing != NULL) &&                                        \
@@ -4762,10 +4596,10 @@ white_space_loop:
         /* Newline is white space ordinarily, but a token to be returned if
            in a preprocessing directive. */
         if (in_preprocessing_directive) goto end_skip;
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if ASM_SUPPORT_NEEDED
         /* Newline is also a token in asm functions. */
         if (in_asm_block_or_function) goto end_skip;
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ASM_SUPPORT_NEEDED */
         /* The newline character is white space, and is being thrown away. */
         kind_skipped |= WHITE_SPACE_OTHER;
         curr_char_loc += LE_ESCAPE_LEN;
@@ -5814,6 +5648,340 @@ The token can be a normal or wide string literal.
   return ctoken;
 }  /* scan_string_literal */
 
+#if ASM_SUPPORT_NEEDED
+
+#define ASM_FUNC_BODY_BUFFER_INCREMENTAL_ALLOCATION 1024
+			/* Initial and incremental allocation size for
+			   asm_func_body_buffer.  The initial allocation
+			   should be such that almost all cases can be
+			   accepted (so that the realloc is hardly ever
+			   needed). */
+
+
+static char *asm_func_body_buffer = NULL;
+static sizeof_t size_asm_func_body_buffer = 0;
+static sizeof_t pos_in_asm_func_body_buffer;
+			/* The number of characters that have been added to
+			   asm_func_body_buffer thus far in processing. */
+
+static void expand_asm_func_body_buffer(sizeof_t size_needed)
+/*
+Expand the asm_func_body_buffer by reallocating it, so that its total size
+is at least size_needed.  Called by ensure_asm_func_body_buffer_space.
+*/
+{
+  sizeof_t new_size;
+
+  new_size = size_asm_func_body_buffer +
+                      ASM_FUNC_BODY_BUFFER_INCREMENTAL_ALLOCATION;
+  if (new_size < size_needed) new_size  = size_needed;
+  asm_func_body_buffer = realloc_general(asm_func_body_buffer,
+                                         size_asm_func_body_buffer, new_size);
+  size_asm_func_body_buffer = new_size;
+}  /* expand_asm_func_body_buffer */
+
+
+static void add_to_asm_func_buffer(char      *start_char,
+                                   sizeof_t  len)
+/*
+Add len characters to the asm function body buffer, beginning at start_char
+(a pointer to a piece of text in the source program).
+*/
+{
+  /* Ensure that asm_func_body_buffer has enough space left to accommodate
+     "len" bytes.  If not, expand asm_func_body_buffer by reallocating it. */
+  if (size_asm_func_body_buffer - pos_in_asm_func_body_buffer < len) {
+    expand_asm_func_body_buffer((sizeof_t)(pos_in_asm_func_body_buffer + len));
+  }  /* if */
+  memcpy(&asm_func_body_buffer[pos_in_asm_func_body_buffer],
+         start_char, size_t_arg(len));
+  pos_in_asm_func_body_buffer += len;
+}  /* add_to_asm_func_buffer */
+
+/*
+These two remember where the previous copy_from_source_to_asm_func_buffer()
+left off.  They are set by scan_asm_function_body() to start
+just after the initial left brace.
+*/
+static char *prev_stop_char;
+static a_seq_number prev_seq_number;
+
+void reset_asm_buffer(void)
+/*
+Reset the static variables used while building the string representation
+of an asm function or Microsoft asm block.
+*/
+{
+  pos_in_asm_func_body_buffer = 0;
+  prev_stop_char = NULL;
+  prev_seq_number = curr_seq_number;
+}  /* reset_asm_buffer */
+
+#if !INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
+/*ARGSUSED*/ /* after_comment_stop_char is unused. */
+#endif /* !INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
+void copy_from_source_to_asm_func_buffer(char *stop_char,
+                                         char *after_comment_stop_char)
+/*
+The buffer in which to collect the characters comprising the asm function is
+asm_func_body_buffer.  Append to it all the characters in the source beginning
+at *prev_stop_char through, but not including, *stop_char.  Then, if
+INCLUDE_COMMENTS_IN_ASM_FUNC_BODY is TRUE and after_comment_stop_char is
+non-NULL, also append the characters in the comment, through but not including
+*after_comment_stop_char.
+*/
+{
+  a_source_line_modif_ptr  slmp;
+  char                     *curr_char, *next_char;
+  sizeof_t                 len;
+  char                     ch;
+  a_boolean                ends_with_newline = FALSE;
+
+  if (prev_seq_number != curr_seq_number) {
+    /* We've advanced to a new source line.  Update prev_stop_char to point to
+       the start of the new line. */
+    if (line_start_source_line_modif != NULL) {
+      prev_stop_char = line_start_source_line_modif->inserted_text;
+    } else {
+      prev_stop_char = curr_source_line;
+    }  /* if */
+    prev_seq_number = curr_seq_number;
+  }  /* if */
+  /* curr_char is the pointer into the source line.  Its initial value is
+     usually prev_stop_char, which is usually the character following the
+     last character that was copied into the buffer. */
+  if (prev_stop_char != NULL) {
+    curr_char = prev_stop_char;
+  } else {
+    /* prev_stop_char is NULL, which is the case on the first call to this
+       routine for a given asm function.  Use the initial character of the
+       current token. */
+    curr_char = start_of_curr_token;
+    if (curr_char == NULL) {
+      /* Rare case -- there is no start_of_curr_token pointer. */
+      curr_char = stop_char;
+    }  /* if */
+    prev_stop_char = curr_char;
+  }  /* if */
+  while (curr_char != stop_char) {
+    switch (*curr_char) {
+      case LE_ESCAPE:
+        ch = curr_char[1];
+        if (ch == LE_END_OF_TOKEN ||
+            ch == LE_INERT_MACRO) {
+          /* Marker put into text by preprocessing of macros, to force the same
+             interpretation of token boundaries as during the macro definition.
+             Or, marker that indicates that a macro name should not be
+             expanded.  Skip over the escape and don't put it out. */
+          next_char = curr_char + LE_ESCAPE_LEN;
+        } else if (ch == LE_END_OF_INSERTION) {
+          /* End of the expansion text for a macro.  Find the character
+             location of the character following the macro invocation, and
+             continue there. */
+          slmp = assoc_source_line_modif(curr_char);
+          next_char = curr_char;
+          leave_insertion(slmp, next_char);
+        } else if (ch == LE_NEWLINE) {
+          /* Newline character. */
+          ends_with_newline = TRUE;
+          next_char = curr_char + LE_ESCAPE_LEN;
+        } else {
+          unexpected_condition_str(
+                    "copy_from_source_to_asm_func_buffer: bad lexical escape");
+        }  /* if */
+        break;
+      case ATTENTION_MARKER:
+        /* Marker placed into source text to provide a cue to the fact that
+           a source modification (probably a text replacement due to a
+           macro expansion) begins here.  next_char will be adjusted by the
+           macro to point to the first character in the insertion text. */
+        next_char = curr_char;
+        go_into_insertion(slmp, next_char);
+        break;
+      default:
+        /* Normal case:  bump curr_char and keep looping. */
+        curr_char++;
+        continue;
+    }  /* switch */
+    /* Falling through to here mean one of the special characters was seen.
+       Copy the characters from prev_stop_char through (but not including)
+       curr_char into the buffer, and then reset prev_stop_char and curr_char
+       to next_char. */
+    if ((len = curr_char - prev_stop_char) != 0) {
+      /* Add "len" characters to the buffer, starting at prev_stop_char. */
+      add_to_asm_func_buffer(prev_stop_char, len);
+    }  /* if */
+    curr_char = prev_stop_char = next_char;
+    if (ends_with_newline) {
+      ends_with_newline = FALSE;
+      len = 1;
+      add_to_asm_func_buffer("\n", len);
+    }  /* if */
+  }  /* while */
+  if (curr_char > prev_stop_char) {
+    /* Copy the characters from prev_stop_char through (but not including)
+       curr_char into the buffer. */
+    len = curr_char - prev_stop_char;
+    /* Add "len" characters to the buffer, starting at prev_stop_char. */
+    add_to_asm_func_buffer(prev_stop_char, len);
+    prev_stop_char = curr_char;
+  }  /* if */
+#if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
+  if (after_comment_stop_char != NULL) {
+    /* Append text of commentary, too. */
+    ends_with_newline = FALSE;
+    check_assertion(after_comment_stop_char > prev_stop_char);
+    len = after_comment_stop_char - prev_stop_char;
+    if (len >= LE_ESCAPE_LEN &&
+        after_comment_stop_char[-LE_ESCAPE_LEN  ] == LE_ESCAPE &&
+        after_comment_stop_char[-LE_ESCAPE_LEN+1] == LE_NEWLINE) {
+      /* The comment ends with a newline.  Put it out separately below (the
+         lexical escape in the line is not the '\n' character we want in
+         the string). */
+      ends_with_newline = TRUE;
+      len -= LE_ESCAPE_LEN;
+    }  /* if */
+    /* Add "len" characters to the buffer, starting at prev_stop_char. */
+    add_to_asm_func_buffer(prev_stop_char, len);
+    if (ends_with_newline) {
+      len = 1;
+      add_to_asm_func_buffer("\n", len);
+    }  /* if */
+    /* Reset prev_stop_char. */
+    prev_stop_char = after_comment_stop_char;
+  }  /* if */
+#endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
+}  /* copy_from_source_to_asm_func_buffer */
+
+#endif /* ASM_SUPPORT_NEEDED */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void skip_asm_comment(a_boolean	include_newline)
+/*
+A semicolon in a Microsoft asm begins an asm comment.  Process the rest
+of the tokens on the line specially so that they are not included in
+brace counts (for example).  include_newline is TRUE if the terminating
+newline should be included in the asm string.
+*/
+{
+  while (curr_token != tok_newline && curr_token != tok_end_of_source) {
+    (void)get_token();
+    if (curr_token != tok_newline || include_newline) {
+      copy_from_source_to_asm_func_buffer(end_of_curr_token + 1, (char *)NULL);
+    }  /* if */
+  }  /* while */
+}  /* skip_asm_comment */
+
+
+static void build_microsoft_asm_string(void)
+/*
+When an __asm token is encountered in Microsoft mode, the string that
+follows is immediately scanned and stored in curr_token_asm_string.
+This value is saved and restored as needed by the token caching
+mechanism.  This routine scans and builds the asm string.
+*/
+{
+  unsigned int		nbrace = 0;
+  char			*body;
+  a_boolean		is_asm_block;
+  a_boolean		save_token = FALSE;
+  a_source_position	saved_pos_curr_token;
+
+  /* Set a flag that indicates we are scanning a Microsoft asm.  This
+     prevents this routine from being called recursively. */
+  scanning_microsoft_asm = TRUE;
+  /* Save the position of this token so that it can be restored later. */
+  saved_pos_curr_token = pos_curr_token;
+  /* Advance past the __asm token. */
+  (void)get_token();
+  /* Initialize variables used for building the string. */
+  reset_asm_buffer();
+  /* Initialize global variables used by lexical routines. */
+  in_asm_function_body = TRUE;
+  in_asm_block_or_function = TRUE;
+  fetch_pp_tokens = TRUE;
+  is_asm_block = curr_token == tok_lbrace;
+  if (is_asm_block) {
+    /* Loop through the tokens and build the string token by token. */
+    while (curr_token != tok_end_of_source) {
+      /* Special handling for a left brace embedded within the assembler
+         code: assume it has a matching right brace. */
+      if (curr_token == tok_lbrace) ++nbrace;
+      /* Copy characters from the source line to the buffer, from
+         last_stop_char through the end of the current token. */
+      copy_from_source_to_asm_func_buffer(end_of_curr_token + 1, (char *)NULL);
+      /* Stop when a zero-level right brace is reached.
+         Keep track of braces. */
+      if (curr_token == tok_rbrace && --nbrace == 0) {
+        /* This right brace matches the opening left brace, marking the end of
+           the asm function body. */
+        break;
+      }  /* if */
+      /* Advance to the next token. */
+      (void)get_token();
+      /* If this is the start of an asm comment, process the rest of the line
+         specially. */
+      if (curr_token == tok_semicolon) {
+        skip_asm_comment(/*include_newline=*/TRUE);
+      }  /* if */
+    }  /* while */
+  } else {
+    /* Not an asm block.  Just take tokens up to the end of the line or up
+       to an opening brace. */
+    while (curr_token != tok_end_of_source) {
+      if (curr_token == tok_newline || curr_token == tok_rbrace) {
+        save_token = curr_token == tok_rbrace;
+        break;
+      }  /* if */
+      /* Copy characters from the source line to the buffer, from
+         last_stop_char through the end of the current token. */
+      copy_from_source_to_asm_func_buffer(end_of_curr_token + 1, (char *)NULL);
+      /* If this is the start of an asm comment, process the rest of the line
+         specially. */
+      if (curr_token == tok_semicolon) {
+        skip_asm_comment(/*include_newline=*/FALSE);
+      } else {
+        /* Advance to the next token. */
+        (void)get_token();
+      }  /* if */
+    }  /* while */
+  }  /* if */
+  fetch_pp_tokens = FALSE;
+  in_asm_function_body = FALSE;
+  in_asm_block_or_function = FALSE;
+  if (save_token) {
+    /* The current token is not part of the asm string.  Cache it so that
+       it can will be rescanned after the tok_microsoft_asm is fetched. */
+    a_token_cache	cache;
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    cache_curr_token(&cache);
+    rescan_cached_tokens(&cache);
+  }  /* if */
+  /* Allocate a block of the current IL memory region (the one established
+     for the asm function) -- the asm buffer will be copied into it, along
+     with a trailing null character. */
+  body = alloc_asm_function_body(pos_in_asm_func_body_buffer + 1);
+  (void)memcpy(body, asm_func_body_buffer,
+               size_t_arg(pos_in_asm_func_body_buffer));
+  /* Add a null terminator. */
+  body[pos_in_asm_func_body_buffer] = '\0';
+  curr_token_asm_string = body;
+  curr_token = tok_microsoft_asm;
+  /* Restore the token start position of the __asm token. */
+  pos_curr_token = saved_pos_curr_token;
+  /* Reset the token start pointer because we may have moved to another
+     source line. */
+  start_of_curr_token = NULL;
+#if DEBUG
+  if (debug_level >= 3 || db_flag_is_set("asm_string")) {
+    fprintf(f_debug, "asm string: %s\n", body);
+  }  /* if */
+#endif /* DEBUG */
+  scanning_microsoft_asm = FALSE;
+}  /* build_microsoft_asm_string */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 
 static void adjust_pp_int_constant(void)
 /*
@@ -6043,11 +6211,11 @@ This routine is called an enormous number of times, and therefore has
 been written to be as fast as possible.  Structure has been sacrificed
 to speed in some cases.
 */
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if ASM_SUPPORT_NEEDED
 /*
 If in_asm_block_or_function is TRUE, return tok_newline for ends of lines.
 */
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ASM_SUPPORT_NEEDED */
 {
   register a_token_kind ctoken;
   register char         ch;
@@ -6155,10 +6323,10 @@ start_of_token_scan:  /* Restart here after scanning white space. */
         /* Newline.  Is white space ordinarily, but a token within
            preprocessing directives. */
         if (in_preprocessing_directive
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if ASM_SUPPORT_NEEDED
             /* ... or if inside an asm function body. */
             || in_asm_block_or_function
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ASM_SUPPORT_NEEDED */
                                        ) {
           ctoken = tok_newline;
           curr_char_loc += LE_ESCAPE_LEN;
@@ -6613,6 +6781,14 @@ id_scan:
                 /* A C++ boolean constant. */
 		scan_boolean_constant(ctoken);
               } else {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                if (ctoken == tok_microsoft_asm && microsoft_mode &&
+                    !scanning_microsoft_asm) {
+                  /* Build a string representation of a Microsoft asm
+                     and attach it to the current token. */
+                  build_microsoft_asm_string();
+                }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                 goto end_id_scan;
               }  /* if */
             }  /* if */
@@ -10850,14 +11026,15 @@ being constructed that represents the tokens in the cache.
   }  /* if */
 #endif /* DEBUG */
   for (; ctp != NULL; ctp = ctp->next) {
+    a_token_extra_info_kind	teik_kind;
+    teik_kind = ctp->extra_info_kind;
     /* Stop when we run out of tokens or hit an end-of-source token. */
     if ((a_token_kind)ctp->token == tok_end_of_source) break;
-    if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
+    if (teik_kind == (a_token_extra_info_kind)teik_pragma) {
       /* This token entry represents one or more pragmas.  Call a routine
          to add the pragmas to the string. */
       add_pragmas_to_string(ctp->variant.pragmas);
-    } else if (ctp->extra_info_kind ==
-                                (a_token_extra_info_kind)teik_extracted_body) {
+    } else if (teik_kind == (a_token_extra_info_kind)teik_extracted_body) {
       if (ctp->variant.extracted_template.next_in_token_string == NULL) {
         a_boolean	add_orig_token = TRUE;
         a_boolean	add_body_string = TRUE;
@@ -10896,6 +11073,10 @@ being constructed that represents the tokens in the cache.
     } else {
       /* A normal token (including, possibly, a pp-token). */
       add_token_to_string(ctp);
+    }  /* if */
+    if (teik_kind == (a_token_extra_info_kind)teik_asm_string) {
+      /* A Microsoft asm string.  Add the asm string to the buffer. */
+      put_str_to_temp_text_buffer(ctp->variant.asm_string);
     }  /* if */
   }  /* for */
 }  /* add_token_cache_to_string */
@@ -10950,6 +11131,7 @@ Display the contents of a token cache.
           case teik_pragma:         s = "pragma"; break;
           case teik_pp_token:       s = "pp_token"; break;
           case teik_extracted_body: s = "extracted_body"; break;
+          case teik_asm_string:     s = "asm_string"; break;
           default:                  unexpected_condition();
         }  /* switch */
         fprintf(f_debug, "  extra_info_kind: %s\n", s);
@@ -11271,6 +11453,8 @@ done to determine whether a precompiled header may be used.
   last_token_sequence_number_used = NO_TOKEN_SEQUENCE_NUMBER;
   curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   any_tokens_fetched_from_curr_input_file = FALSE;
+  curr_token_asm_string = NULL;
+  scanning_microsoft_asm = FALSE;
 }  /* lexical_reset */
 
 
