@@ -48,7 +48,7 @@ a generated bitwise copy constructor, with an object that is volatile
 If the definition of a variable with a const type has no initializer
 a diagnostic used to be issued when the underlying type was dependent.
 This was unwarranted when the type could become a class type with a
-default constructor after template argument subsitution.
+default constructor after template argument substitution.
 
   template<typename T> void f(T) {
     T const x;  // Used to trigger an error; fine now.
