@@ -13619,12 +13619,14 @@ Do IL lowering of the indicated statement and everything under it.
     switch (statement->kind) {
 #if REPRESENT_EMPTY_STATEMENTS_IN_IL
       case stmk_empty:
+        /* No processing required. */
+        break;
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
 #if ASM_FUNCTION_ALLOWED
       case stmk_asm_func_body:
-#endif /* ASM_FUNCTION_ALLOWED */
         /* No processing required. */
         break;
+#endif /* ASM_FUNCTION_ALLOWED */
       case stmk_asm:
         lower_asm_statement(statement);
         break;
