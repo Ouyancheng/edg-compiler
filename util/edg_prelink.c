@@ -881,10 +881,10 @@ nonspecialized version of the name.
        be made. */
     name_buffer = pl_malloc_with_check(NAME_DECODE_BUFFER_SIZE);
   }  /* if */
-  /* Remove any occurrances of "__S" from the name. */
+  /* Remove any occurrences of "__S" from the name. */
   from = name;
   to = name_buffer;
-  while (*from != NULL) {
+  while (*from != '\0') {
     if (*from == '_' && from[1] == '_' && from[2] == 'S') {
       from += 3;
       continue;
