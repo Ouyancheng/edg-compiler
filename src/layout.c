@@ -381,37 +381,14 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
            cfront treats all bit fields as unsigned. */
         is_signed = TRUE;
       } else {
-        /* The default for plain integral types in bit fields is unsigned -- or
-           else this is a one-bit bit field, for which anything but unsigned
-           may not make much sense.  Change the type to an unsigned version of
-           the same integral type. */
+        /* The default for plain integral types in bit fields is unsigned --
+           or else this is a one-bit bit field, for which anything but
+           unsigned may not make much sense.  However, we do not change the
+           type to an unsigned version of the same integral type, since that
+           would affect C++ overload resolution adversely; the code to do
+           integral promotion has special handling if the width of the bit
+           field is the same as the width of an integer. */
         is_signed = FALSE;
-        switch (int_kind) {
-          case ik_signed_char:
-            /* Possible in pcc mode only. */
-          case ik_char:
-            int_kind = (an_integer_kind)ik_unsigned_char;
-            break;
-          case ik_short:
-            int_kind = (an_integer_kind)ik_unsigned_short;
-            break;
-          case ik_int:
-            int_kind = (an_integer_kind)ik_unsigned_int;
-            break;
-          case ik_long:
-            int_kind = (an_integer_kind)ik_unsigned_long;
-            break;
-#if LONG_LONG_ALLOWED
-          case ik_long_long:
-            int_kind = (an_integer_kind)ik_unsigned_long_long;
-            break;
-#endif /* LONG_LONG_ALLOWED */
-#if CHECKING
-          default:
-            internal_error("scan_bit_field_size: bad plain int kind");
-#endif /* CHECKING */
-        }  /* switch */
-        bit_field_type = integer_type(int_kind);
       }  /* if */
     }  /* if */
   }  /* if */
