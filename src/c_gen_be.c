@@ -1352,7 +1352,7 @@ of top-level "const" in ANSI C mode.
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/(scp != NULL || temp != NULL),
-                       options, &octl);
+                       TQ_NONE, options, &octl);
   /* Write the name if there is one. */
   if (scp != NULL) {
     /* Write the name. */
@@ -1393,15 +1393,14 @@ Output a reference to a type.  If add_pointer_to is TRUE, add an extra
 */
 {
   /* Write the specifiers and the first part of the declarator. */
-  form_type_first_part(type, /*under_lhs_declarator=*/add_pointer_to,
-                       /*need_trailing_space=*/FALSE, FTO_NO_OPTIONS,
-                       &octl);
+  form_type_first_part_simple(type, /*under_lhs_declarator=*/add_pointer_to,
+                              /*need_trailing_space=*/FALSE, &octl);
   /* The "name" in the type declarator is null.  For the add_pointer_to
      case, add an extra "*". */
   if (add_pointer_to) write_tok_ch('*');
   /* Write the second part of the declarator. */
-  form_type_second_part(type, /*under_lhs_declarator=*/add_pointer_to,
-                        FTO_NO_OPTIONS, &octl);
+  form_type_second_part_simple(type, /*under_lhs_declarator=*/add_pointer_to,
+                               &octl);
 }  /* dump_type */
 
 
@@ -4720,16 +4719,14 @@ for the definition of the indicated routine.  scope is the associated scope.
                       "dump_func_definition_type: top-level type not routine");
   /* The storage class and similar preamble have already been written. */
   /* Write the specifiers and the first part of the declarator. */
-  form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
-                       /*need_trailing_space=*/TRUE, FTO_NO_OPTIONS,
-                       &octl);
+  form_type_first_part_simple(type, /*under_lhs_declarator=*/FALSE,
+                              /*need_trailing_space=*/TRUE, &octl);
   /* Write the name. */
   dump_routine_name(rout);
   /* Write the second part of the declarator. */
   dump_function_declarator_with_scope(type, scope);
-  form_type_second_part(type->variant.routine.return_type,
-                        /*under_lhs_declarator=*/FALSE,
-                        FTO_NO_OPTIONS, &octl);
+  form_type_second_part_simple(type->variant.routine.return_type,
+                               /*under_lhs_declarator=*/FALSE, &octl);
 #if C_GEN_BE_GENERATES_ANSI_C
   /* For an old-style function, declare the parameters. */
   /* Note that this does not use the "prototyped" flag, which is inaccurate

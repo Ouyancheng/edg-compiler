@@ -666,6 +666,7 @@ void form_type_first_part(
                     a_type_ptr                            type,
                     a_boolean                             under_lhs_declarator,
                     a_boolean                             need_trailing_space,
+                    a_type_qualifier_set                  added_qualifiers,
                     a_form_type_options_set               options,
                     an_il_to_str_output_control_block_ptr octl)
 /*
@@ -675,8 +676,8 @@ directly under a type that uses a left-side declarator, e.g., a pointer type.
 (That's used to control use of parentheses around parts of the declarator.)
 If need_trailing_space is TRUE, put a space at the end of the specifiers
 part (needed if the declarator part is not empty, because it contains a
-name or a derived type).  options contains options as bits in a set:
-If FTO_ADD_CONST is TRUE, add an extra "const" on top of the type.
+name or a derived type).  added_qualifiers contains a set of type qualifiers
+to be added on top of the type.  options contains options as bits in a set:
 If FTO_SUPPRESS_CONST is TRUE, suppress generation of top-level "const".
 Do the output in the way described by octl.
 */
@@ -709,17 +710,16 @@ Do the output in the way described by octl.
     }  /* if */
     type = type->variant.typeref.type;
   }  /* while */
-  /* Add top-level "const" if told to. */
-  if (options & FTO_ADD_CONST) qualifiers |= TQ_CONST;
+  /* Add top-level qualifiers if told to. */
+  qualifiers |= added_qualifiers;
 #endif /* ifdef CFE */
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
-    form_type_first_part(type->variant.pointer.type,
-                         /*under_lhs_declarator=*/TRUE,
-                         /*need_trailing_space=*/TRUE,
-                         FTO_NO_OPTIONS,
-                         octl);
+    form_type_first_part_simple(type->variant.pointer.type,
+                                /*under_lhs_declarator=*/TRUE,
+                                /*need_trailing_space=*/TRUE,
+                                octl);
 #ifdef CFE
     /* Output "*" or "&" for pointer or reference. */
     if (type->variant.pointer.is_reference && !octl->c_generating_back_end) {
@@ -737,11 +737,10 @@ Do the output in the way described by octl.
 #ifdef CFE
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
-    form_type_first_part(type->variant.ptr_to_member.type,
-                         /*under_lhs_declarator=*/TRUE,
-                         /*need_trailing_space=*/TRUE,
-                         FTO_NO_OPTIONS,
-                         octl);
+    form_type_first_part_simple(type->variant.ptr_to_member.type,
+                                /*under_lhs_declarator=*/TRUE,
+                                /*need_trailing_space=*/TRUE,
+                                octl);
     /* Output Classname::*. */
     form_name(&type->variant.ptr_to_member.
                                        class_of_which_a_member->source_corresp,
@@ -758,11 +757,10 @@ Do the output in the way described by octl.
        typedef. */
     check_assertion_str(qualifiers == TQ_NONE,
                         "form_type_first_part: qualifier on function type");
-    form_type_first_part(type->variant.routine.return_type,
-                         /*under_lhs_declarator=*/FALSE,
-                         /*need_trailing_space=*/TRUE,
-                         FTO_NO_OPTIONS,
-                         octl);
+    form_type_first_part_simple(type->variant.routine.return_type,
+                                /*under_lhs_declarator=*/FALSE,
+                                /*need_trailing_space=*/TRUE,
+                                octl);
     /* This is a right-side declarator, so if it's under a left-side
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str("(");
@@ -784,6 +782,7 @@ Do the output in the way described by octl.
     form_type_first_part(type->variant.array.element_type,
                          /*under_lhs_declarator=*/FALSE,
                          /*need_trailing_space=*/TRUE,
+                         TQ_NONE,
                          array_options,
                          octl);
     /* This is a right-side declarator, so if it's under a left-side
@@ -945,17 +944,15 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
-    form_type_second_part(type->variant.pointer.type,
-                          /*under_lhs_declarator=*/TRUE,
-                          FTO_NO_OPTIONS,
-                          octl);
+    form_type_second_part_simple(type->variant.pointer.type,
+                                 /*under_lhs_declarator=*/TRUE,
+                                 octl);
 #ifdef CFE
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
-    form_type_second_part(type->variant.ptr_to_member.type,
-                          /*under_lhs_declarator=*/TRUE,
-                          FTO_NO_OPTIONS,
-                          octl);
+    form_type_second_part_simple(type->variant.ptr_to_member.type,
+                                /*under_lhs_declarator=*/TRUE,
+                                octl);
 #endif /* ifdef CFE */
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
@@ -963,10 +960,9 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str(")");
     form_function_declarator(type, octl);
-    form_type_second_part(type->variant.routine.return_type,
-                          /*under_lhs_declarator=*/FALSE,
-                          FTO_NO_OPTIONS,
-                          octl);
+    form_type_second_part_simple(type->variant.routine.return_type,
+                                 /*under_lhs_declarator=*/FALSE,
+                                 octl);
 #ifdef CFE
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
@@ -974,10 +970,9 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str(")");
     form_array_declarator(type, octl);
-    form_type_second_part(type->variant.array.element_type,
-                          /*under_lhs_declarator=*/FALSE,
-                          FTO_NO_OPTIONS,
-                          octl);
+    form_type_second_part_simple(type->variant.array.element_type,
+                                 /*under_lhs_declarator=*/FALSE,
+                                 octl);
 #endif /* ifdef CFE */
   }  /* if */
 }  /* form_type_second_part */
@@ -994,12 +989,10 @@ Output a string for a type.  Do the output in the way described by octl.
     octl->output_str("<null-type>");
   } else {
     /* Write the specifiers and the first part of the declarator. */
-    form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
-                         /*need_trailing_space=*/FALSE,
-                         FTO_NO_OPTIONS, octl);
+    form_type_first_part_simple(type, /*under_lhs_declarator=*/FALSE,
+                                /*need_trailing_space=*/FALSE, octl);
     /* Write the second part of the declarator. */
-    form_type_second_part(type, /*under_lhs_declarator=*/FALSE,
-                          FTO_NO_OPTIONS, octl);
+    form_type_second_part_simple(type, /*under_lhs_declarator=*/FALSE, octl);
   }  /* if */
 }  /* form_type */
 

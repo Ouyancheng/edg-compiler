@@ -97,9 +97,7 @@ Options for form_type_first_part/form_type_second_part, in bit set form.
 */
 typedef int a_form_type_options_set;
 #define FTO_NO_OPTIONS 0
-#define FTO_ADD_CONST 0x1
-			/* Add an extra "const" over the type. */
-#define FTO_SUPPRESS_CONST 0x2
+#define FTO_SUPPRESS_CONST 0x1
 			/* Suppress top-level "const" on the type. */
 
 
@@ -132,8 +130,13 @@ extern void form_type_first_part(
                     a_type_ptr                            type,
                     a_boolean                             under_lhs_declarator,
                     a_boolean                             need_trailing_space,
+                    a_type_qualifier_set                  added_qualifiers,
                     a_form_type_options_set               options,
                     an_il_to_str_output_control_block_ptr octl);
+
+/* Macro used to call form_type_first_part for the simple cases. */
+#define form_type_first_part_simple(type, lhs_decl, tr_space, octl)   \
+  form_type_first_part(type, lhs_decl, tr_space, TQ_NONE, FTO_NO_OPTIONS, octl)
 
 extern void form_function_declarator(
                               a_type_ptr                            type,
@@ -144,6 +147,10 @@ extern void form_type_second_part(
                     a_boolean                             under_lhs_declarator,
                     a_form_type_options_set               options,
                     an_il_to_str_output_control_block_ptr octl);
+
+/* Macro used to call form_type_second_part for the simple cases. */
+#define form_type_second_part_simple(type, lhs_decl, octl)            \
+  form_type_second_part(type, lhs_decl, FTO_NO_OPTIONS, octl)
 
 extern void form_type(a_type_ptr                            type,
                       an_il_to_str_output_control_block_ptr octl);

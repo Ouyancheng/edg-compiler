@@ -788,11 +788,10 @@ symbol_name:
          is not listed for those). */
       if (type != NULL && seg_ptr->variant.symbol.full_type &&
           (routine == NULL || return_type_needed)) {
-        form_type_first_part(type,
-                             /*under_lhs_declarator=*/FALSE,
-                             /*need_trailing_space=*/TRUE,
-                             FTO_NO_OPTIONS,
-                             &octl);
+        form_type_first_part_simple(type,
+                                    /*under_lhs_declarator=*/FALSE,
+                                    /*need_trailing_space=*/TRUE,
+                                    &octl);
       }  /* if */
       /* Put out the name, including the class qualifier if any. */
       form_symbol_name(sym, &octl);
@@ -808,8 +807,8 @@ symbol_name:
           form_function_declarator(type, &octl);
         } else {
           /* Normal case -- put out the complete second part of the type. */
-          form_type_second_part(type, /*under_lhs_declarator=*/FALSE,
-                                FTO_NO_OPTIONS, &octl);
+          form_type_second_part_simple(type, /*under_lhs_declarator=*/FALSE,
+                                       &octl);
         }  /* if */
       }  /* if */
       break;

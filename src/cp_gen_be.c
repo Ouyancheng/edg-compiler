@@ -1869,9 +1869,9 @@ secondary declaration.
 */
 {
   /* Write the specifiers and the first part of the declarator. */
-  form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
-                       /*need_trailing_space=*/(scp != NULL), FTO_NO_OPTIONS,
-                       &octl);
+  form_type_first_part_simple(type, /*under_lhs_declarator=*/FALSE,
+                              /*need_trailing_space=*/(scp != NULL),
+                              &octl);
   /* Write the name if there is one. */
   if (scp != NULL) {
     /* Set the source position for the name. */
@@ -1882,8 +1882,7 @@ secondary declaration.
     push_class_name_context_if_member(scp);
   }  /* if */
   /* Write the second part of the declarator. */
-  form_type_second_part(type, /*under_lhs_declarator=*/FALSE,
-                        FTO_NO_OPTIONS, &octl);
+  form_type_second_part_simple(type, /*under_lhs_declarator=*/FALSE, &octl);
   /* Pop the name context class(es) for a class member. */
   if (scp != NULL) pop_class_name_context_if_member(scp);
 }  /* gen_declaration_using_type */
@@ -2036,15 +2035,14 @@ source sequence entry is the one associated with the constant.
   form_type_first_part(constant->type,
                        /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/TRUE,
-                       FTO_ADD_CONST,
-                       &octl);
+                       TQ_CONST, FTO_NO_OPTIONS, &octl);
   /* Set the source position for the name. */
   set_output_position(&constant->source_corresp.decl_position);
   /* Write the name. */
   gen_decl_name(&constant->source_corresp, iek_constant);
   /* Write the second part of the declarator. */
-  form_type_second_part(constant->type, /*under_lhs_declarator=*/FALSE,
-                        FTO_NO_OPTIONS, &octl);
+  form_type_second_part_simple(constant->type, /*under_lhs_declarator=*/FALSE,
+                               &octl);
   write_tok_str(" = ");
   /* Generate the constant value. */
   gen_constant(constant, /*need_parens=*/FALSE);
@@ -2321,15 +2319,14 @@ is non-NULL and points to the secondary declaration entry.
          typedef int A::f(int);
        Put out with a qualified name. */
     a_type_ptr class_type = f_skip_typerefs(type_pointed_to(this_param_type));
-    form_type_first_part(under_type, /*under_lhs_declarator=*/FALSE,
-                         /*need_trailing_space=*/TRUE, FTO_NO_OPTIONS,
-                         &octl);
+    form_type_first_part_simple(under_type, /*under_lhs_declarator=*/FALSE,
+                                /*need_trailing_space=*/TRUE, &octl);
     /* Write the (qualified) name. */
     gen_class_qualifier(class_type);
     gen_unqualified_name(&type->source_corresp, iek_type);
     /* Write the second part of the declarator. */
-    form_type_second_part(under_type, /*under_lhs_declarator=*/FALSE,
-                          FTO_NO_OPTIONS, &octl);
+    form_type_second_part_simple(under_type, /*under_lhs_declarator=*/FALSE,
+                                 &octl);
   } else {
     /* Normal typedef. */
     gen_declaration_using_type(under_type, &type->source_corresp,
@@ -2479,14 +2476,13 @@ the ampersand since C will assume one.
        so cast the decayed pointer to the right type. */
     write_tok_ch('(');
     /* Write the specifiers and the first part of the declarator. */
-    form_type_first_part(type, /*under_lhs_declarator=*/TRUE,
-                         /*need_trailing_space=*/FALSE, FTO_NO_OPTIONS,
-                         &octl);
+    form_type_first_part_simple(type, /*under_lhs_declarator=*/TRUE,
+                               /*need_trailing_space=*/FALSE, &octl);
     /* Add an extra "pointer-to". */
     write_tok_ch('*');
     /* Write the second part of the declarator. */
-    form_type_second_part(type, /*under_lhs_declarator=*/TRUE,
-                          FTO_NO_OPTIONS, &octl);
+    form_type_second_part_simple(type, /*under_lhs_declarator=*/TRUE,
+                                 &octl);
     write_tok_ch(')');
   } else {
     write_tok_ch('&');
@@ -2966,11 +2962,10 @@ Generate code for a new or delete operation.
                           "gen_new_delete: zero-sized type not array");
       elem_type = unqual_type->variant.array.element_type;
       elem_size = skip_typerefs(elem_type)->size;
-      form_type_first_part(elem_type,
-                           /*under_lhs_declarator=*/FALSE,
-                           /*need_trailing_space=*/TRUE,
-                           FTO_NO_OPTIONS,
-                           &octl);
+      form_type_first_part_simple(elem_type,
+                                  /*under_lhs_declarator=*/FALSE,
+                                  /*need_trailing_space=*/TRUE,
+                                  &octl);
       write_tok_ch('[');
       if (num_elems_can_be_found_in_size_expr(arg, elem_size,
                                               &num_elems_expr)) {
@@ -2985,8 +2980,8 @@ Generate code for a new or delete operation.
         write_unsigned_num(elem_size);
       }  /* if */
       write_tok_ch(']');
-      form_type_second_part(elem_type, /*under_lhs_declarator=*/FALSE,
-                            FTO_NO_OPTIONS, &octl);
+      form_type_second_part_simple(elem_type, /*under_lhs_declarator=*/FALSE,
+                                   &octl);
     }  /* if */
     if (need_type_parens) write_tok_ch(')');
     if (ndsp->dynamic_init != NULL) {
@@ -5037,11 +5032,10 @@ declaration or definition.
     }  /* if */
     if (return_type_needed) {
       /* Write the type specifiers and the first part of the declarator. */
-      form_type_first_part(rout_type,
-                           /*under_lhs_declarator=*/FALSE,
-                           /*need_trailing_space=*/TRUE,
-                           FTO_NO_OPTIONS,
-                           &octl);
+      form_type_first_part_simple(rout_type,
+                                  /*under_lhs_declarator=*/FALSE,
+                                  /*need_trailing_space=*/TRUE,
+                                  &octl);
     }  /* if */
     /* Position the output file to the declaration position (again). */
     set_decl_position(&rout->source_corresp, sec_decl);
@@ -5066,9 +5060,8 @@ declaration or definition.
       gen_exception_specification(rtsp->exception_specification);
     }  /* if */
     if (return_type_needed) {
-      form_type_second_part(rout_type->variant.routine.return_type,
-                            /*under_lhs_declarator=*/FALSE,
-                            FTO_NO_OPTIONS, &octl);
+      form_type_second_part_simple(rout_type->variant.routine.return_type,
+                                   /*under_lhs_declarator=*/FALSE, &octl);
     }  /* if */
   }  /* if */
   if (!is_definition) {
