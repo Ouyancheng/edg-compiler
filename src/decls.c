@@ -4660,36 +4660,52 @@ otherwise it is NULL.  The syntax is:
         /* The declarator may be a qualified name or a normal name. */
         if (coalesce_and_lookup_qualified_name(options, &err)) {
           /* See if the name is a qualified name, like "A::x" or "::j". */
-          if (input_flags & DI_QUALIFIED_NAME_ALLOWED) {
-            a_symbol_ptr sym = locator_for_curr_id.specific_symbol;
-            /* See if the name is the name of a member function. */
+          if (locator_for_curr_id.is_qualified_name) {
+            member_parent_type = locator_for_curr_id.qualifier_class_type;
+            if (member_parent_type != NULL) {
+              a_symbol_ptr sym = locator_for_curr_id.specific_symbol;
+              /* See if the name is the name of a member function. */
 #if 0
-            /* The following test replaces a call to is_member_function, which
-               however doesn't know about sk_function_template member functions
-               yet.  Is a change to the macro appropriate? */
+              /* The following test replaces a call to is_member_function,
+                 which however doesn't know about sk_function_template member
+                 functions yet.  Is a change to the macro appropriate? */
 #endif /* if 0 */
-            if (sym->kind == (a_symbol_kind)sk_member_function ||
-                (sym->class_of_which_a_member != NULL &&
-                 (sym->kind == (a_symbol_kind)sk_overloaded_function ||
-                  sym->kind == (a_symbol_kind)sk_function_template))) {
-              /* It is a member function.  Save information about the class
-                 needed to reopen the class scope if a function declarator
-                 is scanned. */
-              is_member_function_def = TRUE;
-              parenthesized_initializer_allowed = FALSE;
-              member_parent_type = sym->class_of_which_a_member;
-              if (is_constructor_symbol(sym)) {
-                is_constructor = TRUE;
-              } else if (is_destructor_symbol(sym)) {
-                is_destructor = TRUE;
+              if (sym->kind == (a_symbol_kind)sk_member_function ||
+                  sym->kind == (a_symbol_kind)sk_overloaded_function ||
+                  sym->kind == (a_symbol_kind)sk_function_template) {
+                /* It is a member function.  Save information about the class
+                   needed to reopen the class scope if a function declarator
+                   is scanned. */
+                is_member_function_def = TRUE;
+                parenthesized_initializer_allowed = FALSE;
+                if (is_constructor_symbol(sym)) {
+                  is_constructor = TRUE;
+                } else if (is_destructor_symbol(sym)) {
+                  is_destructor = TRUE;
+                }  /* if */
+              }  /* if */
+              if (input_flags & DI_IS_TEMPLATE_DECLARATION) {
+                if (symbol_supplement_for_class(member_parent_type)->
+                                                          is_nonreal_class) {
+                  /* Okay -- sym is a member of a class template or of a
+                     class nested within a class template. */
+                } else {
+                  /* Not a member of a class template. */
+                  a_type_ptr  tp = member_parent_type;
+                  while (tp->source_corresp.class_of_which_a_member != NULL) {
+                    tp = tp->source_corresp.class_of_which_a_member;
+                  }  /* while */
+                  pos_ty_error(ec_not_a_class_template, &pos_curr_token, tp);
+                  err = TRUE;
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
         if (err) {
-         /* An error occurred while scanning the identifier -- use an error
-            locator. */
-         set_to_error_locator(locator_for_curr_id);
+          /* An error occurred while scanning the identifier -- use an error
+             locator. */
+          set_to_error_locator(locator_for_curr_id);
         }  /* if */
         /* Save information on the identifier to be declared. */
         *locator = locator_for_curr_id;
@@ -7928,8 +7944,8 @@ of local variables (and types, etc.) of functions and in blocks.
     } else if (curr_token == tok_template) {
       symbol_ptr = template_declaration(&defines_something);
       if (symbol_ptr != NULL &&
-          (symbol_ptr->kind == (a_symbol_kind)sk_function_template ||
-           defines_something)) {
+          symbol_ptr->kind == (a_symbol_kind)sk_function_template &&
+          defines_something) {
         /* No trailing semicolon expected. */
       } else {
         /* Check for final semicolon. */

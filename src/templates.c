@@ -2485,41 +2485,76 @@ entry is pushed on the scope stack.
                            DSI_TYPE_SPECIFIER_ALLOWED |
                            DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                            DSI_STORAGE_CLASS_SPECIFIER_ALLOWED),
-                           &dso_flags, &storage_class, &type);
+                          &dso_flags, &storage_class, &type);
     if (is_error_type(type) && !is_declarator_start()) {
       /* Error of some sort. */
       set_to_error_locator(locator);
     } else {
-      declarator(DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED,
+      declarator((DI_IS_TEMPLATE_DECLARATION |
+                  DI_REAL_DECLARATOR_ALLOWED |
+                  DI_QUALIFIED_NAME_ALLOWED),
                  &do_flags, type, (a_type_ptr)NULL, &locator, &type,
                  &bottom_derived_type, &func_info, &dim_expr_ptr);
     }  /* if */
     remove_stop_token(tok_lbrace);
     remove_stop_token(tok_semicolon);
     remove_stop_token(tok_colon);
-    sym = locator.specific_symbol;
+#if 0
     if (sym != NULL) {
       a_type_ptr  parent_type = sym->class_of_which_a_member;
       if (parent_type != NULL) {
-        if (!(symbol_supplement_for_class(parent_type))->is_nonreal_class ||
+        /* sym represents a class member.  Be sure it's a member of a
+           class template (or a class nested within a class template). */
+        if ((symbol_supplement_for_class(parent_type))->is_nonreal_class &&
             parent_type->variant.class_struct_union.extra_info->
-                                                      assoc_scope == NULL) {
+                                                      assoc_scope != NULL) {
+          /* It is a member of a class template, and is identified with the
+             prototype instantiation of the class.  Check for the specific
+             kind of symbol later. */
+        } else {
           if (!is_error_locator(locator)) {
-            pos_error(ec_bad_template_declaration, &decl_start_pos);
+            pos_ty_error(ec_not_a_class_template, &locator.source_position,
+                         parent_type);
             set_to_error_locator(locator);
-            sym = NULL;
           }  /* if */
+          sym = NULL;
         }  /* if */
       }  /* if */
     }  /* if */
-    if (!is_function_type(type) && sym != NULL &&
-        sym->kind == (a_symbol_kind)sk_static_data_member_template) {
+#endif /* if 0 */
+    if (!is_function_type(type) && locator.specific_symbol != NULL) {
+      /* Name is a member of a class template (or a class nested within a class
+         template).  It is not a function, so (in a legal program) it must be
+         a static data member. */
       /* Special processing for static data member template declarations. */
-      /* Check for prior definition. */
-      if (sym->defined) {
+      a_boolean      err = FALSE;
+      a_token_cache  local_token_cache, *p_token_cache;
+
+      sym = locator.specific_symbol;
+      if (sym->kind != (a_symbol_kind)sk_static_data_member_template) {
+        /* Not a static data member. */
+        if (sym->kind == (a_symbol_kind)sk_field) {
+          pos_error(ec_nonstatic_member_def_not_allowed,
+                    &locator.source_position);
+        } else if (sym->kind == (a_symbol_kind)sk_projection) {
+          /* A member of a base class. */
+          pos_error(ec_inherited_member_not_allowed, &locator.source_position);
+        } else {
+          pos_sy_error(ec_not_compatible_with_previous_decl,
+                       &locator.source_position, sym);
+        }  /* if */
+        err = TRUE;
+      } else if (sym->defined) {
+        /* Prior definition. */
         pos_sy_error(ec_already_defined, &locator.source_position, sym);
-        /* Flush tokens to end of declaration. */
-        (void)required_token(tok_semicolon, ec_exp_semicolon);
+        err = TRUE;
+#if 0
+/* Not yet implemented -- new field needed in a_template_symbol_supplement. */
+      } else if (types-are-not-compatible) {
+        pos_sy_error(ec_not_compatible_with_previous_decl,
+                     &locator.source_position, sym);
+        err = TRUE;
+#endif /* if 0 */
       } else {
         a_static_data_member_def_ptr  sdmdp;
 
@@ -2529,18 +2564,6 @@ entry is pushed on the scope stack.
            symbol is defined. */
         tssp->parameters = template_param_list;
         tssp->declaration_scope = scope_stack[decl_scope_level].number;
-        /* Scan the initializer expression, if any, and cache its tokens. */
-        if (curr_token == tok_assign) {
-          /* Bypass the "=". */
-          (void)get_token();
-          add_stop_token(tok_semicolon);
-          clear_token_cache(&tssp->token_cache);
-          cache_token_stream(&tssp->token_cache);
-          remove_stop_token(tok_semicolon);
-          if (curr_token == tok_semicolon) {
-            terminate_token_cache(&tssp->token_cache);
-          }  /* if */
-        }  /* if */
         /* If there have already been instantiations of the parent template
            class, update the instantiations_required list for each instance
            of the static data member. */
@@ -2550,6 +2573,21 @@ entry is pushed on the scope stack.
           add_to_instantiations_required_list(
                               (a_function_instantiation_entry_ptr)NULL, sdmdp);
         }  /* for */
+      }  /* if */
+      /* Scan the initializer expression, if any, and cache its tokens. */
+      if (curr_token == tok_assign) {
+        /* Bypass the "=". */
+        (void)get_token();
+        add_stop_token(tok_semicolon);
+        p_token_cache = err ? &local_token_cache : &tssp->token_cache;
+        clear_token_cache(p_token_cache);
+        cache_token_stream(p_token_cache);
+        remove_stop_token(tok_semicolon);
+        if (err) {
+          discard_token_cache(p_token_cache);
+        } else if (curr_token == tok_semicolon) {
+          terminate_token_cache(p_token_cache);
+        }  /* if */
       }  /* if */
     } else if (is_function_type(type)) {
       a_boolean  err = FALSE;
@@ -2608,7 +2646,8 @@ entry is pushed on the scope stack.
       /* Error -- not a class template, a function template, nor a static
          data member template. */
       if (!is_error_locator(locator)) {
-        pos_error(ec_bad_template_declaration, &decl_start_pos);
+        pos_st_error(ec_bad_template_declaration, &locator.source_position,
+                     locator.symbol_header->identifier);
       }  /* if */
     }  /* if */
   } else {
