@@ -1,5 +1,15 @@
 Version 2.46
 
+1/17/02  Abort in IL lowering for "new" of array of pointer-to-member
+
+An abort in new_or_delete_type_requires_array_handling which occurred
+when doing IL lowering on a "new" of a type that is an array of 
+pointer to member functions has been fixed.
+
+  class A { };
+  typedef bool (A::*TFP)();
+  TFP *tp1 = new TFP[1];
+
 1/15/02  Microsoft compatibility: __if_exists directive
 
 The __if_exists and __if_not_exists directives are now recognized in

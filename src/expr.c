@@ -6040,7 +6040,10 @@ of the array pointer.
 {
   a_boolean special = FALSE;
 
-  if (is_class_struct_union_type(type)) {
+  if (is_class_struct_union_type(type) &&
+      /* Avoid problem with struct for lowered pointer to member in
+         IL Lowering. */
+      type->source_corresp.assoc_info != NULL) {
     /* Classes with a constructor or destructor require special handling. */
     a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
     if (cssp->constructor != NULL || cssp->destructor != NULL) {
