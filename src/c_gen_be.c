@@ -1230,13 +1230,13 @@ Output the name of the indicated type.
     /* Don't let va_list copied from a secondary translation unit be
        given a generated name. */
     type->source_corresp.name_linkage = (a_name_linkage_kind)nlk_external;
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
-    GCC_BUILTIN_VARARGS
-    if (il_header.gcc_mode || il_header.gpp_mode) {
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
+    if (gcc_is_generated_code_target &&
+        (il_header.gcc_mode || il_header.gpp_mode)) {
       /* This is the intrinsic GNU C/C++ type __builtin_va_list.
          The name is not changed. */
     } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
     /* Do not insert code here. */
     {
       /* Make its name "va_list" if it was mangled in C++ because it's
@@ -1453,25 +1453,27 @@ be a routine type.
   if (rtsp->is_const) {
     write_tok_str(" __attribute__((__const__))");
   }  /* if */
-#if GNU_X86_ATTRIBUTES_ALLOWED && GCC_IS_GENERATED_CODE_TARGET
-  switch (rtsp->calling_convention) {
-    case cc_default:
-      /* No attribute to generate. */
-      break;
-    case cc_cdecl:
-      write_tok_str(" __attribute__((__cdecl__))");
-      break;
-    case cc_fastcall:
-      /* A Microsoft-only calling convention.  These aren't generated for
-         the GNU C compiler. */
-      break;
-    case cc_stdcall:
-      write_tok_str(" __attribute__((__stdcall__))");
-      break;
-    default:
-      unexpected_condition();
+#if GNU_X86_ATTRIBUTES_ALLOWED
+  if (gcc_is_generated_code_target) {
+    switch (rtsp->calling_convention) {
+      case cc_default:
+        /* No attribute to generate. */
+        break;
+      case cc_cdecl:
+        write_tok_str(" __attribute__((__cdecl__))");
+        break;
+      case cc_fastcall:
+        /* A Microsoft-only calling convention.  These aren't generated for
+           the GNU C compiler. */
+        break;
+      case cc_stdcall:
+        write_tok_str(" __attribute__((__stdcall__))");
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
   }  /* if */
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 }  /* write_routine_type_attributes */
 
 
@@ -1674,7 +1676,6 @@ Write out attributes that apply to the indicated label.
   }  /* if */
 }  /* write_label_attributes */
 
-#if GCC_IS_GENERATED_CODE_TARGET
 
 static void write_asm_name(char *asm_name)
 /*
@@ -1684,7 +1685,7 @@ to be NULL.
 {
   char *c;
 
-  if (asm_name != NULL) {
+  if (gcc_is_generated_code_target && asm_name != NULL) {
     write_tok_str(" __asm__(\"");
     for (c = asm_name; *c != '\0'; c++) {
       (void)form_char(*c, &octl);
@@ -1704,7 +1705,6 @@ Write out the register assigned to a variable.
   write_tok_str("\")");
 }  /* write_var_reg_name */
 
-#endif /* GCC_IS_GENERATED_CODE_TARGET */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static char *tag_kind(a_type_kind kind)
@@ -1987,13 +1987,13 @@ is non-NULL, in which case that is the function scope.
             name = param->name;
 #else /* !RECORD_NAME_IN_PARAM_TYPE_ENTRY */
             /* We don't have the name. */
-#if GCC_IS_GENERATED_CODE_TARGET
-            /* gcc has difficulty with [*] VLA parameter types when the
-               parameter is unnamed, so generate a temporary name in C99
-               mode.  (We don't have an easy way to test whether the
-               parameter has a VLA [*] in it.) */
-            if (c99_mode) temp = (char *)param;
-#endif /* GCC_IS_GENERATED_CODE_TARGET */
+            if (gcc_is_generated_code_target && c99_mode) {
+              /* gcc has difficulty with [*] VLA parameter types when the
+                 parameter is unnamed, so generate a temporary name in C99
+                 mode.  (We don't have an easy way to test whether the
+                 parameter has a VLA [*] in it.) */
+              temp = (char *)param;
+            }  /* if */
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
             /* If the type was qualified in the original, and the qualifiers
                were removed in C++, restore them here. */
@@ -2404,7 +2404,7 @@ Put out the Microsoft __declspec(align(...)) declaration modifier if the
 given alignment value is nonzero.
 */
 {
-  if (alignment != 0) {
+  if (msvc_is_generated_code_target && alignment != 0) {
     write_tok_str("__declspec(align(");
     write_unsigned_num(alignment);
     write_tok_str(")) ");
@@ -2422,13 +2422,13 @@ Print a typedef declaration.
   if (start_unreferenced_bracket(&type->source_corresp)) {
     if (type->is_builtin_va_list) {
       /* This is the declaration of the builtin va_list, from <stdarg.h>. */
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
-    GCC_BUILTIN_VARARGS
-      if (il_header.gcc_mode || il_header.gpp_mode) {
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
+      if (gcc_is_generated_code_target &&
+          (il_header.gcc_mode || il_header.gpp_mode)) {
         /* This is the intrinsic GNU C/C++ type __builtin_va_list.
            No declaration should be generated for it. */
       } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
       /* Do not insert code here. */
       {
         /* The va_list type was automatically generated when
@@ -2877,15 +2877,14 @@ final semicolon if output_final_semi is TRUE.
       if (!field->is_bit_field) {
         a_type_ptr field_type = field->type;
         /* Not a bit field. */
-#if GCC_IS_GENERATED_CODE_TARGET
-        /* Check for a flexible array member and put out its bound as [0]
-           instead of [] because gcc accepts it that way. */
-        if (type->variant.class_struct_union.contains_flexible_array_member &&
+        /* If we generated code for the GNU compiler, check for a flexible
+           array member and put out its bound as [0] instead of []. */
+        if (gcc_is_generated_code_target &&
+            type->variant.class_struct_union.contains_flexible_array_member &&
             is_array_type(field_type) &&
             is_incomplete_type(field_type)) {
           skip_typerefs(field_type)->variant.array.bound_is_zero = TRUE;
         }  /* if */
-#endif /* GCC_IS_GENERATED_CODE_TARGET */
         /* Note that a name will be generated for an anonymous union in C++. */
         /* Note that "const" is dropped; that's important so that
            initialization code rewritten as executable code by IL lowering
@@ -4736,13 +4735,13 @@ process_assignment:
         case eok_va_start:
           /* <stdarg.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
-    GCC_BUILTIN_VARARGS
-          if (il_header.gcc_mode || il_header.gpp_mode) {
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
+          if (gcc_is_generated_code_target &&
+              (il_header.gcc_mode || il_header.gpp_mode)) {
             /* This is the intrinsic GNU C/C++ "__builtin_varargs_start". */
             write_tok_str("__builtin_stdarg_start(");
           } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
           /* Do not insert code here. */
           {
             write_tok_str("va_start(");
@@ -4756,13 +4755,13 @@ process_assignment:
         case eok_va_start_single_operand:
           /* <varargs.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
-    GCC_BUILTIN_VARARGS
-          if (il_header.gcc_mode || il_header.gpp_mode) {
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
+          if (gcc_is_generated_code_target &&
+              (il_header.gcc_mode || il_header.gpp_mode)) {
             /* This is the intrinsic GNU C/C++ "__builtin_varargs_start". */
             write_tok_str("__builtin_varargs_start(");
           } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
           /* Do not insert code here. */
           {
             write_tok_str("va_start(");
@@ -4774,13 +4773,13 @@ process_assignment:
         case eok_va_arg:
           /* <stdarg.h> va_arg macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
-    GCC_BUILTIN_VARARGS
-          if (il_header.gcc_mode || il_header.gpp_mode) {
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
+          if (gcc_is_generated_code_target &&
+              (il_header.gcc_mode || il_header.gpp_mode)) {
             /* This is the intrinsic GNU C/C++ "__builtin_va_arg". */
             write_tok_str("__builtin_va_arg(");
           } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
           /* Do not insert code here. */
           {
             write_tok_str("va_arg(");
@@ -4794,13 +4793,13 @@ process_assignment:
         case eok_va_end:
           /* <stdarg.h> va_end macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
-    GCC_BUILTIN_VARARGS
-          if (il_header.gcc_mode || il_header.gpp_mode) {
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
+          if (gcc_is_generated_code_target &&
+              (il_header.gcc_mode || il_header.gpp_mode)) {
             /* This is the intrinsic GNU C/C++ "__builtin_va_end". */
             write_tok_str("__builtin_va_end(");
           } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
           /* Do not insert code here. */
           {
             write_tok_str("va_end(");
@@ -4812,13 +4811,13 @@ process_assignment:
         case eok_va_copy:
           /* <stdarg.h> va_copy macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
-    GCC_BUILTIN_VARARGS
-          if (il_header.gcc_mode || il_header.gpp_mode) {
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
+          if (gcc_is_generated_code_target &&
+              (il_header.gcc_mode || il_header.gpp_mode)) {
             /* This is the intrinsic GNU C/C++ "__builtin_va_copy". */
             write_tok_str("__builtin_va_copy((");
           } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
           /* Do not insert code here. */
           {
             write_tok_str("va_copy(");
@@ -6203,9 +6202,9 @@ parameters.
   a_storage_class
                  storage_class = variable->storage_class;
   a_boolean      forced_referenced;
-#if IA64_ABI && GCC_IS_GENERATED_CODE_TARGET
+#if IA64_ABI
   a_boolean      force_zeroing_of_comdat_variable = FALSE;
-#endif /* IA64_ABI && GCC_IS_GENERATED_CODE_TARGET */
+#endif /* IA64_ABI */
 #if ONE_INSTANTIATION_PER_OBJECT
   a_boolean      part_of_current_output_file = TRUE;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -6340,11 +6339,11 @@ parameters.
         check_assertion_str(variable->storage_class ==
                                                (a_storage_class)sc_unspecified,
                             "dump_variable_decl: var without defn in comdat");
-#if GCC_IS_GENERATED_CODE_TARGET
-        /* GCC does not support COMDAT, but it does support weak, which
-           provides a sufficient approximation. */
-        write_tok_str(" __attribute__((__weak__))");
-#endif /* GCC_IS_GENERATED_CODE_TARGET */
+        if (gcc_is_generated_code_target) {
+          /* GCC does not support COMDAT, but it does support weak, which
+             provides a sufficient approximation. */
+          write_tok_str(" __attribute__((__weak__))");
+        }  /* if */
         write_space();
         start_comment();
         write_tok_str(" COMDAT group: ");
@@ -6352,8 +6351,8 @@ parameters.
         write_space();
         end_comment();
         write_space();
-#if GCC_IS_GENERATED_CODE_TARGET
-        if (dump_vars_without_initializers && 
+        if (gcc_is_generated_code_target &&
+            dump_vars_without_initializers && 
             (init_kind == (an_init_kind)initk_none ||
              init_kind == (an_init_kind)initk_zero)) {
           /* GCC does not accept weak variables that do not have explicit
@@ -6361,7 +6360,6 @@ parameters.
              to zero. */
           force_zeroing_of_comdat_variable = TRUE;
         }  /* if */
-#endif /* GCC_IS_GENERATED_CODE_TARGET */
       } /* if */
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -6420,7 +6418,7 @@ parameters.
 #if !C_GEN_BE_GENERATES_ANSI_C
       }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET
+#if GNU_EXTENSIONS_ALLOWED
       /* Emit any user-specified assembly symbol for this variable. */
       if (variable->asm_name_is_valid) {
         write_asm_name(variable->asm_name_or_reg.name);
@@ -6429,7 +6427,7 @@ parameters.
       }  /* if */
       /* Emit attributes associated with this variable. */
       write_variable_attributes(variable);
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       /* Dump the initializer if there is a constant one or if the
          variable should be initialized to zero. */
       /* Don't initialize static arrays to zero, because it blows up
@@ -6437,9 +6435,9 @@ parameters.
          for template static data members that are arrays, or otherwise
          the template prelinker could loop. */
       if ((dump_initializers && init_con != NULL) ||
-#if IA64_ABI && GCC_IS_GENERATED_CODE_TARGET
+#if IA64_ABI
            force_zeroing_of_comdat_variable ||
-#endif /* IA64_ABI && GCC_IS_GENERATED_CODE_TARGET */
+#endif /* IA64_ABI */
           (init_kind == (an_init_kind)initk_zero &&
            (!has_static_storage_duration(variable->storage_class) ||
             !is_array_type(variable->type) ||
@@ -7958,13 +7956,13 @@ if this routine has a body (dump nothing if it has no body).
        in C++ when INSTANTIATE_EXTERN_INLINE is enabled, and in C99
        for "inline definitions".  Don't put out the body. */
     has_defn = FALSE;
-#if GCC_IS_GENERATED_CODE_TARGET
-    /* gcc has a way of indicating a function whose definition is
-       provided only for the purpose of inlining -- "extern inline".
-       Put out the definition in that case. */
-    has_defn = TRUE;
-    storage_class = (a_storage_class)sc_extern;
-#endif /* GCC_IS_GENERATED_CODE_TARGET */
+    if (gcc_is_generated_code_target) {
+      /* gcc has a way of indicating a function whose definition is
+         provided only for the purpose of inlining -- "extern inline".
+         Put out the definition in that case. */
+      has_defn = TRUE;
+      storage_class = (a_storage_class)sc_extern;
+    }  /* if */
   }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (has_defn && needed_flag_bit_number != 0 &&
@@ -8090,11 +8088,11 @@ if this routine has a body (dump nothing if it has no body).
       check_assertion_str(rout->storage_class ==
                                                (a_storage_class)sc_unspecified,
                           "dump_routine_decl: rout without defn in comdat");
-#if GCC_IS_GENERATED_CODE_TARGET
-      /* GCC does not support COMDAT, but it does support weak, which provides
-         a sufficient approximation. */
-      write_tok_str(" __attribute__((__weak__))");
-#endif /* GCC_IS_GENERATED_CODE_TARGET */
+      if (gcc_is_generated_code_target) {
+        /* GCC does not support COMDAT, but it does support weak, which
+           provides a sufficient approximation. */
+        write_tok_str(" __attribute__((__weak__))");
+      }  /* if */
       write_space();
       start_comment();
       write_tok_str(" COMDAT group: ");
@@ -8114,10 +8112,9 @@ if this routine has a body (dump nothing if it has no body).
     }
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GCC_IS_GENERATED_CODE_TARGET
-    /* gcc will be used to compile this generated code, so we know how to
-       indicate an inline function. */
-    if (rout->is_inline) {
+    if (gcc_is_generated_code_target && rout->is_inline) {
+      /* gcc will be used to compile this generated code, so we know how to
+         indicate an inline function. */
       /* gcc ignores __inline__ on functions with ellipses, so don't
          mark such functions as inline. */
       if (!f_skip_typerefs(rout->type)->variant.routine.extra_info->
@@ -8125,27 +8122,26 @@ if this routine has a body (dump nothing if it has no body).
         write_tok_str("__inline__ ");
       }  /* if */
     }  /* if */
-#endif /* GCC_IS_GENERATED_CODE_TARGET */
     if (!is_definition) {
       /* A declaration of the routine. */
       dump_declaration_using_type(rout->type, &rout->source_corresp);
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET
+#if GNU_EXTENSIONS_ALLOWED
       /* Emit any user-specified assembly symbol for this variable.
          This must precede all attribute specifications. */
-      write_asm_name (rout->asm_name);
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
+      write_asm_name(rout->asm_name);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
       /* Emit attributes associated with the routine. */
       write_routine_attributes(rout);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C
-      /* gcc has a special way of indicating that a routine should be
-         called at program startup.  If this is an initialization routine,
-         arrange for it to be called. */
-      /* Note that this gcc case is done before the other cases below because
-         it gets put out before the closing ";" of the declaration,
-         and the other cases emit pragmas. */
-      if (routine_is_init_routine(rout)) {
+#if !USE_INIT_SECTION_IN_GENERATED_C
+      if (gcc_is_generated_code_target && routine_is_init_routine(rout)) {
+        /* gcc has a special way of indicating that a routine should be
+           called at program startup.  If this is an initialization routine,
+           arrange for it to be called. */
+        /* Note that this gcc case is done before the other cases below
+           because it gets put out before the closing ";" of the declaration,
+           and the other cases emit pragmas. */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
         if (rout->init_priority != 0) {
           /* For an initialization routine that contains initializations of
@@ -8169,12 +8165,13 @@ if this routine has a body (dump nothing if it has no body).
           write_tok_str(" __attribute__((__constructor__))");
         }  /* if */
       }  /* if */
-#else /* !(GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C) */
-#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && !defined(_lint)
+#else /* USE_INIT_SECTION_IN_GENERATED_C */
+#if !GCC_IS_GENERATED_CODE_TARGET && GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && \
+    !defined(_lint)
  #error -- GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED is only supported with \
            output to gcc
-#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && ... */
-#endif /* GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* !GCC_IS_GENERATED_CODE_TARGET && GNU_INIT_PRIORITY_ATTRIBUTE_... */
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
       write_tok_ch(';');
       if (routine_is_init_routine(rout)) {
 #if SUNPRO_C_IS_C_GEN_BE_TARGET
@@ -8318,14 +8315,14 @@ by IL lowering.
        called before it is declared. */
     write_tok_str(name);
     write_tok_str("()");
-#if GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C
+#if !USE_INIT_SECTION_IN_GENERATED_C
     /* gcc has a special way of indicating that a routine should be
        called at program startup. */
-    if (!file_scope_init_routine_called) {
+    if (gcc_is_generated_code_target && !file_scope_init_routine_called) {
       write_tok_str(" __attribute__((__constructor__))");
       file_scope_init_routine_called = TRUE;
     }  /* if */
-#endif /* GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
     write_tok_str(" {");
 #if USE_INIT_SECTION_IN_GENERATED_C
     if (!file_scope_init_routine_called) {
@@ -8356,8 +8353,8 @@ by IL lowering.
       dump_msvc_init_pragma((a_routine_ptr)NULL, name);
       file_scope_init_routine_called = TRUE;
     }  /* if */
-#if !GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C
-    if (!file_scope_init_routine_called) {
+#if !USE_INIT_SECTION_IN_GENERATED_C
+    if (!gcc_is_generated_code_target && !file_scope_init_routine_called) {
       /* No place (such as "main") was found to call the file-scope
          initialization routine generated by the C-generating back end.
          Find some way to get it called at startup. */
@@ -8399,7 +8396,7 @@ by IL lowering.
 "program.\n");
       }  /* if */
     }  /* if */
-#endif /* !GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
   }  /* if */
 }  /* dump_file_scope_initialization_routine */
 

@@ -2765,7 +2765,7 @@ If the "is_deprecated" flag is set in the given source correspondence,
 put out a "__declspec(deprecated)" specifier.
 */
 {
-  if (scp->is_deprecated) {
+  if (msvc_is_generated_code_target && scp->is_deprecated) {
     write_tok_str("__declspec(deprecated) ");
   }  /* if */
 }  /* gen_microsoft_deprecated_spec */
@@ -2777,7 +2777,7 @@ Put out the Microsoft __declspec(align(...)) declaration modifier if the
 given alignment value is nonzero.
 */
 {
-  if (alignment != 0) {
+  if (msvc_is_generated_code_target && alignment != 0) {
     write_tok_str("__declspec(align(");
     write_unsigned_num(alignment);
     write_tok_str(")) ");
@@ -3164,25 +3164,27 @@ be a routine type.
   if (rtsp->is_const) {
     write_tok_str(" __attribute__((__const__))");
   }  /* if */
-#if GNU_X86_ATTRIBUTES_ALLOWED && GCC_IS_GENERATED_CODE_TARGET
-  switch (rtsp->calling_convention) {
-    case cc_default:
-      /* No attribute to generate. */
-      break;
-    case cc_cdecl:
-      write_tok_str(" __attribute__((__cdecl__))");
-      break;
-    case cc_fastcall:
-      /* A Microsoft-only calling convention.  These aren't generated for
-         the GNU C compiler. */
-      break;
-    case cc_stdcall:
-      write_tok_str(" __attribute__((__stdcall__))");
-      break;
-    default:
-      unexpected_condition();
+#if GNU_X86_ATTRIBUTES_ALLOWED
+  if (gcc_is_generated_code_target) {
+    switch (rtsp->calling_convention) {
+      case cc_default:
+        /* No attribute to generate. */
+        break;
+      case cc_cdecl:
+        write_tok_str(" __attribute__((__cdecl__))");
+        break;
+      case cc_fastcall:
+        /* A Microsoft-only calling convention.  These aren't generated for
+           the GNU C compiler. */
+        break;
+      case cc_stdcall:
+        write_tok_str(" __attribute__((__stdcall__))");
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
   }  /* if */
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 }  /* write_routine_type_attributes */
 
 
@@ -3192,7 +3194,7 @@ Write out attributes that apply to the indicated type.
 */
 {
 #if USER_CONTROL_OF_STRUCT_PACKING
-  if (type->alignment_set_explicitly) {
+  if (gcc_is_generated_code_target && type->alignment_set_explicitly) {
     /* Output an attribute to indicate the explicit alignment. */
     write_alignment_attribute(type->alignment);
   }  /* if */
@@ -3295,7 +3297,7 @@ Write out attributes that apply to the indicated variable.
 */
 {
 #if USER_CONTROL_OF_STRUCT_PACKING
-  if (var->alignment != 0) {
+  if (gcc_is_generated_code_target && var->alignment != 0) {
     /* Output the alignment attribute. */
     write_alignment_attribute(var->alignment);
   }  /* if */
@@ -3316,7 +3318,7 @@ Write out attributes that apply to the indicated variable.
   if (var->has_gnu_unused_attribute) {
     write_tok_str(" __attribute__((__unused__))");
   }  /* if */
-  if (var->source_corresp.is_deprecated) {
+  if (gcc_is_generated_code_target && var->source_corresp.is_deprecated) {
     write_tok_str(" __attribute__((__deprecated__))");
   }  /* if */
   if (var->is_not_common) {
@@ -3348,7 +3350,7 @@ Write out attributes that apply to the indicated field.
     write_tok_str(" __attribute__((__deprecated__))");
   }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
-  if (field->alignment != 0) {
+  if (gcc_is_generated_code_target && field->alignment != 0) {
     write_alignment_attribute(field->alignment);
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -3425,7 +3427,6 @@ Write out attributes that apply to the indicated label.
   }  /* if */
 }  /* write_label_attributes */
 
-#if GCC_IS_GENERATED_CODE_TARGET
 
 static void write_asm_name(char *asm_name)
 /*
@@ -3435,7 +3436,7 @@ to be NULL.
 {
   char *c;
 
-  if (asm_name != NULL) {
+  if (gcc_is_generated_code_target && asm_name != NULL) {
     write_tok_str(" __asm__(\"");
     for (c = asm_name; *c != '\0'; c++) {
       (void)form_char(*c, &octl);
@@ -3455,7 +3456,6 @@ Write out the register assigned to a variable.
   write_tok_str("\")");
 }  /* write_var_reg_name */
 
-#endif /* GCC_IS_GENERATED_CODE_TARGET */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void gen_function_declarator_with_scope(a_type_ptr   type,
@@ -4904,13 +4904,13 @@ this one is such a continuation.
         gen_type_name(type);
       } else if (type->is_builtin_va_list) {
         /* This is the declaration of the builtin va_list, from <stdarg.h>. */
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
-    GCC_BUILTIN_VARARGS
-        if (il_header.gcc_mode || il_header.gpp_mode) {
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
+        if (gcc_is_generated_code_target &&
+            (il_header.gcc_mode || il_header.gpp_mode)) {
           /* This is the intrinsic GNU C/C++ type __builtin_va_list.  No
              declaration should be generated for it. */
         } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
         /* Do not insert code here. */
         {
             /* The va_list type was automatically generated when
@@ -7098,13 +7098,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_va_start:
           /* <stdarg.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
-    GCC_BUILTIN_VARARGS
-          if (il_header.gcc_mode || il_header.gpp_mode) {
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
+          if (gcc_is_generated_code_target &&
+              (il_header.gcc_mode || il_header.gpp_mode)) {
             /* This is the intrinsic GNU C/C++ "__builtin_varargs_start". */
             write_tok_str("__builtin_stdarg_start(");
           } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
           /* Do not insert code here. */
           {
             write_tok_str("va_start(");
@@ -7118,13 +7118,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_va_start_single_operand:
           /* <varargs.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
-    GCC_BUILTIN_VARARGS
-          if (il_header.gcc_mode || il_header.gpp_mode) {
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
+          if (gcc_is_generated_code_target &&
+              (il_header.gcc_mode || il_header.gpp_mode)) {
             /* This is the intrinsic GNU C/C++ "__builtin_varargs_start". */
             write_tok_str("__builtin_varargs_start(");
           } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
           /* Do not insert code here. */
           {
             write_tok_str("va_start(");
@@ -7136,13 +7136,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_va_arg:
           /* <stdarg.h> va_arg macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
-    GCC_BUILTIN_VARARGS
-          if (il_header.gcc_mode || il_header.gpp_mode) {
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
+          if (gcc_is_generated_code_target &&
+              (il_header.gcc_mode || il_header.gpp_mode)) {
             /* This is the intrinsic GNU C/C++ "__builtin_va_arg". */
             write_tok_str("__builtin_va_arg(");
           } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
           /* Do not insert code here. */
           {
             write_tok_str("va_arg(");
@@ -7156,13 +7156,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_va_end:
           /* <stdarg.h> va_end macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
-    GCC_BUILTIN_VARARGS
-          if (il_header.gcc_mode || il_header.gpp_mode) {
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
+          if (gcc_is_generated_code_target &&
+              (il_header.gcc_mode || il_header.gpp_mode)) {
             /* This is the intrinsic GNU C/C++ "__builtin_va_end". */
             write_tok_str("__builtin_va_end(");
           } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
           /* Do not insert code here. */
           {
             write_tok_str("va_end(");
@@ -7174,13 +7174,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_va_copy:
           /* <stdarg.h> va_copy macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
-    GCC_BUILTIN_VARARGS
-          if (il_header.gcc_mode || il_header.gpp_mode) {
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
+          if (gcc_is_generated_code_target &&
+              (il_header.gcc_mode || il_header.gpp_mode)) {
             /* This is the intrinsic GNU C/C++ "__builtin_va_copy". */
             write_tok_str("__builtin_va_copy((");
           } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
           /* Do not insert code here. */
           {
             write_tok_str("va_copy(");
@@ -9589,7 +9589,7 @@ declaration following this one is such a continuation.
                                                    GDO_FORCE_UNQUALIFIED_NAME :
                                                    GDO_NO_OPTIONS,
                                      name_ref);
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET
+#if GNU_EXTENSIONS_ALLOWED
   /* Emit any user-specified assembly symbol for this variable. */
   if (var->asm_name_is_valid) {
     write_asm_name(var->asm_name_or_reg.name);
@@ -9598,7 +9598,7 @@ declaration following this one is such a continuation.
   }  /* if */
   /* Emit attributes associated with this variable. */
   write_variable_attributes(var);
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Output the initializer, if any, but only if this is a definition.
      For member constants (static data members initialized within the
      class), the initializer gets put out on the declaration rather than
@@ -10244,14 +10244,14 @@ TRUE if the declaration following this one is such a continuation.
            a bug in the Sun C++ 5.0 compiler regarding "inline" on
            constructor definitions. */
         !(decl_within_class && is_definition)) {
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET
-      if (il_header.gcc_mode) {
+#if GNU_EXTENSIONS_ALLOWED
+      if (gcc_is_generated_code_target && il_header.gcc_mode) {
         if (rout->suppress_inline_body) {
           write_tok_str("extern ");
         }  /* if */
         write_tok_str("__inline__ ");
       } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
       if (rout->decl_modifiers & DM_MICROSOFT_INLINE) {
@@ -10315,11 +10315,9 @@ TRUE if the declaration following this one is such a continuation.
     /* A declaration of the routine. */
     /* For a pure virtual function, add "= 0". */
     if (rout->pure_virtual) write_tok_str(" = 0");
-#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET
+#if GNU_EXTENSIONS_ALLOWED
     /* Emit any user-specified assembly symbol for this variable. */
     write_asm_name (rout->asm_name);
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
-#if GNU_EXTENSIONS_ALLOWED
     /* Emit attributes associated with the routine. */
     write_routine_attributes(rout);
 #endif /* GNU_EXTENSIONS_ALLOWED */

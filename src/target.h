@@ -1064,6 +1064,16 @@ EXTERN a_boolean
 			   functions. */
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+
+EXTERN a_boolean
+		gcc_is_generated_code_target
+#if VAR_INITIALIZERS
+                                              = GCC_IS_GENERATED_CODE_TARGET
+#endif /* VAR_INITIALIZERS */
+                                                                             ;
+			/* TRUE if code is being generated for the GNU C or
+			   C++ compiler. */
+
 EXTERN a_boolean
 		msvc_is_generated_code_target
 #if VAR_INITIALIZERS
@@ -1081,8 +1091,22 @@ EXTERN int
                                                                  ;
 			/* The version number (i.e., 1300 for 7.0) of the
 			   Microsoft MSVC compiler being targeted. */
+
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
+#if BACK_END_IS_CP_GEN_BE
+
+EXTERN a_boolean
+		cp_gen_be_target_matches_source_dialect
+#if VAR_INITIALIZERS
+		                    = CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+#endif /* VAR_INITIALIZERS */
+                                                                             ;
+			/* Flag that indicates that the C++-generating back
+			   end should assume the target dialect is the same
+			   as the source dialect. */
+
+#endif /* BACK_END_IS_CP_GEN_BE */
 
 /* Aside from occasional references in targ_def.h, the following values
    should be used *only* to initialize the variables declared in this file.
@@ -1291,6 +1315,10 @@ a_targ_size_t size_of_pointer_to(a_type_ptr        type_pointed_to,
 #if CHECKING
 extern void check_target_configuration(void);
 #endif /* CHECKING */
+
+#if BACK_END_IS_CP_GEN_BE
+extern void select_cp_gen_be_target_dialect(void);
+#endif /* BACK_END_IS_CP_GEN_BE */
 
 extern void target_one_time_init(void);
 

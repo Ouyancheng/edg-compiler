@@ -273,6 +273,31 @@ Perform consistency check on target configuration variables.
 
 #endif /* CHECKING */
 
+
+#if BACK_END_IS_CP_GEN_BE
+
+void select_cp_gen_be_target_dialect(void)
+/*
+If CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT is TRUE, select the target dialect
+to match the source dialect.
+*/
+{
+#if CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+  check_assertion_str(!gcc_is_generated_code_target &&
+                      !msvc_is_generated_code_target,
+                      "Target dialect already set.");
+  check_assertion(!(gnu_mode && microsoft_mode));
+  if (gnu_mode) {
+    gcc_is_generated_code_target = TRUE;
+  } else if (microsoft_mode) {
+    msvc_is_generated_code_target = TRUE;
+    msvc_target_version_number = microsoft_version;
+  }  /* if */
+#endif /* CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT */
+}  /* select_cp_gen_be_target_dialect */
+
+#endif /* BACK_END_IS_CP_GEN_BE */
+
 void target_one_time_init(void)
 /*
 Do one-time initialization of variables related to the target.  This is

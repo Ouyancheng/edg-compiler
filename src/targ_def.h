@@ -2017,6 +2017,19 @@ instead of K&R C.
 #endif /* !defined(C_GEN_BE_GENERATES_ANSI_C) */
 #endif /* BACK_END_IS_C_GEN_BE */
 
+#if BACK_END_IS_CP_GEN_BE
+/*
+If CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT is TRUE, the C++-generating back
+end should generate code that matches the dialect selected for the front end.
+(E.g., if the front end is set to parse GNU code, the back end can generate
+GNU __attribute__ constructs, whereas if the front end is set to accept
+Microsoft extensions, the back end might generate __declspec specifiers.)
+*/
+#ifndef CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+#define CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT FALSE
+#endif /* !defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
+#endif /* BACK_END_IS_CP_GEN_BE */
+
 #if BACK_END_IS_C_GEN_BE
 /*
 If SUPPRESS_CONST_IN_GENERATED_C is TRUE, "const" will not be put out when

@@ -806,11 +806,11 @@ Do the output in the way described by octl.
     /* Suppress "restrict" in generated compilable code. */
     if (octl->gen_compilable_code) qualifiers &= ~TQ_RESTRICT;
 #endif /* SUPPRESS_RESTRICT_IN_GENERATED_CODE */
-#if GCC_IS_GENERATED_CODE_TARGET
-    output_qualifier(TQ_RESTRICT, "__restrict__");
-#else /* !GCC_IS_GENERATED_CODE_TARGET */
-    output_qualifier(TQ_RESTRICT, "restrict");
-#endif /* GCC_IS_GENERATED_CODE_TARGET */
+    if (gcc_is_generated_code_target) {
+      output_qualifier(TQ_RESTRICT, "__restrict__");
+    } else {
+      output_qualifier(TQ_RESTRICT, "restrict");
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
     if (octl->gen_compilable_code) {
