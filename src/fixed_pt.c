@@ -474,6 +474,9 @@ the value is already known to be too large.  Set *err on overflow.  Set
   *err = FALSE;
   *inexact = FALSE;
   if (!overflow) {
+    /* Adjust the mantissa so that it is normalized in the high-order bits
+       of the mantissa. */
+    normalize_mantissa(mp, &exponent);
     /* Compute the number of bits to shift the mantissa so that it contains
        the right number of fractional and non-fractional bits. */
     nonfract_bits = non_fractional_bits_for_fixed_point(fxp_descr);
@@ -843,9 +846,6 @@ to be issued; otherwise set err_code to ec_no_error.
      representation. */
   load_hex_fxp_value(&old_constant->variant.fixed_point_value,
                      old_fxp_descr, &mantissa, &exponent, &is_negative);
-  /* Adjust the mantissa so that it is normalized in the high-order bits
-     of the mantissa. */
-  normalize_mantissa(&mantissa, &exponent);
   /* Convert and store the mantissa as a fixed-point value. */
   conv_mantissa_to_fixed_point(&mantissa, exponent, is_negative,
                                new_fxp_descr, /*overflow=*/FALSE,
@@ -1171,9 +1171,6 @@ a right shift if shift_right is TRUE, left otherwise.  If an error occurs
      representation. */
   load_hex_fxp_value(&constant->variant.fixed_point_value,
                      fxp_descr, &mantissa, &exponent, &is_negative);
-  /* Adjust the mantissa so that it is normalized in the high-order bits
-     of the mantissa. */
-  normalize_mantissa(&mantissa, &exponent);
   /* Increment or decrement the exponent by the shift count. */
   if (shift_right) exponent -= shift_count; else exponent += shift_count;
   /* Convert and store the mantissa as a fixed-point value. */

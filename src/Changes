@@ -1,5 +1,12 @@
 Version 3.5
 
+8/12/04  Embedded C: spurious error hex fract constant with the value "1"
+
+A spurious "out of range" error was issued for hexadecimal fract constants
+with a value of exactly one.  Now fixed
+
+  _Fract f = 0x1.0p0r;
+
 8/11/04  Folding of reinterpret_cast on pointer-to-member at compile time
 
 Some reinterpret_casts on pointer-to-member values are now folded at
