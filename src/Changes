@@ -1,6 +1,16 @@
 Version 2.30
 
-9/18/95  Instantiation pragma and nested classes
+8/18/95  Type for bit fields
+
+All bit fields in the front end have been changed to use the typedef
+"a_bit_field" instead of "unsigned int" as the base type of the
+declaration.  a_bit_field is defined in basics.h, and ordinarily it
+is the expected "unsigned int".  However, when the front end is
+compiled by a Microsoft compiler, a_bit_field is defined as "unsigned char",
+which results in better packing of our structures under the Microsoft
+bit-field allocation convention, and therefore less space use.
+
+8/18/95  Instantiation pragma and nested classes
 
 When a template-id is used as the argument of an instantiation pragma
 the pragma should apply to all of the members of the class.  A bug
