@@ -2294,7 +2294,7 @@ Clear the pointer stored in "var" if it is used.
 /*ARGSUSED*/ /* <-- because when MICROSOFT_EXTENSIONS_ALLOWED if FALSE,
                     call_conv, based_var, and based_pos are not used. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static void collect_microsoft_pointer_declarator_qualifiers(
+static void collect_pointer_declarator_extended_qualifiers(
                                           a_type_qualifier_set *qualifiers,
                                           a_source_position    *qual_pos,
                                           a_call_conv_descr    *call_conv,
@@ -2302,15 +2302,17 @@ static void collect_microsoft_pointer_declarator_qualifiers(
                                           a_source_position    *based_pos,
                                           a_decl_pos_block_ptr decl_pos_block)
 /*
-Collect a set of pointer declarator qualifiers in Microsoft mode.  Aside
-from the standard const/volatile, Microsoft mode also allows near/far,
-calling conventions like __cdecl, and __based.  Scan all of those, and
-return information about what was scanned in *qualifiers, *call_conv, and
-*based_var.  If qualifiers are scanned, *qual_pos is set to their starting
-position.  If a __based qualifier is scanned, *based_pos is set to its
-source position.  It's permissible for the input to contain no qualifiers.
-If Microsoft extended decl specifiers, introduced by __declspec, are
-encountered, they are scanned and thrown away with a warning.
+Collect a set of pointer declarator qualifiers provided as an extension
+(e.g., for Microsoft compatibility).  Aside from the standard const/volatile,
+support for near and far may be enabled (e.g., in Microsoft 16-bit mode),
+and Microsoft mode also allows near/far, calling conventions like __cdecl,
+and __based.  Scan all of those, and return information about what was
+scanned in *qualifiers, *call_conv, and *based_var.  If qualifiers are
+scanned, *qual_pos is set to their starting position.  If a __based qualifier
+is scanned, *based_pos is set to its source position.  It's permissible for
+the input to contain no qualifiers. If Microsoft extended decl specifiers,
+introduced by __declspec, are encountered, they are scanned and thrown away
+with a warning.
 */
 {
   a_type_qualifier_set new_qualifiers, duplicates;
@@ -2408,7 +2410,7 @@ encountered, they are scanned and thrown away with a warning.
       break;
     }  /* if */
   }  /* for */
-}  /* collect_microsoft_pointer_declarator_qualifiers */
+}  /* collect_pointer_declarator_extended_qualifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
@@ -2557,12 +2559,12 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     /* Scan qualifiers that precede the first pointer or reference, e.g.,
          int far *p;
     */
-    collect_microsoft_pointer_declarator_qualifiers(&pending_qualifiers,
-                                                    &pending_qualifiers_pos,
-                                                    &ccd,
-                                                    &based_var,
-                                                    &based_pos,
-                                                    decl_pos_block);
+    collect_pointer_declarator_extended_qualifiers(&pending_qualifiers,
+                                                   &pending_qualifiers_pos,
+                                                   &ccd,
+                                                   &based_var,
+                                                   &based_pos,
+                                                   decl_pos_block);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
   /* Loop while there are pointer declarators. */
@@ -2762,12 +2764,12 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   if (microsoft_mode or_near_and_far_enabled()) {
       /* Microsoft mode allows several kinds of qualifiers. */
-      collect_microsoft_pointer_declarator_qualifiers(&qualifiers,
-                                                      &pending_qualifiers_pos,
-                                                      &ccd,
-                                                      &based_var,
-                                                      &based_pos,
-                                                      decl_pos_block);
+      collect_pointer_declarator_extended_qualifiers(&qualifiers,
+                                                     &pending_qualifiers_pos,
+                                                     &ccd,
+                                                     &based_var,
+                                                     &based_pos,
+                                                     decl_pos_block);
       /* Break the qualifiers into those like const that are handled
          immediately and those like near that stay pending into the next
          iteration of the loop. */
