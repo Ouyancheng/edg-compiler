@@ -3872,7 +3872,7 @@ The parameter input_flags is the same value that was passed to decl_specifiers
 */
 {
   if (!is_error_locator(locator_for_curr_id)) {
-    a_boolean                  error;
+    a_boolean                  lookup_error;
     a_symbol_ptr               sym = NULL;
     an_identifier_options_set  options;
 
@@ -3880,8 +3880,8 @@ The parameter input_flags is the same value that was passed to decl_specifiers
                                         GID_IS_NEW_TYPE_NAME : GID_NO_OPTIONS;
     check_assertion(is_generalized_identifier_start(options));
     sym = coalesce_and_lookup_generalized_identifier(
-                                                 options, ilm_normal, &error);
-    if (!error) {
+                                          options, ilm_normal, &lookup_error);
+    if (!lookup_error) {
       /* No error message has been issued yet. */
       if (sym != NULL) {
         /* The name refers to something, but not a type. */
