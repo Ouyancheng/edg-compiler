@@ -1,5 +1,15 @@
 Version 2.45
 
+9/20/00  IL write-read error: unused complicated default arguments,
+         IL lowering
+
+In some rare cases, default argument expressions that are unused and
+involve destructible temporaries were removed from the IL by IL lowering
+after some of the entities referenced by the default argument expression
+were marked as needed.  This produced an inconsistent IL tree if
+removal of unneeded IL entities was done, which could manifest itself
+(among other ways) as an IL write-read error.
+
 9/18/00  Functional-notation cast incorrectly seen as dependent
 
 When prototype instantiations of nonclass templates are done (e.g.,
