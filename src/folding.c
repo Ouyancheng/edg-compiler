@@ -1024,7 +1024,9 @@ since such casts on pointer-to-member types are not "constant operations".
      cast and (when the cast is implicit) for accessibility. */
   old_class = pm_class_type(old_type);
   new_class = pm_class_type(new_type);
-  if (old_class == new_class) {
+  /* Using types_are_compatible so that A<x> and A<error> are considered
+     the same type. */
+  if (types_are_compatible(old_class, new_class)) {
     /* The classes are the same, so no error check is needed. */
     /* The fact that the class types are the same does not mean the
        pointer-to-member types are the same; the member type may be
