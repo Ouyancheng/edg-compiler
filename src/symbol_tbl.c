@@ -2842,6 +2842,23 @@ the options being used for the lookup.
 }  /* enter_synthesized_projection_symbol */
 
 
+static void copy_symbol_lookup_flags(a_symbol_ptr from,
+                                     a_symbol_ptr to)
+/*
+Copy the lookup flags for synthesized namespace projection symbols from
+the symbol pointed to by "from" to the symbol pointed to by "to".
+*/
+{
+  to->synthesized_namespace_projection
+                                     = from->synthesized_namespace_projection;
+  to->qualified_lookup               = from->qualified_lookup;
+  to->must_be_class_or_namespace_lookup
+                                     = from->must_be_class_or_namespace_lookup;
+  to->must_be_tag_lookup             = from->must_be_tag_lookup;
+  to->do_not_reuse                   = from->do_not_reuse;
+}  /* copy_symbol_lookup_flags */
+
+
 a_symbol_ptr enter_symbol(a_symbol_kind    sym_kind,
 			  a_symbol_locator *location,
 			  a_scope_depth    scope_depth,
@@ -3134,6 +3151,9 @@ the pointers block associated with that scope is used instead.
         /* The entry is the first on the scope's symbol list. */
         pointers_block->synth_namespace_projection_symbols = overload_sym;
       }  /* if */
+      /* Transfer any symbol lookup flags that are set to the newly
+         created overloaded function symbol. */
+      copy_symbol_lookup_flags(other_sym, overload_sym);
     } else {
       prev_sym_ptr = pointers_block->symbols;
       if (prev_sym_ptr == other_sym) {
