@@ -535,7 +535,7 @@ unknown_option:
      name allocated in general (not IL) storage. */
   {
     /* If you change this, see the similar code in get_next_source_file. */
-#if USING_PURIFY
+#ifdef USING_PURIFY
     /* This directory name is, under certain condtions, discarded later
        in the compilation process.  Save a pointer here to prevent
        purify from complaining about the leaked memory. */
