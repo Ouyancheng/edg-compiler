@@ -1,10 +1,3 @@
-#if 0
-#define MICROSOFT_EXTENSIONS_ALLOWED 1
-#define DEFAULT_MICROSOFT_MODE 0
-#define IA64_ABI 1
-#define ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS 1
-#define GNU_X86_ASM_EXTENSIONS_ALLOWED 1
-#endif
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
