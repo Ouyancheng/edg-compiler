@@ -7903,13 +7903,13 @@ had at the start of the block.
     }  /* if */
   }  /* if */
   if (saved_curr_cleanup_state != curr_cleanup_state &&
+      !block->end_of_block_reachable &&
       scope != innermost_function_scope) {
     /* Adjust the cleanup state at the end of a block that ends with a
        transfer of control.  There's no point in doing this for the top
-       block of a function. */
-    check_assertion_str2(!block->end_of_block_reachable,
-                         "pop_block_statement_context:",
-                 "curr_cleanup_state is wrong, and end of block is reachable");
+       block of a function.  The end_of_block_reachable test is usually
+       useless, but is needed (at least) for for-init declarations that
+       declare more than one variable. */
     reset_cleanup_state_at_unreachable_end_of_block(saved_curr_cleanup_state,
                                                     &insert_location);
   }  /* if */
