@@ -1,5 +1,17 @@
 Version 2.46
 
+6/21/01  Constructors marked "explicit" no longer used for copying
+
+To match TC1 of the C++ standard, the front end no longer uses
+constructors marked "explicit" as copy constructors.
+
+  struct X {
+    X();
+    explicit X(const X&);
+  };
+  void f(X);
+  int main() {X x; f(x); }  // Error now -- no way to copy an "X"
+
 6/20/01  Spurious error on member using declaration
 
 A spurious error was issued when a class member using-declaration referred

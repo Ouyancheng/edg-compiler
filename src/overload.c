@@ -2235,6 +2235,7 @@ static void determine_function_viability(
                  a_type_ptr               implicit_selector_type,
                  a_boolean                ctor_conversion_case,
                  a_boolean                effects_copy_initialization,
+                 a_boolean                allow_udc_on_arguments,
                  a_boolean                from_arg_dep_lookup,
                  a_boolean                dependent_call,
                  a_boolean                known_to_be_visible,
@@ -2267,9 +2268,10 @@ a class type: the functions are constructors, have_selector is FALSE
 (sic; the "this" parameter is not matched up); the "conversion" field
 is set in any candidate function entries created.
 effects_copy_initialization is TRUE if this call is the user-defined
-conversion in a copy-initialization; user-defined conversions are not
-tried on argument matches, and constructors that are marked "explicit"
-are ignored.  from_arg_dep_lookup is TRUE if the function was found by
+conversion in a copy-initialization; constructors that are marked
+"explicit" are ignored.  allow_udc_on_arguments is TRUE if
+user-defined conversions should be allowed on the argument matches.
+from_arg_dep_lookup is TRUE if the function was found by
 argument-dependent lookup.  dependent_call is TRUE if the call is a
 template-dependent call.  known_to_be_visible is TRUE if the function
 is known to be visible and the visibility check should be suppressed.
@@ -2451,7 +2453,7 @@ is known to be visible and the visibility check should be suppressed.
                                 param->type,
                                 param_type_is_deduced,
                                 /*try_user_conversions=*/
-                                                  !effects_copy_initialization,
+                                                        allow_udc_on_arguments,
                                 arg_match);
       /* If no match is possible, go on to the next function. */
       if (arg_match->match_level == aml_none) goto reject_function;
@@ -2619,6 +2621,7 @@ static void try_overloaded_function_match(
                  a_boolean                selector_is_object_pointer,
                  a_boolean                ctor_conversion_case,
                  a_boolean                effects_copy_initialization,
+                 a_boolean                allow_udc_on_arguments,
                  a_boolean                from_arg_dep_lookup,
                  a_boolean                dependent_call,
                  a_boolean                known_to_be_visible,
@@ -2645,12 +2648,12 @@ to a class type: the functions are constructors, have_selector is FALSE
 (sic; the "this" parameter is not matched up); the "conversion" field
 is set in any candidate function entries created.  effects_copy_initialization
 is TRUE if this call is the user-defined conversion in a copy-initialization;
-user-defined conversions are not tried on argument matches, and constructors
-that are marked "explicit" are ignored.  from_arg_dep_lookup is TRUE if
-the function was found by argument-dependent lookup.  dependent_call is
-TRUE if the call is a template-dependent call.  known_to_be_visible is
-TRUE if the function is known to be visible and the visibility check
-should be suppressed.
+constructors that are marked "explicit" are ignored.  allow_udc_on_arguments
+is TRUE if user-defined conversions should be allowed on the argument
+matches.  from_arg_dep_lookup is TRUE if the function was found by
+argument-dependent lookup.  dependent_call is TRUE if the call is a
+template-dependent call.  known_to_be_visible is TRUE if the function
+is known to be visible and the visibility check should be suppressed.
 */
 {
   a_boolean     overloaded_function_case;
@@ -2739,6 +2742,7 @@ should be suppressed.
                                  implicit_selector_type,
                                  ctor_conversion_case,
                                  effects_copy_initialization,
+                                 allow_udc_on_arguments,
                                  from_arg_dep_lookup,
                                  dependent_call,
                                  known_to_be_visible,
@@ -2756,9 +2760,7 @@ a_boolean overloaded_function_match_possible(
                                 an_arg_operand_ptr arg_operand_list,
                                 a_boolean          have_selector,
                                 an_operand         *bound_function_selector,
-                                a_boolean          selector_is_object_pointer,
-                                a_boolean          ctor_conversion_case,
-                                a_boolean          effects_copy_initialization)
+                                a_boolean          selector_is_object_pointer)
 /*
 Similar to try_overloaded_function_match, but just returns TRUE if there
 are viable functions, FALSE if not.  Issues no errors.
@@ -2775,8 +2777,9 @@ are viable functions, FALSE if not.  Issues no errors.
                                 have_selector,
                                 bound_function_selector,
                                 selector_is_object_pointer,
-                                ctor_conversion_case,
-                                effects_copy_initialization,
+                                /*ctor_conversion_case=*/FALSE,
+                                /*effects_copy_initialization=*/FALSE,
+                                /*allow_udc_on_arguments=*/TRUE,
                                 /*from_arg_dep_lookup=*/FALSE,
                                 /*dependent_call=*/FALSE,
                                 /*known_to_be_visible=*/FALSE,
@@ -2866,6 +2869,7 @@ arguments of the call (given by arg_operand_list).
                                        (a_type_ptr)NULL,
                                        /*ctor_conversion_case=*/FALSE,
                                        /*effects_copy_initialization=*/FALSE,
+                                       /*allow_udc_on_arguments=*/TRUE,
                                        /*from_arg_dep_lookup=*/FALSE,
                                        /*dependent_call=*/FALSE,
                                        /*known_to_be_visible=*/FALSE,
@@ -4195,6 +4199,7 @@ in_instantiation:
                                     /*selector_is_object_pointer=*/TRUE,
                                     /*ctor_conversion_case=*/FALSE,
                                     /*effects_copy_initialization=*/FALSE,
+                                    /*allow_udc_on_arguments=*/TRUE,
                                     /*from_arg_dep_lookup=*/FALSE,
                                     dependent_call,
                                     known_to_be_visible,
@@ -4264,6 +4269,7 @@ in_instantiation:
                                       /*selector_is_object_pointer=*/TRUE,
                                       /*ctor_conversion_case=*/FALSE,
                                       /*effects_copy_initialization=*/FALSE,
+                                      /*allow_udc_on_arguments=*/TRUE,
                                       /*from_arg_dep_lookup=*/
                                                (slep != symbol_list ||
                                                 function_symbol !=
@@ -8192,6 +8198,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*selector_is_object_pointer=*/FALSE,
                                          /*ctor_conversion_case=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
+                                         /*allow_udc_on_arguments=*/TRUE,
                                          /*from_arg_dep_lookup=*/FALSE,
                                          /*dependent_call=*/FALSE,
                                          /*known_to_be_visible=*/TRUE,
@@ -8228,6 +8235,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*selector_is_object_pointer=*/FALSE,
                                          /*ctor_conversion_case=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
+                                         /*allow_udc_on_arguments=*/TRUE,
                                          /*from_arg_dep_lookup=*/FALSE,
                                          dependent_call,
                                          /*known_to_be_visible=*/TRUE,
@@ -8295,6 +8303,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*selector_is_object_pointer=*/TRUE,
                                          /*ctor_conversion_case=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
+                                         /*allow_udc_on_arguments=*/TRUE,
                                          /*from_arg_dep_lookup=*/
                                                  (slep != symbol_list ||
                                                   nonmember_functions_symbol !=
@@ -8613,6 +8622,8 @@ because of an error.  This routine is used only in C++ mode.
   a_boolean                     matched_except_for_missing_selector = FALSE;
   a_boolean                     source_is_class, type_is_same;
   a_boolean                     type_is_same_or_derived;
+  a_boolean                     adjusted_is_copy_initialization =
+                                                        is_copy_initialization;
   a_boolean                     copy_initialization_done_as_direct = FALSE;
   a_boolean                     try_conversion_functions;
   a_boolean                     try_as_arg_of_bitwise_cctor;
@@ -8652,7 +8663,7 @@ because of an error.  This routine is used only in C++ mode.
     /* Copy-initialization from the same class type or a derived class
        thereof is treated as direct-initialization.  See [dcl.init].
        This is strange, but the definition of auto_ptr depends on it. */
-    is_copy_initialization = FALSE;
+    adjusted_is_copy_initialization = FALSE;
     copy_initialization_done_as_direct = TRUE;
   }  /* if */
   /* Check for a same-class bitwise copy.  The derived-class bitwise copy
@@ -8698,6 +8709,8 @@ because of an error.  This routine is used only in C++ mode.
                                     /*ctor_conversion_case=*/TRUE,
                                     /*effects_copy_initialization=*/
                                                         is_copy_initialization,
+                                    /*allow_udc_on_arguments=*/
+                                              !adjusted_is_copy_initialization,
                                     /*from_arg_dep_lookup=*/FALSE,
                                     /*dependent_call=*/FALSE,
                                     /*known_to_be_visible=*/FALSE,
@@ -8711,7 +8724,7 @@ because of an error.  This routine is used only in C++ mode.
       /* Do not try conversion functions when the source is not a class. */
     } else if (type_is_same_or_derived) {
       /* Do not try conversion functions for a derived-to-base conversion. */
-    } else if (is_copy_initialization) {
+    } else if (adjusted_is_copy_initialization) {
       /* Try conversion functions for copy-initialization. */
       try_conversion_functions = TRUE;
     } else if (is_reference_binding) {
@@ -8753,7 +8766,7 @@ because of an error.  This routine is used only in C++ mode.
            conversion functions.  See if there is a conversion function that
            does the job. */
         a_type_ptr eff_dest_type = dest_type;
-        a_boolean  eff_is_copy_initialization = is_copy_initialization;
+        a_boolean  eff_is_copy_initialization= adjusted_is_copy_initialization;
         a_boolean  eff_is_reference_binding = is_reference_binding;
         if (try_as_arg_of_bitwise_cctor) {
           /* On an initialization of a class type whose "copy constructor"

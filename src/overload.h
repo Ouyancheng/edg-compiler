@@ -475,9 +475,7 @@ extern a_boolean overloaded_function_match_possible(
                                an_arg_operand_ptr arg_operand_list,
                                a_boolean          have_selector,
                                an_operand         *bound_function_selector,
-                               a_boolean          selector_is_object_pointer,
-                               a_boolean          ctor_conversion_case,
-                               a_boolean          effects_copy_initialization);
+                               a_boolean          selector_is_object_pointer);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,

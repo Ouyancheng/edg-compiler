@@ -6152,9 +6152,7 @@ specification allow a variable-sized array as the top type.
                                       arg_operand_list,
                                       /*have_selector=*/FALSE,
                                       (an_operand *)NULL,
-                                      /*selector_is_object_pointer=*/TRUE,
-                                      /*ctor_conversion_case=*/FALSE,
-                                      /*effects_copy_initialization=*/FALSE)) {
+                                      /*selector_is_object_pointer=*/TRUE)) {
         opname_kind = (an_opname_kind)onk_new;
         operator_new_symbol = opname_function_symbol(opname_kind);
       }  /* if */
