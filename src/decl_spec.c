@@ -4575,11 +4575,11 @@ Returns TRUE if there is an error in the specifiers.
 	  /* Only one "inline" specifier at at time. */
 	  error(ec_dupl_decl_specifier);
 	  err = TRUE;
-   } else if (input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) {
-     /* The keyword "inline" was seen as a qualifier.  This is only
-           possible in Microsoft mode and that qualifier is ignored. */
-     check_assertion(microsoft_mode);
-     warning(ec_inline_qualifier_ignored);
+        } else if (input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) {
+          /* The keyword "inline" was seen as a qualifier.  This is only
+             possible in Microsoft mode and that qualifier is ignored. */
+          check_assertion(microsoft_mode);
+          warning(ec_inline_qualifier_ignored);
 	} else {
           decl_specifiers_seen |= DS_INLINE;
 	  *output_flags |= DSO_INLINE;
