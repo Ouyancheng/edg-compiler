@@ -6103,6 +6103,7 @@ Scan the body of a class definition, including the base classes list.
                                         DI_QUALIFIED_NAME_ALLOWED;
             }  /* if */
             declarator_input_flags |= DI_OPERATOR_NAME_ALLOWED;
+            if (!C_mode()) add_stop_token(tok_lbrace);
             /* Pass the class's type pointer to declarator if this might
                be a nonstatic member function, in which case its presence
                will cause an implicit "this" parameter type to be created.
@@ -6113,7 +6114,8 @@ Scan the body of a class definition, including the base classes list.
                        friend_specified ? (a_type_ptr)NULL : class_type,
                        &locator, &local_type, &bottom_derived_type,
                        &declarator_ssep, &func_info);
-            if (C_dialect == C_dialect_cplusplus) {
+            if (!C_mode()) {
+              remove_stop_token(tok_lbrace);
               /* Abstract class objects are prohibited (ARM 10.3). */
               if (member_storage_class != (a_storage_class)sc_typedef &&
                   is_illegal_abstract_class_type(local_type)) {
