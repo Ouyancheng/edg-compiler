@@ -1934,11 +1934,12 @@ use typename.
 #define RUNTIME_USES_TYPENAME FALSE
 #endif /* ifndef RUNTIME_USES_TYPENAME */
 
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 /*
 Switch that is TRUE if the C-generating or C++-generating back end should
 generate code for the GNU C compiler (gcc or g++).
 */
+/* The old name of this macro was GCC_IS_C_GEN_BE_TARGET; it that's set,
+   transfer its value to the new macro. */
 #ifndef GCC_IS_GENERATED_CODE_TARGET
 #if defined(GCC_IS_C_GEN_BE_TARGET) && BACK_END_IS_C_GEN_BE
 #if GCC_IS_C_GEN_BE_TARGET
@@ -1950,16 +1951,17 @@ generate code for the GNU C compiler (gcc or g++).
 #endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 
 #ifndef GCC_IS_GENERATED_CODE_TARGET
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 #if defined(__GNUC__) && BACK_END_IS_C_GEN_BE
 #define GCC_IS_GENERATED_CODE_TARGET TRUE
 #else /* !defined(__GNUC__) && BACK_END_IS_C_GEN_BE */
 #define GCC_IS_GENERATED_CODE_TARGET FALSE
 #endif /* !defined(__GNUC__) && BACK_END_IS_C_GEN_BE */
-#endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 #else  /* !(BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) */
 /* Not using the C or C++ generating back end. */
 #define GCC_IS_GENERATED_CODE_TARGET FALSE
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 /*
