@@ -313,12 +313,27 @@ is more compact since there is one fewer field in IL entries.
 #endif /* ifndef RECORD_SCOPE_DEPTH_IN_IL */
 
 /*
-Flag that is TRUE to cause the IL entry for a statement to contain a
-full source position (sequence number, column number) instead of just
-a sequence number.
+Flag that is TRUE to cause additional IL entries to contain source position
+information.
+*/
+#ifndef EXTRA_SOURCE_POSITIONS_IN_IL
+#define EXTRA_SOURCE_POSITIONS_IN_IL FALSE
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+/*
+Flag that is TRUE to cause the IL entry for a statement to contain a full
+source position (sequence number, column number) instead of just a
+sequence number.  It should always be TRUE if EXTRA_SOURCE_POSITIONS_IN_IL
+is TRUE.
 */
 #ifndef FULL_SOURCE_POS_IN_IL_STATEMENT
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+/* Dependent setting. */
 #define FULL_SOURCE_POS_IN_IL_STATEMENT TRUE
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+/* Default setting. */
+#define FULL_SOURCE_POS_IN_IL_STATEMENT TRUE
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
 /*
