@@ -3264,6 +3264,10 @@ fields to default values.
     case enk_field:
       node->variant.field = NULL;
       break;
+    case enk_temp_init:
+      node->variant.temp_init.dynamic_init = NULL;
+      node->variant.temp_init.expr         = NULL;
+      break;
 #if CHECKING
     default:
       internal_error("set_expr_node_kind: bad kind");

@@ -1780,6 +1780,8 @@ enum an_expr_node_kind_tag {
 #ifdef CIL
   enk_field,            /* Used in an eok_field or eok_value_field
                            operation to indicate the field. */
+  enk_temp_init,	/* Initialization of a temporary and evaluation of
+			   an expression that creates/uses it.  C++ only. */
 #endif /* ifdef CIL */
 #ifdef FIL
   enk_stmt_label_value, /* A statement label value for an ASSIGN or
@@ -2123,6 +2125,19 @@ typedef struct an_expr_node {
                         /* A pointer to the field.  Only used as an operand
                            to an eok_field or eok_value_field operation
                            (or the similar bit-field operators). */
+    /* When kind == enk_temp_init: */
+    /* C++ only. */
+    struct {
+      a_dynamic_init_ptr
+		dynamic_init;
+			/* Dynamic initialization entry that does the
+			   initialization (and destruction, if needed)
+			   for a temporary. */
+      an_expr_node_ptr
+		expr;	/* Expression evaluated after the temporary is
+			   initialized; its value is the value of the
+			   enk_temp_init node. */
+    } temp_init;
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == enk_stmt_label_value: */
