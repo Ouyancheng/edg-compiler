@@ -1899,6 +1899,9 @@ error code.
     case ec_bad_constructor_name:
       m = "%no cannot be used to designate constructor for %n2";
       break;
+    case ec_unnamed_type_in_template_arg:
+      m = "a template argument may not reference an unnamed type";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -2139,6 +2139,7 @@ structure.
   a_symbol_ptr                      sym;
   a_template_symbol_supplement_ptr  tssp;
   a_template_instance_ptr           tip, prev_tip;
+  a_template_arg_ptr		    tap = *new_list;
 
   db_enter(3, "find_template_function");
   /* Make a pass over the entries representing instantiations of the function
@@ -2148,18 +2149,17 @@ structure.
   } else {
     tssp = templ_sym->variant.template_info;
   }  /* if */
-  /* Check for the use of local types in the template arguments.  Issue
-     an error if any are found.  This is only done for noninline
-     functions. */
-  if (!tssp->variant.function.routine->is_inline) {
-    a_template_arg_ptr	tap = *new_list;
-    while (tap != NULL) {
-      if (is_or_contains_local_type(tap->variant.type)) {
-        pos_error(ec_local_type_in_template_arg, source_pos);
-      }  /* if */
-      tap = tap->next;
-    }  /* while */
-  }  /* if */
+  /* Check for invalid type arguments.  Local types may not be used as
+     arguments nor may unnamed types.  Issue an error if any are found. */
+  while (tap != NULL) {
+    if (is_or_contains_local_type(tap->variant.type)) {
+      pos_error(ec_local_type_in_template_arg, source_pos);
+    }  /* if */
+    if (tap->variant.type->source_corresp.name == NULL) {
+      pos_error(ec_unnamed_type_in_template_arg, source_pos);
+    }  /* if */
+    tap = tap->next;
+  }  /* while */
   tip = tssp->variant.function.instantiations;
   prev_tip = NULL;
   for (; tip != NULL; tip = tip->next) {

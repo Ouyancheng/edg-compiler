@@ -1,5 +1,27 @@
 Version 2.16
 
+4/7/93  Unnamed types as function template arguments
+
+Errors are now diagnosed for template function references when
+for which a template parameter references an unnamed type.
+For example,
+
+  template <class T> void f(T) {}
+  struct {} a;
+  static union {} b;
+  void main()
+  {
+    f(a);
+    f(b);
+  }
+
+4/7/93  Local types as function template arguments in inline functions
+
+Formerly, local types could be used as function template arguments if
+the function template was declared inline.  Local type references
+are now prohibited in all function template references.  This was
+changed in anticipation of this rule being adopted by X3J16/WG21.
+
 4/6/93  Constructor name in class template
 
 In class template A<T> a constructor may be designated by A() or A<T>(),
