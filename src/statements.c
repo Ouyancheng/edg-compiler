@@ -1601,12 +1601,15 @@ statement stack.
 }  /* restore_struct_stmt_stack */
 
 
-static void push_stmt_stack(a_struct_stmt_kind kind,
-                            a_statement_ptr    sp)
+static void push_stmt_stack(a_struct_stmt_kind      kind,
+                            a_statement_ptr         sp,
+                            an_object_lifetime_ptr  olp)
 /*
 Push an entry onto the structured statement stack, to record that we
 are within a structured statement of the indicated kind.  sp points to
-the associated il statement.
+the associated il statement.  olp (NULL unless kind is ssk_compound)
+points to an object lifetime entry that was expressly created for the
+current structured statement.
 */
 {
   register a_struct_stmt_stack_entry_ptr sssep;
@@ -1662,15 +1665,7 @@ the associated il statement.
     /* Represent this compound statement by adding a block entry to the
        control_flow_descr_list. */
     cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
-    if (!C_mode()) {
-      /* Only set the object lifetime for cases in which a new object
-         lifetime will have been created for this block -- that is, for
-         every compound statement entry except those created for cfront
-         dependent statements. */
-      if (!sp->dependent_statement) {
-        cfdp->variant.block.object_lifetime = curr_object_lifetime;
-      }  /* if */
-    }  /* if */
+    cfdp->variant.block.object_lifetime = olp;
     add_to_control_flow_descr_list(cfdp);
   }  /* if */
   db_exit();
@@ -1952,13 +1947,16 @@ to the block statement.  dependent_statement is TRUE if the block is
 being created to surround a dependent statement in C++.
 */
 {
-  a_boolean          cfront_dependent_statement = 
-                                      any_cfront_mode() && dependent_statement;
-  a_struct_stmt_kind kind = struct_stmt_stack[depth_stmt_stack].kind;
-  a_statement_ptr    block_stmt = add_statement((a_statement_kind)stmk_block);
-  a_block_ptr        block = block_stmt->variant.block.extra_info;
+  a_boolean               cfront_dependent_statement = FALSE;
+  a_struct_stmt_kind      kind;
+  a_statement_ptr         block_stmt;
+  a_block_ptr             block;
+  an_object_lifetime_ptr  olp = NULL;
 
+  /* Allocate the a block statement and add it to the statements list. */
+  block_stmt = add_statement((a_statement_kind)stmk_block);
   stmt_update_source_sequence_list(block_stmt);
+  block = block_stmt->variant.block.extra_info;
   if (!dependent_statement) {
     /* This is a block statement introduced by a left brace (which should be
        the next token).  Process any pragmas that are meant to bind to the
@@ -1968,6 +1966,7 @@ being created to surround a dependent statement in C++.
     /* This is a dependent statement with no surrounding braces.  Any pragmas
        that are current will bind to the statement (not to the block), so
        don't process them yet. */
+    cfront_dependent_statement = any_cfront_mode();
     if (cfront_dependent_statement) {
       /* This is a dependent statement in cfront mode, which is special in
          that no scope is created for it, but it nevertheless has an
@@ -1976,6 +1975,7 @@ being created to surround a dependent statement in C++.
       block_stmt->dependent_statement = TRUE;
       push_object_lifetime(iek_block, (char *)block, 
                            (an_object_lifetime_kind)olk_local);
+      olp = curr_object_lifetime;
     }  /* if */
   }  /* if */
   /* Push an associated scope.  This does not allocate the IL scope yet.
@@ -1986,6 +1986,8 @@ being created to surround a dependent statement in C++.
                      (a_type_ptr)NULL, (a_routine_ptr)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      (a_template_arg_ptr)NULL);
+    olp = curr_object_lifetime;
+    kind = struct_stmt_stack[depth_stmt_stack].kind;
     if (kind == ssk_while || kind == ssk_do || kind == ssk_for) {
       scope_stack[decl_scope_level].is_loop_scope = TRUE;
     }  /* if */
@@ -1994,7 +1996,7 @@ being created to surround a dependent statement in C++.
      compound statement. */
   block->parent_block = nearest_enclosing_compound_statement();
   /* Push an entry on the structured statement stack. */
-  push_stmt_stack(ssk_compound, block_stmt);
+  push_stmt_stack(ssk_compound, block_stmt, olp);
   return block_stmt;
 }  /* start_block_statement */
 
@@ -2108,7 +2110,7 @@ See also 3.6.4.1.
      statement. */
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
-  push_stmt_stack(ssk_if, sp);
+  push_stmt_stack(ssk_if, sp, (an_object_lifetime_ptr)NULL);
   /* Ignore the initial "if". */
 #if CHECKING
   if (curr_token != tok_if) internal_error("if_statement: expected if");
@@ -2173,7 +2175,7 @@ See also 3.6.4.2.
      statement. */
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
-  push_stmt_stack(ssk_switch, sp);
+  push_stmt_stack(ssk_switch, sp, (an_object_lifetime_ptr)NULL);
   /* Add a switch block entry to the control_flow_descr_list.  The
      corresponding end-of-entry is added at the end of this routine.  This
      is done even though a switch statement usually involves a compound
@@ -2257,7 +2259,7 @@ See also 3.6.5.1.
      statement. */
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
-  push_stmt_stack(ssk_while, sp);
+  push_stmt_stack(ssk_while, sp, (an_object_lifetime_ptr)NULL);
   /* Ignore the initial "while". */
 #if CHECKING
   if (curr_token != tok_while) {
@@ -2311,7 +2313,7 @@ See also 3.6.5.2.
      statement. */
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
-  push_stmt_stack(ssk_do, sp);
+  push_stmt_stack(ssk_do, sp, (an_object_lifetime_ptr)NULL);
   /* Ignore the initial "do". */
 #if CHECKING
   if (curr_token != tok_do) internal_error("do_statement: expected do");
@@ -2372,7 +2374,7 @@ where handler-seq is a sequence of one or more handlers of the form
      statement. */
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
-  push_stmt_stack(ssk_try_block, sp);
+  push_stmt_stack(ssk_try_block, sp, (an_object_lifetime_ptr)NULL);
   if (!C_mode()) {
     /* Push an object lifetime. */
     push_object_lifetime(iek_try_supplement, (char *)sp->variant.try_block,
@@ -2504,7 +2506,7 @@ either an expression statement or a declaration statement.
      statement. */
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
-  push_stmt_stack(ssk_for, sp);
+  push_stmt_stack(ssk_for, sp, (an_object_lifetime_ptr)NULL);
   /* Ignore the initial "for". */
 #if CHECKING
   if (curr_token != tok_for) internal_error("for_statement: expected for");
@@ -3913,7 +3915,7 @@ branching into it is disallowed).
     /* Clear statement stack just to be careful. */
     depth_stmt_stack = -1;
     /* Push an entry on the structured statement stack. */
-    push_stmt_stack(ssk_compound, block);
+    push_stmt_stack(ssk_compound, block, curr_object_lifetime);
     /* Record in the statement stack entry whether the routine was declared
        with an explicit return type. */
     if (explicit_return_type) {
@@ -3927,7 +3929,8 @@ branching into it is disallowed).
        clause. */
     cannot_bind_to_curr_construct();
     /* Push an entry on the structured statement stack. */
-    push_stmt_stack(ssk_compound, block);
+    push_stmt_stack(ssk_compound, block,
+                    innermost_local_object_lifetime(curr_object_lifetime));
     /* Mark the block that was just pushed onto the stack as a handler. */
     struct_stmt_stack[depth_stmt_stack].is_catch_clause = TRUE;
     end_of_control_flow_descr_list->variant.block.is_handler_block = TRUE;
