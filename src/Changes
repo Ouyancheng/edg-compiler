@@ -1,5 +1,11 @@
 Version 2.45
 
+11/18/00 C++-generating back end: unnecessary cast on template argument
+         eliminated
+
+In some cases where unnecessary casts were generated on nontype template
+arguments because of typedef differences, the cast is now suppressed.
+
 11/18/00 Compound literals off in C++ mode even if on by default
 
 Compound literals (a C99 feature) are not supported in C++ mode.
