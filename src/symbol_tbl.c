@@ -3948,7 +3948,6 @@ Allocate a symbol to represent an injected class-name for the class
 specified by tag_sym, and enter it into the symbol table.
 */
 {
-  a_symbol_locator  loc;
   a_symbol_ptr      sym;
   a_type_ptr        class_type = tag_sym->variant.class_struct_union.type;
   a_boolean         suppress_error = FALSE;
