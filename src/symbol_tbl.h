@@ -46,13 +46,13 @@ typedef int an_id_lookup_options_set;
 #define IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR 0x4
 				/* Suppress the error on a qualified name
 				   not being found on lookup. */
-#define IDL_MUST_BE_TYPE_NAME 0x8
-				/* If the symbol found is not a tag symbol
-                                   (class, struct, union, or enum) or a typedef
-                                   symbol, return NULL.  If the symbol found
-				   in a base class is not one of those, do
-				   not create a projection symbol to
-				   represent it. */
+#define IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME 0x8
+				/* If the symbol found is a projection from
+				   a base class, do not actually create the
+				   symbol to represent that projection unless
+				   is a type name -- a typedef or tag symbol
+				   (class, struct, union, or enum) -- but
+				   return NULL instead. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 
