@@ -684,8 +684,8 @@ place in file_name where the suffix begins.
   db_enter(5, "replace_file_name_suffix");
 #if DEBUG
   if (debug_level >= 5) {
-    fprintf("current file_name = \"%s\", new suffix = \"%s\"\n", file_name,
-            new_suffix);
+    fprintf(f_debug, "current file_name = \"%s\", new suffix = \"%s\"\n",
+            file_name, new_suffix);
   }  /* if */
 #endif /* DEBUG */
   /* Determine the size of file_name, excluding the trailing NULL. */
@@ -758,7 +758,7 @@ place in file_name where the suffix begins.
   strcpy(*suffix_loc, new_suffix);
 #if DEBUG
   if (debug_level >= 5) {
-    fprintf("new file name = \"%s\"\n", new_file_name);
+    fprintf(f_debug, "new file name = \"%s\"\n", new_file_name);
   }  /* if */
 #endif /* DEBUG */
   /* Return a pointer to the new file name. */
