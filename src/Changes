@@ -1,5 +1,23 @@
 Version 2.45
 
+8/15/00  Comparison of conversions to ambiguous base classes in overload
+         resolution
+
+The comparison of conversions to base classes in overload resolution
+has been changed to conform more closely to the standard in cases
+involving ambiguous base classes.
+
+  class base {};
+  class inter1 : public base {};
+  class inter2 : public base {};
+  class derived : public inter1, public inter2 {};
+  void f(base *);
+  void f(inter2 *);
+  int main () {
+    derived *p = 0;
+    f(p);  // Not ambiguous: calls f(inter2 *)
+  }
+
 8/14/00  Spurious error on pure virtual function declared in unnamed namespace
 
 The front end used to issue a spurious error on pure virtual functions

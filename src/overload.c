@@ -2941,11 +2941,18 @@ in [over.ics.rank].
          destination types are the same.  Here, we are looking for
          B::* to C::* is better than A::* to C::*, which requires the
          same base class relationship test. */
-      if (is_on_any_derivation_of(bcp_2, bcp_1)) {
-        /* bcp_1 is a subsequence of bcp_2 and thus preferable. */
+      /* This test formerly used "is_on_any_derivation_of(bcp_2, bcp_1)"
+         which makes more sense in the presence of ambiguous base classes
+         but is not what the standard requires (see [over.ics.rank]
+         paragraph 4 bullet 3).  Likewise the second test below was
+         "is_on_any_derivation_of(bcp_1, bcp_2)". */
+      if (find_base_class_of(bcp_1->type, bcp_2->type) != NULL) {
+        /* bcp_2's type is a base class of bcp_1's type, so bcp_1 is
+           preferable. */
         cmp = 1;
-      } else if (is_on_any_derivation_of(bcp_1, bcp_2)) {
-        /* bcp_2 is a subsequence of bcp_1 and thus preferable. */
+      } else if (find_base_class_of(bcp_2->type, bcp_1->type) != NULL) {
+        /* bcp_1's type is a base class of bcp_2's type, so bcp_1 is
+           preferable. */
         cmp = -1;
       }  /* if */
     } else {
@@ -2959,13 +2966,13 @@ in [over.ics.rank].
          same base class relationship test. */
       if (find_base_class_of(bcp_2->derived_class,
                              bcp_1->derived_class) != NULL) {
-        /* bcp_1's type is a base class of bcp_2's type, so it's a
-           subsequence and thus preferable. */
+        /* bcp_1's type is a base class of bcp_2's type, so bcp_1 is
+           preferable. */
         cmp = 1;
       } else if (find_base_class_of(bcp_1->derived_class,
                                     bcp_2->derived_class) != NULL) {
-        /* bcp_2's type is a base class of bcp_1's type, so it's a
-           subsequence and thus preferable. */
+        /* bcp_2's type is a base class of bcp_1's type, so bcp_2 is
+           preferable. */
         cmp = -1;
       }  /* if */
     }  /* if */
