@@ -913,7 +913,8 @@ Furthermore, some compilers also allow the following syntax for field
 designators:
    X x = { a: 1 };
 This function returns TRUE if a designator is the next thing in the stream of
-tokens (assuming designators are enabled).
+tokens (assuming designators are enabled).  (This function is closely tied to
+skip_designator; changing one will most likely affect the other.)
 */
 {
   a_boolean result = FALSE;
@@ -934,24 +935,32 @@ tokens (assuming designators are enabled).
 
 static void skip_designator()
 /*
-The next couple of tokens form a designator (to be checked by caller).
-This routine discards those tokens.
+The next couple of tokens presumably form a designator and this routine
+discards them.  A caller should check this using the function
+designator_coming, but note that that function does not actually check the
+full form of the construct (only as much as is needed to determine that a
+designator is the only possibly valid syntax).  If the designator is
+followed by an assignment token, that token is also discarded.
 */
 {
   if (curr_token == tok_identifier) {
+    /* An extended field designator of the form "xxx:". */
     (void)get_token();
     check_assertion(curr_token == tok_colon && extended_designators_allowed);
     (void)get_token();
   } else if (curr_token == tok_period) {
+    /* A standard C99 field designator of the form ".xxx". */
     (void)get_token();
     check_assertion(curr_token == tok_identifier);
     (void)get_token();
   } else {
+    /* An array element designator. */
     a_constant  constant;
     check_assertion(curr_token == tok_lbracket);
     get_token();
     scan_integral_constant_expression(&constant);
     if (curr_token == tok_ellipsis) {
+      /* An extended "array range" designator (form "[xxx ... yyy]"). */
       (void)get_token();
       scan_integral_constant_expression(&constant);
     }  /* if */
@@ -962,7 +971,7 @@ This routine discards those tokens.
     }  /* if */
   }  /* if */
   if (curr_token == tok_assign) {
-    (void) get_token();
+    (void)get_token();
   }  /*if */
 }  /* skip_designator */
 
@@ -1440,14 +1449,16 @@ Add the IL entry constant to end of the list of constants tracked by context.
 static void get_array_element_init_info(
                               an_aggregate_init_info_ptr  init_info,
                               an_aggregate_init_context   *context,
-                              a_targ_size_t               *curr_array_element)
+                              a_targ_size_t               *curr_array_element,
+                              a_boolean                   *designator_scanned)
 /*
 We're scanning the initializer for an array whose type is context->type.
 Adjust *curr_array_element if a designator is encountered (and record the
 designator in the active list of constants). The parameter context is a
 pointer to a structure that keeps track of the initializer for the current
 subaggregate (see get_initializer), while init_info tracks the whole
-initializer. 
+initializer.  If a designator was scanned, *designator_scanned is set to TRUE;
+otherwise it is set to FALSE.
 */
 {
   /* If we just saw the '=' that completed a designation, don't scan for
@@ -1466,6 +1477,9 @@ initializer.
     init_info->designation_state = scan_designation_state(
                      /* allow_colon = */FALSE,
                      /* assign_optional = */extended_designators_allowed);
+    *designator_scanned = TRUE;
+  } else {
+    *designator_scanned = FALSE;
   }  /* if */
 #if DEBUG
   if (debug_level == 4) {
@@ -1480,9 +1494,11 @@ initializer.
 }  /* get_array_element_init_info */
 
 
-static a_type_ptr get_field_init_info(an_aggregate_init_info_ptr  init_info,
-                                      an_aggregate_init_context   *context,
-                                      a_field_ptr                 *field)
+static a_type_ptr get_field_init_info(
+                              an_aggregate_init_info_ptr  init_info,
+                              an_aggregate_init_context   *context,
+                              a_field_ptr                 *field,
+                              a_boolean                   *designator_scanned)
 /*
 This function adjusts the current field (*field) in an initializer for the
 aggregate type context->type (if a field designator is present) and returns the
@@ -1490,7 +1506,8 @@ type of adjusted current field. Any field designator is added to the active
 list of constants. The parameter context is a pointer to a structure that
 keeps track of the initializer for the current subaggregate (see
 get_initializer), while init_info tracks the whole initializer. In case of
-error NULL is returned.
+error NULL is returned.  If a field designator was scanned, *designator_scanned
+is set to TRUE; otherwise it is set to FALSE.
 */
 {
   a_field_ptr designated_field = *field;
@@ -1511,9 +1528,14 @@ error NULL is returned.
     init_info->designation_state =
        scan_designation_state(/* allow_colon = */extended_designators_allowed,
                               /* assign_optional = */FALSE);
+    *designator_scanned = TRUE;
+  } else {
+    /* We probably did not scan a field designator (or we scanned one that
+       referred to a nonexisting field). */
+    *designator_scanned = FALSE;
   }  /* if */
   if (designated_field == NULL) {
-    /* Something went wrong while scanning the field designator: */
+    /* Something went wrong while scanning the field designator. */
     member_type = NULL;
   } else {
     member_type = (*field)->type;
@@ -1784,8 +1806,10 @@ this function points to a tree that includes a dynamic-init entry.
       took_extra_comma = FALSE;
       /* Loop, scanning initializers and building an aggregate constant. */
       while (any_more_initializers) {
+        a_boolean  designator_scanned = FALSE;
+        a_boolean  designator_ahead = designator_coming();
         /* Determine the type of the member being initialized. */
-        if (!(any_more_members || designator_coming())) {
+        if (!(any_more_members || designator_ahead)) {
           /* There are more undesignated initializers, but we've run out of
              members into which to put them. */
           error(ec_too_many_initializer_values);
@@ -1793,13 +1817,20 @@ this function points to a tree that includes a dynamic-init entry.
         } else if (kind == (a_type_kind)tk_error) {
         } else if (kind == (a_type_kind)tk_array) {
           /* member_type was set outside the loop. */
-          get_array_element_init_info(init_info,
-                                      &context, &curr_array_element);
+          get_array_element_init_info(init_info, &context, &curr_array_element,
+                                      &designator_scanned);
         } else {
           /* Class type: get the type of the current field. */
-          member_type = get_field_init_info(init_info, &context, &curr_field);
+          member_type = get_field_init_info(init_info, &context,
+                                            &curr_field, &designator_scanned);
         }  /* if */
-        if (designator_coming()) {
+        if (!designator_scanned && designator_ahead &&
+            init_info->designation_state != ds_complete_designation) {
+          /* A designator is next, but none was scanned because it is not the
+             right kind (e.g., a field designator for an array element).  If
+             we are in a state where a complete designation has been seen,
+             no attempt was made to scan the upcoming designator, and it will
+             be diagnosed later (as an invalid expression). */
           error(ec_invalid_designator_kind);
           member_type = NULL;
           skip_designator();
