@@ -723,7 +723,7 @@ may be overridden by a command line option.
 #if !USE_MMAP_FOR_MEMORY_REGIONS
 #ifndef DEFAULT_PREALLOCATED_PCH_MEM_SIZE
 #if __MSDOS__
-#define DEFAULT_PREALLOCATED_PCH_MEM_SIZE (1024 * 1024)
+#define DEFAULT_PREALLOCATED_PCH_MEM_SIZE ((long)0x100000)
 #else /* !__MSDOS__ */
 #define DEFAULT_PREALLOCATED_PCH_MEM_SIZE (1024 * 1024 * 4)
 #endif /* __MSDOS__ */
