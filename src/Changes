@@ -1,5 +1,13 @@
 Version 2.28
 
+1/11/95 Recognition of wchar_t as a keyword
+
+In C++, wchar_t is now recognized as a keyword.  This feature may
+be enabled or disabled using a command line option.  The default
+is specified by a lang_feat.h flag.  When wchar_t is a keyword,
+a preprocessing flag can be automatically defined by the front end
+so that a single set of system headers can be used for both modes.
+
 1/11/95 Implicit inclusion problem introduced in 2.27
 
 Version 2.27 introduced an implicit inclusion bug that would sometimes
