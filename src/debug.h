@@ -56,6 +56,9 @@ extern a_boolean f_db_trace(char             *flag_name,
 #define db_trace(name, entry, kind) \
   (db_active && f_db_trace((name), (char *)(entry), (kind)))
 
+extern a_boolean f_db_sym_trace(char		*flag_name,
+				a_symbol_ptr	sym);
+
 /* Macro interface to f_db_sym_trace. */
 #define db_sym_trace(name, sym) \
   (db_active && f_db_sym_trace((name), sym))
