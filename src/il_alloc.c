@@ -1168,6 +1168,7 @@ to it.
   vp->type                        = NULL;
   vp->assoc_param_type            = NULL;
   vp->storage_class               = storage_class;
+  vp->declared_storage_class      = (a_storage_class)sc_unspecified;
   vp->address_taken               = FALSE;
   vp->is_parameter                = FALSE;
   vp->init_kind                   = (an_init_kind)initk_none;

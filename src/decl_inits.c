@@ -3593,12 +3593,24 @@ are created by a new expression (in which case sym is NULL).  In both cases
             /* Except in strict mode, don't bother issuing a diagnostic on
                something like "const struct S { } s;". */
           } else {
+            /* By default, the diagnostic is an error. */
+            severity = es_error;
             if (is_empty_POD_class && !is_incomplete_array) {
               severity = strict_ansi_error_severity;
-            } else if (microsoft_mode && is_class_struct_union_type(type)) {
-              severity = es_warning;
-            } else {
-              severity = es_error;
+            } else if (microsoft_mode) {
+              if (is_class_struct_union_type(type)) {
+                /* MSVC++ does not require an initializer for a const class
+                   variable with no default constructor. */
+                severity = es_warning;
+              } else if (vp->declared_storage_class ==
+                                          (a_storage_class)sc_static) {
+                /* It is probably a bug that MSVC++ has different behavior on
+                   the following:
+                     const int i;         // Error (no initializer)
+                     static const int j;  // No diagnostic
+                */
+                severity = es_warning;
+              }  /* if */
             }  /* if */
             if (is_class_struct_union_type(type) && !is_incomplete_array &&
                 !any_cfront_mode() && !microsoft_mode) {
@@ -3611,8 +3623,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
                                   ec_missing_default_constructor_on_const,
                                   &error_position, sym, skip_typerefs(type));
             } else {
-              /* Issue an error (or, for an empty class in -a mode, a warning)
-                 on omitting the initializer. */
+              /* Issue an error or warning on omitting the initializer. */
               sym_diagnostic(severity, ec_missing_initializer_on_const, sym);
             }  /* if */
           }  /* if */

@@ -7463,7 +7463,7 @@ of local variables (and types, etc.) of functions and in blocks.
 */
 {
   a_boolean                    local_is_old_style_param_decl;
-  a_storage_class              storage_class, local_storage_class;
+  a_storage_class              declared_storage_class, local_storage_class;
   a_type_ptr                   type_ptr, old_type;
   a_type_ptr	               local_type_ptr;
   a_boolean                    has_explicit_type_specifier;
@@ -7678,8 +7678,8 @@ of local variables (and types, etc.) of functions and in blocks.
   }  /* if */
 continue_with_declaration:
   /* Scan the specifiers. */
-  err = decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
-                        &qualifiers, &decl_modifiers);
+  err = decl_specifiers(dsi_flags, &dso_flags, &declared_storage_class,
+                        &type_ptr, &qualifiers, &decl_modifiers);
   has_explicit_type_specifier =
                       ((dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0);
   if (dso_flags & DSO_NO_DECL_SPECIFIERS) {
@@ -7692,7 +7692,7 @@ continue_with_declaration:
   }  /* if */
   /* The declaration can end at this point (";" is next). */
   if (!decl_specifiers_omitted &&
-      check_for_missing_declarator(dso_flags, type_ptr, storage_class,
+      check_for_missing_declarator(dso_flags, type_ptr, declared_storage_class,
                                    is_old_style_param_decl, extern_implied,
                                    &decl_start_pos, err)) {
     if (curr_token != tok_semicolon) {
@@ -7702,7 +7702,7 @@ continue_with_declaration:
       goto advance_past_final_token;
     }  /* if */
   } else if (curr_token == tok_void && C_dialect == C_dialect_pcc && 
-             storage_class == (a_storage_class)sc_typedef &&
+             declared_storage_class == (a_storage_class)sc_typedef &&
              next_token() == tok_semicolon) {
     /* "typedef <something> void;" in pcc mode.  Usually "typedef int void;".
        Shows up in old pre-void-keyword code.  Ignored in pcc mode. */
@@ -7723,12 +7723,12 @@ continue_with_declaration:
     if (C_dialect == C_dialect_cplusplus) {
       di_flags |= DI_PARENTHESIZED_INITIALIZER_ALLOWED;
       di_flags |= DI_OPERATOR_NAME_ALLOWED;
-      if (storage_class != (a_storage_class)sc_typedef &&
+      if (declared_storage_class != (a_storage_class)sc_typedef &&
           decl_scope_level == depth_innermost_namespace_scope) {
         di_flags |= DI_QUALIFIED_NAME_ALLOWED;
       }  /* if */
     }  /* if */
-    if (storage_class == (a_storage_class)sc_typedef) {
+    if (declared_storage_class == (a_storage_class)sc_typedef) {
       di_flags |= DI_IS_TYPEDEF_DECLARATION;
     }  /* if */
     if (is_old_style_param_decl) {
@@ -7749,7 +7749,7 @@ continue_with_declaration:
       }  /* if */
       clear_func_info(&func_info);
 #if ASM_FUNCTION_ALLOWED
-      if (storage_class == (a_storage_class)sc_asm) {
+      if (declared_storage_class == (a_storage_class)sc_asm) {
         func_info.is_asm_function = TRUE;
       }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -7772,7 +7772,7 @@ continue_with_declaration:
          declarator-id if this is a real declarator and the first token of
          the whole declarator if it is an abstract declarator. */
       declarator_pos = error_position;
-      is_function = (storage_class != (a_storage_class)sc_typedef &&
+      is_function = (declared_storage_class != (a_storage_class)sc_typedef &&
                      is_function_type(local_type_ptr));
       is_main_function = FALSE;
       if (is_function && !is_error_locator(locator) &&
@@ -7800,9 +7800,9 @@ continue_with_declaration:
               rtsp->exception_specification = NULL;
             }  /* if */
             /* "inline" and "static" are not allowed (ARM 3.4). */
-            if (storage_class == (a_storage_class)sc_static) {
+            if (declared_storage_class == (a_storage_class)sc_static) {
               pos_error(ec_static_not_allowed, &declarator_pos);
-              storage_class =(a_storage_class)sc_unspecified;
+              declared_storage_class = (a_storage_class)sc_unspecified;
             }  /* if */
             if (inline_specified) {
               pos_error(ec_inline_main, &declarator_pos);
@@ -7811,14 +7811,14 @@ continue_with_declaration:
           }  /* if */
         } else {
           /* C mode. */
-          if (storage_class == (a_storage_class)sc_unspecified ||
-              storage_class == (a_storage_class)sc_extern) {
+          if (declared_storage_class == (a_storage_class)sc_unspecified ||
+              declared_storage_class == (a_storage_class)sc_extern) {
             /* Not a static function named "main".  This is not an option
                in C++ (ARM 3.4). */
             func_info.is_main_function = is_main_function = TRUE;
           }  /* if */
         }  /* if */
-      } else if (storage_class == (a_storage_class)sc_typedef &&
+      } else if (declared_storage_class == (a_storage_class)sc_typedef &&
                  (do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF)) {
         /* This looked like a cfront-style member function typedef.  Be sure
            the type was a function type. */
@@ -7876,7 +7876,7 @@ continue_with_declaration:
                     &decl_start_pos);
         }  /* if */
       }  /* if */
-      local_storage_class = storage_class;
+      local_storage_class = declared_storage_class;
       local_is_old_style_param_decl = is_old_style_param_decl;
       /* If this is a parameter (old-style), make sure it appears on
          the param_id_list.  Also adjust the type if necessary
@@ -7936,7 +7936,7 @@ continue_with_declaration:
         need_lbrace_remove_stop_token = FALSE;
       }  /* if */
 #if ASM_FUNCTION_ALLOWED
-      if (storage_class == (a_storage_class)sc_asm) {
+      if (declared_storage_class == (a_storage_class)sc_asm) {
         if (!is_function) {
           /* Not a function definition. */
           pos_error(ec_bad_asm_function_def, &declarator_pos);
@@ -8043,7 +8043,7 @@ continue_with_declaration:
           final_token = tok_rbrace;
           goto advance_past_final_token;
 #if ASM_FUNCTION_ALLOWED
-        } else if (storage_class == (a_storage_class)sc_asm) {
+        } else if (declared_storage_class == (a_storage_class)sc_asm) {
           /* Not a function definition. */
           pos_error(ec_bad_asm_function_def, &pos_curr_token);
           local_storage_class = (a_storage_class)sc_unspecified;
@@ -8312,6 +8312,11 @@ continue_with_declaration:
            changed when reconciled with the original declaration. */
         local_type_ptr = var_ptr->type;
         local_storage_class = (a_storage_class)var_ptr->storage_class;
+        if (is_variable_def) {
+          /* The "declared_storage_class" field is updated only for variable
+             definitions. */
+          var_ptr->declared_storage_class = declared_storage_class;
+        }  /* if */
         if (is_old_style_param_decl) {
           /* Error case (described above).  Mark the symbol referenced, to
              suppress subsequent "declared and not referenced" warnings. */

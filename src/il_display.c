@@ -1183,6 +1183,8 @@ Display the indicated variable.
   }  /* if */
   disp_name("storage_class");
   disp_storage_class_name(ptr->storage_class);
+  disp_name("declared_storage_class");
+  disp_storage_class_name(ptr->declared_storage_class);
   if (ptr->address_taken) {
     disp_boolean("address_taken", (a_boolean)ptr->address_taken);
   }  /* if */

@@ -3745,6 +3745,14 @@ typedef struct a_variable {
 			   is represented elsewhere (e.g., in the use of
 			   a field for a nonstatic data member and a variable
 			   for a static data member). */
+  a_storage_class
+		declared_storage_class;
+			/* The storage class that explicitly appears in the
+			   source when the variable is defined; sc_unspecified
+			   if the definition has no explicit storage class
+			   (including a variable representing a static data
+			   member) or if there is no definition in the current
+			   translation unit. */
   a_bit_field	address_taken:1;
                         /* TRUE if the address of this variable has been
                            taken somewhere. */

@@ -1,5 +1,13 @@
 Version 2.36
 
+4/14/97   Microsoft compatibility: uninitialized const variable
+
+In Microsoft compatibility mode, when an uninitialized const variable is
+explicitly declared "static", a warning is now issued instead of an error:
+
+  static const int i;         // now a warning in Microsoft mode
+  const int j;                // still an error
+
 4/14/97   Internal error on default argument not at end of parameter list
           in a member function declaration
 
