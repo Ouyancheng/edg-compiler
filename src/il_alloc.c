@@ -1698,13 +1698,14 @@ fields to default values.
 #if DEBUG
       num_new_delete_supplements_allocated++;
 #endif /* DEBUG */
-      ndsp->is_new       = TRUE;
-      ndsp->placement_new= FALSE;
-      ndsp->array_delete = FALSE;
-      ndsp->type         = NULL;
-      ndsp->routine      = NULL;
-      ndsp->arg          = NULL;
-      ndsp->dynamic_init = NULL;
+      ndsp->is_new                          = TRUE;
+      ndsp->placement_new                   = FALSE;
+      ndsp->array_delete                    = FALSE;
+      ndsp->global_new_or_delete            = FALSE;
+      ndsp->type                            = NULL;
+      ndsp->routine                         = NULL;
+      ndsp->arg                             = NULL;
+      ndsp->dynamic_init                    = NULL;
       ndsp->freeing_of_storage_on_exception = NULL;
       break;
     case enk_throw:

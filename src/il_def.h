@@ -5930,6 +5930,9 @@ typedef struct a_new_delete_supplement {
   a_byte_boolean
 		array_delete;
 			/* TRUE if this is an array delete. */
+  a_byte_boolean
+		global_new_or_delete;
+			/* TRUE if the "::" scope qualifier was used. */
   a_type_ptr	type;
 			/* The type of the object being allocated for new;
 			   the type pointed to by the object pointer for
