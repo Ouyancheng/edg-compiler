@@ -5187,7 +5187,10 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
   a_routine_fixup_ptr     saved_routine_fixup;
   a_boolean               any_const_or_ref_fields = FALSE;
   a_layout_block          layout_block;
+  a_boolean               is_template_instantiation;
 
+  is_template_instantiation = (scope_stack[depth_scope_stack].kind ==
+                                     (a_scope_kind)sck_template_instantiation);
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   cssp = tag_sym->variant.class_struct_union.extra_info;
   /* A copy constructor need not be generated if construction by bitwise
@@ -5228,7 +5231,8 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
     tag_sym->defined = TRUE;
     /* If this is the definition of a nested class, set the parent class
        pointer in the tag symbol and set the access. */
-    if (scope_stack[decl_scope_level].kind ==
+    if (!is_template_instantiation &&
+        scope_stack[decl_scope_level].kind ==
                                 (a_scope_kind)sck_class_struct_union) {
       class_type->source_corresp.class_of_which_a_member =
             tag_sym->class_of_which_a_member =
