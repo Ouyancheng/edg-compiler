@@ -1018,6 +1018,8 @@ the default constructor (if one exists) is called.
   a_routine_ptr                  rp;
 
   db_enter(3, "def_initializer");
+  /* Default initialization is done only in C++ and only for variables and
+     static data members. */
   if (C_dialect == C_dialect_cplusplus &&
       (sym->kind == (a_symbol_kind)sk_variable ||
       sym->kind == (a_symbol_kind)sk_static_data_member)) {
@@ -1026,7 +1028,11 @@ the default constructor (if one exists) is called.
     while (is_array_type(tp)) {
       tp = skip_typerefs(tp->variant.array.element_type);
     }  /* while */
-    if (is_class_struct_union_type(tp)) {
+    /* Default initialization is done only for objects that are defined in
+       the current translation unit (i.e., storage class other than "extern")
+       and that require constructor initialization. */
+    if (is_class_struct_union_type(tp) &&
+        var->storage_class != (a_storage_class)sc_extern) {
       cssp = symbol_supplement_for_class(tp);
       if (cssp->constructor != NULL) {
         if (is_incomplete_type(var_type)) {
