@@ -1794,26 +1794,6 @@ nothing.
 }  /* free_macro_arg_entries */
 
 
-static a_boolean text_contains_end_of_token_escape(char     *text_loc,
-                                                   sizeof_t text_len)
-/*
-Return TRUE if the text sequence at text_loc, of length text_len,
-contains an end-of-token escape sequence.
-*/
-{
-  a_boolean contains_end_token = FALSE;
-  sizeof_t  pos;
-
-  for (pos = 0; pos+1 < text_len; pos++) {
-    if (text_loc[pos] == LE_ESCAPE && text_loc[pos+1] == LE_END_OF_TOKEN) {
-      contains_end_token = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  return contains_end_token;
-}  /* text_contains_end_of_token_escape */
-
-
 static char *find_final_inert_escape(char     *text_loc,
                                      sizeof_t sect_len)
 /*
@@ -1903,7 +1883,8 @@ of a_macro_arg_ptr elements: it is referred to by the get_arg_value macro and
 hence its name should not be changed.
 */
 {
-  sizeof_t result = 0;
+  sizeof_t  result = 0;
+  a_boolean prev_section_is_paste = FALSE;
 
   for (; *rtp != (int)rt_null;) {
     sizeof_t             sect_len, rts_number;
@@ -1924,6 +1905,11 @@ hence its name should not be changed.
       switch (rts_kind) {
         case rt_raw_argument:
           sect_len = map->raw_len;
+          /* Don't count an LE_INERT_MACRO escape at the beginning if present,
+             since it will be removed. */
+          if (prev_section_is_paste &&
+              map->raw_text[0] == LE_ESCAPE &&
+              map->raw_text[1] == LE_INERT_MACRO) sect_len -= LE_ESCAPE_LEN;
           break;
         case rt_stringized_raw_argument:
         case rt_charized_raw_argument:
@@ -1950,6 +1936,7 @@ hence its name should not be changed.
                                   &sect_len);
     }  /* if */
     result += sect_len;
+    prev_section_is_paste = (rts_kind == rt_paste);
   }  /* for */
   return result;
 }  /* length_of_replacement_text */
@@ -2759,6 +2746,7 @@ end_arg_expansion:;
   } else {
     /* More complicated expansion; do it by interpreting the replacement
        text sections. */
+    a_boolean prev_section_is_paste = FALSE;
     for (rtp = repl_text; *rtp != (int)rt_null;) {
       rts_kind = (a_repl_text_seq_kind)*(rtp++);
       /* Extract the section length or argument number. */
@@ -2779,17 +2767,17 @@ end_arg_expansion:;
             text_loc = map->raw_text;
             /* Remove an LE_INERT_MACRO escape at the beginning if present,
                since the token is being pasted to another one. */
-            if (map->raw_text[0] == LE_ESCAPE &&
-                map->raw_text[1] == LE_INERT_MACRO &&
-                /* ... but only if the argument is a single token. */
-                !text_contains_end_of_token_escape(text_loc, sect_len)) {
+            if (prev_section_is_paste &&
+                map->raw_text[0] == LE_ESCAPE &&
+                map->raw_text[1] == LE_INERT_MACRO) {
               sect_len -= LE_ESCAPE_LEN;
               text_loc += LE_ESCAPE_LEN;
-              /* Replace the inert-macro escape by an end-of-token escape to
-                 keep the overall length the same (repl_text_len has already
-                 been determined). */
-              *src_loc++ = LE_ESCAPE;
-              *src_loc++ = LE_END_OF_TOKEN;
+              /* Note that length_of_replacement_text did the same test and
+                 reduced the overall repl_text_len for this case.  It's
+                 important to actually remove the inert-macro escape (rather
+                 than replacing it with an end-of-token escape, as below)
+                 because we want to have the identifier text abut the preceding
+                 token. */
             }  /* if */
             { char *final_inert_escape =
                                    find_final_inert_escape(text_loc, sect_len);
@@ -2842,7 +2830,8 @@ end_arg_expansion:;
         /*lint --e(668)*/(void)memcpy(src_loc, text_loc, size_t_arg(sect_len));
         src_loc += sect_len;
       }  /* if */
-copy_done:;
+copy_done:
+      prev_section_is_paste = (rts_kind == rt_paste);
     }  /* for */
   }  /* if */
   /* Add a source modification that puts the replacement text into the
