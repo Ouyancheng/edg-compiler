@@ -1,5 +1,17 @@
 Version 3.6
 
+3/16/05  Microsoft compatibility: Incomplete property fields
+
+In Microsoft mode, the front end no longer issues an error when a property
+field (a Microsoft extension) is declared with an incomplete type.  For
+example:
+
+  struct I;
+  struct S {
+    I get_p();
+    __declspec(property(get=get_p)) I p;  // Previously an error.
+  };                                      // Now accepted without diagnostic.
+
 3/16/05  Predefined macros on MacOS X systems
 
 When the front end is compiled on a MacOS X system, a number of macros

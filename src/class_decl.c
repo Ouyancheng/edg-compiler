@@ -9546,6 +9546,12 @@ respectively.
                is_class_struct_union_type(field_type)) {
       /* In Microsoft and early g++ modes, a field type can be incomplete in a
          prototype instantiation. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode &&
+               (decl_info->decl_modifiers.get_property_name != NULL ||
+                decl_info->decl_modifiers.put_property_name != NULL)) {
+      /* A property field doesn't need to have a complete type. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       if (!C_mode() && is_error_locator(*locator) &&
           !decl_info->is_unnamed_field) {
