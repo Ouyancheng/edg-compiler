@@ -2787,31 +2787,26 @@ for exact pointer equality.
             if (ignore_type_qualifiers && !C_mode()) {
               sub_flags |= TCF_IGNORE_TYPE_QUALIFIERS;
             }  /* if */
+            /* Check that the element types are compatible. */
             if (f_types_are_compatible(type_1->variant.array.element_type,
                                        type_2->variant.array.element_type,
                                        sub_flags)) {
+              /* Check that the bounds match. */
               if (identical_array_type_level(type_1, type_2)) {
                 compat = TRUE;
               } else if (array_is_vla(type_1) || array_is_vla(type_2)) {
                 /* One or the other is a VLA, which is compatible with any
                    array of the same element type. */
                 compat = TRUE;
-              } else if (
-                     type_1->variant.array.is_template_dependent_size_array ||
-                     type_2->variant.array.is_template_dependent_size_array) {
-                /* An array with a parameterized bound is not compatible
-                   with any other bound if we failed the
-                   identical_array_type_level test above. */
-                compat = FALSE;
               } else if (C_mode() || top_level_for_redeclaration) {
                 /* Check whether one of the arrays has unknown bounds.  Note
                    that in C++ this produces "compatibility" only for top-level
                    redeclarations: "extern int a[]" and "int a[3]" are
                    "compatible" (WP 3.5), but not "extern int (*p)[]" and
                    "int (*p)[3]" (WP 3.8). */
-                if ((!type_1->variant.array.is_variable_size_array &&
+                if ((!has_unknown_specified_bound(type_1) &&
                      type_1->variant.array.variant.number_of_elements == 0) ||
-                    (!type_2->variant.array.is_variable_size_array &&
+                    (!has_unknown_specified_bound(type_2) &&
                      type_2->variant.array.variant.number_of_elements == 0)) {
                   /* One or the other is an unknown-bound array type, which is
                      compatible with any known-bound array of the same element
