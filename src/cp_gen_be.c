@@ -5147,7 +5147,18 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       switch (expr->variant.operation.kind) {
         /* One-operand operators. */
         case eok_indirect:
-          gen_lvalue_no_parens(operand_1);
+          /* Put out the underlying expression as an value, which adds a "*"
+             on the top of the expression.  However, don't do that if
+             the expression has an eok_lvalue on top, because that defeats
+             the extra "*". */
+          if (is_operation_node(operand_1) &&
+              operand_1->variant.operation.kind ==
+                                           (an_expr_operator_kind)eok_lvalue) {
+            write_tok_ch('*');
+            gen_expr_with_parens(operand_1);
+          } else {
+            gen_lvalue_no_parens(operand_1);
+          }  /* if */
           goto done_with_operation;
         case eok_negate:
         case eok_inegate:
