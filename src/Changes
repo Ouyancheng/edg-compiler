@@ -1,5 +1,19 @@
 Version 2.46
 
+10/7/01  Missing diagnostic on invalid template-id in destructor call
+
+No diagnostic was issued when the type of a template-id used as a
+destructor name did not match the type of the object being destroyed.
+This has been fixed.
+
+  template <class T> struct A {
+    ~A(){}
+  };
+  int main() {
+    A<int> *aip;
+    aip->A<int>::~A<char>();
+  }
+
 10/5/01  New configuration variable to set the alignment type
 
 The type of a_targ_alignment is a_byte.  However, a new configuration

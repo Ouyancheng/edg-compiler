@@ -8260,6 +8260,29 @@ class, we should accept any type.
 }  /* acceptable_dtor_type */
 
 
+static a_boolean acceptable_dtor_template_id(a_type_ptr	field_sel_type)
+/*
+We have a construct like "p->A<x>::~A<y>()".  Make sure that A<y> names
+the type of "p".  field_sel_type is the type of the object being destroyed.
+*/
+{
+  a_symbol_ptr	sym;
+  a_boolean	result = TRUE;
+
+  sym = locator_for_curr_id.specific_symbol;
+  if (sym != NULL) {
+    if (is_class_symbol(sym)) {
+      if (!acceptable_dtor_type(field_sel_type,
+                                type_symbol_type(sym))) {
+        /* The types do not match. */
+        result = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* acceptable_dtor_template_id */
+
+
 static void get_destructor_name(a_type_ptr	field_sel_type,
 				a_boolean	is_file_scope_qualified_name,
 				a_symbol_ptr	qualifier_sym)
@@ -8360,7 +8383,9 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
       }  /* if */
       if (error_already_issued) {
         /* Skip this section if an error was already issued. */
-      } else if (field_sym->header == locator_for_curr_id.symbol_header) {
+      } else if (field_sym->header == locator_for_curr_id.symbol_header &&
+                 (!locator_for_curr_id.is_template_id ||
+                  acceptable_dtor_template_id(field_sel_type))) {
         /* The destructor name matches the class name -- this is a normal
            destructor reference. */
         destructor_okay = TRUE;
