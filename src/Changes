@@ -1,5 +1,18 @@
 Version 2.13
 
+12/4/92  Use of a parameter name as an identifier in a function
+
+In cfront mode and in pcc mode an identifier used as function
+parameter may be redeclared within the function.  A warning is
+issued.  For example:
+
+  void f(int x)
+  {
+    char x;
+  }
+
+In cfront mode, "int x" may be used before the declaration of "char x".
+
 12/4/92  Referencing template class member type in function template
 
 Template support has been enhanced to permit references to member types
