@@ -102,11 +102,10 @@ Flags to be set when using the KAI inliner.
 #define MAINTAIN_NEEDED_FLAGS 0
 #define DEFAULT_REMOVE_UNNEEDED_ENTITIES 0
 #ifdef SOLARIS
-#define _POSIX_C_SOURCE 0
+#define _POSIX_C_SOURCE 3
 #define _XOPEN_VERSION 0
-#define _XOPEN_SOURCE_EXTENDED 0
 #define _XOPEN_SOURCE 0
-#define _XOPEN_SOURCE_EXTENDED 0
+#define _XOPEN_SOURCE_EXTENDED 1
 #endif /* SOLARIS */
 #endif /* SELFCOMP_VERSION */
 #ifndef MAINTAIN_NEEDED_FLAGS
