@@ -1916,7 +1916,10 @@ base class.
   a_base_class_ptr  bcp = base_classes_of(class_type);
 
   for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct && !bcp->is_virtual) {
+    if (bcp->direct && !bcp->is_virtual && !is_empty_class_type(bcp->type)) {
+      /* Note that we don't need to warn about empty base classes because
+         they are handled correctly through the empty base class optimization
+         code. */
       an_unnormalized_bit_offset
                         dummy = 0;
       a_class_type_supplement_ptr
