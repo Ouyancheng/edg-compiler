@@ -1351,7 +1351,7 @@ are done with op_1.
          somewhat slower but much simpler and avoids some potential
          overflow problems. */
       done = TRUE;
-      for (i = 0; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
+      for (i = 0; i < (int)(INT_VALUE_PARTS_PER_INTEGER_VALUE + 1); ++i) {
         register int diff = work_area[i + j] - temp_product[i];
         if (diff == 0) continue;
         if (diff < 0 ) {

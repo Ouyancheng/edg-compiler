@@ -1,5 +1,15 @@
 Version 2.46
 
+6/29/01  Incorrect result from division of large values with simulated integers
+
+When using simulated integers (i.e., when INTEGER_VALUE_REPR_IS_HOST_INTEGER
+is FALSE), the compile-time division of certain large values would
+sometimes produce an incorrect result.  This has been fixed.
+
+  int main()   {
+    long long l = 0x7fffffffffffffdll / 0x3ffffffffffffffll;
+  }
+
 6/28/01  Spurious error on declaration of conversion template specialization
 
 Declarations of conversion functions that are instances of conversion
