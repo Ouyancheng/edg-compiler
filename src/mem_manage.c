@@ -122,7 +122,7 @@ allocation and generates a catastrophic error.
 {
   char *ptr;
 
-  if ((ptr = (char *)malloc(size_t_arg(size))) == NULL) {
+  if ((ptr = (char *)malloc((true_size_t)size_t_arg(size))) == NULL) {
     catastrophe(ec_out_of_memory);
   } /* if */
 #if DEBUG
@@ -159,7 +159,8 @@ malloc_with_check.  "old_size" is present to help with tracking of space used.
   if (old_ptr == NULL) {
     ptr = malloc_with_check(new_size);
   } else {
-    if ((ptr = (char *)realloc(old_ptr, size_t_arg(new_size))) == NULL) {
+    if ((ptr = (char *)realloc(old_ptr,
+                               (true_size_t)size_t_arg(new_size))) == NULL) {
       catastrophe(ec_out_of_memory);
     } /* if */
 #if DEBUG
