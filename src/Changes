@@ -1,5 +1,13 @@
 Version 2.37
 
+7/22/97   Value of enumerator based on expression containing template
+          parameters
+
+An enumerator in a template whose value is given by an expression
+based on nontype template parameters was incorrectly evaluated as
+an error constant during the prototype instantiation, which could
+cause errors later when the enumerator value was used.  Now fixed.
+
 7/11/97   IL CHANGE: implicit_step_of_explicit_cast flag in an_expr_node
 
 A new flag, implicit_step_of_explicit_cast, has been added to the

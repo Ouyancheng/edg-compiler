@@ -1693,7 +1693,7 @@ to indicate whether an enumeration is actually defined.
   a_type_ptr               enum_con_type;
   a_symbol_ptr             enum_sym;
   a_constant               constant;
-  a_boolean                err, did_not_fold;
+  a_boolean                err, did_not_fold, template_param;
   a_constant_ptr           enum_con;
   a_constant_ptr           end_of_enum_con_list;
   a_constant               max_value, min_value;
@@ -1981,6 +1981,7 @@ to indicate whether an enumeration is actually defined.
            3.1.2.1 and 3.5.2.2) */
         remove_stop_token(tok_assign);
         err = FALSE;
+        template_param = FALSE;
         /* See if "= constant-expression" follows. */
         if (curr_token == tok_assign) {
           (void)get_token();
@@ -1993,10 +1994,8 @@ to indicate whether an enumeration is actually defined.
             /* We are doing a prototype instantiation and we have a case like
                this:
                  template <int N> class A { enum e { e1 = N }; };
-               This is perfectly legal, but for convenience we represent the
-               value as though this had been an error.  It will have no
-               effect on other processing. */
-            err = TRUE;
+            */
+            template_param = TRUE;
           } else {
             check_assertion(constant.kind == (a_constant_repr_kind)ck_integer);
             /* Check the value to see if it is out of range.  (3.5.2.2,
@@ -2060,6 +2059,9 @@ to indicate whether an enumeration is actually defined.
         if (err) {
           /* There was some kind of error in the value for the enumerator. */
           set_error_constant(&constant);
+        } else if (template_param) {
+          /* The expression has a template parameter value, so it has
+             no effect on the size of the enumeration. */
         } else if (!min_max_set) {
           max_value = constant;
           min_value = constant;
