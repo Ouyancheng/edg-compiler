@@ -1588,7 +1588,7 @@ because the exponent was out of range).
   if (any_digits) {
     /* Round the value to the nearest representable value. */
     round_hex_fp_value(mp, &exponent, mant_dig, /*is_fixed_point=*/FALSE,
-                       /*signed=*/FALSE, inexact);
+                       /*is_signed=*/FALSE, inexact);
     if (kind != (a_float_kind)fk_long_double ||
         !long_double_has_no_implicit_bit) {
       /* Shift one bit further to have an implied initial one bit.  This is
