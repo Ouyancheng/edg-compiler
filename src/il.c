@@ -8253,6 +8253,9 @@ Display and return the amount of space used for various IL tables.
   db_space_used("comment", num_comments_allocated, a_comment);
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  db_space_used("hidden names", num_hidden_names_allocated, a_hidden_name);
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   db_space_used("orphaned list headers",
                 num_scope_orphaned_list_headers_allocated,
@@ -8262,9 +8265,6 @@ Display and return the amount of space used for various IL tables.
   db_space_used_nontype("fs orphan pointers", num_fs_orphan_pointers_allocated,
                         SPACE_FOR_FS_ORPHAN_POINTER);
 #endif /* ORPHAN_PROCESSING_NEEDED */
-#if RECORD_HIDDEN_NAMES_IN_IL
-  db_space_used("hidden names", num_hidden_names_allocated, a_hidden_name);
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   db_space_used("IL entry prefix", num_il_entry_prefixes_allocated,
                 an_il_entry_prefix);
 
