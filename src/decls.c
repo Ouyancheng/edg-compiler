@@ -868,6 +868,7 @@ types separated by commas (when single_declaration_required is FALSE).
 {
   a_token_cache       token_cache;
   a_boolean           may_be_decl = TRUE;
+  a_boolean	      prev_do_not_clear_specific_symbol;
 
   db_enter(3, "f_is_decl_not_expr");
   /* The ambiguous cases all begin a type name followed by a left
@@ -876,6 +877,15 @@ types separated by commas (when single_declaration_required is FALSE).
   if (next_token() == tok_lparen && is_type_start()) {
     /* Initialize the token cache. */
     clear_token_cache(&token_cache, /*reusable=*/FALSE);
+    if (curr_token == tok_identifier) {
+      /* The prescanning process clears the specific symbol field of the
+         locator to prevent the prescanning process from biasing
+         subsequent lookups.  If the locator is already set, however, then
+         the prescanning process should not cause it to be cleared. */
+      prev_do_not_clear_specific_symbol =
+                            locator_for_curr_id.do_not_clear_specific_symbol;
+      locator_for_curr_id.do_not_clear_specific_symbol = TRUE;
+    }  /* if */
     /* Scan forward as far as required to determine whether this is a
        declaration.  Each token that is encountered is cached away, so that
        that they can be restored for the actual scan. */
@@ -906,6 +916,12 @@ types separated by commas (when single_declaration_required is FALSE).
 done:
     /* Restore the tokens. */
     rescan_cached_tokens(&token_cache);
+    if (curr_token == tok_identifier) {
+      /* Restore the saved value of the do_not_clear_specific_symbol
+         flag. */
+      locator_for_curr_id.do_not_clear_specific_symbol =
+                                            prev_do_not_clear_specific_symbol;
+    }  /* if */
   }  /* if */
   db_exit();
   return may_be_decl;
