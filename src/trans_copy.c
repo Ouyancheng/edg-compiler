@@ -1746,6 +1746,10 @@ two-pass sweep.
   a_routine_ptr   routine;
   a_namespace_ptr nsp;
 
+  check_assertion(in_secondary_trans_unit(scope) ||
+                  (scope->kind == (a_scope_kind)sck_class_struct_union &&
+                   scope->variant.assoc_type->source_corresp.
+                                                        is_local_to_function));
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
     if (!nsp->is_namespace_alias) {
       finish_moved_function_processing(nsp->variant.assoc_scope, do_inlines);
