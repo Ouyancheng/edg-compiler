@@ -8333,20 +8333,32 @@ Set the specific symbol to the associated nonfundamental symbol.
          is declared. */
       an_error_severity	severity;
       a_symbol_ptr	sym_to_use;
+      a_symbol_ptr	diag_sym_to_use;
       a_symbol_ptr	sym_to_ignore;
-     if (might_be_template) {
+      a_symbol_ptr	diag_class_sym;
+      /* If the class symbol is a constructor, use the class symbol in place
+         of the constructor symbol for error reporting. */
+      if (is_constructor_symbol(class_fund_sym)) {
+        diag_class_sym = (a_symbol_ptr)class_fund_sym->
+                                  parent.class_type->source_corresp.assoc_info;
+      } else {
+        diag_class_sym = class_fund_sym;
+      }  /* if */
+      if (might_be_template) {
         sym_to_use = class_fund_sym;
+        diag_sym_to_use = diag_class_sym;
         specific_symbol = class_sym;
         sym_to_ignore = normal_fund_sym;
         severity = es_warning;
       } else {
         sym_to_use = normal_fund_sym;
+        diag_sym_to_use = sym_to_use;
         specific_symbol = normal_sym;
-        sym_to_ignore = class_sym;
+        sym_to_ignore = diag_class_sym;
         severity = strict_ansi_error_severity;
       }  /* if */
       pos_sy2_diagnostic(severity, ec_dual_lookup_ambiguous_name,
-                         &error_position, sym_to_use, sym_to_ignore);
+                         &error_position, diag_sym_to_use, sym_to_ignore);
       result_sym = sym_to_use;
     }  /* if */
   } else {
