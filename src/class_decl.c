@@ -4590,7 +4590,8 @@ of the function, and again overloading is a possibility.
          returned. */
       sym = find_matching_template_instance(
                                sym, function_type, locator->template_arg_list,
-                               (a_boolean)locator->is_template_id);
+                               (a_boolean)locator->is_template_id,
+                               es_error);
       if (sym == NULL) {
         /* This is a member function, but one with a type that doesn't
            match a previously declared member.  A diagnostic will have been

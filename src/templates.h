@@ -217,8 +217,9 @@ a_boolean has_matching_template_instance(
 extern a_symbol_ptr find_matching_template_instance(
 			a_symbol_ptr		sym,
 			a_type_ptr		type,
-			a_template_arg_ptr	templ_arg_list,
-			a_boolean		explicit_arg_list_present);
+			a_template_arg_ptr	explicit_arg_list,
+			a_boolean		explicit_arg_list_present,
+			an_error_severity	severity_if_not_found);
 
 extern int compare_function_templates(
 				a_symbol_ptr 		templ_sym1,

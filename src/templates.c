@@ -10249,14 +10249,17 @@ a_symbol_ptr find_matching_template_instance(
 			a_symbol_ptr		sym,
 			a_type_ptr		type,
 			a_template_arg_ptr	explicit_arg_list,
-			a_boolean		explicit_arg_list_present)
+			a_boolean		explicit_arg_list_present,
+			an_error_severity	severity_if_not_found)
 /*
 sym is some kind of function symbol.  type is the type declared for a
 function template instance.  explicit_arg_list is an explicitly specified
 template argument list, which may be NULL.  explicit_arg_list_present
 is TRUE if an explicit argument list was provided, even an empty one
-(in which case explicit_arg_list would be NULL).  Return in the symbol
-for the instance, or NULL if no instance is found.
+(in which case explicit_arg_list would be NULL).  severity_if_not_found
+is the severity of the diagnostic to be issued if no matching instance
+is found.  Return the symbol for the instance, or NULL if no instance is
+found.
 */
 {
   a_symbol_ptr  		orig_sym;
@@ -10336,7 +10339,7 @@ for the instance, or NULL if no instance is found.
     } else {
       err_code = ec_not_compatible_with_previous_decl;
     }  /* if */
-    sym_error(err_code, orig_sym);
+    sym_diagnostic(severity_if_not_found, err_code, orig_sym);
   }  /* if */
   return new_sym;
 }  /* find_matching_template_instance */
@@ -10589,7 +10592,8 @@ that follows.
       if (is_function_type(type) && is_function_or_template_symbol(sym)) {
         sym = find_matching_template_instance(
                                         sym, type, locator.template_arg_list,
-                                        (a_boolean)locator.is_template_id);
+                                        (a_boolean)locator.is_template_id,
+					es_error);
         if (sym == NULL) {
           /* No match was found and an error was issued. */
         } else if (sym->variant.routine.instance_ptr == NULL) {
@@ -12939,6 +12943,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   a_source_sequence_entry_ptr   ssep;
   a_source_position             template_keyword_pos;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  an_error_severity		severity_if_not_found = es_error;
 
   db_enter(3, "instantiation_directive");
   if (!is_pragma) {
@@ -13034,6 +13039,14 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+     /* The Microsoft compiler silently ignores cases in which no matching
+        template is found for an explicit instantiation or an "extern
+        template" directive.  In Microsoft bugs mode we issue a warning
+        for an explicit instantiation and a remark for an "extern template". */
+  if (microsoft_bugs && !is_pragma) {
+    severity_if_not_found = kind == pk_do_not_instantiate ? es_remark
+                                                          : es_warning;
+  }  /* if */
   /* Look up the identifier scanned in the declarator.  If the
      declarator contains a qualified name it will already have
      been looked up. */
@@ -13050,8 +13063,9 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
         (type != NULL && !is_function_type(type))) {
       pos_error(ec_invalid_instantiation_argument, start_pos);
     } else {
-      pos_st_error(ec_undefined_identifier, &locator.source_position,
-                   locator.symbol_header->identifier);
+      pos_st_diagnostic(severity_if_not_found, ec_undefined_identifier,
+                        &locator.source_position,
+                        locator.symbol_header->identifier);
     }  /* if */
   } else {
     if (sym->is_class_member &&
@@ -13098,10 +13112,19 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
     } else {
       /* The symbol found is a function, and the type returned from declarator
          is a function type.  Match this declaration with a previous
-         declaration or a template instance. */
+         declaration or a template instance.  Normally, a failure to find
+         a match is an error.  The Microsoft compiler silently ignores
+         such failures.  Even so, issue a warning for an explicit
+         instantiation and a remark for an "extern template". */
+      an_error_severity	severity_if_not_found = es_error;
+      if (microsoft_bugs && !is_pragma) {
+        severity_if_not_found = kind == pk_do_not_instantiate ? es_remark
+                                                              : es_warning;
+      }  /* if */
       new_sym = find_matching_template_instance(
                                           sym, type, locator.template_arg_list,
-                                          (a_boolean)locator.is_template_id);
+                                          (a_boolean)locator.is_template_id,
+                                          severity_if_not_found);
       if (new_sym != NULL) {
         /* Update the flags for the symbol found. */
         update_instantiation_flags(new_sym, kind, start_pos,

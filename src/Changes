@@ -1,5 +1,18 @@
 Version 2.39
 
+2/17/98   Microsoft compatibility: invalid explicit instantiation and
+          "extern template" directives
+
+The Microsoft compiler permits explicit instantiation directives and
+Microsoft "extern template" directives even when there is no template
+that matches the specified instance.  We now support this in Microsoft
+mode.
+
+  struct A {};
+  template <class T> int operator >>(T,T*);
+  extern template int operator <<(A,A);  // No operator << visible
+  extern template int operator >>(A,A);  // No matching operator >>
+
 2/17/98   Small bugs in supplying source range information
 
 A number of small bugs have been fixed in supplying source range
