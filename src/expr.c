@@ -12655,6 +12655,10 @@ parameter type is not known.
   } else {
     /* No destination type.  Make a constant from the operand. */
     error_if_indefinite_function(&result);
+    if (is_sym_for_member_operand(&result)) {
+      /* Replace a symbol-for-member operand by a pointer-to-member. */
+      conv_sym_for_member_operand_to_ptr_to_member(&result);
+    }  /* if */
     extract_constant_from_operand(&result, constant);
   }  /* if */
   pop_expr_stack();
