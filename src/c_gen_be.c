@@ -1449,8 +1449,6 @@ the first level), followed by a space.  The type must be a tk_typeref
 containing a type qualifier.
 */
 {
-  a_boolean previous_qualifier = FALSE;
-
   check_assertion_str(type->kind == (a_type_kind)tk_typeref,
                       "dump_type_qualifier: bad type kind");
   if (type->variant.typeref.is_const) {
@@ -1462,13 +1460,13 @@ containing a type qualifier.
     start_comment();
     write_tok_str("const");
     end_comment();
-    previous_qualifier = TRUE;
+    write_space();
 #else /* !C_GEN_BE_GENERATES_ANSI_C */
     if (annotate) {
       start_comment();
       write_tok_str("const");
       end_comment();
-      previous_qualifier = TRUE;
+      write_space();
     }  /* if */
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   }  /* if */
@@ -1476,12 +1474,14 @@ containing a type qualifier.
 #if C_GEN_BE_GENERATES_ANSI_C
     if (previous_qualifier) write_space();
     write_tok_str("volatile");
+    write_space();
 #else /* !C_GEN_BE_GENERATES_ANSI_C */
     if (annotate) {
       if (previous_qualifier) write_space();
       start_comment();
       write_tok_str("volatile");
       end_comment();
+      write_space();
     }  /* if */
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   }  /* if */
