@@ -1098,7 +1098,14 @@ type "type".
   param = rtsp->param_type_list;
   if (param == NULL) {
     /* Void parameter list. */
-    add_to_mangled_name('v', mctl);
+#if IA64_ABI
+    /* No "v" if there is an ellipsis. */
+    if (!rtsp->has_ellipsis)
+#endif /* IA64_ABI */
+    /* Do not add code here. */
+    {
+      add_to_mangled_name('v', mctl);
+    }  /* if */
   } else {
     /* Output the parameter types. */
     for (; param != NULL; param = param->next) {
