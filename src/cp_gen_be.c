@@ -163,13 +163,25 @@ static a_name_context_ptr
 			/* Current name context stack. */
 
 /*
+Return TRUE if the current name context is a class.
+*/
+#define curr_name_context_is_a_class()                                \
+  (curr_name_context != NULL &&                                       \
+   curr_name_context->assoc_scope->kind ==                            \
+                              (a_scope_kind)sck_class_struct_union)
+
+/*
+Given that the current name context is a class, return the class type.
+*/
+#define curr_name_context_class()                                     \
+  (curr_name_context->assoc_scope->variant.assoc_type)
+
+/*
 Return TRUE if the current name context is the indicated class.
 */
 #define curr_name_context_is_class(class_type)                        \
-  (curr_name_context != NULL &&                                       \
-   curr_name_context->assoc_scope->kind ==                            \
-                              (a_scope_kind)sck_class_struct_union && \
-   curr_name_context->assoc_scope->variant.assoc_type == (class_type))
+  (curr_name_context_is_a_class() &&                                  \
+   curr_name_context_class() == (class_type))
 
 
 /*
@@ -2268,10 +2280,32 @@ is non-NULL and points to the secondary declaration entry.
 }  /* gen_typedef_definition */
 
 
+static a_boolean is_on_friend_list_of(a_type_ptr type,
+                                      a_type_ptr friend_type)
+/*
+Return TRUE if friend_type is a friend of the class type "type".
+*/
+{
+  a_boolean              is_friend = FALSE;
+  a_class_list_entry_ptr pfriend;
+
+  for (pfriend = type->variant.class_struct_union.extra_info->friend_classes;
+       pfriend != NULL;
+       pfriend = pfriend->next) {
+    if (pfriend->class_type == friend_type) {
+      is_friend = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return is_friend;
+}  /* is_on_friend_list_of */
+
+
 static void gen_type_decl(void)
 /*
 Generate a declaration or definition of the type indicated by the current
-source sequence entry.
+source sequence entry.  This might be a declaration or definition of
+a member type, nonmember type, or friend.
 */
 {
   a_type_ptr                   type;
@@ -2302,6 +2336,40 @@ source sequence entry.
          of a definition. */
       adv_curr_source_sequence_entry();
       set_decl_position(&type->source_corresp, sec_decl);
+      /* Check for friend declarations. */
+      if (curr_name_context_is_a_class()) {
+        /* This declaration is inside a class in C++. */
+        a_type_ptr class_type = type->source_corresp.class_of_which_a_member;
+        a_boolean  friend_decl = FALSE;
+        if (curr_name_context_class() == class_type) {
+          /* This is a declaration of a nested class inside the class of
+             which it is a member.  It's probably just the declaration of
+             a nested type, but it might still be a friend declaration:
+               struct A {
+                 struct B { int i; };
+                 friend struct B;  // This line
+               };
+          */
+          if (is_on_friend_list_of(class_type, type)) {
+            /* Put out a vacuous declaration of the class, and then
+               start a friend declaration.  Using two declarations is
+               necessary because "friend class B;" as the first appearance
+               would put B outside of the class A, and we can't easily
+               tell if this is the first appearance of the class. */
+            gen_tag_reference(type);
+            write_tok_ch(';');
+            write_space();
+            friend_decl = TRUE;
+          }  /* if */
+        } else {
+          /* This is a declaration of a nested type outside of the class
+             of which it is a member but inside some other class, or a
+             declaration of a nonmember class inside some class.  This
+             must be a friend declaration. */
+          friend_decl = TRUE;
+        }  /* if */
+        if (friend_decl) write_tok_str("friend ");
+      }  /* if */
       gen_tag_reference(type);
     } else if (kind == (a_type_kind)tk_enum) {
       /* An enum type definition. */
@@ -3839,7 +3907,8 @@ scope, starting with the opening brace of the top-level block.
 static void gen_routine_decl(void)
 /*
 Generate a declaration of the routine indicated by the current source
-sequence entry.
+sequence entry.  This might be a member, nonmember, or friend function
+declaration or definition.
 */
 {
   a_routine_ptr                rout;
@@ -3879,23 +3948,35 @@ sequence entry.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     scope = il_header.region_scope_entry[scope_region_number];
   }  /* if */
+  rout_class_type = rout->source_corresp.class_of_which_a_member;
+  /* Check for special declarations within a class. */
+  if (curr_name_context_is_a_class()) {
+    /* We're currently inside a class definition. */
+    if (curr_name_context_class() == rout_class_type){
+      /* This is a declaration or definition of a member function inside
+         its class. */
+      decl_within_class = TRUE;
+    } else {
+      /* This is a declaration of a nonmember or member of another class
+         inside a class: this is a friend declaration. */
+      write_tok_str("friend ");
+    }  /* if */
+  }  /* if */
   /* Output the storage class. */
   storage_class = rout->storage_class;
   /* Determine the proper storage class to display. */
-  rout_class_type = rout->source_corresp.class_of_which_a_member;
   if (rout_class_type != NULL) {
     /* Member function. */
-    if (curr_name_context_is_class(rout_class_type)) {
-      /* This declaration or definition is inside the class. */
-      decl_within_class = TRUE;
-    }  /* if */
     /* Suppress the storage class. "static" means something else within
        the class, and we don't want to use "extern" ever. */
     storage_class = (a_storage_class)sc_unspecified;
-  } else if (!is_definition) {
-    /* The function is not defined (here), so use "extern". */
-    if (storage_class == (a_storage_class)sc_unspecified) {
-      storage_class = (a_storage_class)sc_extern;
+  } else {
+    /* Nonmember function. */
+    if (!is_definition) {
+      /* The function is not defined (here), so use "extern". */
+      if (storage_class == (a_storage_class)sc_unspecified) {
+        storage_class = (a_storage_class)sc_extern;
+      }  /* if */
     }  /* if */
   }  /* if */
   gen_storage_class(storage_class);
