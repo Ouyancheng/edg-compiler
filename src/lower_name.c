@@ -234,6 +234,15 @@ of the function is encoded if do_return_type is TRUE.
   /* Start with the "F" indicating a function type. */
   mangled_name_length = 1;
   if (store_at != NULL) *store_at++ = 'F';
+  if (c_and_cpp_function_types_are_distinct &&
+      type->variant.routine.extra_info->routine_name_linkage ==
+                                           (a_name_linkage_kind)nlk_external) {
+    /* The function type is marked as extern "C", and the distinction between
+       extern "C" and extern "C++" is significant.  Put out a "K" to mark
+       the function type as a C function. */
+    mangled_name_length++;
+    if (store_at != NULL) *store_at++ = 'K';
+  }  /* if */
   /* Add the parameter types. */
   section_length = mangled_encoding_for_parameter_types(type, store_at);
   mangled_name_length += section_length;

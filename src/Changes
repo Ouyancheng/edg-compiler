@@ -1,5 +1,13 @@
 Version 2.33
 
+8/13/96 "K" to indicate extern "C" in mangled name for function type
+
+When c_and_cpp_function_types_are_distinct, function types that have
+associated extern "C" linkage now have a "K" following the "F" in the
+mangled name for the function type.  Since functions with extern "C"
+linkage do not get mangled names, this is visible primarily in
+parameters with pointer-to-function type.
+
 8/13/96 Name linkage and enum types
 
 Enum types are now assigned a name linkage using the same logic heretofore
