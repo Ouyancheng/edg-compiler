@@ -1701,7 +1701,7 @@ Allocate a new symbol list entry and return a pointer to it.
   }  /* if */
   ptr->next    = NULL;
   ptr->symbol  = NULL;
-  
+  ptr->from_arg_dep_lookup_namespace = FALSE;
   db_exit();
   return ptr;
 }  /* alloc_symbol_list_entry */

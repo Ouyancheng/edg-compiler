@@ -5905,9 +5905,19 @@ declaration of the function, and again overloading is a possibility.
           class_type->source_corresp.is_local_to_function) {
         pos_sy_error(ec_bad_scope_for_definition, &pos_curr_token, sym);
       }  /* if */
-      if (arg_dependent_lookup_enabled && sym->is_invisible) {
-        add_friend_function_to_lookup_list_for_class(sym, class_type);
-      }  /* if */
+      /* If this symbol might not be found because it is invisible, add it
+         to the friend list for the class. */
+      { a_boolean	add_to_friend_list = FALSE;
+        if (arg_dependent_lookup_enabled) {
+          if (sym->is_invisible) add_to_friend_list = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (sym->is_microsoft_invisible_operator) add_to_friend_list = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        }  /* if */
+        if (add_to_friend_list) {
+          add_friend_function_to_lookup_list_for_class(sym, class_type);
+        }  /* if */
+      }
     } else {
       /* The friend function is a class member. */
       if (sym->parent.class_type == class_type) {

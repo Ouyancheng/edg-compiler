@@ -4961,6 +4961,7 @@ If a match is found, add the entry to to symbol_list.
       slep = alloc_symbol_list_entry();
       slep->symbol = sym;
       slep->next = *symbol_list;
+      slep->from_arg_dep_lookup_namespace = TRUE;
       *symbol_list = slep;
     }  /* if */
   }  /* if */
