@@ -4133,10 +4133,6 @@ entry is pushed on the scope stack.
        added to the templates list, its decl_position has been set, and
        its source correspondence entry, if any, has been put out.) */
     if (sym != NULL && !sym->is_error) {
-      /* Give it a name, etc.  Note that the class-of-which-a-member field
-         should not be set, since the parent class of a member function or
-         static data member template is generally not a real class. */
-      set_source_corresp(&il_template_entry->source_corresp, sym);
       /* Set the template kind. */
       switch (sym->kind) {
         case sk_class_template:
@@ -4151,15 +4147,21 @@ entry is pushed on the scope stack.
         case sk_static_data_member:
           il_template_entry->kind = (a_template_kind)templk_static_data_member;
           break;
-#if CHECKING
         default:
-          internal_error("template_declaration: bad template symbol kind");
-#endif /* CHECKING */
+          /* There must have been an error.  Do the check because we don't
+             want an incomlete IL entry to be handed to the back end. */
+          check_assertion(total_errors > 0);
+          goto skip_template_string;
       }  /* switch */
+      /* Give it a name, etc.  Note that the class-of-which-a-member field
+         should not be set, since the parent class of a member function or
+         static data member template is generally not a real class. */
+      set_source_corresp(&il_template_entry->source_corresp, sym);
       /* Create the string that represents the template declaration. */
       make_template_string(il_template_entry, &template_param_list_cache,
                            &decl_token_cache, p_template_body_cache);
     }  /* if */
+skip_template_string:
     /* The cache for the template parameter list is no longer needed. */
     discard_token_cache(&template_param_list_cache);
   }  /* if */
