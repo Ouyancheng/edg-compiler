@@ -1348,11 +1348,11 @@ member declaration (allowed in Microsoft mode only).
                                 &locator->source_position,
                                 func_info->declarator_ssep);
       if (!source_sequence_entries_disallowed) {
-        a_source_sequence_entry_ptr  ssep = NULL;
+        a_source_sequence_entry_ptr  decl_ssep = NULL;
         a_src_seq_secondary_decl_ptr  sssdp;
-        ssep = last_matching_source_sequence_entry((char *)rp);
-        check_assertion(ssep != NULL);
-        sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
+        decl_ssep = last_matching_source_sequence_entry((char *)rp);
+        check_assertion(decl_ssep != NULL);
+        sssdp = (a_src_seq_secondary_decl_ptr)decl_ssep->entity.ptr;
         sssdp->declared_type = func_info->declared_type;
       }  /* if */
     }  /* if */
