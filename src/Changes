@@ -191,9 +191,9 @@ This is now fixed.
 
 2/5/03   Microsoft compatibility: disambiguation
 
-The MSVC++ 7.1 compiler fixes some disambiguation bugs that we emulated.
+The MSVC++ 7.0 compiler fixes some disambiguation bugs that we emulated.
 This emulation is now done only in Microsoft bugs mode when microsoft_version
-is < 1310.  In this example, "i" should be a function declaration, but is
+is < 1300.  In this example, "i" should be a function declaration, but is
 considered an object declaration when emulating the Microsoft bug.
 
   int main() {
