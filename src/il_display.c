@@ -615,8 +615,6 @@ display_constant_value:
                iek_constant);
       break;
 #ifdef CFE
-    /*case ck_template_param:*/
-      /* Front end only. */
     case ck_cast:
       (void)printf("ck_cast\n");
       disp_ptr("source_constant", (char *)ptr->variant.source_constant,
@@ -636,9 +634,9 @@ display_constant_value:
       disp_unsigned_long("segment_size",
                          ptr->variant.init_position.segment_size);
       break;
-    /*case ck_hex_octal:*/
-      /* Front end only. */
+    case ck_hex_octal: /* Front end only. */
 #endif /* ifdef FFE */
+    case ck_template_param: /* Front end only. */
     default:
       printf("**BAD CONSTANT KIND**\n");
   }  /* switch */
