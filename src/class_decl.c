@@ -2821,6 +2821,8 @@ without it.
 static a_symbol_ptr decl_friend_function(a_symbol_locator    *locator,
                                          a_type_ptr          class_type,
                                          a_type_ptr          function_type,
+                                         an_exception_specification_ptr
+                                                             exception_spec,
                                          a_boolean           is_inline)
 /*
 Do processing for declaring a function (identified by *locator and with
@@ -2887,7 +2889,7 @@ of the function, and again overloading is a possibility.
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
       decl_var_or_routine(locator, storage_class, function_type,
-                          /*is_implicit_function=*/FALSE,
+                          exception_spec, /*is_implicit_function=*/FALSE,
                           is_function_def_with_body, is_inline,
                           is_main_function, &sym, &linkage, &old_type,
                           &ext_sym);
@@ -2913,6 +2915,8 @@ of the function, and again overloading is a possibility.
             !sym->variant.routine.ptr->is_inline) {
           error(ec_inline_not_allowed);
         }  /* if */
+        merge_exception_specifications(exception_spec,
+                                       sym->variant.routine.ptr);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3244,6 +3248,8 @@ static a_symbol_ptr decl_member_function(
                                    a_symbol_locator        *locator,
                                    a_type_ptr              class_type,
                                    a_type_ptr              member_type,
+                                   an_exception_specification_ptr
+                                                           exception_spec,
                                    an_access_specifier     access,
                                    a_boolean               is_inline,
                                    a_boolean               is_virtual,
@@ -3293,6 +3299,7 @@ special function kind (e.g., constructor, destructor), if any.
        merge the declarations anyway. */
     redecl_member_function(sym, member_type, access, is_inline, is_virtual,
                            &locator->source_position);
+    merge_exception_specifications(exception_spec, rtn);
   } else {
     sym->class_of_which_a_member = class_type;
     /* Create the routine entry for the member function. */
@@ -3314,6 +3321,7 @@ special function kind (e.g., constructor, destructor), if any.
     rtn->source_corresp.access = access;
     rtn->is_inline = is_inline;
     rtn->compiler_generated = compiler_generated;
+    rtn->exception_specifications = exception_spec;
     if (cssp->is_nonreal_class) {
       /* This symbol represents a member function of a prototype instantiation
          of a class template.  As such it is a quasi function template itself.
@@ -4160,6 +4168,7 @@ routine body is generated at this time.
   /* Create a symbol and enter it in the symbol table, and create a routine
      entry and add it to the routines list for the current scope. */
   (void)decl_member_function(&locator, class_type, rout_type,
+                             (an_exception_specification_ptr)NULL,
                              (an_access_specifier)as_public,
                              /*is_inline=*/TRUE, /*is_virtual=*/FALSE,
                              /*compiler_generated=*/TRUE, sfkind);
@@ -6206,8 +6215,10 @@ Scan the body of a class definition, including the base classes list.
                 }  /* if */
               }  /* if */
               if (friend_specified) {
-                rout_sym = decl_friend_function(&locator, class_type,
-                                                local_type, inline_specified);
+                rout_sym =
+                      decl_friend_function(&locator, class_type, local_type,
+                                           func_info.exception_specifications,
+                                           inline_specified);
               } else {
                 if (is_destructor) {
                   spec_kind = (a_special_function_kind)sfk_destructor;
@@ -6217,9 +6228,10 @@ Scan the body of a class definition, including the base classes list.
                 }  /* if */
                 /* Create a symbol for the member function. */
                 rout_sym = decl_member_function(
-                                     &locator, class_type, local_type, access,
-                                     inline_specified, virtual_specified,
-                                     /*compiler_generated=*/FALSE, spec_kind);
+                                   &locator, class_type, local_type,
+                                   func_info.exception_specifications, access,
+                                   inline_specified, virtual_specified,
+                                   /*compiler_generated=*/FALSE, spec_kind);
                 if (corresp_prototype_tag_sym != NULL) {
                   /* The class must be the instantiation of a class template
                      (or a class nested within such an instantiation). Bind
