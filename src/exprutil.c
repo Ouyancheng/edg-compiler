@@ -4708,7 +4708,12 @@ for example, in something like "(short)i = 0").
         an_operand orig_operand;
         orig_operand = *operand;
         if (casts_removed) {
-          pos_warning(ec_gcc_lvalue_cast_ignored, &operand->position);
+          if (gpp_mode && gnu_version >= 30400) {
+            /* g++ 3.4 made this into an error. */
+            pos_error(ec_gcc_use_of_cast_as_lvalue, &operand->position);
+          } else {
+            pos_warning(ec_gcc_lvalue_cast_ignored, &operand->position);
+          }  /* if */
         }  /* if */
         conv_rvalue_expr_to_object_pointer(&expr, &do_recovery,
                                            /*see_if_possible=*/FALSE,
@@ -10127,6 +10132,11 @@ C mode.
        SVR4 C mode, and in Microsoft C mode (it also applies in Microsoft
        C++ mode, but that case doesn't get to this routine). */
     is_still_an_lvalue = TRUE;
+  } else if (gcc_mode) {
+    /* GNU C treats only a cast to the identical type as this kind
+       of lvalue cast.  Other cases are handled by
+       revert_gcc_rvalue_to_lvalue_if_possible. */
+    /* is_still_an_lvalue = FALSE; -- already set. */
   } else if (!microsoft_mode &&
              (is_floating_type(type_before_cast) ||
               is_floating_type(type_cast_to))) {

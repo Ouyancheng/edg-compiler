@@ -1407,6 +1407,7 @@ ec_cannot_initialize_destructible_flexible_array;;"an initializer cannot be spec
 ec_cannot_initialize_indirect_flexible_array;;"an initializer cannot be specified for an indirect flexible array member"
 ec_cl_invalid_gnu_version;;"invalid GNU version number (minimum 30200): "
 ec_attribute_after_parenthesized_initializer;;"variable attributes appearing after a parenthesized initializer are ignored"
+ec_gcc_use_of_cast_as_lvalue;;"the result of this cast cannot be used as an lvalue"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
