@@ -794,6 +794,26 @@ old_class under new_class.  If old_class is NULL it means we don't know
   a_base_class_ptr new_base_class, bcp;
 
   db_enter(4, "corresponding_base_class");
+#if DEBUG
+  if (debug_level >= 4) {
+    fputs("looking in \"", f_debug);
+    db_type_name(new_class);
+    fputs("\" for a base class corresponding to:\n  ", f_debug);
+    if (base_class != NULL) {
+      db_base_class(base_class, FALSE);
+    } else {
+      db_abbreviated_type(old_class);
+      fputc("\n", f_debug);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+#if CHECKING
+  if (old_class != NULL && base_class != NULL &&
+      old_class != base_class->derived_class) {
+    internal_error("corresponding_base_class: bad old_class");
+  }  /* if */
+#endif /* if CHECKING */
+  if (old_class == NULL) old_class = base_class->derived_class;
   for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
     if (base_class == NULL) {
 #if CHECKING
@@ -801,8 +821,8 @@ old_class under new_class.  If old_class is NULL it means we don't know
         internal_error("corresponding_base_class: base_class=old_class=NULL");
       }  /* if */
 #endif /* CHECKING */
-      if (bcp->type == old_class) {
-        /* Found old_class as a base class of new_class. */
+      if (bcp->type == old_class && bcp->direct) {
+        /* Found old_class as a direct base class of new_class. */
         new_base_class = bcp;
         goto done;
       }  /* if */
@@ -819,15 +839,25 @@ old_class under new_class.  If old_class is NULL it means we don't know
           new_base_class = bcp;
           goto done;
         } else {
-          a_derivation_step_ptr  step;
-          for (step = bcp->derivation; step != NULL; step = step->next) {
-            if (step->base_class->type ==
+          a_derivation_step_ptr  step = bcp->derivation;
+
+          if (base_class->direct) {
+            for (; step != NULL; step = step->next) {
+              if (step->base_class->type == old_class) {
+                new_base_class = bcp;
+                goto done;
+              }  /* if */
+            }  /* for */
+          } else {
+            for (; step != NULL; step = step->next) {
+              if (step->base_class->type ==
                                base_class->derivation->base_class->type &&
-                congruent_paths(step, base_class->derivation)) {
-              new_base_class = bcp;
-              goto done;
-            }  /* if */
-          }  /* for */
+                  congruent_paths(step, base_class->derivation)) {
+                new_base_class = bcp;
+                goto done;
+              }  /* if */
+            }  /* for */
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -866,13 +896,13 @@ done:
     internal_error("corresponding_base_class: virtual-nonvirtual mismatch");
   }  /* if */
 #endif /* CHECKING */
-  db_exit();
 #if DEBUG
   if (debug_level >= 4) {
     fputs("found base class: ", f_debug);
     db_base_class(new_base_class, FALSE);
   }  /* if */
 #endif /* DEBUG */
+  db_exit();
   return new_base_class;
 }  /* corresponding_base_class */
 
@@ -1430,6 +1460,10 @@ Dump a base class entry, for debug purposes.
 {
   (void)fputc('"', f_debug);
   db_name(&bcp->type->source_corresp);
+  if (bcp->derived_class != NULL) {
+    fputs("\", base class of \"", f_debug);
+    db_type_name(bcp->derived_class);
+  }  /* if */
   fputs("\": ", f_debug);
   if (show_offset) {
     fprintf(f_debug, "(%ld bytes): offset = %ld",
@@ -2361,6 +2395,7 @@ duplicate paths.  The copy will be a base class of new_class.
   /* Create a new base class entry. */
   new_bcp = alloc_base_class();
   new_bcp->type = base_class_to_copy->type;
+  new_bcp->derived_class = new_class;
   new_bcp->direct = FALSE;
   /* Retain the access of the original derivation from this base class. */
   new_bcp->access = base_class_to_copy->access;
@@ -2646,6 +2681,7 @@ or struct definition.  The syntax is
          base classes list. */
       new_direct_bcp = alloc_base_class();
       new_direct_bcp->type = base_class_type;
+      new_direct_bcp->derived_class = type_ptr;
       new_direct_bcp->access = access;
       if (is_virtual) {
         new_direct_bcp->is_virtual = TRUE;
