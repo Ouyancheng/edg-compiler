@@ -2453,6 +2453,9 @@ asm ( "string" ) ;
   /* Note: process_curr_construct_pragmas is intentionally not called. */
   sp->variant.asm_entry = asm_declaration(/*asm_decl_allowed=*/TRUE,
                                           /*is_asm_statement=*/TRUE);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  set_stmt_source_position(sp->end_position, curr_construct_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
 }  /* asm_statement */
 

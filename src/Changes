@@ -1,5 +1,10 @@
 Version 2.43
 
+8/26/99  End position missing on asm statements
+
+The end position was not recorded for asm statements (including Microsoft
+__asm statements).  Now fixed.
+
 8/25/99  Stricter checking of catch types
 
 The front end now checks whether a catch type is an abstract class (an error)

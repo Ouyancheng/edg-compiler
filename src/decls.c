@@ -7535,6 +7535,9 @@ is saved and restored as needed by the token caching mechanism.
     asm_string.variant.string.value = curr_token_asm_string;
     asm_string.variant.string.length = strlen(curr_token_asm_string) + 1;
     asm_string.type = string_type(asm_string.variant.string.length);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Bypass the Microsoft asm token. */
     (void)get_token();
   } else {
@@ -7556,6 +7559,9 @@ is saved and restored as needed by the token caching mechanism.
     remove_stop_token(tok_rparen);
     /* Check for and skip the semicolon. */
     (void)required_token(tok_semicolon, ec_exp_semicolon);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   /* Update the IL. */
   if (asm_decl_allowed) {
