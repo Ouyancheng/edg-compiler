@@ -165,7 +165,10 @@ abstract or real declarator.
 #define DI_IS_EXPLICIT_INSTANTIATION (a_decl_flag_set)(0x4000)
 			/* If this bit is set the declaration is that of a
 			   C++ explicit template instantiation directive. */
-#define DI_LAST DI_IS_EXPLICIT_INSTANTIATION
+#define DI_NO_TYPE_SPECIFIERS (a_decl_flag_set)(0x8000)
+			/* If this bit is set no type specifiers appeared
+			   among the declaration specifiers. */
+#define DI_LAST DI_NO_TYPE_SPECIFIERS
 			/* Last bit in the bit vector that is in use. */
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */

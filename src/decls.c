@@ -7338,6 +7338,7 @@ continue_with_declaration:
     if (is_old_style_param_decl) {
       di_flags |= DI_IS_PARAMETER_DECL;
     }  /* if */
+    if (!has_explicit_type_specifier) di_flags |= DI_NO_TYPE_SPECIFIERS;
     /* Scan the declarator list. */
     do {
       add_stop_token(tok_comma);
