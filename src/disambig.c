@@ -203,14 +203,12 @@ the general identifier option.
 #define get_token_and_coalesce_if_identifier(flags)			\
   f_get_token_and_coalesce_if_identifier((flags), GID_NO_OPTIONS)
 
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-static
-void prescan_microsoft_extended_decl_modifiers
-                                         (a_disambig_state_ptr       state,
-                                          a_disambig_flag_set	     flags)
+static void prescan_extended_decl_modifiers (a_disambig_state_ptr  state,
+                                             a_disambig_flag_set   flags)
 /*
-Prescan the following Microsoft modifiers:
+For Microsoft compatibility, prescan the following Microsoft modifiers:
 
 	__declspec ( extended-decl-modifier-seq )
 	__near
@@ -219,8 +217,8 @@ Prescan the following Microsoft modifiers:
 	__multiple_inheritance
 	__virtual_inheritance
 
-When this routine is called, the current token must be the initial
-keyword.
+or for near/far support prescan "near" or "far".   When this routine is
+called, the current token must be the initial keyword.
 
 A NULL state pointer may be provided if the tokens that are scanned do
 not need to be cached.
@@ -268,7 +266,7 @@ not need to be cached.
         }  /* if */
       }  /* if */
     } else {
-      /* This is a class declaration, so if the next token is an identifier
+      /* If this is a class declaration and the next token is an identifier,
          it is probably the class name.  But it might also be the "inheritance
          kind" (i.e., __single_inheritance, __multiple_inheritance, or
          __virtual_inheritance).  Single-underscore versions of the keywords
@@ -294,6 +292,8 @@ not need to be cached.
   }  /* if */
 }  /* prescan_microsoft_extended_decl_modifiers */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void prescan_based_modifier(a_disambig_state_ptr       state,
                                    a_disambig_flag_set 	      flags)
@@ -328,8 +328,8 @@ keyword.
     }  /* if */
   }  /* if */
 }  /* prescan_based_modifier */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean is_ctor_or_dtor(void)
 /*
@@ -403,7 +403,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_declspec:
-        prescan_microsoft_extended_decl_modifiers(state, flags);
+        prescan_extended_decl_modifiers(state, flags);
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Type specifier - identifier that may be a simple type name.
@@ -464,6 +464,10 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
 #if RESTRICT_ALLOWED
       case tok_restrict:
 #endif /* RESTRICT_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+      case tok_near:
+      case tok_far:
+#endif /* NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* Microsoft type qualifiers. */
       case tok_unaligned:
@@ -484,13 +488,13 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         f_get_token_and_coalesce_if_identifier(
                        flags, curr_token == tok_typename ? GID_IS_TYPENAME
                                                          : GID_NO_OPTIONS);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode) {
-          /* Check for a Microsoft decl modifier, such as
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+        if (microsoft_mode or_near_and_far_enabled()) {
+          /* Check for near/far and a Microsoft decl modifier, such as
              __single_inheritance. */
-          prescan_microsoft_extended_decl_modifiers(state, flags);
+          prescan_extended_decl_modifiers(state, flags);
         }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
         if (type_specifier_seen) {
           /* We've already seen a type specifier, this is probably an
              error. */
@@ -638,8 +642,9 @@ part of a declarator is found, may_be_decl is set to FALSE.
       pointer_operator_seen = TRUE;
     } else if (is_type_qualifier_token(curr_token) ||
                curr_token == tok_ptr_to_member
-               or_is_microsoft_declarator_keyword()) {
-      /* Cache and bypass any cv-qualifiers. */
+               or_is_microsoft_declarator_keyword() or_is_near_or_far()) {
+      /* Cache and bypass any cv-qualifiers (including near or far in
+         certain modes). */
       /* Cache and bypass any pointer to member operators. */
       /* Keywords allowed in declarators in Microsoft mode, e.g., __cdecl. */
       cache_curr_token(&state->cache);
@@ -1120,18 +1125,18 @@ cache passed by the caller are flushed.
   return state.decl_class_type;
 }  /* prescan_and_find_declarator */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 void prescan_decl_modifiers(void)
 /*
-Skip over any Microsoft extended decl modifiers that may be present.
+Skip over near, far, and any Microsoft extended decl modifiers that may be
+present.
 */
 {
-  prescan_microsoft_extended_decl_modifiers((a_disambig_state_ptr)NULL,
-                                            DFS_NO_FLAGS);
+  prescan_extended_decl_modifiers((a_disambig_state_ptr)NULL, DFS_NO_FLAGS);
 }  /* prescan_decl_modifiers */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
 /******************************************************************************
 *                                                             \  ___  /       *
