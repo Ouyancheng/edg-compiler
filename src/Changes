@@ -1,5 +1,25 @@
 Version 2.29
 
+5/2/95   Maximum class size (again) and maximum base class offset
+
+A new configuration flag, TARG_MAX_BASE_CLASS_OFFSET, has been added,
+along with its associated global variable, targ_max_base_class_offset.
+If the offset at which a base class is allocated within the derived class
+exceeds targ_max_base_class_offset, an error is issued.
+
+When TARG_MAX_BASE_CLASS_OFFSET is zero, a very large value is assigned
+to targ_max_base_class_offset.  When it is configured to a nonzero value,
+that is the value to which targ_max_base_class_offset is set -- except
+that, when DO_IL_LOWERING is TRUE, a smaller value will be used, if
+necessary, to accommodate the maximum offset value (as implied by
+TARG_DELTA_INT_KIND) that may be stored in a virtual function table or
+pointer-to-member structure.
+
+A similar computation that was applied to targ_max_class_object_size
+(see Changes entry for 2/28) is no longer done -- in other words,
+targ_max_class_object_size is no longer adjusted to account for
+TARG_DELTA_INT_KIND.
+
 5/1/95   TARG_ALL_POINTERS_SAME_SIZE may now be set to FALSE
 
 You may now configure TARG_ALL_POINTERS_SAME_SIZE to FALSE, but if so
