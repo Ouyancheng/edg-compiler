@@ -3323,8 +3323,14 @@ merging of the default arguments occurs in composite_type.
     }  /* if */
   }  /* for */
   if (redecl_error) {
-    diagnostic((an_error_severity)(gpp_mode ? es_warning : es_error),
-               ec_default_arg_already_defined);
+    an_error_severity	severity = es_error;
+    if (gpp_mode &&
+        scope_stack[depth_scope_stack].kind == sck_template_declaration) {
+      /* g++ ignores redeclared default arguments in function template
+         declarations. */
+      severity = es_warning;
+    }  /* if */
+    diagnostic(severity, ec_default_arg_already_defined);
   }  /* if */
   if (not_at_end_of_list_error) {
     error(ec_default_arg_not_at_end);
