@@ -1729,6 +1729,18 @@ typedef struct a_scope_stack_entry {
 			   current scope; 0 if this is not a function scope
 			   or if there are no label definitions.  The value
 			   is updated each time a label definition is seen. */
+  a_pending_pragma_ptr
+		pending_pragmas;
+			/* A list of pragmas that have been cached by
+			   the lexical routines but have not yet been
+			   fully processed.  This list contains only
+			   pbk_other pragmas. */
+  a_pending_pragma_ptr
+		pragmas_bound_to_curr_decl_or_stmt;
+			/* A list of pbk_next_declaration or pbk_next_statement
+			   pragmas that are to be processed as part of the
+			   statement or declaration currently being
+                           processed. */
 } a_scope_stack_entry;
 
 

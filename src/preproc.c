@@ -88,12 +88,13 @@ string, and returns true if the two match.
   (len_of_curr_token == sizeof(str)-1 &&                              \
    strncmp(str, start_of_curr_token, size_t_arg(sizeof(str)-1)) == 0)
 
-typedef enum /* a_template_pragma_kind */ {
-  /* The kinds of template instantiation pragmas that are accepted. */
-  tpk_instantiate,
-  tpk_do_not_instantiate,
-  tpk_can_instantiate
-} a_template_pragma_kind;
+/*
+Macro that compres the current token (an identifier) with the pragma
+identifier associated with the specified pragma kind.
+*/
+#define curr_id_matches_pragma_id(pragma_kind)				\
+   (strncmp(pragma_ids[(int)(pragma_kind)], start_of_curr_token,	\
+            strlen(pragma_ids[(int)(pragma_kind)])) == 0)
 
 static a_pp_directive_kind identify_dir_keyword(void)
 /*
@@ -891,7 +892,7 @@ instantiated.
 
 
 static void update_instantiation_flags(a_symbol_ptr	      sym,
-				       a_template_pragma_kind pragma_kind,
+				       a_pragma_kind	      pragma_kind,
 				       a_source_position      *pos)
 /*
 Given a pointer to either a routine, member function, or static data member
@@ -912,16 +913,16 @@ or the specific definition flag (if instantiate is FALSE).
   }  /* if */
   if (tip != NULL) {
     a_boolean	instantiation_required_flag;
-    if (pragma_kind == tpk_instantiate) {
+    if (pragma_kind == (a_pragma_kind)pk_instantiate) {
       instantiation_required_flag = TRUE;
       tip->explicit_instantiation = TRUE;
       tip->explicit_instantiation_pos = *pos;
-    } else if (pragma_kind == tpk_do_not_instantiate) {
+    } else if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
       instantiation_required_flag = FALSE;
       tip->specific_def = TRUE;
       tip->explicit_instantiation = FALSE;
       tip->explicit_do_not_instantiate = TRUE;
-    } else { /* pragma_kind == tpk_can_instantiate */
+    } else { /* pragma_kind == (a_pragma_kind)pk_can_instantiate */
       /* For the can_instantiate pragma set the instantiation required
          flag to its current value.  The purpose of this is to ensure
          that the entry is on the instantiations required list. */
@@ -947,7 +948,7 @@ or the specific definition flag (if instantiate is FALSE).
 
 static void update_instantiation_flags_for_class
 					(a_symbol_ptr	        sym,
-					 a_template_pragma_kind pragma_kind,
+					 a_pragma_kind          pragma_kind,
 					 a_source_position      *pos)
 /*
 Updates the instantiation flags for all of the member functions and static
@@ -959,7 +960,7 @@ data members within a given template class.
 
   check_assertion(is_template_class_symbol(sym));
   class_type = sym->variant.class_struct_union.type;
-  if (pragma_kind == tpk_can_instantiate) {
+  if (pragma_kind == (a_pragma_kind)pk_can_instantiate) {
     /* The can_instantiate pragma is a special case.  Instead of
        processing the class now we simply put the class on a list
        of can instantiate pragmas that will be processed during
@@ -1055,7 +1056,8 @@ symbol, otherwise we return NULL.
 } /* sym_if_template_class_member_function */
 
 
-static void instantiation_pragma(void)
+void instantiation_pragma(a_pragma_kind		pragma_kind,
+			  a_pending_pragma_ptr	ppp)
 /*
 Processes pragmas to request that certain template function(s) or
 static data member(s) should be or should not be instantiated.
@@ -1091,16 +1093,10 @@ Note that like all other function declarations a return type of int is
 assumed if the return type is omitted.
 */
 {
-  a_boolean		save_fetch_pp_tokens = fetch_pp_tokens;
-  a_boolean		save_expand_macros = expand_macros;
-  a_boolean		save_processing_C_code_in_pragma =
-						 processing_C_code_in_pragma;
   a_boolean		err = FALSE;
   a_symbol_ptr		sym;
   a_symbol_ptr		new_sym;
   a_source_position	start_pos;
-  a_template_pragma_kind
-			pragma_kind;
   a_template_instantiation_mode
 			saved_instantiation_mode = instantiation_mode;
 
@@ -1108,26 +1104,19 @@ assumed if the return type is omitted.
      performed to ensure that no other instantiations are implicitly
      requested as a consequence of scanning the pragma. */
   instantiation_mode = tim_none;
-  if (curr_id_is("instantiate")) {
-    pragma_kind = tpk_instantiate;
-  } else if (curr_id_is("do_not_instantiate")) {
-    pragma_kind = tpk_do_not_instantiate;
-  } else if (curr_id_is("can_instantiate")) {
+  if (pragma_kind == (a_pragma_kind)pk_can_instantiate) {
     if (saved_instantiation_mode == tim_all) {
       /* In tim_all mode the can_instantiate pragma is treated as an
          instantiate pragma. */
-      pragma_kind = tpk_instantiate;
+      pragma_kind = pk_instantiate;
     } else {
-      pragma_kind = tpk_can_instantiate;
+      pragma_kind = pk_can_instantiate;
     }  /* if */
-  } else {
+  } else if (pragma_kind != (a_pragma_kind)pk_instantiate &&
+             pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {
     unexpected_condition();
   }  /* if */
-  fetch_pp_tokens = FALSE;
-  expand_macros = TRUE;
-  processing_C_code_in_pragma = TRUE;
-  /* Skip past the pragma name. */
-  (void)get_token();
+  begin_rescan_of_pragma_tokens(ppp);
   /* Push a pragma scope.  This makes certain other scopes (e.g.,
      template declaration) invisible for name lookup purposes. */
   (void)push_scope((a_scope_kind)sck_pragma, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
@@ -1302,11 +1291,47 @@ assumed if the return type is omitted.
   }  /* if */
   /* Pop the pragma scope. */
   pop_scope();
+  /* Stop rescanning tokens from the pragma token cache. */
+  wrapup_rescan_of_pragma_tokens();
+  instantiation_mode = saved_instantiation_mode;
+}  /* instantiation_pragma */
+
+
+static void cache_pragma_tokens(a_pending_pragma_ptr     ppp,
+				a_pragma_description_ptr pdp)
+/*
+Cache the tokens that make up a pragma directive.  The global variables
+that determine the current lexical scanning mode are saved and reset
+based on the information specified in the pragma description entry.
+*/
+{
+  a_boolean	save_fetch_pp_tokens;
+  a_boolean	save_expand_macros;
+  a_boolean	save_processing_C_code_in_pragma;
+
+  /* Save the current value of the lexical scanning mode flags. */
+  save_fetch_pp_tokens = fetch_pp_tokens;
+  save_expand_macros = expand_macros;
+  save_processing_C_code_in_pragma = processing_C_code_in_pragma;
+  /* Set the new values. */
+  fetch_pp_tokens = pdp->fetch_pp_tokens;
+  expand_macros = pdp->expand_macros;
+  processing_C_code_in_pragma = pdp->processing_C_code_in_pragma;
+  /* Bypass the identifier that indicates the pragma kind. */
+  (void)get_token();
+  /* Cache the tokens until an end-of-line is found. */
+  for (;;) {
+    cache_curr_token(&ppp->token_cache);
+    if (curr_token == tok_newline) break;
+    (void)get_token();
+  }  /* for */
+  /* Terminate the token cache. */
+  terminate_token_cache(&ppp->token_cache);
+  /* Restore the previous values. */
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;
   processing_C_code_in_pragma = save_processing_C_code_in_pragma;
-  instantiation_mode = saved_instantiation_mode;
-}  /* instantiation_pragma */
+}  /* cache_pragma_tokens */
 
 
 static void proc_pragma(void)
@@ -1315,7 +1340,6 @@ Scan and process a #pragma directive.
 */
 {
   a_boolean processed = FALSE;
-  a_boolean newline_fetched = FALSE;
 
   if (generate_pp_output) {
     /* Generating preprocessing output for some other compiler.  Pass the
@@ -1324,29 +1348,30 @@ Scan and process a #pragma directive.
   } else {
     /* Compiling.  Identify the pragma. */
     if (get_token() == tok_identifier) {
-      if (curr_id_is("__printf_args")) {
-        /* __printf_args: indicates that the next function declared has
-           a printf-style format string that should be checked against
-           arguments on call. */
-        arg_pragma = (an_arg_pragma_kind)apk_printf;
+      a_pragma_description_ptr	pdp;
+      a_source_position		id_position;
+      /* Save the position of the start of the token(s) that identify
+         the kind of pragma being processed. */
+      id_position = pos_curr_token;
+      /* Look for a matching pragma identifier in the pragma descriptions
+         list.  If any pragma need to be added in where the pragma is
+         not specified by an identifier following the #pragma keyword,
+         this code will need to be modified. */
+      pdp = pragma_descriptions;
+      while (pdp != NULL) {
+        if (curr_id_matches_pragma_id(pdp->kind)) break;
+        pdp = pdp->next;
+      }  /* while */
+      if (pdp != NULL) {
+        /* Cache the tokens that make up the pragma directive. */
+        a_pending_pragma_ptr	ppp;
         processed = TRUE;
-      } else if (curr_id_is("__scanf_args")) {
-        /* __scanf_args: indicates that the next function declared has
-           a scanf-style format string that should be checked against
-           arguments on call. */
-        arg_pragma = (an_arg_pragma_kind)apk_scanf;
-        processed = TRUE;
-      } else if (C_dialect == C_dialect_cplusplus &&
-		 (curr_id_is("instantiate") ||
-		  curr_id_is("can_instantiate") ||
-		  curr_id_is("do_not_instantiate"))) {
-        /* Instantiate, or suppress instantiation of, a template class,
-	    function, or static data member. */
-        instantiation_pragma();
-	processed = TRUE;
-	newline_fetched = TRUE;
+        ppp = alloc_pending_pragma(pdp, &id_position);
+        cache_pragma_tokens(ppp, pdp);
+        /* Add this pragma to the list of pragmas associated with the
+           current token. */
+        add_to_curr_token_pragma_list(ppp);
       }  /* if */
-      if (processed && !newline_fetched) (void)get_token();
     }  /* if */
     if (!processed) {
       /* Unrecognized pragma, just ignore (this is required by the

@@ -650,7 +650,9 @@ typedef enum /*an_error_code*/ {
   ec_cl_tim_local_conflicts_with_auto_instantiation,
   ec_abstract_class_param_type,
   ec_array_of_abstract_class,
-  ec_float_template_parameter
+  ec_float_template_parameter,
+  ec_pragma_must_precede_declaration,
+  ec_pragma_must_precede_statement
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

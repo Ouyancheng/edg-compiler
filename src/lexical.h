@@ -244,24 +244,6 @@ typedef enum /* an_identifier_lookup_mode */ {
 } an_identifier_lookup_mode;
 
 
-typedef struct a_lint_and_pragma_state *a_lint_and_pragma_state_ptr;
-typedef struct a_lint_and_pragma_state {
-  /* Structure used to summarize a state of the lint and pragma flags,
-     i.e., flags that are set between tokens by preprocessing-level
-     operations. */
-  an_arg_pragma_kind
-		arg_pragma;
-			/* Argument pragma, used for printf/scanf argument
-			   lists. */
-  unsigned int	lint_argsused_flag:1;
-			/* Lint argsused comment. */
-  unsigned int	lint_notreached_flag:1;
-			/* Lint notreached comment. */
-  a_lint_varargs_count
-		lint_varargs_count;
-			/* Lint varargs comment argument count. */
-} a_lint_and_pragma_state;
-
 typedef struct a_token_cache *a_token_cache_ptr;
 typedef struct a_token_cache {
   /* Data structure used to hold a token cache, i.e., some number of
@@ -271,12 +253,6 @@ typedef struct a_token_cache {
 		*last_token;
 			/* First and last tokens on the list, or both NULL
 			   if the list is empty. */
-  a_lint_and_pragma_state
-		lint_and_pragma_state;
-			/* Lint and pragma state as of after the last token;
-			   used in determining whether or not a
-			   teik_lint_and_pragma entry is needed to record
-			   a change in the lint comment or pragma state. */
   a_byte_boolean
 		is_reusable;
 			/* TRUE if this cache will be reused (e.g.,
@@ -289,6 +265,169 @@ typedef struct a_token_cache {
 			   tracking memory usage. */
 #endif /* DEBUG */
 } a_token_cache;
+
+/*
+The pragma binding kinds indicate the ways in which a pragma may relate
+to the surrounding constructs.
+*/
+typedef enum a_pragma_binding_kind {
+  pbk_next_declaration,
+		/* Binds to the next top level declaration. */
+  pbk_next_statement,
+		/* Binds to the next statement. */
+  pbk_immediate,
+		/* Processed when cleared from the curr_token pragma list. */
+  pbk_other,
+		/* Processed by special code added to handle a given pragma. */
+  pbk_last
+		/* Must be last. */
+} a_pragma_binding_kind;
+
+/*
+Forward declaration of a_pending_pragma_ptr.
+*/
+typedef struct a_pending_pragma *a_pending_pragma_ptr;
+
+
+/*
+Typedef used to declare pointers to pragma processing functions.
+*/
+typedef void a_pragma_processing_function(a_pragma_kind
+				          a_pending_pragma_ptr);
+typedef a_pragma_processing_function *a_pragma_processing_function_ptr;
+
+/*
+For each pragma that is defined, there exists an a_pragma_description
+record that indicates how that pragma is to be handled by the front
+end.
+*/
+typedef struct a_pragma_description *a_pragma_description_ptr;
+typedef struct a_pragma_description {
+  a_pragma_description_ptr
+	        next;
+			/* Pointer to the next element in the list of
+			   pragma descriptions. */
+  a_pragma_kind	kind;
+			/* The IL pragma kind code. */
+  a_pragma_binding_kind
+		binding_kind;
+			/* The binding kind indicates when and how the pragma
+			   should be scanned by the front end. */
+  a_pragma_processing_function_ptr
+		processing_function;
+			/* Pointer to the function to be called to
+			   do any special processing required for this
+			   pragma.  May be NULL for pbk_immediate
+			   when include_in_il is set. */
+  unsigned int	global:1;
+			/* For pbk_other pragmas, this is TRUE if the pragma
+			   entry should be added to the file-scope pragma
+			   list;  Otherwise, the pragma is added to the
+			   pragma list associated with the current scope
+			   stack entry.  This flag is used again to determine
+			   the IL scope to be used when include_in_il is TRUE.
+                           See the description below.  */
+  unsigned int	include_in_il:1;
+			/* For pbk_immediate and pbk_other pragmas, this is
+			   TRUE if the IL entry for this pragma should be
+			   included in the IL tree as an "indeterminate
+			   position" pragma.  The pragma will be included
+			   in the file scope IL pragma list (when global is
+			   TRUE) or in the current function scope IL pragma
+			   list (when global is FALSE and there is an
+			   active function scope).  If this flag is not
+                           set, the pragma will not be automatically included
+			   in the IL by the front end but can still be
+			   made part of the IL by user written code to
+			   explicitly link the pragma into the IL. */
+  unsigned int	fetch_pp_tokens:1;
+  unsigned int	expand_macros:1;
+  unsigned int	processing_C_code_in_pragma:1;
+			/* The value of the flags to be used while scanning
+			   the tokens that make up the body of the pragma
+			   (the tokens after the pragma identifier). */
+  an_error_severity
+		error_severity;
+			/* For pbk_other pragmas, the severity of the
+			   diagnostic to be issued if the pragma is
+			   never scanned.  For pbk_next_statement and
+			   pbk_next_declaration pragmas, the severity of
+			   diagnostic to be issued if the pragma is
+			   encountered in an improper location.  May be
+			   es_none if no diagnostic is to be issued. */
+} a_pragma_description;
+
+
+/*
+Pending pragma entries describe pragmas that have been encountered
+in the source and recorded in token caches, but have not yet been
+processed by the front-end proper.
+*/
+/* a_pending_pragma_ptr declared earlier. */
+typedef struct a_pending_pragma {
+  a_pending_pragma_ptr
+		next;
+			/* Next element in a list of pragmas. */
+  a_pragma_description_ptr
+		descr_ptr;
+			/* Pointer to the structure that describes the
+			   particular kind of pragma being processed. */
+  a_token_cache	token_cache;
+			/* The tokens that comprise the body of the pragma.
+			   The first token in the cache is the token
+			   following the identifier(s) used to determine the
+			   pragma kind.  The cache is terminated by a
+			   tok_newline followed by a tok_end_of_source. */
+  a_source_position
+		id_position;
+			/* Source position of the identifier that indicates
+			   the kind of pragma being processed. */
+  unsigned int
+		discard_cache_when_done:1;
+			/* TRUE if the token_cache may be discarded when the
+			   pragma entry is discarded.  This will be FALSE when
+			   a pragma entry was created by making a copy of
+			   an entry retrieved from a reusable token cache. */
+  unsigned int
+		has_been_scanned:1;
+			/* TRUE if the pragma tokens have been scanned
+			   at least once.  Used to diagnose unprocessed
+			   pbk_other pragmas. */
+
+  /* Pragma-specific information.  This union contains other information
+     about the pragma and may be used to preserve information about the
+     pragma between the time the tokens are scanned and some later time
+     in which the information may be used.  Note that the pragma entry
+     for a pragma defined within the body of a template is copied each
+     time the template is instantiated, so it is not possible to pass
+     information between different instantiations of the template by
+     using this union. */
+  union {
+    /* When there is no pragma-specific information. */
+    int		dummy;
+    /* When descr_ptr->kind == pk_lint_varargs_count */
+    short	lint_varargs_count;
+  } variant;
+} a_pending_pragma;
+
+
+EXTERN a_pragma_description_ptr pragma_descriptions;
+			/* Pointer to a linked list of pragma descriptions. */
+
+EXTERN a_pending_pragma_ptr
+		curr_token_pragmas;
+			/* A list of pending pragma entries for any
+			   pragmas the immediately preceded the current
+			   token. */
+
+EXTERN a_pragma_description_ptr
+		 pragma_description_for_pragma_kind[(int)pk_last + 1];
+			/* An array that can be used to get a pointer to
+			   a pragma description given a pragma kind.  Note that
+			   the entry in the array will only contain a value
+			   if the pragma has been added to the list of
+			   active pragma descriptions through an
+			   add_pragma_description call. */
 
 
 /* These includes are placed here so that a_token_cache will be defined
@@ -902,6 +1041,8 @@ EXTERN a_boolean
 			   character after the first in an identifier.
 			   Also used in scanning pp-numbers. */
 
+#if 0
+#else
 EXTERN a_boolean
 		lint_argsused_flag;
 			/* Set to TRUE when a lint-style "argsused" comment
@@ -925,6 +1066,7 @@ specific lifetimes (e.g., they persist for one statement or one declaration).
 extern void clear_decl_lint_and_pragma_globals(void);
 #define clear_stmt_lint_and_pragma_globals()                           \
   lint_notreached_flag = FALSE
+#endif
 
 /*
 Data structure used to save information about a token so that the token
@@ -936,7 +1078,7 @@ enum a_token_extra_info_kind_tag {
   teik_none,		/* No extra information, i.e., normal token. */
   teik_identifier,	/* Extra information for an identifier. */
   teik_constant,	/* Extra information for a literal constant. */
-  teik_lint_and_pragma	/* Extra information for a lint comment or pragma. */
+  teik_pragma		/* Extra information for a pragma. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_token_extra_info_kind;
@@ -952,7 +1094,7 @@ typedef struct a_cached_token {
   a_byte_token_kind
 		token;
 			/* The token kind (e.g., tok_identifier).  Not valid
-			   when extra_info_kind == teik_lint_and_pragma. */
+			   when extra_info_kind == teik_pragma. */
   a_token_extra_info_kind
 		extra_info_kind;
 			/* Indication of the type of extra information about
@@ -968,10 +1110,11 @@ typedef struct a_cached_token {
 		constant;
 			/* Pointer to a constant entry (in front end storage)
 			   giving the value for the literal constant. */
-    /* When extra_info_kind == teik_lint_and_pragma: */
-    a_lint_and_pragma_state
-		lint_and_pragma_state;
-			/* New state for the lint and pragma flags. */
+    /* When extra_info_kind == teik_pragma: */
+    a_pending_pragma_ptr
+		pragmas;
+			/* A list of pragmas associated with the next token
+			   in the cache. */
   } variant;
 } a_cached_token;
 
@@ -995,6 +1138,7 @@ typedef struct a_reusable_cache_entry {
                            to be rescanned. */
 } a_reusable_cache_entry;
 
+		
 
 /* Initialize a token cache. */
 extern void clear_token_cache(a_token_cache *cache,
@@ -1114,6 +1258,20 @@ extern a_symbol_ptr coalesce_template_class_reference
 			(a_symbol_ptr		   template_symbol,
 			 an_identifier_options_set options,
 			 a_boolean		   *err);
+
+extern a_pending_pragma_ptr alloc_pending_pragma
+					(a_pragma_description_ptr pdp,
+                                         a_source_position        *pos);
+
+extern void begin_rescan_of_pragma_tokens(a_pending_pragma_ptr ppp);
+
+extern void wrapup_rescan_of_pragma_tokens(void);
+
+extern void add_to_curr_token_pragma_list(a_pending_pragma_ptr ppp);
+
+extern void select_pragmas_bound_to_curr_decl_or_stmt
+				(a_boolean	decl_allowed,
+				 a_boolean	stmt_allowed);
 
 extern an_access_error_descr_ptr alloc_access_error_descr(void);
 

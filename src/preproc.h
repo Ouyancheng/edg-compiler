@@ -22,6 +22,10 @@ preproc.h -- Declarations related to preproc.c (having to do with
 #include "il.h"
 #endif /* ifndef IL_H */
 
+#ifndef LEXICAL_H
+#include "lexical.h"
+#endif /* ifndef LEXICAL_H */
+
 /*
 Preprocessor state variables.  These all have valid values at all times
 (not just when other variables would indicate that it is sensible for them
@@ -144,6 +148,9 @@ extern void pp_directive(void);
 extern void verify_that_all_pp_ifs_were_closed(void);
 /* Driver for mode where compiler just does preprocessing, like cpp. */
 extern void cpp_driver(void);
+
+extern void instantiation_pragma(a_pragma_kind		pragma_kind,
+	        		 a_pending_pragma_ptr	ppp);
 
 #endif /* ifndef PREPROC_H */
 

@@ -204,6 +204,12 @@ static a_reusable_cache_entry_ptr
                            active. */
 
 /*
+Information about data structures used for managing pending pragma information.
+*/
+static a_pending_pragma_ptr
+		avail_pending_pragmas;
+
+/*
 Flag that indicates whether a dollar sign was found in any identifiers.
 Used in strict ANSI mode to make sure that this diagnostic is only given
 once per compilation unit.
@@ -257,6 +263,8 @@ static unsigned long
                 num_cached_tokens_in_reusable_caches,
 		num_cached_constants_allocated,
 		num_reusable_cache_entries_allocated,
+		num_pending_pragmas_allocated,
+                num_pragma_descriptions_allocated,
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
                 num_file_suffixes_allocated,
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
@@ -264,75 +272,16 @@ static unsigned long
 #endif /* DEBUG */
 
 
-static void set_globals_from_lint_and_pragma_state(
-                                                 a_lint_and_pragma_state *laps)
-/*
-Set the global lint and pragma state variables to match the state indicated
-in laps.
-*/
-{
-#if DEBUG
-  if (debug_level >= 3) {
-    if (arg_pragma != laps->arg_pragma) {
-      fprintf(f_debug, "Setting arg_pragma = %d\n", (int)laps->arg_pragma);
-    }  /* if */
-    if (lint_varargs_count != laps->lint_varargs_count) {
-      fprintf(f_debug, "Setting lint_varargs_count = %d\n",
-                                                (int)laps->lint_varargs_count);
-    }  /* if */
-    if (lint_argsused_flag != (a_boolean)laps->lint_argsused_flag) {
-      fprintf(f_debug, "Setting lint_argsused_flag = %s\n",
-                       laps->lint_argsused_flag ? "TRUE" : "FALSE");
-    }  /* if */
-    if (lint_notreached_flag != (a_boolean)laps->lint_notreached_flag) {
-      fprintf(f_debug, "Setting lint_notreached_flag = %s\n",
-                       laps->lint_notreached_flag ? "TRUE" : "FALSE");
-    }  /* if */
-  }  /* if */
-#endif /* DEBUG */
-  arg_pragma = laps->arg_pragma;
-  lint_varargs_count = laps->lint_varargs_count;
-  lint_argsused_flag = laps->lint_argsused_flag;
-  lint_notreached_flag = laps->lint_notreached_flag;
-}  /* set_globals_from_lint_and_pragma_state */
-
-
-static void clear_lint_and_pragma_state(a_lint_and_pragma_state *laps)
-/*
-Clear the lint and pragma state in a token cache.
-*/
-{
-  laps->arg_pragma           = (an_arg_pragma_kind)apk_none;
-  laps->lint_varargs_count   = NOT_LINT_VARARGS;
-  laps->lint_argsused_flag   = FALSE;
-  laps->lint_notreached_flag = FALSE;
-}  /* clear_lint_and_pragma_state */
-
-
+#if 0
+#else
 void clear_decl_lint_and_pragma_globals(void)
 /*
 Clear the global flags representing the lint and pragma state with declaration
 lifetimes.
 */
 {
-#if DEBUG
-  if (debug_level >= 3) {
-    if (arg_pragma != (an_arg_pragma_kind)apk_none) {
-      fprintf(f_debug, "Setting arg_pragma = apk_none\n");
-    }  /* if */
-    if (lint_varargs_count != NOT_LINT_VARARGS) {
-      fprintf(f_debug, "Setting lint_varargs_count = %d\n",
-                       (int)NOT_LINT_VARARGS);
-    }  /* if */
-    if (lint_argsused_flag) {
-      fprintf(f_debug, "Setting lint_argsused_flag = FALSE\n");
-    }  /* if */
-  }  /* if */
-#endif /* DEBUG */
-  arg_pragma           = (an_arg_pragma_kind)apk_none;
-  lint_varargs_count   = NOT_LINT_VARARGS;
-  lint_argsused_flag   = FALSE;
 }  /* clear_decl_lint_and_pragma_globals */
+#endif
 
 
 static void unimplemented_keyword_diagnostic(a_symbol_ptr  sym)
@@ -357,7 +306,6 @@ Initialize a token cache, presumably so tokens can be added to it.
 {
   cache->first_token = NULL;
   cache->last_token  = NULL;
-  clear_lint_and_pragma_state(&cache->lint_and_pragma_state);
   cache->is_reusable = reusable;
 #if DEBUG
   cache->count = 0;
@@ -439,6 +387,229 @@ Allocate a cached constant entry.  Reuse a freed entry if possible.
 }  /* alloc_cached_constant */
 
 
+static a_pragma_description_ptr add_pragma_description
+                      (a_pragma_kind 	     kind,
+		       a_pragma_binding_kind binding_kind,
+		       a_pragma_processing_function_ptr
+					     processing_function,
+		       a_boolean	     is_pseudo_pragma,
+		       a_boolean	     global,
+		       a_boolean	     include_in_il,
+		       a_boolean	     fetch_pp_tokens,
+		       a_boolean	     expand_macros,
+		       a_boolean	     processing_C_code_in_pragma,
+		       a_boolean	     error_severity)
+/*
+Allocate a pragma description entry, initialize its fields, and add it
+to a linked list of pragma descriptions.  is_pseudo_pragma is used for
+things like lint comments that are treated like pragmas by the front end
+but cannot be referenced by name in a pragma directive.
+*/
+{
+  a_pragma_description_ptr	pdp;
+
+  /* Make sure this pragma kind is not already on the list. */
+  check_assertion_str(pragma_description_for_pragma_kind[kind] == NULL,
+                      "add_pragma_description: duplicate pragma kind");
+  /* Allocate a new entry. */
+  pdp = (a_pragma_description_ptr)alloc_fe(sizeof(a_pragma_description));
+#if DEBUG
+  num_pragma_descriptions_allocated++;
+#endif /* DEBUG */
+  pdp->kind = kind;
+  pdp->binding_kind = binding_kind;
+  pdp->processing_function = processing_function;
+  pdp->global = global;
+  pdp->include_in_il = include_in_il;
+  pdp->fetch_pp_tokens = fetch_pp_tokens;
+  pdp->expand_macros = expand_macros;
+  pdp->processing_C_code_in_pragma = processing_C_code_in_pragma;
+  pdp->error_severity = error_severity;
+  if (is_pseudo_pragma) {
+    /* This is a pseudo-pragma (such as a lint comment) that cannot
+       be referenced by name.  Don't add it to the linked list. */
+    pdp->next = NULL;
+  } else {
+    pdp->next = pragma_descriptions;
+    pragma_descriptions = pdp;
+  }  /* if */
+  /* Save the pragma description in an array indexed by pragma kind. */
+  pragma_description_for_pragma_kind[(int)kind] = pdp;
+  return pdp;
+}  /* add_pragma_description */
+
+
+a_pending_pragma_ptr alloc_pending_pragma(a_pragma_description_ptr pdp,
+					  a_source_position	   *pos)
+/*
+Allocate and initialize a pending pragma entry.  Reuse a freed entry if
+possible.
+*/
+{
+  a_pending_pragma_ptr	ppp;
+
+  if (avail_pending_pragmas != NULL) {
+    /* Reuse a freed entry. */
+    ppp = avail_pending_pragmas;
+    avail_pending_pragmas = avail_pending_pragmas->next;
+  } else {
+    /* Allocate a new entry. */
+    ppp = (a_pending_pragma_ptr)alloc_fe(sizeof(a_pending_pragma));
+#if DEBUG
+    num_pending_pragmas_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  ppp->next = NULL;
+  /* Initialize the token cache as a reusable token cache. */
+  clear_token_cache(&ppp->token_cache, /*reusable=*/TRUE);
+  ppp->id_position = *pos;
+  ppp->descr_ptr = pdp;
+  ppp->discard_cache_when_done = TRUE;
+  ppp->has_been_scanned = FALSE;
+  /* Initialize any pragma-specific information. */
+  switch (pdp->kind) {
+    case pk_lint_varargs_count:
+      ppp->variant.lint_varargs_count = 0;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return ppp;
+}  /* alloc_pending_pragma */
+
+
+static void free_pending_pragma(a_pending_pragma_ptr ppp)
+/*
+Return a pending pragma entry to the available list.
+*/
+{
+  ppp->next = avail_pending_pragmas;
+  avail_pending_pragmas = ppp;
+#if 0
+  /* Add code to discard token caches when appropriate. */
+#endif
+}  /* free_pending_pragma */
+
+
+void add_to_curr_token_pragma_list(a_pending_pragma_ptr ppp)
+/*
+Add a pragma to the list of pragmas associated with the current token.
+Find the end of the current token pragma list.  The cost of this
+should be virtually zero because there will virtually never be more
+than one pragma on the list at any point.
+*/
+{
+  a_pending_pragma_ptr	ctp_tail;
+  ctp_tail = curr_token_pragmas;
+  while (ctp_tail != NULL && ctp_tail->next != NULL) {
+    ctp_tail = ctp_tail->next;
+  }  /* while */
+  if (ctp_tail != NULL) ctp_tail->next = ppp;
+  /* If the current token pragma list is NULL, set it to point
+     to this entry. */
+  if (curr_token_pragmas == NULL) curr_token_pragmas = ppp;
+}  /* add_to_curr_token_pragma_list */
+
+
+static a_pending_pragma_ptr add_curr_token_pseudo_pragma
+						(a_pragma_kind      kind,
+						 a_source_position *pos)
+/*
+This routine is used to create pragma entries for things like lint comments
+that are treated as "pseudo pragmas" by the front end (although this
+routine can actually be used to create any kind of pragma entry).  A
+pending pragma is created and added to the current token pragma list.
+The pragma entry is returned to the caller so that the pragma-specific
+information can be updated, if necessary.
+*/
+{
+  a_pending_pragma_ptr		ppp;
+  a_pragma_description_ptr	pdp;
+
+  pdp = pragma_description_for_pragma_kind[(int)kind];
+  ppp = alloc_pending_pragma(pdp, pos);
+  add_to_curr_token_pragma_list(ppp);
+  return ppp;
+}  /* add_curr_token_pseudo_pragma */
+
+
+static void process_curr_token_pragmas(void)
+/*
+Called by get_token to process pragmas that were found before the
+token that is about to become the previous token.
+
+Any pragmas that bind to the next statement/declaration should have
+already been removed from the list (assuming that the pragmas were
+legally placed).  Diagnostics are issued for any such pragmas that
+remain on the list.
+
+pbk_other pragmas are moved to the pragma list associated with either
+the file scope (if the global flag is set) or the associated with
+the current scope stack entry.
+
+pbk_immediate pragmas are processed here.
+*/
+{
+  a_pending_pragma_ptr		ppp;
+  a_pragma_description_ptr	pdp;
+
+  ppp = curr_token_pragmas;
+  while (ppp != NULL) {
+    a_pending_pragma_ptr	next_ppp = ppp->next;
+    pdp = ppp->descr_ptr;
+    switch (pdp->binding_kind) {
+      case pbk_next_statement:
+      case pbk_next_declaration:
+        if (pdp->error_severity != es_none) {
+          an_error_code	error_code;
+          error_code = pdp->binding_kind == pbk_next_statement ? 
+                        		 ec_pragma_must_precede_statement :
+					 ec_pragma_must_precede_declaration;
+          pos_error(error_code, &ppp->id_position);
+        }  /* if */
+        free_pending_pragma(ppp);
+        break;
+      case pbk_immediate:
+        /* Immediate pragmas are processed when the token they precede is
+           discarded. */
+        if (pdp->processing_function != NULL) {
+          (*pdp->processing_function)(pdp->kind, ppp);
+        }  /* if */
+#if 0
+        /* Do include_in_il processing. */
+#endif
+        free_pending_pragma(ppp);
+        break;
+      default:
+        unexpected_condition_str
+			("process_curr_token_pragmas: bad binding kind");
+        break;
+    }  /* switch */
+    ppp = next_ppp;
+  }  /* while */
+  curr_token_pragmas = NULL;
+}  /* process_curr_token_pragmas */
+
+
+void select_pragmas_bound_to_curr_decl_or_stmt
+				(a_boolean	decl_allowed,
+				 a_boolean	stmt_allowed)
+/*
+This routine scans the current token pragma list for any pbk_next_declaration
+or pbk_next_statement pragmas.  If the binding kind matches the flags
+passed by the caller, the pragma is copied to the
+pragmas_bound_to_curr_decl_or_stmt list.  If binding kind does not
+match the flags passed by the caller an error is issued.  Pragmas
+that don't bind to the next declaration/statement remain on the
+current token pragma list.
+*/
+{
+#if 0
+  /* Not yet implemented. */
+#endif
+}  /* select_pragma_bound_to_curr_decl_or_stmt */
+
+
 /*
 Macro used to update the counter of tokens used in reusable caches
 and the number of tokens used in the given cache.
@@ -470,42 +641,20 @@ pointed to by cache.
 }  /* add_cached_token_to_cache */
 
 
-static void add_lint_and_pragma_entry(a_token_cache *cache)
+static void add_pragma_entry_to_cache(a_token_cache *cache)
 /*
-Add a lint and pragma entry to the end of the indicated token cache
-to bring its lint and pragma state into conformance with the
-current state as indicated by the global variables.
+Add a pragma entry to the end of the indicated token cache for the pragmas
+associated with the current token.
 */
 {
   a_cached_token_ptr ctp;
 
-  cache->lint_and_pragma_state.arg_pragma = arg_pragma;             
-  cache->lint_and_pragma_state.lint_varargs_count = lint_varargs_count;
-  cache->lint_and_pragma_state.lint_argsused_flag = lint_argsused_flag;
-  cache->lint_and_pragma_state.lint_notreached_flag = lint_notreached_flag;
   alloc_cached_token(ctp);
-  ctp->extra_info_kind = (a_token_extra_info_kind)teik_lint_and_pragma;
-  ctp->variant.lint_and_pragma_state = cache->lint_and_pragma_state;
+  ctp->extra_info_kind = (a_token_extra_info_kind)teik_pragma;
+  ctp->variant.pragmas = curr_token_pragmas;
   ctp->token = (a_byte_token_kind)tok_error;
   add_cached_token_to_cache(ctp, cache);
-}  /* add_lint_and_pragma_entry */
-
-
-/*
-Add an entry to the end of a token cache list to indicate a lint/pragma
-change if the current lint/pragma state does not match the state
-assumed at the end of the cache list.
-*/
-#define if_necessary_add_lint_and_pragma_entry(cache)                 \
-{ if (cache->lint_and_pragma_state.arg_pragma != arg_pragma ||        \
-      cache->lint_and_pragma_state.lint_varargs_count != lint_varargs_count ||\
-      (a_boolean)cache->lint_and_pragma_state.lint_argsused_flag !=	      \
-                                                   lint_argsused_flag ||\
-      (a_boolean)cache->lint_and_pragma_state.lint_notreached_flag !=  \
-                                                   lint_notreached_flag) {\
-    add_lint_and_pragma_entry(cache);                                 \
-  }  /* if */                                                         \
-}  /* if_necessary_add_lint_and_pragma_entry */
+}  /* add_pragma_entry_to_cache */
 
 
 void terminate_token_cache(a_token_cache *cache)
@@ -538,10 +687,13 @@ for pp-tokens.
     internal_error("cache_curr_token: called with fetch_pp_tokens TRUE");
   }  /* if */
 #endif /* CHECKING */
-  /* Check to see if the current lint comment/pragma state is different
-     than the last known state reflected in the cache.  If it is, put
-     an entry to reflect the change on the end of the cache list. */
-  if_necessary_add_lint_and_pragma_entry(cache);
+  /* If there are any pragmas associated with the current token, create
+     a token cache entry to preserve the pragma information before adding
+     the token cache entry for the current token. */
+  if (curr_token_pragmas != NULL) {
+    add_pragma_entry_to_cache(cache);
+    curr_token_pragmas = NULL;
+  }  /* if */
   /* Build an entry for the current token itself. */
   alloc_cached_token(ctp);
   ctp->token = (a_byte_token_kind)curr_token;
@@ -714,8 +866,6 @@ after the rescanned tokens have been gotten.  If there are no tokens
 in the cache, nothing is done.
 */
 {
-  a_lint_and_pragma_state laps;
-
   db_enter(4, "rescan_cached_tokens");
 #if DEBUG
   /* This cache was marked as reusable but is now being destructively
@@ -738,10 +888,6 @@ in the cache, nothing is done.
     cached_token_rescan_list = cache->first_token;
     /* Clear the cache to be neat. */
     cache->first_token = cache->last_token = NULL;
-    /* Start the lint and pragma flags off with default values.  They will be
-       changed from that by teik_lint_and_pragma entries on the token list. */
-    clear_lint_and_pragma_state(&laps);
-    set_globals_from_lint_and_pragma_state(&laps);
     /* Fetch the first cached token. */
     (void)get_token();
   }  /* if */
@@ -762,7 +908,6 @@ token is cached so that it will be fetched again after the reusable
 tokens have been rescanned.
 */
 {
-  a_lint_and_pragma_state     laps;
   a_token_cache               cache_for_curr_token;
   a_reusable_cache_entry_ptr  rcep;
 
@@ -791,10 +936,6 @@ tokens have been rescanned.
     /* Set the next token pointer of the reusable cache entry to the front
        of the cache. */
     rcep->next_cached_token = cache->first_token;
-    /* Start the lint and pragma flags off with default values.  They will be
-       changed from that by teik_lint_and_pragma entries on the token list. */
-    clear_lint_and_pragma_state(&laps);
-    set_globals_from_lint_and_pragma_state(&laps);
     /* Fetch the first cached token. */
     (void)get_token();
   }  /* if */
@@ -896,13 +1037,14 @@ an equivalent change.
     /* Remove the first entry from the list. */
     ctp = cached_token_rescan_list;
     cached_token_rescan_list = cached_token_rescan_list->next;
-    /* If it is a special entry indicating a lint comment or pragma,
-       process it and take another entry.  Otherwise, exit the loop. */
-    if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_lint_and_pragma){
+    /* If it is a special entry indicating a pragma, process it and
+       take another entry.  Otherwise, exit the loop. */
+    if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma){
       break;
     }  /* if */
-    set_globals_from_lint_and_pragma_state(
-                                          &ctp->variant.lint_and_pragma_state);
+    /* Set the current token pragma list to point to the pragmas associated
+       with the cached token. */
+    curr_token_pragmas = ctp->variant.pragmas;
     free_cached_token(ctp);
   }  /* for */
   /* Entry is for a token (normal case). */
@@ -941,13 +1083,14 @@ an equivalent change.
     /* Remove the first entry from the list. */
     ctp = reusable_cache_stack->next_cached_token;
     reusable_cache_stack->next_cached_token = ctp->next;
-    /* If it is a special entry indicating a lint comment or pragma,
-       process it and take another entry.  Otherwise, exit the loop. */
-    if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_lint_and_pragma){
+    /* If it is a special entry indicating a pragma, process it and
+       take another entry.  Otherwise, exit the loop. */
+    if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma){
       break;
     }  /* if */
-    set_globals_from_lint_and_pragma_state(
-                                          &ctp->variant.lint_and_pragma_state);
+    /* Set the current token pragma list to point to the pragmas associated
+       with the cached token. */
+    curr_token_pragmas = ctp->variant.pragmas;
   }  /* for */
   /* Entry is for a token (normal case). */
   ctoken = (a_token_kind)ctp->token;
@@ -3131,6 +3274,14 @@ source text (end of token, start of expansion, end of expansion).
     f_raw_listing != NULL) &&                                         \
    !keep_comments_in_pp_output)
 #endif /* ASM_FUNCTION_ALLOWED */
+/* Macro used to check whether the comment start position has been determined
+   and to determine it if not already done. */
+#define determine_comment_pos_if_not_yet_done()				\
+{ if (!comment_pos_determined) {					\
+    macro_line_loc_to_source_pos(comment_start_loc, comment_start_pos);	\
+    comment_pos_determined = TRUE;					\
+  }  /* if */								\
+}
 
   /* Forget that we know where the current token's characters are. */
   start_of_curr_token = NULL;
@@ -3322,7 +3473,9 @@ normal_comment:
               fprintf(f_debug, "lint NOTREACHED comment\n");
             }  /* if */
 #endif /* DEBUG */
-            lint_notreached_flag = TRUE;
+            determine_comment_pos_if_not_yet_done();
+            (void)add_curr_token_pseudo_pragma(pk_lint_not_reached,
+                                               &comment_start_pos);
             curr_char_loc += 10;
           } else if (ch == 'A' && curr_char_loc[1] == 'R' &&
                      strncmp(curr_char_loc+2, "GSUSED", 6) == 0 &&
@@ -3335,7 +3488,9 @@ normal_comment:
               fprintf(f_debug, "lint ARGSUSED comment\n");
             }  /* if */
 #endif /* DEBUG */
-            lint_argsused_flag = TRUE;
+            determine_comment_pos_if_not_yet_done();
+            (void)add_curr_token_pseudo_pragma(pk_lint_argsused,
+                                               &comment_start_pos);
             curr_char_loc += 8;
           } else if (ch == 'V' && curr_char_loc[1] == 'A' &&
                      strncmp(curr_char_loc+2, "RARGS", 5) == 0 &&
@@ -3345,30 +3500,36 @@ normal_comment:
                If a number follows the keyword, it is the number of arguments
                that are fixed and should always be present and checked; 0 is
                assumed if the number is omitted. */
+            int				varargs_count = 0;
+            a_pending_pragma_ptr	ppp;
             curr_char_loc += 7;
-            lint_varargs_count = 0;
+            varargs_count = 0;
             /* Skip any blanks, then scan a decimal number.  lint itself only
                looks at one digit. */
             while (*curr_char_loc == ' ') curr_char_loc++;
             while (isdigit((unsigned char)(ch = *curr_char_loc))) {
-              if (lint_varargs_count > LINT_VARARGS_COUNT_MAX / 10) {
-                lint_varargs_count = 0;
+              if (varargs_count > LINT_VARARGS_COUNT_MAX / 10) {
+                varargs_count = 0;
                 break;
               }  /* if */
-              lint_varargs_count *= 10;
-              if (lint_varargs_count > LINT_VARARGS_COUNT_MAX - (ch - '0')) {
-                lint_varargs_count = 0;
+              varargs_count *= 10;
+              if (varargs_count > LINT_VARARGS_COUNT_MAX - (ch - '0')) {
+                varargs_count = 0;
                 break;
               }  /* if */
-              lint_varargs_count += ch - '0';
+              varargs_count += ch - '0';
               curr_char_loc++;
             }  /* while */
 #if DEBUG
             if (debug_level >= 3) {
               fprintf(f_debug, "lint VARARGS comment, count = %d\n",
-                               lint_varargs_count);
+                               varargs_count);
             }  /* if */
 #endif /* DEBUG */
+            determine_comment_pos_if_not_yet_done();
+            ppp = add_curr_token_pseudo_pragma(pk_lint_varargs_count,
+					       &comment_start_pos);
+            ppp->variant.lint_varargs_count = varargs_count;
           }  /* if */
         }  /* if */
         /* Scan to the * / marking the end.  This may involve reading extra
@@ -3378,14 +3539,10 @@ normal_comment:
            loop, so it should be very fast. */
         while ((ch = *curr_char_loc) != '*' || *(curr_char_loc+1) != '/') {
           if (ch == '\n' || ch == '\0') {
-            if (!comment_pos_determined) {
-              /* End of the first line of the comment. */
-              /* Determine the source position for the start of the comment
-                 now, before we lose the current source line. */
-              macro_line_loc_to_source_pos(comment_start_loc,
-                                           comment_start_pos);
-              comment_pos_determined = TRUE;
-            }  /* if */
+            /* End of the first line of the comment. */
+            /* Determine the source position for the start of the comment
+               now, before we lose the current source line. */
+            determine_comment_pos_if_not_yet_done();
             /* We are supposed to delete the characters of the source line
                from delete_source_from_loc on, if it is non-NULL.  This would
                be, for example, because we are scanning a macro invocation. */
@@ -3478,6 +3635,7 @@ end_of_comment:;
 end_skip:
   /* "Return" the mask of kinds of white space skipped. */
   kind_of_white_space_skipped = kind_skipped;
+#undef determine_comment_pos_if_not_yet_done
 }  /* skip_white_space */
 
 
@@ -4047,6 +4205,11 @@ If in_asm_function_body is TRUE, return tok_newline for ends of lines.
   a_boolean             gotten_from_cache = FALSE;
 #endif /* DEBUG */
 
+  /* Before fetching a new token, do any processing required for pragmas
+     that preceded the current token. */
+  if (curr_token_pragmas != NULL) {
+    process_curr_token_pragmas();
+  }  /* if */
   /* If there are cached tokens to be rescanned, first check the
      cached_token_rescan_list and take the first token on the list if
      it is non-NULL, otherwise check the reusable cache stack. */
@@ -4970,7 +5133,7 @@ This routine cannot be used when fetching raw preprocessing tokens.
   /* Get the next token that is not a lint/pragma state entry. */
   while (ctp != NULL &&
          ctp->extra_info_kind ==
-                             (a_token_extra_info_kind)teik_lint_and_pragma) {
+                             (a_token_extra_info_kind)teik_pragma) {
     ctp = ctp->next;
   }  /* for */
   /* If there is no cached token or if the token is the end-of-source token
@@ -5038,7 +5201,7 @@ cannot be used when fetching raw preprocessing tokens.
   /* Get the next token that is not a lint/pragma state entry. */
   while (ctp != NULL &&
          ctp->extra_info_kind ==
-                             (a_token_extra_info_kind)teik_lint_and_pragma) {
+                             (a_token_extra_info_kind)teik_pragma) {
     ctp = ctp->next;
   }  /* for */
   /* If there is no cached token or if the token is the end-of-source token
@@ -6903,6 +7066,172 @@ instantiation file suffix list.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 
+void begin_rescan_of_pragma_tokens(a_pending_pragma_ptr ppp)
+/*
+Active the token cache containing the pragma to be scanned.
+*/
+{
+  rescan_reusable_cache(&ppp->token_cache);
+}  /* begin_rescan_of_pragma_tokens */
+
+
+void wrapup_rescan_of_pragma_tokens(void)
+/*
+This routine is called by pragma processing routines when they have reached
+the end of the pragma directive being scanned.  This routine fetches
+the token that terminates the token cache and returns the token stream
+to its original state.  The pragma scanning routine is responsible for
+fetching all tokens up to the newline that marks the end of the pragma.
+*/
+{
+  check_assertion_str(curr_token == tok_newline,
+                      "wrapup_rescan_of_pragma_tokens: tok_newline expected");
+  /* Bypass the newline token. */
+  (void)get_token();
+  check_assertion_str(curr_token == tok_end_of_source,
+                 "wrapup_rescan_of_pragma_tokens: tok_end_of_source expected");
+  /* Bypass the cache terminator. */
+  (void)get_token();
+}  /* wrapup_rescan_of_pragma_tokens */
+
+
+static void init_pragma_descriptions(void)
+/*
+Initialize the pragma description table.
+*/
+{
+  /* Clear the array used to get a pragma description pointer based on a
+     pragma kind. */
+  int	i;
+  for (i = (int)pk_none; i < (int)pk_last; ++i) {
+    pragma_description_for_pragma_kind[i] = (a_pragma_description_ptr)NULL;
+  }  /* for */
+  (void)add_pragma_description(pk_printf_args,
+                               pbk_next_declaration,
+			       (a_pragma_processing_function_ptr)NULL,
+			       /*is_pseudo_pragma=*/FALSE,
+                               /*global=*/FALSE,
+                               /*include_in_il=*/FALSE,
+                               /*fetch_pp_tokens=*/FALSE,
+                               /*expand_macros=*/FALSE,
+                               /*processing_C_code_in_pragma=*/FALSE,
+                               es_error);
+  (void)add_pragma_description(pk_scanf_args,
+                               pbk_next_declaration,
+			       (a_pragma_processing_function_ptr)NULL,
+			       /*is_pseudo_pragma=*/FALSE,
+                               /*global=*/FALSE,
+                               /*include_in_il=*/FALSE,
+                               /*fetch_pp_tokens=*/FALSE,
+                               /*expand_macros=*/FALSE,
+                               /*processing_C_code_in_pragma=*/FALSE,
+                               es_error);
+  (void)add_pragma_description(pk_lint_argsused,
+                               pbk_next_declaration,
+			       (a_pragma_processing_function_ptr)NULL,
+			       /*is_pseudo_pragma=*/TRUE,
+                               /*global=*/FALSE,
+                               /*include_in_il=*/FALSE,
+                               /*fetch_pp_tokens=*/FALSE,
+                               /*expand_macros=*/FALSE,
+                               /*processing_C_code_in_pragma=*/FALSE,
+                               es_warning);
+  (void)add_pragma_description(pk_lint_varargs_count,
+                               pbk_next_declaration,
+			       (a_pragma_processing_function_ptr)NULL,
+			       /*is_pseudo_pragma=*/TRUE,
+                               /*global=*/FALSE,
+                               /*include_in_il=*/FALSE,
+                               /*fetch_pp_tokens=*/FALSE,
+                               /*expand_macros=*/FALSE,
+                               /*processing_C_code_in_pragma=*/FALSE,
+                               es_warning);
+  (void)add_pragma_description(pk_lint_not_reached,
+                               pbk_next_statement,
+			       (a_pragma_processing_function_ptr)NULL,
+			       /*is_pseudo_pragma=*/TRUE,
+                               /*global=*/FALSE,
+                               /*include_in_il=*/FALSE,
+                               /*fetch_pp_tokens=*/FALSE,
+                               /*expand_macros=*/FALSE,
+                               /*processing_C_code_in_pragma=*/FALSE,
+                               es_warning);
+  (void)add_pragma_description(pk_instantiate,
+                               pbk_immediate,
+			       instantiation_pragma,
+			       /*is_pseudo_pragma=*/FALSE,
+                               /*global=*/FALSE,
+                               /*include_in_il=*/FALSE,
+                               /*fetch_pp_tokens=*/FALSE,
+                               /*expand_macros=*/TRUE,
+                               /*processing_C_code_in_pragma=*/TRUE,
+                               es_error);
+  (void)add_pragma_description(pk_do_not_instantiate,
+                               pbk_immediate,
+			       instantiation_pragma,
+			       /*is_pseudo_pragma=*/FALSE,
+                               /*global=*/FALSE,
+                               /*include_in_il=*/FALSE,
+                               /*fetch_pp_tokens=*/FALSE,
+                               /*expand_macros=*/TRUE,
+                               /*processing_C_code_in_pragma=*/TRUE,
+                               es_error);
+  (void)add_pragma_description(pk_can_instantiate,
+                               pbk_immediate,
+			       instantiation_pragma,
+			       /*is_pseudo_pragma=*/FALSE,
+                               /*global=*/FALSE,
+                               /*include_in_il=*/FALSE,
+                               /*fetch_pp_tokens=*/FALSE,
+                               /*expand_macros=*/TRUE,
+                               /*processing_C_code_in_pragma=*/TRUE,
+                               es_error);
+#if 0
+#else
+  (void)add_pragma_description(pk_test_next_decl,
+                               pbk_next_declaration,
+			       (a_pragma_processing_function_ptr)NULL,
+			       /*is_pseudo_pragma=*/FALSE,
+                               /*global=*/FALSE,
+                               /*include_in_il=*/FALSE,
+                               /*fetch_pp_tokens=*/FALSE,
+                               /*expand_macros=*/FALSE,
+                               /*processing_C_code_in_pragma=*/FALSE,
+                               es_error);
+  (void)add_pragma_description(pk_test_next_statement,
+                               pbk_next_statement,
+			       (a_pragma_processing_function_ptr)NULL,
+			       /*is_pseudo_pragma=*/FALSE,
+                               /*global=*/FALSE,
+                               /*include_in_il=*/FALSE,
+                               /*fetch_pp_tokens=*/FALSE,
+                               /*expand_macros=*/FALSE,
+                               /*processing_C_code_in_pragma=*/FALSE,
+                               es_error);
+  (void)add_pragma_description(pk_test_immediate,
+                               pbk_immediate,
+			       (a_pragma_processing_function_ptr)NULL,
+			       /*is_pseudo_pragma=*/FALSE,
+                               /*global=*/FALSE,
+                               /*include_in_il=*/FALSE,
+                               /*fetch_pp_tokens=*/FALSE,
+                               /*expand_macros=*/FALSE,
+                               /*processing_C_code_in_pragma=*/FALSE,
+                               es_error);
+  (void)add_pragma_description(pk_test_other,
+                               pbk_other,
+			       (a_pragma_processing_function_ptr)NULL,
+			       /*is_pseudo_pragma=*/FALSE,
+                               /*global=*/FALSE,
+                               /*include_in_il=*/FALSE,
+                               /*fetch_pp_tokens=*/FALSE,
+                               /*expand_macros=*/FALSE,
+                               /*processing_C_code_in_pragma=*/FALSE,
+                               es_error);
+#endif
+}  /* init_pragma_descriptions */
+
+
 #if DEBUG
 unsigned long show_lexical_space_used(void)
 /*
@@ -6931,6 +7260,11 @@ Display and return the amount of space used for various lexical tables.
   db_space_used_lost("cache stack entry", avail_reusable_cache_entries,
                      num_reusable_cache_entries_allocated,
                      a_reusable_cache_entry);
+  db_space_used_lost("pending pragma entry", avail_pending_pragmas,
+                     num_pending_pragmas_allocated,
+                     a_pending_pragma);
+  db_space_used("pragam descriptions", num_pragma_descriptions_allocated,
+                a_pragma_description);
   db_space_used_lost("access error descr", avail_access_error_descrs,
                      num_access_error_descrs_allocated, an_access_error_descr);
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
@@ -6979,9 +7313,13 @@ of the front end.
   /* Clear the set of tokens on which to stop a flush following a
      syntax error. */
   clear_stop_tokens();
+  curr_token_pragmas = NULL;
+#if 0
+#else
   lint_argsused_flag = FALSE;
   lint_varargs_count = NOT_LINT_VARARGS;
   lint_notreached_flag = FALSE;
+#endif
 
   /* Static variables in lexical.c: */
   curr_input_stream = NULL;
@@ -6994,6 +7332,7 @@ of the front end.
   avail_cached_tokens = NULL;
   avail_cached_constants = NULL;
   avail_reusable_cache_entries = NULL;
+  avail_pending_pragmas = NULL;
   reusable_cache_stack = NULL;
   dollar_in_id_diagnostic_issued = FALSE;
 #if DEBUG
@@ -7003,6 +7342,8 @@ of the front end.
   num_cached_tokens_in_reusable_caches = 0;
   num_cached_constants_allocated = 0;
   num_reusable_cache_entries_allocated = 0;
+  num_pending_pragmas_allocated = 0;
+  num_pragma_descriptions_allocated = 0;
   num_access_error_descrs_allocated = 0;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   num_file_suffixes_allocated = 0;
@@ -7129,6 +7470,7 @@ of the front end.
                                     (DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST);
   }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  init_pragma_descriptions();
 }  /* lexical_init */
 
 
