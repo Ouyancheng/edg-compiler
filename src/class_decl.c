@@ -4104,7 +4104,8 @@ of the function, and again overloading is a possibility.
                                     declarator_ssep);
           /* Do exception specification compatibility checking. */
           check_exception_specification(function_type, rp,
-                                        &func_info->throw_position);
+                                        &func_info->throw_position,
+                                        /*is_redecl=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!func_info->is_definition) {
             /* Since this is a non-defining entry, it is represented by a

@@ -983,7 +983,8 @@ on a prior declaration.
            (*old_type)->variant.routine.extra_info->implicit_this_param_type;
     /* Do compatibility checking on the throw specification. */
     check_exception_specification(rout_type, rp,
-                                  &func_info->throw_position);
+                                  &func_info->throw_position,
+                                  /*is_redecl=*/TRUE);
     reconcile_routine_types(sym->variant.routine.ptr, type_ptr,
                             /*preserve_rout_type=*/FALSE,
                             /*preserve_type_ptr=*/TRUE);

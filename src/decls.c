@@ -817,7 +817,8 @@ namespace member.
 
 void check_exception_specification(a_type_ptr         new_rout_type,
                                    a_routine_ptr      rp,
-                                   a_source_position  *throw_pos)
+                                   a_source_position  *throw_pos,
+                                   a_boolean          is_redecl)
 /*
 Check that the throw specification on the current declaration, if any, is
 consistent with that of the previous declaration.
@@ -828,6 +829,7 @@ consistent with that of the previous declaration.
   an_exception_specification_type_ptr  new_est_list, old_est_list;
   an_exception_specification_type_ptr  estp, other_estp;
   a_symbol_ptr                         rout_sym;
+  an_error_code                        error_code;
 
   db_enter(4, "check_exception_specification");
   if (exceptions_enabled && rp->type->kind != (a_type_kind)tk_typeref) {
@@ -836,25 +838,35 @@ consistent with that of the previous declaration.
                          variant.routine.extra_info->exception_specification;
     new_tsp = skip_typerefs(new_rout_type)->
                     variant.routine.extra_info->exception_specification;
+    if (is_redecl) {
+      /* This a function redeclaration -- the exception specifications have to
+         match. */
+      error_code = ec_incompatible_exception_specification;
+    } else {
+      /* Not a redeclaration -- probably a template specialization, where the
+         specialization needs to match the template itself. */
+      error_code = ec_bad_exception_specification_for_specialization;
+    }  /* if */
     if (old_tsp == NULL) {
       /* Previous specification asserted that any exception may be thrown.
          It is compatible only with an identical specification on the current
          declaration. */
       if (new_tsp != NULL) {
-        pos_stsy_error(ec_incompatible_exception_specification, throw_pos,
-                       "", rout_sym);
+        pos_stsy_error(error_code, throw_pos, "", rout_sym);
       }  /* if */
     } else if (new_tsp == NULL) {
       /* Issue an error on the omission of a throw specification on the current
          declaration (it must have been present on the previous one). */
-      pos_sy_error(ec_omitted_exception_specification, throw_pos, rout_sym);
+      pos_sy_error(is_redecl?
+                    ec_omitted_exception_specification :
+                    ec_omitted_exception_specification_on_specialization,
+                   throw_pos, rout_sym);
     } else if (old_tsp->exception_specification_type_list == NULL) {
       /* Previous specification asserted that no exceptions will be thrown.
          It is compatible only with an identical specification on the current
          declaration. */
       if (new_tsp->exception_specification_type_list != NULL) {
-        pos_stsy_start_error(ec_incompatible_exception_specification,
-                             throw_pos, ":", rout_sym);
+        pos_stsy_start_error(error_code, throw_pos, ":", rout_sym);
         add_diag_info(ec_previous_exception_specification_was_empty);
         end_error();
       }  /* if */
@@ -890,8 +902,7 @@ consistent with that of the previous declaration.
                  followed by additional messages identifying the specific
                  discrepancy.  This is the first diagnostic, so put out
                  the header message first. */
-              pos_stsy_start_error(ec_incompatible_exception_specification,
-                                   throw_pos, ":", rout_sym);
+              pos_stsy_start_error(error_code, throw_pos, ":", rout_sym);
               any_difference_seen = TRUE;
             }  /* if */
             ty_add_diag_info(ec_omitted_in_previous_exception_specification,
@@ -921,8 +932,7 @@ consistent with that of the previous declaration.
             if (!any_difference_seen) {
               /* This is the first diagnostic, so put out the header
                  message first. */
-              pos_stsy_start_error(ec_incompatible_exception_specification,
-                                   throw_pos, ":", rout_sym);
+              pos_stsy_start_error(error_code, throw_pos, ":", rout_sym);
               any_difference_seen = TRUE;
             }  /* if */
             ty_add_diag_info(ec_included_in_previous_exception_specification,
@@ -2315,7 +2325,8 @@ created; the caller must set it.
           if (C_dialect == C_dialect_cplusplus) {
             /* Do compatibility checking on the throw specification. */
             check_exception_specification(type_ptr, *routine_ptr,
-                                          &func_info->throw_position);
+                                          &func_info->throw_position,
+                                          /*is_redecl=*/TRUE);
           }  /* if */
           use_existing_il_entry = TRUE;
           preexisting_type = (*routine_ptr)->type;
@@ -3759,7 +3770,8 @@ on for use in generating cross-reference output describing this declaration.
           if (C_dialect == C_dialect_cplusplus) {
             /* Do compatibility checking on the throw specification. */
             check_exception_specification(type_ptr, routine_ptr,
-                                          &func_info->throw_position);
+                                          &func_info->throw_position,
+                                          /*is_redecl=*/TRUE);
           }  /* if */
           reconcile_routine_types(routine_ptr, type_ptr,
                                   /*preserve_rout_type=*/old_decl_has_body,
@@ -3914,7 +3926,8 @@ on for use in generating cross-reference output describing this declaration.
         if (C_dialect == C_dialect_cplusplus) {
           /* Do compatibility checking on the throw specification. */
           check_exception_specification(type_ptr, routine_ptr,
-                                        &func_info->throw_position);
+                                        &func_info->throw_position,
+                                        /*is_redecl=*/TRUE);
         }  /* if */
         reconcile_routine_types(routine_ptr, type_ptr,
                                 /*preserve_rout_type=*/old_decl_has_body,
@@ -3986,7 +3999,8 @@ skip_overloading:;
                             /*preserve_type_ptr=*/FALSE);
     /* Do compatibility checking for the throw specification. */
     check_exception_specification(type_ptr, routine_ptr,
-                                  &func_info->throw_position);
+                                  &func_info->throw_position,
+                                  /*is_redecl=*/TRUE);
   } else if (routine_ptr == NULL) {
     /* There is no IL entry, so create one now, and add it to the routine
        list of the file scope. */
@@ -4574,7 +4588,8 @@ is not a template declaration scope.
     /* Be sure the current throw specification is consistent with the one
        on the previous declaration. */
     check_exception_specification(type_ptr, rout_ptr,
-                                  &func_info->throw_position);
+                                  &func_info->throw_position,
+                                  /*is_redecl=*/TRUE);
 #if DECL_MODIFIERS_IN_USE
     redeclaration = TRUE;
 #endif /* DECL_MODIFIERS_IN_USE */

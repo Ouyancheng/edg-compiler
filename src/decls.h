@@ -250,7 +250,8 @@ extern void reconcile_routine_types(a_routine_ptr  routine_ptr,
 
 extern void check_exception_specification(a_type_ptr         new_rout_type,
                                           a_routine_ptr      rp,
-                                          a_source_position  *throw_pos);
+                                          a_source_position  *throw_pos,
+                                          a_boolean          is_redecl);
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 extern a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_type(
