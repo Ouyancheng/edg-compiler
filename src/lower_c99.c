@@ -735,11 +735,14 @@ Transform the given complex cast expression into a function call
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
     } else if (is_real_floating_type(src_type)) {
-      /* A real value converted to an imaginary type is always zero. */
-      set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
-      expr->variant.constant = fs_constant((a_constant_repr_kind)ck_float);
+      /* A real value converted to an imaginary type is always zero.  Use a
+         comma operator to preserve side-effects of the source expression. */
+      a_constant        zero_constant;
+      an_expr_node_ptr  new_expr;
       make_zero_of_proper_type(float_type(dst_type->variant.float_kind),
-                               expr->variant.constant);
+                               &zero_constant);
+      new_expr = make_comma_node(src, alloc_node_for_constant(&zero_constant));
+      overwrite_node(expr, new_expr);
     } else {
       /* Nothing to be done (imaginary->imaginary). */
     }  /* if */
@@ -770,10 +773,13 @@ Transform the given complex cast expression into a function call
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
     } else if (is_imaginary_type(src_type)) {
-      /* An imaginary value converted to a real type is always zero. */
-      set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
-      expr->variant.constant = fs_constant((a_constant_repr_kind)ck_float);
-      make_zero_of_proper_type(dst_type, expr->variant.constant);
+      /* An imaginary value converted to a real type is always zero.  Use a
+         comma operator to preserve side-effects of the source expression. */
+      a_constant        zero_constant;
+      an_expr_node_ptr  new_expr;
+      make_zero_of_proper_type(dst_type, &zero_constant);
+      new_expr = make_comma_node(src, alloc_node_for_constant(&zero_constant));
+      overwrite_node(expr, new_expr);
     } else {
       /* Nothing to be done (real->real). */
     }  /* if */
