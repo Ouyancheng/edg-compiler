@@ -14,7 +14,6 @@ Exit processing.
 */
 
 #include "basics.h"
-#include "runtime.h"
 #pragma hdrstop
 #include "static_init.h"
 
@@ -22,12 +21,10 @@ Exit processing.
    interface routine in the runtime that has C++ linkage. */
 extern "C" void exit(int);
 
-#if EXCEPTION_HANDLING
 /* Routine in throw.c that does exit processing for exception handling.
    Declared here to prevent pulling in all of eh.h that would redeclare
    exit. */
 extern "C" void __eh_exit_processing(void);
-#endif /* EXCEPTION_HANDLING */
 
 void __edg_exit(int val)
 /*
@@ -36,9 +33,7 @@ exception handling processing that must be done.  Then call the
 system exit routine to complete the exit processing.
 */
 {
-#if EXCEPTION_HANDLING
   __eh_exit_processing();
-#endif /* EXCEPTION_HANDLING */
   /* __call_dtors is called here and is also registered as an atexit
      function that will be called by the system exit routine.  This means
      that it will be called twice when the EDG C++ linkage version of

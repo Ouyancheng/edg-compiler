@@ -1421,6 +1421,16 @@ get called.
   unexpected_condition();
 } /* __suppress_optim_on_vars_in_try */
 
+#else /* !EXCEPTION_HANDLING */
+
+EXTERN_C void __eh_exit_processing(void)
+/*
+A stub version of __eh_exit_processing that is used when the runtime is
+built without exception handling support.  This version does nothing.
+*/
+{
+}  /* __eh_exit_processing */
+
 #endif /* EXCEPTION_HANDLING */
 
 /******************************************************************************
