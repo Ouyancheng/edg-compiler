@@ -4279,6 +4279,7 @@ nonidentical.
     /* Do not attempt to share constants if they are the result of different
        expressions. */
     /* eq = FALSE; */
+    unexpected_condition_str("compare_constants");
     goto end_of_routine;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   } else {
