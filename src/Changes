@@ -1,5 +1,16 @@
 Version 3.6
 
+3/22/05  GNU C++ compatibility: Defining types in nonstandard places
+
+In GNU C++ mode, when gnu_version is less than 30400, the front end accepts
+class and enum type definitions in certain nonstandard places (e.g., in a
+cast).  When gnu_version was (strictly) larger than 30400, however, the
+front end sometimes issued an error more than once.  For example:
+
+	void f() { (enum E { e }*)0; }  // Error issued twice in some modes.
+
+This is now fixed.
+
 3/22/05  Building standalone utility programs
 
 The changes made to enable the front end to be restarted require some
