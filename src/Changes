@@ -1,5 +1,18 @@
 Version 2.21
 
+12/1/93   Error now issued if an unnamed enum is used as a template argument
+
+An error is now issued if a template argument has a type containing
+an unnamed enumeration.
+
+  template <class T> void f(T) {}
+  int main()
+  {
+    enum { e1};
+    f(e1);
+  }
+
+
 11/30/93  Setting decl_position in IL entry
 
 A recently introduced bug that sometimes caused the decl_position field

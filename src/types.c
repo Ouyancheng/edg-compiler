@@ -1039,7 +1039,7 @@ because any exception it can handle would be caught by type_1's handler.
 #if 0
       /* Strict interpretation of 15.4 para 2. */
       masked = (bcp != NULL);
-#else
+#else /* 0 */
       /* 15.4 para 1 is clear that a handler for a base class will not
          handle the derived class if the base class is not accessible.
          Does this apply to masking that can be diagnosed at compile time?
@@ -3769,6 +3769,40 @@ care about.
 }  /* ttt_is_local_type */
 
 
+/* Static variables used to pass information back to the routine
+   is_or_contains_local_or_unnamed_type. */
+static a_boolean is_unnamed_type;
+static a_boolean is_local_type;
+static a_boolean ttt_is_unnamed_or_local_type(a_type_ptr  type_ptr,
+                                     a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It returns TRUE if type_ptr is an unnamed or
+local class, struct, union, or enum.  Note that typedefs are skipped, as
+they in name mangling; it is the underlying type, not the typedef name
+(which can be declared anywhere) that we really care about.
+*/
+{
+  a_type_ptr	tp = skip_typerefs(type_ptr);
+  a_symbol_ptr  sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+  a_boolean result = FALSE;
+
+  if (is_class_struct_union_type(tp)) {
+    if (is_unnamed_class_symbol(sym)) {
+      is_unnamed_type = *force_end_of_traversal = result = TRUE;
+    }  /* if */
+  } else if (is_enum_type(tp)) {
+    if (sym == NULL) {
+      is_unnamed_type = *force_end_of_traversal = result = TRUE;
+    }  /* if */
+  }  /* if */
+  if (tp->source_corresp.is_local_to_function) {
+    is_local_type = *force_end_of_traversal = result = TRUE;
+  }  /* if */
+  return result;
+}  /* ttt_is_unnamed_or_local_type */
+
+
 /* A pointer to the specific template parameter type to be found by
    ttt_is_or_contains_template_param. */
 static a_type_ptr specific_template_param_type;
@@ -4053,6 +4087,34 @@ union or enum type or is a type tree containing such a type.
 
   return (traverse_type_tree(type_ptr, ttt_is_local_type, ttt_flags));
 }  /* is_or_constains_local_type */
+
+
+a_boolean is_or_contains_unnamed_or_local_type(a_type_ptr  type_ptr,
+					       a_boolean   *is_unnamed,
+					       a_boolean   *is_local)
+/*
+Return TRUE if the type pointed to by type_ptr is itself a unnamed or
+local class, struct, union or enum type or is a type tree containing such a
+type.  If the result of the traverse_type_tree call is TRUE then the
+static variables is_unnamed_type and is_local_type are set to reflect
+which of the conditions is true.
+*/
+{
+  a_boolean			  result;
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_THIS_PARAM_TYPE |
+                                               TTT_PARAM_TYPES);
+
+  /* Clear the variables that are used to return status information
+     from ttt_is_unnamed_or_local_type. */
+  is_local_type = FALSE;
+  is_unnamed_type = FALSE;
+  result = traverse_type_tree(type_ptr, ttt_is_unnamed_or_local_type,
+                              ttt_flags);
+  *is_unnamed = is_unnamed_type;
+  *is_local = is_local_type;
+  return result;
+}  /* is_or_constains_unnamed_or_local_type */
 
 
 a_boolean is_or_contains_template_param(a_type_ptr  type_ptr)

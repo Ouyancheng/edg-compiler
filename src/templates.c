@@ -2196,12 +2196,12 @@ structure.
      arguments nor may unnamed types.  Issue an error if any are found. */
   while (tap != NULL) {
     a_type_ptr	type = tap->variant.type;
-    if (is_or_contains_local_type(type)) {
-      pos_error(ec_local_type_in_template_arg, source_pos);
-    } else if (is_class_struct_union_type(type)) {
-      a_symbol_ptr class_sym;
-      class_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-      if (is_unnamed_class_symbol(class_sym)) {
+    a_boolean	is_unnamed;
+    a_boolean	is_local;
+    if (is_or_contains_unnamed_or_local_type(type, &is_unnamed, &is_local)) {
+      if (is_local) {
+        pos_error(ec_local_type_in_template_arg, source_pos);
+      } else if (is_unnamed) {
         pos_error(ec_unnamed_type_in_template_arg, source_pos);
       }  /* if */
     }  /* if */
@@ -2640,7 +2640,7 @@ that make up the declaration and do a prototype instantiation.
                                            (a_name_linkage_kind)nlk_internal;
 #if 0
       mark_defined(prototype_sym, &prototype_sym->decl_position);
-#else
+#else /* 0 */
       prototype_sym->defined = TRUE;
 #endif /* if 0 */
       /* Build the template argument list for the prototype instantiation
@@ -4239,8 +4239,9 @@ library does not provide instantiations).  Without the can_instantiate
 pragma the instantiator would have no way of knowing how to generate
 the instantiations needed to resolve the references from within the
 library.
-
+*/
 #if 0
+/*
 There is currently a problem caused by creating a class in
 tim_can_instantiate mode and then referencing the class later.
 
@@ -4248,8 +4249,8 @@ The current workaround to this problem is to instantiate the
 class in tim_none mode.  This has the undesired effect that
 any static data members or virtual functions will be flagged
 as requiring instantiations.
-#endif
 */
+#endif /* 0 */
 {
   a_can_instantiate_entry_ptr	ciep;
 
