@@ -2943,6 +2943,20 @@ enum an_expr_operator_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_expr_operator_kind;
 
+
+/* Description of a C++ "throw" operation. */
+typedef struct a_throw_supplement *a_throw_supplement_ptr;
+typedef struct a_throw_supplement {
+  a_type_ptr	type;
+			/* The type of the object being thrown. */
+  a_dynamic_init_ptr
+		dynamic_init;
+			/* Pointer to the dynamic initialization entry that
+			   specifies what is done to pass the throw object
+			   to the handler. */
+} a_throw_supplement;
+
+
 /* Description of a C++ "new" or "delete" operation. */
 typedef struct a_new_delete_supplement *a_new_delete_supplement_ptr;
 typedef struct a_new_delete_supplement {
@@ -3079,9 +3093,9 @@ typedef struct an_expr_node {
 			/* Pointer to an entry that describes the new or
 			   delete operation (C++ only). */
     /* When kind == enk_throw: */
-    an_expr_node_ptr  
-                throw_object;
-                        /* The object being thrown in a throw expression;
+    a_throw_supplement_ptr
+		throw_object;
+			/* The object being thrown in a throw expression;
 			   NULL when a no object is specified (i.e., a
 			   "rethrow" of the current throw object). */
 #endif /* ifdef CIL */

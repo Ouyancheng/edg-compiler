@@ -110,6 +110,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(an_asm_entry),
   sizeof(a_template_arg),
   sizeof(a_new_delete_supplement),
+  sizeof(a_throw_supplement),
 #endif /* ifdef CIL */
   sizeof(an_orphaned_il_list),
   IEK_LAST_CHECK_SIZE /* iek_last */

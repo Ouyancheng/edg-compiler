@@ -221,6 +221,8 @@ of each kind.
   walk_orphan_entry_list_for_entry_kind(a_template_arg_ptr, iek_template_arg);
   walk_orphan_entry_list_for_entry_kind(a_new_delete_supplement_ptr,
                                         iek_new_delete_supplement);
+  walk_orphan_entry_list_for_entry_kind(a_throw_supplement_ptr,
+                                        iek_throw_supplement);
 #endif /* ifdef CFE */
 
   db_exit();
@@ -414,6 +416,7 @@ running them through walk_remap_func.
   remap_orphan_entry_first(iek_asm_entry);
   remap_orphan_entry_first(iek_template_arg);
   remap_orphan_entry_first(iek_new_delete_supplement);
+  remap_orphan_entry_first(iek_throw_supplement);
 #endif /* ifdef CFE */
 #undef remap_orphan_entry_first
 }  /* remap_first_ptr_of_orphaned_file_scope_entry_array */
@@ -483,6 +486,7 @@ running them through walk_remap_func.
   remap_orphan_entry_last(iek_asm_entry);
   remap_orphan_entry_last(iek_template_arg);
   remap_orphan_entry_last(iek_new_delete_supplement);
+  remap_orphan_entry_last(iek_throw_supplement);
 #endif /* ifdef CFE */
 #undef remap_orphan_entry_last
 }  /* remap_last_ptr_of_orphaned_file_scope_entry_array */

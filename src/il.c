@@ -85,6 +85,7 @@ static unsigned long
 		num_labels_allocated,
 		num_expr_nodes_allocated,
 		num_new_delete_supplements_allocated,
+		num_throw_supplements_allocated,
 		num_switch_clauses_allocated,
                 num_handlers_allocated,
 		num_blocks_allocated,
@@ -1025,6 +1026,7 @@ Dump the contents of the indicated expression node for debug purposes.
   a_constant_ptr              const_ptr;
   int                         a;
   a_new_delete_supplement_ptr ndsp;
+  a_throw_supplement_ptr      tsp;
 
   for (a = 0; a < level; a++) fputs(" ", f_debug);
   switch ((int)node->kind) {
@@ -1080,7 +1082,7 @@ Dump the contents of the indicated expression node for debug purposes.
                        ndsp->is_new ? "new" : "delete",
                        (ndsp->routine != NULL) ?
                                 ndsp->routine->source_corresp.name : "(null)");
-      db_type(ndsp->type);
+      db_abbreviated_type(ndsp->type);
       fputs("\n", f_debug);
       for (operand = ndsp->arg; operand != NULL; operand = operand->next) {
         db_expr_node(operand, level + 2);
@@ -1091,6 +1093,16 @@ Dump the contents of the indicated expression node for debug purposes.
         db_dynamic_initializer(ndsp->dynamic_init, level + 2);
       }  /* if */
       break;
+    case enk_throw:
+      tsp = node->variant.throw_object;
+      fprintf(f_debug, "type = ");
+      db_abbreviated_type(tsp->type);
+      fprintf(f_debug, ", dynamic_init = ");
+      if (tsp->dynamic_init == NULL) {
+        fprintf(f_debug, "<null>");
+      } else {
+        db_dynamic_initializer(tsp->dynamic_init, level + 2);
+      }  /* if */
     case enk_error:
       fputs("error node\n", f_debug);
       break;
@@ -4974,6 +4986,7 @@ fields to default values.
 */
 {
   a_new_delete_supplement_ptr ndsp;
+  a_throw_supplement_ptr      tsp;
 
   node->kind = kind;
   switch (kind) {
@@ -5021,7 +5034,14 @@ fields to default values.
       ndsp->dynamic_init = NULL;
       break;
     case enk_throw:
-      node->variant.throw_object = NULL;
+      /* Allocate the supplement for a throw. */
+      tsp = (a_throw_supplement_ptr)alloc_cil(sizeof(a_throw_supplement));
+      node->variant.throw_object = tsp;
+#if DEBUG
+      num_throw_supplements_allocated++;
+#endif /* DEBUG */
+      tsp->type         = NULL;
+      tsp->dynamic_init = NULL;
       break;
 #if CHECKING
     default:
@@ -6182,6 +6202,8 @@ Display and return the amount of space used for various IL tables.
   db_space_used("expr node", num_expr_nodes_allocated, an_expr_node);
   db_space_used("new/delete supplement", num_new_delete_supplements_allocated,
                 a_new_delete_supplement);
+  db_space_used("throw supplement", num_throw_supplements_allocated,
+                a_throw_supplement);
   db_space_used("switch clause",
                 num_switch_clauses_allocated, a_switch_clause);
   db_space_used("handler", num_handlers_allocated, a_handler);
@@ -6345,6 +6367,7 @@ of the front end.
   num_labels_allocated                   = 0;
   num_expr_nodes_allocated               = 0;
   num_new_delete_supplements_allocated   = 0;
+  num_throw_supplements_allocated        = 0;
   num_switch_clauses_allocated           = 0;
   num_blocks_allocated                   = 0;
   num_for_loops_allocated                = 0;

@@ -111,6 +111,7 @@ typedef enum /*an_il_entry_kind*/ {
   iek_template_arg,     /* a_template_arg */
   iek_new_delete_supplement,
 			/* a_new_delete_supplement */
+  iek_throw_supplement,	/* a_throw_supplement */
 #endif /* ifdef CIL */
   iek_orphaned_il_list, /* an_orphaned_il_list */
   iek_last		/* Marks the end of the list. */
@@ -178,6 +179,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_asm_entry */			"asm-entry",
 /* iek_template_arg */			"template-arg",
 /* iek_new_delete_supplement */		"new-delete-supplement",
+/* iek_throw_supplement */		"throw-supplement",
 #endif /* ifdef CIL */
 /* iek_orphaned_il_list */		"orphaned-il-list",
 /* iek_last */				"last"

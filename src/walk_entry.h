@@ -557,8 +557,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                      iek_new_delete_supplement);
             break;
           case enk_throw:
-            walk_ptr(ptr->variant.throw_object, an_expr_node_ptr,
-                     iek_expr_node);
+            walk_ptr(ptr->variant.throw_object, a_throw_supplement_ptr,
+                     iek_throw_supplement);
             break;
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -1180,6 +1180,13 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->type, a_type_ptr, iek_type);
         walk_ptr(ptr->routine, a_routine_ptr, iek_routine);
         walk_ptr(ptr->arg, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
+      }
+      break;
+    case iek_throw_supplement:
+      {
+        a_throw_supplement_ptr ptr = (a_throw_supplement_ptr)entry_ptr;
+        walk_ptr(ptr->type, a_type_ptr, iek_type);
         walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
       }
       break;

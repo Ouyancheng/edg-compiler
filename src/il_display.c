@@ -2001,6 +2001,16 @@ Display the indicated new/delete supplement to an expression node.
 }  /* disp_new_delete_supplement */
 
 
+static void disp_throw_supplement(a_throw_supplement_ptr tsp)
+/*
+Display the indicated throw supplement to an expression node.
+*/
+{
+  disp_ptr("type", (char *)tsp->type, iek_type);
+  disp_ptr("dynamic_init", (char *)tsp->dynamic_init, iek_dynamic_init);
+}  /* disp_throw_supplement */
+
+
 static void disp_expr_node(an_expr_node_ptr ptr)
 /*
 Display the indicated expression node.
@@ -2075,8 +2085,7 @@ do_variable:
       break;
     case enk_throw:
       (void)printf("enk_throw\n");
-      disp_ptr("throw_object", (char *)ptr->variant.throw_object,
-               iek_variable);
+      disp_throw_supplement(ptr->variant.throw_object);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -2988,6 +2997,7 @@ This routine is called during IL walking.
     case iek_routine_list_entry:
     case iek_template_arg:
     case iek_new_delete_supplement:
+    case iek_throw_supplement:
 #endif /* ifdef CFE */
       break;
     default:
