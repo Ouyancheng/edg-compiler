@@ -189,6 +189,10 @@ floating point types.
 #endif /* LONG_LONG_ALLOWED */
 #if CHECKING
   for (k = 0; k<(int)ik_last; ++k) {
+#ifdef FIL
+    /* ik_unsized is unused in the C/C++ front end. */
+    if (k == (an_integer_kind)ik_unsized) continue;
+#endif /* ifdef FIL */
     if (int_field_alignments[k] == 0) {
       unexpected_condition();
     }  /* if */
