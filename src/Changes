@@ -1,5 +1,20 @@
 Version 2.15
 
+2/23/93  Constant-valued variables in "?" and "," operators
+
+The values of constant-values variables are now substituted for the
+variables even inside "?" and "," operators:
+
+  const long aa = 10;
+  const long bb = 24;
+  void m()
+  {
+    long i;
+    i = ((i < 0) ? aa : bb);  // constant values substituted
+
+  }
+
+
 2/22/93  Support for cfront name lookup bug
 
 Cfront 2.1 has a bug that causes a global identifier to be found when
