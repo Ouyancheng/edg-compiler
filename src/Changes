@@ -1,5 +1,12 @@
 Version 2.29
 
+5/10/95  Use of a local type in a block extern declaration
+
+In C++ mode an error is now issued (instead of a warning) if a class or
+enumeration type that is local to a function is used in a block extern
+declaration.  Moreover, such use now includes appearing in the type-id-list
+of an exception specification.
+
 5/10/95  Block extern variable declaration with initializer in K&R mode
 
 We no longer fail to issue a diagnostic in K&R mode for cases like this:
