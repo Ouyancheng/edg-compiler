@@ -7240,6 +7240,7 @@ about it).
     case olk_block:             str = "block";             break;
     case olk_function_static:   str = "function_static";   break;
     case olk_expr_temporary:    str = "expr_temporary";    break;
+    case olk_try_block:         str = "try_block";         break;
     default:                    str = "***BAD LIFETIME KIND***"; break;
   }  /* switch */
   fprintf(f_debug, "%s [", str);
@@ -7521,7 +7522,8 @@ lifetimes, since those are never bound.
       check_assertion_str2((entity_kind == (an_il_entry_kind)iek_scope) &&
                            (((a_scope_ptr)entity_ptr)->kind ==
                                          (a_scope_kind)sck_function),
-                           str, "bad entity or scope kind");
+                           str,
+                           "bad entity or scope kind for olk_function_static");
       break;
     case olk_global_static:
       check_assertion_str2((entity_kind == (an_il_entry_kind)iek_scope) &&
@@ -7539,7 +7541,6 @@ lifetimes, since those are never bound.
                                          (a_scope_kind)sck_block),
                                str, "bad scope kind for olk_block");
         case iek_block:
-        case iek_try_supplement:
           /* Okay. */
           break;
         default:
@@ -7567,6 +7568,16 @@ lifetimes, since those are never bound.
         default:
           unexpected_condition_str2(str,
                                     "bad entity kind for olk_expr_temporary");
+      }  /* switch */
+      break;
+    case olk_try_block:
+      switch (entity_kind) {
+        case iek_try_supplement:
+        case iek_block:
+          /* Okay. */
+          break;
+        default:
+          unexpected_condition_str2(str, "bad entity kind for olk_try_block");
       }  /* switch */
       break;
     default:
@@ -7706,49 +7717,54 @@ with it.  Entries associated with scopes must also have no child entries.
 
   if (olp->destructions != NULL) {
     /* is_useless = FALSE. */
-  } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
+  } else {
     switch (olp->kind) {
       case olk_global_static:
-        /* The file scope object lifetime is preserved if it has any
-           "implicit children" -- i.e., any function scope object
-           lifetimes that are not useless; the latter point to the
-            file scope as parent_lifetime. */
+        /* The file scope object lifetime is preserved if it has any "implicit
+           children" -- i.e., any function scope object lifetimes that are not
+           useless; the latter point to the file scope as parent_lifetime. */
         if (!any_function_scope_lifetime_entries) is_useless = TRUE;
         break;
       case olk_block:
-        if (((a_scope_ptr)olp->entity.ptr)->variant.assoc_handler != NULL) {
-          /* This is the lifetime associated with a catch clause.  It is
-             retained in the IL even if it has no destructions and no
-             children. */
-        } else if (olp->child_lifetime == NULL) {
-          is_useless = TRUE;
-        } else if (olp->has_block_after_label_child_lifetime) {
-          /* A lifetime is kept in the IL even if it has no destructions of
-             its own if it has a block-after-label child lifetime. */
-        } else if (olp->parent_lifetime ==
-                             scope_stack[DEPTH_OF_FILE_SCOPE].
+        if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
+          if (((a_scope_ptr)olp->entity.ptr)->
+                                        variant.assoc_handler != NULL) {
+            /* The lifetime associated with a catch clause is retained in
+               the IL even if it has no destructions and no children. */
+          } else if (olp->child_lifetime == NULL) {
+            /* No children, no destructions. */
+            is_useless = TRUE;
+          } else if (olp->has_block_after_label_child_lifetime) {
+            /* A lifetime is kept in the IL even if it has no destructions of
+               its own if it has a block-after-label child lifetime. */
+          } else if (olp->parent_lifetime ==
+                               scope_stack[DEPTH_OF_FILE_SCOPE].
                                                curr_scope_object_lifetime) {
-          /* This must be the lifetime for a function scope.  If it has
-             any children, then even if it has no destructions it is
-             retained in the IL. */
-        } else {
-          is_useless = TRUE;
+            /* This must be the lifetime for a function scope.  If it has
+               any children, then even if it has no destructions it is
+               retained in the IL. */
+          } else {
+            is_useless = TRUE;
+          }  /* if */
+          break;
         }  /* if */
+        /* olk_block lifetimes that are bound to a_block fall through. */
+      case olk_block_after_label:
+      case olk_expr_temporary:
+        is_useless = TRUE;
+        break;
+      case olk_try_block:
+        /* The lifetime associated with a try block is retained in the IL
+           even if it has no destructions and no children. */
         break;
 #if CHECKING
       case olk_function_static:
         /* Should not have been created unless there were destructions. */
       default:
-        /* Should not be bound to a block or scope entity. */
-        unexpected_condition_str2("is_useless_object_lifetime: bad object",
-                                  "lifetime kind for scope or block");
+        unexpected_condition_str2("is_useless_object_lifetime:",
+                                  "bad object lifetime kind");
 #endif /* CHECKING */
     }  /* switch */
-  } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_try_supplement) {
-    /* The lifetime associated with a try block is retained in the IL even if
-       it has no destructions and no children. */
-  } else {
-    is_useless = TRUE;
   }  /* if */
   return is_useless;
 }  /* is_useless_object_lifetime */
