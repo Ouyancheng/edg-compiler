@@ -269,6 +269,15 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if the default name linkage was explicitly
 			   specified in the source; FALSE for the default
 			   setting for the translation unit as a whole. */
+  a_bit_field /* a_name_linkage_kind */
+		curr_decl_saved_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
+			/* Saved value of field default_name_linkage when
+			   a linkage specification appears after other
+			   decl-specifiers (Microsoft C++ mode only). */
+  a_bit_field	curr_decl_saved_name_linkage_is_explicit:1;
+			/* Saved value of field name_linkage_is_explicit when
+			   a linkage specification appears after other
+			   decl-specifiers (Microsoft C++ mode only). */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be
@@ -835,6 +844,10 @@ extern void add_active_using_directive(a_using_decl_ptr udp);
 
 extern void report_for_init_difference(a_symbol_ptr       sym,
                                        a_source_position  *pos);
+
+extern void set_curr_decl_name_linkage_kind(a_name_linkage_kind kind);
+
+extern void clear_curr_decl_name_linkage_kind(void);
 
 extern void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp);
 

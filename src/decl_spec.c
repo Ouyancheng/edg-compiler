@@ -2699,13 +2699,38 @@ Returns TRUE if there is an error in the specifiers.
       case tok_extern:
         if (C_dialect == C_dialect_cplusplus &&
             next_token() == tok_string_literal) {
-          /* This is a C++ linkage specification, which is recognized and
-             ignored in this context -- except for the error that's put out. */
-          error(ec_linkage_specifier_not_allowed);
-	  err = TRUE;
-          /* Consume the string literal.  We don't bother validating it since
-             an error has already been issued. */
-          (void)get_token();
+          /* This is a C++ linkage specification, which is usually recognized
+             and ignored in this context -- except for the error that's put
+             out. */
+          if (microsoft_mode && (decl_specifiers_seen == DS_DECLSPEC) &&
+              (is_member_decl ||
+               depth_scope_stack == depth_innermost_namespace_scope)) {
+            /* In Microsoft C++ compatibility mode, accept __declspec(...)
+               before a linkage specification.  No other decl-modifiers are
+               allowed to precede a linkage specification. */
+            a_name_linkage_kind  kind;
+
+            /* The Microsoft compiler appears simply to ignore the
+               decl-modifiers that precede the linkage specifier:
+                 __declspec(illexport) extern "C" void f();
+                 extern "C" void f();      // MSVC++ issues no error
+               Therefore, we throw away any decl-modifiers that were
+               accumulated to this point. */
+            *decl_modifiers = DM_NONE;
+            warning(ec_decl_modifiers_ignored);
+            /* Advance to the string token. */
+            (void)get_token();
+            if (scan_name_linkage_string(&kind)) {
+              set_curr_decl_name_linkage_kind(kind);
+            }  /* if */
+          } else {
+            error(ec_linkage_specifier_not_allowed);
+            err = TRUE;
+            /* Consume "extern".  We don't bother validating the string
+               since an error has already been issued. */
+            (void)get_token();
+          }  /* if */
+          decl_specifiers_seen |= DS_LINKAGE_SPEC;
           break;
         }  /* if */
         /* Otherwise drop through for normal storage class processing. */

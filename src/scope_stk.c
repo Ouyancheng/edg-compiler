@@ -467,6 +467,47 @@ Free the specified list of active using directives to the available list.
 }  /* free_active_using_directive_list */
 
 
+void set_curr_decl_name_linkage_kind(a_name_linkage_kind kind)
+/*
+Temporarily set the name-linkage field in the scope stack to "kind", saving
+the current value.  The value will be restored when the current declaration
+has been completed.  This routine is only called in Microsoft C++ mode for
+cases like this:
+
+  __declspec(dllimport) extern "C" void f();
+
+in which a __declspec declaration precedes a linkage specification.
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+
+  check_assertion(ssep->curr_decl_saved_name_linkage ==
+                                           (a_name_linkage_kind)nlk_none);
+  ssep->curr_decl_saved_name_linkage = ssep->default_name_linkage;
+  ssep->curr_decl_saved_name_linkage_is_explicit =
+                                       ssep->name_linkage_is_explicit;
+  ssep->default_name_linkage = kind;
+  ssep->name_linkage_is_explicit = TRUE;
+}  /* set_curr_decl_name_linkage_kind */
+
+
+void clear_curr_decl_name_linkage_kind(void)
+/*
+Restore the name-linkage field in the scope stack to the value it had
+before the current declaration.  This routine is only called in
+Microsoft C++ mode.
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+
+  if (ssep->curr_decl_saved_name_linkage != (a_name_linkage_kind)nlk_none) {
+    ssep->default_name_linkage = ssep->curr_decl_saved_name_linkage;
+    ssep->name_linkage_is_explicit =
+                            ssep->curr_decl_saved_name_linkage_is_explicit;
+    ssep->curr_decl_saved_name_linkage = (a_name_linkage_kind)nlk_none;
+    ssep->curr_decl_saved_name_linkage_is_explicit = FALSE;
+  }  /* if */
+}  /* clear_curr_decl_name_linkage_kind */
 
 
 a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym)
@@ -1169,6 +1210,8 @@ to the declaration information for the template declaration scope being pushed.
     ssep->default_name_linkage = (a_name_linkage_kind)nlk_external;
     ssep->name_linkage_is_explicit = FALSE;
   }  /* if */
+  ssep->curr_decl_saved_name_linkage = (a_name_linkage_kind)nlk_none;
+  ssep->curr_decl_saved_name_linkage_is_explicit = FALSE;
   if (C_dialect == C_dialect_cplusplus) {
     /* Maintain the depth of the innermost stack entry that affects access
        control.  Special handing for template instantiation scopes is done

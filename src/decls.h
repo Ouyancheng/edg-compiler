@@ -191,6 +191,8 @@ extern void decl_default_function(a_symbol_ptr symbol_ptr);
 
 extern a_label_ptr scan_label(a_boolean is_definition);
 
+extern a_boolean scan_name_linkage_string(a_name_linkage_kind *kind);
+
 extern void declaration(a_boolean      function_definition_allowed,
                         a_boolean      extern_implied,
                         a_boolean      is_old_style_param_decl,

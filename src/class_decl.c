@@ -9117,6 +9117,11 @@ following the member declaration.
     /* Loop for additional declarators. */
   } while (loop_token(tok_comma));
 next_declaration:;
+  if (microsoft_mode) {
+    /* Restore the default name linkage in case a linkage specification
+       appeared among the decl-specifiers. */
+    clear_curr_decl_name_linkage_kind();
+  }  /* if */
   db_exit();
   return decl_info.member_sym;
 }  /* class_member_declaration */

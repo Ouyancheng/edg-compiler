@@ -1,5 +1,17 @@
 Version 2.35
 
+1/22/97 Microsoft compatibility: __declspec preceding linkage specification
+
+In Microsoft compatibility mode the following declaration is accepted:
+
+  __declspec(dllimport) extern "C" void f();
+
+However, a warning is issued because (as with the Microsoft compiler)
+decl-modifiers preceding a linkage specification are ignored.  In other
+words, the above declarations is *not* equivalent to
+
+  extern "C" __declspec(dllimport) void f();
+
 1/22/97 Microsoft compatibility: enum types can be used as qualifiers
 
 The Microsoft compiler allows enum types to be used as a qualifier

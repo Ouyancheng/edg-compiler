@@ -5860,6 +5860,52 @@ is present when a "=" is not there.
 
 #endif /* C_ANACHRONISMS_ALLOWED */
 
+
+a_boolean scan_name_linkage_string(a_name_linkage_kind *kind)
+/*
+Scan the string portion of a linkage specification (extern "C", extern "C++",
+etc.).  The current token is the string.  Look it up in the set of strings
+that may appear in a linkage specification, and if the lookup is successful
+return TRUE and set *kind to the corresponding name-linkage kind.
+*/
+{
+  a_boolean            err = FALSE;
+  char                 *str;
+  a_name_linkage_kind  local_kind;
+
+  str = const_for_curr_token.variant.string.value;
+  /* ARM 7.4 specifies that the strings "C" and "C++" must be supported,
+     but that implementations are permitted to add others, such as "Ada"
+     or "FORTRAN".  If changes are made here to support other strings, be
+     sure to update the name linkage kind enumeration. */
+  if (str == NULL) {
+    /* There must have been an error in scanning the string literal (e.g.,
+       no closing '"'. */
+    err = TRUE;
+  } else {
+    /* Look for the predefined string ("C++", "C", ...) which str matches. */
+    for (local_kind = (a_name_linkage_kind)nlk_cplusplus_external;
+         (int)local_kind < (int)nlk_last;
+         local_kind = (a_name_linkage_kind)(local_kind + 1)) {
+      if (strcmp(str, name_linkage_kind_names[local_kind]) == 0) {
+        /* Found a matching linkage kind string. */
+        break;
+      }  /* if */
+    }  /* for */
+    if (local_kind != (a_name_linkage_kind)nlk_last) {
+      /* Return the name-linkage kind to the caller. */
+      *kind = local_kind;
+    } else {
+      /* Bad linkage kind. */
+      error(ec_bad_linkage_specifier);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Return success status to the caller. */
+  return !err;
+}  /* scan_name_linkage_string */
+
+
 static void linkage_specification(a_boolean      function_definition_allowed,
                                   a_boolean      is_old_style_param_decl,
                                   a_boolean      is_top_level_declaration,
@@ -5882,7 +5928,6 @@ specifier is restored.
 {
   a_name_linkage_kind      kind, saved_name_linkage;
   a_boolean                saved_name_linkage_is_explicit;
-  char                     *str;
   a_boolean                err = FALSE;
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
 
@@ -5894,7 +5939,6 @@ specifier is restored.
   /* Advance to the string literal. */
   (void)get_token();
   check_assertion(curr_token == tok_string_literal);
-  str = const_for_curr_token.variant.string.value;
   /* ARM 7.4 specifies that the strings "C" and "C++" must be supported,
      but that implementations are permitted to add others, such as "Ada"
      or "FORTRAN".  If changes are made here to support other strings, be
@@ -5902,30 +5946,12 @@ specifier is restored.
   /* Save the current default linkage. */
   saved_name_linkage = ssep->default_name_linkage;
   saved_name_linkage_is_explicit = ssep->name_linkage_is_explicit;
-  if (str == NULL) {
-    /* There must have been an error in scanning the string literal (e.g.,
-       no closing '"'. */
-  } else {
-    /* Look for the predefined string ("C++", "C", ...) which str matches. */
-    for (kind = (a_name_linkage_kind)nlk_cplusplus_external;
-         (int)kind < (int)nlk_last;
-         kind = (a_name_linkage_kind)(kind + 1)) {
-      if (strcmp(str, name_linkage_kind_names[kind]) == 0) {
-        /* Found a matching linkage kind string. */
-        break;
-      }  /* if */
-    }  /* for */
-    if (kind != (a_name_linkage_kind)nlk_last) {
-      /* A valid linkage kind was found. */ 
-      if (!err) {
-        ssep->default_name_linkage = kind;
-        ssep->name_linkage_is_explicit = TRUE;
-      }  /* if */
-    } else {
-      /* Bad linkage kind.  Leave the default name linkage unmodified. */
-      error(ec_bad_linkage_specifier);
-    }  /* if */
-  }  /* if */
+  /* Record the new default linkage in the scope stack. */
+  if (scan_name_linkage_string(&kind) && !err) {
+    ssep->default_name_linkage = kind;
+    ssep->name_linkage_is_explicit = TRUE;
+  }  /* if */    
+  /* Advance past the string token. */
   (void)get_token();
   /* If a brace enclosed declaration list follows, call declaration
      repeatedly.  If no brace follows, call declaration just once to pick
@@ -8354,6 +8380,11 @@ return_point:
        performed.  In error cases, they may not have been.  If any
        remain, do them now. */
     end_deferral_of_access_checks();
+  }  /* if */
+  if (microsoft_mode) {
+    /* Restore the default name linkage in case a linkage specification
+       appeared among the decl-specifiers. */
+    clear_curr_decl_name_linkage_kind();
   }  /* if */
   /* Do necessary remove_stop_tokens.  Even when there is no error, this
      does the remove_stop_token for tok_semicolon. */
