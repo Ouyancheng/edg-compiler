@@ -1,5 +1,19 @@
 Version 2.23
 
+3/23/94  IL change: nested function prototype scopes
+
+When a function prototype scope has nested within it another function
+prototype scope for which an IL scope entry is needed, e.g.,
+
+  void f(int (*pf)(struct A { int i })) { /* ... */ }
+
+the IL scope entry of the inner scope is now recorded on the scopes list
+of the IL scope entry for the containing scope.  In the example (which is
+valid in C mode only) an IL scope entry is required for the inner scope
+because a struct is defined in that scope; the scope that is created is
+placed on the scopes list of the outer scope's IL entry.  Note that latter
+would not have been created otherwise.
+
 3/23/94  Elaborated types in function template parameter lists
 
 An elaborated type specifier, when used in a parameter declaration
