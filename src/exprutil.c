@@ -9011,7 +9011,9 @@ convert source_operand to an error operand, and return *err TRUE.
                       conversion_routine, class_bitwise_copy, expression_kind);
       if (conversion_routine != NULL &&
           conversion_routine->special_kind ==
-                                     (a_special_function_kind)sfk_conversion) {
+                                     (a_special_function_kind)sfk_conversion &&
+          skip_typerefs(conversion_routine->type)->variant.routine.extra_info->
+                                   caller_provides_place_to_put_return_value) {
         /* The conversion was done by a conversion function, and the
            result of the conversion is already a temporary.  Convert the
            operand from the value of the temporary to the address. */
