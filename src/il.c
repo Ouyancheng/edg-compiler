@@ -9575,10 +9575,14 @@ to an undefined state and free the associated memory region.
 */
 {
   a_memory_region_number  n = rp->assoc_scope;
+  a_symbol_ptr            sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
 
   /* Reset the routine entry to undefined state. */
   rp->defined = FALSE;
   rp->defined_in_friend_decl = FALSE;
+  if (sym != NULL) {
+    sym->defined = FALSE;
+  }  /* if */
   rp->assoc_scope = NULL_region_number;
   rp->type->variant.routine.extra_info->assoc_routine = NULL;
   if (rp->storage_class == (a_storage_class)sc_unspecified) {
