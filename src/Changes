@@ -1,5 +1,21 @@
 Version 3.2
 
+3/21/03  Microsoft compatibility: explicit template arguments in
+         function declarations
+
+In Microsoft mode, explicit template arguments have been allowed on
+certain function declarations.  Our support of this has been refined
+in two ways: First, the Microsoft compiler does not generally accept
+such arguments on function declarations, so we now reject line #2.
+Second, this bug has been fixed in the 7.1 compiler, so line #3 is
+accepted only if microsoft_version is < 1310.
+
+  template <class T, class T2> int f(T) { return 1; }  // #1
+  // Should be rejected:
+  template <class T> int f<double>(T) { return 2; }  // #2
+  // Accepted when microsoft_version < 1310
+  int f<int,int>(int){ return 3; }  // #3
+
 3/21/03  Spurious error on operator template friend
 
 A spurious "too few parameters" error was issued on a operator template

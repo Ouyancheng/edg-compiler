@@ -3259,8 +3259,9 @@ to FALSE if the entity being declared is not initializable.
       ((input_flags & DI_IS_FRIEND_DECL) &&
        !(options & GID_IS_TEMPLATE_DECLARATION))) {
     explicit_template_args_allowed = TRUE;
-  } else if (microsoft_mode &&
-             depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+  } else if (microsoft_mode && microsoft_version < 1310 &&
+             depth_innermost_function_scope == NO_SCOPE_DEPTH &&
+             !(options & GID_IS_TEMPLATE_DECLARATION)) {
     /* In Microsoft mode a function declarator can take explicit template
        argument syntax -- the declaration is taken to be a specialization.
        For example,
