@@ -6702,7 +6702,7 @@ type itself.
   for (; enumerator != NULL; enumerator = enumerator->next) {
     enumerator->source_corresp.name_linkage = tp->source_corresp.name_linkage;
   }  /* for */
-}  /* if */
+}  /* set_name_linkage_for_enumerators */
 
 
 static void set_linkage_for_class_members(a_type_ptr  tp)
@@ -6741,7 +6741,7 @@ typedef, we must make sure to propagate that to its members.
       set_linkage_for_class_members(type);
     } else if (is_immediate_enum_type(type)) {
       set_name_linkage_for_type(type);
-      set_name_linkage_for_enumerators(tp);
+      set_name_linkage_for_enumerators(type);
     }  /* if */
   }  /* for */
 }  /* set_linkage_for_class_members */
