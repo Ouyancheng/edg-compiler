@@ -1,5 +1,10 @@
 Version 3.1
 
+8/21/02   Build problem when not using IEEE floating point
+
+The front end did not build properly when TARG_HAS_IEEE_FLOATING_POINT
+was FALSE.  This problem was introduced in version 3.0 and is now fixed.
+
 8/21/02   Spurious error on member using-declarations
 
 Member using-declarations must refer to declarations that are visible in a

@@ -876,6 +876,7 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
   /* Check for a value that cannot be represented.  The "min_exp - 1" is
      used to permit the special denormalized value. */
   if (*exponent < (min_exp - 1) || *exponent > max_exp) {
+#if TARG_HAS_IEEE_FLOATING_POINT
     if (gnu_mode) {
       /* gcc silently uses infinity for values out of range.  The error flag is
          still returned, but will be cleared. */
@@ -889,6 +890,7 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
                        kind, &dummy_err, &depends_on_rounding_mode);
       }  /* if */
     }  /* if */
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
     *err = TRUE;
   }  /* if */
   /* See if the number of mantissa bits provided exceeds the mantissa size.
@@ -1153,8 +1155,12 @@ before setting it if there are unused bits.
   if (!*err) {
     store_hex_fp_value(&mantissa, exponent, kind, float_value, any_digits);
   } else {
-    /* Reset the error flag to prevent the overflow from being diagnosed. */
+#if TARG_HAS_IEEE_FLOATING_POINT
+    /* Reset the error flag to prevent the overflow from being diagnosed.
+       This only done when using IEEE floating point because the value
+       is replaced with infinity when using IEEE floating point. */
     if (gnu_mode) *err = FALSE;
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
   }  /* if */
   /* If an underflow occurred, set the flag that indicates that the resulting
      value is not an exact representation of the specified value. */
