@@ -1,5 +1,10 @@
 Version 2.22
 
+2/21/94  Base class cast on operator()
+
+When an operator() function is called, the pointer to the object now
+has a base class cast if necessary.
+
 2/21/94  Access checking of template parameters
 
 A spurious access error was issued when a template parameter
