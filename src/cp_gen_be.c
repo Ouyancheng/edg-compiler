@@ -957,6 +957,9 @@ Return TRUE if the current source sequence entry is for a declaration.
       case iek_template:
       case iek_namespace:
       case iek_using_decl:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case iek_ms_attribute:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* This is a declaration. */
         is_decl = TRUE;
         break;
@@ -3469,6 +3472,71 @@ Write out the register assigned to a variable.
 }  /* write_var_reg_name */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void gen_ms_attribute(an_ms_attribute_ptr msap,
+                             a_boolean           *first)
+/*
+Generate a single Microsoft attribute from the given description.
+If *first is TRUE on entry, this is the first attribute in the
+block, so generate the opening "[" first.  Generate either ","
+or "]" following the attribute, as appropriate.  Update *first
+appropriately.
+*/
+{
+  if (*first) {
+    write_tok_ch('[');
+    *first = FALSE;
+  }  /* if */
+  write_tok_str(msap->string);
+  if (msap->next_in_block != NULL) {
+    /* There is another attribute following in the same block. */
+    write_tok_str(", ");
+  } else {
+    /* This is the last attribute in the block. */
+    write_tok_ch(']');
+    /* Add a ";" for a freestanding attribute. */
+    if (msap->entity.ptr == NULL) write_tok_ch(';');
+    write_tok_ch(' ');
+    /* Make the next attribute start a new block. */
+    *first = TRUE;
+  }  /* if */
+}  /* gen_ms_attribute */
+
+
+static void gen_ms_attribute_block(void)
+/*
+Generate any Microsoft attributes at the current source sequence entry.
+*/
+{
+  a_boolean           first = TRUE;
+  an_ms_attribute_ptr msap;
+
+  for (;;) {
+    /* Skip macros and pragmas. */
+    (void)process_preprocessing_directives();
+    if (curr_source_sequence_entry == NULL ||
+        ss_entry_kind(curr_source_sequence_entry) != iek_ms_attribute) break;
+    msap = ss_entry_ptr(curr_source_sequence_entry, an_ms_attribute_ptr);
+    adv_curr_source_sequence_entry();
+    gen_ms_attribute(msap, &first);
+  }  /* for */
+}  /* gen_ms_attribute_block */
+
+
+static void gen_ms_parameter_attribute_block(an_ms_attribute_ptr msap)
+/*
+Generate the list of Microsoft attributes for a parameter type.
+*/
+{
+  a_boolean first = TRUE;
+
+  for (; msap != NULL; msap = msap->next) {
+    gen_ms_attribute(msap, &first);
+  }  /* for */
+}  /* gen_ms_parameter_attribute_block */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_function_declarator_with_scope(a_type_ptr   type,
                                                a_scope_ptr  scope,
@@ -3554,6 +3622,11 @@ default arguments should be suppressed (needed for template specializations).
              name from the parameter variable.  Note that the type in the
              variable might be slightly different than (though, of course,
              compatible with) the type in the param_type entry. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (param->ms_attributes != NULL) {
+            gen_ms_parameter_attribute_block(param->ms_attributes);
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           if (param_var->storage_class == (a_storage_class)sc_register) {
             gen_storage_class(param_var->storage_class);
           }  /* if */
@@ -10395,6 +10468,10 @@ that case) and old-style parameter declarations.
   an_il_entry_kind kind;
   a_boolean        suppress_specifiers = FALSE, another_decl_in_comma_list;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Output any Microsoft attributes. */
+  gen_ms_attribute_block();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Loop for comma lists. */
   for (;;) {
     another_decl_in_comma_list = FALSE;
