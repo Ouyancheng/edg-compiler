@@ -28,6 +28,7 @@ exprutil.c -- Expression scanning utility routines.
 #include "types.h"
 #include "decls.h"
 #include "templates.h"
+#include "class_decl.h"
 
 /*
 Information used when creating cross-reference information.  This is
@@ -2949,84 +2950,6 @@ the operand is set to "pos_curr_token".
     }  /* if */
   }  /* if */
 }  /* make_rvalue_variable_operand */
-
-
-static void f_force_definition_of_compiler_generated_routine(
-                                                   a_routine_ptr     routine,
-                                                   a_source_position *position)
-/*
-routine points to a compiler-generated routine that is being referenced
-and whose definition has not yet been generated.  Force the definition
-now.
-*/
-{
-  a_type_ptr              class_type =
-                               routine->source_corresp.class_of_which_a_member;
-  a_special_function_kind skind = routine->special_kind;
-
-  /* Only force a definition for constructors, destructors, and
-     operator= functions.  In particular, do not try to define operator new
-     and delete functions. */
-  if (skind == (a_special_function_kind)sfk_constructor ||
-      skind == (a_special_function_kind)sfk_destructor  ||
-      (skind == (a_special_function_kind)sfk_operator &&
-       routine->opname_kind == (an_opname_kind)onk_assign)) {
-    define_special_member_function(routine, class_type, position);
-  }  /* if */
-}  /* f_force_definition_of_compiler_generated_routine */
-
-
-/*
-routine points to a routine that is being referenced.  If it is
-a compiler-generated routine whose definition has not yet been generated,
-force the definition now.
-*/
-#define force_definition_of_compiler_generated_routine(rout, pos)     \
-{ if ((rout)->compiler_generated && (rout)->assoc_scope == NULL) {    \
-    f_force_definition_of_compiler_generated_routine(rout, pos);      \
-  }  /* if */                                                         \
-}  /* force_definition_of_compiler_generated_routine */
-
-
-void mark_routine_referenced(a_routine_ptr     routine,
-                             a_source_position *position)
-/*
-Mark the indicated routine as actually referenced.  "Actually" means
-as opposed to referenced in a virtual function call that may call some
-other virtual function.  This forces instantiation if the function
-is a template function.
-*/
-{
-  a_symbol_ptr                       assoc_sym;
-  a_function_instantiation_entry_ptr instance_ptr;
-
-  /* Set the referenced flag.  This is only necessary for virtual
-     functions referenced by qualified name.  For non-virtual functions,
-     the normal reference-processing routines have already set the IL
-     referenced flag. */
-  routine->source_corresp.referenced = TRUE;
-  /* If the routine is a nonstatic member function, mark the class of which
-     it is a member as referenced.  This ensures that a class will not
-     end up marked as unreferenced when one of its nonstatic member functions
-     (which references the class at least in its "this" parameter) is
-     marked referenced. */
-  if (routine_type_is_nonstatic_member_function(routine->type)) {
-    routine->source_corresp.class_of_which_a_member->
-                                              source_corresp.referenced = TRUE;
-  }  /* if */
-  /* If the routine is compiler-generated and its definition has not
-     yet been put out, force the definition now. */
-  force_definition_of_compiler_generated_routine(routine, position);
-  /* If the function is an instance of a function template, mark it
-     as requiring an instantiation. */
-  assoc_sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
-  if (assoc_sym != NULL) {
-    instance_ptr = assoc_sym->variant.routine.instance_ptr;
-    if (instance_ptr != NULL) {
-      update_instantiation_required_flag(instance_ptr, TRUE);
-    }  /* if */
-  }  /* if */
-}  /* mark_routine_referenced */
 
 
 void make_ptr_to_member_constant_operand(a_symbol_ptr      member_proj_sym,
