@@ -278,6 +278,13 @@ typedef struct a_scope_stack_entry {
 			/* Saved value of field name_linkage_is_explicit when
 			   a linkage specification appears after other
 			   decl-specifiers (Microsoft C++ mode only). */
+#if USER_CONTROL_OF_STRUCT_PACKING
+  a_bit_field	pragma_pack_is_local:1;
+			/* TRUE for an sck_function scope of a routine in
+			   which a "#pragma pack" directive is local in
+			   effect -- i.e., does not affect the packing of
+			   structs declared outside the function body. */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be

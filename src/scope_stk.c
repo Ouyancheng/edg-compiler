@@ -934,6 +934,9 @@ to the declaration information for the template declaration scope being pushed.
   ssep->instantiation_scope_pushed = FALSE;
   ssep->reactivated_class_being_defined = FALSE;
   ssep->is_for_init_block        = FALSE;
+#if USER_CONTROL_OF_STRUCT_PACKING
+  ssep->pragma_pack_is_local     = FALSE;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;
   ssep->assoc_routine            = assoc_routine;
