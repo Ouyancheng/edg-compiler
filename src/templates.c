@@ -6115,7 +6115,7 @@ returned to the caller.
     incr_token_set_array_element(stop_tokens, tok_semicolon);
     /* The normal flush_tokens_with_stop_tokens sometimes issues a warning
        based on the number of tokens skipped.  This should not be done
-       in thise case because the flush is not being done for error recovery. */
+       in this case because the flush is not being done for error recovery. */
     flush_tokens_with_stop_tokens_and_warning_flag(stop_tokens,
 						   /*suppress_warning=*/TRUE);
     if (curr_token != tok_semicolon) {
