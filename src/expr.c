@@ -4261,6 +4261,54 @@ be inappropriate, because the feature is probably used to implement
   db_exit();
 }  /* scan_alignof_operator */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void scan_assume_operator(an_operand *result)
+/*
+Scan the Microsoft extension __assume(expr).  The operand is boolean,
+and is not evaluated.  This is supposedly a hint to the optimizer that
+the given expression is true.
+*/
+{
+  a_source_position   start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position   end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  an_expr_node_ptr    expr;
+  an_expr_stack_entry expr_stack_entry;
+
+  db_enter(4, "scan_assume_operator");
+
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack_entry.evaluated = FALSE;
+  expr_stack_entry.potentially_evaluated = FALSE;
+  /* Save the position of the __assume keyword. */
+  copy_source_position(pos_curr_token, start_position);
+  (void)get_token();
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_matching_stop_token(tok_rparen);
+  expr = scan_boolean_controlling_expression();
+  expr = make_operator_node((an_expr_operator_kind)eok_assume, void_type(),
+                            expr);
+  make_expression_operand(expr, expr->type, result);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Check for and pass over the right parenthesis. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_matching_stop_token(tok_rparen);
+
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
+  pop_expr_stack();
+
+  db_exit();
+}  /* scan_assume_operator */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void scan_typeid_operator(an_operand *result)
 /*
@@ -11109,6 +11157,13 @@ see expr.h).
       /* __ALIGNOF__ operation. */
       scan_alignof_operator(&local_result);
       break;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_assume:
+      /* Microsoft __assume(...). */
+      scan_assume_operator(&local_result);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
     case tok_typeid:
       /* typeid operation. */

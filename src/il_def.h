@@ -5304,6 +5304,9 @@ enum an_expr_operator_kind_tag {
 			   extension to ANSI/ISO C.  The underlying expression
 			   can be a call that returns a struct, a struct
 			   assignment, or a comma operation. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  eok_assume,		/* Microsoft __assume(expr). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
 #ifdef FIL
   eok_xnegate,          /* Complex negation. */

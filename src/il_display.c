@@ -1946,6 +1946,9 @@ Display the name of an expression operator.
     case eok_lvalue_from_struct_rvalue:
                                 s = "eok_lvalue_from_struct_rvalue";break;
 #endif /* ifdef CFE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case eok_assume:            s = "eok_assume";                 break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef FFE
     case eok_xnegate:           s = "eok_xnegate";                break;
     case eok_char_length:       s = "eok_char_length";            break;

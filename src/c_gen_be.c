@@ -3198,6 +3198,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_str(", &");
           dump_temp_name((char *)expr);
           goto done_with_unary_operation;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case eok_assume:
+          write_tok_str("__assume(");
+          dump_expression(operand_1);
+          write_tok_str(")");
+          break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case eok_iadd:
         case eok_fadd:
         case eok_padd:

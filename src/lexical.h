@@ -162,6 +162,7 @@ typedef enum /*a_token_kind*/ {
   tok_near,
   tok_far,
   tok_uuidof,
+  tok_assume,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* C++ tokens not in C (ARM, 2.4): */
   tok_colon_colon       /* :: */,

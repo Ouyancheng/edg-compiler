@@ -4605,6 +4605,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* This operator shouldn't get past gen_lvalue. */
           unexpected_condition_str(
                           "gen_expr: eok_lvalue_from_struct_rvalue as rvalue");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case eok_assume:
+          write_tok_str("__assume(");
+          gen_expression(operand_1);
+          write_tok_str(")");
+          break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case eok_iadd:
         case eok_fadd:
         case eok_padd:

@@ -252,6 +252,7 @@ Install the keywords in the symbol table.
     enter_underscore_keywords((a_token_kind)tok_finally, "__finally");
     enter_underscore_keywords((a_token_kind)tok_leave, "__leave");
     enter_underscore_keywords((a_token_kind)tok_except, "__except");
+    enter_underscore_keywords((a_token_kind)tok_assume, "__assume");
     if (targ_int8_int_kind != (an_integer_kind)ik_none) {
       /* There is a 8 bit target integer kind to which __int8 can map. */
       enter_underscore_keywords((a_token_kind)tok_int8, "__int8");
