@@ -6664,7 +6664,7 @@ process_class_specifier:
             if (any_decl_specifiers_seen &&
                 (strict_ansi_mode ||
                  *storage_class != (a_storage_class)sc_typedef)) {
-              /* We allow things like "typedef struct X {};" in various mode.
+              /* We allow things like "typedef struct X {};" in various modes.
                  So do not disallow vacuous declarations in typedefs unless
                  we're in strict mode. */
               vacuous_decl_allowed = FALSE;
@@ -6725,7 +6725,7 @@ process_class_specifier:
             if (any_decl_specifiers_seen &&
                 (strict_ansi_mode ||
                  *storage_class != (a_storage_class)sc_typedef)) {
-              /* We allow things like "typedef struct X {};" in various mode.
+              /* We allow things like "typedef struct X {};" in various modes.
                  So do not disallow vacuous declarations in typedefs unless
                  we're in strict mode. */
               vacuous_decl_allowed = FALSE;
