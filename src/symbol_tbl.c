@@ -4600,6 +4600,9 @@ It cannot be used for checking access (see have_access_to_symbol).
        by the template symbol supplement. */
     access = sym_ptr->variant.template_info->
                               variant.function.routine->source_corresp.access;
+  } else if (sym_ptr->kind == (a_symbol_kind)sk_undefined) {
+    /* Error case; assume public. */
+    access = (an_access_specifier)as_public;
   } else {
     /* Normal symbol (not projection or overloaded function). */
     check_assertion_str2(sym_ptr->kind
