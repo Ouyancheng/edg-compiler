@@ -1870,30 +1870,28 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 
 
 static a_boolean member_types_correspond(a_type_ptr member_type_1,
-                                         a_type_ptr member_type_2,
-                                         a_type_ptr class_1,
-                                         a_type_ptr class_2)
+                                         a_type_ptr member_type_2)
 /*
 Return TRUE if the member types from two pointer-to-member types match
 allowing for a possible difference due to the associated class type.
 Specifically, this means that when comparing function types, the
 difference in the underlying class of the "this" parameter type must
-be specially handled.  member_type_1/class_1 describe one pointer-to-member
-type, and member_type_2/class_2 the other.
+be ignored.
 */
 {
   a_boolean  correspond;
   a_type_ptr this_type_1, this_type_2;
 
-  if (class_1 == class_2 ||
-      !is_function_type(member_type_1) || !is_function_type(member_type_2)) {
+  if (!is_function_type(member_type_1) || !is_function_type(member_type_2)) {
     /* This is not the special function case, so the normal
        types_are_compatible check will work. */
     correspond = types_are_compatible(member_type_1, member_type_2);
   } else {
-    /* We have two function types from pointers to different classes.  See
-       if they match when we allow for the difference in the underlying type
-       of the "this" parameter. */
+    /* We have two function types from member pointers.  See if they
+       match when we allow for the difference in the underlying type
+       of the "this" parameter.  Note that this test must be done even
+       when the class types are the same, because the routines may
+       be from base classes. */
     member_type_1 = skip_typerefs(member_type_1);
     this_type_1 = member_type_1->variant.routine.extra_info->
                                                       implicit_this_param_type;
@@ -1921,17 +1919,7 @@ type, and member_type_2/class_2 the other.
           /* The type qualifiers do not match. */
           correspond = FALSE;
         } else {
-          /* Since these function types came from pointers-to-members
-             for class_1 and class_2, the underlying types must be
-             the corresponding class types. */
-#if CHECKING
-          if (skip_typerefs(this_type_1) != class_1) {
-            internal_error("member_types_correspond: bad this type 1");
-          }  /* if */
-          if (skip_typerefs(this_type_2) != class_2) {
-            internal_error("member_types_correspond: bad this type 2");
-          }  /* if */
-#endif /* CHECKING */
+          /* The underlying types must be appropriate class types. */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -2073,8 +2061,7 @@ See conversion_possible.
       source_member_type = source_type->variant.ptr_to_member.type;
       dest_member_type = dest_type->variant.ptr_to_member.type;
       if (is_same_class_or_base_class_thereof(dest_class, source_class) &&
-          member_types_correspond(dest_member_type, source_member_type,
-                                  dest_class, source_class)) {
+          member_types_correspond(dest_member_type, source_member_type)) {
         /* We leave the ambiguity and accessibility check to be done when
            the cast is done. */
         okay = TRUE;
