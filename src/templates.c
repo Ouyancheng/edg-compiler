@@ -1834,7 +1834,7 @@ void find_static_data_member_template(a_symbol_ptr  static_data_member_sym,
   sdmdp->static_data_member_sym = static_data_member_sym;
   /* The static data member is eligible for a compiler-generated definition
      only if a template definition appears in the source.  That may have
-     aleady occurred, or it may happen later. */
+     already occurred, or it may happen later. */
   if (sym->defined) {
     /* A template definition has appeared.  Enter the definition entry onto
        the instantiations_required list.  The definition will be generated

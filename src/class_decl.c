@@ -3908,7 +3908,7 @@ of assoc_field_object and assoc_var_object is defined.
       /* Unlink the symbol from the inactive list and link it back into the
          symbol table in the current scope. */
       sym->class_of_which_a_member = class_type;
-      /* The fields of an anonmyous union within a class take on the access
+      /* The fields of an anonymous union within a class take on the access
          specifier of the anonymous union itself; the fields of a variable
          anonymous union should be (i.e., should remain) public. */
       sym->variant.field.ptr->source_corresp.access =
@@ -6113,7 +6113,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                     local_type->variant.routine.extra_info->
                                       implicit_this_param_type = tp;
                   } else if (cfront_compatibility_mode) {
-                    /* Just in case this is a copy of the wierd
+                    /* Just in case this is a copy of the weird
                        cfront-compatibility typedef, clear out the implicit
                        this-param pointer in the copied type entry. */
                     local_type->variant.routine.extra_info->

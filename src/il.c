@@ -3923,7 +3923,7 @@ discarding typedefs.
          Return both types with all qualifiers stripped off. */
     } else {
       /* The are differently qualified.  Strip off the qualifiers and then
-         add them back on as approriate. */
+         add them back on as appropriate. */
       tp1 = skip_typerefs(tp1);
       tp2 = skip_typerefs(tp2);
       is_const = type1_is_const && !type2_is_const;
