@@ -1583,7 +1583,8 @@ Syntax:
     }  /* if */
     /* Change the kind in the reference entry for the function from an
        address-taken entry back to a simple reference. */
-    change_ref_kinds(operand->ref_entries_list, srk_reference);
+    change_some_ref_kinds(operand->ref_entries_list, srk_address_taken,
+                          srk_reference);
   }  /* if */
 
   /* Scan the arguments of the call. */
@@ -2707,11 +2708,13 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
 }  /* scan_postfix_incr_decr */
 
 
-static void change_assignment_result_to_lvalue(an_operand *result)
+static void change_assignment_result_to_lvalue(an_operand *result,
+                                               an_operand *lvalue_operand)
 /*
 In C++ mode, assignment operators and prefix ++/-- return lvalues.
 Change the operation in *result from an rvalue-returning operation to
-an lvalue-returning operation.  This routine is called only in C++ mode.
+an lvalue-returning operation.  *lvalue_operand is the operand for
+the lvalue being operated upon.  This routine is called only in C++ mode.
 */
 {
   an_expr_node_ptr node;
@@ -2720,6 +2723,8 @@ an lvalue-returning operation.  This routine is called only in C++ mode.
     node = result->variant.expression;
     node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
     node->type = make_pointer_type(node->type);
+    /* Keep the reference entries from the lvalue operand. */
+    result->ref_entries_list = lvalue_operand->ref_entries_list;
   }  /* if */
   result->state = (an_operand_state)os_lvalue;
 }  /* change_assignment_result_to_lvalue */
@@ -2849,7 +2854,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
         build_unary_result_operand(&operand, op, result_type, result);
         /* In C++, the prefix ++ and -- operators return lvalues. */
         if (C_dialect == C_dialect_cplusplus) {
-          change_assignment_result_to_lvalue(result);
+          change_assignment_result_to_lvalue(result, &operand);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -6183,7 +6188,6 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       /* In C++, if the types are the same and the second and third operands
          are lvalues they are left as lvalues. */
       result_is_an_lvalue = TRUE;
-      result_type = make_pointer_type(result_type);
     } else {
       /* Convert the operands to rvalues. */
       expr_stack->evaluated = expr2_evaluated;
@@ -6370,10 +6374,17 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     result->came_from_reference = FALSE;
   } else {
     /* The first operand is not a constant, so build the expression. */
+    if (result_is_an_lvalue) {
+      /* If the result is an lvalue, the type of the "?" node must be a
+         pointer. */
+      operation_type = make_pointer_type(result_type);
+    } else {
+      operation_type = result_type;
+    }  /* if */
     /* Make an operator node with the first part of the expression. */
     build_unary_result_operand(operand_1,
                                (an_expr_operator_kind)eok_question,
-			       result_type, result);
+			       operation_type, result);
     /* Now link the other two operands from this one. */
     result->variant.expression->variant.operation.operands->next =
                                             make_node_from_operand(&operand_2);
@@ -6382,7 +6393,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     /* The result is an lvalue in C++ if the second and third operands are. */
     if (result_is_an_lvalue) {
       result->state = (an_operand_state)os_lvalue;
-      result->type = type_pointed_to(result_type);
+      result->type = result_type;
       result->variant.expression->variant.operation.
                                  returns_lvalue_instead_of_usual_rvalue = TRUE;
       result->ref_entries_list = merge_ref_lists(operand_2.ref_entries_list,
@@ -6524,7 +6535,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
                                   result_type, result);
       /* In C++, assignment operators return lvalues. */
       if (C_dialect == C_dialect_cplusplus) {
-        change_assignment_result_to_lvalue(result);
+        change_assignment_result_to_lvalue(result, operand_1);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6663,7 +6674,7 @@ See section 3.3.16 of the standard.
                                     result_type, result);
         /* In C++, assignment operators return lvalues. */
         if (C_dialect == C_dialect_cplusplus) {
-          change_assignment_result_to_lvalue(result);
+          change_assignment_result_to_lvalue(result, operand_1);
         }  /* if */
       }  /* if */
     }  /* if */
