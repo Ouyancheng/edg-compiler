@@ -35,6 +35,7 @@ gcc.
 
 #include "basics.h"
 #include "host_envir.h"
+#include "targ_def.h"
 #include "decode.h"
 
 
@@ -2482,6 +2483,12 @@ Start of demangling code for IA-64 ABI.
 */
 
 /*
+TRUE if the bugs in the g++ 3.2 implementation of the IA-64 ABI should
+be emulated.  Can be changed by a command line option.
+*/
+a_boolean	emulate_gnu_abi_bugs = DEFAULT_EMULATE_GNU_ABI_BUGS;
+
+/*
 Bits used to represent cv-qualifiers in a bit set.
 */
 typedef int a_cv_qualifier_set;
@@ -3655,7 +3662,8 @@ Demangle an IA-64 literal or external name and output the demangled form.
 Return a pointer to the character position following what was demangled.
 The syntax is:
 
-                 ::= L <type> <value number> E  # literal
+  <expr-primary> ::= L <type> <value number> E  # integer literal
+                 ::= L <type <value float> E    # floating literal
                  ::= L_Z <encoding> E           # external name
 
 */
@@ -3671,6 +3679,7 @@ The syntax is:
   } else {
     /* Literal, L <type> <value number> E. */
     /* Put parentheses around the type to make a cast. */
+    /* FIXME -- doesn't handle float literals yet. */
     write_id_ch('(', dctl);
     ptr = demangle_type(ptr+1, dctl);
     write_id_ch(')', dctl);
@@ -3679,13 +3688,16 @@ The syntax is:
       write_id_ch('-', dctl);
       ptr++;
     }  /* if */
-    if (!isdigit((unsigned char)*ptr)) {
+    /* g++ 3.2 puts out L1xE instead of L_Z1xE, which gets demangled
+       sort of okay in the g++ demangler because the name is treated
+       as a type and a cast is put out with nothing following it: (x) */
+    if (!isdigit((unsigned char)*ptr) && !emulate_gnu_abi_bugs) {
       bad_mangled_name(dctl);
     } else {
-      do {
+      while (isdigit((unsigned char)*ptr)) {
         write_id_ch(*ptr, dctl);
         ptr++;
-      } while (isdigit((unsigned char)*ptr));
+      }  /* while */
     }  /* if */
     ptr = advance_past('E', ptr, dctl);
   }  /* if */
@@ -3707,9 +3719,14 @@ The syntax is:
                ::= <trinary operator-name> <expression> <expression>
                                                                   <expression>
                ::= st <type>                    # sizeof(type)
+               ::= <template-param>
+               ::= sr <type> <unqualified-name> # dependent name
+               ::= sr <type> <unqualified-name> <template-args>
+                                                # dependent template-id
                ::= <expr-primary>
-  <expr-primary> ::= <template-param>
-                 ::= L <type> <value number> E  # literal
+
+  <expr-primary> ::= L <type> <value number> E  # integer literal
+                 ::= L <type <value float> E    # floating literal
                  ::= L <mangled-name> E         # external name
 
 */
@@ -3785,6 +3802,25 @@ The syntax is:
           ptr = demangle_type(ptr, dctl);
           write_id_str(op_str, dctl);
           ptr = demangle_name(ptr, &func_block, dctl);
+          if (emulate_gnu_abi_bugs) {
+            /* g++ 3.2 puts out the parameter types following the name
+               of a function. */
+            int  num_operands;
+            char *close_str;
+            if (*ptr == 'E' || *ptr == '_') {
+              /* No expression or parameter list next. */
+            } else if (*ptr == 'L' ||
+                       get_operator_name(ptr, &num_operands,
+                                         &close_str, dctl) != NULL) {
+              /* Another expression is next, so no parameter list. */
+            } else {
+              /* Scan the parameter list. */
+              dctl->suppress_id_output++;
+              ptr = demangle_bare_function_type(ptr, /*no_return_type=*/TRUE,
+                                                dctl);
+              dctl->suppress_id_output--;
+            }  /* if */
+          }  /* if */
         } else {
           bad_mangled_name(dctl);
         }  /* if */

@@ -34,6 +34,15 @@ modified by a command line option.
 static a_boolean
 		skip_underscore_prefix =
                                       TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED;
+#if IA64_ABI
+/*
+TRUE if the bugs in the g++ 3.2 implementation of the IA-64 ABI should
+be emulated.  Can be changed by a command line option.  Initialized
+in decode.c.
+*/
+extern a_boolean
+		emulate_gnu_abi_bugs;
+#endif /* IA64_ABI */
 
 static int	ch;	/* Current input character. */
 
@@ -165,6 +174,13 @@ edg_decode utility program -- demangles names for C++.
            be ignored.  The option selects the opposite of the default. */
         skip_underscore_prefix = !TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED;
         break;
+#if IA64_ABI
+      case 'g':
+        /* Specify whether g++ 3.2 bugs in the implementation of the IA-64
+           ABI should be emulated. */
+        emulate_gnu_abi_bugs = !DEFAULT_EMULATE_GNU_ABI_BUGS;
+        break;
+#endif /* IA64_ABI */
       default:
         if (optind >= argc) optind = argc-1;
         optarg = argv[optind];
