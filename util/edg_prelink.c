@@ -1054,6 +1054,28 @@ Check for the existence of a .ii file.
 }  /* pl_check_for_ii_file  */
 
 
+static a_boolean pl_can_instantiate(a_pl_input_file_ptr	pifp,
+				 a_pl_symbol_ptr	psp)
+/*
+Returns TRUE if the input file is a possible instantiation site
+of the symbol.
+*/
+{
+  a_pl_instantiation_site_ptr	pisp;
+  a_boolean			result = FALSE;
+
+  pisp = psp->possible_instantiation_sites;
+  while (pisp != NULL) {
+    if (pisp->input_file == pifp) {
+      result = TRUE;
+      break;
+    }  /* if */
+    pisp = pisp->next;
+  }  /* while */
+  return result;
+}  /* pl_can_instantiate */
+
+
 static a_boolean pl_determine_actions(void)
 /*
 Once the link has been performed go through each of the input object
@@ -1156,7 +1178,8 @@ the file is flagged as requiring recompilation.
         if (sym != NULL && sym->is_template &&
              !sym->instantiated && !sym->do_not_instantiate &&
              sym->can_be_instantiated &&
-            (sym->referenced || sym->tentative_definition) && !sym->defined) {
+            (sym->referenced || sym->tentative_definition) && !sym->defined &&
+            pl_can_instantiate(pifp, sym)) {
           /* Add this symbol to the list of symbols in the info file list.
              Set the instantiation flag and indicate that the info file has
              been updated and the source file associated with the info
