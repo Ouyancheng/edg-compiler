@@ -728,18 +728,18 @@ a class member declaration as it appears.
 static
 a_boolean prescan_function_definition(a_token_sequence_number *first_tsn,
                                       a_token_sequence_number *last_tsn,
+				      a_token_cache_ptr	      token_cache,
 				      a_boolean		      is_constructor)
 /*
 Place the tokens for a function definition (including, perhaps, the
 constructor initializer) into a token cache, to await actual processing
 at a later point.  The current token is either a left brace or, when a
-constructor initializer is present, a colon.  Return the starting
-and ending token sequence numbers of the function definition in
-*first_tsn and *last_tsn.  is_constructor is TRUE if the function being
-scanned is a constructor.
+constructor initializer is present, a colon.  Return the token cache
+pointer in token_cache and the starting and ending token sequence numbers
+of the function definition in *first_tsn and *last_tsn.  is_constructor
+is TRUE if the function being scanned is a constructor.
 */
 {
-  a_token_cache      token_cache;
   a_boolean          success = FALSE;
 
   db_enter(3, "prescan_function_definition");
@@ -747,22 +747,16 @@ scanned is a constructor.
   /* We don't know whether this cache will be reused or not.  Make it
      reusable here.  If it is rescanned as a nonreusable cache we
      will change it later. */ 
-  clear_token_cache(&token_cache, /*reusable=*/TRUE);
+  clear_token_cache(token_cache, /*reusable=*/TRUE);
   /* Cache the function body, including any function try blocks and/or ctor
      initializers. */
-  success = cache_function_body(&token_cache, is_constructor, (a_boolean*)NULL,
+  success = cache_function_body(token_cache, is_constructor, (a_boolean*)NULL,
                                 first_tsn, last_tsn, (a_source_position*)NULL,
                                 (a_source_position*)NULL);
-  if (curr_routine_fixup == NULL) {
-    /* We must be within a prototype instantiation for a class template.  Just
-       throw away the cached tokens.  (We do not scan the bodies of inline
-       member functions during prototype instantiation.). */
-    discard_token_cache(&token_cache);
-  } else {
-    /* Record the token cache info in the routine-fixup entry for the current
-       member function. */
-    curr_routine_fixup->function_body_token_cache = token_cache;
-  }  /* if */
+  check_assertion_str2(curr_routine_fixup != NULL,
+                       "prescan_function_definition:",
+                       "curr_routine_fixup == NULL");
+  curr_routine_fixup->function_body_token_cache = *token_cache;
   db_exit();
   return success;
 }  /* prescan_function_definition */
@@ -11135,6 +11129,7 @@ the IL, the template header is passed via template_decl.
       if (function_def_present) {
         a_token_sequence_number  first_token_number;
         a_token_sequence_number  last_token_number;
+        a_token_cache		 body_cache;
 
         /* The inline flag is set for friend functions in
            decl_friend_function, which also handles cases in which it should
@@ -11147,6 +11142,7 @@ the IL, the template header is passed via template_decl.
            processed. */
         if (prescan_function_definition(&first_token_number,
                                         &last_token_number,
+                                        &body_cache,
                                         (a_boolean)decl_info.is_constructor)) {
           /* Advance past the terminating right brace. */
           (void)get_token();
@@ -11188,7 +11184,10 @@ the IL, the template header is passed via template_decl.
             tssp = rout_sym->variant.routine.instance_ptr->template_info;
             class_tssp = symbol_supplement_for_class(class_type)->
                                                                  template_info;
-            set_template_cache_info(&tssp->cache, (a_token_cache_ptr)NULL,
+            /* The body cache is saved here, but will be updated later during
+               routine fixup.  This is needed for the generation of template
+	       strings to be done properly. */
+            set_template_cache_info(&tssp->cache, &body_cache,
                                     class_tssp->cache.decl_info);
             tssp->cache_segment = alloc_template_cache_segment(rout_sym, tssp);
             tssp->cache_segment->first_token_number = first_token_number;

@@ -1,5 +1,17 @@
 Version 2.46
 
+1/17/01  Missing function body in nested class template strings
+
+When a nontemplate class contained a class template, the bodies of member
+functions of the class template were missing from the template string.
+This has been fixed.
+
+  struct A {
+    template <class T> struct B {
+      void f() {}  // emitted as "void f()" (no {} or semicolon)
+    };
+  };
+
 1/17/01  Use of invalid pointer could cause undefined behavior
 
 In versions that use the hidden name table, it is possible for the
