@@ -12,7 +12,7 @@ our own source files.  The typical idiom is:
   #endif /* HDRSTOP_RECOGNIZED */
   #include ...
 
-9/29/94  New header files, new protocol for header files inclusion
+9/29/94  New header files, new protocol for header file inclusion
 
 Several new header files have been added:
 
