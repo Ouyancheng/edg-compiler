@@ -220,7 +220,7 @@ extern int fileno(FILE *);
 /*lint -esym(769, an_asm_operand_modifier_tag::aom_bad_choice)*/
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if CHECKING && DEBUG && ALTERNATE_IL_FILE_FORMAT
-/*lint -esym(528,trace_entry)*/
+/*lint -esym(528, trace_entry)*/
 #endif /* CHECKING && DEBUG && ALTERNATE_IL_FILE_FORMAT */
 
 
