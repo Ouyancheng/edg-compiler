@@ -1,5 +1,20 @@
 Version 2.45
 
+9/6/00   Derived to base deduction failed on uninstantiated type
+
+Template argument deduction involving a derived to base conversion failed
+if the argument type had not yet been instantiated.  This has been fixed.
+
+  template <class T> class Base{};
+  template <class T > class Derived : public Base<T> { };
+  template <class T> struct D {
+    template <class T1> void f(Base<T1> &rpt);
+  };
+  void g(Derived<int> *dip) {
+    D<int> da;
+    da.f(*dip);  // fails if Derived<int> has not yet been instantiated
+  }
+
 9/1/00   Conversion to non-reference type that uses conversion function
          to reference type is not lvalue
 

@@ -4919,6 +4919,7 @@ points to the template parameter list.
         case tk_class:
         case tk_struct:
         case tk_union:
+          complete_class_type_is_needed(type);
           match = matches_template_type_for_class_type(type, templ_type,
                                                        templ_arg_list,
                                                        templ_param_list);
