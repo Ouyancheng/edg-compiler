@@ -1689,7 +1689,7 @@ in the array.  Insert the statements at *insert_location and update
 
 static void lower_ck_dynamic_init(a_constant_ptr         con_ptr,
                                   an_init_pos_descr_ptr  ipdp,
-                                  a_variable_ptr         first_time_test_var,
+                                  a_variable_ptr         conditional_flag_var,
                                   a_boolean              dtor_case,
                                   a_constructor_init_ptr ctor_init,
                                   an_insert_location_ptr insert_location)
@@ -1698,7 +1698,7 @@ Generate executable code to handle a ck_dynamic_init constant (pointed
 to by con_ptr).  The entity to be initialized is described by ipdp.
 The necessary statements are inserted at *insert_location and
 *insert_location is updated.  If ipdp->whole_array is TRUE, this
-call is handling all the elements of an array.  If first_time_test_var
+call is handling all the elements of an array.  If conditional_flag_var
 is non-NULL, it points to a variable entry for the first-time-test variable
 that controls access to this initialization.  If dtor_case is TRUE, we
 are generating a destructor wrapper; do the destruction indicated in
@@ -1721,7 +1721,7 @@ to the constructor-init entry.
   } else {
     /* Normal initialization. */
     lower_dynamic_init(con_ptr->variant.dynamic_init, ipdp,
-                       first_time_test_var, /*is_expr_temporary=*/FALSE,
+                       conditional_flag_var, /*is_expr_temporary=*/FALSE,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        ctor_init, insert_location, &keep_dynamic_init);
 #if CHECKING
@@ -1758,7 +1758,7 @@ to the constructor-init entry.
 static void lower_dynamic_init_aggregate_constant(
                                    a_constant_ptr         aggr_const,
                                    an_init_pos_descr_ptr  ipdp,
-                                   a_variable_ptr         first_time_test_var,
+                                   a_variable_ptr         conditional_flag_var,
                                    a_boolean              dtor_case,
                                    a_constructor_init_ptr ctor_init,
                                    an_insert_location_ptr insert_location,
@@ -1766,7 +1766,7 @@ static void lower_dynamic_init_aggregate_constant(
 /*
 aggr_const points to a ck_aggregate constant that contains one or more
 ck_dynamic_init dynamic initializations.  The ck_aggregate constant is
-the initial value for the entity described by ipdp.  If first_time_test_var
+the initial value for the entity described by ipdp.  If conditional_flag_var
 is non-NULL, it points to a variable entry for the first-time-test variable
 that controls access to this initialization.  If dtor_case is TRUE, we
 are generating a destructor wrapper; do the destruction indicated in
@@ -1819,7 +1819,7 @@ are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
   for (;;) {
     if (con_ptr->kind == (a_constant_repr_kind)ck_dynamic_init) {
       /* Dynamic initialization. */
-      lower_ck_dynamic_init(con_ptr, &ipd, first_time_test_var,
+      lower_ck_dynamic_init(con_ptr, &ipd, conditional_flag_var,
                             dtor_case, ctor_init, insert_location);
     } else if (con_ptr->kind == (a_constant_repr_kind)ck_init_repeat) {
       /* Repeated constant.  Must be initializing members of an array. */
@@ -1840,11 +1840,12 @@ are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
 #endif /* CHECKING */
       ipd.whole_array = TRUE;
       ipd.array_element_count = con_ptr->variant.init_repeat.count;
-      lower_ck_dynamic_init(repeated_con, &ipd, first_time_test_var,
+      lower_ck_dynamic_init(repeated_con, &ipd, conditional_flag_var,
                             dtor_case, ctor_init, insert_location);
     } else if (con_ptr->kind == (a_constant_repr_kind)ck_aggregate) {
       /* Aggregate constant initializing a member of an aggregate. */
-      lower_dynamic_init_aggregate_constant(con_ptr, &ipd, first_time_test_var,
+      lower_dynamic_init_aggregate_constant(con_ptr, &ipd,
+                                            conditional_flag_var,
                                             dtor_case, ctor_init,
                                             insert_location, keep_constant);
     } else {
@@ -2106,90 +2107,136 @@ static void add_conditional_destruction_temp(
 /*
 cap points to a cak_destruction cleanup action being generated.  We are
 currently inside a conditional operand of a "?", "&&", or "||" operation.
-Since the construction is conditional, we add a temporary variable, initialize
-it to zero at the beginning of the current block, and insert an assignment
-to set the temporary to 1 at insert_location.  The destruction generated
-later will be made conditional on the temporary.
+Since the construction is conditional, we add a temporary variable and insert
+an assignment to set the temporary to 1 at insert_location.  The destruction
+generated later will be made conditional on the temporary.
+init_conditional_flag_var must be called later to initialize the temporary
+to zero at the beginning of the current block (that can't be done yet
+because we don't know the object table address assigned to the conditional
+flag for exception cleanup).
 */
 {
-  a_variable_ptr      temp;
-  a_dynamic_init_ptr  dip;
-  a_constant          zero_constant;
-  a_statement_ptr     stmk_init_stmt, block, label_statement;
-  a_switch_clause_ptr scp;
+  a_variable_ptr temp;
 
   check_assertion(cap->kind == cak_destruction);
-  cap->variant.object.first_time_test_var = temp =
+  cap->variant.object.conditional_flag_var = temp =
                  make_lowered_temporary(integer_type((an_integer_kind)ik_int));
-  /* The temporary must be initialized to zero.  If it is static, that
-     is done implicitly.  Otherwise, it must be done dynamically. */
-  if (temp->storage_class != (a_storage_class)sc_static) {
-    if (curr_context->assoc_expr != NULL) {
-      /* The current context is a region that is a single top-level
-         expression.  The initialization must be inserted on top of the
-         expression, but it would be dangerous to modify the expression that
-         we're currently working on.  Therefore, that's left to be done
-         when we get back to the top of the expression.  See
-         gen_expr_conditional_destruction_var_initializations. */
-      curr_context->any_conditional_destruction_var_initializations_deferred =
-                                                                          TRUE;
-    } else {
-      /* Use a dynamic init entry to do the initialization.  Note that the
-         dynamic init entry does not need to be put on a list of dynamic init
-         entries.  Such a list is used only at the file scope, and any
-         temporary allocated there would be static. */
-      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-      dip->variable = temp;
-      /* The dynamic init entry is pointed to by the variable. */
-      temp->init_kind = (an_init_kind)initk_dynamic;
-      temp->initializer.dynamic = dip;
-      set_integer_constant(&zero_constant, 0L, (an_integer_kind)ik_int);
-      dip->variant.constant = alloc_unshared_constant(&zero_constant);
-      /* The dynamic init entry is pointed to by an stmk_init statement. */
-      stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
-      stmk_init_stmt->variant.dynamic_init = dip;
-      scp = curr_context->assoc_switch_clause;
-      /* The stmk_init statement must be inserted at the right place.  For
-         most cases, the right place is the beginning of the current block.
-         For switch clauses, it's the beginning of the clause.  When labels
-         appear, the initialization goes after the latest label. */
-      label_statement = curr_context->latest_label_statement_processed;
-      if (label_statement != NULL) {
-        /* Insert the stmk_init after the most recent label. */
-        /* The dynamic init is not at the start of the scope. */
-        dip->follows_an_exec_statement = TRUE;
-        /* Add the stmk_init statement after the label. */
-        stmk_init_stmt->next = label_statement->next;
-        label_statement->next = stmk_init_stmt;
-      } else if (scp != NULL) {
-        /* Switch clause. */
-        /* The dynamic init is not at the start of the scope. */
-        dip->follows_an_exec_statement = TRUE;
-        /* Add the stmk_init statement at the beginning of the clause. */
-        stmk_init_stmt->next = scp->statements;
-        scp->statements = stmk_init_stmt;
-      } else {
-        /* Normal case. */
-        block = curr_context->scope->assoc_block;
-#if CHECKING
-        if (block == NULL) {
-          internal_error("add_conditional_destruction_temp: missing block");
-        }  /* if */
-#endif /* CHECKING */
-        /* Add the stmk_init statement at the beginning of the block. */
-        stmk_init_stmt->next = block->variant.block.statements;
-        block->variant.block.statements = stmk_init_stmt;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  /* Make and insert an assignment statement to set the temporary to 1.
-     This is inserted after the initialization code. */
+  /* Make and insert an assignment statement to set the temporary to 1. */
   (void)insert_var_assignment_statement(temp,
                                         (an_expr_operator_kind)eok_iassign,
                                         node_for_integer_constant(1L,
                                                       (an_integer_kind)ik_int),
                                         insert_location);
 }  /* add_conditional_destruction_temp */
+
+
+static void init_conditional_flag_object_addr_table_entry(
+                                         a_cleanup_action_ptr cap,
+                                         an_insert_location   *insert_location)
+/*
+Generate any code required to put the address of the conditional flag
+associated with the cleanup action cap into the object address table.
+*/
+{
+  an_init_pos_descr ipd;
+  a_variable_ptr    cond_var = cap->variant.object.conditional_flag_var;
+
+  check_assertion(is_object_cleanup_action(cap));
+  set_var_init_pos_descr(cond_var, &ipd);
+  /* The region number for the conditional flag is one greater than
+     the base region number. */
+  init_object_addr_table_entry(&ipd, cap->region_number+1, insert_location);
+}  /* init_conditional_flag_object_addr_table_entry */
+
+
+void init_conditional_flag_var(a_cleanup_action_ptr cap,
+                               an_insert_location   *insert_location)
+/*
+cap is a cleanup action that has an associated conditional flag.
+Generate code to set the conditional flag variable to 0.  If 
+insert_location is non-NULL, it indicates the point at which the code should
+be inserted.  Otherwise, the initialization is done with an stmk_init
+statement inserted at the right place in the current scope.  This routine
+must called late, after the object address table entry for the conditional
+flag has been created.
+*/
+{
+  a_variable_ptr      cond_var;
+  a_dynamic_init_ptr  dip;
+  a_constant          zero_constant;
+  a_statement_ptr     stmk_init_stmt, block, label_statement;
+  a_switch_clause_ptr scp;
+  an_insert_location  local_insert_location;
+
+  check_assertion(is_object_cleanup_action(cap));
+  cond_var = cap->variant.object.conditional_flag_var;
+  if (cond_var->storage_class == (a_storage_class)sc_static) {
+    /* The conditional flag is static and therefore is implicitly initialized
+       to zero. */
+  } else if (insert_location != NULL) {
+    /* We know the insert location.  Insert an assignment at that point. */
+    (void)insert_var_assignment_statement(cond_var,
+                                          (an_expr_operator_kind)eok_iassign,
+                                          node_for_integer_constant(0L,
+                                                      (an_integer_kind)ik_int),
+                                          insert_location);
+  } else {
+    /* Use a dynamic init entry to do the initialization.  The context
+       stack tells us where to insert the stmk_init.  Note that the
+       dynamic init entry does not need to be put on a list of dynamic init
+       entries.  Such a list is used only at the file scope, and any
+       temporary allocated there would be static. */
+    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+    dip->variable = cond_var;
+    /* The dynamic init entry is pointed to by the variable. */
+    cond_var->init_kind = (an_init_kind)initk_dynamic;
+    cond_var->initializer.dynamic = dip;
+    set_integer_constant(&zero_constant, 0L, (an_integer_kind)ik_int);
+    dip->variant.constant = alloc_unshared_constant(&zero_constant);
+    /* The dynamic init entry is pointed to by an stmk_init statement. */
+    stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
+    stmk_init_stmt->variant.dynamic_init = dip;
+    scp = curr_context->assoc_switch_clause;
+    /* The stmk_init statement must be inserted at the right place.  For
+       most cases, the right place is the beginning of the current block.
+       For switch clauses, it's the beginning of the clause.  When labels
+       appear, the initialization goes after the latest label. */
+    label_statement = curr_context->latest_label_statement_processed;
+    if (label_statement != NULL) {
+      /* Insert the stmk_init after the most recent label. */
+      /* The dynamic init is not at the start of the scope. */
+      dip->follows_an_exec_statement = TRUE;
+      /* Add the stmk_init statement after the label. */
+      stmk_init_stmt->next = label_statement->next;
+      label_statement->next = stmk_init_stmt;
+    } else if (scp != NULL) {
+      /* Switch clause. */
+      /* The dynamic init is not at the start of the scope. */
+      dip->follows_an_exec_statement = TRUE;
+      /* Add the stmk_init statement at the beginning of the clause. */
+      stmk_init_stmt->next = scp->statements;
+      scp->statements = stmk_init_stmt;
+    } else {
+      /* Normal case. */
+      block = curr_context->scope->assoc_block;
+#if CHECKING
+      if (block == NULL) {
+        internal_error("init_conditional_flag_var: missing block");
+      }  /* if */
+#endif /* CHECKING */
+      /* Add the stmk_init statement at the beginning of the block. */
+      stmk_init_stmt->next = block->variant.block.statements;
+      block->variant.block.statements = stmk_init_stmt;
+    }  /* if */
+    /* Set up for insertion after the stmk_init statement. */
+    insert_location = &local_insert_location;
+    set_insert_location(stmk_init_stmt, insert_location);
+  }  /* if */
+  if (exceptions_enabled) {
+    /* Initialize the object address table entry for the conditional flag. */
+    init_conditional_flag_object_addr_table_entry(cap, insert_location);
+  }  /* if */
+}  /* init_conditional_flag_var */
 
 
 static a_cleanup_action_ptr alloc_destruction_cleanup_action(
@@ -2227,7 +2274,7 @@ the like-named flags in the cleanup entry.
 
 void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_init_pos_descr_ptr  ipdp,
-                        a_variable_ptr         first_time_test_var,
+                        a_variable_ptr         conditional_flag_var,
                         a_boolean              is_expr_temporary,
                         an_expr_node_ptr       implied_arg_list,
                         an_expr_node_ptr       end_implied_arg_list,
@@ -2242,7 +2289,7 @@ when the entry is pointed to by an stmk_init statement or when it appears
 on a file-scope dynamic_inits list).  ipdp can, however, indicate a part of
 an aggregate.
 
-If first_time_test_var is non-NULL, it points to a variable entry for
+If conditional_flag_var is non-NULL, it points to a variable entry for
 the first-time-test variable that controls access to this initialization
 of a local static variable.
 
@@ -2321,7 +2368,7 @@ be kept, FALSE if it should be deleted.
       /* Assign an expression to the entity to be initialized. */
       lower_normal_expr(dip->variant.expression);
       if (processing_file_scope_init_routine ||
-          first_time_test_var != NULL) {
+          conditional_flag_var != NULL) {
         /* When generating the file-scope initialization routine we have
            an expression from the file scope that must be used in the function
            scope of the initialization routine, so copy it.  Otherwise
@@ -2355,7 +2402,7 @@ do_assignment:;
          implicit argument of the call. */
       lower_call(dip->variant.expression, ipdp);
       if (processing_file_scope_init_routine ||
-          first_time_test_var != NULL) {
+          conditional_flag_var != NULL) {
         /* When generating the file-scope initialization routine we have
            an expression from the file scope that must be used in the function
            scope of the initialization routine, so copy it.  Otherwise
@@ -2382,7 +2429,7 @@ do_assignment:;
       lower_arg_expr_list(dip->variant.constructor.args,
                           dip->variant.constructor.ptr->type);
       if (processing_file_scope_init_routine ||
-          first_time_test_var != NULL) {
+          conditional_flag_var != NULL) {
         /* When generating the file-scope initialization routine we have
            expressions from the file scope that must be used in the function
            scope of the initialization routine, so copy them.  Otherwise
@@ -2439,7 +2486,7 @@ do_assignment:;
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
       keep_constant = FALSE;
       lower_dynamic_init_aggregate_constant(dip->variant.constant,
-                                            ipdp, first_time_test_var, 
+                                            ipdp, conditional_flag_var, 
                                             /*dtor_case=*/FALSE, ctor_init,
                                             insert_location,
                                             &keep_constant);
@@ -2485,11 +2532,11 @@ do_assignment:;
        C IL. */
     dip->destructor = NULL;
     cap->variant.object.is_expr_temporary = is_expr_temporary;
-    if (first_time_test_var != NULL) {
+    if (conditional_flag_var != NULL) {
       /* Destruction of local static variables must happen at the end of
          the file scope if the initialization has been done (i.e., if the
          first-time-test variable has been set to non-zero. */
-      cap->variant.object.first_time_test_var = first_time_test_var;
+      cap->variant.object.conditional_flag_var = conditional_flag_var;
       /* Put the entry on the end of a special list. */
       if (cleanup_actions_for_local_static_variables == NULL) {
         cleanup_actions_for_local_static_variables = cap;
@@ -2504,9 +2551,10 @@ do_assignment:;
       if (num_conditional_exprs_inside_of != 0) {
         /* Inside a conditional operand of a "?", "&&", or "||" operation.
            Since the construction is conditional, we add a temporary
-           variable, initialize it to zero at the beginning of the current
-           block, set the temporary to 1 here, and test the temporary
-           variable later to decide whether or not to do the destruction. */
+           variable, set it to 1 here, and test it later to decide whether
+           to do the destruction.  init_conditional_flag_var is called
+           later to initialize the temporary to zero at the beginning
+           of the current scope. */
         add_conditional_destruction_temp(cap, insert_location);
       }  /* if */
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
@@ -2528,6 +2576,25 @@ do_assignment:;
                                              file_scope_context :
                                              curr_context,
                                          insert_location);
+      if (cap->variant.object.conditional_flag_var != NULL) {
+        /* This operation has a conditional flag.  Initialize the flag to zero.
+           This must be done after the cleanup action has been added to the
+           context list (and therefore make_region_table_entry has been called)
+           so that the exception cleanup region entry for the conditional flag
+           has been created. */
+        if (curr_context->assoc_expr != NULL) {
+          /* The current context is a region that is a single top-level
+             expression.  The initialization must be inserted on top of the
+             expression, but it would be dangerous to modify the expression
+             that we're currently working on.  Therefore, that's left to be
+             done when we get back to the top of the expression.  See
+             gen_expr_conditional_flag_var_initializations. */
+          curr_context->any_conditional_flag_var_initializations_deferred=TRUE;
+        } else {
+          /* Set the variable to zero initially. */
+          init_conditional_flag_var(cap, (an_insert_location *)NULL);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   /* In the whole-variable cases, adjust the initialization specified in
@@ -3035,16 +3102,12 @@ The subtree of the node has not yet been lowered.
       if (exceptions_enabled) {
         /* Exceptions are enabled, so make a cak_new_allocation cleanup action
            entry to get the storage freed if a throw occurs. */
-        new_allocation_cap = alloc_cleanup_action(
-                                        cak_new_allocation,
+        new_allocation_cap =
+                   alloc_cleanup_action(cak_new_allocation,
                                         /*applies_on_block_exit=*/FALSE,
                                         /*applies_on_exception_cleanup=*/TRUE);
         set_var_init_pos_descr(temp_var,
                            &new_allocation_cap->variant.object.init_pos_descr);
-        /* If there were modifiers, we'd have to copy them, but we don't
-           expect any. */
-        check_assertion(new_allocation_cap->
-                              variant.object.init_pos_descr.modifiers == NULL);
         /* Add information on the delete routine. */
         new_allocation_cap->variant.object.delete_routine =
                                                           ndsp->delete_routine;
@@ -3057,7 +3120,7 @@ The subtree of the node has not yet been lowered.
       ipd.base_type = ndsp->type;
       /* Generate code for the initialization. */
       lower_dynamic_init(dip, &ipd,
-                         /*first_time_test_var=*/(a_variable_ptr)NULL,
+                         /*conditional_flag_var=*/(a_variable_ptr)NULL,
                          /*is_expr_temporary=*/FALSE,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL,
@@ -3283,7 +3346,7 @@ Do IL lowering of an enk_temp_init expression node.
      inserted before the (modified) original expression. */
   set_expr_insert_location(expr, &insert_location);
   lower_dynamic_init(dip, &ipd,
-                     /*first_time_test_var=*/(a_variable_ptr)NULL,
+                     /*conditional_flag_var=*/(a_variable_ptr)NULL,
                      /*is_expr_temporary=*/TRUE,
                      (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                      (a_constructor_init_ptr)NULL,
@@ -3319,7 +3382,7 @@ Do IL lowering of an enk_temp_init expression node.
 
 
 static void add_first_time_test(an_insert_location_ptr insert_location,
-                                a_variable_ptr         *first_time_test_var)
+                                a_variable_ptr         *conditional_flag_var)
 /*
 Add a first-time test sequence that will surround the initialization of a
 local static variable.  In effect:
@@ -3334,7 +3397,7 @@ local static variable.  In effect:
 
 The sequence is inserted at *insert_location.  *insert_location is updated
 for further insertion after the assignment statement.  A pointer to the
-first-time-test variable is returned in *first_time_test_var.
+first-time-test variable is returned in *conditional_flag_var.
 */
 {
   a_variable_ptr     test_var;
@@ -3348,7 +3411,7 @@ first-time-test variable is returned in *first_time_test_var.
      blocks, but destroyed on exit from the whole program, and only if they
      were initialized). */
   int_type = integer_type((an_integer_kind)ik_int);
-  *first_time_test_var = test_var =
+  *conditional_flag_var = test_var =
                             make_lowered_variable((char *)NULL,
                                                   /*already_il_name=*/TRUE,
                                                   int_type,
@@ -3568,7 +3631,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
     an_insert_location insert_location;
     a_boolean          keep_dynamic_init;
     an_init_pos_descr  ipd;
-    a_variable_ptr     first_time_test_var = NULL;
+    a_variable_ptr     conditional_flag_var = NULL;
     a_context          context;
 
     set_insert_location(statement, &insert_location);
@@ -3576,13 +3639,13 @@ Generate code for a stmk_init (dynamic initialization) statement.
     /* If the variable is a local static, add a first-time flag and a
        test. */
     if (dip->variable->storage_class == (a_storage_class)sc_static) {
-      add_first_time_test(&insert_location, &first_time_test_var);
+      add_first_time_test(&insert_location, &conditional_flag_var);
       /* Put a dependent-statement context around the lowering of
          the initialization so that any cleanup actions for code within
          the initialization will be emitted within the "if". */
       push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
     }  /* if */
-    lower_dynamic_init(dip, &ipd, first_time_test_var,
+    lower_dynamic_init(dip, &ipd, conditional_flag_var,
                        /*is_expr_temporary=*/FALSE,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL,
@@ -3591,7 +3654,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
       /* Delete the stmk_init statement. */
       turn_statement_into_noop(statement);
     }  /* if */
-    if (first_time_test_var != NULL) {
+    if (conditional_flag_var != NULL) {
       /* Generate any cleanup actions for temporaries built within a
          first-time test conditional section. */
       gen_cleanup_actions(curr_context, &insert_location);
@@ -3743,7 +3806,7 @@ created are inserted at *insert_location, and *insert_location is updated.
     develop_ctor_init_pos_descr(ctor_init, this_param_var, &ipd, &ipm);
   }  /* if */
   /* Generate the code to do the initialization. */
-  lower_dynamic_init(dip, &ipd, /*first_time_test_var=*/(a_variable_ptr)NULL,
+  lower_dynamic_init(dip, &ipd, /*conditional_flag_var=*/(a_variable_ptr)NULL,
                      /*is_expr_temporary=*/FALSE,
                      implied_arg_list, end_implied_arg_list, ctor_init,
                      insert_location, &keep_dynamic_init);
@@ -4050,7 +4113,6 @@ constructor scope, and also lower the user code.
     a_routine_ptr      new_routine;
     a_cleanup_action_ptr
                        new_allocation_cap;
-    a_variable_ptr     indicator_var;
 
     /* Make "new-rout(size)". */
     class_type = ctor_routine->source_corresp.class_of_which_a_member;
@@ -4071,6 +4133,7 @@ constructor scope, and also lower the user code.
       assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
                                        call_node->type, this_param_node);
       if (exceptions_enabled) {
+        a_variable_ptr cond_var;
         /* Exceptions are enabled.  Record the allocation so it can
            be freed if a throw occurs while this routine is running. */
         /* "this = new_rout(size)" is turned into
@@ -4082,11 +4145,12 @@ constructor scope, and also lower the user code.
                                          this_param_node->type, assign_node);
         set_expr_insert_location(this_param_node, &insert_location);
         /* Make an indicator variable that is set to nonzero if the allocation
-           is done.  The variable is initialized to zero below. */
-        indicator_var = 
+           is done.  The variable is initialized to zero by
+           calling init_conditional_flag_var later. */
+        cond_var = 
                  make_lowered_temporary(integer_type((an_integer_kind)ik_int));
         /* Set the indicator variable to nonzero. */
-        (void)insert_var_assignment_statement(indicator_var,
+        (void)insert_var_assignment_statement(cond_var,
                                             (an_expr_operator_kind)eok_iassign,
                                             node_for_integer_constant(1L,
                                                       (an_integer_kind)ik_int),
@@ -4098,12 +4162,8 @@ constructor scope, and also lower the user code.
                                         /*applies_on_exception_cleanup=*/TRUE);
         set_var_indirect_init_pos_descr(this_param_var,
                            &new_allocation_cap->variant.object.init_pos_descr);
-        /* If there were modifiers, we'd have to copy them, but we don't
-           expect any. */
-        check_assertion(new_allocation_cap->
-                              variant.object.init_pos_descr.modifiers == NULL);
         /* The deletion is only done if the indicator variable is set. */
-        new_allocation_cap->variant.object.first_time_test_var = indicator_var;
+        new_allocation_cap->variant.object.conditional_flag_var = cond_var;
         /* Add information on the delete routine. */
         new_allocation_cap->variant.object.delete_routine =
                                            ctsp->assoc_operator_delete_routine;
@@ -4130,25 +4190,11 @@ constructor scope, and also lower the user code.
       /* Make "if (this != NULL || (this = new-rout(size)) != NULL)". */
       enclose_routine_in_if(scope, if_node, &block_stmt, this_param_var);
       if (exceptions_enabled) {
-        /* Initialize the indicator variable for the allocation cleanup
-           to zero. */
-        a_dynamic_init_ptr dip =
-                         alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-        a_statement_ptr  stmk_init_stmt;
-        a_constant       zero_constant;
-
-        dip->variable = indicator_var;
-        /* The dynamic init entry is pointed to by the variable. */
-        indicator_var->init_kind = (an_init_kind)initk_dynamic;
-        indicator_var->initializer.dynamic = dip;
-        set_integer_constant(&zero_constant, 0L, (an_integer_kind)ik_int);
-        dip->variant.constant = alloc_unshared_constant(&zero_constant);
-        /* The dynamic init entry is pointed to by an stmk_init statement. */
-        stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
-        stmk_init_stmt->variant.dynamic_init = dip;
-        /* The stmk_init statement goes at the beginning of the routine. */
-        set_block_start_insert_location(scope->assoc_block, &insert_location);
-        insert_statement(stmk_init_stmt, &insert_location);
+        /* Initialize the conditional flag to zero.  This must be done after
+           enclose_routine_in_if is called so that the initialization is
+           done at the right place (i.e., outside the "if"). */
+        init_conditional_flag_var(new_allocation_cap,
+                                  (an_insert_location *)NULL);
       }  /* if */
     }  /* if */
 #if ASSIGNMENT_TO_THIS_ALLOWED
@@ -4629,7 +4675,7 @@ Do lowering on the file-scope dynamic initializations list.
     for (; dip != NULL; dip = dip->next) {
       set_var_init_pos_descr(dip->variable, &ipd);
       lower_dynamic_init(dip, &ipd,
-                         /*first_time_test_var=*/(a_variable_ptr)NULL,
+                         /*conditional_flag_var=*/(a_variable_ptr)NULL,
                          /*is_expr_temporary=*/FALSE,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL,
@@ -4671,6 +4717,12 @@ Do lowering on the file-scope dynamic initializations list.
       cleanup_actions_for_local_static_variables = cap->next;
       add_cleanup_action_to_context_list(cap, file_scope_context,
                                          &insert_location);
+      if (exceptions_enabled && is_object_cleanup_action(cap) &&
+          cap->variant.object.conditional_flag_var != NULL) {
+        /* Initialize the object address table entry for the conditional
+           flag. */
+        init_conditional_flag_object_addr_table_entry(cap, &insert_location);
+      }  /* if */
     }  /* if */
     end_cleanup_actions_for_local_static_variables = NULL;  /* Be neat. */
     if (exceptions_enabled) {

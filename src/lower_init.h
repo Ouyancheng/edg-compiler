@@ -78,9 +78,12 @@ extern a_type_ptr type_from_init_pos_descr(an_init_pos_descr_ptr ipdp);
 
 extern an_expr_node_ptr make_init_entity_node(an_init_pos_descr_ptr ipdp);
 
+extern void init_conditional_flag_var(a_cleanup_action_ptr cap,
+                                      an_insert_location   *insert_location);
+
 extern void lower_dynamic_init(a_dynamic_init_ptr       dip,
                                an_init_pos_descr_ptr    ipdp,
-                               a_variable_ptr           first_time_test_var,
+                               a_variable_ptr           conditional_flag_var,
                                a_boolean                is_expr_temporary,
                                an_expr_node_ptr         implied_arg_list,
                                an_expr_node_ptr         end_implied_arg_list,
