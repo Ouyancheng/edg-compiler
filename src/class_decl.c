@@ -7498,6 +7498,10 @@ specific information about the member declaration, respectively.
     /* Scan the bit-field size and determine the bit-field type. */
     scan_bit_field_size(&unnamed_field, &member_type, &bit_field_size,
                         &bit_field_is_signed, locator);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_info->decl_pos_block.declarator_range.end =
+                                            curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     field->is_bit_field = TRUE;
     field->bit_size = (a_byte)bit_field_size;
     field->bit_field_is_signed = bit_field_is_signed;
