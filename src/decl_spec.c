@@ -702,6 +702,9 @@ to indicate whether the class/struct/union is actually defined.
        a Plum Hall test that implies that. */
     tag_position = pos_curr_token;
     *declares_something = TRUE;
+    /* A "vacuous declaration" may not involve a qualified name: "struct x;"
+       is okay, but "struct A::x;" is not. */
+    if (locator_for_curr_id.is_qualified_name) vacuous_decl_allowed = FALSE;
     check_assertion(!vacuous_decl_allowed || !is_friend_decl);
     tag_sym = scan_tag_name(tag_kind, &locator, vacuous_decl_allowed,
                             is_ref_within_new_expr, &effective_decl_level,
