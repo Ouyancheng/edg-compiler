@@ -1,5 +1,19 @@
 Version 2.46
 
+3/1/01   Abort on invalid designated initializer
+
+The front end used to abort when encountering certain designated initializers
+for flexible array members in inside unions.
+
+  union U {
+    struct S {
+      char c;
+      _Bool b[];
+    } s;
+  } u = { .s = { .b = { 0 } } };  // Error: cannot initialize flexible array
+                                  // member (but used to abort).
+This is now fixed.
+
 3/1/01   C99 __generic builtin operator, complex-typed expressions
 
 The C99 builtin operator __generic, provided to allow implementation of

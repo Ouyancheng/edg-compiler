@@ -1810,14 +1810,13 @@ this function points to a tree that includes a dynamic-init entry.
 #endif /* DEBUG */
           if (is_incomplete_type(member_type)) {
             /* Members of unions or aggregates cannot be incomplete. */
-            if (top_level && is_array_type(member_type) &&
-                curr_field->next == NULL) {
+            if (is_array_type(member_type) && curr_field->next == NULL) {
               /* ... except that in several modes it's okay to declare a field
                  of incomplete array type when it's the last field in the
                  struct (but only when the struct is the top-level object
                  type).  (See also: check_field_type.)  Only in Microsoft
                  mode can such a field be initialized. */
-              if (!microsoft_mode) {
+              if (!top_level || !microsoft_mode) {
                 error(ec_cannot_initialize_flexible_array_member);
               }  /* if */
             } else {
