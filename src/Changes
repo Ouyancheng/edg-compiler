@@ -1,5 +1,24 @@
 Version 2.16
 
+4/24/93  Bug in computing base class offsets
+
+A bug has been fixed in computing the base class offsets of deeply
+layered ambiguous base classes which have several ambiguous base classes
+on their derivation lists.  Here's an example that manifested the
+problem:
+                           //      X   X   X   X
+  class X { };             //      |   |   |   |
+  class A : X { };         //      A   B   A   B
+  class B : X { };         //       \ /     \ /
+  class C : A, B { };      //        C       C
+  class D : C { };         //         \     /
+  class E : C { };         //          D   E
+  class F : D, E { }       //           \ /
+                           //            F
+
+We now get the offsets right for all four instances of base class X in
+derived class F.
+
 4/23/93  fp_hash routine
 
 A new routine fp_hash has been added to float_pt.c.  It contains the
