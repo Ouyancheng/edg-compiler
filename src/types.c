@@ -1953,6 +1953,7 @@ checking instead of equivalence checking).
   return equiv;
 }  /* equiv_class_types */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean routine_linkages_are_compatible(a_name_linkage_kind  nlk1,
                                           a_name_linkage_kind  nlk2,
@@ -1971,6 +1972,7 @@ check occurs in connection with an implicit type conversion.
                         nlk2 == (a_name_linkage_kind)nlk_cplusplus_external),
                        "routine_linkages_are_compatible:",
                        "unexpected linkage for routine type");
+#if !STANDALONE_UTILITY_PROGRAM
   if (is_impl_conv &&
       impl_conv_between_c_and_cpp_function_ptrs_allowed) {
     /* Implicit conversion -- extern "C" and extern "C++" function types
@@ -1987,10 +1989,17 @@ check occurs in connection with an implicit type conversion.
       /* extern "C" and extern "C++" function pointers are compatible. */
       compat = TRUE;
     }  /* if */
-  }  /* if */    
+  }  /* if */
+#else /* STANDALONE_UTILITY_PROGRAM */
+  /* In the context of a standalone program (where implicit conversion is not
+     an issue), just assume extern "C" and extern "C++" linkages need to be
+     treated as distinct. */
+  compat = (nlk1 == nlk2);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   return compat;
 }  /* routine_linkages_are_compatible */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 static a_boolean routine_linkages_are_identical(a_name_linkage_kind nlk1,
                                                 a_name_linkage_kind nlk2)
