@@ -1,5 +1,12 @@
 Version 2.33
 
+9/14/96 Microsoft compatibility: ellipsis in old-style parameter list
+
+In Microsoft C mode only a warning is issued if an ellipsis appears in an
+old-style parameter list declaration:
+
+  void f(x, ...) int x; { }      // Ellipsis is ignored in Microsoft mode
+
 9/13/96 Microsoft compatibility: disambiguation
 
 The Microsoft compiler incorrectly interprets a declaration such as the

@@ -1409,8 +1409,20 @@ issue an error if a default argument expression is encountered.
       add_stop_token(tok_comma);
       /* Scan the list of identifiers. */
       if (curr_token != tok_identifier) {
-        /* Error, expected identifier. */
-        (void)required_token(tok_identifier, ec_exp_identifier);
+        if (curr_token == tok_ellipsis && next_token() == tok_rparen) {
+          an_error_severity  severity = es_error;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          /* In Microsoft C an ellipsis is permitted (and ignored) on an
+             old-style param list. */
+          if (microsoft_mode) severity = es_warning;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          diagnostic(severity, ec_ellipsis_not_allowed);
+          /* Advance past the ellipsis. */
+          (void)get_token();
+        } else {
+          /* Error, expected identifier. */
+          (void)required_token(tok_identifier, ec_exp_identifier);
+        }  /* if */
       } else {
         /* See if the identifier is also a typedef name.  Such a name is
            not allowed (3.7.1, constraints).  In pcc mode, however, this
