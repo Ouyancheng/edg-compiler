@@ -75,6 +75,12 @@ cc_only=0
 #
 fe_only=0
 #
+# When set to 1, the front end is run in preprocessing mode only.
+# Among other things, the front end will not create or remove the .ii
+# file when only doing preprocessing
+#
+preprocess_only=0
+#
 # Name of the executable after linking.
 #
 executable=a.out
@@ -243,21 +249,25 @@ do
     -E)
 #     Preprocessor only.
       fe_only=1;
+      preprocessor_only=1
       feoptions=$feoptions" -E";
       ;;
     -P)
 #     Preprocessor only.
       fe_only=1;
+      preprocessor_only=1
       feoptions=$feoptions" -P";
       ;;
     -M)
 #     Generate makefile dependency lines.
       fe_only=1;
+      preprocessor_only=1
       feoptions=$feoptions" -M";
       ;;
     -H)
 #     Generate names of include files used.
       fe_only=1;
+      preprocessor_only=1
       feoptions=$feoptions" -H";
       ;;
     -I)
@@ -490,7 +500,8 @@ do
   fi
   using_ii_file=0
   ii_option=
-  if [ $cmode -eq 0 -a $automatic_instantiation -eq 1 ] ; then
+  if [ $cmode -eq 0 -a $automatic_instantiation -eq 1 -a\
+       $preprocess_only -eq 0] ; then
     #
     # See if the .ii file exists.  If it does, extract the instantiation
     # list to a temporary file.
@@ -527,6 +538,9 @@ do
       if [ $had_old_ii_file -eq 1 ] ; then
         cat $ii_tmp_file >>$ii_file_name
       fi
+    fi
+    if [ $had_old_ii_file -eq 1 ] ; then
+      rm -f $ii_tmp_file
     fi
   fi
 #
