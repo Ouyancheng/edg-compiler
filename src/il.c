@@ -10565,7 +10565,7 @@ partial instantiation of the entity specified by the indicated entity.
     /* It is assumed that the current scope (e.g., a template instantiation
        scope) implies that entities are allocated into file scope memory. */
     check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
-    /* Allocate and initialized the source sequence entry. */
+    /* Allocate and initialize the source sequence entry. */
     sssdp = alloc_src_seq_secondary_decl();
     sssdp->entity.ptr = ptr;
     sssdp->entity.kind = (a_byte_il_entry_kind)kind;
