@@ -2499,8 +2499,6 @@ might not be able to if the template itself has not yet been defined.
          which was inserted to mark the end of the cached token stream.
          If necessary, keep flushing until end-of-source is found. */
       flush_past_token_cache_terminator();
-      /* Do the class fixups for this instantiation. */
-      process_deferred_class_fixups_and_instantiations();
       /* Decrement the count of instantiations-in-progress for the current
          class template. */
       cssp->instantiation_in_progress = FALSE;
@@ -2517,6 +2515,8 @@ might not be able to if the template itself has not yet been defined.
          established. */
       establish_class_instantiation_corresp(class_type);
       set_instantiation_required_for_template_class_members(class_type);
+      /* Do the class fixups for this instantiation. */
+      process_deferred_class_fixups_and_instantiations();
       /* If the translation unit stack was pushed above, pop it now. */
       if (trans_unit_pushed) pop_translation_unit_stack();
     }  /* if */
