@@ -3124,16 +3124,17 @@ break the correspondence -- i.e., set to default values those fields that
 are tied to a particular source occurrence.
 */
 {
-  sc->assoc_info        = NULL;
-  sc->name              = NULL;
-  sc->is_class_member   = FALSE;
-  sc->parent.class_type = NULL;
-  sc->access            = (an_access_specifier)as_public;
+  sc->assoc_info            = NULL;
+  sc->name                  = NULL;
+  sc->trans_unit_corresp    = NULL;
+  sc->is_class_member       = FALSE;
+  sc->parent.class_type     = NULL;
+  sc->access                = (an_access_specifier)as_public;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sc->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  sc->decl_pos_info     = NULL;
+  sc->decl_pos_info         = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
   sc->per_instantiation_needed_flags = NULL;

@@ -2228,9 +2228,9 @@ equivalent templates, such as T in "T<int>" and "T<int>".
 }  /* equiv_template_template_params */
 
 
-static a_boolean equiv_class_types(a_type_ptr type_1,
-                                   a_type_ptr type_2,
-                                   a_boolean  error_matches_anything)
+a_boolean equiv_class_types(a_type_ptr type_1,
+                            a_type_ptr type_2,
+                            a_boolean  error_matches_anything)
 /*
 type_1 and type_2 are class/struct/union types.  Return TRUE if they are
 equivalent types.  In general, classes, structs, and unions that aren't

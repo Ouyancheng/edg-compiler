@@ -4993,7 +4993,8 @@ Check if both given entities (of the given kind) correspond.  If necessary,
 determine the correspondences.
 */
 {
-  char  *canon1, *canon2;
+  a_boolean  result;
+  char       *canon1, *canon2;
 
   /* Be sure to determine the correspondence of an entity in the secondary
      translation unit first.  Correspondence pointers in the primary
@@ -5005,8 +5006,18 @@ determine the correspondences.
   } else {
     canon2 = get_canonical_entry_of(entity2, kind);
     canon1 = get_canonical_entry_of(entity1, kind);
-  }  /* else */
-  return canon1 == canon2;
+  }  /* if */
+  result = (canon1 == canon2);
+  if (!result && kind == (an_il_entry_kind)iek_type) {
+    /* Proxy class types sometimes cannot have their correspondence set,
+       but they "correspond" nonetheless. */
+    a_type_ptr  type1 = (a_type_ptr)canon1, type2 = (a_type_ptr)canon2;
+    if (is_immediate_class_type(type1) && is_immediate_class_type(type2)) {
+      result = equiv_class_types(type1, type2,
+                                 /*error_matches_anything=*/FALSE);
+    }  /* if */
+  }  /* if */
+  return result;
 }  /* corresponding_entries */
 
 
