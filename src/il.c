@@ -5099,10 +5099,10 @@ the routines in order of appearance of their definitions (bodies).
 
 
 void add_to_routines_list(a_routine_ptr rout_ptr,
-                           a_boolean    at_file_or_namespace_scope)
+                          a_boolean    at_file_or_namespace_scope)
 /*
-Add the given routine to the routines list for the current scope, or
-for the file scope if at_file_scope is TRUE.
+Add the given routine to the routines list for the current scope, or for
+the innermost namespace or file scope if at_file_or_namespace_scope is TRUE.
 */
 {
   a_scope_stack_entry_ptr     ssep;

@@ -2613,7 +2613,7 @@ type based on the template argument list and the template parameter list
                                   &locator.source_position,
                                   /*is_redecl=*/FALSE, /*is_definition=*/TRUE);
     /* Add it to the file scope routines list. */
-    add_to_routines_list(rp, /*at_file_scope=*/TRUE);
+    add_to_routines_list(rp, /*at_file_or_namespace_scope=*/TRUE);
     if (tssp->befriending_classes != NULL) {
       update_befriending_classes_for_function(tssp, rp);
     }  /* if */
