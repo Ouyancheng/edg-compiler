@@ -590,15 +590,15 @@ used instead of calling this routine directly.
 a_boolean f_any_qualifier_missing(a_type_ptr  tp1,
                                   a_type_ptr  tp2)
 /*
-Return TRUE if tp1 does not have some top-level type qualifier that tp2 has.
-This routine should be called via the any_qualifier_missing macro, which
-checks that tp2 is a tk_typeref.
+Return TRUE if tp1 does not have some type qualifier that tp2 has.  This
+routine should be called via the any_qualifier_missing macro, which checks
+that tp2 is a tk_typeref or tk_array.
 */
 {
   a_boolean             any_missing;
   a_type_qualifier_set  tp1_qualifiers, tp2_qualifiers;
 
-  tp2_qualifiers = f_get_type_qualifiers(tp2, /*top_level=*/TRUE);
+  tp2_qualifiers = f_get_type_qualifiers(tp2, /*top_level=*/FALSE);
   if (tp2_qualifiers == TQ_NONE) {
     /* tp2 has no qualifiers, so it can't have any that tp1 doesn't have. */
     any_missing = FALSE;
@@ -4616,7 +4616,7 @@ make_new_type:
     case tk_typeref:
       if (func(type->variant.typeref.type, flags, &tp)) {
         new_type = type_plus_qualifiers_from_second_type(tp, type);
-      }
+      }  /* if */
       break;
     case tk_template_param:
       /* tptk_member template param types point to a parent type.  However,
