@@ -7331,6 +7331,33 @@ issued.
 }  /* check_template_nesting_depth */
 
 
+static void check_exception_specification_for_instance(
+                                              a_type_ptr         type,
+                                              a_symbol_ptr       instance_sym,
+                                              a_source_position  *throw_pos)
+/*
+Check that the exception specification on type (which points to the function
+type of the current declaration) matches that of the template associated with
+instance_sym.  throw_pos is a source position at which diagnostics may be
+issued.
+*/
+{
+  a_symbol_ptr                      templ_sym;
+  a_template_symbol_supplement_ptr  tssp;
+
+  if (exceptions_enabled) {
+    /* Issue an error if the exception specification on the specialization
+       does not match that of the template. */
+    templ_sym = instance_sym->variant.routine.instance_ptr->template_sym;
+    check_assertion(templ_sym != NULL);
+    tssp = template_supplement_for_symbol(templ_sym);
+    check_assertion(tssp != NULL);
+    check_exception_specification(type, tssp->variant.function.routine,
+                                  throw_pos, /*is_redecl=*/FALSE);
+  }  /* if */
+}  /* check_exception_specification_for_instance */
+
+
 static void full_specialization(a_decl_state_ptr decl_state)
 /*
 One or more empty template parameter clauses ("template <>") have been
@@ -7595,6 +7622,10 @@ that follows.
         }  /* if */
         (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
       } else {
+        /* Issue an error if the exception specification on the instance does
+           not match that of the template. */
+        check_exception_specification_for_instance(type, sym,
+                                                   &func_info.throw_position);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Do fixup on the source sequence entry that was just created to
            represent the current declaration. */
@@ -9221,6 +9252,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   a_source_sequence_entry_ptr   declarator_ssep;
   a_symbol_ptr		        sym;
   a_token_kind			end_of_statement_token;
+  a_func_info_block             func_info;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr   ssep;
   a_source_position             template_keyword_pos;
@@ -9270,7 +9302,6 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
     }  /* if */
     goto done;
   } else {
-    a_func_info_block  	func_info;
     clear_func_info(&func_info);
     di_flags = DI_REAL_DECLARATOR_ALLOWED |
                DI_QUALIFIED_NAME_ALLOWED |
@@ -9358,6 +9389,10 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
          declaration or a template instance. */
       new_sym = find_matching_template_instance(sym, type);
       if (new_sym != NULL) {
+        /* Issue an error if the exception specification on the instance does
+           not match that of the template. */
+        check_exception_specification_for_instance(type, new_sym,
+                                                   &func_info.throw_position);
         /* Update the flags for the symbol found. */
         update_instantiation_flags(new_sym, kind, start_pos,
                                    /*is_class_instantiation=*/FALSE,
