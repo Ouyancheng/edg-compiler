@@ -402,8 +402,9 @@ definition of the routine is needed, and not just the declaration.
      instantiation, just return.  Whether or not a given routine's definition
      is included in a given instantiation object file is something known
      statically, and no separate bit is maintained for each routine/each
-     instantiation. */
-  if (needed_flag_bit_number != 0) goto end_of_routine;
+     instantiation.  However, inline functions are included in every
+     instantiation file that uses them. */
+  if (needed_flag_bit_number != 0 && !rout->is_inline) goto end_of_routine;
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
   /* Set the flag if it is not set already. */
   if (!rout->definition_needed) {
@@ -431,7 +432,8 @@ definition of the routine is needed, and not just the declaration.
          to put them in. */
       curr_il_region_number = rout->assoc_scope;
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-      if (one_instantiation_per_object) {
+      if (one_instantiation_per_object &&
+          needed_flag_bit_number == 0) {
         /* If we're maintaining a separate set of "needed" flags for each
            instantiation, sweep the body for the bit number associated with
            this routine.  Routines that aren't instantiations are included
