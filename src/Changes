@@ -43,6 +43,17 @@ and therefore their values are limited to the host character range.
 Warnings are issued for attempts to specify constants that cannot be
 accurately represented.
 
+8/9/93  Eliminated extraneous calls of coalesce_template_class_reference
+
+A change (first released in version 2.17) was made to provide better
+diagnostics when a template argument list follows something that is
+not a class template name.  The change involved calling
+coalesce_template_class_reference to check for this condition.  The
+code has been improved to only do the call in cases that could
+potentially be errors.  The extra calls resulted in a significant
+degradation in speed of the compiler (several percent).  This change
+eliminates the performance degradation.
+
 8/9/93  IL lowering: rewriting of lvalue-returning operations
 
 IL lowering now correctly rewrites lvalue-returning operations (assignments,
