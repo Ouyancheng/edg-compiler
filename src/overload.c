@@ -5919,7 +5919,7 @@ after_precision:;
 #if LONG_LONG_ALLOWED
         } else if (ll_size) {
           required_type = integer_type((an_integer_kind)ik_long_long);
-          if (strict_ansi_mode) {
+          if (strict_ansi_mode && !c99_mode) {
             pos_diagnostic((int)strict_ansi_error_severity < (int)es_warning ?
                              strict_ansi_error_severity : es_warning,
                            ec_nonstd_printf_format_string, err_pos);
@@ -5948,7 +5948,7 @@ after_precision:;
 #if LONG_LONG_ALLOWED
         } else if (ll_size) {
           required_type = integer_type((an_integer_kind)ik_unsigned_long_long);
-          if (strict_ansi_mode) {
+          if (strict_ansi_mode && !c99_mode) {
             pos_diagnostic((int)strict_ansi_error_severity < (int)es_warning ?
                              strict_ansi_error_severity : es_warning,
                            ec_nonstd_printf_format_string, err_pos);
