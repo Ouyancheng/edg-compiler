@@ -4815,21 +4815,20 @@ expression_kind indicates the kind of the current expression.
   if (is_class_struct_union_type(type_cast_to)) {
     cssp = symbol_supplement_for_class(type_cast_to);
     ctor_sym = cssp->constructor;
-    if (ctor_sym != NULL) {
-      /* The type name is the name of a class that has at least one
-         constructor. */
-      if (!cssp->target_of_conversion_function) {
-        /* There is no conversion function that targets this class, so this
-           must be a constructor call. */
-        ctor_case = TRUE;
-      } else {
-        /* There is both a constructor for this class and a conversion function
-           whose result is the class; look ahead to see if this conversion has
-           exactly one argument.  If not, it must be a constructor call.
-           If so, it could be either, so go into the usual conversion
-           processing. */
-        if (!conversion_has_one_argument()) ctor_case = TRUE;
-      }  /* if */
+    if (cssp->target_of_conversion_function &&
+        conversion_has_one_argument()) {
+      /* The class has no constructors, there is at least one conversion
+         function from some other class to this one, and the argument list
+         contains a single value, so this is treated as a normal
+         (non-constructor) case.  Note that there might or might not also be
+         a one-argument constructor for the class; if there is, it will
+         be considered along with the conversion function. */
+      ctor_case = FALSE;
+    } else {
+      /* All other cases are treated as constructor cases.  Note that this
+         includes cases where there are no constructors (error is issued
+         below). */
+      ctor_case = TRUE;
     }  /* if */
   }  /* if */
   /* Advance past the type keyword or identifier. */
@@ -4840,6 +4839,10 @@ expression_kind indicates the kind of the current expression.
   if (ctor_case) {
     /* Converting to a class type.  The contents of the parentheses are
        arguments for a constructor call. */
+    if (ctor_sym == NULL) {
+      /* Class has no constructors. */
+      pos_ty_error(ec_no_constructor, &lparen_pos, type_cast_to);
+    }  /* if */
     scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine, &lparen_pos,
 			type_cast_to);
     if (ctor_routine == NULL) {
