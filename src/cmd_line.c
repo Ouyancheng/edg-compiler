@@ -497,14 +497,15 @@ unknown_option:
     if (allow_anachronisms) {
 #if DEFAULT_ALLOW_ANACHRONISMS
       allow_anachronisms = FALSE;
-#else
+#else /* DEFAULT_ALLOW_ANACHRONISMS */
       command_line_error
         ("strict ANSI mode is incompatible with allowing anachronisms");
-#endif
+#endif /* DEFAULT_ALLOW_ANACHRONISMS */
     }  /* if */
-    if ((int)error_threshold > (int)es_warning) {
-      /* Make sure warnings come out. */
-      error_threshold = es_warning;
+    /* Make sure that strict ANSI messages come out even if the
+       error threshold was set at a higher level. */
+    if ((int)error_threshold > (int)strict_ansi_error_severity) {
+      error_threshold = strict_ansi_error_severity;
     }  /* if */
   }  /* if */
   /* Determine the appropriate error level for anachronism messages based
