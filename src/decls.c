@@ -5218,6 +5218,15 @@ process_class_specifier:
             /* Save the type. */
             basic_type = bt_typedef;
             *type_ptr = type_symbol_type(curr_token_type_symbol);
+            if (curr_il_region_number == FILE_SCOPE_REGION_NUMBER &&
+                decl_scope_level != DEPTH_OF_FILE_SCOPE) {
+              /* The current declaration is in the file scope memory region,
+                 so the type entry referred to by the typedef name should
+                 also appear in the file scope memory region (to assure that
+                 no file scope type points to a non-file-scope type).  Copy
+                 *type_ptr to the file scope if necessary. */
+              *type_ptr = make_file_scope_type(*type_ptr);
+            }  /* if */
           }  /* if */
           break;
         }  /* if */
