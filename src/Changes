@@ -1,5 +1,20 @@
 Version 2.43
 
+9/9/99   Error when "friend class T" refers to a typedef
+
+The front end accepts, as an extension, a friend declaration that names
+a template parameter.  It did not, however, accept such a declaration
+when the type supplied as the template argument specified a typedef name.
+It now accepts such typedefs, provided the typedef names an acceptable
+class type.
+
+  template <class T> struct A { friend class T; };
+  template <class T> struct B { friend class T; };
+  struct X {};
+  typedef X XX;
+  A<X>  ax;  // worked
+  B<XX> bx;  // failed
+
 9/8/99   Cv-qualifiers on function typedefs
 
 The front end now accepts cv-qualifiers on typedef declarations that introduce
