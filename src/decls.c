@@ -2970,10 +2970,10 @@ new declaration are given by *linkage and *storage_class.  Issue a diagnostic
     if (!suppress_diagnostic) {
       /* There is a conflict between a prior declaration and the current one.
          This is clearly an error in C++ (ARM 7.1.1, 7.1.2), but because of
-         prevailing practice we only issue a warning.  The same is done in
+         prevailing practice we only issue a remark.  The same is done in
          C mode, partly because it is common practice in pcc. */
       pos_diagnostic((strict_ansi_mode ?
-                           strict_ansi_error_severity : es_warning),
+                           strict_ansi_error_severity : es_remark),
                      ec_linkage_conflict, position);
     }  /* if */
     /* If either declaration has unspecified storage class (i.e., it's an
