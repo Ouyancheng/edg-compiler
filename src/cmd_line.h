@@ -784,6 +784,17 @@ EXTERN a_boolean
 			   declarations are permitted (i.e., if "template <>"
 			   syntax is not required). */
 
+EXTERN a_boolean
+		impl_conv_between_c_and_cpp_function_ptrs_allowed
+#if VAR_INITIALIZERS
+                 = DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED
+#endif /* VAR_INITIALIZERS */
+                                                                            ;
+			/* TRUE if implicit conversion between pointers to
+			   extern "C" and extern "C++" function types is
+			   permitted.  It is set to FALSE in strict mode or if
+			   c_and_cpp_function_types_are_distinct is FALSE. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

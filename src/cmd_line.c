@@ -1694,6 +1694,7 @@ common_cfront_mode_settings:
     use_nonstandard_for_init_scope = TRUE;  /* Not really needed. */
     warning_on_for_init_difference = FALSE;
     remove_qualifiers_from_param_types = FALSE;
+    impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
   } else {
     /* The dialect is C++. */
     /* Reset the SVR4 C compatibility flag just in case it is set by
@@ -1769,6 +1770,10 @@ common_cfront_mode_settings:
       /* Enable recognition of operator keywords and digraphs. */
       alternative_tokens_allowed = TRUE;
       allow_copy_assignment_op_with_base_class_param = FALSE;
+      /* In case it is allowed by default, disallow implicit conversion
+         between pointer-to-function types that differ only in their routine
+         linkage (extern "C" vs. extern "C++"). */
+      impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
       if (!(option_kind_used[(int)optk_wchar_t_is_keyword])) {
         /* If wchar_t_is_keyword was not explicitly set by a command line
            option, set it now. */
