@@ -160,6 +160,62 @@ extern void decl_var_or_routine(a_symbol_locator   *locator,
                                 a_symbol_ptr       *ext_sym);
 #endif /* ASM_FUNCTION_ALLOWED */
 
+/* Bit vector used to pass flags into and out of declaration_specifiers.
+   Each bit represent a flag. */
+typedef int a_decl_flag_set;
+/* Constants defining bits in the input bit vector, used in calls to
+   declaration_specifiers. */
+#define DSI_NO_INPUT_FLAGS 0x0
+#define DSI_STORAGE_CLASS_SPECIFIER_ALLOWED 0x1
+			/* If this bit is set the declaration specifier may
+			   contain a storage class keyword. */
+#define DSI_TYPE_SPECIFIER_ALLOWED 0x2
+			/* If this bit is set the declaration specifier may
+			   contain a type specifier. */
+#define DSI_VIRTUAL_OR_FRIEND_ALLOWED 0x4
+			/* If this bit is set the declaration specifier may
+			   contain the keyword "virtual" or "friend". */
+#define DSI_IS_PARAMETER 0x8
+			/* If this bit is set the declaration specifier is
+			   part of the declaration of a parameter. */
+#define DSI_EMPTY_SPECIFIER_ALLOWED 0x10
+			/* If this bit is set the declaration specifier may
+			   be "empty"; otherwise, at least one specifier
+			   is required. */
+/* Constants defining bits in the output bit vector, returned from
+   declaration_specifiers. */
+#define DSO_NO_OUTPUT_FLAGS 0x0
+#define DSO_HAS_EXPLICIT_TYPE_SPECIFIER 0x1
+			/* If this bit is set the declaration specifier
+			   was found to have at least one type specifier. */
+#define DSO_CONST_QUALIFIED 0x2
+			/* If this bit is set the keyword "const" was found
+			   in the qualifiers list. */
+#define DSO_VOLATILE_QUALIFIED 0x4
+			/* If this bit is set the keyword "volatile" was found
+			   in the qualifiers list. */
+#define DSO_INLINE 0x8
+			/* If this bit is set the function specifier "inline"
+			   was found. */
+#define DSO_VIRTUAL 0x10
+			/* If this bit is set the function specifier "volatile"
+			   was found. */
+#define DSO_FRIEND 0x20
+			/* If this bit is set the declaration specifier
+			   "friend" was found. */
+#define DSO_DECLARES_SOMETHING 0x40
+			/* If this bit is set the declaration specifiers
+			   actually declare something (a tag or enumeration
+			   members). */
+#define DSO_JUST_VOID 0x80
+			/* If this bit is set the keyword "void" was found,
+			   and nothing else. */
+
+extern a_boolean declaration_specifiers(a_decl_flag_set	input_flags,
+					a_decl_flag_set	*output_flags,
+					a_storage_class *storage_class,
+					a_type_ptr      *type_ptr);
+
 #endif /* DECLS_H */
 
 /******************************************************************************
