@@ -693,7 +693,11 @@ that it can be available to standalone utilities.
 */
 #if GNU_EXTENSIONS_ALLOWED || defined(_lint)
 EXTERN a_boolean
-                gcc_mode;
+                gcc_mode
+#if VAR_INITIALIZERS
+                         = FALSE
+#endif /* VAR_INITIALIZERS */
+                                ;
                         /* Accept C language features supported by GNU C
                            compilers. */
 #else /* !(GNU_EXTENSIONS_ALLOWED || defined(_lint)) */
@@ -709,7 +713,11 @@ that it can be available to standalone utilities.
 */
 #if GNU_EXTENSIONS_ALLOWED || defined(_lint)
 EXTERN a_boolean
-                gpp_mode;
+                gpp_mode
+#if VAR_INITIALIZERS
+                         = FALSE
+#endif /* VAR_INITIALIZERS */
+                                ;
                         /* Accept C++ language features supported by GNU C++
                            compilers. */
 #else /* !(GNU_EXTENSIONS_ALLOWED || defined(_lint)) */
