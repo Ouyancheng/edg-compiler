@@ -6652,6 +6652,11 @@ declared member functions.
          supplement. */
       cssp->destructor = sym;
     }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+    /* Set the "name linkage environment" for this routine. */
+    rtn->surrounding_name_linkage_state =
+                          scope_stack[depth_scope_stack].default_name_linkage;
+#endif /* BACK_END_IS_CP_GEN_BE */
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) db_symbol(sym, "", 4);
