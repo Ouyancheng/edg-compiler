@@ -4350,6 +4350,12 @@ or eok_rvalue node to the operand to mark it as an lvalue or rvalue.
   an_operand       orig_operand;
 
   orig_operand = *operand;
+  if (is_indefinite_function_operand(operand)) {
+    /* Replace an indefinite function by the address of an unknown
+       function in the set. */
+    make_unknown_dependent_function_operand(operand->variant.symbol, operand);
+    operand->state = orig_operand.state;
+  }  /* if */
   if (is_an_lvalue(operand) || is_a_function_designator(operand)) {
     expr = make_node_from_operand(operand);
     expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
