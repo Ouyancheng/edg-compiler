@@ -7053,7 +7053,7 @@ qualified name.
                a class qualifier contains template parameter types or for
                the last qualifier of a vacuous destructor.  Set
                class type to the type pointed to. */
-            qualifier_type = qualifier_sym->variant.type;
+            qualifier_type = type_symbol_type(qualifier_sym);
             qualifier_is_type = TRUE;
             qualifier_type_is_class = FALSE;
             check_assertion(is_template_param_type(qualifier_type) ||

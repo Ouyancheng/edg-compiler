@@ -1507,7 +1507,7 @@ by id_linkage.
               linked_symbol = other_decl;
               *overload_symbol = NULL;
               goto done;
-            }
+            }  /* if */
           } else {
             /* There may be a match involving an instance of this function
                template, but we delay searching its list of instantiations
@@ -4689,16 +4689,7 @@ return a pointer to it in *symbol_ptr.
       /* sym is a type name symbol from the current scope.  Issue an error
          if this is an illegal redefinition of the name; otherwise, reuse
          the existing symbol. */
-      if (sym->kind == (a_symbol_kind)sk_type) {
-        /* A typedef name. */
-        tp = sym->variant.type;
-      } else if (sym->kind == (a_symbol_kind)sk_enum_tag) {
-        /* C++ only. */
-        tp = sym->variant.type;
-      } else {
-        /* C++ only -- sk_class_or_struct_tag or sk_union_tag: */
-        tp = sym->variant.class_struct_union.type;
-      }  /* if */
+      tp = type_symbol_type(sym);
       if ((identical_types(tp, type_ptr)
 #if MICROSOFT_EXTENSIONS_ALLOWED
            /* When near/far qualifiers appear, they have to match in what
