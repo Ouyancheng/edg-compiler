@@ -6205,7 +6205,8 @@ Lower an eok_bool_cast node, which converts an operand to bool.
   if (op == (an_expr_operator_kind)eok_pmne) {
     /* For the pointer-to-member case, the comparison must be lowered. */
     mark_as_not_visited(zero_node->variant.constant);
-    lower_expr(zero_node, /*is_lvalue=*/FALSE);
+    /* Note that zero_expr is not lowered; that allows the subroutine to
+       generate better code. */
     lower_pm_comparison(expr);
   }  /* if */
 }  /* lower_bool_cast */
@@ -6749,9 +6750,81 @@ the top node of the indicated statement (which is an expression statement).
 }  /* lower_call */
 
 
+static an_expr_node_ptr expr_for_pmf_component(
+                                              an_expr_node_ptr expr,
+                                              a_field_ptr      field,
+                                              a_boolean        need_copy,
+                                              a_boolean        vars_can_change)
+/*
+expr points to an expression for an rvalue of a pointer-to-member-function
+type.  It has been lowered unless it is a constant.  Generate an expression
+that is the value of the component of the pointer-to-member-function
+structure identified by field, and return a pointer to the expression.
+If the input expression is a constant, the generated expression is
+just the proper constant value of the proper component.  Otherwise,
+it is an rvalue field selection of the proper field.  need_copy is
+TRUE if make_reusable_copy needs to be called on expr in the nonconstant
+case.  If so, vars_can_change indicates whether the values of variables
+can have changed since the first reference.
+*/
+{
+  an_expr_node_ptr comp_expr;
+
+  if (!is_constant_node(expr)) {
+    /* The general case, not a constant.  Generate a field selection. */
+    if (need_copy) expr = make_reusable_copy(expr, vars_can_change);
+    comp_expr = node_to_select_field_from_rvalue(expr, field);
+    /* For the integral cases, do integral promotion if necessary.  This is
+       harmless for non-integral cases. */
+    comp_expr = integral_promote_node(comp_expr);
+  } else {
+    a_targ_ptrdiff_t delta, index, offset;
+    a_routine_ptr    routine;
+
+    /* Constant case.  Generate an expression for the proper constant
+       value of the proper component. */
+    repr_for_ptr_to_member_function_constant(expr->variant.constant,
+                                             &delta, &index,
+                                             &routine, &offset);
+    if (field == mptr_i_field) {
+      /* The "i" (index) field. */
+      comp_expr = node_for_promoted_integer_constant(
+                                         (long)index,
+                                         TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
+    } else if (field == mptr_d_field) {
+      /* The "d" (delta) field. */
+      comp_expr = node_for_promoted_integer_constant(
+                                         (long)delta,
+                                         TARG_DELTA_INT_KIND);
+    } else {
+      /* The "f" (function) field has a value that is either the address of
+         a function or an offset.  The expression created has to be of
+         function-pointer type, however, so in the latter case cast the offset
+         to a function-pointer type. */
+      a_constant constant;
+
+      check_assertion(field == mptr_f_field);
+      if (routine == NULL) {
+        set_integer_constant(&constant, (long)offset, TARG_DELTA_INT_KIND);
+      } else {
+        set_routine_address_constant(routine, &constant,
+                                     /*set_address_taken_flag=*/TRUE);
+      }  /* if */
+      /* Cast the constant to a generic function pointer type. */
+      implicit_cast(&constant, make_vptp_type());
+      /* Make an expression for the constant. */
+      comp_expr = alloc_node_for_constant(&constant);
+    }  /* if */
+  }  /* if */
+  return comp_expr;
+}  /* expr_for_pmf_component */
+
+
 static void lower_pm_comparison(an_expr_node_ptr expr)
 /*
-Lower comparison of two pointers to members.
+Lower comparison of two pointers to members.  The operands of the expression
+need not have been lowered yet (but it's okay if they have been); if they're
+unlowered, an optimization is possible on comparisons to constants.
 */
 {
   an_expr_node_ptr select1_node, select2_node, compare_i_node;
@@ -6763,78 +6836,123 @@ Lower comparison of two pointers to members.
   a_boolean        vars_can_change;
 
   op1_node = expr->variant.operation.operands;
+  op2_node = op1_node->next;
   if (is_or_was_ptr_to_member_function_type(op1_node->type)) {
     /* Pointer-to-member-function comparison.  Turns into
-         op1.i == op2.i ? (op1.i == 0 || (op1.d == op2.d && op1.f == op2.f)) :
-                          0
+         (op1.i == op2.i) && (op1.i == 0 || (op1.d == op2.d && op1.f == op2.f))
        for the == case.  The != case is similar, transformed by DeMorgan's
        law.  Note that op1 and op2 are rvalues. */
-    op2_node = op1_node->next;
     int_type = integer_type((an_integer_kind)ik_int);
     /* Make sure the struct type used to represent a pointer-to-member-function
        is allocated. */
     (void)make_mptr_type();
-    /* Make "op1.i == op2.i". */
-    select1_node = node_to_select_field_from_rvalue(op1_node, mptr_i_field);
-    select1_node = integral_promote_node(select1_node);
-    select2_node = node_to_select_field_from_rvalue(op2_node, mptr_i_field);
-    select2_node = integral_promote_node(select2_node);
+    /* Lower the operand nodes if they aren't constants.  If they are
+       constants, leave them alone and generate code that compares directly
+       against the components of the pointer-to-member structure. */
+    if (!is_constant_node(op1_node)) {
+      lower_expr(op1_node, /*is_lvalue=*/FALSE);
+    }  /* if */
+    if (!is_constant_node(op2_node)) {
+      lower_expr(op2_node, /*is_lvalue=*/FALSE);
+    } else {
+      /* If op2_node is constant and op1_node is not, swap the operands to
+         make the tests for constants below easier. */
+      if (!is_constant_node(op1_node)) {
+        op1_node = op2_node;
+        op2_node = expr->variant.operation.operands;
+      }  /* if */
+    }  /* if */
+    /* Make op1.i and op2.i. */
+    select1_node = expr_for_pmf_component(op1_node, mptr_i_field,
+                                          /*need_copy=*/FALSE,
+                                          /*vars_can_change=*/FALSE);
+    select2_node = expr_for_pmf_component(op2_node, mptr_i_field,
+                                          /*need_copy=*/FALSE,
+                                          /*vars_can_change=*/FALSE);
     select1_node->next = select2_node;
-    compare_i_node = make_operator_node((an_expr_operator_kind)eok_ieq,
-                                        int_type, select1_node);
-    vars_can_change = node_has_side_effects(op1_node, (a_boolean *)NULL) ||
-                      node_has_side_effects(op2_node, (a_boolean *)NULL);
-    /* Make "op1.i == 0" (or "!= 0" for the ne_case). */
-    op1_node = make_reusable_copy(op1_node, vars_can_change);
-    select1_node = node_to_select_field_from_rvalue(op1_node, mptr_i_field);
-    select1_node = integral_promote_node(select1_node);
-    select1_node->next = node_for_promoted_integer_constant(0L,
+    /* Make "op1.i == op2.i" (or "!=" for the ne_case). */
+    compare_i_node = make_operator_node(
+                          (an_expr_operator_kind)(ne_case ? eok_ine : eok_ieq),
+                          int_type, select1_node);
+    if (is_constant_node(select1_node) &&
+        is_false_constant(select1_node->variant.constant)) {
+      /* If op1.i is zero, the whole expression reduces to
+           0 == op2.i
+         (or != for the ne_case).  This is a test against a null
+         pointer to member constant.  Note that if op2.i was zero initially,
+         the operands were swapped. */
+      overwrite_node(expr, compare_i_node);
+    } else {
+      /* Not a comparison against null. */
+      vars_can_change = node_has_side_effects(op1_node, (a_boolean *)NULL) ||
+                        node_has_side_effects(op2_node, (a_boolean *)NULL);
+      select1_node = expr_for_pmf_component(op1_node, mptr_i_field,
+                                            /*need_copy=*/TRUE,
+                                            vars_can_change);
+      if (is_constant_node(select1_node)) {
+        /* op1.i is constant, but it's not zero (that case was handled
+           above).  So the "op1.i == 0 ||" part of the expression is
+           not needed. */
+        compare_i0_node = NULL;
+      } else {
+        /* Make "op1.i == 0" (or "!= 0" for the ne_case). */
+        select1_node->next = node_for_promoted_integer_constant(0L,
                                          TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
-    compare_i0_node = make_operator_node
+        compare_i0_node = make_operator_node
                         ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
                          int_type, select1_node);
-    /* Make "op1.d == op2.d" (or "!=" for the ne_case). */
-    op1_node = make_reusable_copy(op1_node, vars_can_change);
-    select1_node = node_to_select_field_from_rvalue(op1_node, mptr_d_field);
-    select1_node = integral_promote_node(select1_node);
-    op2_node = make_reusable_copy(op2_node, vars_can_change);
-    select2_node = node_to_select_field_from_rvalue(op2_node, mptr_d_field);
-    select2_node = integral_promote_node(select2_node);
-    select1_node->next = select2_node;
-    compare_d_node = make_operator_node
-                       ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
-                        int_type, select1_node);
-    /* Make "op1.f == op2.f" (or "!=" for the ne_case). */
-    op1_node = make_reusable_copy(op1_node, vars_can_change);
-    select1_node = node_to_select_field_from_rvalue(op1_node, mptr_f_field);
-    op2_node = make_reusable_copy(op2_node, vars_can_change);
-    select2_node = node_to_select_field_from_rvalue(op2_node, mptr_f_field);
-    select1_node->next = select2_node;
-    compare_f_node = make_operator_node
-                       ((an_expr_operator_kind) (ne_case ? eok_pne : eok_peq),
-                        int_type, select1_node);
-    /* Make "(op1.d == op2.d && op1.f == op2.f)" (or "||" for the ne_case). */
-    compare_d_node->next = compare_f_node;
-    and_node = make_operator_node
-                 ((an_expr_operator_kind) (ne_case ? eok_lor : eok_land),
-                  int_type, compare_d_node);
-    /* Make "(op1.i == 0 || (op1.d == op2.d && op1.f == op2.f))" (or "&&"
-       for the ne_case. */
-    compare_i0_node->next = and_node;
-    or_node = make_operator_node
-                ((an_expr_operator_kind) (ne_case ? eok_land : eok_lor),
-                 int_type, compare_i0_node);
-    /* Overwrite the original node with the "?" operator to make the full
-       expression. */
-    compare_i_node->next = or_node;
-    or_node->next = node_for_integer_constant(ne_case ? 1L : 0L,
-                                              (an_integer_kind)ik_int);
-    set_node_operator(expr, (an_expr_operator_kind)eok_question,
-                      or_node->type, compare_i_node);
+      }  /* if */
+      /* Make "op1.d == op2.d" (or "!=" for the ne_case). */
+      select1_node = expr_for_pmf_component(op1_node, mptr_d_field,
+                                            /*need_copy=*/TRUE,
+                                            vars_can_change);
+      select2_node = expr_for_pmf_component(op2_node, mptr_d_field,
+                                            /*need_copy=*/TRUE,
+                                            vars_can_change);
+      select1_node->next = select2_node;
+      compare_d_node = make_operator_node
+                        ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
+                         int_type, select1_node);
+      /* Make "op1.f == op2.f" (or "!=" for the ne_case). */
+      select1_node = expr_for_pmf_component(op1_node, mptr_f_field,
+                                            /*need_copy=*/TRUE,
+                                            vars_can_change);
+      select2_node = expr_for_pmf_component(op2_node, mptr_f_field,
+                                            /*need_copy=*/TRUE,
+                                            vars_can_change);
+      select1_node->next = select2_node;
+      compare_f_node = make_operator_node
+                        ((an_expr_operator_kind) (ne_case ? eok_pne : eok_peq),
+                         int_type, select1_node);
+      /* Make "(op1.d == op2.d && op1.f == op2.f)" (or "||" for the
+         ne_case). */
+      compare_d_node->next = compare_f_node;
+      and_node = make_operator_node
+                       ((an_expr_operator_kind) (ne_case ? eok_lor : eok_land),
+                        int_type, compare_d_node);
+      /* Make "(op1.i == 0 || (op1.d == op2.d && op1.f == op2.f))" (or "&&"
+         for the ne_case). */
+      if (compare_i0_node == NULL) {
+        /* The "or" was optimized away -- see above. */
+        or_node = and_node;
+      } else {
+        compare_i0_node->next = and_node;
+        or_node = make_operator_node
+                       ((an_expr_operator_kind) (ne_case ? eok_land : eok_lor),
+                        int_type, compare_i0_node);
+      }  /* if */
+      /* Overwrite the original node with the "&&" operator to make the full
+         expression ("||" for the ne_case). */
+      compare_i_node->next = or_node;
+      set_node_operator(expr,
+                        (an_expr_operator_kind)(ne_case ? eok_lor : eok_land),
+                        or_node->type, compare_i_node);
+    }  /* if */
   } else {
     /* Pointer-to-data-member comparison: turns into integer comparison. */
+    lower_expr(op1_node, /*is_lvalue=*/FALSE);
+    lower_expr(op2_node, /*is_lvalue=*/FALSE);
     if (!targ_ptr_to_data_member_is_promoted_integral_type()) {
-      op2_node = op1_node->next;
       op1_node->next = NULL;
       op1_node = integral_promote_pm_node(op1_node);
       expr->variant.operation.operands = op1_node;
@@ -7245,6 +7363,11 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                  op == (an_expr_operator_kind)eok_pm_call) {
         /* Calls of various kinds. */
         lower_call(expr, (an_init_pos_descr_ptr)NULL, (a_statement_ptr)NULL);
+      } else if (op == (an_expr_operator_kind)eok_pmeq ||
+                 op == (an_expr_operator_kind)eok_pmne) {
+        /* Lower pointer-to-member comparison before the operands have been
+           lowered, to allow an optimization on comparisons to constants. */
+        lower_pm_comparison(expr);
       } else {
         /* Determine which operands if any are lvalues, and whether or not
            the operand has boolean-controlling-expression operands. */
@@ -7358,11 +7481,6 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             expr->variant.operation.kind =
                  lowered_ptr_to_member_assignment_operator(operand_node->next->
                                                                          type);
-            break;
-          case eok_pmeq:
-          case eok_pmne:
-            /* Pointer-to-member comparison. */
-            lower_pm_comparison(expr);
             break;
           case eok_pm_field:
             /* Pointer-to-member selection of a data member. */
