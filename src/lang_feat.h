@@ -160,7 +160,7 @@ as the bit field has a size and alignment that match some integral type.
 A warning is issued.
 */
 #ifndef ADDR_OF_BIT_FIELD_ALLOWED
-#define ADDR_OF_BIT_FIELD_ALLOWED TRUE
+#define ADDR_OF_BIT_FIELD_ALLOWED FALSE
 #endif /* ifndef ADDR_OF_BIT_FIELD_ALLOWED */
 
 
