@@ -472,6 +472,7 @@ check_abbreviation()
 --far_code_pointers
 --far_data_pointers
 --force_vtbl
+--friend_injection
 --guiding_decls
 --implicit_extern_c_type_conversion
 --implicit_include
@@ -515,6 +516,7 @@ check_abbreviation()
 --no_exceptions
 --no_explicit
 --no_extern_inline
+--no_friend_injection
 --no_guiding_decls
 --no_il_lowering
 --no_implicit_extern_c_type_conversion
@@ -977,6 +979,8 @@ process_option()
          --no_class_name_injection | \
          --arg_dep_lookup | \
          --no_arg_dep_lookup | \
+         --friend_injection | \
+         --no_friend_injection | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
