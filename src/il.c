@@ -6265,25 +6265,20 @@ declarations without named-register storage class specifiers so that conflicts
 with previous declarations of that variable can be diagnosed.
 */
 {
+  a_symbol_ptr  sym = (a_symbol_ptr)var->source_corresp.assoc_info;
+
   if (is_redecl) {
     /* A redeclaration. */
     if (var->has_named_register_storage_class && register_id == 0) {
       /* The new declaration has no named-register storage class specifier,
          but the previous one did. */
-      pos_start_diagnostic(es_error, ec_missing_named_register_storage_class,
-                           pos);
-      add_diag_info_with_pos_insert(ec_previous_decl_at,
-                                    &var->source_corresp.decl_position);
-      end_error();
+      pos_sy_error(ec_missing_named_register_storage_class, pos, sym);
     } else if ((!var->has_named_register_storage_class && register_id != 0) ||
                (var->has_named_register_storage_class &&
                                     register_id != var->asm_name_or_reg.id)) {
       /* The new declaration has a named-register storage class but the
          previous declaration did not or did not have the same one. */
-      pos_start_diagnostic(es_error, ec_register_storage_class_conflict, pos);
-      add_diag_info_with_pos_insert(ec_previous_decl_at,
-                                    &var->source_corresp.decl_position);
-      end_error();
+      pos_sy_error(ec_register_storage_class_conflict, pos, sym);
     }  /* if */
   } else
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
