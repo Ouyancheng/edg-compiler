@@ -816,13 +816,25 @@ region -- and then add it to the end of the source sequence list.
        generated. */
     ssep = NULL;
   } else {
+    a_memory_region_number   region_to_switch_back_to;
+    a_scope_depth            scope_depth_to_switch_to;
     check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER ||
                     scope_stack[depth_scope_stack].kind !=
                                        (a_scope_kind)sck_func_prototype);
+    /* If we are inside a function scope, allocate the source sequence entry
+       in the function scope. */
+    scope_depth_to_switch_to = scope_stack[depth_scope_stack].
+                                                depth_innermost_function_scope;
+    if (scope_depth_to_switch_to == NO_SCOPE_DEPTH) {
+      scope_depth_to_switch_to = DEPTH_OF_FILE_SCOPE;
+    }  /* if */
+    switch_to_scope_region(scope_depth_to_switch_to,
+                           &region_to_switch_back_to);
     ssep = alloc_source_sequence_entry();
     ssep->entity.kind = (a_byte_il_entry_kind)iek_none;
     /* Note that the entity.ptr field is left NULL. */
     add_source_sequence_entry_to_list(ssep);
+    switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
   db_exit();
   return ssep;
