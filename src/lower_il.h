@@ -385,6 +385,10 @@ extern a_boolean virtual_dtor_should_be_generated_for_class(
 
 extern a_required_destructor_call_ptr alloc_required_destructor_call(void);
 
+extern void gen_and_remove_required_destructor_calls_up_to(
+                               a_required_destructor_call_ptr stop_before,
+                               an_insert_location_ptr         insert_location);
+
 extern void gen_required_destructor_calls(
                                    a_context_ptr          outer_context,
                                    an_insert_location_ptr insert_location);

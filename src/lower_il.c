@@ -5748,6 +5748,36 @@ is inserted at *insert_location and *insert_location is updated.
 }  /* gen_one_required_destructor_call */
 
 
+void gen_and_remove_required_destructor_calls_up_to(
+                                a_required_destructor_call_ptr stop_before,
+                                an_insert_location_ptr         insert_location)
+/*
+Generate code for and then remove the required destructor call entries on the
+list for the current context, up to before the entry stop_before.  stop_before
+can be NULL to indicate the entire list.  The code is inserted at
+*insert_location and *insert_location is updated.
+*/
+{
+  a_required_destructor_call_ptr rdcp, rdcp_next;
+
+  /* Go through the list of required destructor calls, stopping when the
+     indicated entry is reached.  Recall that the list is built by adding
+     to its front, so the entries at the front are the later entries,
+     those we want to process and remove. */
+  for (rdcp = curr_context->required_destructor_calls;
+       rdcp != stop_before;
+       rdcp = rdcp_next) {
+    rdcp_next = rdcp->next;
+    gen_one_required_destructor_call(rdcp, insert_location);
+    /* Free the one entry. */
+    rdcp->next = NULL;
+    free_required_destructor_call_list(rdcp);    
+  }  /* for */
+  /* Remove the entries from the list. */
+  curr_context->required_destructor_calls = stop_before;
+}  /* gen_and_remove_required_destructor_calls_up_to */
+
+
 void gen_required_destructor_calls(a_context_ptr          outer_context,
                                    an_insert_location_ptr insert_location)
 /*
