@@ -575,6 +575,15 @@ typedef struct a_class_symbol_supplement {
 			   entry for each target type for which a conversion
 			   is defined.  Inherited conversion functions are
 			   represented by projection symbols. */
+  a_symbol_list_entry_ptr
+		conversion_template_list;
+			/* Pointer to a linked list of entries identifying
+			   conversion operator templates declared for this
+			   class. Symbols pointed to are (or are projection
+			   symbols referring to) sk_template_function symbols.
+			   Instances of the conversion operator templates
+			   are not added to conversion_list but are listed
+			   under the template on which they are based. */
   a_routine_fixup_ptr
 		routine_fixup_list;
 			/* Pointer to a list of entities used in the token

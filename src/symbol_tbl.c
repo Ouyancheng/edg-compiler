@@ -1588,6 +1588,7 @@ state.
         cssp->destructor = NULL;
         cssp->assignment_operator = NULL;
         cssp->conversion_list = NULL;
+        cssp->conversion_template_list = NULL;
         cssp->routine_fixup_list = NULL;
         cssp->class_template = NULL;
         cssp->template_info = NULL;
