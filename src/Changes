@@ -1,5 +1,24 @@
 Version 3.6
 
+3/14/05  Position of goto-statement generated for switch case fall-through
+
+When a switch clause "falls through" to another clause (e.g., because the first
+clause does not end in a break statement), the front end generates a goto
+statement from the end of the first clause to the beginning of the second one.
+Previously, this generated goto statement was given a nonnull source position,
+which is contrary to our general approach of assigning null source positions
+to compiler-generated source constructs.  Now a null source position is used
+for such cases.  For example:
+
+  void f(int x) {
+    switch(x) {
+      case 0: x = 0;
+        /* A compiler-generated "goto" statement is inserted here to represent
+           the "fall-through".  It now has a null source position. */
+      case 1: x = 1;
+    }
+  } 
+
 3/14/05  C++-generating back end: Sun compatibility for member enumeration
          constants used in default arguments in friend declarations
 

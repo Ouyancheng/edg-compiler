@@ -5989,7 +5989,8 @@ redundant diagnostics in case ranges (GNU C mode only).
       prev_reachability = curr_reachability;
       label = alloc_temp_label();
       if (label_directly_in_switch) {
-        goto_stmt = add_statement((a_statement_kind)stmk_goto);
+        goto_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_goto,
+                                              &null_source_position);
         label->case_fallthrough_label = TRUE;
       } else {
         goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
