@@ -7212,15 +7212,24 @@ that follows.
       /* No symbol, which means the lookup failed. */
       pos_st_error(ec_not_a_template_name, &locator.source_position,
                    locator.symbol_header->identifier);
-    } else if (is_function_type(type) && is_function_or_template_symbol(sym)) {
-      sym = find_matching_template_instance(sym, type);
-    } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
-               sym->variant.static_data_member.instance_ptr != NULL) {
-      /* Okay. */
     } else {
-      pos_sy_error(ec_entity_cannot_be_specialized,
-                   &locator.source_position, sym);
-      sym = NULL;
+      if (sym->is_class_member &&
+          sym->kind == (a_symbol_kind)sk_projection) {
+        /* Specifying an inherited name in a tempalate specialization
+           declaration is disallowed. */
+        pos_error(ec_inherited_member_not_allowed, &locator.source_position);
+        reduce_projection_symbol_to_fundamental_symbol(sym);
+      }  /* if */
+      if (is_function_type(type) && is_function_or_template_symbol(sym)) {
+        sym = find_matching_template_instance(sym, type);
+      } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
+                 sym->variant.static_data_member.instance_ptr != NULL) {
+        /* Okay. */
+      } else {
+        pos_sy_error(ec_entity_cannot_be_specialized,
+                     &locator.source_position, sym);
+        sym = NULL;
+      }  /* if */
     }  /* if */
     if (sym != NULL) {
       /* Specializations of namespace members can only occur within the
@@ -9037,43 +9046,54 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
       pos_st_error(ec_undefined_identifier, &locator.source_position,
                    locator.symbol_header->identifier);
     }  /* if */
-  } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-    if (sym->variant.static_data_member.instance_ptr != NULL) {
-      /* A static data member -- set the instantiation flags. */
-      update_instantiation_flags(sym, kind, start_pos,
-                                 /*is_class_instantiation=*/FALSE, is_pragma);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (!is_pragma) {
-        make_instantiation_directive(sym, ssep, &template_keyword_pos);
-      }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    } else {
-      /* A static data member, but of a template class. */
-      sym_error(ec_not_instantiatable_entity, sym);
-    }  /* if */
-  } else if (!is_function_or_template_symbol(sym)) {
-    /* Not a function symbol -- issue an error. */
-    pos_error(ec_invalid_instantiation_argument, start_pos);
-  } else if (!is_function_type(type)) {
-    /* The symbol represents a function but the type is not a routine
-       type.  This can occur if a declaration contains the name of a
-       function but the declaration is not a function declarator. */
-    pos_sy_error(ec_not_compatible_with_previous_decl,
-                 &locator.source_position, sym);
   } else {
-    /* The symbol found is a function, and the type returned from declarator
-       is a function type.  Match this declaration with a previous
-       declaration or a template instance. */
-    new_sym = find_matching_template_instance(sym, type);
-    if (new_sym != NULL) {
-      /* Update the flags for the symbol found. */
-      update_instantiation_flags(new_sym, kind, start_pos,
-                                 /*is_class_instantiation=*/FALSE, is_pragma);
+    if (sym->is_class_member &&
+        sym->kind == (a_symbol_kind)sk_projection) {
+      /* Specifying an inherited name in an explicit instantiation
+         directive is disallowed. */
+      pos_error(ec_inherited_member_not_allowed, &locator.source_position);
+      reduce_projection_symbol_to_fundamental_symbol(sym);
+    }  /* if */
+    if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+      if (sym->variant.static_data_member.instance_ptr != NULL) {
+        /* A static data member -- set the instantiation flags. */
+        update_instantiation_flags(sym, kind, start_pos,
+                                   /*is_class_instantiation=*/FALSE,
+                                   is_pragma);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (!is_pragma) {
-        make_instantiation_directive(new_sym, ssep, &template_keyword_pos);
-      }  /* if */
+        if (!is_pragma) {
+          make_instantiation_directive(sym, ssep, &template_keyword_pos);
+        }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      } else {
+        /* A static data member, but of a template class. */
+        sym_error(ec_not_instantiatable_entity, sym);
+      }  /* if */
+    } else if (!is_function_or_template_symbol(sym)) {
+      /* Not a function symbol -- issue an error. */
+      pos_error(ec_invalid_instantiation_argument, start_pos);
+    } else if (!is_function_type(type)) {
+      /* The symbol represents a function but the type is not a routine
+         type.  This can occur if a declaration contains the name of a
+         function but the declaration is not a function declarator. */
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+                   &locator.source_position, sym);
+    } else {
+      /* The symbol found is a function, and the type returned from declarator
+         is a function type.  Match this declaration with a previous
+         declaration or a template instance. */
+      new_sym = find_matching_template_instance(sym, type);
+      if (new_sym != NULL) {
+        /* Update the flags for the symbol found. */
+        update_instantiation_flags(new_sym, kind, start_pos,
+                                   /*is_class_instantiation=*/FALSE,
+                                   is_pragma);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        if (!is_pragma) {
+          make_instantiation_directive(new_sym, ssep, &template_keyword_pos);
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      }  /* if */
     }  /* if */
   }  /* if */
 done:;

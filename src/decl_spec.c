@@ -795,40 +795,60 @@ the template.
     tag_sym = scan_tag_name(tag_kind, &locator, vacuous_decl_allowed,
                             is_ref_within_new_expr, &effective_decl_level,
                             &tag_resolution);
-    if (tag_sym != NULL && is_friend_decl) {
-      /* A friend declaration: if the identifier was a qualified name (either
-         namespace qualified or globally qualified), be sure the lookup did
-         not find a namespace-projection symbol.  If it did, issue an error. */
-      if (locator.is_qualified_name &&
-          locator.specific_symbol->kind ==
+  }  /* if */
+  if (tag_id_present) {
+    if (tag_sym != NULL) {
+      if (is_friend_decl) {
+        /* A friend declaration: if the identifier was a qualified name
+           (either namespace qualified or globally qualified), be sure the
+           lookup did not find a namespace-projection symbol.  If it did,
+           issue an error. */
+        if (locator.is_qualified_name &&
+            locator.specific_symbol->kind ==
                                   (a_symbol_kind)sk_namespace_projection) {
-        a_namespace_ptr  nsp = qualifier_namespace_ptr(locator);
-        if (nsp == NULL) {
-          /* Must be something like this:
-               namespace N { class X; }
-               using N::X;
-               class Y {
-                 friend class ::Y;      // Error
-               };
-          */
-          check_assertion(locator.is_file_scope_qualified_name);
-          pos_st_error(ec_name_not_tag_in_file_scope,
-                       &locator.source_position,
-                       locator.symbol_header->identifier);
-        } else {
-          /* Must be something like this:
-               namespace N { class X; }
-               namespace M { using N::X; }
-               class Y {
-                 friend class M::Y;     // Error
-               };
-          */
-          pos_stsy_error(ec_not_an_actual_member, &locator.source_position,
-                         locator.symbol_header->identifier,
-                         (a_symbol_ptr)nsp->source_corresp.assoc_info);
+          a_namespace_ptr  nsp = qualifier_namespace_ptr(locator);
+          if (nsp == NULL) {
+            /* Must be something like this:
+                 namespace N { class X; }
+                 using N::X;
+                 class Y {
+                   friend class ::Y;      // Error
+                 };
+            */
+            check_assertion(locator.is_file_scope_qualified_name);
+            pos_st_error(ec_name_not_tag_in_file_scope,
+                         &locator.source_position,
+                         locator.symbol_header->identifier);
+          } else {
+            /* Must be something like this:
+                 namespace N { class X; }
+                 namespace M { using N::X; }
+                 class Y {
+                   friend class M::Y;     // Error
+                 };
+            */
+            pos_stsy_error(ec_not_an_actual_member, &locator.source_position,
+                           locator.symbol_header->identifier,
+                           (a_symbol_ptr)nsp->source_corresp.assoc_info);
+          }  /* if */
+          set_to_named_error_locator(locator);
+          tag_sym = NULL;
         }  /* if */
-        set_to_named_error_locator(locator);
-        tag_sym = NULL;
+      } else if ((is_explicit_instantiation || is_template_specialization) &&
+                 !is_declarator_start()) {
+        /* This is an explicit instantiation directive or a specialization
+           of a class template.  Check for member templates from a base class
+           that are specified using the derived class name as qualifier. */
+        if (locator.is_class_member && locator.is_qualified_name &&
+            locator.specific_symbol != NULL &&
+            is_template_instance_class_symbol(locator.specific_symbol) &&
+            locator.specific_symbol->parent.class_type !=
+                                           locator.parent.class_type) {
+          /* Specifying an inherited name in an explicit instantiation
+             directive or in a template specialization declaration is
+             disallowed. */
+          pos_error(ec_inherited_member_not_allowed, &locator.source_position);
+        }  /* if */
       }  /* if */
     }  /* if */
     if (tag_sym != NULL) {
