@@ -682,7 +682,7 @@ static a_name_linkage_stack_entry_ptr
 
 void push_name_linkage(a_name_linkage_kind  kind)
 /*
-Set the name-linkage fiend in the scope stack to "kind" and save its current
+Set the name-linkage field in the scope stack to "kind" and save its current
 value.  The value will be restored when pop_name_linkage is called.
 */
 {
