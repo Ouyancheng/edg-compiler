@@ -1,5 +1,16 @@
 Version 2.28
 
+2/27/95  Cfront mode: static member function declared with cv-qualifier
+
+Cfront allows function qualifiers on a static member function declarations
+under certain circumstances; therefore, we now issue warnings instead of
+errors in such cases in cfront mode.  For example:
+
+  class A {
+    static int *f() const;           // Now a warning in cfront mode
+  };
+  int *A::f() const { return 0; }    // Now a warning in cfront mode
+
 2/27/95  IL change: is_initialization_guard
 
 stmk_if statements and eok_question expression nodes now have a
