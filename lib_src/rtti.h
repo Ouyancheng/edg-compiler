@@ -59,6 +59,12 @@ typedef a_byte a_base_class_spec_flag_set;
 #define BCS_AMBIGUOUS	0x08
 			/* TRUE if this base class is ambiguous. */
 
+#define BCS_DIRECT	0x10
+			/* TRUE if this is a direct base class.  Ambiguous
+			   base classes are always put out at the top level.
+			   This flag can be used to determine which ones
+			   are really top level bases. */
+
 /* Forward declaration of a type_info pointer. */
 typedef struct a_type_info_impl *a_type_info_impl_ptr;
 

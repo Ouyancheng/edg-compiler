@@ -55,6 +55,7 @@ The access_flags string was retained for backward compatibility.
   a_boolean		result = FALSE;
   a_base_class_spec_ptr	bcsp = class_info->base_class_entries;
   void                  *ptr;
+  a_boolean		is_ambiguous = FALSE;
 
   /* Get the actual derived class pointer.  If no pointer was provided,
      use NULL. */
@@ -89,13 +90,18 @@ The access_flags string was retained for backward compatibility.
         }  /* if */
       } else {
         /* The base is accessible if it is public and not ambiguous. */
-        is_accessible = ((bcsp->flags & BCS_PUBLIC) != 0) &&
-                        ((bcsp->flags & BCS_AMBIGUOUS) == 0);
+        is_accessible = ((bcsp->flags & BCS_PUBLIC) != 0);
       }  /* if */
       if (is_accessible &&
 	  matching_type_info(test_info, base_info)) {
-        /* We have found a match. */
-        result = TRUE;
+        /* We have found a match.  If the base class is ambiguous, stop
+	   the search but don't consider the conversion "successful".
+           The BCS_AMBIGUOUS flag is only used with ABI versions >= 2.29.
+           In previous versions of the ABI, ambiguous bases were indicated
+           by marking all instances of the base as inaccessible in the
+	   access string. */
+        is_ambiguous = ((bcsp->flags & BCS_AMBIGUOUS) == 0);
+        result = !is_ambiguous;
         if (ptr != NULL) {
           if (bcsp->flags & BCS_VIRTUAL) {
             /* If this is a virtual base class then the offset provides the
@@ -111,12 +117,12 @@ The access_flags string was retained for backward compatibility.
 	}  /* if */
       }  /* if */
       /* The last entry in the array will have the BCS_LAST flag set. */
-      done = bcsp->flags & BCS_LAST;
+      done = bcsp->flags & BCS_LAST || result || is_ambiguous;
       /* Advance the pointer to the next element in the array of base
          class specifications. */
       bcsp++;
     } while (!done);
-    if (!result) {
+    if (!result && !is_ambiguous) {
       /* The specified base class is not one of the direct or virtual bases.
          Search the indirect base classes. */
       bcsp = class_info->base_class_entries;
@@ -330,6 +336,7 @@ Display debugging information about type information.
       if (bcsp->flags & BCS_LAST) fprintf(stderr, " last");
       if (bcsp->flags & BCS_PUBLIC) fprintf(stderr, " public");
       if (bcsp->flags & BCS_AMBIGUOUS) fprintf(stderr, " ambiguous");
+      if (bcsp->flags & BCS_DIRECT) fprintf(stderr, " direct");
       fprintf(stderr, "\n");
       if (bcsp->flags & BCS_LAST) break;
     }  /* for */
