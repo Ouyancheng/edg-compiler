@@ -7181,7 +7181,17 @@ class and record it in the class's assoc_operator_new_routine field.
       check_assertion(sym != NULL);
     }  /* if */
     if (sym != NULL) {
-      ctsp->assoc_operator_new_routine = sym->variant.routine.ptr;
+      a_routine_ptr     rp = sym->variant.routine.ptr;
+      a_param_type_ptr  ptp = rp->type->
+                                variant.routine.extra_info->param_type_list;
+      if (ptp->next != NULL) {
+        /* This operator new declaration must have a default argument.  It's
+           more trouble than it's worth to deal with (setting this pointer
+           is just an optimization, after all), so ignore this case. */
+        check_assertion(ptp->next->has_default_arg);
+      } else {
+        ctsp->assoc_operator_new_routine = rp;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* set_class_assoc_operator_new_routine */
