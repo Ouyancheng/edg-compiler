@@ -1,5 +1,12 @@
 Version 2.39
 
+6/29/98   Hidden-name problem with function templates
+
+Function templates were not being handled properly by hidden-name
+table processing.  This could cause the C++-generating back end to use
+the incorrect kind of name reference when referencing an entity hidden
+by a function template.  This has been fixed.
+
 6/25/98   C++-generating back end: casts to cv-qualified class type
 
 A previous change (see Changes entry of 12/2/97) made the C++-generating
