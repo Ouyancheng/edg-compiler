@@ -14,13 +14,17 @@ Prelink utility for template instantiation.
 */
 
 #include "basics.h"
+#if !STDLIB_H_INCLUDED
+#include <stdlib.h>
+/* So that host_envir.h knows that we have included stdlib.h. */
+#define STDLIB_H_INCLUDED
+#endif /* STDLIB_H_INCLUDED */
 #include <stdio.h>
 #include <ctype.h>
 #include "host_envir.h"
 #include "targ_def.h"
 #include "edg_prelink.h"
 #include "decode.h"
-#include <stdlib.h>
 #include <errno.h>
 
 #if __MICROSOFT_OS__

@@ -34,11 +34,10 @@ Usage:
 #include "basics.h"
 #include "host_envir.h"
 
-#if __ANSIC__ || USING_ISO_C
-/* Get qsort and exit prototypes. */
-#include <stdlib.h>
+#if STDLIB_H_INCLUDED
+/* qsort and exit prototypes provided by host_envir.h include of stdlib.h. */
 typedef sizeof_t qsort_nmemb_type;
-#else /* !(__ANSIC__ || USING_ISO_C) */
+#else /* !STDLIB_H_INCLUDED */
 #if __BSD__
 EXTERN_C int qsort(a_void_ptr       base,
                    int              nmemb,
@@ -61,7 +60,7 @@ EXTERN_C char *malloc(unsigned size);
 #else /* !__BSD__ */
 #include <malloc.h>
 #endif /* __BSD__ */
-#endif /* __ANSIC__ || USING_ISO_C */
+#endif /* STDLIB_H_INCLUDED */
 
 /*
 Lines from "nm" are read into this buffer for analysis.
