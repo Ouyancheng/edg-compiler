@@ -1362,7 +1362,7 @@ do_struct_union:
                                                    has_variably_modified_type);
       }  /* if */
 #if BACK_END_IS_CP_GEN_BE
-      if (ptr->surrounding_name_linkage_state !=
+      if (ptr->variant.typeref.surrounding_name_linkage_state !=
                                               (a_name_linkage_kind)nlk_none) {
         disp_name_linkage("surrounding_name_linkage_state",
                           (a_name_linkage_kind)ptr->variant.typeref.

@@ -1868,7 +1868,6 @@ return NULL.
 }  /* type_from_src_seq_declaration */
 
 #if !STANDALONE_UTILITY_PROGRAM
-#if MAINTAIN_NEEDED_FLAGS || MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_source_sequence_entry_ptr find_src_seq_secondary_decl_entry(
                                      a_source_sequence_entry_ptr  ssep,
@@ -2300,7 +2299,6 @@ done_with_func_prototype_decls:;
   rp->defined_outside_of_parent = FALSE;
 }  /* eliminate_function_body_source_sequence_entries */
 
-#endif /* MAINTAIN_NEEDED_FLAGS || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MAINTAIN_NEEDED_FLAGS
 
 void eliminate_class_body_source_sequence_entries(a_type_ptr  class_type)

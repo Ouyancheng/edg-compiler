@@ -168,11 +168,8 @@ extern a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_fields(
 extern a_type_ptr type_from_src_seq_declaration(
                                              a_source_sequence_entry_ptr ssep);
 
-#if MAINTAIN_NEEDED_FLAGS || MICROSOFT_EXTENSIONS_ALLOWED
-
 extern void eliminate_function_body_source_sequence_entries(a_scope_ptr sp);
 
-#endif /* MAINTAIN_NEEDED_FLAGS || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MAINTAIN_NEEDED_FLAGS
 
 extern void eliminate_class_body_source_sequence_entries(a_type_ptr tp);
