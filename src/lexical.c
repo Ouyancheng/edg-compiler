@@ -11351,7 +11351,8 @@ TRUE, the class member is preferred over the normal lookup symbol.
     *is_vacuous_dtor = TRUE;
   }  /* if */
   if (sym == NULL && (might_be_vacuous_dtor ||
-                      (microsoft_bugs && !in_if_exists))) {
+                      (microsoft_bugs && microsoft_version < 1300 &&
+                       !in_if_exists))) {
     /* The lookup has failed so far.  If this might be a vacuous destructor,
        do a more general lookup to find a nonclass type that might be
        used as a qualifier for a vacuous destructor.  The more general lookup
@@ -11861,7 +11862,8 @@ selection operator, in which case it points to the type of the left operand.
       (void)get_token();  /* The "::" that follows the type name. */
       is_qualified_name = TRUE;
     } else if (next_token() == qualifier_separator &&
-               (!microsoft_bugs || is_vacuous_dtor ||
+               ((!microsoft_bugs || microsoft_version >= 1300) ||
+                is_vacuous_dtor ||
                 in_if_exists ||
                 is_microsoft_qualifier_start(qualifier_sym))) {
       /* This is an identifier followed by the qualifier separator

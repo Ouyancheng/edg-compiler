@@ -1,5 +1,12 @@
 Version 3.6
 
+11/16/04 Microsoft compatibility: nonclass qualifier bug emulation no longer
+         necessary
+
+The Microsoft bug emulation that permits a nonclass typedef to precede a
+globally qualified name (see the Changes entry of 7/28/99) is now disabled
+when microsoft_version is >= 1300.
+
 11/16/04 GNU C compatibility: Zero-sized structs and C-generating back end
 
 The C-generating back end always avoided generating empty struct types (which
