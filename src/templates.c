@@ -1119,8 +1119,7 @@ make_new_type:
             if (!ptp->type_involves_template_param) {
 	      /* Default argument processing for parameters that involve
 		 template parameters is done later. */
-              new_ptp->default_arg_expr = copy_expr_tree(ptp->default_arg_expr,
-                                                         /*clone_temps=*/TRUE);
+              new_ptp->default_arg_expr= copy_expr_tree(ptp->default_arg_expr);
             }  /* if */
           }  /* if */
           /* Add the new param type entry to the param types list. */
