@@ -2524,8 +2524,8 @@ silently giving programs different behavior than they had under the old
 }  /* record_names_hidden_by_old_for_init */
 
 
-void report_hidden_by_old_for_init(a_symbol_ptr       sym,
-                                   a_source_position  *pos)
+void report_for_init_difference(a_symbol_ptr       sym,
+                                a_source_position  *pos)
 /*
 The new for-init declaration scoping rules are in effect, and sym is a symbol
 that (possibly) would not have been found with the old (cfront-compatible)
@@ -2576,10 +2576,10 @@ called only if global variable warning_on_for_init_difference is TRUE.
        After the for-loop, ::i has hidden_by_old_for_init set to TRUE, but
        that has no effect within the instantiation of g. */
     check_assertion_str(depth_innermost_instantiation_scope != NO_SCOPE_DEPTH,
-                        "report_hidden_by_old_for_init: entry not found");
+                        "report_for_init_difference: entry not found");
 #endif /* CHECKING */
   }  /* if */
-}  /* report_hidden_by_old_for_init */
+}  /* report_for_init_difference */
 
 
 static void nested_class_anachronism_processing(a_symbol_ptr symbol_list,

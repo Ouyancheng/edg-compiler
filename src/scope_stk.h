@@ -777,8 +777,8 @@ extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
 
 extern void add_active_using_directive(a_using_directive_ptr udp);
 
-extern void report_hidden_by_old_for_init(a_symbol_ptr       sym,
-                                          a_source_position  *pos);
+extern void report_for_init_difference(a_symbol_ptr       sym,
+                                       a_source_position  *pos);
 
 extern void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp);
 

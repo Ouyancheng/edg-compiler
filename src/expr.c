@@ -8789,8 +8789,8 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
            the old (cfront compatible) rules, a warning is appropriate. */
         if (sym_ptr->hidden_by_old_for_init &&
             !locator_for_curr_id.is_qualified_name) {
-          report_hidden_by_old_for_init(sym_ptr,
-                                        &locator_for_curr_id.source_position);
+          report_for_init_difference(sym_ptr,
+                                     &locator_for_curr_id.source_position);
         }  /* if */
       }  /* if */
       projection_sym_ptr = locator_for_curr_id.specific_symbol;
