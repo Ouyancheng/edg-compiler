@@ -810,6 +810,15 @@ EXTERN a_boolean
 			   modern "template <>" prefix form. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 
+EXTERN a_boolean
+		pass_stdarg_references_to_generated_code
+#if VAR_INITIALIZERS
+                            = DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* If TRUE, references to the macros in <stdarg.h>
+			   are passed through to the output unchanged. */
+
 
 /* Aside from occasional references in targ_def.h, the following values
    should be used *only* to initialize the variables declared in this file.
