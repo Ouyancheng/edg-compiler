@@ -5679,6 +5679,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   a_boolean             operand_2_is_pointer, operand_3_is_pointer;
   a_type_ptr            type_pointed_to_2, type_pointed_to_3;
   a_type_ptr            unqual_type_pointed_to_2, unqual_type_pointed_to_3;
+  a_type_ptr            operation_type_underlying_class;
   a_boolean             operand_2_is_ptr_to_member, operand_3_is_ptr_to_member;
 
   db_enter(4, "scan_conditional_operator");
@@ -5883,6 +5884,16 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
             unqual_type_pointed_to_2 = skip_typerefs(type_pointed_to_2);
             type_pointed_to_3 = pm_member_type(operand_3.type);
             unqual_type_pointed_to_3 = skip_typerefs(type_pointed_to_3);
+            /* If the member types are function types, make their "this"
+               parameter types have the same underlying class. */
+            operation_type_underlying_class = pm_class_type(operation_type);
+            unqual_type_pointed_to_2 =
+                          related_member_type(unqual_type_pointed_to_2,
+                                              operation_type_underlying_class);
+            unqual_type_pointed_to_3 =
+                          related_member_type(unqual_type_pointed_to_3,
+                                              operation_type_underlying_class);
+            /* Form a composite of the member types. */
             ptr_result_type = composite_type(unqual_type_pointed_to_2,
                                              unqual_type_pointed_to_3);
             /* Add to the type pointed to any qualifiers present on either of
@@ -5896,7 +5907,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
             /* The result type is an unqualified pointer-to-member to the
                properly-qualified underlying type. */
             result_type = ptr_to_member_type(ptr_result_type,
-                                             pm_class_type(operation_type));
+                                             operation_type_underlying_class);
           }  /* if */
         }  else {
           /* The operands are incompatible. */
