@@ -2393,8 +2393,8 @@ the overloaded function symbol.
                                    hdr_ptr, &(other_sym->decl_position));
     overload_sym->decl_scope = other_sym->decl_scope;
     if (other_sym->is_class_member) {
-      overload_sym->is_class_member = TRUE;
-      overload_sym->parent.class_type = other_sym->parent.class_type;
+      set_class_membership(overload_sym, (a_source_correspondence *)NULL,
+                           other_sym->parent.class_type);
     }  /* if */
     /* Put overload_sym into the primary list in place of other_sym. */
     /* Find the symbol preceding other_sym on its list. */
@@ -2498,8 +2498,7 @@ progenitor_sym is a member) if ambiguous is TRUE.
   /* Allocate and initialize the symbol. */
   sym = alloc_symbol((a_symbol_kind)sk_projection, progenitor_sym->header,
                      &progenitor_sym->decl_position);
-  sym->is_class_member = TRUE;
-  sym->parent.class_type = class_ptr;
+  set_class_membership(sym, (a_source_correspondence *)NULL, class_ptr);
   sym->decl_scope = class_ptr->variant.class_struct_union.
                                     extra_info->assoc_scope->number;
   sym->variant.projection.ambiguous = ambiguous;

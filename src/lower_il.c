@@ -695,10 +695,10 @@ offset for the field.  The field allocated is not a bit field.
   /* Make the field. */
   field_ptr = alloc_field();
   field_ptr->source_corresp.name = field_name;
-  field_ptr->source_corresp.is_class_member = TRUE;
-  field_ptr->source_corresp.parent.class_type = struct_type;
   field_ptr->type = field_type;
   field_ptr->offset = field_offset;
+  set_class_membership((a_symbol_ptr)NULL, &field_ptr->source_corresp,
+                       struct_type);
   /* Find the spot at which to insert the field. */
   for (prev_field = NULL,
                next_field = struct_type->variant.class_struct_union.field_list;
@@ -858,9 +858,9 @@ It cannot create bit fields.  field_name may not be NULL.
   /* Make the field entry. */
   field_ptr = alloc_field();
   field_ptr->source_corresp.name = field_name;
-  field_ptr->source_corresp.is_class_member = TRUE;
-  field_ptr->source_corresp.parent.class_type = struct_type;
   field_ptr->type = field_type;
+  set_class_membership((a_symbol_ptr)NULL, &field_ptr->source_corresp,
+                       struct_type);
   /* Add the field to the end of the struct field list. */
   if (*last_field == NULL) {
     struct_type->variant.class_struct_union.field_list = field_ptr;

@@ -3772,6 +3772,7 @@ the symbol and its linkage (which is always "none").
        initialization, if any). */
     a_type_ptr           tp = sym->parent.class_type;
     a_symbol_header_ptr  hdr = locator->symbol_header;
+    a_variable_ptr       vp;
 
     /* Record the symbol declaration, using the original symbol, even
        though there was an error.  This will make it show up on a cross
@@ -3787,13 +3788,12 @@ the symbol and its linkage (which is always "none").
                        locator, DEPTH_OF_FILE_SCOPE,
                        /*suppress_redecl_error=*/TRUE);
     sym->header = hdr;
-    sym->variant.static_data_member.variable =
-               make_variable(error_type(), (a_storage_class)sc_static,
-                             /*at_file_scope=*/TRUE);
-    /* Make the error symbol have a class_of_which_a_member field, since
-       it is expected on sk_static_data_member fields downstream. */
-    sym->is_class_member = TRUE;
-    sym->parent.class_type = tp;
+    vp = make_variable(error_type(), (a_storage_class)sc_static,
+                       /*at_file_scope=*/TRUE);
+    sym->variant.static_data_member.variable = vp;
+    /* Make the error symbol a class member -- it is expected of
+       sk_static_data_member symbols downstream. */
+    set_class_membership(sym, &vp->source_corresp, tp);
   }  /* if */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
