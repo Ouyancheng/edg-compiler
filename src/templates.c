@@ -16583,6 +16583,21 @@ One-time initialization for templates.c static variables.
   /* Register variables that must be saved and restored when switching
      between translation units. */
   register_trans_unit_variable(type_of_unknown_templ_param_nontype);
+  register_trans_unit_variable(instantiations_required);
+  register_trans_unit_variable(instantiations_required_tail);
+  register_trans_unit_variable(inline_function_list);
+  register_trans_unit_variable(entries_updated_during_instantiation_wrapup);
+  register_trans_unit_variable(can_instantiate_list);
+  register_trans_unit_variable(any_instantiations_required);
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  register_trans_unit_variable(request_file_check_needed);
+  register_trans_unit_variable(instantiation_request_file_name);
+  register_trans_unit_variable(f_instantiation_request);
+  register_trans_unit_variable(f_template_info);
+  register_trans_unit_array(instance_lookup_table);
+  register_trans_unit_variable(
+                              any_instantiated_entities_added_to_request_file);
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if CHECKING
   register_trans_unit_variable(any_friend_state_changed);
 #endif /* CHECKING */
@@ -16597,6 +16612,12 @@ given translation unit.
 {
   in_instantiation_wrapup = FALSE;
   implicit_inclusion_done_during_instantiation_wrapup = FALSE;
+  instantiations_required = NULL;
+  instantiations_required_tail = NULL;
+  inline_function_list = NULL;
+  entries_updated_during_instantiation_wrapup = FALSE;
+  can_instantiate_list = NULL;
+  any_instantiations_required = FALSE;
 #if CHECKING
   any_friend_state_changed = FALSE;
   after_instantiation_wrapup = FALSE;
@@ -16611,6 +16632,11 @@ given translation unit.
                                       (a_template_param_type_kind)tptk_unknown;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   request_file_check_needed = FALSE;
+  instantiation_request_file_name = NULL;
+  f_instantiation_request = NULL;
+  f_template_info = NULL;
+  memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
+  any_instantiated_entities_added_to_request_file = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 }  /* templates_trans_unit_init */
 
@@ -16621,11 +16647,6 @@ Initializations for template.
 */
 {
   curr_default_args = NULL;
-  instantiations_required = NULL;
-  instantiations_required_tail = NULL;
-  inline_function_list = NULL;
-  entries_updated_during_instantiation_wrapup = FALSE;
-  can_instantiate_list = NULL;
   defer_inline_function_fixup_and_instantiations = 0;
   deferred_instantiations = NULL;
   deferred_instantiations_tail = NULL;
@@ -16635,14 +16656,6 @@ Initializations for template.
 #if DEBUG
   num_partial_order_candidates_allocated = 0;
 #endif /* DEBUG */
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-  any_instantiations_required = FALSE;
-  instantiation_request_file_name = NULL;
-  f_instantiation_request = NULL;
-  f_template_info = NULL;
-  memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
-  any_instantiated_entities_added_to_request_file = FALSE;
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 }  /* templates_init */
 
 /******************************************************************************
