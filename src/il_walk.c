@@ -21,7 +21,7 @@ il_walk.c -- Routines to walk the intermediate language tree.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
-#if IL_WALK_NEEDED || NEED_DECLARATIVE_WALK
+#if IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS || NEED_DECLARATIVE_WALK
 
 /* Header files common to all files. */
 #include "fe_common.h"
@@ -29,7 +29,7 @@ il_walk.c -- Routines to walk the intermediate language tree.
 /* Additional header files. */
 #include "il_walk.h"
 
-#if IL_WALK_NEEDED
+#if IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS
 
 #if !ORPHAN_PROCESSING_NEEDED
  #error -- ORPHAN_PROCESSING_NEEDED must be set if IL walking is needed.
@@ -45,10 +45,12 @@ static an_entry_process_function_ptr
 		entry_process_func;
 			/* The function to be called for each non-string entry.
 			   NULL if no function is to be called. */
+#if IL_WALK_NEEDED
 static a_string_entry_process_function_ptr
 		string_entry_process_func;
 			/* The function to be called for each string entry.
 			   NULL if no function is to be called. */
+#endif /* IL_WALK_NEEDED */
 static a_walk_termination_test_function_ptr
 		walk_termination_test_func;
 			/* The function to be called to decide on pruning
@@ -68,6 +70,73 @@ typedef char	*a_char_ptr;
 			/* Useful to indicate "char *" as a type in calling
 			   remap_ptr or walk_ptr. */
 
+/*
+Structure used to save/restore global state information for the IL walk
+routines.
+*/
+typedef struct an_il_walk_state {
+  an_entry_process_function_ptr
+		entry_process_func;
+  a_walk_termination_test_function_ptr
+		walk_termination_test_func;
+  a_boolean	walking_file_scope;
+  int		flag_value_meaning_visited;
+#if IL_WALK_NEEDED
+  a_string_entry_process_function_ptr
+		string_entry_process_func;
+  a_remap_function_ptr
+		walk_remap_func;
+#endif /* IL_WALK_NEEDED */
+} an_il_walk_state;
+
+
+/*
+Save the current state of the global variables in the IL walk routines in
+the variable saved_state for later restoration.
+*/
+#if IL_WALK_NEEDED
+#define save_il_walk_state(saved_state)                               \
+{ (saved_state).entry_process_func         = entry_process_func;      \
+  (saved_state).string_entry_process_func  = string_entry_process_func; \
+  (saved_state).walk_termination_test_func = walk_termination_test_func; \
+  (saved_state).walk_remap_func            = walk_remap_func;         \
+  (saved_state).walking_file_scope         = walking_file_scope;      \
+  (saved_state).flag_value_meaning_visited = flag_value_meaning_visited; \
+}  /* save_il_walk_state */
+#else /* !IL_WALK_NEEDED */
+#define save_il_walk_state(saved_state)                               \
+{ (saved_state).entry_process_func         = entry_process_func;      \
+  (saved_state).walk_termination_test_func = walk_termination_test_func; \
+  (saved_state).walking_file_scope         = walking_file_scope;      \
+  (saved_state).flag_value_meaning_visited = flag_value_meaning_visited; \
+}  /* save_il_walk_state */
+#endif /* IL_WALK_NEEDED */
+
+/*
+Restore the current state of the global variables in the IL walk routines
+from the saved values in the variable saved_state.
+*/
+#if IL_WALK_NEEDED
+#define restore_il_walk_state(saved_state)                            \
+{ entry_process_func         = (saved_state).entry_process_func;      \
+  string_entry_process_func  = (saved_state).string_entry_process_func; \
+  walk_termination_test_func = (saved_state).walk_termination_test_func; \
+  walk_remap_func            = (saved_state).walk_remap_func;         \
+  walking_file_scope         = (saved_state).walking_file_scope;      \
+  flag_value_meaning_visited = (saved_state).flag_value_meaning_visited; \
+}  /* restore_il_walk_state */
+#else /* !IL_WALK_NEEDED */
+#define restore_il_walk_state(saved_state)                            \
+{ entry_process_func         = (saved_state).entry_process_func;      \
+  walk_termination_test_func = (saved_state).walk_termination_test_func; \
+  walking_file_scope         = (saved_state).walking_file_scope;      \
+  flag_value_meaning_visited = (saved_state).flag_value_meaning_visited; \
+}  /* restore_il_walk_state */
+#endif /* IL_WALK_NEEDED */
+
+#if IL_WALK_NEEDED
+/* Generic IL walk routines (as opposed to, say, the versions that walk
+   the IL to set the "needed" flag). */
 
 /* Declarations required because of forward references. */
 static void walk_string_entry(char             *entry_ptr,
@@ -123,51 +192,6 @@ they are referenced for purposes of tree walking.
     }  /* if */
   }  /* if */
 }  /* walk_string_entry */
-
-
-/*
-Structure used to save/restore global state information for the IL walk
-routines.
-*/
-typedef struct an_il_walk_state {
-  an_entry_process_function_ptr
-		entry_process_func;
-  a_string_entry_process_function_ptr
-		string_entry_process_func;
-  a_walk_termination_test_function_ptr
-		walk_termination_test_func;
-  a_remap_function_ptr
-		walk_remap_func;
-  a_boolean	walking_file_scope;
-  int		flag_value_meaning_visited;
-} an_il_walk_state;
-
-
-/*
-Save the current state of the global variables in the IL walk routines in
-the variable saved_state for later restoration.
-*/
-#define save_il_walk_state(saved_state)                               \
-{ (saved_state).entry_process_func         = entry_process_func;      \
-  (saved_state).string_entry_process_func  = string_entry_process_func; \
-  (saved_state).walk_termination_test_func = walk_termination_test_func; \
-  (saved_state).walk_remap_func            = walk_remap_func;         \
-  (saved_state).walking_file_scope         = walking_file_scope;      \
-  (saved_state).flag_value_meaning_visited = flag_value_meaning_visited; \
-}  /* save_il_walk_state */
-
-/*
-Restore the current state of the global variables in the IL walk routines
-from the saved values in the variable saved_state.
-*/
-#define restore_il_walk_state(saved_state)                            \
-{ entry_process_func         = (saved_state).entry_process_func;      \
-  string_entry_process_func  = (saved_state).string_entry_process_func; \
-  walk_termination_test_func = (saved_state).walk_termination_test_func; \
-  walk_remap_func            = (saved_state).walk_remap_func;         \
-  walking_file_scope         = (saved_state).walking_file_scope;      \
-  flag_value_meaning_visited = (saved_state).flag_value_meaning_visited; \
-}  /* restore_il_walk_state */
 
 
 void walk_file_scope_il(
@@ -283,6 +307,7 @@ can be NULL to indicate that the corresponding function is unnecessary.
   db_exit();
 }  /* walk_routine_scope_il */
 
+#endif /* IL_WALK_NEEDED */
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
 
 /* "needed" flag section: */
@@ -1181,6 +1206,7 @@ running them through walk_remap_func.
 }  /* remap_first_ptr_of_orphaned_file_scope_entry_array */
 
 #endif /* REMAP_ONLY_ROUTINES_NEEDED */
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
 
 void remap_last_ptr_of_orphaned_file_scope_entry_array(void)
 /*
@@ -1271,6 +1297,7 @@ running them through walk_remap_func.
 #undef remap_orphan_entry_last
 }  /* remap_last_ptr_of_orphaned_file_scope_entry_array */
 
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 /* If necessary, build a routine to walk entries in isolation (i.e.,
    not as part of a tree walk).  This is built from the walk_entry.h
@@ -1309,19 +1336,23 @@ of the front end.
 */
 {
   /* Variables in il_walk.h: */
+#if IL_WALK_NEEDED
   walk_remap_func = NULL;
+#endif /* IL_WALK_NEEDED */
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
   end_of_file_scope_needed_flags_phase = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
   /* Variables in il_walk.c: */
   entry_process_func = NULL;
+#if IL_WALK_NEEDED
   string_entry_process_func = NULL;
+#endif /* IL_WALK_NEEDED */
   walk_termination_test_func = NULL;
   walking_file_scope = FALSE;
   flag_value_meaning_visited = 0;
 }  /* il_walk_init */
 
-#endif /* IL_WALK_NEEDED */
+#endif /* IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS */
 
 #if NEED_DECLARATIVE_WALK
 
@@ -1409,7 +1440,7 @@ call the given processing function for each entity.
 
 #endif /* NEED_DECLARATIVE_WALK */
 
-#endif /* IL_WALK_NEEDED || NEED_DECLARATIVE_WALK */
+#endif /* IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS || NEED_DECLARATIVE_WALK */
 
 
 /******************************************************************************

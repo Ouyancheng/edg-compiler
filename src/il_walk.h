@@ -23,7 +23,7 @@ il_walk.h -- Declarations related to il_walk.c (walking the intermediate
 #endif /* ifndef HOST_ENVIR_H */
 
 /* None of this is needed if not walking the IL. */
-#if IL_WALK_NEEDED || NEED_DECLARATIVE_WALK
+#if IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS || NEED_DECLARATIVE_WALK
 
 #ifndef IL_H
 #include "il.h"
@@ -34,7 +34,7 @@ il_walk.h -- Declarations related to il_walk.c (walking the intermediate
 typedef void an_entry_process_function(char *, an_il_entry_kind);
 typedef an_entry_process_function *an_entry_process_function_ptr;
 
-#if IL_WALK_NEEDED
+#if IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS
 
 /* Type of function called to process each string entry.  First arg
    is the (new) pointer to the entry, second is the kind of entry, and
@@ -48,11 +48,15 @@ typedef char *a_remap_function(char *, an_il_entry_kind);
 typedef a_remap_function *a_remap_function_ptr;
 
 /*
-If this flag is TRUE, the routines that allow remapping of the pointers
-in an entry in isolation (i.e., not as part of an IL tree walk) are
+If this flag is TRUE, the IL walk routines that allow remapping of the
+pointers in an entry in isolation (i.e., not as part of an IL tree walk) are
 compiled.
 */
-#define REMAP_ONLY_ROUTINES_NEEDED ALTERNATE_IL_FILE_FORMAT
+#if IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT
+#define REMAP_ONLY_ROUTINES_NEEDED TRUE
+#else /* !(IL_SHOULD_BE_WRITTEN_TO_FILE && ...) */
+#define REMAP_ONLY_ROUTINES_NEEDED FALSE
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ... */
 
 #ifdef FFE
 /*
@@ -68,6 +72,7 @@ EXTERN unsigned long array_bound_walk_index;
 EXTERN unsigned long num_walk_array_bounds;
 #endif /* ifdef FFE */
 
+#if IL_WALK_NEEDED
 
 EXTERN a_remap_function_ptr
 		walk_remap_func;
@@ -87,6 +92,8 @@ extern void walk_routine_scope_il(
              an_entry_process_function_ptr       entry_process_function,
              a_string_entry_process_function_ptr string_entry_process_function,
              a_remap_function_ptr                remap_function);
+
+#endif /* IL_WALK_NEEDED */
 
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
 extern void mark_as_needed(char             *entry_ptr,
@@ -114,14 +121,15 @@ extern void remap_pointers_in_il_entry(char             *entry_ptr,
 extern void remap_il_header_pointers(void);
 
 extern void remap_first_ptr_of_orphaned_file_scope_entry_array(void);
-
 #endif /* REMAP_ONLY_ROUTINES_NEEDED */
 
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
 extern void remap_last_ptr_of_orphaned_file_scope_entry_array(void);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 extern void il_walk_init(void);
 
-#endif /* IL_WALK_NEEDED */
+#endif /* IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS */
 
 #if NEED_DECLARATIVE_WALK
 
@@ -131,7 +139,7 @@ extern void walk_declarative_entities_in_scope(
 
 #endif /* NEED_DECLARATIVE_WALK */
 
-#endif /* IL_WALK_NEEDED || NEED_DECLARATIVE_WALK */
+#endif /* IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS || NEED_DECLARATIVE_WALK */
                      
 #endif /* ifndef IL_WALK_H */
 

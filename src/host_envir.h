@@ -462,7 +462,7 @@ The flag IL_WALK_NEEDED controls the compilation of the routines required
 to walk the IL.  These routines are needed if NEED_IL_DISPLAY is TRUE or
 IL_SHOULD_BE_WRITTEN_TO_FILE is TRUE.
 */
-#if IL_SHOULD_BE_WRITTEN_TO_FILE || NEED_IL_DISPLAY || MAINTAIN_NEEDED_FLAGS
+#if IL_SHOULD_BE_WRITTEN_TO_FILE || NEED_IL_DISPLAY
 #define IL_WALK_NEEDED TRUE /* Do not change this. */
 #else /* !(IL_SHOULD_BE_WRITTEN_TO_FILE || ...) */
 #ifndef IL_WALK_NEEDED
@@ -635,13 +635,13 @@ should include class template instantiations.
 Flag that is TRUE to enable support for processing of orphaned file scope
 IL entries.  This is needed if IL lowering or IL walking is to be done.
 */
-#if DO_IL_LOWERING || IL_WALK_NEEDED
+#if DO_IL_LOWERING || IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS
 #define ORPHAN_PROCESSING_NEEDED TRUE /* Do not change this. */
-#else /* !(DO_IL_LOWERING || IL_WALK_NEEDED) */
+#else /* !(DO_IL_LOWERING || ...) */
 #ifndef ORPHAN_PROCESSING_NEEDED
 #define ORPHAN_PROCESSING_NEEDED FALSE
 #endif /* ifndef ORPHAN_PROCESSING_NEEDED */
-#endif /* DO_IL_LOWERING || IL_WALK_NEEDED */
+#endif /* DO_IL_LOWERING || ... */
 
 /*
 Flag that is TRUE to enable support for maintenance of lists of the local

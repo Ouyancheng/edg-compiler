@@ -70,9 +70,9 @@ been included by the inclusion of fe_common.h.
 #include "sys_predef.h"
 #include "templates.h"
 
-#if IL_WALK_NEEDED
+#if IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
-#endif /* IL_WALK_NEEDED */
+#endif /* IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS */
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"
@@ -654,9 +654,9 @@ source file's compilation.
   host_envir_init();
   host_init();
   il_init();
-#if IL_WALK_NEEDED
+#if IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS
   il_walk_init();
-#endif /* IL_WALK_NEEDED */
+#endif /* IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS */
   lexical_init();
   symbol_tbl_init();
   scope_stk_init();
