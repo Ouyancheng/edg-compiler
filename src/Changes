@@ -70,7 +70,6 @@ such a partial specialization must initially be declared within namespace N.
   }
   template <class T, int I> class N::A<T, T*, I> {};
 
-
 1/13/97 C++-generating back end: source sequence entries for an instantiation
         that appears inside a class template definition
 
@@ -137,7 +136,7 @@ old-style specializations are enabled.  For example,
   template void f(T) { ... }
   void f(int) { ... }           // old-style specialization?
 
-f(int) is regarded as an instance of the template -- and its the definition
+f(int) is regarded as an instance of the template -- and its definition
 is regarded as a specialization -- only if guiding declarations are
 enabled.  Thus, it is only if guiding declarations are enabled that this
 can get an error for being an ill-formed specialization (i.e., for failing
@@ -159,7 +158,10 @@ constructor was used.  This has been fixed.
 On a reference binding, a conversion function that returns a reference
 type can be called to produce an lvalue to which the reference is
 directly bound.  However, this should be considered only if the
-original expression is an lvalue.  That's now the case.
+original expression is an lvalue.  That's now the case.  However,
+we have implemented this only in strict mode, because we're not sure
+this will stay in the standard, and other compilers seem to do it
+the other way.
 
   struct A {};
   struct B {
