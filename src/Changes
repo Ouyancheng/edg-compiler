@@ -1,5 +1,12 @@
 Version 3.4
 
+12/10/03 eok_jdivide in C-generating back end, LOWER_COMPLEX FALSE
+
+When LOWER_COMPLEX is FALSE, C99 complex operations are not
+eliminated by lowering and therefore they are passed to
+back ends.  The C-generating back end did not handle
+eok_jdivide and eok_xnegate.  They have now been added.
+
 12/10/03 Promotion of long long bit fields in GNU modes
 
 In GNU C and C++ modes, long long and unsigned long long bit fields
