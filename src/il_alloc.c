@@ -350,7 +350,7 @@ region if at_file_scope is TRUE.
   num_per_instantiation_needed_flags_entries_allocated++;
 #endif /* DEBUG */
   pinfep->next = NULL;
-  memzero(&pinfep->bytes, sizeof(pinfep->bytes));
+  memzero(pinfep->bytes, sizeof(pinfep->bytes));
   return pinfep;
 }  /* alloc_per_instantiation_needed_flags_entry */
 
