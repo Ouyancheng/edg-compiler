@@ -210,86 +210,6 @@ typedef char * a_void_ptr;
 typedef char * a_const_void_ptr;
 #endif /* USING_ISO_C */
 
-#include <stdio.h>
-
-#if USING_ISO_C
-/* Get standard type definitions when using an ANSI/ISO C compiler. */
-#include <stddef.h>
-#endif /* USING_ISO_C */
-
-#if __BSD__
-/* Some stdio.h's do not define sprintf.  This declaration will be included
-   if NEED_SPRINTF_DECL is TRUE. */
-#ifndef NEED_SPRINTF_DECL
-#define NEED_SPRINTF_DECL 0
-#endif /* defined(NEED_SPRINTF_DECL) */
-#if NEED_SPRINTF_DECL
-EXTERN_C char *sprintf(char *, const char *, ...);
-#endif /* NEED_SPRINTF_DECL */
-#endif /* __BSD__ */
-/* Some stdio.h's do not define SEEK_SET. */
-#ifndef SEEK_SET
-/* For fseek parameters: */
-#define SEEK_SET 0 /* Normal Unix value. */
-#endif /* ifndef SEEK_SET */
-/* String and block routines: */
-#if __ANSIC__
-#include <stdlib.h>
-#include <string.h>
-#define memzero(dest, nbytes) memset(dest, 0, nbytes)
-#else /* !__ANSIC__ */
-#if __SYSV__
-#include <string.h>
-#include <memory.h>
-#define memzero(dest, nbytes) memset(dest, 0, nbytes)
-#else /* !__SYSV__ */
-#if __BSD__
-#include <strings.h>
-/* Remap string and block functions that do not appear in BSD C. */
-#if USING_ISO_C
-typedef void bcopy_bzero_return_type;
-#else /* !USING_ISO_C */
-typedef int bcopy_bzero_return_type;
-#endif /* !USING_ISO_C */
-EXTERN_C bcopy_bzero_return_type bcopy(a_const_void_ptr src,
-                                       a_void_ptr dest, int nbytes);
-EXTERN_C int bcmp(a_const_void_ptr src1, a_const_void_ptr src2, int nbytes);
-EXTERN_C bcopy_bzero_return_type bzero(a_void_ptr dest, int nbytes);
-#if USING_ISO_C
-/* When compiling with an ISO C compiler, the standard header files are
-   expected to define memcpy and memcmp.  Define a macro for memzero
-   (which is not a standard library routine). */
-#define memzero(dest, nbytes) memset(dest, 0, nbytes)
-#ifdef __GNUC__
-/* When using gcc, the header files are often generated automatically from
-   the system header files using the Gnu fix_includes utility.  This does
-   not automatically provide prototypes for certain functions.  Supply
-   prototypes for the mem... functions. */
-extern void * memchr (const void *, int, size_t);
-extern int memcmp (const void *, const void *, size_t);
-extern void * memcpy (void *, const void *, size_t);
-#endif /* ifdef __GNUC__ */
-#else /* !USING_ISO_C */
-/* When using a pcc-style C compiler on BSD, define memcpy and memcmp in
-   terms of the BSD bcopy and bcmp routines. */
-#define memcpy(dest, src, nbytes) bcopy(src, dest, nbytes)
-#define memcmp(src1, src2, nbytes) bcmp(src1, src2, nbytes)
-#define memzero(dest, nbytes) bzero(dest, nbytes)
-#endif /* USING_ISO_C */
-#ifdef sun
-/* SunOS 4.1.x uses the __BSD__ flag, but should use the System V-like
-strchr and strrchr routines. */
-#include <string.h>
-#else /* ifndef sun */
-#define strchr(str, c) index(str, c)
-#define strrchr(str, c) rindex(str, c)
-#endif /* ifdef sun */
-#endif /* __BSD__ */
-#endif /* __SYSV__ */
-#endif /* __ANSIC__ */
-/* Character classification. */
-#include <ctype.h>
-
 #if __ANSIC__
 #include <limits.h>
 #include <stddef.h>
@@ -365,6 +285,82 @@ typedef true_size_t
    a_ptrdiff instead. */
 typedef int     a_ptrdiff;
 #endif /* __ANSIC__ */
+
+#include <stdio.h>
+#if __BSD__
+/* Some stdio.h's do not define sprintf.  This declaration will be included
+   if NEED_SPRINTF_DECL is TRUE. */
+#ifndef NEED_SPRINTF_DECL
+#define NEED_SPRINTF_DECL 0
+#endif /* defined(NEED_SPRINTF_DECL) */
+#if NEED_SPRINTF_DECL
+EXTERN_C char *sprintf(char *, const char *, ...);
+#endif /* NEED_SPRINTF_DECL */
+#endif /* __BSD__ */
+/* Some stdio.h's do not define SEEK_SET. */
+#ifndef SEEK_SET
+/* For fseek parameters: */
+#define SEEK_SET 0 /* Normal Unix value. */
+#endif /* ifndef SEEK_SET */
+
+/* String and block routines: */
+#if __ANSIC__
+#include <stdlib.h>
+#include <string.h>
+#define memzero(dest, nbytes) memset(dest, 0, nbytes)
+#else /* !__ANSIC__ */
+#if __SYSV__
+#include <string.h>
+#include <memory.h>
+#define memzero(dest, nbytes) memset(dest, 0, nbytes)
+#else /* !__SYSV__ */
+#if __BSD__
+#include <strings.h>
+/* Remap string and block functions that do not appear in BSD C. */
+#if USING_ISO_C
+typedef void bcopy_bzero_return_type;
+#else /* !USING_ISO_C */
+typedef int bcopy_bzero_return_type;
+#endif /* !USING_ISO_C */
+EXTERN_C bcopy_bzero_return_type bcopy(a_const_void_ptr src,
+                                       a_void_ptr dest, int nbytes);
+EXTERN_C int bcmp(a_const_void_ptr src1, a_const_void_ptr src2, int nbytes);
+EXTERN_C bcopy_bzero_return_type bzero(a_void_ptr dest, int nbytes);
+#if USING_ISO_C
+/* When compiling with an ISO C compiler, the standard header files are
+   expected to define memcpy and memcmp.  Define a macro for memzero
+   (which is not a standard library routine). */
+#define memzero(dest, nbytes) memset(dest, 0, nbytes)
+#ifdef __GNUC__
+/* When using gcc, the header files are often generated automatically from
+   the system header files using the Gnu fix_includes utility.  This does
+   not automatically provide prototypes for certain functions.  Supply
+   prototypes for the mem... functions. */
+extern void * memchr (const void *, int, size_t);
+extern int memcmp (const void *, const void *, size_t);
+extern void * memcpy (void *, const void *, size_t);
+#endif /* ifdef __GNUC__ */
+#else /* !USING_ISO_C */
+/* When using a pcc-style C compiler on BSD, define memcpy and memcmp in
+   terms of the BSD bcopy and bcmp routines. */
+#define memcpy(dest, src, nbytes) bcopy(src, dest, nbytes)
+#define memcmp(src1, src2, nbytes) bcmp(src1, src2, nbytes)
+#define memzero(dest, nbytes) bzero(dest, nbytes)
+#endif /* USING_ISO_C */
+#ifdef sun
+/* SunOS 4.1.x uses the __BSD__ flag, but should use the System V-like
+strchr and strrchr routines. */
+#include <string.h>
+#else /* ifndef sun */
+#define strchr(str, c) index(str, c)
+#define strrchr(str, c) rindex(str, c)
+#endif /* ifdef sun */
+#endif /* __BSD__ */
+#endif /* __SYSV__ */
+#endif /* __ANSIC__ */
+
+/* Character classification. */
+#include <ctype.h>
 
 /*
 EXTERN is defined usually as "extern"; in the translation unit that
