@@ -382,7 +382,9 @@ match the runtime's definition.
 			   in the array. */
 #if ABI_CHANGES_FOR_RTTI
 #define BCS_PUBLIC		0x04
-			/* TRUE if the base class is public. */
+			/* TRUE if the base class is public.  For non-direct
+			   base classes, TRUE if the cumulative access across
+			   the all derivation steps gives public access. */
 #define BCS_AMBIGUOUS		0x08
 			/* TRUE if the base class is ambiguous. */
 #define BCS_DIRECT		0x10
@@ -497,14 +499,19 @@ allocated in the file scope memory region.
       }  /* if */
 #if ABI_CHANGES_FOR_RTTI
       if (bcp->direct) {
-        a_base_class_derivation_ptr bcdp = preferred_derivation_of(bcp);
-        if (bcdp->access == (an_access_specifier)as_public) {
-          flags_value |= BCS_PUBLIC;
-        }  /* if */
         flags_value |= BCS_DIRECT;
       }  /* if */
       if (bcp->ambiguous) {
         flags_value |= BCS_AMBIGUOUS;
+      }  /* if */
+      if (access_to_end_of_path((an_access_specifier)as_public,
+                                bcp->derivation->path,
+                                bcp->derivation) ==
+                                             (an_access_specifier)as_public) {
+        /* BCS_PUBLIC flag is TRUE if there is public access to the base class.
+           For non-direct base classes, the access indicated is the best
+           available access across the derivation steps. */
+        flags_value |= BCS_PUBLIC;
       }  /* if */
 #endif /* ABI_CHANGES_FOR_RTTI */
       offset_con = alloc_constant((a_constant_repr_kind)ck_integer);
