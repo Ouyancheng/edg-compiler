@@ -1868,7 +1868,7 @@ returned.
      names will bypass the buffer and be allocated directly via alloc_il. */
 #define BUFFER_SIZE 130
   char                        buffer[BUFFER_SIZE];
-  char                        *suffix_loc = NULL;
+  char                        *suffix_loc;
   a_file_suffix_ptr           fsp;
   a_boolean                   done;
 
@@ -1914,6 +1914,7 @@ returned.
                                         file_name, buffer, BUFFER_SIZE);
       }  /* if */
       /* Loop through the linked list of suffixes. */
+      suffix_loc = NULL;
       for (fsp = implicit_instantiation_file_suffix_list;
            fsp != NULL;
            fsp = fsp->next) {
