@@ -2318,8 +2318,8 @@ the length of the name.
 }  /* mangled_vtbl_base_class_name */
 
 
-sizeof_t mangled_vtbl_class_name(a_type_ptr type,
-                                 char       *store_at)
+static sizeof_t mangled_vtbl_class_name(a_type_ptr type,
+                                        char       *store_at)
 /*
 Determine the mangled form of the name of the class "type" for use in
 a virtual function table name.  Place the mangled name at *store_at if
