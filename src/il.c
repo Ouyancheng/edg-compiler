@@ -7208,17 +7208,22 @@ to it.
     /* Use the current function scope. */
     scope_depth = depth_innermost_function_scope;
   }  /* if */
-  /* Copy the address of the available list. */
-  avail_list_ptr = &scope_stack[scope_depth].object_lifetime_avail_list;
-  if (*avail_list_ptr != NULL) {
+  /* When IL lowering generates routines, there is no scope stack entry,
+     and therefore no available list can be maintained. */
+  if (scope_depth != NO_SCOPE_DEPTH &&
+      (avail_list_ptr = &scope_stack[scope_depth].object_lifetime_avail_list,
+       *avail_list_ptr != NULL)) {
+    /* Reuse a previously freed entry. */
     olp = *avail_list_ptr;
     *avail_list_ptr = olp->next;
   } else {
+    /* Allocate a new entry. */
     olp = (an_object_lifetime_ptr)alloc_cil(sizeof(an_object_lifetime));
 #if DEBUG
     num_object_lifetimes_allocated++;
 #endif /* DEBUG */
   }  /* if */
+  /* Set the fields to default values. */
   olp->entity.kind                = (a_byte_il_entry_kind)iek_none;
   olp->entity.ptr                 = NULL;
   olp->kind                       = kind;
@@ -7509,14 +7514,17 @@ Return an object lifetime to the appropriate available list.
     scope_depth = DEPTH_OF_FILE_SCOPE;
   } else {
     /* Use the current function scope. */
-    check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
     scope_depth = depth_innermost_function_scope;
   }  /* if */
-  /* Copy the address of the available list. */
-  avail_list_ptr = &scope_stack[scope_depth].object_lifetime_avail_list;
-  /* Link it onto the front of the available list. */
-  olp->next = *avail_list_ptr;
-  *avail_list_ptr = olp;
+  /* When IL lowering generates routines, there is no scope stack entry,
+     and therefore no available list can be maintained. */
+  if (scope_depth != NO_SCOPE_DEPTH) {
+    /* Copy the address of the available list. */
+    avail_list_ptr = &scope_stack[scope_depth].object_lifetime_avail_list;
+    /* Link it onto the front of the available list. */
+    olp->next = *avail_list_ptr;
+    *avail_list_ptr = olp;
+  }  /* if */
   db_exit();
 }  /* free_object_lifetime */
 
