@@ -61,6 +61,7 @@ typedef struct a_constant    *a_constant_ptr;
 typedef struct a_type        *a_type_ptr;
 typedef struct a_variable    *a_variable_ptr;
 #ifdef CIL
+typedef struct a_base_class  *a_base_class_ptr;
 typedef struct a_field       *a_field_ptr;
 #endif /* ifdef CIL */
 typedef struct a_routine     *a_routine_ptr;
@@ -684,11 +685,6 @@ typedef struct an_access_adjustment {
 			   that is a member of a base class. */
   } variant;
 } an_access_adjustment;
-
-
-/* Forward declaration of a_base_class because of recursive definitions of
-   a_base_class and a_derivation_step. */
-typedef struct a_base_class *a_base_class_ptr;
 
 
 typedef struct a_derivation_step *a_derivation_step_ptr;
