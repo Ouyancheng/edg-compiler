@@ -501,7 +501,12 @@ caution when modifying this routine.
              declaration of a member function within the definition of class
              A does not introduce the name of nested class A::B; rather, B
              is entered in the same scope as A.) */
-          if (C_dialect == C_dialect_cplusplus) {
+          if (C_dialect == C_dialect_cplusplus
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              /* In Microsoft C mode, don't enter tags in prototype scopes. */
+              || microsoft_mode
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                              ) {
             /* Pop out to the containing scope -- file scope, function scope,
                or block scope.  *effective_decl_level will already have been
                initialized to decl_scope_level. */

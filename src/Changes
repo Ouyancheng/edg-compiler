@@ -1,5 +1,15 @@
 Version 2.33
 
+
+6/30/96 Microsoft compatibility: prototype scopes in C mode
+
+In Microsoft C mode, tags declared in prototype scopes are now entered
+in the nearest enclosing file/function/block scope, as in C++.
+
+  void f(struct S *);  /* S entered in global scope. */
+
+This doesn't apply when the tag is defined in the prototype scope.
+
 -------------------------------------------------------------------------------
 Version 2.32, June 28, 1996
 
