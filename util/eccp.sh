@@ -634,6 +634,8 @@ do
          --enum_overloading | \
          --no_enum_overloading | \
          --embedded_c++ | \
+         --nonstd_qualifier_deduction | \
+         --no_nonstd_qualifier_deduction | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Options that require additional processing
