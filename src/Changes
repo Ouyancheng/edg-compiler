@@ -1,5 +1,15 @@
 Version 3.3
 
+7/17/03  GNU predefined vararg primitives in C- and C++-generating back ends
+
+A new configuration macro GCC_BUILTIN_VARARGS_IN_GENERATED_CODE can be set
+to make the C- and C++-generating back ends use the GNU predefined vararg
+primitives (such as __builtin_va_list, __builtin_va_arg, ...) instead of
+the standard <stdarg.h> facilities.  (This behavior was previously tied to
+the choice of a GNU mode for the source language.)  The macro is set by
+default if both GCC_IS_GENERATED_CODE_TARGET and GCC_BUILTIN_VARARGS are
+set.
+
 7/16/03  Microsoft compatibility: default Microsoft version changed
 
 The default Microsoft version number is now "1310".  This corresponds
