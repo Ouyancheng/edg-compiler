@@ -5077,7 +5077,8 @@ for the scope, which means no last-pointer is being maintained (anymore).
       }  /* if */
     }  /* if */
     if (secondary_translation_unit_seen() &&
-        scope_level == DEPTH_OF_FILE_SCOPE) {
+        scope_level == DEPTH_OF_FILE_SCOPE &&
+        scp->assoc_info != NULL) {
       /* There is more than one translation unit, so determine which
          file scope is meant. */
       a_translation_unit_ptr tup = trans_unit_for_source_corresp(scp);
