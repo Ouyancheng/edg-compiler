@@ -2577,7 +2577,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
            with a warning. */
         okay = TRUE;
         *warning_suggested = default_warning_code;
-      } else if ((!suppress_extensions || cfront_compatibility_mode) &&
+      } else if ((!suppress_extensions || any_cfront_mode()) &&
                  same_type_with_added_qualifiers(dest_type_pointed_to,
                                                  source_type_pointed_to,
                                                  /*ignore_qualifiers=*/
@@ -2588,7 +2588,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
            warning is issued.  cfront allows this, so issue no warning in
            that mode. */
         okay = TRUE;
-        if (!cfront_compatibility_mode) {
+        if (!any_cfront_mode()) {
           *warning_suggested = default_warning_code;
         } /* if */
       } else if (!suppress_extensions &&
@@ -2616,7 +2616,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
          implicitly), 5.17 (assignment), 8.4 (initializers). */
       if (any_qualifier_missing(dest_type_pointed_to,
                                 source_type_pointed_to)) {
-        if (cfront_compatibility_mode && 
+        if (cfront_2_1_mode && 
             is_void(unqual_dest_type_pointed_to) &&
             is_void(unqual_source_type_pointed_to)) {
           /* cfront 2.1 allows conversion of a pointer to qualified void
@@ -2688,7 +2688,7 @@ If neither is TRUE, the types are checked for an exact match.
   } else {
     this_type_1 = type_pointed_to(this_type_1);
     this_type_2 = type_pointed_to(this_type_2);
-    if (!cfront_compatibility_mode) {
+    if (!any_cfront_mode()) {
       if (!type_qualifiers_match(this_type_1, this_type_2)) {
         /* The type qualifiers do not match. */
         /* correspond = FALSE;  -- already set. */

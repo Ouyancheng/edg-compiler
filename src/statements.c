@@ -654,7 +654,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
            label has been seen. */
         vp = cfdp->variant.init_statement->variant.dynamic_init->variable;
         severity = es_warning;
-        if (!C_mode() && !cfront_compatibility_mode) {
+        if (!C_mode() && !cfront_2_1_mode) {
           tp = vp->type;
           if (is_array_type(tp)) tp = underlying_array_element_type(tp);
           tp = skip_typerefs(tp);
@@ -1734,7 +1734,7 @@ block is being created to surround a dependent statement in C++.
 */
 {
   a_boolean cfront_dependent_statement = 
-                              cfront_compatibility_mode && dependent_statement;
+                              any_cfront_mode() && dependent_statement;
   a_struct_stmt_kind          kind = struct_stmt_stack[depth_stmt_stack].kind;
 
   *block = add_statement((a_statement_kind)stmk_block);
@@ -1832,7 +1832,7 @@ statement no new scope is required.
   }  /* if */
   /* Now process the dependent statement itself. */
   is_executable = statement();
-  if (cfront_compatibility_mode && !is_executable) {
+  if (any_cfront_mode() && !is_executable) {
     /* In cfront mode, the dependent statement is not allowed to be a
        declaration. */
     pos_error(ec_dependent_stmt_is_declaration, &start_position);
@@ -2954,7 +2954,7 @@ See also 3.6.6.4.
      in a void function as long as the expression has void type.  For this
      case, the return statement is allocated later so that the expression
      can be put out first as a freestanding expression statement. */
-  if (cfront_compatibility_mode && expr_present && is_void_type(return_type)) {
+  if (cfront_2_1_mode && expr_present && is_void_type(return_type)) {
     warning(ec_value_returned_in_void_function);
     cfront_void_return = TRUE;
     sp = add_statement((a_statement_kind)stmk_expr);

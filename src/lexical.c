@@ -5756,7 +5756,7 @@ can be avoided.
       } else if (ch == '<') {
         /* A "<" that could be a template argument list delimiter. */
         /* delim_does_not_follow = FALSE;  -- already set. */
-      } else if (ch == '.' && cfront_compatibility_mode) {
+      } else if (ch == '.' && cfront_2_1_mode) {
         /* Definitely a "." in cfront mode. */
         /* delim_does_not_follow = FALSE;  -- already set. */
       } else {
@@ -5953,7 +5953,7 @@ This routine may only be called in C++ mode.
                                                       &next_tok_2);
     if (next_tok == tok_colon_colon || next_tok == tok_lt) {
       might_be_qualifier = TRUE;
-    } else if (cfront_compatibility_mode && next_tok == tok_period &&
+    } else if (cfront_2_1_mode && next_tok == tok_period &&
                !(options & GID_IS_FIELD_SELECTION_OPERAND)) {
       /* Check for the anachronism of allowing a "." as a qualifier separator
          where a "::" should be used.  This is only done in cfront mode
