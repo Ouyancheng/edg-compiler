@@ -1849,7 +1849,8 @@ ambiguity.
            represent an override of the same function. */
         if (!is_nonreal_instantiation) {
           a_symbol_ptr sym = (a_symbol_ptr)vfp->source_corresp.assoc_info;
-          sym_error(ec_ambiguous_virtual_function_override, sym);
+          sym_diagnostic(es_discretionary_error,
+                         ec_ambiguous_virtual_function_override, sym);
         }  /* if */
         /* Remove the next entry and any successors that also have the same
            virtual function number. */
