@@ -2082,6 +2082,10 @@ might not be able to if the template itself has not yet been defined.
   class_type = skip_typerefs(class_type);
   is_class_member = class_type->source_corresp.is_class_member;
   instance_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+  /* Make sure the class being instantiated is in the current translation
+     unit. */
+  check_assertion(symbol_is_from_trans_unit(instance_sym,
+                                            curr_translation_unit));
   cssp = instance_sym->variant.class_struct_union.extra_info;
   /* Record the namespace that is the "referencing context" namespace for
      this instantiation. */
@@ -14907,15 +14911,19 @@ data member specified by tip.
     /* Find the corresponding template instance in the translation unit
        containing the template definition. */
     tip = find_corresponding_instance(tip);
-    /* Reset the can_be_instantiated flag so that it will be reevaluated
-       below.  */
-    tip->can_be_instantiated = FALSE;
-    if (!entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
-      /* The corresponding temlate cannot be instantiated.  Clear the
-         new template instance pointer to suppress an attempt.  This can
-         happen if the entity is specialized in the other translation unit. */
-      tip = NULL;
+    if (tip != NULL) {
+      /* Reset the can_be_instantiated flag so that it will be re-evaluated
+         below.  */
+      tip->can_be_instantiated = FALSE;
+      if (!entity_can_be_instantiated(tip,
+          /*implicit_inclusion_okay=*/FALSE)) {
+        /* The corresponding temlate cannot be instantiated.  Clear the
+           new template instance pointer to suppress an attempt.  This can
+           happen if the entity is specialized in the other translation
+           unit. */
+        tip = NULL;
     }  /* if */
+      }  /* if */
   }  /* if */
   if (tip == NULL) {
     /* This can occur when no corresponding instance could be found in the
