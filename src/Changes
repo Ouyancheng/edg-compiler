@@ -1,5 +1,20 @@
 Version 2.32
 
+6/18/96 Conversions for direct reference binding
+
+When binding a reference, using a conversion function to produce an lvalue
+to which the reference can be bound directly is preferable to using
+other conversions to initialize a temporary to which the reference is bound
+(WP [dcl.init.ref]).  The conversions for direct reference binding are now
+given preference.
+
+  struct A {};
+  struct B {
+    operator A&();
+    operator A();
+  } b;
+  const A &r = b;  // No longer ambiguous: operator A& used
+
 6/18/96 Bug in make_integer_value_mask macro
 
 When INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is FALSE and the host long long

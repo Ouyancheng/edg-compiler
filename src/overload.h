@@ -80,6 +80,12 @@ typedef struct a_conv_descr {
 			   conversion; it's part of reference binding.
 			   std.cast_base_class indicates the derived --> base
 			   part of the adjustment. */
+  a_byte_boolean
+		conversion_for_direct_reference_binding;
+			/* If TRUE, the conversion indicated is one that
+			   converts an initializer using a conversion function
+			   that returns a reference in order to produce an
+			   lvalue that a reference can be directly bound to. */
   a_std_conv_descr
 		std;	/* The standard conversion part of the conversion. */
 } a_conv_descr;
