@@ -4804,7 +4804,7 @@ of the function, and again overloading is a possibility.
     if (sym == NULL && locator->is_template_id) {
       /* If this is a template-id for which the symbol has not yet been
          found, look it up now. */
-      sym = normal_id_lookup(locator, IDL_NO_OPTIONS);
+      sym = normal_id_lookup(locator, IDL_FRIEND_LOOKUP);
       check_ambiguity_and_verify_access(locator);
     }  /* if */
     srk_flags = SRK_DECLARATION | SRK_FRIEND;

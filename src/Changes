@@ -1,5 +1,23 @@
 Version 2.42
 
+7/7/99   Spurious error on friend declaration in presence of using-directives
+
+A friend declaration that uses an unqualified name with an explicit template
+argument list in which the function name potentially involves a using-directive
+lookup could result in a spurious lookup error.  This has been fixed.
+
+  namespace N {
+    template <class T> inline void f(T){}
+    template <class T> class B {
+      friend void f<T>(T);
+    };
+  }
+  using namespace N;
+  int main() {
+    B<int> b;
+    f(b);
+  }
+
 7/6/99   Designated initializers for aggregates
 
 In C mode, the front end can now accept designators in aggregate initializers
