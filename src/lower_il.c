@@ -2592,7 +2592,7 @@ to process the initial parts of the qualified names.
       digits = digits_to_represent(nesting_level);
       mangled_name_length += 1 + digits;
       if (store_at != NULL) {
-        /* Actually store the name. */
+        /* Actually store the "Qn". */
         (void)sprintf(store_at, "Q%lu", nesting_level);
         store_at += 1 + digits;
       }  /* if */
@@ -2626,23 +2626,59 @@ mangled name at *store_at if store_at != NULL, and (always) return the
 length of the name.  See ARM 7.2.1c for name encoding.
 */
 {
-  sizeof_t mangled_name_length, name_length, s_length;
-  sizeof_t digits;
-  char     *s;
+  a_type_ptr named_type, named_typedef;
+  sizeof_t   mangled_name_length, section_length;
+  char       *s;
+  a_boolean  is_const, is_volatile;
 
-  /* Typedefs are not significant and get dropped right away.  Note that
-     qualifiers (const, volatile) are not dropped.  Also note that pure
-     typerefs (no name, no type qualifier) are also dropped. */
-  type = skip_typedefs(type);
-  /* If the type is named, use the name.  This covers classes and
-     enumerations. */
-  if (type->source_corresp.name != NULL) {
+  mangled_name_length = 0;
+  /* Walk through any typerefs above the type.  Remember type qualifiers,
+     remember the bottommost named typedef, and skip down to the "real"
+     underlying type. */
+  named_typedef = NULL;
+  is_const = is_volatile = FALSE;
+  for (; type->kind == (a_type_kind)tk_typeref;
+       type = type->variant.typeref.type) {
+    /* Remember type qualifiers encountered. */
+    if (type->variant.typeref.is_const)    is_const = TRUE;
+    if (type->variant.typeref.is_volatile) is_volatile = TRUE;
+    /* Remember the bottommost named typedef encountered. */
+    if (type->source_corresp.name != NULL) named_typedef = type;
+  }  /* for */
+  /* Put out type qualifiers, if any. */
+  if (is_const) {
+    mangled_name_length += 1;
+    if (store_at != NULL) *store_at++ = 'C';
+  }  /* if */
+  if (is_volatile) {
+    mangled_name_length += 1;
+    if (store_at != NULL) *store_at++ = 'V';
+  }  /* if */
+  /* See if the type is a named class or enum. */
+  named_type = NULL;
+  if (is_enum_type(type)) {
+    if (type->source_corresp.name != NULL) {
+      /* Named enum. */
+      named_type = type;
+    } else {
+      /* Unnamed enum; if there is a named typedef above the enum, use its
+         name.  Note that we use the typedef name even it it's the name of
+         a qualified version of the enum; that's what cfront does. */
+      named_type = named_typedef;
+    }  /* if */
+  } else if (is_immediate_class_type(type)) {
+    /* Class type. */
+    if (type->source_corresp.name != NULL) named_type = type;
+  }  /* if */
+  /* If the type is named, use the name. */
+  if (named_type != NULL) {
     /* Put out the mangled form of the name, e.g., "2AB" for "AB". */
-    mangled_name_length = mangled_qualified_name(type, (unsigned long)1,
-                                                 store_at);
+    section_length = mangled_qualified_name(named_type, (unsigned long)1,
+                                            store_at);
+    mangled_name_length += section_length;
+    if (store_at != NULL) store_at += section_length;
   } else {
     /* The type is not named, so develop a description string. */
-    mangled_name_length = 0;
     switch (type->kind) {
       case tk_void:
         s = "v";
@@ -2712,28 +2748,6 @@ length of the name.  See ARM 7.2.1c for name encoding.
                           mangled_type_name(type->variant.routine.return_type,
                                             store_at);
         goto have_whole_mangled_name;
-      case tk_typeref:
-        /* Typedefs were dropped, so this must be a type qualifier. */
-        if (type->variant.typeref.is_const) {
-          if (type->variant.typeref.is_volatile) {
-            /* Both const and volatile. */
-            s = "CV";
-          } else {
-            /* Just const. */
-            s = "C";
-          }  /* if */
-        } else {
-#if CHECKING
-          if (!type->variant.typeref.is_volatile) {
-            internal_error("mangled_type_name: bad typeref");
-          }  /* if */
-#endif /* CHECKING */
-          /* Just volatile. */
-          s = "V";
-        }  /* if */
-        /* More of this below -- the qualifier letters are followed by the
-           type qualified. */
-        break;
       case tk_class:
       case tk_struct:
       case tk_union:
@@ -2747,11 +2761,11 @@ length of the name.  See ARM 7.2.1c for name encoding.
 #endif /* CHECKING */
     }  /* switch */
     /* s is now set to a type description string to be output. */
-    s_length = strlen(s);
-    mangled_name_length += s_length;
+    section_length = strlen(s);
+    mangled_name_length += section_length;
     if (store_at != NULL) {
-      (void)memcpy(store_at, s, (int)s_length);
-      store_at += s_length;
+      (void)memcpy(store_at, s, (int)section_length);
+      store_at += section_length;
     }  /* if */
     /* Do any processing needed after the description letter. */
     switch (type->kind) {
@@ -2763,11 +2777,11 @@ length of the name.  See ARM 7.2.1c for name encoding.
       case tk_ptr_to_member:
         /* Put out the mangled name of the class for which this is a member
            pointer. */
-        name_length = mangled_type_name(type->variant.ptr_to_member.
+        section_length = mangled_type_name(type->variant.ptr_to_member.
                                                        class_of_which_a_member,
-                                        store_at);
-        mangled_name_length += name_length;
-        if (store_at != NULL) store_at += name_length;
+                                           store_at);
+        mangled_name_length += section_length;
+        if (store_at != NULL) store_at += section_length;
         /* Put out the type pointed to. */
         mangled_name_length +=
                             mangled_type_name(type->variant.ptr_to_member.type,
@@ -2776,22 +2790,17 @@ length of the name.  See ARM 7.2.1c for name encoding.
       case tk_array:
         /* Put out the array size, an underscore, and then the element type,
            i.e., int[10] is put out as A10_i. */
-        digits = digits_to_represent(
-                        (unsigned long)type->variant.array.number_of_elements);
-        mangled_name_length += digits + 1;
+        section_length = digits_to_represent((unsigned long)type->variant.
+                                                 array.number_of_elements) + 1;
+        mangled_name_length += section_length;
         if (store_at != NULL) {
           (void)sprintf(store_at, "%lu_",
                         (unsigned long)type->variant.array.number_of_elements);
-          store_at += digits + 1;
+          store_at += section_length;
         }  /* if */
         mangled_name_length +=
                             mangled_type_name(type->variant.array.element_type,
                                               store_at);
-        break;
-      case tk_typeref:
-        /* Put out the type qualified. */
-        mangled_name_length += mangled_type_name(type->variant.typeref.type,
-                                                 store_at);
         break;
       default:;
         /* Many cases don't require any handling. */

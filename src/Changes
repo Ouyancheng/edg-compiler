@@ -1,5 +1,14 @@
 Version 2.11
 
+10/1/92  Name mangling for unnamed enumerations
+
+For a case like
+
+  typedef enum {a, b} E;
+
+the name of the enumeration as mangled by IL lowering is now taken
+from the typedef.
+
 9/30/92  Reference initialization of pointers in cfront mode
 
 In cfront compatibility mode, a reference to a pointer type may now
