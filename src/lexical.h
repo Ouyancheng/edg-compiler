@@ -153,6 +153,7 @@ typedef enum /*a_token_kind*/ {
   tok_except,
   tok_int32,
   tok_int64,
+  tok_based,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* C++ tokens not in C (ARM, 2.4): */
   tok_colon_colon       /* :: */,
@@ -223,7 +224,7 @@ EXTERN char	*token_names[(int)tok_last+1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__cdecl", "__declspec", "__fastcall", "__inline", "__stdcall",
    "__unaligned", "__try", "__finally", "__leave", "__except",
-   "__int32", "__int64",
+   "__int32", "__int64", "__based",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "::", ".*", "->*", "asm", "catch", "class", "delete", "friend",
    "inline", "new", "operator", "private", "protected", "public",
@@ -495,6 +496,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_except */
    (an_opname_kind)onk_none,          /* tok_int32 */
    (an_opname_kind)onk_none,          /* tok_int64 */
+   (an_opname_kind)onk_none,          /* tok_based */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_colon_colon */
    (an_opname_kind)onk_none,          /* tok_period_star */

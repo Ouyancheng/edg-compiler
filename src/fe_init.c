@@ -260,6 +260,8 @@ Install the keywords in the symbol table.
       /* There is a 64 bit target integer kind to which __int64 can map. */
       enter_keyword((a_token_kind)tok_int64, "__int64");
     }  /* if */
+    enter_keyword((a_token_kind)tok_based, "__based");
+    enter_keyword((a_token_kind)tok_based, "_based");
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* "asm" is a C++ keyword that is treated as a keyword in C mode, too,
