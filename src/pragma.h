@@ -301,16 +301,20 @@ a_pending_pragma_ptr add_curr_token_pseudo_pragma(a_pragma_kind      kind,
 
 extern void process_curr_token_pragmas(void);
 
+extern void end_of_scope_pragma_processing(a_pending_pragma_ptr ppp);
+
 extern void cannot_bind_to_curr_construct(void);
 
 extern void discard_curr_construct_pragmas(void);
 
-extern a_pending_pragma_ptr extract_specific_pragmas(a_pragma_kind    kind,
-                                                     a_symbol_ptr     sym,
-                                                     a_statement_ptr  sp);
+extern
+a_pending_pragma_ptr extract_specific_pragmas(a_pragma_kind   kind,
+                                              a_symbol_ptr    sym,
+                                              a_statement_ptr sp,
+					      a_boolean	      curr_scope_only);
 
 extern void process_curr_construct_pragmas(a_symbol_ptr     sym,
-                                                       a_statement_ptr  sp);
+                                           a_statement_ptr  sp);
 
 extern void process_pragmas_at_end_of_source(void);
 

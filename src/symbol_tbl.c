@@ -7554,6 +7554,14 @@ End a name scope by popping an entry off the scope stack.
       generate_required_virtual_destructor_bodies(il_scope->types);
     }  /* if */
   }  /* if */
+  /* There should be no entries left on the curr_construct_pragmas list when
+     the scope stack is popped. */
+  check_assertion_str2(ssep->curr_construct_pragmas == NULL,
+		       "pop_scope_stack:", "curr_construct_pragmas != NULL");
+  if (ssep->pending_pragmas != NULL) {
+    /* Issue diagnostics on any pragmas that are still on the pending list. */
+    end_of_scope_pragma_processing(ssep->pending_pragmas);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
   if (db_active) {
@@ -7688,10 +7696,6 @@ End a name scope by popping an entry off the scope stack.
   }  /* if */
   /* Determine the memory region to restore for the outer scope. */
   new_memory_region_number = ssep->prev_il_memory_region;
-  /* There should be no entries left on the curr_construct_pragmas list when
-     the scope stack is popped. */
-  check_assertion_str2(ssep->curr_construct_pragmas == NULL,
-		       "pop_scope_stack:", "curr_construct_pragmas != NULL");
   /* Pop the stack. */
   if (--depth_scope_stack >= 0) {
     /* The stack is not empty, so do anything necessary to activate the

@@ -266,7 +266,7 @@ possible.
       ppp->variant.lint_varargs_count = 0;
       break;
 #if 0
-#else
+#else /* 0 */
     case pk_test_next_statement:
     case pk_test_next_decl:
     case pk_test_immediate:
@@ -579,7 +579,7 @@ there is additional processing to be done.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
       depth_template_declaration_scope == NO_SCOPE_DEPTH) {
-    f_update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
+    update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
                                   &pp->decl_position,
                                   ppp->source_sequence_entry);
     /* The source sequence entry is now attached to the IL pragma entry.
@@ -706,6 +706,30 @@ pbk_immediate pragmas are processed here.
         free_pending_pragma(ppp);
         break;
       case pbk_other:
+        {
+          /* Add this pragma to the pending pragmas list of either the current
+             scope or the file scope depending on the global flag in the
+             pragma kind description. */
+          a_scope_stack_entry_ptr	ssep;
+          a_pending_pragma_ptr		list_end;
+          ssep = pkdp->global ? &scope_stack[DEPTH_OF_FILE_SCOPE] :
+                                &scope_stack[depth_scope_stack];
+          list_end = ssep->pending_pragmas;
+          if (list_end == NULL) {
+            /* No entries on the list yet.  Make the head of the list point
+               to this entry. */
+            ssep->pending_pragmas = ppp;
+          } else {
+            /* Find the end of the existing list and add the new entry to the
+               end. */
+            while (list_end->next != NULL) list_end = list_end->next;
+            list_end->next = ppp;
+          }  /* if */
+          /* Clear the next pointer of ppp so that it no longer points into
+             the original list. */
+          ppp->next = NULL;
+        }
+        break;
       default:
         unexpected_condition_str
 			("process_curr_token_pragmas: bad binding kind");
@@ -717,9 +741,34 @@ pbk_immediate pragmas are processed here.
 }  /* process_curr_token_pragmas */
 
 
+void end_of_scope_pragma_processing(a_pending_pragma_ptr pending_pragmas)
+/*
+This routine is called by pop_scope to process any pbk_other pragmas
+that remain on the pending pragma list of the current scope.  pending_pragmas
+is the pending pragma list to be processed.
+
+Go through the list and issue diagnostics that indicate that this
+pragma is not valid in this location.
+*/
+{
+  a_pending_pragma_ptr	ppp;
+
+  for (ppp = pending_pragmas; ppp != NULL; ppp = ppp->next) {
+    a_pragma_kind_description_ptr	pkdp = ppp->descr_ptr;
+    if (pkdp->error_severity != es_none) {
+      pos_diagnostic(pkdp->error_severity, ec_pragma_may_not_be_used_here,
+                     &ppp->id_position);
+    }  /* if */
+  }  /* for */
+  /* Free the list of pragmas. */
+  free_pending_pragma_list(pending_pragmas);
+}  /* end_of_scope_pragma_processing */
+
+
 a_pending_pragma_ptr extract_specific_pragmas(a_pragma_kind    kind,
                                               a_symbol_ptr     sym,
-                                              a_statement_ptr  sp)
+                                              a_statement_ptr  sp,
+					      a_boolean	       curr_scope_only)
 /*
 Return one or more pending-pragma entries of the specified pragma kind.  If
 the pragma binds to the currrent declaration or statement and the pragma's
@@ -730,6 +779,10 @@ IL entry is created before the associated pending-pragma entry is returned.
 If more than one pending pragma entry of the required kind is found, they
 are returned in a linked list.  This is possible, since the entries returned
 are first removed from the lists they currently reside on.
+
+The curr_scope_only flag is used only when extracting pbk_other pragmas.  It
+limits the search to pragmas in the current scope instead of looking through
+all of the active scope stack entries.
 */
 {
   a_pending_pragma_ptr           ppp;
@@ -794,18 +847,21 @@ are first removed from the lists they currently reside on.
     }  /* for */
     /* The appropriate list for the scope has been examined.  Move on the the
        containing scope if appropriate; otherwise, terminate the loop. */
-    if (is_bound_to_curr_construct) {
+    if (is_bound_to_curr_construct || curr_scope_only) {
       /* Only one iteration of the loop for bind-to-next pragmas. */
       break;
     } else if (ssep == &scope_stack[DEPTH_OF_FILE_SCOPE]) {
       /* Nothing else on the scope stack. */
       break;
     } else {
-#if 0
-      /* Need to put in proper handling for instantiation scopes. */
-#endif
-      /* Advance on through the scope stack. */
-      --ssep;
+      if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+        /* If this is a template instantiation scope then skip directly from
+           here to the file scope. */
+        ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+      } else {
+        /* Advance on through the scope stack. */
+        --ssep;
+      }  /* if */
       scope_list_addr = &ssep->pending_pragmas;
     }  /* if */
   }  /* for */
@@ -1050,7 +1106,7 @@ Initialize the pragma description table.
 		 /*ignore_in_back_end=*/FALSE,
 		 es_error);
 #if 0
-#else
+#else /* 0 */
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_test_next_decl,
 		 (a_next_construct_pragma_function_ptr)NULL,
@@ -1091,12 +1147,12 @@ Initialize the pragma description table.
 	         (an_other_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
-                 /*automatically_include_in_il=*/FALSE,
-                 /*make_text_not_tokens=*/FALSE,
+                 /*automatically_include_in_il=*/TRUE,
+                 /*make_text_not_tokens=*/TRUE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
-                 es_error);
+                 es_warning);
   (void)add_next_construct_pragma_kind_description
  		((a_pragma_kind)pk_test_bind_next_pass,
 		 (a_next_construct_pragma_function_ptr)NULL,
@@ -1109,7 +1165,7 @@ Initialize the pragma description table.
                  /*processing_C_code_in_pragma=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
                  es_error);
-#endif
+#endif /* 0 */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
   /* When unrecognized pragmas are being included in the IL, we need a
      pragma description that can be used for the unrecognized pragmas.
