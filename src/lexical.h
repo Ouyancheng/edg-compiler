@@ -841,6 +841,14 @@ EXTERN an_error_code
 			   TRUE, since no diagnostic was put out in that
 			   case. */
 
+EXTERN a_boolean
+		any_initial_get_token_tests_needed;
+			/* TRUE if a condition exists that requires some
+			   special processing when get_token is called.
+			   This is set when tokens are being rescanned
+			   from a cache or when there are pragmas that
+			   are associated with the current token. */
+
 
 /*
 The stop token array: If a syntactic error occurs, flush_tokens

@@ -379,6 +379,9 @@ than one pragma on the list at any point.
   /* If the current token pragma list is NULL, set it to point
      to this entry. */
   if (curr_token_pragmas == NULL) curr_token_pragmas = ppp;
+  /* Indicate that the special case code at the beginning of get_token
+     is needed to do current token pragma processing. */
+  any_initial_get_token_tests_needed = TRUE;
 }  /* add_to_curr_token_pragma_list */
 
 

@@ -53,11 +53,17 @@ Macro that returns TRUE if the curr_token_pragma list should not be
 processed because we are currently processing tokens as part of a
 preprocessing operation.
 */
-#if 0
-/* Are these the right conditions? */
-#endif
 #define suppress_pragma_processing					\
   (fetch_pp_tokens || in_preprocessing_directive)
+
+/*
+Macro that determines whether any of the initial special case tests
+at the beginning of get_token need to be processed.
+*/
+#define recalc_any_initial_get_token_tests_needed()			\
+  (any_initial_get_token_tests_needed = curr_token_pragmas != NULL ||	\
+                                        cached_token_rescan_list != NULL || \
+                                        reusable_cache_stack != NULL)	   \
 
 
 /*
@@ -677,16 +683,16 @@ in the cache, nothing is done.
   }  /* if */
 #endif /* DEBUG */
   if (cache->first_token != NULL) {
-    /* Add the current token to the cache, so that (a) it is not lost,
-       and (b) the lint/pragma state is properly updated in the
-       transition from the end of the new list to the existing
-       current token. */
+    /* Add the current token to the cache, so that it is not lost. */
     cache_curr_token(cache);
     /* Put the tokens in the cache onto the front of the rescan list. */
     cache->last_token->next = cached_token_rescan_list;
     cached_token_rescan_list = cache->first_token;
     /* Clear the cache to be neat. */
     cache->first_token = cache->last_token = NULL;
+    /* Indicate that the special case code at the beginning of get_token
+       is needed to cached token rescanning. */
+    any_initial_get_token_tests_needed = TRUE;
     /* Fetch the first cached token. */
     (void)get_token();
   }  /* if */
@@ -735,6 +741,9 @@ tokens have been rescanned.
     /* Set the next token pointer of the reusable cache entry to the front
        of the cache. */
     rcep->next_cached_token = cache->first_token;
+    /* Indicate that the special case code at the beginning of get_token
+       is needed to cached token rescanning. */
+    any_initial_get_token_tests_needed = TRUE;
     /* Fetch the first cached token. */
     (void)get_token();
   }  /* if */
@@ -862,6 +871,9 @@ an equivalent change.
     copy_constant(ctp->variant.constant, &const_for_curr_token);
   }  /* if */
   free_cached_token(ctp);
+  if (cached_token_rescan_list == NULL) {
+    recalc_any_initial_get_token_tests_needed();
+  }  /* if */
   db_exit();
   return ctoken;
 }  /* get_token_from_cached_token_rescan_list */
@@ -918,6 +930,7 @@ an equivalent change.
     cached_token_rescan_list = rcep->previous_token_rescan_list;
     reusable_cache_stack = rcep->next;
     free_reusable_cache_entry(rcep);
+    recalc_any_initial_get_token_tests_needed();
   }  /* if */
   db_exit();
   return ctoken;
@@ -4008,32 +4021,37 @@ If in_asm_function_body is TRUE, return tok_newline for ends of lines.
   a_boolean             gotten_from_cache = FALSE;
 #endif /* DEBUG */
 
-  /* Before fetching a new token, do any processing required for pragmas
-     that preceded the current token.  Don't do this when fetching
-     preprocessing tokens -- pragmas should only be processed when
-     a "real" token of the source program is fetched. */
-  if (curr_token_pragmas != NULL &&
-      !suppress_pragma_processing) {
-    process_curr_token_pragmas();
-  }  /* if */
-  /* If there are cached tokens to be rescanned, first check the
-     cached_token_rescan_list and take the first token on the list if
-     it is non-NULL, otherwise check the reusable cache stack. */
-  /* If there are cached tokens to be rescanned, take the first on the list. */
-  if (cached_token_rescan_list != NULL) {
-    ctoken = get_token_from_cached_token_rescan_list();
+
+  if (any_initial_get_token_tests_needed) {
+    /* Before fetching a new token, do any processing required for pragmas
+       that preceded the current token.  Don't do this when fetching
+       preprocessing tokens -- pragmas should only be processed when
+       a "real" token of the source program is fetched. */
+    if (curr_token_pragmas != NULL &&
+        !suppress_pragma_processing) {
+      process_curr_token_pragmas();
+      recalc_any_initial_get_token_tests_needed();
+    }  /* if */
+    /* If there are cached tokens to be rescanned, first check the
+       cached_token_rescan_list and take the first token on the list if
+       it is non-NULL, otherwise check the reusable cache stack. */
+    /* If there are cached tokens to be rescanned, take the first on the
+       list. */
+    if (cached_token_rescan_list != NULL) {
+      ctoken = get_token_from_cached_token_rescan_list();
 #if DEBUG
-    gotten_from_cache = TRUE;
+      gotten_from_cache = TRUE;
 #endif /* DEBUG */
-    goto return_from_token_scan;
-  } else if (reusable_cache_stack != NULL) {
-    /* If there are tokens to be rescanned from the reusable cache stack
-       take the next one on the list. */
-    ctoken = get_token_from_reusable_cache_stack();
+      goto return_from_token_scan;
+    } else if (reusable_cache_stack != NULL) {
+      /* If there are tokens to be rescanned from the reusable cache stack
+         take the next one on the list. */
+      ctoken = get_token_from_reusable_cache_stack();
 #if DEBUG
-    gotten_from_cache = TRUE;
+      gotten_from_cache = TRUE;
 #endif /* DEBUG */
-    goto return_from_token_scan;
+      goto return_from_token_scan;
+    }  /* if */
   }  /* if */
 rescan_token:
   /* Skip over any initial white space blanks and horizontal tabs.
@@ -6973,6 +6991,7 @@ of the front end.
   avail_pending_pragmas = NULL;
   reusable_cache_stack = NULL;
   dollar_in_id_diagnostic_issued = FALSE;
+  any_initial_get_token_tests_needed = FALSE;
 #if DEBUG
   num_orig_line_modifs_allocated = 0;
   num_source_line_modifs_allocated = 0;
