@@ -9509,10 +9509,13 @@ to the compound literal.
       make_lvalue_operand_from_compound_constant(literal_con, result);
     }  /* if */
   } else {
-    /* Allocate an enk_temp_init node. */
+    /* Non-static case.  Allocate an enk_temp_init node. */
     an_expr_node_ptr expr =
              alloc_temp_init_node(literal_type, dip, /*result_is_addr=*/TRUE,
                                   /*is_explicit_cast=*/FALSE);
+    /* The compound literal does not have lifetime limited to a full
+       expression (C99 says the lifetime extends to the end of the block). */
+    dip->has_temporary_lifetime = FALSE;
     make_expression_operand(expr, literal_type, result);
     result->state = (an_operand_state)os_lvalue;
   }  /* if */

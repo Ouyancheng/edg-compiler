@@ -7091,7 +7091,8 @@ Do IL lowering of an enk_temp_init expression node.
   an_insert_location insert_location;
   a_boolean          is_constructor_init;
   a_variable_ptr     temp_var;
-  a_boolean          keep_dynamic_init;
+  a_boolean          keep_dynamic_init = FALSE;
+  a_boolean          *eff_keep_dynamic_init = NULL;
 
   dip = expr->variant.init.dynamic_init;
   result_is_addr = expr->variant.init.result_is_addr;
@@ -7123,6 +7124,9 @@ Do IL lowering of an enk_temp_init expression node.
                                          (a_scope_ptr)NULL,
                                          (a_boolean)
                                                expr->variant.init.static_temp);
+      /* With a unique temporary, there is the possibility of keeping
+         some part of the initialization on the variable. */
+      eff_keep_dynamic_init = &keep_dynamic_init;
     }  /* if */
     dip->variable = temp_var;
     if (dip->is_partially_initialized_compound_literal) {
@@ -7160,7 +7164,7 @@ Do IL lowering of an enk_temp_init expression node.
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_NONE,
                        /*others_follow_in_aggr=*/FALSE,
-                       &insert_location, &keep_dynamic_init,
+                       &insert_location, eff_keep_dynamic_init,
                        (a_constant **)NULL);
     if (keep_dynamic_init) {
       /* Record any dynamic initialization that might have been created
