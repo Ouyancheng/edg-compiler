@@ -4720,6 +4720,9 @@ precedence confusion and need_parens is TRUE.
                     /* The destination type is a typedef for a pointer type,
                        so the cast must have been to that type rather than
                        the reference type. */
+                  } else if (is_template_param_type(dest_type)) {
+                    /* A cast to a template parameter type in a prototype
+                       instantiation. */
                   } else {
                     /* The cast appears to have been a reference cast. */
                     is_reference_cast = TRUE;
