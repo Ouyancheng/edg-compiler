@@ -1218,7 +1218,7 @@ error code.
       m = "NULL reference is not allowed";
       break;
     case ec_brace_initialization_not_allowed:
-      m = "initialization with \"{...}\" is not allowed for this object";
+      m = "initialization with \"{...}\" is not allowed for object of type %t";
       break;
     case ec_ambiguous_base_class:
       m = "base class %t is ambiguous";
