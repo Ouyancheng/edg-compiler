@@ -147,8 +147,6 @@ extern a_boolean is_decl_start(a_boolean  expr_context,
 
 extern a_boolean is_overload_specifier(void);
 
-extern a_boolean is_class_template_decl(void);
-
 extern a_boolean check_for_overload_anachronism(void);
 
 extern a_boolean f_is_decl_not_expr(a_boolean  abstract_declarator_allowed,
