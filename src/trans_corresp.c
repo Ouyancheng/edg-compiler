@@ -533,11 +533,11 @@ this routine will create such a correspondence entry.
       if (kind != (an_il_entry_kind)iek_base_class) {
         a_source_correspondence *new_scp= (a_source_correspondence *)entity1;
         if (new_scp->needed) {
-          mark_as_needed((char *)entity1, kind);
+          mark_as_needed(canonical, kind);
         }  /* if */
       }  /* if */
       if (il_entry_prefix_of(entity1).keep_in_il) {
-        mark_to_keep_in_il((char *)canonical, kind);
+        mark_to_keep_in_il(canonical, kind);
       }  /* if */
       if (kind == (an_il_entry_kind)iek_type) {
         a_type_ptr can_type = (a_type_ptr)canonical;
