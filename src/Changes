@@ -343,6 +343,28 @@ example, A<int> was not being instantiated.  This has been corrected.
   template <class T> const A<T> B<T>::ca;
   B<int> b;
 
+5/30/95  Internal on access determination for virtual base class
+
+An internal error could result on access determination for a virtual
+base class where different derivation paths give different access and the
+best access is available through a derivation other than the first.
+
+  class A {
+  protected:
+    void f();
+  };
+  class B : virtual private A {
+  protected:
+    A::f;
+  };
+  class C : virtual private A { };
+  class D : public B, public C { };
+
+  main() {
+    D d;
+    d.f();  // Gets error, then got internal error
+  }
+
 5/30/95  Diagnostic on use of "long long"
 
 The diagnostic issued for using "long long" in strict ANSI mode (-A) is
