@@ -441,12 +441,14 @@ and for the instantiation of template functions.
         compound_statement(/*at_function_level=*/TRUE,
                            (flags & SFB_IMPLICITLY_DECLARED_RETURN_TYPE) == 0,
                            /*is_catch_clause=*/FALSE);
-  if (flags & SFB_NEW_STRUCT_STMT_STACK_REQUIRED) {
-    /* Restore the original structured statement stack. */
-    restore_struct_stmt_stack(&saved_sss_state);
-  }  /* if */
   /* Pop the function scope. */
   pop_scope();
+  if (flags & SFB_NEW_STRUCT_STMT_STACK_REQUIRED) {
+    /* Restore the original structured statement stack.  This is done
+       after popping the function scope because pop_scope calls
+       wrapup_control_flow_processing. */
+    restore_struct_stmt_stack(&saved_sss_state);
+  }  /* if */
   if (class_type != NULL && !(flags & SFB_NO_CLASS_REACTIVATION)) {
     /* Pop the class symbol reactivation scope. */
     pop_class_reactivation_scope();
