@@ -4269,7 +4269,8 @@ a_boolean is_accessible_base_class(a_base_class_ptr bcp)
 /*
 Return TRUE if the base class indicated by bcp is accessible from the
 current point in the program, relative to the class of which it is a
-base class.
+base class.  bcp need not be an immediate base class of its derived
+class.
 */
 {
   a_boolean             accessible = TRUE;
@@ -4288,6 +4289,55 @@ base class.
   }  /* for */
   return accessible;
 }  /* is_accessible_base_class */
+
+
+a_boolean is_accessible_virtual_base_class(a_base_class_ptr bcp)
+/*
+Return TRUE if the base class bcp (a virtual base class that is not just
+a simple direct base class) is accessible from the current point in the
+program, relative to the class of which it is a base class.
+*/
+{
+  a_boolean                accessible = TRUE;
+  a_virtual_derivation_ptr vdp;
+  a_derivation_step_ptr    dsp;
+  a_base_class_ptr         base_class;
+  a_type_ptr               curr_type;
+
+  check_assertion(bcp->is_virtual);
+  /* Virtual base class that is either not direct or has multiple
+     derivations.  Loop through each alternative derivation in turn. */
+  for (vdp = bcp->paths_to_virtual_base_class;
+       vdp != NULL;
+       vdp = vdp->next) {
+    curr_type = bcp->derived_class;
+    /* Look through the steps of the derivation. */
+    for (dsp = vdp->derivation; dsp != NULL; dsp = dsp->next) {
+      base_class = dsp->base_class;
+      /* Code here is like is_accessible_imm_base_class. */
+      /* The last step in the derivation is treated as a direct base class
+         rather than as a virtual base class. */
+      if ((dsp->next != NULL &&
+           is_virtual_but_not_simple_direct_base_class(base_class)) ?
+                 is_accessible_virtual_base_class(base_class) :
+                 is_accessible_direct_base_class(base_class, curr_type)) {
+        /* Base class is accessible. */
+      } else {
+        /* Base class is not accessible. */
+        goto next_derivation;
+      }  /* if */
+      curr_type = base_class->type;
+    }  /* for */
+    /* We've found a derivation that gives access, so we can stop now. */
+    /* accessible = true;  -- already set. */
+    goto have_accessibility;
+next_derivation:;
+  }  /* for */
+  /* None of the virtual derivations gives access. */
+  accessible = FALSE;
+have_accessibility:;
+  return accessible;
+}  /* is_accessible_virtual_base_class */
 
 
 /* Declaration needed because of mutual recursion: */

@@ -1948,25 +1948,38 @@ Return the fundamental symbol for a given symbol.
 
 /*
 Return TRUE if the base class indicated by the base class entry bcp
-is an accessible base class of derived_class.  bcp indicates an
-immediate base class of derived_class.  A base class is accessible if its
-public members are accessible, which means
+is an accessible base class of derived_class.  bcp must be a
+direct or virtual base class of derived_class.  A base class is
+accessible if its public members are accessible, which means
   (a) if the derivation is public, the base class is accessible;
   (b) if the derivation is private, the base class is accessible if we
       have member access to the derived class;
   (c) if the derivation is protected, the base class is accessible if we
       have member access to the derived class or to one of its derived
       classes.
+is_accessible_direct_base_class can be used for direct base classes.
+is_accessible_imm_base_class can be used for direct or virtual base classes;
+it calls is_accessible_direct_base_class for direct base classes and
+is_accessible_virtual_base_class for virtual base classes.
+If you need to do this for non-immediate base classes, see the
+function is_accessible_base_class.
 */
-/* If you need to do this for non-immediate base classes, see the
-   function is_accessible_base_class. */
-#define is_accessible_imm_base_class(bcp, derived_class)              \
+#define is_accessible_direct_base_class(bcp, derived_class)           \
   ((bcp)->access == (an_access_specifier)as_public ||                 \
    have_member_access_privilege(derived_class) ||                     \
    ((bcp)->access == (an_access_specifier)as_protected &&             \
     have_protected_member_access_privilege(derived_class)))
+#define is_virtual_but_not_simple_direct_base_class(bcp)              \
+  ((bcp)->is_virtual &&                                               \
+   (!(bcp)->direct || (bcp)->paths_to_virtual_base_class->next != NULL))
+#define is_accessible_imm_base_class(bcp, derived_class)              \
+  (is_virtual_but_not_simple_direct_base_class(bcp) ?                 \
+    is_accessible_virtual_base_class(bcp) :                           \
+    is_accessible_direct_base_class(bcp, derived_class))
 
 extern a_boolean is_accessible_base_class(a_base_class_ptr bcp);
+
+extern a_boolean is_accessible_virtual_base_class(a_base_class_ptr bcp);
 
 extern a_symbol_ptr curr_scope_id_lookup(a_symbol_locator         *locator,
                                          an_id_lookup_options_set options);
