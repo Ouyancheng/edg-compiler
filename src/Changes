@@ -57,7 +57,7 @@ A spurious error was issued if a nonspecialized nontype template parameter
 of a partial specialization had a type that depended on a template parameter.
 This error should only have been issued if the nontype template parameter
 value was specialized (e.g., if you replaced one of the "t" parameters
-with a constant like "1".  Now fixed.
+with a constant like "1").  Now fixed.
 
   template <class T, T t1, T t2> struct A {};
   template <class T, T t> struct A<T, t, t> { };
