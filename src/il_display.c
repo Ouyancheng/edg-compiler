@@ -2030,7 +2030,8 @@ Display the indicated variable.
     } else if (named_register_storage_class) {
       char  *name =
                   named_register_storage_classes[ptr->asm_name_or_reg.id].name;
-      disp_string_ptr("register_id", name, iek_other_text, (sizeof_t)0);
+      disp_name("register_id");
+      (void)printf("%s\n", name);
 #endif /* NAMED_REGISTERS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
     } else {
