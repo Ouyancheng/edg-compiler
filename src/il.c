@@ -5702,15 +5702,16 @@ removed from the list.
     } else {
       a_class_symbol_supplement_ptr  cssp = NULL;
       /* Scan the list until a match is found. */
-      prev_tp = NULL;
       if (is_immediate_class_type(type_ptr) &&
           type_ptr->source_corresp.assoc_info != NULL) {
         cssp = symbol_supplement_for_class(type_ptr);
       }  /* if */
       if (cssp != NULL && cssp->prev_entry_on_types_list != NULL &&
           cssp->prev_entry_on_types_list->next == type_ptr) {
+        /* Class types usually have a valid "previous entry" pointer. */
         prev_tp = cssp->prev_entry_on_types_list;
       } else {
+        prev_tp = NULL;
         tp = sp->types;
         while (tp != type_ptr) {
           prev_tp = tp;
@@ -5726,6 +5727,8 @@ removed from the list.
         prev_tp->next = type_ptr->next;
       }  /* if */
       if (type_ptr->next != NULL && is_immediate_class_type(type_ptr->next)) {
+        /* Update the "previous entry" pointer of the next type entry (if
+           applicable). */
         a_class_symbol_supplement_ptr
                        next_cssp = symbol_supplement_for_class(type_ptr->next);
         if (next_cssp != NULL) {
@@ -5779,8 +5782,8 @@ removed from the list.
             /* Reenter it onto the end of the list. */
             pointers_block->last_type->next = tp;
             pointers_block->last_type = tp;
-            tp->next = NULL;
           }  /* if */
+          tp->next = NULL;
 #if DEBUG
           if (db_flag_is_set("dump_type_lists")) {
             fprintf(f_debug, "%s: \n", delete_placeholder ?
