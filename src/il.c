@@ -5691,11 +5691,12 @@ is in the function scope).
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-void remove_from_variables_list(a_variable_ptr var_ptr)
+void remove_from_variables_list(a_variable_ptr var_ptr,
+                                a_scope_depth  scope_depth)
 /*
-Unlink the given variable from the variables list for the file scope.  This
-is done so the variable can be added again at the end of the list, to keep
-the variables in order of appearance of their definitions.
+Unlink the given variable from the variables list for the scope indicated by
+scope_depth.  This is done so the variable can be added again at the end of
+the list, to keep the variables in order of appearance of their definitions.
 */
 {
   a_variable_ptr              prev_var, vp;
@@ -5704,13 +5705,9 @@ the variables in order of appearance of their definitions.
   a_scope_pointers_block_ptr  pointers_block;
 
   /* Get pointer to the file scope entry. */
-  ssep = &scope_stack[depth_innermost_namespace_scope];
+  ssep = &scope_stack[scope_depth];
   check_assertion_str(!var_ptr->source_corresp.is_class_member,
                       "remove_from_variables_list: class member not expected");
-  check_assertion_str(depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE ||
-                        var_ptr->source_corresp.parent.namespace_ptr ==
-                                 ssep->il_scope->variant.assoc_namespace,
-                      "remove_from_variables_list: namespace mismatch");
   sp = ssep->il_scope;
   pointers_block = assoc_pointers_block_of(ssep);
   check_assertion_str(sp != NULL, "remove_from_variables_list: NULL IL scope");
@@ -5917,11 +5914,12 @@ processing.  If there is no next such field, return NULL.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-void remove_from_routines_list(a_routine_ptr rout_ptr)
+void remove_from_routines_list(a_routine_ptr rout_ptr,
+                               a_scope_depth scope_depth)
 /*
-Unlink the given routine from the routines list for the file scope.  This
-is done so the routine can be added again at the end of the list, to keep
-the routines in order of appearance of their definitions (bodies).
+Unlink the given routine from the routines list for the scope indicated by
+scope_depth.  This is done so the routine can be added again at the end of
+the list, to keep the routines in order of appearance of their definitions.
 */
 {
   a_routine_ptr               prev_routine = NULL, rp;
@@ -5930,14 +5928,10 @@ the routines in order of appearance of their definitions (bodies).
   a_scope_pointers_block_ptr  pointers_block;
 
   /* Get pointer to the file scope entry. */
-  ssep = &scope_stack[depth_innermost_namespace_scope];
+  ssep = &scope_stack[scope_depth];
   sp = ssep->il_scope;
   check_assertion_str(!rout_ptr->source_corresp.is_class_member,
                       "remove_from_routines_list: class member not expected");
-  check_assertion_str(depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE ||
-                        rout_ptr->source_corresp.parent.namespace_ptr ==
-                                 ssep->il_scope->variant.assoc_namespace,
-                      "remove_from_routines_list: namespace mismatch");
   check_assertion_str(sp != NULL, "remove_from_routines_list: NULL IL scope");
   pointers_block = assoc_pointers_block_of(ssep);
   /* Find the routine on the current list in order to find the previous entry

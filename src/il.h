@@ -367,7 +367,8 @@ extern void get_variable_initializer(a_variable_ptr     variable,
                                      an_init_kind       *init_kind,
                                      an_initializer_ptr *initializer);
 
-extern void remove_from_variables_list(a_variable_ptr var_ptr);
+extern void remove_from_variables_list(a_variable_ptr var_ptr,
+                                       a_scope_depth  scope_depth);
 
 extern void add_to_variables_list(a_variable_ptr var_ptr,
                                   a_scope_depth  scope_depth);
@@ -380,7 +381,8 @@ extern a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type);
 
 extern a_field_ptr next_initializable_field(a_field_ptr field);
 
-extern void remove_from_routines_list(a_routine_ptr rout_ptr);
+extern void remove_from_routines_list(a_routine_ptr rout_ptr,
+                                      a_scope_depth scope_depth);
 
 extern void add_to_routines_list(a_routine_ptr  rout_ptr,
                                  a_scope_depth  scope_level);
