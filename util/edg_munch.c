@@ -305,7 +305,7 @@ int main(int argc, char *argv[])
     if (line_size == 0) continue;
     if (check_type_and_get_name(&name_pos, &name_length, &is_ctor)) {
       /* Make a copy of the routine name. */
-      name_string = malloc_with_check(size_t_arg(name_length + 1));
+      name_string = (char *)malloc_with_check(size_t_arg(name_length + 1));
       strncpy(name_string, name_pos, name_length);
       /* Add null to name string. */
       name_string[name_length] = '\0';

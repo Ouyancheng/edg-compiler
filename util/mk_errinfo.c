@@ -22,7 +22,13 @@ the error text.
 /* Get bsearch, qsort, and exit prototypes. */
 #include <stdlib.h>
 typedef sizeof_t qsort_nmemb_type;
-#else /* __ANSIC__ */
+#if defined(__SUNPRO_CC) && __BSD__
+/* Sun C++ on SunOS 4.1.3 uses const char * as the first argument of
+   bsearch. */
+typedef const char * a_bsearch_arg_type;
+#define BSEARCH_ARG_DEFINED
+#endif /* defined(__SUNPRO_CC) && __BSD__ */
+#else /* !(__ANSIC__ || USING_ISO_C) */
 EXTERN_C a_void_ptr bsearch(a_const_void_ptr key,
                             a_const_void_ptr base,
                             sizeof_t         nmemb,
@@ -52,6 +58,10 @@ EXTERN_C char *malloc(unsigned size);
 #include <malloc.h>
 #endif /* __BSD__ */
 #endif /* __ANSIC__ || USING_ISO_C */
+
+#ifndef BSEARCH_ARG_DEFINED
+typedef a_const_void_ptr a_bsearch_arg_type;
+#endif /* ifndef BSEARCH_ARG_DEFINED */
 
 
 /*
@@ -406,8 +416,8 @@ entries that refer to the same enumeration entry.
     tag_start = ptr;
     /* Look up the enumeration code in the error_info table. */
     error_info_to_find.enumerator = enumerator_start;
-    if (!bsearch((a_const_void_ptr)&error_info_to_find,
-                 (a_const_void_ptr)error_info,
+    if (!bsearch((a_bsearch_arg_type)&error_info_to_find,
+                 (a_bsearch_arg_type)error_info,
                  (sizeof_t)number_of_errors, sizeof(an_error_info),
                  compare_error_info)) {
       me_error("%s is not a valid error code", enumerator_start);

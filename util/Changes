@@ -1,5 +1,10 @@
 Version 2.31
 
+12/27/95 Building the utility programs with the Sun C++ compiler
+
+The changes have been made that are necessary for the utility programs
+to be compiled  with the Sun C++ compiler on SunOS 4.1.3.
+
 12/22/95 Use of malloc.h in edg_prelink.c and edg_munch.c
 
 These files no longer include malloc.h when __ANSIC__ is defined.

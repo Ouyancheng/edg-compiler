@@ -25,6 +25,14 @@ Prelink utility for template instantiation.
 #else /* !__ANSIC__ */
 #include <malloc.h>
 #endif /* __ANSI__ */
+/* Used to get a prototype for chdir. */
+#include <unistd.h>
+
+#if defined(__SUNPRO_CC) && __BSD__
+/* The SunOS 4.1.3 Sun CC header files do not define the system function. */
+extern "C" int system(const char *);
+#endif /* defined(__SUNPRO_CC) && __BSD__ */
+
 
 /*
 The getopt.h include file will provide either the declarations needed
@@ -411,7 +419,7 @@ directory.  getwd is used on BSD, getcwd on other systems.
 #else /* !__MSDOS___ */
 #if __BSD__
 #include <sys/param.h>
-extern char* getwd(char *pathname);
+EXTERN_C char* getwd(char *pathname);
 #define USE_GETCWD 0
 #else /* !__BSD__ */
 #include <unistd.h>
@@ -576,7 +584,7 @@ Interface to malloc that allocates "size" bytes.  Checks for failure of
 allocation and generates a catastrophic error.
 */
 {
-  char *ptr;
+  a_void_ptr	ptr;
 
   if ((ptr = (a_void_ptr)malloc(size)) == NULL) {
     pl_error(pl_ec_out_of_memory, (char *)NULL);
@@ -1025,8 +1033,8 @@ processed further.
   /* On the first call allocate a buffer that can be used to store the
      archive name. */
   if (name1_buffer == NULL) {
-    name1_buffer = pl_malloc_with_check(size_t_arg(PL_INPUT_LINE_SIZE));
-    name2_buffer = pl_malloc_with_check(size_t_arg(PL_INPUT_LINE_SIZE));
+    name1_buffer = (char*)pl_malloc_with_check(size_t_arg(PL_INPUT_LINE_SIZE));
+    name2_buffer = (char*)pl_malloc_with_check(size_t_arg(PL_INPUT_LINE_SIZE));
   }  /* if */
   /* Clear the pointers to the returned values. */
   *name1 = *name2 = *symbol_name = NULL;
@@ -2037,7 +2045,7 @@ static void pl_change_directory(char *new_dir)
   if (chdir(new_dir) != 0) {
     pl_error(pl_ec_cannot_chdir, new_dir);
   }  /* if */
-}  /* change_directory */
+}  /* pl_change_directory */
 
 
 static int pl_recompile_file(char	*command_line,
