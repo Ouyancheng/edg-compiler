@@ -272,7 +272,7 @@ template <class T> A<T>::operator int(){}
 
 1/29/02  Repeated friend class declarations (IL Change)
 
-The front end use to avoid duplicates in the representation of friend class
+The front end used to avoid duplicates in the representation of friend class
 declarations.  For example:
 
   class X {
@@ -6775,7 +6775,7 @@ override via #include_next and then adjust the defined values.
 5/15/00  Internal error when declaring a nonstandard member constant in an
          expression context
 
-The front use to abort when encountering a nonstandard member being declared
+The front used to abort when encountering a nonstandard member being declared
 as part of an expression:
 
   void f() {
