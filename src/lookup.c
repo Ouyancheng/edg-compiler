@@ -2639,13 +2639,13 @@ type, that type is ignored by this routine.
       nlep_2 = symbol_supplement_for_class(type_2)->operator_lookup_namespaces;
     }  /* if */
   }  /* if */
-  /* See if there are any functions for this operator.  Don't do the
-     namespace-based operator lookup if namespaces are not enabled. */
+  /* See if there are any functions for this operator. */
   sym_hdr = opname_symbol_table[kind];
-  if (sym_hdr != NULL && namespaces_enabled) {
-    if (nlep_1 != NULL || nlep_2 != NULL) {
+  if (sym_hdr != NULL) {
+    if ((nlep_1 != NULL || nlep_2 != NULL) && namespaces_enabled) {
       /* Only look for symbols in the namespaces associated with type_1 and
-         type_2 if they are classes (with namespace lists). */
+         type_2 if they are classes (with namespace lists).  The special
+         namespace driven lookup is only done when namespaces are enabled. */
       int pass;
       for (pass = 0; pass < 2; pass++) {
         /* Look at active symbols on the first pass, inactive symbols on the
