@@ -805,16 +805,15 @@ Flag that is TRUE if minimal inlining should be done during IL lowering.
 This is intended mostly for use with the C-generating back end, and does
 not do anything very fancy.
 */
+#if DO_IL_LOWERING
 #ifndef MINIMAL_INLINING
-#if DO_IL_LOWERING && BACK_END_IS_C_GEN_BE
+#if BACK_END_IS_C_GEN_BE
 #define MINIMAL_INLINING TRUE
-#else /* !(DO_IL_LOWERING && BACK_END_IS_C_GEN_BE) */
+#else /* !BACK_END_IS_C_GEN_BE */
 #define MINIMAL_INLINING FALSE
-#endif /* DO_IL_LOWERING && BACK_END_IS_C_GEN_BE */
+#endif /* BACK_END_IS_C_GEN_BE */
 #endif /* ifndef MINIMAL_INLINING */
-#if MINIMAL_INLINING && !DO_IL_LOWERING
- #error -- MINIMAL_INLINING requires DO_IL_LOWERING
-#endif /* MINIMAL_INLINING && !DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING */
 
 /*
 Flag that is TRUE if unrecognized pragmas should be accepted and passed
