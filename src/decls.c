@@ -1938,7 +1938,9 @@ not be TRUE.
   if (rout_type != type_ptr) {
     /* We only try to reconcile routine types that have already been
        determined to be compatible. */
-    check_assertion(types_are_compatible(type_ptr, rout_type));
+    check_assertion(
+       routine_types_are_compatible(type_ptr, rout_type,
+                                    TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING));
     /* We cannot be required to preserve the types from both sources. */
     check_assertion(!preserve_rout_type || !preserve_type_ptr);
     if (C_dialect == C_dialect_cplusplus) {
@@ -3623,7 +3625,7 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
     declarator(DI_ABSTRACT_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED,
                &do_flags, *type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
 	       (a_symbol_locator *)NULL,
-               type_ptr, &bottom_derived_type, (a_calling_convention_ptr)NULL,
+               type_ptr, &bottom_derived_type, (a_call_conv_descr_ptr)NULL,
                &declarator_ssep, (a_func_info_block_ptr)NULL);
   }  /* if */
   copy_source_position(start_pos, error_position);
@@ -3702,7 +3704,7 @@ syntax is:
                  &do_flags, *type_ptr,
                  /*member_parent_type=*/(a_type_ptr)NULL,
                  (a_symbol_locator *)NULL, type_ptr,
-                 &bottom_derived_type, (a_calling_convention_ptr)NULL,
+                 &bottom_derived_type, (a_call_conv_descr_ptr)NULL,
                  &declarator_ssep, (a_func_info_block_ptr)NULL);
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
@@ -3710,9 +3712,9 @@ syntax is:
   } else {
     complete_type = pointer_declarator(*type_ptr,
                                        /*reference_allowed=*/FALSE,
-                                       /*calling_convention_allowed=*/FALSE,
-				       (a_calling_convention_ptr)NULL,
-                                       (a_boolean*)NULL);
+                                       /*call_conv_allowed=*/FALSE,
+				       (a_call_conv_descr_ptr)NULL,
+				       (a_call_conv_descr_ptr)NULL);
     derived_type = NULL;
     bottom_derived_type = NULL;
     add_stop_token(tok_lbracket);
@@ -3807,9 +3809,9 @@ scanning type name in a type conversion operator.
     }  /* if */
     complete_type = pointer_declarator(specifiers_type,
                                        /*reference_allowed=*/TRUE,
-                                       /*calling_convention_allowed=*/FALSE,
-				       (a_calling_convention_ptr)NULL,
-                                       (a_boolean*)NULL);
+                                       /*call_conv_allowed=*/FALSE,
+				       (a_call_conv_descr_ptr)NULL,
+				       (a_call_conv_descr_ptr)NULL);
     unget_token();
     curr_token = tok_identifier;
     pos_curr_token = error_position = *id_pos;
@@ -4157,7 +4159,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
                      &do_flags, type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL, &locator,
                      &type_ptr, &bottom_derived_type,
-                     (a_calling_convention_ptr)NULL, &declarator_ssep,
+                     (a_call_conv_descr_ptr)NULL, &declarator_ssep,
                      (a_func_info_block_ptr)NULL);
           if (do_flags & DO_REAL_DECLARATOR_SCANNED) {
             sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
@@ -4868,7 +4870,7 @@ continue_with_declaration:
       declarator(di_flags, &do_flags, type_ptr, 
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
                  &local_type_ptr, &bottom_derived_type,
-                 (a_calling_convention_ptr)NULL, &declarator_ssep,
+                 (a_call_conv_descr_ptr)NULL, &declarator_ssep,
                  &func_info);
       is_function = (storage_class != (a_storage_class)sc_typedef &&
                      is_function_type(local_type_ptr));

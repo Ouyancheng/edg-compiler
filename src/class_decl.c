@@ -6177,7 +6177,7 @@ Scan the body of a class definition, including the base classes list.
                        member_type,
                        friend_specified ? (a_type_ptr)NULL : class_type,
                        &locator, &local_type, &bottom_derived_type,
-                       (a_calling_convention_ptr)NULL,
+                       (a_call_conv_descr_ptr)NULL,
                        &declarator_ssep, &func_info);
             cfront_member_function_typedef =
                   declarator_output_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;

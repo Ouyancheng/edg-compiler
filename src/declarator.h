@@ -148,6 +148,21 @@ abstract or real declarator.
 #define DO_LAST DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY
 			/* Last bit in the bit vector that is in use. */
 
+/*
+Structure used to represent the information about a calling convention
+specifier.
+*/
+typedef struct a_call_conv_descr *a_call_conv_descr_ptr;
+typedef struct a_call_conv_descr {
+  a_calling_convention
+		call_conv;
+			/* The calling convention specified. */
+  a_source_position
+		position;
+			/* The source position of the calling convention
+			   specifier. */
+} a_call_conv_descr;
+
 extern
 void declarator(a_decl_flag_set          input_flags,
                 a_decl_flag_set          *output_flags,
@@ -156,18 +171,18 @@ void declarator(a_decl_flag_set          input_flags,
                 a_symbol_locator         *locator,
                 a_type_ptr               *p_complete_type,
                 a_type_ptr               *p_bottom_derived_type,
-                a_calling_convention_ptr p_calling_convention,
+                a_call_conv_descr_ptr     p_calling_convention,
                 a_source_sequence_entry_ptr
                                          *declarator_ssep,
                 a_func_info_block        *func_info);
 
 extern
-a_type_ptr pointer_declarator
-                     (a_type_ptr           specifiers_type,
-                      a_boolean   	   reference_allowed,
-		      a_boolean		   calling_convention_allowed,
-                      a_calling_convention *p_calling_convention,
-                      a_boolean		   *p_nested_declarator_may_follow);
+a_type_ptr pointer_declarator(
+                      a_type_ptr            specifiers_type,
+                      a_boolean   	    reference_allowed,
+		      a_boolean		    call_conv_allowed,
+                      a_call_conv_descr_ptr p_calling_convention,
+                      a_call_conv_descr_ptr p_unbound_calling_convention);
 
 extern void array_declarator(a_type_ptr *new_type_ptr,
                              a_boolean  nonconstant_dimension_allowed,
