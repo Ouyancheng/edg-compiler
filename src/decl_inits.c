@@ -468,6 +468,8 @@ also create an stmk_init statement at the current point in the code.
   /* Build the dynamic initialization entry. */
   new_dip = alloc_dynamic_init(dip->kind);
   switch (dip->kind) {
+    case dik_none:
+      break;
     case dik_constant:
       new_dip->variant.constant = dip->variant.constant;
       break;
@@ -477,8 +479,6 @@ also create an stmk_init statement at the current point in the code.
     case dik_constructor:
       new_dip->variant.constructor.routine = dip->variant.constructor.routine;
       new_dip->variant.constructor.args = dip->variant.constructor.args;
-      new_dip->variant.constructor.corresp_destructor =
-                                  dip->variant.constructor.corresp_destructor;
       break;
     case dik_aggregate:
       new_dip->variant.aggregate.aggr_const =
@@ -491,6 +491,7 @@ also create an stmk_init statement at the current point in the code.
       internal_error("gen_dynamic_initialization: bad kind");
 #endif /* CHECKING */
   }  /* switch */
+  new_dip->destructor = dip->destructor;
   /* Attach the dynamic initialization entry to the scope list. */
   ssep = &scope_stack[decl_scope_level];
   if (ssep->il_scope->dynamic_inits == NULL) {
@@ -680,10 +681,6 @@ The syntax is:
       clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
       local_di.variant.constructor.routine = rp;
       local_di.variant.constructor.args = arg_list;
-      if (cssp->destructor != NULL) {
-        local_di.variant.constructor.corresp_destructor =
-                              cssp->destructor->variant.routine;
-      }  /* if */
     }  /* if */
     initialization_is_dynamic = TRUE;
   } else if (cssp != NULL && cssp->constructor != NULL &&
@@ -734,10 +731,6 @@ The syntax is:
         clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
         local_di.variant.constructor.routine = rp;
         local_di.variant.constructor.args = expression;
-        if (cssp->destructor != NULL) {
-          local_di.variant.constructor.corresp_destructor =
-                              cssp->destructor->variant.routine;
-        }  /* if */
       }  /* if */
     }  /* if */
     initialization_is_dynamic = TRUE;
@@ -831,6 +824,14 @@ The syntax is:
       local_di.variant.constant = alloc_unshared_constant(&constant);
     }  /* if */
     dynamic_init_required = !has_static_storage_duration(vp->storage_class);
+    /* Check for the existence of a destructor independently of checks for a
+       constructor.  This is to catch the unusual case in which a user has
+       defined a destructor but the object can be initialized without a
+       constructor. */
+    if (cssp != NULL && cssp->destructor != NULL) {
+      local_di.destructor = cssp->destructor->variant.routine;
+      initialization_is_dynamic = TRUE;
+    }  /* if */
     if (initialization_is_dynamic || dynamic_init_required) {
       if (dynamic_init_required && !err) {
         /* Issue a warning for a dynamic initialization in an unreachable
@@ -902,8 +903,7 @@ a_boolean def_initializer(a_symbol_ptr       sym,
           local_di.variant.constructor.routine = rp;
           local_di.variant.constructor.args = NULL;
           if (cssp->destructor != NULL) {
-            local_di.variant.constructor.corresp_destructor =
-                                  cssp->destructor->variant.routine;
+            local_di.destructor = cssp->destructor->variant.routine;
           }  /* if */
           if (var_type != tp) {
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
@@ -937,6 +937,16 @@ a_boolean def_initializer(a_symbol_ptr       sym,
           }  /* if */
 #endif /* DEBUG */
         }  /* if */
+      } else if (cssp->destructor != NULL) {
+        /* Default initialization of an object that has a destructor.  We
+           generate a dik_none dynamic initialization entry for this object,
+           even though it is not actually initialized, so that the existence
+           of the destructor can be duly recorded. */
+        clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_none);
+        local_di.destructor = cssp->destructor->variant.routine;
+        gen_dynamic_initialization(var, &local_di);
+        /* Don't set def_init_performed.  A dik_none dynamic initialization
+           doesn't count as initialization. */
       }  /* if */
     }  /* if */
   }  /* if */
