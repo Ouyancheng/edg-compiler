@@ -5767,15 +5767,15 @@ parameters.
       } else
 #endif /* ifdef FFE */
       {
-        if (init_con != NULL && !dump_initializers) {
-          /* Do not dump storage class on first output of initialized variable.
-             This is to suppress "static" on the first declaration of an 
-             initialized static variable, because pcc will not allow two
-             declarations of a static variable.  Since the variable will be
-             put out as an external variable, get_name must modify the names
-             of static non-external variables so that they will not conflict
-             with like-named static variables in separately-compiled
-             modules. */
+        if (init_con != NULL && storage_class == (a_storage_class)sc_static &&
+            (!dump_vars_without_initializers || !dump_initializers)) {
+          /* For initialized file-scope static variables, suppress the
+             storage class on both declarations of the variable.  This
+             is because pcc will not allow two declarations of a static
+             variable.  Since the variable will be put out as an external
+             variable, get_name must modify the names of static non-external
+             variables so that they will not conflict with like-named
+             static variables in separately-compiled modules. */
         } else {
           dump_storage_class(storage_class);
         }  /* if */
