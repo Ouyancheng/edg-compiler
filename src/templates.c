@@ -4826,7 +4826,8 @@ prototype instantiation is considered as a potential match.
         extended_decl_info.qualifiers = prototype_ctsp->qualifiers;
 #endif /* NEAR_AND_FAR_ALLOWED */
         update_extended_decl_info_for_class(class_type, &extended_decl_info,
-                                            /*class_definition=*/FALSE, &pos);
+                                            /*class_definition=*/FALSE,
+                                            /*explicit_inst=*/FALSE, &pos);
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
@@ -9951,6 +9952,13 @@ definition (as opposed to a mere declaration).
   a_type_ptr	prototype_type;
   a_symbol_ptr	prototype_sym;
 
+  /* DLL interface specifiers are ignored on class templates in earlier
+     Microsoft compilers. */
+  if (microsoft_version < 1300 &&
+      (extended_decl_info->decl_modifiers.flags & DM_DLLFLAGS) != 0) {
+    pos_warning(ec_dll_interface_ignored_on_class_template, err_pos);
+    extended_decl_info->decl_modifiers.flags &= ~DM_DLLFLAGS;
+  }  /* if */
   /* Update the prototype instantiation. */
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
   if (prototype_sym != NULL) {
@@ -9958,7 +9966,8 @@ definition (as opposed to a mere declaration).
        the subordinate template has no prototype instantiation. */
     prototype_type = type_symbol_type(prototype_sym);
     update_extended_decl_info_for_class(prototype_type, extended_decl_info,
-                                        class_definition, err_pos);
+                                        class_definition,
+                                        /*explicit_inst=*/FALSE, err_pos);
   }  /* if */
   /* Update any instances that have already been created. */
   for (instance_sym = tssp->variant.class_template.instantiations;
@@ -9967,7 +9976,8 @@ definition (as opposed to a mere declaration).
     if (is_real_class_symbol(instance_sym) &&
         !tp->variant.class_struct_union.is_specialized) {
       update_extended_decl_info_for_class(tp, extended_decl_info,
-                                          /*class_definition=*/FALSE, err_pos);
+                                          /*class_definition=*/FALSE,
+                                          /*explicit_inst=*/FALSE, err_pos);
     }  /* if */
   }  /* for */
   if (tssp->subordinate_templates != NULL) {
@@ -16039,7 +16049,7 @@ that follows.
         if (sun_mode || microsoft_mode) {
           update_variable_decl_modifiers(vp, &decl_modifiers,
                                          &locator.source_position,
-                                         already_specialized);
+                                         already_specialized, is_definition);
         }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
@@ -19736,9 +19746,12 @@ emitted in this translation unit.
   if (!body_can_be_generated) {
     /* We can't emit the body if one can't be generated. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && rout_ptr->explicit_extern_inline) {
+  } else if (microsoft_mode &&
+             (rout_ptr->explicit_extern_inline ||
+              (rout_ptr->decl_modifiers & DM_DLLEXPORT) != 0)) {
     /* In Microsoft mode "extern inline" in the source indicates that the
-       function definition should be spilled (even if unused). */
+       function definition should be spilled (even if unused).  Similarly,
+       inline functions that are exported from a DLL must be spilled. */
     result = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (instantiation_mode == tim_used ||
@@ -20344,12 +20357,11 @@ or the specific definition flag (if instantiate is FALSE).
 }  /* update_instantiation_flags */
 
 
-static void update_instantiation_flags_for_class
-					(a_symbol_ptr	        sym,
-					 a_pragma_kind          pragma_kind,
-					 a_source_position      *pos,
-                                         a_boolean		is_pragma,
-                                         a_boolean		top_level)
+void update_instantiation_flags_for_class(a_symbol_ptr          sym,
+					  a_pragma_kind         pragma_kind,
+					  a_source_position     *pos,
+                                          a_boolean             is_pragma,
+                                          a_boolean             top_level)
 /*
 Updates the instantiation flags for all of the member functions and static
 data members within a given template class.  top_level is TRUE if

@@ -3146,6 +3146,114 @@ created; the caller must set it.
   return ext_sym;
 }  /* create_external_symbol_for_linked_entity */
 
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void update_dll_info_for_routine(a_routine_ptr         routine,
+                                 a_decl_modifier       flags,
+                                 a_boolean             is_inline,
+                                 a_boolean             is_redecl,
+                                 a_boolean             is_definition,
+                                 a_source_position     *diag_pos)
+/*
+Update the DLL interface of the given routine according to flags.  If the
+current declaration of the routine is marked as "inline", is_inline is set to
+TRUE (even when routine->is_inline may not yet have been set).  If the current
+declaration is a redeclaration, is_redecl is set to TRUE.  If the current
+declaration is a definition is_definition is set to TRUE.  Diagnostics should
+be issued at the given position.
+*/
+{
+  a_decl_modifier  old_dll_flags = (routine->decl_modifiers & DM_DLLFLAGS);
+  a_decl_modifier  new_dll_flags = (flags & DM_DLLFLAGS);
+
+  /* dllimport and dllexport should never be set together. */
+  check_assertion(new_dll_flags != DM_DLLFLAGS);
+  if (old_dll_flags | new_dll_flags) {
+    /* Either the current declaration has a DLL interface, or the routine was
+       previously declared with a DLL interface. */
+    a_boolean  new_dll_export = FALSE, clear_dll_import = FALSE;
+    if (routine->is_inline) is_inline = TRUE;
+    if (new_dll_flags != 0) {
+      if (routine->storage_class == (a_storage_class)sc_static) {
+        /* Entities that don't have external linkage cannot be declared with
+           a DLL interface. */
+        pos_error(ec_dll_interface_requires_external_linkage, diag_pos);
+        goto done;
+      }  /* if */
+    } else if (!is_inline) {
+      /* The current declaration has no DLL interface, but a previous
+         declaration did.  A previous dllexport is preserved, but a previous
+         dllimport is dropped. */
+      if ((old_dll_flags & DM_DLLIMPORT) != 0) {
+        clear_dll_import = TRUE;
+        if (microsoft_version <= 1200 || is_definition) {
+          /* If the current declaration is a definition (or if we're emulating
+             an older Microsoft version), dllimport is implicitly replaced by
+             dllexport. */
+          new_dll_flags = DM_DLLEXPORT;
+        }  /* if */
+      } else {
+        /* Preserve the dllexport attribute of the previous declaration. */
+        new_dll_flags = DM_DLLEXPORT;
+      }  /* if */
+    }  /* if */
+    if (old_dll_flags == new_dll_flags) {
+      /* This is a redeclaration and it is compatible with the previous
+         declaration: Nothing to be done. */
+      check_assertion(is_redecl);
+    } else if (old_dll_flags == 0) {
+      /* This is the first time a DLL interface is specified: If there was a
+         previous declaration, issue an error. */
+      if (is_redecl) {
+        pos_sy_error(ec_redeclaration_adds_dll_interface, diag_pos,
+                     symbol_for(routine));
+      }  /* if */
+      routine->decl_modifiers |= new_dll_flags;
+      if ((new_dll_flags & DM_DLLEXPORT) != 0) {
+        new_dll_export = TRUE;
+      } else if (is_inline) {
+        /* The combination of "inline" and "dllimport" indicates that the body
+           should only be used for inlining.  It should never be spilled. */
+        routine->suppress_inline_body = TRUE;
+      }  /* if */
+    } else {
+      /* A declaration that conflicts with a previous declaration: Issue a
+         warning and ignore any dllimport attribute. */
+      pos_sy_warning(ec_dll_interface_conflict_dllexport_assumed, diag_pos,
+                     symbol_for(routine));
+      clear_dll_import = TRUE;
+      routine->decl_modifiers |= (new_dll_flags & DM_DLLEXPORT);
+    }  /* if */
+    if (is_definition && !is_inline && (new_dll_flags & DM_DLLIMPORT) != 0 &&
+        !clear_dll_import) {
+      /* Noninline function definitions cannot have the dllimport attribute. */
+      pos_error(ec_cannot_define_dllimport_function, diag_pos);
+      clear_dll_import = TRUE;
+    }  /* if */
+    if (clear_dll_import && (routine->decl_modifiers & DM_DLLIMPORT) != 0) {
+      /* Drop any previous dllimport attribute. */
+      routine->decl_modifiers &= ~(a_decl_modifier)DM_DLLIMPORT;
+      routine->suppress_inline_body = FALSE;
+      new_dll_export = ((routine->decl_modifiers & DM_DLLEXPORT) != 0);
+    }  /* if */
+    if (new_dll_export &&
+        ((routine->is_template_function && !routine->is_specialized)
+#if INSTANTIATE_EXTERN_INLINE
+         || is_inline
+#endif /* INSTANTIATE_EXTERN_INLINE */
+                     )) {
+      /* dllexport forces the instantiation of nonexplicit specializations.
+         If inline functions are "instantiated", this also applies to inline
+         functions. */
+      set_instance_required(symbol_for(routine), TRUE, SIR_DEFER_INLINE);
+    }  /* if */
+  }  /* if */
+done:;
+}  /* update_dll_info_for_routine */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if DECL_MODIFIERS_IN_USE
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /* ARGSUSED */ /* is_redecl and is_definition are only used in Microsoft
@@ -3168,76 +3276,25 @@ diagnostics.
 {
   a_boolean        any_invalid_redecl, invalid_modifier, invalid_redecl;
   int              bit_number;
-  a_decl_modifier  modifier_value;
-  a_boolean        implicit_dllexport = FALSE;
+  a_decl_modifier  flags = new_modifiers->flags, modifier_value;
 
+  /* Handle dllexport and dllimport separately. */
+  update_dll_info_for_routine(routine, flags, is_inline, is_redecl,
+                              is_definition, position);
+  flags &= ~(a_decl_modifier)DM_DLLFLAGS;
   /* Loop through the bits in the new_modifiers bit vector and process the
      modifiers associated with the bits that are set. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (routine->is_inline) is_inline = TRUE;
-  implicit_dllexport = is_definition && is_redecl && !is_inline &&
-                       routine->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (new_modifiers->flags != DM_NONE || implicit_dllexport) {
+  if (flags != DM_NONE) {
     any_invalid_redecl = FALSE;
     for (bit_number = 0; bit_number < (int)dmt_last; ++bit_number) {
       modifier_value = (1 << bit_number);
-      if ((new_modifiers->flags & modifier_value) != 0
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          || (implicit_dllexport && bit_number == (int)dmt_dllexport)
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                     ) {
+      if ((flags & modifier_value) != 0) {
         /* This bit is set -- or, if this is a non-inline function definition,
            pretend the dllexport bit is set. */
         invalid_modifier = FALSE;
         invalid_redecl = FALSE;
         switch (bit_number) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          case dmt_dllimport:
-            if (is_definition && !is_inline) {
-              /* This is an error.  A function with dllimport specified on its
-                 definition has to be inline. */
-              invalid_modifier = TRUE;
-            } else {
-              if (is_redecl) {
-                if (!(routine->decl_modifiers & DM_DLLIMPORT)) {
-                  /* Any previous declaration should have been declared
-                     with dllimport.  Issue a warning. */
-                  invalid_redecl = TRUE;
-                } else if (!(DM_DLLIMPORT &
-                             routine->decl_modifiers &
-                             new_modifiers->flags)) {
-                  /* The current declaration is inconsistent with a previous
-                     declaration.  Issue a warning and clear the previous
-                     dllimport state. */
-                  invalid_redecl = TRUE;
-                  routine->decl_modifiers &= ~DM_DLLIMPORT;
-                }  /* if */
-              }  /* if */
-              if (is_inline) {
-                /* The combination of "inline" and "dllimport" indicates that
-                   the body should only be used for inlining.  It should never
-                   be spilled. */
-                routine->suppress_inline_body = TRUE;
-              }  /* if */
-            }  /* if */
-            break;
-          case dmt_dllexport:
-            if (is_redecl) {
-              if (!(routine->decl_modifiers & DM_DLLEXPORT)) {
-                /* Any previous declaration should have been declared
-                   with dllexport.  Issue a warning. */
-                invalid_redecl = TRUE;
-              }  /* if */
-              if (routine->decl_modifiers & DM_DLLIMPORT) {
-                /* A previous declaration was marked dllimport, but this
-                   redeclaration is not.  Issue a warning and clear the
-                   previous dllimport state. */
-                invalid_redecl = TRUE;
-                routine->decl_modifiers &= ~DM_DLLIMPORT;
-              }  /* if */
-            }  /* if */
-            break;
           case dmt_naked:
             if (!is_definition) {
               invalid_modifier = TRUE;
@@ -3255,7 +3312,7 @@ diagnostics.
             /* The "thread" specifier can only be applied to variables with
                a static lifetime. */
             pos_error(ec_cannot_use_thread_local_storage, position);
-            new_modifiers->flags &= (~modifier_value);
+            flags &= (~modifier_value);
             break;
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
@@ -3269,10 +3326,10 @@ diagnostics.
                 routine->source_corresp.name_linkage ==
                                          (a_name_linkage_kind)nlk_none) {
               pos_error(ec_link_scope_requires_external_linkage, position);
-            } else if ((new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) != 0) {
+            } else if ((flags & DM_ANY_SUN_LINK_SCOPE) != 0) {
               /* A redeclaration cannot relax the link scope of a routine. */
               if (is_redecl &&
-                  (new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) <
+                  (flags & DM_ANY_SUN_LINK_SCOPE) <
                           (routine->decl_modifiers & DM_ANY_SUN_LINK_SCOPE)) {
                 pos_error(ec_link_scope_relaxation, position);
               } else {
@@ -3281,11 +3338,10 @@ diagnostics.
                    any existing link scope recorded in the entry. */
                 routine->decl_modifiers &=
                                       (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
-                routine->decl_modifiers |=
-                               (new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE);
+                routine->decl_modifiers |= (flags & DM_ANY_SUN_LINK_SCOPE);
               }  /* if */
             }  /* if */
-            new_modifiers->flags &= (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
+            flags &= (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
             break;
 #endif /* SUN_EXTENSIONS_ALLOWED */
           default:
@@ -3296,7 +3352,7 @@ diagnostics.
           pos_st_diagnostic(es_discretionary_error,
                             ec_decl_modifiers_invalid_for_this_decl,
                             position, decl_modifier_names[bit_number]);
-          new_modifiers->flags &= (~modifier_value);
+          flags &= (~modifier_value);
         }  /* if */
         any_invalid_redecl |= invalid_redecl;
       }  /* if */
@@ -3305,7 +3361,7 @@ diagnostics.
       pos_warning(ec_decl_modifiers_incompatible_with_previous_decl, position);
     }  /* if */
     /* Update the routine entry with any valid modifiers that were found. */
-    routine->decl_modifiers |= new_modifiers->flags;
+    routine->decl_modifiers |= flags;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (new_modifiers->allocate_segname != NULL) {
@@ -3318,6 +3374,104 @@ diagnostics.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* update_routine_decl_modifiers */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void update_dll_info_for_variable(a_variable_ptr        var,
+                                  a_decl_modifier       flags,
+                                  a_boolean             is_redecl,
+                                  a_boolean             is_definition,
+                                  a_source_position     *diag_pos)
+/*
+Update the DLL interface of the given variable according to flags (and clear
+the DLL-related flags of flags).  If the current declaration is a definition
+is_definition is set to TRUE.  If the current declaration is a redeclaration,
+is_redecl is set to TRUE.  Diagnostics should be issued at the given
+position. */
+{
+  a_decl_modifier  old_dll_flags = (var->decl_modifiers & DM_DLLFLAGS);
+  a_decl_modifier  new_dll_flags = (flags & DM_DLLFLAGS);
+
+  /* dllimport and dllexport should never be set together. */
+  check_assertion(new_dll_flags != DM_DLLFLAGS);
+  if (old_dll_flags | new_dll_flags) {
+    /* Either the current declaration has a DLL interface, or the variable was
+       previously declared with a DLL interface. */
+    a_boolean  new_dll_export = FALSE, clear_dll_import = FALSE;
+    if (var->source_corresp.is_class_member) {
+      /* A static data member. */
+      if (is_definition &&
+          ((old_dll_flags | new_dll_flags) & DM_DLLIMPORT) != 0) {
+        /* Imported static data members cannot be defined.  Note that an error
+           is issued even if one declaration has dllimport and the other has
+           dllexport: For static data members, Microsoft compilers retain the
+           dllimport attribute. */
+        pos_error(ec_dllimport_defined, diag_pos);
+        old_dll_flags = new_dll_flags = 0;
+      }  /* if */
+    } else if (new_dll_flags != 0) {
+      if (var->storage_class == (a_storage_class)sc_static ||
+          var->storage_class == (a_storage_class)sc_auto ||
+          var->storage_class == (a_storage_class)sc_register) {
+        /* Entities that don't have external linkage cannot be declared with
+           a DLL interface. */
+        pos_error(ec_dll_interface_requires_external_linkage, diag_pos);
+        goto done;
+      }  /* if */
+    } else {
+      /* The current declaration has no DLL interface, but a previous
+         declaration did.  A previous dllexport is preserved, but a previous
+         dllimport is dropped. */
+      if (old_dll_flags & DM_DLLIMPORT) {
+        clear_dll_import = TRUE;
+        if (microsoft_version <= 1200 || is_definition) {
+          /* If the current declaration is a definition (or if we're emulating
+             an older Microsoft version), dllimport is implicitly replaced by
+             dllexport. */
+          new_dll_flags = DM_DLLEXPORT;
+        }  /* if */
+      } else {
+        /* Preserve the dllexport attribute of the previous declaration. */
+        new_dll_flags = DM_DLLEXPORT;
+      }  /* if */
+    }  /* if */
+    if (old_dll_flags == new_dll_flags) {
+      /* This is a redeclaration and it is compatible with the previous
+         declaration: Nothing to be done. */
+      check_assertion(is_redecl);
+    } else if (old_dll_flags == 0) {
+      /* This is the first time a DLL interface is specified: If there was a
+         previous declaration, issue an error. */
+      if (is_redecl) {
+        pos_sy_error(ec_redeclaration_adds_dll_interface, diag_pos,
+                     symbol_for(var));
+      }  /* if */
+      var->decl_modifiers |= new_dll_flags;
+      if ((new_dll_flags & DM_DLLEXPORT) != 0) {
+        new_dll_export = TRUE;
+      }  /* if */
+    } else {
+      /* A declaration that conflicts with a previous declaration: Issue a
+         warning and ignore any dllimport attribute. */
+      pos_sy_warning(ec_dll_interface_conflict_dllexport_assumed, diag_pos,
+                     symbol_for(var));
+      clear_dll_import = TRUE;
+      var->decl_modifiers |= (new_dll_flags & DM_DLLEXPORT);
+    }  /* if */
+    if (clear_dll_import && (var->decl_modifiers & DM_DLLIMPORT) != 0) {
+      /* Drop any previous dllimport attribute. */
+      var->decl_modifiers &= ~(a_decl_modifier)DM_DLLIMPORT;
+      new_dll_export = ((var->decl_modifiers & DM_DLLEXPORT) != 0);
+    }  /* if */
+    if (new_dll_export &&
+        var->is_template_static_data_member && !var->is_specialized) {
+      /* dllexport forces the instantiation of nonexplicit specializations. */
+      set_instance_required(symbol_for(var), TRUE, SIR_NONE);
+    }  /* if */
+  }  /* if */
+done:;
+}  /* update_dll_info_for_variable */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /* ARGSUSED */ /* is_redecl is only used in Microsoft mode. */
@@ -3325,7 +3479,8 @@ diagnostics.
 void update_variable_decl_modifiers(a_variable_ptr              variable,
                                     a_decl_modifiers_block_ptr  new_modifiers,
                                     a_source_position           *position,
-                                    a_boolean                   is_redecl)
+                                    a_boolean                   is_redecl,
+                                    a_boolean                   is_definition)
 /*
 Update the decl_modifiers field of the variable entry to reflect the
 modifiers specified in new_modifiers.  If this is a redeclaration or a
@@ -3338,14 +3493,18 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
   a_boolean	   any_invalid_redecl = FALSE;
   a_boolean        invalid_modifier, invalid_redecl;
   int		   bit_number;
-  a_decl_modifier  modifier_value;
+  a_decl_modifier  flags = new_modifiers->flags, modifier_value;
 
+  /* Handle dllexport and dllimport separately. */
+  update_dll_info_for_variable(variable, flags, is_redecl, is_definition,
+                               position);
+  flags &= ~(a_decl_modifier)DM_DLLFLAGS;
   /* Loop through the bits of the new_modifiers bit vector and process
      the modifiers associated with the bits that are set. */
-  if (new_modifiers->flags != DM_NONE) {
+  if (flags != DM_NONE) {
     for (bit_number = 0; bit_number < (int)dmt_last; ++bit_number) {
       modifier_value = (1 << bit_number);
-      if ((new_modifiers->flags & modifier_value) != 0) {
+      if ((flags & modifier_value) != 0) {
         /* This bit is set. */
         invalid_modifier = FALSE;
         invalid_redecl = FALSE;
@@ -3355,8 +3514,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
           case dmt_dllexport:
             /* Any previous declaration must have been declared
                with either dllimport or dllexport. */
-            if (is_redecl &&
-                !(variable->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT))) {
+            if (is_redecl && !(variable->decl_modifiers & DM_DLLFLAGS)) {
               invalid_redecl = TRUE;
             }  /* if */
             break;
@@ -3371,7 +3529,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
                  data member definition, but not on an in-class declaration
                  (even if the in-class declaration has an initializer). */
               invalid_modifier = TRUE;
-              new_modifiers->flags &= (~modifier_value);
+              flags &= (~modifier_value);
             }  /* if */
             break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3381,7 +3539,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
               /* The "thread" specifier can only be applied to variables with
                  a static lifetime. */
               pos_error(ec_cannot_use_thread_local_storage, position);
-              new_modifiers->flags &= (~modifier_value);
+              flags &= (~modifier_value);
             }  /* if */
             break;
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED || MICROSOFT_EXTENSIONS_... */
@@ -3396,17 +3554,16 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
                 variable->source_corresp.name_linkage ==
                                          (a_name_linkage_kind)nlk_none) {
               pos_error(ec_link_scope_requires_external_linkage, position);
-            } else if ((new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) != 0) {
+            } else if ((flags & DM_ANY_SUN_LINK_SCOPE) != 0) {
               /* A redeclaration cannot relax the link scope of a variable. */
-              if ((new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) <
+              if ((flags & DM_ANY_SUN_LINK_SCOPE) <
                          (variable->decl_modifiers & DM_ANY_SUN_LINK_SCOPE)) {
                 pos_error(ec_link_scope_relaxation, position);
               } else {
-                variable->decl_modifiers |=
-                               (new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE);
+                variable->decl_modifiers |= (flags & DM_ANY_SUN_LINK_SCOPE);
               }  /* if */
             }  /* if */
-            new_modifiers->flags &= (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
+            flags &= (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
             break;
 #endif /* SUN_EXTENSIONS_ALLOWED */
           default:
@@ -3415,7 +3572,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
         }  /* switch */
         /* If this modifier is invalid, reset the bit in the new modifiers. */
         if (invalid_modifier || invalid_redecl) {
-          new_modifiers->flags &= (~modifier_value);
+          flags &= (~modifier_value);
         }  /* if */
         if (invalid_modifier) {
           pos_st_diagnostic(es_discretionary_error,
@@ -3426,7 +3583,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
       }  /* if */
     }  /* for */
     /* Update the variable entry with any valid modifiers that were found. */
-    variable->decl_modifiers |= new_modifiers->flags;
+    variable->decl_modifiers |= flags;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (new_modifiers->allocate_segname != NULL) {
@@ -3453,7 +3610,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
   if (new_modifiers->alignment != 0) {
     variable->alignment = new_modifiers->alignment;
   }  /* if */
-  if ((variable->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT)) &&
+  if ((variable->decl_modifiers & DM_DLLFLAGS) &&
       (variable->decl_modifiers & DM_THREAD)) {
     pos_error(ec_dll_thread_conflict, position);
     variable->decl_modifiers &= ~(a_decl_modifier)DM_THREAD;
@@ -5039,7 +5196,8 @@ declaration.
 #if DECL_MODIFIERS_IN_USE
   /* Copy the decl-modifiers into the variable entry. */
   update_variable_decl_modifiers(variable_ptr, decl_modifiers,
-                                 &locator->source_position, redeclaration);
+                                 &locator->source_position, redeclaration,
+                                 is_variable_def);
 #endif /* DECL_MODIFIERS_IN_USE */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (!variable_ptr->source_corresp.is_deprecated) {
@@ -7868,7 +8026,7 @@ Issue a diagnostic if the modifier is invalid.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* The dllimport and dllexport attributes can validly appear on type
      declarations. */
-  flags &= ~(a_decl_modifier)(DM_DLLIMPORT | DM_DLLEXPORT);
+  flags &= ~(a_decl_modifier)DM_DLLFLAGS;
   if (microsoft_mode && flags != 0) {
     pos_diagnostic(es_discretionary_error, ec_declspec_invalid, pos);
   }  /* if */
@@ -10064,9 +10222,8 @@ Return a pointer to the variable that is declared.
   sym->variant.variable.ptr = vp;
   set_source_corresp(&vp->source_corresp, sym);
   /* Copy the decl-modifiers into the variable entry. */
-  update_variable_decl_modifiers(vp, &decl_modifiers,
-                                 &locator.source_position,
-                                 /*is_redecl=*/FALSE);
+  update_variable_decl_modifiers(vp, &decl_modifiers, &locator.source_position,
+                                 /*is_redecl=*/FALSE, /*is_definition=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sym->variant.variable.ptr->declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -12531,14 +12688,14 @@ continue_with_declaration:
         /* Fetch the type of the symbol again, since it might have been
            changed when reconciled with the original declaration. */
         local_type_ptr = var_ptr->type;
-        /* All static data member declarations that that pass though this
+        /* All static data member declarations that pass through this
            code are definitions. */
         is_variable_def = TRUE;
 #if DECL_MODIFIERS_IN_USE
         /* Copy the decl-modifiers into the variable entry. */
-        update_variable_decl_modifiers(var_ptr, &local_decl_modifiers,
-                                       &locator.source_position,
-                                       /*is_redecl=*/TRUE);
+        update_variable_decl_modifiers(
+                     var_ptr, &local_decl_modifiers, &locator.source_position,
+                     /*is_redecl=*/TRUE, /*is_definition=*/TRUE);
 #endif /* DECL_MODIFIERS_IN_USE */
       } else if (is_function) {
         /* A function declaration with no body. */

@@ -4739,6 +4739,58 @@ diagnostics that can be emitted based on this information.
 }  /* scan_inheritance_kind */
 
 
+static a_boolean check_base_class_type(a_type_ptr        type,
+                                       a_type_ptr        base_type)
+/*
+Check whether a derived class type (type) can have a base class of type
+base_type.  If so, return TRUE, and, for some template base classes in
+some Microsoft modes, update the DLL interface of the base type.  Otherwise,
+issue an error and return FALSE.
+*/
+{
+  a_boolean   okay = TRUE;
+  a_type_ptr  base_class_type = skip_typerefs(base_type);
+  /* If it is a const or volatile qualified type name or if it is the class
+     now being defined or if it is a union or if it has been declared but
+     not yet defined, issue an error and skip over this class: it is not a
+     valid base class name. */
+  /* In Microsoft mode the last field of a class may be a zero-length array;
+     such a class may not be a base class. */
+  if (is_qualified_type(base_type) ||
+      base_class_type->kind == (a_type_kind)tk_union ||
+      base_class_type->
+                  variant.class_struct_union.contains_flexible_array_member) {
+    error(ec_bad_base_class);
+    okay = FALSE;
+  } else {
+    /* Force instantiation if the base class is a template class. */
+    check_assertion(is_class_struct_union_type(base_class_type));
+    complete_class_type_is_needed(base_class_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && microsoft_version >= 1300) {
+      /* Recent Microsoft compilers apply the dllimport/dllexport attributes
+         of a derived class to any base class type that is an implicit class
+         template specialization (unless a DLL interface was already
+         specified on that type). */
+      a_decl_modifier  flags = (type->variant.class_struct_union.extra_info
+                                    ->decl_modifiers & DM_DLLFLAGS);
+      if (flags != 0) {
+        update_dll_info_for_class(base_class_type, flags,
+                                  /*explicit_inst=*/FALSE,
+                                  /*adjust_template_base=*/TRUE,
+                                  &error_position);
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (is_incomplete_type(base_class_type)) {
+      error(ec_incomplete_type_not_allowed);
+      okay = FALSE;
+    }  /* if */
+  }  /* if */
+  return okay;
+}  /* check_base_class_type */
+
+
 static void scan_base_specifier_list(a_type_ptr             type_ptr,
                                      a_class_def_state_ptr  class_state)
 /*
@@ -4913,30 +4965,11 @@ or struct definition.  The syntax is
         base_class_type = type_symbol_type(sym);
         bcp_cssp = symbol_supplement_for_class(base_class_type);
         base_class_type->source_corresp.referenced = TRUE;
-        /* If it is a const or volatile qualified type name (where in the
-           ARM is this required?) or if it is the class now being defined or
-           if it is a union or if it has been declared but not yet defined
-           (ARM 10, p. 196), issue an error and skip over this class: it is
-           not a valid base class name. */
-        /* In Microsoft mode the last field of a class may be a zero-length
-           array; such a class may not be a base class. */
-        if (is_qualified_type(base_class_type) ||
-            f_same_entities((base_class_type = skip_typerefs(base_class_type)),
-                            type_ptr) ||
-            base_class_type->kind == (a_type_kind)tk_union ||
-            base_class_type->
-                 variant.class_struct_union.contains_flexible_array_member) {
-          error(ec_bad_base_class);
+        if (!check_base_class_type(type_ptr, base_class_type)) {
+          /* The type of the base class is invalid (e.g., incomplete). */
           goto skip_base_class;
-        } else {
-          /* Force instantiation if the base class is a template class. */
-          check_assertion(is_class_struct_union_type(base_class_type));
-          complete_class_type_is_needed(base_class_type);
-          if (is_incomplete_type(base_class_type)) {
-            error(ec_incomplete_type_not_allowed);
-            goto skip_base_class;
-          }  /* if */
         }  /* if */
+        base_class_type = skip_typerefs(base_class_type);
         if (base_class_type
                        ->variant.class_struct_union.has_zero_init_component) {
           /* At least a part of this base class must be zero initialized when
@@ -6823,10 +6856,10 @@ is TRUE when this is called for a member function definition.
   /* Only dllimport and dllexport are applied to members, so strip off any
      others that may have been declared for the class as a whole (e.g.,
      novtable). */
-  class_decl_modifiers &= (DM_DLLIMPORT | DM_DLLEXPORT);
+  class_decl_modifiers &= DM_DLLFLAGS;
   if (class_decl_modifiers != DM_NONE) {
     decl_modifiers = decl_info->decl_modifiers.flags;
-    if (decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT)) {
+    if (decl_modifiers & DM_DLLFLAGS) {
       /* If there are dll modifiers on the class, they cannot appear on the
          member declaration, too. */
       pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
@@ -6834,7 +6867,7 @@ is TRUE when this is called for a member function definition.
                      decl_modifier_names[(decl_modifiers & DM_DLLIMPORT ?
                                            (int)dmt_dllimport :
                                            (int)dmt_dllexport)]);
-      decl_modifiers &= ~(DM_DLLIMPORT | DM_DLLEXPORT);
+      decl_modifiers &= ~(a_decl_modifier)DM_DLLFLAGS;
     }  /* if */
     if (is_definition && (class_decl_modifiers & DM_DLLIMPORT)) {
       /* Put no dll attribute on an inline member function. */
@@ -8189,7 +8222,7 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
 #if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
   update_variable_decl_modifiers(var, &decl_info->decl_modifiers,
                                  &locator->source_position,
-                                 /*is_redecl=*/FALSE);
+                                 /*is_redecl=*/FALSE, /*is_definition=*/FALSE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Disallow data members in interface types. */
@@ -9618,7 +9651,7 @@ emitted for the position indicated by the given locator.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_decl_modifier  flags = decl_info->decl_modifiers.flags;
 
-  flags &= (DM_DLLIMPORT | DM_DLLEXPORT | DM_NAKED | DM_SELECTANY |
+  flags &= (DM_DLLFLAGS | DM_NAKED | DM_SELECTANY |
             DM_NOTHROW | DM_NOVTABLE | DM_NORETURN | DM_NOINLINE);
   if (decl_info->decl_modifiers.allocate_segname != NULL) {
     /* Only allowed for variables with static storage duration. */

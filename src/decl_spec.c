@@ -716,6 +716,132 @@ given position.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE || NEAR_AND_FAR_ALLOWED
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void update_dll_info_for_class(a_type_ptr         class_type,
+                               a_decl_modifier    flags,
+                               a_boolean          explicit_inst,
+                               a_boolean          adjust_template_base,
+                               a_source_position  *err_pos)
+/*
+Update the given class type to reflect any dllimport/dllexport flags recorded
+in flags.  If explicit_inst is TRUE, this routine is called for the explicit
+instantiation of class_type.  If adjust_template_base is TRUE, class type is a
+base class of a class being defined with a DLL interface: If class_type is a
+template class, its DLL interface may need to be adjusted implicitly.
+*/
+{
+  a_decl_modifier  new_dll_flags = (flags & DM_DLLFLAGS);
+
+  /* dllimport and dllexport should never be set together. */
+  check_assertion(new_dll_flags != DM_DLLFLAGS);
+  if (new_dll_flags != 0) {
+    a_class_type_supplement_ptr  
+               ctsp = class_type->variant.class_struct_union.extra_info;
+    if (is_incomplete_type(class_type)) {
+      /* Apply the new flag values to the class type. */
+      ctsp->decl_modifiers &= ~DM_DLLFLAGS;
+      ctsp->decl_modifiers |= new_dll_flags;
+    } else if (explicit_inst || adjust_template_base) {
+      /* Either an explicit instantiation or a template class used as a base
+         class of a derived class with a DLL interface: Update the flags on
+         the members if needed. */
+      a_decl_modifier  old_dll_flags = (ctsp->decl_modifiers & DM_DLLFLAGS);
+      if (adjust_template_base &&
+          (!class_type->variant.class_struct_union.is_template_class ||
+           class_type->variant.class_struct_union.is_specialized)) {
+        /* The DLL interface of a base class type is only adjusted for base
+           class types that are implicit template specializations.  Otherwise,
+           we warn about inconsisten DLL interfaces in base class type. */
+        if ((ctsp->decl_modifiers & DM_DLLFLAGS) != new_dll_flags) {
+          pos_warning(ec_base_class_has_different_dll_interface, err_pos);
+        }  /* if */
+      } else if (old_dll_flags != 0) {
+        /* The class template instantiation already has a DLL interface: Do
+           not change it. */
+        if (explicit_inst && (old_dll_flags | new_dll_flags) == DM_DLLFLAGS) {
+          /* A previous specialization had the opposite DLL interface, which
+             is an error for explicit instantiations. */
+          pos_error(ec_bad_combination_of_dll_attributes, err_pos);
+        }  /* if */
+      } else {
+        /* Traverse member functions and static data members and apply the
+           DLL interface to those too.  Members of nested classes and in-class
+           friend definitions are not affected.  Then recursively update any
+           base class if appropriate. */
+        a_routine_ptr     rp = ctsp->assoc_scope->routines;
+        a_variable_ptr    vp = ctsp->assoc_scope->variables;
+        a_base_class_ptr  bcp = ctsp->base_classes;
+        /* First update the DLL interface of the class itself. */
+        ctsp->decl_modifiers |= new_dll_flags;
+        for (; rp != NULL; rp = rp->next) {
+          if (!rp->is_specialized) {
+            check_assertion((rp->decl_modifiers & DM_DLLFLAGS) == 0);
+            update_dll_info_for_routine(
+                        rp, new_dll_flags, rp->is_inline, /*is_redecl=*/FALSE,
+                        /*is_definition=*/FALSE, err_pos);
+          }  /* if */
+        }  /* for */
+        for (; vp != NULL; vp = vp->next) {
+          if (!vp->is_specialized) {
+            check_assertion((vp->decl_modifiers & DM_DLLFLAGS) == 0);
+            update_dll_info_for_variable(
+                                       vp, new_dll_flags, /*is_redecl=*/FALSE,
+                                       /*is_definition=*/FALSE, err_pos);
+          }  /* if */
+        }  /* for */
+#if DO_IL_LOWERING
+        if (class_type->typeinfo_var != NULL) {
+          update_dll_info_for_variable(class_type->typeinfo_var,
+                                       new_dll_flags, /*is_redecl=*/FALSE,
+                                       /*is_definition=*/FALSE,
+                                       (a_source_position*)NULL);
+        }  /* if */
+        if (ctsp->virtual_function_table_var != NULL) {
+          update_dll_info_for_variable(ctsp->virtual_function_table_var,
+                                       new_dll_flags, /*is_redecl=*/FALSE,
+                                       /*is_definition=*/FALSE,
+                                       (a_source_position*)NULL);
+        }  /* if */
+#if IA64_ABI
+        if (ctsp->virtual_table_table_var != NULL) {
+          update_dll_info_for_variable(ctsp->virtual_table_table_var,
+                                       new_dll_flags, /*is_redecl=*/FALSE,
+                                       /*is_definition=*/FALSE,
+                                       (a_source_position*)NULL);
+        }  /* if */
+#endif /* IA64_ABI */
+#endif /* DO_IL_LOWERING */
+        for (; bcp != NULL; bcp = bcp->next) {
+          if (bcp->direct) {
+            a_type_ptr       base_type = skip_typerefs(bcp->type);
+            if ((new_dll_flags & DM_DLLEXPORT) != 0 &&
+                base_type->variant.class_struct_union.is_template_class &&
+                !base_type->variant.class_struct_union.is_specialized) {
+              /* The dllexport attribute causes every template base type to be
+                 instantiated "as if" by an explicit template instantiation
+                 directive. */
+              a_symbol_ptr     type_sym = symbol_for(base_type);
+              check_assertion(type_sym != NULL);
+              update_instantiation_flags_for_class(
+                             type_sym, (a_pragma_kind)pk_instantiate,
+                             err_pos, /*is_pragma=*/FALSE, /*top_level=*/TRUE);
+            }  /* if */
+            update_dll_info_for_class(skip_typerefs(bcp->type), new_dll_flags,
+                                      /*explicit_inst=*/FALSE,
+                                      /*adjust_template_base=*/TRUE, err_pos);
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    } else {
+      /* We just ignore dllimport/dllexport on class declarations after a
+         definition has been seen. */
+    }  /* if */
+  }  /* if */
+}  /* update_dll_info_for_class */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* err_pos and class_definition are not used in all 
@@ -725,6 +851,7 @@ void update_extended_decl_info_for_class(
                             a_type_ptr                  class_type,
                             an_extended_decl_info_block *extended_decl_info,
                             a_boolean                   class_definition,
+                            a_boolean                   explicit_inst,
                             a_source_position           *err_pos)
 /*
 Update the specified class type with information based on a previous scan of
@@ -736,16 +863,24 @@ used for diagnostics.
 {
   a_class_type_supplement_ptr
                      ctsp = class_type->variant.class_struct_union.extra_info;
+
   if (ctsp != NULL) {
     /* Record any C++-only declaration modifiers in the class type supplement.
        (See also scan_extended_decl_modifiers and scan_declspec_attributes
        which reject C++-only modifiers in C mode.) */
+    a_decl_modifier  flags = extended_decl_info->decl_modifiers.flags;
 #if NEAR_AND_FAR_ALLOWED
     ctsp->qualifiers = extended_decl_info->qualifiers;
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if DECL_MODIFIERS_IN_USE
-    if (extended_decl_info->decl_modifiers.flags != DM_NONE) {
-      /* The following processing is more complicated that it needs to be so as
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* First handle the dllimport and dllexport attributes. */
+    update_dll_info_for_class(class_type, flags, explicit_inst,
+                              /*adjust_template_base=*/FALSE, err_pos);
+    flags &= ~DM_DLLFLAGS;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (flags != DM_NONE) {
+      /* The following processing is more complicated than it needs to be so as
          to allow for the easy addition of decl-modifiers. */
       a_boolean        any_invalid_redecl = FALSE;
       a_boolean        invalid_modifier, invalid_redecl;
@@ -754,38 +889,12 @@ used for diagnostics.
   
       for (bit_number = 0; bit_number < (int)dmt_last; ++bit_number) {
         modifier_value = (1 << bit_number);
-        if ((extended_decl_info->decl_modifiers.flags & modifier_value) != 0) {
+        if ((flags & modifier_value) != 0) {
           /* This bit is set. */
           invalid_modifier = FALSE;
           invalid_redecl = FALSE;
           switch (bit_number) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            case dmt_dllimport:
-              if (ctsp->decl_modifiers & DM_DLLEXPORT) {
-                if (is_incomplete_type(class_type)) {
-                  /* No definition has been seen yet: replace dllexport by
-                     dllimport. */
-                  ctsp->decl_modifiers &= ~DM_DLLEXPORT;
-                } else {
-                  /* A definition was already seen and that froze the
-                     dllimport/dllexport setting.  Just ignore this one. */
-                  extended_decl_info->decl_modifiers.flags &= ~modifier_value;
-                }  /* if */
-              }  /* if */
-              break;
-            case dmt_dllexport:
-              if (ctsp->decl_modifiers & DM_DLLIMPORT) {
-                if (is_incomplete_type(class_type)) {
-                  /* No definition has been seen yet: replace dllimport by
-                     dllexport. */
-                  ctsp->decl_modifiers &= ~DM_DLLIMPORT;
-                } else {
-                  /* A definition was already seen and that froze the
-                     dllimport/dllexport setting.  Just ignore this one. */
-                  extended_decl_info->decl_modifiers.flags &= ~modifier_value;
-                }  /* if */
-              }  /* if */
-              break;
             case dmt_novtable:
               break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -796,7 +905,7 @@ used for diagnostics.
           /* If this modifier is invalid, reset the bit in the new
              modifiers. */
           if (invalid_modifier || invalid_redecl) {
-            extended_decl_info->decl_modifiers.flags &= (~modifier_value);
+            flags &= (~modifier_value);
           }  /* if */
           if (invalid_modifier) {
             pos_st_diagnostic(es_discretionary_error,
@@ -811,8 +920,9 @@ used for diagnostics.
                        ec_decl_modifiers_incompatible_with_previous_decl,
                        err_pos);
       }  /* if */
-      /* Update the routine entry with any valid modifiers that were found. */
-      ctsp->decl_modifiers |= extended_decl_info->decl_modifiers.flags;
+      /* Update the routine entry with any valid modifiers that were found.
+         (The dllexport/dllimport flags were set separately.) */
+      ctsp->decl_modifiers |= (flags & ~DM_DLLFLAGS);
     }  /* if */
 #endif /* DECL_MODIFIERS_IN_USE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2996,6 +3106,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
       tag_sym->kind != (a_symbol_kind)sk_type) {
     update_extended_decl_info_for_class(class_type, &extended_decl_info,
                                         is_class_definition,
+                                        is_explicit_instantiation,
                                         &locator.source_position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */

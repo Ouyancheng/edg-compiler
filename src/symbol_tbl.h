@@ -3736,7 +3736,9 @@ extern a_symbol_header_ptr find_symbol_header(char             *identifier,
 					      sizeof_t         length,
 					      a_symbol_locator	*locator);
 
-/* Return the symbol for a given IL entry. */
+/*
+Return the symbol associated with an IL entry.
+*/
 #define symbol_for(entry)  ((a_symbol_ptr)(entry)->source_corresp.assoc_info)
 
 /*

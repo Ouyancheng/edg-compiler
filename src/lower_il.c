@@ -3953,6 +3953,8 @@ definition.
   a_type_ptr     array_type;
   a_variable_ptr vtbl_var;
   char           *temp_name;
+  a_class_type_supplement_ptr
+                 ctsp = class_type->variant.class_struct_union.extra_info;
 
 #if ABI_CHANGES_FOR_RTTI
   a_boolean      type_info_case = FALSE;
@@ -4000,6 +4002,13 @@ definition.
      flag. */
   vtbl_var->source_corresp.referenced = FALSE;
   vtbl_var->source_corresp.name_has_been_mangled = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if ((ctsp->decl_modifiers & DM_DLLFLAGS) != 0) {
+    /* Set any required dllimport/dllexport attributes.  If the storage class
+       of the virtual table changes, we will need to update this again. */
+    vtbl_var->decl_modifiers |= (ctsp->decl_modifiers & DM_DLLFLAGS);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if ABI_CHANGES_FOR_RTTI
   /* If this is the virtual function table for type_info, remember it for
      the use of EH lowering. */
@@ -4012,8 +4021,6 @@ have_vtbl_var:;
     /* This is a special construction virtual function table that gets
        recorded elsewhere. */
   } else if (bcp == NULL) {
-    a_class_type_supplement_ptr ctsp =
-                             class_type->variant.class_struct_union.extra_info;
     ctsp->virtual_function_table_var = vtbl_var;
   } else {
 #if !IA64_ABI
@@ -6224,6 +6231,14 @@ table.
       vtbl_var->storage_class = (a_storage_class)sc_static;
       vtbl_var->source_corresp.name_linkage = 
                                             (a_name_linkage_kind)nlk_internal;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* If the table has internal linkage, we cannot make it dllimport or
+         dllexport. */
+      vtbl_var->decl_modifiers &= ~(a_decl_modifier)DM_DLLFLAGS;
+    } else if ((vtbl_var->decl_modifiers & DM_DLLIMPORT) != 0) {
+      /* A virtual table for a dllimport-ed class should not be defined. */
+      definition_needed = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (definition_needed) {
       /* For an externally-linked class whose definition is needed, change the
          variable to an external definition. */

@@ -1,5 +1,28 @@
 Version 3.6
 
+3/1/05   Microsoft compatibility: dllimport/dllexport reworked
+
+Extensive changes were made to the front end's treatment of the dllimport and
+dllexport attributes.  These changes have the following effects:
+  - Whether a warning or an error is issued now matches the diagnostic
+    behavior of Microsoft compilers very closely.
+  - The dllimport attribute is now replaced by dllexport if a dllimport
+    declaration is later defined without the dllimport attribute.
+  - An explicit class template instantiation directive with a dllimport or
+    dllexport attribute causes the member functions and static data members
+    of the instantiated class to be imbued with that same attribute (unless
+    the member was explicitly specialized).
+  - If a dllimport or dllexport attribute is applied to a derived class,
+    the same attribute is applied all its instantiated base classes that
+    have no dllimport/dllexport attributes yet.  ("Instantiated base
+    classes" are those whose type was generated from a template and not
+    explicitly specialized.)
+  - IL lowering now applies the dllimport or dllexport attribute of a class
+    to its virtual tables and typeinfo objects (and, for the IA-64 ABI, its
+    virtual table tables), unless the table or object has internal linkage.
+    If the table or object has attribute dllimport, its definition is not
+    generated.
+
 3/1/05   Collision of mangled names for unnamed class or enum
 
 In some cases the mangled names generated for unnamed class or enum

@@ -484,6 +484,13 @@ extern void update_auto_instantiation_flags(void);
 extern void update_inline_function_flags(void);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
+extern void update_instantiation_flags_for_class(
+                                          a_symbol_ptr          sym,
+					  a_pragma_kind         pragma_kind,
+					  a_source_position     *pos,
+                                          a_boolean             is_pragma,
+                                          a_boolean             top_level);
+
 extern void instantiation_pragma(a_pending_pragma_ptr	ppp);
 
 EXTERN a_type_ptr

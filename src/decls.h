@@ -496,6 +496,21 @@ extern void make_using_directive(a_namespace_ptr    nsp,
 typedef unsigned long a_decl_flag_set;
 
 #if DECL_MODIFIERS_IN_USE
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern void update_dll_info_for_routine(a_routine_ptr         routine,
+                                        a_decl_modifier       flags,
+                                        a_boolean             is_inline,
+                                        a_boolean             is_redecl,
+                                        a_boolean             is_definition,
+                                        a_source_position     *err_pos);
+
+extern void update_dll_info_for_variable(a_variable_ptr       var,
+                                         a_decl_modifier       flags,
+                                         a_boolean             is_redecl,
+                                         a_boolean             is_definition,
+                                         a_source_position     *err_pos);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern
 void update_routine_decl_modifiers(a_routine_ptr               routine,
                                    a_decl_modifiers_block_ptr  new_modifiers,
@@ -508,7 +523,8 @@ extern
 void update_variable_decl_modifiers(a_variable_ptr              variable,
                                     a_decl_modifiers_block_ptr  new_modifiers,
                                     a_source_position           *position,
-                                    a_boolean                   is_redecl);
+                                    a_boolean                   is_redecl,
+                                    a_boolean                   is_definition);
 #else /* !DECL_MODIFIERS_IN_USE */
 /* Define these as macros that expand to nothing. */
 #define update_routine_decl_modifiers(a,b,c,d,e,f) /* nothing */

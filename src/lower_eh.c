@@ -55,6 +55,9 @@ IL lowering itself is done).
 /* Only include this code if it is needed: */
 #if DO_IL_LOWERING
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#include "decls.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -1358,6 +1361,14 @@ typeinfo variable in a COMDAT group.
       typeinfo_var->source_corresp.name_linkage =
                                              (a_name_linkage_kind)nlk_internal;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* If the typeinfo object has internal linkage, we cannot make it dllimport
+       or dllexport. */
+    typeinfo_var->decl_modifiers &= ~(a_decl_modifier)DM_DLLFLAGS;
+  } else if ((typeinfo_var->decl_modifiers & DM_DLLIMPORT) != 0) {
+    /* A typeinfo object for a dllimport-ed class should not be defined. */
+    goto done;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (!is_class_type) {
     /* typeinfo variables for nonclass cases keep whatever storage class
        they already have. */
@@ -1856,6 +1867,9 @@ typeinfo variable in a COMDAT group.
        entered. */
     switch_back_to_original_region(region_to_switch_back_to);
   }
+#if MICROSOFT_EXTENSIONS_ALLOWED
+done:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   error_position = saved_error_position;
 }  /* define_typeinfo_var */
 
@@ -1932,6 +1946,15 @@ unit.
       use_comdat = !force_static;
 #endif /* IA64_ABI */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (!force_static && (typeinfo_var->decl_modifiers & DM_DLLIMPORT) != 0) {
+      /* The typeinfo object for dllimport-ed classes should not be defined.
+         However, if the object has internal linkage, we cannot make it
+         dllimport or dllexport and hence we should proceed as if it were
+         neither. */
+      definition_needed = FALSE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (definition_needed) {
       /* The definition is needed, so force definitions on the typeinfo
          variables for the base classes of this class, because they
@@ -2123,11 +2146,23 @@ pointers-to-members).
       /* The typeinfo variable is supposed to be defined right now (for
          non-class cases). */
       define_typeinfo_var(type, force_static, use_comdat);
-    } else if (in_typeinfo_var_generation_phase &&
-               is_immediate_class_type(type)) {
-      /* If we're already in the definition generation phase, generate the
-         definition for a class typeinfo now. */
-      generate_class_typeinfo_var_definition(type);
+    } else if (is_immediate_class_type(type)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode &&
+          typeinfo_var->storage_class != (a_storage_class)sc_static) {
+        /* Set any required dllimport/dllexport attributes.  If the storage
+           class of the virtual table changes (to sc_static), we will need to
+           update this again. */
+        a_class_type_supplement_ptr
+                           ctsp = type->variant.class_struct_union.extra_info;
+        typeinfo_var->decl_modifiers |= (ctsp->decl_modifiers & DM_DLLFLAGS);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (in_typeinfo_var_generation_phase) {
+        /* If we're already in the definition generation phase, generate the
+           definition for a class typeinfo now. */
+        generate_class_typeinfo_var_definition(type);
+      }  /* if */
     }  /* if */
   }  /* if */
 #if !ABI_CHANGES_FOR_RTTI || IA64_ABI

@@ -59,11 +59,20 @@ extern void scan_extended_decl_modifiers(
 extern void scan_and_discard_extended_decl_modifiers(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern void update_dll_info_for_class(a_type_ptr         class_type,
+                                      a_decl_modifier    flags,
+                                      a_boolean          explicit_inst,
+                                      a_boolean          adjust_template_base,
+                                      a_source_position  *err_pos);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if DECL_MODIFIERS_IN_USE || NEAR_AND_FAR_ALLOWED
 extern void update_extended_decl_info_for_class(
                             a_type_ptr                   class_type,
                             an_extended_decl_info_block  *extended_decl_info,
                             a_boolean                    class_definition,
+                            a_boolean                    explicit_inst,
                             a_source_position            *err_pos);
 #endif /* DECL_MODIFIERS_IN_USE || NEAR_AND_FAR_ALLOWED */
 

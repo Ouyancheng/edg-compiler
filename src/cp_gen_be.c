@@ -4374,8 +4374,8 @@ Print a set of Microsoft declaration modifiers.
 */
 {
   if (decl_modifiers &
-      (DM_DLLIMPORT | DM_DLLEXPORT | DM_THREAD | DM_NAKED | DM_SELECTANY |
-       DM_NORETURN | DM_NOTHROW | DM_NOVTABLE | DM_NOINLINE)) {
+      (DM_DLLFLAGS | DM_THREAD | DM_NAKED | DM_SELECTANY | DM_NORETURN |
+       DM_NOTHROW | DM_NOVTABLE | DM_NOINLINE)) {
     write_tok_str("__declspec( ");
     if (decl_modifiers & DM_DLLIMPORT) {
       write_tok_str("dllimport ");

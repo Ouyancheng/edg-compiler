@@ -2238,8 +2238,7 @@ declaration modifiers.
 {
   a_boolean        result = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_decl_modifier  dm_mask = (a_decl_modifier)(DM_DLLIMPORT |
-                                               DM_DLLEXPORT |
+  a_decl_modifier  dm_mask = (a_decl_modifier)(DM_DLLFLAGS |
                                                DM_FORCEINLINE |
                                                DM_NAKED |
                                                DM_NOINLINE |
@@ -2419,8 +2418,7 @@ declaration modifiers.
 {
   a_boolean        result = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_decl_modifier  dm_mask = (a_decl_modifier)(DM_DLLIMPORT | DM_DLLEXPORT |
-                                               DM_SELECTANY);
+  a_decl_modifier  dm_mask = (a_decl_modifier)(DM_DLLFLAGS | DM_SELECTANY);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

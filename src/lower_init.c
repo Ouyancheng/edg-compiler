@@ -9198,9 +9198,18 @@ to the variable.
 #else /* IA64_ABI */
   /* Create the array variable. */
   var_name = mangled_virtual_table_table_name(class_type);
-  var = make_lowered_variable(var_name, /*alrady_il_name=*/FALSE, array_type,
+  var = make_lowered_variable(var_name, /*already_il_name=*/FALSE, array_type,
                               (a_storage_class)sc_extern);
   var->source_corresp.name_has_been_mangled = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if ((ctsp->decl_modifiers & DM_DLLFLAGS) != 0) {
+    /* Set any required dllimport/dllexport attributes. */
+    var->decl_modifiers |= (ctsp->decl_modifiers & DM_DLLFLAGS);
+    update_dll_info_for_variable(var, ctsp->decl_modifiers,
+                                 /*is_redecl=*/FALSE, /*is_definition=*/FALSE,
+                                 (a_source_position*)NULL);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ctsp->virtual_table_table_var = var;
 done:
 #endif /* IA64_ABI */

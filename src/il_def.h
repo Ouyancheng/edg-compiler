@@ -3716,6 +3716,8 @@ about variables and routines.
 #define DM_DLLEXPORT	(1 << (int)dmt_dllexport)
 			/* TRUE if the declaration includes the
 			   Microsoft __declspec(dllexport) specifier. */
+#define DM_DLLFLAGS	(DM_DLLIMPORT | DM_DLLEXPORT)
+			/* Convenience macro to select DLL-related flags. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 #define DM_THREAD	(1 << (int)dmt_thread)
