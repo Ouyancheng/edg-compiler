@@ -1,5 +1,21 @@
 Version 2.44
 
+3/7/00   Abort on pointer-to-member constant cast in initializer
+
+In some rare situations involving the casting of a pointer-to-member function
+constant that appears in a local static initializers, the front end would
+abort processing while lowering the C++ IL.  For example:
+
+  struct X {};
+  struct Y { void mf(); };
+  typedef void (X::*CB)();
+  struct S { int i; CB c; };
+  void f() {
+    static S s[] = { { 0, (CB)(&Y::mf) } };  // Processing aborts here
+  }
+
+This is now fixed.
+
 3/5/00   Abort on name mangling for Microsoft __uuidof(T)
 
 An abort in name mangling, with the message
