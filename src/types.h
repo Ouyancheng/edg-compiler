@@ -76,6 +76,19 @@ extern a_base_class_ptr find_base_class_of(a_type_ptr derived_class,
                                            a_type_ptr base_class);
 extern a_boolean is_same_class_or_base_class_thereof(a_type_ptr class_1,
                                                      a_type_ptr class_2);
+extern a_boolean f_related_class_pointers(a_type_ptr       type_1,
+                                          a_type_ptr       type_2,
+                                          a_boolean        *downward_cast,
+                                          a_base_class_ptr *bcp);
+/*
+Return TRUE if type_1 and type_2 are related class pointers.  If they
+are, set *downward_cast if type_1 --> type_2 is a downward cast, and
+set *bcp to point to the base class entry that shows the relationship.
+*/
+#define related_class_pointers(type_1, type_2, downward_cast, bcp)    \
+  (C_dialect == C_dialect_cplusplus &&                                \
+   is_pointer_type(type_1) && is_pointer_type(type_2) &&              \
+   f_related_class_pointers(type_1, type_2, downward_cast, bcp))
 
 extern void check_fixup_list_for_array_types(void);
 extern void add_if_necessary_to_array_fixup_list(a_type_ptr array_type);

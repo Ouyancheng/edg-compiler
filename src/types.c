@@ -536,6 +536,42 @@ a base class of class_1.  Only called in C++ mode.
 }  /* is_same_class_or_base_class_thereof */
 
 
+a_boolean f_related_class_pointers(a_type_ptr       type_1,
+                                   a_type_ptr       type_2,
+                                   a_boolean        *downward_cast,
+                                   a_base_class_ptr *bcp)
+/*
+type_1 and type_2 are pointer types.  Check to see if they are pointers to
+related class types, and return TRUE if so.  If they are, set *downcard_cast
+if type_1 --> type_2 is a downward cast, and set *bcp to point to the base
+class entry that shows the relationship.  Called from the macro
+related_class_pointers.
+*/
+{
+  a_boolean  related_classes = FALSE;
+  a_type_ptr type_1_pointed_to, type_2_pointed_to;
+
+  *downward_cast = FALSE;
+  *bcp = NULL;
+  type_1_pointed_to = type_pointed_to(type_1);
+  type_2_pointed_to = type_pointed_to(type_2);
+  if (is_class_struct_union_type(type_1_pointed_to) &&
+      is_class_struct_union_type(type_2_pointed_to)) {
+    /* The source and destination types are both pointers to classes.
+       See if the classes are related. */
+    if ((*bcp = find_base_class_of(type_1_pointed_to,
+                                   type_2_pointed_to)) != NULL) {
+      related_classes = TRUE;
+      *downward_cast = TRUE;
+    } else if ((*bcp = find_base_class_of(type_2_pointed_to,
+                                          type_1_pointed_to)) != NULL) {
+      related_classes = TRUE;
+    }  /* if */
+  }  /* if */
+  return related_classes;
+}  /* f_related_class_pointers */
+
+
 void check_fixup_list_for_array_types(void)
 /*
 Check the list of array types to be fixed up, to see if any of their element
@@ -2256,7 +2292,6 @@ points to the constant value.
 
   arg_match->match_level = aml_none;
   arg_match->downward_cast_levels = 0;
-  arg_match->qualifiers_added = FALSE;
   if (is_error_type(arg_type) || is_error_type(param_type)) {
     /* An error type matches anything, but not very well. */
     arg_match->match_level = aml_error;
@@ -2267,7 +2302,7 @@ points to the constant value.
                         /*suppress_extensions=*/TRUE,
                         ec_incompatible_param, &warning_suggested)) {
       /* Match with standard conversions. */
-      arg_match->match_level = aml_standard_conv;
+      arg_match->match_level = aml_std_conversion;
       arg_match->warning_suggested = warning_suggested;
     } else {
       /* No match. */
@@ -2291,10 +2326,9 @@ Compare two argument match summary entries and return
 {
   int cmp;
 
-  /* There are three parts to the key to be compared.  match_level is the
+  /* There are two parts to the key to be compared.  match_level is the
      primary key; downward_cast_levels is the secondary key, but it does
-     not always apply; and qualifiers_added is the tertiary key.  Smaller
-     values mean better matches. */
+     not always apply. */
   if (arg_match1->match_level < arg_match2->match_level) {
     cmp = 1;
   } else if (arg_match1->match_level > arg_match2->match_level) {
@@ -2313,14 +2347,8 @@ Compare two argument match summary entries and return
         goto have_cmp;
       }  /* if */
     }  /* if */
-    /* Note that FALSE (0) < TRUE (1), which is right for these comparisons. */
-    if (arg_match1->qualifiers_added < arg_match2->qualifiers_added) {
-      cmp = 1;
-    } else if (arg_match1->qualifiers_added > arg_match2->qualifiers_added) {
-      cmp = -1;
-    } else {
-      cmp = 0;
-    }  /* if */
+    /* The matches are equal. */
+    cmp = 0;
   }  /* if */
 have_cmp:
   return cmp;
