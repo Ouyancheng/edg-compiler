@@ -1,5 +1,13 @@
 Version 3.6
 
+2/1/05   Compile-time floating-point processing under Cygwin
+
+The GNU headers under Cygwin define the isfinite macro; however, it is
+unreliable and gives incorrect answers under some circumstances, resulting
+in spurious overflow warnings and incorrect values when floating point
+literals are converted or manipulated.  float_pt.c has now been configured
+not to use the isfinite macro under Cygwin.
+
 1/31/05  GNU C++ value-initialization quirks
 
 The GNU C++ compiler does not zero base classes named in ctor-initializers

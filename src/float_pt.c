@@ -92,8 +92,9 @@ EXTERN_C int finite(double x);
 #define is_NaN(x) (isnan((double)(x)))
 #endif /* __linux__ */
 #endif /* ifdef isnan */
-/* C99 has the "isfinite" macro.  Linux headers do too. */
-#ifdef isfinite
+/* C99 has the "isfinite" macro.  Linux headers do, too.  Cygwin has it, but
+   it is unreliable. */
+#if defined(isfinite) && !defined(__CYGWIN__)
 #define is_finite(x) (isfinite(x))
 #else /* !defined(isfinite) */
 /* The "finite" function takes a double argument, so it doesn't work
