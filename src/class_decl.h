@@ -49,10 +49,9 @@ extern void set_class_assoc_operator_delete_routine(a_type_ptr class_type);
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 
 extern a_boolean is_assignment_operator_for_copy(
-                                              a_symbol_ptr  sym,
-                                              a_boolean     *is_ref_arg,
-                                              a_boolean     *accepts_const,
-                                              a_boolean     *accepts_volatile);
+                                            a_symbol_ptr          sym,
+                                            a_boolean             *is_ref_arg,
+                                            a_type_qualifier_set  *qualifiers);
 
 extern a_symbol_ptr member_function_redecl_sym(a_symbol_ptr  sym,
                                                a_type_ptr    type);
