@@ -124,6 +124,21 @@ static void scan_expr_full(an_operand               *result,
                  (expression_kind), (local_options))
 
 
+/*
+Interfaces to add_stop_token and remove_stop_token to be used for matching
+closing tokens, like ")" for "(".  These mark the beginning and end of
+a nested construct.
+*/
+#define add_matching_stop_token(token)                                \
+{ add_stop_token(token);                                              \
+  expr_stack->nested_construct_depth++;                               \
+}  /* add_matching_stop_token */
+#define remove_matching_stop_token(token)                             \
+{ remove_stop_token(token);                                           \
+  expr_stack->nested_construct_depth--;                               \
+}  /* remove_matching_closing_token */
+
+
 static a_boolean operation_has_side_effects(an_expr_node_ptr node)
 /*
 Return TRUE if the (operation) node has side effects.
@@ -353,9 +368,12 @@ current expression (used to decide how a comma should be treated).
       break;
     case tok_gt:
       /* ">" can be the end of a template argument list: A<int, 2> */
-      if (expr_stack->is_template_arg_expression) {
+      /* It's not if there is a set of parentheses or the like inside the
+         template argument expression, since the ">" is then not top-level. */
+      if (expr_stack->is_template_arg_expression &&
+          expr_stack->nested_construct_depth == 0) {
 #if 0
-        /* Highly simplified processing. */
+        /* Simplified processing. */
 #endif
         done = TRUE;
       }  /* if */
@@ -478,7 +496,7 @@ Syntax:
 
   /* Get past the opening bracket. */
   (void)get_token();
-  add_stop_token(tok_rbracket);
+  add_matching_stop_token(tok_rbracket);
 
   /* Scan the second operand. */
   scan_expr(&operand_2, PREC_LOWEST, expression_kind, EOPT_NO_OPTIONS);
@@ -553,7 +571,7 @@ Syntax:
   }  /* if */
 
   (void)required_token(tok_rbracket, ec_exp_rbracket);
-  remove_stop_token(tok_rbracket);
+  remove_matching_stop_token(tok_rbracket);
 
   copy_source_position(operand_1->position, error_position);
   copy_source_position(operand_1->position, result->position);
@@ -937,7 +955,7 @@ and return a pointer to it in *arg_operand_list.
     (void)get_token();
   }  /* if */
   /* Add ")" as a stop token. */
-  add_stop_token(tok_rparen);
+  add_matching_stop_token(tok_rparen);
 
   /* Count the arguments in case varargs is used. */
   arg_ctr = 0;
@@ -1160,7 +1178,7 @@ and return a pointer to it in *arg_operand_list.
 
   /* Check for the closing paren. */
   (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_stop_token(tok_rparen);
+  remove_matching_stop_token(tok_rparen);
   /* Return argument list pointer to caller. */
   *p_argument_list = argument_head;
   db_exit();
@@ -1201,7 +1219,7 @@ error err_code.
   an_expr_node_ptr expr;
   an_operand       result;
 
-  add_stop_token(tok_rparen);
+  add_matching_stop_token(tok_rparen);
   /* Since the syntax has an expression-list even in the single-expression
      case, a top-level comma is not allowed. */
   scan_expr(&result, PREC_LOWEST, expression_kind,
@@ -1212,7 +1230,7 @@ error err_code.
                            expression_kind, err_code);
    /* Check for the required closing parenthesis. */
   check_closing_paren_after_expr_list();
-  remove_stop_token(tok_rparen);
+  remove_matching_stop_token(tok_rparen);
   expr = make_node_from_operand(&result);
   return expr;
 }  /* scan_parenthesized_initializer_expression */
@@ -3154,10 +3172,10 @@ Syntax:
   if (parenthesized_type) {
     /* Scan the type-name for a parenthesized type. */
     copy_source_position(pos_curr_token, type_position);
-    add_stop_token(tok_rparen);
+    add_matching_stop_token(tok_rparen);
     type_name(&sizeof_type);
     (void)required_token(tok_rparen, ec_exp_rparen);
-    remove_stop_token(tok_rparen);
+    remove_matching_stop_token(tok_rparen);
     /* If the top type is a reference, drop the reference so that the sizeof
        applies to the type referenced (ARM 5.3.2). */
     if (is_reference_type(sizeof_type)) {
@@ -3254,7 +3272,7 @@ be inappropriate, because the feature is probably used to implement
   (void)get_token();
   /* Check for and pass over the left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
-  add_stop_token(tok_rparen);
+  add_matching_stop_token(tok_rparen);
   if (is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
                        /*real_declarator_allowed=*/FALSE)) {
     /* Scan a type name. */
@@ -3287,7 +3305,7 @@ be inappropriate, because the feature is probably used to implement
   make_constant_operand(&constant, result);
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_stop_token(tok_rparen);
+  remove_matching_stop_token(tok_rparen);
 
   /* Set the error position to the starting position. */
   copy_source_position(start_position, error_position);
@@ -3322,7 +3340,7 @@ because the feature is used to implement offsetof, a standard feature.
   /* Check for and pass over the left parenthesis. */
   (void)get_token();
   (void)required_token(tok_lparen, ec_exp_lparen);
-  add_stop_token(tok_rparen);
+  add_matching_stop_token(tok_rparen);
   /* Scan the address expression. */
   scan_expr(result, PREC_LOWEST, (an_expression_kind)ek_init_constant,
             EOPT_NO_OPTIONS);
@@ -3356,7 +3374,7 @@ because the feature is used to implement offsetof, a standard feature.
   }  /* if */
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_stop_token(tok_rparen);
+  remove_matching_stop_token(tok_rparen);
 
   /* Set the error position to the starting position. */
   copy_source_position(start_position, error_position);
@@ -3810,7 +3828,7 @@ As an anachronism, allow an expression inside the [ ].
     /* The [ ] for array deletion is present. */
     array_delete = TRUE;
     (void)get_token();
-    add_stop_token(tok_rbracket);
+    add_matching_stop_token(tok_rbracket);
     if (curr_token != tok_rbracket) {
       /* Anachronism -- there's an expression between the brackets, presumably
          indicating the number of elements in the array. */
@@ -3819,7 +3837,7 @@ As an anachronism, allow an expression inside the [ ].
       /* The expression is ignored. */
     }  /* if */
     (void)required_token(tok_rbracket, ec_exp_rbracket);
-    remove_stop_token(tok_rbracket);
+    remove_matching_stop_token(tok_rbracket);
   }  /* if */
   /* Scan the pointer expression. */
   scan_expr(&operand, PREC_PREFIX, expression_kind, EOPT_NO_OPTIONS);
@@ -4400,7 +4418,7 @@ or
      but that's okay; the caller straightens it out. */
   copy_source_position(pos_curr_token, start_position);
 
-  add_stop_token(tok_rparen);
+  add_matching_stop_token(tok_rparen);
 
   /* Get past the opening lparen.  If a left parenthesis was trapped,
      we're already past it, so do not advance. */
@@ -4425,7 +4443,7 @@ or
 
     /* The next token should be the closing rparen. */
     (void)required_token(tok_rparen, ec_exp_rparen);
-    remove_stop_token(tok_rparen);
+    remove_matching_stop_token(tok_rparen);
 
     /* Scan the expression to be cast. */
     cast_options = EOPT_OPERAND_OF_CAST;
@@ -4451,7 +4469,7 @@ or
                     (EOPT_OPERAND_OF_CAST | EOPT_OPERAND_OF_ADDRESS_OF)) |
                    EOPT_ALLOW_BOUND_FUNCTION);
     (void)required_token(tok_rparen, ec_exp_rparen);
-    remove_stop_token(tok_rparen);
+    remove_matching_stop_token(tok_rparen);
   }  /* if */
 
   /* Set the error position to the starting position. */
@@ -4584,7 +4602,7 @@ expression_kind indicates the kind of the current expression.
     }  /* if */
   } else {
     /* Not a constructor case; obeys the same rules as a C-style cast. */
-    add_stop_token(tok_rparen);
+    add_matching_stop_token(tok_rparen);
     /* Scan the expression to be cast.  If the expression is omitted,
        use zero (the ARM says the result is undefined, so zero is
        acceptable; zero is used because it can be cast to any scalar
@@ -4609,7 +4627,7 @@ expression_kind indicates the kind of the current expression.
             expression_kind, &start_position);
     /* Check for the closing parenthesis. */
     check_closing_paren_after_expr_list();
-    remove_stop_token(tok_rparen);
+    remove_matching_stop_token(tok_rparen);
   }  /* if */
   /* Set the error position to the starting position. */
   copy_source_position(start_position, error_position);
@@ -5541,10 +5559,12 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
      operand is non-constant or a non-zero constant, and if we are currently
      evaluating expressions. */
   (void)get_token();
+  expr_stack->nested_construct_depth++;
   scan_expr(&operand_2, PREC_LOWEST, expr2_kind, EOPT_NO_OPTIONS);
   do_operand_transformations(&operand_2,
                              TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
                              expression_kind);
+  expr_stack->nested_construct_depth--;
 
   /* Save the position of the (expected) colon. */
   copy_source_position(pos_curr_token, operator_position);
