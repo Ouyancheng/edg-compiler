@@ -1676,6 +1676,8 @@ scope is that of a class definition.
                declarations.  Issue an error, but go ahead and scan the
                expression. */
 	    a_scope_kind	parent_scope_kind;
+	    a_boolean		is_member_function;
+	    a_boolean		cache_default_arg;
             if (!default_arg_expr_allowed) {
               pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
             } else if (locator->is_operator_name) {
@@ -1698,35 +1700,54 @@ scope is that of a class definition.
             /* Check the scope immediately containing the current scope, which
                is a function prototype scope.  We may have to cache the
                default argument tokens and rescan them later. */
+	    cache_default_arg = FALSE;
+	    is_member_function = FALSE;
 	    parent_scope_kind = scope_stack[depth_scope_stack-1].kind;
-            if (default_arg_expr_allowed &&
-                (parent_scope_kind == (a_scope_kind)sck_class_struct_union ||
-                 (parent_scope_kind == 
-				    (a_scope_kind)sck_template_declaration) &&
-		  ptp->type_involves_template_param) &&
+	    if (default_arg_expr_allowed) {
+	      if (parent_scope_kind == (a_scope_kind)sck_class_struct_union) {
+		/* A member function of a class (normal or template) inside
+		   a class declaration. */
+		cache_default_arg = TRUE;
+		is_member_function = TRUE;
+	      } else if (parent_scope_kind ==
+				     (a_scope_kind)sck_template_declaration &&
+			 ptp->type_involves_template_param) {
+		/* A function template declaration. */
+		cache_default_arg = TRUE;
+	      } else if (parent_scope_kind ==
+				    (a_scope_kind)sck_class_reactivation &&
+			 scope_stack[depth_scope_stack-2].kind ==
+				     (a_scope_kind)sck_template_declaration) {
+		/* An member function declaration of a template class
+		   outside of the class declaration.  This is not supported. */
+                pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
+		default_arg_expr_allowed = FALSE;
+	      }  /* if */
+ 	    }  /* if */
+            if (cache_default_arg &&
                 curr_token != tok_comma && curr_token != tok_rparen &&
                 curr_token != tok_semicolon && curr_token != tok_rbrace && 
                 curr_token != tok_lbrace) {
-              /* This function declaration appears within a class definition
-		 or is a function template definition.  The tokens for
-		 the default argument expression are cached at this
-		 point and only scanned once the entire class has been
-                 defined.  This is because forward references may legally
-                 appear in the default argument expression (C++ draft standard,
-                 section 8.2.6, para 3).  Note that only those parameters
-		 that involve template parameters have their default values
-		 cached and scanned later.  */
-	      if (parent_scope_kind == (a_scope_kind)sck_class_struct_union) {
+	      /* The default argument should be cached because it is either
+		 in a member function declaration inside a class or in
+		 a function template declaration.  The defaults arguments
+		 for member function are cached at this point and only
+		 scanned once the entire class has been defined.
+		 This is because forward references may legally appear
+		 in the default argument expression (C++ draft standard,
+                 section 8.2.6, para 3).  Function template whose arguments
+		 involve template parameters are cached here and scanned
+		 when an instance of the function template is created. */
+	      if (is_member_function) {
 		/* Scan the default arguments for a member function. */
                 prescan_member_function_default_arg_expr(ptp);
               } else {
 		/* Scan the default arguments for a function template. */
-		check_assertion(parent_scope_kind ==
-				      (a_scope_kind)sck_template_declaration);
 		prescan_function_template_default_arg_expr(ptp);
 	      }  /* if */
             } else {
-              /* Not a class scope -- or else a syntax error.  Go ahead and
+              /* Not a case in which the default argument should be
+		 cached -- or else a syntax error.  Go ahead and
                  scan the expression and convert it to the required type. */
               scan_default_arg_expr(default_arg_expr_allowed ?
                                       ptp : (a_param_type_ptr)NULL);
@@ -2923,8 +2944,8 @@ one without a default argument, and report the error.
   /* Loop through the single list. */
   ptp = skip_typerefs(type)->variant.routine.extra_info->param_type_list;
   for (; ptp != NULL; ptp = ptp->next) {
-    if (ptp->default_arg_expr != NULL && ptp->next != NULL &&
-        ptp->next->default_arg_expr == NULL) {
+    if (ptp->has_default_arg && ptp->next != NULL &&
+        !ptp->next->has_default_arg) {
       /* Current parameter has a default argument and its successor does
          not.  Report the error and break out of the loop. */
       error(ec_default_arg_not_at_end);
@@ -2953,14 +2974,14 @@ merging of the default arguments occurs in composite_type.
   ptp1 = skip_typerefs(orig_type)->variant.routine.extra_info->param_type_list;
   ptp2 = skip_typerefs(new_type)->variant.routine.extra_info->param_type_list;
   for (; ptp1 != NULL; ptp1 = ptp1->next, ptp2 = ptp2->next) {
-    if (ptp1->default_arg_expr != NULL) {
+    if (ptp1->has_default_arg) {
       /* The parameter on the original type has a default arg. */
-      if (ptp2->default_arg_expr != NULL) {
+      if (ptp2->has_default_arg) {
         /* So does the parameter on the new type.  This is illegal. */
         redecl_error = TRUE;
       }  /* if */
       default_arg_required = TRUE;
-    } else if (ptp2->default_arg_expr != NULL) {
+    } else if (ptp2->has_default_arg) {
       default_arg_required = TRUE;
     } else if (default_arg_required) {
       not_at_end_of_list_error = TRUE;
@@ -3793,9 +3814,12 @@ class template.
         internal_error("decl_function_template:  unexpected linked symbol");
       }  /* if */
 #endif /* CHECKING */
-#if 0
-      /* Error checking here? -- reconcile_routine_types call? -- etc. */
-#endif /* if 0 */
+      /* Merge type information from the two declarations. */
+      reconcile_routine_types(sym->variant.template_info->
+						variant.function.routine,
+			       type_ptr,
+                              /*preserve_rout_type=*/TRUE,
+                              /*preserve_type_ptr=*/FALSE);
     }  /* if */
   }  /* if */
   tssp = sym->variant.template_info;

@@ -1336,12 +1336,11 @@ Do some simple consistency checking on a function template argument list.
 #endif /* CHECKING */
 
 
-static void delayed_scan_for_function_template_default_args
-			 (a_routine_ptr			     templ_rout,
-			  a_routine_ptr			     rout_ptr,
-			  a_symbol_ptr			     rout_sym,
-			  a_template_instance_ptr	     tip,
-			  a_template_symbol_supplement_ptr   tssp)
+void delayed_scan_for_function_template_default_args
+			 (a_routine_ptr			    templ_rout,
+			  a_routine_ptr			    rout_ptr,
+			  a_template_symbol_supplement_ptr  tssp,
+			  a_boolean			    is_member_function)
 /*
 Rescan the default arguments of a function template that involve
 template parameters in the type of the function parameter.
@@ -1356,10 +1355,6 @@ template parameters in the type of the function parameter.
   if (daefp != NULL) {
     templ_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
     ptp = rout_type->variant.routine.extra_info->param_type_list;
-    /* Push the template instantiation scope. */
-    (void)push_scope((a_scope_kind)sck_template_instantiation,
-                     tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr,
-                     rout_sym, tip->template_sym, tip->arg_list);
     /* The function prototype scope should be reactivated and its symbols
        reentered because parameter names hide names from enclosing scopes
        and, moreover, may not be used in default argument expressions
@@ -1375,10 +1370,11 @@ template parameters in the type of the function parameter.
     /* Loop through the list of param_type entries and the default argument
        expression entries that correspond to the param_type entries
        for parameters that involve template parameters and have
-       default arguments. */
+       default arguments.  This processing is also done for all default
+       arguments of member functions of template classes. */
     for (; ptp != NULL; ptp = ptp->next, templ_ptp = templ_ptp->next) {
       if (templ_ptp->has_default_arg &&
-	  templ_ptp->type_involves_template_param) {
+	  (templ_ptp->type_involves_template_param || is_member_function)) {
 	check_assertion(daefp != NULL);
         /* Update the default argument expression entry to point to the
            current param type entry. */
@@ -1395,8 +1391,6 @@ template parameters in the type of the function parameter.
     tssp->variant.function.func_info.prototype_scope_symbols =
                                  scope_stack[depth_scope_stack].symbols;
     /* Pop the reactivated function prototype scope off the stack. */
-    pop_scope();
-    /* Pop the template instantiation scope. */
     pop_scope();
   }  /* if */
 }  /* delayed_scan_for_function_template_default_args */
@@ -1481,9 +1475,14 @@ templ_sym).
     /* If there are default arguments whose types depend on template
        parameters, scan the default argument expressions. */
     if (tssp->variant.function.def_arg_expr_list != NULL) {
-      delayed_scan_for_function_template_default_args(templ_rout,
-						      rp, sym, tip,
-						      tssp);
+      /* Push the template instantiation scope. */
+      (void)push_scope((a_scope_kind)sck_template_instantiation,
+                       tssp->declaration_scope, (a_type_ptr)NULL, rp,
+                       sym, tip->template_sym, tip->arg_list);
+      delayed_scan_for_function_template_default_args
+			(templ_rout, rp, tssp, /*is_member_function=*/FALSE);
+      /* Pop the template instantiation scope. */
+      pop_scope();
     }  /* if */
   }  /* if */
   /* Normally, function instantiation entries are not marked for actual
@@ -2786,8 +2785,8 @@ entry is pushed on the scope stack.
 	if (daefp != NULL) {
 	  while (daefp->next != NULL) daefp = daefp->next;
 	  daefp->next = tssp->variant.function.def_arg_expr_list;
+          tssp->variant.function.def_arg_expr_list = curr_default_args;
 	}  /* if */
-        tssp->variant.function.def_arg_expr_list = curr_default_args;
         tssp->parameters = template_param_list;
         tssp->declaration_scope = scope_stack[decl_scope_level].number;
         cache_function_template_tokens(&tssp->token_cache,

@@ -271,29 +271,49 @@ routine recursively for each nested class.
          function is invoked rather than when it's class is referenced. */
       /* Loop through the list of routine fixup entries. */
       for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
-        if (is_nonreal_instantiation) {
-          /* The template symbol supplement is needed for prototype
-             instantiations. */
-          sym = (a_symbol_ptr)rfp->routine->source_corresp.assoc_info;
-          if (sym->kind == (a_symbol_kind)sk_member_function) {
-            tssp = sym->variant.routine.instance_ptr->template_info;
-          } else {
-            tssp = sym->variant.template_info;
-          }  /* if */
+        /* The template symbol supplement is needed for prototype
+           instantiations and for default argument processing for
+	   real instantiations. */
+        sym = (a_symbol_ptr)rfp->routine->source_corresp.assoc_info;
+        if (!is_nonreal_instantiation) {
+	  /* Get the template symbol from the instance pointer. */
+	  sym = sym->variant.routine.instance_ptr->template_sym;
+	}  /* if */
+        if (sym->kind == (a_symbol_kind)sk_member_function) {
+          tssp = sym->variant.routine.instance_ptr->template_info;
+        } else {
+          tssp = sym->variant.template_info;
         }  /* if */
         /* Look at default argument expressions first. */
         daefp = rfp->def_arg_expr_fixup_list;
         if (daefp != NULL) {
           if (is_nonreal_instantiation) {
-            /* Move the default arg expr tokens onto the template supplement
-               for the routine. */
-	    tssp->variant.function.def_arg_expr_list = daefp;
+	    a_def_arg_expr_fixup_ptr	daefp_end;
+	    /* Link the default argument list from the template supplement
+	       onto the end of the list of current default arguments.  The
+ 	       list in the supplement must be for arguments that follow the
+	       new list (otherwise it would be an error).  Find the end
+	       of the current list and link the existing list to the end. */
+	    daefp_end = daefp;
+	    if (daefp_end != NULL) {
+	      while (daefp_end->next != NULL) daefp_end = daefp_end->next;
+	      daefp_end->next = tssp->variant.function.def_arg_expr_list;
+	      tssp->variant.function.def_arg_expr_list = daefp;
+	    }  /* if */
+	    /* Make sure no further processing will be done here and
+	       make sure that the list isn't freed. */
 	    daefp = NULL;
+	    rfp->def_arg_expr_fixup_list = NULL;
           } else {
             /* Real instantiation -- discard the token caches. */
             for (; daefp != NULL; daefp = daefp->next) {
               discard_token_cache(&daefp->token_cache);
             }  /* for */
+	    /* Scan the default arguments associated with the template
+	       for this function. */
+	    delayed_scan_for_function_template_default_args
+			(tssp->variant.function.routine, rfp->routine, tssp,
+			 sym->kind == (a_symbol_kind)sk_member_function);
           }  /* if */
         }  /* if */
         if (rfp->function_body_token_cache.first_token != NULL) {
