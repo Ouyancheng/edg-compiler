@@ -7404,7 +7404,7 @@ fixup entry to the end of the vla_fixup_list of the current scope stack entry.
   check_assertion_str(expr_node != NULL,
                       "add_vla_fixup_entry: NULL expr node");
   if (array_type == NULL) {
-    /* param_sym must be non-NULL and must be an sk_paramter symbol. */
+    /* param_sym must be non-NULL and must be an sk_parameter symbol. */
     check_assertion_str(param_sym != NULL &&
                           param_sym->kind == (a_symbol_kind)sk_parameter,
                         "add_vla_fixup_entry: bad parameter symbol");
