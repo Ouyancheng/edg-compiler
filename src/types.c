@@ -1763,6 +1763,7 @@ is allocated, it is allocated in the file scope.
   a_boolean        comp_equals_list1, comp_equals_list2;
   a_param_type_ptr comp_param, comp_param_list, end_comp_param_list;
   a_boolean        comp_prototyped;
+  an_expr_node_ptr comp_default_arg_expr;
 
   db_enter(4, "composite_type");
 
@@ -1923,8 +1924,20 @@ is allocated, it is allocated in the file scope.
                  type.  Stop if it is no longer true that one of the original
                  parameter lists can serve as the composite list. */
               comp_param_type = composite_type(param1->type, param2->type);
-              if (comp_param_type != param1->type) comp_equals_list1 = FALSE;
-              if (comp_param_type != param2->type) comp_equals_list2 = FALSE;
+              /* Form the composite of the C++ default argument expressions;
+                 it's guaranteed that at most one of the parameter lists
+                 has a default argument expression. */
+              comp_default_arg_expr = (param1->default_arg_expr != NULL) ?
+                                                     param1->default_arg_expr :
+                                                     param2->default_arg_expr;
+              if (comp_param_type != param1->type ||
+                  comp_default_arg_expr != param1->default_arg_expr) {
+                comp_equals_list1 = FALSE;
+              }  /* if */
+              if (comp_param_type != param2->type ||
+                  comp_default_arg_expr != param2->default_arg_expr) {
+                comp_equals_list2 = FALSE;
+              }  /* if */
               if (!comp_equals_list1 && !comp_equals_list2) break;
             }  /* for */
             if (comp_equals_list1) {
@@ -1966,6 +1979,13 @@ is allocated, it is allocated in the file scope.
                   comp_param->type = composite_type(param1->type,
                                                     param2->type);
                 }  /* if */
+                /* Form the composite of the C++ default argument expressions;
+                   it's guaranteed that at most one of the parameter lists
+                   has a default argument expression. */
+                comp_param->default_arg_expr =
+                                           (param1->default_arg_expr != NULL) ?
+                                                     param1->default_arg_expr :
+                                                     param2->default_arg_expr;
                 /* Add the parameter type entry to the end of the list. */
                 if (comp_param_list == NULL) {
                   comp_param_list = comp_param;
@@ -2131,6 +2151,92 @@ Only callable in C++ mode.  See ARM 13.
   db_exit();
   return distinguishable;
 }  /* overload_distinguishable */
+
+
+void determine_argument_match_level(a_type_ptr                arg_type,
+                                    a_boolean                 arg_is_constant,
+                                    a_constant                *arg_constant,
+                                    a_type_ptr                param_type,
+                                    an_argument_match_summary *arg_match)
+/*
+Determine how well an actual argument with type arg_type matches a formal
+parameter with type param_type.  Set arg_match to indicate the level of
+match.  This is used in resolving overloaded function calls.  See ARM 13.2.
+If arg_is_constant is TRUE, the actual argument is a constant and arg_constant
+points to the constant value.
+*/
+{
+  a_boolean warning_suggested;
+
+  arg_match->match_level = aml_none;
+  arg_match->downward_cast_levels = 0;
+  arg_match->qualifiers_added = FALSE;
+  if (is_error_type(arg_type) || is_error_type(param_type)) {
+    /* An error type matches anything, but not very well. */
+    arg_match->match_level = aml_error;
+  } else {
+#if 0
+#else
+    if (impl_conversion(arg_type, arg_is_constant, arg_constant, param_type,
+                        &warning_suggested) && !warning_suggested) {
+      /* Match with standard conversions. */
+      arg_match->match_level = aml_standard_conv;
+    } else {
+      /* No match. */
+      arg_match->match_level = aml_none;
+    }  /* if */
+#endif
+  }  /* if */
+}  /* determine_argument_match_level */
+
+
+int compare_argument_match_levels(an_argument_match_summary *arg_match1,
+                                  an_argument_match_summary *arg_match2)
+/*
+Compare two argument match summary entries and return
+
+  +1 if arg_match1 is a better match than arg_match2,
+   0 if the two matches are equal, or
+  -1 if arg_match1 is a worse match than arg_match2.
+
+*/
+{
+  int cmp;
+
+  /* There are three parts to the key to be compared.  match_level is the
+     primary key; downward_cast_levels is the secondary key, but it does
+     not always apply; and qualifiers_added is the tertiary key.  Smaller
+     values mean better matches. */
+  if (arg_match1->match_level < arg_match2->match_level) {
+    cmp = 1;
+  } else if (arg_match1->match_level > arg_match2->match_level) {
+    cmp = -1;
+  } else {
+    if (arg_match1->downward_cast_levels != 0 &&
+        arg_match2->downward_cast_levels != 0) {
+      /* Both entries have downward cast levels, so they can be compared. */
+      if (arg_match1->downward_cast_levels <
+          arg_match2->downward_cast_levels) {
+        cmp = 1;
+        goto have_cmp;
+      } else if (arg_match1->downward_cast_levels >
+                 arg_match2->downward_cast_levels) {
+        cmp = -1;
+        goto have_cmp;
+      }  /* if */
+    }  /* if */
+    /* Note that FALSE (0) < TRUE (1), which is right for these comparisons. */
+    if (arg_match1->qualifiers_added < arg_match2->qualifiers_added) {
+      cmp = 1;
+    } else if (arg_match1->qualifiers_added > arg_match2->qualifiers_added) {
+      cmp = -1;
+    } else {
+      cmp = 0;
+    }  /* if */
+  }  /* if */
+have_cmp:
+  return cmp;
+}  /* compare_argument_match_levels */
 
 
 static a_param_type_ptr file_scope_param_list(a_param_type_ptr old_param)
