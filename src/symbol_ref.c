@@ -1379,7 +1379,8 @@ created for this entity; otherwise, it is NULL.
              class A<int>::N { ... }   // if needed
            The problem is that a second declaration of class N is disallowed
            (9.2 paragraph 1 of the C++ standard).  The solution is to suppress
-           any declaration of a nested class other than the first. */
+           any declaration of a nested class other than the first (except for
+           friend declarations referring to the nested class). */
         a_scope_stack_entry_ptr scope_stack_ptr =
                                          &scope_stack[depth_scope_stack];
         if (!scope_stack_ptr->in_prototype_instantiation &&
@@ -1387,7 +1388,8 @@ created for this entity; otherwise, it is NULL.
             sym_ptr->is_class_member &&
             sym_ptr->parent.class_type == scope_stack_ptr->assoc_type) {
           scptr = source_corresp_entry_for_symbol(sym_ptr);
-          if (scptr != NULL && scptr->source_sequence_entry != NULL) {
+          if (scptr != NULL && scptr->source_sequence_entry != NULL &&
+              !(srk_flags & SRK_FRIEND)) {
             update_src_seq_list = FALSE;
           }  /* if */
         }  /* if */
