@@ -3684,7 +3684,7 @@ do_assignment:;
                the exception is considered started and use a temporary with
                its value in the actual copy constructor call. */
             an_expr_node_ptr arg_node_next = arg_node->next;
-            insert_expr_statement(arg_node, eff_insert_location);
+            (void)insert_expr_statement(arg_node, eff_insert_location);
             arg_node = assign_expr_to_temp_and_make_expr_for_reuse(arg_node);
             arg_node->next = arg_node_next;
             dip->variant.constructor.args = arg_node;
