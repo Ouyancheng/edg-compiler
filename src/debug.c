@@ -14,7 +14,7 @@ debug.c -- Debug routines.
 */
 
 /* Header files common to all files. */
-#include "fe_common.h"
+#include "basic_hdrs.h"
 
 #if HDRSTOP_RECOGNIZED
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -25,6 +25,8 @@ debug.c -- Debug routines.
 /* The #if here is done after the inclusion of basics.h because basics.h
    may set DEBUG. */
 #if DEBUG
+
+#include "fe_common.h"
 
 #if __ANSIC__
 /* Get atoi definition. */
@@ -42,10 +44,6 @@ and not in a standalone utility program.
 #else /* !(CHECKING && !STANDALONE_UTILITY_PROGRAM) */
 #define STOP_TOKEN_CHECKSUM_TEST_NEEDED FALSE
 #endif /* CHECKING && !STANDALONE_UTILITY_PROGRAM */
-
-#if STOP_TOKEN_CHECKSUM_TEST_NEEDED
-#include "lexical.h"
-#endif /* STOP_TOKEN_CHECKSUM_TEST_NEEDED */
 
 /*
 The structure defining the linked list of routines from which debug information
