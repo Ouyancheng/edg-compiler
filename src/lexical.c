@@ -228,6 +228,26 @@ static an_id_lookup_options_set idl_options_for_lookup_mode[ilm_last + 1] = {
   /* ilm_last */		IDL_NO_OPTIONS
 };
 
+
+/*
+Data structure used to represent a list of file suffixes.
+*/
+typedef struct a_file_suffix *a_file_suffix_ptr;
+typedef struct a_file_suffix {
+  a_file_suffix_ptr
+                next;
+                        /* Pointer to the next entry on the list. */
+  char
+                *suffix;
+			/* Pointer to a null terminated string containing
+			   the suffix.  It does not contain any delimiter
+			   to be used between the filename and the suffix. */
+} a_file_suffix;
+
+static a_file_suffix_ptr
+		 implicit_instantiation_file_suffix_list = NULL;
+
+
 #if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
@@ -239,7 +259,8 @@ static unsigned long
                 num_cached_tokens_in_reusable_caches,
 		num_cached_constants_allocated,
 		num_reusable_cache_entries_allocated,
-		num_access_error_descrs_allocated;
+		num_access_error_descrs_allocated,
+                num_file_suffixes_allocated;
 #endif /* DEBUG */
 
 
@@ -6253,7 +6274,6 @@ exit:
 }  /* coalesce_and_lookup_qualified_name */
 
 
-
 a_symbol_ptr coalesce_and_lookup_generalized_identifier
                  (an_identifier_options_set        options,
                   an_identifier_lookup_mode        ilm,
@@ -6314,6 +6334,108 @@ is TRUE (specifically, that "::new" or "::delete" is not next).
 }  /* coalesce_and_lookup_generalized_identifier */
 
 
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+static a_file_suffix_ptr alloc_file_suffix(void)
+/*
+Allocate a file suffix entry, initialize it, and return a pointer to it.
+*/
+{
+  a_file_suffix_ptr fsp;
+
+  fsp = (a_file_suffix_ptr)alloc_fe(sizeof(a_file_suffix));
+#if DEBUG
+  num_file_suffixes_allocated++;
+#endif /* DEBUG */
+  fsp->next = NULL;
+  fsp->suffix = NULL;
+  return fsp;
+}  /* alloc_file_suffix */
+
+
+void add_to_instantiation_file_suffix_list(char* suffix,
+                                           int   length)
+/*
+Add a new entry to the end of the implicit instantiation file suffix list.
+If the entry is already on the list the new entry is ignored.
+*/
+{
+  a_file_suffix_ptr	fsp;
+  a_file_suffix_ptr	prev_fsp = NULL;
+  a_boolean		found = FALSE;
+
+  fsp = implicit_instantiation_file_suffix_list;
+  while (fsp != NULL) {
+    if (strcmp(fsp->suffix, suffix) == 0) {
+      /* The suffix is already on the list. */
+      found = TRUE;
+      break;
+    }  /* if */
+    prev_fsp = fsp;
+    fsp = fsp->next;
+  }  /* while */
+  if (!found) {
+    /* If the suffix is not found add it to the end of the list which is
+       now pointed to by prev_fsp. */
+    fsp = alloc_file_suffix();
+    /* Allocate space for the suffix including a null delimiter. */
+    fsp->suffix = (char *)alloc_fe((sizeof_t)length + 1);
+    strncpy(fsp->suffix, suffix, length);
+    /* Terminate the copy of the string with a null character. */
+    fsp->suffix[length] = '\0';
+    if (prev_fsp == NULL) {
+      /* This is the first entry on the list. */
+      implicit_instantiation_file_suffix_list = fsp;
+    } else {
+      prev_fsp->next = fsp;
+    }  /* if */
+#if DEBUG
+    if (debug_level >= 0) {
+      fprintf(f_debug, "Added \"%s\" to the suffix list.\n", fsp->suffix);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+}  /* add_to_instantiation_file_suffix_list */
+
+
+void add_list_of_suffixes_to_instantiation_file_suffix_list(char *list)
+/*
+Add the members of a colon separated list of file suffixes to the
+instantiation file suffix list.
+*/
+{
+  char	*ptr = list;
+  char	*start;
+  char	*end;
+
+  while (*ptr) {
+    /* Skip of any spaces. */
+    while (*ptr == ' ') ptr++;
+    /* See if we've reached the end of the string. */
+    if (!*ptr) break;
+    /* Check for a null string entry. */
+    if (*ptr == ':') {
+      ptr++;
+      continue;
+    }  /* if */
+    start = ptr;
+    /* Find the ending delimiter. */
+    ptr = strchr(start, ':');
+    if (ptr == NULL) {
+      /* If there is no ending delimiter use the end of the string. */
+      ptr = start + strlen(start);
+    }  /* if */
+    /* Get a pointer to the last character of the string. */
+    end = ptr - 1;
+    /* Move back past any trailing spaces. */
+    while (*end == ' ') end--;
+    add_to_instantiation_file_suffix_list(start, (int)(end - start + 1));
+    /* If we haven't reached the end of the string, move the pointer past
+       the delimiter. */
+    if (*ptr) ptr++;
+  }  /* while */
+}   /* add_list_of_suffixes_to_instantiation_file_suffix_list */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+
 
 #if DEBUG
 unsigned long show_lexical_space_used(void)
@@ -6345,6 +6467,8 @@ Display and return the amount of space used for various lexical tables.
                      a_reusable_cache_entry);
   db_space_used_lost("access error descr", avail_access_error_descrs,
                      num_access_error_descrs_allocated, an_access_error_descr);
+  db_space_used("file suffixes", num_file_suffixes_allocated,
+                a_file_suffix);
 
   total = after_end_of_curr_source_line - curr_source_line;
   db_space_used_general_buffer("curr_source_line", total);
@@ -6412,6 +6536,7 @@ of the front end.
   num_cached_constants_allocated = 0;
   num_reusable_cache_entries_allocated = 0;
   num_access_error_descrs_allocated = 0;
+  num_file_suffixes_allocated = 0;
 #endif /* DEBUG */
 
   /* Do the initial allocation for curr_source_line the first time this
@@ -6526,6 +6651,14 @@ of the front end.
     }  /* for */
 #endif /* CHECKING */
   }
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+  /* Create the instantiation file suffix list if it has not already been
+     created. */
+  if (implicit_instantiation_file_suffix_list == NULL) {
+    add_list_of_suffixes_to_instantiation_file_suffix_list
+                                    (DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST);
+  }  /* if */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 }  /* lexical_init */
 
 

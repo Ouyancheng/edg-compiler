@@ -972,7 +972,6 @@ typedef struct a_reusable_cache_entry {
 } a_reusable_cache_entry;
 
 
-
 /* Initialize a token cache. */
 extern void clear_token_cache(a_token_cache *cache,
 			      a_boolean     reusable);
@@ -990,6 +989,10 @@ extern void rescan_cached_tokens(a_token_cache *cache);
 extern void rescan_reusable_cache(a_token_cache *cache);
 /* Rescan a copy of a token cache. */
 extern void rescan_copy_of_cache(a_token_cache *cache);
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+/* Add a list of suffixes to the instantiation suffix list. */
+extern void add_list_of_suffixes_to_instantiation_file_suffix_list(char *list);
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 /*
 Data structure used in deciding where to put extra blanks to separate

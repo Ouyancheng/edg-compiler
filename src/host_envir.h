@@ -439,6 +439,14 @@ input file to get the instantiation list file name.
 #endif /* ifndef INSTANTIATION_FILE_SUFFIX */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+/*
+The suffixes to be used when searching for an instantiation source file
+that is associated with a given instantiation header file.
+*/
+#define DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST "c:C:cpp:CPP:cxx:CXX"
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+
 /*
 Flag that is TRUE to generate the trailing include file push/pop codes
 (a la SUN cc) on the ends of the line-identifying directives generated
