@@ -1192,7 +1192,14 @@ typedef struct a_template_symbol_supplement {
 			/* If this is a member template of a class template
 			   instance, this points to the template symbol for
 			   the original member template declaration in the
-			   prototype instantiation. */
+			   prototype instantiation.  This pointer will be
+			   set even if the member template is specialized in
+			   one of the instances of the enclosing class
+			   template.  In other words, the
+			   is_specific_definition flag must be used to
+			   determine whether the cache information from
+			   the prototype template or the cache information
+			   from this template should be used. */
   a_symbol_list_entry_ptr
 		subordinate_templates;
 			/* If this is a member template of a prototype
