@@ -293,6 +293,10 @@ typedef struct a_layout_block {
 			/* The number of leading bytes occupied by base class
 			   subobjects.  This is used to optimize the layout
 			   process of fields (in the IA-64 ABI). */
+  a_base_class_ptr
+		trailing_nonempty_base;
+			/* The nonempty direct or virtual base class that has
+			   been given the highest offset so far. */
 #endif /* IA64_ABI */
 } a_layout_block;
 
@@ -312,6 +316,7 @@ Clear the block used to contain information while working out class layout.
   lob->curr_container_avail_bits = 0;
 #if IA64_ABI
   lob->curr_base_extent = 0;
+  lob->trailing_nonempty_base = NULL;
 #endif /* IA64_ABI */
 }  /* clear_layout_block */
 
@@ -2213,6 +2218,34 @@ of a base class.  Either field or base (but not both) must be NULL.
 }  /* warn_if_offset_in_tail_padding */
 
 
+static void gnu_trim_trailing_base_bits(a_targ_size_t       *end_of_object,
+                                        a_layout_block_ptr  lob)
+/*
+Version 3.3 of the GNU C++ compiler will allocate an empty virtual base
+in the bit field padding of a trailing bit field of another virtual base
+(if the latter virtual base class immediately precedes the empty virtual
+base in the overall object layout).  To emulate this behavior, this
+routine adjusts *end_of_object if the currently trailing base class ends
+with a bit field.
+*/
+{
+  a_base_class_ptr  bcp = lob->trailing_nonempty_base;
+
+  if (bcp != NULL && bcp->is_virtual && bcp->offset_is_set &&
+      bcp->offset + bcp->type->size >= *end_of_object) {
+    a_targ_size_t  offset;
+    a_field_ptr    last_field = trailing_nonclass_field(bcp->type, &offset);
+    if (last_field != NULL && last_field->is_bit_field &&
+        (last_field->offset_bit_remainder + last_field->bit_size) %
+                                                         targ_char_bit != 0) {
+      /* The trailing base ends with a bit field that leaves some unused
+         bits in its last byte. */
+      --*end_of_object;
+    }  /* if */
+  }  /* if */
+}  /* gnu_trim_trailing_base_bits */
+
+
 static a_field_ptr last_user_field_of(a_type_ptr  type)
 /*
 Return the last field declared by the user in the given class type.
@@ -2528,6 +2561,9 @@ allocated.
         }  /* if */
       }  /* if */
     }  /* while */
+    if (bcp->direct || bcp->is_virtual) {
+      lob->trailing_nonempty_base = bcp;
+    }  /* if */
   }  /* if */
 #endif /* IA64_ABI */
   /* Save the offset at which space for the subobject is being reserved. */
@@ -2585,7 +2621,14 @@ Allocate bcp (an empty base class).
   } else {
     /* It didn't work at offset zero; try putting it at the end of the object 
        as created so far. */
-    offset += lob->byte_offset;
+    a_targ_size_t  end_of_object = lob->byte_offset;
+    if (emulate_gnu_abi_bugs && bcp->is_virtual &&
+        gnu_abi_bugs_version >= 30300 && gnu_abi_bugs_version < 30400) {
+      /* Emulate a strange GNU 3.3 ABI bug that causes some empty virtual
+         bases to be allocated in bit-field padding. */
+      gnu_trim_trailing_base_bits(&end_of_object, lob);
+    }  /* if */
+    offset += end_of_object;
     if (bcp->direct) {
       /* If a GNU compiler initially tried a nonzero offset it effectively
          adds that offset to the current end of the object (thereby creating

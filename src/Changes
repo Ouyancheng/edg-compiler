@@ -1,5 +1,22 @@
 Version 3.4
 
+12/12/03 GNU IA-64 ABI: Virtual empty base allocated at bit-field offset
+
+GNU C++ 3.3.x has a bug that causes it to sometimes place a virtual empty
+base at the same location as a trailing bit field in another virtual base.
+This bug is now emulated when the front end is configured to emulate ABI
+bugs of GNU C++ 3.3.x.  For example:
+
+  struct E {};  // Empty class
+  struct B: virtual E {
+    int i: 2;
+  };
+  struct D: E, virtual B {};
+    // The virtual base E in D should be allocated after the virtual base B,
+    // but GNU C++ 3.3 allocates it at the same offset as the bit field of B.
+
+The emulation of other versions of GNU C++ is unchanged.
+
 12/11/03 Folding of division by zero in not-evaluated operand of initializer
 
 Divisions by zero (and some similar cases that aren't foldable to
