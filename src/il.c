@@ -200,7 +200,20 @@ static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr       dip,
                                             an_expr_copy_options_set options);
 static a_constant_hash_value hash_constant(a_constant *cp);
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if DEBUG
+
+static void put_str_to_f_debug(char *str)
+/*
+Output the indicated string to f_debug.  This is used as an output routine
+when using the il_to_str routines.
+*/
+{
+  fputs(str, f_debug);
+}  /* put_str_to_f_debug */
+
+#if !STANDALONE_UTILITY_PROGRAM
+
 /* Forward declaration needed because of mutual recursion. */
 void db_type(a_type *tp);
 
@@ -1056,16 +1069,6 @@ class_struct_union:
 }  /* db_type */
 
 
-static void put_str_to_f_debug(char *str)
-/*
-Output the indicated string to f_debug.  This is used as an output routine
-when using the il_to_str routines.
-*/
-{
-  fputs(str, f_debug);
-}  /* put_str_to_f_debug */
-
-
 void db_constant(a_constant *cp)
 /*
 Dump the contents of the indicated constant, for debug purposes.
@@ -1821,8 +1824,8 @@ the dump (this one counts as the first).
   }  /* if */
 }  /* db_statement_list */
 
-#endif /* DEBUG */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* DEBUG */
 
 #define TEMP_TEXT_BUFFER_INCREMENTAL_ALLOCATION 2000
 			/* Initial and incremental allocation size for
@@ -8565,8 +8568,10 @@ purposes.  indent indicates the indentation level.
 
 
 #endif /* DEBUG */
+#endif /* !STANDALONE_UTILITY_PROGRAM */ 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
+
 void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep)
 /*
 Display the source-sequence entry pointed to by ssep, for debugging purposes.
@@ -8852,6 +8857,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
   }  /* if */
 }  /* db_source_sequence_entry */
 
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* DEBUG */
+#if !STANDALONE_UTILITY_PROGRAM
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if DEBUG
 
 void db_source_sequence_list(a_source_sequence_entry_ptr  ssep)
 /*
@@ -9784,6 +9794,7 @@ corresponds to *entity.
   }  /* if */
 }  /* set_first_declaration_flag */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_type_ptr type_from_src_seq_declaration(a_source_sequence_entry_ptr ssep)
 /*
@@ -9835,6 +9846,7 @@ return NULL.
   return tp;
 }  /* type_from_src_seq_declaration */
 
+#if !STANDALONE_UTILITY_PROGRAM
 #if MAINTAIN_NEEDED_FLAGS
 
 static a_source_sequence_entry_ptr find_src_seq_secondary_decl_entry(

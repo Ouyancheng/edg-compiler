@@ -969,6 +969,7 @@ one of the macros provided in types.h (type_has_default_constructor, etc.).
   return has_default_ctor;
 }  /* f_type_has_default_constructor */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_base_class_ptr find_base_class_of_full(a_type_ptr derived_class,
                                          a_type_ptr base_class,
@@ -990,11 +991,15 @@ class will be instantiated if necessary so that its base classes are known.
     derived_class = skip_typerefs(derived_class);
     base_class = skip_typerefs(base_class);
     if (instantiate_if_necessary) {
+#if !STANDALONE_UTILITY_PROGRAM
       /* Force instantiation of the derived type if it is an uninstantiated
          template class.  This is necessary so that we can see what its base
          classes are.  Note that this can potentially force instantiation
          of the base class as well. */
       instantiate_template_class(derived_class);
+#else /* STANDALONE_UTILITY_PROGRAM */
+      unexpected_condition();
+#endif /* !STANDALONE_UTILITY_PROGRAM */
     }  /* if */
     /* Check that both classes are complete, i.e., that their definitions have
        been seen. */
@@ -1016,6 +1021,7 @@ class will be instantiated if necessary so that its base classes are known.
   return bcp;
 }  /* find_base_class_of_full */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_base_class_ptr find_base_class_of(a_type_ptr derived_class,
                                     a_type_ptr base_class)
