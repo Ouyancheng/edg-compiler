@@ -1885,7 +1885,8 @@ for ambiguity and duplicate paths.  The copy will be a base class of new_class.
         /* If bcp is (or becomes) a direct base class, the pointer_base_class
            field will identify the base class that contains a pointer to its
            data section. */
-        if (bcp->pointer_base_class == NULL) {
+        if (bcp->pointer_base_class == NULL &&
+            !directly_derived_bcp->any_virtual_steps_in_derivation) {
           bcp->pointer_base_class = directly_derived_bcp;
         }  /* if */
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
@@ -1914,10 +1915,12 @@ for ambiguity and duplicate paths.  The copy will be a base class of new_class.
   new_bcp->access = base_class_to_copy->access;
   if (base_class_to_copy->is_virtual) {
     new_bcp->is_virtual = TRUE;
-    /* If new_bcp becomes a direct base class, the pointer_base_class field
-       will identify the base class that contains a pointer to its data
-       section. */
-    new_bcp->pointer_base_class = directly_derived_bcp;
+    if (!directly_derived_bcp->any_virtual_steps_in_derivation) {
+      /* If new_bcp becomes a direct base class, the pointer_base_class field
+         will identify the base class that contains a pointer to its data
+         section. */
+      new_bcp->pointer_base_class = directly_derived_bcp;
+    }  /* if */
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
     if (directly_derived_bcp->complete_subobject) {
       /* The data section of an indirect virtual base class is in the
@@ -2186,7 +2189,6 @@ or struct definition.  The syntax is
       if (is_virtual) {
         new_direct_bcp->is_virtual = TRUE;
         new_direct_bcp->any_virtual_steps_in_derivation = TRUE;
-        new_direct_bcp->complete_subobject = TRUE;
       }  /* if */
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
       /* When cfront lays out a class with base classes, the subobject for the
