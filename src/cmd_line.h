@@ -600,12 +600,14 @@ EXTERN a_boolean
 			   default arguments. */
 
 EXTERN a_boolean
-		gpp_dependent_base_class_lookup;
+		gpp_dependent_name_lookup;
 			/* TRUE if special lookup rules should be used that
 			   emulate the behavior of g++.  An initial lookup is
 			   done that ignores dependent base classes and a
 			   second pass is made that considers such bases if
-			   the first lookup did not find a symbol. */
+			   the first lookup did not find a symbol.  In
+			   addition, names declared after the point of
+			   definition of the template are ignored. */
 
 EXTERN a_boolean
 		nonclass_prototype_instantiations

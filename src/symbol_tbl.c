@@ -8944,7 +8944,7 @@ if no such base-class symbol is found).
     /* When doing dependent name lookup certain base classes should be
        ignored for unqualified lookups. */
     if ((do_dependent_name_processing ||
-         gpp_dependent_base_class_lookup) &&
+         gpp_dependent_name_lookup) &&
         !look_in_dependent_bases &&
         bcp->ignore_during_dependent_lookup) continue;
     /* For the most part, we are only interested in the direct base classes

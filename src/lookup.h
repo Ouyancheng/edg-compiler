@@ -206,7 +206,7 @@ reused later.
 /* Return the declaration sequence number to be used for lookups. */
 #define get_effective_decl_seq()					\
   ((depth_innermost_instantiation_scope == NO_SCOPE_DEPTH ||		\
-   !do_dependent_name_processing)					\
+   (!do_dependent_name_processing && !gpp_dependent_name_lookup))	\
              ? NO_DECL_SEQUENCE_NUMBER					\
              : f_get_effective_decl_seq())
 

@@ -2121,9 +2121,10 @@ that do normal id lookup processing.
       lookup_state->any_nonreal_bases =
                               symbol_supplement_for_class(ssep->assoc_type)->
                                                       any_nonreal_base_classes;
-    } else if (gpp_dependent_base_class_lookup &&
-               !lookup_state->look_in_dependent_bases &&
-               symbol_supplement_for_class(ssep->assoc_type)
+    }  /* if */
+    if (gpp_dependent_name_lookup &&
+        !lookup_state->look_in_dependent_bases &&
+        symbol_supplement_for_class(ssep->assoc_type)
                                                 ->any_dependent_base_classes) {
       /* Record the fact that we looked for (and did not find) a name from
          a dependent base class. */
@@ -2601,12 +2602,13 @@ that do normal id lookup processing.
 #if DEBUG
   if (debug_level >= 5 || db_flag_is_set("instantiation_lookup")) {
     fprintf(f_debug,
-            "doing instantiation lookup: def_start=%d, ref_start=%d, ",
+            "doing instantiation lookup of %s: def_start=%d, ref_start=%d, ",
+            locator->symbol_header->identifier,
             def_start, ref_start);
     fprintf(f_debug, "common=%d\n", common_depth);
   }  /* if */
 #endif /* DEBUG */
-  if (do_dependent_name_processing) {
+  if (do_dependent_name_processing || gpp_dependent_name_lookup) {
     /* Only consider names visible at the point at which the template was
        defined. */
     lookup_state->decl_seq = get_effective_decl_seq();
@@ -2617,9 +2619,10 @@ that do normal id lookup processing.
        context search found a class member. */
     do_not_look_in_common_scopes = TRUE;
   } else {
-    if (do_dependent_name_processing || microsoft_mode) {
+    if (do_dependent_name_processing || gpp_dependent_name_lookup ||
+        microsoft_mode) {
       /* The referencing context should be not considered in dependent lookup
-         mode and Microsoft mode.  This means the common lookup must be
+         mode, g++, and Microsoft mode.  This means the common lookup must be
          suppressed if we've already found a symbol. */
       if (def_sym != NULL) do_not_look_in_common_scopes = TRUE;
     } else {
@@ -2859,7 +2862,7 @@ C and C++.
       sym = scope_stack_lookup(locator, &lookup_state,
                                depth_of_initial_lookup_scope, NO_SCOPE_DEPTH);
     }  /* if */
-    if (sym == NULL && gpp_dependent_base_class_lookup &&
+    if (sym == NULL && gpp_dependent_name_lookup &&
         lookup_state.any_ignored_dependent_bases) {
       /* The lookup did not find a symbol but we looked in some classes
          with dependent base classes that may have symbols that were not

@@ -4273,7 +4273,7 @@ classes or explicitly specialized classes.
                                      proto_bcp->ignore_during_dependent_lookup;
           /* Indicate that this class has a dependent base if this base class
              is dependent or any of its base classes are dependent. */
-          cssp->any_dependent_base_classes =
+          cssp->any_dependent_base_classes |=
                                       bcp->ignore_during_dependent_lookup ||
                                       base_cssp->any_dependent_base_classes;
         } else {

@@ -2484,7 +2484,7 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
     alternative_tokens_allowed = TRUE;
   }  /* if */
   /* GNU C++ doesn't look unqualified names up in dependent base classes. */
-  gpp_dependent_base_class_lookup = TRUE;
+  gpp_dependent_name_lookup = TRUE;
   /* We will presumably want to pick std::type_info from the GNU headers.
      In that case, we cannot expect an EDG-specific pragma. */
   pragma_defined_type_info_is_required = FALSE;
@@ -4062,7 +4062,7 @@ This is done before command line processing.
   export_template_allowed = DEFAULT_EXPORT_TEMPLATE_ALLOWED;
   export_keyword_enabled = TRUE;
   curr_command_line_macro_def = NULL;
-  gpp_dependent_base_class_lookup = FALSE;
+  gpp_dependent_name_lookup = FALSE;
   defer_friend_instantiation = TRUE;
 }  /* cmd_line_early_init */
 
