@@ -4366,6 +4366,22 @@ name in the routine entry.
     mangled_name = end_mangling((a_source_correspondence *)NULL,
                                 /*final=*/TRUE, &mctl);
   }  /* if */
+#if IA64_ABI
+  if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+      routine->special_kind == (a_special_function_kind)sfk_destructor) {
+    /* Change the mangled name of a constructor or destructor to the
+       complete-object version instead of the internal name (e.g.,
+       "C1" in the mangled name instead of "C9"). */
+    if (mangled_name == routine->source_corresp.name) {
+      /* Copy the name to the mangling buffer so we can change it. */
+      reset_text_buffer(mangling_text_buffer);
+      add_to_text_buffer(mangling_text_buffer, mangled_name,
+                         strlen(mangled_name)+1);
+      mangled_name = mangling_text_buffer->buffer;
+    }  /* if */
+    mangled_name[routine->variant.ctor_dtor.base_name_offset+1] = '1';
+  }  /* if */
+#endif /* IA64_ABI */
   return mangled_name;
 }  /* get_mangled_function_name */
 
