@@ -3953,7 +3953,9 @@ translation unit correspondence pointer if one is found.
     if (!has_correspondence(var->type) &&
         !has_name(var->type) && !has_name(corresp_var->type) &&
         (is_immediate_class_type(var->type) ||
-         is_immediate_enum_type(var->type))) {
+         is_immediate_enum_type(var->type)) &&
+        (is_immediate_class_type(corresp_var->type) ||
+         is_immediate_enum_type(corresp_var->type))) {
       set_trans_unit_corresp(iek_type, var->type, corresp_var->type);
       if (var->type->kind != corresp_var->type->kind) {
         /* An error: will be caught later. */
