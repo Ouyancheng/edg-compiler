@@ -822,7 +822,7 @@ error code.
       m = "array of reference is not allowed";
       break;
     case ec_missing_initializer:
-      m = "initializer is missing";
+      m = "reference-type object requires an initializer";
       break;
     case ec_exp_comma:
       m = "expected a \",\"";
@@ -832,6 +832,9 @@ error code.
       break;
     case ec_type_definition_not_allowed:
       m = "type definition is not allowed";
+      break;
+    case ec_bad_type_name_redefinition:
+      m = "invalid redefinition of type name";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
