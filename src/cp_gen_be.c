@@ -2578,7 +2578,8 @@ static void gen_simple_field_selection(an_expr_node_ptr object_expr,
                                        an_expr_node_ptr field_expr)
 /*
 Generate "object_expr . field_expr".  object_expr is an address (or lvalue),
-and field_expr is an enk_field node.
+and field_expr is an enk_field node.  The caller will put parentheses around
+this selection.
 */
 {
   a_type_ptr naming_class, selection_class;
@@ -2587,8 +2588,11 @@ and field_expr is an enk_field node.
     /* Remove unnecessary base class casts. */
     object_expr = optimized_expr_for_selection(object_expr, &naming_class);
   }  /* if */
-  if (object_expr->kind == (an_expr_node_kind)enk_variable) {
-    /* Optimize "(*p).i" as "p->i". */
+  if (is_variable_node(object_expr) &&
+      !object_expr->implicit_reference_indirection) {
+    /* Optimize "(*p).i" as "p->i".  Don't do it when there's an implicit
+       reference indirection on the object, because that will add a "&"
+       that may mean the wrong thing if operator& is overloaded. */
     gen_expression(object_expr);
     write_tok_str("->");
   } else if (object_expr->kind == (an_expr_node_kind)enk_variable_address &&
@@ -2609,6 +2613,30 @@ and field_expr is an enk_field node.
   }  /* if */
   gen_field_reference(field_expr);
 }  /* gen_simple_field_selection */
+
+
+static void gen_pm_simple_field_selection(an_expr_node_ptr object_expr,
+                                          an_expr_node_ptr pm_expr)
+/*
+Generate "object_expr .* pm_expr".  object_expr is an address (or lvalue),
+and pm_expr is a pointer to member.  The caller will put parentheses around
+this selection.
+*/
+{
+  if (is_variable_node(object_expr) &&
+      !object_expr->implicit_reference_indirection) {
+    /* Optimize "(*p).*i" as "p->*i".  Don't do it when there's an implicit
+       reference indirection on the object, because that will add a "&"
+       that may mean the wrong thing if operator& is overloaded. */
+    gen_expression(object_expr);
+    write_tok_str("->*");
+  } else {
+    /* Normal ".*" case. */
+    gen_lvalue(object_expr);
+    write_tok_str(".*");
+  }  /* if */
+  gen_expr_with_parens(pm_expr);
+}  /* gen_pm_simple_field_selection */
 
 
 static void gen_temp_init(an_expr_node_ptr expr)
@@ -2699,6 +2727,14 @@ precedence confusion.
          the "&". */
       write_tok_ch('(');
       gen_simple_field_selection(operand_1, operand_2);
+      write_tok_ch(')');
+      processed = TRUE;
+    } else if (op == (an_expr_operator_kind)eok_pm_field) {
+      /* The expression is a "->*", which has an implicit "&"
+         in front of it (in C++ terms).  Adding the indirection removes 
+         the "&". */
+      write_tok_ch('(');
+      gen_pm_simple_field_selection(operand_1, operand_2);
       write_tok_ch(')');
       processed = TRUE;
     } else if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue){
@@ -3110,13 +3146,21 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             gen_expression(operand_1);
             operand_1->implicit_reference_indirection = TRUE;
             goto done_with_operation;
-          } else if (operand_1->kind == (an_expr_node_kind)enk_operation &&
+          } else if (is_operation_node(operand_1) &&
                      operand_1->variant.operation.kind ==
                                             (an_expr_operator_kind)eok_field) {
             an_expr_node_ptr sel_operand_1 =
                                          operand_1->variant.operation.operands;
             /* Optimize "*" on top of an eok_field. */
             gen_simple_field_selection(sel_operand_1, sel_operand_1->next);
+            goto done_with_operation;
+          } else if (is_operation_node(operand_1) &&
+                     operand_1->variant.operation.kind ==
+                                         (an_expr_operator_kind)eok_pm_field) {
+            an_expr_node_ptr sel_operand_1 =
+                                         operand_1->variant.operation.operands;
+            /* Optimize "*" on top of an eok_pm_field. */
+            gen_pm_simple_field_selection(sel_operand_1, sel_operand_1->next);
             goto done_with_operation;
           }  /* if */
           opstr = "*";
@@ -3342,9 +3386,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* C++ "->*" operator. */
           gen_ampersand(type_pointed_to(expr->type));
           write_tok_ch('(');
-          gen_lvalue(operand_1);
-          write_tok_str(".*");
-          gen_expr_with_parens(operand_2);
+          gen_pm_simple_field_selection(operand_1, operand_2);
           write_tok_ch(')');
           goto done_with_operation;
         case eok_shiftl:
@@ -3435,9 +3477,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* Call of a function identified by a "->*" operation.  First
              operand is the pointer-to-member; the second is the object. */
           write_tok_ch('(');
-          gen_expr_with_parens(operand_2);
-          write_tok_str(" ->* ");
-          gen_expr_with_parens(operand_1);
+          gen_pm_simple_field_selection(operand_2, operand_1);
           write_tok_ch(')');
           /* Get the routine type from the pointer-to-member type of the
              first operand. */
@@ -5165,7 +5205,12 @@ declaration or definition.
   }  /* if */
   /* Check for `extern "C"'.  This applies even on a definition. */
   if (il_header.source_language == sl_Cplusplus &&
-      rout->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external) {
+      rout->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external &&
+      /* Don't put it out on "main", however; it's implied there, and it's
+         not allowed. */
+      !(is_definition ? (rout == il_header.main_routine) :
+                        (rout->source_corresp.name != NULL &&
+                         strcmp(rout->source_corresp.name, "main") == 0))) {
     write_tok_str("extern \"C\" ");
   } else {
     /* Put out the storage class determined above. */
