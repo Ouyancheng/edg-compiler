@@ -6186,8 +6186,8 @@ so it will last as long as the reference.  This is needed for cases like
       /* The "lifetime != NULL" test here deals with initializations that
          do not need a destructor. */
       if (lifetime != NULL &&
-          (lifetime->kind != olk_global_static &&
-           lifetime->kind != olk_function_static)) {
+          (lifetime->kind != (an_object_lifetime_kind)olk_global_static &&
+           lifetime->kind != (an_object_lifetime_kind)olk_function_static)) {
         /* The dynamic init for the temporary is attached to a lifetime that
            is not static, so it must be removed and put into a static
            lifetime. */

@@ -1504,7 +1504,8 @@ The calling routine must also provide local variables
   depth_innermost_function_scope = NO_SCOPE_DEPTH;                    \
   saved_curr_object_lifetime = curr_object_lifetime;                  \
   curr_object_lifetime = il_header.primary_scope->lifetime;           \
-  push_object_lifetime(iek_scope, (char *)(scope), olk_local);        \
+  push_object_lifetime(iek_scope, (char *)(scope),                    \
+                       (an_object_lifetime_kind)olk_local);           \
   push_context(&context, (scope), /*subscope_region=*/FALSE);         \
 }  /* push_generated_routine_context */
 
