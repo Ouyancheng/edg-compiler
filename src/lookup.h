@@ -45,14 +45,16 @@ represented as a bit set:
 				   This flag also suppresses the out of
 				   scope declaration lookup in SVR4 C
 				   compatibility mode. */
-#define IDL_SKIP_CURR_FUNCTION_SCOPE 0x10
-				/* Causes normal_id_lookup to skip over
-				   the innermost scope entry which
-				   must be a function scope.  This is
-				   used to look up the identifiers used
-				   in constructor initializer lists.  Names
-				   of parameters of the constructor must not
-				   be visible during this lookup. */
+#define IDL_SKIP_CURR_SCOPE	0x10
+				/* Causes normal_id_lookup to skip over the
+				   innermost scope entry.  (This is used to
+				   look up the identifiers used in constructor
+				   initializer lists; names of parameters of
+				   the constructor must not be visible during
+				   this lookup.  It is also used during
+				   hidden-name processing to find a name in
+				   the innermost scope enclosing the current
+				   scope.) */
 #define IDL_DO_NOT_ADD_TO_NONREAL_CLASS 0x20
 				/* When a name is being looked up in
 				   a proxy or nonreal class, this flag

@@ -1174,9 +1174,9 @@ typedef struct a_lookup_state {
 			/* TRUE if a condition occurred that should cause
 			   the lookup to terminate even is a symbol was
 			   not found. */
-  a_boolean	skip_curr_function_scope;
-			/* TRUE if the IDL_SKIP_CURR_FUNCTION_SCOPE
-			   was specified for this lookup. */
+  a_boolean	skip_curr_scope;
+			/* TRUE if the IDL_SKIP_CURR_SCOPE was specified for
+			   this lookup. */
   a_boolean	skip_class_scopes;
 			/* TRUE if the IDL_SKIP_CLASS_SCOPES
 			   was specified for this lookup. */
@@ -1251,7 +1251,7 @@ value.
   cleared_lookup_state.is_linkage_lookup             = FALSE;
   cleared_lookup_state.is_friend_lookup              = FALSE;
   cleared_lookup_state.terminate_lookup              = FALSE;
-  cleared_lookup_state.skip_curr_function_scope      = FALSE;
+  cleared_lookup_state.skip_curr_scope               = FALSE;
   cleared_lookup_state.skip_class_scopes             = FALSE;
   cleared_lookup_state.skip_first_class_reactivation = FALSE;
   cleared_lookup_state.check_for_nonreal_bases       = FALSE;
@@ -1445,12 +1445,12 @@ lookup processing.
   for (; active_sym != NULL && active_sym->decl_scope == ssep->number;
        prev_active_sym = active_sym, active_sym = active_sym->next) {
     a_symbol_ptr	fund_sym = fundamental_symbol_of(active_sym);
-    if (first_scope && lookup_state->skip_curr_function_scope) {
-      /* IDL_SKIP_CURR_FUNCTION_SCOPE is being used.  Don't accept
-         symbols from the first scope entry.  This is used when
-	 looking up names from the initializer list of a
-	 constructor declaration.  The constructor parameters
-	 must not be visible during this lookup. */
+    if (first_scope && lookup_state->skip_curr_scope) {
+      /* IDL_SKIP_CURR_SCOPE is being used.  Don't accept symbols from the
+         first scope entry.  (This is used when looking up names from the
+         initializer list of a constructor declaration; the constructor
+         parameters must not be visible during this lookup.  It is also
+         used during hidden-name processing.) */
     } else if (is_acceptable_active_symbol(active_sym, fund_sym)) {
       /* Found a symbol.  Record whether this symbol was found
          at file scope.  If it was, we will later need to also
@@ -2124,8 +2124,7 @@ C and C++.
                                 (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0;
     lookup_state.is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP) != 0;
     lookup_state.is_friend_lookup = (options & IDL_FRIEND_LOOKUP) != 0;
-    lookup_state.skip_curr_function_scope =
-                                 (options & IDL_SKIP_CURR_FUNCTION_SCOPE) != 0;
+    lookup_state.skip_curr_scope = (options & IDL_SKIP_CURR_SCOPE) != 0;
     lookup_state.skip_class_scopes = (options & IDL_SKIP_CLASS_SCOPES) != 0;
     /* If any instantiation scopes are active we will need to check for
        the presence of nonreal base classes. */
@@ -2151,22 +2150,9 @@ C and C++.
 	  reactivation, namespace extension, or class scope for a class
 	  with base classes is active.  It is also true for scopes containing
           using-directives.
-
-       Note: We don't need to check skip_curr_function_scope
-       when deciding whether to use the fast or slow algorithm because
-       there will always be a class reactivation scope on the stack
-       which will force the slow lookup.  */
+    */
     ssep = &scope_stack[depth_scope_stack];
-#if CHECKING
-    /* IDL_SKIP_CURR_FUNCTION_SCOPE must only be used when the top scope
-       entry is for a function. */
-    if (lookup_state.skip_curr_function_scope) {
-      if (ssep->kind != (a_scope_kind)sck_function) {
-        internal_error("normal_id_lookup: skip_curr_function_scope error");
-      }  /* if */
-    }  /* if */
-#endif /* CHECKING */
-    force_slow_lookup = lookup_state.skip_curr_function_scope ||
+    force_slow_lookup = lookup_state.skip_curr_scope ||
                         lookup_state.skip_class_scopes ||
                         lookup_state.is_linkage_lookup ||
                         lookup_state.is_friend_lookup;
