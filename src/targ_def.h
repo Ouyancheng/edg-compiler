@@ -2311,6 +2311,10 @@ of the chosen copy.
 #endif /* INSTANTIATE_EXTERN_INLINE */
 #endif /* ifndef LOWER_EXTERN_INLINE */
 
+#if LOWER_EXTERN_INLINE && INSTANTIATE_EXTERN_INLINE
+ #error -- extern inline functions cannot be instantiated when they are lowered
+#endif /* !(LOWER_EXTERN_INLINE && INSTANTIATE_EXTERN_INLINE) */
+
 /*
 This switch controls whether the unary plus operator is generated in the
 IL.  When it is FALSE, +expr will be rendered simply as expr.  Note that
@@ -2325,10 +2329,6 @@ a code generator.
 #define UNARY_PLUS_IN_IL FALSE
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ifndef UNARY_PLUS_IN_IL */
-
-#if LOWER_EXTERN_INLINE && INSTANTIATE_EXTERN_INLINE
- #error -- extern inline functions cannot be instantiated when they are lowered
-#endif /* !LOWER_EXTERN_INLINE && INSTANTIATE_EXTERN_INLINE */
 
 /*
 Flag that is TRUE if variable length arrays (VLAs) are allowed.  A VLA is
