@@ -7058,6 +7058,8 @@ C++ mode.
         base_class_cast_operand(result, bcp, &is_arrow_operator,
                                 /*check_cast_access=*/FALSE);
       }  /* if */
+      /* Check for errors on the casts. */
+      if (is_error_operand(result)) okay = FALSE;
     }  /* if */
   }  /* if */
   result->position = *member_pos;
