@@ -1831,8 +1831,8 @@ this function points to a tree that includes a dynamic-init entry.
           if (!any_more_members) {
             /* There are more undesignated initializers, but we've run out of
                members into which to put them. */
-            if (gcc_mode && kind == (a_type_kind)tk_array) {
-              /* In GNU C mode, excess array initializers are ignored (with
+            if (gcc_mode) {
+              /* In GNU C mode, excess initializers are ignored (with
                  a warning). */
               if (!discard_initializers) {
                 warning(ec_excess_initializers_ignored);
@@ -1846,9 +1846,12 @@ this function points to a tree that includes a dynamic-init entry.
           }  /* if */
         }  /* if */
         /* Determine the type of the member being initialized. */
-        if (is_error_type(context.type)) {
-          /* Some error was detected.  We don't know where we are or
-             what we're initializing. */
+        if (is_error_type(context.type) ||
+            (gcc_mode && !any_more_members && any_more_initializers &&
+             discard_initializers)) {
+          /* Either some error was detected, or we are in GNU mode (where
+             excess initializers are ignored with a warning).  We don't know
+             where we are or what we're initializing. */
           member_type = error_type();
           kind = (a_type_kind)tk_error;
         } else if (is_template_param_type(context.type)) {
