@@ -247,6 +247,140 @@ Flags to be set when using the KAI inliner.
 
 #else /* ifndef __linux__ */
 
+#ifdef __hpux
+
+/* Options for HP-UX version. */
+
+/* Options to get enable quasi standard Unix features: */
+#define _INCLUDE_POSIX_SOURCE 1
+#define _INCLUDE_XOPEN_SOURCE 1
+#define _INCLUDE_AES_SOURCE 1
+
+/* >>> HP-UX Options determined with dettarg: */
+#define TARG_LITTLE_ENDIAN FALSE
+#define TARG_CHAR_BIT 8
+#define TARG_HAS_SIGNED_CHARS TRUE
+#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT TRUE
+#define TARG_SIZEOF_SHORT 2
+#define TARG_ALIGNOF_SHORT 2
+#define TARG_SIZEOF_INT 4
+#define TARG_ALIGNOF_INT 4
+#define TARG_SIZEOF_LONG 4
+#define TARG_ALIGNOF_LONG 4
+#define TARG_SIZEOF_POINTER 4
+#define TARG_ALIGNOF_POINTER 4
+#define TARG_SIZEOF_FLOAT 4
+#define TARG_ALIGNOF_FLOAT 4
+#define TARG_SIZEOF_DOUBLE 8
+#define TARG_ALIGNOF_DOUBLE 8
+#define TARG_SIZEOF_LONG_DOUBLE 16
+#define TARG_ALIGNOF_LONG_DOUBLE 8
+#define TARG_SIZEOF_WCHAR_T 4
+#define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
+#define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
+#define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_int)
+#define HOST_ALIGNMENT_REQUIRED 4
+#define TARG_RIGHT_SHIFT_IS_ARITHMETIC TRUE
+#define TARG_MINIMUM_STRUCT_ALIGNMENT 1
+/* --- End of options determined with dettarg. */
+
+/* jmp_buf settings for portable EH on HP-UX: */
+#define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT 1
+#define TARG_JMP_BUF_ELEMENT_FLOAT_KIND ((a_float_kind)fk_double)
+#define TARG_JMP_BUF_NUM_ELEMENTS 25
+
+#define COMPILE_MULTIPLE_SOURCE_FILES 1
+#define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED 1
+#define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 1
+#define LONG_LONG_ALLOWED 1
+#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 1
+#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE 1
+#define COMPOUND_LITERAL_ENABLING_POSSIBLE 1
+#define IGNORE_CARRIAGE_RETURN_IN_SOURCE 1
+#define RESTRICT_ALLOWED 1
+#define MICROSOFT_EXTENSIONS_ALLOWED 1
+#define USER_CONTROL_OF_STRUCT_PACKING 1
+#define PRAGMA_WEAK_ALLOWED 1
+#define VLA_ALLOWED 1
+
+#ifdef SELFCOMP_VERSION
+/* Self-compiled version (HP-UX). */
+#define ALTERNATE_IL_FILE_FORMAT 0
+#define ONE_INSTANTIATION_PER_OBJECT 0
+#define MAINTAIN_NEEDED_FLAGS 0
+#define DEFAULT_REMOVE_UNNEEDED_ENTITIES 0
+#define _POSIX_C_SOURCE 1
+#define _XOPEN_VERSION 0
+#define _XOPEN_SOURCE_EXTENDED 0
+#define _XOPEN_SOURCE 0
+#define _XOPEN_SOURCE_EXTENDED 0
+#endif /* SELFCOMP_VERSION */
+
+#ifndef MAINTAIN_NEEDED_FLAGS
+#define MAINTAIN_NEEDED_FLAGS 1
+#endif /* ifndef MAINTAIN_NEEDED_FLAGS */
+#ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES
+#if MAINTAIN_NEEDED_FLAGS
+#define DEFAULT_REMOVE_UNNEEDED_ENTITIES 1
+#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES */
+
+#define __ANSIC__ 1
+#ifndef C_GEN_BE_GENERATES_ANSI_C
+#define C_GEN_BE_GENERATES_ANSI_C 1
+#endif /* ifndef C_GEN_BE_GENERATES_ANSI_C */
+#define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
+#define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 0
+#define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT 0
+#define USE_PRAGMA_IDENT_IN_GENERATED_CODE 1
+#define STDC_ZERO_IN_NONSTRICT_MODE 1
+#define GUARD_MACRO_FOR_VA_LIST "_VA_LIST"
+/* Use 1 for mmap PCH, 0 for non-mmap PCH. */
+#if 1
+#define USE_FIXED_ADDRESS_FOR_MMAP 0
+#define USE_MMAP_FOR_MEMORY_REGIONS 1
+#else /* !1 */
+#define USE_MMAP_FOR_MEMORY_REGIONS 0
+#endif /* 1 */
+
+#ifdef OPTIMIZED_VERSION
+
+/* Options for HP-UX optimized version. */
+#ifndef CHECKING
+#define CHECKING 0
+#endif /* ifndef CHECKING */
+#ifndef DEBUG
+#define DEBUG 0
+#endif /* ifndef DEBUG */
+
+#else /* !defined(OPTIMIZED_VERSION) */
+
+/* Options for HP-UX test version. */
+#ifndef IL_SHOULD_BE_WRITTEN_TO_FILE
+#define IL_SHOULD_BE_WRITTEN_TO_FILE 1
+#endif /* ifndef IL_SHOULD_BE_WRITTEN_TO_FILE */
+#define GENERATE_SOURCE_SEQUENCE_LISTS 1
+#define ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING 1
+#define INCLUDE_EDG_TEST_PRAGMAS 1
+#define RECORD_HIDDEN_NAMES_IN_IL 1
+#define ALLOW_HIDDEN_NAMES_IN_IL_WITH_IL_LOWERING 1
+#define RECORD_TEMPLATE_STRINGS 1
+#define RECORD_MACROS_IN_IL 1
+#define RECORD_NAME_IN_PARAM_TYPE_ENTRY 1
+#define KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED 1
+#define DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE 1
+#define TARG_MICROSOFT_BIT_FIELD_ALLOCATION 0
+#define DEFAULT_MICROSOFT_MODE 0
+#define EXTRA_SOURCE_POSITIONS_IN_IL 1
+#define DEFAULT_SVR4_C_MODE 0
+#define DEFAULT_VLA_ENABLED 0
+
+#endif /* !defined(OPTIMIZED_VERSION) */
+
+
+#else /* ifndef __hpux */
+
 /* Options for UnixWare test version. */
 #define __ANSIC__ 1
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
@@ -300,6 +434,7 @@ Flags to be set when using the KAI inliner.
 #define SVR4_TRAP_NULL_POINTER_REFERENCES 1
 #endif /* ifndef SVR4_TRAP_NULL_POINTER_REFERENCES */
 
+#endif /* ifdef __hpux */
 #endif /* ifdef __linux__ */
 #endif /* defined(_WIN32) */
 #endif /* defined(sun) */
