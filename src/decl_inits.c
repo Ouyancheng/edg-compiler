@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1999 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2000 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -113,7 +113,9 @@ typedef struct an_aggregate_init_context {
 			   it is a top-level call. */
   a_type_ptr	type;
 			/* The type of the aggregate or subaggregate
-			   associated with this context structure. */
+			   associated with this context structure.  An error
+			   type if we've lost our position because of
+			   errors. */
   a_field_ptr	field;
 			/* The field currently being initialized.  NULL if
 			   the current context is not struct or if all fields
@@ -898,7 +900,7 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
 }  /* scan_initializer_of_simple_object */
 
 
-static a_boolean designator_coming(void)
+static a_boolean designator_coming(a_boolean *array_designator)
 /*
 A C99 language feature allows aggregate initializers to be preceded by
 a "designation" that indicates which field or element is initialized. The
@@ -909,66 +911,30 @@ Furthermore, some compilers also allow the following syntax for field
 designators:
    X x = { a: 1 };
 This function returns TRUE if a designator is the next thing in the stream of
-tokens (assuming designators are enabled).  (This function is closely tied to
-skip_designator; changing one will most likely affect the other.)
+tokens (assuming designators are enabled).  If the designator is an array
+designator, *array_designator is returned TRUE.  array_designator can be
+NULL if the return value is not needed.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean result = FALSE, local_array_designator = FALSE;
+
   if (designators_allowed) {
-    if (curr_token == tok_period || curr_token == tok_lbracket) {
+    if (curr_token == tok_period) {
       result = TRUE;
+    } else if (curr_token == tok_lbracket) {
+      result = TRUE;
+      local_array_designator = TRUE;
     } else if (extended_designators_allowed) {
-      /* designators of the form <identifier> <colon> need look_ahead to
+      /* Designators of the form "name :" need lookahead to
          recognize the colon: */
       if (curr_token == tok_identifier && next_token() == tok_colon) {
         result = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
+  if (array_designator != NULL) *array_designator = local_array_designator;
   return result;
 }  /* designator_coming */ 
-
-
-static void skip_designator(void)
-/*
-The next couple of tokens presumably form a designator and this routine
-discards them.  A caller should check this using the function
-designator_coming, but note that that function does not actually check the
-full form of the construct (only as much as is needed to determine that a
-designator is the only possibly valid syntax).  If the designator is
-followed by an assignment token, that token is also discarded.
-*/
-{
-  if (curr_token == tok_identifier) {
-    /* An extended field designator of the form "xxx:". */
-    (void)get_token();
-    check_assertion(curr_token == tok_colon && extended_designators_allowed);
-    (void)get_token();
-  } else if (curr_token == tok_period) {
-    /* A standard C99 field designator of the form ".xxx". */
-    (void)get_token();
-    check_assertion(curr_token == tok_identifier);
-    (void)get_token();
-  } else if (curr_token == tok_lbracket) {
-    /* An array element designator. */
-    a_constant  constant;
-    (void)get_token();
-    scan_integral_constant_expression(&constant);
-    if (curr_token == tok_ellipsis) {
-      /* An extended "array range" designator (form "[xxx ... yyy]"). */
-      (void)get_token();
-      scan_integral_constant_expression(&constant);
-    }  /* if */
-    if (curr_token == tok_rbracket) {
-      /* Normally this condition should be TRUE, but a misformed designator
-         could have a missing right bracket. */
-      (void)get_token();
-    }  /* if */
-  }  /* if */
-  if (curr_token == tok_assign) {
-    (void)get_token();
-  }  /*if */
-}  /* skip_designator */
 
 
 static a_boolean process_whole_object_init(
@@ -1017,7 +983,8 @@ resulting constant is placed on context->pending_init_con for use further on.
   a_dynamic_init_ptr             dip;
 
   if (!C_mode() && is_class_struct_union_type(context->type) &&
-      curr_token != tok_lbrace && !top_level && !designator_coming()) {
+      curr_token != tok_lbrace && !top_level &&
+      !designator_coming((a_boolean *)NULL)) {
     /* If this is an aggregate, whole object initialization is possible but
        not required.  Indeed, if the initializing expression can initialize
        the first initializable member of an aggregate, then that should be
@@ -1183,9 +1150,9 @@ static a_boolean any_initializers(an_aggregate_init_context_ptr context,
                                   a_boolean                     *nothing_taken)
 /*
 Returns whether any initializers are available for the initialization of the
-aggregate tracked by init_context. If an introductory brace was scanned,
-brace_flag should be TRUE. If the aggregate has any initializable members,
-any_members should be TRUE. This function detects the case where an empty
+aggregate tracked by init_context.  If an introductory brace was scanned,
+brace_flag should be TRUE.  If the aggregate has any initializable members,
+any_members should be TRUE.  This function detects the case where an empty
 class is being initialized and sets *nothing_taken accordingly to indicate
 if no initializer was consumed.
 */
@@ -1204,7 +1171,7 @@ if no initializer was consumed.
   } else {
     /* The list for the aggregate is not enclosed in braces. */
     a_boolean top_level = (context->prev_context == NULL);
-    if (!any_members && !top_level) {
+    if (!any_members && !top_level && !C_mode()) {
       /* This is an initialization of an aggregate with no members,
          i.e., an empty class, and there are no braces for this
          level of the aggregate.  Take nothing to satisfy this
@@ -1221,192 +1188,83 @@ static a_boolean scan_array_element_subscript(a_type_ptr    dest_type,
                                               a_targ_size_t *subscript)
 /*
 This function scans an integral constant expression and checks that it can
-be a valid subscript for the given array type.  dest_type is an array type
-(typerefs should be peeled).  The function returns FALSE if an error occurs;
-otherwise TRUE is returned and *subscript is set to the scanned value.
+be a valid subscript for the given array type.  dest_type is an array type,
+or an error type if we don't know where we are.  The function returns FALSE
+if an error occurs; otherwise TRUE is returned and *subscript is set to the
+scanned value.
 */
 {
-  a_constant    constant;
-  a_boolean     all_OK = TRUE;
+  a_constant constant;
+  a_boolean  okay = TRUE;
 
   scan_integral_constant_expression(&constant);
   switch (constant.kind) {
-    case ck_integer: {
+    case ck_integer:
       if (sign_of_integer_constant(&constant) >= 0) {
-        a_boolean overflow;
-        a_targ_size_t value = unsigned_value_of_integer_constant(&constant,
-                                                                 &overflow);
-        dest_type = skip_typerefs(dest_type);
-        if (overflow ||
-            (!is_incomplete_type(dest_type) &&
-             value >= dest_type->variant.array.variant.number_of_elements)) {
-          error(ec_subscript_out_of_range);
-          all_OK = FALSE;
+        if (is_error_type(dest_type)) {
+          /* Some previous error. */
+          okay = FALSE;
         } else {
-          *subscript = value;
+          a_boolean     overflow;
+          a_targ_size_t value = unsigned_value_of_integer_constant(&constant,
+                                                                   &overflow);
+          /* Check that the subscript value is not too large. */
+          check_assertion(is_array_type(dest_type));
+          dest_type = skip_typerefs(dest_type);
+          if (overflow ||
+              (!is_incomplete_type(dest_type) &&
+               value >= dest_type->variant.array.variant.number_of_elements)) {
+            error(ec_subscript_out_of_range);
+            okay = FALSE;
+          } else {
+            *subscript = value;
+          }  /* if */
         }  /* if */
       } else {
+        /* Negative subscript. */
         error(ec_subscript_out_of_range);
-        all_OK = FALSE;
+        okay = FALSE;
       }  /* if */
-    } break;
-    case ck_error: {
-      all_OK = FALSE;
-    } break;
-    default: {
+      break;
+    case ck_error:
+      okay = FALSE;
+      break;
+    default:
       unexpected_condition_str(
                             "scan_array_element_subscript: bad constant kind");
-    }
   }  /* switch */
-  return all_OK;
+  return okay;
 }  /* scan_array_element_subscript */
 
 
-static a_boolean scan_array_element_init_designator(
-                                    an_aggregate_init_context  *context, 
-                                    a_targ_size_t              *start_pos)
-/*
-A C99 language feature:
-   int a[20][40] = { [1] = { 7, 8, 9 }, [3][4] = 11 };
-When extended_designators_allowed is TRUE, we also accept:
-   int b[20][40] = { [1] { 7, 8, 9 }, [3 ... 7][4] = 11 };
-This routine scans a single '[' <expr> ']' (or '[' <expr> '...' <expr> ']'
-designator.  Designations consisting of multiple designators are handled by
-the recursion in get_initializer.
-
-The state of this initialization is described by context. If a valid
-designator is found, *start_pos is set to the designated position. Moreover,
-if a valid extended designator of the form '[' <expr> '...' <expr> ']' is
-found, context->repeat is set to a newly created ck_init_repeat constant.
-*/
-{
-  a_boolean     found_array_designator = FALSE;
-  a_boolean     all_OK = TRUE;
-  a_targ_size_t start_el, last_el = 0;
-
-  if (designators_allowed && curr_token == tok_lbracket) {
-    /* Eat the left bracket and set a recovery point at the right bracket: */
-    (void)get_token();
-    add_stop_token(tok_rbracket);
-    add_stop_token(tok_ellipsis);
-    /* Parse the expression and evaluate it if possible: */
-    all_OK = all_OK && scan_array_element_subscript(context->type, &start_el);
-    if (extended_designators_allowed && curr_token == tok_ellipsis) {
-      /* We're in a designator of the form '[ 5 ... 7 ]': scan the '...' and
-         following integral constant expression. */
-      (void)get_token();
-      all_OK = all_OK && scan_array_element_subscript(context->type, &last_el);
-      if (all_OK && last_el < start_el) {
-        error(ec_no_negative_designator_range);
-        all_OK = FALSE;
-        last_el = 0;
-      }  /* if */
-    }  /* if */
-    remove_stop_token(tok_ellipsis);
-    /* Eat the closing right bracket: */
-    (void)required_token(tok_rbracket, ec_exp_rbracket);
-    remove_stop_token(tok_rbracket);
-    if (all_OK) {
-      *start_pos = start_el;
-      if (last_el > start_el) {
-        /* The initialization constant should be repeated at least twice.
-           Record this in context: */
-        context->repeat = alloc_constant((a_constant_repr_kind)ck_init_repeat);
-        context->repeat->variant.init_repeat.count = last_el-start_el+1;
-      }  /* if */
-      found_array_designator = TRUE;
-    }  /* if */
-  }  /* if */
-  return found_array_designator;
-}  /* scan_array_element_init_designator */
-
-
-static a_boolean scan_field_init_designator(a_type_ptr   dest_type,
-                                            a_field_ptr  *field)
-/*
-C99 language feature:
-   typedef struct X { int a, b, c; } X;
-   struct Y { X p, q, r; } y = { .p = { 12, 13, 14 }, .q.b = 42 };
-Some compilers also accept the following extended form:
-   X x = { b: 71 }; // Only one extended designator per designation
-This routine scans a single field designator.  Designations consisting of
-multiple designators are handled by the recursion in get_initializer.
-dest_type is the aggregate type for which an initializer is being scanned.
-If a valid field designator is found, *field is set to point to it; if no
-errors occurred, TRUE is returned, else FALSE.
-*/
-{
-  a_boolean found_field_designator = FALSE;
-
-  /* Part I: check if a well-formed designator is coming up: */
-  if (designators_allowed) {
-    if (curr_token == tok_period) {
-      /* Eat the period: */
-      (void)get_token();
-      /* Normally, we should find an identifier next: */
-      if (curr_token != tok_identifier) {
-        /* If not, assume the period was spurious: */
-        syntax_error(ec_exp_identifier);
-      } else {
-        found_field_designator = TRUE;
-      }  /* if */
-    } else if (extended_designators_allowed) {
-      if (curr_token == tok_identifier && next_token() == tok_colon) {
-        found_field_designator = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-
-  /* Part II: look up the field associated with the identifier: */
-  if (found_field_designator) {
-    a_symbol_ptr member_sym = class_qualified_id_lookup(&locator_for_curr_id,
-                                                        dest_type,
-                                                        IDL_NO_OPTIONS);
-    if (member_sym == NULL) {
-      found_field_designator = FALSE;
-      *field = NULL;
-      pos_stsy_error(ec_not_a_field, &error_position,
-                     locator_for_curr_id.symbol_header->identifier,
-                     (a_symbol_ptr)skip_typerefs(dest_type)
-                                                 ->source_corresp.assoc_info);
-    } else if (member_sym->kind != (a_symbol_kind)sk_field) {
-      /* We found a member, but it's not a field.  (This should not happen.) */
-      unexpected_condition_str(
-                         "field initialization designator: non-field member");
-    } else {
-      /* We seem to have a valid field designator. */
-      *field = member_sym->variant.field.ptr;
-    }  /* if */
-    /* eat the identifier */
-    (void)get_token();
-    if (extended_designators_allowed &&
-        curr_token == tok_identifier && next_token() == tok_colon) {
-      /* It looks like someone is trying { .a q: 2 }, but designations
-         cannot combine ordinary and extended field designators: */
-      syntax_error(ec_no_ordinary_and_extended_designators);
-    }  /* if */
-  }  /* if */
-  return found_field_designator;
-}  /* scan_field_init_designator */
-
-
-static a_designation_state scan_designation_state(a_boolean allow_colon,
+static a_designation_state check_for_end_of_designation(
+                                                  a_boolean allow_colon,
                                                   a_boolean assign_optional)
 /*
 After a designator has been scanned, call this function to check if the
 designation is completed (returns ds_complete_designation) or more
-designators are to come (returns ds_partial_designation). If extended field
+designators are to come (returns ds_partial_designation).  If extended field
 designators of the form 'x:' are allowed, allow_colon should be set to true
-(and the colon indicates a complete designation has been seen). Similarly,
+(and the colon indicates a complete designation has been seen).  Similarly,
 extended array element designators make the '=' optional and assign_optional
-should be TRUE in that case.
+should be TRUE in that case.  The termination token is consumed if it is
+present.
 */
 {
   a_designation_state result;
 
-  /* If the next token is '=' the designation is complete. Eat the '=': */
-  if (curr_token == tok_assign ||
-      (allow_colon && curr_token == tok_colon)) {
+  set_err_pos_to_curr_token();
+  if (curr_token == tok_assign) {
+    /* The next token is "=", so the designation is complete. */
+    (void)get_token();
+    result = ds_complete_designation;
+  } else if (extended_designators_allowed && curr_token == tok_colon) {
+    /* The next token is ":", so the designation is complete. */
+    if (!allow_colon) {
+      /* Something like ".f:" -- you can't mix the old-style and new-style
+         designators. */
+      error(ec_no_ordinary_and_extended_designators);
+    }  /* if */
     (void)get_token();
     result = ds_complete_designation;
   } else if (curr_token != tok_period && curr_token != tok_lbracket) {
@@ -1422,7 +1280,7 @@ should be TRUE in that case.
     result = ds_partial_designation;
   }  /* if */
   return result;
-}  /* scan_designation_state */
+}  /* check_for_end_of_designation */
 
 
 static void append_initializer_constant(
@@ -1441,134 +1299,229 @@ Add the IL entry constant to end of the list of constants tracked by context.
 }  /* append_initializer_constant */
 
 
-static void get_array_element_init_info(
-                              an_aggregate_init_info_ptr  init_info,
-                              an_aggregate_init_context   *context,
-                              a_targ_size_t               *curr_array_element,
-                              a_boolean                   *designator_scanned)
+static void get_array_designator(
+                              an_aggregate_init_info_ptr init_info,
+                              an_aggregate_init_context  *context,
+                              a_targ_size_t              *curr_array_element)
 /*
-We're scanning the initializer for an array whose type is context->type.
-Adjust *curr_array_element if a designator is encountered (and record the
-designator in the active list of constants).  The parameter context is a
+We're at the beginning of an array designator while scanning the initializer
+for an entity whose type is context->type (an array type in non-error
+cases).  Record the designator in the active list of constants, and
+adjust *curr_array_element to reflect it.  The parameter context is a
 pointer to a structure that keeps track of the initializer for the current
 subaggregate (see get_initializer), while init_info tracks the whole
-initializer.  If a designator was scanned, *designator_scanned is set to TRUE;
-otherwise it is set to FALSE.
+initializer.  An array designator is a C99 feature and looks like
+   int a[20][40] = { [1] = { 7, 8, 9 }, [3][4] = 11 };
+When extended_designators_allowed is TRUE, we also accept:
+   int b[20][40] = { [1] { 7, 8, 9 }, [3 ... 7][4] = 11 };
+This routine scans a single '[' <expr> ']' (or '[' <expr> '...' <expr> ']'
+designator.  Designations consisting of multiple designators are handled by
+the recursion in get_initializer.
 */
 {
-  /* If we just saw the '=' that completed a designation, don't scan for
-     another designator. If there is one (e.g., '[2] = [3] = ...') it will
-     result in a syntax error. */
-  if (init_info->designation_state != ds_complete_designation &&
-      scan_array_element_init_designator(context, curr_array_element)) {
+  a_boolean         okay = TRUE;
+  a_targ_size_t     start_el, last_el;
+  a_source_position start_pos;
+
+  start_pos = pos_curr_token;
+  if (!is_array_type(context->type)) {
+    /* An attempt to use an array designator in a non-array context. */
+    if (!is_error_type(context->type)) {
+      error(ec_invalid_designator_kind);
+      context->type = error_type();
+    }  /* if */
+    okay = FALSE;
+  }  /* if */
+  check_assertion(curr_token == tok_lbracket);
+  /* Move past the left bracket and set a recovery point at the right
+     bracket: */
+  (void)get_token();
+  add_stop_token(tok_rbracket);
+  add_stop_token(tok_ellipsis);
+  /* Parse the expression and evaluate it if possible: */
+  okay &= scan_array_element_subscript(context->type, &start_el);
+  if (extended_designators_allowed && curr_token == tok_ellipsis) {
+    /* We're in a designator of the form "[ 5 ... 7 ]": scan the "..." and
+       following integral constant expression. */
+    (void)get_token();
+    okay &= scan_array_element_subscript(context->type, &last_el);
+    if (okay && last_el < start_el) {
+      error(ec_no_negative_designator_range);
+      okay = FALSE;
+    }  /* if */
+  } else {
+    /* Normal form, no ending subscript. */
+    if (okay) last_el = start_el;
+  }  /* if */
+  remove_stop_token(tok_ellipsis);
+  error_position = start_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITI0NS_IN_IL */
+  /* Move past the closing right bracket: */
+  (void)required_token(tok_rbracket, ec_exp_rbracket);
+  remove_stop_token(tok_rbracket);
+  if (okay) {
+     /* Build the ck_designator constant and add it to the list. */
     a_constant_ptr designator =
                          alloc_constant((a_constant_repr_kind)ck_designator);
 
-    designator->variant.designator.array_element = *curr_array_element;
-    /* Append the designator to the list of constants for the current
-       object. */
+    designator->variant.designator.array_element = start_el;
     append_initializer_constant(context, designator);
-    /* Is this designator followed by a '='? */
-    init_info->designation_state = scan_designation_state(
-                     /* allow_colon = */FALSE,
-                     /* assign_optional = */extended_designators_allowed);
-    *designator_scanned = TRUE;
+    if (last_el > start_el) {
+      /* The initialization constant should be repeated at least twice.
+         Make a ck_init_repeat constant and attach it to the current
+         context. */
+      context->repeat = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+      context->repeat->variant.init_repeat.count = last_el-start_el+1;
+    }  /* if */
+    *curr_array_element = start_el;
   } else {
-    *designator_scanned = FALSE;
+    /* Some error. */
+    context->type = error_type();
   }  /* if */
-#if DEBUG
-  if (debug_level == 4) {
-    a_type_ptr member_type = skip_typerefs(context->type)
-                                                 ->variant.array.element_type;
-    fprintf(f_debug, "getting initializer for element %d, type = ",
-            (int)*curr_array_element);
-    db_abbreviated_type(member_type);
-    fputc('\n', f_debug);
-  }  /* if */
-#endif /* DEBUG */
-}  /* get_array_element_init_info */
+  /* See whether the designator list ends here. */
+  init_info->designation_state = check_for_end_of_designation(
+                             /*allow_colon=*/FALSE,
+                             /*assign_optional=*/extended_designators_allowed);
+}  /* get_array_designator */
 
 
-static a_type_ptr get_field_init_info(
-                              an_aggregate_init_info_ptr  init_info,
-                              an_aggregate_init_context   *context,
-                              a_field_ptr                 *field,
-                              a_boolean                   *designator_scanned)
+static void get_field_designator(an_aggregate_init_info_ptr  init_info,
+                                 an_aggregate_init_context   *context,
+                                 a_field_ptr                 *field)
 /*
-This function adjusts the current field (*field) in an initializer for the
-aggregate type context->type (if a field designator is present) and returns the
-type of adjusted current field.  Any field designator is added to the active
-list of constants.  The parameter context is a pointer to a structure that
-keeps track of the initializer for the current subaggregate (see
-get_initializer), while init_info tracks the whole initializer.  In case of
-error NULL is returned.  If a field designator was scanned, *designator_scanned
-is set to TRUE; otherwise it is set to FALSE.
+We're at the beginning of a field designator while scanning the initializer
+for an entity whose type is context->type (a struct/union type in non-error
+cases).  Record the designator in the active list of constants, and
+adjust *curr_field to reflect it.  The parameter context is a pointer
+to a structure that keeps track of the initializer for the current
+subaggregate (see get_initializer), while init_info tracks the whole
+initializer.  A field designator is a C99 feature and looks like
+   typedef struct X { int a, b, c; } X;
+   struct Y { X p, q, r; } y = { .p = { 12, 13, 14 }, .q.b = 42 };
+Some compilers also accept the following extended form:
+   X x = { b: 71 }; // Only one extended designator per designation
+This routine scans a single field designator.  Designations consisting of
+multiple designators are handled by the recursion in get_initializer.
 */
 {
-  a_field_ptr        designated_field = *field;
-  a_type_ptr         member_type;
-  a_source_position  error_pos;
-  
-  error_pos = pos_curr_token;
-  if (init_info->designation_state != ds_complete_designation &&
-      scan_field_init_designator(context->type, &designated_field)) {
-    /* We found a valid field designator: */
+  a_boolean         okay = TRUE, have_id = TRUE;
+  a_field_ptr       designated_field;
+  a_source_position start_pos;
+  a_boolean         extended_form = FALSE;
+
+  start_pos = pos_curr_token;
+  *field = NULL;
+  if (!is_class_struct_union_type(context->type)) {
+    /* An attempt to use a field designator in a non-struct/union context. */
+    if (!is_error_type(context->type)) {
+      error(ec_invalid_designator_kind);
+      context->type = error_type();
+    }  /* if */
+    okay = FALSE;
+  }  /* if */
+  if (curr_token == tok_period) {
+    /* Move past the period: */
+    (void)get_token();
+    /* Normally, we should find an identifier next: */
+    if (curr_token != tok_identifier) {
+      syntax_error(ec_exp_identifier);
+      okay = FALSE;
+      have_id = FALSE;
+      if (curr_token == tok_identifier) (void)get_token();
+    }  /* if */
+  } else {
+    check_assertion(extended_designators_allowed &&
+                    curr_token == tok_identifier);
+    /* Extended form: identifier followed by period. */
+    extended_form = TRUE;
+  }  /* if */
+  if (have_id) {
+    /* Look up the field associated with the identifier: */
+    if (!okay) {
+      /* Can't look up the identifier; we don't know where we are. */
+      okay = FALSE;
+    } else {
+      a_symbol_ptr member_sym = class_qualified_id_lookup(&locator_for_curr_id,
+                                                          context->type,
+                                                          IDL_NO_OPTIONS);
+      if (member_sym == NULL) {
+        /* The name was not found. */
+        pos_stsy_error(ec_not_a_field, &error_position,
+                       locator_for_curr_id.symbol_header->identifier,
+                       (a_symbol_ptr)skip_typerefs(context->type)
+                                                  ->source_corresp.assoc_info);
+        okay = FALSE;
+      } else {
+        check_assertion_str(member_sym->kind == (a_symbol_kind)sk_field,
+                            "get_field_designator: non-field member");
+        designated_field = member_sym->variant.field.ptr;
+      }  /* if */
+    }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITI0NS_IN_IL */
+    /* Move past the identifier */
+    (void)get_token();
+  }  /* if */
+  error_position = start_pos;
+  if (okay) {
+    /* Build the ck_designator constant and add it to the list. */
     a_constant_ptr designator =
                          alloc_constant((a_constant_repr_kind)ck_designator);
 
     designator->variant.designator.field = designated_field;
-    *field = designated_field;
-    /* Append the designator to the list of constants for the current
-       object. */
     append_initializer_constant(context, designator);
-    /* Is this designator followed by a '=' or ':'? */
-    init_info->designation_state =
-       scan_designation_state(/* allow_colon = */extended_designators_allowed,
-                              /* assign_optional = */FALSE);
-    *designator_scanned = TRUE;
+    *field = designated_field;
   } else {
-    /* We probably did not scan a field designator (or we scanned one that
-       referred to a nonexisting field). */
-    *designator_scanned = FALSE;
+    /* Some error. */
+    context->type = error_type();
   }  /* if */
-  if (designated_field == NULL) {
-    /* Something went wrong while scanning the field designator. */
-    member_type = NULL;
-    *designator_scanned = TRUE;
-    init_info->designation_state =
-       scan_designation_state(/* allow_colon = */extended_designators_allowed,
-                              /* assign_optional = */FALSE);
-  } else {
-    member_type = (*field)->type;
-#if DEBUG
-    if (debug_level == 4) {
-      fputs("getting initializer for field \"", f_debug);
-      db_name(&(*field)->source_corresp);
-      fputs("\", type = ", f_debug);
-      db_abbreviated_type(member_type);
-      fputc('\n', f_debug);
+  /* See whether the designator list ends here. */
+  init_info->designation_state =
+       check_for_end_of_designation(/*allow_colon=*/extended_form,
+                                    /*assign_optional=*/FALSE);
+}  /* get_field_designator */
+
+
+static a_boolean get_designator(
+                               an_aggregate_init_info_ptr  init_info,
+                               an_aggregate_init_context   *context,
+                               a_targ_size_t               *curr_array_element,
+                               a_field_ptr                 *curr_field)
+/*
+We're at a point where a designator might appear in an aggregate initializer.
+If a designator appears, scan it, record a ck_designator constant in
+the active list of constants for it, adjust *curr_array_element or
+*curr_field to reflect it, and return TRUE.  Otherwise, return FALSE.
+The parameter context is a pointer to a structure that keeps track of
+the initializer for the current subaggregate (see get_initializer), while
+init_info tracks the whole initializer.
+*/
+{
+  a_boolean designator_present = FALSE;
+  a_boolean array_designator;
+
+  /* See whether there is a designator next. */
+  /* If we've already seen the '=' that completed a designation,
+     don't scan for another designator.  If there is one (e.g.,
+     '[2] = [3] = ...') it will result in a syntax error. */
+  if (init_info->designation_state != ds_complete_designation &&
+      designator_coming(&array_designator)) {
+    /* Process an array designator ( [x] = ) or a field designator
+       ( .f = ). */
+    designator_present = TRUE;
+    add_stop_token(tok_assign);
+    if (array_designator) {
+      get_array_designator(init_info, context, curr_array_element);
+    } else {
+      get_field_designator(init_info, context, curr_field);
     }  /* if */
-#endif /* DEBUG */
-    if (is_incomplete_type(member_type)) {
-      /* Members of unions or aggregates cannot be incomplete. */
-      a_boolean top_level = (context->prev_context == NULL);
-      if (top_level && is_array_type(member_type) && (*field)->next == NULL) {
-        /* ... except that in several modes it's okay to declare a field
-           of incomplete array type when it's the last field in the struct
-           (but only when the struct is the top-level object type).
-           (See also: check_field_type.)  Only in Microsoft mode can such
-           a field be initialized. */
-        if (!microsoft_mode) {
-          pos_error(ec_cannot_initialize_flexible_array_member, &error_pos);
-        }  /* if */
-      } else {
-        unexpected_condition_str(
-                              "get_field_init_info: can't init 0-size member");
-      }  /* if */
-    }  /* if */
+    remove_stop_token(tok_assign);
   }  /* if */
-  return member_type;
-}  /* get_field_init_info */
+  return designator_present;
+}  /* get_designator */
 
 
 static a_constant_ptr get_single_value_for_aggregate_initializer(
@@ -1739,9 +1692,11 @@ this function points to a tree that includes a dynamic-init entry.
   if (process_whole_object_init(init_info, &context, &init_con)) {
     /* process_whole_object_init might have found that the "whole object
        initialization" case did not apply, in which case "FALSE" was returned
-       and we fall through. Otherwise, all the required work was done. */
+       and we fall through.  Otherwise, all the required work was done. */
   } else if (is_aggregate_or_union_type(context.type) ||
-             (is_error_type(context.type) && curr_token == tok_lbrace)) {
+             (is_error_type(context.type) &&
+              (curr_token == tok_lbrace ||
+               designator_coming((a_boolean *)NULL)))) {
     /* Initialization of an array (complete or incomplete), struct, or
        union.  The result will be an aggregate constant except when an
        array of char is initialized by a string.  The initial
@@ -1779,8 +1734,7 @@ this function points to a tree that includes a dynamic-init entry.
       if (brace_flag && curr_token == tok_comma) (void)get_token();
     } else {
       /* Normal case, not array of char.  Could be an array, a struct,
-         or a union, or an error type.  Note that context.type has already
-         been stripped of typerefs above. */
+         or a union, or an error type. */
       a_targ_size_t curr_array_element = 0, array_size = 0;
       a_field_ptr   curr_field;
       /* In ANSI C and C++, the top-level initializer for a struct, union, or
@@ -1805,46 +1759,69 @@ this function points to a tree that includes a dynamic-init entry.
       took_extra_comma = FALSE;
       /* Loop, scanning initializers and building an aggregate constant. */
       while (any_more_initializers) {
-        a_boolean  designator_scanned = FALSE;
-        a_boolean  designator_ahead = designator_coming();
+        add_stop_token(tok_comma);
+        /* See whether a designator is next. */
+        if (get_designator(init_info, &context, &curr_array_element,
+                           &curr_field)) {
+          /* A designator was present and has been processed. */
+        } else {
+          /* No designator. */
+          if (!any_more_members) {
+            /* There are more undesignated initializers, but we've run out of
+               members into which to put them. */
+            error(ec_too_many_initializer_values);
+            context.type = error_type();
+          }  /* if */
+        }  /* if */
         /* Determine the type of the member being initialized. */
-        if (!(any_more_members || designator_ahead)) {
-          /* There are more undesignated initializers, but we've run out of
-             members into which to put them. */
-          error(ec_too_many_initializer_values);
-          member_type = NULL;
-        } else if (kind == (a_type_kind)tk_error) {
+        if (is_error_type(context.type)) {
+          /* Some error was detected.  We don't know where we are or
+             what we're initializing. */
+          member_type = error_type();
+          kind = (a_type_kind)tk_error;
         } else if (kind == (a_type_kind)tk_array) {
           /* member_type was set outside the loop. */
-          get_array_element_init_info(init_info, &context, &curr_array_element,
-                                      &designator_scanned);
-        } else {
-          /* Class type: get the type of the current field. */
-          member_type = get_field_init_info(init_info, &context,
-                                            &curr_field, &designator_scanned);
-        }  /* if */
-        if (!designator_scanned && designator_ahead &&
-            init_info->designation_state != ds_complete_designation) {
-          /* A designator is next, but none was scanned because it is not the
-             right kind (e.g., a field designator for an array element).  If
-             we are in a state where a complete designation has been seen,
-             no attempt was made to scan the upcoming designator, and it will
-             be diagnosed later (as an invalid expression). */
-          if (kind != (a_type_kind)tk_error) {
-            error(ec_invalid_designator_kind);
+#if DEBUG
+          if (debug_level == 4) {
+            fprintf(f_debug, "Getting initializer for element %lu, type = ",
+                             (unsigned long)curr_array_element);
+            db_abbreviated_type(member_type);
+            fputc('\n', f_debug);
           }  /* if */
-          member_type = NULL;
-          skip_designator();
+#endif /* DEBUG */
+        } else {
+          /* struct or union type: get the type of the current field. */
+          check_assertion(curr_field != NULL);
+          member_type = curr_field->type;
+#if DEBUG
+          if (debug_level == 4) {
+            fputs("Getting initializer for field \"", f_debug);
+            db_name(&curr_field->source_corresp);
+            fputs("\", type = ", f_debug);
+            db_abbreviated_type(member_type);
+            fputc('\n', f_debug);
+          }  /* if */
+#endif /* DEBUG */
+          if (is_incomplete_type(member_type)) {
+            /* Members of unions or aggregates cannot be incomplete. */
+            if (top_level && is_array_type(member_type) &&
+                curr_field->next == NULL) {
+              /* ... except that in several modes it's okay to declare a field
+                 of incomplete array type when it's the last field in the
+                 struct (but only when the struct is the top-level object
+                 type).  (See also: check_field_type.)  Only in Microsoft
+                 mode can such a field be initialized. */
+              if (!microsoft_mode) {
+                error(ec_cannot_initialize_flexible_array_member);
+              }  /* if */
+            } else {
+              unexpected_condition_str(
+                                   "get_initalizer: can't init 0-size member");
+            }  /* if */
+          }  /* if */
         }  /* if */
-        if (member_type == NULL) {
-          /* Switch to an error type to take this and all following
-             initializers without error. */
-          kind = (a_type_kind)tk_error;
-          member_type = error_type();
-          any_more_members = TRUE;
-        }  /* if */
-        add_stop_token(tok_comma);
         /* Get the initializer for this one member. */
+        set_err_pos_to_curr_token();
         member_con = get_initializer(&member_type, init_info, &context,
                                      &local_nothing_taken,
                                      &local_any_dynamic_init);
@@ -2003,7 +1980,7 @@ this function points to a tree that includes a dynamic-init entry.
           if (curr_token == tok_rbrace) {
             took_extra_comma = any_more_initializers;
             any_more_initializers = FALSE;
-          } else if (designator_coming()) {
+          } else if (designator_coming((a_boolean *)NULL)) {
             /* A designator ends a non-brace-enclosed list of initializers,
                but if it is brace-enclosed then an upcoming designator means
                more initializers are following. */
@@ -2030,7 +2007,9 @@ this function points to a tree that includes a dynamic-init entry.
         if (is_incomplete_array) {
           /* Note that the size is not necessarily curr_array_element since
              intermediate designations may have implied a larger size. */
-          set_initialized_array_size(&context.type, array_size);
+          if (!is_error_type(context.type)) {
+            set_initialized_array_size(&context.type, array_size);
+          }  /* if */
           *type = context.type;
           any_more_members = FALSE;
         } else if (C_dialect == C_dialect_cplusplus) {
@@ -5045,6 +5024,6 @@ are created by a new expression (in which case sym is NULL).  In both cases
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2000 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
