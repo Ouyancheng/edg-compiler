@@ -2205,7 +2205,7 @@ detected, or *err_code == ec_no_error if everything went fine.
 #endif /* CHECKING */
   negative_incr_val = FALSE;
   if (int_constant_is_signed(constant_2)) {
-    if (constant_2->variant.integer_value < 0) {
+    if ((long)constant_2->variant.integer_value < 0) {
       negative_incr_val = TRUE;
       /* Negate the constant in such a way that the smallest integer
          does not cause an overflow. */
