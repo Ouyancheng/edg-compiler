@@ -229,6 +229,9 @@ static a_boolean		limit_recursion = TRUE;
 /* TRUE if we should use the SVR4 format for nm output. */
 static a_boolean		use_SVR4_nm_format = FALSE;
 
+/* TRUE if we should simply ignore invalid nm output lines. */
+static a_boolean		ignore_invalid_nm_output = FALSE;
+
 /* String that is used as the prefix of all diagnostic messages generated
    by the prelinker. */
 static char message_prefix[] = "C++ prelinker";
@@ -484,7 +487,7 @@ static void pl_invalid_input(void)
 Issue an invalid input error and exit.
 */
 {
-  pl_error("invalid input format");
+  if (!ignore_invalid_nm_output) pl_error("invalid input format");
 }  /* pl_invalid_input */
 
 
@@ -572,7 +575,7 @@ processed further.
     *symbol_name = rest_of_line;
   }  /* if */
   return result;
-}  /* pl_scan_default_nm_line */
+}  /* pl_scan_SVR4_nm_line */
 
 
 static a_boolean pl_scan_default_nm_line(char	**name1,
@@ -636,9 +639,12 @@ processed further.
       *name2 = rest_of_line;
       rest_of_line = pos + 1;
     }  /* if */
+    pos = rest_of_line;
+    /* The value field may optionally be preceeded by one or more blanks.
+       Skip over any blanks that appear here. */
+    while (*pos == ' ') pos++;
     /* Skip over the first field which is expected to contain the
        value field.  Skip to a blank. */
-    pos = rest_of_line;
     while((ch = *pos), ch != ' ' && ch != '\0') pos++;
     /* Look for blank after value. */
     if (*pos++ != ' ') pl_invalid_input();
@@ -1542,7 +1548,7 @@ int main(int argc, char *argv[])
   long		number_of_iterations = 0;
   char		*nm_command = NULL;
 
-#define OPTION_LIST "lnvuc:d:f:"
+#define OPTION_LIST "ilnvuc:d:f:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
       case 'c':
@@ -1557,6 +1563,10 @@ int main(int argc, char *argv[])
         } else {
           pl_error("Invalid nm format option");
         }  /* if */
+        break;
+      case 'i':
+        /* Ignore nm output lines that are not formatted properly. */
+        ignore_invalid_nm_output = TRUE;
         break;
       case 'l':
         /* Don't stop after a certain number of iterations. */
