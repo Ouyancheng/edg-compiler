@@ -38,6 +38,13 @@ typedef struct a_throw_stack_entry {
 		flags;
 			/* A collection of bits that specify how the
 			   additional information about the thrown object. */
+  an_ETS_flag_set
+		*ptr_flags;
+			/* Pointer to an array of ETS flags for multi-level
+			   pointers.  NULL for single level pointers, and for
+			   ABI versions earlier that 2.41.  Used to implement
+			   qualification conversions on multi-level
+			   pointers. */
   an_access_flag_string
 		access_flags;
 			/* A null terminated character string that specifies
@@ -462,17 +469,11 @@ empty then remove it from the stack.
 }  /* eh_free_on_stack */
 
 
-/* Determine whether two type_info entries refer to the same type and
-   whether the two types match in terms of whether or not they are pointers. */
-#define matching_types(etsp, type2, type2_flags)			\
-  ((is_pointer(etsp->flags) == is_pointer(type2_flags)) &&		\
-   matching_type_info(etsp->type_info, type2))
-
 /* Determine whether the type qualifiers are acceptable.  The thrown type
    may not have more qualifiers than the caught type.  The qualifiers are
    only checked if the thrown type is a pointer. */
 #define qualifiers_acceptable(caught_flags, thrown_flags)		\
-  ((!is_pointer(thrown_flags)) || 					\
+  ((!is_single_level_pointer(thrown_flags)) || 				\
    (caught_flags & thrown_flags & ETS_QUALIFIERS) ==			\
                                             (thrown_flags & ETS_QUALIFIERS))
 
@@ -673,10 +674,75 @@ requires cleanup.
 }  /* cleanup */
 
 
+/*
+Return TRUE if tp1_qualifiers does not have some type qualifier that
+tp2_qualifiers has.
+*/
+#define any_qualifier_in_set_missing(tp1_qualifiers, tp2_qualifiers)  \
+  ((~(tp1_qualifiers) & (tp2_qualifiers)) != 0)
+
+
+static a_boolean check_pointer_levels_and_qualifiers(
+			an_exception_type_specification_ptr	etsp,
+			an_ETS_flag_set				*ptr_flags)
+/*
+Compare the type specified by "ptr_flags" with the one specified by
+"etsp".  If the pointers have the same number of levels, and if the
+qualifiers are compatible, return TRUE; otherwise return FALSE.  The
+caller has already verified that both types are multi-level pointers.
+The caller is also responsible for ensuring that the types pointed to
+are the same.  For the qualifiers to be compatible, a qualification
+conversion, as described in 4.4 [conv.qual] of the standard must be
+permitted.
+*/
+{
+  a_boolean		okay;
+  a_boolean		previous_qualifiers_include_const = TRUE;
+  an_ETS_flag_set	*source_ptr_flags;
+  an_ETS_flag_set	*dest_ptr_flags;
+
+  dest_ptr_flags = etsp->ptr_flags;
+  source_ptr_flags = ptr_flags;
+  for (okay = TRUE; okay == TRUE;) {
+    an_ETS_flag_set	dest_qualifiers;
+    an_ETS_flag_set	source_qualifiers;
+    /* Get the qualifiers for the current level. */
+    dest_qualifiers = get_qualifiers(*dest_ptr_flags);
+    source_qualifiers = get_qualifiers(*source_ptr_flags);
+    if (is_last(*source_ptr_flags) != is_last(*dest_ptr_flags)) {
+      /* The number of levels of pointers do not match. */
+      okay = FALSE;
+    } else if (any_qualifier_in_set_missing(dest_qualifiers,
+                                            source_qualifiers)) {
+      /* Some qualifier is missing. */
+      okay = FALSE;
+    } else {
+      /* If the destination has additional qualifiers not found in the
+         source, any previous qualifiers must have included const. */
+      if (any_qualifier_in_set_missing(source_qualifiers,
+				       dest_qualifiers)) {
+	okay = previous_qualifiers_include_const;
+	if (!okay) break;
+      }  /* if */
+      /* See if this qualifier includes const. */
+      if (!is_const(dest_qualifiers)) {
+	previous_qualifiers_include_const = FALSE;
+      }  /* if */
+    }  /* if */
+    /* Terminate the loop if this is the last qualifier. */
+    if (is_last(*source_ptr_flags)) break;
+    dest_ptr_flags++;
+    source_ptr_flags++;
+  }  /* for */
+  return okay;
+}  /* check_pointer_levels_and_qualifiers */
+
+
 static int check_exception_type_specifications
                         (an_exception_type_specification_ptr  etsp,
                          a_type_info_impl_ptr		      type_info,
 			 an_ETS_flag_set		      flags,
+			 an_ETS_flag_set		      *ptr_flags,
 			 an_access_flag_string                access_flags,
 			 a_boolean			      use_access_flags,
 			 void**				      object_ptr,
@@ -693,39 +759,77 @@ entry is returned in etsp_found.
   int		        result = 0;
   int		        index = 0;
   a_boolean	        done = FALSE;
+  a_boolean		is_ptr;
 
   *etsp_found = NULL;
+  is_ptr = is_pointer(flags, ptr_flags);
   do {
-    a_boolean	          match = FALSE;
-    void*                 new_ptr;
+    a_boolean	        match = FALSE;
+    void*               new_ptr;
+    a_boolean		ets_is_ptr;
+    a_boolean		is_single_ptr;
+    a_boolean		ets_is_single_ptr;
     an_access_flag_string local_access_flags = access_flags;
 #if DEBUG
     void* orig_ptr = object_ptr != NULL ? *object_ptr : NULL;
 #endif /* DEBUG */
+    ets_is_ptr = is_pointer(etsp->flags, etsp->ptr_flags);
+    ets_is_single_ptr = is_single_level_pointer(etsp->flags);
+    is_single_ptr = is_single_level_pointer(flags);
     index++;
-    if (etsp->flags & ETS_IS_ELLIPSIS) {
+    if (is_ellipsis(etsp->flags)) {
       match = TRUE;
+    } else if (ets_is_ptr != is_ptr) {
+      /* One is a pointer and the other is not.  This can't be a match. */
+    } else if (matching_type_info(etsp->type_info, type_info)) {
+      /* The underlying types match.  Determine whether the any pointer levels
+         above that type are acceptable. */
+      if (!is_ptr) {
+        /* Both are not pointers -- a match. */
+        match = TRUE;
+      } else if (is_single_ptr != ets_is_single_ptr) {
+        /* One pointer is single level, the other is multi-level.  No match. */
+      } else if (is_single_ptr) {
+        /* Both are single level pointers.  Make sure that any qualifiers
+           present on the source type are there on the destination. */
+        an_ETS_flag_set	source_qualifiers = get_qualifiers(flags);
+        an_ETS_flag_set	dest_qualifiers = get_qualifiers(etsp->flags);
+        if (!any_qualifier_in_set_missing(dest_qualifiers,
+                                          source_qualifiers)) {
+          /* The qualifiers are acceptable. */
+          match = TRUE;
+        }  /* if */
+      } else {
+        /* Both are multi-level pointers.  Make sure the source can be
+           converted to the destination by a valid qualification conversion. */
+        if (check_pointer_levels_and_qualifiers(etsp, ptr_flags)) {
+          match = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (match) {
+      /* We already found a match -- doesn't check further. */
     } else if (!qualifiers_acceptable(etsp->flags, flags)) {
       /* A pointer is being thrown to a catch without appropriate qualifiers.
-         This is not a match. */
-    } else if (matching_types(etsp, type_info, flags)) {
-      match = TRUE;
+         This is not a match.  This check only tests the lowest bottom level
+         of qualifiers and used for the match of a conversion to void* and
+         derived to base conversions below. */
 #if ABI_CHANGES_FOR_RTTI
     } else if (etsp->type_info->unique_id != NULL &&
                etsp->type_info->unique_id ==
                                          &MANGLED_NAME_OF_UNIQUE_ID_OF_VOID &&
-               (is_pointer(etsp->flags) == is_pointer(flags))) {
+               (ets_is_ptr == is_ptr)) {
       /* The exception type specification is a void * and the object
          being thrown is some kind of pointer.  This is a match. */
       match = TRUE;
 #else /* !ABI_CHANGES_FOR_RTTI */
     } else if (etsp->type_info == &MANGLED_NAME_OF_VOID &&
-               (is_pointer(etsp->flags) == is_pointer(flags))) {
+               (ets_is_ptr == is_ptr)) {
       /* The exception type specification is a void * and the object
          being thrown is some kind of pointer.  This is a match. */
       match = TRUE;
 #endif /* !ABI_CHANGES_FOR_RTTI */
-    } else if ((is_pointer(etsp->flags) == is_pointer(flags)) &&
+    } else if ((!is_ptr || is_single_level_pointer(flags)) &&
 	       type_info->base_class_entries != NULL &&
 	       __derived_to_base_conversion(object_ptr, &new_ptr, type_info,
 					    etsp->type_info,
@@ -799,7 +903,7 @@ top of the throw stack.
     primary_tsep->dtor_called = TRUE;
     object_address = primary_tsep->object_address;
     if (primary_tsep->object_copy_complete &&
-        !is_pointer(primary_tsep->flags)) {
+        !is_pointer(primary_tsep->flags, primary_tsep->ptr_flags)) {
 #if DEBUG
       if (__debug_level >= 4) {
         fprintf(__f_debug, "Destroying object at %p\n", object_address);
@@ -861,6 +965,7 @@ a try block with a catch that matches the type of the object thrown.
   void*				object_buffer_ptr;
   a_type_info_impl_ptr		thrown_type_info;
   an_ETS_flag_set		throw_flags;
+  an_ETS_flag_set		*throw_ptr_flags;
   an_exception_type_specification_ptr
 				etsp_found;
   an_access_flag_string         access_flags;
@@ -878,6 +983,7 @@ a try block with a catch that matches the type of the object thrown.
      throw stack. */
   thrown_type_info = curr_throw_stack_entry->type_info;
   throw_flags = curr_throw_stack_entry->flags;
+  throw_ptr_flags = curr_throw_stack_entry->ptr_flags;
   access_flags = curr_throw_stack_entry->access_flags;
   use_access_flags = curr_throw_stack_entry->use_access_flags;
   /* If the throw object is a pointer we copy the pointer into a separate
@@ -885,7 +991,7 @@ a try block with a catch that matches the type of the object thrown.
      the pointer may undergo a conversion (such as derived to base) and we
      need to preserve the original pointer in case it is needed by a
      rethrow. */
-  if (is_pointer(throw_flags)) {
+  if (is_pointer(throw_flags, throw_ptr_flags)) {
     /* It is a pointer.  object_buffer_ptr points to the special pointer
        buffer in the throw stack.  object_ptr contains the value of the
        pointer. */
@@ -924,7 +1030,8 @@ a try block with a catch that matches the type of the object thrown.
             catch handlers match the object thrown. */
           result = check_exception_type_specifications
 				(ehsep->variant.try_block.catch_entries,
-				 thrown_type_info, throw_flags, access_flags,
+				 thrown_type_info, throw_flags,
+                                 throw_ptr_flags, access_flags,
 				 use_access_flags, &object_ptr, &etsp_found);
         } else {
           /* An internal try block, which has no catch entries.  An internal
@@ -972,7 +1079,8 @@ a try block with a catch that matches the type of the object thrown.
         an_exception_type_specification_ptr	dummy_etsp;
         result = check_exception_type_specifications
 				  (ehsep->variant.throw_specification,
-				   thrown_type_info, throw_flags, access_flags,
+				   thrown_type_info, throw_flags,
+                                   throw_ptr_flags, access_flags,
 				   use_access_flags, (void**)NULL,
                                    &dummy_etsp);
       }  /* if */
@@ -1098,10 +1206,10 @@ a try block with a catch that matches the type of the object thrown.
   if (destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block) {
     a_boolean	exception_caught = FALSE;
     __catch_clause_number = destination_catch_value;
-    if (is_pointer(throw_flags)) {
+    if (is_pointer(throw_flags, throw_ptr_flags)) {
       /* The throw object is a pointer that may have underdone some
          kind of conversion such as a derived to base conversion.  Save
-         the updated pointer.  Note that object_buffer_ptrt has already
+         the updated pointer.  Note that object_buffer_ptr has already
          been modified to point to a separate buffer so that the original
          pointer is preserved in case it is needed by a rethrow. */
       *(void**)object_buffer_ptr = object_ptr;
@@ -1156,6 +1264,7 @@ a try block with a catch that matches the type of the object thrown.
 static void push_throw_stack(a_type_info_impl_ptr    type_info,
 			     a_destructor_ptr	     destructor,
 			     an_ETS_flag_set	     flags,
+			     an_ETS_flag_set	     *ptr_flags,
                              an_access_flag_string   access_flags,
                              a_boolean               use_access_flags,
 			     void*		     object_address,
@@ -1175,6 +1284,7 @@ Push an entry onto the throw stack and initialize its fields.
   tsep->type_info = type_info;
   tsep->destructor = destructor;
   tsep->flags = flags;
+  tsep->ptr_flags = ptr_flags;
   tsep->access_flags = access_flags;
   tsep->use_access_flags = use_access_flags;
   tsep->object_address = object_address;
@@ -1237,6 +1347,7 @@ Rethrow the current thrown object.
   push_throw_stack(tsep->type_info,
                    tsep->destructor,
 		   tsep->flags,
+                   tsep->ptr_flags,
 		   tsep->access_flags,
 		   tsep->use_access_flags,
 		   tsep->object_address,
@@ -1262,12 +1373,39 @@ rethrow.
 
 /*
 __throw_alloc is called for ABI versions that do not include RTTI.
-When RTTI is supported, __throw_setup is called for ABI versions
-up to and including 2.37.  The 2.38 ABI passes the destructor pointer
-to __throw_setup_dtor, and removes it from the type_info_impl structure
+When RTTI is supported, __throw_setup is called for ABI versions up to
+and including 2.37, and in later ABI versions for types that have no
+destructor.  The 2.38 ABI passes the destructor pointer to
+__throw_setup_dtor, and removes it from the type_info_impl structure
 to fix some corner cases in which a destructor is required solely for
-the purpose of creating a type_info_impl object.
+the purpose of creating a type_info_impl object.  The 2.41 ABI uses
+__throw_setup_ptr when a multi-level pointer is passed.  This is used
+to supply additional information used for qualification conversions.
 */
+
+#if ABI_COMPATIBILITY_VERSION >= 241
+
+EXTERN_C void* __throw_setup_ptr(a_type_info_impl_ptr  type_info,
+  			          a_sizeof_t	        size,
+			          an_ETS_flag_set	*ptr_flags)
+/*
+Allocate space for the object to be thrown and save information about
+the type being thrown.  This is like __throw_setup, except that the
+a pointer to an array of ETS flags for multi-level pointers is passed.
+*/
+{
+  void*				object_address;
+
+  object_address = (void *)eh_alloc_on_stack(size);
+  push_throw_stack(type_info, (a_destructor_ptr)NULL, ETS_NO_FLAGS,
+                   ptr_flags, (an_access_flag_string)NULL,
+	           /*use_access_flags=*/FALSE, object_address,
+		   /*is_rethrow=*/FALSE,
+                   (a_throw_stack_entry_ptr)NULL);
+  return object_address;
+}  /* __throw_setup_ptr */
+
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
 
 #if ABI_CHANGES_FOR_RTTI
 EXTERN_C void* __throw_setup(a_type_info_impl_ptr  type_info,
@@ -1292,7 +1430,7 @@ because that is how it is passed by the code generated by the front end.
   destructor = (a_destructor_ptr)NULL;
 #endif /* ABI_COMPATIBILITY_VERSION <= 237 */
   object_address = (void *)eh_alloc_on_stack(size);
-  push_throw_stack(type_info, destructor, ets_flags,
+  push_throw_stack(type_info, destructor, ets_flags, (an_ETS_flag_set*)NULL,
                    (an_access_flag_string)NULL,
 	           /*use_access_flags=*/FALSE, object_address,
 		   /*is_rethrow=*/FALSE,
@@ -1318,7 +1456,7 @@ generated by the front end.
   void*				object_address;
 
   object_address = (void *)eh_alloc_on_stack(size);
-  push_throw_stack(type_info, destructor, ets_flags,
+  push_throw_stack(type_info, destructor, ets_flags, (an_ETS_flag_set*)NULL,
                    (an_access_flag_string)NULL,
 	           /*use_access_flags=*/FALSE, object_address,
 		   /*is_rethrow=*/FALSE,
@@ -1344,7 +1482,7 @@ because that is how it is passed by the code generated by the front end.
 
   object_address = (void *)eh_alloc_on_stack(size);
   push_throw_stack(type_info, type_info->destructor, ets_flags, access_flags,
-                   /*use_access_flags=*/TRUE,
+                   (an_ETS_flag_set*)NULL, /*use_access_flags=*/TRUE,
 		   object_address, /*is_rethrow=*/FALSE,
                    (a_throw_stack_entry_ptr)NULL);
   return object_address;
@@ -1431,7 +1569,8 @@ Return a pointer to __get_curr_eh_stack_entry.
 
 
 EXTERN_C void __type_of_thrown_object(a_type_info_impl_ptr	*type,
-				      an_ETS_flag_set		*flags)
+				      an_ETS_flag_set		*flags,
+				      an_ETS_flag_set		**ptr_flags)
 /*
 Return a pointer to the typeinfo entry for the type of the object that
 was thrown and the flags associated with the thrown object.
@@ -1440,11 +1579,13 @@ was thrown and the flags associated with the thrown object.
   check_assertion(curr_throw_stack_entry != NULL);
   *type = curr_throw_stack_entry->type_info;
   *flags = curr_throw_stack_entry->flags;
+  *ptr_flags = curr_throw_stack_entry->ptr_flags;
 }  /* __type_of_thrown_object */
 
 
 EXTERN_C a_boolean __can_throw_type(a_type_info_impl_ptr	type,
-				    an_ETS_flag_set		flags)
+				    an_ETS_flag_set		flags,
+				    an_ETS_flag_set		*ptr_flags)
 /*
 This routine is called by the code that checks whether an exception thrown
 by unexpected() violates the current exception specification.  Find the
@@ -1465,7 +1606,8 @@ and flag combination is allowed.
     int					catch_pos;
     catch_pos = check_exception_type_specifications
 				  (ehsep->variant.throw_specification,
-				   type, flags, (an_access_flag_string)NULL,
+				   type, flags, ptr_flags,
+                                   (an_access_flag_string)NULL,
 				   /*use_access_flags=*/FALSE, (void**)NULL,
                                    &dummy_etsp);
     if (catch_pos != 0) result = TRUE;

@@ -1,5 +1,12 @@
 Version 2.41
 
+2/25/99  Qualification conversion on throw of multi-level pointer
+
+The EH mechanism now supports qualification conversions on multi-level
+pointers.  This feature requires an ABI change, and so it is only
+provided for ABI versions >= 2.41.  See the front end Changes file for
+more information.
+
 2/22/99  New semantics for unexpected()
 
 The runtime now implements the semantics of unexpected() described in

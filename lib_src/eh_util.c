@@ -131,8 +131,9 @@ terminate() is called.
   catch (...) {
     a_type_info_impl_ptr	thrown_type;
     an_ETS_flag_set		thrown_flags;
-    __type_of_thrown_object(&thrown_type, &thrown_flags);
-    if (__can_throw_type(thrown_type, thrown_flags)) {
+    an_ETS_flag_set		*thrown_ptr_flags;
+    __type_of_thrown_object(&thrown_type, &thrown_flags, &thrown_ptr_flags);
+    if (__can_throw_type(thrown_type, thrown_flags, thrown_ptr_flags)) {
       /* If the thrown type is permitted, rethrow it so that it will be
          handled by an enclosing try block (if any). */
       throw;
@@ -141,7 +142,8 @@ terminate() is called.
       bad_exception_type =
                    (a_type_info_impl_ptr)&typeid(STD_NAMESPACE::bad_exception);
       if (__can_throw_type(bad_exception_type,
-                           (an_ETS_flag_set)ETS_NO_FLAGS)) {
+                           (an_ETS_flag_set)ETS_NO_FLAGS,
+                           (an_ETS_flag_set*)NULL)) {
         /* The thrown type is not allowed, but bad_exception is.  Throw
            bad_exception. */
         throw STD_NAMESPACE::bad_exception();

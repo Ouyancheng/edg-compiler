@@ -187,8 +187,8 @@ typedef a_byte an_ETS_flag_set;
 #define ETS_IS_POINTER		0x01
 			/* A pointer to an object of the type specified
 			   by type_info is being caught. */
-#define ETS_POINTER_TO_CONST	0x02
-#define ETS_POINTER_TO_VOLATILE	0x04
+#define ETS_CONST		0x02
+#define ETS_VOLATILE		0x04
 			/* Indication of the type qualifiers on the type
 			   pointed to, in the pointer case. */
 #define ETS_IS_REFERENCE	0x08
@@ -200,16 +200,32 @@ typedef a_byte an_ETS_flag_set;
 			/* TRUE if this is the last catch clause associated
 			   with a given try block (i.e., there are no more
 			   entries in the array.) */
-#define ETS_QUALIFIERS	(ETS_POINTER_TO_CONST | ETS_POINTER_TO_VOLATILE)
+#define ETS_QUALIFIERS	(ETS_CONST | ETS_VOLATILE)
 			/* The flags bits that comprise the type qualifiers
 			   that must be checked to determine a match. */
 
 /* Macros used for checking ETS flags. */
-#define is_pointer(flag)             ((flag & ETS_IS_POINTER) != 0)
-#define is_pointer_to_const(flag)    ((flag & ETS_POINTER_TO_CONST) != 0)
-#define is_pointer_to_volatile(flag) ((flag & ETS_POINTER_TO_VOLATILE) != 0)
+/* The pointer flags are not used prior to the 2.41 ABI. */
+#if ABI_COMPATIBILITY_VERSION >= 241
+#define is_pointer(flag, ptr_flags)  ((flag & ETS_IS_POINTER) != 0 ||	\
+                                      ptr_flags != NULL)
+#else /* !(ABI_COMPATIBILITY_VERSION >= 241) */
+#define is_pointer(flag, ptr_flags)  ((flag & ETS_IS_POINTER) != 0)
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
+
+/* is_single_level_pointer returns TRUE only if the pointer bit is set in
+   the primary flags field, and does not consider the ptr_flags. */
+#define is_single_level_pointer(flag)					\
+  is_pointer(flag, NULL)
+
+#define is_const(flag)               ((flag & ETS_CONST) != 0)
+#define is_volatile(flag)            ((flag & ETS_VOLATILE) != 0)
 #define is_reference(flag)           ((flag & ETS_IS_REFERENCE) != 0)
-#define is_ellipsis(flag)            ((flag & ETS_IS_ELLIPSIS != 0)
+#define is_ellipsis(flag)            ((flag & ETS_IS_ELLIPSIS) != 0)
+#define is_last(flag)                ((flag & ETS_LAST) != 0)
+
+/* Return the qualifiers from a flag entry. */
+#define get_qualifiers(flag)         (flag & ETS_QUALIFIERS)
 
 
 /* Exception type specifications are used to describe throw specifications
@@ -229,6 +245,15 @@ typedef struct an_exception_type_specification {
 			/* A collection of bits that specify how the
 			   catch entry is to be used.  See the
 			   descriptions of the ETS flags above. */
+#if ABI_COMPATIBILITY_VERSION >= 241
+  an_ETS_flag_set
+		*ptr_flags;
+			/* Present for types that have more than one level
+			   of pointer.  Points to an array of flags, terminated
+			   by an entry with the ETS_LAST bit set.  This
+			   information is used to do qualification conversions
+			   on multi-level pointers. */
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
 } an_exception_type_specification;
 
 
@@ -350,10 +375,13 @@ EXTERN_C void __cleanup_vec_new_or_delete(an_eh_stack_entry_ptr ehsep);
 EXTERN_C void __eh_exit_processing(void);
 
 EXTERN_C void __type_of_thrown_object(a_type_info_impl_ptr	*type,
-				      an_ETS_flag_set		*flags);
+				      an_ETS_flag_set		*flags,
+				      an_ETS_flag_set		**ptr_flags);
 
 EXTERN_C a_boolean __can_throw_type(a_type_info_impl_ptr	type,
-				    an_ETS_flag_set		flags);
+				    an_ETS_flag_set		flags,
+				    an_ETS_flag_set		*ptr_flags);
+
 
 EXTERN_C an_eh_stack_entry_ptr __get_curr_eh_stack_entry(void);
 
