@@ -714,7 +714,9 @@ extern a_variable_ptr make_lowered_temporary(a_type_ptr temp_type);
 
 extern a_variable_ptr make_file_scope_temporary(a_type_ptr temp_type);
 
-extern a_variable_ptr find_reusable_temporary(a_type_ptr temp_type);
+extern a_variable_ptr find_reusable_temporary(
+                                          a_type_ptr                 temp_type,
+                                          a_temporary_list_entry_ptr *ptlep);
 
 extern void add_to_reusable_temporaries_list(a_variable_ptr temp_var);
 

@@ -1406,27 +1406,37 @@ Return a pointer to the variable.
 }  /* make_file_scope_temporary */
 
 
-a_variable_ptr find_reusable_temporary(a_type_ptr temp_type)
+a_variable_ptr find_reusable_temporary(a_type_ptr                 temp_type,
+                                       a_temporary_list_entry_ptr *ptlep)
 /*
-Find an existing reusable temporary with the given type, mark it
-as in use, and return a pointer to it.  If there is no such temporary,
-return NULL.
+Find an existing reusable temporary with the given type, and return
+a pointer to it.  If there is no such temporary, return NULL.
+*ptlep is set to point to the corresponding temporary list entry.
+If the temporary is then used, the caller should set in_use in that entry.
+On entry, if *ptlep is non-NULL, the scan starts with the entry
+following that one; this allows the user to call this routine,
+examine the temporary selected, and if it's inappropriate scan again
+starting after the entry found to find another temporary.
 */
 {
   a_variable_ptr             temp_var = NULL;
   a_temporary_list_entry_ptr tlep;
 
-  /* Check the list of previously-allocated temporaries. */
-  for (tlep = curr_context->local_temporaries;
-       tlep != NULL;
-       tlep = tlep->next) {
+  if (*ptlep == NULL) {
+    /* Start at the beginning of the list. */
+    tlep = curr_context->local_temporaries;
+  } else {
+    /* Start after the entry last returned. */
+    tlep = (*ptlep)->next;
+  }  /* if */
+  for (; tlep != NULL; tlep = tlep->next) {
     if (!tlep->in_use && tlep->var->type == temp_type) {
       /* Found a temporary with the proper type that we can reuse. */
       temp_var = tlep->var;
-      tlep->in_use = TRUE;
       break;
     }  /* if */
   }  /* for */
+  *ptlep = tlep;
   return temp_var;
 }  /* find_reusable_temporary */
 
@@ -1463,15 +1473,19 @@ Make a temporary of type temp_type that is used only within the current
 full expression, and can be reused after that.
 */
 {
-  a_variable_ptr temp_var;
+  a_variable_ptr             temp_var;
+  a_temporary_list_entry_ptr tlep = NULL;
 
   /* Look for a previously-allocated temporary we can reuse. */
-  temp_var = find_reusable_temporary(temp_type);
+  temp_var = find_reusable_temporary(temp_type, &tlep);
   if (temp_var == NULL) {
     /* Allocate a new temporary variable. */
     temp_var = make_lowered_temporary(temp_type);
     /* Put the variable on a list of reusable local temporaries. */
     add_to_reusable_temporaries_list(temp_var);
+  } else {
+    /* Reuse an existing temporary. */
+    tlep->in_use = TRUE;
   }  /* if */
   return temp_var;
 }  /* make_local_temporary */
