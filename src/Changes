@@ -1,5 +1,14 @@
 Version 2.43
 
+8/16/99  Microsoft compatibility: repeated typedef of integral type (C mode)
+
+In Microsoft bugs C mode, the front end now allows a typedef for an integral
+type to be repeated with a slightly different integral type (the type should
+have the same size and alignment).  For example:
+
+  typedef signed int I;
+  typedef unsigned int I;  /* Just a warning with --microsoft_bugs --c */
+
 8/16/99  Position of the start of a function-try-block
 
 The front end now correctly records the start position of a function-try-block
