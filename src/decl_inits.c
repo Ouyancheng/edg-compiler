@@ -364,7 +364,8 @@ static a_constant_ptr get_initializer(a_type_ptr          *type,
                                       a_dynamic_init_ptr  *di_list,
                                       a_dynamic_init_ptr  *end_of_di_list,
                                       a_boolean           top_level,
-                                      a_boolean           *incomplete_init)
+                                      a_boolean           *incomplete_init,
+                                      a_boolean           *nothing_taken)
 /*
 Scan a constant initializer or initializer list, and return a pointer to
 the constant for it (an aggregate constant if an initializer list is
@@ -396,6 +397,7 @@ for unions and aggregates at that level).
 
   db_enter(4, "get_initializer");
   err = FALSE;
+  *nothing_taken = FALSE;
   local_type = skip_typerefs(*type);
   check_for_opening_brace(&brace_flag);
   /* There is special handling to initialize a field or array element that
@@ -525,26 +527,31 @@ for unions and aggregates at that level).
 #endif /* CHECKING */
         curr_field = local_type->variant.class_struct_union.field_list;
         any_more_members = (curr_field != NULL);
-        if (brace_flag && curr_token == tok_rbrace) {
-          /* Empty initializer list. */
-          any_more_initializers = FALSE;
-          if (C_dialect != C_dialect_cplusplus) {
-            /* C mode. */
-            error(ec_exp_primary_expr);
-          } else if (strict_ansi_mode) {
-            /* In C++ issue a diagnostic only "{ }" in strict ANSI mode. */
-            diagnostic(strict_ansi_error_severity,
-                       ec_empty_initializer_list);
+        if (brace_flag) {
+          if (curr_token == tok_rbrace) {
+            /* Empty initializer list --  "{ }". */
+            any_more_initializers = FALSE;
+            if (C_dialect != C_dialect_cplusplus) {
+              /* C mode. */
+              error(ec_exp_primary_expr);
+            } else if (strict_ansi_mode) {
+              /* In C++ issue a diagnostic only in strict ANSI mode. */
+              diagnostic(strict_ansi_error_severity,
+                         ec_empty_initializer_list);
+            }  /* if */
           }  /* if */
         } else if (!any_more_members && !top_level) {
           any_more_initializers = FALSE;
         }  /* if */
       }  /* if */
+      if (!brace_flag && !any_more_members) *nothing_taken = TRUE;
       con_list = end_of_con_list = NULL;
       took_extra_comma = FALSE;
       /* Loop, scanning initializers. */
       while (any_more_initializers && any_more_members) {
         /* Determine the type of the member being initialized. */
+        a_boolean  local_nothing_taken;
+
         if (kind == (a_type_kind)tk_array) {
           /* member_type was set outside the loop. */
 #if DEBUG
@@ -578,7 +585,8 @@ for unions and aggregates at that level).
         add_stop_token(tok_comma);
         /* Get the initializer for this one member. */
         member_con = get_initializer(&member_type, di_list, end_of_di_list,
-                                     /*top_level=*/FALSE, incomplete_init);
+                                     /*top_level=*/FALSE, incomplete_init,
+                                     &local_nothing_taken);
         remove_stop_token(tok_comma);
         /* Add the constant to the list. */
         if (con_list == NULL) {
@@ -633,17 +641,25 @@ for unions and aggregates at that level).
           /* Only the first field in a union is initialized, so having done
              that field, we are done with the union. */
           any_more_members = FALSE;
-          goto end_of_initializer_list;
         }  /* if */
-        if (is_empty_aggregate_constant(member_con)) {
-          /* The initializer expression was not scanned. */
+        if (local_nothing_taken && !any_more_members &&
+            curr_token == tok_comma) {
+          error(ec_exp_primary_expr);
+          local_nothing_taken = FALSE;
+        }  /* if */
+        if (local_nothing_taken) {
+          /* The initializer was not scanned, so we don't want to look for
+             a comma. */
         } else {
           /* If there are no more members and this is not a brace-enclosed
              list, exit the loop now, without taking a comma or brace
              following. Likewise if this is a top-level list that is not
              brace-enclosed (an error except in pcc mode), end the loop now,
              having taken only one value. */
-          if (!brace_flag && (!any_more_members || top_level)) break;
+          if (!brace_flag && (!any_more_members || top_level)) {
+            any_more_initializers = FALSE;
+            break;
+          }  /* if */
           /* Skip a comma separating initializers.  This might be an extra
              comma at the end of the list. */
           any_more_initializers = loop_token(tok_comma);
@@ -667,7 +683,9 @@ for unions and aggregates at that level).
            into which to put them. */
         if (!brace_flag && !top_level) {
         } else {
-          error(ec_too_many_initializer_values);
+          if (curr_token != tok_comma) {
+            error(ec_too_many_initializer_values);
+          }  /* if */
           flush_initializers();
           goto end_of_initializer_list;
         }  /* if */
@@ -675,7 +693,7 @@ for unions and aggregates at that level).
       if (!any_more_initializers && any_more_members) {
         /* Set a flag indicating an "incomplete initialization" if (1) there
            are more fields or array elements and (2) those fields or array
-           element are const or ref or have const or ref components. */
+           elements are const or ref or have const or ref components. */
         if (kind == (a_type_kind)tk_array) {
           /* We have been initializing the elements of an array, but we
              ran out of initializers before reaching the end of the array.
@@ -1235,6 +1253,7 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
     a_constant_ptr       cp;
     a_dynamic_init_ptr   di_list = NULL, end_of_di_list = NULL;
     a_boolean            incomplete_init = FALSE;
+    a_boolean            nothing_taken;
 
     /* Scan the initializer list. */
 #if DEBUG
@@ -1247,7 +1266,8 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
     }  /* if */
 #endif /* DEBUG */
     cp = get_initializer(&vp_type, &di_list, &end_of_di_list,
-                         /*top_level=*/TRUE, &incomplete_init);
+                         /*top_level=*/TRUE, &incomplete_init,
+                         &nothing_taken);
     if (cp->kind == (a_constant_repr_kind)ck_error) {
       err = TRUE;
     } else {
