@@ -5468,26 +5468,90 @@ value of the most accessible of the functions.
 }  /* max_access_of_overloaded_function */
 
 
+static a_boolean have_derived_class_access_from_befriending_list(
+                                       a_class_list_entry_ptr befriending_list,
+                                       a_type_ptr             class_type)
+/*
+We have member access privilege to the classes on the given befriending list.
+Return TRUE if that means that we have member access to any derived
+class of class_type.  This is used for the ARM 11.5 protected member
+access check.
+*/
+{
+  a_boolean accessible = FALSE;
+
+  for (; befriending_list != NULL; befriending_list = befriending_list->next) {
+    if (find_base_class_of(befriending_list->class_type, class_type) != NULL) {
+      accessible = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return accessible;
+}  /* have_derived_class_access_from_befriending_list */
+
+
+static a_boolean have_derived_class_access_from_class_scope(
+                                            a_type_ptr              class_type,
+                                            a_scope_stack_entry_ptr ssep)
+/*
+We have member access privilege to the class indicated by the scope stack
+entry pointed to by ssep.  Return TRUE if that means that we have member
+access to any derived class of class_type.  This is used for the ARM 11.5
+protected member access check.
+*/
+{
+  a_boolean  have_derived_class_access = FALSE;
+  a_type_ptr scope_class = ssep->assoc_type;
+
+  if (find_base_class_of(scope_class, class_type) != NULL) {
+    /* We are in a class that is a derived class of class_type. */
+    have_derived_class_access = TRUE;
+  } else if (have_derived_class_access_from_befriending_list(scope_class->
+                    variant.class_struct_union.extra_info->befriending_classes,
+                                                                 class_type)) {
+    /* We are in a class that is a friend of a derived class of class_type. */
+    have_derived_class_access = TRUE;
+  }  /* if */
+  return have_derived_class_access;
+}  /* have_derived_class_access_from_class_scope */
+
+
+a_boolean have_member_access_to_derived_class(a_type_ptr class_type)
+/*
+Return TRUE if we have member access to some derived class of class_type.
+This is used for the ARM 11.5 protected member access check.
+*/
+{
+  a_boolean have_member_privilege =
+                 have_particular_member_access_privilege(
+                               class_type,
+                               have_derived_class_access_from_befriending_list,
+                               have_derived_class_access_from_class_scope);
+  return have_member_privilege;
+}  /* have_member_access_to_derived_class */
+
+
 void f_check_protected_member_access(a_symbol_ptr      sym_param,
 				     a_source_position *err_pos,
                                      a_type_ptr        access_class)
 /*
 This routine implements the access control check mandated by ARM 11.5, which
-requires that a protected member be accessed only through a pointer or
-object of a type to which we have member access (or a derived type thereof).
-sym_param points to the symbol being referenced, which may be a projection
-symbol.  locator is a locator for the member symbol being referenced.
+requires that a protected nonstatic member accessed from a friend or member
+function of a derived class be accessed through an object of the derived
+class or a class further derived from that.  sym_param points to the
+symbol being referenced, which may be a projection symbol.
 access_class is the class of the pointer or object through which the
 member is being accessed.  access_class is NULL if we don't know the object
 type (which will cause an error).  access_class may also be an error type
 (which will cause no error).  *err_pos is the source position for an error.
 See the macro check_protected_member_access for a convenient way to invoke
-this function.
+this function.  This routine is only called for protected nonstatic members.
 */
 {
   a_boolean                   have_access;
   a_symbol_ptr		      sym = fundamental_symbol_of(sym_param);
-  a_type_ptr                  base_class, class_type;
+  a_type_ptr                  class_type;
+  a_type_ptr                  base_class = sym->parent.class_type;
   a_base_class_ptr            bcp;
   a_derivation_step_ptr       dsp;
   a_base_class_derivation_ptr bcdp;
@@ -5500,8 +5564,6 @@ this function.
     have_access = TRUE;
   } else {
     access_class = skip_typerefs(access_class);
-    /* Get the class of the symbol being referenced. */
-    base_class = sym->parent.class_type;
     /* Try to find a class class_type such that
          (1)  class_type is on the derivation list between base_class
               and access_class.  That is,
@@ -5556,6 +5618,22 @@ this function.
     }  /* if */
   }  /* if */
 have_accessibility:
+  if (!have_access) {
+    /* The fact that this routine is called means that the protected
+       member is accessible under the normal rules.  (If an accessibility
+       error is issued, the call of this routine is suppressed.)
+       Ordinarily, that means we know we are in a friend of member of
+       a class derived from the class of the protected member, or in a friend
+       or member of the member class itself.  Namespace using declarations
+       in classes, however, bring up the strange case that a protected
+       member can be made public in a derived class, which means we might
+       get to this routine even though we do not have any special member
+       access to the protected member.  Check for that, and suppress the
+       error if so. */
+    if (!have_member_access_to_derived_class(base_class)) {
+      have_access = TRUE;
+    }  /* if */
+  }  /* if */
   if (!have_access) {
     pos_syty_error(ec_protected_access_problem, err_pos, sym, access_class);
   }  /* if */
