@@ -293,7 +293,7 @@ static void db_base_class(a_base_class *bcp)
 Dump a base class entry, for debug purposes.
 */
 {
-  a_type     *tp = bcp->base_class;
+  a_type     *tp = bcp->class;
   a_field    *fp;
 
   fputs("\n    [[ ", f_debug);
@@ -1560,7 +1560,7 @@ to it.
   num_base_classes_allocated++;
 #endif
   bcp->next         = NULL;
-  bcp->base_class   = NULL;
+  bcp->class        = NULL;
   bcp->access       = (an_access_specifier)as_public;
   bcp->virtual      = FALSE;
   bcp->offset       = 0;

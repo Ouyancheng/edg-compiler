@@ -681,7 +681,7 @@ typedef struct a_base_class {
      own list of base class entries. */
   a_base_class_ptr
                 next;   /* Next in linked list of base class entries. */
-  a_type_ptr    base_class;
+  a_type_ptr    class;
                         /* Pointer to the tk_class or tk_struct type entry
 			   representing a base class of the current derived
 			   class.  (Unions may not be used as base classes.) */
