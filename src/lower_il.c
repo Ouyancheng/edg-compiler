@@ -4033,18 +4033,24 @@ outer_loop:;
 #else /* IA64_ABI */
 
 static a_base_class_ptr find_base_sharing_virtual_function_table(
-                                                          a_base_class_ptr bcp)
+                                                     a_base_class_ptr bcp,
+                                                     a_base_class_ptr ctor_bcp)
 /* 
 bcp is a base class for which shares_virtual_function_info is TRUE.  Find the
 most derived class with which the virtual function table in bcp is shared
 and return that base class, or NULL if the base class shares its virtual
-function table with bcp->derived_class.
+function table with bcp->derived_class.  If ctor_bcp is non-NULL, the
+actual complete object being constructed is ctor_bcp->derived_class;
+that's used to see whether virtual base classes fall inside the
+subobject being built.  If they don't, then they don't share a
+virtual function table pointer with the next class up.
 */
 {
-  a_base_class_ptr derived;
+  a_base_class_ptr derived, most_derived_virtual = NULL;
 
   check_assertion(bcp->shares_virtual_function_info);
   while (bcp->shares_virtual_function_info) {
+    if (bcp->is_virtual) most_derived_virtual = bcp;
     if (bcp->derived_class->variant.class_struct_union.extra_info->
                                                   primary_base_class == bcp) {
       bcp = NULL;
@@ -4057,6 +4063,17 @@ function table with bcp->derived_class.
       bcp = derived;
     }  /* if */
   }  /* while */
+  if (ctor_bcp != NULL && most_derived_virtual != NULL) {
+    a_base_class_ptr corresp_virtual =
+                              corresponding_base_class(most_derived_virtual,
+                                                       ctor_bcp->derived_class,
+                                                       (a_base_class_ptr)NULL);
+    if (corresp_virtual->offset != ctor_bcp->offset) {
+      /* The virtual base class is not in the subobject, so stop at the
+         virtual base. */
+      bcp = most_derived_virtual;
+    }  /* if */
+  }  /* if */
   return bcp;
 }  /* find_base_sharing_virtual_function_table */
 
@@ -4151,14 +4168,18 @@ entry, unless it is already non-zero.
        the most-basic class.  Here, we're translating between the IA-64
        view of the world and the lower-level routines' view of the world
        by converting from the base to the most-derived class. */
-    eff_bcp = find_base_sharing_virtual_function_table(eff_bcp);
+    eff_bcp = find_base_sharing_virtual_function_table(eff_bcp, ctor_bcp);
   }  /* if */
-  while (eff_bcp != NULL && !base_class_has_vtbl(eff_bcp)) {
+  if (ctor_bcp == NULL && eff_bcp != NULL) {
     /* For a base class that has no virtual function table by the
-       IA-64 definition, go down into the primary base class. */
-    eff_bcp = eff_bcp->primary_base_class;
-    check_assertion(eff_bcp != NULL);
-  }  /* while */
+       IA-64 definition, and for which we want to use the virtual function
+       table for the base class itself, go down into the primary base
+       class. */
+    while (!base_class_has_vtbl(eff_bcp)) {
+      eff_bcp = eff_bcp->primary_base_class;
+      check_assertion(eff_bcp != NULL);
+    }  /* while */
+  }  /* if */
   is_subobject = (eff_bcp != NULL);
   ctsp = vtbl_class->variant.class_struct_union.extra_info;
 #endif /* IA64_ABI */
