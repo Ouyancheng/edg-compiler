@@ -2570,11 +2570,13 @@ severity to be used for the diagnostic when TRUE is returned.
      the severity depends on the mode. */
   *severity = scope_stack[depth_scope_stack].template_param_decl_scope
                                       ? es_error : strict_ansi_error_severity;
-  /* Start searching at the innermost instantiation scope, if one exists.
-     Otherwise, start at the innermost template declaration scope. */
+  /* Start searching at the innermost instantiation scope or the
+     innermost template declaration scope, which ever is at a greater
+     depth. */
   starting_depth = depth_innermost_instantiation_scope;
-  if (starting_depth == NO_SCOPE_DEPTH) {
-    /* There is no instantiation scope, start at the innermost template
+  if (starting_depth < depth_template_declaration_scope) {
+    /* The innermost template declaration scope is at a greater depth
+       than the innermost instantiation scope. Start at the innermost template
        declaration scope.  For redeclarations in template declaration
        scopes, always issue an error at the innermost template declaration
        scope. */
