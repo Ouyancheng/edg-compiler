@@ -3561,7 +3561,11 @@ Bind the operand for a function to an associated selector object.
        One would have to have a way to adjust the "this" pointer back
        to the derived class to optimize the first case.
     */
-    if (operand_complete_object_type(bound_function_selector,
+    /* Suppress the optimization if the name came from a using-declaration,
+       because in that case the name that was found might not be the
+       final overrider. */
+    if (!function_operand->is_using_decl_name &&
+        operand_complete_object_type(bound_function_selector,
                                      /*call_case=*/TRUE) ==
         type_pointed_to(bound_function_selector->type)) {
       function_operand->virtual_function = FALSE;
@@ -3696,7 +3700,7 @@ checking error was detected and reported.
         /* Record that the function was referenced, for cross-reference (etc.)
            purposes. */
         rep = ref_entry(base_function_symbol, id_position);
-        make_function_designator_operand(base_function_symbol,
+        make_function_designator_operand(function_symbol,
                                          is_qualified_name,
                                          function_position, rep, operand);
         /* Convert the operand to a function pointer. */

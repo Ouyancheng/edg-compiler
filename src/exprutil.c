@@ -1286,6 +1286,7 @@ values.
   operand->is_template_id = FALSE;
   operand->is_simple_string_literal = FALSE;
   operand->is_cfront_null_pointer_constant = FALSE;
+  operand->is_using_decl_name = FALSE;
   operand->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operand->end_position = null_source_position;
@@ -1566,6 +1567,7 @@ destroyed its source position, etc.  Restore such things from
   operand->access_control_error_reported =
                                    orig_operand->access_control_error_reported;
   operand->is_operand_of_address_of = orig_operand->is_operand_of_address_of;
+  operand->is_using_decl_name = orig_operand->is_using_decl_name;
 }  /* restore_operand_details */
 
 
@@ -4409,7 +4411,7 @@ void make_function_designator_operand(a_symbol_ptr      routine_sym,
                                       an_operand        *result)
 /*
 Make an operand for a function designator.  routine_sym points to the
-routine symbol entry (not overloaded, not a projection symbol).
+routine symbol entry (not overloaded, but can be a projection symbol).
 is_qualified_name is TRUE if the function was named by a qualified name.
 The source position of the operand is set to *position.  rep points to an
 associated reference entry, or is NULL if none is needed.
@@ -4417,6 +4419,13 @@ associated reference entry, or is NULL if none is needed.
 {
   a_routine_ptr routine;
 
+  clear_operand((an_operand_kind)ok_constant, result);
+  /* Remember whether this symbol corresponds to a using-declaration.
+     This has an effect on a virtual function call optimization. */
+  if (is_class_member_using_decl_symbol(routine_sym)) {
+    result->is_using_decl_name = TRUE;
+  }  /* if */
+  reduce_projection_symbol_to_fundamental_symbol(routine_sym);
 #if CHECKING
   if (routine_sym->kind != (a_symbol_kind)sk_routine &&
       routine_sym->kind != (a_symbol_kind)sk_member_function) {
@@ -4433,7 +4442,6 @@ associated reference entry, or is NULL if none is needed.
     }  /* if */
   }  /* if */
   /* Set up an address-of-function constant. */
-  clear_operand((an_operand_kind)ok_constant, result);
   set_routine_address_constant(routine, &result->variant.constant,
                                /*set_address_taken_flag=*/FALSE);
   /* The type of the operand is the function type. */

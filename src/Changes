@@ -1,5 +1,30 @@
 Version 2.41
 
+1/24/99   Virtual function call optimization and using-declarations
+
+In the presence of a using-declaration that makes a virtual function
+visible and makes its final overrider invisible, the optimization to
+use a non-virtual call to call a virtual function (when the complete
+object type is known) failed, with the consequence that the wrong
+function was called.  The bug occurred only when the function is
+overloaded.  Now fixed.
+
+  struct A {
+    virtual void f();
+    virtual void f(int i);
+  };
+  struct B : virtual A {
+    virtual void f();
+    virtual void f(int i);
+  };
+  struct C : B , virtual A {
+    using A::f;
+  };
+  void foo() {
+    C c;
+    c.f(); // Should call B::f, but called A::f instead
+  }
+
 1/24/99   Code for conversion function call that requires derived->base
           conversion afterwards
 

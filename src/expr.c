@@ -1666,7 +1666,6 @@ Syntax:
                                        !operand->access_control_error_reported,
                                     bound_function_selector)) {
         /* Make an operand for the function bound to the "this" pointer. */
-        reduce_projection_symbol_to_fundamental_symbol(func_sym);
         make_function_designator_operand(func_sym,
                                          (a_boolean)operand->is_qualified_name,
                                          &call_position,
@@ -2681,7 +2680,7 @@ nonstatic_member_function:
                                                  result);
               } else {
                 /* Non-overloaded function. */
-                make_function_designator_operand(member_sym,
+                make_function_designator_operand(projection_member_sym,
                                                 (a_boolean)locator_for_curr_id.
                                                              is_qualified_name,
                                                  &locator_for_curr_id.
@@ -2695,7 +2694,7 @@ nonstatic_member_function:
             }  /* if */
           } else {
             /* Static member function.  Discard the left operand. */
-            make_function_designator_operand(member_sym,
+            make_function_designator_operand(projection_member_sym,
                                              is_qualified_name,
                                              &member_position,
                                              rep,
@@ -10674,7 +10673,7 @@ normal_function:
             rep = NULL;
           } else {
             /* Make a function designator operand for the function. */
-            make_function_designator_operand(sym_ptr,
+            make_function_designator_operand(projection_sym_ptr,
                                              (a_boolean)locator_for_curr_id.
                                                              is_qualified_name,
                                              &locator_for_curr_id.

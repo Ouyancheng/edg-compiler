@@ -243,6 +243,9 @@ typedef struct an_operand {
 			/* TRUE if this operand is a simple 0 which is
 			   suitable as a null pointer constant in
 			   overload resolution in cfront mode. */
+  a_bit_field	is_using_decl_name:1;
+			/* TRUE if the operand was generated from a name
+			   that was declared in a using-declaration. */
   a_source_position
 		position;
 			/* The source position for the operand. */
