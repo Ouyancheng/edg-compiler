@@ -705,10 +705,17 @@ already set, with a value of NULL indicating a same-class copy.
                                      (a_candidate_function_ptr *)NULL) ||
         ambiguous) {
       /* Conversion is okay. */
-#if CHECKING
     } else {
-      internal_error("set_user_conversion_for_class_copy: conv not possible");
+      /* The conversion is not possible.  This can happen because the
+         parameter type is incomplete.  Allow the match and call it a bitwise
+         copy.  An error will be issued later if this call is selected, because
+         the parameter type is incomplete. */
+#if CHECKING
+      check_assertion_str(is_incomplete_type(param_type),
+                      "set_user_conversion_for_class_copy: conv not possible");
 #endif /* CHECKING */
+      /* No need to clear the conversion here; that's been done already. */
+      conversion->class_identity_or_bitwise_copy = TRUE;
     }  /* if */
   }  /* if */
 }  /* set_user_conversion_for_class_copy */
