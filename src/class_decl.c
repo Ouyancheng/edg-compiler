@@ -142,7 +142,6 @@ static a_routine_fixup_ptr avail_routine_fixup;
 /* Previously allocated fixup entries available for reuse. */
 static a_class_fixup_ptr avail_class_fixup;
 
-
 #if DEBUG
 /*
 Counters to track total use of memory.
@@ -7616,24 +7615,33 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
     /* The size of the bit field must be non-negative and must not exceed
        the size of the underlying type (except for enums, whose type was
        picked by the front end). */
-    if (bit_field_type->variant.integer.enum_type && C_mode()) {
-      /* Bit fields may have an enum type in C as an extension.  If
-         enum_types_can_be_smaller_than_int is configured to TRUE, the
-         underlying type may be smaller than int, but to avoid incompatibility
-         with other compilers we allow larger bit fields.  Consider:
-           enum E { a,b,c };
-           struct S { enum E x : 16; };
-         No error will be issued even if sizeof(E) ends up being 1. */
-      max_size_allowed = targ_sizeof_int*targ_char_bit;
+    if (bit_field_type->variant.integer.enum_type) {
+      /* An enum type.  We don't use the underlying integer type because that
+         is not directly specified by the user and reporting a conflict
+         between the specified bit-size and the capacity of the underlying
+         type could produce surprising diagnostics.  So, simply use the
+         largest number of bits any enum could have. */
+      if (!enum_types_can_be_larger_than_int) {
+        max_size_allowed = targ_sizeof_int*targ_char_bit;
+      } else {
+#if LONG_LONG_ALLOWED
+        max_size_allowed = targ_sizeof_long_long*targ_char_bit;
+#else /* !LONG_LONG_ALLOWED */
+        max_size_allowed = targ_sizeof_long*targ_char_bit;
+#endif /* LONG_LONG_ALLOWED */
+      }  /* if */
     } else {
+      /* Normal case.  Number of bits cannot exceed the capacity of the
+         bit field type. */
       max_size_allowed = bit_field_type->size*targ_char_bit;
     }  /* if */
     bit_field_size = unsigned_value_of_integer_constant(&constant, &err);
     /* Note that one reason for err to be TRUE is if the constant is
        less than zero. */
-    if (err || bit_field_size > max_size_allowed) {
+    if (err) {
+      error(ec_bad_bit_field_size);
+    } else if (bit_field_size > max_size_allowed) {
       if (C_mode()) {
-        /* An error in C. */
         error(ec_bad_bit_field_size);
       } else {
         /* A warning in C++. */
