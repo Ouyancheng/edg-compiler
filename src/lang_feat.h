@@ -1222,7 +1222,7 @@ call of "f(0)" would invoke the former, whereas a call of "f<int>(0)" would
 be required to invoke the latter.
 */
 #ifndef DEFAULT_GUIDING_DECLS_ALLOWED
-#define DEFAULT_GUIDING_DECLS_ALLOWED TRUE
+#define DEFAULT_GUIDING_DECLS_ALLOWED FALSE
 #endif /* ifndef DEFAULT_GUIDING_DECLS_ALLOWED */
 
 /*

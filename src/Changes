@@ -1,5 +1,25 @@
 Version 3.1
 
+10/9/02  Guiding declarations disabled in default mode
+
+The ARM and early drafts of the C++ standard included feature known as
+"guiding declarations" in which a normal (non-template) function declaration
+would participate in overload resolution but a template that matches the
+guiding declaration would actually be used to provide the definition of
+the function.  Because this feature is nonstandard, and because it can
+produce incorrect results for programs that expect the standard behavior,
+guiding declarations are now disabled in default mode in our standard
+configuration.  The old behavior can be obtained by setting the configuration
+macro DEFAULT_GUIDING_DECLS_ALLOWED to TRUE.
+
+  template <class T> void f(T, T){}
+  // The following is now treated as a normal function declaration, not
+  // a guiding declaration.
+  void f(int, int);
+  int main() {
+    f('c', 1);
+  }
+
 10/9/02  GNU compatibility: Extended asm memory operands can have class type
 
 In GNU C and C++ modes, the front end used to require that "m" (memory)
