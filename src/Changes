@@ -1,5 +1,15 @@
 Version 2.39
 
+8/7/98    C++-generating back end: inline virtual function definition missing
+
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
+invalid C++ code was sometimes produced.  Specifically, code that
+declares, but does not define, an inline virtual function.  This
+occurred because the generated class specializations declare inline
+virtual functions, but definitions are only provided for functions that
+are referenced.  The language requires inline virtual functions to be
+defined in every translation unit.  This has been fixed.
+
 8/6/98    C++-generating back end: position of template instantiations
           triggered by default argument expressions within class scope
 

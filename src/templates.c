@@ -742,7 +742,21 @@ itself recursively to process classes nested within this class.
       } else if (!tip->instantiation_required) {
         /* Simply add the function to the instantiation list, without setting
            the flag. */
-        update_instantiation_required_flag(tip, /*value=*/FALSE,
+        a_boolean	flag_value = FALSE;
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+        { a_routine_ptr	templ_rout;
+          /* The instantiation required flag is set for virtual functions
+             when generating class template instantiation information in the
+             source sequence lists.  This is necessary when using the C++
+             generating back end in this mode because inline virtual functions
+             must have definitions. */
+          templ_rout = sym->variant.routine.ptr;
+          if (templ_rout->is_virtual && templ_rout->is_inline) {
+            flag_value = TRUE;
+          }  /* if */
+        }
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+        update_instantiation_required_flag(tip, flag_value,
                                            /*defer_inline=*/TRUE);
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
