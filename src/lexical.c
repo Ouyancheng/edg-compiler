@@ -6684,11 +6684,9 @@ in a declarator of a template declaration.
       tp = sym->parent.class_type;
       type_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
       is_prototype_instantiation = is_prototype_instantiation_symbol(type_sym);
-      if (!is_nonreal_instance_class_symbol(type_sym)) {
-        /* The qualifier type is not a template class of some kind. */
-        pos_ty_error(ec_not_a_class_template, error_pos, tp);
-        any_errors = TRUE;
-      } else if (!is_prototype_instantiation) {
+      if (is_prototype_instantiation) {
+         /* Okay. */
+      } else if (is_nonreal_instance_class_symbol(type_sym)) {
         /* If the class is not a real class type, then it is expected
            to be the prototype instantiation.  Decide which of two
            errors should be issued for this case.  The usual cause of
@@ -6721,6 +6719,10 @@ in a declarator of a template declaration.
           pos_error(ec_must_be_prototype_instantiation, error_pos);
           any_errors = TRUE;
         }  /* if */
+      } else {
+        /* Some other invalid type. */
+        pos_ty_error(ec_not_a_class_template, error_pos, tp);
+        any_errors = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
