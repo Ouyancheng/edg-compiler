@@ -1440,8 +1440,7 @@ passed by reference.  *err_pos is the source position for diagnostics.
 }  /* make_assignment_call */
 
 
-static void make_default_assignment_body(a_scope_ptr        scope,
-                                         a_source_position  *err_pos)
+static void make_default_assignment_body(a_scope_ptr  scope)
 /*
 Create the body for a default assignment operator.  Typically it will
 entail a series of member-wise and base-class-wise assignment operations:
@@ -1463,6 +1462,7 @@ operator routine or do bitwise assignment.
   a_type_qualifier_set           qualifiers;
   a_param_type_ptr               ptp;
   a_boolean                      bitwise_assign;
+  a_source_position              *err_pos;
 
   db_enter(4, "make_default_assignment_body");
   /* The source variable of the copy is the first parameter on the parameters
@@ -1475,6 +1475,7 @@ operator routine or do bitwise assignment.
   source_var->assoc_param_type = ptp;
   class_type =
           type_pointed_to(scope->variant.routine.this_param_variable->type);
+  err_pos = &class_type->source_corresp.decl_position;
   /* "head_of_statement_list" is a local statement variable whose only
       interesting property is its "next" field, from which a linked list of
       allocated statement entries will be hung.  That list will eventually be
@@ -1698,8 +1699,7 @@ operator routine or do bitwise assignment.
 }  /* make_default_assignment_body */
 
 
-static void check_default_assignment_operator(a_type_ptr         class_type,
-                                              a_source_position  *err_pos)
+static void check_default_assignment_operator(a_type_ptr  class_type)
 /*
 Issue an error if a compiler-generated assignment operator is not allowed
 because the class has a const or ref member (ARM 12.8).  The case of a
@@ -1738,7 +1738,8 @@ member or a base class with a nonpublic operator=() is handled elsewhere.
         if (is_ref || is_const) {
           if (!err) {
             /* Multi-line diagnostic has not been started yet. */
-            pos_start_error(ec_bad_default_assignment, err_pos);
+            pos_start_error(ec_bad_default_assignment,
+                            &class_type->source_corresp.decl_position);
           }  /* if */
           sym_add_diag_info(is_ref ? ec_reference_member : ec_const_member,
                             sym);
@@ -1762,7 +1763,6 @@ empty statement block.
   a_scope_ptr                    scope;
   a_type_ptr                     class_type;
   a_routine_type_supplement_ptr  rtsp;
-  a_source_position              *err_pos;
 
   db_enter(4, "define_special_member_function");
   class_type = rout_ptr->source_corresp.parent.class_type;
@@ -1799,9 +1799,8 @@ empty statement block.
       check_assertion(rout_ptr->special_kind ==
                                    (a_special_function_kind)sfk_operator &&
                       rout_ptr->opname_kind == (an_opname_kind)onk_assign);
-      err_pos = &class_type->source_corresp.decl_position;
-      check_default_assignment_operator(class_type, err_pos);
-      make_default_assignment_body(scope, err_pos);
+      check_default_assignment_operator(class_type);
+      make_default_assignment_body(scope);
     }  /* if */
     /* End of statement block is unreachable because of the return
        statement. */
