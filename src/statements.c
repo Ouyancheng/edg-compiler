@@ -449,9 +449,9 @@ struct_stmt_stack_container, and struct_stmt_stack.
   }  /* if */
 
 
-void new_struct_stmt_stack(sizeof_t  *saved_container_pos,
-                           sizeof_t  *saved_depth_stmt_stack,
-                           int       *saved_code_reachable)
+void new_struct_stmt_stack(int  *saved_container_pos,
+                           int  *saved_depth_stmt_stack,
+                           int  *saved_code_reachable)
 /*
 Save the state of the current structured statement stack, returning it to
 the caller, and create a new structured statement stack.  This is used to
@@ -460,13 +460,6 @@ possibility in C++ with member functions of local classes.  There is no
 algorithmic limit on the number of levels of nesting supported.
 */
 {
-#if CHECKING
-  if (struct_stmt_stack_container == NULL) {
-    internal_error("new_struct_stmt_stack: container not allocated yet");
-  } else if (depth_stmt_stack < 0) {
-    internal_error("new_struct_stmt_stack: struct_stmt_stack is empty");
-  }  /* if */
-#endif /* CHECKING */
   /* Expand the structured statement stack if necessary. */
   ensure_struct_stmt_stack_space();
   *saved_container_pos = struct_stmt_stack_container - struct_stmt_stack;
@@ -477,9 +470,9 @@ algorithmic limit on the number of levels of nesting supported.
 }  /* new_struct_stmt_stack */
 
 
-void restore_struct_stmt_stack(sizeof_t  saved_container_pos,
-                               sizeof_t  saved_depth_stmt_stack,
-                               int       saved_code_reachable)
+void restore_struct_stmt_stack(int  saved_container_pos,
+                               int  saved_depth_stmt_stack,
+                               int  saved_code_reachable)
 /*
 Using state values returned from new_struct_stmt_stack, restore the original
 statement stack.
@@ -491,7 +484,7 @@ statement stack.
     internal_error(
               "restore_struct_stmt_stack: saved_container_pos out of range");
   } else if (saved_container_pos + saved_depth_stmt_stack >
-                                          size_struct_stmt_stack_container) {
+                                      (int)size_struct_stmt_stack_container) {
     internal_error(
           "restore_struct_stmt_stack: saved_depth_stmt_stack out of range");
   }  /* if */

@@ -22,7 +22,11 @@ statements.h -- Declarations relating to statements.c (having to do with
 #include "il.h"
 #endif /* ifndef IL_H */
 
-EXTERN int	depth_stmt_stack;
+EXTERN int	depth_stmt_stack
+#if VAR_INITIALIZERS
+                                 = -1
+#endif /* VAR_INITIALIZERS */
+                                     ;
 			/* Index of the current entry in struct_stmt_stack.
 			   -1 if the stack is empty. */
 
@@ -30,12 +34,12 @@ extern a_statement_ptr add_statement(a_statement_kind kind);
 extern a_statement_ptr compound_statement(a_boolean at_function_level,
                                           a_boolean explicit_return_type);
 extern a_boolean curr_code_reachable(void);
-extern void new_struct_stmt_stack(sizeof_t  *saved_container_pos,
-                                  sizeof_t  *saved_depth_stmt_stack,
-                                  int       *saved_code_reachable);
-extern void restore_struct_stmt_stack(sizeof_t  saved_container_pos,
-                                      sizeof_t  saved_depth_stmt_stack,
-                                      int       saved_code_reachable);
+extern void new_struct_stmt_stack(int  *saved_container_pos,
+                                  int  *saved_depth_stmt_stack,
+                                  int  *saved_code_reachable);
+extern void restore_struct_stmt_stack(int  saved_container_pos,
+                                      int  saved_depth_stmt_stack,
+                                      int  saved_code_reachable);
 
 #endif /* ifndef STATEMENTS_H */
 
