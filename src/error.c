@@ -1739,6 +1739,9 @@ error_source_line for later use by diagnostic output functions.
           after_end_of_error_source_line_minus_2 =
                                      after_end_of_error_source_line - 2;
         }  /* if */
+        /* Change a null character to a space (which is also what is done
+           when the line is read initially). */
+        if (ch == '\0') ch = ' ';
         /* Add the character to the buffer. */
         *loc_in_line++ = (char)ch;
       }  /* while */
