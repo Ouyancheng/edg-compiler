@@ -7270,12 +7270,14 @@ functions befriending_list_test and class_scope_test.
     } else if (kind == (a_scope_kind)sck_template_instantiation) {
       /* Nothing required for template instantiation scopes. */
     } else {
+      a_type_ptr scope_class_type;
       check_assertion_str(kind == (a_scope_kind)sck_class_struct_union ||
                           kind == (a_scope_kind)sck_class_reactivation,
                    "have_particular_member_access_privilege: bad stack entry");
       /* A class or class reactivation. */
+      scope_class_type = ssep->assoc_type;
       if (skip_to_class != NULL &&
-          !same_entities(class_type, skip_to_class)) {
+          !same_entities(scope_class_type, skip_to_class)) {
         /* We're skipping to the class skip_to_class, so ignore this entry. */
       } else {
         /* Check for access granted by being a member of the class. */
@@ -7284,10 +7286,10 @@ functions befriending_list_test and class_scope_test.
           have_member_privilege = TRUE;
           break;
         }  /* if */
-        if (class_type->source_corresp.is_class_member) {
+        if (scope_class_type->source_corresp.is_class_member) {
           /* Ignore class scopes until we get to the class of which this
              class is a member. */
-          skip_to_class = class_type->source_corresp.parent.class_type;
+          skip_to_class = scope_class_type->source_corresp.parent.class_type;
         } else {
           /* For a non-nested class, keep going to check any enclosing
              function. */
