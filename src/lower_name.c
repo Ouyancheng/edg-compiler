@@ -2844,7 +2844,12 @@ externalized, use the encoding for the externalized form.
   /* Static entities are potentially referenced from exported templates
      and therefore get externalized, which gives them a different kind
      of mangled name. */
+  /* Note that if the name has been externalized already it fails the
+     "should be externalized" test, but we still need to generate an
+     externalized name here (and the lower-level routine will fetch the
+     non-externalized name). */
   needs_to_be_externalized =
+                routine->source_corresp.externalized ||
                 routine_should_be_externalized_for_exported_templates(routine);
   if (needs_to_be_externalized) {
     start_externalized_name(/*is_variable=*/FALSE, mctl);
