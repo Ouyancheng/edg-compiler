@@ -3132,6 +3132,13 @@ enum a_scope_kind_tag {
 			   This is used, for example, when processing a
 			   member function definition.  Only used in the
 			   front end. */
+  sck_template_declaration,
+                        /* Template parameter declaration scope, used while
+                           scanning the parameter list and declaration of a
+                           class or function template. */
+  sck_template_instantiation,
+                        /* Used during the instantiation of class and function
+                           templates to make the template arguments visible. */
 #endif /* ifdef CIL */
 #ifdef FIL
   sck_stmt_function,	/* Statement function scope. */

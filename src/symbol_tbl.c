@@ -493,13 +493,15 @@ Put out a scope kind name (for debugging).
   char	*s;
 
   switch (sck) {
-    case sck_file:               s = "file";                     break;
-    case sck_func_prototype:     s = "function prototype";       break;
-    case sck_block:              s = "block";                    break;
-    case sck_class_struct_union: s = "class/struct/union";       break;
-    case sck_class_reactivation: s = "class reactivation";       break;
-    case sck_function:           s = "function";                 break;
-    default:                     s = "***UNKNOWN SCOPE KIND***"; break;
+    case sck_file:                   s = "file";                     break;
+    case sck_func_prototype:         s = "function prototype";       break;
+    case sck_block:                  s = "block";                    break;
+    case sck_class_struct_union:     s = "class/struct/union";       break;
+    case sck_class_reactivation:     s = "class reactivation";       break;
+    case sck_function:               s = "function";                 break;
+    case sck_template_declaration:   s = "template declaration";     break;
+    case sck_template_instantiation: s = "template instantiation";   break;
+    default:                         s = "***UNKNOWN SCOPE KIND***"; break;
   }  /* switch */
   fputs(s, f_debug);
 }  /* db_scope_kind */
