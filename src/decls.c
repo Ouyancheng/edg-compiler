@@ -1831,6 +1831,48 @@ done:;
 }  /* scan_throw_specification */
 
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#define init_param_source_sequence_sublist()                           \
+  scope_stack[depth_innermost_file_scope_region_ss_list_scope].        \
+                                           last_source_sequence_entry
+
+static void terminate_param_source_sequence_sublist(
+                                     a_func_info_block_ptr        func_info,
+                                     a_source_sequence_entry_ptr  prev)
+/*
+*/
+{
+  if (prev != NULL) {
+    func_info->prototype_scope_ss_entry_start = prev->next;
+  } else {
+    func_info->prototype_scope_ss_entry_start =
+       scope_stack[depth_innermost_file_scope_region_ss_list_scope].
+                                         il_scope->source_sequence_list;
+  }  /* if */
+  func_info->prototype_scope_ss_entry_end =
+       scope_stack[depth_innermost_file_scope_region_ss_list_scope].
+                                            last_source_sequence_entry;
+#if DEBUG
+  if (debug_level >= 4) {
+    fputs("function prototype source sequence list (in file scope):\n",
+          f_debug);
+    if (func_info->prototype_scope_ss_entry_start == NULL) {
+      fputs("  <empty list>\n", f_debug);
+    } else {
+      a_source_sequence_entry_ptr  tmp_prev, tmp_next;
+      tmp_prev = func_info->prototype_scope_ss_entry_start->prev;
+      func_info->prototype_scope_ss_entry_start->prev = NULL;
+      tmp_next = func_info->prototype_scope_ss_entry_end->next;
+      func_info->prototype_scope_ss_entry_end->next = NULL;
+      db_source_sequence_list(func_info->prototype_scope_ss_entry_start);
+      func_info->prototype_scope_ss_entry_start->prev = tmp_prev;
+      func_info->prototype_scope_ss_entry_end->next = tmp_next;
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+}
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
 static void function_declarator(a_type_ptr        *new_type_ptr,
                                 a_func_info_block *func_info,
                                 a_symbol_locator  *locator,
@@ -1860,6 +1902,12 @@ scope is that of a class definition.
   a_decl_flag_set         dso_flags;
   a_param_type_ptr        last_param_type;
   a_param_id_ptr          last_param_id;
+  a_source_sequence_entry_ptr
+                          param_ssep;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+                          ss_entry_start_prev;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_symbol_locator        param_locator;
   a_type_ptr              bottom_derived_type;
   a_boolean               done;
@@ -1884,13 +1932,14 @@ scope is that of a class definition.
      is mainly useful for managing param_id entries properly. */
   if (func_info == NULL) func_info = &local_func_info_block;
   clear_func_info(func_info);
+#if 0
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (locator != NULL && !is_error_locator(*locator) &&
       func_info != &local_func_info_block) {
-    func_info->decl_seq_info.source_sequence_entry =
-                                     add_source_sequence_entry_for_routine();
+    func_info->declarator_ssep = add_source_sequence_entry_for_routine();
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* if 0 */
   last_param_id = NULL;
   *new_type_ptr = alloc_type((a_type_kind)tk_routine);
   extra_info = (*new_type_ptr)->variant.routine.extra_info;
@@ -1971,6 +2020,9 @@ scope is that of a class definition.
       /* Remember the scope number for later use if and when a body appears. */
       func_info->scope_number = scope_stack[depth_scope_stack].number;
       last_param_type = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      ss_entry_start_prev = init_param_source_sequence_sublist();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       do {
         add_stop_token(tok_comma);
         copy_source_position(pos_curr_token, param_type_pos);
@@ -2025,6 +2077,7 @@ scope is that of a class definition.
            looking for a declarator when decl_specifiers has found a badly
            formed type specifier.  If an error is to be put out, that's done
            later. */
+        param_ssep = NULL;
         if (!dangling_type_specifier &&
             is_abstract_or_real_declarator_start()) {
           a_decl_flag_set  do_flags;
@@ -2038,7 +2091,7 @@ scope is that of a class definition.
                        DI_ABSTRACT_DECLARATOR_ALLOWED, &do_flags,
                      param_type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
                      &param_locator, &param_type_ptr, &bottom_derived_type,
-                     (a_func_info_block_ptr)NULL);
+                     &param_ssep, (a_func_info_block_ptr)NULL);
         } else {
           /* No declarator. */
           if (!is_error_type(param_type_ptr) && defines_something &&
@@ -2089,7 +2142,7 @@ scope is that of a class definition.
         }  /* if */
         add_to_param_id_list(&param_locator, param_type_ptr,
                              &param_type_pos, param_storage_class,
-                             func_info, &last_param_id);
+                             func_info, param_ssep, &last_param_id);
         if (curr_token == tok_assign && C_dialect == C_dialect_cplusplus) {
           /* Argument expressions are not allowed in overloaded operator
              declarations.  Issue an error, but go ahead and scan the
@@ -2300,6 +2353,9 @@ scope is that of a class definition.
         }  /* if */
         remove_stop_token(tok_comma);
       } while (!done);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      terminate_param_source_sequence_sublist(func_info, ss_entry_start_prev);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Save the list of symbols for the prototype scope (usually NULL, but
          can have symbols for named types declared within the prototype). */
       if (func_info != &local_func_info_block) {
@@ -2339,8 +2395,9 @@ scope is that of a class definition.
           /* Add the identifier to the parameter id list. */
           add_to_param_id_list(&locator_for_curr_id, (a_type_ptr)NULL,
                                (a_source_position*)NULL,
-                               (a_storage_class)sc_unspecified,
-                               func_info, &last_param_id);
+                               (a_storage_class)sc_unspecified, func_info,
+                               (a_source_sequence_entry_ptr)NULL,
+                               &last_param_id);
           /* Advance past the identifier. */
           (void)get_token();
         }  /* if */
@@ -2353,6 +2410,13 @@ scope is that of a class definition.
     if (local_func_info_block.param_id_list != NULL) {
       /* Free the list of parameter identifiers -- they're not needed
          if there's no definition. */
+      a_param_id_ptr  pip = local_func_info_block.param_id_list;
+      for (; pip != NULL; pip = pip->next) {
+        if (pip->source_sequence_entry != NULL) {
+          remove_from_source_sequence_list(&pip->source_sequence_entry,
+                                           (a_type_ptr)NULL);
+        }  /* if */
+      }  /* for */
       free_param_id_list(&(local_func_info_block.param_id_list));
     }  /* if */
   }  /* if */
@@ -3576,6 +3640,8 @@ void decl_var_or_routine(a_symbol_locator      *locator,
                          a_storage_class       storage_class,
                          a_type_ptr            type_ptr,
                          a_func_info_block_ptr func_info,
+                         a_source_sequence_entry_ptr
+                                               declarator_ssep,
                          a_boolean             is_variable_def,
                          a_symbol_ptr          *symbol_ptr,
                          an_id_linkage_kind    *linkage_ptr,
@@ -3624,8 +3690,6 @@ to NULL.
   a_boolean         is_main_function = FALSE;
   a_boolean         is_function_def = FALSE;
   a_boolean         changed_to_inline = FALSE;
-  a_decl_seq_info_ptr
-                    decl_seq_info = NULL;
 
   db_enter(3, "decl_var_or_routine");
   *old_type = NULL;
@@ -3646,7 +3710,6 @@ to NULL.
       check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
                                      locator);
     }  /* if */
-    decl_seq_info = &func_info->decl_seq_info;
   }  /* if */
   if (is_function && func_info->is_implicit_declaration) {
     if (C_dialect != C_dialect_cplusplus) {
@@ -4092,9 +4155,9 @@ skip_overloading:;
     }  /* if */
   }  /* if */
   if (is_variable_def || is_function_def) {
-    mark_defined(sym, &locator->source_position, decl_seq_info);
+    f_mark_defined(sym, &locator->source_position, declarator_ssep);
   } else {
-    mark_declared(sym, &locator->source_position, decl_seq_info);
+    f_mark_declared(sym, &locator->source_position, declarator_ssep);
   }  /* if */
   if (!is_function && is_volatile_qualified_type(type_ptr)) {
     /* A variable with a volatile type is considered to be used and modified
@@ -4442,6 +4505,7 @@ class template.
 static void define_static_data_member(a_symbol_locator   *locator,
                                       a_storage_class	 storage_class,
 				      a_type_ptr	 type_ptr,
+                                      a_source_sequence_entry_ptr  ssep,
 				      a_symbol_ptr       *symbol_ptr,
                                       an_id_linkage_kind *linkage_ptr)
 /*
@@ -4492,7 +4556,7 @@ the symbol and its linkage (which is always "none").
         sym->variant.static_data_member.instance_ptr->specific_def = TRUE;
         sym->variant.static_data_member.variable->specific_def = TRUE;
       }  /* if */
-      mark_defined(sym, &locator->source_position, (a_decl_seq_info_ptr)NULL);
+      f_mark_defined(sym, &locator->source_position, ssep);
     }  /* if */
   } else {
     /* Not a static data member (but a member of some sort, since it is a
@@ -4525,7 +4589,7 @@ the symbol and its linkage (which is always "none").
     /* Record the symbol declaration, using the original symbol, even
        though there was an error.  This will make it show up on a cross
        reference listing. */
-    mark_declared(sym, &locator->source_position, (a_decl_seq_info_ptr)NULL);
+    f_mark_declared(sym, &locator->source_position, ssep);
     /* "Enter" the symbol using an error locator -- this means a symbol
        entry will be created but it will not be added to any lists.  Then
        we'll restore the header to the new symbol, so that the correct name
@@ -4704,7 +4768,7 @@ on a prior declaration.
       sym->variant.routine.instance_ptr->instantiation_required = FALSE;
     }  /* if */
   }  /* if */
-  mark_defined(sym, &locator->source_position, (a_decl_seq_info_ptr)NULL);
+  f_mark_defined(sym, &locator->source_position, func_info->declarator_ssep);
   if (func_info->is_inline) {
     if (!sym->variant.routine.ptr->is_inline &&
         sym->variant.routine.ptr->called) {
@@ -4727,9 +4791,10 @@ on a prior declaration.
 }  /* define_member_function */
 
 
-void decl_typedef(a_symbol_locator   *locator,
-                  a_type_ptr         type_ptr,
-                  a_symbol_ptr       *symbol_ptr)
+void decl_typedef(a_symbol_locator             *locator,
+                  a_type_ptr                   type_ptr,
+                  a_symbol_ptr                 *symbol_ptr,
+                  a_source_sequence_entry_ptr  declarator_ssep)
 /*
 Enter the declaration of an identifier for a typedef.  *locator gives
 the symbol locator (and thus its name and its declaration position).
@@ -4772,8 +4837,7 @@ a pointer to it in *symbol_ptr.
             pos_diagnostic(strict_ansi_error_severity,
                            ec_duplicate_typedef, &locator->source_position);
           }  /* if */
-          mark_declared(sym, &locator->source_position,
-                        (a_decl_seq_info_ptr)NULL);
+          mark_declared(sym, &locator->source_position);
           goto return_point;
         } else {
           /* C++ only.  Must be a tag symbol. */
@@ -4827,7 +4891,7 @@ a pointer to it in *symbol_ptr.
   sym->variant.type = tp = alloc_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
   set_source_corresp(&(tp->source_corresp), sym);
-  mark_defined(sym, &locator->source_position, (a_decl_seq_info_ptr)NULL);
+  f_mark_defined(sym, &locator->source_position, declarator_ssep);
   add_to_types_list(tp, decl_scope_level);
 
 return_point:
@@ -4842,9 +4906,9 @@ return_point:
 }  /* decl_typedef */
 
 
-static a_symbol_ptr decl_parameter(a_param_id_ptr    param_id,
-                                   a_param_type_ptr  ptp,
-                                   a_boolean         function_instantiation)
+static void decl_parameter(a_param_id_ptr    param_id,
+                           a_param_type_ptr  ptp,
+                           a_boolean         function_instantiation)
 /*
 Enter the declaration of an identifier for a parameter.  The param_id
 points to an sk_parameter symbol, which under ordinary circumstances, is
@@ -4898,6 +4962,8 @@ a new symbol is created and entered in the symbol table.
     }  /* if */
     sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);
+    f_mark_defined(sym, &sym->decl_position, param_id->source_sequence_entry);
+    mark_variable_value_set(sym);
 #if DEBUG
     if (debug_level >= 3) {
       db_symbol(sym, "Changed from parameter symbol: ", 4);
@@ -4905,7 +4971,6 @@ a new symbol is created and entered in the symbol table.
 #endif /* DEBUG */
   }  /* if */
   db_exit();
-  return sym;
 }  /* decl_parameter */
 
 
@@ -4963,7 +5028,8 @@ symbol has already been entered as an undefined symbol.
   func_info.is_implicit_declaration = TRUE;
   if (exceptions_enabled) func_info.throw_position = locator.source_position;
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
-                      &func_info, /*is_variable_def=*/FALSE, &symbol_ptr,
+                      &func_info, (a_source_sequence_entry_ptr)NULL,
+                      /*is_variable_def=*/FALSE, &symbol_ptr,
                       &linkage, &old_type, &ext_sym);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
@@ -5040,7 +5106,7 @@ is_definition is TRUE if the label is being scanned as part of a label.
       /* Note that we want mark_defined is called even if the symbol
          was previously entered.  Labels are strange in that a reference
          can come up before a declaration. */
-      mark_defined(label_sym, &pos_curr_token, (a_decl_seq_info_ptr)NULL);
+      mark_defined(label_sym, &pos_curr_token);
     } else {
       mark_referenced(label_sym, &pos_curr_token);
       /* Set the decl_position in case no declaration shows up, so we
@@ -5267,6 +5333,8 @@ void declarator(a_decl_flag_set   input_flags,
                 a_symbol_locator  *locator,
                 a_type_ptr        *p_complete_type,
                 a_type_ptr        *p_bottom_derived_type,
+                a_source_sequence_entry_ptr
+                                  *declarator_ssep,
                 a_func_info_block *func_info)
 /*
 Scan a declarator (3.5.4) or an abstract declarator (3.5.5), depending
@@ -5403,7 +5471,7 @@ otherwise it is NULL.  The syntax is:
     declarator(~(~input_flags | DI_PARENTHESIZED_INITIALIZER_ALLOWED),
                &local_do_flags, /*specifiers_type=*/(a_type_ptr)NULL,
                member_parent_type, locator, &derived_type,
-               &bottom_derived_type, func_info);
+               &bottom_derived_type, declarator_ssep, func_info);
     if (local_do_flags & DO_REAL_DECLARATOR_SCANNED) {
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
     } else {
@@ -5431,6 +5499,19 @@ otherwise it is NULL.  The syntax is:
     } else {
       /* Real (non-abstract) declarator. */
       declarator_pos = pos_curr_token;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if DEBUG
+      if (debug_level >= 4) {
+        fprintf(f_debug, "adding empty ss entry for declarator \"%s\":\n",
+                locator_for_curr_id.symbol_header->identifier);
+      }  /* if */
+#endif /* DEBUG */
+      *declarator_ssep =
+           add_empty_source_sequence_entry(
+                   /*alloc_in_fs=*/TRUE,
+                   /*proxy_allowed=*/scope_stack[depth_scope_stack].kind !=
+                                             (a_scope_kind)sck_func_prototype);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
       /* Process the identifier.  This is done if we are at the beginning of
          a qualified name.  A special test is done to exclude a destructor
@@ -5824,6 +5905,18 @@ function_lparen:
       function_declarator(&new_type_ptr, func_info, locator,
                           member_parent_type, is_nonstatic_member_function,
                           is_constructor, is_destructor);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (*declarator_ssep != NULL) {
+        if (func_info != NULL) {
+          if (locator != NULL && !is_error_locator(*locator)) {
+            func_info->declarator_ssep = *declarator_ssep;
+          } else {
+            remove_from_source_sequence_list(declarator_ssep,
+                                             (a_type_ptr)NULL);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (is_member_def) {
         pop_class_reactivation_scope();
       }  /* if */
@@ -6324,11 +6417,9 @@ to indicate whether an enumeration is actually defined.
       tag_sym->class_of_which_a_member = class_of_which_a_member;
       tag_sym->variant.type = enum_type;
       if (curr_token == tok_lbrace) {
-        mark_defined(tag_sym, &locator.source_position,
-                     (a_decl_seq_info_ptr)NULL);
+        mark_defined(tag_sym, &locator.source_position);
       } else {
-        mark_declared(tag_sym, &locator.source_position,
-                      (a_decl_seq_info_ptr)NULL);
+        mark_declared(tag_sym, &locator.source_position);
       }  /* if */
     }  /* if */
     /* When an enumeration is defined within a class definition, its access
@@ -6345,12 +6436,10 @@ to indicate whether an enumeration is actually defined.
     enum_type = tag_sym->variant.type;
     /* Record cross-reference information. */
     if (curr_token == tok_lbrace) {
-      mark_defined(tag_sym, &locator.source_position,
-                   (a_decl_seq_info_ptr)NULL);
+      mark_defined(tag_sym, &locator.source_position);
     } else if (curr_token == tok_semicolon) {
       /* A useless redeclaration of an enum tag. */
-      mark_declared(tag_sym, &locator.source_position,
-                    (a_decl_seq_info_ptr)NULL);
+      mark_declared(tag_sym, &locator.source_position);
     } else {
       mark_referenced(tag_sym, &locator.source_position);
     }  /* if */
@@ -6496,8 +6585,7 @@ to indicate whether an enumeration is actually defined.
         enum_con->source_corresp.class_of_which_a_member =
                 enum_sym->class_of_which_a_member = class_of_which_a_member;
         enum_con->source_corresp.access = access;
-        mark_defined(enum_sym, &locator.source_position,
-                     (a_decl_seq_info_ptr)NULL);
+        mark_defined(enum_sym, &locator.source_position);
         /* Add the enumeration constant to the list under the enumerated
            type. */
         if (end_of_enum_con_list == NULL) {
@@ -8009,10 +8097,11 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
 							    opt
 */
 {
-  a_storage_class           storage_class;
-  a_decl_flag_set           dso_flags, do_flags;
-  a_type_ptr                bottom_derived_type;
-  a_source_position         start_pos;
+  a_storage_class              storage_class;
+  a_decl_flag_set              dso_flags, do_flags;
+  a_type_ptr                   bottom_derived_type;
+  a_source_position            start_pos;
+  a_source_sequence_entry_ptr  declarator_ssep = NULL;
 
   db_enter(3, "type_name");
   set_err_pos_to_curr_token();
@@ -8035,7 +8124,8 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
     declarator(DI_ABSTRACT_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED,
                &do_flags, *type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
 	       (a_symbol_locator *)NULL,
-               type_ptr, &bottom_derived_type, (a_func_info_block_ptr)NULL);
+               type_ptr, &bottom_derived_type, &declarator_ssep,
+               (a_func_info_block_ptr)NULL);
   }  /* if */
   copy_source_position(start_pos, error_position);
   db_exit();
@@ -8069,6 +8159,8 @@ syntax is:
   a_decl_flag_set       dso_flags, do_flags;
   a_source_position     start_pos;
   a_storage_class       storage_class;
+  a_source_sequence_entry_ptr
+                        declarator_ssep = NULL;
 
   db_enter(3, "new_type_name");
   if (!is_parenthesized && curr_token == tok_lparen) {
@@ -8100,7 +8192,8 @@ syntax is:
                  &do_flags, *type_ptr,
                  /*member_parent_type=*/(a_type_ptr)NULL,
                  (a_symbol_locator *)NULL, type_ptr,
-                 &bottom_derived_type, (a_func_info_block_ptr)NULL);
+                 &bottom_derived_type, &declarator_ssep,
+                 (a_func_info_block_ptr)NULL);
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
@@ -8307,7 +8400,7 @@ delayed scan of cached tokens of member functions defined in a class definition
 and for the instantiation of template functions.
 */
 {
-  a_type_ptr                     class_type, rout_type;
+  a_type_ptr                     class_type, rout_type, tp;
   a_routine_type_supplement_ptr  rtsp;
   a_scope_number                 scope_number;
   a_param_id_ptr                 param_id;
@@ -8315,8 +8408,9 @@ and for the instantiation of template functions.
   a_struct_stmt_stack_state      saved_sss_state;
   a_boolean                      is_instantiation;
   a_param_type_ptr               ptp;
-  a_source_sequence_entry_ptr    ssep;
-  a_symbol_ptr                   sym;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr    ssep, next_ssep;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "scan_function_body");
   class_type = rout_ptr->source_corresp.class_of_which_a_member;
@@ -8331,10 +8425,15 @@ and for the instantiation of template functions.
      just in case. */
   rout_type = skip_typerefs(rout_ptr->type);
   rtsp = rout_type->variant.routine.extra_info;
-  if (class_type != NULL && !(flags & SFB_NO_CLASS_REACTIVATION)) {
-    /* Push a class symbol reactivation scope, to make class member names
-       visible for processing the function definition. */
-    push_class_reactivation_scope(class_type);
+  if (class_type != NULL) {
+    /* Member function -- either an inline or "out-of-line" definition. */
+    if (flags & SFB_NO_CLASS_REACTIVATION) {
+      /* Inline.  Class has already been reactivated. */
+    } else {
+      /* Push a class symbol reactivation scope, to make class member names
+         visible for processing the function definition. */
+      push_class_reactivation_scope(class_type);
+    }  /* if */
   }  /* if */
   is_instantiation = (flags & SFB_IS_INSTANTIATION) != 0;
   scope_number = (is_instantiation) ?
@@ -8360,6 +8459,44 @@ and for the instantiation of template functions.
     check_assertion(func_info->param_id_list == NULL);
   } else {
     /* Correctly declared function type. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (func_info->param_id_list != NULL) {
+      ssep = func_info->prototype_scope_ss_entry_start;
+      for (; ssep != NULL; ssep = next_ssep) {
+        if (ssep == func_info->prototype_scope_ss_entry_end) {
+          next_ssep = NULL;
+        } else {
+          next_ssep = ssep->next;
+        }  /* if */
+        switch (ss_entry_kind(ssep)) {
+          case iek_none:
+            param_id = func_info->param_id_list;
+            for (; param_id != NULL; param_id = param_id->next) {
+              if (param_id->source_sequence_entry == ssep) break;
+            }  /* for */
+#if CHECKING
+            if (param_id == NULL) {
+              internal_error("scan_function_body: no param-id for ss entry");
+            }  /* if */
+#endif /* CHECKING */
+            remove_from_source_sequence_list(
+                              &ssep, func_info->class_in_which_defined_inline);
+            param_id->source_sequence_entry =
+                  add_empty_source_sequence_entry(/*alloc_in_fs=*/FALSE,
+                                                  /*proxy_allowed=*/FALSE);
+            break;
+          case iek_type:
+            tp = ss_entry_ptr(ssep, a_type_ptr);
+            if (is_immediate_class_type(tp) || is_immediate_enum_type(tp)) {
+              make_proxy_ptr_source_sequence_entry(ssep);
+              break;
+            }  /* if */
+          default:;
+            /* No action. */
+        }  /* switch */
+      }  /* for */
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (rtsp->prototyped && func_info->any_prototype_names_omitted) {
       /* New-style (function prototype) for which at least one of the param
          names was omitted in the prototype.  In C this is not valid on a
@@ -8375,16 +8512,17 @@ and for the instantiation of template functions.
     for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
-      sym = decl_parameter(param_id, ptp, is_instantiation);
+      decl_parameter(param_id, ptp, is_instantiation);
+#if 0
       if (is_instantiation && sym != NULL) {
         /* Ordinarily the call to mark_defined is done in later, in a way
            that assures correct source-sequence ordering for parameters and
            types.  For function instantantiations, however, mark_defined must
            be called now. */
-        mark_defined(sym, &sym->decl_position,
-                     (a_decl_seq_info_ptr)NULL);
+        mark_defined(sym, &sym->decl_position);
         mark_variable_value_set(sym);
       }  /* if */
+#endif /* if 0 */
       /* Be sure param-id and param-type lists are in sync. */
       check_assertion((param_id->next == NULL) == (ptp->next == NULL));
     }  /* for */
@@ -8395,6 +8533,7 @@ and for the instantiation of template functions.
          types that were defined in the prototype scope are reactivated now
          so that they will be available in the current scope. */
       if (func_info->prototype_scope_symbols != NULL) {
+#if 0
         sym = func_info->prototype_scope_symbols;
         for (; sym != NULL; sym = sym->next_in_scope) {
           if (sym->kind == (a_symbol_kind)sk_variable) {
@@ -8408,7 +8547,7 @@ and for the instantiation of template functions.
                  declaration. */
             } else {
               /* Record a definition of the parameter. */
-              mark_defined(sym, &sym->decl_position, &param_id->decl_seq_info);
+              mark_defined(sym, &sym->decl_position);
               mark_variable_value_set(sym);
             }  /* if */
           } else if (is_tag_symbol(sym)) {
@@ -8425,6 +8564,7 @@ and for the instantiation of template functions.
                list (in C mode only).  Ignore them. */
           }  /* if */
         }  /* for */
+#endif /* if 0 */
         reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
       }  /* if */
       /* Free the list of parameter ids, now that it is no longer needed. */
@@ -8530,6 +8670,10 @@ specified (rather than defaulted to "int").
   a_boolean	     is_member_function_def = FALSE;
   a_param_type_ptr   ptp;
   a_decl_flag_set    flags;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+                     ss_entry_start_prev;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "function_definition");
   /* The top type (function) must have come from a declarator, not from a
@@ -8589,6 +8733,9 @@ specified (rather than defaulted to "int").
       /* Remember the scope number for later use when the body is scanned. */
       func_info->scope_number = scope_stack[depth_scope_stack].number;
 #endif /* if 0 */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      ss_entry_start_prev = init_param_source_sequence_sublist();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       while (curr_token == tok_identifier ||
              is_decl_start(/*expr_context=*/FALSE,
                            /*real_declarator_allowed=*/TRUE)) {
@@ -8599,6 +8746,9 @@ specified (rather than defaulted to "int").
                     /*is_old_style_param_decl=*/TRUE,
                     func_info->param_id_list);
       }  /* while */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      terminate_param_source_sequence_sublist(func_info, ss_entry_start_prev);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Scan the list of identifiers, assigning types to any that remain
          undeclared, and create the param type entries. */
       for (param_id = func_info->param_id_list;
@@ -8646,8 +8796,8 @@ specified (rather than defaulted to "int").
     }  /* if */
     /* Create the symbol entry and routine entry for the routine. */
     decl_var_or_routine(locator, storage_class, rout_type, func_info,
-                        /*is_variable_def=*/FALSE, &symbol_ptr, &linkage,
-                        &old_type, &ext_sym);
+                        func_info->declarator_ssep, /*is_variable_def=*/FALSE,
+                        &symbol_ptr, &linkage, &old_type, &ext_sym);
   }  /* if */
   routine_ptr = symbol_ptr->variant.routine.ptr;
   check_assertion(make_unqualified_type(routine_ptr->type) ==
@@ -8864,6 +9014,8 @@ clause is to be attached.  catch_pos is the source position of "catch".
   a_routine_ptr      cctor, dtor;
   a_param_type_ptr   ptp;
   a_dynamic_init_ptr dip;
+  a_source_sequence_entry_ptr
+                     declarator_ssep = NULL;
 
   db_enter(3, "handler_declaration");
   /* Push the scope for the handler before processing the exception
@@ -8914,7 +9066,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
                        DI_ABSTRACT_DECLARATOR_ALLOWED,
                      &do_flags, type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL, &locator,
-                     &type_ptr, &bottom_derived_type,
+                     &type_ptr, &bottom_derived_type, &declarator_ssep,
                      (a_func_info_block_ptr)NULL);
           if (do_flags & DO_REAL_DECLARATOR_SCANNED) {
             sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
@@ -8964,8 +9116,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
         if (sym != NULL) {
           sym->variant.variable.ptr = handler->parameter;
           set_source_corresp(&(handler->parameter->source_corresp), sym);
-          mark_defined(sym, &locator.source_position,
-                       (a_decl_seq_info_ptr)NULL);
+          mark_defined(sym, &locator.source_position);
           mark_variable_value_set(sym);
         }  /* if */
         /* A handler parameter is initialized by the run-time when the
@@ -9225,6 +9376,8 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean         is_variable_def, incomplete_type_error_reported;
   a_boolean         is_tentative_definition;
   a_variable_ptr    var_ptr;
+  a_source_sequence_entry_ptr
+                    declarator_ssep = NULL;
 #if ASM_FUNCTION_ALLOWED
   a_boolean         is_asm_function = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -9503,7 +9656,8 @@ continue_with_declaration:
       }  /* if */
       declarator(di_flags, &do_flags, type_ptr, 
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
-                 &local_type_ptr, &bottom_derived_type, &func_info);
+                 &local_type_ptr, &bottom_derived_type, &declarator_ssep,
+                 &func_info);
       is_function = (storage_class != (a_storage_class)sc_typedef &&
                      is_function_type(local_type_ptr));
       is_main_function = FALSE;
@@ -9630,6 +9784,7 @@ continue_with_declaration:
                to the function scope. */
             reenter_symbol(param_id->symbol, decl_scope_level,
                            /*suppress_error=*/FALSE);
+            param_id->source_sequence_entry = declarator_ssep;
           }  /* if */
           adjust_parameter_type(&local_type_ptr);
           is_function = top_declarator_type_is_function = FALSE;
@@ -9793,10 +9948,13 @@ continue_with_declaration:
              definition. */
           for (; pid != NULL; pid = pid->next) {
             if (pid->symbol != NULL) {
-              mark_declared(pid->symbol, &pid->symbol->decl_position,
-                            (a_decl_seq_info_ptr)NULL);
+              mark_declared(pid->symbol, &pid->symbol->decl_position);
             }  /* if */
-          }  /* if */
+            if (pid->source_sequence_entry != NULL) {
+              remove_from_source_sequence_list(&pid->source_sequence_entry,
+                                               (a_type_ptr)NULL);
+            }  /* if */
+          }  /* for */
           free_param_id_list(&(func_info.param_id_list));
         }  /* if */
       }  /* if */
@@ -9907,11 +10065,12 @@ continue_with_declaration:
            in decl_parameter, called when the function body is scanned. */
       } else if (local_storage_class == (a_storage_class)sc_typedef) {
         /* A typedef declaration. */
-        decl_typedef(&locator, local_type_ptr, &symbol_ptr);
+        decl_typedef(&locator, local_type_ptr, &symbol_ptr, declarator_ssep);
       } else if (is_static_data_member) {
         /* A static data member definition. */
         define_static_data_member(&locator, local_storage_class,
-                                  local_type_ptr, &symbol_ptr, &linkage);
+                                  local_type_ptr, declarator_ssep,
+                                  &symbol_ptr, &linkage);
         var_ptr = symbol_ptr->variant.static_data_member.variable;
         /* Fetch the type of the symbol again, since it might have been
            changed when reconciled with the original declaration. */
@@ -9922,8 +10081,9 @@ continue_with_declaration:
       } else if (is_function) {
         /* A function declaration with no body. */
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
-                            &func_info, /*is_variable_def=*/FALSE,
-                            &symbol_ptr, &linkage, &old_type, &ext_sym);
+                            &func_info, declarator_ssep,
+                            /*is_variable_def=*/FALSE, &symbol_ptr,
+                            &linkage, &old_type, &ext_sym);
       } else {
         /* A variable declaration. */
         /* Set a flag marking this as a defining declaration, if that's
@@ -9961,7 +10121,7 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
-                            (a_func_info_block *)NULL,
+                            (a_func_info_block *)NULL, declarator_ssep,
                             is_variable_def || is_tentative_definition,
                             &symbol_ptr, &linkage, &old_type, &ext_sym);
         var_ptr = symbol_ptr->variant.variable.ptr;
