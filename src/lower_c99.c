@@ -72,18 +72,25 @@ static a_boolean ttt_record_vla_type_for_lowering(a_type_ptr  tp,
 /*
 If the given type is a VLA type, record it for later lowering.  This is a
 routine meant to be used with traverse_type_tree.  It always returns FALSE
-and it never sets *end_traversal (so the whole type tree is traversed).
+(so the whole type is traversed).  It takes advantage of a dedicated flag
+in a_type entries to avoid visiting any type node more than once.
 */
 {
-  if (tp->kind == (a_type_kind)tk_array && is_vla_type(tp)) {
-    /* VLA types will be lowered to pointers to the underlying element type. */
-    record_vla_type_for_lowering(tp);
-  } else if (tp->kind == (a_type_kind)tk_pointer) {
-    /* Pointers to VLA types must be lowered to pointers to the element type
-       of the VLA. */
-    a_type_ptr  tptp = type_pointed_to(tp);
-    if (is_vla_type(tptp)) {
+  if (tp->visited_for_vla_lowering) {
+    *end_traversal = TRUE;
+  } else {
+    tp->visited_for_vla_lowering = TRUE;
+    if (tp->kind == (a_type_kind)tk_array && is_vla_type(tp)) {
+      /* VLA types will be lowered to pointers to the underlying element
+         type. */
       record_vla_type_for_lowering(tp);
+    } else if (tp->kind == (a_type_kind)tk_pointer) {
+      /* Pointers to VLA types must be lowered to pointers to the element type
+         of the VLA. */
+      a_type_ptr  tptp = type_pointed_to(tp);
+      if (is_vla_type(tptp)) {
+        record_vla_type_for_lowering(tp);
+      }  /* if */
     }  /* if */
   }  /* if */
   return FALSE;
@@ -102,8 +109,7 @@ have been treated separately.
                                              TTT_PARAM_TYPES |
                                              TTT_THIS_PARAM_TYPE |
                                              TTT_TEMPLATE_ARGS |
-                                             TTT_EXCEPTION_SPECS |
-                                             TTT_VLA_LOWERING;
+                                             TTT_EXCEPTION_SPECS;
 
   (void)traverse_type_tree(tp, ttt_record_vla_type_for_lowering, tt_flags);
 }  /* record_vla_component_types_for_lowering */

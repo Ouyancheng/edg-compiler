@@ -7306,19 +7306,6 @@ its parameters?).
     status = FALSE;
     goto done;
   }  /* if */
-#if DO_IL_LOWERING && VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-  if (flags & TTT_VLA_LOWERING) {
-    /* VLA lowering requires all types to be traversed, but only one visit of
-       any type node is needed.  A dedicated flag in a_type entries therefore
-       allows the process to be optimized. */
-    if (type_ptr->visited_for_vla_lowering) {
-      status = FALSE;
-      goto done;
-    } else {
-      type_ptr->visited_for_vla_lowering = TRUE;
-    }  /* if */
-  }  /* if */
-#endif /* DO_IL_LOWERING && VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
   if (type_ptr->kind == (a_type_kind)tk_typeref) {
     if (flags & TTT_SKIP_TYPEREFS) {
       if (flags & TTT_STOP_AT_TYPEDEFS) {

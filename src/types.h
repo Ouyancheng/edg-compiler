@@ -886,13 +886,6 @@ typedef int a_type_tree_traversal_flag_set;
 			   the parent classes of a type (e.g., ignore
 			   the T in A<T>::B) and nontype template
 			   parameters used in expression contexts. */
-#if DO_IL_LOWERING && VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-#define TTT_VLA_LOWERING 0x200
-			/* This is a special traversal to identify types that
-			   need transformation for VLA lowering.  Such
-			   traversals can take advantage of a dedicated flag
-			   in a_type entries to optimize processing. */
-#endif /* DO_IL_LOWERING && VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 
 /* Type of service function called by traverse_type_tree to return TRUE or
    FALSE status regarding a given type in a type tree. */
