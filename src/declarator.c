@@ -2109,6 +2109,10 @@ function_lparen:
         /* Normal case -- combine derived_type and complete_type. */
         add_to_derived_type_list(complete_type,
                                  &derived_type, &bottom_derived_type);
+        if (is_immediate_error_type(bottom_derived_type)) {
+          /* There must have been an error -- e.g., array-of-invalid-type. */
+          bottom_pointer_derived_type = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
     complete_type = derived_type;
