@@ -1,5 +1,14 @@
 Version 2.40
 
+10/20/98  Efficiency improvement in name lookup in the presence of
+          namespaces
+
+A change made in 2.34 to fix a problem with namespace directed
+operator lookup caused some quadratic behavior in name lookup.
+This was only visible in programs with extreme overloading (the
+case reported to us has 2,300 friend operator<< functions).
+The processing speed is now improved.
+
 10/19/98  Microsoft compatibility: conversion for direct reference binding
 
 The Microsoft VC++ 6.0 compiler will not consider a conversion function

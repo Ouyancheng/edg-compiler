@@ -2972,8 +2972,15 @@ of something based strictly on the function itself or the call context
      better than each of the other functions. */
   /* Loop through all the other functions. */
   for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
-    /* Skip the chosen function itself. */
-    if (cfp != best_cfp) {
+    if (cfp == best_cfp) {
+      /* Skip the chosen function itself. */
+    } else if (cfp->function_symbol != NULL &&
+               best_cfp->function_symbol != NULL &&
+               fundamental_symbol_of(cfp->function_symbol) ==
+               fundamental_symbol_of(best_cfp->function_symbol)) {
+      /* Skip other symbols that are the same function, which can appear
+         in synthesized overload sets. */
+    } else {
       /* Compare the match level of each argument of the chosen function
          with the same argument of another function. */
       set_first_arg_match(best_cfp);
@@ -3157,6 +3164,16 @@ is set to NULL.
           if (best_cfp == NULL) {
             /* First function.  Take it as the best so far by definition. */
             best_cfp = cfp;
+          } else if (cfp->function_symbol != NULL &&
+                     best_cfp->function_symbol != NULL &&
+                     fundamental_symbol_of(cfp->function_symbol) ==
+                     fundamental_symbol_of(best_cfp->function_symbol)) {
+            /* The same function appears twice in the overload set,
+               probably because the set is synthesized for a member lookup
+               or because of a using directive.  Ignore the second function. */
+            cfp->in_best_match_set = FALSE;
+            number_in_best_match_set--;
+            if (number_in_best_match_set == 1) goto end_func_winnow;
           } else {
             /* Compare the current function against the best so far. */
             cmp = compare_candidate_functions(cfp, best_cfp);

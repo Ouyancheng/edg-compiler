@@ -3189,47 +3189,42 @@ static void add_routine_to_symbol_list(a_symbol_list_entry_ptr *list_head,
 This routine is used when constructing a list of nonmember operator symbols.
 list_head points to the list of symbols already found.  sym points to
 the symbol to be added to the list, which could be an overloaded function
-symbol.  When an overloaded function symbol is added to the list, the
-individual routines under the overloaded function symbol are each added
-separately.  The list is checked for each routine that is added so that
-no routine is on the list twice.
+symbol.  The list is checked for each routine that is added so that
+no symbol is on the list twice, but the same routine could still be
+represented on the list twice because the members of overload sets are
+not checked for duplicates.
 */
 {
   a_symbol_ptr			rout_sym = sym;
-  a_boolean			is_list = FALSE;
   a_symbol_list_entry_ptr	slep;
 
-  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    rout_sym = sym->variant.overloaded_function.symbols;
-    is_list = TRUE;
-  }  /* if */
-  for (; rout_sym != NULL; rout_sym = is_list ? rout_sym->next : NULL) {
-    /* Go through the symbol list for each routine associated with
-       the new symbol. */
-    a_symbol_ptr	sym_to_find;
-    /* Use the fundamental symbol.  The symbol passed in could be a namespace
-       projection symbol, including a synthesized namespace projection symbol
-       created by a using-directive lookup. */
-    sym_to_find = fundamental_symbol_of(rout_sym);
-    /* Ignore sk_undefined symbols created for error recovery purposes. */
-    if (sym->kind == (a_symbol_kind)sk_undefined) continue;
+  a_symbol_ptr	sym_to_find;
+  /* Use the fundamental symbol.  The symbol passed in could be a namespace
+     projection symbol, including a synthesized namespace projection symbol
+     created by a using-directive lookup. */
+  sym_to_find = fundamental_symbol_of(rout_sym);
+  /* Ignore sk_undefined symbols created for error recovery purposes. */
+  if (sym->kind != (a_symbol_kind)sk_undefined) {
     check_assertion_str2(
-                     sym_to_find->kind == (a_symbol_kind)sk_routine ||
-                     sym_to_find->kind == (a_symbol_kind)sk_function_template,
+                   sym_to_find->kind == (a_symbol_kind)sk_routine ||
+                   sym_to_find->kind == (a_symbol_kind)sk_function_template ||
+                   sym_to_find->kind == (a_symbol_kind)sk_overloaded_function,
                      "add_routine_to_symbol_list:", "bad symbol kind");
     for (slep = *list_head; slep != NULL; slep = slep->next) {
       a_symbol_ptr	list_sym = slep->symbol;
       if (list_sym->kind == sym_to_find->kind) {
-        if (list_sym->kind == (a_symbol_kind)sk_routine) {
+        if (list_sym == sym_to_find) {
+          /* Identical symbols -- exit the loop. */
+        } if (list_sym->kind == (a_symbol_kind)sk_routine) {
           if (list_sym->variant.routine.ptr ==
                                             sym_to_find->variant.routine.ptr) {
-            /* We've found a match -- exit the loop. */
+            /* Symbols that point to the same routine -- exit the loop. */
             break;
           }  /* if */
         } else {
           if (list_sym->variant.template_info ==
                                           sym_to_find->variant.template_info) {
-            /* We've found a match -- exit the loop. */
+            /* Symbols that point to the same template -- exit the loop. */
             break;
           }  /* if */
         }  /* if */
@@ -3244,7 +3239,7 @@ no routine is on the list twice.
       slep->next = *list_head;
       *list_head = slep;
     }  /* if */
-  }  /* for */
+  }  /* if */
 }  /* add_routine_to_symbol_list */
 
 
