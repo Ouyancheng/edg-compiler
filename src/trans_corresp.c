@@ -30,6 +30,9 @@ trans_corresp.c -- Routines related to matching entities across
 
 /* Additional header files. */
 #include "trans_corresp.h"
+#if MAINTAIN_NEEDED_FLAGS
+#include "il_walk.h"
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 /* Pointers to canonical built-in types. */
 static a_type_ptr canonical_int_types[(int)ik_last];
@@ -480,7 +483,7 @@ this routine will create such a correspondence entry.
     if (*tcp1 != NULL) {
       /* Reuse the correspondence node of tcp1: it may in some cases have
          a correspondence set already (this happens only when entity2 is a
-         new canonical entity. */
+         new canonical entity). */
       *tcp2 = *tcp1;
 #if CHECKING
       ++(*tcp2)->count;
@@ -515,6 +518,43 @@ this routine will create such a correspondence entry.
   } else if (!in_secondary_trans_unit(entity1)) {
     (*tcp2)->primary = entity1;
   }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+  /* Transfer "needed" information from the new entry to the canonical
+     entry (if the canonical entry had been set previously, setting "needed"
+     on the new entry would have set "needed" on the canonical entry, so
+     we're catching up on what would have been done).  Do not process
+     entities in the primary IL, because those flags get set correctly
+     only with the final IL after copying. */
+  if (in_secondary_trans_unit(entity1)) {
+    a_trans_unit_corresp_ptr tcp = *tcp2;
+    if (tcp->canonical != entity1 &&
+        in_secondary_trans_unit(tcp->canonical)) {
+      char *canonical = tcp->canonical;
+      if (kind != (an_il_entry_kind)iek_base_class) {
+        a_source_correspondence *new_scp= (a_source_correspondence *)entity1;
+        if (new_scp->needed) {
+          mark_as_needed((char *)entity1, kind);
+        }  /* if */
+      }  /* if */
+      if (il_entry_prefix_of(entity1).keep_in_il) {
+        mark_to_keep_in_il((char *)canonical, kind);
+      }  /* if */
+      if (kind == (an_il_entry_kind)iek_type) {
+        a_type_ptr can_type = (a_type_ptr)canonical;
+        a_type_ptr new_type = (a_type_ptr)entity1;
+        if (is_immediate_class_type(new_type)) {
+          check_assertion(is_immediate_class_type(can_type));
+          if (new_type->variant.class_struct_union.definition_needed) {
+            set_class_definition_needed(can_type);
+          }  /* if */
+          if (new_type->variant.class_struct_union.keep_definition_in_il) {
+            set_class_keep_definition_in_il(can_type);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* f_set_trans_unit_corresp */
 
 #define set_trans_unit_corresp(kind, entity1, entity2)                    \
