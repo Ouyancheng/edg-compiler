@@ -3405,15 +3405,24 @@ special function kind (e.g., constructor, destructor), if any.
       clep->symbol = sym;
       clep->next = cssp->conversion_list;
       cssp->conversion_list = clep;
-      /* If the return type of the conversion is a class type or ref
-         class type, set a flag to mark it as target of a conversion. */
-      tp = rtn->type->variant.routine.return_type;
+      /* Check the target type of the conversion. */
+      tp = skip_typerefs(rtn->type->variant.routine.return_type);
       if (is_reference_type(tp)) {
         tp = type_pointed_to(tp);
       }  /* if */
-      if (is_class_struct_union_type(tp)) {
-        (symbol_supplement_for_class(skip_typerefs(tp)))->
+      if (tp == class_type) {
+        /* Conversion to the same type or to a reference to the same
+           type is not allowed (WP 12.3.2). */
+        pos_ty2_error(ec_conversion_to_self_not_allowed,
+                      &locator->source_position, class_type,
+                      rtn->type->variant.routine.return_type);
+      } else {
+        /* If the return type of the conversion is a class type or ref
+           class type, set a flag to mark it as target of a conversion. */
+        if (is_class_struct_union_type(tp)) {
+          (symbol_supplement_for_class(skip_typerefs(tp)))->
                                         target_of_conversion_function = TRUE;
+        }  /* if */
       }  /* if */
     } else {
       rtn->special_kind = spec_kind;
