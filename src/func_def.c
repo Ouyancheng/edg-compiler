@@ -326,6 +326,7 @@ called; may be NULL.
           incomplete_type_error = TRUE;
         } else {
           pos_error(ec_bad_function_return_type, err_pos);
+          rout_type->variant.routine.return_type = error_type();
         }  /* if */
       }  /* if */
     }  /* if */

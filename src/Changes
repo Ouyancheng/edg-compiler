@@ -1,5 +1,12 @@
 Version 3.5
 
+5/28/04  Internal error declaring enum type in return type of main
+
+An internal error would occur if an enum type was first declared as the
+return type of main in C mode.  Now fixed.
+
+  enum T main() { return; }
+
 5/28/04  Embedded C: diagnostic on conversion of negative zero to fixed-point
 
 A diagnostic was issued if a floating-point negative zero was converted to
