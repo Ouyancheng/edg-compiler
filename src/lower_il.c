@@ -7633,6 +7633,7 @@ the expression have already been lowered.
 }  /* lower_pm_field */
 
 #if LOWER_LVALUE_RETURNING_OPERATIONS
+
 static a_boolean has_statement_expression(an_expr_node_ptr  expr)
 /*
 Return whether expr contains a statement expression (a GNU C extension).
@@ -7641,62 +7642,63 @@ Return whether expr contains a statement expression (a GNU C extension).
   a_boolean         result = FALSE;
 
 #if GNU_EXTENSIONS_ALLOWED
-  switch (expr->kind) {
-    case enk_error:
-    case enk_address_of_ellipsis:
-    case enk_constant:
-    case enk_variable:
-    case enk_variable_address:
-    case enk_routine_address:
-    case enk_field:
+  if (gcc_mode) {
+    switch (expr->kind) {
+      case enk_error:
+      case enk_address_of_ellipsis:
+      case enk_constant:
+      case enk_variable:
+      case enk_variable_address:
+      case enk_routine_address:
+      case enk_field:
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-    case enk_result_of_overriding_function:
+      case enk_result_of_overriding_function:
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-      /* No subexpressions. */
-      break;
-    case enk_new_delete:
-    case enk_throw:
-    case enk_condition:
-    case enk_object_lifetime:
-    case enk_typeid:
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-    case enk_lowered_eh_construct:
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-      /* C++ only and there are no statement expressions in C++ mode. */
-      break;
-    case enk_operation:
-      /* Check if any subexpression has a statement expression. */
-      { an_expr_node_ptr  operand;
-        for (operand = expr->variant.operation.operands;
-             operand != NULL;
-             operand = operand->next) {
-          if (has_statement_expression(operand)) {
-            result = TRUE;
-            break;
+        /* No subexpressions. */
+        break;
+      case enk_operation:
+        /* Check if any subexpression has a statement expression. */
+        { an_expr_node_ptr  operand;
+          for (operand = expr->variant.operation.operands;
+               operand != NULL;
+               operand = operand->next) {
+            if (has_statement_expression(operand)) {
+              result = TRUE;
+              break;
+            }  /* if */
+          } /* for */
+        }
+        break;
+      case enk_temp_init:
+        { a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
+          if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+            /* This is the only relevant case in C mode. */
+            result = has_statement_expression(dip->variant.expression);
           }  /* if */
-        } /* for */
-      }
-      break;
-    case enk_temp_init:
-      { a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
-        if (dip->kind == (a_dynamic_init_kind)dik_expression) {
-          /* This is the only relevant case in C mode. */
-          result = has_statement_expression(dip->variant.expression);
-        }  /* if */
-      }
-      break;
-    case enk_runtime_sizeof:
-      if (!expr->variant.runtime_sizeof.is_type) {
-        result = has_statement_expression(
+        }
+        break;
+      case enk_runtime_sizeof:
+        if (!expr->variant.runtime_sizeof.is_type) {
+          result = has_statement_expression(
                                    expr->variant.runtime_sizeof.variant.expr);
-      }  /* if */
-      break;
-    case enk_statement:
-      result = TRUE;
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
+        }  /* if */
+        break;
+      case enk_statement:
+        result = TRUE;
+        break;
+      case enk_new_delete:
+      case enk_throw:
+      case enk_condition:
+      case enk_object_lifetime:
+      case enk_typeid:
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+      case enk_lowered_eh_construct:
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+        /* C++ only and there are no statement expressions in C++ mode. */
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   return result;
 }  /* has_statement_expression */
@@ -7729,7 +7731,7 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
       an_expr_node_ptr gchild1 = child1->variant.operation.operands;
       an_expr_node_ptr gchild2 = gchild1->next;
       an_expr_node_ptr gchild3, newop1, newop2;
-      an_expr_node_ptr  c2_init = NULL;
+      an_expr_node_ptr c2_init = NULL;
       a_type_ptr       expr_type = expr->type;
       if (child_op == (an_expr_operator_kind)eok_question) {
         /* Lvalue "?" rewrite.  Change
