@@ -658,6 +658,22 @@ Look up the identifier that names the attribute to be processed.
 }  /* look_up_attribute */
 
 
+static a_boolean is_keyword_token(a_token_kind	token)
+/*
+Return TRUE if token is a token kind associated with a keyword.  This is
+used to determine if a token initially cached as a keyword can be converted
+back into an identifier.
+*/
+{
+  char		ch;
+  a_boolean	result = FALSE;
+
+  ch = token_names[(int)token][0];
+  result = isalpha((unsigned char)ch) || ch == '_';
+  return result;
+}  /* is_keyword_token */
+
+
 static char *get_string_value_for_token(a_boolean	*err)
 /*
 If the current token is an identifier or string literal, this routine
@@ -686,7 +702,13 @@ is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
   /* The source of the characters to be copied depends on the kind of token
      provided. */
   if (curr_token == tok_identifier) {
+    /* An identifier.  Use the characters of the identifier. */
     src = locator_for_curr_id.symbol_header->identifier;
+    len = strlen(src);
+  } else if (is_keyword_token(curr_token)) {
+    /* A token initially cached as a keyword that should be treated as an
+       identifier. */
+    src = token_names[(int)curr_token];
     len = strlen(src);
   } else if (curr_token == tok_string_literal) {
     if (is_error_constant(&const_for_curr_token)) {
@@ -750,10 +772,17 @@ TRUE.  Note that "err" is not TRUE for an unexpected token kind.
   a_constant		constant;
 
   *err = FALSE;
-  if (curr_token == tok_identifier) {
-    /* Convert the identifier into a string constant. */
+  if (curr_token == tok_identifier || is_keyword_token(curr_token)) {
+    /* Convert the identifier into a string constant.  If a token was
+       initially scanned as a keyword, treat is as an identifier with the
+       name of the keyword. */
     sizeof_t	length;
-    char	*str = locator_for_curr_id.symbol_header->identifier;
+    char	*str;
+    if (curr_token == tok_identifier) {
+      str = locator_for_curr_id.symbol_header->identifier;
+    } else {
+      str = token_names[(int)curr_token];
+    }  /* if */
     /* Add space for the null terminator. */
     length = strlen(str) + 1;
     clear_constant(&constant, (a_constant_repr_kind)ck_string);
