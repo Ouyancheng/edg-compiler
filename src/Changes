@@ -1,5 +1,34 @@
 Version 3.2
 
+4/19/03  Incorrect using-directive lookup in template instantiation
+
+In some unusual circumstances, names made visible by a using-directive
+may not be visible in a template instantiation (this problem has existed
+since at least 2.38 but has only now been discovered).  Now fixed.
+
+  namespace NA1 {
+    namespace NA2 {
+      int na2_var;
+      template <class T> struct Base {
+        Base() {
+          typedef typename T::template Nested<int> nested_t;
+          nested_t d;
+        }
+      };
+    }
+  }
+  namespace NB {
+    using namespace NA1::NA2;
+    struct Derived : public Base<Derived> {
+      template <class T> struct Nested {
+        Nested() {
+          (void)na2_var;
+        }
+      };
+    };
+    Derived d;
+  } 
+
 4/18/03  C++-generating back end: avoid putting out both inline and Microsoft
          __inline
 

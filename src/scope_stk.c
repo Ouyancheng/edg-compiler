@@ -1398,6 +1398,16 @@ specified after the point of definition of the template.
                     : NO_SCOPE_DEPTH;
       nssp = audp->namespace_supplement;
       nssp->scope_depth_at_which_using_directive_applies = new_depth;
+#if DEBUG
+      if (db_flag_is_set("using_dir")) {
+        fprintf(f_debug,
+                "%s using-dir at depth %d for namespace %s applies at %d\n",
+                set_value ? "setting" : "clearing",
+                (int)scope_depth_of(ssep),
+                nssp->namespace_list_entry->ptr->source_corresp.name,
+                (int)new_depth);
+      }  /* if */
+#endif /* DEBUG */
       /* Record the scope depth of the innermost active using directive for
          this namespace.  If we are clearing the flags, reset this depth
          to NO_SCOPE_DEPTH. */
@@ -1483,6 +1493,7 @@ scopes.  In neither C or C++ is a pragma scope is treated as a real scope.
         /* C++ -- class reactivations are not real scopes. */           \
         ((kind) != (a_scope_kind)sck_class_reactivation &&              \
          (kind) != (a_scope_kind)sck_namespace_reactivation &&          \
+         (kind) != (a_scope_kind)sck_instantiation_context &&          \
          (kind) != (a_scope_kind)sck_template_instantiation)))
 
 
@@ -1788,7 +1799,11 @@ the scope being pushed.
   /* Clear the substructure shared with namespace symbol supplements. */
   ssep->assoc_pointers_block     = NULL;
   clear_scope_pointers_block(&ssep->pointers_block);
-  if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
+  if (kind == (a_scope_kind)sck_instantiation_context) {
+    /* When an instantiation context is pushed, the previous scope is the
+       file scope. */
+    ssep->previous_scope = DEPTH_OF_FILE_SCOPE;
+  } else if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
     /* By default, the previous scope is the one that precedes this one
        on the scope stack.  This may be adjusted for instantiation scopes. */
     ssep->previous_scope = depth_of_initial_lookup_scope;
@@ -2738,6 +2753,10 @@ they should be used for the outermost instantiation scope.
   a_namespace_ptr	common_nsp;
   a_scope_depth		depth_of_first_context_scope = NO_SCOPE_DEPTH;
 
+  /* Push a scope that marks the start of the instantiation context on the
+     scope stack. */
+  push_scope(sck_instantiation_context, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
+             (a_routine_ptr)NULL);
   /* Push the namespace containing the point of instantiation. */
   if (reference_nsp !=
               scope_stack[depth_innermost_namespace_scope].assoc_namespace ||
