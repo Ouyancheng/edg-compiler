@@ -433,7 +433,8 @@ Initialize things related to preprocessing.
   /* __STDC__ is defined as 1 if we are compiling the ANSI C dialect
      or if we are compiling C++ (ARM 16.10: "Whether __STDC__ is defined
      and, if so, what its value is are implementation dependent."),
-     left undefined otherwise. */
+     left undefined otherwise.  __STDC__ cannot be redefined when
+     compiling ANSI C, but can be redefined when compiling C++. */
   if (C_dialect == C_dialect_ANSI || C_dialect == C_dialect_cplusplus
 #if OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
       /* If configured to use old-style preprocessing in cfront
@@ -441,7 +442,7 @@ Initialize things related to preprocessing.
       && !cfront_compatibility_mode
 #endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
                                                                       ) {
-    (void)enter_predef_macro("1", "__STDC__", /*cannot_be_redefined=*/TRUE);
+    (void)enter_predef_macro("1", "__STDC__", C_dialect == C_dialect_ANSI);
   }  /* if */
   /* __cplusplus is defined as 1 if we are compiling C++, left undefined
      otherwise.  For compatibility, c_plusplus is also defined. */
@@ -449,7 +450,7 @@ Initialize things related to preprocessing.
     (void)enter_predef_macro("1", "__cplusplus", /*cannot_be_redefined=*/TRUE);
     if (!strict_ansi_mode) {
       (void)enter_predef_macro("1", "c_plusplus",
-                              /*cannot_be_redefined=*/TRUE);
+                               /*cannot_be_redefined=*/TRUE);
     }  /* if */
   }  /* if */
 
@@ -502,11 +503,10 @@ Initialize things related to preprocessing.
         /* There's a previous definition of the macro.  If it's predefined,
            the new definition must match the old. */
         if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
-          /* A predefined macro that cannot be redefined. */
-          err = TRUE;
-        } else {
-          /* Redefinition of an already defined macro.  The value must
-             match the previous definition. */
+          /* Macro is predefined and cannot be redefined. */
+          /* If the macro has repl_text == NULL, it's defined by code in
+             macro.c (e.g., __LINE__) and can't be redefined.  Otherwise,
+             check that the old definition matches the new. */
           old_repl_text = assoc_symbol->variant.macro_def->repl_text;
           if (old_repl_text == NULL ||
               smemcmp(old_repl_text, new_repl_text, repl_text_len) != 0) {

@@ -39,6 +39,11 @@ different systems, a file called sys_predef.c has been added.  Code that
 initializes system specific predefined macros and assertions should be
 placed in this file.
 
+2/16/94  Redefinition of __STDC__ in C++ mode
+
+In C++ mode it is now possible to redefine the value of the __STDC__
+predefined macro.
+
 2/16/94  Redefinition flag for macros
 
 A flag has been added to the macro entry that specifies whether
