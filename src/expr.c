@@ -9320,6 +9320,58 @@ appropriate.
 }  /* scan_class_initializer_expression */
 
 
+void scan_class_parenthesized_initializer(a_type_ptr         class_type,
+                                          a_type_ptr         object_class_type,
+                                          a_dynamic_init_ptr *dip)
+/*
+Scan a parenthesized initializer for an object of type class_type.
+class_type must be a class type having at least one constructor.
+Build a dynamic initialization entry for the initialization, and set
+*dip pointing to it.  If there is an error, set *dip to NULL.
+The current token is the left parenthesis of the initialization.
+This routine is used for constructs like
+
+  A a(1, 2, 3);
+
+object_class_type indicates the class type of the full object being
+initialized.  It is the same as class_type, or a derived type thereof.
+*/
+{
+  an_expr_stack_entry           expr_stack_entry;
+  a_source_position             start_position;
+  a_class_symbol_supplement_ptr cssp;
+  an_expr_node_ptr              arg_list;
+  a_routine_ptr                 conversion_routine;
+
+  db_enter(4, "scan_class_parenthesized_initializer");
+  start_position = pos_curr_token;
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*new_object_lifetime=*/FALSE);
+  check_assertion(C_dialect == C_dialect_cplusplus &&
+                  is_class_struct_union_type(class_type));
+  cssp = symbol_supplement_for_class(class_type);
+  check_assertion(cssp->constructor != NULL);
+  /* Scan the constructor argument list. */
+  scan_ctor_arguments(cssp->constructor, &arg_list, &conversion_routine,
+                      &start_position, object_class_type);
+  if (conversion_routine == NULL) {
+    /* An error. */
+    *dip = NULL;
+    discard_curr_expr_object_lifetime();
+  } else {
+    /* Set the dynamic init entry to represent constructor initialization. */
+    *dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+    (*dip)->variant.constructor.ptr = conversion_routine;
+    (*dip)->variant.constructor.args = arg_list;
+    /* If there's an object lifetime around the initialization, transfer it
+       to the dynamic initialization entry. */
+    bind_curr_expr_lifetime_to_dynamic_init(*dip);
+  }  /* if */
+  pop_expr_stack();
+  db_exit();
+}  /* scan_class_parenthesized_initializer */
+
+
 an_expr_node_ptr scan_boolean_controlling_expression(
                                                    a_boolean is_condition_expr,
                                                    a_boolean repeated_in_loop)

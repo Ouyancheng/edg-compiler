@@ -70,6 +70,11 @@ extern a_boolean scan_class_initializer_expression(
                                               a_type_ptr         required_type,
                                               a_dynamic_init_ptr *dip);
 
+extern void scan_class_parenthesized_initializer(
+                                          a_type_ptr         class_type,
+                                          a_type_ptr         object_class_type,
+                                          a_dynamic_init_ptr *dip);
+
 extern void scan_template_argument_constant_expression(a_type_ptr param_type,
                                                        a_constant *constant);
 
