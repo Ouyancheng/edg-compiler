@@ -27,6 +27,11 @@ layout.h -- Declarations related to layout.c (having to do with laying out
 
 typedef unsigned long an_unnormalized_bit_offset;
 
+#if USER_CONTROL_OF_STRUCT_PACKING
+extern a_boolean check_pack_alignment_value(long              value,
+                                            a_targ_alignment  *alignment);
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+
 extern void scan_bit_field_size(a_boolean         *unnamed_bit_field,
                                 a_type_ptr        *p_base_type,
                                 long              *p_bit_field_size,

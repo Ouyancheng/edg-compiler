@@ -178,6 +178,28 @@ Clear the block used to contain information while working out class layout.
   lob->any_overflow = FALSE;
 }  /* clear_layout_block */
 
+#if USER_CONTROL_OF_STRUCT_PACKING
+
+a_boolean check_pack_alignment_value(long              value,
+                                     a_targ_alignment  *alignment)
+/*
+Check to be sure value is a valid "pack alignment" -- that it is a power of
+2 within the range of the minimum and maximum allowed.
+*/
+{
+  a_boolean  err = FALSE;
+
+  if (value >= targ_minimum_pack_alignment &&
+      value <= targ_maximum_pack_alignment &&
+      (value & (value-1)) == 0) {
+    *alignment = value;
+  } else {
+    err = TRUE;
+  }  /* if */
+  return !err;
+}  /* check_pack_alignment_value */
+
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 static void check_enum_type_for_bit_field(a_type_ptr    bit_field_type,
                                           unsigned long bit_field_size,
