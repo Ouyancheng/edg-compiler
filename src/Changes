@@ -7,7 +7,7 @@ The Microsoft compiler does not find injected class names when looking for
 an unqualified name.  While the front end ignored injected names from base
 classes, the injected name of the current class was not ignored (as it
 should have been).  The injected name of the current class is now ignored
-in Microsoft mode for unqualified names.
+in Microsoft mode for unqualified names.  [Patch sent out 2/10/00.]
 
   struct C {
     struct B { B(int); };
@@ -154,7 +154,7 @@ created in the IL.  For example:
                                              // 2.43 of the C++ front end (in
                                              // Microsoft bugs mode).
 
-This is now fixed.
+This is now fixed.  [Patch sent out 2/10/00.]
 
 1/31/00  Failure to diagnose ambiguous partial ordering
 
@@ -284,14 +284,15 @@ one instantiation per object mode.  This has been fixed.
 1/20/00  Microsoft compatibility: predefined macros defined in C mode
 
 Formerly, the Microsoft predefined macros (_MSC_VER, etc.) were only
-defined in C++ mode.  They are now defined in C mode too.
+defined in C++ mode.  They are now defined in C mode too.  [Patch sent
+out 2/10/00.]
 
 1/20/00  Possible abort on definition of nested class
 
 A bug was introduced in version 2.43 that resulted in an invalid memory
 reference when a nested class was declared and later defined.  This could
 potentially cause an abort or other unspecified behavior.  This has been
-fixed.
+fixed.  [Patch sent out 2/10/00.]
 
   class A {
     class B;
@@ -350,7 +351,8 @@ The changes made to record and use constant expressions in the IL
 (see Changes entry of 10/18/99) disabled some optimizations done in
 the generation of lvalues in the C++-generating back end.  As a
 consequence, code was sometimes put out that included a "&" operation
-on a class where operator& is overloaded.  Now fixed.
+on a class where operator& is overloaded.  Now fixed.  [Patch sent out
+2/10/00.]
 
 1/18/00  Internal error on pragma before template-id when using
          source sequence lists
@@ -366,7 +368,7 @@ For example:
              A<int>::f();
   }  // Internal error while reading IL
 
-This has been fixed.
+This has been fixed.  [Patch sent out 2/10/00.]
 
 1/17/00  Microsoft compatibility: cast to abstract class is allowed
 
@@ -416,7 +418,7 @@ back ends that care.
 The typedef in the following example was incorrectly removed as
 "unneeded", when in fact it is referenced from the parameter variable
 types.  Now fixed.  This bug is not visible in versions that write out
-an IL file.
+an IL file.  [Patch sent out 2/10/00.]
 
   typedef float * volatile * volatile pfv;
   void D( pfv y, pfv x, float a, int n ) {
@@ -475,6 +477,7 @@ preprocessor to process non-C text.
 
 Version 2.42 introduced a bug that caused template static data members to
 be given external linkage even in -tlocal mode.  This has been fixed.
+[Patch sent out 2/10/00.]
 
 1/5/00   result_is_not_used set incorrectly on argument of non-inlined
          function
@@ -512,7 +515,8 @@ constant expressions (see Changes entry of 10/18/99), the C++-generating
 back end put out enumeration constants incorrectly in some cases.
 Enumeration constants defined with the "name = value" form were put
 out as the "value" expression, which doesn't usually have the correct
-type (it's integral instead of the enum type).  Now fixed.
+type (it's integral instead of the enum type).  Now fixed.  [Patch sent
+out 2/10/00.]
 
   enum E { a, b = a+1 };
   void f(E);
@@ -535,7 +539,7 @@ later on a use of the partial specialization.  This has been fixed.
 
 A bug was introduced in version 2.43 that would cause an internal error
 when a pragma that is to be included in the IL is used in a struct scope
-in C mode.  This has been fixed.
+in C mode.  This has been fixed.  [Patch sent out 2/10/00.]
 
 12/27/99 Corrupted source sequence list when
          NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE
@@ -544,7 +548,8 @@ When nonclass instantiations are included in the source sequence list, the
 entry for the partial instantiation of a function template first referenced
 in a class declaration was not handled properly.  This could cause the
 links that establish the list to become corrupted, effectively removing
-certain entries from the list.  This has been fixed.
+certain entries from the list.  This has been fixed.  [Patch sent out
+2/10/00.]
 
 12/20/99 __cpluplus defined as 199711L
 
@@ -556,7 +561,7 @@ defined as 1.
 
 An internal error would result if a default argument in a template function
 or member function of a class template was immediately followed by a
-preprocessing directive.  This has been fixed.
+preprocessing directive.  This has been fixed.  [Patch sent out 2/10/00.]
 
   template <class T> struct A {
     A(int
@@ -571,14 +576,14 @@ preprocessing directive.  This has been fixed.
 When ADDR_OF_BIT_FIELD_ALLOWED is set to TRUE, exprutil.c did not compile
 correctly because it contained a call to cast_node with too few parameters.
 This problem was introduced in version 2.43 when the interface of cast_node
-was updated.  This is now fixed.
+was updated.  This is now fixed.  [Patch sent out 2/10/00.]
 
 12/16/99 Internal error while reading IL for local class member function
 
 With certain configurations of the front end (e.g., the default C++-generating
 back end configuration) an internal error would occur while reading the IL for
 a local class member function that was the only entity to refer to a type in
-namespace scope.
+namespace scope.  [Patch sent out 2/10/00.]
 
   typedef enum E {} T;
   void f() {
