@@ -498,9 +498,9 @@ file dependencies for a makefile.
 */
 #ifndef OBJECT_FILE_SUFFIX
 #if __MSDOS__
-#define OBJECT_FILE_SUFFIX ".o"
-#else /* !__MSDOS__ */
 #define OBJECT_FILE_SUFFIX ".obj"
+#else /* !__MSDOS__ */
+#define OBJECT_FILE_SUFFIX ".o"
 #endif /* __MSDOS__ */
 #endif /* ifndef OBJECT_FILE_SUFFIX */
 
@@ -528,10 +528,10 @@ The suffixes to be used when searching for an instantiation source file
 that is associated with a given instantiation header file.
 */
 #if __MSDOS__
-#define DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST "c:C:cpp:CPP:cxx:CXX:cc"
-#else /* !__MSDOS__ */
 /* Case is not significant in MS-DOS file names. */
 #define DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST "C::CPP::CXX:CC"
+#else /* !__MSDOS__ */
+#define DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST "c:C:cpp:CPP:cxx:CXX:cc"
 #endif /* __MSDOS__ */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
