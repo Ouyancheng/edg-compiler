@@ -928,6 +928,11 @@ class_struct_union:
 #if RESTRICT_ALLOWED
         if (typeref_is_restrict_qualified(tp)) fputs("restrict ", f_debug);
 #endif /* RESTRICT_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if ((tp->variant.typeref.qualifiers & TQ_UNALIGNED) != 0) {
+          fputs("__unaligned ", f_debug);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         fputs("typeref ", f_debug);
       }  /* if */
