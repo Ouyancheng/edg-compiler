@@ -36,7 +36,9 @@ specifier.  Includes an "||" at the beginning.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define or_is_microsoft_storage_class() ||			      \
-  (curr_token == tok_declspec || curr_token == tok_microsoft_inline)
+  (curr_token == tok_declspec ||				      \
+   curr_token == tok_microsoft_inline ||			      \
+   curr_token == tok_forceinline)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define or_is_microsoft_storage_class() /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2400,6 +2402,7 @@ diagnostics.
             if (!is_definition) invalid_modifier = TRUE;
             break;
           case dmt_microsoft_inline:
+          case dmt_forceinline:
           case dmt_nothrow:
           case dmt_noreturn:
             break;

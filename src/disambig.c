@@ -379,8 +379,10 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_extern:
       case tok_mutable:
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      /* The Microsoft __inline keyword is treated as a storage class. */
+      /* The Microsoft __inline and __forceinline keywords are treated as
+         storage classes. */
       case tok_microsoft_inline:
+      case tok_forceinline:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Function specifiers. */
       case tok_inline:

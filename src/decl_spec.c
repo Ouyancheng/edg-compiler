@@ -3483,12 +3483,15 @@ typedef long a_decl_specifiers_set;
 #define DS_DECLSPEC (a_decl_specifiers_set)(0x200)
 			/* "__declspec(...)" has been scanned (Microsoft mode
 			   only). */
-#define DS_MICROSOFT_INLINE (a_decl_specifiers_set)(0x1000)
+#define DS_MICROSOFT_INLINE (a_decl_specifiers_set)(0x400)
 			/* "__inline" has been scanned (Microsoft mode
 			   only). */
-#define DS_OVERLOAD (a_decl_specifiers_set)(0x400)
+#define DS_FORCEINLINE (a_decl_specifiers_set)(0x800)
+			/* "__forceinline" has been scanned (Microsoft mode
+			   only). */
+#define DS_OVERLOAD (a_decl_specifiers_set)(0x1000)
 			/* "overload" has been scanned (a C++ anachronism). */
-#define DS_VOID (a_decl_specifiers_set)(0x800)
+#define DS_VOID (a_decl_specifiers_set)(0x2000)
 			/* "void" was scanned as the very first specifier. */
 
 
@@ -3554,6 +3557,7 @@ When Microsoft keywords are recognized, the syntax is amended as follows
         storage-class-specifier:
 		__declspec ( extended-decl-modifier-seq )
 		__inline
+                __forceinline
 
 	extended-decl-modifier-seq:
 		extended-decl_modifier
@@ -3865,6 +3869,7 @@ Returns TRUE if there is an error in the specifiers.
 #endif /* ASM_FUNCTION_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_microsoft_inline:
+      case tok_forceinline:
       case tok_declspec:
         /* A Microsoft specific storage class.  Note that Microsoft
            allows these in some nonstandard places such as on
@@ -3899,6 +3904,10 @@ Returns TRUE if there is an error in the specifiers.
             case tok_microsoft_inline:
 	      new_modifiers.flags = DM_MICROSOFT_INLINE;
               decl_specifiers_seen |= DS_MICROSOFT_INLINE;
+              break;
+            case tok_forceinline:
+	      new_modifiers.flags = DM_FORCEINLINE;
+              decl_specifiers_seen |= DS_FORCEINLINE;
               break;
             default:
               unexpected_condition();
@@ -4545,7 +4554,8 @@ process_class_specifier:
           if (is_member_decl &&
               !(decl_specifiers_seen & ~(DS_VIRTUAL | DS_STORAGE_CLASS |
                                          DS_EXPLICIT | DS_INLINE |
-                                         DS_DECLSPEC | DS_MICROSOFT_INLINE)) &&
+                                         DS_DECLSPEC | DS_MICROSOFT_INLINE |
+                                         DS_FORCEINLINE)) &&
               (*storage_class == (a_storage_class)sc_unspecified ||
                *storage_class == (a_storage_class)sc_static)) {
             a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
@@ -4779,7 +4789,8 @@ process_class_specifier:
           break;
         }  /* if */
         if (!(decl_specifiers_seen &
-              ~(DS_FRIEND | DS_INLINE | DS_DECLSPEC | DS_MICROSOFT_INLINE))) {
+              ~(DS_FRIEND | DS_INLINE | DS_DECLSPEC |
+                DS_MICROSOFT_INLINE | DS_FORCEINLINE))) {
           /* A function declaration without declaration specifiers is
              permitted. */
           if (!any_decl_specifiers_seen) {

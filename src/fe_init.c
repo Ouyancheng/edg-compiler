@@ -245,6 +245,7 @@ Install the keywords in the symbol table.
     enter_underscore_keywords((a_token_kind)tok_declspec, "__declspec");
     enter_underscore_keywords((a_token_kind)tok_fastcall, "__fastcall");
     enter_underscore_keywords((a_token_kind)tok_microsoft_inline, "__inline");
+    enter_underscore_keywords((a_token_kind)tok_forceinline, "__forceinline");
     enter_underscore_keywords((a_token_kind)tok_stdcall, "__stdcall");
     enter_underscore_keywords((a_token_kind)tok_unaligned, "__unaligned");
     enter_underscore_keywords((a_token_kind)tok_microsoft_try, "__try");

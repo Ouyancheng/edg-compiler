@@ -1,5 +1,10 @@
 Version 2.40
 
+11/24/98  Microsoft compatibility: support for __forceinline
+
+In Microsoft mode the keyword __forceinline is now accepted wherever
+__inline is accepted.
+
 11/24/98  Microsoft compatibility: incompatible template parameter lists
 
 In Microsoft bugs mode, an error is not issued if a class template

@@ -2438,6 +2438,7 @@ enum a_decl_modifier_tag {
   dmt_thread,
   dmt_naked,
   dmt_microsoft_inline,
+  dmt_forceinline,
   dmt_selectany,
   dmt_nothrow,
   dmt_novtable,
@@ -2456,6 +2457,7 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
   /* dmt_thread */		"thread",
   /* dmt_naked */		"naked",
   /* dmt_microsoft_inline */	"__inline",
+  /* dmt_forceinline */		"__forceinline",
   /* dmt_selectany */		"selectany",
   /* dmt_nothrow */		"nothrow",
   /* dmt_novtable */		"novtable",
@@ -2490,6 +2492,9 @@ about variables and routines.
 			(1 << (int)dmt_microsoft_inline)
 			/* TRUE if the declaration includes the
 			   Microsoft __inline specifier. */
+#define DM_FORCEINLINE	(1 << (int)dmt_forceinline)
+			/* TRUE if the declaration includes the
+			   Microsoft __forceinline specifier. */
 #define DM_SELECTANY	(1 << (int)dmt_selectany)
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(selectany) specifier. */

@@ -1282,6 +1282,9 @@ Display the indicated decl modifiers.
     if (dm & DM_MICROSOFT_INLINE) {
       disp_boolean("microsoft_inline", TRUE);
     }  /* if */
+    if (dm & DM_FORCEINLINE) {
+      disp_boolean("forceinline", TRUE);
+    }  /* if */
     if (dm & DM_SELECTANY) {
       disp_boolean("selectany", TRUE);
     }  /* if */

@@ -147,6 +147,7 @@ typedef enum /*a_token_kind*/ {
   tok_declspec,
   tok_fastcall,
   tok_microsoft_inline,
+  tok_forceinline,
   tok_stdcall,
   tok_unaligned,
   tok_microsoft_try,
@@ -232,8 +233,8 @@ EXTERN char	*token_names[(int)tok_last+1]
    "restrict",
 #endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-   "__cdecl", "__declspec", "__fastcall", "__inline", "__stdcall",
-   "__unaligned", "__try", "__finally", "__leave", "__except",
+   "__cdecl", "__declspec", "__fastcall", "__inline", "__forceinline",
+   "__stdcall", "__unaligned", "__try", "__finally", "__leave", "__except",
    "__int8", "__int16", "__int32", "__int64", "__based", "__near", "__far",
    "__uuidof",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -541,6 +542,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_declspec */
    (an_opname_kind)onk_none,          /* tok_fastcall */
    (an_opname_kind)onk_none,          /* tok_microsoft_inline */
+   (an_opname_kind)onk_none,          /* tok_forceinline */
    (an_opname_kind)onk_none,          /* tok_stdcall */
    (an_opname_kind)onk_none,          /* tok_unaligned */
    (an_opname_kind)onk_none,          /* tok_microsoft_try */
