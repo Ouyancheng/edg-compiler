@@ -719,6 +719,9 @@ ec_nonstd_ellipsis_only_param;;"ellipsis with no explicit parameters is nonstand
 ec_nonstd_address_of_ellipsis;;"\"&...\" is nonstandard"
 ec_bad_address_of_ellipsis;;"invalid use of \"&...\""
 ec_cl_operator_keyword_option_only_in_cplusplus;;"operator keyword option can be used only when compiling C++"
+ec_const_volatile_ref_init_anachronism;;"temporary used for initial value of reference to const volatile (anachronism)"
+ec_bad_const_volatile_ref_init;;"initial value of reference to const volatile has incorrect type"
+ec_const_volatile_ref_init_from_rvalue;;"initial value of reference to const volatile must be an lvalue"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

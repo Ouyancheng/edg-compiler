@@ -6464,6 +6464,7 @@ initializer has previously been found to be acceptable, and
   a_type_ptr unqual_dest_type, unqual_source_type;
   a_boolean  type_is_correct_or_derived, err = FALSE, dropping_qualifiers;
   a_boolean  direct_binding_possible, binding_to_rvalue_allowed;
+  a_boolean  ref_to_const_volatile;
   a_boolean  ref_to_const, temporary_used, warn = FALSE;
   an_operand orig_operand;
 
@@ -6516,11 +6517,13 @@ initializer has previously been found to be acceptable, and
     /* Determine whether or not the reference is to a const type. */
     ref_to_const = is_const_qualified_type(base_dest_type);
     binding_to_rvalue_allowed = ref_to_const;
+    ref_to_const_volatile = FALSE;
     if (!any_cfront_mode() && ref_to_const &&
         is_volatile_qualified_type(base_dest_type)) {
       /* A reference to const volatile cannot be bound to an rvalue.
          This was added after the ARM. */
       binding_to_rvalue_allowed = FALSE;
+      ref_to_const_volatile = TRUE;
     }  /* if */
     /* The destination type must have no fewer type qualifiers than the source
        type to be usable without conversion (ARM 8.4.3). */
@@ -6614,7 +6617,9 @@ initializer has previously been found to be acceptable, and
       if (!binding_to_rvalue_allowed) {
         /* In cfront mode or when anachronisms are allowed this can happen
            for a ref to non-const.  Issue a warning in that case. */
-        pos_warning(ec_nonconst_ref_init_anachronism,
+        pos_warning(ref_to_const_volatile ?
+                                       ec_const_volatile_ref_init_anachronism :
+                                       ec_nonconst_ref_init_anachronism,
                     &source_operand->position);
       }  /* if */
     } else {
@@ -6663,12 +6668,16 @@ initializer has previously been found to be acceptable, and
             /* In cfront mode we allow this also for a ref to non-const if
                we're passing an argument, or if we have a constructed
                temporary in 2.1 mode. */
-            pos_warning(ec_nonconst_ref_init_anachronism,
+            pos_warning(ref_to_const_volatile ?
+                                       ec_const_volatile_ref_init_anachronism :
+                                       ec_nonconst_ref_init_anachronism,
                         &source_operand->position);
             warn = TRUE;
           } else if (allow_anachronisms && !any_cfront_mode()) {
             pos_diagnostic(anachronism_error_severity,
-                           ec_nonconst_ref_init_anachronism,
+                           ref_to_const_volatile ?
+                                       ec_const_volatile_ref_init_anachronism :
+                                       ec_nonconst_ref_init_anachronism,
                            &source_operand->position);
             if (anachronism_error_severity == es_error) {
               err = TRUE;
@@ -6680,8 +6689,12 @@ initializer has previously been found to be acceptable, and
             /* Use a different message for the case where the operand is
                an rvalue. */
             error_in_operand(operand_was_rvalue ?
-                               ec_nonconst_ref_init_from_rvalue :
-                               ec_bad_nonconst_ref_init,
+                               (ref_to_const_volatile ?
+                                       ec_const_volatile_ref_init_from_rvalue :
+                                       ec_nonconst_ref_init_from_rvalue) :
+                               (ref_to_const_volatile ?
+                                       ec_bad_const_volatile_ref_init :
+                                       ec_bad_nonconst_ref_init),
                              source_operand);
             err = TRUE;
           }  /* if */
