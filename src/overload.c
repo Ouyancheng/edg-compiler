@@ -2085,11 +2085,11 @@ static a_type_ptr drop_tiebreaker_ref_ptr_types(
                                            an_arg_match_summary_ptr arg)
 /*
 Drop a reference type from the top of the indicated type, or a pointer
-type if this is a "this" parameter (since that is reference-like).  Also
-drop any pointer type levels under that.  Then, return the modified type.
-This is used in preparing a parameter type for comparison in the const
-tie-breaker processing.  arg is the argument match entry for the parameter,
-which indicates whether or not the parameter is a "this" parameter.
+type if this is a "this" parameter (since that is reference-like).
+Then return the modified type.  This is used in preparing a parameter
+type for comparison in the const tie-breaker processing.  arg is the
+argument match entry for the parameter, which indicates whether or not
+the parameter is a "this" parameter.
 */
 {
   /* Drop a first-level reference (or the similar pointer in the "this"
@@ -2105,8 +2105,6 @@ which indicates whether or not the parameter is a "this" parameter.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Drop any pointer types. */
-  while (is_pointer_type(param_type)) param_type = type_pointed_to(param_type);
   return param_type;
 }  /* drop_tiebreaker_ref_ptr_types */
 
@@ -2143,7 +2141,7 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
        arg1 != NULL;
        arg1 = arg1->next, arg2 = arg2->next) {
     check_assertion(arg2 != NULL);
-    if (arg1->conversion.std.type_qualifiers_added !=
+    if (arg1->conversion.std.type_qualifiers_added ||
         arg2->conversion.std.type_qualifiers_added) {
       /* There is the possibility that a tie-breaker applies on this pair
          of arguments.  An additional test is needed: the tie-breaker
@@ -2154,49 +2152,79 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
       param_type2 = arg2->param_type;
       /* Some arguments have no parameter type (e.g., an ellipsis match). */
       if (param_type1 != NULL && param_type2 != NULL) {
+        int prev_cmp = cmp;
         /* Drop a reference type from the top of the parameter types,
            if present. */
         param_type1 = drop_tiebreaker_ref_ptr_types(param_type1, arg1);
         param_type2 = drop_tiebreaker_ref_ptr_types(param_type2, arg2);
-        if (types_are_compatible_ignoring_qualifiers(param_type1,
-                                                     param_type2)) {
-          /* The underlying types are the same, so tie-breaker differences
-             are subsequence differences. */
-          a_type_qualifier_set added_in_arg1 =
-                                 (arg1->conversion.std.type_qualifiers_added &
-                                  ~arg2->conversion.std.type_qualifiers_added);
-          a_type_qualifier_set added_in_arg2 =
-                                 (arg2->conversion.std.type_qualifiers_added &
-                                  ~arg1->conversion.std.type_qualifiers_added);
-          if (added_in_arg1 != TQ_NONE && added_in_arg2 != TQ_NONE) {
-            /* Both add qualifiers the other does not, so the tie-breaker does
-               not apply. */
-          } else {
-            int prev_cmp = cmp;
-            if (added_in_arg1 != TQ_NONE) {
-              /* Argument 1 adds all the type qualifiers added in argument 2
-                 and additional ones as well. */
-              cmp = -1;
-            } else {
-              /* Argument 2 adds all the type qualifiers added in argument 1
-                 and additional ones as well. */
-              cmp = 1;
-            }  /* if */
-            /* This tie-breaker applies only if no other arguments contradict
-               it, so keep going and look at the rest of the arguments. */
-            if (prev_cmp != 0 && prev_cmp != cmp) {
-              /* This contradicts a previous argument, so the tie-breaker does
-                 not apply. */
-              cmp = 0;
-              break;
-            }  /* if */
-          }  /* if */
+        if (arg1->conversion.std.type_qualifiers_added &&
+            same_type_with_added_qualifiers(param_type1, param_type2,
+                                            /*ignore_qualifiers=*/FALSE,
+                                            /*nonstandard_test=*/TRUE,
+                                            (a_boolean *)NULL)) {
+          /* param_type1 has more qualifiers than param_type2, and the
+             types are otherwise compatible.  Therefore fewer qualifiers
+             are added to get to param_type2, and argument 2 is better. */
+          cmp = -1;
+        } else if (arg2->conversion.std.type_qualifiers_added &&
+                   same_type_with_added_qualifiers(param_type2, param_type1,
+                                                   /*ignore_qualifiers=*/FALSE,
+                                                   /*nonstandard_test=*/TRUE,
+                                                   (a_boolean *)NULL)) {
+          /* param_type2 has more qualifiers than param_type1, and the
+             types are otherwise compatible.  Therefore fewer qualifiers
+             are added to get to param_type1, and argument 1 is better. */
+          cmp = 1;
+        } else {
+          /* Neither argument is better than the other. */
+          continue;
+        }  /* if */
+        /* This tie-breaker applies only if no other arguments contradict
+           it, so keep going and look at the rest of the arguments. */
+        if (prev_cmp != 0 && prev_cmp != cmp) {
+          /* This contradicts a previous argument, so the tie-breaker does
+             not apply. */
+          cmp = 0;
+          break;
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
   return cmp;
 }  /* compare_argument_tiebreakers */
+
+
+static a_boolean candidate_return_type_same_with_added_qualifiers(
+                                                 a_candidate_function_ptr cfp1,
+                                                 a_candidate_function_ptr cfp2)
+/*
+Return TRUE if the return type of the function indicated in the candidate
+function entry cfp1 is the same as the return type for cfp2 except that
+the former has additional type qualifiers.
+*/
+{
+  a_boolean    same_with_added_qualifiers = FALSE;
+  a_symbol_ptr sym1 = cfp1->function_symbol;
+  a_symbol_ptr sym2 = cfp2->function_symbol;
+
+  if (sym1 != NULL && sym2 != NULL) {
+    a_type_ptr type1 = routine_symbol_type(sym1);
+    a_type_ptr type2 = routine_symbol_type(sym2);
+    type1 = type1->variant.routine.return_type;
+    type2 = type2->variant.routine.return_type;
+    type1 = skip_typerefs(type1);
+    type2 = skip_typerefs(type2);
+    if (is_reference_type(type1)) type1 = type_pointed_to(type1);
+    if (is_reference_type(type2)) type2 = type_pointed_to(type2);
+    if (same_type_with_added_qualifiers(type1, type2,
+                                        /*ignore_qualifiers=*/FALSE,
+                                        /*nonstandard_test=*/TRUE,
+                                        (a_boolean *)NULL)) {
+      same_with_added_qualifiers = TRUE;
+    }  /* if */
+  }  /* if */
+  return same_with_added_qualifiers;
+}  /* candidate_return_type_same_with_added_qualifiers */
 
 
 static int compare_candidate_functions(a_candidate_function_ptr cfp1,
@@ -2214,9 +2242,13 @@ other.  Return
 */
 {
   int                  cmp;
-  a_type_qualifier_set cfp1_qualifiers, cfp2_qualifiers;
-  a_type_qualifier_set added_in_cfp1, added_in_cfp2;
+  a_type_qualifier_set cfp1_type_qualifiers_added = FALSE,
+                       cfp2_type_qualifiers_added = FALSE;
 
+  if (cfp1->is_user_conversion) {
+    cfp1_type_qualifiers_added = cfp1->conversion.std.type_qualifiers_added;
+    cfp2_type_qualifiers_added = cfp2->conversion.std.type_qualifiers_added;
+  }  /* if */
   /* Note that the tests here must be ordered from most significant
      to least significant. */
   if ((cmp = compare_argument_tiebreakers(cfp1, cfp2)) != 0) {
@@ -2236,22 +2268,20 @@ other.  Return
          after cfp1, so cfp1 is better. */
       cmp = 1;
     }  /* if */
-  } else if (cfp1->is_user_conversion &&
-             (cfp1_qualifiers = cfp1->conversion.std.type_qualifiers_added,
-              cfp2_qualifiers = cfp2->conversion.std.type_qualifiers_added,
-              (cfp1_qualifiers != cfp2_qualifiers &&
-               (added_in_cfp1 = (cfp1_qualifiers & ~cfp2_qualifiers),
-                added_in_cfp2 = (cfp2_qualifiers & ~cfp1_qualifiers),
-                (added_in_cfp2 == TQ_NONE || added_in_cfp1 == TQ_NONE))))) {
+  } else if (cfp1_type_qualifiers_added &&
+             (!cfp2_type_qualifiers_added ||
+              candidate_return_type_same_with_added_qualifiers(cfp2, cfp1))) {
     /* The fact that type qualifiers were added after a conversion
        function can serve as a tie-breaker. */
-    if (added_in_cfp1 != TQ_NONE) {
-      /* More type qualifiers were added on cfp1, so cfp2 is better. */
-      cmp = -1;
-    } else {
-      /* More type qualifiers were added on cfp2, so cfp1 is better. */
-      cmp = 1;
-    }  /* if */
+    /* More type qualifiers were added on cfp1, so cfp2 is better. */
+    cmp = -1;
+  } else if (cfp2_type_qualifiers_added &&
+             (!cfp1_type_qualifiers_added ||
+              candidate_return_type_same_with_added_qualifiers(cfp1, cfp2))) {
+    /* The fact that type qualifiers were added after a conversion
+       function can serve as a tie-breaker. */
+    /* More type qualifiers were added on cfp2, so cfp1 is better. */
+    cmp = 1;
   } else if (cfp1->is_function_template != cfp2->is_function_template) {
     /* The fact that one function is a function template and the other
        is not can serve as a tie-breaker. */
