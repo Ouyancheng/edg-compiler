@@ -10422,6 +10422,8 @@ continue_with_declaration:
                  (an_attribute_ptr *)NULL
 #endif /* !GNU_EXTENSIONS_ALLOWED */
                  );
+      is_function = (declared_storage_class != (a_storage_class)sc_typedef &&
+                     is_function_type(local_type_ptr));
 #if GNU_EXTENSIONS_ALLOWED
       last_prefix_attribute = last_attribute_link(last_prefix_attribute);
       asm_name = NULL;
@@ -10433,6 +10435,15 @@ continue_with_declaration:
         if (asm_name != NULL &&
             declared_storage_class == (a_storage_class)sc_typedef) {
           pos_warning(ec_asm_name_in_typedef, &asm_start_pos);
+          asm_name = NULL;
+        }  /* if */
+        if (asm_name != NULL && !is_function &&
+            depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+            (declared_storage_class == (a_storage_class)sc_auto ||
+             declared_storage_class == (a_storage_class)sc_unspecified)) {
+          /* Automatic variables can only have an asm() name if they are
+             also declared with the "register" keyword. */
+          pos_warning(ec_asm_name_on_auto_variable, &asm_start_pos);
           asm_name = NULL;
         }  /* if */
         /* Look for optional (postfix) attributes. */
@@ -10451,8 +10462,6 @@ continue_with_declaration:
          declarator-id if this is a real declarator and the first token of
          the whole declarator if it is an abstract declarator. */
       declarator_pos = error_position;
-      is_function = (declared_storage_class != (a_storage_class)sc_typedef &&
-                     is_function_type(local_type_ptr));
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (is_old_style_param_decl &&
           func_info.prototype_scope_ss_list != NULL) {
