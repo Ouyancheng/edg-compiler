@@ -380,12 +380,23 @@ sun_mode and can be overridden by the command-line options --sun and --no_sun.
 #endif /* DEFAULT_SUN_COMPATIBILITY */
 
 /*
+Flag that is TRUE to include code for GNU C compatibility features.
+*/
+#ifndef GNU_EXTENSIONS_ALLOWED
+#define GNU_EXTENSIONS_ALLOWED FALSE
+#endif /* ifndef GNU_EXTENSIONS_ALLOWED */
+
+/*
 Flag that is TRUE if GNU C compatibility features should be allowed by
 default.  It is the default initial value of the associated global variable
 gcc_mode and can be overridden by the command-line options --gcc and --no_gcc.
 */
 #ifndef DEFAULT_GCC_COMPATIBILITY
+#if GNU_EXTENSIONS_ALLOWED
+#define DEFAULT_GCC_COMPATIBILITY TRUE
+#else /* GNU_EXTENSIONS_ALLOWED */
 #define DEFAULT_GCC_COMPATIBILITY FALSE
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* DEFAULT_GCC_COMPATIBILITY */
 
 /*
@@ -1221,21 +1232,27 @@ enabled.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if DEFAULT_MICROSOFT_MODE
-#ifdef DEFAULT_DIALECT_SET
- #error -- CANNOT SET MULTIPLE EXCLUSIVE DIALECTS AS DEFAULTS
-#else /* !defined(DEFAULT_DIALECT_SET) */
+#ifndef DEFAULT_DIALECT_SET
 #define DEFAULT_DIALECT_SET TRUE
-#endif /* ifdef DEFAULT_DIALECT_SET */
+#endif /* ifndef DEFAULT_DIALECT_SET */
 #endif /* DEFAULT_MICROSOFT_MODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DEFAULT_SUN_COMPATIBILITY
-#ifdef DEFAULT_DIALECT_SET
- #error -- CANNOT SET MULTIPLE EXCLUSIVE DIALECTS AS DEFAULTS
-#else /* !defined(DEFAULT_DIALECT_SET) */
+#ifndef DEFAULT_DIALECT_SET
 #define DEFAULT_DIALECT_SET TRUE
-#endif /* ifdef DEFAULT_DIALECT_SET */
+#endif /* ifndef DEFAULT_DIALECT_SET */
 #endif /* DEFAULT_SUN_COMPATIBILITY */
+
+#if DEFAULT_GCC_COMPATIBILITY
+#ifndef DEFAULT_DIALECT_SET
+#define DEFAULT_DIALECT_SET TRUE
+#endif /* ifndef DEFAULT_DIALECT_SET */
+#endif /* DEFAULT_GCC_COMPATIBILITY */
+
+#ifdef DEFAULT_DIALECT_SET
+ #error -- Cannot set multiple exclusive dialects as defaults
+#endif /* ifdef DEFAULT_DIALECT_SET */
 
 #endif /* ifndef LANG_FEAT_H */
 

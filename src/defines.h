@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -184,6 +184,8 @@ Flags to be set when using the KAI inliner.
 #define TARG_MICROSOFT_BIT_FIELD_ALLOCATION 0
 #define USER_CONTROL_OF_STRUCT_PACKING 1
 #define DEFAULT_MICROSOFT_MODE 0
+#define GNU_EXTENSIONS_ALLOWED 1
+#define DEFAULT_GCC_COMPATIBILITY 0
 #define REPRESENT_EMPTY_STATEMENTS_IN_IL 1
 #define EXTRA_SOURCE_POSITIONS_IN_IL 1
 /* Use 1 for mmap PCH, 0 for non-mmap PCH. */
@@ -278,6 +280,8 @@ Flags to be set when using the KAI inliner.
 #define PRAGMA_WEAK_ALLOWED 1
 #define ADDRESS_OF_ELLIPSIS_ALLOWED 1
 #define ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE 1
+#define GNU_EXTENSIONS_ALLOWED 1
+#define DEFAULT_GCC_COMPATIBILITY 0
 #define USER_CONTROL_OF_STRUCT_PACKING 1
 #define ASM_FUNCTION_ALLOWED 1
 #define INCLUDE_COMMENTS_IN_ASM_FUNC_BODY 1
@@ -565,6 +569,6 @@ switches before this point.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
