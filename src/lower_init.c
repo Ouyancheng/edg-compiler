@@ -724,7 +724,7 @@ to by variable var.
 }  /* set_var_indirect_init_pos_descr */
 
 
-void a_type_ptr type_from_init_pos_descr(an_init_pos_descr_ptr ipdp)
+a_type_ptr type_from_init_pos_descr(an_init_pos_descr_ptr ipdp)
 /*
 Return the type of the object indicated by ipdp.
 */
