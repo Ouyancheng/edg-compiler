@@ -2083,8 +2083,8 @@ hold the command.
       if (*from == '\'' || *from == '"') *to++ = '\\';
       *to++ = *from++;
     }  /* while */
-    /* Append a blank. */
-    *to++ = ' ';
+    /* Append a blank, if the command does not already end with a blank. */
+    if (*to != ' ') *to++ = ' ';
   }  /* for */
   /* Replace the last blank with a null. */
   *to = '\0';
