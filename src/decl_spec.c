@@ -438,8 +438,9 @@ end_of_uuid_string:
                 }  /* if */
               }  /* if */
             } else {
-              str_error(ec_bad_declspec_modifier, modifier);
-              *err = TRUE;
+              /* Issue a warning on an unrecognized __declspec attribute. */
+              pos_st_warning(ec_bad_declspec_modifier, &error_position,
+                             modifier);
             }  /* if */
             (void)get_token();
           }  /* while */
