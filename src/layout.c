@@ -873,10 +873,18 @@ targ_microsoft_bit_field_allocation is FALSE.)
     }  /* if */
   }  /* if */
 
-#if USER_CONTROL_OF_STRUCT_PACKING
-  /* Adjust the container alignment for packing, if required. */
+#if USER_CONTROL_OF_STRUCT_PACKING && USER_CONTROL_OF_STRUCT_BIT_PACKING
+  /* Adjust the container alignment for packing, if required.  Some
+     environments do not let packing directives influence the layout of bit
+     fields that cross their base type's alignment boundary, but the class
+     type containing the bit field is still aligned according to the
+     directive.  (I.e., the bit field is aligned independently from the
+     directive wrt. the origin of the containing object, but in absolute
+     terms the field may end up being unaligned.)  For such environments, the
+     adjustment is made later on. */
   adjust_alignment_for_packing(&container_alignment, lob->class_type);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING &&
+          USER_CONTROL_OF_STRUCT_BIT_PACKING */
   /* We want to make sure that the bit field can be grabbed using one
      load of the size of the container aligned the way the container
      must be. */
@@ -918,6 +926,14 @@ targ_microsoft_bit_field_allocation is FALSE.)
   } else {
     /* Remember the most stringent alignment requirement as the alignment
        requirement for the overall struct. */
+#if USER_CONTROL_OF_STRUCT_PACKING && !USER_CONTROL_OF_STRUCT_BIT_PACKING
+    /* The alignment was not adjusted earlier on because the environment does
+       not apply packing directives to the relative layout of bit fields that
+       straddle their base type's alignment boundary.  The class as a whole
+       still obeys the packing directive however. */
+    adjust_alignment_for_packing(&container_alignment, lob->class_type);
+#endif /* USER_CONTROL_OF_STRUCT_PACKING  &&
+          !USER_CONTROL_OF_STRUCT_BIT_PACKING */
     if (container_alignment > lob->alignment) {
       lob->alignment = container_alignment;
     }  /* if */

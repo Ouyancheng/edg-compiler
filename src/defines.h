@@ -251,6 +251,7 @@ Flags to be set when using the KAI inliner.
 #define TARG_ALIGNOF_LONG_DOUBLE 4
 #define TARG_SIZEOF_LONG_DOUBLE 12
 #define TARG_JMP_BUF_NUM_ELEMENTS 10
+#define USER_CONTROL_OF_STRUCT_BIT_PACKING 0
 #ifndef CHECKING
 #define CHECKING 1
 #endif /* ifndef CHECKING */

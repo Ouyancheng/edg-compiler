@@ -1,5 +1,21 @@
 Version 2.42
 
+7/14/99  Option to not pack bit fields that straddle alignment boundaries
+
+A configuration flag USER_CONTROL_OF_STRUCT_BIT_PACKING -- which by default is
+equal to USER_CONTROL_OF_STRUCT_PACKING -- was added to emulate the behavior
+of compilers that to not apply packing directives to bit fields that straddle
+alignment boundaries of their base type.  For example, assuming 32-bit aligned
+int objects:
+
+  #pragma pack (1)
+  struct S {      //   Flag FALSE          Flag TRUE
+    char c1;      //    this+0              this+0
+    int i: 25;    //    this+4              this+1
+    char c2;      //    this+8              this+5
+  };              //   size = 9            size = 6
+                  //   alignment 1         alignment 1
+
 7/14/99  Integral promotion in IL on "!= 0" generated to normalize boolean
          controlling expression
 

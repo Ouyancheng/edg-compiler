@@ -596,6 +596,16 @@ type.
 #endif /* ifndef USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
+Flag that is TRUE if "#pragma pack(n)" and the command-line option
+"--pack_alignment=n", when supported, affect the container boundary/alignment
+of bit fields.  FALSE indicates that TARG_BIT_FIELD_CONTAINER_SIZE controls
+the container boundary/alignment at all times.
+*/
+#ifndef USER_CONTROL_OF_STRUCT_BIT_PACKING
+#define USER_CONTROL_OF_STRUCT_BIT_PACKING USER_CONTROL_OF_STRUCT_PACKING
+#endif /* ifndef USER_CONTROL_OF_STRUCT_BIT_PACKING */
+
+/*
 Flag that is TRUE to recognize #pragma weak directives.
 	#pragma weak <name1> [= <name2>]
 This directive is only effective in C_mode().  The first name is to be given
