@@ -1864,6 +1864,7 @@ have been lowered already.
                      rtsp = rout_type->variant.routine.extra_info;
     a_param_type_ptr param = rtsp->param_type_list;
     an_expr_node_ptr arg;
+    if (!rtsp->prototyped) param = NULL;
     for (arg = op1->next; arg != NULL; arg = arg->next) {
       if (param == NULL) {
         /* An unprototyped parameter. */
