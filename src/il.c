@@ -13822,6 +13822,8 @@ needed_flag_bit_number plus bit_offset.
   a_byte        bit;
 #define BITS_PER_ENTRY (BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY*CHAR_BIT)
 
+  check_assertion_str(!in_secondary_trans_unit(scp),
+                      "set_instantiation_needed_flag: scp in sec trans unit");
   /* Loop through the list of entries to find the one containing the
      bit we want to test. */
   for (prev_ptr = NULL,
