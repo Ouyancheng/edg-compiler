@@ -2002,6 +2002,17 @@ to the end of the indicated structured statement.
 }  /* term_stmt_clause */
 
 
+static a_boolean is_true_constant_expr(an_expr_node_ptr expr)
+/*
+Return TRUE if the indicated expression has a constant value that is true.
+*/
+{
+  a_boolean is_true_constant = (is_constant_node(expr) &&
+                                !is_false_constant(expr->variant.constant));
+  return is_true_constant;
+}  /* is_true_constant_expr */
+
+
 static a_boolean is_infinite_loop(a_statement_ptr stmt)
 /*
 Return TRUE if the indicated statement is an infinite loop.  The safe answer,
@@ -2019,11 +2030,9 @@ if the truth cannot be discovered, is FALSE.
        infinite loop. */
     if (expr == NULL) {
       is_inf_loop = TRUE;
-    } else if (expr->kind == (an_expr_node_kind)enk_constant) {
-      if (!is_false_constant(expr->variant.constant)) {
-        /* Loop expression is a non-zero constant: it's an infinite loop. */
-        is_inf_loop = TRUE;
-      }  /* if */
+    } else if (is_true_constant_expr(expr)) {
+      /* Loop expression is a non-zero constant: it's an infinite loop. */
+      is_inf_loop = TRUE;
     }  /* if */
   } /* if */
   return(is_inf_loop);
@@ -2159,10 +2168,14 @@ a structured statement has ended.
     }  /* if */
   } else {
     /* Non-loop statement. */
-    if ((kind == ssk_switch && !sssep->switch_has_default_clause) ||
-        (kind == ssk_if && sp->variant.if_stmt.else_statement == NULL)) {
-      /* Switch statement without a default, or if without an else.  If the
-         initial statement can be reached, the end can be reached. */
+    if (kind == ssk_switch && !sssep->switch_has_default_clause) {
+      /* Switch statement without a default.  If the initial statement
+         can be reached, the end can be reached. */
+      merge_reachability(&sssep->start_reachable, &sssep->end_reachable);
+    } else if (kind == ssk_if && sp->variant.if_stmt.else_statement == NULL &&
+               !is_true_constant_expr(sp->expr)) {
+      /* If without an else, except "if (1) ...".  If the initial statement
+         can be reached, the end can be reached. */
       merge_reachability(&sssep->start_reachable, &sssep->end_reachable);
     }  /* if */
     /* The code after the statement can be reached if the end of the statement

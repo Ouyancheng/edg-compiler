@@ -1,5 +1,16 @@
 Version 2.29
 
+3/13/95  Reachability of code after "if (1) ..."
+
+The code after an "if" without an "else" is no longer considered reachable
+directly from the "if" if the tested expression has a non-zero constant value:
+
+  int f()
+  {
+    if (1) return 1;
+    // No warning about missing return now
+  }
+
 3/13/95  Signatures for builtin [] and pointer +/-
 
 The signature for the builtin operators [] and pointer +/- in overload
