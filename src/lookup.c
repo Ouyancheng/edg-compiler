@@ -430,13 +430,15 @@ member function is defined.
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 
 
-static void create_proxy_class(a_type_ptr   templ_param_type)
+a_type_ptr proxy_class_for_template_param(a_type_ptr   templ_param_type)
 /*
-Creates the proxy class pointed to by a template parameter type description
-record.  This consists of allocating and initializing the class and assigning
-a scope number.  The class type is created the first time that a template
-parameter is used in a context in which a class qualified name lookup
-needs to be done using the template parameter as the class type.
+Return the proxy class associated with a template parameter.  If one does
+not already exist, one is created.  Creation of the proxy class consists
+of allocating and initializing the class and assigning a scope number.
+The class type is created the first time that a template parameter is
+used in a context in which a class type is required.  This includes
+use in a qualified name lookup where the template parameter is used
+as the class type, and use as a base class. 
 */
 {
   a_type_ptr				type;
@@ -444,38 +446,47 @@ needs to be done using the template parameter as the class type.
   a_symbol_ptr				sym;
   a_symbol_ptr				templ_param_sym;
   a_class_symbol_supplement_ptr		cssp;
+
   tptdp = templ_param_type->variant.template_param.descr;
   if (tptdp == NULL) {
     /* Allocate a template parameter type description entry. */
     tptdp = alloc_template_param_type_descr();
     templ_param_type->variant.template_param.descr = tptdp;
   }  /* if */
-  /* Get the symbol pointer associated with the template parameter. */
-  templ_param_sym = (a_symbol_ptr)templ_param_type->source_corresp.assoc_info;
-  /* Create a symbol for the class.  The symbol will have the same name
-     as the template parameter symbol.  mark_declared is not called
-     because this symbol is not visible to the user. */
-  sym = alloc_symbol((a_symbol_kind)sk_class_or_struct_tag,
-                     templ_param_sym->header, &templ_param_sym->decl_position);
-  /* The class will be considered to be at file scope.  If this is changed
-     to be some other scope then set_source_corresp_with_scope_depth may
-     need to be called because set_source_corresp requires that the
-     decl_scope of the symbol still be an active scope. */
-  sym->decl_scope = FILE_SCOPE_NUMBER;
-  /* Create the type for the class. */
-  type = alloc_type((a_type_kind)tk_class);
-  set_source_corresp(&(type->source_corresp), sym);
-  sym->variant.class_struct_union.type = type;
-  if (templ_param_type->source_corresp.is_class_member) {
-    set_class_membership(sym, &type->source_corresp,
-                         templ_param_type->source_corresp.parent.class_type);
+  /* If the template parameter does not yet have a proxy class.  Create one
+     now. */
+  if (tptdp->class_type == NULL) {
+    /* Get the symbol pointer associated with the template parameter. */
+    templ_param_sym =
+                     (a_symbol_ptr)templ_param_type->source_corresp.assoc_info;
+    /* Create a symbol for the class.  The symbol will have the same name
+       as the template parameter symbol.  mark_declared is not called
+       because this symbol is not visible to the user. */
+    sym = alloc_symbol((a_symbol_kind)sk_class_or_struct_tag,
+                       templ_param_sym->header,
+                       &templ_param_sym->decl_position);
+    /* The class will be considered to be at file scope.  If this is changed
+       to be some other scope then set_source_corresp_with_scope_depth may
+       need to be called because set_source_corresp requires that the
+       decl_scope of the symbol still be an active scope. */
+    sym->decl_scope = FILE_SCOPE_NUMBER;
+    /* Create the type for the class. */
+    type = alloc_type((a_type_kind)tk_class);
+    set_source_corresp(&(type->source_corresp), sym);
+    sym->variant.class_struct_union.type = type;
+    if (templ_param_type->source_corresp.is_class_member) {
+      set_class_membership(sym, &type->source_corresp,
+                           templ_param_type->source_corresp.parent.class_type);
+    }  /* if */
+    tptdp->class_type = type;
+    /* Set the scope number. */
+    cssp = symbol_supplement_for_class(type);
+    cssp->member_decl_scope = next_scope_number++;
+    cssp->template_param_for_proxy_class = templ_param_type;
+    cssp->is_nonreal_class = TRUE;
   }  /* if */
-  tptdp->class_type = type;
-  /* Set the scope number. */
-  cssp = symbol_supplement_for_class(type);
-  cssp->member_decl_scope = next_scope_number++;
-  cssp->template_param_for_proxy_class = templ_param_type;
-}  /* create_proxy_class */
+  return tptdp->class_type;
+}  /* proxy_class_for_template_param */
 
 
 /*
@@ -2192,14 +2203,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
        been looked up in the class.  Any name that is looked up in the
        proxy class will be found -- if it doesn't already exist, a symbol
        entry will be created for it. */
-    a_template_param_type_descr_ptr	tptdp;
-    tptdp = class_type->variant.template_param.descr;
-    if (tptdp == NULL || tptdp->class_type == NULL) {
-      create_proxy_class(class_type);
-      tptdp = class_type->variant.template_param.descr;
-    }  /* if */
     /* Use the proxy class in place of the template parameter type. */
-    class_type = tptdp->class_type;
+    class_type = proxy_class_for_template_param(class_type);
     is_proxy_or_nonreal_class_lookup = TRUE;
   } else {
     /* Determine whether we are looking up a name in a nonreal class
