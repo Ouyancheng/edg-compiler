@@ -767,8 +767,11 @@ after the command-line processing has been done.
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 #if !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
   if (multibyte_chars_in_source_enabled) {
-    /* Set the locale to allow processing of multibyte characters in source. */
-    if (setlocale(LC_ALL, LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED) == NULL){
+    /* Set the locale to allow processing of multibyte characters in source.
+       Only change the category of processing related to character handling
+       functions. */
+    if (setlocale(LC_CTYPE,
+                  LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED) == NULL) {
       str_catastrophe(ec_bad_multibyte_char_locale,
                       LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED);
     }  /* if */
