@@ -1373,6 +1373,10 @@ typedef struct a_lookup_state {
 			   lookup position.  Symbols declared after this
 			   position are ignored.  Zero if the declaration
 			   sequence number should not be checked. */
+   a_boolean	check_decl_seq;
+			/* Flag that is TRUE if the decl_seq field should be
+			   compared with the corresponding value for each
+			   candidate symbol. */
 } a_lookup_state;
 
 
@@ -1419,6 +1423,7 @@ value.
   cleared_lookup_state.options                       = IDL_NO_OPTIONS;
   cleared_lookup_state.required_name_space_kind      = nsk_other;
   cleared_lookup_state.decl_seq                      = 0;
+  cleared_lookup_state.check_decl_seq                = 0;
 }  /* init_cleared_lookup_state */
 
 /*
@@ -1443,8 +1448,9 @@ Macro that initializes a lookup state variable.
     is_class_or_class_proxy_symbol(fund_sym)) && 			\
    (!(lookup_state).must_be_namespace ||				\
     is_namespace_symbol(fund_sym)) &&					\
-   ((lookup_state).decl_seq == NO_DECL_SEQUENCE_NUMBER ||		\
-    (lookup_state).decl_seq >= (sym)->decl_seq))
+   (!(lookup_state).check_decl_seq ||					\
+    ((lookup_state).decl_seq == NO_DECL_SEQUENCE_NUMBER ||		\
+     (lookup_state).decl_seq >= (sym)->decl_seq)))
 
 
 a_boolean sym_matches_lookup_options(a_symbol_ptr		sym,
@@ -2004,6 +2010,12 @@ that do normal id lookup processing.
     /* Clear the flag that indicates whether a projected symbol should be
        sought. */
     lookup_state->look_for_projected_symbol = FALSE;
+    /* Lookups outside of a template instantiations scope check the declaration
+       sequence number of the symbol found.  This check should be suppressed
+       for class scopes. */
+    lookup_state->check_decl_seq =
+                         ssep->kind != (a_scope_kind)sck_class_reactivation &&
+                         ssep->kind != (a_scope_kind)sck_class_struct_union;
     if (kind == (a_scope_kind)sck_namespace_extension ||
         kind == (a_scope_kind)sck_namespace_reactivation) {
       /* If a namespace extension or reactivation scope is pushed while the
@@ -3170,7 +3182,8 @@ namespace_qualified_id_lookup.
                          (options & (IDL_LINKAGE_LOOKUP | IDL_FRIEND_LOOKUP));
   a_boolean	direct_namespace_members_only = 
                          (options & IDL_DIRECT_NAMESPACE_MEMBERS_ONLY) != 0;
-  a_boolean	decl_seq_number = NO_DECL_SEQUENCE_NUMBER;
+  a_decl_sequence_number
+		decl_seq_number = NO_DECL_SEQUENCE_NUMBER;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym, fund_sym)                           \

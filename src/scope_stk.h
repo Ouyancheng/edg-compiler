@@ -36,6 +36,9 @@ typedef int a_push_scope_options_set;
 			   scope that is pushed around a class or class
 			   reactivation scope in Microsoft mode to make the
 			   template parameters visible. */
+#define PS_PROTOTYPE_INSTANTIATION	0x02
+			/* The scope being pushed is the template instantiation
+			   scope for a prototype instantiation. */
 
 /*
 Structure that is logically (and historically) part of a_scope_stack_entry,

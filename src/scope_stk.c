@@ -1380,19 +1380,12 @@ the scope being pushed.
       depth_innermost_function_scope =
               ssep->depth_innermost_function_scope = NO_SCOPE_DEPTH;
       innermost_function_scope = NULL;
+      ssep->in_prototype_instantiation =
+                                   (options & PS_PROTOTYPE_INSTANTIATION) != 0;
       if (template_sym->kind == (a_symbol_kind)sk_static_data_member) {
         /* Static data members don't have their own scope so the
            template parameters are added at the instantiation scope. */
         reactivate_template_params = TRUE;
-      } else if (instance_sym != NULL &&
-                 is_class_struct_union_symbol(instance_sym)) {
-        ssep->in_prototype_instantiation =
-                    instance_sym->variant.class_struct_union.extra_info->
-                                                  is_prototype_instantiation;
-      } else if (instance_sym != NULL && is_function_symbol(instance_sym)) {
-        check_assertion(assoc_routine != NULL);
-        ssep->in_prototype_instantiation =
-                                     assoc_routine->is_prototype_instantiation;
       }  /* if */
     } else if (kind != (a_scope_kind)sck_file &&
                kind != (a_scope_kind)sck_namespace &&
@@ -2066,12 +2059,19 @@ are non-NULL when they should be used for the outermost instantiation scope.
       /* Push a template instantiation scope associated with the
          class in which this template was defined.  Don't do this if
          the prototype instantiation is already in process. */
+      a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
+      /* If the class is a prototype instantiation, pass the appropriate flag
+         to push_scope. */
+      if (symbol_supplement_for_class(class_type)->
+                                                  is_prototype_instantiation) {
+        ps_options = PS_PROTOTYPE_INSTANTIATION;
+      }  /* if */
       template_arg_list = templ_arg_list_for_class(class_type);
       (void)push_scope_full((a_scope_kind)sck_template_instantiation,
                           decl_info->declaration_scope, assoc_type,
                           assoc_routine, (a_namespace_ptr)NULL,
                           instance_sym, template_sym, template_arg_list,
-                          decl_info, PS_NO_OPTIONS);
+                          decl_info, ps_options);
     }  /* if */
   }  /* if */
   /* Reactivate the enclosing class scope. */

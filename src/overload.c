@@ -2126,6 +2126,7 @@ are ignored.
     }  /* if */
     if (do_dependent_name_processing &&
         depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+        !function_symbol->is_class_member &&
         function_symbol->decl_seq >
                             scope_stack[depth_innermost_instantiation_scope].
                                                 template_decl_info->decl_seq) {

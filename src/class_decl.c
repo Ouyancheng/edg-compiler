@@ -65,6 +65,10 @@ typedef struct a_routine_fixup {
 			/* List of entries describing default argument
 			   expression associated with parameters for the
 			   current routine. */
+  a_symbol_ptr	prototype_scope_symbols;
+			/* Pointer to a list of prototype symbols to be
+			   reactivated for scanning default arguments.
+			   Used only when is_template is TRUE. */
   a_token_cache function_body_token_cache;
 			/* A pointer to the token cache that describes the
 			   function body. */
@@ -89,6 +93,10 @@ typedef struct a_routine_fixup {
 			   (presumably because it is also pointed to by
 			   another structure). */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_byte_boolean
+		is_template;
+			/* TRUE if this is a fixup entry for a function
+			   template declaration. */
 } a_routine_fixup;
 
 
@@ -203,6 +211,7 @@ initialize it.
   rfp->symbol = NULL;
   rfp->class_type = class_type;
   rfp->def_arg_expr_fixup_list = NULL;
+  rfp->prototype_scope_symbols = NULL;
   rfp->is_specialization = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -210,6 +219,7 @@ initialize it.
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   rfp->preserve_param_id_list = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  rfp->is_template = FALSE;
   clear_func_info(&rfp->func_info);
   /* We don't know whether this cache will be reused or not.  Make it
      reusable here.  If it is rescanned as a nonreusable cache we
@@ -334,6 +344,26 @@ in class contexts.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   add_to_routine_fixup_list(rfp);
 }  /* add_routine_fixup_for_specialization */
+
+
+void add_routine_fixup_for_template_decl(
+				a_symbol_ptr	symbol,
+				a_symbol_ptr	prototype_scope_symbols,
+				a_type_ptr	class_type)
+/*
+Create a routine fixup entry for a template function declaration that was
+declared in a class scope.  symbol points to the function template symbol.
+class_type is the class in which the declaration appeared.
+*/
+{
+  a_routine_fixup_ptr	rfp;
+
+  rfp = alloc_routine_fixup(class_type);
+  rfp->symbol = symbol;
+  rfp->is_template = TRUE;
+  rfp->prototype_scope_symbols = prototype_scope_symbols;
+  add_to_routine_fixup_list(rfp);
+}  /* add_routine_fixup_for_template_decl */
 
 
 static a_class_fixup_ptr alloc_class_fixup(void)
@@ -885,7 +915,24 @@ Process the default argument expressions for the indicated class.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     for (; rfp != NULL; rfp = rfp->next) {
       daefp = rfp->def_arg_expr_fixup_list;
-      if (daefp != NULL) {
+      if (rfp->is_template) {
+        /* A routine fixup for a template function declaration.  The default
+           arguments have already been attached to the template.  Do the
+           prototype instantiations of those default arguments.  This
+           is not done for real template instantiations -- they get their
+           default information from the information saved during the
+           prototype instantiation. */
+        if (!is_real_template_instantiation) {
+          a_template_symbol_supplement_ptr	rout_tssp;
+          sym = rfp->symbol;
+          rout_tssp = template_supplement_for_symbol(sym);
+          daefp = rout_tssp->variant.function.def_arg_expr_list;
+          if (daefp != NULL && nonclass_prototype_instantiations) {
+            default_arg_prototype_instantiation(sym, daefp,
+                                                rfp->prototype_scope_symbols);
+          }  /* if */
+        }  /* if */
+      } else if (daefp != NULL) {
         /* There is at least one default argument associated with this
            function type. */
         sym = rfp->symbol;
@@ -922,9 +969,7 @@ Process the default argument expressions for the indicated class.
             }  /* while */
             if (nonclass_prototype_instantiations) {
               /* Do the prototype instantiations of the default arguments. */
-              a_template_symbol_supplement_ptr	rout_tssp;
-              rout_tssp = template_supplement_for_symbol(sym);
-              default_arg_prototype_instantiation(sym, rout_tssp, daefp,
+              default_arg_prototype_instantiation(sym, daefp,
                                        rfp->func_info.prototype_scope_symbols);
             }  /* if */
             /* Link the default argument list from the template supplement
@@ -938,7 +983,7 @@ Process the default argument expressions for the indicated class.
               while (daefp_end->next != NULL) {
                 daefp_end = daefp_end->next;
               }  /* while */
-              tssp = sym->variant.routine.instance_ptr->template_info;
+              tssp = template_supplement_for_symbol(sym);
               daefp_end->next = tssp->variant.function.def_arg_expr_list;
               tssp->variant.function.def_arg_expr_list = daefp;
             }  /* if */
@@ -948,8 +993,8 @@ Process the default argument expressions for the indicated class.
             rfp->def_arg_expr_fixup_list = NULL;
           } else {
             /* The default arg token cache is discarded for declarations
-               that are not for member functions of the current class -- this
-               includes friend declarations. */
+               that are not member functions of the current class (including
+               friend declarations). */
             for (; daefp != NULL; daefp = daefp->next) {
               discard_token_cache(&daefp->cache.tokens);
             }  /* for */
@@ -1331,7 +1376,8 @@ nested class.
     /* Go through the routine fixup entries to scan inline function bodies. */
     for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
       next_rfp = rfp->next;
-      if (rfp->function_body_token_cache.first_token != NULL) {
+      if (rfp->function_body_token_cache.first_token != NULL ||
+          rfp->is_template) {
         sym = rfp->symbol;
 #if DEBUG
         if (debug_level >= 3) {
@@ -1375,9 +1421,15 @@ nested class.
           /* Set rfp to NULL to prevent it from being freed below. */
           rfp = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        } else if (rfp->is_template) {
+          /* A function template declared in a class scope. */
+          if (nonclass_prototype_instantiations) {
+            /* Do the prototype instantiation of the function body. */
+            function_prototype_instantiation(sym);
+          }  /* if */
         } else if (is_nonreal_template_instantiation) {
           /* Prototype instantiation -- copy the cache for member functions. */
-          tssp = sym->variant.routine.instance_ptr->template_info;
+          tssp = template_supplement_for_symbol(sym);
           tssp->cache.tokens = rfp->function_body_token_cache;
           clear_token_cache(&rfp->function_body_token_cache,
                            /*reusable=*/TRUE);
@@ -6474,6 +6526,7 @@ in-class member function declarations.)
   a_template_symbol_supplement_ptr   tssp;
   a_routine_ptr                      rtn;
   a_symbol_ptr                       sym = NULL;
+  a_symbol_ptr                       prototype_sym;
   a_symbol_ptr                       other_sym, overload_sym = NULL;
   a_class_symbol_supplement_ptr      cssp;
   a_scope_depth                      effective_decl_level;
@@ -6551,9 +6604,15 @@ in-class member function declarations.)
      it won't be freed. */
   tssp->variant.function.func_info = *func_info;
   func_info->param_id_list = NULL;
+  /* Allocate the symbol for the prototype instantiation of the
+     function template. */
+  prototype_sym = make_function_template_prototype_symbol(
+                                                   sym, rtn, templ_param_list);
   /* Set the source correspondence, including the access specifier. */
-  set_source_corresp(&rtn->source_corresp, sym);
+  set_source_corresp(&rtn->source_corresp, prototype_sym);
   set_class_membership(sym, &rtn->source_corresp, class_type);
+  set_class_membership(prototype_sym, (a_source_correspondence*)NULL,
+                       class_type);
   rtn->source_corresp.access = class_state->access;
   if (func_info->is_inline) {
     /* Inline member function (either because "inline" was specified or

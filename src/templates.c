@@ -2449,7 +2449,8 @@ A pointer to the head of the list is returned in tcsp.
 				    prototype_type,
 				    (a_routine_ptr)NULL, instance_sym,
 				    template_sym, template_arg_list,
-                                    /*push_stop_tokens=*/TRUE, PS_NO_OPTIONS);
+                                    /*push_stop_tokens=*/TRUE,
+                                    PS_PROTOTYPE_INSTANTIATION);
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   /* If source sequence entries are being generated during prototype
      instantiation, be sure the entry for the prototype class itself is also
@@ -2535,7 +2536,8 @@ user later during real instantiations.
 				    (a_type_ptr)NULL, rout_ptr,
 				    rout_sym, template_sym,
 				    rout_ptr->template_arg_list,
-                                    /*push_stop_tokens=*/TRUE, PS_NO_OPTIONS);
+                                    /*push_stop_tokens=*/TRUE,
+                                    PS_PROTOTYPE_INSTANTIATION);
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -2576,7 +2578,6 @@ user later during real instantiations.
 
 void default_arg_prototype_instantiation(
 	a_symbol_ptr				template_sym,
-	a_template_symbol_supplement_ptr	tssp,
 	a_def_arg_expr_fixup_ptr		def_arg_list,
 	a_symbol_ptr				prototype_scope_symbols)
 /*
@@ -2592,6 +2593,7 @@ user later during real instantiations.
   a_symbol_ptr				rout_sym;
   a_routine_ptr				rout_ptr;
   a_def_arg_expr_fixup_ptr		daefp;
+  a_template_symbol_supplement_ptr	tssp;
 
   db_enter(3, "default_arg_prototype_instantiation");
 #if DEBUG
@@ -2602,6 +2604,7 @@ user later during real instantiations.
     }  /* for */
   }  /* if */
 #endif /* DEBUG */
+  tssp = template_supplement_for_symbol(template_sym);
   rout_ptr = tssp->variant.function.routine;
   rout_sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
   check_assertion(rout_sym != NULL);
@@ -2616,7 +2619,7 @@ user later during real instantiations.
 				      rout_sym, template_sym,
 				      rout_ptr->template_arg_list,
                                       /*push_stop_tokens=*/TRUE,
-                                      PS_NO_OPTIONS);
+                                      PS_PROTOTYPE_INSTANTIATION);
     /* The function prototype scope should be reactivated and its symbols
        reentered because parameter names hide names from enclosing scopes
        and, moreover, may not be used in default argument expressions. */
@@ -2639,6 +2642,77 @@ user later during real instantiations.
   }  /* for */
   db_exit();
 }  /* default_arg_prototype_instantiation */
+
+
+static void static_data_member_prototype_instantiation(
+					a_symbol_ptr	template_sym)
+/*
+This routine is called to do a "prototype instantiation" of a template
+static data member.
+
+This is done to detect those errors that can be diagnosed at template
+definition time and to record information about nondependent calls for
+user later during real instantiations.
+*/
+{
+  a_template_symbol_supplement_ptr  tssp;
+  a_variable_ptr		    var_ptr;
+  a_template_cache_ptr		    tcp;
+
+  db_enter(3, "static_data_member_prototype_instantiation");
+  var_ptr = template_sym->variant.static_data_member.variable;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  var_ptr->declared_type = var_ptr->type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  tssp = template_sym->variant.static_data_member.instance_ptr->template_info;
+  /* If the type of the static data member is a template class, make sure
+     it is instantiated. */
+  complete_type_is_needed(var_ptr->type);
+  /* Push a template instantiation scope.  For static data members, the
+     argument list comes from the enclosing class that is reactivated by
+     push_template_instantiation_scope. */
+  tcp = cache_for_template(tssp);
+  push_template_instantiation_scope(tcp->decl_info,
+                                    (a_type_ptr)NULL,
+                                    (a_routine_ptr)NULL,
+				    template_sym,
+                                    template_sym,
+                                    (a_template_arg_ptr)NULL,
+                                    /*push_stop_tokens=*/TRUE,
+                                    PS_PROTOTYPE_INSTANTIATION);
+  /* Call mark_defined *after* the template instantiation scope is pushed --
+     correct behavior for source sequence entry generation depends on it. */
+  mark_defined(template_sym, &template_sym->decl_position);
+  if (tssp->cache.tokens.first_token != NULL) {
+    /* An initializer was specified in the template declaration. */
+    a_boolean  incomplete_type_error_reported;
+    a_boolean  has_parenthesized_initializer;
+
+    rescan_reusable_cache(&tssp->cache.tokens);
+    /* If the first token is an equals sign then this is not a parenthesized
+       initializer.   Initializers that begin with an invalid token will
+       have already been discarded. */
+    has_parenthesized_initializer = (curr_token != tok_assign);
+    /* Bypass the "=" or "(". */
+    (void)get_token();
+    initializer(template_sym, &template_sym->decl_position,
+                idl_external, has_parenthesized_initializer,
+                /*is_old_style_param_decl=*/FALSE,
+                &incomplete_type_error_reported, (a_decl_pos_block_ptr)NULL);
+    if (curr_token != tok_end_of_source) {
+      pos_error(ec_exp_semicolon, &pos_curr_token);
+      while (curr_token != tok_end_of_source) (void)get_token();
+    }  /* if */
+    /* By pass end-of-source token, which is probably the terminator token
+       in the cache. */
+    (void)get_token();
+  } else {
+    /* There's no explicit initializer. */
+    (void)def_initializer(template_sym, &template_sym->decl_position);
+  }  /* if */
+  pop_template_instantiation_scope();
+  db_exit();
+}  /* static_data_member_prototype_instantiation */
 
 
 static void check_for_definition_in_friend_declaration(
@@ -11023,9 +11097,11 @@ instantiation.
     curr_default_args = proto_tssp->variant.function.def_arg_expr_list;
   } else {
     /* We are using the newly specified default arguments.  Do a prototype
-       instantiation of the new defaults. */
-    if (nonclass_prototype_instantiations) {
-      default_arg_prototype_instantiation(template_sym, tssp,
+       instantiation of the new defaults.  For declarations within classes
+       this is done in class fixup processing. */
+    if (nonclass_prototype_instantiations &&
+        decl_state->class_declared_in == NULL) {
+      default_arg_prototype_instantiation(template_sym,
                                           curr_default_args,
 					  decl_state->prototype_scope_symbols);
     }  /* if */
@@ -11180,6 +11256,16 @@ caller.
                               &local_token_cache,
                               decl_state->decl_info);
     } /* if */
+    if (decl_state->class_declared_in != NULL &&
+        do_dependent_name_processing) {
+      /* Create a routine fixup entry so that the body of this template
+         (if present) and any default arguments will have their prototype
+         instantiations done at the completion of the prototype instantiation
+         of the enclosing class. */
+      add_routine_fixup_for_template_decl(sym,
+                                          decl_state->prototype_scope_symbols,
+                                          decl_state->class_declared_in);
+    }  /* if */
     /* Update the default argument information for this template from
        either curr_default_args or from the corresponding declaration
        from the prototype instantiation of the enclosing class. */
@@ -11472,9 +11558,6 @@ also for template template parameters (when is_template_param is TRUE).
         /* Record the default name linkage at the point of declaration. */
         template_decl_info->name_linkage =
                          scope_stack[depth_scope_stack].default_name_linkage;
-        /* Record the current declaration sequence number.  This is used
-           to restrict name visibility during template instantiation. */
-        template_decl_info->decl_seq = decl_seq_counter;
         push_template_declaration_scope(template_decl_info);
         check_assertion(!decl_state->is_full_specialization);
         decl_state->number_of_template_decl_scopes++;
@@ -11718,6 +11801,13 @@ any non-empty template parameter lists that were scanned.
          decl_state->number_of_template_decl_scopes--) {
     pop_scope();
   }  /* for */
+  /* Save the declaration sequence number at the end of this template
+     declaration. */
+  if (decl_state->decl_info != NULL) {
+    /* Record the current declaration sequence number.  This is used
+       to restrict name visibility during template instantiation. */
+    decl_state->decl_info->decl_seq = decl_seq_counter;
+  }  /* if */
   /* Any pbk_next_construct pragmas will be considered to bind to each of
      the instances generated from the template.  Save the current construct
      pragma list in the template symbol supplement. */
@@ -11771,11 +11861,19 @@ any non-empty template parameter lists that were scanned.
         }  /* if */
       }  /* if */
     }  /* if */
-  } else if (nonclass_prototype_instantiations &&
-             is_function_or_template_symbol(sym)) {
-    /* Do the prototype instantiation of the function. */
-    if (!decl_state->decl_scope_err && decl_state->defines_something) {
-      function_prototype_instantiation(sym);
+  } else if (nonclass_prototype_instantiations && sym != NULL) {
+    if (is_function_or_template_symbol(sym)) {
+      /* Do the prototype instantiation of the function. */
+      if (!decl_state->decl_scope_err && decl_state->defines_something) {
+        if (decl_state->class_declared_in == NULL) {
+          /* Prototype instantiations for templates declared within classes
+             are handled elsewhere. */
+          function_prototype_instantiation(sym);
+        }  /* if */
+      }  /* if */
+    } else {
+      check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
+      static_data_member_prototype_instantiation(sym);
     }  /* if */
   }  /* if */
   /* Extract the bodies of any member functions, nested classes, or

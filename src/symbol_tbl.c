@@ -4120,7 +4120,7 @@ ct_symbol is the symbol of the class template.
 
 
 a_symbol_ptr make_function_template_prototype_symbol(
-				a_symbol_ptr	template_sym,
+				a_symbol_ptr		template_sym,
 				a_routine_ptr		rout_ptr,
 				a_template_param_ptr	templ_param_list)
 /*
