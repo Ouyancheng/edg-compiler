@@ -40,7 +40,7 @@ when using dependent name lookup:
   };
 
   template <class T> struct A : public B<T> {
-    X x;  // error: X not visible yet
+    X x;  // error: X not visible yet (formerly an error in strict mode)
     void g() {
       f();        // error: B<T>::f not visible
       this->f();  // must be written this way
@@ -91,11 +91,24 @@ form of a "prototype instantiation" of the template.  For example,
 a class template is represented by a type entry for a class, a function
 template is represented by a routine entry, etc.
 
+The PROTOTYPE_INSTANTIATIONS_IN_IL configuration flag must be TRUE for
+IL entries for prototype instantiations to be generated.  This flag
+provides the default value for the variable prototype_instantiations_in_il,
+which controls whether or not the prototype instantiation IL entries
+are actually generated.
+
 Prototype instantiations can only be supplied when doing semantic
 analysis of nonclass template definitions because it is the semantic
 analysis that produces the IL for the template definition.  Consequently,
 it is only possible to produce prototype instantiations for code that
 can be parsed using the --parse_function_templates option.
+
+When using PROTOTYPE_INSTANTIATIONS_IN_IL, the a_template entry
+contains a pointer to the prototype instantiation for the template and
+a pointer to a_template_decl entry that describes the template
+parameter list(s) of the template.  In addition, each template-based
+class, routine, or variable (for static data members) contains a
+pointer to the template from which it was generated.
 
 7/18/00  Nested types in nonstandard anonymous unions
 
