@@ -2055,7 +2055,7 @@ only used in C++ mode.
   } else {
     /* Exactly one default constructor. */
     /* Check that the constructor is accessible and mark it referenced. */
-    reference_to_implicitly_invoked_function(ctor_sym);
+    reference_to_implicitly_invoked_function(ctor_sym, err_pos);
     ctor_routine = ctor_sym->variant.routine;
   }  /* if */
   return ctor_routine;
@@ -2078,7 +2078,7 @@ Otherwise, return NULL.
     dtor_sym = cssp->destructor;
     if (dtor_sym != NULL) {
       /* Check that the destructor is accessible and mark it referenced. */
-      reference_to_implicitly_invoked_function(dtor_sym);
+      reference_to_implicitly_invoked_function(dtor_sym, &error_position);
       dtor_routine = dtor_sym->variant.routine;
     }  /* if */
   }  /* if */
@@ -2234,7 +2234,7 @@ used in C++ mode.
   } else {
     /* Exactly one copy constructor is best. */
     /* Check that the constructor is accessible and mark it referenced. */
-    reference_to_implicitly_invoked_function(cctor_sym);
+    reference_to_implicitly_invoked_function(cctor_sym, err_pos);
     cctor_routine = cctor_sym->variant.routine;
   }  /* if */
   return cctor_routine;

@@ -1202,7 +1202,7 @@ remove it later, as this routine takes care of that.
   }  /* if */
   if (constructor_sym != NULL) {
     /* Check that the constructor is accessible and mark it referenced. */
-    reference_to_implicitly_invoked_function(constructor_sym);
+    reference_to_implicitly_invoked_function(constructor_sym, &error_position);
     *conversion_routine = constructor_sym->variant.routine;
   }  /* if */
   db_exit();
