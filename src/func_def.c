@@ -258,13 +258,15 @@ current compilation.
 a_boolean check_function_return_type(a_type_ptr         rout_type,
                                      a_source_position  *err_pos,
                                      a_boolean          is_expr_use,
+                                     a_boolean          evaluated,
                                      a_routine_ptr      rout_ptr)
 /*
 Given a routine type, check that the return type is valid, issuing an
 error if not, and also set the routine calling method flag if appropriate.
 is_expr_use is TRUE if the function is being called or its address is
-being taken.  rout_ptr is a pointer to the routine that is being defined or
-called; may be NULL.
+being taken.  When is_expr_use is TRUE, evaluated is TRUE if the
+expression is in an evaluated context.  rout_ptr is a pointer to the
+routine that is being defined or called; may be NULL.
 */
 {
   a_type_ptr  return_type;
@@ -301,18 +303,26 @@ called; may be NULL.
       check_assertion(!is_array_type(return_type) &&
                       !is_function_type(return_type));
       if (is_incomplete_type(return_type)) {
-        a_routine_type_supplement_ptr  rtsp = rout_type->
+        if (microsoft_bugs && !evaluated &&
+            is_class_struct_union_type(return_type)) {
+          /* MSVC++ allows a function call returning an incomplete class type
+             in a not-evaluated context. */
+          pos_ty_warning(ec_incomplete_class_return_type, err_pos,
+                         return_type);
+        } else {
+          a_routine_type_supplement_ptr  rtsp = rout_type->
                                                  variant.routine.extra_info;
 
-        if (!rtsp->suppress_diagnostic_on_incomplete_return_type) {
-          /* If a diagnostic has already been issued on calling (or taking the
-             address of) this routine.  No need to do it again. */
-          incomplete_type_error = TRUE;
+          if (!rtsp->suppress_diagnostic_on_incomplete_return_type) {
+            /* If a diagnostic has already been issued on calling (or taking
+               the address of) this routine.  No need to do it again. */
+            incomplete_type_error = TRUE;
+          }  /* if */
+          rtsp->suppress_diagnostic_on_incomplete_return_type = TRUE;
+          /* Note that err is set (for the return value) even if no diagnostic
+             is actually issued. */
+          err = TRUE;
         }  /* if */
-        rtsp->suppress_diagnostic_on_incomplete_return_type = TRUE;
-        /* Note that err is set (for the return value) even if no diagnostic
-           is actually issued. */
-        err = TRUE;
       }  /* if */
     } else {
       /* Declaration case. */
@@ -605,7 +615,8 @@ and for the instantiation of template functions.
   /* Issue an error if this is an invalid return type. */
   (void)check_function_return_type(rout_type,
                                    &rout_ptr->source_corresp.decl_position,
-                                   /*is_expr_use=*/FALSE, rout_ptr);
+                                   /*is_expr_use=*/FALSE,
+                                   /*evaluated=*/FALSE, rout_ptr);
   /* In certain very obscure cases, the routine type associated with
      rout_ptr may be replaced by an equivalent type entry.  Refetch the type,
      just in case. */

@@ -3167,7 +3167,13 @@ C mode.
   } else if (is_incomplete_type(arg_type)) {
     /* Catch a case like "f((void)2)" -- an argument with an incomplete
        type is not allowed. */
-    error_in_operand(ec_incomplete_type_not_allowed, argument_operand);
+    if (microsoft_bugs && !curr_expr_is_evaluated() && is_ellipsis &&
+        is_class_struct_union_type(arg_type)) {
+      /* MSVC++ allows a call returning an incomplete class type as an
+         argument for an ellipsis in an unevaluated context. */
+    } else {
+      error_in_operand(ec_incomplete_type_not_allowed, argument_operand);
+    }  /* if */
   } else if (is_class_struct_union_type(arg_type)) {
     /* Class.  No promotion needed. */
     if (!C_mode()) {
@@ -7322,7 +7328,8 @@ was suppressed on the call.
      at the point of declaration of the function so long as it is completed
      by the time the function is defined or called (if it is). */
   if (!check_function_return_type(function_type, err_pos,
-                                  /*is_expr_use=*/TRUE, rp)) {
+                                  /*is_expr_use=*/TRUE,
+                                  curr_expr_is_evaluated(), rp)) {
     /* There was some error in the return type, and a diagnostic was issued. */
     call_node = error_node();
     goto done;

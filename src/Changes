@@ -1,5 +1,13 @@
 Version 3.5
 
+7/3/04   Microsoft compatibility: call returning incomplete class type
+
+MSVC++ allows calls of functions returning incomplete class types in
+certain contexts.  We're not sure of all the contexts, but one that
+matters (because it comes up in Microsoft software) is inside a
+sizeof.  Accordingly, we now allow a call returning an incomplete
+class type inside an unevaluated context in Microsoft bugs mode.
+
 7/2/04   Missing VLA deallocation statement in switch statement
 
 When VLA variables were defined in a switch statement, the front end sometimes
