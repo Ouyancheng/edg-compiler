@@ -2648,7 +2648,7 @@ is the one associated with the definition of the class.
   /* Write the name of the class. */
   /* Note that a name will be generated for an unnamed class.  Suppress
      the name for an anonymous union class. */
-  if (ctsp != NULL &&
+  if (ctsp == NULL ||
       ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_none) {
     write_space();
     gen_type_name(type);
