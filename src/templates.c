@@ -1873,13 +1873,27 @@ performed.  templ_param_list points to the template parameter list.
               a_class_symbol_supplement_ptr  cssp;
               cssp = symbol_supplement_for_class(ttp);
               ttp = cssp->template_param_for_proxy_class;
-              if (matches_template_type(tp, ttp, templ_arg_list,
-				        templ_param_list,
-                                        /*allow_conversion=*/FALSE,
-                                        (a_base_class_ptr*)NULL)) {
-                /* Members have the same names and the parent classes
-                   "match". */
-                match = TRUE;
+              if (ttp != NULL) {
+                if (matches_template_type(tp, ttp, templ_arg_list,
+  				          templ_param_list,
+                                          /*allow_conversion=*/FALSE,
+                                          (a_base_class_ptr*)NULL)) {
+                  /* Members have the same names and the parent classes
+                     "match".  This will handle cases like T::B. */
+                  match = TRUE;
+                }  /* if */
+              }  /* if */
+              if (!match) {
+                /* Attempt to match on the class of which this is a member. */
+                ttp = templ_type->source_corresp.class_of_which_a_member;
+                if (matches_template_type(tp, ttp, templ_arg_list,
+  				          templ_param_list,
+                                          /*allow_conversion=*/FALSE,
+                                          (a_base_class_ptr*)NULL)) {
+                  /* Members have the same names and the parent classes
+                     "match".  This will handle cases like A<T>::B. */
+                  match = TRUE;
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
