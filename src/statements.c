@@ -1173,7 +1173,7 @@ start of a sequence of declarations.
   }  /* if */
   /* Now process the declaration. */
   local_declaration();
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+  if (!source_sequence_entries_disallowed) {
     /* Update the source sequence entry pointer, if required. */
     if (sp->source_sequence_entry != NULL) {
       /* The decl-statement already has a pointer to the source sequence entry
@@ -1203,7 +1203,7 @@ Allocate a source sequence entry for statement sp and add it to the list for
 the current function scope.
 */
 {
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+  if (!source_sequence_entries_disallowed) {
     if (C_dialect == C_dialect_cplusplus) {
       /* If the previous statement was a decl-statement, deactivate it. */
       wrapup_decl_statement();
