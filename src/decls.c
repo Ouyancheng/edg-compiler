@@ -2892,6 +2892,32 @@ of the identifier.
 }  /* set_name_linkage */
 
 
+static void add_namespace_parent_pointer(a_symbol_ptr             sym,
+                                         a_source_correspondence  *scp)
+/*
+If appropriate, set the namespace pointer in the symbol (unless this is a
+block-extern declaration) and in the IL entry (unless this is an extern "C"
+declaration).
+*/
+{
+  a_namespace_ptr  ns_ptr;
+
+  ns_ptr = scope_stack[depth_innermost_namespace_scope].il_scope->
+                                                variant.assoc_namespace;
+  check_assertion(ns_ptr != NULL);
+  if (scope_stack[depth_scope_stack].default_name_linkage ==
+                                        (a_name_linkage_kind)nlk_external) {
+    /* This is an extern "C" context, so the IL entry is not set. */
+    scp = NULL;
+  }  /* if */
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    /* This is a block-extern declaration, so the symbol is not set. */
+    sym = NULL;
+  }  /* if */
+  set_namespace_membership(sym, scp, ns_ptr);
+}  /* add_namespace_parent_pointer */
+
+
 static a_symbol_ptr qualified_name_redecl_sym(
                                a_symbol_locator   *locator,
                                a_type_ptr         type_ptr,
@@ -3399,14 +3425,9 @@ cross-reference output describing this declaration.
        alone in set_source_corresp. */
     source_corresp_ptr->is_local_to_function = FALSE;
   }  /* if */
-  if (!C_mode() && alloc_at_file_scope && !redeclaration) {
-    if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
-        scope_stack[depth_scope_stack].default_name_linkage !=
-                                          (a_name_linkage_kind)nlk_external) {
-      set_namespace_membership(sym, source_corresp_ptr,
-                               scope_stack[depth_innermost_namespace_scope].
-                                           il_scope->variant.assoc_namespace);
-    }  /* if */
+  if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
+      alloc_at_file_scope && !redeclaration) {
+    add_namespace_parent_pointer(sym, source_corresp_ptr);
   }  /* if */
   set_name_linkage(linkage, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
@@ -4096,19 +4117,10 @@ skip_overloading:;
        alone in set_source_corresp. */
     source_corresp_ptr->is_local_to_function = FALSE;
   }  /* if */
-  if (!C_mode() && !redeclaration && !template_function_specific_decl) {
-    if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
-        scope_stack[depth_scope_stack].default_name_linkage !=
-                                          (a_name_linkage_kind)nlk_external) {
-      /* Set the namespace parent.  Note that for block-extern declarations,
-         this is done only in the IL entry, not in the symbol. */
-      set_namespace_membership(
-                   depth_innermost_function_scope == NO_SCOPE_DEPTH ?
-                     sym : (a_symbol_ptr)NULL,
-                   source_corresp_ptr,
-                   scope_stack[depth_innermost_namespace_scope].il_scope->
-                                                    variant.assoc_namespace);
-    }  /* if */
+  if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
+      !redeclaration && !template_function_specific_decl) {
+    /* Set the namespace parent in the symbol and IL entry. */
+    add_namespace_parent_pointer(sym, source_corresp_ptr);
   }  /* if */
   if (func_info->is_main_function) {
     /* This is "main", so remember the location of its routine entry. */
