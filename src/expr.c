@@ -466,9 +466,6 @@ Syntax:
   a_type_ptr         result_type;
   a_source_position  operator_position;
   a_boolean          err = FALSE, processed = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_type_ptr         field_type;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_subscript_operator");
 
@@ -502,17 +499,12 @@ Syntax:
     operand_will_not_be_used_because_of_error(&operand_2);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode &&
-             is_property_ref_operand(operand_1) &&
-             ((field_type =
-                 f_skip_typerefs(operand_1->variant.property_ref.field->type)),
-              (is_array_type(field_type) &&
-                !field_type->variant.array.is_variable_size_array &&
-                field_type->variant.array.variant.number_of_elements == 0))) {
+             is_property_ref_operand(operand_1)) {
     /* The operand is a field selection for a field declared with the
-       Microsoft C++ extension __declspec(property(...)), and the field has
-       an array type with an unknown bound.  Add the subscript expression to
-       the operand.  It will be included as an argument in the call of a
-       "get" or "put" function when this operand is rewritten later. */
+       Microsoft C++ extension __declspec(property(...)).  Add the
+       subscript expression to the operand.  It will be included as
+       an argument in the call of a "get" or "put" function when this
+       operand is rewritten later. */
     an_arg_operand_ptr last_subscript;
     an_arg_operand_ptr subscript = alloc_arg_operand();
 
