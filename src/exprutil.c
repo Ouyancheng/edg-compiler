@@ -6090,34 +6090,41 @@ void add_reference_indirection(an_operand *result)
     internal_error("add_reference_indirection: not reference type");
   }  /* if */
 #endif /* CHECKING */
-  orig_result = *result;
-  node = make_node_from_operand(result);
-  result_type = type_pointed_to(result_type);
-  if (is_an_lvalue(result)) {
-    /* Change the references to "use". */
-    change_some_ref_kinds(result->ref_entries_list, SRK_REFERENCE, SRK_USE);
-    node = add_indirection_to_node(node);
-    if (is_operation_node(node)) {
-      node->variant.operation.compiler_generated = TRUE;
-    }  /* if */
-  }  /* if */
-  /* Make the node have a pointer type instead of a reference type. */
-  node->type = make_pointer_type(result_type);
-  /* Mark the node as being an implicit indirection generated for a
-     reference. */
-  node->implicit_reference_indirection = TRUE;
-  make_expression_operand(node, result_type, result);
-  if (is_function_type(result_type)) {
-    /* The thing pointed to is a function, so the result is a function
-       designator. */
-    result->state = (an_operand_state)os_function_designator;
+  if (curr_expr_kind_is_const()) {
+    /* Can't do reference indirection in a constant expression.  This is
+       needed in particular for ek_init_constant expressions out of
+       scan_extended_integral_constant_expression. */
+    error_and_make_error_operand(ec_expr_not_constant, result);
   } else {
-    result->state = (an_operand_state)os_lvalue;
+    orig_result = *result;
+    node = make_node_from_operand(result);
+    result_type = type_pointed_to(result_type);
+    if (is_an_lvalue(result)) {
+      /* Change the references to "use". */
+      change_some_ref_kinds(result->ref_entries_list, SRK_REFERENCE, SRK_USE);
+      node = add_indirection_to_node(node);
+      if (is_operation_node(node)) {
+        node->variant.operation.compiler_generated = TRUE;
+      }  /* if */
+    }  /* if */
+    /* Make the node have a pointer type instead of a reference type. */
+    node->type = make_pointer_type(result_type);
+    /* Mark the node as being an implicit indirection generated for a
+       reference. */
+    node->implicit_reference_indirection = TRUE;
+    make_expression_operand(node, result_type, result);
+    if (is_function_type(result_type)) {
+      /* The thing pointed to is a function, so the result is a function
+         designator. */
+      result->state = (an_operand_state)os_function_designator;
+    } else {
+      result->state = (an_operand_state)os_lvalue;
+    }  /* if */
+    /* Restore the original source position, etc.  Note that the reference
+       entries are NOT restored, on purpose. */
+    restore_operand_details(result, &orig_result);
+    result->ref_entries_list = NULL;
   }  /* if */
-  /* Restore the original source position, etc.  Note that the reference
-     entries are NOT restored, on purpose. */
-  restore_operand_details(result, &orig_result);
-  result->ref_entries_list = NULL;
 }  /* add_reference_indirection */
 
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL

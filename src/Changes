@@ -1,5 +1,19 @@
 Version 3.2
 
+1/30/03  Abort on __INTADDR__ of reference eliminated
+
+Use of a field selection for a field of a reference type inside
+the __INTADDR__ operator (an EDG extension intended to be used to
+implement the offsetof macro) caused an abort
+("extract_constant_from_operand: bad operand kind").  Now fixed.
+
+  struct A {
+    int& x;
+  };
+  int main() {
+    int i = ((unsigned int)__INTADDR__(&(((A *)0)->x)));
+  }
+
 1/29/03  IA-64 ABI: performance with complex class hierarchies
 
 The performance on examples with very large complex inheritance
