@@ -532,7 +532,8 @@ typedef enum /*an_error_code*/ {
   ec_pure_virtual_function_cannot_be_instantiated,
   ec_instantiation_requested_no_definition_supplied,
   ec_instantiation_requested_and_specific_definition,
-  ec_no_constructor
+  ec_no_constructor,
+  ec_template_param_only_used_in_default_args
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -1844,6 +1844,9 @@ error code.
     case ec_no_constructor:
       m = "class %t has no constructor";
       break;
+    case ec_template_param_only_used_in_default_args:
+      m = "%n1 must be used in a parameter without a default value in %n2";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

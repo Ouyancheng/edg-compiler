@@ -2510,8 +2510,11 @@ to represent the template parameters.
 
 
 /* Forward declaration because of recursive invocation. */
-static a_boolean template_param_appears_in_param_list(a_type_ptr  tparam_type,
-                                                      a_type_ptr  rout_type);
+static a_boolean template_param_appears_in_param_list
+				(a_type_ptr  tparam_type,
+                                 a_type_ptr  rout_type,
+			         a_boolean   *only_used_in_default_args);
+
 
 static a_boolean template_param_appears_in_type_tree(a_type_ptr  tparam_type,
                                                      a_type_ptr  tp)
@@ -2548,7 +2551,8 @@ by means of recursive calls.
            bug. */
         found = (template_param_appears_in_type_tree(
                               tparam_type, tp->variant.routine.return_type) ||
-                 template_param_appears_in_param_list(tparam_type, tp));
+                 template_param_appears_in_param_list(tparam_type, tp,
+						      (a_boolean*)NULL));
         break;
       case tk_ptr_to_member:
         /* Check both the member type and the class type. */
@@ -2590,26 +2594,39 @@ by means of recursive calls.
 }  /* template_param_appears_in_type_tree */
 
 
-static a_boolean template_param_appears_in_param_list(a_type_ptr  tparam_type,
-                                                      a_type_ptr  rout_type)
+static a_boolean template_param_appears_in_param_list
+				(a_type_ptr  tparam_type,
+                                 a_type_ptr  rout_type,
+			         a_boolean   *only_used_in_default_args)
 /*
 tparam_type is a tk_template_parameter type entry used in a template
 declaration, and rout_type is a routine type.  Search each of the routine's
-parameter types to see if tparam_type appears in it.
+parameter types to see if tparam_type appears in it.  If
+only_used_in_default_args is not NULL then also determine whether the
+template parameter is only used in function parameters with default
+arguments.
 */
 {
   a_boolean         found = FALSE;
+  a_boolean	    only_in_default_args;
   a_param_type_ptr  ptp;
 
+  /* Only do this check if the pointer passed by the caller is non-NULL. */
+  only_in_default_args = (only_used_in_default_args != NULL);
   ptp = rout_type->variant.routine.extra_info->param_type_list;
   for (; ptp != NULL; ptp = ptp->next) {
     if (ptp->type_involves_template_param) {
       if (template_param_appears_in_type_tree(tparam_type, ptp->type)) {
         found = TRUE;
-        break;
+        if (!ptp->has_default_arg) only_in_default_args = FALSE;
       }  /* if */
+      /* If we've found all the information we are looking for then stop. */
+      if (found && !only_in_default_args) break;
     }  /* if */
   }  /* for */
+  if (only_used_in_default_args != NULL) {
+    *only_used_in_default_args = only_in_default_args;
+  }  /* if */
   return found;
 }  /* template_param_appears_in_param_list */
 
@@ -2829,14 +2846,27 @@ entry is pushed on the scope stack.
           param_sym = tpp->param_symbol;
           if (param_sym->kind != (a_symbol_kind)sk_type) {
             pos_error(ec_not_a_type_arg, &param_sym->decl_position);
-          } else if (!param_sym->referenced ||
-                     (template_param_appears_in_type_tree(
-                                    param_sym->variant.type,
-                                    type->variant.routine.return_type) &&
-                      !template_param_appears_in_param_list(
-                                    param_sym->variant.type, type))) {
-            pos_sy2_error(ec_not_used_in_template_function_params,
-                          &param_sym->decl_position, param_sym, sym);
+          } else {
+	    /* Make sure that all template parameters are used by
+	       function parameter types and not just by parameters
+	       with default arguments. */
+	    a_boolean	only_in_default_args;
+	    a_boolean	param_used;
+	    a_boolean	param_used_in_return_type;
+	    param_used = template_param_appears_in_param_list
+                      (param_sym->variant.type, type, &only_in_default_args);
+	    param_used_in_return_type = template_param_appears_in_type_tree
+					(param_sym->variant.type,
+					 type->variant.routine.return_type);
+
+	    if (!param_sym->referenced ||
+		(param_used_in_return_type && !param_used)) {
+              pos_sy2_error(ec_not_used_in_template_function_params,
+                            &param_sym->decl_position, param_sym, sym);
+	    } else if (only_in_default_args) {
+              pos_sy2_error(ec_template_param_only_used_in_default_args,
+                            &param_sym->decl_position, param_sym, sym);
+            }  /* if */
           }  /* if */
         }  /* for */
       }  /* if */
