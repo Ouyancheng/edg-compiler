@@ -646,44 +646,6 @@ EXTERN a_boolean
 			   or end of switch clause. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-EXTERN a_boolean
-		microsoft_mode
-#if VAR_INITIALIZERS
-                               = DEFAULT_MICROSOFT_MODE
-#endif /* VAR_INITIALIZERS */
-                                                       ;
-			/* TRUE if Microsoft extensions are to be accepted. */
-
-EXTERN a_boolean
-		microsoft_bugs
-#if VAR_INITIALIZERS
-                               = DEFAULT_MICROSOFT_BUGS
-#endif /* VAR_INITIALIZERS */
-                                                       ;
-			/* TRUE if Microsoft bugs are to be emulated. */
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-/* When Microsoft mode is unavailable, replace the variables for Microsoft
-   mode and Microsoft bugs with macros.  This will allow optimizers to remove
-   some useless code when the front-end itself is compiled. */
-#define microsoft_mode (FALSE)
-#define microsoft_bugs (FALSE)
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-EXTERN long	microsoft_version
-#if VAR_INITIALIZERS
-                               = DEFAULT_MICROSOFT_VERSION
-#endif /* VAR_INITIALIZERS */
-                                                           ;
-			/* The version of the Microsoft compiler with which
-			   compatibility is desired.  This enables or disables
-			   particular Microsoft mode features when the
-			   acceptance of that feature varies between versions
-			   of the Microsoft compiler.  The value is specified
-			   using the value of the predefined macro _MSC_VER
-			   supplied by the version of the Microsoft compiler
-			   that is being emulated. */
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_calling_convention
 		default_calling_convention
 #if VAR_INITIALIZERS
