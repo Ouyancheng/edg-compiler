@@ -588,6 +588,8 @@ is set to point to the first created type.
                     &canonical_complex_types[type->variant.float_kind], type);
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    default:
+      unexpected_condition_str("record_builtin_type: bad type kind");
   }  /* switch */
 }  /* record_builtin_type */
 
