@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -38,6 +38,9 @@ il.c -- Construction of intermediate language trees.
 #if DEBUG
 #include "class_decl.h"
 #endif /* DEBUG */
+#if MINIMAL_INLINING
+#include "inline.h"
+#endif /* MINIMAL_INLINING */
 
 /*
 Pointers to shared types.  These are cleared by il_init.
@@ -2559,7 +2562,16 @@ the address of the routine, e.g., a call).
   con->variant.address.kind = (an_address_base_kind)abk_routine;
   con->variant.address.variant.routine = routine;
   con->type = make_pointer_type(routine->type);
-  if (set_address_taken_flag) routine->address_taken = TRUE;
+  if (set_address_taken_flag) {
+    routine->address_taken = TRUE;
+#if MINIMAL_INLINING
+    /* For an inline function, force an out-of-line copy if the
+       address of the routine is taken. */
+    if (inlining_enabled && routine->is_inline) {
+      routine->need_out_of_line_copy = TRUE;
+    }  /* if */
+#endif /* MINIMAL_INLINING */
+  }  /* if */
 }  /* set_routine_address_constant */
 
 
@@ -5314,6 +5326,15 @@ expression node.
 
   new_dip = alloc_dynamic_init(dip->kind);
   *new_dip = *dip;
+#if MINIMAL_INLINING
+  if (variable_remappings_for_inlining != NULL) {
+    /* Look for variables that get remapped while copying the expressions
+       in a function being inlined. */
+    if (dip->variable != NULL) {
+      new_dip->variable = remap_var_for_inlining(dip->variable);
+    }  /* if */
+  }  /* if */
+#endif /* MINIMAL_INLINING */
   switch (dip->kind) {
     case dik_none:
     case dik_zero:
@@ -6558,10 +6579,42 @@ Make a copy of an expression tree and return a pointer to it.
   /* Copy the top node. */
   expr_copy = copy_node(expr);
   switch (expr->kind) {
-    case enk_error:
-    case enk_constant:
     case enk_variable:
+#if MINIMAL_INLINING
+      if (variable_remappings_for_inlining != NULL) {
+        /* Look for variables that get remapped while copying the expressions
+           in a function being inlined. */
+        a_boolean      is_constant;
+        a_constant_ptr con;
+        a_variable_ptr var;
+        if (get_var_remapping_for_inlining(expr->variant.variable,
+                                           &is_constant, &con, &var)) {
+          if (is_constant) {
+            /* The variable is remapped to a constant.  Use an enk_constant
+               instead. */
+            set_expr_node_kind(expr_copy, (an_expr_node_kind)enk_constant);
+            expr_copy->variant.constant = con;
+          } else {
+            /* The variable is remapped to some other variable. */
+            expr_copy->variant.variable = var;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+#endif /* MINIMAL_INLINING */
+      break;
     case enk_variable_address:
+#if MINIMAL_INLINING
+      if (variable_remappings_for_inlining != NULL) {
+        /* Look for variables that get remapped while copying the expressions
+           in a function being inlined. */
+        expr_copy->variant.variable =
+                                remap_var_for_inlining(expr->variant.variable);
+      }  /* if */
+#endif /* MINIMAL_INLINING */
+      break;
+    case enk_constant:
+      break;
+    case enk_error:
     case enk_field:
     case enk_routine_address:
     case enk_address_of_ellipsis:
@@ -7344,11 +7397,14 @@ void copy_statement(a_statement *from,
 Copy a statement entry from "from" to "to".
 */
 {
-  a_boolean has_associated_pragma = to->has_associated_pragma;
+  a_boolean       has_associated_pragma = to->has_associated_pragma;
+  a_statement_ptr to_next = to->next;
 
   *to = *from;
   /* Preserve the pragma flag in the destination statement. */
   to->has_associated_pragma = has_associated_pragma;
+  /* Preserve the next pointer of the destination statement. */
+  to->next = to_next;
   /* If the statement is a label, bind the a_label to the copy. */
   if (to->kind == (a_statement_kind)stmk_label) {
     to->variant.label.ptr->variant.exec_stmt = to;
@@ -10476,6 +10532,6 @@ when the IL has been read back into memory.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
