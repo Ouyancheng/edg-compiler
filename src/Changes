@@ -1,5 +1,13 @@
 Version 2.06
 
+5/21/92  Fixed bug with virtual destructors.
+
+When IL lowering rewrites a "delete" as a destructor call, it must handle
+the case where the pointer is NULL.  The test is inside the destructor.
+However, when the destructor is virtual, the pointer cannot even be used
+to look in the virtual function table if it is NULL, so an extra test
+for non-NULL is needed around the virtual call.
+
 5/21/92  Bug fix: operator new and delete functions may no longer be
          specified virtual.
 
