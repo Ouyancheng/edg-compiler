@@ -468,7 +468,7 @@ environment, especially if additional linkage specifications (beyond "C" and
 should replace this macro with an appropriate test, perhaps a call of
 a function in types.c.
 */
-#define routine_linkages_are_compatible(link1, link2) (link1 == link2)
+#define routine_linkages_are_compatible(link1, link2) TRUE
 
 /*
 Macro provided to determine the identity of name linkages.  As with
@@ -477,7 +477,7 @@ imply, so by default we always return TRUE.  However, implementations for
 which the comparison is meaningful should replace this macro with an
 appropriate test, perhaps a call of a function in types.c
 */
-#define routine_linkages_are_identical(link1, link2) (link1 == link2)
+#define routine_linkages_are_identical(link1, link2) TRUE
 
 /*
 Return the type of the variable (lvalue) represented by node.  This mainly
