@@ -820,14 +820,11 @@ caution when modifying this routine.
          namespace.  This depends on whether the implicitly declared type_info
          is expected to be in namespace "std" or in the global namespace. */
       if (locator_for_curr_id.symbol_header == type_info_sym->header &&
-#if RUNTIME_USES_NAMESPACES
-          decl_scope_level == (DEPTH_OF_FILE_SCOPE + 1) &&
-          strcmp(scope_stack[decl_scope_level].il_scope->variant.
-                   assoc_namespace->source_corresp.name, "std") == 0
-#else /* !RUNTIME_USES_NAMESPACES */
-          (decl_scope_level == DEPTH_OF_FILE_SCOPE)
-#endif /* RUNTIME_USES_NAMESPACES */
-                                                   ) {
+          (type_info_in_namespace_std ?
+            (decl_scope_level == (DEPTH_OF_FILE_SCOPE + 1) &&
+             strcmp(scope_stack[decl_scope_level].il_scope->variant.
+                   assoc_namespace->source_corresp.name, "std") == 0) :
+            (decl_scope_level == DEPTH_OF_FILE_SCOPE))) {
         /* The identifier is indeed "type_info".  Check for the pragma that
            specifically identifies it as the type_info that is returned by
            typeid (typically, the type_info defined in typeinfo.h). */
@@ -854,12 +851,8 @@ caution when modifying this routine.
              name to be reserved. */
           pos_st_error(ec_conflicts_with_predeclared_type_info,
                        &locator_for_curr_id.source_position,
-#if RUNTIME_USES_NAMESPACES
-                       "std::type_info"
-#else /* !RUNTIME_USES_NAMESPACES */
-                       "type_info"
-#endif /* RUNTIME_USES_NAMESPACES */
-                                  );
+                       type_info_in_namespace_std ? "std::type_info" :
+                                                    "type_info");
           tag_sym = type_info_sym;
 #endif /* ABI_CHANGES_FOR_RTTI */
 #endif /* !PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED */

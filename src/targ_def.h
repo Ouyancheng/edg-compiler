@@ -1254,6 +1254,17 @@ for the same purpose.
 #endif /* ABI_COMPATIBILITY_VERSION < 230 || CFRONT_... */
 #endif /* ifndef RUNTIME_USES_NAMESPACES */
 
+/*
+Flag that is TRUE if the runtime library defines class type_info in the
+"std" namespace.  Usually this should be set to the same value as
+RUNTIME_USES_NAMESPACES.  This flag is used to initialize global variable
+type_info_in_namespace_std.
+*/
+#ifndef DEFAULT_TYPE_INFO_IN_NAMESPACE_STD
+#define DEFAULT_TYPE_INFO_IN_NAMESPACE_STD RUNTIME_USES_NAMESPACES
+#endif /* ifndef DEFAULT_TYPE_INFO_IN_NAMESPACE_STD */
+
+
 #if RUNTIME_USES_NAMESPACES
 /*
 The name of the macro to be defined when the runtime uses namespaces.

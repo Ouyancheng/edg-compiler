@@ -802,6 +802,15 @@ EXTERN a_boolean
 #endif /* BACK_END_IS_CP_GEN_BE */
 
 EXTERN a_boolean
+		type_info_in_namespace_std
+#if VAR_INITIALIZERS
+                            = DEFAULT_TYPE_INFO_IN_NAMESPACE_STD
+#endif /* VAR_INITIALIZERS */
+                                                                ;
+			/* If TRUE,  class type_info is defined as a member
+			   of namespace "std". */
+
+EXTERN a_boolean
 		pass_stdarg_references_to_generated_code
 #if VAR_INITIALIZERS
                             = DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE
