@@ -2465,6 +2465,73 @@ part of a template-dependent expression.
 }  /* mangled_encoding_for_expression */
 
 
+static char *first_field_name(a_type_ptr              class_type,
+                              a_source_correspondence **field_scp)
+/*
+Return the name of the first named field of the indicated class, struct,
+or union.  If the first member of the class is unnamed, recursively look
+at its first member, etc.  If there is no named member, return NULL.
+Set *field_scp to point to the source correspondence of the
+first named field; leave it unchanged if there is no named field.
+*/
+{
+  char        *name = NULL;
+  a_field_ptr field;
+
+  check_assertion(is_immediate_class_type(class_type));
+  /* Look at fields, find the first named one. */
+  for (field = class_type->variant.class_struct_union.field_list;
+       field != NULL;
+       field = field->next) {
+    name = field->source_corresp.name;
+    if (name != NULL) {
+      *field_scp = &field->source_corresp;
+      break;
+    }  /* if */
+    /* Unnamed field. */
+    if (field->is_anonymous_parent_object) {
+      /* Do a recursive call to process a nested anonymous union. */
+      name = first_field_name(field->type, field_scp);
+      if (name != NULL) break;
+    }  /* if */
+    /* Keep looping for other unnamed fields (e.g., unnamed bit fields). */
+  }  /* for */
+  return name;
+}  /* first_field_name */
+
+
+static unsigned long number_of_field_using_unnamed_type(a_type_ptr class_type,
+                                                        a_type_ptr type)
+/*
+If class_type has a field whose cv-unqualified type is "type", return
+its number, where the number counts only fields of the class with
+unnamed class or enum types, and the first number is 1.  Return zero
+if no such field was found (always a safe answer).
+*/
+{
+  a_field_ptr   field;
+  unsigned long num = 1;
+
+  for (field = class_type->variant.class_struct_union.field_list;
+       field != NULL;
+       field = field->next) {
+    a_type_ptr ftype = skip_typerefs(field->type);
+    if (ftype == type) goto have_number;
+    /* Count only fields with unnamed class or enum types. */
+    if ((is_immediate_class_type(ftype) &&
+         ftype->variant.class_struct_union.originally_unnamed) ||
+        (is_immediate_enum_type(ftype) &&
+         ftype->variant.integer.originally_unnamed)) {
+      num++;
+    }  /* if */
+  }  /* for */
+  /* Return zero indicating no field was found. */
+  num = 0;
+have_number:
+  return num;
+}  /* number_of_field_using_unnamed_type */
+
+
 /*
 Seed number for unnamed class names.
 */
@@ -2472,9 +2539,9 @@ static unsigned long
 		unnamed_class_name_seed;
 
 
-static void give_unnamed_class_a_name(a_type_ptr type)
+static char *give_unnamed_class_a_name(a_type_ptr type)
 /*
-If the indicated class type is unnamed, give it a name.
+If the indicated class type is unnamed, give it a name and return the name.
 */
 {
   char     *name;
@@ -2483,19 +2550,50 @@ If the indicated class type is unnamed, give it a name.
 
   /* Note that we may be changing a type that is not being lowered yet, but
      that's okay -- the name in the IL entry is not used by the front end. */
-  if (type->source_corresp.name == NULL) {
+  name = type->source_corresp.name;
+  if (name == NULL) {
     /* The class is unnamed, so make up a name. */
     /* The name is __Cnn, where nn is a unique number for the
        class.  This is not from the ARM.  cfront uses the __Cn form, but
        the number is different. */
-    unnamed_class_name_seed++;
-    (void)sprintf(buffer, "__C%lu", (unsigned long)unnamed_class_name_seed);
-    name_len = strlen(buffer) + 1;
-    name = alloc_lowered_name_string(name_len);
-    (void)strcpy(name, buffer);
+    if (type->kind == (a_type_kind)tk_union &&
+        type->variant.class_struct_union.extra_info != NULL &&
+        type->variant.class_struct_union.extra_info->
+                   anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
+      /* For an anonymous union, use the name of the first member, if there
+         is one.  Note that the IA-64 ABI requires this. */
+      a_source_correspondence *field_scp;
+      name = first_field_name(type, &field_scp);
+    }  /* if */
+    if (name == NULL) {
+      unsigned long num = 0;
+      if (type->source_corresp.is_class_member) {
+        /* For a nested type, try to find a field of the parent class that
+           has this type.  If there is one, use the field number of the
+           field in generating the unnamed class name.  Note that the
+           nested classes will have been promoted out of the parent
+           class by this point if the parent class is a local class,
+           so we can't look at the parent class types list. */
+        a_type_ptr parent_type = type->source_corresp.parent.class_type;
+        num = number_of_field_using_unnamed_type(parent_type, type);
+      }  /* if */
+      if (num == 0) {
+        /* By default, just use the next number in sequence. */
+        num = ++unnamed_class_name_seed;
+        /* In this case (only), we set name_has_been_mangled to indicate
+           that the generated name is the complete name.  No parent
+           information, for example, will be added.  The generated name
+           by itself is unique across the whole compilation. */
+        type->source_corresp.name_has_been_mangled = TRUE;
+      }  /* if */
+      (void)sprintf(buffer, "__C%lu", (unsigned long)num);
+      name_len = strlen(buffer) + 1;
+      name = alloc_lowered_name_string(name_len);
+      (void)strcpy(name, buffer);
+    }  /* if */
     type->source_corresp.name = name;
-    type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
+  return name;
 }  /* give_unnamed_class_a_name */
 
 
@@ -2571,9 +2669,9 @@ static unsigned long
 		unnamed_enum_name_seed;
 
 
-static void give_unnamed_enum_a_name(a_type_ptr type)
+static char *give_unnamed_enum_a_name(a_type_ptr type)
 /*
-If the indicated enum type is unnamed, give it a name.
+If the indicated enum type is unnamed, give it a name and return the name.
 */
 {
   char     *name;
@@ -2582,19 +2680,39 @@ If the indicated enum type is unnamed, give it a name.
 
   /* Note that we may be changing a type that is not being lowered yet, but
      that's okay -- the name in the IL entry is not used by the front end. */
-  if (type->source_corresp.name == NULL) {
+  name = type->source_corresp.name;
+  if (name == NULL) {
     /* The enum is unnamed, so make up a name. */
     /* The name is __Enn, where nn is a unique number for the
        enum.  This is not from the ARM.  cfront uses the __En form, but
        the number is different. */
-    unnamed_enum_name_seed++;
-    (void)sprintf(buffer, "__E%lu", (unsigned long)unnamed_enum_name_seed);
+    unsigned long num = 0;
+    if (type->source_corresp.is_class_member) {
+      /* For a nested type, try to find a field of the parent class that
+         has this type.  If there is one, use the field number of the
+         field in generating the unnamed enum name.  Note that the
+         nested types will have been promoted out of the parent
+         class by this point if the parent class is a local class,
+         so we can't look at the parent class types list. */
+      a_type_ptr parent_type = type->source_corresp.parent.class_type;
+      num = number_of_field_using_unnamed_type(parent_type, type);
+    }  /* if */
+    if (num == 0) {
+      /* By default, use the next number in sequence. */
+      num = ++unnamed_enum_name_seed;
+      /* In this case (only), we set name_has_been_mangled to indicate
+         that the generated name is the complete name.  No parent
+         information, for example, will be added.  The generated name
+         by itself is unique across the whole compilation. */
+      type->source_corresp.name_has_been_mangled = TRUE;
+    }  /* if */
+    (void)sprintf(buffer, "__E%lu", (unsigned long)num);
     name_len = strlen(buffer) + 1;
     name = alloc_lowered_name_string(name_len);
     (void)strcpy(name, buffer);
     type->source_corresp.name = name;
-    type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
+  return name;
 }  /* give_unnamed_enum_a_name */
 
 
@@ -2919,8 +3037,7 @@ should be put out.
   if (name == NULL) {
     /* For an unnamed class, generate a name (or use the name previously
        generated). */
-    give_unnamed_class_a_name(type);
-    name = type->source_corresp.name;
+    name = give_unnamed_class_a_name(type);
   }  /* if */
 #if IA64_ABI
   if (show_length) {
@@ -3564,8 +3681,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
       /* For an unnamed enum, generate a name (or use the name previously
          generated). */
       check_assertion(is_enum_type(type));
-      give_unnamed_enum_a_name(type);
-      name = type->source_corresp.name;
+      name = give_unnamed_enum_a_name(type);
     }  /* if */
     mangled_name_with_length(name, mctl);
 #if IA64_ABI
@@ -4753,22 +4869,7 @@ buffer, and must be copied elsewhere promptly.
            member's name.  This is necessary so that the name will come out
            the same whether compiled in a primary translation unit or a
            secondary one. */
-        a_type_ptr  union_type = var->type;
-        a_field_ptr field;
-        check_assertion(union_type->kind == (a_type_kind)tk_union);
-        for (;;) {
-          field = union_type->variant.class_struct_union.field_list;
-          if (field == NULL) break;
-          /* Use the name of the first member. */
-          name = field->source_corresp.name;
-          if (name != NULL) {
-            module_scp = &field->source_corresp;
-            break;
-          }  /* if */
-          /* Loop if the first member is itself an anonymous union. */
-          if (!field->is_anonymous_parent_object) break;
-          union_type = field->type;
-        }  /* for */
+        name = first_field_name(var->type, &module_scp);
       }  /* if */
     }  /* if */
     if (name == NULL) {
@@ -5140,8 +5241,10 @@ is what mangled_type_name generates, plus a prefix.
      and once from lowering itself.  Do nothing for names that have already
      been mangled on the previous call. */
   if (!type->source_corresp.name_has_been_mangled &&
-      has_name(type) &&
+      /* Ignore placeholder typerefs. */
+      (type->kind != (a_type_kind)tk_typeref || typeref_is_typedef(type)) &&
       (type_needs_parent_qualifier(type) ||
+       !has_name(type) ||
        (is_immediate_class_type(type) &&
         type->variant.class_struct_union.extra_info->
                                                  template_arg_list != NULL))) {
