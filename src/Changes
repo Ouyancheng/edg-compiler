@@ -1,5 +1,18 @@
 Version 2.40
 
+9/17/98   Internal error in make_qualified_type
+
+An internal error in make_qualified_type has been fixed; it was caused by
+a bug in copy_type_with_substitution, which was failing to recognize a
+case in which a qualifier was being added to a function type.  For example:
+
+  template<class T> void f(const T*) { }
+  typedef void (FT)(int);
+  FT g;
+  int main() {
+    f<FT>(&g);       // Now an error; formerly an internal error
+  }
+
 9/17/98   Accessibility of destructor and copy constructor in handler
 
 The requirement (15.3 para 17) is now enforced that, when a handler
