@@ -41,6 +41,17 @@ extern char *realloc(char *ptr, unsigned size);
 #include "il_walk.h"
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
+#if USING_PURIFY
+#include "purify.h"
+
+static a_boolean
+		purify_is_active;
+			/* TRUE when a purify'd version of the executable
+			   is being used.  This causes the memory allocation
+			   routines to allocate the memory in a way that
+			   can be tracked by Purify. */
+#endif /* USING_PURIFY */
+
 
 static a_mem_block_header_ptr
 		reusable_blocks_list = NULL;
@@ -227,9 +238,17 @@ Return a pointer to the block header.
      than that (that's possible for incredibly large string literals
      formed by token concatenation). */
   alloc_size = min_size + adjusted_header_size;
-  if (alloc_size < HOST_ALLOCATION_INCREMENT) {
-    alloc_size = HOST_ALLOCATION_INCREMENT;
+#if USING_PURIFY
+  if (!purify_is_active) {
+    /* Don't use the HOST_ALLOCATION_INCREMENT when using purify.  Just
+       allocate a block of the proper size. */
+#endif /* USING_PURIFY */
+    if (alloc_size < HOST_ALLOCATION_INCREMENT) {
+      alloc_size = HOST_ALLOCATION_INCREMENT;
+    }  /* if */
+#if USING_PURIFY
   }  /* if */
+#endif /* USING_PURIFY */
   /* Make sure the block size preserves alignment of the end (this is
      just so that we're not allocating space at the end that can hardly 
      ever be used). */
@@ -563,6 +582,17 @@ if the back end is executed in the same program.
 }  /* alloc_general */
 
 
+#if USING_PURIFY
+void discard_memory(char* ptr)
+/*
+Throw away a block of memory in a way that Purify won't complain about.
+*/
+{
+  discarded_memory = ptr;
+}  /* discard_memory */
+#endif /* USING_PURIFY */
+
+
 char *realloc_general(char     *old_ptr,
                       sizeof_t old_size,
                       sizeof_t new_size)
@@ -698,6 +728,11 @@ of the front end.
 {
   /* Variables in mem_tables.h: */
   highest_used_region_number = NULL_region_number;
+#if USING_PURIFY
+  /* Call the Purify runtime routine to determine whether this executable
+     has been processed using Purify. */
+  purify_is_active = purify_is_running();
+#endif /* USING_PURIFY */
 
   /* Static variables in mem_manage.c: */
 #if DEBUG
