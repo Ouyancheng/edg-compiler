@@ -3496,15 +3496,75 @@ list pointer in type_list.  *type_list should be NULL on the first call.
 }  /* add_to_arg_dependent_lookup_list */
 
 
+static void determine_assoc_namespaces_and_classes_for_type(
+			a_type_ptr			type,
+			a_namespace_list_entry_ptr	*namespace_list,
+			a_type_list_entry_ptr		*class_list)
+/*
+Determine the associated classes and namespaces of "type".  Add the
+associated namespaces and classes to "namespace_list" and "class_list".
+*/
+{
+  a_class_type_supplement_ptr	ctsp;
+  a_base_class_ptr		bcp;
+  a_boolean			add_parent = FALSE;
+
+  switch (type->kind) {
+    case tk_class:
+    case tk_struct:
+    case tk_union:
+      /* The standard specifies different behavior for unions vs. classes.
+         Specifically, the class of which a class is a member is not
+         an associated class, and a union is not one of its own associated
+         classes.  These seem to be errors in the standard, so this
+         implementation treats unions and classes equivalently. */
+      /* Add the class itself to the lookup list. */
+      add_class_to_lookup_lists(type, namespace_list, class_list);
+      /* Add its base classes. */
+      ctsp = type->variant.class_struct_union.extra_info;
+      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+        add_class_to_lookup_lists(bcp->type, namespace_list, class_list);
+      }  /* for */
+      /* The enclosing class (if any) and namespace should be included. */
+      add_parent = TRUE;
+      if (type->variant.class_struct_union.is_template_class) {
+        /* Include the types of any template type arguments. */
+      }  /* if */
+      break;
+    case tk_integer:
+      /* Enums are represted using a tk_integer. */
+      if (type->variant.integer.enum_type) {
+        /* The enclosing class (if any) and namespace should be included. */
+        add_parent = TRUE;
+      }  /* if */
+      break;
+  }  /* switch */
+  if (add_parent) {
+    /* If this is a member of another class, add the class of which it is
+       a members. */
+    if (type->source_corresp.is_class_member) {
+      add_class_to_lookup_lists(type->source_corresp.parent.class_type,
+                                namespace_list, class_list);
+    } else {
+      /* Add the namespace in which the type was defined to the list. */
+      add_namespace_of_type_to_lookup_list(type, namespace_list);
+    }  /* if */
+  }  /* if */
+}  /* determine_assoc_namespaces_and_classes_for_type */
+
+
 a_symbol_list_entry_ptr argument_dependent_lookup(
 					a_symbol_ptr		normal_sym,
+					a_symbol_header_ptr	sym_header,
 					a_type_list_entry_ptr	*type_list)
 /*
 Perform C++ argument-dependent lookup as specified in 3.4.2
-[basic.lookup.koenig] of the C++ standard.  normal_sym is the result of
-a normal lookup of the function name in the context of the call.  type_list
-is a list of argument types to be used to produce a list of associated
-classes and namespaces from which candidate functions should be considered.
+[basic.lookup.koenig] of the C++ standard.  normal_sym is the result
+of a normal lookup of the function name in the context of the call and
+may be NULL.  type_list is a list of argument types to be used to
+produce a list of associated classes and namespaces from which
+candidate functions should be considered.  sym_header points to the
+symbol header associated with the name that is being looked up.
 
 This routine builds a list of symbol list entries.  Each entry points to
 a sk_routine, sk_overloaded_function, or sk_namespace_projection symbol.
@@ -3516,17 +3576,25 @@ The list pointed to by *type_list is freed by this routine, and *type_list
 is set to NULL.
 */
 {
+  a_symbol_list_entry_ptr	slep = NULL;
 #if 0
-#else
-  /* Temporary version. */
-  a_symbol_list_entry_ptr	slep;
+  a_type_list_entry_ptr		tlep;
+  a_namespace_list_entry_ptr	namespace_list;
+  a_type_list_entry_ptr		class_list;
 
-  slep = alloc_symbol_list_entry();
-  slep->symbol = normal_sym;
-  free_list_of_type_list_entries(*type_list);
-  *type_list = NULL;
-  return slep;
+  /* Build a list of namespaces and classes to be included in the search. */
+  for (tlep = *type_list; tlep != NULL; tlep = tlep->next) {
+    determine_assoc_namespaces_and_classes_for_type(
+                                     tlep->type, &namespace_list, &class_list);
+  }  /* for */
 #endif
+  if (normal_sym != NULL) {
+    slep = alloc_symbol_list_entry();
+    slep->symbol = normal_sym;
+    free_list_of_type_list_entries(*type_list);
+    *type_list = NULL;
+  }  /* if */
+  return slep;
 }  /* argument_dependent_lookup */
 
 
