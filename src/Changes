@@ -1,5 +1,19 @@
 Version 2.43
 
+11/10/99 Microsoft compatibility: guiding-like friend declaration is not a
+         new-style explicit specialization
+
+In Microsoft mode, a function declaration that matches a function template
+is treated as a specialization (see Changes entry of 3/12/98).  However, in
+Microsoft compilers this is not the case if a friend is being declared.
+This special treatment of friends is now implemented.
+
+  void f(int);                 // A specialization in MS mode
+  class A {
+    friend void f(short);      // Not a specialization is MS mode (but used
+  };                           // to be one previously)
+  template <class T> void f(T) {}
+
 11/10/99 Unresolved typeinfo variable due to dynamic_cast or typeid
 
 In some cases where a dynamic_cast or typeid uses a class template type

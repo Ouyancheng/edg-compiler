@@ -4908,6 +4908,13 @@ typedef struct a_routine {
 			/* TRUE if is_specialized is TRUE but the function
 			   was not explicitly declared with the template<>
 			   syntax. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	declared_only_as_friend:1;
+			/* TRUE if this routine has only be declared as a
+			   friend.  In that case, Microsoft compilers will
+			   not treat this as a specialization of any
+			   template. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;
 			/* TRUE if this is a template function

@@ -6736,20 +6736,21 @@ the function instantiation entry and set all the pointers.
     }  /* if */
   }  /* if */
   if (tssp != NULL) {
-    if (rout_sym->defined || microsoft_mode) {
+    if (rout_sym->defined ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        (microsoft_mode &&
+         !rout_sym->variant.routine.ptr->declared_only_as_friend)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                 ) {
       /* When the function has already been defined, no instantiation is
          required.  Otherwise, in Microsoft mode this is still regarded as
-         a specialization. */
-#if 0
-      /* Note: in Microsoft mode it also depends on whether the first
-         declaration of the function was a friend declaration.  For example:
+         a specialization, provided at least one of the declarations was
+         not a friend declaration.
            void f(int);                 // A specialization in MS mode
            class A {
              friend void f(short);      // Not a specialization is MS mode
            };
-           template <class T> void f(T) { ... }
-         Support for the friend case is not yet implemented. */
-#endif /* if 0 */
+           template <class T> void f(T) { ... }                     */
       check_old_specialization_allowed(rout_sym, &rout_sym->decl_position);
       rout_sym->variant.routine.ptr->is_specialized = TRUE;
       rout_sym->variant.routine.ptr->specialized_with_old_syntax = TRUE;

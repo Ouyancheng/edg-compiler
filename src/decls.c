@@ -5085,6 +5085,19 @@ skip_overloading:;
       }  /* if */
     }  /* if */
   }  /* if */
+  if (microsoft_mode) {
+    /* In Microsoft mode we must track whether a routine was only declared
+       through friend declarations.  Such declarations do not declare
+       specializations of templates.
+       (See record_predeclared_template_function) */
+    if (is_friend_decl) {
+      if (!redeclaration) {
+        routine_ptr->declared_only_as_friend = TRUE;
+      }  /* if */
+    } else {
+      routine_ptr->declared_only_as_friend = FALSE;
+    }  /* if */
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Link the symbol to the IL routine entry. */
   sym->variant.routine.ptr = routine_ptr;
