@@ -1062,13 +1062,12 @@ If the indicated namespace is unnamed, give it a name.
      end. */
   if (nsp->source_corresp.name == NULL) {
     /* The namespace is unnamed, so make up a name. */
-    /* The name is __Nnn, where nn is a unique number for the
-       namespace.  This is not from the ARM or cfront. */
+    /* The name is __N followed by the module id. */
     char *module_id = make_module_id();
-    name_len = 6 + strlen(module_id) + 1;
+    name_len = 3 + strlen(module_id) + 1;
     name = alloc_lowered_name_string(name_len);
-    (void)strcpy(name, "__NU__");
-    (void)strcpy(name+6, module_id);
+    (void)strcpy(name, "__N");
+    (void)strcpy(name+3, module_id);
     nsp->source_corresp.name = name;
     nsp->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
