@@ -1,5 +1,11 @@
 Version 2.45
 
+11/15/00 Predefined macros on SPARC systems
+
+When the front end is compiled on a SPARC system, the macros
+sun, sparc, and unix are now predefined.  To change that, see
+sys_predef.c
+
 11/15/00 Use of front end routines in a back end or middle end
 
 Some additional guards (testing the global variable in_front_end)

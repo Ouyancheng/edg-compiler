@@ -27,6 +27,7 @@ sys_predef.c -- System dependent predefined macros and assertions.
 #include "sys_predef.h"
 
 #ifdef __linux__
+
 static void enter_linux_predefined_macros(void)
 /*
 Enter the macros that are needed when running the front end on
@@ -56,8 +57,24 @@ Linux using the gcc/g++ header files.
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* ifdef __i486__ */
 }  /* enter_linux_predefined_macros */
-#endif /* ifdef __linux */
 
+#endif /* ifdef __linux__ */
+#ifdef sparc
+
+static void enter_sparc_predefined_macros(void)
+/*
+Enter the standard predefined macros for a SPARC system.
+*/
+{
+  (void)enter_predef_macro("1", "unix", /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro("1", "sun", /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro("1", "sparc", /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+}  /* enter_sparc_predefined_macros */
+
+#endif /* ifdef sparc */
 
 #if 0 /* Not needed in default version, but perhaps useful to some. */
 static void enter_predefined_type(a_type_ptr type,
@@ -163,6 +180,10 @@ Define system-specific predefined macros and builtin #assert predicates
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 #ifdef __linux__
   enter_linux_predefined_macros();
+#else /* !defined(__linux__) */
+#ifdef sparc
+  enter_sparc_predefined_macros();
+#endif /* ifdef sparc */
 #endif /* ifdef __linux__ */
 }  /* enter_system_specific_predefined_macros_and_assertions */
 
