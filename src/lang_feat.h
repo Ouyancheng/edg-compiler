@@ -390,6 +390,25 @@ only used when DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD is TRUE.
 #endif /* ifndef MACRO_DEFINED_WHEN_WCHAR_T_IS_KEYWORD */
 #endif /* DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD */
 
+/*
+Flag that is TRUE if "&..." should be accepted in the source code.  This
+extension is provided to support the form of macro va_start that is provided
+in some versions of stdarg.h, e.g.,
+  #define va_start(list, name) (void)(list = (void *)((char *)&...))
+*/
+#ifndef ADDRESS_OF_ELLIPSIS_ALLOWED
+#define ADDRESS_OF_ELLIPSIS_ALLOWED FALSE
+#endif /* ifndef ADDRESS_OF_ELLIPSIS_ALLOWED */
+
+/*
+Flag that is TRUE if an ellipsis alone is permitted in a function declaration
+in C mode -- something like "void f(...)".  A diagnostic is issued in strict
+ANSI C mode.  (This usage is standard in C++ mode.)
+*/
+#ifndef ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE
+#define ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE FALSE
+#endif /* ifndef ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE */
+
 #endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************

@@ -20,6 +20,8 @@ the release should contain no defines.
 */
 
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
+#define ADDRESS_OF_ELLIPSIS_ALLOWED 1
+#define ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE 1
 
 #ifdef CP_GEN_BE_VERSION
 /*
