@@ -268,6 +268,9 @@ purposes.
     default:
       fprintf(f_debug, "***UNKNOWN KIND***");
   }  /* switch */
+  if (cfdp->parent != NULL) {
+    fprintf(f_debug, ", parent #%lu", cfdp->parent->id_number);
+  }  /* if */
   fputc('\n', f_debug);
 }  /* db_cfd */
 
@@ -895,14 +898,10 @@ the label are promoted to the lifetime of the function scope.
   a_boolean               keep_block_object_lifetime;
 
   db_enter(4, "fixup_curr_block_labels_and_gotos");
-  if (block_cfdp->variant.block.goto_count == 0 &&
-      !block_cfdp->variant.block.any_labels) {
-    /* No gotos or labels to worry about. */
-  } else {
+  if (!block_cfdp->variant.block.is_switch_block) {
     block_olp = block_cfdp->variant.block.object_lifetime;
     check_assertion(block_olp != NULL &&
                     block_olp->kind == (an_object_lifetime_kind)olk_block);
-
     if (block_cfdp->parent == NULL) {
       /* block_cfdp must represent the function scope.  Don't try to promote
          its lifetime. */
@@ -922,7 +921,7 @@ the label are promoted to the lifetime of the function scope.
        block that is being terminated. */
     while (curr_object_lifetime != block_olp) {
       check_assertion(curr_object_lifetime->kind ==
-                            (an_object_lifetime_kind)olk_block_after_label);
+                              (an_object_lifetime_kind)olk_block_after_label);
       promote_from = curr_object_lifetime;
       promote_to = curr_object_lifetime->parent_lifetime;
       /* Pop the block-after-label object lifetime.  If, after it's popped,
@@ -934,7 +933,8 @@ the label are promoted to the lifetime of the function scope.
            have their pointers updated.  This means the block lifetime will
            be retained. */
         keep_block_object_lifetime = FALSE;
-      } else {
+      } else if (block_cfdp->variant.block.goto_count != 0 ||
+                 block_cfdp->variant.block.any_labels) {
         /* Promote the label and goto lifetime pointers. */
         promote_label_and_goto_lifetimes(block_cfdp, promote_from, promote_to);
       }  /* if */
@@ -943,20 +943,24 @@ the label are promoted to the lifetime of the function scope.
     /* At this point all the promotions have been done for the subblocks
        created by label declarations.  Now do the top-level lifetime of the
        block -- if required. */
-    if (!keep_block_object_lifetime && is_useless_object_lifetime(block_olp)) {
-      promote_to = block_olp->parent_lifetime;
-      check_assertion_str2(
+    if (block_cfdp->variant.block.goto_count != 0 ||
+        block_cfdp->variant.block.any_labels) {
+      if (!keep_block_object_lifetime &&
+          is_useless_object_lifetime(block_olp)) {
+        promote_to = block_olp->parent_lifetime;
+        check_assertion_str2(
                     promote_to->kind == (an_object_lifetime_kind)olk_block ||
                     promote_to->kind ==
                             (an_object_lifetime_kind)olk_block_after_label ||
                     promote_to->kind == (an_object_lifetime_kind)olk_try_block,
                     "fixup_curr_block_labels_and_gotos:",
                     "bad parent of curr block lifetime");
-      promote_label_and_goto_lifetimes(block_cfdp, block_olp, promote_to);
-      /* Null out the lifetime pointer in the block control frow entry.  "NULL"
-         means that the lifetimes of any labels or statements within are
-         still subject to further promotion. */
-      block_cfdp->variant.block.object_lifetime = NULL;
+        promote_label_and_goto_lifetimes(block_cfdp, block_olp, promote_to);
+        /* Null out the lifetime pointer in the block control frow entry.
+           "NULL" means that the lifetimes of any labels or statements within
+           are still subject to further promotion. */
+        block_cfdp->variant.block.object_lifetime = NULL;
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
@@ -1004,10 +1008,23 @@ initializing declarations.
     if (new_cfdp->kind == (a_control_flow_descr_kind)cfdk_end_of_block) {
       if (end_of_control_flow_descr_list->kind ==
                                    (a_control_flow_descr_kind)cfdk_block) {
+        if (!C_mode()) {
+          /* If there are any block-after-label object lifetimes (which can
+             happen if this is inside a switch statement) they need to be
+             popped off the object lifetime stack. */
+          fixup_curr_block_labels_and_gotos(end_of_control_flow_descr_list);
+        }  /* if */
         /* No need to create an empty block. */
         remove_control_flow_descr(end_of_control_flow_descr_list);
         free_control_flow_descr(new_cfdp);
         goto done;
+      }  /* if */
+      if (!C_mode()) {
+        /* Fix up the object lifetime pointers for labels and gotos, if
+           necessary.  Note: this function is called even when there are no
+           gotos and labels to worry about, since there may block-after-label
+           lifetimes to pop off the object lifetime stack. */
+        fixup_curr_block_labels_and_gotos(prev_parent);
       }  /* if */
       if (!prev_parent->variant.block.any_labels &&
           prev_parent->variant.block.last_case_label == NULL &&
@@ -1019,9 +1036,6 @@ initializing declarations.
                                            end_of_control_flow_descr_list);
         free_control_flow_descr(new_cfdp);
         goto done;
-      }  /* if */
-      if (!prev_parent->variant.block.is_switch_block && !C_mode()) {
-        fixup_curr_block_labels_and_gotos(prev_parent);
       }  /* if */
       /* No initialization remains "exposed" after the block is closed. */
       prev_parent->variant.block.exposed_init_in_switch = FALSE;
