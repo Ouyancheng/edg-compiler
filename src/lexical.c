@@ -6941,7 +6941,7 @@ Display and return the amount of space used for various lexical tables.
   db_space_used_lost("pending pragma entry", avail_pending_pragmas,
                      num_pending_pragmas_allocated,
                      a_pending_pragma);
-  db_space_used("pragmas in reusable caches",
+  db_space_used("reusable cache pragmas",
                  num_pragmas_in_reusable_caches, a_pending_pragma);
   db_space_used("pragma kind descriptions", num_pragma_descriptions_allocated,
                 a_pragma_kind_description);
