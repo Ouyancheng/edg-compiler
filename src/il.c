@@ -3861,9 +3861,9 @@ instantiations) below that on the scope stack.
 */
 {
   a_scope_stack_entry_ptr        ssep;
-  a_scope_depth	                 scope_depth = decl_scope_level;
+  a_scope_depth                  scope_depth = decl_scope_level;
   a_boolean                      is_partial_instantiation;
-  a_boolean                      inst_placeholder_needed;
+  a_boolean                      inst_placeholder_needed = FALSE;
   a_class_symbol_supplement_ptr  cssp;
   a_type_ptr                     inst_placeholder, inst_placeholder_parent;
 
@@ -3898,10 +3898,18 @@ instantiations) below that on the scope stack.
     scope_depth--;
     ssep--;
   }  /* while */
-  /* At this point, ssep is either NULL or points to a real class scope.
-     A placeholder is needed if ssep is non-NULL and is not inside a
-     function definition. */
-  inst_placeholder_needed = (ssep != NULL && !ssep->inside_local_class);
+  /* At this point, ssep is either NULL or points to a real class scope. */
+  if (ssep != NULL && !ssep->inside_local_class) {
+    /* A placeholder is needed only if ssep is non-NULL and is not inside a
+       function definition. */
+    if (type_ptr->source_corresp.is_class_member &&
+        type_ptr->source_corresp.parent.class_type == ssep->assoc_type) {
+      /* However, no placeholder is needed in the class to which a member
+         template class instance belongs. */
+    } else {
+      inst_placeholder_needed = TRUE;
+    }  /* if */
+  }  /* if */
   if (inst_placeholder != NULL) {
     /* A placeholder was created for the partial instantiation. */
     inst_placeholder_parent =
@@ -3987,8 +3995,7 @@ rather than determined directly.
     }  /* if */
     type_ptr->next = NULL;
     if (pointers_block != NULL) pointers_block->last_type = type_ptr;
-    if (!type_ptr->source_corresp.is_class_member &&
-        is_immediate_class_type(type_ptr) &&
+    if (is_immediate_class_type(type_ptr) &&
         is_template_class_type(type_ptr)) {
       /* A class instantiation; if it appears inside a class definition,
          a placeholder typeref must often be added to the types list for the
