@@ -64,7 +64,7 @@ predicates.
 #define is_integral_or_enum(tp) (type_kind_is_integer(tp))
 
 /* The bool type is an integral type that is tagged as bool.  It only
-   exists when bool_is_keyword is TRUE. */
+   exists when bool_is_keyword is TRUE, or in C99 mode. */
 #define is_bool(tp) \
   (type_kind_is_integer(tp) && (tp)->variant.integer.bool_type)
 
