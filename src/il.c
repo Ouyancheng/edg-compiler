@@ -2084,14 +2084,6 @@ put it on a list of constants).
      "master" copy by going up the source correspondence link and back
      down again. */
   if ((assoc_symbol = ((a_symbol_ptr)cp->source_corresp.assoc_info)) != NULL) {
-#if CHECKING
-    if (cp->implicit_cast) {
-      /* Someone did an implicit cast on the constant without clearing the
-         source association. */
-      internal_error(
-           "alloc_shareable_constant: implicitly-cast const has assoc_info");
-    }  /* if */
-#endif /* CHECKING */
     if (assoc_symbol->kind == (a_symbol_kind)sk_constant) {
       /* Constant (enumeration). */
       scp = assoc_symbol->variant.constant;
@@ -2112,6 +2104,14 @@ put it on a list of constants).
       }  /* if */
 #endif /* CHECKING */
     }  /* if */
+#if CHECKING
+    if (cp->implicit_cast != scp->implicit_cast) {
+      /* Someone did an implicit cast on the constant without clearing the
+         source association. */
+      internal_error(
+           "alloc_shareable_constant: implicitly-cast const has assoc_info");
+    }  /* if */
+#endif /* CHECKING */
   } else {
     /* The constant has no source correspondence. */
     /* If the current IL region is not the file scope region (i.e., it's
