@@ -1974,6 +1974,12 @@ error code.
     case ec_missing_exception_declaration:
       m = "handler requires an exception declaration";
       break;
+    case ec_masked_by_default_handler:
+      m = "handler is masked by previously declared default handler";
+      break;
+    case ec_masked_by_handler:
+      m = "handler is masked by previously declared handler of type %t";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

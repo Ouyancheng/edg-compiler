@@ -571,7 +571,9 @@ typedef enum /*an_error_code*/ {
   ec_template_class_argument_list_context,
   ec_bad_templ_arg_expr_operator,
   ec_missing_handler,
-  ec_missing_exception_declaration
+  ec_missing_exception_declaration,
+  ec_masked_by_default_handler,
+  ec_masked_by_handler
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
