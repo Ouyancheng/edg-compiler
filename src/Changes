@@ -1,5 +1,20 @@
 Version 3.4
 
+12/10/03 __PRETTY_FUNCTION__ in GNU C mode
+
+__PRETTY_FUNCTION__ in GNU C mode is now the same as __FUNCTION__,
+i.e., the result is the simple name of the function.
+
+12/10/03 Concatenation of string and __FUNCTION__
+
+In modes where the __FUNCTION__ keyword is treated as a string literal
+(i.e., GNU C and Microsoft C/C++), the front end now correctly
+concatenates a string literal followed by __FUNCTION__.
+
+  void test2() {
+    char function_string[] = "Function " __FUNCTION__;
+  }
+
 12/10/03 Compilation problem in lower_init.c, MAINTAIN_NEEDED_FLAGS FALSE
 
 Part of lower_init.c did not compile correctly when MAINTAIN_NEEDED_FLAGS

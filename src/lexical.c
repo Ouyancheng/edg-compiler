@@ -7181,8 +7181,7 @@ curr_token is already set in that case.
     do_string_literal_concatenation = FALSE;
     (void)get_token();
     do_string_literal_concatenation = TRUE;
-    if (function_name_case &&
-        token_is_function_name_string_literal(curr_token)) {
+    if (token_is_function_name_string_literal(curr_token)) {
       /* In some modes, function-name keywords like __FUNCTION__ are
          treated as string literals.  The case where these appear
          as the first literal is handled in expression processing;

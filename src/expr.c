@@ -14081,6 +14081,7 @@ If do_concat is TRUE, do concatenation of any subsequent string literals.
     switch (curr_token) {
       case tok_func_name:
       case tok_function_name:
+simple_name:
         /* The simple name of the function. */
         if (has_name(rp)) {
           name_str = rp->source_corresp.name;
@@ -14089,6 +14090,8 @@ If do_concat is TRUE, do concatenation of any subsequent string literals.
         }  /* if */
         break;
       case tok_pretty_function_name:
+        /* In GNU C mode, __PRETTY_FUNCTION__ is the same as __FUNCTION__. */
+        if (gcc_mode) goto simple_name;
         /* The name of the function with parameter and return types. */
         name_str = get_pretty_function_name(rp);
         break;
