@@ -821,9 +821,10 @@ typedef union a_parent_class_or_namespace {
 Entry used to represent a segment of the bit vector of "needed" flags
 for individual instantiations.  A list of these represents the entire bit
 vector.  Each instantiation is assigned a bit number in the vector
-(see the field instantiation_needed_bit_number) and all entities referenced
-from that instantiation will have the associated bit of the bit vector
-set to 1.
+(see the field instantiation_needed_bit_number; actually, it's two bits,
+with the second used for the definition_needed flag for classes) and all
+entities referenced from that instantiation will have the associated bit
+of the bit vector set to 1.
 */
 #define BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY 12
 typedef struct a_per_instantiation_needed_flags_entry

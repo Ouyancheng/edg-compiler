@@ -2368,9 +2368,12 @@ Instantiate the body of the template function associated with tip.
 #if ONE_INSTANTIATION_PER_OBJECT
     if (one_instantiation_per_object) {
       /* When generating one instantiation per object, assign a "bit number"
-         to each external nonclass entity.  Bit number 1 is reserved. */
+         to each external nonclass entity.  Actually, two bits: the second
+         is used for class definition_needed bits.  Bit numbers 1 and 2 are
+         reserved for the needed and definition_needed flags for entities
+         in the compilation that are not instantiations. */
       rout_ptr->instantiation_needed_bit_number =
-                             number_of_external_nonclass_template_entities + 1;
+                         (number_of_external_nonclass_template_entities*2) + 1;
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   }  /* if */
@@ -2514,9 +2517,12 @@ and the class instantiation will detect the runaway case.
 #if ONE_INSTANTIATION_PER_OBJECT
     if (one_instantiation_per_object) {
       /* When generating one instantiation per object, assign a "bit number"
-         to each external nonclass entity.  Bit number 1 is reserved. */
+         to each external nonclass entity.  Actually, two bits: the second
+         is used for class definition_needed bits.  Bit numbers 1 and 2 are
+         reserved for the needed and definition_needed flags for entities
+         in the compilation that are not instantiations. */
       var_ptr->instantiation_needed_bit_number =
-                             number_of_external_nonclass_template_entities + 1;
+                         (number_of_external_nonclass_template_entities*2) + 1;
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if CHECKING
