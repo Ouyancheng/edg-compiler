@@ -120,6 +120,12 @@ should be suppressed.
         has_side_effects = TRUE;
       }  /* if */
       break;
+    case eok_property_field:
+      /* For reference to field declared with the Microsoft extension
+         __declspec(property(...)).  Equivalent to a call, so has side
+         effects. */
+      has_side_effects = TRUE;
+      break;
     default:;
   }  /* switch */
 
@@ -1902,10 +1908,31 @@ The result is placed in *result.
   an_operand            field_operand;
   a_type_qualifier_set  qualifiers;
     
+  field = field_sym->variant.field.ptr;
   if (is_error_operand(operand_1)) {
     make_error_operand(result);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode &&
+             (field->get_property_name != NULL ||
+              field->put_property_name != NULL)) {
+    /* A field declared with __declspec(property(...)) in Microsoft mode.
+       Render as an eok_property_field expression, which will be rewritten
+       later as a function call. */
+    an_expr_node_ptr object_node;
+    an_expr_node_ptr field_node= alloc_expr_node((an_expr_node_kind)enk_field);
+    field_node->type = unknown_type();
+    field_node->variant.field = field;
+    conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
+    object_node = make_node_from_operand(operand_1);
+    object_node->next = field_node;
+    make_expression_operand(make_operator_node(
+                                     (an_expr_operator_kind)eok_property_field,
+                                     unknown_type(),
+                                     object_node),
+                            unknown_type(),
+                            result);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
-    field = field_sym->variant.field.ptr;
     /* Determine the result type. */
     if (cfront_2_1_mode && is_array_type(field->type)) {
       /* cfront 2.1 fouls up the qualifiers on arrays.  Duplicate the
