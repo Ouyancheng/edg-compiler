@@ -2410,6 +2410,7 @@ to FALSE if the entity being declared is not initializable.
       remove_stop_token(tok_lparen);
       remove_stop_token(tok_lbracket);
       *parenthesized_initializer_allowed = FALSE;
+      set_to_error_locator(*locator);
     }  /* if */
   }  /* if */
   if (!(input_flags & DI_OPERATOR_NAME_ALLOWED)) {
