@@ -6565,11 +6565,15 @@ Do IL lowering of the indicated statement and everything under it.
   a_variable_ptr       temp_var;
   a_cleanup_action_ptr cap;
   a_dynamic_init_ptr   dip;
+  a_source_position    saved_error_position, saved_code_pos;
 
   if (statement != NULL) {
-    /* Track the source position for internal errors. */
-    set_position_from_stmt_source_position(error_position,
+    /* Track the source position. */
+    saved_code_pos = code_pos_for_lowering;
+    set_position_from_stmt_source_position(code_pos_for_lowering,
                                            statement->position);
+    saved_error_position = error_position;
+    error_position = code_pos_for_lowering;
     if (statement->dependent_statement) {
       /* In cfront compatibility mode, it is possible for a dependent statement
          not to have an associated scope.  However, it is still required that
@@ -6831,6 +6835,8 @@ Do IL lowering of the indicated statement and everything under it.
       }  /* if */
       pop_context();
     }  /* if */
+    error_position = saved_error_position;
+    code_pos_for_lowering = saved_code_pos;
   }  /* if */
 }  /* lower_statement */
 
@@ -7739,6 +7745,7 @@ of the front end.
   num_init_pos_modifiers_allocated        = 0;
 #endif /* DEBUG */
   return_value_pointer_variable = NULL;
+  code_pos_for_lowering = null_source_position;
   /* Static variables in lower_il.c: */
   avail_cleanup_actions = NULL;
   avail_return_memos = NULL;
