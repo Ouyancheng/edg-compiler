@@ -79,7 +79,7 @@ Flags to be set when using the KAI inliner.
 /* Default to generating pcc C on SunOS. */
 #ifndef C_GEN_BE_GENERATES_ANSI_C
 #define C_GEN_BE_GENERATES_ANSI_C 0
-#define GCC_IS_C_GEN_BE_TARGET 0
+#define GCC_IS_GENERATED_CODE_TARGET 0
 #endif /* ifndef C_GEN_BE_GENERATES_ANSI_C */
 /* Implement long double as double. */
 #define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
@@ -148,9 +148,9 @@ Flags to be set when using the KAI inliner.
 /* SunOS version. */
 #ifndef C_GEN_BE_GENERATES_ANSI_C
 #define C_GEN_BE_GENERATES_ANSI_C 0
-#ifndef GCC_IS_C_GEN_BE_TARGET
-#define GCC_IS_C_GEN_BE_TARGET 0
-#endif /* ifndef GCC_IS_C_GEN_BE_TARGET */
+#ifndef GCC_IS_GENERATED_CODE_TARGET
+#define GCC_IS_GENERATED_CODE_TARGET 0
+#endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 #endif /* ifndef C_GEN_BE_GENERATES_ANSI_C */
 #endif /* ifdef SOLARIS */
 

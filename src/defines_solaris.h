@@ -103,7 +103,7 @@ in the C-generating back end.
 #ifdef __SUNPRO_C
 #else /* ifndef __SUNPRO_C */
 #ifdef __GNUC__
-#define GCC_IS_C_GEN_BE_TARGET 1
+#define GCC_IS_GENERATED_CODE_TARGET 1
 #else /* ifndef __GNUC__ */
 #define USE_INIT_SECTION_IN_GENERATED_C 1
 #endif /* ifdef __GNUC__ */
