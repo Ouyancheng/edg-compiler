@@ -3119,8 +3119,8 @@ include is suppressed for some reason.
 }  /* check_for_generation_of_pch_on_return_to_primary_file */
 
 
-static void display_included_file_name(unsigned long	depth,
-				       char		*file_name)
+static void display_included_file_name(int	depth,
+				       char	*file_name)
 /*
 When using the option to list the included files, this routine is called
 to actually output the include file name.  depth is the stack depth
@@ -3129,7 +3129,7 @@ to be displayed.
 */
 {
   /* Indent the output by the input stack depth. */
-  unsigned long indent = depth - 1;
+  unsigned long indent = (unsigned long)(depth - 1);
   for (; indent > 0; indent--) fputc(' ', f_pp_output);
   fprintf(f_pp_output, "%s\n", file_name);
 }  /* display_included_file_name */
