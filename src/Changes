@@ -282,9 +282,9 @@ template <class T> A<T>::operator int(){}
 } } } } } } } } } } } } } } }
 
 
-1/29/02  Repeated friend class declarations (IL Change)
+1/29/02  Repeated friend declarations (IL Change)
 
-The front end used to avoid duplicates in the representation of friend class
+The front end used to avoid duplicates in the representation of friend
 declarations.  For example:
 
   class X {
@@ -294,7 +294,7 @@ declarations.  For example:
 
 For the above example, the IL now records class F twice as a friend of class X
 and class X appears twice on the list of class befriending class F.  A remark
-is still emitted.
+is still emitted.  (Friend function declarations are treated in a similar way.)
 
 1/28/02  Error recovery abort on invalid nested class of class template
 

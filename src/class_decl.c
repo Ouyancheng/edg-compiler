@@ -5067,6 +5067,8 @@ that the routine indicated by rout_ptr is a friend.
 */
 {
   a_class_list_entry_ptr clep;
+  a_class_type_supplement_ptr ctsp;
+  a_routine_list_entry_ptr    rlep;
 
   /* Issue a remark if this is a duplicate friend declaration. */
   for (clep = rout_ptr->befriending_classes; clep != NULL; clep = clep->next) {
@@ -5075,38 +5077,32 @@ that the routine indicated by rout_ptr is a friend.
       break;
     } /* if */
   } /* for */
-  /* Add an entry to the list unless one is already there. */
-  if (clep == NULL) {
-    a_class_type_supplement_ptr ctsp;
-    a_routine_list_entry_ptr    rlep;
-    /* No duplication was detected. */
-    clep = alloc_list_entry_for_class();
-    clep->class_type = class_type;
-    /* Add a friend declaration to the befriending_classes list. */
-    clep->next = rout_ptr->befriending_classes;
-    rout_ptr->befriending_classes = clep;
-    /* Now add the routine to the friends list for the current class. */
-    ctsp = class_type->variant.class_struct_union.extra_info;
-    rlep = alloc_list_entry_for_routine();
-    rlep->routine = rout_ptr;
-    rlep->next = ctsp->friend_routines;
-    ctsp->friend_routines = rlep;
+  /* Add a friend declaration to the befriending_classes list. */
+  clep = alloc_list_entry_for_class();
+  clep->class_type = class_type;
+  clep->next = rout_ptr->befriending_classes;
+  rout_ptr->befriending_classes = clep;
+  /* Now add the routine to the friends list for the current class. */
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  rlep = alloc_list_entry_for_routine();
+  rlep->routine = rout_ptr;
+  rlep->next = ctsp->friend_routines;
+  ctsp->friend_routines = rlep;
 #if DEBUG
-    if (db_trace("friendship", rout_ptr, iek_routine) ||
-        db_trace("friendship", class_type, iek_type)) {
+  if (db_trace("friendship", rout_ptr, iek_routine) ||
+      db_trace("friendship", class_type, iek_type)) {
+    db_name_full(&rout_ptr->source_corresp, iek_routine);
+    fprintf(f_debug, " designated a friend of ");
+    db_abbreviated_type(class_type);
+    fprintf(f_debug, "\n");
+    if (db_flag_is_set("friendship")) {
+      fprintf(f_debug, "befriending_classes list of ");
       db_name_full(&rout_ptr->source_corresp, iek_routine);
-      fprintf(f_debug, " designated a friend of ");
-      db_abbreviated_type(class_type);
-      fprintf(f_debug, "\n");
-      if (db_flag_is_set("friendship")) {
-        fprintf(f_debug, "befriending_classes list of ");
-        db_name_full(&rout_ptr->source_corresp, iek_routine);
-        fprintf(f_debug, ":\n");
-        db_class_list(rout_ptr->befriending_classes);
-      }  /* if */
+      fprintf(f_debug, ":\n");
+      db_class_list(rout_ptr->befriending_classes);
     }  /* if */
+  }  /* if */
 #endif /* DEBUG */
-  } /* if */
 }  /* update_friend_function_info */
 
 
