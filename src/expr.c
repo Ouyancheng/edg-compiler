@@ -6823,6 +6823,42 @@ See section 3.3.16 of the standard.
 }  /* scan_compound_assignment_operator */
 
 
+static void build_accessible_base_class_list_for_throw(
+                                                   an_expr_node_ptr throw_node)
+/*
+Add the list of accessible base classes to the thrown node throw_node
+(if necessary).
+*/
+{
+  a_type_ptr                   type = throw_node->variant.throw_info->type;
+  a_base_class_ptr             bcp;
+  an_accessible_base_class_ptr abcp, last_abcp = NULL;
+
+  /* Remove a reference or pointer type to get to any underlying class
+     type. */
+  if (is_reference_type(type)) type = type_pointed_to(type);
+  if (is_pointer_type(type)) type = type_pointed_to(type);
+  type = f_skip_typerefs(type);
+  if (is_immediate_class_type(type)) {
+    /* Go through the base classes and find out which ones are accessible. */
+    for (bcp = type->variant.class_struct_union.extra_info->base_classes;
+         bcp != NULL;
+         bcp = bcp->next) {
+      if (is_accessible_base_class(bcp)) {
+        /* An accessible base class -- add it to the list. */
+        abcp = alloc_accessible_base_class(bcp);
+        if (last_abcp == NULL) {
+          throw_node->variant.throw_info->accessible_base_classes = abcp;
+        } else {
+          last_abcp->next = abcp;
+        }  /* if */
+        last_abcp = abcp;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* build_accessible_base_class_list_for_throw */
+
+
 static void scan_throw_operator(an_operand *result)
 /*
 Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
@@ -6909,6 +6945,8 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
       }  /* if */
       throw_node->variant.throw_info->dynamic_init = dip;
       throw_node->variant.throw_info->type = throw_type;
+      /* Generate a list of accessible base classes. */
+      build_accessible_base_class_list_for_throw(throw_node);
       /* Mark the type as having been used in an exception.  (Also, if it
          "contains" any classes, they are marked as requiring external
          linkage.) */
