@@ -2405,6 +2405,58 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
 }  /* dump_type_decl */
 
 
+static void mangle_promoted_name(a_source_correspondence *scp,
+                                 a_routine_ptr           rout,
+                                 a_scope_number          scope_number)
+/*
+A local entity of the indicated routine, whose source correspondence
+entry is scp, is being promoted out of the routine and scope (number)
+indicated.  Adjust its name so it will be unique at the file scope.
+The encoding here should match mangle_promoted_entity_name.
+*/
+{
+  sizeof_t mangled_name_length, alloc_length, name_length, routine_name_length;
+  char     *mangled_name, *store_at;
+  char     scope_num_buffer[50];
+
+  /* Leave the name alone if the type is unnamed or if the name has
+     already been mangled (e.g., for a local nested class). */
+  if (scp->name != NULL && !scp->name_has_been_mangled) {
+    /* The encoding is the original name, two underscores, the
+       mangled name of the routine, and "__Lnn" where "nn" is the
+       scope number. */
+    name_length = strlen(scp->name);
+    if (has_name(rout)) {
+      routine_name_length = strlen(rout->source_corresp.name);
+    } else {
+      routine_name_length = 0;
+    }  /* if */
+    (void)sprintf(scope_num_buffer, "__L%lu", (unsigned long)scope_number);
+    mangled_name_length = name_length + 2 + routine_name_length +
+                          strlen(scope_num_buffer);
+    /* Allocate space for the mangled name and build it. */
+    alloc_length = mangled_name_length + 1;
+    /* This space is not counted under any debug output.  There shouldn't
+       be too much of it. */
+    mangled_name = alloc_il(alloc_length);
+    (void)strcpy(mangled_name, scp->name);
+    store_at = mangled_name + name_length;
+    *store_at++ = '_';
+    *store_at++ = '_';
+    if (routine_name_length > 0) {
+      (void)strcpy(store_at, rout->source_corresp.name);
+      store_at += routine_name_length;
+    }  /* if */
+    (void)strcpy(store_at, scope_num_buffer);
+    /* Put the mangled name into the source correspondence entry. */
+    /* The old name is just thrown away. */
+    scp->name = mangled_name;
+    scp->name_has_been_mangled = TRUE;
+    scp->is_local_to_function = FALSE;
+  }  /* if */
+}  /* mangle_promoted_name */
+
+
 static void adjust_promoted_local_type_name(a_type_ptr     type,
                                             a_routine_ptr  rout,
                                             a_scope_number scope_number)
@@ -2414,45 +2466,19 @@ and is being promoted out of the routine and scope (number) indicated.
 Adjust its name so it will be unique at the file scope.
 */
 {
-  sizeof_t mangled_name_length, alloc_length, name_length, routine_name_length;
-  char     *mangled_name, *store_at;
-  char     scope_num_buffer[50];
-
-  /* Leave the name alone if the type is unnamed or if the name has
-     already been mangled (e.g., for a local nested class). */
-  if (has_name(type) && !type->source_corresp.name_has_been_mangled) {
-    /* The encoding is the original type name, two underscores, the
-       mangled name of the routine, and "__Lnn" where "nn" is the
-       scope number. */
-    /* The encoding here should match mangle_promoted_entity_name. */
-    name_length = strlen(type->source_corresp.name);
-    if (has_name(rout)) {
-      routine_name_length = strlen(rout->source_corresp.name);
-    } else {
-      routine_name_length = 0;
-    }  /* if */
-    (void)sprintf(scope_num_buffer, "__L%lu", (unsigned long)scope_number);
-    mangled_name_length = name_length + 2 + routine_name_length +
-                          strlen(scope_num_buffer);
-    /* Allocate space for the mangled name and build it.  The old name is
-       just thrown away. */
-    alloc_length = mangled_name_length + 1;
-    /* This space is not counted under any debug output.  There shouldn't
-       be too much of it. */
-    mangled_name = alloc_il(alloc_length);
-    (void)strcpy(mangled_name, type->source_corresp.name);
-    store_at = mangled_name + name_length;
-    *store_at++ = '_';
-    *store_at++ = '_';
-    if (routine_name_length > 0) {
-      (void)strcpy(store_at, rout->source_corresp.name);
-      store_at += routine_name_length;
-    }  /* if */
-    (void)strcpy(store_at, scope_num_buffer);
-    type->source_corresp.name = mangled_name;
-    type->source_corresp.name_has_been_mangled = TRUE;
-    type->source_corresp.is_local_to_function = FALSE;
+  mangle_promoted_name(&type->source_corresp, rout, scope_number);
+#if C_GEN_BE_GENERATES_ANSI_C
+  /* When generating ANSI C, also mangle the names of enumerator constants
+     of an enumeration type. */
+  if (type->kind == (a_type_kind)tk_enum) {
+    a_constant_ptr enum_con;
+    for (enum_con = type->variant.integer.enum_info.constant_list;
+         enum_con != NULL;
+         enum_con = enum_con->next) {
+      mangle_promoted_name(&enum_con->source_corresp, rout, scope_number);
+    }  /* for */
   }  /* if */
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
 }  /* adjust_promoted_local_type_name */
 
 
