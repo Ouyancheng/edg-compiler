@@ -1715,23 +1715,28 @@ initialized.  These are addressed in the course of the processing.
                            ec_nested_class_anachronism,
                            locator_for_curr_id.specific_symbol);
           }  /* if */
-          init_type = skip_typerefs(type_symbol_type(member_or_base_sym));
-          /* Locate it in the base classes list for the current class.  Note
-             that only direct and virtual base classes can be specified. */
-          bcp = class_type->
+          init_type = type_symbol_type(member_or_base_sym);
+          if (is_qualified_type(init_type)) {
+            bcp = NULL;
+          } else {
+            init_type = skip_typerefs(init_type);
+            /* Locate it in the base classes list for the current class.  Note
+               that only direct and virtual base classes can be specified. */
+            bcp = class_type->
                     variant.class_struct_union.extra_info->base_classes;
-          for (; bcp != NULL; bcp = bcp->next) {
-            if (bcp->type == init_type) {
-              if (bcp->direct || bcp->is_virtual) {
-                break;
-              } else {
-                /* A base class of the required type was found, but it is
-                   neither direct nor virtual.  Unless another is found with
-                   the same name, this will be an error. */
-                indirect_nonvirtual_base_class_found = TRUE;
+            for (; bcp != NULL; bcp = bcp->next) {
+              if (bcp->type == init_type) {
+                if (bcp->direct || bcp->is_virtual) {
+                  break;
+                } else {
+                  /* A base class of the required type was found, but it is
+                     neither direct nor virtual.  Unless another is found with
+                     the same name, this will be an error. */
+                  indirect_nonvirtual_base_class_found = TRUE;
+                }  /* if */
               }  /* if */
-            }  /* if */
-          }  /* for */
+            }  /* for */
+          }  /* if */
           if (bcp == NULL) {
             /* No match found. */
             if (indirect_nonvirtual_base_class_found) {
@@ -1818,7 +1823,26 @@ scan_arg_for_scan_initialization:
             }  /* if */
             if (new_cip != NULL) new_cip->initializer = dip;
             remove_stop_token(tok_rparen);
-            (void)required_token(tok_rparen, ec_exp_rparen);
+            if (!required_token(tok_rparen, ec_exp_rparen)) {
+              /* Special code to avoid poor error recovery in cases where
+                 a comma-list appears between the parens in what is taken
+                 to be the initializer of a simple object -- e.g.,
+                     A::A(int i, int j) : x(i,j) { }
+                 If there is no constructor for x then it is interpreted as
+                 a simple object, only "i" is scanned, and an error is issued
+                 on the expected ")".  After that we want to bypass the rest
+                 of the comma-list before resuming scanning. */
+              if (curr_token == tok_comma) {
+                a_stop_token_array  save_stop_token_array;
+                /* Save the current stop token state, and reinitialize it. */
+                copy_stop_tokens(stop_token_array, save_stop_token_array);
+                stop_token_array[(int)tok_comma] = 0;
+                /* Flush the tokens till a stop-token is reached. */
+                flush_tokens();
+                /* Restore the original stop token state. */
+                copy_stop_tokens(save_stop_token_array, stop_token_array);
+              }  /* if */
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
