@@ -1,5 +1,14 @@
 Version 2.32
 
+1/24/96   Do not recognize stringize operator in string literals in pcc mode
+
+In version 2.31 the front end was changed to permit ANSI preprocessing
+operators to be used in pcc preprocessing mode.  Because pcc
+preprocessing mode expands macros within string literals, a "#" that
+appeared in a string literal was now being interpreted as the
+stringize operator.  This has now been changed to disable recognition
+of the stringize operator within string literals.
+
 1/24/96   Partial lowering of exception handling, when exceptions are disabled
 
 When the front end is configured to do partial lowering of exception

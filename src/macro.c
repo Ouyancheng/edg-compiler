@@ -2748,9 +2748,13 @@ Scan and process a #define directive.
           }  /* if */
           any_white_space_skipped = FALSE;
         }  /* if */
-        if (curr_token == tok_sharp && !object_like) {
+        if (curr_token == tok_sharp && !object_like &&
+            end_of_cpp_string == NULL) {
           /* "#" -- Must be followed by a parameter name.  Note that this is
-             ignored in an object-like macro.  See standard, 3.8.3.2. */
+             ignored in an object-like macro.  See standard, 3.8.3.2.
+             "#" is recognized in pcc preprocessing mode, but not inside
+             of string literals (the test of "end_of_cpp_string" makes sure
+             that we don't do this substitution in string literals). */
           (void)mdefn_get_token(param_list, &param_num,
                                 &any_white_space_skipped);
           if (param_num == 0) {
