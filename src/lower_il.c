@@ -7755,14 +7755,17 @@ to the original statement in its new location.
 a_context_ptr context_for_lifetime(an_object_lifetime_ptr lifetime)
 /*
 Find and return a pointer to the context associated with the given object
-lifetime.
+lifetime.  The lifetime must be present on the current context stack.
 */
 {
   a_context_ptr context;
 
   for (context = curr_context;
-       !context->new_lifetime || context->lifetime != lifetime;
+       context != NULL &&
+       (!context->new_lifetime || context->lifetime != lifetime);
        context = context->parent) {}
+  check_assertion_str(context != NULL,
+                      "context_for_lifetime: lifetime not found");
   return context;
 }  /* context_for_lifetime */
 
