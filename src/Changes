@@ -1,5 +1,10 @@
 Version 3.4
 
+11/19/03 Memory allocation problem with multiple translation units
+
+A problem in the way in which memory was allocated when using multiple
+translation units could result in memory corruption.  Now fixed.
+
 11/19/03 C++-generating back end: Invalid specializations in class scope
 
 When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE the
