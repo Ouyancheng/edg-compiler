@@ -8716,6 +8716,8 @@ Process a handler declaration:
              arg. */
           ptp = ptp->next;
           dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
+          dip->variant.constructor.
+                             is_copy_constructor_with_implied_source = TRUE;
         } else {
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_bitwise_copy);
         }  /* if */
