@@ -1381,13 +1381,14 @@ If it is possible to determine the specific function being called, return
 a pointer to its routine entry.  Otherwise, return NULL.
 */
 {
-  a_routine_ptr    routine = NULL;
-  an_expr_node_ptr node;
+  a_routine_ptr  routine = NULL;
+  a_constant_ptr con;
 
-  if (is_expression_operand(operand)) {
-    node = operand->variant.expression;
-    if (is_routine_address_node(node)) {
-      routine = node->variant.routine;
+  if (is_constant_operand(operand)) {
+    con = &operand->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_address &&
+        con->variant.address.kind == (an_address_base_kind)abk_routine) {
+      routine = con->variant.address.variant.routine;
     }  /* if */
   }  /* if */
   return routine;
