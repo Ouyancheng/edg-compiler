@@ -668,7 +668,7 @@ Transform the given complex cast expression into a function call
       /* Before creating a complex value, be sure the imaginary value is cast
          to the needed precision. */
       src = add_cast_if_necessary(src,
-                                  float_type(dst_type->variant.float_kind));
+                                 imaginary_type(dst_type->variant.float_kind));
       cast_call = make_prototyped_runtime_call(
                                          routine_name, routine,
                                          dst_type, src->type, (a_type_ptr)NULL,
