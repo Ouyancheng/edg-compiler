@@ -205,7 +205,11 @@ typedef struct a_destructible_entity_descr {
 			   (reflected by the dynamic init
 			   next_in_destruction_list pointer).  Also different
 			   when region table entries are cloned because of
-			   long lifetime temporaries. */
+			   long lifetime temporaries.  Also, this is not
+			   always the same as the value in the "next"
+			   field in the constant pointed to by
+			   region_table_entry, when unordered entries are
+			   involved. */
 			   
 } a_destructible_entity_descr;
 
