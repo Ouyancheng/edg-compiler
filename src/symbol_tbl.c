@@ -5271,7 +5271,7 @@ the sk_overloaded_function symbol containing the locator symbol, or
 a projection symbol pointing to that sk_overloaded_function symbol.
 */
 {
-  /* This routine looks like f_check_ambiguity_verify_access. */
+  /* This routine looks like f_check_ambiguity_and_verify_access. */
   /* Issue an error if the symbol is ambiguous.  Symbols can be ambiguous
      either as a result of using directives or as a result of inheritance.
      Ambiguity checking must precede access control (ARM, 10.1.1). */
@@ -5279,6 +5279,9 @@ a projection symbol pointing to that sk_overloaded_function symbol.
     pos_sy_error(ec_ambiguous_name, &locator->source_position,
                  overloaded_symbol);
     set_to_error_locator(*locator);
+  } else if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+    /* Suppress access checking during prototype instantiations.  Access
+       checking cannot be done for a template, only for instances. */
   } else if (!overloaded_symbol->is_class_member) {
     /* Non-class-members are always accessible. */
   } else {
