@@ -1,7 +1,6 @@
 #!/bin/sh
 # Run the EDG C++ front end into the system cc to compile C++.
 # Interface and command-line options are similar to CC.
-# CPFE may be set to the executable to use for the C++ front end.
 #
 # Predefined preprocessing variables.
 #
