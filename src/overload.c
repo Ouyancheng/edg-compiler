@@ -10948,7 +10948,8 @@ used only in C++ mode.
         routine_type = skip_typerefs(routine->type);      
         rtsp = routine_type->variant.routine.extra_info;
         ptp = rtsp->param_type_list;
-        if (!deduce_one_parameter(ptp->type, (an_operand *)NULL, arg_type,
+        if (ptp == NULL /* Error recovery */ ||
+            !deduce_one_parameter(ptp->type, (an_operand *)NULL, arg_type,
                                   sym, &template_arg_list)) {
           /* Deduction failed. */
           goto reject_function;
