@@ -679,6 +679,8 @@ ec_pch_header_files_have_changed;;"header files used to generate precompiled hea
 ec_pch_cmd_line_option_mismatch;;"the command line options do not match those used when precompiled header file %sq was created"
 ec_pch_file_prefix_mismatch;;"the initial sequence of preprocessing directives is not compatible with those of precompiled header file %sq"
 ec_unable_to_get_mapped_memory;;"unable to obtain mapped memory"
+ec_using_pch;;"using precompiled header file %sq"
+ec_creating_pch;;"creating precompiled header file %sq"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

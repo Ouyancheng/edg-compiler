@@ -932,7 +932,7 @@ in exactly the same manner as that in which they were created.
 {
   a_mem_block_header_ptr	mbhp = mem_region_table[number];
 #if DEBUG
-  if (debug_level >= 0) {
+  if (debug_level >= 4) {
     fprintf(f_debug, "Writing memory region %0d\n", number);
   }  /* if */
 #endif /* DEBUG */
@@ -943,7 +943,7 @@ in exactly the same manner as that in which they were created.
     pch_write_value(mbhp);
     fwrite_with_check(mbhp, size, f_pch_output);
 #if DEBUG
-    if (debug_level >= 0) {
+    if (debug_level >= 4) {
       fprintf(f_debug, "Writing %lu bytes from %p\n", size,
               mbhp);
     }  /* if */
@@ -961,7 +961,7 @@ file.  See write_a_memory_region for more information.
 {
   a_mem_block_header_ptr	mbhp = mem_region_table[number];
 #if DEBUG
-  if (debug_level >= 0) {
+  if (debug_level >= 4) {
     fprintf(f_debug, "Reading memory region %0d\n", number);
   }  /* if */
 #endif /* DEBUG */
@@ -970,7 +970,7 @@ file.  See write_a_memory_region for more information.
     pch_read_value(size);
     pch_read_value(mbhp);
 #if DEBUG
-    if (debug_level >= 0) {
+    if (debug_level >= 4) {
       fprintf(f_debug, "Reading %lu bytes into %p\n", size,
               mbhp);
     }  /* if */
@@ -1066,6 +1066,7 @@ current point.
 */
 {
   open_pch_output_file();
+  pos_st_warning(ec_creating_pch, &pos_curr_token, pch_file_name);
   /* Write the string that identifies this file as a precompiled header
      file. */
   fwrite_with_check(pch_id_string, pch_id_string_length, f_pch_output);
@@ -1379,7 +1380,7 @@ directory.  Return TRUE if an applicable PCH was found.
     is_applicable = last_matching_event != NULL;
     if (is_applicable) result = TRUE;
 #if DEBUG
-    if (debug_level >= 1) {
+    if (debug_level >= 3) {
       fprintf(f_debug, "PCH file %s, applicable: %s",
               file_name, is_applicable ? "TRUE" : "FALSE");
       if (is_applicable) {
@@ -1388,7 +1389,7 @@ directory.  Return TRUE if an applicable PCH was found.
                 last_matching_event->position.column);
       } else {
         fprintf(f_debug, "\n");
-        if (debug_level >= 2) {
+        if (db_active) {
           pos_st_warning(mismatch_reason, &null_source_position, file_name);
         }  /* if */
       }  /* if */
@@ -1465,6 +1466,8 @@ may be used.
     }  /* if */
   }  /* if */
   if (can_use_pch) {
+    pos_st_warning(ec_using_pch, &null_source_position,
+                   pch_input_file_name);
     using_a_pch_file = TRUE;
     read_mem_alloc_history();
     read_saved_variables();
