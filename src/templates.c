@@ -10515,20 +10515,22 @@ depends on a template parameter type, return TRUE in *template_dependent
 }  /* scan_a_template_parameter_declaration */
 
 
-static a_symbol_kind determine_template_param_kind(void)
+static
+a_symbol_kind determine_template_param_kind(a_token_cache_ptr param_cache)
 /*
 Determine the kind of template parameter that is being scanned.
 Return the symbol kind for the parameter symbol to be created for
-this parameter.
+this parameter.  param_cache is a token cache containing the template
+parameter declaration.
 */
 {
   a_symbol_kind	result;
-  a_token_kind	next_tok;
-  a_token_kind	second_token;
-  a_token_kind	token_after_id;
+  a_token_kind	first_token;
   a_boolean	is_end_of_param;
-  a_boolean	can_be_type_param = FALSE;
 
+  /* Rescan the tokens from the parameter cache to determine the
+     parameter kind. */
+  rescan_reusable_cache(param_cache);
   /* Determine whether this is a "type-argument" (a parameter that
      represents a type) or a "parameter-declaration" (a parameter that
      represents a constant).  A type argument may be specified as "class T"
@@ -10539,22 +10541,28 @@ this parameter.
      optional simple (i.e., nonqualified) identifier.  A template template
      parameter begins with they keyword "template".  All other cases are
      considered to be nontype parameters. */
-  next_tok = next_two_tokens(tok_identifier, &second_token);
-  token_after_id = next_tok == tok_identifier ? second_token : next_tok;
-  is_end_of_param = token_after_id == tok_comma ||
-                    token_after_id == tok_gt ||
-                    token_after_id == tok_assign;
-  if (is_end_of_param) can_be_type_param = TRUE;
+  first_token = curr_token;
+  /* Bypass the initial token of the declaration. */
+  if (curr_token != tok_end_of_source) (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* The Microsoft compiler accepts and ignores a __declspec modifier
-     on a template type parameter. */
-  if (next_tok == tok_declspec) can_be_type_param = TRUE;
+  if (curr_token == tok_declspec) prescan_decl_modifiers();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if ((curr_token == tok_class || curr_token == tok_typename) &&
-      can_be_type_param) {
+  /* Bypass the identifier, if present. */
+  if (curr_token == tok_identifier) (void)get_token();
+  is_end_of_param = curr_token == tok_comma ||
+                    curr_token == tok_gt ||
+                    curr_token == tok_assign ||
+                    curr_token == tok_end_of_source;
+  /* Flush and remaining tokens from the cache. */
+  while (curr_token != tok_end_of_source) (void)get_token();
+  /* Skip past the tok_end_of_source. */
+  (void)get_token();
+  /* Classify the template parameter using the information gathered above. */
+  if ((first_token == tok_class || first_token == tok_typename) &&
+      is_end_of_param) {
     /* A type parameter. */
     result = (a_symbol_kind)sk_type;
-  } else if (curr_token == tok_template) {
+  } else if (first_token == tok_template) {
     /* A template template parameter. */
     result = (a_symbol_kind)sk_class_template;
   } else {
@@ -11008,7 +11016,7 @@ this is the template parameter list of a template template parameter.
     prescan_template_param_decl(&param_cache, decl_state);
     add_stop_token(tok_comma);
     /* Determine the kind of template parameter to be scanned. */
-    param_kind = determine_template_param_kind();
+    param_kind = determine_template_param_kind(&param_cache);
     if (param_kind == (a_symbol_kind)sk_type) {
       /* A type template parameter. */
       template_param = scan_type_template_param(decl_state,
