@@ -7920,26 +7920,6 @@ specification allow a variable-sized array as the top type.
           dip->variant.constructor.ptr = ctor_routine;
           dip->variant.constructor.args = init_arg_expr_list;
           dip->variant.constructor.value_initialization = FALSE;
-          if (array_new) {
-            /* The entity is an array whose elements have a class type that
-               has a default constructor.  Use a dik_nonconstant_aggregate
-               initialization. */
-            /* If exceptions are enabled, put in a destructor.  It's needed
-               to destroy elements if a throw is done part-way through the
-               initialization of the array. */
-            if (exceptions_enabled) {
-              dip->destructor = expr_select_destructor(
-                                          base_new_type, base_new_type,
-                                          &type_position,
-                                          /*honor_virtual=*/FALSE);
-              if (dip->destructor != NULL) {
-                dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-              }  /* if */
-            }  /* if */
-            dip = add_array_nonconstant_aggregate_init(dip, new_type,
-                                                       base_new_type,
-                                                    effective_num_of_elements);
-          }  /* if */
         }  /* if */
       } else if (reference_to_trivial_default_constructor(base_new_type,
                                                           &type_position)) {
@@ -8005,8 +7985,6 @@ specification allow a variable-sized array as the top type.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      /* In the array case (an error), throw away the initialization. */
-      if (array_new) dip = NULL;
       needs_initialization = (dip != NULL);
     } else if (is_template_dependent_context() &&
                is_template_dependent_type(new_type)) {
@@ -8095,6 +8073,26 @@ specification allow a variable-sized array as the top type.
         /* Expression as initial value. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
         dip->variant.expression = init_val_node;
+      }  /* if */
+      if (array_new) {
+        /* The entity is an array whose elements have a class type that
+           has a default constructor.  Use a dik_nonconstant_aggregate
+           initialization. */
+        /* If exceptions are enabled, put in a destructor.  It's needed
+           to destroy elements if a throw is done part-way through the
+           initialization of the array. */
+        if (exceptions_enabled) {
+          dip->destructor = expr_select_destructor(base_new_type,
+                                                   base_new_type,
+                                                   &type_position,
+                                                   /*honor_virtual=*/FALSE);
+          if (dip->destructor != NULL) {
+            dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+          }  /* if */
+        }  /* if */
+        dip = add_array_nonconstant_aggregate_init(dip, new_type,
+                                                   base_new_type,
+                                                   effective_num_of_elements);
       }  /* if */
       ndsp->dynamic_init = dip;
       /* Remember the dynamic init entry, if any, used to free storage
