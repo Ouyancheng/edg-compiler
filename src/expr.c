@@ -939,19 +939,27 @@ function.
 }  /* is_gnu_builtin_function */
 
 
-static a_boolean is_foldable_gnu_builtin_function_operand(an_operand  *op)
+static a_boolean is_foldable_gnu_builtin_function_operand(
+                                                      an_operand  *op,
+                                                      a_boolean   *pseudo_call)
 /*
 Return TRUE if and only if the given operand corresponds to a GNU built-in
 function and calls to that function might be valid constant-expressions.
+*pseudo_call is set to TRUE if the arguments to the built-in function call
+are not treated like standard call arguments (e.g., if they behave like
+sizeof arguments); otherwise, *pseudo_call is set to FALSE.
 */
 {
   a_boolean  result = FALSE;
   a_routine_ptr  rp = routine_from_function_operand(op);
 
+  *pseudo_call = FALSE;
   if (rp != NULL && is_gnu_builtin_function(rp)) {
     switch (rp->variant.builtin_function_kind) {
       case bfk_constant_p:
       case bfk_classify_type:
+        *pseudo_call = TRUE;
+        /*FALLTHROUGH*/
       case bfk_huge_valf:
       case bfk_huge_val:
       case bfk_huge_vall:
@@ -974,7 +982,8 @@ function and calls to that function might be valid constant-expressions.
 static a_type_class_kind gnu_type_class_for_type(a_type_ptr  type)
 /*
 Return the GNU type class associated with the given type.  (This is used
-to implement the GNU function __builtin_classify_type.)
+to implement the GNU function __builtin_classify_type.)  Different versions
+of gcc and g++ return slightly different values for some expression types.
 */
 {
   a_type_class_kind  tck;
@@ -985,12 +994,14 @@ to implement the GNU function __builtin_classify_type.)
       tck = (a_type_class_kind)tck_void;
       break;
     case tk_integer:
-      /* Although there is a type class for enumeration types, GCC
-         does not seem to use it.  It returns tck_integer instead. */
-      if (is_character_type(type)) {
-        tck = (a_type_class_kind)tck_char;
-      } else if (is_bool_type(type)) {
+      if (gpp_mode && gnu_version >= 30400 && is_bool_type(type)) {
         tck = (a_type_class_kind)tck_bool;
+      } else if (gpp_mode && gnu_version >= 30400 &&
+                 is_immediate_enum_type(type)) {
+        /* Although there has always been a type class for enum types in GNU
+           C/C++, only g++ 3.4 seems to use it so far.  Other GNU compilers
+           return the integer type class instead. */
+        tck = (a_type_class_kind)tck_enum;
       } else {
         tck = (a_type_class_kind)tck_integer;
       }  /* if */
@@ -999,12 +1010,26 @@ to implement the GNU function __builtin_classify_type.)
       if (is_pointer_type(type)) {
         tck = (a_type_class_kind)tck_pointer;
       } else {
+        /* An expression never has a reference type. */
         tck = (a_type_class_kind)tck_reference;
+        unexpected_condition();
       }  /* if */
       break;
     case tk_ptr_to_member:
-      /* Pointer-to-member types are considered pointer types. */
-      tck = (a_type_class_kind)tck_pointer;
+      /* Pointer-to-member types are considered pointer types in earlier
+         g++ versions. */
+      if (gnu_version < 30400) {
+        tck = (a_type_class_kind)tck_pointer;
+      } else {
+        a_type_ptr  member_type = pm_member_type(type);
+        if (!is_function_type(member_type)) {
+          /* A pointer to data member. */
+          tck = (a_type_class_kind)tck_offset;
+        } else {
+          /* g++ 3.4 treats a pointer to function member as a struct type. */
+          tck = (a_type_class_kind)tck_struct;
+        }  /* if */
+      }  /* if */
       break;
     case tk_float:
       tck = (a_type_class_kind)tck_float;
@@ -1015,7 +1040,11 @@ to implement the GNU function __builtin_classify_type.)
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_routine:
-      tck = (a_type_class_kind)tck_routine;
+      if (gpp_mode && gnu_version >= 30400) {
+        tck = (a_type_class_kind)tck_routine;
+      } else {
+        tck = (a_type_class_kind)tck_pointer;
+      }  /* if */
       break;
     case tk_struct:
     case tk_class:
@@ -1025,10 +1054,10 @@ to implement the GNU function __builtin_classify_type.)
       tck = (a_type_class_kind)tck_union;
       break;
     case tk_array:
-      if (is_string_type(type)) {
-        tck = (a_type_class_kind)tck_string;
-      } else {
+      if (gpp_mode && gnu_version >= 30400) {
         tck = (a_type_class_kind)tck_array;
+      } else {
+        tck = (a_type_class_kind)tck_pointer;
       }  /* if */
       break;
 #if FIXED_POINT_ALLOWED
@@ -1175,6 +1204,72 @@ given operand by a constant operand if appropriate.
   return folded;
 }  /* fold_call_if_possible */
 
+
+static void scan_gnu_builtin_pseudo_call(an_operand  *operand,
+                                         an_operand  *result_op)
+/*
+Operand represents a built-in function that needs special treatment when
+called (e.g., the arguments cannot be evaluated).  This function parses and
+evaluates the pseudo-call it introduces.  *result_op is set to an operand
+representing the entire pseudo-call.  Currently, only __builtin_constant_p
+and __builtin_classify_type are processed by this function.
+*/
+{
+  an_operand           arg;
+  an_expr_stack_entry  expr_stack_entry;
+  a_routine_ptr        rp = routine_from_function_operand(operand);
+  a_type_ptr           result_type;
+  a_constant           result;
+
+  /* Pick up the "(" and add ")" as a stop token. */
+  check_assertion(curr_token == tok_lparen);
+  (void)get_token();
+  add_matching_stop_token(tok_rparen);
+  /* Prevent the arguments from being evaluated (i.e., treat them like sizeof
+     arguments). */
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack_entry.evaluated = FALSE;
+  expr_stack_entry.potentially_evaluated = FALSE;
+  /* Parse the pseudo-call argument.  GNU compiler accept multiple arguments
+     and no argument, but that does not seem a useful thing to emulate.  So
+     we'll issue a syntax error in those cases. */
+  scan_expr(&arg, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  /* Now evaluate it (the result is a constant). */
+  check_assertion(rp != NULL && is_gnu_builtin_function(rp));
+  result_type = return_type_of(rp->type);
+  check_assertion(is_integral_type(result_type));
+  switch (rp->variant.builtin_function_kind) {
+    case bfk_constant_p:
+      set_integer_constant(&result,
+                           (a_host_large_integer)is_constant_operand(&arg),
+                           result_type->variant.integer.int_kind);
+      break;
+    case bfk_classify_type:
+      set_integer_constant(&result,
+                           (a_host_large_integer)
+                                            gnu_type_class_for_type(arg.type),
+                           result_type->variant.integer.int_kind);
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  make_constant_operand(&result, result_op);
+  result_op->position = operand->position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  result_op->end_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  /* We do not record the pseudo-call expression in the constant because the
+     IL currently has no way to distinguish lvalue arguments from rvalue
+     arguments. */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_matching_stop_token(tok_rparen);
+  pop_expr_stack();
+}  /* scan_gnu_builtin_pseudo_call */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void scan_function_call(an_operand *operand,
@@ -1273,8 +1368,20 @@ Syntax:
     }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  call_may_be_folded = gnu_mode && !curr_expr_kind_is(ek_pp) &&
-                       is_foldable_gnu_builtin_function_operand(operand);
+  if (gnu_mode && !curr_expr_kind_is(ek_pp)) {
+    /* Some GNU built-in functions are treated as constant expressions.  Among
+       these folded built-ins, are some whose argument processing is different
+       from that done for function calls.  Such pseudo-calls are fully handled
+       by the call to scan_gnu_builtin_pseudo_call. */
+    a_boolean  pseudo_call;
+    call_may_be_folded = is_foldable_gnu_builtin_function_operand(
+                                                        operand, &pseudo_call);
+    if (pseudo_call) {
+      check_assertion(call_may_be_folded);
+      scan_gnu_builtin_pseudo_call(operand, result);
+      goto done;
+    }  /* if */
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (!call_may_be_folded && curr_expr_kind_is_const()) {
     /* Routine calls that cannot be folded should not appear in constant-
@@ -1747,6 +1854,9 @@ Syntax:
     /* A function call rules out a constant expression. */
     rule_out_expr_kinds(ROEK_CONSTANT, result);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+done:
+#endif /* GNU_EXTENSIONS_ALLOWED */
   db_exit();
 }  /* scan_function_call */
                            

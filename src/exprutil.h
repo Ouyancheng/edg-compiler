@@ -136,17 +136,13 @@ typedef enum a_type_class_kind {
   tck_none = -1,
   tck_void,             /* void */
   tck_integer,          /* short, int, long, long long */
-  tck_char,             /* char */
-  tck_enum,             /* enumeration types (currently unused) */
-                        /*lint -esym(769,a_type_class_kind::tck_enum)*/
+  tck_char,             /* char (currently unused) */
+			/*lint -esym(769,a_type_class_kind::tck_char)*/
+  tck_enum,             /* enumeration types */
   tck_bool,             /* bool */
   tck_pointer,          /* pointers */
   tck_reference,        /* references */
-  tck_offset,           /* Unused in C or C++, but the value must be
-			   here to ensure that the values of
-			   subsequent enumeration constants are
-			   correct. */
-			/*lint -esym(769,a_type_class_kind::tck_offset)*/
+  tck_offset,           /* pointer to data member */
   tck_float,            /* float, double, long double */
   tck_complex,		/* float complex, double complex, long double
 			   complex */
@@ -155,8 +151,9 @@ typedef enum a_type_class_kind {
 			/*lint -esym(769,a_type_class_kind::tck_method)*/
   tck_struct,           /* structs or classes */
   tck_union,            /* unions */
-  tck_array,            /* arrays -- but not strings */
-  tck_string            /* strings */
+  tck_array,            /* arrays */
+  tck_string            /* strings (currently unused) */
+			/*lint -esym(769,a_type_class_kind::tck_string)*/
 /* Unused type classes:
   tck_set
   tck_file
