@@ -380,8 +380,6 @@ typedef enum /* an_identifier_lookup_mode */ {
   ilm_typename,		/* Uses IDL_TYPENAME_LOOKUP to do the lookup. */
   ilm_class,		/* Find only class names. */
   ilm_linkage,		/* Uses IDL_LINKAGE_LOOKUP to do the lookup. */
-  ilm_tag_linkage,	/* Uses IDL_LINKAGE_LOOKUP and IDL_MUST_BE_TAG to do
-                           the lookup. */
   ilm_last
 } an_identifier_lookup_mode;
 
