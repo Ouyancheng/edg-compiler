@@ -589,8 +589,8 @@ with same_src_error; otherwise, use distinct_src_error.
 }  /* report_corresp_error */
 
 
-void f_report_bad_trans_unit_corresp(char                   *entity1,
-                                     a_source_position_ptr  pos2)
+static void f_report_bad_trans_unit_corresp(char                   *entity1,
+                                            a_source_position_ptr  pos2)
 /*
 The given IL node has a source correspondence and an associated symbol.  It
 also has a non-NULL translation unit correspondence, but it points to a node
@@ -602,6 +602,12 @@ diagnostic.
                        ec_entity_differs_in_other_trans_unit,
                        ec_corresp_decl_incompatible);
 }  /* f_report_bad_trans_unit_corresp */
+
+#define report_bad_trans_unit_corresp(entity)                               \
+  f_report_bad_trans_unit_corresp(                                          \
+    (char*)(entity),                                                        \
+    &((a_source_correspondence_ptr)canonical_il_entry_of(entity))           \
+      ->decl_position)
 
 
 static void f_process_bad_trans_unit_corresp(an_il_entry_kind  kind,
@@ -654,7 +660,7 @@ given symbols are identical.
     a_type_ptr  parent1 = sym1->parent.class_type;
     a_type_ptr  parent2 = sym2->parent.class_type;
     check_assertion(parent1 != NULL && parent2 != NULL);
-    result = same_types(parent1, parent2);
+    result = corresponding_types(parent1, parent2);
   } else {
     a_namespace_ptr              parent1 = sym1->parent.namespace_ptr;
     a_namespace_ptr              parent2 = sym2->parent.namespace_ptr;
@@ -681,7 +687,7 @@ given symbols are identical.
            namespaces.  (But not in Microsoft bugs mode.) */
         result = TRUE;
       } else {
-        result = same_namespaces(parent1, parent2);
+        result = corresponding_namespaces(parent1, parent2);
       }  /* if */
     } else {
       result = TRUE;
@@ -696,7 +702,7 @@ static a_boolean known_same_parents(a_symbol_ptr  sym1,
 /*
 Return TRUE if and only if the parent (namespace or class) entities of the
 given symbols have the same canonical entry.  (This differs from 
-"same_parents"in that no attempt is made to establish a canonical entry.)
+"same_parents" in that no attempt is made to establish a canonical entry.)
 */
 {
   a_boolean  result;
@@ -2153,8 +2159,8 @@ type is in fact valid.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           !same_str(sup->uuid_string, corresp_sup->uuid_string) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          !same_fields(sup->anonymous_union_field,
-                       corresp_sup->anonymous_union_field)))) {
+          !corresponding_fields(sup->anonymous_union_field,
+                                corresp_sup->anonymous_union_field)))) {
       match = FALSE;
       report_error = TRUE;
     }  /* if */
@@ -2166,9 +2172,6 @@ done:
     if (report_error) {
       report_bad_trans_unit_corresp(type);
     }  /* if */
-#if 0 /* FIXME */
-    set_no_class_type_correspondence(type);
-#endif /* FIXME */
   }  /* if */
   return match;
 }  /* verify_class_type_correspondence */
@@ -2418,9 +2421,11 @@ have such an attribute: the aliased namespace.
   a_boolean  result = TRUE;
 
   if (nsp->is_namespace_alias) {
+    a_namespace_ptr  unaliased_nsp = skip_namespace_aliases(nsp);
     a_namespace_ptr  other_nsp = (a_namespace_ptr)canonical_il_entry_of(nsp);
-    if (canonical_il_entry_of(skip_namespace_aliases(nsp)) !=
-                   canonical_il_entry_of(skip_namespace_aliases(other_nsp))) {
+    other_nsp = skip_namespace_aliases(other_nsp);
+    if (canonical_il_entry_of(unaliased_nsp) !=
+                                           canonical_il_entry_of(other_nsp)) {
       report_bad_trans_unit_corresp(nsp);
       result = FALSE;
     }  /* if */
@@ -2799,23 +2804,6 @@ members of secondary_class refer to.
 }  /* set_master_instance_for_new_canonical_class */
 
 
-static a_symbol_list_entry_ptr instantiations_list_with_type(a_type_ptr  type)
-/*
-Return the all_instantiations list which contains the symbol for the given
-type.
-*/
-{
-  a_template_symbol_supplement_ptr
-                tssp;
-  a_symbol_ptr  inst = (a_symbol_ptr)type->source_corresp.assoc_info;
-  a_symbol_ptr  templ_sym = template_symbol_for_class_symbol(inst);
-
-  templ_sym = primary_template_if_template_symbol(templ_sym);
-  tssp = template_supplement_for_symbol(templ_sym);
-  return tssp->all_instantiations;
-}  /* instantiations_list_with_type */
-
-
 void establish_class_instantiation_corresp(a_type_ptr  type)
 /*
 Establish correspondences for members of a class template instantiation.
@@ -2847,11 +2835,6 @@ given type.
         /* Work from the noncanonical entry to set the correspondences of
            members. */
         type = canon;
-#if 0 /* FIXME */
-        /* Sometimes type is unvisited at this point.  That used to be the
-           case with the previous correspondence structure too and seems to
-           work fine. */
-#endif /* FIXME */
       }  /* if */
       establish_trans_unit_correspondences_for_class(type);
       if (new_canon) {
@@ -3101,23 +3084,6 @@ entities.
   }  /* if */
 }  /* find_type_correspondence */
 
-#if 0 /* FIXME */
-
-static a_boolean parent_class_is_canonical(a_source_correspondence_ptr  scp)
-/*
-Return TRUE if and only if the given entity is a class member whose parent
-class is at the end of a (possibly singleton) correspondence chain.
-*/
-{
-  a_boolean  result = FALSE;
-
-  if (scp->is_class_member) {
-    result = !has_correspondence(scp->parent.class_type);
-  }  /* if */
-  return result;
-}  /* if */
-
-#endif /*FIXME */
 
 static a_symbol_list_entry_ptr find_class_template_instantiation(
                                        a_template_symbol_supplement_ptr  tssp,
@@ -3329,18 +3295,6 @@ symbol supplement.
   } else if (routine != sym_entry->symbol->variant.routine.ptr) {
     a_routine_ptr  old_ce = (a_routine_ptr)canonical_il_entry_of(
                                       sym_entry->symbol->variant.routine.ptr);
-#if 0 /* FIXME */
-    if (parent_class_is_canonical(&routine->source_corresp)) {
-      /* If a parent is canonical, all its members should be canonical too.
-         Hence, routine should become the canonical entry instead of the
-         entity under sym_entry. */
-      set_trans_unit_corresp(iek_routine, old_ce, routine);
-      set_no_trans_unit_corresp(iek_routine, routine);
-      sym_entry->symbol = (a_symbol_ptr)routine->source_corresp.assoc_info;
-    } else {
-      set_trans_unit_corresp(iek_routine, routine, old_ce);
-    }  /* if */
-#endif /* FIXME */
     if (routine != old_ce) {
       set_trans_unit_corresp(iek_routine, routine, old_ce);
     }  /* if */
@@ -3539,7 +3493,7 @@ when looking up a correspondence: if none is found, return NULL.
                            template_supplement_for_symbol(prim_templ_sym)
                                                           ->il_template_entry;
     a_template_ptr  corresp_prim_templ = corresp_tssp->il_template_entry;
-    if (same_templates(prim_templ, corresp_prim_templ)) {
+    if (corresponding_templates(prim_templ, corresp_prim_templ)) {
       for (sym = corresp_tssp->variant.class_template.partial_specializations;
            sym != NULL;
            sym = sym->next) {

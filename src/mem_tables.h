@@ -316,11 +316,6 @@ EXTERN a_memory_region_number
 		highest_used_region_number;
 			/* The highest memory region number used so far. */
 
-#if 0
-#else
-/* Temporary macros until old references are removed. */
-#define trans_unit_corresp_pointer_of(ptr) trans_unit_copy_address_of(ptr)
-#endif
 
 #endif /* ifndef MEM_TABLES_H */
 

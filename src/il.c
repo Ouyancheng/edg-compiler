@@ -3857,12 +3857,14 @@ nonidentical.
             cp1->variant.address.offset == cp2->variant.address.offset) {
           switch (cp1->variant.address.kind) {
             case abk_routine:
-              eq = same_routines(cp1->variant.address.variant.routine,
-                                 cp2->variant.address.variant.routine);
+              eq = corresponding_routines(
+                                        cp1->variant.address.variant.routine,
+                                        cp2->variant.address.variant.routine);
               break;
             case abk_variable:
-              eq = same_variables(cp1->variant.address.variant.variable,
-                                  cp2->variant.address.variant.variable);
+              eq = corresponding_variables(
+                                       cp1->variant.address.variant.variable,
+                                       cp2->variant.address.variant.variable);
               break;
             case abk_constant:
               eq = (cp1->variant.address.variant.constant ==
@@ -3901,11 +3903,13 @@ nonidentical.
         if (cp1->variant.ptr_to_member.is_function_ptr ==
                                   cp2->variant.ptr_to_member.is_function_ptr) {
           if (cp1->variant.ptr_to_member.is_function_ptr) {
-            eq = same_routines(cp1->variant.ptr_to_member.variant.routine,
-                               cp2->variant.ptr_to_member.variant.routine);
+            eq = corresponding_routines(
+                                  cp1->variant.ptr_to_member.variant.routine,
+                                  cp2->variant.ptr_to_member.variant.routine);
           } else {
-            eq = same_fields(cp1->variant.ptr_to_member.variant.field,
-                             cp2->variant.ptr_to_member.variant.field);
+            eq = corresponding_fields(
+                                    cp1->variant.ptr_to_member.variant.field,
+                                    cp2->variant.ptr_to_member.variant.field);
           }  /* if */
         }  /* if */
         break;
@@ -3942,9 +3946,10 @@ nonidentical.
                     cp1->source_corresp.member_of_unknown_base ==
                     cp2->source_corresp.member_of_unknown_base &&
                     (cp1->source_corresp.is_class_member ?
-                      same_types(cp1->source_corresp.parent.class_type,
-                                 cp2->source_corresp.parent.class_type) :
-                      same_namespaces(
+                      corresponding_types(
+                                      cp1->source_corresp.parent.class_type,
+                                      cp2->source_corresp.parent.class_type) :
+                      corresponding_namespaces(
                                    cp1->source_corresp.parent.namespace_ptr,
                                    cp2->source_corresp.parent.namespace_ptr)));
               break;

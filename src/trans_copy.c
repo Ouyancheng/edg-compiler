@@ -687,7 +687,7 @@ and therefore require merging.
     for (;
          list1 != NULL && list2 != NULL;
          list1 = list1->next, list2 = list2->next) {
-      if (!same_types(list1->class_type, list2->class_type)) break;
+      if (!corresponding_types(list1->class_type, list2->class_type)) break;
     }  /* for */
     if (list1 == NULL && list2 == NULL) {
       /* The lists matched up in the same order. */
@@ -696,7 +696,7 @@ and therefore require merging.
       /* Try the match in any order on the remaining entries. */
       for (clep1 = list1; clep1 != NULL; clep1 = clep1->next) {
         for (clep2 = list2; clep2 != NULL; clep2 = clep2->next) {
-          if (same_types(clep1->class_type, clep2->class_type)) break;
+          if (corresponding_types(clep1->class_type, clep2->class_type)) break;
         }  /* for */
         if (clep2 == NULL) {
           need_merge = TRUE;

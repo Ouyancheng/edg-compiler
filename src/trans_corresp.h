@@ -38,16 +38,6 @@ EXTERN a_boolean
    canonical_il_entry_of(ptr) != (char*)(ptr))
 
 
-extern void f_report_bad_trans_unit_corresp(char                   *entity1,
-                                            a_source_position_ptr  pos2);
-
-#define report_bad_trans_unit_corresp(entity)                               \
-  f_report_bad_trans_unit_corresp(                                          \
-    (char*)(entity),                                                        \
-    &((a_source_correspondence_ptr)canonical_il_entry_of(entity))           \
-      ->decl_position)
-
-
 /*
 Routine to record builtin type correspondences.
 */
@@ -66,18 +56,6 @@ extern a_type_ptr canonical_imaginary_type(a_float_kind  kind);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 /*
-The following canonical_*_entry_of routines return the canonical entry
-associated with the given entity.  If it has not yet been looked up, that
-canonical entry will be established as part of the call.
-
-The same_*_entities macros determine whether the two given entities are in fact
-the same, even though they might have been declared in different translation
-units (resulting in distinct IL entries).
-*/
-
-extern a_namespace_ptr canonical_namespace_entry_of(a_namespace_ptr  nsp);
-
-/*
 Return TRUE if we need to compare the canonical entries in order to determine
 if two pointers refer to the same entity.  This test is never needed in
 standalone utility programs.
@@ -90,44 +68,56 @@ standalone utility programs.
 #define canonical_test_needed(ptr1, ptr2) (FALSE)
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-#define same_namespaces(ptr1, ptr2)                               \
-  ((ptr1) == (ptr2) ||                                                    \
-   (canonical_test_needed(ptr1, ptr2) &&				  \
+/*
+The following canonical_*_entry_of routines return the canonical entry
+associated with the given entity.  If it has not yet been looked up, that
+canonical entry will be established as part of the call.
+
+The same_*_entities macros determine whether the two given entities are in fact
+the same, even though they might have been declared in different translation
+units (resulting in distinct IL entries).
+*/
+
+extern a_namespace_ptr canonical_namespace_entry_of(a_namespace_ptr  nsp);
+
+#define corresponding_namespaces(ptr1, ptr2)                               \
+  ((ptr1) == (ptr2) ||                                                     \
+   (canonical_test_needed(ptr1, ptr2) &&				                        \
     canonical_namespace_entry_of(ptr1) == canonical_namespace_entry_of(ptr2)))
 
 extern a_field_ptr canonical_field_entry_of(a_field_ptr  field);
 
-#define same_fields(ptr1, ptr2)                                   \
-  ((ptr1) == (ptr2) ||                                                    \
-   (canonical_test_needed(ptr1, ptr2) &&				  \
+#define corresponding_fields(ptr1, ptr2)                                   \
+  ((ptr1) == (ptr2) ||                                                     \
+   (canonical_test_needed(ptr1, ptr2) &&				                        \
     canonical_field_entry_of(ptr1) == canonical_field_entry_of(ptr2)))
 
 extern a_routine_ptr canonical_routine_entry_of(a_routine_ptr  routine);
 
-#define same_routines(ptr1, ptr2)                                 \
-  ((ptr1) == (ptr2) ||                                                    \
-   (canonical_test_needed(ptr1, ptr2) &&				  \
+#define corresponding_routines(ptr1, ptr2)                                 \
+  ((ptr1) == (ptr2) ||                                                     \
+   (canonical_test_needed(ptr1, ptr2) &&				                        \
     canonical_routine_entry_of(ptr1) == canonical_routine_entry_of(ptr2)))
 
 extern a_variable_ptr canonical_variable_entry_of(a_variable_ptr  var);
 
-#define same_variables(ptr1, ptr2)                                \
-  ((ptr1) == (ptr2) ||                                                    \
-   (canonical_test_needed(ptr1, ptr2) &&				  \
+#define corresponding_variables(ptr1, ptr2)                                \
+  ((ptr1) == (ptr2) ||                                                     \
+   (canonical_test_needed(ptr1, ptr2) &&				                        \
     canonical_variable_entry_of(ptr1) == canonical_variable_entry_of(ptr2)))
 
 extern a_type_ptr canonical_type_entry_of(a_type_ptr type);
 
-#define same_types(ptr1, ptr2)                                    \
-  ((ptr1) == (ptr2) ||                                                    \
-   (canonical_test_needed(ptr1, ptr2) &&				  \
+#define corresponding_types(ptr1, ptr2)                                    \
+  ((ptr1) == (ptr2) ||                                                     \
+   (canonical_test_needed(ptr1, ptr2) &&				                        \
     canonical_type_entry_of(ptr1) == canonical_type_entry_of(ptr2)))
 
 extern a_template_ptr canonical_template_entry_of(a_template_ptr templ);
 
-#define same_templates(ptr1, ptr2)                                \
-  ((ptr1) == (ptr2) ||                                                    \
-   (canonical_test_needed(ptr1, ptr2) &&				  \
+#define corresponding_templates(ptr1, ptr2)                                \
+  ((ptr1) == (ptr2) ||                                                     \
+   (canonical_test_needed(ptr1, ptr2) &&				                        \
     canonical_template_entry_of(ptr1) == canonical_template_entry_of(ptr2)))
 
 
@@ -170,7 +160,7 @@ translation unit correspondence pointers.
 #define same_entities(ptr1, ptr2)					\
   ((ptr1) == (ptr2) ||							\
    same_trans_unit_corresps(trans_unit_corresp_of(ptr1),		\
-                            trans_unit_corresp_of(ptr1)))
+                            trans_unit_corresp_of(ptr2)))
 
 /*
 Return TRUE if two base classes refer to the same IL entry.  If the
