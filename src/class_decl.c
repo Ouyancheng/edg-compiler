@@ -367,9 +367,6 @@ typedef struct a_class_def_state {
 			   a "POD". */
   a_bit_field	any_named_fields:1;
 			/* TRUE if any named fields are declared. */
-  a_bit_field	any_nonpublic_members:1;
-			/* TRUE if any private or protected members are
-			   declared. */
   a_bit_field	any_friend_decls:1;
 			/* TRUE if any friend declarations are encountered. */
   a_bit_field	any_const_or_ref_fields:1;
@@ -420,7 +417,6 @@ class being defined.
   cdsp->class_aggregate_ruled_out = FALSE;
   cdsp->POD_ruled_out = FALSE;
   cdsp->any_named_fields = FALSE;
-  cdsp->any_nonpublic_members = FALSE;
   cdsp->any_friend_decls = FALSE;
   cdsp->any_const_or_ref_fields = FALSE;
   cdsp->is_nonreal_instantiation = FALSE;
@@ -5566,9 +5562,6 @@ respectively.
   set_class_membership(sym, &cp->source_corresp, class_type);
   decl_info->member_sym = sym;
   cp->source_corresp.access = class_state->access;
-  if (class_state->access != (an_access_specifier)as_public) {
-    class_state->any_nonpublic_members = TRUE;
-  }  /* if */
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position,
                             decl_info->declarator_ssep);
@@ -5657,11 +5650,6 @@ member declaration, respectively.
     var->storage_class = (a_storage_class)sc_extern;
   }  /* if */
   var->source_corresp.access = class_state->access;
-  if (class_state->access != (an_access_specifier)as_public) {
-    /* Strictly speaking, any nonpublic member prevents a class from being an
-       aggregate -- keep track. */
-    class_state->any_nonpublic_members = TRUE;
-  }  /* if */
   if (curr_token == tok_assign) {
     if ((is_const_qualified_type(member_type) &&
          is_integral_type(member_type)) ||
@@ -8644,11 +8632,6 @@ following the member declaration.
                            "bad parent type on nested type");
 #endif /* CHECKING */
     }  /* if */
-    if (class_state->access != (an_access_specifier)as_public) {
-      /* Strictly speaking, any nonpublic member prevents a class from being
-         an aggregate -- keep track. */
-      class_state->any_nonpublic_members = TRUE;
-    }  /* if */
   } /* if */
   no_decl_specifiers = (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
   type_explicitly_specified =
@@ -8900,10 +8883,6 @@ following the member declaration.
         } else if (decl_info.is_destructor) {
         /* A POD may not have a user-defined destructor, either. */
           class_state->POD_ruled_out = TRUE;
-        } else if (class_state->access != (an_access_specifier)as_public) {
-          /* Strictly speaking, any nonpublic member prevents a class from
-             being an aggregate -- keep track. */
-          class_state->any_nonpublic_members = TRUE;
         }  /* if */
       }  /* if */
       if (friend_specified) {
@@ -9106,11 +9085,6 @@ following the member declaration.
       decl_typedef(&locator, local_type, class_type, &decl_info.member_sym,
                    decl_info.declarator_ssep);
       /* Note: access will have been set in decl_typedef. */
-      if (class_state->access != (an_access_specifier)as_public) {
-        /* Strictly speaking, any nonpublic member prevents a class from being
-           an aggregate -- keep track. */
-        class_state->any_nonpublic_members = TRUE;
-      }  /* if */
       if (curr_routine_fixup != NULL &&
           curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
         /* Update the symbol pointer in the fixup entry -- it's needed when
@@ -9570,19 +9544,11 @@ next_declaration:
       /* Reset the access to "public" for compiler-generated functions, if
          any. */
       class_state.access = (an_access_specifier)as_public;
-      /* Classes with no constructors, no private or protected members, no
-         base classes, and no virtual functions are used to declare
-         "aggregate" objects (ARM 8.4.1). */
       if (!class_state.class_aggregate_ruled_out) {
-        /* May be an aggregate. */
-        if (strict_ansi_mode && class_state.any_nonpublic_members) {
-          /* In strict mode we'll take the WP literally -- an aggregate class
-             may have no nonpublic members (even if they are something other
-             than nonstatic data members). */
-          class_state.class_aggregate_ruled_out = TRUE;
-        } else {
-          cssp->is_class_aggregate = TRUE;
-        }  /* if */
+        /* Classes with no constructors, no private or protected nonstatic
+           data members, no base classes, and no virtual functions are used to
+           declare "aggregate" objects (WP 8.5.1). */
+        cssp->is_class_aggregate = TRUE;
       }  /* if */
       /* Issue a diagnostic on a class with no user-defined constructor and
          with one or more nonstatic data members with reference or const type.
@@ -9605,6 +9571,9 @@ next_declaration:
         check_special_member_functions(class_type, &class_state);
       }  /* if */
       if (cssp->is_class_aggregate && !class_state.POD_ruled_out) {
+        /* It was intentional to wait until check_special_member_functions
+           was called to set the is_POD flag -- the check for copy
+           assignment operator was needed first. */
         cssp->is_POD = TRUE;
       }  /* if */
 #if ABI_COMPATIBILITY_VERSION >= 232
