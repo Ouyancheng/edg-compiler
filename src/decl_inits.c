@@ -300,7 +300,7 @@ length of the string).
 }  /* check_string_constant_initializer */
 
 
-static a_boolean process_for_string_constant_initializer(
+static a_boolean process_string_constant_initializer(
                                  a_type_ptr                     *type_ptr,
                                  a_constant_ptr                 *init_con,
                                  an_aggregate_init_context_ptr  init_context)
@@ -403,7 +403,7 @@ If there is an error, issue an error and return an error constant.
     }  /* if */
   }  /* if */
   return is_string_init;
-}  /* process_for_string_constant_initializer */
+}  /* process_string_constant_initializer */
 
 
 static void check_for_opening_brace(a_boolean *flag)
@@ -885,7 +885,7 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
   a_boolean        is_constant;
   a_constant       constant, *cp = NULL;
 
-  if (process_for_string_constant_initializer(
+  if (process_string_constant_initializer(
                                    &type, &cp,
                                    (an_aggregate_init_context_ptr)NULL)) {
     /* The object being initialized has type array of char or wchar_t, and
@@ -1766,7 +1766,7 @@ this function points to a tree that includes a dynamic-init entry.
     } else {
       brace_flag = FALSE;
     }  /* if */
-    if (process_for_string_constant_initializer(type, &init_con, &context)) {
+    if (process_string_constant_initializer(type, &init_con, &context)) {
       /* The object being initialized has type array of char or wchar_t, and
          is being initialized with a string. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -2974,8 +2974,15 @@ returned set to TRUE.
       scan_constant_initializer_expression(vp_type, &constant);
       init_con = alloc_unshared_constant(&constant);
       if (!var_err && vp != NULL && is_incomplete_type(vp->type)) {
-        put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
-                                    constant.type);
+        /* An array of unspecified size is initialized with a constant that
+           has a known number of elements: adjust the variable type. */
+        a_type_ptr  array_type = skip_typerefs(vp->type);
+        check_assertion(is_array_type(array_type) &&
+                        is_array_type(constant.type));
+        set_initialized_array_size(&array_type,
+                                   constant.type->variant.array.
+                                                  variant.number_of_elements);
+        vp->type = array_type;
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (decl_pos_block != NULL) {
