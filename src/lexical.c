@@ -4254,7 +4254,8 @@ entry_for_line_splice:
       eof_read_on_curr_input_stream = TRUE;
       /* Backslash at end of last line in a file -- error. */
       finish_off_source_line_so_it_can_be_displayed_in_error();
-      error_at_line_pos(ec_last_line_backslash, loc_in_line);
+      diagnostic_at_line_pos(microsoft_mode ? es_warning : es_error,
+                             ec_last_line_backslash, loc_in_line);
       /* Ignore the backslash, end the logical line at this point. */
     }  /* if */
   }  /* if */

@@ -1,5 +1,10 @@
 Version 2.37
 
+7/1/97    Microsoft compatibility: last line of file can end with backslash
+
+In Microsoft mode, if the last line of a file ends with a backslash,
+a warning is now issued instead of an error.
+
 7/1/97    Microsoft compatibility: cv-qualifiers following a comma
 
 Microsoft allows declarations like the following, which are nonstandard:
