@@ -22,11 +22,13 @@ attribute.c -- Processing of attributes, a GCC extension.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
-#if GNU_EXTENSIONS_ALLOWED
 /* Header files used by files involved in declaration processing. */
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 #include "decl_hdrs.h"
-#include "layout.h"
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
+#if GNU_EXTENSIONS_ALLOWED
+#include "layout.h"
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
