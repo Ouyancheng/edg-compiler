@@ -93,6 +93,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #define DEBUG 1
 #define CHECKING 1
 #define USE_MMAP_FOR_MEMORY_REGIONS 1
+#define MICROSOFT_EXTENSIONS_ALLOWED 1
 
 #ifndef OPTIMIZED_VERSION
 #define OPTIMIZED_VERSION 1
