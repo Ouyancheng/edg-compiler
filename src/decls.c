@@ -6790,7 +6790,6 @@ typedef, we must make sure to propagate that to its members.
                                   (routine->assoc_scope != NULL_region_number ?
                                                    sc_unspecified : sc_extern);
       if (instantiate_extern_inline && routine->is_inline &&
-          routine->storage_class == (a_storage_class)sc_unspecified &&
           !routine->on_inline_function_list) {
         add_to_inline_function_list(routine);
       }  /* if */

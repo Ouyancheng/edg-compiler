@@ -19508,21 +19508,19 @@ Add the routine to an "instantiation list" of inline functions.
   a_routine_list_entry_ptr	rlep;
 
   check_assertion(instantiate_extern_inline && rout_ptr->is_inline);
-  /* Only add extern inline functions. */
-  if (rout_ptr->storage_class != (a_storage_class)sc_static &&
-      /* An externalized static is not really extern inline. */
-      !rout_ptr->source_corresp.static_used_by_instantiation) {
-    rlep = alloc_list_entry_for_routine();
-    rlep->routine = rout_ptr;
-    rlep->next = inline_function_list;
-    inline_function_list = rlep;
-    rout_ptr->on_inline_function_list = TRUE;
-    if (in_instantiation_wrapup ) {
-      /* Set a flag if this entry was added during instantiation wrapup.
-         The addition of inline functions could cause additional instantiations
-         to be done. */
-      additional_instantiation_wrapup_processing_needed();
-    }  /* if */
+  /* All functions are put on the list, even static ones.  Static functions
+     will usually be ignored, but may need to be treated as external
+     functions when using exported templates. */
+  rlep = alloc_list_entry_for_routine();
+  rlep->routine = rout_ptr;
+  rlep->next = inline_function_list;
+  inline_function_list = rlep;
+  rout_ptr->on_inline_function_list = TRUE;
+  if (in_instantiation_wrapup ) {
+    /* Set a flag if this entry was added during instantiation wrapup.
+       The addition of inline functions could cause additional instantiations
+       to be done. */
+    additional_instantiation_wrapup_processing_needed();
   }  /* if */
 }  /* add_to_inline_function_list */
 

@@ -1026,8 +1026,7 @@ and for the instantiation of template functions.
       pos_error(ec_exp_rbrace, &pos_curr_token);
     }  /* if */
   }  /* if */
-  if (instantiate_extern_inline && rout_ptr->is_inline &&
-      rout_ptr->storage_class == (a_storage_class)sc_unspecified) {
+  if (instantiate_extern_inline && rout_ptr->is_inline) {
     /* When inline functions are instantiated like templates, add the function
        to the list of inline functions if it is inline. */
     add_to_inline_function_list(rout_ptr);
