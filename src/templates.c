@@ -11172,7 +11172,10 @@ set, and its source sequence entry, if any, has been put out.)
             il_template_entry->prototype_instantiation.type = NULL;
           }  /* if */
           il_template_entry->canonical_template = tssp->il_template_entry;
-          if (decl_state->defines_something) {
+          if (decl_state->defines_something &&
+              tssp->il_template_entry->definition_template == NULL) {
+            /* With nested class templates, multiple definitions may be seen
+               but only the first one is a true prototype instantiation. */
             tssp->il_template_entry->definition_template = il_template_entry;
           }  /* if */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */

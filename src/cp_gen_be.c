@@ -3944,7 +3944,8 @@ this one is such a continuation.
        mode for the member. */
     gen_member_access_specifier_for_decl_of(&type->source_corresp);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-    check_assertion(!type->variant.class_struct_union.is_template_class ||
+    check_assertion(!is_immediate_class_type(type) ||
+                    !type->variant.class_struct_union.is_template_class ||
                     type->variant.class_struct_union.extra_info
                                                     ->assoc_template != NULL);
     if (template_decl != NULL) {
