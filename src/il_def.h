@@ -4766,6 +4766,9 @@ typedef struct a_type {
 			/* TRUE if this is a type that is the same as
 			   some other type, but with additional
 			   attributes.  */
+  a_bit_field   has_gnu_deprecated_attribute:1;
+			/* TRUE if this type was declared with the GNU
+			   "deprecated" attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	autonomous_primary_tag_decl:1;
@@ -5648,6 +5651,12 @@ typedef struct a_variable {
   a_bit_field   has_gnu_unused_attribute:1;
 			/* TRUE if this variable was declared with the
 			   GNU "unused" attribute. */
+  a_bit_field   has_gnu_used_attribute:1;
+			/* TRUE if this variable was declared with the
+			   GNU "used" attribute. */
+  a_bit_field   has_gnu_deprecated_attribute:1;
+			/* TRUE if this variable was declared with the
+			   GNU "deprecated" attribute. */
   a_bit_field   is_not_common:1;
 			/* TRUE if this variable should not be placed in
 			   COMMON (or an equivalent) even if it is
@@ -6619,8 +6628,14 @@ typedef struct a_routine {
 			/* TRUE if this routine was declared with the 
 			   weak attribute. */
   a_bit_field   has_gnu_unused_attribute:1;
-			/* TRUE if this variable was declared with the
+			/* TRUE if this routine was declared with the
 			   GNU "unused" attribute. */
+  a_bit_field   has_gnu_used_attribute:1;
+			/* TRUE if this routine was declared with the
+			   GNU "used" attribute. */
+  a_bit_field   has_gnu_deprecated_attribute:1;
+			/* TRUE if this routine was declared with the
+			   GNU "deprecated" attribute. */
   a_bit_field	allocates_memory:1;
 			/* TRUE if this routine was declared with the
 			   malloc attribute.  Such a routine should

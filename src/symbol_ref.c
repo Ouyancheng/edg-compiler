@@ -1447,6 +1447,32 @@ created for this entity; otherwise, it is NULL.
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 }  /* record_symbol_declaration */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void check_use_of_deprecated_entities(a_symbol_ptr       sym,
+                                             a_source_position  *pos)
+/*
+The entity represented by the given symbol is referenced at the given
+position.  Issue a warning if the entity was declared with the GNU
+attribute "deprecated."
+*/
+{
+  a_boolean  deprecated = FALSE;
+
+  if (sym->kind == (a_symbol_kind)sk_variable) {
+    deprecated = sym->variant.variable.ptr->has_gnu_deprecated_attribute;
+  } else if (sym->kind == (a_symbol_kind)sk_routine ||
+             sym->kind == (a_symbol_kind)sk_member_function) {
+    deprecated = sym->variant.routine.ptr->has_gnu_deprecated_attribute;
+  } else if (is_type_symbol(sym) || is_tag_symbol(sym)) {
+    deprecated = type_symbol_type(sym)->has_gnu_deprecated_attribute;
+  }  /* if */
+  if (deprecated) {
+    pos_sy_warning(ec_deprecated_entity, pos, sym);
+  }  /* if */
+}  /* check_use_of_deprecated_entities */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void record_symbol_reference(a_symbol_reference_kind kind,
                              a_symbol_ptr            sym_ptr,
@@ -1717,6 +1743,11 @@ check_label_decl_seq:
       }  /* if */
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (gnu_mode) {
+    check_use_of_deprecated_entities(sym_ptr, source_position);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* record_symbol_reference */
 
 

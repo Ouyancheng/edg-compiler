@@ -307,6 +307,8 @@ pointed to be "pos" can be freed when this routine returns.
     case ak_packed:
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     case ak_unused:
+    case ak_used:
+    case ak_deprecated:
     case ak_constructor:
     case ak_destructor:
     case ak_noreturn:
@@ -369,6 +371,8 @@ Return a copy of the complete attribute list.
       case ak_packed:
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       case ak_unused:
+      case ak_used:
+      case ak_deprecated:
       case ak_constructor:
       case ak_destructor:
       case ak_noreturn:
@@ -753,6 +757,8 @@ Specifically, these attributes take no arguments:
   constructor
   destructor
   unused
+  ak_used
+  ak_deprecated
   noreturn
   volatile
   pure
@@ -873,6 +879,8 @@ function returns the address of the last attribute.
           case ak_packed:
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
           case ak_unused:
+          case ak_used:
+          case ak_deprecated:
           case ak_constructor:
           case ak_destructor:
           case ak_error:
@@ -1214,9 +1222,14 @@ invalid attributes.
         break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       case ak_unused:
-        /* Mark the variable as referenced in order to suppress warnings
-           about it if it is unused. */
         vp->has_gnu_unused_attribute = TRUE;
+        break;
+      case ak_used:
+        vp->has_gnu_used_attribute = TRUE;
+        mark_to_keep_in_il((char*)vp, (an_il_entry_kind)iek_variable);
+        break;
+      case ak_deprecated:
+        vp->has_gnu_deprecated_attribute = TRUE;
         break;
       case ak_mode:
       case ak_noreturn:
@@ -1360,6 +1373,13 @@ messages about any invalid attributes.
         break;
       case ak_unused:
         rp->has_gnu_unused_attribute = TRUE;
+        break;
+      case ak_used:
+        rp->has_gnu_used_attribute = TRUE;
+        mark_to_keep_in_il((char*)rp, (an_il_entry_kind)iek_routine);
+        break;
+      case ak_deprecated:
+        rp->has_gnu_deprecated_attribute = TRUE;
         break;
       case ak_pure:
         rp->is_pure = TRUE;
@@ -1626,6 +1646,9 @@ a typedef, is_typedef is TRUE.
       /* If this is a typedef, the attribute is attached to it rather than
          to the underlying type. */
       type->variables_are_implicitly_referenced = TRUE;
+      break;
+    case ak_deprecated:
+      type->has_gnu_deprecated_attribute = TRUE;
       break;
     case ak_noreturn:
     case ak_volatile:

@@ -1315,6 +1315,9 @@ Display the indicated type entry.
   if (ptr->copy_with_additional_attributes) {
     disp_boolean("copy_with_additional_attributes", TRUE);
   }  /* if */
+  if (ptr->has_gnu_deprecated_attribute) { 
+    disp_boolean("has_gnu_deprecated_attribute", TRUE);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   if (ptr->use_cfront_transitional_nested_type_name_mangling) {
@@ -1961,7 +1964,13 @@ Display the indicated variable.
     disp_boolean("is_weak", TRUE);
   }  /* if */
   if (ptr->has_gnu_unused_attribute) { 
-    disp_boolean("unused", TRUE);
+    disp_boolean("has_gnu_unused_attribute", TRUE);
+  }  /* if */
+  if (ptr->has_gnu_used_attribute) { 
+    disp_boolean("has_gnu_used_attribute", TRUE);
+  }  /* if */
+  if (ptr->has_gnu_deprecated_attribute) { 
+    disp_boolean("has_gnu_deprecated_attribute", TRUE);
   }  /* if */
   if (ptr->is_not_common) {
     disp_boolean("is_not_common", TRUE);
@@ -2608,7 +2617,13 @@ Display the indicated routine.
     disp_boolean("is_weak", TRUE);
   }  /* if */
   if (ptr->has_gnu_unused_attribute) { 
-    disp_boolean("unused", TRUE);
+    disp_boolean("has_gnu_unused_attribute", TRUE);
+  }  /* if */
+  if (ptr->has_gnu_used_attribute) { 
+    disp_boolean("has_gnu_used_attribute", TRUE);
+  }  /* if */
+  if (ptr->has_gnu_deprecated_attribute) { 
+    disp_boolean("has_gnu_deprecated_attribute", TRUE);
   }  /* if */
   if (ptr->allocates_memory) {
     disp_boolean("allocates_memory", TRUE);

@@ -1478,6 +1478,10 @@ Write out attributes that apply to the indicated type.
     /* Output the "unused" attribute. */
     write_tok_str(" __attribute__((__unused__))");
   }  /* if */
+  if (type->has_gnu_deprecated_attribute) {
+    /* Output the "deprecated" attribute. */
+    write_tok_str(" __attribute__((__deprecated__))");
+  }  /* if */
   if (type->kind == (a_type_kind)tk_integer &&
       type->variant.integer.packed) {
     /* Output the "packed" attribute. */
@@ -1570,6 +1574,12 @@ Write out attributes that apply to the indicated variable.
   if (var->has_gnu_unused_attribute) {
     write_tok_str(" __attribute__((__unused__))");
   }  /* if */
+  if (var->has_gnu_used_attribute) {
+    write_tok_str(" __attribute__((__used__))");
+  }  /* if */
+  if (var->has_gnu_deprecated_attribute) {
+    write_tok_str(" __attribute__((__deprecated__))");
+  }  /* if */
   if (var->is_not_common) {
     write_tok_str(" __attribute__((__nocommon__))");
   }  /* if */
@@ -1622,6 +1632,12 @@ Write out attributes that apply to the indicated routine.
   }  /* if */
   if (rout->has_gnu_unused_attribute) {
     write_tok_str(" __attribute__((__unused__))");
+  }  /* if */
+  if (rout->has_gnu_used_attribute) {
+    write_tok_str(" __attribute__((__used__))");
+  }  /* if */
+  if (rout->has_gnu_deprecated_attribute) {
+    write_tok_str(" __attribute__((__deprecated__))");
   }  /* if */
   if (rout->allocates_memory) {
     write_tok_str(" __attribute((__malloc__))");

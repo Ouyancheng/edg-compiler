@@ -46,6 +46,8 @@ enum an_attribute_kind_tag {
   ak_packed,
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   ak_unused,
+  ak_used,
+  ak_deprecated,
   ak_constructor,
   ak_destructor,
   ak_noreturn,
@@ -90,6 +92,8 @@ EXTERN char *attribute_kind_names[(int)ak_last + 1]
 /* ak_packed */                     "packed",
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 /* ak_unused */                     "unused",
+/* ak_used */                       "used",
+/* ak_deprecated */                 "deprecated",
 /* ak_constructor */                "constructor",
 /* ak_destructor */                 "destructor",
 /* ak_noreturn */                   "noreturn",
@@ -163,8 +167,8 @@ typedef struct an_attribute {
                 position;
 			/* Source location for the attribute. */
   union {
-    /* When kind == ak_packed, ak_unused, ak_constructor, or
-       ak_destructor, no variant fields. */
+    /* When kind == ak_packed, ak_unused, ak_used, ak_deprecated,
+       ak_constructor, or ak_destructor, no variant fields. */
 #if USER_CONTROL_OF_STRUCT_PACKING
     /* When kind == ak_aligned. */
     a_targ_alignment
