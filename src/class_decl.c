@@ -3379,7 +3379,8 @@ without it.
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
     /* Ignore projection symbols. */
-    if (sym->kind == (a_symbol_kind)sk_projection) continue;
+    if (sym->kind == (a_symbol_kind)sk_projection ||
+        sym->kind == (a_symbol_kind)sk_function_template) continue;
     orig_type = sym->variant.routine.ptr->type;
     orig_rts = (skip_typerefs(orig_type))->variant.routine.extra_info;
     orig_this_type = orig_rts->implicit_this_param_type;
@@ -3706,6 +3707,7 @@ Return TRUE is sym is a symbol for an operator delete() function.
 
 static a_symbol_ptr symbol_for_member_function(a_symbol_locator  *locator,
                                                a_type_ptr        type,
+                                               a_type_ptr        class_type,
                                                a_symbol_ptr      *overload_sym)
 /*
 Return a pointer to an sk_member_function symbol to represent a function
@@ -3727,34 +3729,9 @@ function symbols.
     sym = NULL;
   } else {
     /* See if there's already a member function with this name. */
-    for (sym = locator->symbol_header->symbol; sym != NULL; sym = sym->next) {
-      if (sym->decl_scope != scope_stack[decl_scope_level].number) {
-        /* Symbols are added to the head of the list to hide symbols of the
-           same name from containing scopes.  Thus, once we find a symbol that
-           belongs to another scope, we can be sure there are none following
-           it that might belong to the current class. */
-        sym = NULL;
-        break;
-      } else if (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) {
-        /* Matches a name in the current scope. */
-        if (sym->kind == (a_symbol_kind)sk_member_function ||
-            sym->kind == (a_symbol_kind)sk_overloaded_function) {
-          /* Remember sym -- it represents a member function. */
-        } else if (sym->kind == (a_symbol_kind)sk_projection &&
-                   sym->variant.projection.is_using_decl &&
-                   is_function_symbol(fundamental_symbol_of(sym))) {
-          /* This function symbol has been declared in this class through a
-             using-declaration.  It should be joined with the current symbol
-             in an overload set. */
-        } else {
-          /* Found the name in the current class, but it is not a member
-             function.  The error will be detected again and reported in
-             enter_symbol, called below. */
-          sym = NULL;
-        }  /* if */
-        break;
-      }  /* if */
-    }  /* for */
+    (void)class_qualified_id_lookup(locator, class_type,
+                                    IDL_MEMBER_FUNCTION_LOOKUP);
+    sym = locator->specific_symbol;
     if (sym != NULL) {
       /* A member function by this name has already been entered into the
          symbol table.  This could be a redeclaration, which is illegal for
@@ -3896,27 +3873,38 @@ overload set, and since new entries are added to the front of the list, only
 the first two need be checked.)
 */
 {
-  a_symbol_ptr  sym;
-  a_type_ptr    tp1, tp2;
+  a_symbol_ptr                      sym1, sym2;
+  a_type_ptr                        tp1, tp2;
 
   check_assertion_str2(overload_sym->kind ==
                                (a_symbol_kind)sk_overloaded_function,
                       "set_mixed_static_nonstatic_flag:",
                       "sk_overloaded_function expected");
-  sym = overload_sym->variant.overloaded_function.symbols;
+  sym1 = overload_sym->variant.overloaded_function.symbols;
+  sym2 = sym1->next;
   /* Set a flag in overload_sym if the instances of an overloaded function
      are a mixture of static and nonstatic member functions. */
   if (!overload_sym->variant.overloaded_function.mixed_static_nonstatic) {
-    if (sym->next != NULL) {
-      tp1 = routine_symbol_type(fundamental_symbol_of(sym));
-      tp2 = routine_symbol_type(fundamental_symbol_of(sym->next));
+    if (sym2 != NULL) {
+      sym1 = fundamental_symbol_of(sym1);
+      if (sym1->kind != (a_symbol_kind)sk_function_template) {
+        tp1 = routine_symbol_type(sym1);
+      } else {
+        tp1 = sym1->variant.template_info->variant.function.routine->type;
+      }  /* if */
+      sym2 = fundamental_symbol_of(sym2);
+      if (sym2->kind != (a_symbol_kind)sk_function_template) {
+        tp2 = routine_symbol_type(sym2);
+      } else {
+        tp2 = sym2->variant.template_info->variant.function.routine->type;
+      }  /* if */
       if (routine_type_is_nonstatic_member_function(tp1) !=
                 routine_type_is_nonstatic_member_function(tp2)) {
         overload_sym->
            variant.overloaded_function.mixed_static_nonstatic = TRUE;
       }  /* if */
     }  /* if */
-  } else if (sym->next == NULL) {
+  } else if (sym2 == NULL) {
     overload_sym->variant.overloaded_function.mixed_static_nonstatic = FALSE;
   }  /* if */
 }  /* set_mixed_static_nonstatic_flag */
@@ -4128,7 +4116,8 @@ special function kind (e.g., constructor, destructor), if any.
      declarations should be handled. */
 #endif /* if 0 */
   /* Look for a prior declaration or function overloading. */
-  sym = symbol_for_member_function(locator, member_type, &overload_sym);
+  sym = symbol_for_member_function(locator, member_type, class_type,
+                                   &overload_sym);
   if (sym->variant.routine.ptr != NULL) {
     /* symbol_for_member_function has returned a symbol that has already been
        declared.  Issue an error to redeclare a member function. */
@@ -4395,12 +4384,21 @@ void decl_member_function_template(a_symbol_locator     *locator,
 {
   a_template_symbol_supplement_ptr   tssp;
   a_routine_ptr                      rtn;
-  a_symbol_ptr                       sym;
+  a_symbol_ptr                       sym, overload_sym;
 
+  db_enter(3, "decl_member_function_template");
   check_operator_function_params(member_type, class_type, locator);
-  sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
-                           effective_decl_level,
-                           /*suppress_redecl_error=*/FALSE);
+  (void)class_qualified_id_lookup(locator, class_type,
+                                  IDL_MEMBER_FUNCTION_LOOKUP);
+  sym = locator->specific_symbol;
+  if (sym == NULL) {
+    sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
+                             effective_decl_level,
+                             /*suppress_redecl_error=*/FALSE);
+  } else {
+    sym = enter_overloaded_symbol((a_symbol_kind)sk_function_template,
+                                  locator, sym, &overload_sym);
+  }  /* if */
   rtn = make_routine(member_type, (a_storage_class)sc_unspecified,
                      /*at_file_or_namespace_scope=*/FALSE,
                      /*add_to_list=*/FALSE);
@@ -4425,6 +4423,7 @@ void decl_member_function_template(a_symbol_locator     *locator,
     rtn->storage_class = (a_storage_class)sc_extern;
   }  /* if */
   *symbol_ptr = sym;
+  db_exit();
 }  /* decl_member_function_template */
 
 
