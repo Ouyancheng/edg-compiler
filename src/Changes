@@ -1,5 +1,13 @@
 Version 2.31
 
+11/18/95  C++-generating back end: "for" statement declaring multiple variables
+          where some variable after the first has a non-trivial declarator
+
+The il_to_str processing of the FTO_SUPPRESS_SPECIFIERS option has been
+fixed, which allows the C++-generating back end to handle
+
+        for (int i = 37, &j = i;;)
+
 11/18/95  il_to_str output of pointer-to-member type qualifier
 
 The il_to_str output of a class qualifier for a pointer to member, e.g.,
