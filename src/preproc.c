@@ -1804,9 +1804,7 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
   a_stdc_pragma_kind	kind = (a_stdc_pragma_kind)stdc_pk_none;
   a_stdc_pragma_value	value = (a_stdc_pragma_value)stdc_pv_none;
   a_boolean		err = FALSE, accept_on_off = FALSE;
-#if FIXED_POINT_ALLOWED
   a_boolean		accept_sat = FALSE;
-#endif /* FIXED_POINT_ALLOWED */
   char			*str;
   a_stdc_pragma_value	*state_var_ptr;
 
@@ -1868,7 +1866,9 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
       }  /* if */
     }  /* if */
     if (value == (a_stdc_pragma_value)(a_stdc_pragma_value)stdc_pv_none) {
-      diagnostic(strict_ansi_error_severity, ec_bad_stdc_pragma_arg);
+      diagnostic(strict_ansi_error_severity,
+                 accept_sat ? ec_bad_stdc_fx_overflow_pragma_arg
+                            : ec_bad_stdc_pragma_arg);
       err = TRUE;
     }  /* if */
     /* Bypass the value. */
