@@ -3583,7 +3583,7 @@ If new_constant is non-NULL, the copy is placed there; otherwise, a new
 constant is allocated.  options is the set of options for the copy.
 By default, the copy will be an unshared constant, but if the option
 CE_COPIED_CONSTANTS_MAY_BE_SHARED is specified, the constant may be
-shared.  See copy_unshared_copy for a simple interface to this routine
+shared.  See copy_unshared_constant for a simple interface to this routine
 for the usual case.
 */
 {
