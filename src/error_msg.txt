@@ -881,6 +881,7 @@ ec_no_corresponding_delete;;"%n has no corresponding operator delete%s (to be ca
 ec_useless_placement_delete;;"useless placement-delete declaration"
 ec_no_appropriate_delete;;"no appropriate operator delete is visible"
 ec_ptr_or_ref_to_incomplete_type;;"pointer or reference to incomplete type is not allowed"
+ec_bad_partial_specialization;;"invalid partial specialization -- %n is already fully specialized"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
