@@ -4694,7 +4694,6 @@ is already an entry of the indicated kind on the list.
 */
 {
   a_based_type_list_member_ptr btlmp;
-  a_boolean                    fixup_required = FALSE;
 
   btlmp = alloc_based_type_list_member(kind);
   btlmp->based_type = based_type;
@@ -4705,6 +4704,9 @@ is already an entry of the indicated kind on the list.
     a_type_ptr tp = based_type->variant.ptr_to_member.class_of_which_a_member;
     if (!is_class_struct_union_type(tp) ||
         symbol_supplement_for_class(tp)->is_nonreal_class) {
+      /* Either the class specified in this ptr-to-member type is a template
+         param type or a nonreal instantiation -- update the fixup list so
+         this type doesn't leak into the back end. */
       btlmp->front_end_only = TRUE;
       add_to_based_type_fixup_list(base_type);
     }  /* if */
