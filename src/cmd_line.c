@@ -39,7 +39,15 @@ extern long gethostid(void);
 #endif /* HOSTID */
 
 
+static a_def_undef_string_ptr
+		last_defs_from_cmd_line = NULL;
+			/* Points to the last element in the list
+			   defs_from_cmd_line. */
 
+static a_def_undef_string_ptr
+		last_undefs_from_cmd_line = NULL;
+			/* Points to the last element in the list
+			   undefs_from_cmd_line. */
 
 /*
 Structure used to map keyword and/or letter options into the
@@ -677,11 +685,13 @@ end_of_routine:
 
 
 static void add_to_def_undef_list(char *str,
-                                  a_def_undef_string_ptr *du_list)
+                                  a_def_undef_string_ptr *du_list,
+                                  a_def_undef_string_ptr *du_list_end)
 /*
 Add the string pointed to by str (which comes from a command-line -D
 or -U macro define/undefine option) to the list of def/undef strings
-pointed to by *du_list.
+pointed to by *du_list.  The end of the list is pointed to by
+*du_list_end.  The new entry is added to the end of the list.
 */
 {
   a_def_undef_string_ptr du_new;
@@ -690,10 +700,12 @@ pointed to by *du_list.
      mem_manage.c routines are not yet initialized, and because the
      strings may be used several times if several files are compiled. */
   du_new = (a_def_undef_string_ptr)alloc_general(sizeof(a_def_undef_string));
-  du_new->next = *du_list;
+  du_new->next = NULL;
   du_new->text = str;
-  /* Add the new entry to the front of the list of defs or undefs. */
-  *du_list = du_new;
+  /* Add the new entry to the end of the list of defs or undefs. */
+  if (*du_list_end != NULL) (*du_list_end)->next = du_new;
+  *du_list_end = du_new;
+  if (*du_list == NULL) *du_list = du_new;
 }  /* add_to_def_undef_list */
 
 
@@ -1119,12 +1131,14 @@ Process the arguments on the command line that invoked the compiler.
       case optk_define_macro:
         /* Define a macro symbol.  Just save the string for later
            processing. */
-        add_to_def_undef_list(opt_arg, &defs_from_cmd_line);
+        add_to_def_undef_list(opt_arg, &defs_from_cmd_line,
+                              &last_defs_from_cmd_line);
         break;
       case optk_undefine_macro:
         /* Undefine a macro symbol.  Just save the string for later
            processing. */
-        add_to_def_undef_list(opt_arg, &undefs_from_cmd_line);
+        add_to_def_undef_list(opt_arg, &undefs_from_cmd_line,
+                              &last_undefs_from_cmd_line);
         break;
       case optk_set_error_limit:
         /* Set error limit (numbers of errors at which to give up on

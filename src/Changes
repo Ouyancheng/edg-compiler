@@ -1,5 +1,15 @@
 Version 2.30
 
+7/17/95  Macros that are defined more than once on the command line
+
+A macro defined more than once on the command line was being set to the
+first value on the command line.  It is now set to the last value
+specified on the command line.  For example
+
+  edgcpfe -DXXX=1 -DXXX=2 t.c
+
+formerly gave XXX the value of 1, but now gives XXX the value of 2.
+
 7/6/95   type_info name strings for nested classes
 
 The RTTI name strings in type_info entries generated for nested classes had
