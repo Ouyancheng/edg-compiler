@@ -39,7 +39,8 @@ extern void initializer(a_symbol_ptr       symbol_ptr,
                         an_id_linkage_kind linkage,
                         a_boolean          paren_flag,
                         a_boolean          is_parameter,
-                        a_boolean          *incomplete_type_error_reported);
+                        a_boolean          *incomplete_type_error_reported,
+                        a_decl_pos_block   *decl_pos_block);
 
 extern a_boolean def_initializer(a_symbol_ptr       sym,
                                  a_source_position  *err_pos);

@@ -128,6 +128,9 @@ function parameter and return types.
 }  /* promote_float_to_double */
 
 
+/*
+A collection of source positions passed around during declaration processing.
+*/
 typedef struct a_decl_pos_block *a_decl_pos_block_ptr;
 typedef struct a_decl_pos_block {
   a_source_position
@@ -146,6 +149,9 @@ typedef struct a_decl_pos_block {
   a_source_range
 		declarator_range;
 			/* Start and end positions of declarator. */
+  a_source_range
+		var_init_range;
+			/* Start and end positions of initializer. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_decl_pos_block;
 

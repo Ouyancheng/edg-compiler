@@ -1973,7 +1973,8 @@ might not be able to if the template itself has not yet been defined.
                    (class_type, depth_innermost_namespace_scope,
                     depth_innermost_namespace_scope, /*is_local_class=*/FALSE,
                     /*delayed_nested_class_def=*/is_class_member,
-                    /*is_template_instantiation=*/TRUE);
+                    /*is_template_instantiation=*/TRUE,
+                    (a_decl_pos_block_ptr)NULL);
       pending_class_definitions--;
       set_instantiation_required_for_template_class_members(class_type);
       /* Process any pragmas that are to be bound to this instance. */
@@ -2365,7 +2366,8 @@ A pointer to the head of the list is returned in tcsp.
                               depth_innermost_namespace_scope,
                               /*is_local_class=*/FALSE,
                               /*delayed_nested_class_def=*/is_class_member,
-                              /*is_template_instantiation=*/TRUE);
+                              /*is_template_instantiation=*/TRUE,
+                              (a_decl_pos_block_ptr)NULL);
   pending_class_definitions--;
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
@@ -2907,7 +2909,7 @@ and the class instantiation will detect the runaway case.
     initializer(static_data_member_sym, &tip->template_sym->decl_position,
                 idl_external, has_parenthesized_initializer,
                 /*is_old_style_param_decl=*/FALSE,
-                &incomplete_type_error_reported);
+                &incomplete_type_error_reported, (a_decl_pos_block_ptr)NULL);
     if (curr_token != tok_end_of_source) {
       pos_error(ec_exp_semicolon, &pos_curr_token);
       while (curr_token != tok_end_of_source) (void)get_token();
@@ -10642,7 +10644,8 @@ that follows.
                       (an_id_linkage_kind)idl_external,
                       has_parenthesized_initializer,
                       /*is_old_style_param_decl=*/FALSE,
-                      &incomplete_type_error_reported);
+                      &incomplete_type_error_reported,
+                      (a_decl_pos_block_ptr)NULL);
         }  /* if */
       } else {
         /* Issue an error if the exception specification on the instance does

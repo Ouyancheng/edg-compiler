@@ -9975,7 +9975,8 @@ a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_scope_depth    orig_decl_level,
                                 a_boolean        is_local_class,
                                 a_boolean        delayed_nested_class_def,
-                                a_boolean	 is_template_instantiation)
+                                a_boolean	 is_template_instantiation,
+                                a_decl_pos_block *decl_pos_block)
 /*
 Scan the body of a class definition, including the base classes list.
 class_type points to the type entry of the class, struct, or union whose
@@ -10511,6 +10512,12 @@ next_declaration:
       }  /* if */
     }  /* if */
     remove_stop_token(tok_rbrace);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* Record the end-of-decl-specifiers source position. */
+    if (decl_pos_block != NULL) {
+      decl_pos_block->specifiers_range.end = pos_curr_token;
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Check for and ignore the closing brace. */
     token_number_of_closing_brace = curr_token_sequence_number;  
     (void)required_token(tok_rbrace, ec_exp_rbrace);

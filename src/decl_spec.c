@@ -521,9 +521,9 @@ static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_boolean         *check_for_vacuous_decl,
                                   a_boolean         is_ref_within_new_expr,
                                   a_scope_depth     *effective_decl_level,
-                                  a_boolean         *tag_resolution)
+                                  a_boolean         *tag_resolution,
+                                  a_decl_pos_block  *decl_pos_block)
 /*
-
 Scan a tag identifier for a class, struct, union, or enum declaration.
 If a tag symbol already exists for the identifier, return a pointer to
 that symbol; otherwise return NULL.  If there is no identifier or if there
@@ -789,6 +789,11 @@ caution when modifying this routine.
     /* Tag symbol is a qualified name or a template class reference. */
     /* Return a copy of the locator to the caller. */
     *locator = locator_for_curr_id;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* Set the end-of-decl-specifiers position provisionally.  It will be
+       reset later if this is a tag definition. */
+    decl_pos_block->specifiers_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else if (tag_err) {
     /* An error occurred while handling a qualified name or a template
        reference earlier. */
@@ -1055,14 +1060,15 @@ case return TRUE).
 }  /* namespace_scope_should_be_pushed */
 
 
-static a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
-                                 a_boolean  is_friend_decl,
-                                 a_boolean  is_ref_within_new_expr,
-				 a_boolean  is_explicit_instantiation,
-                                 a_boolean  is_template_specialization,
-                                 a_type_ptr *type_ptr,
-                                 a_boolean  *declares_something,
-                                 a_boolean  *defines_something)
+static a_boolean class_specifier(a_boolean         vacuous_decl_allowed,
+                                 a_boolean         is_friend_decl,
+                                 a_boolean         is_ref_within_new_expr,
+				 a_boolean         is_explicit_instantiation,
+                                 a_boolean         is_template_specialization,
+                                 a_type_ptr        *type_ptr,
+                                 a_boolean         *declares_something,
+                                 a_boolean         *defines_something,
+                                 a_decl_pos_block  *decl_pos_block)
 /*
 Scan a class-specifier (3.5.2.1), which declares a struct or
 union type.  The syntax is
@@ -1220,7 +1226,8 @@ the template.
     check_assertion(!vacuous_decl_allowed || !is_friend_decl);
     tag_sym = scan_tag_name(tag_kind, &locator, is_friend_decl,
                             &vacuous_decl_allowed, is_ref_within_new_expr,
-                            &effective_decl_level, &tag_resolution);
+                            &effective_decl_level, &tag_resolution,
+                            decl_pos_block);
   }  /* if */
   if (tag_id_present) {
     if (tag_sym != NULL) {
@@ -1810,7 +1817,8 @@ the template.
     if (scan_class_definition(class_type, effective_decl_level,
                               orig_decl_level, is_local_class,
                               delayed_nested_class_def,
-                              /*is_template_instantiation=*/FALSE)) {
+                              /*is_template_instantiation=*/FALSE,
+                              decl_pos_block)) {
       *defines_something = TRUE;
     } else {
       err = TRUE;
@@ -1835,10 +1843,11 @@ the template.
 }  /* class_specifier */
 
 
-static void enum_specifier(a_boolean  vacuous_decl_allowed,
-                           a_type_ptr *type_ptr,
-                           a_boolean  *declares_something,
-                           a_boolean  *defines_something)
+static void enum_specifier(a_boolean         vacuous_decl_allowed,
+                           a_type_ptr        *type_ptr,
+                           a_boolean         *declares_something,
+                           a_boolean         *defines_something,
+                           a_decl_pos_block  *decl_pos_block)
 /*
 Scan an enumeration specifier (3.5.2.2).  The syntax is
 
@@ -1913,7 +1922,8 @@ to indicate whether an enumeration is actually defined.
     tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
                             /*is_friend_decl=*/FALSE, &vacuous_decl_allowed,
                             /*is_ref_within_new_expr=*/FALSE,
-                            &effective_decl_level, &tag_resolution);
+                            &effective_decl_level, &tag_resolution,
+                            decl_pos_block);
     if (tag_resolution) {                            
       /* Resolution of a previous incomplete declaration. */
       if (effective_decl_level != decl_scope_level) {
@@ -2300,6 +2310,11 @@ to indicate whether an enumeration is actually defined.
       } while (!done);
       remove_stop_token(tok_rbrace);
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (curr_token == tok_rbrace) {
+      decl_pos_block->specifiers_range.end = pos_curr_token;
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Check for and pass over the closing "}". */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -3955,7 +3970,7 @@ process_class_specifier:
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
                           type_ptr, &declares_something,
-                          &defines_something)) {
+                          &defines_something, decl_pos_block)) {
               err = TRUE;
             }  /* if */
             basic_type = bt_struct_union;
@@ -3973,7 +3988,8 @@ process_class_specifier:
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
-                          &dummy_type, &dummy_flag, &dummy_flag);
+                          &dummy_type, &dummy_flag, &dummy_flag,
+                          decl_pos_block);
           }  /* if */
           decl_specifiers_seen |= DS_TYPE;
           goto no_get_token;
@@ -3990,7 +4006,8 @@ process_class_specifier:
               vacuous_decl_allowed = FALSE;
             }  /* if */
             enum_specifier(vacuous_decl_allowed, type_ptr,
-                           &declares_something, &defines_something);
+                           &declares_something, &defines_something,
+                           decl_pos_block);
             if (is_error_type(*type_ptr)) {
               /* An error was detected in enum_specifier -- typically, an
                  ill-formed tag name. */
@@ -4008,7 +4025,8 @@ process_class_specifier:
             error(ec_bad_combination_of_type_specifiers);
             /* Scan the specifier anyway, but throw it away. */
             enum_specifier(/*vacuous_decl_allowed=*/FALSE,
-                           &dummy_type, &dummy_flag, &dummy_flag);
+                           &dummy_type, &dummy_flag, &dummy_flag,
+                           decl_pos_block);
           }  /* if */
           decl_specifiers_seen |= DS_TYPE;
           goto no_get_token;

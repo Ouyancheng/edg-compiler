@@ -242,6 +242,8 @@ Initialize the fields of the specified decl-pos block.
   decl_pos_block->specifiers_range.end = null_source_position;
   decl_pos_block->declarator_range.start = null_source_position;
   decl_pos_block->declarator_range.end = null_source_position;
+  decl_pos_block->var_init_range.start = null_source_position;
+  decl_pos_block->var_init_range.end = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* clear_decl_pos_block */
 
@@ -6836,6 +6838,12 @@ Return a pointer to the variable that is declared.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sym->variant.variable.ptr->declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  sym->variant.variable.ptr->source_corresp.specifiers_range =
+                                         decl_pos_block.specifiers_range;
+  sym->variant.variable.ptr->source_corresp.declarator_range =
+                                         decl_pos_block.declarator_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   mark_variable_value_set(sym);
   srk_flags = SRK_DECLARATION | SRK_DEFINITION;
   if (!missing_declarator && curr_token == tok_assign) {
@@ -6851,6 +6859,9 @@ Return a pointer to the variable that is declared.
        "= expr" syntax for initialization (that is, parenthesized initializers
        are disallowed, as is implicit initialization of objects with default
        constructors). */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_pos_block.var_init_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)required_token(tok_assign, ec_exp_assign);
     if (curr_token == tok_lbrace) {
       /* The syntax does not permit initialization with a brace enclosed
@@ -6860,7 +6871,7 @@ Return a pointer to the variable that is declared.
     } else {
       initializer(sym, &locator.source_position, (an_id_linkage_kind)idl_none,
                   /*parenthesized_initializer=*/FALSE, /*is_parameter=*/FALSE,
-                  &incomplete_type_error_reported);
+                  &incomplete_type_error_reported, &decl_pos_block);
     }  /* if */
     /* Reset the error position to the source position of the declarator. */
     error_position = locator.source_position;
@@ -8402,10 +8413,20 @@ continue_with_declaration:
           /* Do processing required for a function definition, including
              scanning the function body.  Note that the closing '}' will not
              been consumed -- that will be done by the caller. */
-          (void)function_definition(&locator, local_type_ptr, &func_info,
+          symbol_ptr =
+                function_definition(&locator, local_type_ptr, &func_info,
                                     local_storage_class,
                                     has_explicit_type_specifier,
                                     &decl_modifiers);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          if (symbol_ptr->kind == (a_symbol_kind)sk_routine ||
+              symbol_ptr->kind == (a_symbol_kind)sk_member_function) {
+            symbol_ptr->variant.routine.ptr->source_corresp.specifiers_range =
+                                             decl_pos_block.specifiers_range;
+            symbol_ptr->variant.routine.ptr->source_corresp.declarator_range =
+                                             decl_pos_block.declarator_range;
+          }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           done_with_func_info(func_info);
           /* The presence of a final '}' will already have been checked for. */
           check_assertion(curr_token == tok_rbrace ||
@@ -8588,6 +8609,9 @@ continue_with_declaration:
         has_initializer = TRUE;
       } else if (curr_token == tok_assign) {
         has_initializer = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        decl_pos_block.var_init_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if C_ANACHRONISMS_ALLOWED
       } else if (C_dialect == C_dialect_pcc && is_initializer_start()) {
         /* In pcc mode, the "=" may be omitted (K&R first edition, Appendix A,
@@ -8773,6 +8797,14 @@ continue_with_declaration:
            required in this context (both C and C++). */
         complete_type_is_needed(local_type_ptr);
       }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (is_variable_def) {
+        var_ptr->source_corresp.specifiers_range =
+                                         decl_pos_block.specifiers_range;
+        var_ptr->source_corresp.declarator_range =
+                                         decl_pos_block.declarator_range;
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       incomplete_type_error_reported = FALSE;
       if (!C_mode() && var_ptr != NULL) {
         if (is_abstract_class_type(local_type_ptr)) {
@@ -8810,7 +8842,7 @@ continue_with_declaration:
            the subroutine can scan over the initializer expression neatly. */
         initializer(symbol_ptr, &locator.source_position, linkage,
                     has_parenthesized_initializer, is_old_style_param_decl,
-                    &incomplete_type_error_reported);
+                    &incomplete_type_error_reported, &decl_pos_block);
         /* Fetch the type of the symbol again, since it might have been
            changed if it was an incomplete array and was initialized. */
         if (var_ptr != NULL) local_type_ptr = var_ptr->type;

@@ -50,6 +50,11 @@ typedef struct an_aggregate_init_info {
   a_boolean	any_uninitialized_const_or_ref_member;
 			/* Set to TRUE if any member of the aggregate that
 			   is uninitialized has const or reference type. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		init_end_position;
+			/* Source position of the end of the initializer. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } an_aggregate_init_info;
 
 
@@ -62,6 +67,9 @@ Initialize an entry of type an_aggregreate_init_info.
   init_info->static_lifetime = static_lifetime;
   init_info->any_uninitialized_member = FALSE;
   init_info->any_uninitialized_const_or_ref_member = FALSE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  init_info->init_end_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* initialize_init_info */
 
 
@@ -1228,6 +1236,11 @@ this function points to a tree that includes a dynamic-init entry.
         }  /* if */
       }  /* if */
     }  /* if */  
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (brace_flag && curr_token == tok_rbrace) {
+      init_info->init_end_position = pos_curr_token;
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* If there was an initial opening brace, check for and skip the
        closing brace now. */
     check_for_matching_closing_brace(brace_flag);
@@ -1276,6 +1289,11 @@ this function points to a tree that includes a dynamic-init entry.
        brace-enclosed initializers on non-aggregate variables in the first
        place). */
     if (brace_flag && curr_token == tok_comma) (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (brace_flag && curr_token == tok_rbrace) {
+      init_info->init_end_position = pos_curr_token;
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     check_for_matching_closing_brace(brace_flag);
   }  /* if */
   if (prev_init_context != NULL) {
@@ -1300,12 +1318,13 @@ this function points to a tree that includes a dynamic-init entry.
 }  /* get_initializer */
 
 
-static a_boolean scan_initializer_list(a_type_ptr          *type,
-                                       a_variable_ptr      vp,
-                                       a_boolean           static_lifetime,
-                                       a_constant_ptr      *init_con,
-                                       a_dynamic_init_ptr  *init_dip,
-                                       a_source_position   *err_pos)
+static a_boolean scan_initializer_list(a_type_ptr            *type,
+                                       a_variable_ptr        vp,
+                                       a_boolean             static_lifetime,
+                                       a_constant_ptr        *init_con,
+                                       a_dynamic_init_ptr    *init_dip,
+                                       a_source_position     *err_pos,
+                                       a_decl_pos_block_ptr  decl_pos_block)
 /*
 Scan an initializer list for an aggregate initialization.  Usually it is a
 brace-enclosed list of initializers, but the case of initializing an
@@ -1390,6 +1409,11 @@ detection of uninitialized fields).
       }  /* if */
     }  /* if */
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL) {
+    decl_pos_block->var_init_range.end = init_info.init_end_position;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
   return !err;
 }  /* scan_initializer_list */
@@ -1667,12 +1691,13 @@ is not needed.
 }  /* pop_object_lifetime_for_local_static_init */
 
 
-void initializer(a_symbol_ptr       symbol_ptr,
-                 a_source_position  *source_pos,
-                 an_id_linkage_kind linkage,
-                 a_boolean          parenthesized_initializer,
-                 a_boolean          is_parameter,
-                 a_boolean          *incomplete_type_error_reported)
+void initializer(a_symbol_ptr          symbol_ptr,
+                 a_source_position     *source_pos,
+                 an_id_linkage_kind    linkage,
+                 a_boolean             parenthesized_initializer,
+                 a_boolean             is_parameter,
+                 a_boolean             *incomplete_type_error_reported,
+                 a_decl_pos_block_ptr  decl_pos_block)
 /*
 Scan an initializer (3.5.7) for the symbol pointed to by symbol_ptr
 (with linkage as given by linkage; a parameter if is_parameter is TRUE).
@@ -1881,6 +1906,11 @@ returned set to TRUE.
          the arg list for a constructor call is scanned, so bypass it
          explicitly. */
       remove_stop_token(tok_rparen);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (curr_token == tok_rparen && decl_pos_block != NULL) {
+        decl_pos_block->var_init_range.end = pos_curr_token;
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       check_closing_paren_after_expr_list();
     }  /* if */
   } else if (is_aggregate_or_union_type(vp_type) ||
@@ -1909,7 +1939,7 @@ returned set to TRUE.
          enclosed list of values.  Except that in C++ such lists may include
          non-constants. */
       if (scan_initializer_list(&vp_type, vp, static_lifetime, &init_con,
-                                &init_dip, source_pos)) {
+                                &init_dip, source_pos, decl_pos_block)) {
         /* The scan was successful. */
         if (!var_err) {
           /* Copy the type back into the variable.  It might have been changed
@@ -1950,6 +1980,11 @@ returned set to TRUE.
        brace-enclosed initializers on non-aggregate variables in the first
        place). */
     if (brace_flag && curr_token == tok_comma) (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (brace_flag && curr_token == tok_rbrace && decl_pos_block != NULL) {
+      decl_pos_block->var_init_range.end = pos_curr_token;
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     check_for_matching_closing_brace(brace_flag);
   }  /* if */
   if (!var_err) {
@@ -2046,6 +2081,11 @@ returned set to TRUE.
       vp->init_kind = (an_init_kind)initk_static;
       vp->initializer.constant = init_con;
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (decl_pos_block != NULL) {
+      vp->initializer_range = decl_pos_block->var_init_range;
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
     /* The initializer of a static data member was scanned with the original
