@@ -152,7 +152,15 @@ typedef struct a_required_destructor_call {
 		is_expr_temporary;
 			/* TRUE if the entity to be destroyed is a compiler-
 			   generated expression temporary. */
+  unsigned long	region_number;
+			/* Destructible object region number for exception
+			   handling. */
 } a_required_destructor_call;
+
+/*
+Value used to indicate "no region number" for exception handling regions.
+*/
+#define NULL_EH_REGION_NUMBER (~(unsigned long)0)
 
 
 /*
@@ -339,6 +347,8 @@ extern void change_to_cast(an_expr_node_ptr node,
                            an_expr_node_ptr operand_node,
                            a_type_ptr       new_type);
 
+extern an_expr_node_ptr array_var_lvalue_expr(a_variable_ptr var);
+
 extern an_expr_node_ptr make_node_for_il_constant(a_constant_ptr constant);
 
 extern an_expr_node_ptr make_vbptr_field_lvalue_from_var(a_variable_ptr   var,
@@ -386,6 +396,8 @@ extern a_variable_ptr make_instantiation_var(
 
 extern a_variable_ptr make_lowered_temporary(a_type_ptr temp_type);
 
+extern a_variable_ptr make_file_scope_temporary(a_type_ptr temp_type);
+
 extern a_variable_ptr make_temporary_possibly_at_file_scope(
                                                      a_type_ptr temp_type,
                                                      a_boolean  at_file_scope);
@@ -401,6 +413,16 @@ extern a_type_ptr make_vptp_type(void);
 
 extern void overwrite_node(an_expr_node_ptr node,
                            an_expr_node_ptr source_node);
+
+extern void set_integer_constant_with_overflow_check(
+                                              a_constant_ptr  con,
+                                              long            con_val,
+                                              an_integer_kind ikind);
+
+extern void set_unsigned_integer_constant_with_overflow_check(
+                                              a_constant_ptr  con,
+                                              long            con_val,
+                                              an_integer_kind ikind);
 
 extern void repr_for_ptr_to_data_member_constant(a_constant_ptr   constant, 
                                                  a_targ_ptrdiff_t *delta);
