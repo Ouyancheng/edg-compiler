@@ -327,10 +327,10 @@ the standard committee.
 
 11/29/99 RECORD_TEMPLATES_IN_IL renamed to RECORD_TEMPLATE_STRINGS
 
-Formerly, template IL entries were only created when RECORD_TEMPlATES_IN_IL
+Formerly, template IL entries were created only when RECORD_TEMPLATES_IN_IL
 was TRUE.  They were created primarily as a means of saving the textual
 representation of templates.  Now, IL template entries are always created,
-but the textual representation is only included when RECORD_TEMPLATE_STRINGS
+but the textual representation is included only when RECORD_TEMPLATE_STRINGS
 is TRUE.
 
 11/29/99 NEED_NAME_MANGLING TRUE and DO_IL_LOWERING FALSE
