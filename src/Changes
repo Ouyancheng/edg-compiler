@@ -1,5 +1,13 @@
 Version 2.23
 
+4/20/94  Empty initializer list
+
+Formerly treated as an extension in C++, an empty initializer list in
+aggregate initialization is no longer treated as nonstandard -- e.g.,
+
+  struct A { };
+  A a[2] = { {}, {} };     // Diagnostic in strict ANSI mode eliminated
+
 4/20/94  Casting to a reference type using a conversion function
 
 Casting a class value to a reference to a different class, where a
