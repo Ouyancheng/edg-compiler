@@ -496,6 +496,7 @@ check_abbreviation()
 --force_vtbl
 --friend_injection
 --guiding_decls
+--ignore_std
 --implicit_extern_c_type_conversion
 --implicit_include
 --implicit_typename
@@ -1040,6 +1041,7 @@ process_option()
          --no_sun | \
          --dep_name | \
          --no_dep_name | \
+         --ignore_std | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
