@@ -1998,9 +1998,23 @@ will be involved in overloading.
         if (decls_at_same_scope || is_friend_decl) {
           /* The function symbol was located in the current scope. If there
              there was an exact type match of C++ functions, and in general
-             otherwise, this is a redeclaration, and we can return in
-             *linked_symbol a pointer to the function or variable. */
-          *linked_symbol = other_decl;
+             otherwise, this is a redeclaration, and if other_decl has
+             linkage we can return in *linked_symbol a pointer to the function
+             or variable it represents. */
+          if (other_decl != NULL) {
+            if (is_function_symbol(other_decl)) {
+              /* Functions always have linkage. */
+              *linked_symbol = other_decl;
+            } else if (other_decl->decl_scope == FILE_SCOPE_NUMBER ||
+                       other_decl->variant.variable->storage_class ==
+                                           (a_storage_class)sc_extern ||
+                       other_decl->variant.variable->storage_class ==
+                                           (a_storage_class)sc_unspecified) {
+              /* Variables at file scope always have linkage.  Automatic,
+                 register, and static variables in local scopes do not. */
+              *linked_symbol = other_decl;
+            }  /* if */
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
