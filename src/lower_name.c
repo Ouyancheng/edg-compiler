@@ -1253,7 +1253,8 @@ Mangle the name of the indicated function, if necessary.
 
   error_position = routine->source_corresp.decl_position;
   /* Compiler-generated routines have no name, and they are left alone. */
-  if (routine->source_corresp.name != NULL) {
+  if (routine->source_corresp.name != NULL &&
+      !routine->source_corresp.name_has_been_mangled) {
     if (function_name_mangling_needed(routine, &suppress_param_encoding)) {
       /* Mangle the function name. */
       /* Determine how long the mangled name is. */
@@ -1369,19 +1370,21 @@ Mangle the name of the indicated static data member.
   sizeof_t mangled_name_length, alloc_length;
   char     *mangled_name;
 
-  error_position = variable->source_corresp.decl_position;
-  /* Determine how long the mangled name is. */
-  mangled_name_length = mangled_static_data_member_name(variable,
-                                                        (char *)NULL);
-  /* Allocate space for the mangled name and build it.  The old name is
-     just thrown away. */
-  alloc_length = mangled_name_length + 1;
-  mangled_name = alloc_lowered_name_string(alloc_length);
-  (void)mangled_static_data_member_name(variable, mangled_name);
-  /* Store the final null. */
-  mangled_name[mangled_name_length] = '\0';
-  variable->source_corresp.name = mangled_name;
-  variable->source_corresp.name_has_been_mangled = TRUE;
+  if (!variable->source_corresp.name_has_been_mangled) {
+    error_position = variable->source_corresp.decl_position;
+    /* Determine how long the mangled name is. */
+    mangled_name_length = mangled_static_data_member_name(variable,
+                                                          (char *)NULL);
+    /* Allocate space for the mangled name and build it.  The old name is
+       just thrown away. */
+    alloc_length = mangled_name_length + 1;
+    mangled_name = alloc_lowered_name_string(alloc_length);
+    (void)mangled_static_data_member_name(variable, mangled_name);
+    /* Store the final null. */
+    mangled_name[mangled_name_length] = '\0';
+    variable->source_corresp.name = mangled_name;
+    variable->source_corresp.name_has_been_mangled = TRUE;
+  }  /* if */
 }  /* mangle_static_data_member_name */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -1431,7 +1434,8 @@ Mangle the name of the indicated class, if necessary.
 
   error_position = class_type->source_corresp.decl_position;
   if (class_type->variant.class_struct_union.extra_info->
-                                                   template_arg_list != NULL) {
+                                                   template_arg_list != NULL &&
+      !class_type->source_corresp.name_has_been_mangled) {
     /* Template class names must be mangled because otherwise all instances
        of the same class template have the same name. */
     /* Determine how long the mangled name is. */
@@ -1463,7 +1467,8 @@ other name mangling that might use the name is done.
 
   error_position = type->source_corresp.decl_position;
   if (type->source_corresp.class_of_which_a_member != NULL &&
-      type->source_corresp.name != NULL
+      type->source_corresp.name != NULL &&
+      !type->source_corresp.name_has_been_mangled
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
       /* If this a cfront 2.1 nested type, leave it in the unnested form. */
       && !type->use_cfront_transitional_nested_type_name_mangling
@@ -1806,23 +1811,25 @@ void mangle_promoted_entity_name(a_source_correspondence *scp,
 scp points to the source correspondence field of an entity that is being
 promoted out of the routine "routine" (or one of its block scopes) to
 the file scope.  Give the entity a mangled name if necessary (e.g.,
-if the function is a template function).
+if the function is a template function).  This routine is called only
+once for each entity, and that is after normal name mangling has been done.
 */
 {
   sizeof_t mangled_name_length, alloc_length, name_length, routine_name_length;
   char     *mangled_name, *store_at;
 
   if (routine->is_template_function && routine->source_corresp.name != NULL &&
-      scp->name != NULL && !scp->name_has_been_mangled) {
+      scp->name != NULL) {
     /* The routine is an instantiation of a template, so name mangling is
        needed.  Without it, two instances of the same function might promote
        two instances of the same entity to file scope.  Everything about them
        looks the same, so they would clash. */
     /* The encoding is the original name, two underscores, and the
-       mangled name of the routine.  Note that the routine name has not
-       been mangled yet. */
-    name_length = strlen(scp->name);
+       mangled name of the routine.  Note that the routine name has
+       not been mangled yet, but the entity's name has been (if it needs
+       mangling). */
     check_assertion(!routine->source_corresp.name_has_been_mangled);
+    name_length = strlen(scp->name);
     routine_name_length =
                        mangled_function_name(routine,
                                              /*suppress_param_encoding=*/FALSE,
