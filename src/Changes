@@ -1,5 +1,10 @@
 Version 2.21
 
+11/17/93 Instantiation pragmas not at global scope
+
+Using instantiation pragma at scopes other than the global scope
+did not work in all cases.  This has been corrected.
+
 11/17/93 Instantiating members of an incomplete class
 
 The following case was accepted without issuing an error.  Attempts

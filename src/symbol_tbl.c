@@ -5106,7 +5106,6 @@ C and C++.
   a_name_space_kind       required_name_space_kind =
                             (C_dialect != C_dialect_cplusplus && must_be_tag) ?
                                                            nsk_tag : nsk_other;
-  a_boolean		  in_pragma_scope = FALSE;
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   a_boolean		  projection_symbol_found = FALSE;
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
@@ -5283,13 +5282,6 @@ C and C++.
 	  /* We have found a pragma scope.  This will cause us to
 	     ignore template declaration scope found lower in the scope
 	     stack. */
-	  in_pragma_scope = TRUE;
-          skip_symbols_from_this_scope();
-	  goto next_scope;
-        } else if (in_pragma_scope &&
-		   ssep->kind == (a_scope_kind)sck_template_declaration) {
-	  /* Ignore symbols from the template declaration scope if we are
-	     inside a pragma scope. */
           skip_symbols_from_this_scope();
 	  goto next_scope;
         } else {
@@ -5372,14 +5364,17 @@ next_scope:
             skip_first_class_reactivation_scope = TRUE;
           }  /* if */
         }  /* if */
-        /* If this scope is for a template instantiation, ignore the scopes
-           between the file scope and the current instantiation scope.  The
-           only processing done on these scopes is to remove their symbols
-           from the active list so that when we reach the file scope we
-           are at the right point in the active list.  Only file scope
-           symbols, template parameters, and symbols defined within the
-           instantiation should be visible. */
-        if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+        /* If this scope is for a template instantiation or a pragma, ignore
+           the scopes between the file scope and the current instantiation
+           scope.  The only processing done on these scopes is to remove their
+           symbols from the active list so that when we reach the file
+           scope we are at the right point in the active list.  Within
+           an instantiation scope only file scope symbols, template
+           parameters, and symbols defined within the instantiation
+           should be visible.  Within a  pragma scope only
+           global scope symbols should be visible. */
+        if (ssep->kind == (a_scope_kind)sck_template_instantiation ||
+            ssep->kind == (a_scope_kind)sck_pragma) {
           a_scope_number  file_scope_number;
           ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
           file_scope_number = ssep->number;
