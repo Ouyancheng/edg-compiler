@@ -1,5 +1,19 @@
 Version 2.40
 
+10/2/98   Incorrect lookup in member template
+
+If a member template was declared within a nested class declared within a
+class template, names within the member class template were not looked
+up properly.  This has been fixed.
+
+  template<class T1> class A {
+    class B {
+      template<class T2> class C {
+        T1 t1;  // spurious "T1 is undefined" error
+      };
+    };
+  };
+
 9/30/98   Microsoft compatibility: storage class in friend declaration
 
 A bug has been fixed in Microsoft compatibility mode in connection with

@@ -2211,10 +2211,12 @@ scopes.
      instantiation we simply push a new template instantiation scope onto
      the existing context and flag it as a nested instantiation. */
   if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
-    if (template_sym->is_class_member &&
-        template_sym->parent.class_type ==
-          scope_stack[depth_innermost_instantiation_scope].assoc_type) {
-      nested_in_prototype_instantiation = TRUE;
+    a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+    if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
+      if (template_sym->is_class_member &&
+          template_sym->parent.class_type == ssep->assoc_type) {
+        nested_in_prototype_instantiation = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 #if CHECKING
