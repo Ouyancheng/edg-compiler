@@ -300,6 +300,13 @@ function).
   /* Note that we drop type qualifiers so we won't add a cast to drop
      type qualifiers. */
   arg_type = skip_typerefs(arg_type);
+#if LOWER_FIXED_POINT
+  if (fixed_point_enabled &&
+      is_fixed_point_type(arg_type)) {
+    /* Fixed-point types get turned into integer types. */
+    arg_type = lowered_integer_type_for_fixed_point_type(arg_type);
+  }  /* if */
+#endif /* LOWER_FIXED_POINT */
   if (is_arithmetic_or_enum_type(arg_type)) {
     /* Note that no special handling is done for bit fields because they
        have already been cast to the prototyped parameter type and therefore

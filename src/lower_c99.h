@@ -39,6 +39,10 @@ lower_c99.h -- Declarations related to lower_c99.c.
     or_vla_lowering_needed()) &&                                             \
    !suppress_il_lowering && total_errors == 0)
 
+#if LOWER_FIXED_POINT
+extern a_type_ptr lowered_integer_type_for_fixed_point_type(
+                                                           a_type_ptr fx_type);
+#endif /* LOWER_FIXED_POINT */
 
 extern void lower_c99_cast(an_expr_node_ptr expr);
 

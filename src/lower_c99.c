@@ -1844,6 +1844,41 @@ The given expression is a GNU-style binary conditional expression of the form
 }  /* lower_binary_conditional */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+
+#if !FIXED_POINT_ALLOWED
+/*ARGSUSED*/  /* <-- expr is not used in that case. */
+#endif /* !FIXED_POINT_ALLOWED */
+static void lower_c99_call(an_expr_node_ptr expr)
+/*
+Do any required lowering on an eok_call expression node.  The operands
+have been lowered already.
+*/
+{
+#if FIXED_POINT_ALLOWED
+  if (fixed_point_enabled) {
+    /* May need to widen some fixed-point arguments passed to
+       unprototyped parameters. */
+    an_expr_node_ptr op1 = expr->variant.operation.operands;
+    a_type_ptr       rout_type = f_skip_typerefs(type_pointed_to(op1->type));
+    a_routine_type_supplement_ptr
+                     rtsp = rout_type->variant.routine.extra_info;
+    a_param_type_ptr param = rtsp->param_type_list;
+    an_expr_node_ptr arg;
+    for (arg = op1->next; arg != NULL; arg = arg->next) {
+      if (param == NULL) {
+        /* An unprototyped parameter. */
+        if (is_fixed_point_type(arg->type)) {
+          do_default_arg_promotions_on_node(arg);
+        }  /* if */
+      } else {
+        /* A prototyped parameter. */
+        param = param->next;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* FIXED_POINT_ALLOWED */
+}  /* lower_c99_call */
+
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
 
 static an_expr_node_ptr vla_size_expr(a_type_ptr  vla_type,
@@ -2186,6 +2221,9 @@ _Bool type, and VLA types.
       lower_binary_conditional(expr);
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    case eok_call:
+      lower_c99_call(expr);
+      break;
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
     case eok_padd:
     case eok_psubtract:
@@ -2226,6 +2264,7 @@ integral constant.
   int_value = constant->variant.fixed_point_value;
   set_constant_kind(constant, (a_constant_repr_kind)ck_integer);
   constant->variant.integer_value = int_value;
+  constant->type = lowered_integer_type_for_fixed_point_type(constant->type);
 }  /* lower_c99_fixed_point_constant */
 
 #endif /* LOWER_FIXED_POINT */
@@ -3395,6 +3434,36 @@ Replace the C99 _Bool type by its lowered representation.
 
 #if LOWER_FIXED_POINT
 
+a_type_ptr lowered_integer_type_for_fixed_point_type(a_type_ptr fx_type)
+/*
+Return the integer type that is the lowered form of the indicated
+fixed-point type.
+*/
+{
+  an_integer_kind  ikind;
+  a_targ_size_t    int_size;
+  a_targ_alignment int_alignment;
+  a_type_ptr       int_type;
+
+  fx_type = skip_typerefs(fx_type);
+  check_assertion(fx_type->kind == (a_type_kind)tk_fixed_point);
+  for (ikind = 0; ; ikind++) {
+    check_assertion_str(ikind < (int)ik_last,
+            "lowered_integer_type_for_fixed_point_type: no suitable int type");
+    get_integer_size_and_alignment(ikind, &int_size, &int_alignment);
+    if (int_size == fx_type->size &&
+        int_alignment == fx_type->alignment &&
+        int_kind_is_signed[(int)ikind] ==
+                                   !fx_type->variant.fixed_point.is_unsigned) {
+      /* This integral type is okay. */
+      break;
+    }  /* if */
+  }  /* for */
+  int_type = integer_type(ikind);
+  return int_type;
+}  /* lowered_integer_type_for_fixed_point_type */
+
+
 static void lower_c99_fixed_point_type(a_fixed_point_type_descr descr)
 /*
 Lower the C99 fixed-point type whose precision is given by kind.
@@ -3404,7 +3473,7 @@ The lowered form is a typedef to one of the integral types.
   if (fixed_point_type_used_in_primary_IL(descr)) {
     a_type_ptr      fx_type = fixed_point_type(descr);
     char            name[30];
-    an_integer_kind ikind;
+    a_type_ptr      int_type;
 
     /* Develop the name for the typedef. */
     (void)strcpy(name, "_Fixed_point_");
@@ -3426,21 +3495,9 @@ The lowered form is a typedef to one of the integral types.
     }  /* if */
     /* Determine the corresponding integral type (it must have the same
        size, alignment, and signedness). */
-    for (ikind = 0; ; ikind++) {
-      a_targ_size_t    int_size;
-      a_targ_alignment int_alignment;
-      check_assertion_str(ikind < (int)ik_last,
-                          "lower_c99_fixed_point_type: no suitable int type");
-      get_integer_size_and_alignment(ikind, &int_size, &int_alignment);
-      if (int_size == fx_type->size &&
-          int_alignment == fx_type->alignment &&
-          int_kind_is_signed[(int)ikind] == !descr.is_unsigned) {
-        /* This integral type is okay. */
-        break;
-      }  /* if */
-    }  /* for */
+    int_type = lowered_integer_type_for_fixed_point_type(fx_type);
     set_type_kind(fx_type, (a_type_kind)tk_typeref);
-    fx_type->variant.typeref.type = integer_type(ikind);
+    fx_type->variant.typeref.type = int_type;
     fx_type->source_corresp.name = alloc_il((sizeof_t)(strlen(name)+1));
     (void)strcpy(fx_type->source_corresp.name, name);
     add_to_front_of_file_scope_types_list(fx_type);
