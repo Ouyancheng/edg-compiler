@@ -28,6 +28,7 @@ Date/time of compilation, in ctime format ("Sun Sep 16 01:03:52 1973\n"):
 EXTERN char	curr_date_time[26];
 
 /* Initialize front end: */
+extern void fe_one_time_init(void);
 extern void fe_init(void);
 
 extern a_symbol_ptr enter_predef_macro(char      *repl_text,
