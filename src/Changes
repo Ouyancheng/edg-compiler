@@ -5,11 +5,12 @@ Version 2.36
 A bug in IL lowering's processing of return value optimization has been
 eliminated.  The symptom was an IL write/read internal error when
 exception handling is enabled and object lifetime information is
-preserved.
+preserved.  The copy constructor call eliminated must require a
+default argument that contains a destructible temporary.
 
-  struct A { ~A (); };
+  struct A { ~A(); };
   struct S {
-    S(const S& str, const A& a = A ());
+    S(const S& str, const A& a = A());
     S();
   };
   S f() {
