@@ -3175,7 +3175,7 @@ no routine is on the list twice.
     check_assertion_str2(
                      sym_to_find->kind == (a_symbol_kind)sk_routine ||
                      sym_to_find->kind == (a_symbol_kind)sk_function_template,
-                     "nonmember_operator_function_lookup:", "bad symbol kind");
+                     "add_routine_to_symbol_list:", "bad symbol kind");
     for (slep = *list_head; slep != NULL; slep = slep->next) {
       a_symbol_ptr	list_sym = slep->symbol;
       if (list_sym->kind == sym_to_find->kind) {
