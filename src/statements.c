@@ -1901,6 +1901,22 @@ declarations.
 }  /* update_init_statement_control_flow */
 
 
+void trivial_init_control_flow(a_variable_ptr  var)
+/*
+Record a control flow entry for a trivial initialization of the given variable
+(corresponding to the invocation of a trivial constructor).   Such an
+initialization does not require an init statement (since no actual
+initialization work must be performed), but it must be diagnosed when branched
+over.
+*/
+{
+  a_control_flow_descr_ptr  cfdp;
+
+  cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_init);
+  cfdp->variant.init.variable = var;
+  add_to_control_flow_descr_list(cfdp);
+}  /* trivial_init_control_flow */
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 static void decl_statement(a_boolean  marked_as_gnu_extension)
@@ -4614,7 +4630,8 @@ issue a diagnostic complaining about skipping over an initialization.
       sp = cfdp->variant.init.statement;
       vp = cfdp->variant.init.variable;
       if (vp != NULL && !cfdp->variant.init.is_vla_variable) {
-        check_assertion(sp->kind == (a_statement_kind)stmk_init ||
+        check_assertion(sp == NULL ||
+                        sp->kind == (a_statement_kind)stmk_init ||
                         (C_mode() && microsoft_mode &&
                          sp->kind == (a_statement_kind)stmk_block));
         /* We only issue a diagnostic for jumping over an initialization of
@@ -4628,7 +4645,13 @@ issue a diagnostic complaining about skipping over an initialization.
             tp = vp->type;
             if (is_array_type(tp)) tp = underlying_array_element_type(tp);
             tp = skip_typerefs(tp);
-            if (is_class_struct_union_type(tp) && !microsoft_mode) {
+            if (sp == NULL) {
+              /* cfdp stands for an trivial non-POD initialization.  No
+                 statement is needed for such initializations, but a branch
+                 over the initialization still must be diagnosed. */
+              severity = strict_ansi_mode ? strict_ansi_error_severity
+                                          : es_warning;
+            } else if (is_class_struct_union_type(tp) && !microsoft_mode) {
               severity = es_error;
             } else if (strict_ansi_mode) {
               severity = strict_ansi_error_severity;
@@ -4660,9 +4683,10 @@ issue a diagnostic complaining about skipping over an initialization.
         if (vp != NULL) {
           /* Issue the diagnostic addendum that identifies this particular
              variable. */
-          sym_add_diag_info(sp->kind == (a_statement_kind)stmk_vla_decl ?
-                              ec_vla_name_at_decl_position :
-                              ec_name_at_decl_position,
+          sym_add_diag_info((sp != NULL &&
+                             sp->kind == (a_statement_kind)stmk_vla_decl) ?
+                               ec_vla_name_at_decl_position :
+                               ec_name_at_decl_position,
                             (a_symbol_ptr)vp->source_corresp.assoc_info);
         } else {
           /* Diagnostic addendum that identifies the VLA declaration. */

@@ -1,5 +1,21 @@
 Version 3.6
 
+3/24/05  Diagnostic on branch past trivial default initializations
+
+The front end previous failed to diagnose branches past non-POD variables
+default-initialized with a trivial constructor (unless the variable had
+a nontrivial destructor).  For example:
+
+  struct B {};
+  struct D: B {};
+  void f() {
+    goto L1;  // Previously undiagnosed.  Now an error in strict mode
+    D d;      // and a warning otherwise.
+  L1:;
+  }
+
+This is now fixed: An error is issued in strict mode, a warning otherwise.
+
 3/24/05  C99 inline definitions and entities with internal linkage
 
 In C99 mode, the front end previously issued an error whenever a function with

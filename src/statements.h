@@ -426,6 +426,8 @@ extern a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
 
 extern void update_init_statement_control_flow(a_statement_ptr  sp);
 
+extern void trivial_init_control_flow(a_variable_ptr  var);
+
 extern void set_vla_size_statement(a_vla_dimension_ptr  vdp,
                                    a_source_position    *pos);
 

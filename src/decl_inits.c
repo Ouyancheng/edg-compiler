@@ -3558,6 +3558,7 @@ the default constructor (if one exists) is called.
                                /*instantiate=*/TRUE);
       if (ctor == NULL && dtor == NULL && !is_nonreal_class) {
         /* No constructor for default initialization; no destructor either. */
+        trivial_init_control_flow(var);
       } else {
         if (ctor != NULL) {
           /* Normal case -- there's a constructor to do the initialization. */
