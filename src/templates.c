@@ -7778,14 +7778,15 @@ template entities.
       }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     }  /* if */
+    /* The template should be instantiated if the entity is not specialized
+       and a template definition is available. */
+    result = !specialized && template_def;
     if (!template_def && !specialization_defined) {
       /* A template can be declared and referenced without ever being defined.
          If, however, an instantiation was explicitly requested an error is
-         issued.  In any case, the instantiation cannot be done without
-         a template definition.  The error is not issued if the instantiation
-         was requested by an instantiation of the entire class (meaning that
-         all members should be instantiated). */
-      result = FALSE;
+         issued.  The error is not issued if the instantiation was requested
+         by an instantiation of the entire class (meaning that all members
+         should be instantiated). */
       if (tip->explicit_instantiation && !tip->class_explicitly_instantiated) {
         pos_sy_error(ec_instantiation_requested_no_definition_supplied,
   	           &tip->explicit_instantiation_pos,
@@ -7794,10 +7795,9 @@ template entities.
     } else {
       /* There is a body or a declared specialization. */
       if (specialized) {
-        /* A declaration was declared (but not necessarily defined).
+        /* A specialization was declared (but not necessarily defined).
            Simply skip the instantiation unless an instantiation was
            explicitly requested. */
-        result = FALSE;
         if (tip->explicit_instantiation) {
           pos_sy_error(ec_instantiation_requested_and_specialized,
   	             &tip->explicit_instantiation_pos, tip->instance_sym);
@@ -8045,13 +8045,12 @@ defer_inline is TRUE.
       }  /* if */
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-    if (!defer_inline && is_function_symbol(sym) &&
-        cache_for_template(tssp)->tokens.first_token != NULL &&
-        is_inline_template_function(tip)) {
-      /* Inline (member or nonmember) functions are instantiated at the
-         point of first use, in case the back end requires the function
-         body immediately to perform inlining. */
-      if (!tip->already_instantiated) {
+    if (!defer_inline && is_inline_template_function(tip)) {
+      if (!tip->already_instantiated &&
+          should_be_instantiated(tip, /*implicit_inclusion_ok=*/FALSE)) {
+        /* Inline (member or nonmember) functions are instantiated at the
+           point of first use, in case the back end requires the function
+           body immediately to perform inlining. */
         instantiate_template_function(tip);
       }  /* if */
     } else if (flag_already_set) {
