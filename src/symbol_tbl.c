@@ -704,7 +704,9 @@ do_variable:
               }  /* if */
               if (tplep->variant.param_constant.has_default_arg) {
 		if (!tplep->
-			variant.param_constant.type_involves_template_param) {
+			variant.param_constant.type_involves_template_param &&
+                    !tplep->
+                     variant.param_constant.constant_involves_template_param) {
 		  put_string("= ");
 		  db_constant(tplep->variant.param_constant.
 							default_arg.constant);
@@ -8428,6 +8430,7 @@ and return a pointer to it.
     ptr->variant.param_constant.ptr = sym->variant.constant;
     ptr->variant.param_constant.has_default_arg = FALSE;
     ptr->variant.param_constant.type_involves_template_param = FALSE;
+    ptr->variant.param_constant.constant_involves_template_param = FALSE;
     ptr->variant.param_constant.default_arg.constant = NULL;
 #if CHECKING
     ptr->variant.param_constant.dummy = 0;

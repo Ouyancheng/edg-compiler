@@ -858,6 +858,10 @@ typedef struct a_template_param {
 			/* TRUE if the type entry associated with the
 			   parameter constant involves (anywhere in its
 			   type tree) a tk_template_param type entry. */
+      unsigned int
+		constant_involves_template_param:1;
+			/* TRUE if the default argument expression contains
+			   a ck_template_param. */
 #if CHECKING
       unsigned int
 		dummy:2;
@@ -866,14 +870,16 @@ typedef struct a_template_param {
 			   from CodeCenter. */
 #endif /* CHECKING */
       union {
-        /* When type_involves_template_param is FALSE. */
+        /* When type_involves_template_param and
+           constant_involves_template_param are FALSE. */
         a_constant_ptr
 		constant;
 			/* Constant containing the default value
 			   to be used as the actual argument of an
 		           instantiation when the actual argument
 			   corresponding to this parameter is omitted. */
-        /* When type_involves_template_param is TRUE. */
+        /* When type_involves_template_param or
+           constant_involves_template_param is TRUE. */
         a_token_cache
 		token_cache;
 			/* Header of the token cache that contains the
