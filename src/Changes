@@ -1,5 +1,20 @@
 Version 3.6
 
+3/25/05  Microsoft compatibility: Implicit destruction of property fields
+
+In Microsoft C++ mode, the front previous incorrectly created IL to destroy a
+property field with a class type requiring nontrivial destruction.  This
+problem could manifest itself as an internal error when reading an IL file
+containing such IL.  For example:
+
+  struct A { ~A(); };
+  struct S {
+    __declspec(property(get=getA)) A a;  // Not really a data member: Should
+    A getA();                            // not be destroyed.
+  } s;
+
+This is now fixed.  (See also Changes entry of 7/8/99.)
+
 3/24/05  Diagnostic on branch past trivial default initializations
 
 The front end previous failed to diagnose branches past non-POD variables

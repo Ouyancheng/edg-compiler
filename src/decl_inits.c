@@ -5068,7 +5068,16 @@ though neither constructors nor initialization is involved here.)
        sym = sym->next_in_scope) {
     if (sym->kind == (a_symbol_kind)sk_field) {
       /* sym represents a field.  Determine whether a destructor exists. */
-      tp = skip_typerefs(sym->variant.field.ptr->type);
+      a_field_ptr field = sym->variant.field.ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode && (field->get_property_name != NULL ||
+                             field->put_property_name != NULL)) {
+        /* Property fields are not really data members and should not be
+           destroyed. */
+        continue;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      tp = skip_typerefs(field->type);
       /* For arrays get the element type, allowing for multidimensional
          arrays.  Flexible array members (and zero-length array members)
          need no destruction (these are extensions in some modes). */
@@ -5087,7 +5096,7 @@ though neither constructors nor initialization is involved here.)
         if (rp != NULL) {
           /* Create the constructor init entry for a field. */
           cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
-          cip->variant.field = sym->variant.field.ptr;
+          cip->variant.field = field;
           cip->compiler_generated = TRUE;
           /* Create a dynamic init entry. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
