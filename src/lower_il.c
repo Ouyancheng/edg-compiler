@@ -7571,6 +7571,7 @@ not reachable from the normal file-scope IL tree.
   for (oilp = il_header.orphaned_il_list; oilp != NULL; oilp = oilp->next) {
     lower_type_list(oilp->orphaned_types);
     lower_variable_list(oilp->orphaned_variables);
+    /* The source sequence sublist list need not be visited. */
   }  /* if */
   /* Now visit all the orphaned entries recorded by the more general scheme. */
   /* Look at each IL entry kind (e.g., types, constants). */
