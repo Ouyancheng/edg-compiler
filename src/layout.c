@@ -119,6 +119,9 @@ B.  Layout options
   pointers and virtual base class data sections appear in the layout is
   predictable, not an accident of the implementation.
 
+  For detailed information about cfront layout compatibility issues please
+  refer to the functions involved, including set_data_section_base_class
+  in class_decl.c.
 */
 
 #include "basics.h"
@@ -1259,6 +1262,7 @@ base class of class_type, and allocate space for the latter.
            under certain circumstances. */
         bcp->offset = set_offset_and_alignment(lob, bcp->type->size,
                                                bcp->type->alignment);
+        fixup_embedded_virtual_base_classes(bcp, lob->class_type);
       }  /* if */
     }  /* for */
   } else {
