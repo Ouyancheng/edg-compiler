@@ -51,8 +51,8 @@ The set includes "$" as an extension.  This is a macro, and it evaluates
 its argument more than once.
 */
 #define is_id_start_char(ch)                                          \
-  (ch != EOF &&                                                       \
-   (isalpha((unsigned char)ch) || ch == '_' || ch == '$'))
+  ((ch) != EOF &&                                                     \
+   (isalpha((unsigned char)(ch)) || (ch) == '_' || (ch) == '$'))
 
 /*
 Return TRUE if the given character is one that can be part of an identifier
@@ -60,7 +60,7 @@ after the first character.  This is a macro, and it evaluates its argument
 more than once.
 */
 #define is_id_following_char(ch)                                      \
-  (ch != EOF && (is_id_start_char(ch) || isdigit(ch)))
+  (ch != EOF && (is_id_start_char(ch) || isdigit((unsigned char)(ch))))
 
 
 static void process_identifier(void)
