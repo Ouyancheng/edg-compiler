@@ -3577,6 +3577,7 @@ The syntax is:
      position of the declarator-id).  It will be changed later if required. */
   copy_source_position(pos_curr_token, declarator_pos);
   *output_flags = DO_NO_OUTPUT_FLAGS;
+  if (array_qualifiers != NULL) *array_qualifiers = TQ_NONE;
   real_declarator_allowed = input_flags & DI_REAL_DECLARATOR_ALLOWED;
   abstract_declarator_allowed = input_flags & DI_ABSTRACT_DECLARATOR_ALLOWED;
   parenthesized_initializer_allowed =
