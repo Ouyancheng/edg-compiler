@@ -5142,6 +5142,8 @@ an implied break.  Change the implied break to an explicit goto,
 thus allowing us to continue adding (dead) code following the break.
 */
 {
+  a_source_position start_pos, end_pos;
+
   sssep->curr_switch_clause = sssep[1].curr_switch_clause =
                                                      sssep->last_switch_clause;
   check_assertion(sssep->curr_switch_clause != NULL &&
@@ -5149,14 +5151,15 @@ thus allowing us to continue adding (dead) code following the break.
   sssep->curr_switch_clause->implied_break_at_end = FALSE;
   sssep->last_dep_statement =
                  last_statement_in_list(sssep->curr_switch_clause->statements);
-  add_goto_for_break(sssep,
-                     &sssep->curr_switch_clause->break_position,
+  set_position_from_stmt_source_position(
+                                start_pos,
+                                sssep->curr_switch_clause->break_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-                     &sssep->curr_switch_clause->break_end_position
-#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-                     (a_stmt_source_position *)NULL
+  set_position_from_stmt_source_position(
+                                end_pos,
+                                sssep->curr_switch_clause->break_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-                    );
+  add_goto_for_break(sssep, &start_pos, &end_pos);
 }  /* make_implicit_break_explicit */
 
 
