@@ -1,5 +1,21 @@
 Version 2.46
 
+12/18/01 New-expression mistaken for explicit specialization in template
+
+Under certain circumstances involving a new expression using an elaborated
+class name (i.e., "new class X" or "new struct Y") in a template, the front
+end erroneously reported an error that an explicit specialization could not
+appear where the new-expression was written.  The following example, when
+compiled with -tused, illustrates the problem:
+
+  template<typename T> struct S {
+    S() { new class C; }  // "class C" mistaken for a specialization declaration
+    class C { T *p; };
+  };
+  void f() { new S<int>(); }
+
+This is now fixed.
+
 12/17/01 C++-generating back end: "extern" on const variable definition
 
 The C++-generating back used to systematically emit an explicit "extern" on
