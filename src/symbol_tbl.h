@@ -1680,7 +1680,7 @@ typedef enum /*a_symbol_reference_kind*/ {
 			   a class or typedef name in a declaration, to a
 			   label in a goto statement, to a routine name in a
 			   call, to a variable in a sizeof operation, etc.). */
-  srk_error		/* A reference so some sort, but because of an error
+  srk_error		/* A reference of some sort, but because of an error
 			   in the source the kind of reference is uncertain;
 			   such a reference is treated both as a use and as a
 			   modification, in order to suppress use/def
