@@ -613,15 +613,20 @@ symbols are listed under the same header).
        in those cases, the associated symbol entry should be examined.
        */
     a_source_correspondence_ptr  scp1 = (a_source_correspondence_ptr)entity1;
-    a_symbol_ptr                 sym1 = (a_symbol_ptr)scp1->assoc_info;
-    check_assertion(scp1->is_class_member || sym1->is_class_member);
-    if (!C_mode()) {
-      /* In C mode, two structs with the same name (and file scope) but with
-         incompatible fields can coexist.  The correspondence will be cleared
-         in that case, but no diagnostic should be produced. */
-      report_bad_trans_unit_corresp(scp1->parent.class_type != NULL ?
-                                                    scp1->parent.class_type :
-                                                    sym1->parent.class_type);
+    if (scp1->is_class_member) {
+      if (!C_mode()) {
+        /* In C mode, two structs with the same name (and file scope) but with
+           incompatible fields can coexist.  The correspondence will be cleared
+           in that case, but no diagnostic should be produced. */
+        report_bad_trans_unit_corresp(scp1->parent.class_type);
+      }  /* if */
+    } else {
+      /* Normally, this happens only for certain template entries that
+         represent members of templates.  No diagnostic is issued here,
+         because one will be issued on the prototype instantiation. */
+      a_symbol_ptr  sym1 = (a_symbol_ptr)scp1->assoc_info;
+      check_assertion(sym1->is_class_member);
+      expect_error();
     }  /* if */
   }  /* if */
   return match;
