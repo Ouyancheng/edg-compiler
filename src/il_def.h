@@ -3954,8 +3954,9 @@ typedef struct a_base_class {
   bitfield_to_avoid_codecenter_warnings()
   a_base_class_sequence_number
 		direct_base_number;
-			/* The sequence number of this base class entry.
-                           The first base class is number 1. */
+			/* For a direct base class, the sequence number of
+			   this base class entry.  The first base class is
+			   number 1.  Zero for indirect base classes. */
   a_targ_size_t	offset;
 			/* The byte offset from the start of the current
 			   derived class to the data section of this base
