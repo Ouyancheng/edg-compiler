@@ -41,6 +41,21 @@ so we're making the change at this time.
 The error on the above was formerly issued only in strict mode;
 in all other modes the example was already accepted without error.
 
+In a related change, an error is now issued in default mode for
+references to private members of enclosing classes from within the 
+body of a friend function nested in the class:
+
+  class A {
+    int i;
+    struct B {
+      friend void f(A *p) {
+        p->i = 0;  // Now gets access error
+      }
+    };
+  };
+
+This was formerly flagged only in strict mode.
+
 7/28/03  static_cast of pointer to member of derived class to private base
 
 According to core issue 54, a static_cast from a pointer to member of
