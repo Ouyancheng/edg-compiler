@@ -3782,10 +3782,12 @@ check_routine:
            intentionally.  Declaring something of this type would
            be an error; declaring something a pointer to this type
            would be allowed. */
+#if 0
         /* Add it now to the current scope's type list.  It was not added
            previously because no actual definition appeared. */
         add_to_types_list(type_ptr, decl_scope_level,
                           /*in_old_style_param_decl_list=*/FALSE);
+#endif /* if 0 */
       }  /* if */
 #if CHECKING
       scp = &type_ptr->source_corresp;
