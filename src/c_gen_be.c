@@ -500,7 +500,7 @@ local static array, so it has limited lifetime.
 static char *field_name(a_field_ptr field)
 /*
 Return the name of a field.  This routine exists to give names to unnamed
-fields.  The name returned may be in an internal static array and
+unions.  The name returned may be in an internal static array and
 may therefore have limited lifetime.
 */
 {
@@ -508,7 +508,7 @@ may therefore have limited lifetime.
 
   name = field->source_corresp.name;
   if (name == NULL) {
-    /* Make up a name for an unnamed union or unnamed bit field. */
+    /* Make up a name for an unnamed union. */
     name = temp_name((char *)field);
   }  /* if */
   return name;
@@ -1911,6 +1911,7 @@ Dump the definition ({...}) if body is TRUE.
 */
 {
   a_field_ptr field;
+  char        *name;
 
   if (body && type->size == 0) {
     /* The struct is not defined, so do not put out a "body" definition. */
@@ -1923,16 +1924,17 @@ Dump the definition ({...}) if body is TRUE.
       indent += 2;
       while (field != NULL) {
         startline(field->source_corresp.decl_position.seq);
+        /* Use an empty name for an unnamed bit field or unnamed field. */
+        name = (field->source_corresp.name != NULL) ? field_name(field) : "";
         if (!field->is_bit_field) {
           /* Not bit field. */
-          simple_type_reference(field_name(field), field->type);
+          simple_type_reference(name, field->type);
         } else {
           /* Bit field. */
           (void)fprintf(f_C_output, "%s %s: %d",
                                     field->bit_field_is_signed ?
                                        "int" : "unsigned int",
-                                    (field->source_corresp.name != NULL) ?
-                                                        field_name(field) : "",
+                                    name,
                                     field->bit_size);
         }  /* if */
         (void)fputc(';', f_C_output);
@@ -1988,6 +1990,7 @@ Dump the definition ({...}) if body is TRUE.
       }  /* if */
       while (field != NULL) {
         startline(field->source_corresp.decl_position.seq);
+        /* Note that names are generated for unnamed bit fields. */
         simple_type_reference(field_name(field), field->type);
         /* Note that bit fields are legal but are not dumped as such, because
            pcc compilers don't like bit fields in unions. */
