@@ -2290,7 +2290,7 @@ being formed.
         form_template_param_constant_expr(op1, seg_ptr);
       } else {
         /* Binary operation. */
-        check_assertion(op2->next != NULL);
+        check_assertion(op2->next == NULL);
         form_template_param_constant_expr(op1, seg_ptr);
         add_string_to_segment(s, seg_ptr);
         form_template_param_constant_expr(op2, seg_ptr);
