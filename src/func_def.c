@@ -511,7 +511,11 @@ pointer decay).
     if (!source_sequence_entries_disallowed &&
         depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
         depth_template_declaration_scope == NO_SCOPE_DEPTH) {
-      check_assertion(param_id->source_sequence_entry != NULL);
+      /* In nontemplate contexts, a source sequence entry should have been
+         generated, but some template-related syntax errors may cause us to
+         lose track of the fact that we're in a template context. */
+      check_assertion(param_id->source_sequence_entry != NULL ||
+                      total_errors > 0);
     }  /* if */
 #endif /* CHECKING */
     update_source_sequence_list((char *)vp, (an_il_entry_kind)iek_variable,
