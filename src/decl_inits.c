@@ -2665,8 +2665,14 @@ returned set to TRUE.
        error cases. */
     if (is_incomplete_type(symbol_ptr->parent.class_type)) {
       /* We can end up here in error situations such as:
-           { struct S; int S::i = 0; }   */
-      check_assertion(symbol_ptr->is_error);
+           { struct S; int S::i = 0; }
+         or
+           template <class T> struct A {
+             static int x;
+             template<> int A<double>::x = 37;   */
+      check_assertion(symbol_ptr->is_error ||
+                      !is_file_or_namespace_scope(
+                                            &scope_stack[depth_scope_stack]));
     } else if (!is_template_dependent_context()) {
       push_class_reactivation_scope(symbol_ptr->parent.class_type,
                                     /*extend_namespace=*/TRUE);
