@@ -2488,9 +2488,10 @@ enk_condition expression node, and scanning the variable declaration.
 A pointer to the expression node is returned.
 */
 {
-  an_expr_node_ptr  node, value_node;
+  an_expr_node_ptr  node, value_expr;
   a_variable_ptr    vp;
   a_scope_ptr       scope;
+  a_boolean         is_switch_expr;
 
   db_enter(3, "start_condition_block_and_scan_declaration");
   /* Push the new scope, and bind the if, switch, for, or while statement to
@@ -2508,16 +2509,13 @@ A pointer to the expression node is returned.
     node->variant.condition->dynamic_init = vp->initializer.dynamic;
   }  /* if */
   /* The node points to an expression that represents the value of the
-     initialized variable. */
-  value_node = rvalue_expr_for_variable(vp, &vp->source_corresp.decl_position);
-  if (sp->kind == (a_statement_kind)stmk_switch) {
-    /* A switch condition gets integral promotion [stmt.switch]. */
-    integral_promote_node(&value_node);
-  }  /* if */
-  node->variant.condition->expr = value_node;
+     initialized variable, converted if necessary. */
+  is_switch_expr = (sp->kind == (a_statement_kind)stmk_switch);
+  node->variant.condition->expr = value_expr =
+                           make_condition_value_expression(vp, is_switch_expr);
   /* Copy the type of the variable expression into the condition node (since
      all expression nodes need to have a type). */
-  node->type = node->variant.condition->expr->type;
+  node->type = value_expr->type;
   db_exit();
   /* Return the condition node. */
   return node;

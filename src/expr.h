@@ -126,6 +126,10 @@ extern void scan_constant_initializer_expression(a_type_ptr required_type,
 
 extern an_expr_node_ptr scan_boolean_controlling_expression(void);
 
+extern an_expr_node_ptr make_condition_value_expression(
+                                                a_variable_ptr var,
+                                                a_boolean      is_switch_expr);
+
 /*
 Macro that is TRUE if the node is an operation node.
 */

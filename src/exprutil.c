@@ -2279,20 +2279,6 @@ of bit-fields, where the size in bits is needed in addition to the base type.
 }  /* node_type_after_integral_promotion */
 
 
-void integral_promote_node(an_expr_node_ptr *node)
-/*
-Determine the integral promotion and do the promotion on a node.
-See 3.2.1.1 in the standard.  error_position is used for the error position
-if an error is issued.
-*/
-{
-  a_type_ptr new_type;
-
-  new_type = node_type_after_integral_promotion(*node);
-  cast_node(node, new_type, /*is_implicit_cast=*/TRUE, &error_position);
-}  /* integral_promote_node */
-
-
 a_type_ptr operand_type_after_integral_promotion(an_operand *operand)
 /*
 Determine the type that would result from applying the integral promotions
@@ -5428,41 +5414,6 @@ types to get a boolean expression (see process_boolean_controlling_expression).
   restore_operand_details(operand, &orig_operand);
   return okay;
 }  /* check_boolean_controlling_expr */
-
-
-an_expr_node_ptr rvalue_expr_for_variable(a_variable_ptr    var,
-                                          a_source_position *pos)
-/*
-Make and return an expression that is an rvalue for the indicated variable.
-This differs from var_rvalue_expr in that it deals with reference and
-array variables.  pos gives the source position of the reference.
-The variable must have an associated symbol.  This routine is
-intended to be called from outside of the expression routines.
-*/
-{
-  an_operand              operand;
-  an_expr_node_ptr        expr;
-  a_ref_entry_ptr         ref;
-  an_expr_stack_entry     expr_stack_entry;
-  an_expr_stack_entry_ptr saved_expr_stack;
-
-  /* Even though this is not an expression scan, make sure the expr_stack
-     has something on it.  If there is already something on the stack,
-     save it, clear the stack, and restore it later. */
-  saved_expr_stack = expr_stack;
-  expr_stack = NULL;
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
-
-  ref = ref_entry((a_symbol_ptr)var->source_corresp.assoc_info, pos);
-  make_lvalue_variable_operand(var, &operand, ref);
-  do_operand_transformations(&operand, TOPT_NO_OPTIONS);
-  expr = make_node_from_operand(&operand);
-
-  pop_expr_stack();
-  expr_stack = saved_expr_stack;
-  return expr;
-}  /* rvalue_expr_for_variable */
 
 
 #if DEBUG

@@ -8965,6 +8965,45 @@ bad_start_of_primary:
 }  /* scan_expr_full */
 
 
+static void process_integer_expression(an_operand *operand,
+                                       a_boolean  is_switch_expr)
+/*
+*operand represents an expression just scanned.  Check that it is integral,
+converting from class to integral if necessary.  The expression is the one
+in a switch statement if is_switch_expr is TRUE.
+*/
+{
+  a_boolean processed = FALSE;
+
+  /* Convert from a class type to an integer if necessary. */
+  if (!C_mode() && is_class_struct_union_type(operand->type)) {
+    try_to_convert_class_operand_to_builtin_type(operand,
+                                                 (a_builtin_type_kind_set)
+                                                                  BTK_INTEGRAL,
+                                                 &processed);
+  }  /* if */
+  if (!processed) {
+    /* Non-class (i.e., normal) case. */
+    do_operand_transformations(operand, TOPT_NO_OPTIONS);
+    (void)check_integral_operand(operand);
+  }  /* if */
+  if (is_switch_expr) {
+    /* A switch expression gets special processing. */
+    if (C_dialect != C_dialect_pcc) {
+      /* ANSI C or C++: the normal integral promotions are done. */
+      /* Note that for the C++ condition declaration case the promotion
+         is done elsewhere as part of the condition processing. */
+      promote_operand(operand);
+    } else {
+      /* pcc treats all switch expressions as int.  This differs from
+         ANSI C in that even long is cast to int. */
+      cast_operand(integer_type((an_integer_kind)ik_int), operand,
+                   /*is_implicit_cast=*/TRUE);
+    }  /* if */
+  }  /* if */
+}  /* process_integer_expression */
+
+
 an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr)
 /*
 Scan an integral expression, e.g., the selector expression for a switch
@@ -8974,7 +9013,6 @@ is TRUE if this is the expression in a switch statement.
 {
   an_expr_node_ptr    expression;
   an_operand          result;
-  a_boolean           processed = FALSE;
   an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_integer_expression");
@@ -8984,34 +9022,9 @@ is TRUE if this is the expression in a switch statement.
                   /*force_object_lifetime=*/TRUE);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
-  /* Make sure it's an integer.  Convert from a class type to an integer if
-     necessary. */
-  if (C_dialect == C_dialect_cplusplus &&
-      is_class_struct_union_type(result.type)) {
-    try_to_convert_class_operand_to_builtin_type(&result,
-                                                 (a_builtin_type_kind_set)
-                                                                  BTK_INTEGRAL,
-                                                 &processed);
-  }  /* if */
-  if (!processed) {
-    /* Non-class (i.e., normal) case. */
-    do_operand_transformations(&result, TOPT_NO_OPTIONS);
-    (void)check_integral_operand(&result);
-  }  /* if */
-  if (is_switch_expr) {
-    /* A switch expression gets special processing. */
-    if (C_dialect != C_dialect_pcc) {
-      /* ANSI C or C++: the normal integral promotions are done. */
-      /* Note that for the C++ condition declaration case the promotion
-         is done elsewhere as part of the condition processing. */
-      promote_operand(&result);
-    } else {
-      /* pcc treats all switch expressions as int.  This differs from
-         ANSI C in that even long is cast to int. */
-      cast_operand(integer_type((an_integer_kind)ik_int), &result,
-                   /*is_implicit_cast=*/TRUE);
-    }  /* if */
-  }  /* if */
+  /* Check that the expression is integral or convertible to an integral
+     type. */
+  process_integer_expression(&result, is_switch_expr);
   expression = make_node_from_operand(&result);
   expression = wrap_up_full_expression(expression);
   pop_expr_stack();
@@ -9878,6 +9891,55 @@ class type that can be converted to those types.
   db_exit();
   return expr;
 }  /* scan_boolean_controlling_expression */
+
+
+an_expr_node_ptr make_condition_value_expression(a_variable_ptr var,
+                                                 a_boolean      is_switch_expr)
+/*
+The variable var has been declared in a condition declaration, e.g.,
+
+  if (float var = f()) {...}
+
+The condition is the one in a switch statement if is_switch_expr is TRUE.
+Create an expression for the value of the condition, that is, the value
+of the variable converted to the appropriate type (usually bool, but
+arithmetic/pointer/pointer-to-member when bool is disabled, and int
+(or some variant thereof) when is_switch_expr is TRUE).  Return a pointer
+to the expression created.  The variable var must have an associated symbol.
+*/
+{
+  an_operand              operand;
+  an_expr_node_ptr        expr;
+  a_ref_entry_ptr         ref;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+
+  /* Even though this is not an expression scan, make sure the expr_stack
+     has something on it.  If there is already something on the stack,
+     save it, clear the stack, and restore it later. */
+  saved_expr_stack = expr_stack;
+  expr_stack = NULL;
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE);
+  /* Make an operand for the value of the variable. */
+  check_assertion(var->source_corresp.assoc_info != NULL);
+  ref = ref_entry((a_symbol_ptr)var->source_corresp.assoc_info,
+                  &var->source_corresp.decl_position);
+  make_lvalue_variable_operand(var, &operand, ref);
+  operand.position = var->source_corresp.decl_position;
+  do_operand_transformations(&operand, TOPT_NO_OPTIONS);
+  if (is_switch_expr) {
+    /* A switch condition (must be integral). */
+    process_integer_expression(&operand, /*is_switch_expr=*/TRUE);
+  } else {
+    /* Other cases are boolean controlling expressions. */
+    process_boolean_controlling_expression(&operand);
+  }  /* if */
+  expr = make_node_from_operand(&operand);
+  pop_expr_stack();
+  expr_stack = saved_expr_stack;
+  return expr;
+}  /* make_condition_value_expression */
 
 
 /******************************************************************************
