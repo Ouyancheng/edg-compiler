@@ -1991,9 +1991,12 @@ addition of a prefix "__STV__" and a suffix of a module id.  Just put out
 the part in the middle, which is the original name.
 */
 {
+  char *start_ptr;
+
   ptr += 7;  /* Move to after "__STV__". */
   /* Copy the name until "__". */
-  while (*ptr != '_' || ptr[1] != '_') {
+  start_ptr = ptr;
+  while (*ptr != '_' || ptr[1] != '_' || ptr == start_ptr) {
     if (*ptr == '\0') {
       bad_mangled_name(dctl);
       break;
