@@ -1,5 +1,11 @@
 Version 2.13
 
+1/7/93 Bug in IL lowering of pointer to member operations
+
+A sequencing problem in IL lowering related to lowering of pointer to
+member types has been corrected.  The bug caused an internal error
+from pm_class_type.
+
 1/7/93 Tag mismatch when using template class in elaborated type specifier
 
 We now issue an error for cases like this, where union and nonunion tags
@@ -14,7 +20,7 @@ A function template named "main" is not explicitly prohibited in the
 ARM, but disallowing it is consistent with the restrictions in section
 3.4.
 
-1/6/93 Bug fixed in resolution of pointer to overloaded function
+1/6/93 Bug in resolution of pointer to overloaded function
 
 A bug that caused an internal error on the following has been fixed:
 

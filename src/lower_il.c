@@ -1172,6 +1172,29 @@ compatibility we do too.)
 }  /* make_mptr_type */
 
 
+static a_type_ptr underlying_pm_type(a_type_ptr type)
+/*
+type is (or was, before lowering) a pointer-to-member type.  If it is
+a lowered pointer-to-member type, return the original pointer-to-member type.
+Otherwise (if it is an unlowered pointer-to-member type), return the
+type with typerefs dropped.
+*/
+{
+  /* Drop typerefs, but look for a special entry that indicates that
+     it was some other type rewritten by IL lowering. */
+  while (type->kind == (a_type_kind)tk_typeref) {
+    if (type->variant.typeref.orig_type != NULL) {
+      /* A type transformed to something else (e.g., a pointer to
+         data member changed to a small integer). */
+      type = type->variant.typeref.orig_type;
+      break;
+    }  /* if */
+    type = type->variant.typeref.type;
+  }  /* while */
+  return type;
+}  /* underlying_pm_type */
+
+
 static a_type_ptr pm_member_type_possibly_lowered(a_type_ptr type)
 /*
 type is (or was, before lowering) a pointer-to-member type.  Get and return
@@ -1180,28 +1203,24 @@ its member type.
 {
   a_type_ptr member_type;
 
-  if (is_ptr_to_member_type(type)) {
-    /* Unlowered type. */
-    member_type = pm_member_type(type);
-  } else {
-    /* The type must be lowered already.  It would have been replaced by
-       a typeref referencing the type used to represent the pointer-to-member.
-       The original member type can be recovered from the orig_member_type
-       field of the typeref. */
-    /* Drop any extra typerefs above the significant one. */
-    while (type->kind == (a_type_kind)tk_typeref &&
-           type->variant.typeref.orig_member_type == NULL) {
-      type = type->variant.typeref.type;
-    }  /* while */
-#if CHECKING
-    if (type->kind != (a_type_kind)tk_typeref) {
-      internal_error("pm_member_type_possibly_lowered: bad type");
-    }  /* if */
-#endif /* CHECKING */
-    member_type = type->variant.typeref.orig_member_type;
-  }  /* if */
+  type = underlying_pm_type(type);
+  member_type = pm_member_type(type);
   return member_type;
 }  /* pm_member_type_possibly_lowered */
+
+
+static a_type_ptr pm_class_type_possibly_lowered(a_type_ptr type)
+/*
+type is (or was, before lowering) a pointer-to-member type.  Get and return
+its class type.
+*/
+{
+  a_type_ptr class_type;
+
+  type = underlying_pm_type(type);
+  class_type = pm_class_type(type);
+  return class_type;
+}  /* pm_class_type_possibly_lowered */
 
 
 static a_boolean is_or_was_ptr_to_data_member_type(a_type_ptr type)
@@ -1209,26 +1228,23 @@ static a_boolean is_or_was_ptr_to_data_member_type(a_type_ptr type)
 Return TRUE if type is (or was, before lowering) a pointer to data member.
 */
 {
-  a_boolean  is_ptr_to_data = FALSE;
-  a_type_ptr member_type;
+  a_boolean is_ptr_to_data = FALSE;
 
   /* Drop typerefs, but look for a special entry that indicates that
      it was some other type rewritten by IL lowering. */
   while (type->kind == (a_type_kind)tk_typeref) {
-    if (type->variant.typeref.orig_member_type != NULL) {
+    if (type->variant.typeref.orig_type != NULL) {
       /* A type transformed to something else (e.g., a pointer to
          data member changed to a small integer). */
-      member_type = type->variant.typeref.orig_member_type;
-      goto have_member_type;
+      type = type->variant.typeref.orig_type;
+      break;
     }  /* if */
     type = type->variant.typeref.type;
   }  /* while */
   if (is_ptr_to_member_type(type)) {
-    member_type = pm_member_type(type);
-have_member_type:
     /* The type is a pointer-to-member type.  See if the member type is
        a non-function type. */
-    if (!is_function_type(member_type)) is_ptr_to_data = TRUE;
+    if (!is_function_type(pm_member_type(type))) is_ptr_to_data = TRUE;
   }  /* if */
   return is_ptr_to_data;
 }  /* is_or_was_ptr_to_data_member_type */
@@ -1244,7 +1260,8 @@ function.
 
   type = skip_typerefs(type);
   if (type == mptr_type) {
-    /* The type is the struct used for pointers to members. */
+    /* The type is the struct used for pointers to members, so this is
+       a pointer to member function that has been lowered. */
     is_ptr_to_func = TRUE;
   } else if (is_ptr_to_member_type(type)) {
     /* The type is a pointer-to-member type.  See if the member type is
@@ -5590,6 +5607,7 @@ Do IL lowering of the indicated type and everything under it.
 */
 {
   a_type_ptr	ptr_return_type, new_type, type_next, member_type;
+  a_type_ptr	copy_of_pm_type;
   a_based_type_list_member_ptr
 		btlmp;
 
@@ -5630,14 +5648,22 @@ Do IL lowering of the indicated type and everything under it.
           }  /* if */
 #endif /* CHECKING */
         }  /* if */
-        /* Change the type to a pure typeref to the new type. */
+        /* Make a copy of the original pointer-to-member type.  Note that
+           this copy is for the use of IL lowering; it it not really part
+           of the IL tree. */
+        copy_of_pm_type = alloc_type(type->kind);
+        copy_type(type, copy_of_pm_type);
+        /* Change the type to a pure typeref to the new (lowered) type. */
         type_next = type->next;
         set_type_kind(type, (a_type_kind)tk_typeref);
         type->next = type_next;
         type->variant.typeref.type = new_type;
-        type->variant.typeref.orig_member_type = member_type;
-        /* Hide the original member type in the typeref.  Needed (at least)
-           to determine the type of function in eok_pm_call lowering. */
+        /* Point to a copy of the original pointer-to-member type.  This
+           preserves information otherwise destroyed: if, while lowering,
+           one comes across a pointer-to-member type that has already been
+           lowered, one needs to be able to get the original class and
+           member type. */
+        type->variant.typeref.orig_type = copy_of_pm_type;
         break;
       case tk_routine:
         lower_type(type->variant.routine.return_type);
@@ -8058,8 +8084,8 @@ class to the class of node in *offset.
     /* Start accumulating the offset from here. */
     *offset = 0;
   }  /* if */
-  source_class = pm_class_type(operand->type);
-  dest_class = pm_class_type(node->type);
+  source_class = pm_class_type_possibly_lowered(operand->type);
+  dest_class = pm_class_type_possibly_lowered(node->type);
   prelower_class_type(source_class);
   prelower_class_type(dest_class);
   if (node->variant.operation.kind ==
@@ -8071,7 +8097,7 @@ class to the class of node in *offset.
          and compute the offset from there.  The C++ language should probably
          prohibit casts like this, because they cannot be implemented with a
          simple offset. */
-      source_class = pm_class_type((*underlying_node)->type);
+      source_class = pm_class_type_possibly_lowered((*underlying_node)->type);
       bcp = find_virtual_base_class_of(source_class, dest_class);
       *offset = -bcp->offset;
     } else {

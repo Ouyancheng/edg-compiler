@@ -312,7 +312,7 @@ Process the indicated type entry.
       walk_ptr(ptr->variant.typeref.type, a_type_ptr, iek_type);
 #if DO_IL_LOWERING
       /* Reset the pointers used during IL lowering to NULL. */
-      ptr->variant.typeref.orig_member_type = NULL;
+      ptr->variant.typeref.orig_type = NULL;
 #endif /* DO_IL_LOWERING */
       break;
     case tk_ptr_to_member:

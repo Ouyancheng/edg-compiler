@@ -1520,9 +1520,10 @@ typedef struct a_type {
                         /* Type referenced. */
 #if DO_IL_LOWERING
       a_type_ptr
-		orig_member_type;
-			/* When this typeref represents a pointer-to-member
-			   that has been lowered, this points to the member
+		orig_type;
+			/* When this typeref represents a type (specifically,
+			   a pointer to member type) that has been lowered
+			   to something, this points to a copy of the original
 			   type.  NULL otherwise. */
 #endif /* DO_IL_LOWERING */
       unsigned int

@@ -3089,7 +3089,7 @@ to default values.
     case tk_typeref:
       pte->variant.typeref.type        = NULL;
 #if DO_IL_LOWERING
-      pte->variant.typeref.orig_member_type = NULL;
+      pte->variant.typeref.orig_type   = NULL;
 #endif /* DO_IL_LOWERING */
       pte->variant.typeref.is_const    = FALSE;
       pte->variant.typeref.is_volatile = FALSE;
