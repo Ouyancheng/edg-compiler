@@ -6582,7 +6582,10 @@ a_symbol_ptr enter_sym_for_out_of_scope_routine(a_symbol_ptr     extern_sym,
 /*
 Create a symbol entry in the current scope for the external routine
 designated by extern_sym.  Return the symbol pointer to the caller.
-This routine is only used in SVR4 C compatibility mode.
+This routine is only used in SVR4 C compatibility mode.  It is
+called by find_out_of_scope_declaration when a normal lookup fails
+and there is an external symbol (created by some other scope) that
+should be used to satisfy the lookup.
 */
 {
   an_id_linkage_kind     linkage;
@@ -6627,7 +6630,10 @@ a_symbol_ptr enter_sym_for_out_of_scope_variable(a_symbol_ptr     extern_sym,
 /*
 Create a symbol entry in the current scope for the external variable
 designated by extern_sym.  Return the symbol pointer to the caller.
-This routine is only used in SVR4 C compatibility mode.
+This routine is only used in SVR4 C compatibility mode.  It is
+called by find_out_of_scope_declaration when a normal lookup fails
+and there is an external symbol (created by some other scope) that
+should be used to satisfy the lookup.
 */
 {
   an_id_linkage_kind     linkage;
