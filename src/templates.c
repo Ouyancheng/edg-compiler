@@ -24,13 +24,12 @@ templates.c -- Support for C++ templates.
 #include "types.h"
 
 
-void instantiate_template_class(a_type_ptr  type)
+void instantiate_template_class(a_type_ptr  tp)
 /*
 This routine should be called from check_for_uninstantiated_template_class,
-which determines that type is incomplete type.  If
-it also turns out to be a template type, this routine attempts to
-instantiate it; it might not be able to if the template itself has not
-yet been defined.
+which determines that tp is an incomplete type.  If it also turns out to
+be a template type, this routine attempts to instantiate it; it might not be
+able to if the template itself has not yet been defined.
 */
 {
   a_symbol_ptr                      template_sym;
@@ -38,10 +37,10 @@ yet been defined.
   a_token_cache                     *p_token_cache;
 
   db_enter(3, "instantiate_template_class");
-  if (is_array_type(type)) type = underlying_array_element_type(type);
-  if (type != NULL && is_class_struct_union_type(type)) {
-    type = skip_typerefs(type);
-    template_sym = (symbol_supplement_for_class(type))->class_template;
+  if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+  if (tp != NULL && is_class_struct_union_type(tp)) {
+    tp = skip_typerefs(tp);
+    template_sym = (symbol_supplement_for_class(tp))->class_template;
     if (template_sym == NULL) {
       /* Not a class based on a class template. */
     } else {
@@ -56,7 +55,7 @@ yet been defined.
 #if DEBUG
         if (debug_level >= 3) {
           fprintf(f_debug, "instantiating: ");
-          db_type(skip_typerefs(type));
+          db_type(tp);
           db_symbol(template_sym, "\nbased on: ", 2);
         }  /* if */
 #endif /* DEBUG */
@@ -67,9 +66,9 @@ yet been defined.
         }  /* if */
 #endif /* CHECKING */
         (void)push_scope(sck_template_instantiation, tssp->declaration_scope,
-                         type, (a_routine_ptr)NULL);
+                         tp, (a_routine_ptr)NULL);
         /* Scan the base specifiers list, if any, and the body of the class. */
-        (void)scan_class_definition(type, DEPTH_OF_FILE_SCOPE,
+        (void)scan_class_definition(tp, DEPTH_OF_FILE_SCOPE,
                                     /*is_local_class=*/FALSE);
         pop_scope();
         /* In the normal case the current token should be end_of_source,
