@@ -11965,6 +11965,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       if (is_error_type(operand_3.type)) {
         result_type = operand_3.type;
       } else if (microsoft_bugs && result_is_an_lvalue &&
+                 is_an_lvalue(&operand_2) && /* Rule out function cases. */
                  !is_class_struct_union_type(result_type) &&
                  !is_error_type(result_type)) {
         /* In Microsoft mode, the cv-qualifiers are dropped on non-class
