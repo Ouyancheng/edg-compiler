@@ -631,7 +631,7 @@ to replace the initial portion of this compilation.
   init_predefined_macros(curr_date_time);
   if (!C_mode()) {
     /* This is done even when RTTI is not enabled because the type_info
-       struct may still be defined when RTTI is disable. */
+       struct may still be defined when RTTI is disabled. */
     init_type_of_type_info();
   }  /* if */
 #if COMPILE_MULTIPLE_SOURCE_FILES
