@@ -526,7 +526,7 @@ ec_nonexternal_entity_in_template_arg;;"a template argument may not reference a 
 ec_id_must_be_class_or_type_name;;"name followed by \"::~\" must be a class name or a type name"
 ec_destructor_name_mismatch;;"destructor name does not match name of class %t"
 ec_destructor_type_mismatch;;"type used as destructor name does not match type %t"
-ec_called_function_redeclared_inline;;"%n may not be redeclared \"inline\" after being called"
+ec_called_function_redeclared_inline;;"%n redeclared \"inline\" after being called"
 ec_vacuous_destructor_name_mismatch;;"destructor name does not match left operand of \"->\" or \".\""
 ec_bad_storage_class_on_template_decl;;"invalid storage class for a template declaration"
 ec_no_access_to_type_cfront_mode;;"%n is an inaccessible type (allowed for cfront compatibility)"
