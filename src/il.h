@@ -147,8 +147,12 @@ extern void add_to_constants_list(a_constant_ptr con_ptr);
 
 extern void add_shareable_constants_to_constants_list(void);
 
-extern void set_integer_constant(a_constant *cp,
-                                 long       value);
+extern void set_integer_constant(a_constant      *cp,
+                                 long            value,
+                                 an_integer_kind kind);
+
+extern void make_zero_of_proper_type(a_type_ptr desired_type,
+                                     a_constant *zero_constant);
 
 extern char *alloc_text_of_string_literal(sizeof_t size);
 
@@ -207,6 +211,9 @@ extern an_expr_node_ptr make_operator_node(an_expr_operator_kind kind,
 extern an_expr_node_ptr error_node(void);
 
 extern an_expr_node_ptr alloc_node_for_constant(a_constant *constant);
+
+extern an_expr_node_ptr node_for_integer_constant(long            value,
+                                                  an_integer_kind kind);
 
 extern an_expr_node_ptr copy_node(an_expr_node_ptr expr);
 

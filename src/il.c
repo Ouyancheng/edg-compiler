@@ -25,6 +25,7 @@ il.c -- Construction of intermediate language trees.
 #include "cmd_line.h"
 #include "float_pt.h"
 #include "exprutil.h"
+#include "folding.h"
 
 #if ALTERNATE_IL_FILE_FORMAT
 #include "il_file.h"
@@ -2020,18 +2021,39 @@ separate variables that are set already.
 }  /* add_shareable_constants_to_constants_list */
 
 
-void set_integer_constant(a_constant *cp,
-                          long       value)
+void set_integer_constant(a_constant      *cp,
+                          long            value,
+                          an_integer_kind kind)
 /*
 Set the constant entry *cp to the integer constant given by value.
+Its integer kind is as given by kind.
 */
 {
   db_enter(5, "set_integer_constant");
   clear_constant(cp, (a_constant_repr_kind)ck_integer);
-  cp->type = integer_type((an_integer_kind)ik_int);
+  cp->type = integer_type(kind);
   cp->variant.integer_value = value;
   db_exit();
 }  /* set_integer_constant */
+
+
+void make_zero_of_proper_type(a_type_ptr desired_type,
+                              a_constant *zero_constant)
+/*
+Make a zero constant of type desired_type (a scalar type) and put it in
+*zero_constant.  No IL allocation is done.  This routine is also handy
+for making NULL pointer constants.
+*/
+{
+  a_boolean did_not_fold;
+
+  /* Make an integer zero and convert it to the desired type. */
+  set_integer_constant(zero_constant, 0L, (an_integer_kind)ik_int);
+  type_change_constant(zero_constant, desired_type,
+                       /*is_implicit_cast=*/TRUE,
+                       /*constant_context=*/TRUE, &did_not_fold,
+                       &error_position);
+}  /* make_zero_of_proper_type */
 
 
 char *alloc_text_of_string_literal(sizeof_t size)
@@ -3541,6 +3563,23 @@ have_node:
 
   return (node);
 }  /* alloc_node_for_constant */
+
+
+an_expr_node_ptr node_for_integer_constant(long            value,
+                                           an_integer_kind kind)
+/*
+Make a node for an integer constant with value "value" and kind "kind",
+and return a pointer to it.
+*/
+{
+  an_expr_node_ptr node;
+  a_constant       constant;
+
+  set_integer_constant(&constant, value, kind);
+  node = alloc_node_for_constant(&constant);
+
+  return node;
+}  /* node_for_integer_constant */
 
 
 an_expr_node_ptr copy_node(an_expr_node_ptr expr)
