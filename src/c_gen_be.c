@@ -271,10 +271,18 @@ static an_expr_node_ptr
 			   at each return statement. */
 static a_scope_ptr
 		covariant_return_wrapper_scope;
-			/* Non-NULL iff covariant_return_expr is non-NULL.
-			   Points to the top-level scope of the entry/wrapper
-			   function, which may contain temporaries needed
-			   by the covariant_return_expr cast. */
+			/* If non-NULL, we are expanding the body of an
+			   overriding virtual function with a covariant return
+			   type.  This is the top-level scope of the
+			   entry/wrapper function. */
+static a_scope_ptr
+		covariant_return_master_scope;
+			/* If non-NULL, we are expanding the body of an
+			   overriding virtual function with a covariant return
+			   type.  This is the top-level scope of the
+			   original function for which
+			   covariant_return_wrapper_scope gives the
+			   entry/wrapper function scope. */
 
 static an_il_to_str_output_control_block
 		octl;	/* Output control block for interface to il_to_str
@@ -1367,6 +1375,35 @@ Routine to be called by the il_to_str routines to output a name.
 }  /* gen_name_reference */
 
 
+static void dump_param_variable_decl_name(a_variable_ptr var)
+/*
+Dump out the name of a parameter variable as it must appear in the declaration
+of the parameter.
+*/
+{
+  if (covariant_return_wrapper_scope != NULL &&
+      var->is_parameter && !var->is_this_parameter) {
+    /* While putting out the parameters of a wrapper routine for a
+       virtual function with a covariant return type, use the parameter
+       names from the original routine instead of the unnamed parameters
+       of the wrapper, because when the body of the original function
+       is duplicated in the wrapper it will contain references to the
+       parameters by (original) name. */
+    a_variable_ptr master_param_var =
+                     covariant_return_master_scope->variant.routine.parameters;
+    a_variable_ptr wrapper_param_var =
+                    covariant_return_wrapper_scope->variant.routine.parameters;
+    for (; wrapper_param_var != var;
+         master_param_var = master_param_var->next,
+           wrapper_param_var = wrapper_param_var->next) {
+      check_assertion(master_param_var != NULL && wrapper_param_var != NULL);
+    }  /* for */
+    var = master_param_var;
+  }  /* if */
+  dump_variable_name(var);
+}  /* dump_param_variable_decl_name */
+
+
 static void dump_param_id_list(a_variable_ptr param_var)
 /*
 Dump an old-style parameter id list.  param_var is the first old-style
@@ -1375,7 +1412,7 @@ parameter variable.
 {
   if (param_var != NULL) {
     for (;;) {
-      dump_variable_name(param_var);
+      dump_param_variable_decl_name(param_var);
       /* Stop after the last parameter. */
       param_var = param_var->next;
       if (param_var == NULL) break;
@@ -1596,7 +1633,11 @@ suppress generation of top-level "const" in ANSI C mode.
     /* Write the name. */
     if (var != NULL) {
       /* There's special handling for variable names. */
-      dump_variable_name(var);
+      if (var->is_parameter) {
+        dump_param_variable_decl_name(var);
+      } else {
+        dump_variable_name(var);
+      }  /* if */
     } else {
       dump_name(scp);
     }  /* if */
@@ -5803,15 +5844,13 @@ routine whose parameters are being processed.
     /* On HP/UX, when generating a function with a variable argument list,
        a declaration must be supplied for the special "va_alist" parameter. */
     a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
-    if ( rtsp->has_ellipsis )
-        write_tok_str(" long va_alist;");
+    if (rtsp->has_ellipsis) write_tok_str(" long va_alist;");
 #endif /* ifdef __hpux */
 #ifdef __sgi
     /* On SGI, when generating a function with a variable argument list,
        a declaration must be supplied for the special "va_alist" parameter. */
     a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
-    if ( rtsp->has_ellipsis )
-        write_tok_str(" int va_alist;");
+    if (rtsp->has_ellipsis) write_tok_str(" int va_alist;");
 #endif /* ifdef __sgi */
   }
 }  /* dump_old_style_parameter_decls */
@@ -5894,32 +5933,41 @@ by dump_routine_decl.
   a_memory_region_number scope_region_number;
   a_scope_ptr            scope, saved_curr_scope = curr_scope;
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-  a_memory_region_number orig_scope_region_number = NO_SCOPE_NUMBER;
+  a_memory_region_number master_scope_region_number = NO_SCOPE_NUMBER;
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
   /* Get the top-level scope for the routine definition.  Read it in if
      necessary. */
   scope = get_scope_for_routine_definition(rout, &scope_region_number);
   innermost_function_scope = curr_scope = scope;
-  octl.suppress_local_typedefs = FALSE;
-  /* Generate the routine name and the parameter declarations. */
-  dump_func_definition_type(rout, scope);
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
   if (rout->overriding_function_for_covariant_return_type != NULL) {
     /* This routine is a wrapper for an overriding virtual function with
        a covariant return type.  Its body is just a return statement giving
        the cast that needs to be put over the return from the overriding
        function to give it the right type.  Save the cast expression and
-       then go expand the primary routine, doing the rewrite when return
-       statements are encountered. */
+       fetch the body of the master routine, so it can be put out as part
+       of the definition of the wrapper. */
     a_statement_ptr return_stmt = scope->assoc_block->variant.block.statements;
     check_assertion(return_stmt != NULL &&
                     return_stmt->kind == (a_statement_kind)stmk_return);
     covariant_return_expr = return_stmt->expr;
     covariant_return_wrapper_scope = scope;
-    orig_scope_region_number = scope_region_number;
+    covariant_return_master_scope =
+                  get_scope_for_routine_definition(
+                           rout->overriding_function_for_covariant_return_type,
+                           &master_scope_region_number);
+  }  /* if */
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+  octl.suppress_local_typedefs = FALSE;
+  /* Generate the routine name and the parameter declarations. */
+  dump_func_definition_type(rout, scope);
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+  if (rout->overriding_function_for_covariant_return_type != NULL) {
+    /* More processing for a wrapper for an overriding virtual function with
+       a covariant return type. */
     rout = rout->overriding_function_for_covariant_return_type;
-    scope = get_scope_for_routine_definition(rout, &scope_region_number);
+    scope = covariant_return_master_scope;
     innermost_function_scope = curr_scope = scope;
   }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
@@ -5933,13 +5981,14 @@ by dump_routine_decl.
   free_memory_region(scope_region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-  if (orig_scope_region_number != NO_SCOPE_NUMBER) {
+  if (master_scope_region_number != NO_SCOPE_NUMBER) {
     /* Finished a covariant return wrapper routine. */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-    free_memory_region(orig_scope_region_number);
+    free_memory_region(master_scope_region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     covariant_return_expr = NULL;
     covariant_return_wrapper_scope = NULL;
+    covariant_return_master_scope = NULL;
   }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 }  /* dump_routine_definition */
@@ -6383,6 +6432,7 @@ Initialize for the C-generating back end.
   wide_string_constants_to_unbind_at_end_of_scope = NULL;
   covariant_return_expr = NULL;
   covariant_return_wrapper_scope = NULL;
+  covariant_return_master_scope = NULL;
   /* Set out the output control block used for interface with the il_to_str
      routines. */
   clear_il_to_str_output_control_block(&octl);
