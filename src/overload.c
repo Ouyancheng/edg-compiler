@@ -4138,7 +4138,7 @@ given candidate function.
   an_arg_match_summary_ptr amsp;
 
   for (amsp = candidate->arg_matches; amsp != NULL; amsp = amsp->next) {
-    if (amsp->match_level > worst_match) {
+    if ((int)amsp->match_level > (int)worst_match) {
       worst_match = amsp->match_level;
     }  /* if */
   }  /* for */
@@ -4166,11 +4166,11 @@ its candidate function entry.  Otherwise, return NULL.
       /* This function is the same as the best one, so skip it. */
     } else {
       worst_match = worst_arg_match_level_for_candidate_arg(cfp);
-      if (worst_match < best_worst_match) {
+      if ((int)worst_match < (int)best_worst_match) {
         /* A new best function. */
         best_cfp = cfp;
         best_worst_match = worst_match;
-      } else if (worst_match > best_worst_match) {
+      } else if ((int)worst_match > (int)best_worst_match) {
         /* The worst match for this candidate is worse than the best
            worst match we've seen previously, so ignore it. */
       } else {
