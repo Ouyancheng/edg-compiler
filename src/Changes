@@ -1,5 +1,12 @@
 Version 2.30
 
+8/2/95   Definitions now allowed in template friend declarations
+
+The X3J16/WG21 working paper now permits templates to be defined in
+friend definitions (previously, only declarations were allowed).
+The strict mode diagnostic for template friend definitions has been
+removed.
+
 8/2/95   Mangled names for virtual function tables (cfront compatibility)
 
 The mangled names for virtual function tables involving nested classes

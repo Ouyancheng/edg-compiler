@@ -3904,15 +3904,6 @@ that make up the declaration and do a prototype instantiation.
         /* An error occurred earlier.  Discard the cached body. */
         discard_token_cache(p_token_cache);
       }  /* if */
-      if (is_template_friend) {
-        if (strict_ansi_mode) {
-	  /* A friend template declaration may not be used to define a
-	     class. */
-	  pos_diagnostic(strict_ansi_error_severity,
-			 ec_template_friend_definition_not_allowed,
-			 &locator.source_position);
-	}  /* if */
-      }	/* if */
     } else {
       if (!in_prototype_instantiation) {
         mark_declared(sym, &locator.source_position);
@@ -4975,15 +4966,6 @@ declaration.
     cache_function_template_body(&tssp->token_cache,
 				 is_constructor_symbol(sym),
 				 defines_something, sym);
-    if (*defines_something && is_template_friend) {
-      if (strict_ansi_mode) {
-	/* A friend template declaration may not be used to define a
-	   function. */ 
-	pos_diagnostic(strict_ansi_error_severity,
-		       ec_template_friend_definition_not_allowed,
-		       &locator->source_position);
-      }  /* if */
-    }	/* if */
     if (!scope_stack[depth_scope_stack].in_prototype_instantiation) {
       /* Suppress this processing during prototype instantiations. */
       if (*defines_something || 
