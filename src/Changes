@@ -1,5 +1,25 @@
 Version 2.31
 
+11/27/95  cfront compatibility: comparisons of pointers to members related by
+          virtual inheritance
+
+Cfront allows comparison of pointers to members related by virtual inheritance
+even though it does not allow the implicit conversions implied in the
+comparison:
+
+  struct A {int j;};
+  struct B : public virtual A {int k;};
+  void f() {
+    int A::*pa = &A::j;
+    int B::*pb = &B::k;
+    (void)(pa == pb);    // Accepted
+    int B::*px = pa;     // Gets "sorry, not implemented"
+  }
+
+Of course, since it does no adjustment, it sometimes gets the comparison
+wrong, as in this case.  We now allow the comparison, but we get it right
+(by casting the other operand to the virtual base class and then comparing).
+
 11/25/95  Redundant instantiation of template class
 
 A bug has been fixed that caused the same template class to be
