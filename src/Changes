@@ -3,7 +3,7 @@ Version 3.1
 1/9/03   address_taken flag on use of static member function with
          selector
 
-The address_taken flag is now correctly set in the routine entty
+The address_taken flag is now correctly set in the routine entry
 for a static member function whose address is taken by way of a
 reference that includes a selector object (which is evaluated but
 then thrown away).
