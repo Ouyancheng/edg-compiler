@@ -3712,7 +3712,27 @@ command line -D options.
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
 #endif /* DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD */
+#if RUNTIME_USES_NAMESPACES
+    /* Enter a predefined macro that can be used to determine that
+       the runtime uses namespaces.  This is also used by the
+       standard header files so that the know whether to declare
+       things like type_info in the std namespace. */
+    (void)enter_predef_macro("1", MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES,
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+#endif /* RUNTIME_USES_NAMESPACES */
   }  /* if */
+  /* Enter a predefined macro that can be used to determine that the
+     EDG front end is being used. */
+  (void)enter_predef_macro("1", "__EDG__",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  /* Enter a predefined macro that can be used to determine the version of
+     the EDG front end being used. */
+  (void)enter_predef_macro(conv_int_to_str(VERSION_NUMBER_FOR_MACRO),
+                           "__EDG_VERSION__",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
   if (building_runtime) {
     /* Define macros used to pass configuration information to the
        runtime library. */
