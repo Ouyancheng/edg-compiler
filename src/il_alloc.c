@@ -1875,6 +1875,23 @@ Allocate space for an asm function body and return a pointer to it.
 
 #if GNU_EXTENSIONS_ALLOWED
 
+an_asm_operand_constraint_ptr alloc_asm_constraint(
+                                            an_asm_operand_constraint_kind ck)
+/*
+Allocate space for an asm operand constraint and return a pointer to it.
+*/
+{
+  an_asm_operand_constraint_ptr aocp;
+
+  aocp = ((an_asm_operand_constraint_ptr)
+          alloc_cil(sizeof(an_asm_operand_constraint)));
+  aocp->kind = ck;
+  aocp->next = NULL;
+
+  return aocp;
+}  /* alloc_asm_constraint */
+
+
 an_asm_operand_ptr alloc_asm_operand(void)
 /*
 Allocate space for an asm operand and return a pointer to it.

@@ -2334,7 +2334,7 @@ Enumeration of input/output constraint categories for GNU extended
 asm.  The first block of these is independent of the target processor,
 the rest are machine dependent.
 */
-enum an_asm_operand_constraint_tag {
+enum an_asm_operand_constraint_kind_tag {
   aoc_invalid = 0,
   aoc_any,              /* X: unconstrained */
   aoc_general,          /* g: r or i or m */
@@ -2386,7 +2386,7 @@ enum an_asm_operand_constraint_tag {
 #endif /* TARG_IS_X86 */
   aoc_last
 };
-typedef a_byte an_asm_operand_constraint;
+typedef a_byte an_asm_operand_constraint_kind;
 
 /*
 Names of operand constraints.  Used by il_display.c.
@@ -2448,6 +2448,18 @@ EXTERN char asm_operand_constraint_letters[(int)aoc_last + 1]
 }
 #endif /* VAR_INITIALIZERS */
 ;
+
+/* An operand constraint for the GNU extended assembly syntax. */
+typedef struct an_asm_operand_constraint *an_asm_operand_constraint_ptr;
+typedef struct an_asm_operand_constraint {
+  an_asm_operand_constraint_kind
+  		kind;	/* The kind of constraint associated with this
+			   operand. */
+  an_asm_operand_constraint_ptr
+  		next;	/* The next constraint that applies to this
+			   operand, or NULL if this is the last
+			   constraint. */
+} an_asm_operand_constraint;
 
 /* Enumeration of registers and their names. All machine-specific. */
 enum a_named_register_tag {
@@ -2561,9 +2573,9 @@ typedef struct an_asm_operand *an_asm_operand_ptr;
 typedef struct an_asm_operand {
   an_asm_operand_ptr
                 next;   /* Next entry on the list, or NULL if last. */
-  an_asm_operand_constraint
-                constraint;     
-                        /* Constraint on where the operand may appear
+  an_asm_operand_constraint_ptr
+                constraints;     
+                        /* Constraints on where the operand may appear
                            in order to make it a valid assembly
                            instruction. */
   an_asm_operand_modifier

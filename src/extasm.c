@@ -140,12 +140,13 @@ In the latter case, issues an error.
 
 
 /*ARGSUSED*/
-static a_boolean validate_expr_for_constraint(an_expr_node_ptr          expr,
-                                              an_asm_operand_constraint cstrt)
+static a_boolean validate_expr_for_constraints(
+                                           an_expr_node_ptr              expr,
+                                           an_asm_operand_constraint_ptr cstrt)
 /*
 Verify that expr can legitimately be used as an asm operand with
-constraint cstrt.  This code is machine specific and must be provided
-by the author of the back end.
+constraints given by cstrt.  This code is machine specific and must be
+provided by the author of the back end.
 */
 {
   return TRUE;
@@ -157,16 +158,20 @@ static void process_asm_operand(an_asm_operand_ptr  operand,
                                 char                *cstring,
                                 a_boolean           output)
 /*
-Validate the semantic consistency of expr, constraint, and output.  If
-they all match, fill in operand accordingly.  Otherwise, issue an
-error, and set operand to "error placemarker" values.
+Validate the semantic consistency of expr, cstring (which gives the
+constraints), and output.  If they all match, fill in operand
+accordingly.  Otherwise, issue an error, and set operand to "error
+placemarker" values.  
 */
 {
-  an_asm_operand_constraint  constraint;
-  an_asm_operand_modifier    modifiers;
-  char                       *p;
-  char                       errletter[2];
+  an_asm_operand_constraint_ptr  *constraint;
+  an_asm_operand_constraint_kind ck;
+  an_asm_operand_modifier        modifiers;
+  a_boolean                      error_occurred = FALSE;
+  char                           *p;
+  char                           errletter[2];
 
+  operand->constraints = NULL;
   if (cstring == NULL || expr == NULL) {
     /* Syntactically invalid -- an error has already been issued.
        N.B. We do not bail out if expr is an error node, because it's
@@ -196,82 +201,184 @@ done_with_modifiers:
     /* No modifiers on an input operand. */
     modifiers = (an_asm_operand_modifier)aom_input;
   }  /* if */
-  /* The next thing in the string should be a constraint letter. */
-  constraint = (an_asm_operand_constraint)aoc_invalid;
-  switch (*p) {
-    /* Machine independent constraints - miscellaneous. */
-    case 'X': constraint = (an_asm_operand_constraint)aoc_any;     break;
-    case 'g': constraint = (an_asm_operand_constraint)aoc_general; break;
-    case '0': constraint = (an_asm_operand_constraint)aoc_match_0; break;
-    case '1': constraint = (an_asm_operand_constraint)aoc_match_1; break;
-    case '2': constraint = (an_asm_operand_constraint)aoc_match_2; break;
-    case '3': constraint = (an_asm_operand_constraint)aoc_match_3; break;
-    case '4': constraint = (an_asm_operand_constraint)aoc_match_4; break;
-    case '5': constraint = (an_asm_operand_constraint)aoc_match_5; break;
-    case '6': constraint = (an_asm_operand_constraint)aoc_match_6; break;
-    case '7': constraint = (an_asm_operand_constraint)aoc_match_7; break;
-    case '8': constraint = (an_asm_operand_constraint)aoc_match_8; break;
-    case '9': constraint = (an_asm_operand_constraint)aoc_match_9; break;
-    /* Registers */
-    case 'r': constraint = (an_asm_operand_constraint)aoc_reg_integer; break;
-    case 'f': constraint = (an_asm_operand_constraint)aoc_reg_float;   break;
-    /* Memory */
-    case 'm': constraint = (an_asm_operand_constraint)aoc_mem_any;       break;
-    case 'o': constraint = (an_asm_operand_constraint)aoc_mem_offset;    break;
-    case 'V': constraint = (an_asm_operand_constraint)aoc_mem_nonoffset; break;
-    case '<': constraint = (an_asm_operand_constraint)aoc_mem_autoinc;   break;
-    case '>': constraint = (an_asm_operand_constraint)aoc_mem_autodec;   break;
-    /* Immediates */
-    case 'i': constraint = (an_asm_operand_constraint)aoc_imm_int;    break;
-    case 'n': constraint = (an_asm_operand_constraint)aoc_imm_number; break;
-    case 's': constraint = (an_asm_operand_constraint)aoc_imm_symbol; break;
-    case 'E': constraint = (an_asm_operand_constraint)aoc_imm_float;  break;
-    case 'F': constraint = (an_asm_operand_constraint)aoc_imm_float;  break;
-#if TARG_IS_X86
-    /* x86 specific constraints - registers */
-    case 'a': constraint = (an_asm_operand_constraint)aoc_reg_a;         break;
-    case 'b': constraint = (an_asm_operand_constraint)aoc_reg_b;         break;
-    case 'c': constraint = (an_asm_operand_constraint)aoc_reg_c;         break;
-    case 'd': constraint = (an_asm_operand_constraint)aoc_reg_d;         break;
-    case 'S': constraint = (an_asm_operand_constraint)aoc_reg_si;        break;
-    case 'D': constraint = (an_asm_operand_constraint)aoc_reg_di;        break;
-    case 'R': constraint = (an_asm_operand_constraint)aoc_reg_legacy;    break;
-    case 'Q': constraint = (an_asm_operand_constraint)aoc_reg_q;         break;
-    case 'A': constraint = (an_asm_operand_constraint)aoc_reg_ad;        break;
-    case 't': constraint = (an_asm_operand_constraint)aoc_reg_float_tos; break;
-    case 'u': constraint = (an_asm_operand_constraint)aoc_reg_float_second;
-                                                                         break;
-    case 'x': constraint = (an_asm_operand_constraint)aoc_reg_sse;       break;
-    case 'Y': constraint = (an_asm_operand_constraint)aoc_reg_sse2;      break;
-    case 'y': constraint = (an_asm_operand_constraint)aoc_reg_mmx;       break;
-    /* Immediates */
-    case 'I': constraint = (an_asm_operand_constraint)aoc_imm_short_shift;
-                                                                         break;
-    case 'J': constraint = (an_asm_operand_constraint)aoc_imm_long_shift;
-                                                                         break;
-    case 'M': constraint = (an_asm_operand_constraint)aoc_imm_lea_shift; break;
-    case 'K': constraint = (an_asm_operand_constraint)aoc_imm_signed8;   break;
-    case 'N': constraint = (an_asm_operand_constraint)aoc_imm_unsigned8; break;
-    case 'L': constraint = (an_asm_operand_constraint)aoc_imm_and_zext;  break;
-    case 'G': constraint = (an_asm_operand_constraint)aoc_imm_80387;     break;
-    case 'H': constraint = (an_asm_operand_constraint)aoc_imm_sse;       break;
-    case 'e': constraint = (an_asm_operand_constraint)aoc_imm_sext32;    break;
-    case 'Z': constraint = (an_asm_operand_constraint)aoc_imm_zext32;    break;
-#endif /* TARG_IS_X86 */
-    case '\0':
-      pos_error(ec_missing_constraint_letter, &operand->position);
-      goto error_return;
-    default:
-      errletter[0] = *p;
-      pos_st_error(ispunct((unsigned char)*p) ? ec_bad_asm_constraint_modifier
-                                              : ec_bad_asm_constraint_letter,
-                   &operand->position, errletter);
-      goto error_return;
-  }  /* switch */
-  /* Check that there isn't anything more in the constraint string.
-     GCC silently ignores trailing characters, so this is just a warning. */
-  if (*++p != '\0') {
-    pos_warning(ec_extra_constraint_terms_ignored, &operand->position);
+  if (*p == '\0') {
+    pos_error(ec_missing_constraint_letter, &operand->position);
+    goto error_return;
+  }  /* if */
+  constraint = &operand->constraints;
+  for (; *p != '\0'; p++) {
+    /* The next thing in the string should be a constraint letter. */
+    ck = (an_asm_operand_constraint_kind)aoc_invalid;
+    switch (*p) {
+      /* Machine independent constraints - miscellaneous. */
+      case 'X':
+        ck = (an_asm_operand_constraint_kind)aoc_any;     
+        break;
+      case 'g': 
+        ck = (an_asm_operand_constraint_kind)aoc_general; 
+        break;
+      case '0': 
+        ck = (an_asm_operand_constraint_kind)aoc_match_0; 
+        break;
+      case '1': 
+        ck = (an_asm_operand_constraint_kind)aoc_match_1; 
+        break;
+      case '2': 
+        ck = (an_asm_operand_constraint_kind)aoc_match_2; 
+        break;
+      case '3':
+        ck = (an_asm_operand_constraint_kind)aoc_match_3; 
+        break;
+      case '4': 
+        ck = (an_asm_operand_constraint_kind)aoc_match_4; 
+        break;
+      case '5': 
+        ck = (an_asm_operand_constraint_kind)aoc_match_5; 
+        break;
+      case '6': 
+        ck = (an_asm_operand_constraint_kind)aoc_match_6; 
+        break;
+      case '7': 
+        ck = (an_asm_operand_constraint_kind)aoc_match_7; 
+        break;
+      case '8': 
+        ck = (an_asm_operand_constraint_kind)aoc_match_8; 
+        break;
+      case '9': 
+        ck = (an_asm_operand_constraint_kind)aoc_match_9; 
+        break;
+      /* Registers */
+      case 'r': 
+        ck = (an_asm_operand_constraint_kind)aoc_reg_integer; 
+        break;
+      case 'f': 
+        ck = (an_asm_operand_constraint_kind)aoc_reg_float;   
+        break;
+      /* Memory */
+      case 'm': 
+        ck = (an_asm_operand_constraint_kind)aoc_mem_any;       
+        break;
+      case 'o': 
+        ck = (an_asm_operand_constraint_kind)aoc_mem_offset;    
+        break;
+      case 'V': 
+        ck = (an_asm_operand_constraint_kind)aoc_mem_nonoffset; 
+        break;
+      case '<': 
+        ck = (an_asm_operand_constraint_kind)aoc_mem_autoinc;   
+        break;
+      case '>': 
+        ck = (an_asm_operand_constraint_kind)aoc_mem_autodec;   
+        break;
+      /* Immediates */
+      case 'i':
+        ck = (an_asm_operand_constraint_kind)aoc_imm_int;    
+        break;
+      case 'n':
+        ck = (an_asm_operand_constraint_kind)aoc_imm_number; 
+        break;
+      case 's':
+        ck = (an_asm_operand_constraint_kind)aoc_imm_symbol; 
+        break;
+      case 'E':
+        ck = (an_asm_operand_constraint_kind)aoc_imm_float;  
+        break;
+      case 'F':
+        ck = (an_asm_operand_constraint_kind)aoc_imm_float;  
+        break;
+  #if TARG_IS_X86
+      /* x86 specific constraints - registers */
+      case 'a':
+        ck = (an_asm_operand_constraint_kind)aoc_reg_a;         
+        break;
+      case 'b':
+        ck = (an_asm_operand_constraint_kind)aoc_reg_b;         
+        break;
+      case 'c':
+        ck = (an_asm_operand_constraint_kind)aoc_reg_c;         
+        break;
+      case 'd':
+        ck = (an_asm_operand_constraint_kind)aoc_reg_d;         
+        break;
+      case 'S':
+        ck = (an_asm_operand_constraint_kind)aoc_reg_si;        
+        break;
+      case 'D':
+        ck = (an_asm_operand_constraint_kind)aoc_reg_di;        
+        break;
+      case 'R':
+        ck = (an_asm_operand_constraint_kind)aoc_reg_legacy;    
+        break;
+      case 'Q':
+        ck = (an_asm_operand_constraint_kind)aoc_reg_q;         
+        break;
+      case 'A':
+        ck = (an_asm_operand_constraint_kind)aoc_reg_ad;        
+        break;
+      case 't':
+        ck = (an_asm_operand_constraint_kind)aoc_reg_float_tos; 
+        break;
+      case 'u':
+        ck = (an_asm_operand_constraint_kind)aoc_reg_float_second;
+        break;
+      case 'x':
+        ck = (an_asm_operand_constraint_kind)aoc_reg_sse;       
+        break;
+      case 'Y':
+        ck = (an_asm_operand_constraint_kind)aoc_reg_sse2;      
+        break;
+      case 'y':
+        ck = (an_asm_operand_constraint_kind)aoc_reg_mmx;       
+        break;
+      /* Immediates */
+      case 'I':
+        ck = (an_asm_operand_constraint_kind)aoc_imm_short_shift;
+        break;
+      case 'J':
+        ck = (an_asm_operand_constraint_kind)aoc_imm_long_shift;
+        break;
+      case 'M':
+        ck = (an_asm_operand_constraint_kind)aoc_imm_lea_shift; 
+        break;
+      case 'K':
+        ck = (an_asm_operand_constraint_kind)aoc_imm_signed8;   
+        break;
+      case 'N':
+        ck = (an_asm_operand_constraint_kind)aoc_imm_unsigned8; 
+        break;
+      case 'L':
+        ck = (an_asm_operand_constraint_kind)aoc_imm_and_zext;  
+        break;
+      case 'G':
+        ck = (an_asm_operand_constraint_kind)aoc_imm_80387;     
+        break;
+      case 'H':
+        ck = (an_asm_operand_constraint_kind)aoc_imm_sse;       
+        break;
+      case 'e':
+        ck = (an_asm_operand_constraint_kind)aoc_imm_sext32;    
+        break;
+      case 'Z':
+        ck = (an_asm_operand_constraint_kind)aoc_imm_zext32;    
+        break;
+  #endif /* TARG_IS_X86 */
+      default:
+        errletter[0] = *p;
+        pos_st_error(ispunct((unsigned char)*p) ? 
+                     ec_bad_asm_constraint_modifier : 
+                     ec_bad_asm_constraint_letter,
+                     &operand->position, errletter);
+        error_occurred = TRUE;
+        break;
+    }  /* switch */
+    /* Create a new constraint and add it to the list.  */
+    if (ck != (an_asm_operand_constraint_kind)aoc_invalid) {
+      *constraint = alloc_asm_constraint(ck);
+      constraint = &(*constraint)->next;
+    }  /* if */
+  }  /* for */
+  if (error_occurred) {
+    goto error_return;
   }  /* if */
   /* Semantic validation. */
   if (output && !(modifiers & (an_asm_operand_modifier)aom_output)) {
@@ -281,14 +388,12 @@ done_with_modifiers:
     pos_error(ec_asm_input_must_not_have_output_mod, &operand->position);
     goto error_return;
   }  /* if */
-  if (validate_expr_for_constraint(expr, constraint)) {
+  if (validate_expr_for_constraints(expr, operand->constraints)) {
     operand->expression = expr;
-    operand->constraint = constraint;
     operand->modifiers = modifiers;
   } else {
 error_return:
     operand->expression = error_node();
-    operand->constraint = (an_asm_operand_constraint)aoc_invalid;
     operand->modifiers = (an_asm_operand_modifier)aom_invalid;
   }  /* if */
 }  /* process_asm_operand */
@@ -299,23 +404,23 @@ Machine-specific tables used by validate_operands_and_clobbers.
 */
 typedef struct single_register_constraint {
   /* Structure to hold a constraint-to-register mapping. */
-  an_asm_operand_constraint  cons;
-  a_named_register           reg;
+  an_asm_operand_constraint_kind cons;
+  a_named_register               reg;
 } single_register_constraint;
 
 static single_register_constraint single_register_constraints[] = {
 #if TARG_IS_X86
-  { (an_asm_operand_constraint)aoc_reg_a, (a_named_register)anr_a },
-  { (an_asm_operand_constraint)aoc_reg_b, (a_named_register)anr_b },
-  { (an_asm_operand_constraint)aoc_reg_c, (a_named_register)anr_c },
-  { (an_asm_operand_constraint)aoc_reg_d, (a_named_register)anr_d },
-  { (an_asm_operand_constraint)aoc_reg_si, (a_named_register)anr_si },
-  { (an_asm_operand_constraint)aoc_reg_di, (a_named_register)anr_di },
+  { (an_asm_operand_constraint_kind)aoc_reg_a, (a_named_register)anr_a },
+  { (an_asm_operand_constraint_kind)aoc_reg_b, (a_named_register)anr_b },
+  { (an_asm_operand_constraint_kind)aoc_reg_c, (a_named_register)anr_c },
+  { (an_asm_operand_constraint_kind)aoc_reg_d, (a_named_register)anr_d },
+  { (an_asm_operand_constraint_kind)aoc_reg_si, (a_named_register)anr_si },
+  { (an_asm_operand_constraint_kind)aoc_reg_di, (a_named_register)anr_di },
   /* 't' and 'u' (x86 reg stack) are not included in this list,
      because the rules are not properly handled by the generic code
      below.  Machine-specific code must be written to handle them. */
 #endif /* TARG_IS_X86 */
-  { (an_asm_operand_constraint)aoc_last, (a_named_register)anr_last }
+  { (an_asm_operand_constraint_kind)aoc_last, (a_named_register)anr_last }
 };
 
 static a_named_register fixed_registers[] = {
@@ -342,12 +447,13 @@ Note that this function never modifies the operands or clobbers lists,
 even if they are invalid.
 */
 {
-  a_byte                    regs_clobbered[(int)anr_last];
-  a_byte                    regs_used[(int)anr_last];
-  an_asm_operand_ptr        operand;
-  a_named_register_list_ptr clobber;
-  int                       i;
-  a_named_register          r;
+  a_byte                        regs_clobbered[(int)anr_last];
+  a_byte                        regs_used[(int)anr_last];
+  an_asm_operand_ptr            operand;
+  a_named_register_list_ptr     clobber;
+  an_asm_operand_constraint_ptr c;
+  int                           i;
+  a_named_register              r;
 
   memzero((char*)regs_clobbered, sizeof regs_clobbered);
   memzero((char*)regs_used, sizeof regs_used);
@@ -355,16 +461,17 @@ even if they are invalid.
     for (i = 0;
          single_register_constraints[i].cons != (a_named_register)anr_last;
          i++) {
-      if (operands->constraint == single_register_constraints[i].cons) {
-        r = single_register_constraints[i].reg;
-        /* Test used == 1 so the error is issued once per register. */
-        if (r != (a_named_register)anr_invalid && regs_used[(int)r] == 1) {
-          pos_st_error(ec_register_used_twice, &operands->position,
-                       named_register_names[(int)r]);
+      for (c = operands->constraints; c != NULL; c = c->next) {
+        if (c->kind == single_register_constraints[i].cons) {
+          r = single_register_constraints[i].reg;
+          /* Test used == 1 so the error is issued once per register. */
+          if (r != (a_named_register)anr_invalid && regs_used[(int)r] == 1) {
+            pos_st_error(ec_register_used_twice, &operand->position,
+                         named_register_names[(int)r]);
+          }  /* if */
+          regs_used[(int)r]++;
         }  /* if */
-        regs_used[(int)r]++;
-        break;
-      }  /* if */
+      }  /* for */
     }  /* for */
   }  /* for */
   for (clobber = clobbers; clobber != NULL; clobber = clobber->next) {

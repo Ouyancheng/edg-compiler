@@ -4666,6 +4666,8 @@ static void disp_asm_operand(an_asm_operand_ptr ptr)
 Display the indicated asm operand.
 */
 {
+  an_asm_operand_constraint_ptr c;
+
   disp_ptr("next", (char *)ptr->next, iek_asm_operand);
   if (ptr->modifiers & aom_output) {
     disp_boolean("aom_output", TRUE);
@@ -4691,8 +4693,10 @@ Display the indicated asm operand.
   if (ptr->modifiers & aom_bad_choice) {
     disp_boolean("aom_bad_choice", TRUE);
   }  /* if */
-  printf("constraint: %c\n",
-         asm_operand_constraint_letters[ptr->constraint]);
+  for (c = ptr->constraints; c != NULL; c = c->next) {
+    printf("constraint: %c\n",
+           asm_operand_constraint_letters[(int)c->kind]);
+  }  /* for */
   disp_ptr("expr", (char *)ptr->expression, iek_expr_node);
 } /* disp_asm_operand */
 

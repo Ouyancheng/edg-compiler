@@ -7820,8 +7820,9 @@ static void gen_asm_operands(an_asm_entry_ptr aep)
 Generate the GNU C operand descriptions for the given asm entry.
 */
 {
-  a_boolean          output = TRUE;
-  an_asm_operand_ptr aop;
+  a_boolean                     output = TRUE;
+  an_asm_operand_ptr            aop;
+  an_asm_operand_constraint_ptr c;
 
   /* Check for the case of no operands at all, or just no outputs. */
   if (aep->operands == NULL ||
@@ -7842,7 +7843,9 @@ Generate the GNU C operand descriptions for the given asm entry.
     if (aop->modifiers & (an_asm_operand_modifier)aom_earlyclobber) {
       m_write_ch('&');
     }  /* if */
-    m_write_ch(asm_operand_constraint_letters[aop->constraint]);
+    for (c = aop->constraints; c != NULL; c = c->next) {
+      m_write_ch(asm_operand_constraint_letters[(int)c->kind]);
+    }  /* for */
     m_write_ch('"');
     write_tok_str(" (");
     if (aop->modifiers & (an_asm_operand_modifier)aom_output) {
