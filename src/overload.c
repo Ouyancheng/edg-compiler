@@ -2680,25 +2680,11 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
              are added to get to param_type1, and argument 1 is better. */
           cmp = 1;
         }  /* if */
-        if (cmp != 0) {
-          /* This tie-breaker applies only if no other arguments contradict
-             it. */
-          if (result_cmp == 0) {
-            /* No previous argument had a tiebreaker.  Remember this one and
-               keep going to see if any later argument contradicts it. */
-            result_cmp = cmp;
-          } else if (result_cmp != cmp) {
-            /* This contradicts a previous argument, so the tie-breaker does
-               not apply. */
-            cmp = 0;
-            break;
-          }  /* if */
-        }  /* if */
       }  /* if */
     }  /* if */
     /* Use of an anachronism (e.g., calling a const function for a
        non-const object) can break a tie. */
-    if (arg1->anachronism_used != arg2->anachronism_used) {
+    if (cmp == 0 && arg1->anachronism_used != arg2->anachronism_used) {
       if (arg1->anachronism_used) {
         /* Argument 1 uses an anachronism and argument 2 does not, so
            argument 2 is better. */
@@ -2708,6 +2694,8 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
            is better. */
         cmp = 1;
       }  /* if */
+    }  /* if */
+    if (cmp != 0) {
       /* This tie-breaker applies only if no other arguments contradict
          it. */
       if (result_cmp == 0) {
@@ -2717,7 +2705,7 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
       } else if (result_cmp != cmp) {
         /* This contradicts a previous argument, so the tie-breaker does
            not apply. */
-        cmp = 0;
+        result_cmp = 0;
         break;
       }  /* if */
     }  /* if */

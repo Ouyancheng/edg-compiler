@@ -1,5 +1,20 @@
 Version 2.33
 
+9/22/96 Tiebreakers in overload resolution
+
+A patch sent out on 2.31, for a fix made 2/9/96 (see below) for anachronisms
+as tiebreakers in overload resolution, broke the tiebreaker test in
+a different way.  Now fixed.
+
+  struct X {
+    void foo(int*) const;
+    void foo(const int*);
+  };
+  void foo(X *pX, int *pi)
+  {
+    pX->foo(pi);  // Should be ambiguous; broken by patch on 2.31
+  }
+
 9/18/96 Redeclaration of library versions of operator new and delete
 
 If the source program omits the exception specification when redeclaring a
