@@ -287,8 +287,12 @@ to match the source dialect (including the version of the dialect).
                       !microsoft_dialect_is_generated_code_target &&
                       !sun_is_generated_code_target,
                       "Target dialect already set.");
-  check_assertion((gnu_mode != 0) + (microsoft_mode != 0) + (sun_mode != 0)
-                                                                        < 2);
+#if CHECKING
+  {
+    int n_dialects = (gnu_mode != 0) + (microsoft_mode != 0) + (sun_mode != 0);
+    check_assertion(n_dialects < 2);
+  }
+#endif /* CHECKING */
   if (gnu_mode) {
     gcc_is_generated_code_target = TRUE;
 #if GCC_BUILTIN_VARARGS
