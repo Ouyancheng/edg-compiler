@@ -2414,6 +2414,7 @@ or struct definition.  The syntax is
             case tok_private:
               access = (an_access_specifier)as_private;
               break;
+            default:;  /* Avoid gcc warnings. */
           }  /* switch */
           access_already_specified = TRUE;
         }  /* if */
@@ -5790,6 +5791,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
               case tok_private:
                 access = (an_access_specifier)as_private;
                 break;
+              default:;  /* Avoid gcc warnings. */
             }  /* switch */
             scope_stack[decl_scope_level].current_access = access;
             /* Advance to the colon, which is required. */
