@@ -7631,9 +7631,8 @@ chain of casts is used to disambiguate the derivation path.
 }  /* final_overrider */
 
 
-static a_boolean ctor_or_dtor_calling_own_pure_virtual(
-                                             a_routine_ptr    member_func,
-                                             an_expr_node_ptr function_node)
+static a_boolean call_invokes_pure_virtual(a_routine_ptr    member_func,
+                                           an_expr_node_ptr function_node)
 /*
 Return TRUE iff:
 1) we are currently in the constructor or destructor of the class of
@@ -7643,12 +7642,18 @@ Return TRUE iff:
 3) member_func (or its final overrider in the class of the
    constructor/destructor) is a pure virtual.
 
+(Exception: MSVC++ 6.0 allowed a cast to an abstract class, which might
+result in a detectable call to a pure virtual function in other contexts,
+as well.  We check for this case, too, in microsoft_bugs mode when
+microsoft_version < 1300.)
+
 member_func points to a virtual function, and function_node points to
 a function expression to which the argument list (including the implicit
 "this" argument) has already been appended.
 */
 {
-  a_boolean bad_pure_virt_call = FALSE;
+  a_boolean        bad_pure_virt_call = FALSE;
+  an_expr_node_ptr implicit_this_arg = function_node->next;
 
   if (innermost_function_scope != NULL) {
     /* The call is in the context of a function body (as opposed to an
@@ -7673,7 +7678,6 @@ a function expression to which the argument list (including the implicit
            construction/destruction.  The argument list, including the
            implicit "this" argument, has already been appended to the
            function_node, with the implicit "this" as the first successor. */
-        an_expr_node_ptr implicit_this_arg = function_node->next;
         an_expr_node_ptr node;
 
         /* We scan down through any eok_cast, eok_base_class_cast, or
@@ -7718,8 +7722,23 @@ a function expression to which the argument list (including the implicit
     }  /* if */
   }  /* if */
 
+  if (!bad_pure_virt_call && microsoft_bugs && microsoft_version < 1300) {
+    /* MSVC++ 6.0 allowed a cast to an abstract class type, so we need to
+       check for that case, too. */
+    a_type_ptr object_type =
+              node_complete_object_type(implicit_this_arg, /*call_case=*/TRUE);
+    if (object_type != NULL) {
+      /* We know the complete object type, so we can find the actual target
+         of this call. */
+      a_routine_ptr called_func = final_overrider(member_func,
+                                                  implicit_this_arg,
+                                                  skip_typerefs(object_type));
+      bad_pure_virt_call = called_func->pure_virtual;
+    }  /* if */
+  }  /* if */
+
   return bad_pure_virt_call;
-}  /* ctor_or_dtor_calling_own_pure_virt */
+}  /* call_invokes_pure_virtual */
 
 
 #if !BACK_END_IS_CP_GEN_BE
@@ -7791,8 +7810,8 @@ rather than an explicit function call.
       /* It is being called. */
       rp->called = TRUE;
       if (rp->is_virtual && !virtual_suppressed &&
-          ctor_or_dtor_calling_own_pure_virtual(rp, function_node)) {
-        /* Call to pure virtual from a constructor or destructor. */
+          call_invokes_pure_virtual(rp, function_node)) {
+        /* Call to pure virtual, e.g., from a constructor or destructor. */
         pos_warning(ec_call_of_pure_virtual, err_pos);
       }  /* if */
     }  /* if */

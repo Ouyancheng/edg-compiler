@@ -1,5 +1,26 @@
 Version 3.6
 
+11/23/04 Microsoft C++ compatibility: cast to abstract class and warning on
+         call of pure virtual function
+
+As noted in the Changes entry of 7/24/04, the front end now warns about
+calls to pure virtual functions from constructors and destructors in more
+contexts than formerly.  This change, however, inadvertently disabled the
+warning when the call resulted from a cast to an abstract class type
+(invalid in Standard C++ but permitted in Microsoft bugs mode for versions
+less than 1300).  This warning has now been restored.  For example,
+
+  struct B {
+    virtual void f() = 0;
+  };
+  struct D: B {
+    void f();
+  }
+  void g() {
+    D d;
+    B(d).f();    // Warning was disabled, now issued
+  }
+
 11/22/04 GNU C++ compatibility: Floating-point in-class initializers
 
 In GNU C++ mode the front end now accepts in-class initializers for static
