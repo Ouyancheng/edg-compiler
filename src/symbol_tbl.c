@@ -437,8 +437,10 @@ and indentation is the indentation desired.
       db_constant(sym->variant.constant);
       break;
     case sk_type:
-    case sk_enum_tag:
       type = sym->variant.type;
+      break;
+    case sk_enum_tag:
+      type = sym->variant.enumeration.type;
       break;
     case sk_class_or_struct_tag:
     case sk_union_tag:
@@ -1533,8 +1535,11 @@ state.
       sym_ptr->variant.constant = NULL;
       break;
     case sk_type:
-    case sk_enum_tag:
       sym_ptr->variant.type = NULL;
+      break;
+    case sk_enum_tag:
+      sym_ptr->variant.enumeration.type = NULL;
+      sym_ptr->variant.enumeration.dependent_type_fixup_list = NULL;
       break;
     case sk_class_or_struct_tag:
     case sk_union_tag:
@@ -4039,8 +4044,11 @@ with an IL entry, return NULL, and leave kind set to iek_none.
       *kind = iek_constant;
       break;
     case sk_type:
-    case sk_enum_tag:
       entry_ptr = (char *)sym->variant.type;
+      *kind = iek_type;
+      break;
+    case sk_enum_tag:
+      entry_ptr = (char *)sym->variant.enumeration.type;
       *kind = iek_type;
       break;
     case sk_class_or_struct_tag:
@@ -6362,20 +6370,21 @@ Clear the fields of a function information block to default values.
 }  /* clear_func_info */
 
 
-void add_to_dependent_type_fixup_list(a_type_ptr                   class_type,
+void add_to_dependent_type_fixup_list(a_type_ptr                   type_ptr,
                                       a_dependent_type_fixup_kind  fixup_kind,
-                                      char                         *ptr,
+                                      char                         *entity_ptr,
                                       a_byte_il_entry_kind         entity_kind,
                                       a_source_position            *pos)
 /*
-class_type is a pointer an incomplete class/struct/union type, and type or
-param_type is dependent on it, so an entry is created so that type or
-param_type can be fixed up appropriately when the class type is finally
-defined.  Either type or param_type (but not both) is non-NULL.
+type_ptr is a pointer an incomplete class/struct/union or enum type, and
+entity_ptr and entity_kind together identify a type or param_type dependent
+on it.  An fixup entry is created and put on a list so that the dependent
+entity can be modified appropriately when the class or enum type is finally
+defined.
 */
 {
-  a_dependent_type_fixup_ptr     dtfp;
-  a_class_symbol_supplement_ptr  cssp;
+  a_dependent_type_fixup_ptr     dtfp, end_of_list, *start_of_list;
+  a_symbol_ptr                   sym;
 
   db_enter(5, "add_to_dependent_type_fixup_list");
   /* A dependent type fixup entry is required for the type or param type. */
@@ -6392,16 +6401,25 @@ defined.  Either type or param_type (but not both) is non-NULL.
 #endif /* DEBUG */
   }  /* if */
   dtfp->fixup_kind = fixup_kind;
-  dtfp->entity.ptr = ptr;
+  dtfp->entity.ptr = entity_ptr;
   dtfp->entity.kind = entity_kind;
   dtfp->decl_position = *pos;
   dtfp->next = NULL;
-  /* Add a fixup entry to the end of the list associated with the class. */
-  cssp = symbol_supplement_for_class(class_type);
-  if (cssp->dependent_type_fixup_list == NULL) {
-    cssp->dependent_type_fixup_list = dtfp;
+  /* Add the entry to the end of the appropriate list. */
+  sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
+  if (is_class_symbol(sym)) {
+    /* Use the list associated with the class. */
+    start_of_list = &sym->variant.class_struct_union.extra_info->
+                                              dependent_type_fixup_list;
   } else {
-    a_dependent_type_fixup_ptr  end_of_list = cssp->dependent_type_fixup_list;
+    /* Use the list associated with the enum type. */
+    check_assertion(sym->kind == (a_symbol_kind)sk_enum_tag);
+    start_of_list = &sym->variant.enumeration.dependent_type_fixup_list;
+  }  /* if */
+  if (*start_of_list == NULL) {
+    *start_of_list = dtfp;
+  } else {
+    end_of_list = *start_of_list;
     while (end_of_list->next != NULL) end_of_list = end_of_list->next;
     end_of_list->next = dtfp;
   }  /* if */
@@ -6409,20 +6427,29 @@ defined.  Either type or param_type (but not both) is non-NULL.
 }  /* add_to_dependent_type_fixup_list */
 
 
-void check_dependent_type_fixup_list(a_type_ptr  class_type)
+void check_dependent_type_fixup_list(a_symbol_ptr  sym)
 /*
-Go through the entries on the dependent-type-fixup list for class_type.  The
-list is a registry of entities that depend on class_type but were declared
-before class_type was defined.  Now that the definition is there, the rest
-of the declaration can be completed for the dependent types, too.
+Go through the entries on the dependent-type-fixup list for sym, which
+identifies either a class type or an enumeration type.  The list is a
+registry of entities that depend on the type but were declared before it
+was defined. Now that the definition is there, the rest of the declaration
+can be completed for the dependent types, too.
 */
 {
-  a_dependent_type_fixup_ptr     dtfp, next_dtfp, prev_dtfp, list;
-  a_class_symbol_supplement_ptr  cssp;
+  a_dependent_type_fixup_ptr     dtfp, next_dtfp, prev_dtfp;
+  a_dependent_type_fixup_ptr     *start_of_list, list;
   a_type_ptr                     tp;
 
-  cssp = symbol_supplement_for_class(class_type);
-  list = cssp->dependent_type_fixup_list;
+  if (is_class_symbol(sym)) {
+    /* Check the list associated with the class. */
+    start_of_list = &sym->variant.class_struct_union.extra_info->
+                                              dependent_type_fixup_list;
+  } else {
+    /* Check the list associated with the enum type. */
+    check_assertion(sym->kind == (a_symbol_kind)sk_enum_tag);
+    start_of_list = &sym->variant.enumeration.dependent_type_fixup_list;
+  }  /* if */
+  list = *start_of_list;
   if (list != NULL) {
 #if CHECKING
     a_boolean  any_entries_removed = FALSE;
@@ -6458,8 +6485,8 @@ of the declaration can be completed for the dependent types, too.
                 prev_dtfp = dtfp;
                 goto next_list_entry;
               } else {
-                /* An array of elements of the (now complete) class type.  The
-                   array's size can be computed. */
+                /* An array of elements of the (now complete) class or enum
+                   type.  The array's size can be computed. */
                 error_position = dtfp->decl_position;
                 set_type_size(tp);
               }  /* if */
@@ -6519,7 +6546,7 @@ next_list_entry:;
 #endif /* CHECKING */
     } while (list != NULL);
     /* Null out the list pointer before returning. */
-    cssp->dependent_type_fixup_list = NULL;
+    *start_of_list = NULL;
   }  /* if */
 }  /* check_dependent_type_fixup_list */
 
