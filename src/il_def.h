@@ -2641,6 +2641,7 @@ typedef struct a_field {
 			/* TRUE if the field represents a bit field. */
   unsigned int  bit_field_is_signed:1;
 			/* TRUE if the field is a signed bit field. */
+  bitfield_to_avoid_codecenter_warnings();
 } a_field;
 
 #endif /* ifdef CIL */
