@@ -4627,7 +4627,9 @@ a list pointed to by an IL scope entry.  Return a pointer to that IL scope
 entry, along with the associated pointers-block.  When scope_level is
 NO_SCOPE_DEPTH, the scope is either the file scope or the scope associated
 with the class or namespace of which the entry is a member, and the
-scope need not be on the scope stack.
+scope need not be on the scope stack.  *pointers_block is returned NULL
+if there is no pointers block (anymore) for the scope, which means no
+last-pointer is being maintained (anymore).
 */
 {
   a_scope_stack_entry_ptr  ssep;
@@ -4666,11 +4668,17 @@ scope need not be on the scope stack.
     /* Use the IL scope from the namespace. */
     sp = nsp->variant.assoc_scope;
     *pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
-  } else if (scope_level == DEPTH_OF_FILE_SCOPE &&
-             depth_scope_stack < DEPTH_OF_FILE_SCOPE) {
-    /* The file scope is not currently on the scope stack. */
-    sp = il_header.primary_scope;
-    *pointers_block = NULL;
+  } else if (scope_level == DEPTH_OF_FILE_SCOPE) {
+    /* The file scope.  This is done without using the scope stack to
+       deal with some cases where the file scope is not on the stack.
+       It works fine also for the cases where the file scope is on the
+       scope stack. */
+    /* Note that remove_from_primary_file_variables_list and similar
+       routines call this routine after switching only the
+       curr_translation_unit pointer, so use that and not other
+       global variables like il_header. */
+    sp = curr_translation_unit->primary_scope;
+    *pointers_block = &curr_translation_unit->file_scope_pointers_block;
   } else {
     /* Use the IL scope associated with scope_level. */
     check_assertion(scope_level >= 0 && scope_level <= depth_scope_stack);
@@ -4932,6 +4940,7 @@ determined directly.
   if (sp == NULL) {
     /* May be an error case. */
   } else {
+    check_assertion(pointers_block != NULL);
     if (pointers_block->last_type == type_ptr) {
       /* It's already the last entry on the list. */
     } else {
@@ -7060,19 +7069,19 @@ void remove_from_variables_list(a_variable_ptr var_ptr,
 Unlink the given variable from the variables list for the scope indicated by
 scope_depth.  This is done so the variable can be added again at the end of
 the list, to keep the variables in order of appearance of their definitions.
+When scope_level is NO_SCOPE_DEPTH, the scope is computed rather than
+determined directly.
 */
 {
   a_variable_ptr              prev_var, vp;
-  a_scope_stack_entry_ptr     ssep;
   a_scope_ptr                 sp;
   a_scope_pointers_block_ptr  pointers_block;
 
-  /* Get pointer to the file scope entry. */
-  ssep = &scope_stack[scope_depth];
   check_assertion_str(!var_ptr->source_corresp.is_class_member,
                       "remove_from_variables_list: class member not expected");
-  sp = ssep->il_scope;
-  pointers_block = assoc_pointers_block_of(ssep);
+  /* Get a pointer to the scope in which the variable is declared. */
+  sp = get_scope_for_list(scope_depth, &var_ptr->source_corresp,
+                          &pointers_block);
   check_assertion_str(sp != NULL, "remove_from_variables_list: NULL IL scope");
   /* Find the variable on the current list that precedes var_ptr; we'll need
      it to unlink var_ptr. */
@@ -7090,7 +7099,7 @@ the list, to keep the variables in order of appearance of their definitions.
   }  /* if */
   /* If the entry being removed was the last on the list, update the
      last_variable pointer. */
-  if (var_ptr == pointers_block->last_variable) {
+  if (pointers_block != NULL && var_ptr == pointers_block->last_variable) {
     pointers_block->last_variable = prev_var;
   }  /* if */
 }  /* remove_from_variables_list */
@@ -7302,20 +7311,20 @@ void remove_from_routines_list(a_routine_ptr rout_ptr,
 Unlink the given routine from the routines list for the scope indicated by
 scope_depth.  This is done so the routine can be added again at the end of
 the list, to keep the routines in order of appearance of their definitions.
+When scope_level is NO_SCOPE_DEPTH, the scope is computed rather than
+determined directly.
 */
 {
   a_routine_ptr               prev_routine = NULL, rp;
-  a_scope_stack_entry_ptr     ssep;
   a_scope_ptr                 sp;
   a_scope_pointers_block_ptr  pointers_block;
 
-  /* Get pointer to the file scope entry. */
-  ssep = &scope_stack[scope_depth];
-  sp = ssep->il_scope;
   check_assertion_str(!rout_ptr->source_corresp.is_class_member,
                       "remove_from_routines_list: class member not expected");
+  /* Get a pointer to the scope in which the routine is declared. */
+  sp = get_scope_for_list(scope_depth, &rout_ptr->source_corresp,
+                          &pointers_block);
   check_assertion_str(sp != NULL, "remove_from_routines_list: NULL IL scope");
-  pointers_block = assoc_pointers_block_of(ssep);
   /* Find the routine on the current list in order to find the previous entry
      so we can unlink. */
   for (rp = sp->routines; rp != NULL; prev_routine = rp, rp = rp->next) {
@@ -7331,7 +7340,7 @@ the list, to keep the routines in order of appearance of their definitions.
   }  /* if */
   /* If the entry being removed was the last on the list, update the
      last_routine pointer. */
-  if (rout_ptr == pointers_block->last_routine) {
+  if (pointers_block != NULL && rout_ptr == pointers_block->last_routine) {
     pointers_block->last_routine = prev_routine;
   }  /* if */
 }  /* remove_from_routines_list */

@@ -740,6 +740,51 @@ the primary translation unit, respectively) that are being merged.
 }  /* merge_object_lifetimes */
 
 
+static void remove_from_primary_file_variables_list(a_variable_ptr variable)
+/*
+Remove the indicated variable from its variables list in the primary file
+IL.
+*/
+{
+   a_translation_unit_ptr saved_tup = curr_translation_unit;
+
+   /* Partially switch to the primary translation unit temporarily. */
+   curr_translation_unit = translation_units;
+   remove_from_variables_list(variable, NO_SCOPE_DEPTH);
+   curr_translation_unit = saved_tup;
+}  /* remove_from_primary_file_variables_list */
+
+
+static void remove_from_primary_file_routines_list(a_routine_ptr routine)
+/*
+Remove the indicated routine from its routines list in the primary file
+IL.
+*/
+{
+   a_translation_unit_ptr saved_tup = curr_translation_unit;
+
+   /* Partially switch to the primary translation unit temporarily. */
+   curr_translation_unit = translation_units;
+   remove_from_routines_list(routine, NO_SCOPE_DEPTH);
+   curr_translation_unit = saved_tup;
+}  /* remove_from_primary_file_routines_list */
+
+
+static void move_to_end_of_primary_file_types_list(a_type_ptr type)
+/*
+Move the indicated type entry to the end of its type list in the
+primary file IL.
+*/
+{
+   a_translation_unit_ptr saved_tup = curr_translation_unit;
+
+   /* Partially switch to the primary translation unit temporarily. */
+   curr_translation_unit = translation_units;
+   move_to_end_of_types_list(type, NO_SCOPE_DEPTH);
+   curr_translation_unit = saved_tup;
+}  /* move_to_end_of_primary_file_types_list */
+
+
 static void finish_trans_unit_copy(a_scope_ptr scope)
 /*
 scope is a file or namespace scope from the secondary file IL.  Do
@@ -748,29 +793,25 @@ secondary scope to the primary file IL.
 */
 {
   a_scope_ptr            primary_scope;
-  a_scope_pointers_block *pointers_block = NULL;
+  a_scope_pointers_block *pointers_block;
 
   /* Process only scopes that must be merged into their counterparts. */
   if (entry_to_be_merged(scope)) {
     /* Find the corresponding scope. */
     primary_scope = (a_scope_ptr)canonical_il_entry_of(scope);
-    /* For the file scope, we will be using and updating the end pointers
-       in the pointers block. */
+    /* Get the pointers block for the primary IL scope. */
     if (scope->kind == (a_scope_kind)sck_file) {
       pointers_block = &translation_units->file_scope_pointers_block;
+    } else {
+      check_assertion(scope->kind == (a_scope_kind)sck_namespace);
+      pointers_block = &symbol_supplement_for_namespace(
+                                      primary_scope->variant.assoc_namespace)->
+                                                                pointers_block;
     }  /* if */
     if (scope->types != NULL) {
       a_type_ptr type, last_type;
       /* Merge the types in the scope into the primary IL scope. */
-      /* Get a pointer to the last entry in the primary IL scope. */
-      if (pointers_block != NULL) {
-        last_type = pointers_block->last_type;
-      } else {
-        last_type = primary_scope->types;
-        if (last_type != NULL) {
-          while (last_type->next != NULL) last_type = last_type->next;
-        }  /* if */
-      }  /* if */
+      last_type = pointers_block->last_type;
       for (type = scope->types; type != NULL; type = type->next) {
         a_type_ptr corresp_type =
                        (a_type_ptr)checked_trans_unit_corresp_pointer_of(type);
@@ -787,57 +828,50 @@ secondary scope to the primary file IL.
         } else {
           /* Merge the information from this type into the primary IL type
              (the secondary translation unit instance has a definition and
-             the primary translation unit instance does not). */
+             the primary translation unit instance does not).  Move the
+             primary IL type to the end of the types list so that it
+             appears on the list at the point where the definition appears. */
           a_type_ptr primary_type =
                (a_type_ptr)checked_trans_unit_corresp_pointer_of(corresp_type);
-          corresp_type->next = primary_type->next;
+          move_to_end_of_primary_file_types_list(primary_type);
+          corresp_type->next = NULL;
           *primary_type = *corresp_type;
+          last_type = primary_type;
         }  /* if */
-      }  /* for */
-      if (pointers_block != NULL) {
         pointers_block->last_type = last_type;
-      }  /* if */
+      }  /* for */
     }  /* if */
     if (scope->variables != NULL) {
       a_variable_ptr variable, last_variable;
       /* Merge the variables in the scope into the primary IL scope. */
-      /* Get a pointer to the last entry in the primary IL scope. */
-      if (pointers_block != NULL) {
-        last_variable = pointers_block->last_variable;
-      } else {
-        last_variable = primary_scope->variables;
-        if (last_variable != NULL) {
-          while (last_variable->next != NULL) {
-            last_variable = last_variable->next;
-          }  /* while */
-        }  /* if */
-      }  /* if */
+      last_variable = pointers_block->last_variable;
       for (variable = scope->variables;
            variable != NULL;
            variable = variable->next) {
         a_variable_ptr corresp_variable =
                (a_variable_ptr)checked_trans_unit_corresp_pointer_of(variable);
-        if (!entry_to_be_merged(variable)) {
-          /* An entry that had no correspondence.  Add it to the end of
-             the list. */
-          if (last_variable == NULL) {
-            primary_scope->variables = corresp_variable;
-          } else {
-            last_variable->next = corresp_variable;
-          }  /* if */
-          corresp_variable->next = NULL;
-          last_variable = corresp_variable;
-        } else {
+        if (entry_to_be_merged(variable)) {
           /* Merge the information from this variable into the primary IL
              variable (the secondary translation unit instance has a definition
-             and the primary translation unit instance does not). */
+             and the primary translation unit instance does not).  Move
+             the primary IL variable to the end of the variables list so
+             that it appears on the list at the point where the definition
+             appears. */
           a_variable_ptr primary_variable =
                    (a_variable_ptr)checked_trans_unit_corresp_pointer_of(
                                                              corresp_variable);
-          corresp_variable->next = primary_variable->next;
+          remove_from_primary_file_variables_list(primary_variable);
           *primary_variable = *corresp_variable;
           corresp_variable = primary_variable;
         }  /* if */
+        /* Add the copied variable to the end of the list. */
+        if (last_variable == NULL) {
+          primary_scope->variables = corresp_variable;
+        } else {
+          last_variable->next = corresp_variable;
+        }  /* if */
+        corresp_variable->next = NULL;
+        last_variable = corresp_variable;
 #if MAINTAIN_NEEDED_FLAGS
         if (corresp_variable->storage_class ==
                                              (a_storage_class)sc_unspecified ||
@@ -848,10 +882,8 @@ secondary scope to the primary file IL.
                          (an_il_entry_kind)iek_variable);
         }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-      }  /* for */
-      if (pointers_block != NULL) {
         pointers_block->last_variable = last_variable;
-      }  /* if */
+      }  /* for */
     }  /* if */
     if (scope->dynamic_inits != NULL) {
       /* Add the dynamic initializations of "scope" to the end of the
@@ -862,78 +894,53 @@ secondary scope to the primary file IL.
       if (last_dyn_init == NULL) {
         primary_scope->dynamic_inits = copied_inits;
       } else {
-        if (pointers_block != NULL) {
-          last_dyn_init = pointers_block->last_dynamic_init;
-        } else {
-          while (last_dyn_init->next != NULL) {
-            last_dyn_init = last_dyn_init->next;
-          }  /* while */
-        }  /* if */
+        last_dyn_init = pointers_block->last_dynamic_init;
         last_dyn_init->next = copied_inits;
       }  /* if */
-      if (pointers_block != NULL) {
-        last_dyn_init = copied_inits;
-        while (last_dyn_init->next != NULL) {
-          last_dyn_init = last_dyn_init->next;
-        }  /* while */
-        pointers_block->last_dynamic_init = last_dyn_init;
-      }  /* if */
+      last_dyn_init = copied_inits;
+      while (last_dyn_init->next != NULL) {
+        last_dyn_init = last_dyn_init->next;
+      }  /* while */
+      pointers_block->last_dynamic_init = last_dyn_init;
     }  /* if */
     if (scope->routines != NULL) {
       a_routine_ptr routine, last_routine;
       /* Merge the routines in the scope into the primary IL scope. */
-      /* Get a pointer to the last entry in the primary IL scope. */
-      if (pointers_block != NULL) {
-        last_routine = pointers_block->last_routine;
-      } else {
-        last_routine = primary_scope->routines;
-        if (last_routine != NULL) {
-          while (last_routine->next != NULL) last_routine = last_routine->next;
-        }  /* if */
-      }  /* if */
+      last_routine = pointers_block->last_routine;
       for (routine = scope->routines;
            routine != NULL;
            routine = routine->next) {
         a_routine_ptr corresp_routine =
                  (a_routine_ptr)checked_trans_unit_corresp_pointer_of(routine);
-        if (!entry_to_be_merged(routine)) {
-          /* An entry that had no correspondence.  Add it to the end of
-             the list. */
-          if (last_routine == NULL) {
-            primary_scope->routines = corresp_routine;
-          } else {
-            last_routine->next = corresp_routine;
-          }  /* if */
-          corresp_routine->next = NULL;
-          last_routine = corresp_routine;
-        } else {
+        if (entry_to_be_merged(routine)) {
           /* Merge the information from this routine into the primary IL
              routine (the secondary translation unit instance has a
-             definition and the primary translation unit instance does not). */
+             definition and the primary translation unit instance does not).
+             Move the primary IL routine to the end of the routines list
+             so that it appears on the list at the point where the
+             definition appears. */
           a_routine_ptr primary_routine =
                    (a_routine_ptr)checked_trans_unit_corresp_pointer_of(
                                                               corresp_routine);
-          corresp_routine->next = primary_routine->next;
+          remove_from_primary_file_routines_list(primary_routine);
           *primary_routine = *corresp_routine;
           corresp_routine = primary_routine;
         }  /* if */
-      }  /* for */
-      if (pointers_block != NULL) {
+        /* Add the copied routine to the end of the list. */
+        if (last_routine == NULL) {
+          primary_scope->routines = corresp_routine;
+        } else {
+          last_routine->next = corresp_routine;
+        }  /* if */
+        corresp_routine->next = NULL;
+        last_routine = corresp_routine;
         pointers_block->last_routine = last_routine;
-      }  /* if */
+      }  /* for */
     }  /* if */
     if (scope->templates != NULL) {
       a_template_ptr templ, last_templ;
       /* Merge the templates in the scope into the primary IL scope. */
-      /* Get a pointer to the last entry in the primary IL scope. */
-      if (pointers_block != NULL) {
-        last_templ = pointers_block->last_template;
-      } else {
-        last_templ = primary_scope->templates;
-        if (last_templ != NULL) {
-          while (last_templ->next != NULL) last_templ = last_templ->next;
-        }  /* if */
-      }  /* if */
+      last_templ = pointers_block->last_template;
       for (templ = scope->templates; templ != NULL; templ = templ->next) {
         a_template_ptr corresp_templ =
                   (a_template_ptr)checked_trans_unit_corresp_pointer_of(templ);
@@ -947,23 +954,13 @@ secondary scope to the primary file IL.
         }  /* if */
         corresp_templ->next = NULL;
         last_templ = corresp_templ;
-      }  /* for */
-      if (pointers_block != NULL) {
         pointers_block->last_template = last_templ;
-      }  /* if */
+      }  /* for */
     }  /* if */
     if (scope->namespaces != NULL) {
       a_namespace_ptr nsp, last_nsp;
       /* Merge the namespaces in the scope into the primary IL scope. */
-      /* Get a pointer to the last entry in the primary IL scope. */
-      if (pointers_block != NULL) {
-        last_nsp = pointers_block->last_namespace;
-      } else {
-        last_nsp = primary_scope->namespaces;
-        if (last_nsp != NULL) {
-          while (last_nsp->next != NULL) last_nsp = last_nsp->next;
-        }  /* if */
-      }  /* if */
+      last_nsp = pointers_block->last_namespace;
       for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
         a_namespace_ptr corresp_nsp =
                    (a_namespace_ptr)checked_trans_unit_corresp_pointer_of(nsp);
@@ -978,13 +975,11 @@ secondary scope to the primary file IL.
           corresp_nsp->next = NULL;
           last_nsp = corresp_nsp;
         }  /* if */
+        pointers_block->last_namespace = last_nsp;
         if (!nsp->is_namespace_alias) {
           finish_trans_unit_copy(nsp->variant.assoc_scope);
         }  /* if */
       }  /* for */
-      if (pointers_block != NULL) {
-        pointers_block->last_namespace = last_nsp;
-      }  /* if */
     }  /* if */
     /* Merge the object lifetime from "scope" into that from
        "primary_scope". */
