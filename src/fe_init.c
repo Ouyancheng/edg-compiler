@@ -119,7 +119,9 @@ Do required initialization for host-dependent things.
     bool = (AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG !=
             ((BITS_IN_AN_INTEGER_VALUE) > (sizeof(long) * CHAR_BIT)));
     if (bool) {
-      internal_error("host_init: AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG in target.h is set wrong");
+      unexpected_condition_str2
+                       ("host_init: AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG",
+                        "in target.h is set wrong");
     }  /* if */
   }
 #endif /* CHECKING */
