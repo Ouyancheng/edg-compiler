@@ -1994,6 +1994,8 @@ Initialize the variable fields of the scope entry pointed to by sp.
     case sck_condition:
       sp->variant.assoc_statement = NULL;
       break;
+    case sck_namespace:
+      sp->variant.assoc_namespace = NULL;
 #if CHECKING
     default:
       internal_error("set_scope_kind: bad scope kind");
@@ -2033,6 +2035,7 @@ points to the associated routine if the kind is sck_function.
   sp->routines                    = NULL;
   sp->asm_entries                 = NULL;
   sp->scopes                      = NULL;
+  sp->namespaces                  = NULL;
   sp->dynamic_inits               = NULL;
   sp->local_static_variable_inits = NULL;
   sp->pragmas                     = NULL;

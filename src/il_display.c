@@ -287,6 +287,7 @@ be written.
       case iek_variable:
 #ifdef CFE
       case iek_field:
+      case iek_namespace:
 #endif /* ifdef CFE */
       case iek_routine:
       case iek_label:
@@ -451,6 +452,9 @@ Display the indicated source correspondence entry.
     disp_ptr("  parent.class_type", (char *)scp->parent.class_type,
              iek_type);
     disp_access("  access", (an_access_specifier)scp->access);
+  } else if (scp->parent.namespace_ptr != NULL) {
+    disp_ptr("  parent.namespace_ptr", (char *)scp->parent.namespace_ptr,
+             iek_namespace);
   }  /* if */
 #endif /* ifdef CFE */
   disp_boolean("  referenced", (a_boolean)scp->referenced);
@@ -2920,6 +2924,17 @@ Display the indicated description of an ENTRY.
 #endif /* ifdef FFE */
 
 #ifdef CFE
+static void disp_namespace(a_namespace_ptr  ptr)
+/*
+Display the indicated namespace entry.
+*/
+{
+  disp_source_corresp(&ptr->source_corresp);
+  disp_ptr("next", (char *)ptr->next, iek_namespace);
+  disp_ptr("assoc_scope", (char *)ptr->assoc_scope, iek_scope);
+}  /* disp_namespace */
+
+
 static void disp_dynamic_init(a_dynamic_init_ptr ptr)
 /*
 Display the indicated dynamic_init structure.
@@ -3454,6 +3469,9 @@ This routine is called during IL walking.
           break;
 #endif /* ifdef FFE */
 #ifdef CFE
+        case iek_namespace:
+          disp_namespace((a_namespace_ptr)entry_ptr);
+          break;
         case iek_dynamic_init:
           disp_dynamic_init((a_dynamic_init_ptr)entry_ptr);
           break;

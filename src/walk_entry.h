@@ -111,6 +111,8 @@ Process the source correspondence field pointed to by ptr.
 #define remap_parent(ptr) \
 { if ((ptr).is_class_member) {  \
     remap_ptr((ptr).parent.class_type, a_type_ptr, iek_type);  \
+  } else {  \
+    remap_ptr((ptr).parent.namespace_ptr, a_namespace_ptr, iek_namespace); \
   }  /* if */  \
 }  /* remap_parent */
 #else /* !defined(CFE) */
@@ -1216,6 +1218,14 @@ the file scope, do not process it (but record an orphan in the latter case).
       break;
 #endif /* ifdef FFE */
 #ifdef CFE
+    case iek_namespace:
+      {
+        a_namespace_ptr ptr = (a_namespace_ptr)entry_ptr;
+        walk_source_corresp(ptr->source_corresp);
+        remap_next_ptr(ptr->next, a_namespace_ptr, iek_namespace);
+        walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
+      }
+      break;
     case iek_dynamic_init:
       {
         a_dynamic_init_ptr ptr = (a_dynamic_init_ptr)entry_ptr;
