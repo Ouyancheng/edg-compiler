@@ -4961,6 +4961,12 @@ Do IL lowering of the indicated variable and everything under it.
          through that variable if this front end is used to compile its
          own output. */
 #if MAINTAIN_NEEDED_FLAGS
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+      if (one_instantiation_per_object) {
+        set_per_instantiation_needed_flag((char *)variable, iek_variable,
+                                    variable->instantiation_needed_bit_number);
+      }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
       mark_as_needed((char *)variable, iek_variable);
 #endif /* MAINTAIN_NEEDED_FLAGS */
       variable->source_corresp.referenced = TRUE;
