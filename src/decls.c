@@ -3226,8 +3226,10 @@ skip_overloading:;
   }  /* if */
   if (changed_to_inline) {
     if (routine_ptr->called) {
-      pos_sy_error(ec_called_function_redeclared_inline,
-                   &locator->source_position, sym);
+      pos_sy_diagnostic(strict_ansi_mode ?
+                          stric_ansi_discretionary_error : es_warning,
+                        ec_called_function_redeclared_inline,
+                        &locator->source_position, sym);
     }  /* if */
   }  /* if */
   if (linkage != idl_none) {

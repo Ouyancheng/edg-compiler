@@ -971,8 +971,10 @@ on a prior declaration.
         sym->variant.routine.ptr->called) {
       /* Unless it was originally declared "inline" a member function that
          has been called may not have the "inline" attribute here. */
-      pos_sy_error(ec_called_function_redeclared_inline,
-                   &locator->source_position, sym);
+      pos_sy_diagnostic(strict_ansi_mode ?
+                          stric_ansi_discretionary_error : es_warning,
+                        ec_called_function_redeclared_inline,
+                        &locator->source_position, sym);
     }  /* if */
     sym->variant.routine.ptr->is_inline = TRUE;
   }  /* if */
