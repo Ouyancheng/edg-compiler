@@ -779,12 +779,14 @@ force examination of related data structures.
 */
 EXTERN char	*curr_source_line;
 			/* Characters of the current logical source line,
-			   ended by both a newline and a null.  Space is
-			   dynamically allocated, and its upper bound is given
-			   by after_end_of_curr_source_line.
-			   See lexical_init for the initial allocation.
-			   When after_end_of_all_source is TRUE, this array
-			   contains just a null (no newline, nothing else). */
+			   ended by LE_NEWLINE and LE_END_OF_LINE lexical
+			   escape sequences.  Space is dynamically allocated,
+			   and its upper bound is given by
+			   after_end_of_curr_source_line.  See lexical_init
+			   for the initial allocation.  When
+			   after_end_of_all_source is TRUE, this array
+			   contains just the LE_END_OF_LINE lexical escape
+			   sequence (no newline, nothing else). */
 #define CURR_SOURCE_LINE_INITIAL_ALLOCATION 3000
 #define CURR_SOURCE_LINE_INCREMENTAL_ALLOCATION 5000
 			/* Initial and incremental allocation sizes for
@@ -826,50 +828,51 @@ EXTERN char	*curr_char_loc;
 			/* Pointer to the current character within
 			   curr_source_line.  More precisely, this is the
 			   character about to be processed.  Points at the
-			   null at the end of the line when the line has
-			   been completely scanned. */
+			   LE_END_OF_LINE lexical escape sequence at the end
+			   of the line when the line has been completely
+			   scanned. */
 
 /*
-Marker characters used within curr_source_line and macro_buffer.
-These must not conflict with any characters that can be read from input.
+Escape characters used within curr_source_line and macro_buffer.
 */
-#ifdef lint
-/* Define the characters in a way that will avoid lint warnings about
-   nonportable comparisons.  The code will not actually work this way,
-   however; this is only for lint checking. */
-#define END_OF_TOKEN_MARKER '`'
-#define ATTENTION_MARKER    '@'
-#else /* !defined(lint) */
-#ifndef UNUSED_CHAR_POS
-/* 0x81 is a good choice because it works okay with ISO 8859 (Latin-1, ...)
-   and EUC.  However, for full internationalization there should really
-   be no special characters. */
-#if CHAR_MIN < 0
-/* Host has signed characters. */
-#define UNUSED_CHAR_POS (-127)  /* ffffff81 in integer form */
-#else /* CHAR_MIN >= 0 */
-/* Host has unsigned characters. */
-#define UNUSED_CHAR_POS 0x81
-#endif /* CHAR_MIN < 0 */
-#endif /* ifndef UNUSED_CHAR_POS */
-#define END_OF_TOKEN_MARKER ((char)UNUSED_CHAR_POS)
-#if !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
-#define ATTENTION_MARKER    ((char)(UNUSED_CHAR_POS+1))
-#else /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
-/* When reading source in binary mode under MS-DOS, we know that control-Z
-   indicates end-of-file, so use that character as the attention marker
-   since it cannot otherwise make it into source lines. */
-#define ATTENTION_MARKER    CONTROL_Z
-#endif /* !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
-#endif /* ifdef lint */
-			/* END_OF_TOKEN_MARKER marks the ends of tokens
-			   in macro definitions and macro expansions.
-			   It does not appear in curr_source_line, only
-			   in macro_buffer.  ATTENTION_MARKER marks the
-			   first character of a sequence of characters
-			   that is deleted or replaced (as a cue to look
-			   at the source_line_modif_list).  It can appear
-			   both in curr_source_line and macro_buffer. */
+/*
+ATTENTION_MARKER is a one-character escape indicating the point at
+which a source line modification occurs.  The source_line_modif_list
+must be consulted for details of the modification.
+
+ATTENTION_MARKER must be something that will not otherwise occur in the
+source line, including in multibyte characters.  The newline character
+is used.  The real newline at the end of input lines is replaced by a
+two-character escape to free up a character that can be used as
+a single-character escape.
+*/
+#define ATTENTION_MARKER '\n'
+/*
+Two-character escapes.  The first character is always LE_ESCAPE (a zero,
+which is guaranteed not to occur otherwise in source lines).
+*/
+#define LE_ESCAPE 0
+#define LE_ESCAPE_LEN 2	/* Length of escape sequence. */
+/*
+Second character of two-character escape is one of the following.
+Note that zero is not used so that one can find LE_ESCAPE characters
+without worrying that they are the second character of a two-character
+escape.
+*/
+#define LE_END_OF_LINE 1
+			/* End of curr_source_line. */
+#define LE_NEWLINE 2
+			/* Newline character (replaced with an escape so
+			   that the newline character itself can be used
+			   as ATTENTION_MARKER). */
+#define LE_END_OF_INSERTION 3
+			/* End of an insertion, e.g., the replacement text
+			   inserted for a macro expansion. */
+#define LE_END_OF_TOKEN 4
+			/* End of a token.  Used as a token divider in
+			   macro definitions and macro expansions, to
+			   guarantee that the text will be tokenized the
+			   same way as on the original macro definition. */
 
 /*
 Modifications made to the current source line.  orig_line_modif holds
@@ -932,8 +935,8 @@ EXTERN an_orig_line_modif_ptr
 
 typedef struct a_source_line_modif {
   /* A modification (text deletion or replacement) that must be made to
-     the current contents of curr_source_line to turn them into the fully
-     preprocessed version of the line. */
+     the current contents of curr_source_line or macro_buffer to turn them
+     into the fully preprocessed version of the line. */
   a_source_line_modif_ptr
 		next;
 			/* A pointer to the next entry on the
@@ -977,16 +980,18 @@ typedef struct a_source_line_modif {
 			   position line_loc (provided so that the original
 			   line can be reconstructed; not needed otherwise).
 			   Meaningless when line_loc == NULL. */
-  char		inserted_chars[2];
-			/* Place for an insert string of up to two characters
-			   including the null.  Used for the blank that
-			   replaces comments. */
+  char		inserted_chars[3];
+			/* Place for an insert string of up to three characters
+			   including the end-of-insertion lexical escape.
+			   Used for the blank that replaces comments. */
   char		*inserted_text;
 			/* Pointer to text to be inserted, in macro_buffer.
-			   The text is terminated by a null.  Points to a
-			   zero-length string if this is a deletion only. */
+			   The text is terminated by an LE_END_OF_INSERTION
+			   lexical escape.  Points to a zero-length string
+			   if this is a deletion only. */
   char		*end_inserted_text;
-			/* Pointer to the null at the end of inserted_text. */
+			/* Pointer to the LE_END_OF_INSERTION lexical escape
+			   at the end of inserted_text. */
   a_macro_def_ptr
 		assoc_macro;
 			/* The macro that generated this expansion.  This
@@ -1018,7 +1023,7 @@ typedef struct a_source_line_modif {
 			   the modification is for a multi-line macro call. */
   char		*text_from_primary_source_line;
 			/* If non-NULL, text from the location pointed to
-			   to the final null character is from the primary
+			   to the end-of-insertion marker is from the primary
 			   source line, placed in this modification so that
 			   it can be token-pasted with the end of a macro
 			   expansion in pcc mode. */

@@ -543,7 +543,8 @@ memory.
   sizeof_t	length;
 
   /* Compute the length of the string not including a null terminator
-     that will be added. */
+     that will be added.  The terminator is not required for most
+     processing, but it is used by add_token_to_string. */
   length = end_of_curr_token - start_of_curr_token + 1;
   /* Allocate the string, adding space for the terminator. */
   new_start = (char *)alloc_fe(length+1);
@@ -1758,7 +1759,8 @@ modification is due to a comment.
 { a_source_line_modif_ptr dslmp; \
   dslmp = add_source_line_modif(line_loc, num_chars, \
                                 (char *)NULL, (char *)NULL); \
-  *dslmp->inserted_chars = '\0'; \
+  *dslmp->inserted_chars   = LE_ESCAPE; \
+  dslmp->inserted_chars[1] = LE_END_OF_INSERTION; \
   dslmp->inserted_text = dslmp->end_inserted_text = dslmp->inserted_chars; \
   dslmp->is_for_comment = for_comment; \
 }  /* add_deletion_source_line_modif */
@@ -1770,14 +1772,15 @@ characters staring at line_loc by a space.  This is used for deletion
 of comments.  A different space string must be used for each comment
 in the current line so that one can get back from each one to the
 right place based only on line position; for this reason, the
-space-null string is placed in the a_source_line_modif entry.
+space/end-insertion string is placed in the a_source_line_modif entry.
 */
 #define replace_source_string_by_space(line_loc, num_chars) \
 { a_source_line_modif_ptr rslmp; \
   rslmp = add_source_line_modif(line_loc, num_chars, \
                                 (char *)NULL, (char *)NULL); \
-  rslmp->inserted_chars[0] = ' '; \
-  rslmp->inserted_chars[1] = '\0'; \
+  *rslmp->inserted_chars   = ' '; \
+  rslmp->inserted_chars[1] = LE_ESCAPE; \
+  rslmp->inserted_chars[2] = LE_END_OF_INSERTION; \
   rslmp->inserted_text     = rslmp->inserted_chars; \
   rslmp->end_inserted_text = rslmp->inserted_chars+1; \
   rslmp->is_for_comment    = TRUE; \
@@ -2085,6 +2088,8 @@ is TRUE.
        source_line_modif_list. */
     if (source_line_modif_list == NULL) {
       /* For the common case, output the line quickly. */
+      /* We count on the fact that an LE_ESCAPE sequence will end the
+         string. */
       if (fputs(curr_source_line, f_pp_output) == EOF) {
         /* Error in writing the pp output file.  This check is done on 
            most lines and supplements the check done when the file is closed.
@@ -2092,15 +2097,16 @@ is TRUE.
            quickly. */
         str_catastrophe(ec_file_write_error, "preprocessing output");
       }  /* if */
+      /* The newline at the end of the source line is represented by
+         an LE_ESCAPE/LE_NEWLINE lexical escape sequence, so no newline
+         was printed.  Print one now. */
+      putc('\n', f_pp_output);      
       next_seq_in_pp_output++;
       prev_pp_output_line_was_complete = TRUE;
     } else {
       /* Construct the preprocessing output from the source line and the
          list of modifications.  Start at the beginning, and scan through
-         characters.  Remove end-of-token markers.  On hitting attention
-         markers, find and process the associated source line modification
-         entries.  On hitting a null, leave a source line modification entry
-         or (if not in a modification entry) stop. */
+         characters, processing escapes appropriately. */
       /* The logic here is very similar to that in
          gen_expanded_raw_listing_output_for_curr_line.  If you change
          this routine, change the other too. */
@@ -2116,38 +2122,50 @@ is TRUE.
              and process it. */
           walk_into_insertion(slmp, ins_slmp, loc_in_line);
           token_start = TRUE;
-        } else if (ch == '\0') {
-          /* Null indicates either the end of the whole line or the end
-             of a macro expansion.  Exit the loop if at the end of the whole
-             line. */
-          if (slmp == NULL) break;
-          /* If we've just finished the inserted text at the start of the
-             source line, and the main part of the line is not supposed to
-             be displayed (see comment above), stop here. */
-          if (slmp == line_start_source_line_modif &&
-              do_not_put_curr_line_in_pp_output) break;
-          /* End of a macro.  Pick up after the invocation text. */
-          walk_out_of_insertion(slmp, loc_in_line);
-          token_start = TRUE;
-        } else {
-          if (ch == END_OF_TOKEN_MARKER) {
+        } else if (ch == LE_ESCAPE) {
+          /* Lexical escape. */
+          ch = loc_in_line[1];
+          if (ch == LE_END_OF_TOKEN) {
             /* Do not output end-of-token markers. */
             token_start = TRUE;
-          } else {
-            /* Normal character. */
-            /* Output a blank to separate the character from the previous
-               character if necessary to prevent tokenizing confusion. */
-            token_separator_blank_if_needed(ch, prev_ch, token_start,
-                                            putc(' ', f_pp_output));
-            /* Output the character. */
-            putc(ch, f_pp_output);
+            loc_in_line += LE_ESCAPE_LEN;
+          } else if (ch == LE_END_OF_INSERTION) {
+            /* End of a macro expansion. */
+            /* If we've just finished the inserted text at the start of the
+               source line, and the main part of the line is not supposed to
+               be displayed (see comment above), stop here. */
+            if (slmp == line_start_source_line_modif &&
+                do_not_put_curr_line_in_pp_output) break;
+            /* End of a macro.  Pick up after the invocation text. */
+            walk_out_of_insertion(slmp, loc_in_line);
+            token_start = TRUE;
+          } else if (ch == LE_NEWLINE) {
+            /* Newline character. */
+            putc('\n', f_pp_output);
+            prev_ch = '\n';
             /* Count newlines.  This is done inside the loop because there are
                cases where no newline is output (two lines are joined in the
                output), and cases where one line has two newlines, and we
                don't want to miscount. */
-            prev_pp_output_line_was_complete = (ch == '\n');
-            if (prev_pp_output_line_was_complete) next_seq_in_pp_output++;
+            prev_pp_output_line_was_complete = TRUE;
+            next_seq_in_pp_output++;
+            loc_in_line += LE_ESCAPE_LEN;
+          } else if (ch == LE_END_OF_LINE) {
+            /* End of the whole line. */
+            break;
+          } else {
+            unexpected_condition_str(
+                            "gen_pp_output_for_curr_line: bad lexical escape");
           }  /* if */
+        } else {
+          /* Normal character. */
+          /* Output a blank to separate the character from the previous
+             character if necessary to prevent tokenizing confusion. */
+          token_separator_blank_if_needed(ch, prev_ch, token_start,
+                                          putc(' ', f_pp_output));
+          /* Output the character. */
+          putc(ch, f_pp_output);
+          prev_pp_output_line_was_complete = FALSE;
           loc_in_line++;
         }  /* if */
       }  /* for */
@@ -2206,7 +2224,9 @@ orig_line_modif_list modifications apply to the indicated text.
     } else if (stop_loc == NULL) {
       /* Writing to end of line, and there are macro modifications to the
          current line.  See if there are any attention markers in the rest
-         of the line. */
+         of the line.  Note that this scan will stop at the
+         LE_ESCAPE/LE_NEWLINE lexical escape sequence at the end of the
+         line if no attention marker is found. */
       local_stop_loc = strchr(loc_in_line, ATTENTION_MARKER);
     } else {
       /* Writing part of the line, and there are macro modifications to the
@@ -2226,6 +2246,10 @@ orig_line_modif_list modifications apply to the indicated text.
            that a disk full error is caught fairly quickly. */
         str_catastrophe(ec_file_write_error, "raw listing");
       }  /* if */
+      /* Write the final newline (the source line contains an
+         LE_ESCAPE/LE_NEWLINE escape rather than an actual newline
+         character). */
+      putc('\n', f_raw_listing);
     } else {
       /* Write a piece of the line. */
       fprintf(f_raw_listing, "%.*s", (int)(local_stop_loc-loc_in_line),
@@ -2374,38 +2398,49 @@ the calls to this routine.
              modifications in the lines in the buffer. */
           must_display_raw_listing_buffer = TRUE;
         }  /* if */
-      } else if (ch == '\0') {
-        /* Null indicates either the end of the whole line or the end
-           of a macro expansion.  Exit the loop if at the end of the whole
-           line or the end of the insert at the beginning of the line. */
-        if (slmp == NULL) break;
-        if (slmp == line_start_source_line_modif) break;
-        /* End of a macro.  Pick up after the invocation text. */
-        walk_out_of_insertion(slmp, loc_in_line);
-        token_start = TRUE;
-      } else {
-        if (ch == END_OF_TOKEN_MARKER) {
+      } else if (ch == LE_ESCAPE) {
+        /* Lexical escape. */
+        ch = loc_in_line[1];
+        if (ch == LE_END_OF_TOKEN) {
           /* Do not output end-of-token markers. */
           token_start = TRUE;
-        } else {
-          /* Normal character. */
-          /* Output a blank to separate the character from the previous
-             character if necessary to prevent tokenizing confusion. */
-          token_separator_blank_if_needed(ch, prev_ch, token_start,
-                                          add_char_to_raw_listing_buffer(' '));
-          /* Output the character. */
-          add_char_to_raw_listing_buffer(ch);
-          /* If the character is a newline, we have a complete line and we
-             should output it or throw it away now. */
-          if (ch == '\n') {
-            if (must_display_raw_listing_buffer) {
-              *loc_in_raw_listing_buffer = '\0';
-              putc('X', f_raw_listing);
-              fputs(raw_listing_buffer, f_raw_listing);
-            }  /* if */
-            clear_raw_listing_buffer();
+          loc_in_line += LE_ESCAPE_LEN;
+        } else if (ch == LE_END_OF_INSERTION) {
+          /* End of a macro expansion. */
+          /* If we've just finished the inserted text at the start of the
+             source line, stop. */
+          if (slmp == line_start_source_line_modif) break;
+          /* End of a macro.  Pick up after the invocation text. */
+          walk_out_of_insertion(slmp, loc_in_line);
+          token_start = TRUE;
+        } else if (ch == LE_NEWLINE) {
+          /* Newline character. */
+          add_char_to_raw_listing_buffer('\n');
+          prev_ch = '\n';
+          /* We have a complete line and we should output it or throw it
+             away now. */
+          if (must_display_raw_listing_buffer) {
+            *loc_in_raw_listing_buffer = '\0';
+            putc('X', f_raw_listing);
+            fputs(raw_listing_buffer, f_raw_listing);
           }  /* if */
+          clear_raw_listing_buffer();
+          loc_in_line += LE_ESCAPE_LEN;
+        } else if (ch == LE_END_OF_LINE) {
+          /* End of the whole line. */
+          break;
+        } else {
+          unexpected_condition_str(
+                           "gen_expanded_raw_listing_...: bad lexical escape");
         }  /* if */
+      } else {
+        /* Normal character. */
+        /* Output a blank to separate the character from the previous
+           character if necessary to prevent tokenizing confusion. */
+        token_separator_blank_if_needed(ch, prev_ch, token_start,
+                                        add_char_to_raw_listing_buffer(' '));
+        /* Output the character. */
+        add_char_to_raw_listing_buffer(ch);
         loc_in_line++;
       }  /* if */
     }  /* for */
@@ -3540,11 +3575,12 @@ when speed is critical.
            which physical line adj_loc_in_line is in. */
         break;
       } else if (olmp->kind == olm_line_splice) {
-        /* If the case that a line splice is followed by the end of the
+        /* In the case that a line splice is followed by the end of the
            logical source line, use the position of the "\" on the current
            line as the error position.  This is useful when the last line
            of a file ends with a backslash. */
-        if (*adj_loc_in_line == '\n') break;
+        if (*adj_loc_in_line   == LE_ESCAPE &&
+            adj_loc_in_line[1] == LE_NEWLINE) break;
         /* Keep track of the current physical line. */
         start_of_curr_phys_line = olmp->line_loc;
         seq_number              = olmp->variant.line_splice_seq_number;
@@ -3632,15 +3668,16 @@ position of the current logical source line.
 
 
 /*
-Macro to temporarily add newline/null to the current contents of the
+Macro to temporarily add newline/end-line to the current contents of the
 source buffer.  Needed when an error is detected while building the
-source line.  Without the newline/null, the partial line could not
+source line.  Without the newline/end-line, the partial line could not
 be properly displayed with the error message.  Fortunately, the errors
 that there are occur at the end of lines, so the "partial" line is really
 the full line.
 */
 #define finish_off_source_line_so_it_can_be_displayed_in_error()      \
-{ *loc_in_line = '\n'; *(loc_in_line+1) = '\0'; }
+{ *loc_in_line   = LE_ESCAPE; loc_in_line[1] = LE_NEWLINE; \
+  loc_in_line[2] = LE_ESCAPE; loc_in_line[3] = LE_END_OF_LINE; }
 
 
 /*
@@ -3663,10 +3700,10 @@ trigraph characters (see standard, 2.2.1.1) have been replaced, and
 lines ending in newline-backslash have been spliced with the lines
 immediately following (see standard, 2.1.1.2).  The logical source
 line thus formed is returned in curr_source_line, terminated
-with both a newline and a null.  The input is read from curr_input_stream.
-Information that allows the mapping of characters in curr_source_line
-back to the corresponding source sequence number and column is
-maintained in orig_line_modif_list.
+with an LE_NEWLINE and an LE_END_OF_LINE lexical escape sequence.
+The input is read from curr_input_stream.  Information that allows
+the mapping of characters in curr_source_line back to the corresponding
+source sequence number and column is maintained in orig_line_modif_list.
 
 If end of file is not encountered, curr_char_loc is pointed at the first
 character of the line just read.
@@ -3677,8 +3714,8 @@ If the end of the current input file is reached, then:
 more than once) to get to the next line of input, and that is returned
 in the usual way.  If the end of the primary source file is reached
 and that file is popped, then after_end_of_all_source is set to TRUE,
-an empty line (just a null) is placed in curr_source_line, and
-curr_char_loc is pointed at the null.
+an empty line (just an LE_END_OF_LINE lexical escape) is placed in
+curr_source_line, and curr_char_loc is pointed at the line-end escape.
 
 2)  If do_pop_on_end_of_file is FALSE, then the current line and the
 current position within it are left unchanged, and at_end_of_source_file is
@@ -3693,16 +3730,16 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
   a_boolean       return_value;
   int		  curr_column;
   int             next_ch;
-  a_boolean       char_is_trapped = FALSE;
+  a_boolean       char_is_trapped = FALSE, has_invalid_char = FALSE;
   an_orig_line_modif_ptr
 		  olmp;
   a_source_line_modif_ptr
 		  slmp;
-  sizeof_t        offset_in_line;
-  char		  *after_curr_source_line_minus_2 =
-                                             after_end_of_curr_source_line - 2;
-			/* For checking of buffer overflow -- "-2" to leave
-			   room for a newline and null. */
+  sizeof_t        offset_in_line, offset_to_invalid_char;
+  char		  *after_curr_source_line_minus_term =
+                               after_end_of_curr_source_line - 2*LE_ESCAPE_LEN;
+		       /* For checking of buffer overflow -- to leave
+                          room for the newline and line-end lexical escapes. */
 
   /* This routine handles translation phases 1 (trigraphs, newlines) and
      2 (line splices) from the description of translation phases in
@@ -3748,9 +3785,9 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
     /* Loop to try reading from the file reopened by pop_input_stack. */
   }  /* while */
   /* Either the end of all source, or a real line to read.  For the
-     end of source case, a line with just a null is placed in curr_source_line
-     and the sequence number is incremented to an "after all source"
-     position. */
+     end of source case, a line with just a line-end lexical escape
+     is placed in curr_source_line and the sequence number is incremented
+     to an "after all source" position. */
   loc_in_line = curr_source_line;
   curr_seq_number = ++seq_number_last_read;
   /* If there are entries on either of the lists indicating modifications
@@ -3773,7 +3810,8 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
   }  /* if */
   no_modifs_to_curr_source_line = TRUE;
   if (after_end_of_all_source) {
-    /* End of all source.  Go end the line with a null and return. */
+    /* End of all source.  Go end the line with a line-end sequence and
+       return. */
     goto return_with_line;
   } else {
     /* Not end of file, read the line. */
@@ -3818,10 +3856,18 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
             loc_in_line = local_loc_in_line;
             goto possible_trigraph;
           }  /* if */
+        } else if (local_ch == LE_ESCAPE) {
+          /* The zero character is reserved for internal use.  Replace it
+             by a blank and save the error position for later display. */
+          local_ch = ' ';
+          if (!has_invalid_char) {
+            has_invalid_char = TRUE;
+            offset_to_invalid_char = local_loc_in_line - curr_source_line;
+          }  /* if */
         }  /* if */
         /* Check that there is still room in the line buffer.  We have to
-           leave room for both the final newline and null. */
-        if (local_loc_in_line == after_curr_source_line_minus_2) {
+           leave room for both the final newline and line-end escapes. */
+        if (local_loc_in_line == after_curr_source_line_minus_term) {
           /* The line is too long; the buffer must be expanded.  Note that
              after the buffer is expanded we do not return to this loop for
              the current line; the rest of the line is processed in the
@@ -3849,7 +3895,7 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
         /* Avoid the line splice test if the line is empty except for the
            carriage return. */
         if (loc_in_line == curr_source_line) {
-          goto add_newline_and_null_and_return;
+          goto add_newline_and_line_end_and_return;
         }  /* if */
       }  /* if */
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
@@ -3860,13 +3906,21 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
     }  /* if */
   }  /* if */
 
-add_newline_and_null_and_return:
-  /* Store the final newline and null. */
-  *loc_in_line++ = '\n';
+add_newline_and_line_end_and_return:
+  /* Store the final LE_NEWLINE lexical escape sequence. */
+  *loc_in_line++ = LE_ESCAPE;
+  *loc_in_line++ = LE_NEWLINE;
 
 return_with_line:
-  /* Store the final null. */
-  *loc_in_line = '\0';
+  /* Store the final LE_END_OF_LINE lexical escape sequence. */
+  *loc_in_line++ = LE_ESCAPE;
+  *loc_in_line = LE_END_OF_LINE;
+  if (has_invalid_char) {
+    /* Put out an error if the line contains any invalid characters.  Only the
+       position of the first one is identified. */
+    error_at_line_pos(ec_invalid_char,
+                      curr_source_line + offset_to_invalid_char);
+  }  /* if */
   /* Set the input character position to the start of the line. */
   curr_char_loc = curr_source_line;
   any_tokens_gotten_from_curr_source_line = FALSE;
@@ -3906,7 +3960,7 @@ simple_return:
     if (after_end_of_all_source) {
       fprintf(f_debug, "\nafter_end_of_all_source = TRUE.\n");
     } else {
-      fprintf(f_debug, "seq = %lu\n%s", curr_seq_number, curr_source_line);
+      fprintf(f_debug, "seq = %lu\n%s\n", curr_seq_number, curr_source_line);
       if (debug_level >= 4) {
         /* Dump out the modification list, which shows the location
            of the trigraphs and line splices. */
@@ -3945,14 +3999,14 @@ expand_buffer:
 
 partial_final_line:
   /* The final line of a file does not end with a newline.  Issue a warning
-     (or an error in strict mode), add a newline and null to the line, and
+     (or an error in strict mode), add a newline and line-end to the line, and
      return. */
   eof_read_on_curr_input_stream = TRUE;
   finish_off_source_line_so_it_can_be_displayed_in_error();
   diagnostic_at_line_pos(strict_ansi_mode ?
                            strict_ansi_error_severity : es_warning,
                          ec_last_line_incomplete, loc_in_line);
-  goto add_newline_and_null_and_return;
+  goto add_newline_and_line_end_and_return;
 
 possible_trigraph:
   /* Two "?"s in a row were detected in the first line.  Go into the
@@ -4035,16 +4089,25 @@ entry_for_possible_trigraph:
             }  /* if */
           }  /* if */
         }  /* if */
+      } else if (ch == LE_ESCAPE) {
+        /* The zero character is reserved for internal use.  Replace it
+           by a blank and save the error position for later display. */
+        *loc_in_line = ch = ' ';
+        if (!has_invalid_char) {
+          has_invalid_char = TRUE;
+          offset_to_invalid_char = loc_in_line - curr_source_line;
+        }  /* if */
       }  /* if */
       /* Check that there is still room in the line buffer.  We have to
-         leave room for both the final newline and null. */
-      if (loc_in_line == after_curr_source_line_minus_2) {
+         leave room for both the final newline and line-end escapes. */
+      if (loc_in_line == after_curr_source_line_minus_term) {
 entry_for_expand_buffer:
         /* The line is too long; the buffer must be expanded. */
         offset_in_line = loc_in_line - curr_source_line;
         expand_curr_source_line();
         loc_in_line = curr_source_line + offset_in_line;
-        after_curr_source_line_minus_2 = after_end_of_curr_source_line - 2;
+        after_curr_source_line_minus_term = after_end_of_curr_source_line -
+                                            2*LE_ESCAPE_LEN;
       }  /* if */
       /* Put the character into curr_source_line. */
       *loc_in_line++ = ch;
@@ -4064,12 +4127,12 @@ entry_for_expand_buffer:
       /* Avoid the line splice test if the line is empty except for the
          carriage return. */
       if (loc_in_line == curr_source_line) {
-        goto add_newline_and_null_and_return;
+        goto add_newline_and_line_end_and_return;
       }  /* if */
     }  /* if */
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
     /* Check for backslash indicating line-splice.  Go add trailing newline
-       and null, and then exit, if no backslash is present. */
+       and end-of-line, and then exit, if no backslash is present. */
     if (*(loc_in_line-1) == '\\') {
 entry_for_line_splice:
       /* Remove the backslash in the buffer. */
@@ -4087,7 +4150,7 @@ entry_for_line_splice:
       /* Ignore the backslash, end the logical line at this point. */
     }  /* if */
   }  /* if */
-  goto add_newline_and_null_and_return;
+  goto add_newline_and_line_end_and_return;
   
 }  /* read_logical_source_line */
 
@@ -4281,73 +4344,81 @@ white_space_loop:
     do {} while ((ch = *(++curr_char_loc)) == ' ' || ch == '\t');
   }  /* if */
   switch (ch) {
-    case '\n':  /* Newline. */
-      /* Newline is white space ordinarily, but a token to be returned if
-         in a preprocessing directive. */
-      if (in_preprocessing_directive) goto end_skip;
+    case LE_ESCAPE:
+      /* Lexical escape.  Can be end of line, end of insertion, etc.
+         Second character indicates which. */
+      ch = curr_char_loc[1];
+      if (ch == LE_NEWLINE) {
+        /* Newline is white space ordinarily, but a token to be returned if
+           in a preprocessing directive. */
+        if (in_preprocessing_directive) goto end_skip;
 #if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-      /* Newline is also a token in asm functions. */
-      if (in_asm_block_or_function) goto end_skip;
+        /* Newline is also a token in asm functions. */
+        if (in_asm_block_or_function) goto end_skip;
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-      /* The newline character is white space, and is being thrown away. */
-      kind_skipped |= WHITE_SPACE_OTHER;
-      curr_char_loc++;
-      /* Fall through to process the null that must follow this newline. */
-    case '\0':
-      /* Null.  Usually, this indicates the end of a line.  However, it
-         can also mean the end of source, or the end of the text of a macro
-         expansion, so check for that. */
-      /* Note that kind_skipped is not set for the null itself, since
-         the null is not white space. */
-      /* Check to see if the hanging deletion flag is set. */
-      if ((delete_from = delete_source_from_loc) != NULL) {
-        /* Source from the indicated position to the end of the line or
-           macro is to be deleted.  This is typically because a macro
-           invocation argument list is being scanned.  Keep the final null,
-           but delete the newline. */
-        delete_to = curr_char_loc - 1;
-        if (delete_from <= delete_to) {
-          add_deletion_source_line_modif(delete_from,
+        /* The newline character is white space, and is being thrown away. */
+        kind_skipped |= WHITE_SPACE_OTHER;
+        curr_char_loc += LE_ESCAPE_LEN;
+      } else if (ch == LE_END_OF_LINE || ch == LE_END_OF_INSERTION) {
+        /* End of source line or end of macro insertion. */
+        /* Check to see if the hanging deletion flag is set. */
+        if ((delete_from = delete_source_from_loc) != NULL) {
+          /* Source from the indicated position to the end of the line or
+             macro is to be deleted.  This is typically because a macro
+             invocation argument list is being scanned.  Keep the final
+             line-end lexical escape, but delete the newline lexical
+             escape. */
+          delete_to = curr_char_loc - 1;
+          if (delete_from <= delete_to) {
+            add_deletion_source_line_modif(delete_from,
                                          (sizeof_t)(delete_to-delete_from+1),
                                          /*for_comment=*/FALSE);
+          }  /* if */
+          /* Clear the flag to be sure it is cleared for error exit cases.
+             It will be set later to the location of further text if there is
+             any. */
+          delete_source_from_loc = NULL;
         }  /* if */
-        /* Clear the flag to be sure it is cleared for error exit cases.
-           It will be set later to the location of further text if there is
-           any. */
-        delete_source_from_loc = NULL;
-      }  /* if */
-      if (within_curr_source_line(curr_char_loc)) {
-        /* curr_char_loc falls within curr_source_line, so this is not
-           the end of a macro expansion. */
-        /* We have to read a new logical source line now. 
-           read_logical_source_line will pop the input stack if end of
-           file is encountered.  On the final end of file, TRUE is returned,
-           and we want to exit this routine.  If we are already at the
-           final end of file, don't try reading again, just exit. */
-        if (after_end_of_all_source ||
-            read_logical_source_line(/*do_pop_on_end_of_file=*/TRUE)) {
-          /* End of file, end the white-space skip. */
-          goto end_skip;
-        } /* if */
-        /* Not end of file, keep checking for white space in the new line. */
+        if (ch == LE_END_OF_LINE) {
+          /* End of the source line. */
+          /* We have to read a new logical source line now. 
+             read_logical_source_line will pop the input stack if end of
+             file is encountered.  On the final end of file, TRUE is returned,
+             and we want to exit this routine.  If we are already at the
+             final end of file, don't try reading again, just exit. */
+          if (after_end_of_all_source ||
+              read_logical_source_line(/*do_pop_on_end_of_file=*/TRUE)) {
+            /* End of file, end the white-space skip. */
+            goto end_skip;
+          } /* if */
+          /* Not end of file, keep checking for white space in the new line. */
+        } else {
+          /* End of the expansion text for a macro.  Find the character
+             location of the character following the macro invocation, and
+             continue there. */
+          slmp = assoc_source_line_modif(curr_char_loc);
+          /* See if the current position is part of the text of a macro
+             argument being macro-expanded; such text is expanded in
+             isolation from the rest of the source file (see 3.8.3.1).
+             In that case, the end-of-insertion is returned to the caller. */
+          if (slmp->is_isolated_text) goto end_skip;
+          /* Normal case; continue with the text following the macro
+             invocation. */
+          leave_insertion(slmp, curr_char_loc);
+        }  /* if */
+        /* If the hanging deletion flag was set, reset it to the new
+           current position. */
+        if (delete_from != NULL) {
+          delete_source_from_loc = curr_char_loc;
+        }  /* if */
+      } else if (ch == LE_END_OF_TOKEN) {
+        /* Marker put into text by preprocessing of macros, to force the same
+           interpretation of token boundaries as during the macro definition.
+           At this level, should be ignored.  Note that kind_skipped is not
+           set, since this is not white space. */
+        curr_char_loc += LE_ESCAPE_LEN;
       } else {
-        /* End of the expansion text for a macro.  Find the character
-           location of the character following the macro invocation, and
-           continue there. */
-        slmp = assoc_source_line_modif(curr_char_loc);
-        /* See if the current position is part of the text of a macro argument
-           being macro-expanded; such text is expanded in isolation from
-           the rest of the source file (see 3.8.3.1).  In that case, the
-           null is significant, and is returned to the caller. */
-        if (slmp->is_isolated_text) goto end_skip;
-        /* Normal case; continue with the text following the macro
-           invocation. */
-        leave_insertion(slmp, curr_char_loc);
-      }  /* if */
-      /* If the hanging deletion flag was set, reset it to the new
-         current position. */
-      if (delete_from != NULL) {
-        delete_source_from_loc = curr_char_loc;
+        unexpected_condition_str("skip_white_space: bad lexical escape");
       }  /* if */
       goto white_space_loop;
     case '\f':  /* Form feed. */
@@ -4358,13 +4429,6 @@ white_space_loop:
          what this implementation does, so they are allowed there as well. */
       curr_char_loc++;
       kind_skipped |= WHITE_SPACE_OTHER;
-      goto white_space_loop;
-    case END_OF_TOKEN_MARKER:
-      /* Marker put into text by preprocessing of macros, to force the same
-         interpretation of token boundaries as during the macro definition.
-         At this level, should be ignored.  Note that kind_skipped is not
-         set, since this is not white space. */
-      curr_char_loc++;
       goto white_space_loop;
     case ATTENTION_MARKER:
       /* Marker placed into source text to provide a cue to the fact that
@@ -4445,7 +4509,11 @@ white_space_loop:
               curr_char_loc = comment_start_loc;
               do {
                 slmp = assoc_source_line_modif(curr_char_loc);
-                while (*curr_char_loc != '\0') curr_char_loc++;
+                /* Find the end of the insertion. */
+                while (*curr_char_loc   != LE_ESCAPE ||
+                       curr_char_loc[1] != LE_END_OF_INSERTION) {
+                  curr_char_loc++;
+                }  /* while */
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
                 /* Before deleting the comment, see if it's part of an asm
                    function body -- if so, make a copy of it. */
@@ -4454,7 +4522,8 @@ white_space_loop:
                                                       curr_char_loc);
                 }  /* if */
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
-                /* Delete the comment entirely. */
+                /* Delete the comment entirely, but leave the end-of-insertion
+                   escape. */
                 add_deletion_source_line_modif(comment_start_loc,
                                    (sizeof_t)(curr_char_loc-comment_start_loc),
                                                /*for_comment=*/TRUE);
@@ -4466,20 +4535,30 @@ white_space_loop:
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Advance to the end of line. */
-        do {} while (*(++curr_char_loc) != '\n');
-        if (need_to_delete_comment()) {
+        while (*curr_char_loc   != LE_ESCAPE ||
+               curr_char_loc[1] != LE_NEWLINE) curr_char_loc++;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* With the trick of a // comment inside a macro, it's possible
+           that there are no characters of the comment in the primary
+           source line. */
+        if (curr_char_loc != comment_start_loc)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here; this is the "then" of an "if". */
+        {        
+          if (need_to_delete_comment()) {
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
-          /* Before deleting the comment, see if it's part of an asm function
-             body -- if so, make a copy of it. */
-          if (in_asm_function_body && !in_preprocessing_directive) {
-            copy_from_source_to_asm_func_buffer(comment_start_loc,
-                                                curr_char_loc);
-          }  /* if */
+            /* Before deleting the comment, see if it's part of an asm function
+               body -- if so, make a copy of it. */
+            if (in_asm_function_body && !in_preprocessing_directive) {
+              copy_from_source_to_asm_func_buffer(comment_start_loc,
+                                                  curr_char_loc);
+            }  /* if */
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
-          /* Delete the comment entirely. */
-          add_deletion_source_line_modif(comment_start_loc,
+            /* Delete the comment entirely, but leave the newline escape. */
+            add_deletion_source_line_modif(comment_start_loc,
                                    (sizeof_t)(curr_char_loc-comment_start_loc),
-                                         /*for_comment=*/TRUE);
+                                           /*for_comment=*/TRUE);
+          }  /* if */
         }  /* if */
       } else {
 normal_comment:
@@ -4576,8 +4655,12 @@ normal_comment:
         /* Again, a speed note:  All text inside comments goes through this
            loop, so it should be very fast. */
         while ((ch = *curr_char_loc) != '*' || *(curr_char_loc+1) != '/') {
-          if (ch == '\n' || ch == '\0') {
+          if (ch == LE_ESCAPE) {
             /* End of a line of the comment. */
+            ch = curr_char_loc[1];
+            check_assertion_str(ch == LE_NEWLINE ||
+                                ch == LE_END_OF_LINE,
+                            "skip_white_space: bad lexical escape in comment");
             /* Determine the source position for the start of the comment
                now, before we lose the current source line. */
             determine_comment_pos_if_not_yet_done();
@@ -4585,9 +4668,9 @@ normal_comment:
             if (in_asm_function_body && !in_preprocessing_directive) {
               /* Copy the comment text if it's part of an asm function
                  body. */
-              if (ch == '\n') {
-                curr_char_loc++;
-                ch = '\0';
+              if (ch == LE_NEWLINE) {
+                curr_char_loc += LE_ESCAPE_LEN;
+                ch = LE_END_OF_LINE;
               }  /* if */
               copy_from_source_to_asm_func_buffer(comment_start_loc,
                                                   curr_char_loc);
@@ -4611,12 +4694,13 @@ normal_comment:
               delete_only_for_comment = TRUE;
             }  /* if */
             if (delete_from != NULL) {
-              /* Delete the required characters.  Leave the newline and null.
-                 If this comment is part of a preprocessing directive,
-                 delete the newline as well so that multi-line directives
-                 will become one-line directives. */
-              if (in_preprocessing_directive && ch == '\n') {
-                delete_to = curr_char_loc;
+              /* Delete the required characters.  Leave the newline and
+                 line-end lexical escape sequences.  If this comment is
+                 part of a preprocessing directive, delete the newline as
+                 well so that multi-line directives will become one-line
+                 directives. */
+              if (in_preprocessing_directive && ch == LE_NEWLINE) {
+                delete_to = curr_char_loc+LE_ESCAPE_LEN-1;
               } else {
                 delete_to = curr_char_loc-1;
               }  /* if */
@@ -5017,25 +5101,30 @@ directives.
         /* Hex escape, any number of digits. */
         while (isxdigit((unsigned char)*(curr_char_loc+1))) curr_char_loc++;
       }  /* if */
-    } else if (ch == '\n' ||
-               (ch == END_OF_TOKEN_MARKER && !is_header_name) ||
-               ch == '\0') {
-      /* Newline -- error, quoted string unclosed. */
-      /* Similar error for other strange cases of incomplete strings, which
-         can come up with preprocessing.  Note that end-of-token markers do
-         not terminate header names, because header names can result from
-         several adjacent preprocessing tokens when macro expansion is
-         involved (see 3.8.2).  The end-of-token markers are removed when the
-         file name is constructed later (see proc_include). */
-      /* Message is generic -- "Missing closing quote". */
-      err_code_for_error_token = ec_unclosed_string;
-      if (fetch_pp_tokens) {
-        ctoken = tok_error;
+    } else if (ch == LE_ESCAPE) {
+      /* Lexical escape, e.g., newline. */
+      ch = curr_char_loc[1];
+      if (ch == LE_END_OF_TOKEN && is_header_name) {
+        /* End-of-token markers do not terminate header names, because
+           header names can result from several adjacent preprocessing tokens
+           when macro expansion is involved (see 3.8.2).  The end-of-token
+           markers are removed when the file name is constructed later
+           (see proc_include). */
+        curr_char_loc++;
       } else {
-        error_at_line_pos(err_code_for_error_token, start_of_curr_token);
+        /* Newline -- error, quoted string unclosed. */
+        /* Similar error for other strange cases of incomplete strings, which
+           can come up with preprocessing. */
+        /* Message is generic -- "Missing closing quote". */
+        err_code_for_error_token = ec_unclosed_string;
+        if (fetch_pp_tokens) {
+          ctoken = tok_error;
+        } else {
+          error_at_line_pos(err_code_for_error_token, start_of_curr_token);
+        }  /* if */
+        *err = TRUE;
+        goto return_point;
       }  /* if */
-      *err = TRUE;
-      goto return_point;
     }  /* if */
   }  /* while */
   /* Skip the closing quote. */
@@ -5460,49 +5549,69 @@ start_of_token_scan:  /* Restart here after scanning white space. */
      ch because ch is not set when arriving at start_of_token_scan
      via goto from elsewhere. */
   switch (*curr_char_loc) {
-    case '\0':
-      /* Null.  Usually, this indicates the end of a line (probably
-         after some error at end of a file).  However, it can also
-         mean the end of source, or the end of the text of a macro
-         expansion.  Let the white-space routine figure it out. */
-      skip_white_space();
-      /* If we are not at end of file, go scan the next token. */
-      if (*curr_char_loc != '\0') goto start_of_token_scan;
-      /* This is the ultimate end of file, or the end of a macro argument
-         string being scanned in isolation from the rest of the source.
-         Return end of file. */
-      ctoken = tok_end_of_source;
-      start_of_curr_token = curr_char_loc;
-      /* Remember the character position of the end of the token. */
-#if 0
-      /* At the end of file, this is the position preceding the beginning
-         of the input buffer, which is nonstandard (though probably harmless)
-         unless that position is really allocated space. */
-#endif /* 0 */
-      end_of_curr_token = curr_char_loc - 1;
-      /* Determine the source position of the end of source token. */
-      remember_token_start();
-      /* If this is the null character at the end of the primary source
-         line, back up the column by 1 so it points at the end of the line. */
-      if (within_curr_source_line(start_of_curr_token)) {
-        pos_curr_token.column--;
-        error_position.column = pos_curr_token.column;
-      }  /* if */
-      /* Go exit with the end-of-source token. */
-      goto end_of_token_scan_b;
-    case '\n':
-      /* Newline.  Is white space ordinarily, but a token within
-         preprocessing directives. */
-      if (in_preprocessing_directive
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-          /* ... or if inside an asm function body. */
-          || in_asm_block_or_function
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-                                    ) {
-        ctoken = tok_newline;
-      } else {
+    case LE_ESCAPE:
+      /* Lexical escape.  Second character indicates which. */
+      ch = curr_char_loc[1];
+      if (ch == LE_END_OF_LINE || ch == LE_END_OF_INSERTION) {
+        /* End of line or end of macro insertion.  Let the white-space
+           routine figure it out. */
         skip_white_space();
-        goto start_of_token_scan;
+        /* If we are not at end of file after the white-space skip, go scan
+           the next token. */
+        if (*curr_char_loc != LE_ESCAPE ||
+            (curr_char_loc[1] != LE_END_OF_LINE &&
+             curr_char_loc[1] != LE_END_OF_INSERTION)) {
+          goto start_of_token_scan;
+        }  /* if */
+        /* This is the ultimate end of file, or the end of a macro argument
+           string being scanned in isolation from the rest of the source.
+           Return end of file. */
+        ctoken = tok_end_of_source;
+        start_of_curr_token = curr_char_loc;
+        /* Remember the character position of the end of the token. */
+        end_of_curr_token = curr_char_loc + LE_ESCAPE_LEN - 1;
+        /* Determine the source position of the end of source token. */
+        remember_token_start();
+        /* If this is the line-end escape at the end of the primary source
+           line, back up the column so it points at the end of the
+           line. */
+        if (curr_char_loc[1] == LE_END_OF_LINE) {
+          if (curr_char_loc >= curr_source_line+LE_ESCAPE_LEN &&
+              curr_char_loc[-LE_ESCAPE_LEN] == LE_ESCAPE) {
+            /* The previous character is an escape sequence, presumably
+               for a newline. */
+            pos_curr_token.column -= LE_ESCAPE_LEN;
+          } else {
+            pos_curr_token.column -= 1;
+          }  /* if */
+          error_position.column = pos_curr_token.column;
+        }  /* if */
+        /* Go exit with the end-of-source token. */
+        goto end_of_token_scan_b;
+      } else if (ch == LE_NEWLINE) {
+        /* Newline.  Is white space ordinarily, but a token within
+           preprocessing directives. */
+        if (in_preprocessing_directive
+#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+            /* ... or if inside an asm function body. */
+            || in_asm_block_or_function
+#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+                                       ) {
+          ctoken = tok_newline;
+          curr_char_loc += LE_ESCAPE_LEN;
+          goto save_end_position;
+        } else {
+          skip_white_space();
+          goto start_of_token_scan;
+        }  /* if */
+      } else if (ch == LE_END_OF_TOKEN) {
+        /* Marker put into text by preprocessing of macros, to force the same
+           interpretation of token boundaries as during the macro definition.
+           At this level, should be ignored. */
+        curr_char_loc += LE_ESCAPE_LEN;
+        goto rescan_token;
+      } else {
+        unexpected_condition_str("get_token: bad lexical escape");
       }  /* if */
       break;
     case '\f':
@@ -5512,12 +5621,6 @@ start_of_token_scan:  /* Restart here after scanning white space. */
          routine decide. */
       skip_white_space();
       goto start_of_token_scan;
-    case END_OF_TOKEN_MARKER:
-      /* Marker put into text by preprocessing of macros, to force the same
-         interpretation of token boundaries as during the macro definition.
-         At this level, should be ignored. */
-      curr_char_loc++;
-      goto rescan_token;
     case ATTENTION_MARKER:
       /* Marker placed into source text to provide a cue to the fact that
          a source modification (probably a text replacement due to a
@@ -6026,7 +6129,7 @@ check_start_of_pp_directive:
         error_at_line_pos(err_code_for_error_token, start_of_curr_token);
       }  /* if */
       ctoken = tok_error;
-    }  /* switch */
+  }  /* switch */
 
   /* Normal assumption on break from switch is that the current character
      is part of the token, and therefore the current position needs to be

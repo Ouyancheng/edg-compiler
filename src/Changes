@@ -1,5 +1,22 @@
 Version 2.35
 
+1/24/97 Lexical data structure: reserved characters eliminated
+
+The underlying data structure for the lexical routines has been changed
+to eliminate the need for reserved characters.  A zero byte in the
+data structure now introduces a two-byte escape sequence, in which
+the second byte indicates whether the escape represents newline,
+end-of-line, end-of-token, or end-of-insertion.  Using a two-character
+escape sequence for the newline character frees up the newline character
+itself ('\n') for use as ATTENTION_MARKER (which needs to be a
+single-character escape).
+
+The characters formerly used for ATTENTION_MARKER and END_OF_TOKEN_MARKER
+(hex 81 and 82, nominally) are now available as input characters.
+
+An error is now issued if a source line contains a zero character.
+Formerly, the input line was silently truncated at that point.
+
 1/24/97 Spurious error in selection of partial specialization
 
 A spurious ambiguity error was issued when selecting between several

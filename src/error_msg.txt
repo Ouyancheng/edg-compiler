@@ -908,6 +908,7 @@ ec_member_partial_spec_not_in_namespace;;"a partial specialization of a class te
 ec_pure_virtual_function;;"%n is a pure virtual function"
 ec_no_overrider_for_pure_virtual_function;;"pure virtual %n has no overrider"
 ec_decl_modifiers_ignored;;"__declspec attributes ignored"
+ec_invalid_char;;"invalid character in input line"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

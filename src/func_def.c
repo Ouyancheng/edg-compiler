@@ -75,8 +75,8 @@ Add len characters to the asm function body buffer, beginning at start_char
   if (size_asm_func_body_buffer - pos_in_asm_func_body_buffer < len) {
     expand_asm_func_body_buffer((sizeof_t)(pos_in_asm_func_body_buffer + len));
   }  /* if */
-  strncpy(&asm_func_body_buffer[pos_in_asm_func_body_buffer],
-          start_char, size_t_arg(len));
+  memcpy(&asm_func_body_buffer[pos_in_asm_func_body_buffer],
+         start_char, size_t_arg(len));
   pos_in_asm_func_body_buffer += len;
 }  /* add_to_asm_func_buffer */
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -229,11 +229,28 @@ non-NULL, also append the characters in the comment, through but not including
   }  /* if */
   while (curr_char != stop_char) {
     switch (*curr_char) {
-      case END_OF_TOKEN_MARKER:
-        /* Marker put into text by preprocessing of macros, to force the same
-           interpretation of token boundaries as during the macro definition.
-           Skip over it. */
-        next_char = curr_char + 1;
+      case LE_ESCAPE:
+        if (curr_char[1] == LE_END_OF_TOKEN) {
+          /* Marker put into text by preprocessing of macros, to force the same
+             interpretation of token boundaries as during the macro definition.
+             Skip over it. */
+          next_char = curr_char + LE_ESCAPE_LEN;
+        } else if (curr_char[1] == LE_END_OF_INSERTION) {
+          /* End of the expansion text for a macro.  Find the character
+             location of the character following the macro invocation, and
+             continue there. */
+          slmp = assoc_source_line_modif(curr_char);
+          next_char = curr_char;
+          leave_insertion(slmp, next_char);
+        } else if (curr_char[1] == LE_NEWLINE) {
+          /* Newline character. */
+          len = 1;
+          add_to_asm_func_buffer("\n", len);
+          next_char = curr_char + LE_ESCAPE_LEN;
+        } else {
+          unexpected_condition_str(
+                    "copy_from_source_to_asm_func_buffer: bad lexical escape");
+        }  /* if */
         break;
       case ATTENTION_MARKER:
         /* Marker placed into source text to provide a cue to the fact that
@@ -242,14 +259,6 @@ non-NULL, also append the characters in the comment, through but not including
            macro to point to the first character in the insertion text. */
         next_char = curr_char;
         go_into_insertion(slmp, next_char);
-        break;
-      case '\0':
-        /* End of the expansion text for a macro.  Find the character
-           location of the character following the macro invocation, and
-           continue there. */
-        slmp = assoc_source_line_modif(curr_char);
-        next_char = curr_char;
-        leave_insertion(slmp, next_char);
         break;
       default:
         /* Normal case:  bump curr_char and keep looping. */
@@ -277,10 +286,24 @@ non-NULL, also append the characters in the comment, through but not including
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
   if (after_comment_stop_char != NULL) {
     /* Append text of commentary, too. */
+    a_boolean ends_with_newline = FALSE;
     check_assertion(after_comment_stop_char > prev_stop_char);
     len = after_comment_stop_char - prev_stop_char;
+    if (len >= LE_ESCAPE_LEN &&
+        after_comment_stop_char[-LE_ESCAPE_LEN  ] == LE_ESCAPE &&
+        after_comment_stop_char[-LE_ESCAPE_LEN+1] == LE_NEWLINE) {
+      /* The comment ends with a newline.  Put it out separately below (the
+         lexical escape in the line is not the '\n' character we want in
+         the string). */
+      ends_with_newline = TRUE;
+      len -= LE_ESCAPE_LEN;
+    }  /* if */
     /* Add "len" characters to the buffer, starting at prev_stop_char. */
     add_to_asm_func_buffer(prev_stop_char, len);
+    if (ends_with_newline) {
+      len = 1;
+      add_to_asm_func_buffer("\n", len);
+    }  /* if */
     /* Reset prev_stop_char. */
     prev_stop_char = after_comment_stop_char;
   }  /* if */

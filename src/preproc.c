@@ -709,7 +709,15 @@ accum_quoted_string).
      including the end-of-token markers was allocated in the output
      string, so there may be a bit of wasted space. */
   for (i = 1; i <= name_len; i++) {
-    if (*in_pos != END_OF_TOKEN_MARKER) *out_pos++ = *in_pos;
+    if (*in_pos == LE_ESCAPE) {
+      check_assertion_str(in_pos[1] == LE_END_OF_TOKEN,
+                          "copy_header_name: bad lexical_escape");
+      /* Ignore an end-of-token marker. */
+      in_pos++;
+      i++;
+    } else {
+      *out_pos++ = *in_pos;
+    }  /* if */
     in_pos++;
   }  /* for */
   *out_pos = '\0';

@@ -1560,8 +1560,13 @@ a blank line instead of the caret line.
             slmp = nested_source_line_modif(loc_in_line);
             ch = slmp->orig_char;
           }  /* if */
-          /* Exit on the newline at the end of the source line. */
-          if (ch == '\n') goto end_of_loop;
+          /* Exit on the newline at the end of the source line.  (If there
+             wasn't one there originally, one has been added.) */
+          if (ch == LE_ESCAPE) {
+            check_assertion_str(loc_in_line[1] == LE_NEWLINE,
+                                "write_orig_source_line: bad lexical escape");
+            goto end_of_loop;
+          }  /* if */
           put_char(ch);
           loc_in_line++;
         }  /* while */
@@ -2065,6 +2070,7 @@ in lower case.
     case es_warning:
       severity_char = 'W';
       break;
+    case es_discretionary_error:
     case es_error:
       severity_char = 'E';
       break;

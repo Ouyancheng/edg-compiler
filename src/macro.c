@@ -131,7 +131,8 @@ typedef struct a_macro_arg {
 			   and placed on an avail list. */
   sizeof_t	raw_len;
 			/* Length of the raw version of the argument, in
-			   raw_text, not counting the final null. */
+			   raw_text, not counting the final LE_END_OF_INSERTION
+			   lexical escape. */
   a_source_line_modif_ptr
 		modif_list;
 			/* List of modifications to the raw_text to produce
@@ -630,7 +631,7 @@ reallocated; that's why an extra level of indirection is used.
     old_line_loc = old_slmp->line_loc;
     /* Note that there is no "+1" after raw_len in the following; it's not
        needed because a modification cannot be planted on the terminating
-       null. */
+       LE_END_OF_INSERTION lexical escape. */
     if (ptr_in_range(old_line_loc, map->raw_text,
                      map->raw_text+map->raw_len)) {
       /* This modification is to the raw_text of the argument. */
@@ -649,7 +650,7 @@ reallocated; that's why an extra level of indirection is used.
 #endif /* CHECKING */
         /* Note that there is no "+1" after end_inserted_text in the following;
            it's not needed because a modification cannot be planted on the
-           terminating null. */
+           terminating LE_END_OF_INSERTION lexical escape. */
         if (ptr_in_range(old_line_loc, slmp->inserted_text,
                          slmp->end_inserted_text)) break;
       }  /* for */
@@ -663,10 +664,11 @@ reallocated; that's why an extra level of indirection is used.
                      (old_line_loc - slmp->inserted_text);
     }  /* if */
     /* Now new_line_loc is set correctly.  Make a new copy of the inserted
-       text of the modification, including the terminating null.  On the first
-       use of an argument, the original inserted text can be used, without
-       copying. */
-    len = old_slmp->end_inserted_text - old_slmp->inserted_text + 1;
+       text of the modification, including the terminating LE_END_OF_INSERTION
+       lexical escape.  On the first use of an argument, the original inserted
+       text can be used, without copying. */
+    len = old_slmp->end_inserted_text - old_slmp->inserted_text +
+          LE_ESCAPE_LEN;
     if (!need_copy) {
       /* This is the first use of the inserted text, so no copy is required. */
       text_loc = old_slmp->inserted_text;
@@ -680,7 +682,7 @@ reallocated; that's why an extra level of indirection is used.
     }  /* if */
     /* Add the new source line modification. */
     slmp = add_source_line_modif(new_line_loc, old_slmp->num_chars_to_delete,
-                                 text_loc, text_loc+len-1);
+                                 text_loc, text_loc+len-LE_ESCAPE_LEN);
     slmp->assoc_macro = old_slmp->assoc_macro;
     slmp->source_position = old_slmp->source_position;
     /* Link the prototype modification to its copy, for use in resolving
@@ -700,13 +702,12 @@ static void print_markered_text(char      *str,
                                 a_boolean go_to_end_of_line)
 /*
 Print the indicated string, interpreting any marker characters therein
-(end of tokens to printable form, attention and null characters to cause
-proper walking of the indicated modifications).  Printing stops after
-"len" characters or when a null of the same level as the start is reached
-(if go_to_end_of_line is TRUE, only stop for the null at end of line or
-a macro argument).  len < 0 can be used to indicate just stopping on the
-null.  This routine is used to print the replacement text and expansions
-of macros.
+(attention characters and lexical escapes).  Printing stops after
+"len" characters or when an end-of-line or end-of-insertion of the same level
+as the start is reached (if go_to_end_of_line is TRUE, only stop for
+the end of line or the end of a macro argument).  len < 0 can be used
+to disable the character-counting feature.  This routine is used to
+print the replacement text and expansions of macros.
 */
 {
   char                    *p;
@@ -719,22 +720,39 @@ of macros.
                 n_printed != len;
                 n_printed++) {
     ch = *p;
-    if (ch == '\0') {
-      /* End of modification or end of entire line. */
-      if (!go_to_end_of_line && level == 0) {
-        /* Null at same level as start of text.  Stop. */
-        break;
-      } else if (within_curr_source_line(p)) {
+    if (ch == LE_ESCAPE) {
+      /* Lexical escape. */
+      ch = p[1];
+      if (ch == LE_END_OF_LINE) {
         /* End of entire source line.  Stop. */
         break;
+      } else if (ch == LE_NEWLINE) {
+        /* Newline.  Print newline character, stop. */
+        fputc('\n', f_debug);
+        break;
+      } else if (ch == LE_END_OF_INSERTION) {
+        /* End of macro modification. */
+        if (!go_to_end_of_line && level == 0) {
+          /* End of insertion at same level as start of text.  Stop. */
+          break;
+        } else {
+          /* Find character location after modification. */
+          ch = '$';
+          n_printed++;
+          slmp = assoc_source_line_modif(p);
+          /* If this is the end of a macro argument, stop. */
+          if (slmp->is_isolated_text) break;
+          level--;
+          leave_insertion(slmp, p);
+        }  /* if */
+      } else if (ch == LE_END_OF_TOKEN) {
+        /* End of token marker. */
+        ch = '`';
+        n_printed++;
+        p += LE_ESCAPE_LEN;
       } else {
-        /* End of modification.  Find character location after modification. */
-        ch = '$';
-        slmp = assoc_source_line_modif(p);
-        /* If this is the end of a macro argument, stop. */
-        if (slmp->is_isolated_text) break;
-        level--;
-        leave_insertion(slmp, p);
+        (void)fprintf(f_debug, "**BAD LEXICAL ESCAPE**");
+        break;
       }  /* if */
     } else if (ch == ATTENTION_MARKER) {
       /* Modification begins here.  Go into it.  Print a deletion as "%"
@@ -749,7 +767,8 @@ of macros.
         ch = '@';
       }  /* if */
     } else {
-      if (ch == END_OF_TOKEN_MARKER) ch = '`';
+      /* Normal character. */
+      if (!isprint((unsigned char)ch)) ch = '?';
       p++;
     }  /* if */
     fputc(ch, f_debug);
@@ -868,24 +887,26 @@ so a hanging delete is in effect).
       start_of_curr_token = orig_loc;
     } else {
       /* We are on a new line, so re-insertion is necessary. */
-      /* Make enough room for the insertion text.  "+2" covers the null and
-         the newline for white space. */
-      ensure_macro_buffer_space(len_of_curr_token+2);
+      /* Make enough room for the insertion text.  "+2*LE_ESCAPE_LEN"
+         covers the LE_NEWLINE and LE_END_OF_INSERTION lexical escapes. */
+      ensure_macro_buffer_space(len_of_curr_token+2*LE_ESCAPE_LEN);
       /* Insert the identifier name. */
       ins_loc = next_avail_in_macro_buffer;
       (void)memcpy(ins_loc,
                    locator_for_curr_id.symbol_header->identifier,
                    size_t_arg(len_of_curr_token));
       next_avail_in_macro_buffer += len_of_curr_token;
-      *next_avail_in_macro_buffer++ = '\n';
-      *next_avail_in_macro_buffer++ = '\0';
+      *next_avail_in_macro_buffer++ = LE_ESCAPE;
+      *next_avail_in_macro_buffer++ = LE_NEWLINE;
+      *next_avail_in_macro_buffer++ = LE_ESCAPE;
+      *next_avail_in_macro_buffer++ = LE_END_OF_INSERTION;
       /* Add a source line modification entry to do the insert.  This is
          a strange kind of entry: line_loc == NULL indicates that
          the insertion is to be done preceding the first character
          of curr_source_line. */
       (void)add_source_line_modif((char *)NULL, 0,
                                   ins_loc,
-                                  ins_loc+len_of_curr_token+1);
+                                  ins_loc+len_of_curr_token+LE_ESCAPE_LEN);
       start_of_curr_token = ins_loc;
     }  /* if */
     end_of_curr_token = start_of_curr_token + len_of_curr_token - 1;
@@ -1037,17 +1058,26 @@ length of the stringized version.
   /* Put out initial quote. */
   len++;
   if (src_loc != NULL) *(*src_loc)++ = '"';
-  /* Scan through the raw text of the argument, stopping at the final null.
+  /* Scan through the raw text of the argument, stopping at the end.
      Delete end of token markers.  Keep track of when we are inside of
      a character constant or string literal, and put out a "\" in front
      of each " or \ within those. */
-  for (p = map->raw_text; (ch = *p) != '\0'; p++) {
-    if (ch == END_OF_TOKEN_MARKER) {
-      /* End of token marker, also indicates end of character constant or
-         string literal, and start of another token soon.  The end of token
-         marker itself is not put out. */
-      within_char_literal = FALSE;
-      start_of_token = TRUE;
+  for (p = map->raw_text; ; p++) {
+    ch = *p;
+    if (ch == LE_ESCAPE) {
+      if (p[1] == LE_END_OF_TOKEN) {
+        /* End of token marker, also indicates end of character constant or
+           string literal, and start of another token soon.  The end of token
+           marker itself is not put out. */
+        within_char_literal = FALSE;
+        start_of_token = TRUE;
+        p += LE_ESCAPE_LEN-1;
+      } else if (p[1] == LE_END_OF_INSERTION) {
+        /* End of argument. */
+        break;
+      } else {
+        unexpected_condition_str("stringized_arg: bad lexical escape");
+      }  /* if */
     } else {
       /* If the current character is a " or ' at the start of a token,
          then this token is a character constant or string literal. */
@@ -1198,14 +1228,29 @@ of that text).
        Tack the rest of the primary source line onto the end of the expansion
        buffer so that the macro and what follows have a chance to be pasted
        together. */
-    num_chars_added_from_source_line = strlen(loc_following_insertion);
-    aux_buffer_modified = TRUE;
-    *token_pasting_off_end = TRUE;
-    /* Do not take the newline from the primary source line. */
-    if (num_chars_added_from_source_line > 0 &&
-        loc_following_insertion[num_chars_added_from_source_line-1] == '\n') {
-      num_chars_added_from_source_line--;
-    }  /* if */
+    /* Find the end of the primary source line. */
+    { char *temp;  /* Not registered, not kept long. */
+      for (num_chars_added_from_source_line = 0,
+             temp = loc_following_insertion;
+           ;
+           num_chars_added_from_source_line++,
+             temp++) {
+        if (*temp == LE_ESCAPE) {
+          if (temp[1] == LE_END_OF_LINE ||
+              temp[1] == LE_END_OF_INSERTION) break;
+          num_chars_added_from_source_line++;
+          temp++;
+        }  /* if */
+      }  /* for */
+      aux_buffer_modified = TRUE;
+      *token_pasting_off_end = TRUE;
+      /* Do not take the newline from the primary source line. */
+      if (num_chars_added_from_source_line >= LE_ESCAPE_LEN &&
+          temp[-LE_ESCAPE_LEN] == LE_ESCAPE &&
+          temp[-1]             == LE_NEWLINE) {
+        num_chars_added_from_source_line -= LE_ESCAPE_LEN;
+      }  /* if */
+    }
 #if DEBUG
     if (debug_level >= 3) {
       fprintf(f_debug,
@@ -1222,9 +1267,10 @@ of that text).
        primary source line is also deleted. */
     main_slmp->num_chars_to_delete += num_chars_added_from_source_line;
   }  /* if */
-  /* Put a null at the end of the aux. buffer. */
-  ensure_aux_buffer_for_pcc_macros_space(1L, pos_in_aux_buffer);
-  *pos_in_aux_buffer++ = '\0';
+  /* Put an end-of-insertion lexical escape at the end of the aux. buffer. */
+  ensure_aux_buffer_for_pcc_macros_space(LE_ESCAPE_LEN, pos_in_aux_buffer);
+  *pos_in_aux_buffer++ = LE_ESCAPE;
+  *pos_in_aux_buffer++ = LE_END_OF_INSERTION;
   /* Restore the flags that were changed before the scan. */
   main_slmp->is_isolated_text = FALSE;
   fetch_pp_tokens = save_fetch_pp_tokens;
@@ -1263,14 +1309,14 @@ of that text).
     len_new = pos_in_aux_buffer - aux_buffer_for_pcc_macros;
     ensure_macro_buffer_space(len_new);
     /* Copy the new text over the old text.  This will copy up to and
-       including the final null. */
+       including the final lexical escape. */
     (void)memcpy(pos_in_macro_buffer, aux_buffer_for_pcc_macros,
                  size_t_arg(len_new));
     /* Reset the next available position in macro_buffer to just after
        the new text. */
     next_avail_in_macro_buffer += len_new;
     /* The end position for the inserted text needs to be updated as well. */
-    main_slmp->end_inserted_text = next_avail_in_macro_buffer-1;
+    main_slmp->end_inserted_text = next_avail_in_macro_buffer-LE_ESCAPE_LEN;
     if (num_chars_added_from_source_line != 0) {
       /* Some characters from the primary source line were tacked onto
          the expansion, so remember where that text starts. */
@@ -1435,8 +1481,6 @@ associated global variables will also have been set).
   char            *rtp;
 			/* Points to a macro replacement string, which is
 			   not in the reallocated areas. */
-  static char     *empty_string = "";
-			/* Obviously safe. */
   a_pointer_registration_ptr
                   save_registered_pointers = registered_pointers;
 
@@ -1670,11 +1714,7 @@ end_scan_for_macro_modifs:;
           if (pp == NULL) {
             /* Too many arguments. */
             if (!too_many_args_diag_given) {
-              if (pcc_preprocessing_mode || SVR4_C_mode
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                  || microsoft_mode
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                       ) {
+              if (pcc_preprocessing_mode || SVR4_C_mode || microsoft_mode) {
                 /* In pcc, SVR4 C, and Microsoft mode, this is only a
                    warning. */
                 warning(ec_too_many_macro_args);
@@ -1705,9 +1745,11 @@ end_scan_for_macro_modifs:;
                there was preceding white space, into the buffer. */
             ensure_arg_raw_text_space(len_of_curr_token +
                                       any_white_space_skipped +
-                                      need_end_of_token_marker, map);
+                                      need_end_of_token_marker*LE_ESCAPE_LEN,
+                                      map);
             if (need_end_of_token_marker) {
-              map->raw_text[(map->raw_len)++] = END_OF_TOKEN_MARKER;
+              map->raw_text[(map->raw_len)++] = LE_ESCAPE;
+              map->raw_text[(map->raw_len)++] = LE_END_OF_TOKEN;
               need_end_of_token_marker = FALSE;
             }  /* if */
             if (any_white_space_skipped) {
@@ -1724,9 +1766,10 @@ end_scan_for_macro_modifs:;
             }  /* if */
             (void)arg_get_token(&any_white_space_skipped);
           }  /* while */
-          /* Place terminating null. */
-          ensure_arg_raw_text_space(1L, map);
-          map->raw_text[map->raw_len] = '\0';
+          /* Place terminating LE_END_OF_INSERTION lexical escape. */
+          ensure_arg_raw_text_space(LE_ESCAPE_LEN, map);
+          map->raw_text[map->raw_len]   = LE_ESCAPE;
+          map->raw_text[map->raw_len+1] = LE_END_OF_INSERTION;
 #if DEBUG
           if (debug_level >= 4) {
             fprintf(f_debug, "raw argument %s: \"", pp->name);
@@ -1845,16 +1888,15 @@ end_arg_expansion:;
       if (pp != NULL) {
         /* An argument is missing.  This is an error, except in pcc
            preprocessing mode, SVR4 C mode, and Microsoft mode. */
-        diagnostic(pcc_preprocessing_mode || SVR4_C_mode
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                   || microsoft_mode
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        diagnostic(pcc_preprocessing_mode || SVR4_C_mode || microsoft_mode
                                         ? es_warning : es_discretionary_error,
                    ec_too_few_macro_args);
         /* Set the rest of the parameters to null strings. */
         do {
           map = alloc_macro_arg();
           add_to_arg_values(map);
+          map->raw_text[0] = LE_ESCAPE;
+          map->raw_text[1] = LE_END_OF_INSERTION;
           pp = pp->next;
         } while (pp != NULL);
       }  /* if */
@@ -1892,13 +1934,21 @@ end_arg_expansion:;
        replacement (problems that stem from the fact that the source
        modification technique really only allows replacements, not
        straight insertions). */
+    /* Example:
+         #if defined(x
+    */
     /* Delete any part of the macro invocation that is on this line. */
     if (delete_source_from_loc != NULL &&
         delete_source_from_loc < start_of_curr_token) {
-      (void)add_source_line_modif(delete_source_from_loc,
-                                  (sizeof_t)(start_of_curr_token -
+      slmp = add_source_line_modif(delete_source_from_loc,
+                                   (sizeof_t)(start_of_curr_token -
                                                        delete_source_from_loc),
-                                  empty_string, empty_string);
+                                   (char *)NULL, (char *)NULL);
+      /* Put the null replacement string (for a deletion) in the
+         source line modification's inboard inserted_chars array. */
+      *slmp->inserted_chars   = LE_ESCAPE;
+      slmp->inserted_chars[1] = LE_END_OF_INSERTION;
+      slmp->inserted_text = slmp->end_inserted_text = slmp->inserted_chars;
     }  /* if */
     *rescan = FALSE;
     ctoken = curr_token;
@@ -1962,13 +2012,14 @@ end_arg_expansion:;
   }  /* if */
 #endif /* DEBUG */
   /* Make enough room in macro_buffer for the expansion and the following
-     null. */
-  ensure_macro_buffer_space(repl_text_len+1);
+     LE_END_OF_INSERTION lexical escape. */
+  ensure_macro_buffer_space(repl_text_len+LE_ESCAPE_LEN);
   /* Move the text into macro_buffer. */
   rescan_loc = src_loc = next_avail_in_macro_buffer;
   next_avail_in_macro_buffer += repl_text_len;
-  /* Store final null. */
-  *next_avail_in_macro_buffer++ = '\0';
+  /* Store final LE_END_OF_INSERTION lexical escape. */
+  *next_avail_in_macro_buffer++ = LE_ESCAPE;
+  *next_avail_in_macro_buffer++ = LE_END_OF_INSERTION;
   if (special_repl_text) {
     /* __LINE__,  __FILE__, or defined; the text is just a string. */
     (void)memcpy(src_loc, repl_text, size_t_arg(repl_text_len));
@@ -2238,13 +2289,12 @@ constants (see end_of_cpp_string, start_of_white_space_in_cpp_string).
          to avoid problems with things that look like comments.  Remember
          the start location of that white space. */
       start_of_white_space_in_cpp_string = curr_char_loc;
-      /* Skip white space characters.  Newline ends the line (to be careful).
-         All others are allowed without error -- this is after all inside
-         a string, not in plain text of the macro definition. */
-      while (isspace((unsigned char)*curr_char_loc) &&
-             *curr_char_loc != '\n') {
-        curr_char_loc++;
-      }  /* while */
+      /* Skip white space characters.  All are allowed without error --
+         this is after all inside a string, not in plain text of the
+         macro definition.  Note that newline has been transformed to
+         an LE_NEWLINE lexical escape sequence, and therefore will
+         not be seen as white space here. */
+      while (isspace((unsigned char)*curr_char_loc)) curr_char_loc++;
       *any_white_space_skipped = (curr_char_loc !=
                                   start_of_white_space_in_cpp_string);
       if (*curr_char_loc == '"' || *curr_char_loc == '\'') {
@@ -2427,7 +2477,8 @@ static void make_il_macro_entry(a_symbol_ptr          macro_sym,
                                 a_source_position_ptr macro_pos)
 /*
 Create an IL entry for the macro described by macro_sym.  The macro has
-source position *macro_pos.
+source position *macro_pos.  The IL entry contains a string version of
+the macro definition.
 */
 {
   a_macro_def_ptr      mdp = macro_sym->variant.macro_def;
@@ -2457,7 +2508,8 @@ source position *macro_pos.
     put_ch_to_temp_text_buffer(')');
   }  /* if */
   put_ch_to_temp_text_buffer(' ');
-  /* Put out the macro body. */
+  /* Put out the macro body, converting from the internal form to a plain
+     string. */
   suppress_paste = FALSE;
   for (ptr = mdp->repl_text; *ptr != (int)rt_null;) {
     rts_kind = (a_repl_text_seq_kind)*(ptr++);
@@ -2469,7 +2521,13 @@ source position *macro_pos.
            end-of-token markers. */
         for (; rts_number > 0; rts_number--) {
           char ch = *ptr++;
-          if (ch != END_OF_TOKEN_MARKER) {
+          if (ch == LE_ESCAPE) {
+            /* End of token marker. */
+            check_assertion_str(*ptr == LE_END_OF_TOKEN,
+                                "make_il_macro_entry: bad lexical escape");
+            ptr++;
+            rts_number--;
+          } else {
             put_ch_to_temp_text_buffer(ch);
           }  /* for */
         }  /* for */
@@ -2548,7 +2606,8 @@ Scan and process a #define directive.
   a_boolean	  try_to_scan_and_save_constant_value = FALSE;
   a_token_kind    constant_token_kind = tok_error;
   a_boolean       need_end_of_token_marker;
-  static char     str_end_of_token_marker[1] = { END_OF_TOKEN_MARKER };
+  static char     str_end_of_token_marker[LE_ESCAPE_LEN] =
+                                                { LE_ESCAPE, LE_END_OF_TOKEN };
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -2608,7 +2667,10 @@ Scan and process a #define directive.
         /* Technical Corrigendum number 1 for ISO C requires a diagnostic
            if the first character of an object-like macro replacement list
            is a nonstandard character (one not required by 5.2.1). */
-        if (is_nonstandard_character(*curr_char_loc)) {
+        /* Watch out for the newline represented by a lexical escape
+           sequence. */
+        if (curr_char_loc[0] != LE_ESCAPE &&
+            is_nonstandard_character(*curr_char_loc)) {
           a_source_position err_pos;
           conv_line_loc_to_source_pos(curr_char_loc, &err_pos);
           pos_error(ec_nonstd_character_at_start_of_macro_def, &err_pos);
@@ -2753,7 +2815,7 @@ Scan and process a #define directive.
              in pcc compatibility mode, the token separators are not put
              out. */
           if (!pcc_preprocessing_mode) {
-            put_text_to_macro_buffer(str_end_of_token_marker, 1);
+            put_text_to_macro_buffer(str_end_of_token_marker, LE_ESCAPE_LEN);
           }  /* if */
           need_end_of_token_marker = FALSE;
         }  /* if */
@@ -2838,8 +2900,8 @@ Scan and process a #define directive.
         }  /* if */
       }  /* if */
     }  /* while */
-    /* Store final null.  We've ensured that there is room for this. */
-    *next_avail_in_macro_buffer = '\0';
+    /* Store final terminator.  We've ensured that there is room for this. */
+    *next_avail_in_macro_buffer = (char)rt_null;
     /* Not inside a cpp string.  Could still be set if there is an 
        unclosed string. */
     end_of_cpp_string = NULL;
@@ -3471,7 +3533,7 @@ repl_text_length is not NULL.
     (void)memcpy(rtp, repl_text, size_t_arg(repl_text_len));
     rtp += repl_text_len;
   }  /* if */
-  /* Put the terminating null on the string. */
+  /* Put the terminator on the string. */
   *rtp = (char)rt_null;
   /* Return the length of the repl_text_string including the encoded
      information in the "overhead" area. */
@@ -3750,18 +3812,16 @@ command line -D options.
      and, if so, what its value is are implementation dependent."),
      left undefined otherwise.  __STDC__ cannot be redefined when
      compiling ANSI C, but can be redefined when compiling C++. */
-  if ((C_dialect == C_dialect_ANSI || C_dialect == C_dialect_cplusplus)
+  if ((C_dialect == C_dialect_ANSI || C_dialect == C_dialect_cplusplus) &&
+      /* The Microsoft compiler does not define __STDC__ in either C or
+         C++ mode when it supports extensions. */
+      !microsoft_mode
 #if OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
       /* If configured to use old-style preprocessing in cfront
          compatibility mode, do not define __STDC__ in that mode. */
       && !any_cfront_mode()
 #endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      /* The Microsoft compiler does not define __STDC__ in either C or
-         C++ mode when it supports extensions. */
-      && !microsoft_mode
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                      ) {
+                           ) {
     (void)enter_predef_macro("1", "__STDC__", C_dialect == C_dialect_ANSI,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
