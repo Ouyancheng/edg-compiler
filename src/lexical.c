@@ -4258,73 +4258,6 @@ only in C++ mode.
 }  /* f_get_destructor_name */
 
 
-static an_opname_kind opname_for_token(a_token_kind token)
-{
-  an_opname_kind  op = onk_none;
-
-  switch (token) {
-    /* Single token operators: */
-    case tok_new:                 op = onk_new;                 break;
-    case tok_delete:              op = onk_delete;              break;
-    case tok_plus:                op = onk_plus;                break;
-    case tok_minus:               op = onk_minus;               break;
-    case tok_star:                op = onk_star;                break;
-    case tok_divide:              op = onk_divide;              break;
-    case tok_remainder:           op = onk_remainder;           break;
-    case tok_excl_or:             op = onk_excl_or;             break;
-    case tok_ampersand:           op = onk_ampersand;           break;
-    case tok_or:                  op = onk_or;                  break;
-    case tok_compl:               op = onk_compl;               break;
-    case tok_not:                 op = onk_not;                 break;
-    case tok_assign:              op = onk_assign;              break;
-    case tok_lt:                  op = onk_lt;                  break;
-    case tok_gt:                  op = onk_gt;                  break;
-    case tok_plus_assign:         op = onk_plus_assign;         break;
-    case tok_minus_assign:        op = onk_minus_assign;        break;
-    case tok_times_assign:        op = onk_times_assign;        break;
-    case tok_divide_assign:       op = onk_divide_assign;       break;
-    case tok_remainder_assign:    op = onk_remainder_assign;    break;
-    case tok_excl_or_assign:      op = onk_excl_or_assign;      break;
-    case tok_and_assign:          op = onk_and_assign;          break;
-    case tok_or_assign:           op = onk_or_assign;           break;
-    case tok_shift_left:          op = onk_shift_left;          break;
-    case tok_shift_right:         op = onk_shift_right;         break;
-    case tok_shift_right_assign:  op = onk_shift_right_assign;  break;
-    case tok_shift_left_assign:   op = onk_shift_left_assign;   break;
-    case tok_eq:                  op = onk_eq;                  break;
-    case tok_ne:                  op = onk_ne;                  break;
-    case tok_le:                  op = onk_le;                  break;
-    case tok_ge:                  op = onk_ge;                  break;
-    case tok_and_and:             op = onk_and_and;             break;
-    case tok_or_or:               op = onk_or_or;               break;
-    case tok_plus_plus:           op = onk_plus_plus;           break;
-    case tok_minus_minus:         op = onk_minus_minus;         break;
-    case tok_comma:               op = onk_comma;               break;
-    case tok_arrow_star:          op = onk_arrow_star;          break;
-    case tok_arrow:               op = onk_arrow;               break;
-    /* Two-token operators: () and [].  Peek ahead to the next token; if it's
-       the right one, swallow it and set the opname kind.  Otherwise leave the
-       opname kind to onk_none, and the caller will issue the error. */
-    case tok_lparen:
-      if (next_token() == tok_rparen) {
-        op = onk_function_call;
-        (void)get_token();
-      }  /* if */
-      break;
-    case tok_lbracket:
-      if (next_token() == tok_rbracket) {
-        op = onk_subscript;
-        (void)get_token();
-      }  /* if */
-      break;
-    default:;
-      /* Error case.  The caller will report it. */
-  }  /* switch */
-  /* Return the operator name kind. */
-  return op;
-}  /* opname_for_token */
-
-
 a_boolean f_get_opname(void)
 /*
 The current token is the token "operator" at the start of an operator name,
@@ -4346,7 +4279,21 @@ only in C++ mode.
        a type name. */
   } else {
     /* It must be an overloaded operator name (or an error). */
-    opname = opname_for_token(token);
+    opname = opname_kind_for_token[(int)token];
+    if (opname == onk_function_call || opname == onk_subscript) {
+      /* Two-token operators: () and [].  Peek ahead to the next token; if
+         it's the right one, swallow it and leave the opname kind as is.
+         Otherwise change the opname kind to onk_none so that an error will
+         be issued. */
+      if (next_token() == (opname == onk_function_call) ?
+                                  tok_rparen : tok_rbracket) {
+        /* Advance to the second token. */
+        (void)get_token();
+      } else {
+        /* Error case. */
+        opname = onk_none;
+      }  /* if */
+    }  /* if */
     if (opname == onk_none) {
       /* syntax_error is deliberately not called. */
       error(ec_exp_operator);
@@ -4360,6 +4307,7 @@ only in C++ mode.
     }  /* if */
     curr_token = tok_identifier;
   }  /* if */
+  /* Always return TRUE, as a convenience to macro get_opname. */
   return TRUE;
 }  /* f_get_opname */
 
@@ -4737,6 +4685,10 @@ of the front end.
       strcmp(token_names[(int)tok_last], "last") != 0) {
     internal_error(
                  "lexical_init: initialization of token_names is not correct");
+  }  /* if */
+  /* Check that the table of opname kinds is correctly initialized. */
+  if (opname_kind_for_token[(int)tok_last] != onk_last) {
+    internal_error("lexical_init: bad init of opname_kind_for_token");
   }  /* if */
 #endif /* CHECKING */
   /* Initialize is_id_char to the characters that can appear in an identifier
