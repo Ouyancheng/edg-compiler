@@ -236,6 +236,10 @@ static a_variable_ptr
 
 
 /* Declarations needed because of forward references: */
+static void change_node_to_operation(an_expr_node_ptr      node,
+                                     an_expr_operator_kind op,
+                                     a_type_ptr            type,
+                                     an_expr_node_ptr      operand);
 static void lower_os_constant(a_constant_ptr constant);
 static void lower_variable(a_variable_ptr variable);
 static void lower_field_list(a_field_ptr field_list);
@@ -2211,10 +2215,10 @@ their operands.
 }  /* overwrite_node */
 
 
-void change_node_to_operation(an_expr_node_ptr      node,
-                              an_expr_operator_kind op,
-                              a_type_ptr            type,
-                              an_expr_node_ptr      operand)
+static void change_node_to_operation(an_expr_node_ptr      node,
+                                     an_expr_operator_kind op,
+                                     a_type_ptr            type,
+                                     an_expr_node_ptr      operand)
 /*
 Change node to an operation node with operator op, type type, and operand
 list as given by operand.
