@@ -2403,7 +2403,7 @@ end_sizeof:;
         remap_ptr_not_needed(ptr->data_section_base_class, a_base_class_ptr,
                              iek_base_class);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-#if 1 || !IA64_ABI /* FIXME */
+#if !IA64_ABI
         remap_ptr_not_needed(ptr->pointer_base_class, a_base_class_ptr,
                              iek_base_class);
 #endif /* !IA64_ABI */

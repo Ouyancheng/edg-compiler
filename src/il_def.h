@@ -3947,7 +3947,7 @@ typedef struct a_base_class {
 			   Only needed when layout compatibility with USL's
 			   cfront is required. */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-#if 1 || !IA64_ABI /* FIXME */
+#if !IA64_ABI
   a_targ_size_t	pointer_offset;
 			/* If is_virtual is TRUE, the byte offset from the
 			   start of derived_class to a pointer to the data
@@ -3991,14 +3991,14 @@ typedef struct a_base_class {
 			   virtual function number of the routine pointed
 			   to by the primary_function field. */
 #if DO_IL_LOWERING
-/* FIXME  -- conditional !IA64_ABI */
+#if !IA64_ABI
   a_variable_ptr
 		virtual_function_table_var;
 			/* When IL lowering is done, this points to the
 			   variable that contains the virtual function table
 			   for this base class/derived class combination.
 			   NULL until allocated and NULL if not needed. */
-#if IA64_ABI
+#else /* IA64_ABI */
   a_virtual_table_index
                 virtual_function_table_offset;
                         /* The index in the derived class virtual table group
@@ -4036,7 +4036,7 @@ typedef struct a_base_class {
 			   vtbl array for the whole current class at which
 			   the subarray that is to be passed to the base class
 			   constructor or destructor begins. */
-#if 1 || !IA64_ABI /* FIXME */
+#if !IA64_ABI
   /* When is_virtual is TRUE: */
   a_construction_vtbl_ptr
 		base_construction_vtbls;
@@ -6310,7 +6310,7 @@ enum a_ctor_or_dtor_kind_tag {
   cdk_deleting,		/* A version of a destructor that destroys a
 			   complete object and then deletes the storage
 			   associated with the object. */
-  cdk_last
+  cdk_last		/*lint -esym(769,a_ctor_or_dtor_kind_tag::cdk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_ctor_or_dtor_kind;

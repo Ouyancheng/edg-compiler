@@ -1050,9 +1050,9 @@ to it.
   bcp->data_section_base_class         = NULL;
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #if DO_IL_LOWERING
-/* FIXME -- conditional !IA64_ABI */
+#if !IA64_ABI
   bcp->virtual_function_table_var      = NULL;
-#if IA64_ABI
+#else /* IA64_ABI */
   bcp->virtual_function_table_offset   = -1;
 #endif /* IA64_ABI */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
