@@ -75,6 +75,8 @@ extern a_symbol_ptr enter_predef_macro(char      *repl_text,
                                        a_boolean cannot_be_redefined,
                                        a_boolean ref_suppresses_pch_file);
 
+extern void fixup_predefined_macros(char  curr_date_time[26]);
+
 extern void init_predefined_macros(char  curr_date_time[26]);
 
 #if DEBUG
