@@ -6930,6 +6930,7 @@ specific version of the template.
 				 = curr_deferred_access_scope;
   ssep->saved_expr_stack         = expr_stack;  /* See also the setting of
                                                    expr_stack to NULL below. */
+  ssep->curr_scope_object_lifetime = NULL;
   ssep->object_lifetime_avail_list = NULL;
   ssep->saved_curr_object_lifetime = curr_object_lifetime;
   /* Put the associated type (if any) into the IL scope (if any). */
@@ -7199,7 +7200,10 @@ specific version of the template.
       /* This is the sort of scope for which a new object lifetime is
          pushed. */
       push_object_lifetime((an_il_entry_kind)iek_scope, (char *)sp,
-                           /*ctor_init=*/FALSE);
+                           (kind == (a_scope_kind)sck_file) ?
+                             (an_object_lifetime_kind)olk_global_static :
+                             (an_object_lifetime_kind)olk_local);
+      ssep->curr_scope_object_lifetime = curr_object_lifetime;
     }  /* if */
   }  /* if */      
   db_exit();
