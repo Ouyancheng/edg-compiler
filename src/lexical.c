@@ -261,7 +261,6 @@ to translate the lookup mode into a set of identifier lookup options.
 */
 static an_id_lookup_options_set idl_options_for_lookup_mode[(int)ilm_last+1]= {
   /* ilm_normal */		IDL_NO_OPTIONS,
-  /* ilm_class_or_namespace */	IDL_MUST_BE_CLASS_OR_NAMESPACE,
   /* ilm_tag */			IDL_MUST_BE_TAG,
   /* ilm_tentative_type */	IDL_TENTATIVE_TYPE_LOOKUP,
   /* ilm_ctor_initializer_name */ IDL_SKIP_CURR_SCOPE,
