@@ -1412,7 +1412,7 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 /* pk_scanf_args */		"__scanf_args",
 /* pk_lint_argsused */		"ARGSUSED",
 /* pk_lint_varargs_count */     "VARARGS",
-/* pk_lint_not_reached */	"NOTREACHED",
+/* pk_lint_notreached */	"NOTREACHED",
 /* pk_instantiate */		"instantiate",
 /* pk_do_not_instantiate */	"do_not_instantiate",
 /* pk_can_instantiate */	"can_instantiate",
