@@ -1062,6 +1062,7 @@ is the file scope.  Return a pointer to it.
   a_variable_ptr          temp;
   a_storage_class         storage_class;
   a_scope_stack_entry_ptr ssep;
+  a_variable_ptr          *prev_ptr_ptr, *last_ptr_ptr;
 
   /* Allocate the variable, using auto storage class in functions and
      blocks, static elsewhere.  If force_static is TRUE, use static. */
@@ -1087,22 +1088,28 @@ is the file scope.  Return a pointer to it.
     ssep = &scope_stack[scope->depth_in_scope_stack];
   }  /* if */
   /* Add the temporary to the scope list (at the front).  We cannot use
-     add_to_variables_list because we might be working on an internally-
-     generated routine, like a constructor, for which a push_scope was
-     not done. */
+     add_to_variables_list because we might be working on a scope that is
+     not on the stack. */
+  /* The variable goes on either the static or the nonstatic variables list,
+     so determine the proper pointers to adjust. */
+  last_ptr_ptr = NULL;
   if (storage_class == (a_storage_class)sc_static) {
-    temp->next = scope->variables;
-    scope->variables = temp;
-    if (ssep != NULL && ssep->last_variable == NULL) {
-      ssep->last_variable = temp;
-    }  /* if */
+    prev_ptr_ptr = &scope->variables;
+    if (ssep != NULL) last_ptr_ptr = &ssep->last_variable;
   } else {
-    temp->next = scope->nonstatic_variables;
-    scope->nonstatic_variables = temp;
-    if (ssep != NULL && ssep->last_nonstatic_variable == NULL) {
-      ssep->last_nonstatic_variable = temp;
-    }  /* if */
+    prev_ptr_ptr = &scope->nonstatic_variables;
+    if (ssep != NULL) last_ptr_ptr = &ssep->last_nonstatic_variable;
   }  /* if */
+  /* The temporary goes at the front, but after any unnamed entities.  That
+     ensures that temporaries built later come after temporaries build
+     earlier, which is needed for record_needed_destruction is called
+     for a temporary. */
+  while (*prev_ptr_ptr != NULL && !has_name(*prev_ptr_ptr)) {
+    prev_ptr_ptr = &(*prev_ptr_ptr)->next;
+  }  /* while */
+  temp->next = *prev_ptr_ptr;
+  *prev_ptr_ptr = temp;
+  if (last_ptr_ptr != NULL) *last_ptr_ptr = temp;
   return temp;
 }  /* make_temporary_in_scope */
 
