@@ -50,8 +50,9 @@ match the member with the pure specifier.
 
 An unnamed enum or class type can acquire a name for linkage purposes
 through a typedef declaration.  Normally, the underlying type must be
-defined as part of the typedef declaration, but the front end use to
-apply such a name during instantiation.  For example:
+defined as part of the typedef declaration, but the front end applied
+such a typedef name to an unnamed underlying type during instantiation.
+For example:
 
   template<typename T> struct S {
     typedef T NewName;
@@ -62,7 +63,8 @@ apply such a name during instantiation.  For example:
     f(e);  // Used to apply the name "NewName" to the type of e, as if
   }        // the enum declaration had been "typedef enum { e } NewName;"
 
-This is now fixed.
+This is now fixed (the example gets an error because unnamed types should
+not be used as template arguments).
 
 9/11/03  IA-64 ABI: Abort on virtual call thunk
 
