@@ -687,6 +687,12 @@ initializers -- for instance:
     int a[2] = { i, i+1 };
   }
 
+NOTE: The IL representing this construct is a dik_nonconstant_aggregate
+dynamic init entry.  Normally, such entries only appear in unlowered C++
+IL.  We intend eventually to add a call to an IL lowering routine (such as
+lower_dynamic_init) to represent this construct in ordinary C IL, but for
+now back ends will have to deal with it in the unlowered form.
+
 4/7/95   Declaring static data members as member constants
 
 A static data member declaration inside its class definition may now

@@ -1552,6 +1552,16 @@ returned set to TRUE.
       /* Generate a dynamic initialization entry, attach it to the variable,
          and generate an stmk_init statement. */
       gen_dynamic_initialization(vp, init_dip, source_pos);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* Note that if microsoft_mode and C_mode() are TRUE, *vp may be an
+         automatic variable with a nonconstant aggregate initializer.  The
+         IL representation for this involves a dik_nonconstant_aggregate
+         dynamic init entry.  Normally, such entries only appear in unlowered
+         C++ IL.  Eventually there will be a call to an IL lowering routine
+         (see lower_dynamic_init) to represent this construct in ordinary C
+         IL, but for now back ends will have to deal with it in the unlowered
+         form. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (has_static_storage_duration(vp->storage_class) &&
                vp->source_corresp.is_local_to_function) {
       /* This must be a non-dynamic initialization of a local static
