@@ -612,46 +612,6 @@ redundant file names in a diagnostic.*/
 }  /* form_source_position */
 
 
-static a_boolean is_overloaded_function(a_symbol_ptr sym)
-/*
-Run through the linked list of active and inactive symbols chained from the
-symbol header of the specified symbol looking for that symbol.  If found, the
-symbol cannot be an overloaded function.  An overloaded function will be
-represented in these lists of symbols as a symbol of sk_overloaded_function
-kind with this specific function symbol being part of the list chained from
-that overloaded function symbol entry.
-*/
-{
-  a_boolean	is_overloaded = TRUE;	/* Assume and try to disprove. */
-  a_symbol_ptr	wrk_sym;
-
-  /* Check through the current list of symbols. */
-  for (wrk_sym = sym->header->symbol;
-       wrk_sym != NULL;
-       wrk_sym = wrk_sym->next) {
-    if (wrk_sym == sym) {
-      /* The symbol is in the header's linked list of symbols and therefore
-         is not an overloaded function. */
-      is_overloaded = FALSE;
-      goto return_point;
-    }  /* if */
-  }  /* for */
-  /* Check through the inactive symbol list. */
-  for (wrk_sym = sym->header->inactive_symbols;
-       wrk_sym != NULL;
-       wrk_sym = wrk_sym->next) {
-    if (wrk_sym == sym) {
-      /* The symbol is in the header's linked list of inactive symbols and
-         therefore is not an overloaded function. */
-      is_overloaded = FALSE;
-      goto return_point;
-    }  /* if */
-  }  /* for */
-return_point:
-  return is_overloaded;
-}  /* is_overloaded_function */
-
-
 static void form_function_template_param_list(a_symbol_ptr	sym,
                                    	      a_msg_segment_ptr	seg_ptr)
 /*
@@ -892,7 +852,7 @@ declaration position to eliminate redundant file names in a diagnostic.
   a_boolean			return_type_needed = TRUE;
   a_boolean			is_declaration_like = FALSE;
   a_symbol_ptr			corresp_template_sym = NULL;
-  a_template_instance_ptr	tip;
+  a_template_instance_ptr	tip = NULL;
   a_symbol_ptr			sym_to_display;
 
   curr_output_msg_segment = seg_ptr;
@@ -1083,13 +1043,6 @@ symbol_name:
              conversion functions. */
           return_type_needed = FALSE;
         }  /* if */
-        /* Function parameters are displayed for overloaded functions or
-           if forced by "%np". */
-        force_function_params =
-                        seg_ptr->variant.symbol.force_function_params ||
-                        (!C_mode() &&
-                         (is_overloaded_function(fund_sym) ||
-                          (fund_sym != sym && is_overloaded_function(sym))));
       }  /* if */
       /* Put out the first part of the type if needed, but not for
          constructors, destructors, and conversion functions (the return type
@@ -1122,6 +1075,28 @@ symbol_name:
       /* Put out the second part of the type if needed.  Don't put it
          out in name-only mode.  Do put it out in full-type mode, or
          if function parameters should be listed. */
+      if (routine != NULL) {
+        if (seg_ptr->variant.symbol.force_function_params) {
+          /* "%np" was specified for this fill-in. */
+          force_function_params = TRUE;
+        } else if (routine->template_arg_list != NULL) {
+          /* Always put out the parameter list for functions that are
+             instances of function templates. */
+          force_function_params = TRUE;
+        } else if (sym_to_display->overload_set_member) {
+          /* Always put out the param list for overloaded functions. */
+          force_function_params = TRUE;
+        } else if (sym_to_display == corresp_template_sym &&
+                   fund_sym->overload_set_member) {
+          /* If a function is member of an instance of a template class, it
+             may be that the the template symbol is not part of an overload
+             set and the member of the instantiated class is (e.g.,
+             constructors and assignment operators, since the implicitly
+             declared forms may bring an overload set into existence).  Treat
+             this case as overloaded, too. */
+          force_function_params = TRUE;
+        }  /* if */
+      }  /* if */
       if (type != NULL &&
           !seg_ptr->variant.symbol.name_only &&
           (seg_ptr->variant.symbol.full_type || force_function_params) ) {

@@ -3296,11 +3296,13 @@ the file scope is used.
     }  /* if */
     /* Attach the old symbol under the overloaded symbol. */
     overload_sym->variant.overloaded_function.symbols = other_sym;
+    other_sym->overload_set_member = TRUE;
   }  /* if */
   /* Attach the new symbol to the front of the list under the overloaded
      symbol. */
   new_sym->next = overload_sym->variant.overloaded_function.symbols;
   overload_sym->variant.overloaded_function.symbols = new_sym;
+  new_sym->overload_set_member = TRUE;
   /* Return a pointer to the sk_overloaded_function symbol. */
   return overload_sym;
 }  /* add_symbol_to_overload_list */
@@ -8528,6 +8530,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.must_be_namespace_lookup          = FALSE;
   cleared_symbol.ambiguous                         = FALSE;
   cleared_symbol.hidden_by_old_for_init            = FALSE;
+  cleared_symbol.overload_set_member               = FALSE;
   /* Save variables from symbol_tbl.h and symbol_tbl.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {

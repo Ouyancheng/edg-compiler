@@ -1768,6 +1768,9 @@ typedef struct a_symbol {
 			   this flag is set is pointed to by an entry of type
 			   a_name_hidden_by_old_for_init entry, accessed from
 			   the scope stack.  (Used in C++ only.) */
+  a_bit_field	overload_set_member:1;
+			/* TRUE for a symbol that is on the symbols list of
+			   an sk_overloaded_function symbol. */
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
