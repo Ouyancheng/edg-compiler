@@ -1147,7 +1147,7 @@ routine entry and return TRUE; otherwise return FALSE.
   a_base_class_ptr             bcp;
   a_symbol_ptr                 symbol_list, sym, sym_next;
   a_routine_ptr                rout, rp;
-  a_scope_number               base_class_scope_number;
+  a_scope_ptr                  base_class_scope;
   a_class_type_supplement_ptr  ctsp;
   a_virtual_function_number    virtual_function_number = 0;
 
@@ -1193,14 +1193,19 @@ routine entry and return TRUE; otherwise return FALSE.
     } else {
       /* Not a destructor, so do normal processing. */
       /* Pull out the unique scope identifier for this base class. */
-      base_class_scope_number =
-         bcp->type->variant.class_struct_union.extra_info->assoc_scope->number;
+      base_class_scope = bcp->type->
+                          variant.class_struct_union.extra_info->assoc_scope;
+      if (base_class_scope == NULL) {
+        /* This is probably a nonreal base class in a prototype instantiation.
+           Don't attempt a lookup in this case. */
+        goto next_base_class;
+      }  /* if */
       /* Inner loop:  go thorough all the symbols for this name, looking for
          one which represents a member function (overloaded or simple) from
          the base class under examination. */
       for (sym = symbol_list; sym != NULL; sym = sym_next) {
         sym_next = sym->next;
-        if (sym->decl_scope == base_class_scope_number) {
+        if (sym->decl_scope == base_class_scope->number) {
           /* Symbol represents a member of bcp's class. */
           if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
             overloaded = TRUE;
@@ -5941,7 +5946,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
               pos_warning (ec_useless_decl, &decl_start_pos);
 #endif /* if 0 */
             } else {
-              /* A case like "int;" is explictly disallowed by language in
+              /* A case like "int;" is explicitly disallowed by language in
                  ARM 9.2. */
               pos_error(ec_useless_decl, &decl_start_pos);
             }  /* if */
