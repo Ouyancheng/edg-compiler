@@ -3623,6 +3623,30 @@ a pointer to the dynamic init entry for the entire array.
 }  /* add_array_nonconstant_aggregate_init */
 
 
+a_boolean new_or_delete_type_requires_array_handling(a_type_ptr type)
+/*
+type is the base type underlying an array type involved in a new or delete.
+Return TRUE if the new or delete operation requires special handling.
+Special handling means routines like __vec_new and __vec_delete must be
+called, so that constructors and destructors will be called, and so 
+that the size of the array is recorded for use at the time of the delete
+of the array pointer.
+*/
+{
+  a_boolean                     special = FALSE;
+  a_class_symbol_supplement_ptr cssp;
+
+  /* Only types with a constructor or destructor require special handling. */
+  if (is_class_struct_union_type(type)) {
+    cssp = symbol_supplement_for_class(type);
+    if (cssp->constructor != NULL || cssp->destructor != NULL) {
+      special = TRUE;
+    }  /* if */
+  }  /* if */
+  return special;
+}  /* new_or_delete_type_requires_array_handling */
+
+
 static void scan_new_operator(an_operand *result)
 /*
 Scan the C++ new operator.  See 5.3.3 in the ARM.
@@ -3995,22 +4019,24 @@ specification allow a variable-sized array as the top type.
     }  /* if */
     /* Work out the "new" routine and its arguments. */
     new_routine = function_symbol->variant.routine.ptr;
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
-    /* If allocating a class with a constructor, determine the default
-       "new" routine for the class and see whether it is the one that
-       was selected.  If so, the "new" call can be folded into the
-       constructor call. */
-    if (ctor_routine != NULL) {
-      if (array_new) {
-        /* In the array case, a global operator new is always used, so if
-           the new routine selected is the default global operator new,
-           it can be implicit.  The implementation has to know that
-           it should call the global operator new for the array case. */
+#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+    if (array_new) {
+      /* If a allocating an array and a runtime routine will be used, the
+         "new" routine can be implicit if it is the default global new. */
+      if (new_or_delete_type_requires_array_handling(base_new_type)) {
         if (function_symbol == 
                        extract_default_operator_new_sym(operator_new_symbol)) {
           new_routine = NULL;
         }  /* if */
-      } else {
+      }  /* if */
+    } else {
+#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+      /* If allocating a class with a constructor, determine the default
+         "new" routine for the class and see whether it is the one that
+         was selected.  If so, the "new" call can be folded into the
+         constructor call. */
+      if (ctor_routine != NULL) {
         a_type_ptr unqual_base_new_type = skip_typerefs(base_new_type);
         set_class_assoc_operator_new_routine(unqual_base_new_type);
         if (unqual_base_new_type->variant.class_struct_union.extra_info->
@@ -4018,8 +4044,10 @@ specification allow a variable-sized array as the top type.
           new_routine = NULL;
         }  /* if */
       }  /* if */
-    }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+    }  /* if */
+#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
     /* Mark the "new" routine as referenced, check access to it. */
     overloaded_function_catch_up(function_symbol,
                                  operator_new_symbol,
@@ -4221,22 +4249,41 @@ As an anachronism, allow an expression inside the [ ].
                                              use_global_delete,
                                              array_delete,
                                              &delete_position);
-#if DELETE_CAN_BE_FOLDED_INTO_DTOR
-      if (dtor_routine != NULL) {
-        a_type_ptr unqual_base_delete_type = skip_typerefs(base_delete_type);
-        /* Determine and remember the default operator delete() routine for
-           the class. */
-        set_class_assoc_operator_delete_routine(unqual_base_delete_type);
-        /* If the delete routine we are using is the default for the class,
-           and the class has a destructor, we can fold the delete into the
-           destructor call. */
-        if (unqual_base_delete_type->variant.class_struct_union.extra_info->
-                             assoc_operator_delete_routine == delete_routine) {
-          delete_routine = NULL;
+#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+      if (array_delete) {
+        /* If a deleting an array and a runtime routine will be used, the
+           delete routine can be implicit if it is the default global
+           delete. */
+        if (new_or_delete_type_requires_array_handling(base_delete_type)) {
+          if (delete_routine ==
+                           opname_function_symbol((an_opname_kind)onk_delete)->
+                                                         variant.routine.ptr) {
+            delete_routine = NULL;
+          }  /* if */
         }  /* if */
-      }  /* if */
-      if (delete_routine != NULL) {
+      } else {
+#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
+        if (dtor_routine != NULL) {
+          /* For a class with a destructor, see if the delete can be folded
+             into the destructor. */
+          a_type_ptr unqual_base_delete_type = skip_typerefs(base_delete_type);
+          /* Determine and remember the default operator delete() routine for
+             the class. */
+          set_class_assoc_operator_delete_routine(unqual_base_delete_type);
+          /* If the delete routine we are using is the default for the class,
+             and the class has a destructor, we can fold the delete into the
+             destructor call. */
+          if (unqual_base_delete_type->variant.class_struct_union.extra_info->
+                             assoc_operator_delete_routine == delete_routine) {
+            delete_routine = NULL;
+          }  /* if */
+        }  /* if */
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
+#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+      }  /* if */
+#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+      if (delete_routine != NULL) {
         /* The delete routine is actually being called. */
         /* Mark the routine referenced. */
         if_evaluating_mark_routine_referenced(delete_routine);
@@ -4255,9 +4302,7 @@ As an anachronism, allow an expression inside the [ ].
               node_for_integer_constant((long)(delete_type->size),
                                         (an_integer_kind)TARG_SIZE_T_INT_KIND);
         }  /* if */
-#if DELETE_CAN_BE_FOLDED_INTO_DTOR
       }  /* if */
-#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
       ndsp->routine = delete_routine;
       /* Make an operand for the result. */
       make_expression_operand(delete_node, void_type(), result);
