@@ -1,5 +1,23 @@
 Version 3.3
 
+7/17/03  GNU C compatibility: comma expression as lvalue
+
+gcc considers a comma expression to be an lvalue if its second
+operand is an lvalue.  This is like C++ but nonstandard for C.
+This was previously emulated (see 8/28/01 Changes entry's
+10/11/01 addendum regarding generalized lvalues), but not
+accurately enough.  It turns out that gcc handles this case just
+like C++, and not in the (convoluted) way it handles the
+similar issue for the "?" operator.  Emulation now improved.
+
+  struct {
+     unsigned int i;
+  } x;
+  void f() {
+    int j = 0;
+    ((void)j, x).i += 1;  // Now accepted in gcc mode
+  }
+
 7/17/03  GNU C++ compatibility: static data member initializer relaxation
 
 The in-class initializers for static data members in GNU C++ mode are

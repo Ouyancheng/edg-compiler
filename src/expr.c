@@ -12612,8 +12612,8 @@ EOPT_DISALLOW_COMMA_OPERATOR).
       /* Non-operator-function cases. */
       simplify_void_operand(operand_1);
       /* In C++ mode, an lvalue in the second operand is preserved.
-         In C mode, an lvalue is converted to an rvalue. */
-      if (C_dialect == C_dialect_cplusplus) {
+         In C mode (except gcc mode), an lvalue is converted to an rvalue. */
+      if (C_dialect == C_dialect_cplusplus || gcc_mode) {
         do_operand_transformations(&operand_2,
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                  TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
