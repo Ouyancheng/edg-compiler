@@ -772,8 +772,6 @@ setting of this flag.
 #define DEFAULT_LONG_PRESERVING_RULES FALSE
 #endif /* ifndef DEFAULT_LONG_PRESERVING_RULES */
 
-#endif /* ifndef LANG_FEAT_H */
-
 /*
 Flag that is TRUE if multibyte characters are supported in source code,
 specifically in comments, string literals, and character constants.
@@ -793,6 +791,8 @@ MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is TRUE.
 #ifndef DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED
 #define DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED FALSE
 #endif /* ifndef DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED */
+
+#endif /* ifndef LANG_FEAT_H */
 
 
 /******************************************************************************
