@@ -6536,6 +6536,7 @@ make *var point to the IL entry for that variable.  Otherwise, return FALSE.
 {
   a_boolean  result = FALSE;
 
+  *var = NULL;
   if (is_an_lvalue(operand)) {
     if (is_constant_operand(operand) &&
         con_is_exact_addr_of_variable(&operand->variant.constant, var)) {
