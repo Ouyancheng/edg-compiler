@@ -1105,7 +1105,6 @@ current class -- see ARM 10.3).  If it is, mark the class accordingly.
   a_class_type_supplement_ptr         bctsp;
   a_routine_ptr                       rp;
   an_overriding_virtual_function_ptr  ovfp;
-  a_boolean                           override_order_matches_routine_order;
 
   db_enter(4, "check_abstract_class");
   if (class_type->variant.class_struct_union.abstract) {
@@ -1122,26 +1121,23 @@ current class -- see ARM 10.3).  If it is, mark the class accordingly.
            inspect the appropriate virtual function function override list.
            If the pure virtual function is not overridden (i.e., if no entry
            on the override list points to it as the primary function) then
-           mark the current class as abstract.  We can optimize the search by
-           taking advantage of the fact that, unless bcp shares its virtual
-           function info with one of its own base classes, the override entries
-           and the routine entries will be in virtual-function-number order. */
+           mark the current class as abstract. */
         bctsp = bcp->type->variant.class_struct_union.extra_info;
         rp = bctsp->assoc_scope->routines;
-        override_order_matches_routine_order =
-                            (bctsp->virtual_function_info_base_class == NULL);
-        ovfp = bcp->overriding_virtual_functions;
         for (; rp != NULL; rp = rp->next) {
           if (rp->pure_virtual) {
             /* Found a pure virtual function among the routines.  Advance
                through the overriding virtual function list, passing over
                entries in which the virtual function number of the primary
                function is lower than that of the current routine. */
-            while (ovfp != NULL &&
-                   ovfp->primary_function->virtual_function_number <
+            for (ovfp = bcp->overriding_virtual_functions;
+                 ovfp != NULL;
+                 ovfp = ovfp->next) {
+              if (ovfp->primary_function->virtual_function_number >=
                                               rp->virtual_function_number) {
-              ovfp = ovfp->next;
-            } /* while */
+                break;
+              }  /* if */
+            }  /* for */
             if (ovfp == NULL || ovfp->primary_function != rp) {
               /* No overriding virtual function entry was found that refers to
                  the pure virtual function routine entry.  The pure virtual
@@ -1152,11 +1148,6 @@ current class -- see ARM 10.3).  If it is, mark the class accordingly.
             }  /* if */
             /* An overriding virtual function was found, so the pure
                virtual function is not inherited. */
-            if (!override_order_matches_routine_order) {
-              /* Restart the search through the overriding virtual functions
-                 list at the head of the list. */
-              ovfp = bcp->overriding_virtual_functions;
-            }  /* if */
           }  /* if */
           /* Get the next routine on the list. */
         }  /* for */
