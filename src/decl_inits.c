@@ -1433,7 +1433,7 @@ the default constructor (if one exists) is called.
   a_type_ptr                     var_type, tp;
   a_class_symbol_supplement_ptr  cssp;
   a_dynamic_init                 local_di;
-  a_routine_ptr                  rp;
+  a_routine_ptr                  rp = NULL;
   a_targ_size_t                  count;
   a_memory_region_number         region_to_switch_back_to = NULL_region_number;
 
@@ -1452,7 +1452,8 @@ the default constructor (if one exists) is called.
        the current translation unit (i.e., storage class other than "extern")
        and that require constructor initialization. */
     if (is_class_struct_union_type(tp) &&
-        var->storage_class != (a_storage_class)sc_extern) {
+        var->storage_class != (a_storage_class)sc_extern &&
+        !is_incomplete_type(var_type)) {
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
         /* Perform the default initialization of a static data member with
            its parent class reactivated. */
@@ -1460,19 +1461,6 @@ the default constructor (if one exists) is called.
       }  /* if */
       cssp = symbol_supplement_for_class(tp);
       if (cssp->constructor != NULL) {
-        if (is_incomplete_type(var_type)) {
-#if 0
-          /* Don't quite know what to do on this yet.  What's done in
-             end_of_scope_symbol_check is nontrivial.  And I'm not sure it
-             works for multi-dimensional array. */
-          pos_warning(ec_default_size_for_incomplete_array, err_pos);
-#else  /* 0 */
-#if CHECKING
-          internal_error(
-                      "def_initializer: incomplete types not yet supported");
-#endif /* CHECKING */
-#endif /* if 0 */
-        }  /* if */
         rp = select_default_constructor(tp, err_pos, tp, /*evaluated=*/TRUE);
         if (rp == NULL) {
           /* An error was diagnosed in trying to find the default constructor.
@@ -1492,51 +1480,10 @@ the default constructor (if one exists) is called.
           local_di.destructor = select_destructor(tp, tp, err_pos,
                                                   /*honor_virtual=*/FALSE,
                                                   /*evaluated=*/TRUE);
-          if (var_type != tp) {
-            /* The variable for which initialization is done is an array, so
-               we need to generate the repeat construct so that the constructor
-               (and destructor) can be called once for each element. */
-            a_dynamic_init  *ctor_dip;
-
-            if (decl_scope_level != DEPTH_OF_FILE_SCOPE &&
-                var->storage_class == (a_storage_class)sc_static) {
-              /* Initializers for local static variables must appear in
-                 the file scope memory region. */
-              switch_to_file_scope_region(&region_to_switch_back_to);
-            }  /* if */
-            /* Copy the dynamic init entry. */
-            ctor_dip =
-                    alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-            *ctor_dip = local_di;
-            /* Now that the local_di has been copied, reinitialize it. */
-            clear_dynamic_init(&local_di,
-                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
-            /* Compute the repeat count. */
-            if (var_type->size == 0) {
-              count = 1;
-            } else {
-              count = var_type->size / tp->size;
-            }  /* if */
-            repeat_nonconstant_init(ctor_dip, tp, &local_di, count);
-            if (region_to_switch_back_to != NULL_region_number) {
-              switch_back_to_original_region(region_to_switch_back_to);
-            }  /* if */
-          }  /* if */
-          /* Build the repeat construct. */
-          gen_dynamic_initialization(var, &local_di, err_pos);
-          def_init_performed = TRUE;
-#if DEBUG
-          if (debug_level >= 3) {
-            db_variable(var);
-            fputs(",\n", f_debug);
-            db_initializer(var, 2);
-          }  /* if */
-#endif /* DEBUG */
         }  /* if */
       } else {
         /* No constructor. */
-        rp = select_destructor(tp, tp, err_pos,
-                               /*honor_virtual=*/FALSE,
+        rp = select_destructor(tp, tp, err_pos, /*honor_virtual=*/FALSE,
                                /*evaluated=*/TRUE);
         if (rp != NULL) {
           /* Default initialization of an object that has a destructor.  We
@@ -1545,38 +1492,53 @@ the default constructor (if one exists) is called.
              of the destructor can be duly recorded. */
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_none);
           local_di.destructor = rp;
-          if (var_type != tp) {
-            /* The object has an array type. */
-            a_dynamic_init  *dtor_dip;
-
-            if (decl_scope_level != DEPTH_OF_FILE_SCOPE &&
-                var->storage_class == (a_storage_class)sc_static) {
-              /* Initializers for local static variables must appear in
-                 the file scope memory region. */
-              switch_to_file_scope_region(&region_to_switch_back_to);
-            }  /* if */
-            /* Copy the dynamic init entry. */
-            dtor_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-            *dtor_dip = local_di;
-            /* Now that the local_di has been copied, reinitialize it. */
-            clear_dynamic_init(&local_di,
-                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
-            /* Compute the repeat count. */
-            if (var_type->size == 0) {
-              count = 1;
-            } else {
-              count = var_type->size / tp->size;
-            }  /* if */
-            /* Build the repeat construct. */
-            repeat_nonconstant_init(dtor_dip, tp, &local_di, count);
-            if (region_to_switch_back_to != NULL_region_number) {
-              switch_back_to_original_region(region_to_switch_back_to);
-            }  /* if */
-          }  /* if */
-          gen_dynamic_initialization(var, &local_di, err_pos);
-          /* Don't set def_init_performed.  A dik_none dynamic initialization
-             doesn't count as initialization. */
         }  /* if */
+      }  /* if */
+      if (rp != NULL) {
+        /* A constructor (or at least a destructor) was found and a dynamic
+           init entry (local_di) was set to represent the initialization. */
+        if (var_type != tp) {
+          /* The object has an array type.  We need to build an aggregate
+             initialization on top of the other dynamic init entry. */
+          a_dynamic_init  *dip;
+
+          if (decl_scope_level != DEPTH_OF_FILE_SCOPE &&
+              var->storage_class == (a_storage_class)sc_static) {
+            /* Initializers for local static variables must appear in
+               the file scope memory region. */
+            switch_to_file_scope_region(&region_to_switch_back_to);
+          }  /* if */
+          /* Copy the dynamic init entry. */
+          dip = alloc_dynamic_init(local_di.kind);
+          *dip = local_di;
+          /* Now that the local_di has been copied, reinitialize it. */
+          clear_dynamic_init(&local_di,
+                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
+          /* Compute the repeat count. */
+          count = var_type->size / tp->size;
+          /* Build the repeat construct. */
+          repeat_nonconstant_init(dip, tp, &local_di, count);
+          if (region_to_switch_back_to != NULL_region_number) {
+            switch_back_to_original_region(region_to_switch_back_to);
+          }  /* if */
+        }  /* if */
+        /* Allocate a dynamic init entry (a copy of local_di) and attach it
+           to the variable. */
+        gen_dynamic_initialization(var, &local_di, err_pos);
+        if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
+          /* Default initialization via constructor. */
+          def_init_performed = TRUE;
+        } else {
+          /* Don't set def_init_performed if there's no constructor.  A
+             dik_none dynamic initialization isn't really as initialization. */
+        }  /* if */
+#if DEBUG
+        if (debug_level >= 3) {
+          db_variable(var);
+          fputs(",\n", f_debug);
+          db_initializer(var, 2);
+        }  /* if */
+#endif /* DEBUG */
       }  /* if */
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
         pop_class_reactivation_scope();
@@ -2480,8 +2442,9 @@ though neither constructors nor initialization is involved here.)
 void check_for_missing_initializer(a_symbol_ptr       sym,
                                    a_type_ptr         type)
 /*
-This routine is called when an initializer is missing to issue a diagnostic
-if an initializer should have been provided.  It is used both for variable
+This routine is called when no explicit or default initialization has
+occurred.  It determines whether an initializer should have been provided
+and issues a diagnostic if appropriate.  It is used both for variable
 declarations (when sym represents the variable) and for unnamed objects that
 are created by a new expression (in which case sym is NULL).  In both cases
 "type" points to the type of the object.
