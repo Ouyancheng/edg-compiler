@@ -34,9 +34,6 @@ predicates.
 /* Function types are simply function types. */
 #define is_function(tp) ((tp)->kind == (a_type_kind)tk_routine)
 
-/* Object types are non-function types that have sizes. */
-#define is_object(tp) (!is_function(tp) && (tp)->size != 0)
-
 /* Incomplete types are types that have no size and are not functions. */
 #define is_incomplete(tp) ((tp)->size == 0 && !is_function(tp))
 
@@ -94,6 +91,10 @@ predicates.
 
 /* Pointer-to-member type. */
 #define is_ptr_to_member(tp) ((tp)->kind == (a_type_kind)tk_ptr_to_member)
+
+/* Object types are non-function and non-reference types that have sizes. */
+#define is_object(tp) (!is_function(tp) && !is_reference_ptr(tp) && \
+                       (tp)->size != 0)
 
 a_type_ptr f_skip_typerefs(a_type_ptr type_ptr)
 /*
