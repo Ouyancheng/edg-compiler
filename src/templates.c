@@ -3587,7 +3587,7 @@ in one-instantiation-per-object mode.
           rlep->routine->instantiation_needed_bit_number = 
                                       routine->instantiation_needed_bit_number;
         }  /* for */
-      }
+      }  /* if */
 #endif /* IA64_ABI */
     }  /* if */
   }  /* if */
@@ -3773,7 +3773,7 @@ Instantiate the body of the template function associated with tip.
        supplement of the member function. */
     rout_sym->variant.routine.ptr->defined_outside_of_parent =
                      tssp->variant.function.routine->defined_outside_of_parent;
-  }
+  }  /* if */
   /* Reactivate the tokens comprising the function body and scan them. */
   rescan_reusable_cache(&tcp->tokens);
   scan_function_body(rout_ptr, func_info_ptr,
@@ -8853,7 +8853,7 @@ structure.
         prev_tip->next = tip->next;
         tip->next = tssp->variant.function.instantiations;
         tssp->variant.function.instantiations = tip;
-      }
+      }  /* if */
       sym = tip->instance_sym;
 #if DEBUG
       if (debug_level >= 3) db_symbol(sym, "found: ", 2);
@@ -17825,7 +17825,7 @@ for adding the entries to the actual instantiation request file.
         needed = routine->definition_needed;
       }  /* if */
       add_to_file = needed;
-    }
+    }  /* if */
 #endif /* !MAINTAIN_NEEDED_FLAGS */
     if (add_to_file) {
       char	*name;
