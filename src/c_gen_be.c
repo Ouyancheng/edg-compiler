@@ -220,7 +220,7 @@ static a_boolean
 		annotate;
 			/* Flag indicating whether or not annotations should
 			   be output. */
-#if ASM_FUNCTION_ALLOWED /*USL*/
+#if ASM_FUNCTION_ALLOWED
 static a_boolean
 		within_asm_function_definition;
 			/* Flag indicating generation of an asm function is in
@@ -992,9 +992,6 @@ entity is unnamed, generate a name.
       m_write_tok_str(name);
     }  /* if */
   } else if (scp->class_of_which_a_member != NULL ||
-#if ASM_FUNCTION_ALLOWED /*USL*/
-/*             within_asm_function_definition || */
-#endif /* ASM_FUNCTION_ALLOWED */
              !scp->is_local_to_function) {
     /* No prefix on members of classes or things that aren't local to
        functions (e.g., file-scope typedefs). */
