@@ -15,6 +15,23 @@ The versions in this file are for prototyping only, and should be replaced
 for a production version.
 
 */
+#ifdef FFE
+/*
+Note that in Fortran, the different sizes of floating point must be stored
+differently.  It would not work to have, e.g., reals and double precisions
+stored the same way, because if you set a real to a hexadecimal constant,
+you would not know whether to
+
+(a)  store the hexadecimal bytes in a float, and convert them to a double,
+which would be appropriate if the hex constant was intended to be a real
+constant represented in hex form, or
+(b)  store the hexadecimal bytes in the initial bytes of the double, and
+leave the rest untouched or zeroed, which would be appropriate if the
+hex constant was intended to be character (hollerith) data.
+
+The problem applies to hollerith constants as well.
+*/
+#endif /* ifdef FFE */
 
 #include "basics.h"
 #if __ANSIC__
@@ -33,7 +50,6 @@ int errno;
 #include "il.h"
 
 
-/*ARGSUSED*/ /* <-- because "kind" is not used in this version. */
 static void store_double(double                  temp,
                          a_float_kind            kind,
                          an_internal_float_value *float_value,
@@ -44,16 +60,25 @@ kind.  Set *err TRUE if there is an error.  If *err is already TRUE,
 do nothing.
 */
 {
+  float float_temp;
+
   if (!*err) {
-    /* Store a double in float_value. */
-    /* Use memcpy to copy the value since float_value might not be correctly
-       aligned. */
-    memcpy((char *)float_value, (char *)&temp, sizeof(double));
+    if (kind == (a_float_kind)fk_float) {
+      /* Convert to float and store a float in float_value. */
+      /* Note that there is no check that the value fits in a float.  That
+         is only acceptable because this is a "prototype" version. */
+      float_temp = temp;
+      memcpy((char *)float_value, (char *)&float_temp, sizeof(float));
+    } else {
+      /* Store a double in float_value. */
+      /* Use memcpy to copy the value since float_value might not be correctly
+         aligned. */
+      memcpy((char *)float_value, (char *)&temp, sizeof(double));
+    }  /* if */
   }  /* if */
 }  /* store_double */
 
 
-/*ARGSUSED*/ /* <-- because "kind" is not used in this version. */
 static double fetch_double(a_float_kind            kind,
                            an_internal_float_value *float_value)
 /*
@@ -61,15 +86,24 @@ Fetch the value from float_value (of kind kind) and return it.
 */
 {
   double temp;
+  float  float_temp;
 
-  /* Use memcpy to copy the value since float_value might not be correctly
-     aligned. */
-  memcpy((char *)&temp, (char *)float_value, sizeof(double));
+  if (kind == (a_type_kind)fk_float) {
+    /* Convert from float to double. */
+    /* Use memcpy to copy the value since float_value might not be correctly
+       aligned. */
+    memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
+    temp = float_temp;
+  } else {
+    /* The value is already double. */
+    /* Use memcpy to copy the value since float_value might not be correctly
+       aligned. */
+    memcpy((char *)&temp, (char *)float_value, sizeof(double));
+  }  /* if */
   return temp;
 }  /* fetch_double */
 
 
-/*ARGSUSED*/ /* <-- because "kind" is not used in this version. */
 void fp_change_kind(an_internal_float_value *old_value,
                     a_float_kind            old_kind,
                     an_internal_float_value *new_value,
@@ -80,10 +114,29 @@ Move *old_value to *new_value, changing the float kind from old_kind to
 new_kind.  If there is an error, return *err TRUE.
 */
 {
+  double temp;
+
+  /* Note that conversion between float and double must not be done unless
+     it is required, since the contents of the value might be hollerith
+     or hex/octal data which might be disturbed by the unnecessary
+     conversion.  If a conversion is required, we can assume the value
+     is a floating-point constant. */
   *err = FALSE;
-  /* Use memcpy to copy the value since the values might not be correctly
-     aligned. */
-  memcpy((char *)new_value, (char *)old_value, sizeof(double));
+  if (old_kind != new_kind) {
+    /* There is a change of size.  Fetch the old, convert, store the new. */
+    temp = fetch_double(old_kind, old_value);
+    store_double(temp, new_kind, new_value, err);
+  } else if (old_kind == (a_float_kind)fk_float) {
+    /* Old and new are both float, so just copy. */
+    /* Use memcpy to copy the value since the values might not be correctly
+       aligned. */
+    memcpy((char *)new_value, (char *)old_value, sizeof(float));
+  } else {
+    /* Old and new are both double, so just copy. */
+    /* Use memcpy to copy the value since the values might not be correctly
+       aligned. */
+    memcpy((char *)new_value, (char *)old_value, sizeof(double));
+  }  /* if */
 }  /* fp_change_kind */
 
 
@@ -162,6 +215,7 @@ Return *err TRUE if there is some error.
   store_double((double)long_value, kind, float_value, err);
 }  /* fp_long_to_float */
 
+#ifdef CFE
 
 void fp_unsigned_long_to_float(
                       a_float_kind            kind, 
@@ -177,6 +231,7 @@ Convert unsigned_long_value to a floating-point value of kind "kind" in
   store_double((double)unsigned_long_value, kind, float_value, err);
 }  /* fp_unsigned_long_to_float */
 
+#endif /* ifdef CFE */
 
 void fp_to_long(a_float_kind            kind,
                 an_internal_float_value *float_value,
@@ -199,6 +254,7 @@ is some error.
   }  /* if */
 }  /* fp_to_long */
 
+#ifdef CFE
 
 void fp_to_unsigned_long(a_float_kind            kind,
                          an_internal_float_value *float_value,
@@ -221,6 +277,72 @@ Return *err TRUE if there is some error.
   }  /* if */
 }  /* fp_to_unsigned_long */
 
+#endif /* ifdef CFE */
+#ifdef FFE
+
+a_byte fp_byte(an_internal_float_value *float_value,
+               a_targ_size_t           byte_num)
+/*
+Extract and return the byte_num-th byte of the floating point value.
+The 0th byte is the one at the lowest memory address.
+*/
+{
+  a_byte *p = (a_byte *)float_value;
+
+  return p[byte_num];
+}  /* fp_byte */
+
+#endif /* ifdef FFE */
+#ifdef FFE
+
+void fp_bytes_to_float(a_float_kind            float_kind,
+                       a_byte                  *bytes,
+                       a_targ_size_t           nbytes,
+                       an_internal_float_value *float_value,
+                       a_boolean               *err)
+/*
+Convert the byte-string beginning at "bytes", which has length "nbytes",
+into a floating-point number of kind "float_kind" in *float_value.
+Return *err TRUE if there is some error.  The bytes in the string
+are in order from most significant to least significant.  There will
+never be more bytes than will fit in the floating-point value, but
+there may be fewer, in which case leading zeros should be assumed.
+nbytes == 0 means put all zero bytes in *float_value.
+*/
+{
+  a_byte    *p;
+  int       iii;
+  a_boolean host_little_endian;
+
+  /* Determine if the host is little-endian or big-endian. */
+  iii = 0;
+  p = (a_byte *)&iii;
+  *p = 1;
+  host_little_endian = (iii == 1);
+
+  *err = FALSE;
+  /* Set all the bytes to zero. */
+  p = (a_byte *)float_value;
+  memzero((char *)p, (int)sizeof(an_internal_float_value));
+  /* Position p to store the most-significant byte. */
+  if (host_little_endian) {
+    p += nbytes;
+  } else {
+    p += (float_kind == (a_float_kind)fk_float) ? sizeof(float) :
+                                                  sizeof(double);
+    p -= nbytes;
+  }  /* if */
+  /* Copy the bytes into the right place. */
+  for (; nbytes > 0; nbytes--, bytes++) {
+    if (host_little_endian) {
+      *(--p) = *bytes;
+    } else {
+      *(p++) = *bytes;
+    }  /* if */
+  }  /* for */
+}  /* fp_bytes_to_float */
+
+#endif /* ifdef FFE */
 
 a_boolean fp_is_zero_constant(a_float_kind            kind,
                               an_internal_float_value *float_value)
