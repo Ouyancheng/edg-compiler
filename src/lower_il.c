@@ -3400,11 +3400,10 @@ or contain a pointer to data member, which must be initialized to -1.
             elem_con = lower_zero_initialization(elem_type);
             if (con->variant.aggregate.first_constant == NULL) {
               con->variant.aggregate.first_constant = elem_con;
-              con->variant.aggregate.last_constant = elem_con;
             } else {
               con->variant.aggregate.last_constant->next = elem_con;
-              con->variant.aggregate.last_constant = elem_con;
             }  /* if */
+            con->variant.aggregate.last_constant = elem_con;
           }  /* for */
           break;
         }
@@ -3415,6 +3414,9 @@ or contain a pointer to data member, which must be initialized to -1.
           a_field_ptr    f;
           a_constant_ptr field_con;
           con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+          /* Ensure that fields for base classes are added so they will
+             be initialized. */
+          prelower_class_type(type);
           con->type = type;
           for (f = next_initializable_field(
                                   type->variant.class_struct_union.field_list);
@@ -3478,6 +3480,7 @@ pointers to data members are properly initialized to -1 for NULL.
     }  /* while */
   } else if (is_class_or_struct(type)) {
     a_field_ptr f, first_f, last_f = NULL;
+    prelower_class_type(type);
     f = next_initializable_field(type->variant.class_struct_union.field_list);
     /* Skip over the initialized fields. */
     for (cp = constant->variant.aggregate.first_constant;
