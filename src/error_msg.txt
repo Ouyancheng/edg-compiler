@@ -832,6 +832,7 @@ ec_cl_for_init_diff_warning_option_only_in_cplusplus;;"option to control warning
 ec_unnamed_class_virtual_function_def_missing;;"definition of virtual %n is required here"
 ec_svr4_token_pasting_comment;;"empty comment interpreted as token-pasting operator \"##\""
 ec_ambiguous_assignment_operator;;"ambiguous assignment operator for class %t"
+ec_storage_class_in_friend_decl;;"a storage class is not allowed in a friend declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

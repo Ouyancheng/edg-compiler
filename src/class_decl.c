@@ -8460,12 +8460,6 @@ following the member declaration.
       }  /* if */
       if (friend_specified) {
         /* Process a friend function declaration. */
-        if (decl_info.storage_class != (a_storage_class)sc_unspecified) {
-          /* A storage class declaration along with "friend" is not
-             allowed. */
-          pos_error(ec_bad_friend_decl, &decl_start_pos);
-          decl_info.storage_class = (a_storage_class)sc_unspecified;
-        }  /* if */
         rout_sym = decl_friend_function(&locator, class_type, local_type,
                                         &func_info, decl_info.decl_modifiers);
       } else {

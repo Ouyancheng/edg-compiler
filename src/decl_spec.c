@@ -2589,6 +2589,9 @@ Returns TRUE if there is an error in the specifiers.
         } else if (is_inline && curr_token != tok_static) {
           error(ec_bad_storage_class_with_inline);
           err = TRUE;
+        } else if (is_friend_decl) {
+          error(ec_storage_class_in_friend_decl);
+          err = TRUE;
         } else if (curr_token == tok_mutable) {
           if (!is_member_decl) {
             error(ec_mutable_not_allowed);
@@ -2842,7 +2845,17 @@ Returns TRUE if there is an error in the specifiers.
 	} else {
 	  *output_flags |= DSO_FRIEND;
           is_friend_decl = TRUE;
-          if (num_specifiers == 0) {
+          if (num_specifiers != 0) {
+            if (*storage_class != (a_storage_class)sc_unspecified) {
+              error(ec_storage_class_in_friend_decl);
+              err = TRUE;
+              *storage_class = (a_storage_class)sc_unspecified;
+            } else if (*output_flags & DSO_MUTABLE) {
+              error(ec_storage_class_in_friend_decl);
+              err = TRUE;
+              *output_flags &= ~DSO_MUTABLE;
+            }  /* if */
+          } else {
             /* Check for a special case -- a friend declaration of the form
                "friend T;" which is taken to mean the same as "friend class T;"
                by cfront (even if T has not yet been defined).  Although there
@@ -2941,27 +2954,30 @@ Returns TRUE if there is an error in the specifiers.
 	}  /* if */
 	break;
       case tok_virtual:
-	if (is_parameter) {
-	  /* "virtual" may not appear in a function parameter specification. */
-	  error(ec_bad_param_specifier);
-	  err = TRUE;
-	} else if (!is_member_decl) {
-	  /* In fact, it may only appear in a C++ class (or struct or union)
-	     declaration. */
-	  error(ec_bad_specifier_outside_class_decl);
-	  err = TRUE;
+        if (is_parameter) {
+          /* "virtual" may not appear in a function parameter specification. */
+          error(ec_bad_param_specifier);
+          err = TRUE;
+        } else if (is_friend_decl) {
+          error(ec_virtual_not_allowed);
+          err = TRUE;
+        } else if (!is_member_decl) {
+          /* In fact, it may only appear in a C++ class (or struct or union)
+             declaration. */
+          error(ec_bad_specifier_outside_class_decl);
+          err = TRUE;
         } else if (input_flags & DSI_IS_TEMPLATE_DECLARATION) {
           /* Must be a member function template -- virtual is not allowed. */
           error(ec_virtual_function_template);
           err = TRUE;
-	} else if (*output_flags & DSO_VIRTUAL) {
-	  /* Only one "virtual" specifier at at time. */
-	  error(ec_dupl_decl_specifier);
-	  err = TRUE;
-	} else {
-	  *output_flags |= DSO_VIRTUAL;
-	}  /* if */
-	break;
+        } else if (*output_flags & DSO_VIRTUAL) {
+          /* Only one "virtual" specifier at at time. */
+          error(ec_dupl_decl_specifier);
+          err = TRUE;
+        } else {
+          *output_flags |= DSO_VIRTUAL;
+        }  /* if */
+        break;
       case tok_inline:
 	if (is_parameter) {
 	  /* "inline" may not appear in a function parameter specification. */
