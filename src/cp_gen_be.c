@@ -310,7 +310,7 @@ static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_boolean          parenthesized_init,
                              a_boolean          force_parens);
 static void gen_statement(a_statement_ptr statement);
-static void gen_declaration(void);
+static void gen_declaration(a_boolean for_init);
 static void gen_general_declaration_using_type(
                              a_type_ptr                   type,
                              a_source_correspondence      *scp,
@@ -321,12 +321,10 @@ static void gen_general_declaration_using_type(
 static void gen_declaration_using_type(a_type_ptr              type,
                                        a_source_correspondence *scp,
                                        an_il_entry_kind        entry_kind);
-static void gen_type_decl(void);
-static void gen_variable_decl(a_boolean gen_final_semicolon,
+static void gen_variable_decl(a_boolean is_condition,
+                              a_boolean for_init,
                               a_boolean suppress_specifiers,
-                              a_boolean is_condition);
-static void gen_routine_decl(void);
-static void gen_secondary_decl(void);
+                              a_boolean *another_decl_in_comma_list);
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       top_statement_of_switch);
 static void gen_cast(a_type_ptr type);
@@ -640,6 +638,25 @@ Advance the source sequence list to the next entry.
 }  /* adv_curr_source_sequence_entry */
 
 
+static a_source_sequence_entry_ptr advance_past_preprocessing_directives(
+                                              a_source_sequence_entry_ptr ssep)
+/*
+Return ssep, advanced past any pragmas, macros, or insignificant entries.
+*/
+{
+  while (ssep != NULL &&
+         (ss_entry_kind(ssep) == iek_pragma
+#if RECORD_MACROS_IN_IL
+          || ss_entry_kind(ssep) == iek_macro
+#endif /* RECORD_MACROS_IN_IL */
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+          || ss_entry_kind(ssep) == iek_comment
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+                                               )) ssep = ssep->next;
+  return ssep;
+}  /* advance_past_preprocessing_directives */
+
+
 static a_boolean curr_src_seq_entry_is_decl(void)
 /*
 Return TRUE if the current source sequence entry is for a declaration.
@@ -648,9 +665,8 @@ Return TRUE if the current source sequence entry is for a declaration.
   a_boolean                   is_decl = FALSE;
   a_source_sequence_entry_ptr ssep = curr_source_sequence_entry;
 
-  /* Look past any pragmas (they can apply to either declarations or
-     statements). */
-  while (ssep != NULL && ss_entry_kind(ssep) == iek_pragma) ssep = ssep->next;
+  /* Look past any pragmas or macros. */
+  ssep = advance_past_preprocessing_directives(ssep);
   if (ssep != NULL) {
     switch (ss_entry_kind(ssep)) {
       case iek_constant:
@@ -663,9 +679,6 @@ Return TRUE if the current source sequence entry is for a declaration.
       case iek_template:
       case iek_namespace:
       case iek_using_directive:
-#if RECORD_MACROS_IN_IL
-      case iek_macro:
-#endif /* RECORD_MACROS_IN_IL */
         /* This is a declaration. */
         is_decl = TRUE;
         break;
@@ -1702,17 +1715,6 @@ or enum.
     curr_source_sequence_entry = saved_curr_source_sequence_entry;
     sublist_parent_source_sequence_entry =
                                     saved_sublist_parent_source_sequence_entry;
-  } else if (is_immediate_class_type(type) &&
-             type->variant.class_struct_union.originally_unnamed &&
-             has_name(type)) {
-    /* A case like
-         typedef struct { ... } A, *PA;
-       The latter case can use the "name for linkage purposes" typedef to
-       refer to the unnamed tag. */
-    /* A global qualifier will not be necessary since we're using this in
-       the same declaration. */
-    gen_name(&type->source_corresp, iek_type,
-             /*force_qualified_name=*/FALSE);
   } else {
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
@@ -2146,7 +2148,7 @@ pragmas and macros.  Return TRUE if anything was processed.
       anything_processed = TRUE;
 #if RECORD_MACROS_IN_IL
     } else if (ss_entry_kind(curr_source_sequence_entry) == iek_macro) {
-      /* A macro in executable code. */
+      /* A macro. */
       gen_macro();
       anything_processed = TRUE;
 #endif /* RECORD_MACROS_IN_IL */
@@ -2241,6 +2243,79 @@ is the one associated with the definition of the enum.
 }  /* gen_enum_definition */
 
 
+static a_boolean another_declaration_in_comma_list_follows(
+                                                       a_type_ptr type,
+                                                       a_boolean  typedef_only,
+                                                       a_boolean  for_init)
+/*
+Called at the end of the declaration of an entity with type "type", this
+routine looks to see if another declaration with the same underlying type
+is next.  If so, this routine returns TRUE, indicating that the following
+declaration can be put out in a comma list.  For speed reasons, the
+check is done only if the underlying type of "type" is an unnamed tag,
+since the unnamed tag cases are the only ones that must be put out
+as comma lists.  However, if for_init is TRUE, indicating this declaration
+is the for-init in a "for" statement, all possible comma lists are
+considered.  If typedef_only is TRUE, the current declaration is
+a typedef, so a following declaration can be part of the current comma list
+only if it is a typedef.
+*/
+{
+  a_boolean   another_decl_follows = FALSE;
+  a_type_kind kind;
+
+  type = type_specifier_of_type(type);
+  kind = type->kind;
+  /* Look for a comma list (a) if the underlying type is an unnamed tag, and
+     (b) always in a for-init. */
+  if (for_init ||
+      ((is_class_type_kind(kind) || is_enum_type(type)) &&
+       (!has_name(type) ||
+        /* Include cases where the tag has a name only for linkage purposes. */
+        (kind != (a_type_kind)tk_enum &&
+         type->variant.class_struct_union.originally_unnamed)))) {
+    a_source_sequence_entry_ptr ssep = curr_source_sequence_entry;
+    /* Skip macros and pragmas. */
+    ssep = advance_past_preprocessing_directives(ssep);
+    /* See if the next source sequence entry is for a declaration, and if so,
+       get its type. */
+    if (ssep != NULL) {
+      if (ss_entry_kind(ssep) == iek_routine) {
+        /* A definition of a routine cannot be put on a comma list. */
+      } else {
+        /* When dealing with a comma list of typedefs, only a typedef can be
+           used to continue the list. */
+        a_boolean next_is_type = FALSE;
+        if (ss_entry_kind(ssep) == iek_type) {
+          next_is_type = TRUE;
+        } else if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+          a_src_seq_secondary_decl_ptr sec_decl =
+                              ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+          if (ss_entry_kind(sec_decl) == iek_type) {
+            next_is_type = TRUE;
+          }  /* if */
+        }  /* if */
+        if (next_is_type == typedef_only) {
+          /* Find the next declaration in the source sequence list, and
+             fetch its type. */
+          a_type_ptr next_type = type_from_src_seq_declaration(ssep);
+          if (next_type != NULL) {
+            /* Find the specifiers type of the type of the next declaration. */
+            next_type = type_specifier_of_type(next_type);
+            if (next_type == type) {
+              /* The next declaration has the same underlying type as the
+                 current one and can be put out in a comma list. */
+              another_decl_follows = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return another_decl_follows;
+}  /* another_declaration_in_comma_list_follows */
+
+
 static void gen_access_specifier(an_access_specifier access)
 /*
 Write the string that corresponds to the indicated access specifier value.
@@ -2295,10 +2370,33 @@ current access mode in the class.  Otherwise, do nothing.
 }  /* gen_member_access_specifier_for_decl_of */
 
 
-static void gen_member_constant_decl(void)
+static void write_end_of_declaration_punctuation(a_boolean another_decl)
+/*
+Write the punctuation for the end of a declaration: a comma if another_decl
+is TRUE to indicate another declaration appears on the current comma list,
+a semicolon otherwise.
+*/
+{
+  if (another_decl) {
+    /* There will be more on this comma list. */
+    write_tok_ch(',');
+  } else {
+    /* Finish the declaration. */
+    write_tok_ch(';');
+  }  /* if */
+  write_space();
+}  /* write_end_of_declaration_punctuation */
+
+
+static void gen_member_constant_decl(a_boolean suppress_specifiers,
+                                     a_boolean *another_decl_in_comma_list)
 /*
 Generate a declaration for a member constant (an extension).  The current
 source sequence entry is the one associated with the constant.
+suppress_specifiers and another_decl_in_comma_list deal with comma lists:
+suppress_specifiers is TRUE if the current declaration is a continuation
+of a comma list, and *another_decl_in_comma_list is returned TRUE if the
+declaration following this one is such a continuation.
 */
 {
   a_constant_ptr constant =
@@ -2314,7 +2412,10 @@ source sequence entry is the one associated with the constant.
   form_type_first_part(constant->type,
                        /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/TRUE,
-                       TQ_CONST, FTO_NO_OPTIONS, &octl);
+                       TQ_CONST,
+                       suppress_specifiers ? FTO_SUPPRESS_SPECIFIERS :
+                                             FTO_NO_OPTIONS,
+                       &octl);
   /* Set the source position for the name. */
   set_output_position(&constant->source_corresp.decl_position);
   /* Write the name. */
@@ -2325,15 +2426,24 @@ source sequence entry is the one associated with the constant.
   write_tok_str(" = ");
   /* Generate the constant value. */
   gen_constant(constant, /*need_parens=*/FALSE);
-  write_tok_ch(';');
-  write_space();
+  /* See if there are comma-separated declarations attached to this one. */
+  *another_decl_in_comma_list =
+             another_declaration_in_comma_list_follows(constant->type,
+                                                       /*typedef_only=*/FALSE,
+                                                       /*for_init=*/FALSE);
+  write_end_of_declaration_punctuation(*another_decl_in_comma_list);
 }  /* gen_member_constant_decl */
 
 
-static void gen_field_decl(void)
+static void gen_field_decl(a_boolean suppress_specifiers,
+                           a_boolean *another_decl_in_comma_list)
 /*
 Generate the declaration for a field (a nonstatic data member).  The current
 source sequence entry is the one associated with the field.
+suppress_specifiers and another_decl_in_comma_list deal with comma lists:
+suppress_specifiers is TRUE if the current declaration is a continuation
+of a comma list, and *another_decl_in_comma_list is returned TRUE if the
+declaration following this one is such a continuation.
 */
 {
   a_field_ptr field = ss_entry_ptr(curr_source_sequence_entry, a_field_ptr);
@@ -2345,16 +2455,24 @@ source sequence entry is the one associated with the field.
   if (field->is_mutable) write_tok_str("mutable ");
   /* Generate the field type and name.  No name is displayed for unnamed
      bit fields and anonymous union fields. */
-  gen_declaration_using_type(field->type,
-                             has_name(field) ? &field->source_corresp : NULL,
-                             iek_field);
+  gen_general_declaration_using_type(field->type,
+                                     has_name(field) ? &field->source_corresp :
+                                                       NULL,
+                                     iek_field,
+                                     (a_src_seq_secondary_decl_ptr)NULL,
+                                     TQ_NONE,
+                                     suppress_specifiers);
   if (field->is_bit_field) {
     /* A bit field.  Put out the size. */
     write_tok_ch(':');
     write_unsigned_num((unsigned long)field->bit_size);
   }  /* if */
-  write_tok_ch(';');
-  write_space();
+  /* See if there are comma-separated declarations attached to this one. */
+  *another_decl_in_comma_list =
+             another_declaration_in_comma_list_follows(field->type,
+                                                       /*typedef_only=*/FALSE,
+                                                       /*for_init=*/FALSE);
+  write_end_of_declaration_punctuation(*another_decl_in_comma_list);
 }  /* gen_field_decl */
 
 
@@ -2578,63 +2696,21 @@ is the one associated with the definition of the class.
   }  /* if */
   /* Go through the source sequence list and generate the members of the
      class. */
-  for (;;) {
-    /* Process macros, pragmas. */
-    (void)process_preprocessing_directives();
-    switch (ss_entry_kind(curr_source_sequence_entry)) {
-      case iek_src_seq_end_of_construct:
-        /* This should be the end-of-construct marker for the class. */
-        { a_src_seq_end_of_construct_ptr ssecp = 
+  while (ss_entry_kind(curr_source_sequence_entry) !=
+                                                iek_src_seq_end_of_construct) {
+    gen_declaration(/*for_init=*/FALSE);
+  }  /* while */
+  /* This should be the end-of-construct marker for the class. */
+  { a_src_seq_end_of_construct_ptr ssecp = 
                                   ss_entry_ptr(curr_source_sequence_entry,
                                                a_src_seq_end_of_construct_ptr);
-          check_assertion_str(ss_entry_kind(ssecp) == iek_type &&
-                              ss_entry_ptr(ssecp, a_type_ptr) == type,
-                              "gen_class_definition: bad end-of-construct");
-          /* Set the position for the closing "}". */
-          set_output_position(&ssecp->source_position);
-          adv_curr_source_sequence_entry();
-        }
-        /* End the loop. */
-        goto done;
-      case iek_constant:
-        /* C++ member constant. */
-        gen_member_constant_decl();
-        break;
-      case iek_field:
-        /* Generate the declaration for a field (nonstatic data member). */
-        gen_field_decl();
-        break;
-      case iek_type:
-        /* Nested type. */
-        gen_type_decl();
-        break;
-      case iek_variable:
-        /* Static data member. */
-        gen_variable_decl(/*gen_final_semicolon=*/TRUE,
-                          /*suppress_specifiers=*/FALSE,
-                          /*is_condition=*/FALSE);
-        break;
-      case iek_routine:
-        /* Member function */
-        gen_routine_decl();
-        break;
-      case iek_template:
-        /* Needed for template friends. */
-        gen_template();
-        break;
-      case iek_src_seq_secondary_decl:
-        /* A secondary declaration, i.e., a declaration of something that
-           is also defined/declared elsewhere. */
-        gen_secondary_decl();
-        break;
-      case iek_class_member_using_decl:
-        gen_class_member_using_decl();
-        break;
-      default:
-        unexpected_condition_str("gen_class_definition: bad entity kind");
-    }  /* switch */
-  }  /* for */
-done:;
+    check_assertion_str(ss_entry_kind(ssecp) == iek_type &&
+                        ss_entry_ptr(ssecp, a_type_ptr) == type,
+                        "gen_class_definition: bad end-of-construct");
+    /* Set the position for the closing "}". */
+    set_output_position(&ssecp->source_position);
+    adv_curr_source_sequence_entry();
+  }
   if (il_header.source_language == sl_Cplusplus) pop_name_context();
   write_tok_ch('}');
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -2650,13 +2726,20 @@ done:;
 }  /* gen_class_definition */
 
 
-static void gen_typedef_definition(a_type_ptr                   type,
-                                   a_src_seq_secondary_decl_ptr sec_decl)
+static void gen_typedef_definition(
+                      a_type_ptr                   type,
+                      a_src_seq_secondary_decl_ptr sec_decl,
+                      a_boolean                    suppress_specifiers,
+                      a_boolean                    *another_decl_in_comma_list)
 /*
 Output the definition of the indicated typedef (without a trailing ";").
 The current source sequence entry is the one associated with the definition
 of the typedef.  If it is a secondary declaration (C++ only), sec_decl
 is non-NULL and points to the secondary declaration entry.
+suppress_specifiers and another_decl_in_comma_list deal with comma lists:
+suppress_specifiers is TRUE if the current declaration is a continuation
+of a comma list, and *another_decl_in_comma_list is returned TRUE if the
+declaration following this one is such a continuation.
 */
 {
   a_type_ptr under_type, this_param_type;
@@ -2675,15 +2758,19 @@ is non-NULL and points to the secondary declaration entry.
      and this routine is called for each one. */
   adv_curr_source_sequence_entry();
   /* The caller has called set_decl_position already. */
-  write_tok_str("typedef ");
+  if (!suppress_specifiers) write_tok_str("typedef ");
   if (is_function_type(under_type) &&
       (this_param_type = implicit_this_param_type_of(under_type)) != NULL) {
     /* A cfront member function typedef, e.g.,
          typedef int A::f(int);
        Put out with a qualified name. */
     a_type_ptr class_type = f_skip_typerefs(type_pointed_to(this_param_type));
-    form_type_first_part_simple(under_type, /*under_lhs_declarator=*/FALSE,
-                                /*need_trailing_space=*/TRUE, &octl);
+    form_type_first_part(under_type, /*under_lhs_declarator=*/FALSE,
+                         /*need_trailing_space=*/TRUE,
+                         TQ_NONE, 
+                         suppress_specifiers ? FTO_SUPPRESS_SPECIFIERS :
+                                               FTO_NO_OPTIONS,
+                         &octl);
     /* Write the (qualified) name. */
     gen_class_qualifier(class_type);
     gen_unqualified_name(&type->source_corresp, iek_type);
@@ -2694,16 +2781,26 @@ is non-NULL and points to the secondary declaration entry.
     /* Normal typedef. */
     gen_general_declaration_using_type(under_type, &type->source_corresp,
                                        iek_type, sec_decl, TQ_NONE,
-                                       /*suppress_specifiers=*/FALSE);
+                                       suppress_specifiers);
   }  /* if */
+  /* See if there are comma-separated declarations attached to this one. */
+  *another_decl_in_comma_list =
+              another_declaration_in_comma_list_follows(under_type,
+                                                        /*typedef_only=*/TRUE,
+                                                        /*for_init=*/FALSE);
 }  /* gen_typedef_definition */
 
 
-static void gen_type_decl(void)
+static void gen_type_decl(a_boolean suppress_specifiers,
+                          a_boolean *another_decl_in_comma_list)
 /*
 Generate a declaration or definition of the type indicated by the current
 source sequence entry.  This might be a declaration or definition of
-a member type, nonmember type, or friend.
+a member type, nonmember type, or friend.  suppress_specifiers and
+another_decl_in_comma_list deal with comma lists: suppress_specifiers
+is TRUE if the current declaration is a continuation of a comma list, and
+*another_decl_in_comma_list is returned TRUE if the declaration following
+this one is such a continuation.
 */
 {
   a_type_ptr                   type;
@@ -2711,6 +2808,7 @@ a member type, nonmember type, or friend.
   a_type_kind                  kind ;
   a_boolean                    is_definition = FALSE, friend_decl;
 
+  *another_decl_in_comma_list = FALSE;
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     type = ss_entry_ptr(sec_decl, a_type_ptr);
@@ -2735,7 +2833,12 @@ a member type, nonmember type, or friend.
     gen_member_access_specifier_for_decl_of(&type->source_corresp);
     if (kind == (a_type_kind)tk_typeref) {
       /* A typedef definition. */
-      gen_typedef_definition(type, sec_decl);
+      gen_typedef_definition(type, sec_decl, suppress_specifiers,
+                             another_decl_in_comma_list);
+#if CHECKING
+    } else if (suppress_specifiers) {
+      internal_error("gen_type_decl: suppress_specifiers for non-typedef");
+#endif /* CHECKING */
     } else if (!is_definition) {
       a_boolean restore_global_qualification_needed = FALSE;
       /* For a secondary declaration, or a primary declaration of a type
@@ -2774,9 +2877,7 @@ a member type, nonmember type, or friend.
       /* A class type definition. */
       gen_class_definition(type);
     }  /* if */
-    /* Finish the declaration. */
-    write_tok_ch(';');
-    write_space();
+    write_end_of_declaration_punctuation(*another_decl_in_comma_list);
   }  /* if */
 }  /* gen_type_decl */
 
@@ -4037,9 +4138,9 @@ This can be a condition declaration or simply an expression.
     }  /* if */
   } else {
     /* Condition declaration. */
-    gen_variable_decl(/*gen_final_semicolon=*/FALSE,
+    gen_variable_decl(/*is_condition=*/TRUE, /*for_init=*/FALSE,
                       /*suppress_specifiers=*/FALSE,
-                      /*is_condition=*/TRUE);
+                      (a_boolean *)NULL);
   }  /* if */
 }  /* gen_condition */  
 
@@ -4061,10 +4162,7 @@ static void gen_for_statement(a_statement_ptr statement)
 Generate code for the indicated "for" statement.
 */
 {
-  a_statement_ptr              init_stmt;
-  a_type_ptr                   type;
-  a_src_seq_secondary_decl_ptr sec_decl;
-  a_boolean                    is_definition;
+  a_statement_ptr init_stmt;
 
   /* Generate "for (init; test; incr) statement".
      "init" might be an expression or a declaration, or omitted;
@@ -4092,50 +4190,23 @@ Generate code for the indicated "for" statement.
       gen_statement(init_stmt);
     } else {
       /* Process the declaration/initialization.  If there are several, they
-         must be put out as a comma-separated list. */
-      a_boolean decl_after_first = FALSE;
-      a_boolean last_is_variable = FALSE;
-      for (;;) {
-        /* Process macros, etc. */
-        (void)process_preprocessing_directives();
-        if (ss_entry_kind(curr_source_sequence_entry) == iek_variable) {
-          /* A variable declaration. */
-          if (decl_after_first) {
-            write_tok_ch(',');
-            write_space();
-          }  /* if */
-          gen_variable_decl(/*gen_final_semicolon=*/FALSE,
-                            /*suppress_specifiers=*/decl_after_first,
-                            /*is_condition=*/FALSE);
-          decl_after_first = TRUE;
-          last_is_variable = TRUE;
-        } else if (ss_entry_kind(curr_source_sequence_entry) ==
+         must be put out as a comma-separated list.  A loop is necessary
+         in case a tag is declared in the specifiers list. */
+      while (ss_entry_kind(curr_source_sequence_entry) !=
                                                 iek_src_seq_end_of_construct) {
-          /* Stop on an end-of-construct entry for the stmk_decl. */
+        gen_declaration(/*for_init=*/TRUE);
+      }  /* while */
+      /* The declaration is followed by an end-of-construct entry. */
 #if CHECKING
-          a_src_seq_end_of_construct_ptr ssecp =
+      { a_src_seq_end_of_construct_ptr ssecp =
                                   ss_entry_ptr(curr_source_sequence_entry,
                                                a_src_seq_end_of_construct_ptr);
-          check_assertion_str(ss_entry_kind(ssecp) == iek_statement &&
+        check_assertion_str(ss_entry_kind(ssecp) == iek_statement &&
                              ss_entry_ptr(ssecp, a_statement_ptr) == init_stmt,
-                              "gen_for_statement: bad end-of-construct");
+                            "gen_for_statement: bad end-of-construct");
+      }
 #endif /* CHECKING */
-          adv_curr_source_sequence_entry();
-          break;
-        } else if (curr_src_seq_entry_is_type_decl(&type, &sec_decl,
-                                                   &is_definition)) {
-          /* Embedded type declaration, e.g., a tag. */
-          gen_type_decl();
-          last_is_variable = FALSE;
-        } else {
-          unexpected_condition_str("bad src seq entry in for-init");
-        }  /* if */
-      }  /* for */
-      /* Finish the declaration. */
-      if (last_is_variable) {
-        write_tok_ch(';');
-        write_space();
-      }  /* if */
+      adv_curr_source_sequence_entry();
     }  /* if */
   }  /* if */
   /* Generate the termination-test expression if there is one. */
@@ -4542,7 +4613,7 @@ Generate code for a namespace definition or namespace alias declaration.
        namespace. */
     while (ss_entry_kind(curr_source_sequence_entry) !=
                                                 iek_src_seq_end_of_construct) {
-      gen_declaration();
+      gen_declaration(/*for_init=*/FALSE);
     }  /* while */
     /* This should be the end-of-construct marker for the namespace. */
     { a_src_seq_end_of_construct_ptr ssecp = 
@@ -5030,7 +5101,7 @@ Generate code for the indicated statement.
         while (curr_source_sequence_entry != stop_on_decl &&
                curr_src_seq_entry_is_decl()) {
           /* Process the declaration entry and its source sequence entry. */
-          gen_declaration();
+          gen_declaration(/*for_init=*/FALSE);
         }  /* while */
       }  /* if */
       suppress_trailing_space = TRUE;
@@ -5316,16 +5387,18 @@ again on a member declaration.
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void gen_variable_decl(a_boolean gen_final_semicolon,
+static void gen_variable_decl(a_boolean is_condition,
+                              a_boolean for_init,
                               a_boolean suppress_specifiers,
-                              a_boolean is_condition)
+                              a_boolean *another_decl_in_comma_list)
 /*
 Generate a declaration of the variable indicated by the current source
-sequence entry.  If gen_final_semicolon is TRUE, a semicolon is put out
-at the end of the declaration.  If suppress_specifiers is TRUE, the type
-specifiers are suppressed in the type; this is used for comma-separated
-lists of declarations, as in for-init statements.  If is_condition is
-TRUE, this variable is a declared in a condition declaration.
+sequence entry.  If is_condition is TRUE, this variable is declared in
+a condition declaration.  for_init is TRUE if this variable is in a for-init.
+suppress_specifiers and another_decl_in_comma_list deal with comma lists:
+suppress_specifiers is TRUE if the current declaration is a continuation
+of a comma list, and *another_decl_in_comma_list is returned TRUE if the
+declaration following this one is such a continuation.
 */
 {
   a_variable_ptr               var;
@@ -5450,12 +5523,18 @@ TRUE, this variable is a declared in a condition declaration.
   consider_initialization = is_definition;
   if (var->is_member_constant) consider_initialization = !is_definition;
   if (consider_initialization) gen_initializer(var, is_condition);
-  if (gen_final_semicolon) {
-    /* Finish the declaration. */
-    write_tok_ch(';');
-    write_space();
+  /* Output the semicolon or comma at the end of the declaration, but not
+     for a condition. */
+  if (!is_condition) {
+    /* See if there are comma-separated declarations attached to this one. */
+    *another_decl_in_comma_list =
+             another_declaration_in_comma_list_follows(var_type,
+                                                       /*typedef_only=*/FALSE,
+                                                       for_init);
+    write_end_of_declaration_punctuation(*another_decl_in_comma_list);
   }  /* if */
   if (need_extern_C_closing_brace) {
+    check_assertion(!is_condition && !*another_decl_in_comma_list);
     write_tok_ch('}');
     write_space();
   }  /* if */
@@ -5486,7 +5565,7 @@ function.
       break;
     } else {
       /* Anything else should be a type declared in the prototype scope. */
-      gen_declaration();
+      gen_declaration(/*for_init=*/FALSE);
     }  /* if */
   }  /* for */
 }  /* gen_old_style_parameter_decls */
@@ -5586,11 +5665,15 @@ a constructor.
 }  /* gen_ctor_initializers */
 
 
-static void gen_routine_decl(void)
+static void gen_routine_decl(a_boolean suppress_specifiers,
+                             a_boolean *another_decl_in_comma_list)
 /*
 Generate a declaration of the routine indicated by the current source
 sequence entry.  This might be a member, nonmember, or friend function
-declaration or definition.
+declaration or definition.  suppress_specifiers and another_decl_in_comma_list
+deal with comma lists: suppress_specifiers is TRUE if the current declaration
+is a continuation of a comma list, and *another_decl_in_comma_list is returned
+TRUE if the declaration following this one is such a continuation.
 */
 {
   a_routine_ptr                 rout;
@@ -5607,6 +5690,7 @@ declaration or definition.
   a_source_sequence_entry_ptr   saved_sublist_parent_source_sequence_entry;
   a_routine_type_supplement_ptr rtsp;
 
+  *another_decl_in_comma_list = FALSE;
   /* Note that compiler-generated routines don't appear on the source sequence
      lists, so they never get here. */
   /* Deal with the primary/secondary declaration difference. */
@@ -5649,9 +5733,11 @@ declaration or definition.
       enable_line_wrapping();
     }  /* if */
   }  /* if */
-  /* If generating a member of a class within the class, set the right access
-     mode for the member. */
-  gen_member_access_specifier_for_decl_of(&rout->source_corresp);
+  if (!suppress_specifiers) {
+    /* If generating a member of a class within the class, set the right access
+       mode for the member. */
+    gen_member_access_specifier_for_decl_of(&rout->source_corresp);
+  }  /* if */
   if (is_definition) {
     /* This is a definition of the routine.  Determine the scope for the
        routine. */
@@ -5722,38 +5808,41 @@ declaration or definition.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Check for `extern "C"'.  This applies even on a definition. */
-  if (il_header.source_language == sl_Cplusplus &&
-      rout->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external &&
-      /* Don't put it out on "main", however; it's implied there, and it's
-         not allowed. */
-      !(is_definition ? (rout == il_header.main_routine) :
-                        (rout->source_corresp.name != NULL &&
-                         strcmp(rout->source_corresp.name, "main") == 0)) &&
-      /* Don't put it out on a friend either. */
-      !friend_decl &&
-      /* Inside a function, this is not allowed, and can only have come from
-         an extern "C" { ... } wrapped around the function. */
-      curr_function_scope == NULL) {
-    write_tok_str("extern \"C\" ");
-  } else {
-    /* Put out the storage class determined above. */
-    gen_storage_class(storage_class);
-  }  /* if */
-  /* Generate other leading specifiers. */
-  if (rout->is_inline) write_tok_str("inline ");
-  if (rout->is_virtual && decl_within_class) write_tok_str("virtual ");
+  if (!suppress_specifiers) {
+    /* Check for `extern "C"'.  This applies even on a definition. */
+    if (il_header.source_language == sl_Cplusplus &&
+        rout->source_corresp.name_linkage ==
+                                           (a_name_linkage_kind)nlk_external &&
+        /* Don't put it out on "main", however; it's implied there, and it's
+           not allowed. */
+        !(is_definition ? (rout == il_header.main_routine) :
+                          (rout->source_corresp.name != NULL &&
+                           strcmp(rout->source_corresp.name, "main") == 0)) &&
+        /* Don't put it out on a friend either. */
+        !friend_decl &&
+        /* Inside a function, this is not allowed, and can only have come from
+           an extern "C" { ... } wrapped around the function. */
+        curr_function_scope == NULL) {
+      write_tok_str("extern \"C\" ");
+    } else {
+      /* Put out the storage class determined above. */
+      gen_storage_class(storage_class);
+    }  /* if */
+    /* Generate other leading specifiers. */
+    if (rout->is_inline) write_tok_str("inline ");
+    if (rout->is_virtual && decl_within_class) write_tok_str("virtual ");
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-  { a_decl_modifier decl_modifiers = rout->decl_modifiers;
-    /* __inline and __declspec(naked) apply only to definitions. */
-    if (!is_definition) decl_modifiers &= ~(DM_NAKED | DM_MICROSOFT_INLINE);
-    suppress_microsoft_decl_modifiers_put_out_on_class(&decl_modifiers,
-                                                       &rout->source_corresp);
-    gen_microsoft_decl_modifiers(decl_modifiers);
-  }
+    { a_decl_modifier decl_modifiers = rout->decl_modifiers;
+      /* __inline and __declspec(naked) apply only to definitions. */
+      if (!is_definition) decl_modifiers &= ~(DM_NAKED | DM_MICROSOFT_INLINE);
+      suppress_microsoft_decl_modifiers_put_out_on_class(&decl_modifiers,
+                                                        &rout->source_corresp);
+      gen_microsoft_decl_modifiers(decl_modifiers);
+    }
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
   /* Generate a declaration for the routine name with the right type. */
   /* Determine the effective routine type by starting from the routine
      type and removing type qualifiers but not typedefs.  Type qualifiers
@@ -5769,7 +5858,7 @@ declaration or definition.
     check_assertion(!is_definition);
     gen_general_declaration_using_type(qual_rout_type, &rout->source_corresp,
                                        iek_routine, sec_decl, TQ_NONE,
-                                       /*suppress_specifiers=*/FALSE);
+                                       suppress_specifiers);
   } else {
     /* Normal routine case.  Do the declaration in a special way because
        (a) function definitions use information from the function parameter
@@ -5785,10 +5874,13 @@ declaration or definition.
     }  /* if */
     if (return_type_needed) {
       /* Write the type specifiers and the first part of the declarator. */
-      form_type_first_part_simple(qual_rout_type,
-                                  /*under_lhs_declarator=*/FALSE,
-                                  /*need_trailing_space=*/TRUE,
-                                  &octl);
+      form_type_first_part(qual_rout_type,
+                           /*under_lhs_declarator=*/FALSE,
+                           /*need_trailing_space=*/TRUE,
+                           TQ_NONE,
+                           suppress_specifiers ? FTO_SUPPRESS_SPECIFIERS :
+                                                 FTO_NO_OPTIONS,
+                           &octl);
     }  /* if */
     /* Position the output file to the declaration position (again). */
     set_decl_position(&rout->source_corresp, sec_decl);
@@ -5840,9 +5932,12 @@ declaration or definition.
     /* A declaration of the routine. */
     /* For a pure virtual function, add "= 0". */
     if (rout->pure_virtual) write_tok_str(" = 0");
-    /* Finish the declaration. */
-    write_tok_ch(';');
-    write_space();
+    /* See if there are comma-separated declarations attached to this one. */
+    *another_decl_in_comma_list =
+             another_declaration_in_comma_list_follows(rout_type,
+                                                       /*typedef_only=*/FALSE,
+                                                       /*for_init=*/FALSE);
+    write_end_of_declaration_punctuation(*another_decl_in_comma_list);
   } else {
     /* The definition of the routine. */
     /* Push a name context for the function. */
@@ -5899,83 +5994,81 @@ one associated with the asm.
 }  /* gen_asm_decl */
 
 
-static void gen_secondary_decl(void)
-/*
-Generate a secondary declaration of an entity, i.e., a declaration that
-is not the definition or primary declaration of the entity.  The current
-source sequence entry identifies the entity.
-*/
-{
-  a_src_seq_secondary_decl_ptr
-                         sec_decl = ss_entry_ptr(curr_source_sequence_entry,
-                                                 a_src_seq_secondary_decl_ptr);
-
-  switch (ss_entry_kind(sec_decl)) {
-    case iek_type:
-      gen_type_decl();
-      break;
-    case iek_variable:
-      gen_variable_decl(/*gen_final_semicolon=*/TRUE,
-                        /*suppress_specifiers=*/FALSE,
-                        /*is_condition=*/FALSE);
-      break;
-    case iek_routine:
-      gen_routine_decl();
-      break;
-    case iek_namespace:
-      gen_namespace();
-      break;
-    default:
-      unexpected_condition_str("gen_secondary_decl: bad entity kind");
-  }  /* switch */
-}  /* gen_secondary_decl */
-
-
-static void gen_declaration(void)
+static void gen_declaration(a_boolean for_init)
 /*
 Generate the declaration of the entity identified by the current source
-sequence entry.
+sequence entry.  For multiple declarations that appear in a comma-list,
+do the list of declarations.  This routine handles all the normal declarations
+that appear in the file scope, namespace scopes, block scopes, and class
+scopes, and is also used for for-init statements (for_init is TRUE in
+that case) and old-style parameter declarations.
 */
 {
-  /* Process macros, pragmas. */
-  (void)process_preprocessing_directives();
-  switch (ss_entry_kind(curr_source_sequence_entry)) {
-    case iek_type:
-      gen_type_decl();
-      break;
-    case iek_variable:
-      gen_variable_decl(/*gen_final_semicolon=*/TRUE,
-                        /*suppress_specifiers=*/FALSE,
-                        /*is_condition=*/FALSE);
-      break;
-    case iek_routine:
-      gen_routine_decl();
-      break;
-    case iek_asm_entry:
-      gen_asm_decl();
-      break;
-    case iek_src_seq_secondary_decl:
+  an_il_entry_kind kind;
+  a_boolean        suppress_specifiers = FALSE, another_decl_in_comma_list;
+
+  /* Loop for comma lists. */
+  for (;;) {
+    another_decl_in_comma_list = FALSE;
+    /* Process macros, pragmas. */
+    (void)process_preprocessing_directives();
+    kind = ss_entry_kind(curr_source_sequence_entry);
+    if (kind == (an_il_entry_kind)iek_src_seq_secondary_decl) {
       /* A secondary declaration, i.e., a declaration of something that
          is also defined/declared elsewhere. */
-      gen_secondary_decl();
-      break;
-    case iek_constant:
-      /* Manifest constant macros are ignored. */
-      adv_curr_source_sequence_entry();
-      break;
-    case iek_template:
-      gen_template();
-      break;
-    case iek_namespace:
-      gen_namespace();
-      break;
-    case iek_using_directive:
-      gen_using_directive();
-      break;
-    default:
-      unexpected_condition_str(
+      a_src_seq_secondary_decl_ptr
+                         sec_decl = ss_entry_ptr(curr_source_sequence_entry,
+                                                 a_src_seq_secondary_decl_ptr);
+      kind = ss_entry_kind(sec_decl);
+    }  /* if */
+    switch (kind) {
+      case iek_type:
+        gen_type_decl(suppress_specifiers, &another_decl_in_comma_list);
+        break;
+      case iek_variable:
+        gen_variable_decl(/*is_condition=*/FALSE, for_init,
+                          suppress_specifiers,
+                          &another_decl_in_comma_list);
+        break;
+      case iek_routine:
+        gen_routine_decl(suppress_specifiers, &another_decl_in_comma_list);
+        break;
+      case iek_field:
+        gen_field_decl(suppress_specifiers, &another_decl_in_comma_list);
+        break;
+      case iek_constant:
+        if (curr_name_context_is_a_class()) {
+          /* C++ member constant. */
+          gen_member_constant_decl(suppress_specifiers,
+                                   &another_decl_in_comma_list);
+        } else {
+          /* Manifest constant macros are ignored. */
+          adv_curr_source_sequence_entry();
+        }  /* if */
+        break;
+      case iek_asm_entry:
+        gen_asm_decl();
+        break;
+      case iek_template:
+        gen_template();
+        break;
+      case iek_namespace:
+        gen_namespace();
+        break;
+      case iek_using_directive:
+        gen_using_directive();
+        break;
+      case iek_class_member_using_decl:
+        gen_class_member_using_decl();
+        break;
+      default:
+        unexpected_condition_str(
                         "gen_declaration: bad entity kind on source seq list");
-  }  /* switch */
+    }  /* switch */
+    if (!another_decl_in_comma_list) break;
+    /* Loop to do another declaration as part of a comma list. */
+    suppress_specifiers = TRUE;
+  }  /* for */
 }  /* gen_declaration */
 
 
@@ -5991,7 +6084,7 @@ Process all the file scope entities, and everything under those.
   adv_to_signif_source_sequence_entry();
   while (curr_source_sequence_entry != NULL) {
     /* Generate the declaration of a file-scope entity. */
-    gen_declaration();
+    gen_declaration(/*for_init=*/FALSE);
   }  /* while */
   pop_name_context();
 }  /* process_file_scope_entities */
