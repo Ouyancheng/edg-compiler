@@ -350,43 +350,84 @@ integers than the host.
 There is a host integer type that is large enough to hold all target integers,
 so the integer representation is just some host integral type.
 This type must be unsigned; a_signed_integer_value is the signed version.
-Note that the types are allowed to be the unsigned and signed versions
-of "long long" if the host allows them.  If "long long" is used, check the
-setting of MAX_INTEGER_VALUE, MIN_INTEGER_VALUE, MAX_UNSIGNED_INTEGER_VALUE,
-and the three PRINTF_FORMAT_FOR_... macros.  Also make sure that
-HOST_ALIGNMENT_REQUIRED is appropriate for long longs.
+If LONG_LONG_ALLOWED is TRUE, the host "long long" and "unsigned long Long"
+are used by default.
 */
 #ifndef TYPE_FOR_AN_INTEGER_VALUE
+#if LONG_LONG_ALLOWED
+#define TYPE_FOR_AN_INTEGER_VALUE unsigned long long
+#else /* !LONG_LONG_ALLOWED */
 #define TYPE_FOR_AN_INTEGER_VALUE unsigned long
+#endif /* LONG_LONG_ALLOWED */
 #endif /* ifndef TYPE_FOR_AN_INTEGER_VALUE */
 typedef TYPE_FOR_AN_INTEGER_VALUE an_integer_value;
 #ifndef TYPE_FOR_A_SIGNED_INTEGER_VALUE
+#if LONG_LONG_ALLOWED
+#define TYPE_FOR_A_SIGNED_INTEGER_VALUE long long
+#else /* !LONG_LONG_ALLOWED */
 #define TYPE_FOR_A_SIGNED_INTEGER_VALUE long
+#endif /* LONG_LONG_ALLOWED */
 #endif /* ifndef TYPE_FOR_A_SIGNED_INTEGER_VALUE */
 typedef TYPE_FOR_A_SIGNED_INTEGER_VALUE a_signed_integer_value;
 
 /* Minimum and maximum values that can be represented in an_integer_value. */
 #ifndef MAX_INTEGER_VALUE
+#if LONG_LONG_ALLOWED
+#ifdef LLONG_MAX
+#define MAX_INTEGER_VALUE LLONG_MAX
+#else /* !defined(LLONG_MAX) */
+#define MAX_INTEGER_VALUE 9223372036854775807LL /* 64-bit */
+#endif /* ifdef LLONG_MAX */
+#else /* !LONG_LONG_ALLOWED */
 #define MAX_INTEGER_VALUE LONG_MAX
+#endif /* LONG_LONG_ALLOWED */
 #endif /* ifndef MAX_INTEGER_VALUE */
 #ifndef MIN_INTEGER_VALUE
+#if LONG_LONG_ALLOWED
+#ifdef LLONG_MIN
+#define MIN_INTEGER_VALUE LLONG_MIN
+#else /* !defined(LLONG_MIN) */
+#define MIN_INTEGER_VALUE (-MAX_INTEGER_VALUE-1)
+#endif /* ifdef LLONG_MIN */
+#else /* !LONG_LONG_ALLOWED */
 #define MIN_INTEGER_VALUE LONG_MIN
+#endif /* LONG_LONG_ALLOWED */
 #endif /* ifndef MIN_INTEGER_VALUE */
 #ifndef MAX_UNSIGNED_INTEGER_VALUE
+#if LONG_LONG_ALLOWED
+#ifdef ULLONG_MAX
+#define MAX_UNSIGNED_INTEGER_VALUE ULLONG_MAX
+#else /* !defined(ULLONG_MAX) */
+#define MAX_UNSIGNED_INTEGER_VALUE 18446744073709551615ULL /* 64-bit */
+#endif /* ifdef ULLONG_MAX */
+#else /* !LONG_LONG_ALLOWED */
 #define MAX_UNSIGNED_INTEGER_VALUE ULONG_MAX
+#endif /* LONG_LONG_ALLOWED */
 #endif /* ifndef MAX_UNSIGNED_INTEGER_VALUE */
 #ifndef BITS_IN_AN_INTEGER_VALUE
 #define BITS_IN_AN_INTEGER_VALUE (sizeof(an_integer_value) * CHAR_BIT)
 #endif /* ifndef BITS_IN_AN_INTEGER_VALUE */
 /* The printf formatting specifier to be used to print the integer type. */
 #ifndef PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE
+#if LONG_LONG_ALLOWED
+#define PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE   "%lld" /* long long */
+#else /* !LONG_LONG_ALLOWED */
 #define PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE   "%ld"  /* long */
+#endif /* LONG_LONG_ALLOWED */
 #endif /* ifndef PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE */
 #ifndef PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE
+#if LONG_LONG_ALLOWED
+#define PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE "%llu" /* unsigned long long*/
+#else /* !LONG_LONG_ALLOWED */
 #define PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE "%lu"  /* unsigned long */
+#endif /* LONG_LONG_ALLOWED */
 #endif /* ifndef PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE */
 #ifndef PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE
-#define PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE      "%lx"  /* hexadecimal */
+#if LONG_LONG_ALLOWED
+#define PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE      "%llx" /* hex long long */
+#else /* !LONG_LONG_ALLOWED */
+#define PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE      "%lx"  /* hex long */
+#endif /* LONG_LONG_ALLOWED */
 #endif /* ifndef PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE */
 
 /*

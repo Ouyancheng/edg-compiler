@@ -1,5 +1,14 @@
 Version 2.45
 
+12/25/00 More automatic configuration for long long host integer container
+
+The setting of the macros related to the container used in the front
+end to represent integer values is now more automatic when long long
+is supported.  (This is desirable because C99 includes long long as a
+standard type.)  Now, if both LONG_LONG_ALLOWED and
+INTEGER_VALUE_REPR_IS_A_HOST_INTEGER are true, the macros are set
+to use the host "long long".
+
 12/24/00 typeid(*(T *)0) should throw an exception
 
 The (somewhat contrived) case of applying typeid to an "lvalue" produced
