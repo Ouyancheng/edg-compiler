@@ -1844,7 +1844,7 @@ examine_children:
         }  /* for */
       }  /* if */
       /* Record the sequence number following this child as the first
-         sequence number for which the cached information appies. */
+         sequence number for which the cached information applies. */
       seq_cache.first_seq_number = child_file->last_seq_number + 1;
       child_file = child_file->next;
     }  /* while */
