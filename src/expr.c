@@ -7429,16 +7429,29 @@ only done in C mode, and it's an extension.
   an_expr_node_ptr temp_node;
 
   check_assertion_str(C_mode(), "lvalue_cast: lvalue cast in C++ mode");
-  /* Build an expression node for the lvalue cast.  Note that this is done
-     even if the lvalue address is represented by a constant. */
-  temp_node = make_lvalue_cast_node(make_node_from_operand(result),
-                                    type_cast_to);
-  /* Make an expression operand for the node.  Change the old one rather
-     than creating a new one so as not to disturb the other fields in the
-     operand. */
-  set_operand_kind(result, (an_operand_kind)ok_expression);
-  result->variant.expression = temp_node;
-  result->type = type_cast_to;
+  if (curr_expr_kind_is_const()) {
+    /* In a constant expression, keep the operand constant. */
+    take_address_of_lvalue(result);
+    cast_operand(make_pointer_type(type_cast_to),
+                 result,
+                 /*check_cast_access=*/FALSE,
+                 /*is_implicit_cast=*/FALSE,
+                 /*is_reinterpret_cast=*/FALSE,
+                 /*reinterpret_semantics=*/FALSE);
+    conv_object_pointer_to_lvalue(result);
+  } else {
+    /* Build an expression node for the lvalue cast.  Note that this is done
+       even if the lvalue address is represented by a constant.  That's so
+       conv_lvalue_to_rvalue can reverse the process. */
+    temp_node = make_lvalue_cast_node(make_node_from_operand(result),
+                                      type_cast_to);
+    /* Make an expression operand for the node.  Change the old one rather
+       than creating a new one so as not to disturb the other fields in the
+       operand. */
+    set_operand_kind(result, (an_operand_kind)ok_expression);
+    result->variant.expression = temp_node;
+    result->type = type_cast_to;
+  }  /* if */
 }  /* lvalue_cast */
 
 

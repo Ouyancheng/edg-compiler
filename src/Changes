@@ -1,5 +1,17 @@
 Version 3.4
 
+8/20/03  Abort on address of lvalue cast in constant expression in gcc mode
+
+A use in gcc mode of the "&" operator to take the address of an expression
+that is an lvalue cast (i.e., a cast that would ordinarily be considered
+to produce an rvalue, but as an extension produces an lvalue) in a
+constant initializer expression resulted in an internal error in
+extract_constant_from_operand ("bad operand").  The abort could also be
+produced in Microsoft C mode in some more complicated cases.  Now fixed.
+
+  int i = 1;
+  int *p = &((int)(i));  // Formerly aborted in gcc mode
+
 8/19/03  Microsoft mode: Abort in C++-generating back end due to missing
          declared_type
 
