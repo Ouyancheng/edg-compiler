@@ -1,5 +1,25 @@
 Version 2.42
 
+7/16/99  Ambiguity of conversion functions
+
+The front end used to fail selecting a user defined conversion function when
+another conversion function was ambiguous through multiple inheritance:
+
+  struct A {
+    operator int();
+    operator char*();
+  };
+  struct B {
+    operator char*();
+  };
+  struct C: A, B {
+    void f(C c) {
+      int i = c; // Used to result in an error because the unrelated
+    }            // conversion to char* is ambiguous.
+  };
+
+This is now fixed.
+
 7/14/99  EH cleanup state problem
 
 When the initialization of a destructible variable involves a temporary,

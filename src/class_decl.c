@@ -8703,7 +8703,6 @@ class_type.  Set *updated if a projection symbol is created.
 {
   a_class_symbol_supplement_ptr cssp, bcssp;
   a_symbol_list_entry_ptr       slep, bcslep;
-  a_symbol_locator              loc;
   a_symbol_ptr                  sym;
 
   bcssp = symbol_supplement_for_class(base_class->type);
@@ -8718,7 +8717,8 @@ class_type.  Set *updated if a projection symbol is created.
       slep = is_template_list ? cssp->conversion_template_list :
                                 cssp->conversion_list;
       for (; slep != NULL; slep = slep->next) {
-        if (slep->symbol->header == bcslep->symbol->header) {
+        if (slep->symbol->kind != (a_symbol_kind)sk_projection &&
+            slep->symbol->header == bcslep->symbol->header) {
           /* A conversion list entry from the current class already represents
              a conversion to the type specified by the conversion defined in
              the base class.  Ignore it. */
@@ -8743,17 +8743,19 @@ class_type.  Set *updated if a projection symbol is created.
       if (slep == NULL) {
         /* A new destination type for conversion.  Create a symbol to
            represent its projection into the current class and record it in
-           a new conversion list entry. */
-        make_locator_for_symbol(bcslep->symbol, &loc);
-        clear_specific_symbol(loc);
-        (void)find_projected_symbol(class_type, &loc, IDL_NO_OPTIONS,
-                                    /*tentative_type_lookup=*/FALSE,
-                                    /*tentative_template_lookup=*/FALSE,
-                                    /*hidden_name_lookup=*/FALSE,
-                                    /*add_to_active_list=*/TRUE,
-                                    (a_symbol_ptr)NULL, &sym,
-                                    /*can_create_nonreal=*/is_template_list);
-        check_assertion(sym != NULL);
+           a new conversion list entry.  Note that we do not mark the symbol
+           ambiguous even if similar conversions are projected from different
+           base classes because conversion functions are not looked up by
+           name (and sym->ambiguous is meant to denote name lookup
+           ambiguity). */
+        sym = make_projection_symbol(bcslep->symbol, class_type, base_class,
+                                     /*path=*/(a_derivation_step*)NULL,
+                                     /*ambiguous=*/FALSE);
+        sym->variant.projection.access =
+                            compute_access(access_for_symbol(bcslep->symbol),
+                                           base_class->derivation->access);
+        sym->variant.projection.any_intervening_using_decl =
+               bcslep->symbol->variant.projection.any_intervening_using_decl;
         /* Allocate the new conversion list entry and link it in the
            list for the current class. */
         add_to_conversion_list(sym, cssp);
