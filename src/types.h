@@ -108,6 +108,10 @@ extern a_boolean f_is_const_qualified_type(a_type_ptr tp);
 extern a_boolean f_is_volatile_qualified_type(a_type_ptr tp);
 extern a_boolean f_is_qualified_type(a_type_ptr tp);
 
+extern a_base_class_ptr corresponding_base_class(a_base_class_ptr base_class,
+                                                 a_type_ptr       new_class);
+extern a_base_class_ptr find_direct_base_class_of(a_type_ptr  derived_class,
+                                                  a_type_ptr  base_class_type);
 extern a_base_class_ptr find_base_class_of(a_type_ptr derived_class,
                                            a_type_ptr base_class);
 extern a_boolean is_same_class_or_base_class_thereof(a_type_ptr class_1,
