@@ -54,8 +54,8 @@ extern a_boolean is_char_array_type(a_type_ptr tp);
 extern a_boolean is_string_type(a_type_ptr tp);
 extern a_boolean is_class_struct_union_type(a_type_ptr tp);
 extern a_boolean is_complete_class_struct_union_type(a_type_ptr tp);
-extern a_boolean is_abstract_class_struct_union_type(a_type_ptr tp);
 extern a_boolean is_aggregate_or_union_type(a_type_ptr tp);
+extern a_boolean is_illegal_abstract_class_type(a_type_ptr tp);
 
 extern a_type_ptr array_element_type(a_type_ptr array_type);
 extern a_type_ptr type_pointed_to(a_type_ptr pointer_type);

@@ -362,20 +362,54 @@ Return TRUE if the type is a complete class, struct, or union type.
 }  /* is_complete_class_struct_union_type */
 
 
-a_boolean is_abstract_class_struct_union_type(a_type_ptr  tp)
+a_boolean is_illegal_abstract_class_type(a_type_ptr  tp)
+/*
+There are certain restrictions on the used of an abstract class type.
+Specifically, objects of such types may not be created, except insofar as
+they are base class subobjects (ARM 10.3).  This is taken to mean that an
+array of such objects is also illegal, as well as a pointer to an array
+of such objects.  A pointer or reference to such an object is permitted,
+however, since it may be a pointer to a subobject.  This function returns
+TRUE if the type is that of an abstract class, struct, or union, or if it
+is an array of abstract class objects, or if it is pointer or reference
+to an array of abstract class objects.
+*/
 {
   a_boolean                    is_abstract = FALSE;
+  a_boolean                    array_type_required = FALSE;
   a_class_type_supplement_ptr  ctsp;
 
-  tp = skip_typerefs(tp);
-  if (is_class_struct_union(tp)) {
-    ctsp = tp->variant.class_struct_union.extra_info;
-    if (ctsp != NULL && ctsp->abstract) {
-      is_abstract = TRUE;
-    }  /* if */
-  }  /* if */
+  for (;;) {
+    tp = skip_typerefs(tp);
+    switch (tp->kind) {
+      case tk_pointer:
+        tp = type_pointed_to(tp);
+        array_type_required = TRUE;
+        break;
+      case tk_reference:
+        tp = type_referenced(tp);
+        array_type_required = TRUE;
+        break;
+      case tk_array:
+        tp = tp->variant.array.element_type;
+        array_type_required = FALSE;
+        break;
+      case tk_class:
+      case tk_struct:
+      case tk_union:
+        if (!array_type_required) {
+          ctsp = tp->variant.class_struct_union.extra_info;
+          if (ctsp != NULL && ctsp->abstract) {
+            is_abstract = TRUE;
+          }  /* if */
+        }  /* if */
+      default:
+        goto done;
+    }  /* case */
+  }  /* for */
+done:
   return is_abstract;
-}  /* is_abstract_class_struct_union_type */
+}  /* is_illegal_abstract_class_type */
 
 
 a_boolean is_aggregate_or_union_type(a_type_ptr tp)
