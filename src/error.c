@@ -1078,6 +1078,9 @@ error code.
     case ec_definition_of_implicitly_declared_function:
       m = "defining an implicitly declared member function is not allowed";
       break;
+    case ec_no_suitable_copy_constructor:
+      m = "class \"%s\" has no suitable copy constructor";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
