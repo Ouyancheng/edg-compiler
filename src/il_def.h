@@ -79,6 +79,8 @@ typedef struct a_try_supplement *a_try_supplement_ptr;
 typedef struct an_object_lifetime *an_object_lifetime_ptr;
 typedef struct a_namespace   *a_namespace_ptr;
 typedef struct a_scope       *a_scope_ptr;
+typedef struct a_routine_fixup
+                             *a_routine_fixup_dummy_typedef;
 #if DO_IL_LOWERING
 typedef struct a_destructible_entity_descr
                              a_destructible_entity_descr_dummy_typedef;
