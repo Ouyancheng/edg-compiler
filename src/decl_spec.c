@@ -4652,7 +4652,10 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean                  dangling_type_specifier = FALSE;
   a_boolean                  is_elaborated_type_specifier = FALSE;
   an_error_severity          es;
-  a_basic_type               basic_type = bt_none, prev_basic_type;
+  a_basic_type               basic_type = bt_none;
+#if GNU_EXTENSIONS_ALLOWED
+  a_basic_type               prev_basic_type;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   a_type_sign                sign = sign_none;
   a_type_size                size = size_none;
   a_complex_attribute        complex_attr = cxa_none;

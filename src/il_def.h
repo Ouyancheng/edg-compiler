@@ -4332,7 +4332,11 @@ enum a_template_param_type_kind_tag {
 			     };
 			   (where, during prototype instantiation, X is
 			   assumed to be a member of T and a type). */
-  tptk_unknown,		/* The template param type represents the unknown
+#if GNU_EXTENSIONS_ALLOWED
+  tptk_typeof,		/* The template param type represents a type
+			   expressed through a dependent typeof construct. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  tptk_unknown		/* The template param type represents the unknown
 			   type of a non-type member of a template parameter
 			   class, e.g., the type of T::k, and the type of
                            the constant "1" in the following:
@@ -4347,10 +4351,6 @@ enum a_template_param_type_kind_tag {
 			   prototype instantiation context that involves
 			   template parameter values, and whose real type
 			   cannot be known. */
-#if GNU_EXTENSIONS_ALLOWED
-  tptk_typeof		/* The template param type represents a type
-			   expressed through a dependent typeof construct. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 };
 typedef a_byte a_template_param_type_kind;
 
