@@ -7509,14 +7509,14 @@ typedef struct a_template_parameter {
     } nontype;
     /* When kind == tpk_template: */
     struct {
-      a_type_ptr
+      a_template_ptr
 		class_template;
-			/* The placeholder constant representing the
+			/* The placeholder template representing the
 			    parameter. */
-      a_type_ptr
+      a_template_ptr
 		default_arg_template;
-			/* The prototype instantiation of the default argument
-			   (or NULL if none) for this template parameter. */
+			/* The default argument template (or NULL if none) for
+			   this template parameter. */
     } templ;
   } variant;
 } a_template_parameter;
@@ -7569,9 +7569,13 @@ typedef a_byte a_template_kind;
 
 
 /*
-An entry containing the text of a template declaration.  Ordinarily this
-information is not needed outside the front end (which maintains comparable
-information as a token cache).  (C++ only).
+An entry representing the occurrence of a template (or a template template
+parameter) declaration in the source.  It can contain the text of such a
+declaration (the front end maintains comparable information as a token cache).
+If prototype instantiations are not recorded in the IL, then these entries are
+pointed to by source sequence entries for templates.  Otherwise, the source
+sequence entries point to the prototype instantiations.
+(C++ only.)
 */
 typedef struct a_template {
   /* The source_corresp field must be first. */
@@ -7611,6 +7615,30 @@ typedef struct a_template {
 			   This is used only for "nonreal" templates and for
 			   template template parameters, and is used to
 			   determine if two such templates are equivalent. */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  union {
+	/* When kind == templk_function or templk_member_function: */
+	a_routine_ptr
+		routine;
+			/* A pointer to the prototype instantiation of the
+			   function or member function template. */
+	/* When kind == templk_class or templk_member_class: */
+	a_type_ptr
+		type;
+			/* A pointer to the prototype instantiation of the
+			   class or member class template. */
+	/* When kind == templk_static_data_member: */
+	a_variable_ptr
+		variable;
+			/* A pointer to the prototype instantiation of the
+			   static data member definition of a class template */
+	/* When kind == templk_template_template_param: */
+        a_template_decl_ptr
+		template_decl;
+			/* A pointer to the parameterization of a template
+			   template parameter. */
+  } prototype_instantiation;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 } a_template;
 
 #if RECORD_MACROS_IN_IL

@@ -2825,7 +2825,9 @@ fields, and return a pointer to it.
   tp->definition_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   tp->template_info = NULL;
-
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  tp->prototype_instantiation.type = NULL;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   return tp;
 }  /* alloc_template */
 

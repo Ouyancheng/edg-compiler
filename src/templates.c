@@ -10343,6 +10343,14 @@ parameter entry for the parameter.
   templ_ptr = alloc_template();
   set_source_corresp(&templ_ptr->source_corresp, sym);
   templ_ptr->kind = (a_template_kind)templk_template_template_param;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (prototype_instantiations_in_il) {
+    /* Keep a record of the parameterization structure.  (Needed, e.g., in the
+       C++-generating back end.) */
+    templ_ptr->prototype_instantiation.template_decl =
+                                               local_decl_state.template_decl;
+  }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (!is_named) {
     /* Reset the name in the source correspondence entry.  An unnamed
        parameter is represented by NULL, not "<unnamed>" as indicated
@@ -10983,6 +10991,35 @@ set, and its source sequence entry, if any, has been put out.)
           check_assertion(total_errors > 0);
           err = TRUE;
       }  /* switch */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      if (!err && prototype_instantiations_in_il) {
+        /* Make the a_template IL entry point to the prototype instantiation.
+           */
+        a_template_symbol_supplement_ptr tssp =
+                                          template_supplement_for_symbol(sym);
+        switch (il_template_entry->kind) {
+          case templk_class:
+          case templk_member_class:
+            il_template_entry->prototype_instantiation.type =
+                 type_symbol_type(
+                        tssp->variant.class_template.prototype_instantiation);
+            break;
+          case templk_function:
+          case templk_member_function:
+            il_template_entry->prototype_instantiation.routine =
+                                               tssp->variant.function.routine;
+            break;
+          case templk_static_data_member:
+            il_template_entry->prototype_instantiation.variable =
+              NULL;  /* FIXME */
+            break;
+          default:
+            unexpected_condition_str(
+                      "complete_il_template_entry: unexpected template kind");
+            break;
+        }  /* switch */
+      }  /* if */
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       if (!err) {
         /* Set parent information in the IL entry. */
         if (sym->is_class_member) {
@@ -11957,8 +11994,12 @@ information gathered in the front end structures.
         break;
       case sk_class_template:
         new_tpp->kind = (a_template_parameter_kind)tpk_template;
-        /* FIXME Ask John. */
-        unexpected_condition_str("Not yet implemented");
+        new_tpp->variant.templ.class_template = 
+                                    sym_tpp->variant.templ->il_template_entry;
+        new_tpp->variant.templ.default_arg_template =
+                                                   sym_tpp->default_arg.templ;
+        new_tpp->source_corresp = *source_corresp_for_il_entry(
+                  (char*)new_tpp->variant.templ.class_template, iek_template);
         break;
       default:
         unexpected_condition_str("make_template_decl: unexpected symbol kind");
@@ -12396,12 +12437,11 @@ any non-empty template parameter lists that were scanned.
                                                 class_templ_cache_segments,
                                                 /*keep_default_args=*/TRUE);
   } /* if */
-  if (!prototype_instantiations_in_il) {
-    /* Link in the a_template entry only if no prototype instantiation was
-       recorded. */
-    complete_il_template_entry(decl_state, sym, p_template_body_cache);
+  /* Complete the a_template entry and link it into the list of templates
+     for the appropriate scope. */
+  complete_il_template_entry(decl_state, sym, p_template_body_cache);
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-  } else {
+  if (prototype_instantiations_in_il) {
     /* Since we recorded a prototype instantiation, remove the source sequence
        entry for the corresponding a_template entry.  (We never want both in
        the IL.) */
@@ -12412,8 +12452,8 @@ any non-empty template parameter lists that were scanned.
       scp->source_sequence_entry = NULL;
     }  /* if */
     check_assertion(nonclass_prototype_instantiations);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (class_templ_cache_segments != NULL) {
     /* Remove any default arguments that may remain in the cache. */
     (void)extract_member_bodies(&tssp->cache, class_templ_cache_segments,

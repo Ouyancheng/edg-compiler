@@ -3183,27 +3183,52 @@ Display the indicated template.
   disp_ptr("next", (char *)ptr->next, iek_template);
   disp_name("kind");
   switch (ptr->kind) {
-    case (templk_none):
+    case templk_none:
       (void)printf("templk_none\n");
       break;
-    case (templk_class):
+    case templk_class:
       (void)printf("templk_class\n");
       break;
-    case (templk_function):
+    case templk_function:
       (void)printf("templk_function\n");
       break;
-    case (templk_member_function):
+    case templk_member_function:
       (void)printf("templk_member_function\n");
       break;
-    case (templk_static_data_member):
+    case templk_static_data_member:
       (void)printf("templk_static_data_member\n");
       break;
-    case (templk_member_class):
+    case templk_member_class:
       (void)printf("templk_member_class\n");
       break;
     default:
       (void)printf("**BAD TEMPLATE KIND**\n");
   }  /* switch */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  switch (ptr->kind) {
+    case templk_class:
+    case templk_member_class:
+      disp_ptr("class", (char *)ptr->prototype_instantiation.class,
+               iek_type);
+      break;
+    case templk_function:
+    case templk_member_function:
+      disp_ptr("routine", (char *)ptr->prototype_instantiation.routine,
+               iek_routine);
+      break;
+    case templk_static_data_member:
+      disp_ptr("variable", (char *)ptr->prototype_instantiation.variable,
+               iek_variable);
+      break;
+    case templk_template_template_parameter:
+      disp_ptr("template_decl",
+               (char *)ptr->prototype_instantiation.template_decl,
+               iek_template_decl);
+      break;
+    default:
+      break;
+  }  /* switch */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("definition_range", &ptr->definition_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

@@ -1585,9 +1585,10 @@ do_set_proper_definition_needed_flag:
                      a_constant_ptr, iek_constant);
             break;
           case tpk_template:
-            walk_ptr(ptr->variant.templ.class_template, a_type_ptr, iek_type);
-            walk_ptr(ptr->variant.templ.default_arg_template, a_type_ptr,
-                     iek_type);
+            walk_ptr(ptr->variant.templ.class_template, a_template_ptr,
+                     iek_template);
+            walk_ptr(ptr->variant.templ.default_arg_template, a_template_ptr,
+                     iek_template);
             break;
           default:
             internal_error("unexpected template parameter kind");
@@ -1613,14 +1614,37 @@ do_set_proper_definition_needed_flag:
 #endif /* RECORD_TEMPLATE_STRINGS */
         if (ptr->template_info != NULL) {
           switch (ptr->kind) {
-            case templk_class:
-              break;
             case templk_function:
             case templk_member_function:
               walk_ptr(ptr->template_info->variant.function.routine,
                        a_routine_ptr, iek_routine);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+              remap_ptr(ptr->prototype_instantiation.routine, a_routine_ptr,
+                        iek_routine);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+              break;
+            case templk_class:
+            case templk_member_class:
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+              remap_ptr(ptr->prototype_instantiation.type, a_type_ptr,
+                        iek_type);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+              break;
+            case templk_static_data_member:
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+              remap_ptr(ptr->prototype_instantiation.variable, a_variable_ptr,
+                        iek_variable);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+              break;
+            case templk_template_template_param:
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+              walk_ptr(ptr->prototype_instantiation.template_decl,
+                       a_template_decl_ptr, iek_template_decl);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
               break;
             default:
+              unexpected_condition_str(
+                                 "walk_entry_and_subtree: bad template kind");
               break;
           }  /* switch */
         }  /* if */

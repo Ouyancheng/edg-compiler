@@ -1798,8 +1798,12 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                             options & GN_PARENS_IF_GLOBAL_QUALIFIER,
                             need_closing_paren);
         if (class_type->variant.class_struct_union.is_nonreal_class &&
-            template_arguments_for_name(scp, entry_kind,
-                                        /*insert_space=*/NULL) != NULL) {
+            (template_arguments_for_name(scp, entry_kind,
+                                         /*insert_space=*/NULL) != NULL ||
+             entry_kind == iek_template)) {
+          /* Issue the "template" keyword in a "X<T>::template Y<int>" name
+             or in a "X<T>::template Y" default template argument for a
+             template template parameter. */
           write_tok_str("template ");
         }  /* if */
       }  /* if */
@@ -6289,13 +6293,13 @@ recorded with this particular header.
         write_tok_str(" = ");
         gen_constant(dac, /*need_parens=*/FALSE);
       }  /* if */  
-    } else if  (param->kind == (a_template_parameter_kind)tpk_type) {
+    } else if (param->kind == (a_template_parameter_kind)tpk_type) {
       /* Remap the source correspondence entry for output: */
       remap_template_param(&param->variant.type.ptr
                               ->variant.template_param.extra_info
                               ->coordinates,
                            &param->source_corresp);
-      write_tok_str("typename ");
+      write_tok_str("class ");
       /* Set the source position for the name. */
       set_output_position(&param->source_corresp.decl_position);
       write_tok_str_if_nonnull(param->source_corresp.name);
@@ -6305,7 +6309,18 @@ recorded with this particular header.
         gen_type(dat);
       }  /* if */  
     } else {
-      unexpected_condition_str("Not yet implemented");
+      check_assertion(param->kind == (a_template_parameter_kind)tpk_template);
+      gen_template_header(param->variant.templ.class_template
+                               ->prototype_instantiation.template_decl);
+      write_tok_str(" class ");
+      /* Set the source position for the name. */
+      set_output_position(&param->source_corresp.decl_position);
+      write_tok_str_if_nonnull(param->source_corresp.name);
+      if (param->variant.templ.default_arg_template != NULL) {
+        write_tok_str(" = ");
+        gen_name(&param->variant.templ.default_arg_template->source_corresp,
+                 iek_template, GN_NO_OPTIONS, /*need_closing_paren=*/NULL);
+      }  /* if */  
     }  /* if */
     if (param->next != NULL) write_tok_str(", ");
   }  /* for */
