@@ -5752,6 +5752,9 @@ clause is to be attached.  catch_pos is the source position of "catch".
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           mark_variable_value_set(sym);
         }  /* if */
+        /* Set the is_local_to_function flag after returning from
+           set_source_corresp. */
+        handler->parameter->source_corresp.is_local_to_function = TRUE;
         /* A handler parameter is initialized by the run-time when the
            handler is invoked.  Create the dynamic init entry to represent
            the initialization. */
