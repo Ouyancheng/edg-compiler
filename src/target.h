@@ -265,7 +265,7 @@ supported.)
 
 /*
 Flag that is TRUE if object code compatibility with AT&T's cfront is
-required.  The main issue is the class and specifically how the data
+required.  The main issue is class layout and specifically how the data
 sections for virtual base classes are put out.  The default behavior
 (when this flag is FALSE) produces a more efficient use of space.
 */
