@@ -6568,7 +6568,7 @@ static a_variable_ptr uuid_variable_for_type(a_type_ptr class_type)
 /*
 Return a pointer to the uuid variable for the indicated class type, creating
 the variable if necessary.  This relates to the Microsoft extensions
-that deal with GUIIDs for the COM by way of the __declspec(uuid(...))
+that deal with GUIDs for the COM by way of the __declspec(uuid(...))
 modifier and the __uuidof() expression operator.  The uuid variable is
 initialized with the right values for the uuid associated with the
 class type.  class_type is NULL to request the uuid variable for a null
