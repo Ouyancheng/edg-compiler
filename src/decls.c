@@ -5382,9 +5382,10 @@ In C++, however, the declaration list is optional (3.4):
            of source. */
         if ((header_stop_is_end_of_source &&
              curr_token == tok_end_of_source) ||
-            (curr_ise->actual_line ==
+            (curr_ise != NULL &&
+             curr_ise->actual_line ==
               (a_line_number)header_stop_source_position.seq &&
-            pos_curr_token.column == header_stop_source_position.column)) {
+             pos_curr_token.column == header_stop_source_position.column)) {
           /* This should be the first declaration in the primary source file
              (i.e., excluding preprocessor directives).  If there were any
              include files and if the current state otherwise qualifies, write
