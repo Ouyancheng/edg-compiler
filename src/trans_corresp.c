@@ -2696,7 +2696,6 @@ This routine is called when the definition of the given routine has been
 instantiated.  Such an event may cause rout to become the canonical entry.
 */
 {
-  update_canonical_entry(iek_routine, (char*)routine);
 }  /* establish_function_instantiation_corresp */
 
 
