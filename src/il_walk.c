@@ -1158,7 +1158,7 @@ and the entry pointer is to an entry in the file scope, just return
               walk_list(ptr->variant.constructor.args, an_expr_node_ptr,
                         iek_expr_node);
               break;
-#ifdef CHECKING
+#if CHECKING
             default:
               internal_error("walk_entry_and_subtree: bad dynamic init kind");
 #endif /* CHECKING */
