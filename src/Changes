@@ -1,5 +1,13 @@
 Version 3.6
 
+3/8/05   C++-generating back end: typedef of a class type to its own name
+
+When a class type was typedef'ed to its own name, the resulting typeref
+was incorrectly treated as an injected class name.  The C++-generating back
+end assumed that such typerefs were actually class types and accessed fields
+in the class_struct_union variant, potentially leading to incorrect
+qualification in the generated code.  Now fixed.
+
 3/8/05   Pragma at the end of an implicitly included file not processed
 
 A pragma at the end of an implicitly included file was silently discarded.
