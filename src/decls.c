@@ -2754,7 +2754,6 @@ not be TRUE.
   a_type_ptr        rout_type = routine_ptr->type;
   a_type_ptr        comp_type;
   a_param_type_ptr  rout_type_ptp, comp_type_ptp, next_rout_type_ptp;
-  a_boolean         preserve_qualifiers_from_rout_type = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_calling_convention
                     orig_calling_convention =
@@ -2797,14 +2796,6 @@ not be TRUE.
                                copy_routine_type_with_param_types(rout_type);
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        if (comp_type != rout_type && remove_qualifiers_from_param_types &&
-            routine_ptr->assoc_scope != NULL_region_number) {
-          /* Assure that a redeclaration following a definition results in
-             no change to the top-level qualifiers that were recorded for
-             the function; composite_type cannot be presumed to have
-             gotten it right. */
-          preserve_qualifiers_from_rout_type = TRUE;
-        }  /* if */
       } else {
         /* type_ptr must be preserved. */
         comp_type = composite_type(type_ptr, rout_type);
@@ -2830,6 +2821,8 @@ not be TRUE.
          type on top of the existing rout_type (it's guaranteed to be
          unshared). */
       if (comp_type != rout_type) {
+        a_boolean  preserve_qualifiers_from_rout_type = FALSE;
+
         comp_type = skip_typerefs(comp_type);
         rout_type = skip_typerefs(rout_type);
         /* Transfer the composite type to rout_type, which is unshared.
@@ -2853,6 +2846,18 @@ not be TRUE.
                      rout_type->variant.routine.extra_info->param_type_list;
           comp_type_ptp =
                      comp_type->variant.routine.extra_info->param_type_list;
+          if (remove_qualifiers_from_param_types) {
+            /* Usually, the top-level param-type qualifiers recorded for the
+               function (either as currently declared or as previously
+               declared when the function was defined) should be preserved.
+               Since composite_type cannot be presumed to have gotten it
+               right, the qualifiers will have to be copied into the new
+               type by hand. */
+            if (!preserve_rout_type ||
+                routine_ptr->assoc_scope != NULL_region_number) {
+              preserve_qualifiers_from_rout_type = TRUE;
+            }  /* if */
+          }  /* if */
           for (; rout_type_ptp != NULL; rout_type_ptp = next_rout_type_ptp,
                                         comp_type_ptp = comp_type_ptp->next) {
             check_assertion_str2(rout_type_ptp != comp_type_ptp,
