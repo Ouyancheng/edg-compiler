@@ -7780,14 +7780,14 @@ with it.  Entries associated with scopes must also have no child entries.
         break;
       case iek_expr_node:
       case iek_dynamic_init:
+      case iek_statement:
+      case iek_switch_clause:
       case iek_none:
         is_useless = TRUE;
         break;
 #if CHECKING
       case iek_try_supplement:
       case iek_new_delete_supplement:
-      case iek_statement:
-      case iek_switch_clause:
         /* Useless = FALSE. */
         break;
       default:
