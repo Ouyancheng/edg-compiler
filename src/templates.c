@@ -5724,20 +5724,22 @@ points to the template parameter list.
       type = cssp->template_param_for_proxy_class;
     }  /* if */
   }  /* if */
+  if ((flags & MTT_ALLOW_ADDED_QUALIFIERS) != 0 &&
+       is_qualified_type(templ_type)) {
+    /* Usually, the type qualifiers must match, but if the 
+         MTT_ALLOW_ADDED_QUALIFIERS flag is set, any additional qualifiers
+         will be ignored.  This occurs when the template type is a qualified
+         array type. */
+    skip_common_type_qualifiers(&type, &templ_type);
+    templ_type = skip_typerefs(templ_type);
+  }  /* if */
   if (is_template_param_type(templ_type)) {
     if (is_qualified_type(templ_type)) {
       /* If the template parameter has any type qualifiers, the argument type
          will have to have a set of type qualifiers that includes any on the
          template parameter.  Remove any that are shared in common and then
-         do a check.  After removing common qualifiers, the template type
-         must usually be unqualified in order for the types to match.  If the
-         MTT_ALLOW_ADDED_QUALIFIERS flag is set, any additional qualifiers
-         will be ignored.  This occurs when the template type is a qualified
-         array type. */
+         do a check. */
       skip_common_type_qualifiers(&type, &templ_type);
-      if ((flags & MTT_ALLOW_ADDED_QUALIFIERS) != 0) {
-        templ_type = skip_typerefs(templ_type);
-      }  /* if */
     }  /* if */
     if (is_qualified_type(templ_type)) {
       /* The qualifier on templ_type did not also appear on type, so there is
