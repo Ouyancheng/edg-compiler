@@ -566,6 +566,7 @@ check_abbreviation()
 --friend_injection
 --g++
 --gcc
+--gnu_version
 --guiding_decls
 --ignore_std
 --implicit_extern_c_type_conversion
@@ -1282,6 +1283,7 @@ process_option()
          --diag_warning | \
          --diag_error | \
          --microsoft_version | \
+         --gnu_version | \
 	 --definition_list_file | \
          --pending_instantiations | \
          --preinclude | \
@@ -1353,6 +1355,7 @@ process_option()
           --diag_warning=* | \
           --diag_error=* | \
           --microsoft_version=* | \
+          --gnu_version=* | \
           --pending_instantiations=* | \
           --preinclude* | \
           --preinclude_macros=* | \
