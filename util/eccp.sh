@@ -674,7 +674,7 @@ do
       add_to_instantiation_command=0
       ;;
     *)
-      echo "eccp: unrecognizable argument";
+      echo "eccp: unrecognizable argument: $1";
       error=1;
       ;;
   esac
