@@ -218,6 +218,13 @@ symbol.  Otherwise, return NULL.
          required). */
       assoc_symbol = NULL;
     } else {
+      if (locator_for_curr_id.is_semivisible_nested_class) {
+        /* The symbol in the locator is a nested class that is not visible
+           according to the ARM lookup rules but is returned in support of the
+           nested class anachronism (ARM 18.3.5).  Issue a warning. */
+        str_warning(ec_nested_class_anachronism,
+                    name_of_symbol(locator_for_curr_id.specific_symbol));
+      }  /* if */
       /* Do ambiguity and access control checking on the member. */
       check_ambiguity_and_verify_access(&locator_for_curr_id);
     }  /* if */
@@ -285,6 +292,10 @@ specifier if the name has been declared.  Called only in C++.
       /* Identifier is "overload" -- check for definition. */
       if (normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS) == NULL) {
         /* The name is not in the symbol table.  Treat is as a keyword. */
+        is_overload = TRUE;
+      } else if (locator_for_curr_id.is_semivisible_nested_class) {
+        /* There is a nested class named "overload" that is visible by
+           the nested class anachronism (ARM 18.3.5).  Ignore it. */
         is_overload = TRUE;
       }  /* if */
     }  /* if */
