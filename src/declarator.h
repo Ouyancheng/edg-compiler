@@ -162,7 +162,10 @@ abstract or real declarator.
 			   specialization declares a template that is a
 			   specialization of the original template; otherwise,
 			   it is a full specialization. */
-#define DI_LAST DI_IS_SPECIALIZATION
+#define DI_IS_EXPLICIT_INSTANTIATION (a_decl_flag_set)(0x4000)
+			/* If this bit is set the declaration is that of a
+			   C++ explicit template instantiation directive. */
+#define DI_LAST DI_IS_EXPLICIT_INSTANTIATION
 			/* Last bit in the bit vector that is in use. */
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */

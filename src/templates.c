@@ -8724,7 +8724,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
     a_func_info_block  	func_info;
     clear_func_info(&func_info);
     declarator((DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED |
-                DI_OPERATOR_NAME_ALLOWED),
+                DI_OPERATOR_NAME_ALLOWED | DI_IS_EXPLICIT_INSTANTIATION),
                &do_flags, type, (a_type_ptr)NULL, &locator, &type,
                &declarator_ssep, &func_info);
     done_with_func_info(func_info);
