@@ -578,7 +578,7 @@ if the thrown type violates the throw specification.
   a_boolean				result = TRUE;
   a_boolean				done = FALSE;
 
-  etsp = ehsep->variant.try_block.catch_entries;
+  etsp = ehsep->variant.throw_specification;
   do {
     if (etsp->flags & ETS_IS_ELLIPSIS) {
       result = FALSE;
