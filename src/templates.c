@@ -10949,6 +10949,9 @@ set, and its source sequence entry, if any, has been put out.)
 {
   a_boolean       err = FALSE;
   a_template_ptr  il_template_entry = decl_state->il_template_entry;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_symbol_ptr    proto_sym = NULL;
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
   if (il_template_entry != NULL) {
     if (sym != NULL && !sym->is_error) {
@@ -10956,20 +10959,45 @@ set, and its source sequence entry, if any, has been put out.)
       switch (sym->kind) {
         case sk_class_template:
           il_template_entry->kind = (a_template_kind)templk_class;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+          proto_sym = prototype_template_of(sym);
+          proto_sym = template_supplement_for_symbol(proto_sym)
+                             ->variant.class_template.prototype_instantiation;
+          il_template_entry->prototype_instantiation.type =
+                                                  type_symbol_type(proto_sym);
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case sk_function_template:
           il_template_entry->kind = (a_template_kind)templk_function;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+          proto_sym = prototype_template_of(sym);
+          il_template_entry->prototype_instantiation.routine =
+                                template_supplement_for_symbol(proto_sym)
+                                                   ->variant.function.routine;
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case sk_member_function:
           il_template_entry->kind = (a_template_kind)templk_member_function;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+          il_template_entry->prototype_instantiation.routine =
+                                                     sym->variant.routine.ptr;
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case sk_static_data_member:
           il_template_entry->kind = (a_template_kind)templk_static_data_member;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+          il_template_entry->prototype_instantiation.variable =
+                                     sym->variant.static_data_member.variable;
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case sk_class_or_struct_tag:
         case sk_union_tag:
           check_assertion(sym->is_class_member);
           il_template_entry->kind = (a_template_kind)templk_member_class;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+          il_template_entry->prototype_instantiation.type =
+                                                        type_symbol_type(sym);
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         default:
           /* There must have been an error.  Do the check because we don't
@@ -10977,36 +11005,6 @@ set, and its source sequence entry, if any, has been put out.)
           check_assertion(total_errors > 0);
           err = TRUE;
       }  /* switch */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-      if (!err && prototype_instantiations_in_il) {
-        /* Make the a_template IL entry point to the prototype
-           instantiation. */
-        a_symbol_ptr proto_sym = prototype_template_of(sym);
-        a_template_symbol_supplement_ptr tssp =
-                                    template_supplement_for_symbol(proto_sym);
-        switch (il_template_entry->kind) {
-          case templk_class:
-          case templk_member_class:
-            il_template_entry->prototype_instantiation.type =
-                 type_symbol_type(
-                        tssp->variant.class_template.prototype_instantiation);
-            break;
-          case templk_function:
-          case templk_member_function:
-            il_template_entry->prototype_instantiation.routine =
-                                               tssp->variant.function.routine;
-            break;
-          case templk_static_data_member:
-            il_template_entry->prototype_instantiation.variable =
-                                     sym->variant.static_data_member.variable;
-            break;
-          default:
-            unexpected_condition_str(
-                      "complete_il_template_entry: unexpected template kind");
-            break;
-        }  /* switch */
-      }  /* if */
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       if (!err) {
         /* Set parent information in the IL entry. */
         if (sym->is_class_member) {
