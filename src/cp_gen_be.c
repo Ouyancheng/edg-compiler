@@ -2525,7 +2525,7 @@ a definition.
                                             /*include_base_classes=*/FALSE)) {
           /* Avoid qualification inside the virtual function's class. */
           options |= GN_PURE_VIRTUAL_FUNCTION;
-        }
+        }  /* if */
       }  /* if */
     }  /* if */
     if (may_need_parens) {
@@ -6886,7 +6886,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           m_write_tok_ch('&');
         } else {
           gen_ampersand(type_pointed_to(expr->type));
-        }
+        }  /* if */
         gen_lvalue(expr);
         goto done_with_operation;
       }  /* if */
