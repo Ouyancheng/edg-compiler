@@ -2784,6 +2784,7 @@ This routine is called during IL walking.
 #ifdef CFE
     case iek_derivation_step:
     case iek_class_list_entry:
+    case iek_routine_list_entry:
     case iek_template_arg:
     case iek_new_delete_supplement:
 #endif /* ifdef CFE */
