@@ -7,7 +7,8 @@ Destructors that are referenced only in default arguments were
 not instantiated, which resulted in link errors in some cases.
 This is a problem introduced by the change of 10/8/00 to delay
 instantiations in default arguments until a use of the default
-argument.
+argument.  There was also a similar problem with constructors
+referenced only in a "new" operation.
 
 1/3/02   Semantic analysis of friends of class templates
 
