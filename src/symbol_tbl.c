@@ -6566,10 +6566,9 @@ of the template.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   ssep->last_source_sequence_entry = NULL;
   ssep->source_sequence_avail_list = NULL;
+  ssep->last_src_seq_sublist     = NULL;
   ssep->depth_innermost_ss_list_scope = depth_innermost_ss_list_scope;
-  ssep->depth_innermost_file_scope_region_ss_list_scope =
-                      depth_innermost_file_scope_region_ss_list_scope;
-  ssep->depth_template_declaration_scope = NULL;
+  ssep->depth_template_declaration_scope = depth_template_declaration_scope;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   ssep->depth_innermost_instantiation_scope =
                                        depth_innermost_instantiation_scope;
@@ -6697,12 +6696,9 @@ of the template.
     depth_of_innermost_scope_that_affects_access_control = depth_scope_stack;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (kind == (a_scope_kind)sck_file ||
-      (!C_mode() && kind == (a_scope_kind)sck_class_struct_union)) {
+  if (kind == (a_scope_kind)sck_file) {
     ssep->depth_innermost_ss_list_scope =
       depth_innermost_ss_list_scope = depth_scope_stack;
-    ssep->depth_innermost_file_scope_region_ss_list_scope =
-      depth_innermost_file_scope_region_ss_list_scope = depth_scope_stack;
   } else if (kind == (a_scope_kind)sck_function) {
     ssep->depth_innermost_ss_list_scope =
       depth_innermost_ss_list_scope = depth_scope_stack;
@@ -6712,8 +6708,6 @@ of the template.
   } else if (kind == (a_scope_kind)sck_template_instantiation) {
     ssep->depth_innermost_ss_list_scope =
       depth_innermost_ss_list_scope = DEPTH_OF_FILE_SCOPE;
-    ssep->depth_innermost_file_scope_region_ss_list_scope =
-      depth_innermost_file_scope_region_ss_list_scope = DEPTH_OF_FILE_SCOPE;
     ssep->depth_template_declaration_scope =
       depth_template_declaration_scope = NO_SCOPE_DEPTH;
   }  /* if */
@@ -7543,9 +7537,6 @@ End a name scope by popping an entry off the scope stack.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     depth_innermost_ss_list_scope =
              scope_stack[depth_scope_stack].depth_innermost_ss_list_scope;
-    depth_innermost_file_scope_region_ss_list_scope =
-             scope_stack[depth_scope_stack].
-                             depth_innermost_file_scope_region_ss_list_scope;
     depth_template_declaration_scope =
              scope_stack[depth_scope_stack].depth_template_declaration_scope;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -7786,7 +7777,8 @@ secondary status.
   a_boolean                     force_alloc_in_filescope;
   a_memory_region_number        region_to_switch_back_to;
 
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
+      depth_template_declaration_scope == NO_SCOPE_DEPTH) {
     if ((il_entry_ptr = il_entry_for_symbol(sym, &kind)) != NULL) {
       if (pos->seq == 0 ||
           (kind == iek_routine &&
@@ -8692,7 +8684,6 @@ to avoid an 8-character external name clash with symbol_table.)
   depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   depth_innermost_ss_list_scope = NO_SCOPE_DEPTH;
-  depth_innermost_file_scope_region_ss_list_scope = NO_SCOPE_DEPTH;
   depth_template_declaration_scope = NO_SCOPE_DEPTH;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   inside_local_class = FALSE;
