@@ -1,5 +1,11 @@
 Version 2.39
 
+7/29/98  eccp: driver name can be changed for diagnostic purposes
+
+The eccp script now uses a variable for the driver name to be displayed
+in diagnostic messages, making it simpler for those who would like to
+use a different name for the script.
+
 7/29/98  Ignore "--" option in eccp
 
 The eccp script now ignores the "--" option.
