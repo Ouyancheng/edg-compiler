@@ -1877,9 +1877,14 @@ scope is that of a class definition.
          function declared within a class definition, a qualifier on the
          function is illegal (ARM 8.2.5)..  However, qualifiers on a pointer
          to member function are permitted. */
-      if (member_function_parent_type == NULL ||
-          (!is_nonstatic_member_function &&
-           scope_stack[decl_scope_level].kind ==
+      if (locator->is_operator_name &&
+          (locator->variant.opname == (an_opname_kind)onk_new ||
+           locator->variant.opname == (an_opname_kind)onk_delete)) {
+        /* Operator new and delete can never be qualified. */
+        pos_error(ec_function_qualifier_not_allowed, &qualifier_pos);
+      } else if (member_function_parent_type == NULL ||
+                 (!is_nonstatic_member_function &&
+                  scope_stack[decl_scope_level].kind ==
                                  (a_scope_kind)sck_class_struct_union)) {
         /* It is illegal to specify "const" or "volatile" on any function
            other than a nonstatic member function (ARM 8.2.5).  We just
