@@ -4027,7 +4027,7 @@ NULL.
           for (; rp != NULL; rp = rp->next) {
             if ((rp->source_corresp.referenced
 #if IA64_ABI && DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-                 || rp->overridden_function_for_covariant_return_type == NULL
+                 && rp->overridden_function_for_covariant_return_type == NULL
 #endif /* IA64_ABI && DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL... */
                                                                           ) ||
                 (rp->is_virtual && !rp->pure_virtual &&
