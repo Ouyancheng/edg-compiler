@@ -228,6 +228,13 @@ extern a_boolean expr_tree_contains_template_param_constant(
 
 extern a_constant_ptr alloc_shareable_constant(a_constant *cp);
 
+/* Make sure "a_scope_stack_entry" is known as a struct tag before its use
+   below.  Otherwise, the declaration would be in the prototype scope.  The
+   "struct" form is used instead of the typedef name to avoid having to
+   include symbol_tbl.h. */
+typedef struct a_scope_stack_entry a_scope_stack_entry_dummy_typedef;
+extern a_scope_ptr ensure_il_scope_exists(struct a_scope_stack_entry *ssep);
+
 extern void add_to_constants_list(a_constant_ptr con_ptr,
                                   a_boolean      at_file_scope);
 
