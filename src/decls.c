@@ -8778,10 +8778,13 @@ clause is to be attached.  catch_pos is the source position of "catch".
           /* Definition of a class, struct, union, or enum type is not
              allowed. */
           pos_error(ec_type_definition_not_allowed, &decl_pos);
-        } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+        } else if (dso_flags & DSO_NO_DECL_SPECIFIERS) {
           /* Missing type specifier. */
           pos_error(ec_missing_exception_declaration, &decl_pos);
           type_ptr = error_type();
+        } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+          /* Implicit int. */
+          pos_warning(ec_missing_type_specifier, &decl_pos);
         }  /* if */
         sym = NULL;
         if (curr_token != tok_rparen) {
