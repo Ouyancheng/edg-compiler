@@ -993,30 +993,37 @@ See also 3.6.5.2.
 }  /* do_statement */
 
 
+static void expression_statement(void)
+/*
+Scan a (possibly nonexistent) expression statement.
+*/
+{
+  a_statement_ptr  sp;
+  an_expr_node_ptr expr;
+  a_seq_number     seq;
+
+  seq = pos_curr_token.seq;
+  expr = scan_void_expression();
+  /* Add the expression if is is not void. */
+  if (expr != NULL) {
+    sp = add_statement((a_statement_kind)stmk_expr);
+    sp->seq_number = seq;
+    sp->expr = expr;
+  }  /* if */
+}  /* expression_statement */
+
+
 static void for_init_statement(void)
 /*
 Scan the initializing expression or, in C++, declaration of a for statement.
 */
 {
-  a_statement_ptr  temp_stmt;
-  an_expr_node_ptr init_expr;
-  a_seq_number     temp_seq_number;
-
   if (C_dialect == C_dialect_cplusplus && is_declaration_not_expression()) {
     /* Scan a declaration (C++ only). */
     local_declaration();
   } else {
     /* Scan an expression.  It may be omitted. */
-    if (curr_token != tok_semicolon) {
-      temp_seq_number = pos_curr_token.seq;
-      init_expr = scan_void_expression();
-      /* Add the expression if is is not void. */
-      if (init_expr != NULL) {
-        temp_stmt = add_statement((a_statement_kind)stmk_expr);
-        temp_stmt->seq_number = temp_seq_number;
-        temp_stmt->expr = init_expr;
-      }  /* if */
-    }  /* if */
+    if (curr_token != tok_semicolon) expression_statement();
     (void)required_token(tok_semicolon, ec_exp_semicolon);
   }  /* if */
 }  /* for_init_statement */
@@ -1684,10 +1691,7 @@ static void statement(void)
 Scan a statement.  Add it to the current statement sequence.
 */
 {
-  a_statement_ptr  sp;
   a_label_ptr      label;
-  a_seq_number     temp_seq_number;
-  an_expr_node_ptr temp_expr;
   a_boolean        prev_was_label = FALSE;
 
   db_enter(3, "statement");
@@ -1826,13 +1830,7 @@ expr_statement:
         /* expression-statement (3.6.3). */
         add_stop_token(tok_semicolon);
         check_for_unreachable_code();
-        temp_seq_number = pos_curr_token.seq;
-        temp_expr = scan_void_expression();
-        if (temp_expr != NULL) {
-          sp = add_statement((a_statement_kind)stmk_expr);
-          sp->seq_number = temp_seq_number;
-          sp->expr = temp_expr;
-        }  /* if */
+        expression_statement();
         (void)required_token(tok_semicolon, ec_exp_semicolon);
         remove_stop_token(tok_semicolon);
         break;
