@@ -1,5 +1,13 @@
 Version 3.1
 
+1/20/03  EH destruction of base class subobjects, with construction vtables
+
+The front end and EH runtime have been updated to support the destruction
+of objects for which construction vtables are required.  Formerly, such
+objects could be destroyed successfully, but an attempt to use a virtual
+function during the destruction of the object would usually result in a
+runtime abort.  See the front end Changes file for more information.
+
 12/5/02  Incorrect size passed to delete routine by EH array cleanup
 
 If an exception is throw during the creation of a dynamically allocated
