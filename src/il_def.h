@@ -1553,9 +1553,6 @@ enum a_special_function_kind_tag {
   sfk_constructor,	/* A constructor. */
   sfk_destructor,	/* A destructor. */
   sfk_conversion,	/* A conversion operator function. */
-  sfk_new,		/* An operator new function. */
-  sfk_delete,		/* An operator delete function. */
-  sfk_assignment,	/* An assignment operator function. */
   sfk_operator,		/* Any other operator function. */
   sfk_last		/* Must be last. */
 };
@@ -1570,8 +1567,7 @@ Table of names corresponding to special function kinds, for debug purposes.
 EXTERN char     *db_special_function_kinds[(int)sfk_last + 1]
 #if VAR_INITIALIZERS
 = {
-   "none", "constructor", "destructor", "conversion",
-   "new", "delete", "assignment", "operator",
+   "none", "constructor", "destructor", "conversion", "operator",
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
