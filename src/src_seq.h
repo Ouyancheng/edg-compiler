@@ -1,0 +1,186 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1998 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+src_seq.h -- Declarations for support for source sequence list management
+
+*/
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+/*
+Macro to extract the kind from a source sequence entry or secondary
+declaration entry.
+*/
+#define ss_entry_kind(ssep) ((an_il_entry_kind)(ssep)->entity.kind)
+
+/*
+Macro to extract the pointer from a source sequence entry or secondary
+declaration entry.  It is cast to the indicated pointer type.
+*/
+#define ss_entry_ptr(ssep, type) ((type)(ssep)->entity.ptr)
+
+/*
+Return TRUE if the indicated source sequence entry points to a source sequence
+sublist header, i.e., it has kind iek_src_seq_sublist.
+*/
+#define is_sublist_parent(ssep) (ss_entry_kind(ssep) == iek_src_seq_sublist)
+
+/*
+ssep points to an iek_src_seq_sublist source sequence entry.  Such an entry
+resides on the function-scope source sequence list but points to a header
+for a sublist of file-scope source sequence entries.  Fetch and return a
+pointer to the sublist header.
+*/
+#define assoc_sublist_of(ssep) ss_entry_ptr((ssep), a_src_seq_sublist_ptr)
+
+#if DEBUG
+extern void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep);
+extern void db_ss_list(a_source_sequence_entry_ptr  ssep);
+extern void db_ss_list_for_scope_depth(a_scope_depth  depth);
+extern void db_ss_list_for_scope(a_scope_ptr  sp);
+#endif /* DEBUG */
+
+extern void fixup_function_scope_source_sequence_list(a_scope_ptr  sp);
+
+extern a_src_seq_secondary_decl_ptr make_source_sequence_secondary_decl(
+                                            char               *ptr,
+                                            an_il_entry_kind   kind,
+                                            a_type_ptr         declared_type);
+
+extern void add_source_sequence_entry_to_list(
+                                       a_source_sequence_entry_ptr new_ssep);
+
+extern void f_update_source_sequence_list(char                    *entity_ptr,
+                                          an_il_entry_kind        kind,
+                                          a_source_sequence_entry *old_ssep);
+
+/* Macro interface to f_update_source_sequence_list when there may be an
+   empty source-sequence entry on the list that needs to be filled in. */
+#define update_source_sequence_list(entity_ptr, kind, old_ssep)          \
+{ if (old_ssep != NULL || !source_sequence_entries_disallowed) {         \
+    f_update_source_sequence_list((entity_ptr), (kind), (old_ssep));     \
+  }  /* if */                                                            \
+}  /* update_source_sequence_list */
+
+/* Macro interface to f_update_source_sequence_list when a new entry is to
+   be added to the list. */
+#define add_to_source_sequence_list(entity_ptr, kind)                    \
+{ if (!source_sequence_entries_disallowed) {                             \
+    f_update_source_sequence_list((entity_ptr), (kind),                  \
+                                  (a_source_sequence_entry_ptr)NULL);    \
+  }  /* if */                                                            \
+}  /* add_to_source_sequence_list */
+
+
+extern a_src_seq_sublist_ptr sublist_header_of(
+                                            a_source_sequence_entry_ptr ssep);
+
+extern a_source_sequence_entry_ptr add_empty_source_sequence_entry(void);
+
+extern void add_end_of_construct_source_sequence_entry(
+                                                char                   *ptr,
+                                                a_byte_il_entry_kind   kind);
+
+extern void reset_ss_list_instantiation_insert_point(void);
+
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
+extern a_scope_depth scope_depth_for_class_ss_list(a_type_ptr  class_type);
+
+extern void add_source_sequence_entry_for_partial_instantiation(
+                                            char               *ptr,
+                                            an_il_entry_kind   kind,
+                                            a_type_ptr         declared_type);
+
+extern void insert_src_seq_list(a_source_sequence_entry_ptr  head,
+                                a_source_sequence_entry_ptr  tail,
+                                a_scope_stack_entry_ptr      scope_stack_ptr,
+                                a_source_sequence_entry_ptr  insert_point);
+
+extern void f_move_src_seq_list(a_source_sequence_entry_ptr  head,
+                                a_source_sequence_entry_ptr  tail,
+                                a_scope_stack_entry_ptr      source_sse_ptr,
+                                a_source_sequence_entry_ptr  insert_point,
+                                a_scope_stack_entry_ptr      target_sse_ptr);
+
+#define move_src_seq_list(head, tail, insert_point)			\
+  f_move_src_seq_list((head), (tail),					\
+                      &scope_stack[depth_scope_stack],			\
+                      (insert_point),					\
+                      &scope_stack[depth_scope_stack])
+
+#define move_src_seq_entry(ssep, insert_point)				\
+  move_src_seq_list((ssep), (ssep), (insert_point))
+  
+extern void insert_instantiation_src_seq_list(
+                             a_scope_stack_entry_ptr  curr_scope_stack_ptr);
+
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
+extern void check_for_and_remove_redundant_secondary_decl_ss_entry(
+                                                       a_type_ptr class_type);
+
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+
+extern void f_remove_from_source_sequence_list(
+                                a_source_sequence_entry_ptr ssep,
+                                a_scope_stack_entry_ptr     scope_stack_ptr);
+
+#define remove_from_source_sequence_list(ssep)                          \
+  f_remove_from_source_sequence_list(ssep, &scope_stack[depth_scope_stack])
+
+extern void remove_sublist_header_and_parent(
+                                      a_src_seq_sublist_ptr        sublist,
+                                      a_source_sequence_entry_ptr  parent);
+
+extern a_source_sequence_entry_ptr last_matching_source_sequence_entry(
+                                                               char *entity);
+
+extern a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_type(
+                                               char        *il_entry_ptr,
+                                               a_type_ptr  type,
+                                               a_boolean   is_specialization);
+
+extern void set_autonomous_tag_decl_flag(a_type_ptr  type,
+                                         a_boolean   is_definition);
+
+extern void set_first_declaration_flag(char *entity);
+
+extern a_type_ptr type_from_src_seq_declaration(
+                                             a_source_sequence_entry_ptr ssep);
+
+#if MAINTAIN_NEEDED_FLAGS
+
+extern void eliminate_class_body_source_sequence_entries(a_type_ptr tp);
+
+extern void eliminate_function_body_source_sequence_entries(a_scope_ptr sp);
+
+extern void eliminate_unneeded_source_sequence_entries(a_scope_ptr sp);
+
+#endif /* MAINTAIN_NEEDED_FLAGS */
+
+extern void src_seq_one_time_init(void);
+
+extern void src_seq_init(void);
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1998 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/

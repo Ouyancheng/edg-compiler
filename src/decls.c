@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1998 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -907,119 +907,6 @@ consistent with that of the previous declaration.
   db_exit();
 }  /* check_exception_specification */
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-
-a_source_sequence_entry_ptr init_param_source_sequence_sublist(void)
-/*
-Return a pointer to a source sequence entry that will be the predecessor of
-any entries generated for a function prototype scope.
-*/
-{
-  a_source_sequence_entry_ptr  ssep;
-
-  if (!source_sequence_entries_disallowed) {
-    /* Locate the last source sequence entry on the current list. */
-    ssep = scope_stack[depth_innermost_ss_list_scope].
-                                            last_source_sequence_entry;
-    if (ssep != NULL && is_sublist_parent(ssep)) {
-      /* It marks a sublist, so get the last entry on the sublist. */
-      ssep = assoc_sublist_of(ssep)->last_source_sequence_entry;
-    }  /* if */
-  } else {
-    ssep = NULL;
-  }  /* if */
-  return ssep;
-}  /* init_param_source_sequence_sublist */
-
-
-void terminate_param_source_sequence_sublist(
-                                     a_func_info_block_ptr        func_info,
-                                     a_source_sequence_entry_ptr  prev)
-/*
-Add pointers to *func_info identifying the starting and ending source sequence
-entries of the function prototype scope declarations.  If it turns out that
-this declaration is a function definition, the list segment marked by these
-pointers may have to be moved from the file scope source sequence list to the
-function scope source sequence list -- see scan_function_body.
-*/
-{
-  a_source_sequence_entry_ptr  starting_ssep, ending_ssep;
-  a_src_seq_sublist_ptr        sublist = NULL;
-
-  if (!source_sequence_entries_disallowed) {
-    /* The first entry in the function prototype list segment is prev's
-       successor. */
-    if (prev != NULL) {
-      starting_ssep = prev->next;
-    } else {
-      /* Prev is NULL, so use the first entry on the current list. */
-      starting_ssep = scope_stack[depth_innermost_ss_list_scope].
-                                            il_scope->source_sequence_list;
-    }  /* if */
-    if (starting_ssep != NULL) {
-      /* If starting_ssep is a sublist parent, it is the first entry on its
-         sublist we're interested in. */
-      if (is_sublist_parent(starting_ssep)) {
-        sublist = assoc_sublist_of(starting_ssep);
-        starting_ssep = sublist->source_sequence_list;
-      }  /* if */
-      /* Record the starting entry. */
-      func_info->prototype_scope_ss_entry_start = starting_ssep;
-      /* Find the ending entry. */
-      if (depth_innermost_ss_list_scope != DEPTH_OF_FILE_SCOPE) {
-        /* This function declaration appears inside a function scope, so the
-           ending source sequence entry is the end of the sublist. */
-#if CHECKING
-        {
-        a_source_sequence_entry_ptr  ssep;
-
-        ssep = scope_stack[depth_innermost_ss_list_scope].
-                                                 last_source_sequence_entry;
-        check_assertion(is_sublist_parent(ssep));
-        check_assertion(assoc_sublist_of(ssep) ==
-                        (sublist != NULL ? sublist :
-                                           sublist_header_of(starting_ssep)));
-        }
-#endif /* CHECKING */
-        if (sublist != NULL) {
-          /* The sublist header has already been determined. */
-          ending_ssep = sublist->last_source_sequence_entry;
-        } else {
-          /* The sublist header is unknown, so just search to the end of the
-             list. */
-          ending_ssep = starting_ssep;
-          while (ending_ssep->next != NULL) ending_ssep = ending_ssep->next;
-        }  /* if */
-      } else {
-        /* The ending source sequence entry is simply the end of the file scope
-           list. */
-        ending_ssep =
-                 scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry;
-      }  /* if */
-      /* Record the ending entry. */
-      func_info->prototype_scope_ss_entry_end = ending_ssep;
-#if DEBUG
-      if (debug_level >= 4) {
-        fputs("function prototype source sequence list:\n", f_debug);
-        if (func_info->prototype_scope_ss_entry_start == NULL) {
-          fputs("  <empty list>\n", f_debug);
-        } else {
-          a_source_sequence_entry_ptr  tmp_prev, tmp_next;
-          tmp_prev = func_info->prototype_scope_ss_entry_start->prev;
-          func_info->prototype_scope_ss_entry_start->prev = NULL;
-          tmp_next = func_info->prototype_scope_ss_entry_end->next;
-          func_info->prototype_scope_ss_entry_end->next = NULL;
-          db_source_sequence_list(func_info->prototype_scope_ss_entry_start);
-          func_info->prototype_scope_ss_entry_start->prev = tmp_prev;
-          func_info->prototype_scope_ss_entry_end->next = tmp_next;
-        }  /* if */
-      }  /* if */
-#endif /* DEBUG */
-    }  /* if */
-  }  /* if */
-}  /* terminate_param_source_sequence_sublist */
-
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 a_routine_ptr make_routine(a_type_ptr      type_ptr,
                            a_storage_class storage_class,
@@ -2977,39 +2864,6 @@ not be TRUE.
   db_exit();
 }  /* reconcile_routine_types */
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-
-a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_type(
-                                               char        *il_entry_ptr,
-                                               a_type_ptr  type,
-                                               a_boolean   new_style_spec)
-/*
-Set the declared_type field to "type" in the recently created secondary
-source sequence entry created for the IL entry pointed to by il_entry_ptr.
-Also, set the specialized_with_new_syntax flag in the new entry to the value
-indicated by new_style_spec.
-*/
-{
-  a_source_sequence_entry_ptr   ssep;
-  a_src_seq_secondary_decl_ptr  sssdp = NULL;
-
-  if (source_sequence_entries_disallowed) {
-    /* We are in a context in which source sequence entries are not being
-       created.  No further action is required. */
-  } else {
-    ssep = last_matching_source_sequence_entry(il_entry_ptr);
-    if (ssep != NULL) {
-      check_assertion(ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
-      sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
-      sssdp->declared_type = type;
-      sssdp->specialized_with_new_syntax = new_style_spec;
-    }  /* if */
-  }  /* if */
-  return sssdp;
-}  /* set_src_seq_secondary_decl_type */
-
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-
 
 static void mark_symbol_to_suppress_warnings(a_symbol_ptr  sym)
 /*
@@ -4646,6 +4500,14 @@ skip_overloading:;
     /* Mark this function as defined in a friend declaration. */
     routine_ptr->defined_in_friend_decl = TRUE;
   }  /* if */
+  /* Restore the scope stack. */
+  if (namespace_reactivated)  {
+    if (is_friend_decl) {
+      pop_namespace_reactivation_scope();
+    } else {
+      pop_namespace_extension_scope();
+    }  /* if */
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Do fixup on the source sequence entry that was just created to
      represent the current declaration.  Note that declaration_ssep is not
@@ -4714,14 +4576,6 @@ skip_overloading:;
          (No diagnostic is issued on nondefinition -- the exception
          specification is just ignored.) */
       pos_error(ec_no_exception_support, &func_info->throw_position);
-    }  /* if */
-  }  /* if */
-  /* Restore the scope stack. */
-  if (namespace_reactivated)  {
-    if (is_friend_decl) {
-      pop_namespace_reactivation_scope();
-    } else {
-      pop_namespace_extension_scope();
     }  /* if */
   }  /* if */
   /* Do processing required for the rest of the pragmas, if any, that are
@@ -5981,7 +5835,7 @@ cv-qualifier).
       severity = es_discretionary_error;
     }  /* if */
   } else {
-    /* Non-function declaration with at some some decl-specifiers -- e.g.,
+    /* Non-function declaration with at least some decl-specifiers -- e.g.,
        "const i;" or "typedef const CI;".  Use a different message and
        severity in C++ than in C, since it's a standards violation in C++. */
     if (C_mode()) {
@@ -6859,7 +6713,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
           }  /* if */
           /* Both the copy constructor and destructor must be accessible in
              the context of the handler (15.3 [except.handle] para 17).
-             (However, the Microsoft compiler doesn't enforce accessibilty
+             (However, the Microsoft compiler doesn't enforce accessibility
              of copy constructors). */
           cctor = select_copy_constructor(type_ptr,
                                           (a_type_qualifier_set)TQ_NONE,
@@ -7551,6 +7405,8 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
         make_using_directive(nsp, &pos_curr_token);
         (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
                                    nsp);
+        scope_stack[depth_scope_stack].
+                              explicitly_declared_namespace_extension = TRUE;
       }  /* if */
       srk_flags |= SRK_DEFINITION;
     } else {
@@ -7562,6 +7418,8 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       nsp = ns_sym->variant.namespace_info.ptr;
       (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
                                  skip_namespace_aliases(nsp));
+      scope_stack[depth_scope_stack].
+                             explicitly_declared_namespace_extension = TRUE;
     }  /* if */
     record_symbol_declaration(srk_flags, ns_sym, &locator.source_position,
                               namespace_ssep);
@@ -7603,8 +7461,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
      list, remove it now. */
   if (namespace_ssep != NULL &&
       namespace_ssep->entity.kind == (a_byte_il_entry_kind)iek_none) {
-    a_src_seq_sublist_ptr  dummy = NULL;
-    remove_from_source_sequence_list(namespace_ssep, &dummy);
+    remove_from_source_sequence_list(namespace_ssep);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* namespace_declaration */
@@ -8208,8 +8065,7 @@ of local variables (and types, etc.) of functions and in blocks.
        to the first source sequence entry that
        add_source_sequence_entry_to_list sees, which should be the first
        entry associated with the current declaration. */
-    scope_stack[DEPTH_OF_FILE_SCOPE].  /* sic -- no distinct namespace lists.*/
-                       ss_list_instantiation_insert_point = NULL;
+    reset_ss_list_instantiation_insert_point();
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (linkage_spec_range_ptr != NULL) {
@@ -8511,8 +8367,7 @@ continue_with_declaration:
         /* This is a declaration at file scope, and not the first declarator
            in the declarator list.  As for the start of the declaration,
            set the source-sequence insert point for instantiations to NULL. */
-        scope_stack[DEPTH_OF_FILE_SCOPE]. /* sic -- no namespace lists. */
-                                ss_list_instantiation_insert_point = NULL;
+        reset_ss_list_instantiation_insert_point();
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Save the source position of the first token of the declarator. */
@@ -8882,16 +8737,17 @@ continue_with_declaration:
                                       is_main_function,
                                       !decl_specifiers_omitted);
       }  /* if */
-      if (top_declarator_type_is_function &&
-          func_info.param_id_list != NULL) {
-        /* If the function has a non-empty old-style identifier list of
-           parameters, a body should have been present. */
-        if (!skip_typerefs(local_type_ptr)->
+      if (top_declarator_type_is_function) {
+        if (func_info.param_id_list != NULL) {
+          /* If the function has a non-empty old-style identifier list of
+             parameters, a body should have been present. */
+          if (!skip_typerefs(local_type_ptr)->
                                   variant.routine.extra_info->prototyped) {
-          error(ec_param_id_list_needs_function_def);
+            error(ec_param_id_list_needs_function_def);
+          }  /* if */
+          /* Update xref info on param ids. */
+          record_param_id_list_declarations(&func_info);
         }  /* if */
-        /* Update xref info on param ids. */
-        record_param_id_list_declarations(func_info.param_id_list);
       }  /* if */
       /* Do some checking of storage classes, but not for typedefs. */
       if (local_storage_class != (a_storage_class)sc_typedef) {
@@ -9458,8 +9314,7 @@ In C++, however, the declaration list is optional (3.4):
   /* Do any end-of-translation unit pragma processing that may be required. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* First reset the point for instantiations to NULL. */
-  scope_stack[DEPTH_OF_FILE_SCOPE].
-                       ss_list_instantiation_insert_point = NULL;
+  reset_ss_list_instantiation_insert_point();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   process_pragmas_at_end_of_source();
 }  /* translation_unit */
@@ -9488,6 +9343,6 @@ scanning a translation-unit, except there's no diagnostic on the empty file.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1998 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -304,16 +304,6 @@ extern void check_exception_specification(a_type_ptr         new_rout_type,
                                           a_boolean          is_redecl);
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-extern a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_type(
-                                               char        *il_entry_ptr,
-                                               a_type_ptr  type,
-                                               a_boolean   is_specialization);
-
-extern a_source_sequence_entry_ptr init_param_source_sequence_sublist(void);
-
-extern void terminate_param_source_sequence_sublist(
-                                     a_func_info_block_ptr        func_info,
-                                     a_source_sequence_entry_ptr  prev);
 
 extern void set_routine_declared_type(a_routine_ptr  routine_ptr,
                                       a_type_ptr     declared_type);

@@ -33,6 +33,7 @@ incorporated:
     lexical.h
     mem_manage.h
     mem_tables.h
+    src_seq.h
     symbol_tbl.h
     types.h
     targ_def.h
@@ -94,6 +95,11 @@ incorporated:
 
 /* Type system support. */
 #include "types.h"
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+/* Source sequence list management */
+#include "src_seq.h"
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if DEBUG
 /* Debug declarations. */

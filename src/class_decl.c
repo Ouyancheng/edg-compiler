@@ -771,6 +771,12 @@ Process the default argument expressions for the indicated class.
   a_boolean                         is_real_template_instantiation = FALSE;
   a_boolean                         is_nonreal_template_instantiation = FALSE;
   a_boolean                         is_friend;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_scope_depth                     scope_depth = NO_SCOPE_DEPTH;
+  a_source_sequence_entry_ptr       orig_insert_point;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "default_argument_fixup_for_class");
   /* Go through all the routine fixup entries created for the class twice,
@@ -832,10 +838,6 @@ Process the default argument expressions for the indicated class.
        default argument.  When it is FALSE, the third constraint is ignored
        and the instantiation is entered in the innermost namespace scope
        containing the class declaration. */
-    {
-    a_boolean                     ss_list_insert_point_adjusted = FALSE;
-    a_src_seq_secondary_decl_ptr  sssdp;
-
     if (!instantiations_permitted_in_class_src_seq_list &&
         !is_nonreal_template_instantiation &&
         !class_type->source_corresp.is_local_to_function) {
@@ -850,39 +852,24 @@ Process the default argument expressions for the indicated class.
           fputs("\"\n", f_debug);
         }  /* if */
 #endif /* DEBUG */
-        push_ss_insert_stack(class_type->source_corresp.source_sequence_entry);
-        ss_list_insert_point_adjusted = TRUE;
-        /* Put out a secondary-decl source sequence entry, in case the
-           instantiations, if any, have template arguments involving the
-           current class type. */
+        /* Determine the scope into which instantiations will be inserted.
+           It will be the innermost active namespace scope that is a parent
+           of class_type. */
+        scope_depth = scope_depth_for_class_ss_list(class_type);
+        /* Save the instantiation insert point in that scope (so it can be
+           restored later) and replace it with the source sequence entry for
+           the class, so that specializations will be inserted before the
+           class in the source sequence list. */
+        orig_insert_point =
+                 scope_stack[scope_depth].ss_list_instantiation_insert_point;
+        scope_stack[scope_depth].ss_list_instantiation_insert_point =
+                           class_type->source_corresp.source_sequence_entry;
         if (depth_innermost_namespace_scope != NO_SCOPE_DEPTH) {
           /* Reactivate the class (and the file-scope memory region). */
           push_class_and_template_reactivation_scope(class_type,
                                                      is_template_based);
           curr_scope_class_type = class_type;
         }  /* if */
-        sssdp = alloc_src_seq_secondary_decl();
-        sssdp->decl_position = class_type->source_corresp.decl_position;
-        sssdp->entity.ptr = (char *)class_type;
-        sssdp->entity.kind = (a_byte_il_entry_kind)iek_type;
-        sssdp->declared_type = class_type;
-        sssdp->autonomous_tag_decl = TRUE;
-        if (is_real_template_instantiation) {
-#if BACK_END_IS_CP_GEN_BE
-          sssdp->specialized_with_new_syntax =
-                            !old_specializations_for_generated_instances;
-#else /* !BACK_END_IS_CP_GEN_BE */
-          sssdp->specialized_with_new_syntax = TRUE;
-#endif /* BACK_END_IS_CP_GEN_BE */
-        }  /* if */
-        /* Add the entry to the source sequence list. */
-        f_update_source_sequence_list(
-                              (char *)sssdp,
-                              (an_il_entry_kind)iek_src_seq_secondary_decl,
-                              (a_source_sequence_entry_ptr)NULL);
-        /* Be sure any instantiations are added *after* this entry. */
-        scope_stack[DEPTH_OF_FILE_SCOPE].
-                              ss_list_instantiation_insert_point = NULL;
       }  /* if */
     }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -984,15 +971,6 @@ Process the default argument expressions for the indicated class.
             ssep = last_matching_source_sequence_entry(
                                      il_entry_for_symbol(sym, &kind));
             check_assertion(ssep != NULL);
-            push_ss_insert_stack(ssep);
-            ss_list_insert_point_adjusted = TRUE;
-          } else {
-            /* If a default argument on a member function declaration of a
-               local class triggers an instantiation, it should be recorded
-               in the nearest enclosing namespace scope.  That's what the
-               "instantiation insert point" should be set to already, so
-               nothing else needs to be done. */
-            ss_list_insert_point_adjusted = FALSE;
           }  /* if */
         }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -1064,44 +1042,26 @@ Process the default argument expressions for the indicated class.
           copy_routine_type_default_args(routine_symbol_type(sym),
                                          rfp->func_info.declared_type);
         }  /* if */
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-        if (instantiations_permitted_in_class_src_seq_list &&
-            ss_list_insert_point_adjusted) {
-          pop_ss_insert_stack();
-        }  /* if */
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
         }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
     }  /* for */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    /* Restore the insert-point state. */
-    if (!instantiations_permitted_in_class_src_seq_list &&
-        ss_list_insert_point_adjusted) {
-      a_source_sequence_entry_ptr  ssep;
-
-      pop_ss_insert_stack();
-      /* If no instantiation was added between the source-sequence entry
-         for the definition of the class and the secondary-decl entry added
-         before it (see above), the latter can be removed. */
-      ssep = class_type->source_corresp.source_sequence_entry->prev;
-      if (ss_entry_kind(ssep) ==
-                       (an_il_entry_kind)iek_src_seq_secondary_decl) {
-        sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-        if (sssdp->entity.ptr == (char *)class_type) {
-          a_src_seq_sublist_ptr  dummy = NULL;
-          remove_from_source_sequence_list(ssep, &dummy);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    }
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (curr_scope_class_type != NULL) {
       /* Pop the reactivated class scope from the scope stack. */
       pop_class_reactivation_scope();
     }  /* if  */
+
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    if (scope_depth != NO_SCOPE_DEPTH) {
+      scope_stack[scope_depth].ss_list_instantiation_insert_point =
+                                                        orig_insert_point;
+    }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+
   }  /* if */
   db_exit();
 }  /* default_argument_fixup_for_class */
@@ -1123,6 +1083,12 @@ nested class.
   a_boolean                         is_real_template_instantiation = FALSE;
   a_boolean                         is_nonreal_template_instantiation = FALSE;
   a_boolean                         is_friend;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_scope_depth                     scope_depth;
+  a_source_sequence_entry_ptr       orig_insert_point, insert_point;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "inline_function_fixup_for_class");
   /* First go though the routine fixup entries and scan the default
@@ -1143,10 +1109,14 @@ nested class.
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    {
-    a_boolean  ss_list_insert_point_adjusted = FALSE;
+    scope_depth = scope_depth_for_class_ss_list(class_type);
+    orig_insert_point = scope_stack[scope_depth].
+                                        ss_list_instantiation_insert_point;
+    scope_stack[scope_depth].ss_list_instantiation_insert_point = NULL;
+    insert_point = NULL;
 
-    if (!class_type->source_corresp.is_local_to_function) {
+    if (!class_type->source_corresp.is_local_to_function &&
+        !is_nonreal_template_instantiation) {
       /* Temporarily remove source sequence entries, if any that have been
          entered after the end-of-construct entry for the class that was just
          defined.  Here's an example why:  Sometimes the definition of a
@@ -1158,17 +1128,18 @@ nested class.
            } x = f();
          the definition of f must be moved to a position that precedes the
          declaration of x even while following the declaration of A. */
-      a_source_sequence_entry_ptr  tail;
+      a_source_sequence_entry_ptr     tail;
+      a_src_seq_end_of_construct_ptr  sseocp;
 
       /* Check the end of the source sequence list. */
-      tail = scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry;
       /* Unless the last entry on the source sequence list is an
          end-of-construct entry that corresponds to the end of the
          definition of class_type, back up until it's found. */
-      for (; tail != NULL; tail = tail->prev) {
+      for (tail = scope_stack[scope_depth].end_of_source_sequence_list;;
+           tail = tail->prev) {
+        check_assertion(tail != NULL);
         if (ss_entry_kind(tail) ==
                   (an_il_entry_kind)iek_src_seq_end_of_construct) {
-          a_src_seq_end_of_construct_ptr  sseocp;
           sseocp = (a_src_seq_end_of_construct_ptr)tail->entity.ptr;
           if (sseocp->entity.ptr == (char *)class_type) {
 #if DEBUG
@@ -1179,10 +1150,7 @@ nested class.
               fputs("\"\n", f_debug);
             }  /* if */
 #endif /* DEBUG */
-            if (tail->next != NULL) {
-              push_ss_insert_stack(tail->next);
-              ss_list_insert_point_adjusted = TRUE;
-            }  /* if */
+            insert_point = tail->next;
             break;
           }  /* if */
         }  /* for */
@@ -1193,8 +1161,6 @@ nested class.
       if (rfp->is_partial_instantiation) {
         /* Add a secondary-decl source sequence entry to the source sequence
            list to represent a partial instantiation. */
-        a_template_instance_ptr       tip;
-
         if (curr_scope_class_type != rfp->class_type) {
           if (curr_scope_class_type != NULL) {
             /* Pop the reactivated class scope from the scope stack. */
@@ -1206,13 +1172,16 @@ nested class.
           curr_scope_class_type = rfp->class_type;
         }  /* if */
         if (!source_sequence_entries_disallowed) {
+          a_template_instance_ptr      tip;
+          a_source_sequence_entry_ptr  ssep;
+
           tip = rfp->symbol->variant.routine.instance_ptr;
           check_assertion(tip != NULL && tip->partial_instantiation != NULL);
-          f_update_source_sequence_list(
-                               (char *)tip->partial_instantiation,
-                               (an_il_entry_kind)iek_src_seq_secondary_decl,
-                               (a_source_sequence_entry_ptr)NULL);
-          tip->partial_instantiation = NULL;
+          ssep = tip->partial_instantiation;
+          insert_src_seq_list(ssep, ssep, &scope_stack[scope_depth],
+                              insert_point);
+          rfp->symbol->variant.routine.ptr->
+                         source_corresp.source_sequence_entry = ssep;
         }  /* if */
       }  /* if */
     }  /* for */
@@ -1257,14 +1226,12 @@ nested class.
             /* Be sure any source sequence entries created while scanning
                the declaration of this function have been removed. */
             a_param_id_ptr         pid = rfp->func_info.param_id_list;
-            a_src_seq_sublist_ptr  sublist = NULL;
 
             for (; pid != NULL; pid = pid->next) {
               if (pid->source_sequence_entry != NULL) {
                 check_assertion(ss_entry_kind(pid->source_sequence_entry) ==
                                                   (an_il_entry_kind)iek_none);
-                remove_from_source_sequence_list(pid->source_sequence_entry,
-                                                 &sublist);
+                remove_from_source_sequence_list(pid->source_sequence_entry);
                 pid->source_sequence_entry = NULL;
               }  /* if */
             }  /* for */
@@ -1296,10 +1263,10 @@ nested class.
                entry was put out for the member or friend function
                definition.  The primary source sequence entry was deferred
                till now, when the class definition is complete. */
+            a_source_sequence_entry_ptr  ssep;
 #if CHECKING
             if (!sym->is_error) {
-              a_source_sequence_entry_ptr  ssep = rp->source_corresp.
-                                                    source_sequence_entry;
+              ssep = rp->source_corresp.source_sequence_entry;
               check_assertion(ss_entry_kind(ssep) ==
                                 (an_il_entry_kind)iek_src_seq_secondary_decl);
             }  /* if */
@@ -1310,16 +1277,22 @@ nested class.
             rp->source_corresp.source_sequence_entry = NULL;
             add_to_source_sequence_list((char *)rp,
                                         (an_il_entry_kind)iek_routine);
+            ssep = rp->source_corresp.source_sequence_entry;
+            if (insert_point != NULL || scope_depth != depth_scope_stack) {
+              f_move_src_seq_list(ssep, ssep, &scope_stack[depth_scope_stack],
+                                  insert_point, &scope_stack[scope_depth]);
+            }  /* if */
+            /* Assure that instantiations triggered within the body of the
+               relocated function are recorded in the source-sequence list
+               immediately before it. */
+            scope_stack[scope_depth].
+                           ss_list_instantiation_insert_point = ssep;
             /* Since a source-sequence entry for the member function is being
                inserted immediately after the end-of-construct-entry for the
                class, mark this as an autonomous class definition (even if
                it wasn't); otherwise, invalid code may be put out by the
                C++-generating back end. */
             class_type->autonomous_primary_tag_decl = TRUE;
-            /* Assure that instantiations triggered within the body of the
-               relocated function are recorded in the source-sequence list
-               immediately before it. */
-            push_ss_insert_stack(rp->source_corresp.source_sequence_entry);
           }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -1336,11 +1309,27 @@ nested class.
              which was inserted to mark the end of the cached token stream.
              If necessary, keep flushing until end-of-source is found. */
           flush_past_token_cache_terminator();
+          if (curr_scope_class_type != rfp->class_type) {
+            if (curr_scope_class_type != NULL) {
+              /* Pop the reactivated class scope from the scope stack. */
+              pop_class_reactivation_scope();
+            }  /* if  */
+            /* Reactivate the class. */
+            push_class_and_template_reactivation_scope(rfp->class_type,
+                                                       is_template_based);
+            curr_scope_class_type = rfp->class_type;
+          }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
           if (rfp->func_info.is_movable_member_or_friend_def &&
               !source_sequence_entries_disallowed) {
-            pop_ss_insert_stack();
+            if (curr_scope_class_type != NULL) {
+              /* Pop the reactivated class scope from the scope stack. */
+              pop_class_reactivation_scope();
+              curr_scope_class_type = NULL;
+            }  /* if  */
+            scope_stack[scope_depth].
+                           ss_list_instantiation_insert_point = insert_point;
           }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -1357,8 +1346,8 @@ nested class.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     /* Restore the insert-point state. */
-    if (ss_list_insert_point_adjusted) pop_ss_insert_stack();
-    }
+    scope_stack[scope_depth].
+                  ss_list_instantiation_insert_point = orig_insert_point;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* The delayed scan fixup entries have been freed, so clear the
@@ -3813,16 +3802,6 @@ or struct definition.  The syntax is
     fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  {
-  /* Save the current instantiation insert point -- it may be cleared and
-     will need to be restored to its current value. */
-  a_source_sequence_entry_ptr  saved_insert_point =
-                                        scope_stack[DEPTH_OF_FILE_SCOPE].
-                                          ss_list_instantiation_insert_point;
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (type_ptr->kind == (a_type_kind)tk_union) {
     /* Unions cannot have base classes.  Issue an error, but go ahead and scan
        the base class specifiers (without updating the type supplement). */
@@ -3876,14 +3855,18 @@ or struct definition.  The syntax is
     }  /* for */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    if (depth_innermost_ss_list_scope == DEPTH_OF_FILE_SCOPE &&
+    {
+    a_source_sequence_entry_ptr  saved_insert_point = NULL;
+
+    if (depth_innermost_function_scope == NO_SCOPE_DEPTH &&
         cssp->class_template == NULL) {
       /* Clear the instantiation insert point to assure that any
          instantiations triggered by the base specifier will appear right
          after the entry for the current class.  The order will be fixed up
          later. */
-      scope_stack[DEPTH_OF_FILE_SCOPE].
-                     ss_list_instantiation_insert_point = NULL;
+      saved_insert_point = scope_stack[depth_scope_stack].
+                                         ss_list_instantiation_insert_point;
+      reset_ss_list_instantiation_insert_point();
     }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -4281,6 +4264,16 @@ skip_base_class:
       /* Advance past the base class name to the comma or right brace. */
       (void)get_token();
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    /* Restore the instantiation insert point. */
+    if (saved_insert_point != NULL) {
+      scope_stack[depth_scope_stack].ss_list_instantiation_insert_point =
+                                                          saved_insert_point;
+    }  /* if */
+    }
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Advance past the next comma, if any, and scan the next base class
        specifier. */
     remove_stop_token(tok_comma);
@@ -4304,83 +4297,27 @@ skip_base_class:
     a_source_sequence_entry_ptr  ssep = type_ptr->source_corresp.
                                                    source_sequence_entry;
     if (ssep != NULL && ssep->next != NULL) {
-      a_source_sequence_entry_ptr   new_ssep = NULL, prev, last;
+#if DEBUG
+      a_source_sequence_entry_ptr   prev = ssep->prev;
+#endif /* DEBUG */
 
-      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-        if (bcp->direct &&
-            template_args_involve_specific_class_type(bcp->type, type_ptr)) {
-          /* At least one of the base classes is a specialization that
-             depends on the current class (the one for which the base
-             classes are being specified).  When the entries for base class
-             instantiations are moved in front of the start of the current
-             class's definition, a nondefining declaration of the current
-             class will be needed in front of the instantiation.  Therefore,
-             remove the source sequence entry for the current class type
-             from the list and replace it with a secondary-decl entry. */
-          a_src_seq_secondary_decl_ptr  sssdp;
-
-          check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
-          sssdp = alloc_src_seq_secondary_decl();
-          sssdp->decl_position = type_ptr->source_corresp.decl_position;
-          sssdp->entity.ptr = (char *)type_ptr;
-          sssdp->entity.kind = (a_byte_il_entry_kind)iek_type;
-          sssdp->declared_type = type_ptr;
-          sssdp->autonomous_tag_decl = TRUE;
-          if (type_ptr->variant.class_struct_union.is_template_class) {
-#if BACK_END_IS_CP_GEN_BE
-            sssdp->specialized_with_new_syntax =
-                            !old_specializations_for_generated_instances;
-#else /* !BACK_END_IS_CP_GEN_BE */
-            sssdp->specialized_with_new_syntax = TRUE;
-#endif /* BACK_END_IS_CP_GEN_BE */
-          }  /* if */
-          new_ssep = alloc_source_sequence_entry();
-          new_ssep->entity.kind =
-                        (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
-          new_ssep->entity.ptr = (char *)sssdp;
-          break;
-        }  /* if */
-      }  /* for */
       /* Unlink the source sequence entry for the current class and
          replace it in the list with the new entry, if there is one. */
-      check_assertion(ssep->prev != NULL);
-      prev = ssep->prev;
-      if (new_ssep != NULL) {
-        prev->next = new_ssep;
-        new_ssep->prev = prev;
-        ssep->next->prev = new_ssep;
-        new_ssep->next = ssep->next;
-      } else {
-        prev->next = ssep->next;
-        ssep->next->prev = prev;
-      }  /* if */
-      /* The source sequence entry associated with the definition of the
-         current class is moved to the end of the source sequence list, so
-         that it follows all entries representing instantiations that its
-         base specifiers depend on. */
-      check_assertion(depth_innermost_ss_list_scope == DEPTH_OF_FILE_SCOPE);
-      last = scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry;
-      last->next = ssep;
-      ssep->prev = last;
-      ssep->next = NULL;
-      /* Update the end-of-list pointer. */
-      scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry = ssep;
+      move_src_seq_entry(ssep, (a_source_sequence_entry_ptr)NULL);
 #if DEBUG
       if (debug_level >= 4 ||
           db_flag_is_set("dump_ss_full") ||
           db_flag_is_set("base_specifiers")) {
-        fputs("moved base class entries for \"", f_debug);
+        fputs("moved base class ss entries for \"", f_debug);
         db_type_name(type_ptr);
         fputs("\":\n", f_debug);
-        db_source_sequence_list(prev->next);
+        db_ss_list(prev != NULL ?
+                      prev->next :
+                      scope_stack[depth_scope_stack].source_sequence_list);
       }  /* if */
 #endif /* DEBUG */
     }  /* if */
   }  /* if */
-  /* Restore the instantiation insert point, in case it was modified. */
-  scope_stack[DEPTH_OF_FILE_SCOPE].ss_list_instantiation_insert_point =
-                                                          saved_insert_point;
-  }
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DEBUG
@@ -4715,8 +4652,7 @@ of the function, and again overloading is a possibility.
            prototype instantiations.  However, friend declarations are not
            processed at all: there is no routine entry, so there can be no
            source sequence entry. */
-        a_src_seq_sublist_ptr  dummy = NULL;
-        remove_from_source_sequence_list(func_info->declarator_ssep, &dummy);
+        remove_from_source_sequence_list(func_info->declarator_ssep);
         func_info->declarator_ssep = NULL;
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -10071,7 +10007,7 @@ to be returned to the caller.
       }  /* if */
       if (!function_def_present) {
         /* Update xref info on param ids. */
-        record_param_id_list_declarations(func_info.param_id_list);
+        record_param_id_list_declarations(&func_info);
       }  /* if */
       if (curr_routine_fixup != NULL) {
         /* Update the symbol pointer in the fixup entry -- it's needed when
@@ -10556,6 +10492,11 @@ nested classes when their definition appears outside of the class template.
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_pack_alignment_state           saved_pack_alignment_state;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_scope_depth                   class_scope_depth;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "scan_class_definition");
   initialize_class_def_state(class_type, &class_state);
@@ -10579,6 +10520,16 @@ nested classes when their definition appears outside of the class template.
   class_type->variant.class_struct_union.max_member_alignment =
                                   current_max_alignment_for_class_members();
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  /* Set the instantiation insert point to assure that instantiations are
+     inserted immediately before the source sequence entry for the class
+     definition itself.  Save the depth so the insert point can be restored. */
+  scope_stack[depth_scope_stack].ss_list_instantiation_insert_point =
+                           class_type->source_corresp.source_sequence_entry;
+  class_scope_depth = depth_scope_stack;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (C_dialect == C_dialect_cplusplus) {
     if (cssp->is_prototype_instantiation) {
       /* This is a prototype instantiation, so the resulting class is
@@ -10632,8 +10583,23 @@ nested classes when their definition appears outside of the class template.
       /* The Microsoft compiler permits a class specialization to reference
          template parameters of the template.  Push an instantiation scope
          if this is a specialization definition. */
+      a_scope_depth  depth;
+
       push_instantiation_scope_for_class(class_type);
       instantiation_scope_pushed = TRUE;
+      depth = depth_scope_stack;
+      scope_stack[depth].microsoft_specialization_instantiation_scope = TRUE;
+      while (scope_stack[depth].nested_instantiation) {
+        /* This specialization is nested.  Walk up the scope stack to find
+           the specialization it's nested inside of and set the flag there,
+           too. */
+        do {
+          depth--;
+          check_assertion(depth > DEPTH_OF_FILE_SCOPE);
+        } while (scope_stack[depth].kind !=
+                              (a_scope_kind)sck_template_instantiation);
+        scope_stack[depth].microsoft_specialization_instantiation_scope = TRUE;
+      }  /* while */
     }  /* if */
     if (delayed_nested_class_def && !is_template_instantiation) {
       /* This is a definition of a C++ nested class that appears outside the
@@ -10720,6 +10686,10 @@ nested classes when their definition appears outside of the class template.
            stack entry so they can be examined and acted upon in subsequent
            processing. */
         (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* Reset the insertion point for instantiations to NULL. */
+        reset_ss_list_instantiation_insert_point();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         if (C_dialect == C_dialect_cplusplus) {
           /* An access specification may appear anywhere amid the member
              declarations.  Check for it each time through the loop, and adjust
@@ -10986,6 +10956,16 @@ next_declaration:
     /* Add a source sequence entry marking the end of the class definition. */
     add_end_of_construct_source_sequence_entry((char *)class_type,
                                                (a_byte_il_entry_kind)iek_type);
+    
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  /* Clear the modified the ss-list instantiation insert point for the scope
+     to which the class being defined belongs.  This has to be done before
+     the call to pop_template_instantation_scope -- otherwise, the
+     insert point is wrong for the class body.  Note also that, at this
+     point, the depth of the innermost namespace scope will not be on the top
+     of the stack if an extra instantiation scope was pushed. */
+    scope_stack[class_scope_depth].ss_list_instantiation_insert_point = NULL;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Pop the scope created for the class definition. */
     pop_scope();
@@ -11141,19 +11121,14 @@ next_declaration:
   /* If there are no longer any classes in the process of being defined
      do any class fixups and template instantiations that have been
      deferred. */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  if (pending_class_definitions == 0 &&
-      depth_innermost_ss_list_scope == DEPTH_OF_FILE_SCOPE) {
-    /* Clear the instantiation insert point to assure that any
-       instantiations triggered by post-processing will appear *after*
-       the end-of-construct entry, not before it. */
-    scope_stack[DEPTH_OF_FILE_SCOPE].
-                     ss_list_instantiation_insert_point = NULL;
-  }  /* if */
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   process_deferred_class_fixups_and_instantiations();
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  check_for_and_remove_redundant_secondary_decl_ss_entry(class_type);
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
   db_exit();
   return !err;
 }  /* scan_class_definition */

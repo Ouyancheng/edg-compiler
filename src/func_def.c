@@ -943,44 +943,6 @@ and for the instantiation of template functions.
       }  /* if */
     }  /* if */
   }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (!func_info->function_type_from_typedef &&
-      func_info->prototype_scope_ss_entry_start != NULL) {
-    a_source_sequence_entry_ptr  starting_ssep, ending_ssep;
-    a_src_seq_sublist_ptr        sublist = NULL;
-
-    starting_ssep = func_info->prototype_scope_ss_entry_start;
-    if (starting_ssep != NULL) {
-      ending_ssep = func_info->prototype_scope_ss_entry_end;
-      check_assertion(in_file_scope(starting_ssep));            
-      if (depth_innermost_ss_list_scope != DEPTH_OF_FILE_SCOPE) {
-        sublist = sublist_header_of(starting_ssep);
-      }  /* if */
-      if (starting_ssep->prev == NULL) {
-        /* The head of the list. */
-        check_assertion(sublist != NULL);
-        sublist->source_sequence_list = ending_ssep->next;
-      } else {
-        starting_ssep->prev->next = ending_ssep->next;
-      }  /* if */
-      if (ending_ssep->next == NULL) {
-        /* Tail of the list. */
-        if (sublist != NULL) {
-          sublist->last_source_sequence_entry = starting_ssep->prev;
-        } else {
-          scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry =
-                                                        starting_ssep->prev;
-        }  /* if */
-      } else {
-        ending_ssep->next->prev = starting_ssep->prev;
-      }  /* if */
-      if (sublist != NULL && sublist->source_sequence_list == NULL) {
-        remove_sublist_header_and_parent(sublist,
-                                         find_sublist_parent(sublist));
-      }  /* if */
-    }  /* if */
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   scope_number = (is_instantiation) ?
                         NO_SCOPE_NUMBER : func_info->scope_number;
   /* Push the name scope for the routine body. */
@@ -1010,22 +972,18 @@ and for the instantiation of template functions.
   } else {
     /* Correctly declared function type. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (func_info->prototype_scope_ss_entry_start != NULL) {
+    if (func_info->prototype_scope_ss_list != NULL) {
       /* Step through the segment of file-scope source sequence entries
          generated when the parameter list of the function was scanned.
          Do necessary fixups for parameter entries, and build function-scope
          proxies where necessary. */
-      a_scope_stack_entry_ptr  stack_ptr;
+      a_scope_stack_entry_ptr      stack_ptr;
       a_source_sequence_entry_ptr  ssep, next_ssep;
 
       stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
-      ssep = func_info->prototype_scope_ss_entry_start;
+      ssep = func_info->prototype_scope_ss_list;
       for (; ssep != NULL; ssep = next_ssep) {
-        if (ssep == func_info->prototype_scope_ss_entry_end) {
-          next_ssep = NULL;
-        } else {
-          next_ssep = ssep->next;
-        }  /* if */
+        next_ssep = ssep->next;
         ssep->prev = ssep->next = NULL;
         switch (ss_entry_kind(ssep)) {
           case iek_none:
@@ -1638,9 +1596,6 @@ associated with the function is returned.
   a_param_type_ptr               ptp;
   a_decl_flag_set                flags;
   a_source_sequence_entry_ptr    declarator_ssep;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr    ss_entry_start_prev;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "function_definition");
   /* The top type (function) must have come from a declarator, not from a
@@ -1688,9 +1643,6 @@ associated with the function is returned.
                        (a_routine_ptr)NULL);
       /* Remember the scope number for later use when the body is scanned. */
       func_info->scope_number = scope_stack[depth_scope_stack].number;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      ss_entry_start_prev = init_param_source_sequence_sublist();
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ASM_FUNCTION_ALLOWED
       if (func_info->is_asm_function && curr_token != tok_lbrace) {
         /* If an asm function is not prototyped, all its old-style params
@@ -1709,7 +1661,11 @@ associated with the function is returned.
                     func_info->param_id_list, (a_source_range *)NULL);
       }  /* while */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      terminate_param_source_sequence_sublist(func_info, ss_entry_start_prev);
+      /* Transfer the source sequence list in the function prototype scope
+         over to the func_info block. */
+      func_info->prototype_scope_ss_list =
+                         scope_stack[depth_scope_stack].source_sequence_list;
+      scope_stack[depth_scope_stack].source_sequence_list = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Scan the list of identifiers, assigning types to any that remain
          undeclared, and create the param type entries. */

@@ -83,6 +83,28 @@ Put out a scope kind name (for debugging).
 }  /* db_scope_kind */
 
 
+void db_scope_stack_entry_at_depth(a_scope_depth  depth)
+/*
+Display identifying information for the scope stack entry at the indicated
+depth in the scope stack, for debugging purposes.
+*/
+{
+  a_scope_stack_entry_ptr  scope_stack_ptr;
+
+  if (depth > depth_scope_stack || depth <= NO_SCOPE_DEPTH) {
+    fputs("***BAD SCOPE DEPTH***", f_debug);
+  } else {
+    scope_stack_ptr = &scope_stack[depth];
+    if (scope_stack_ptr->il_scope == NULL) {
+      db_scope_kind(scope_stack_ptr->kind);
+      fprintf(f_debug, " scope %d", (int)scope_stack_ptr->number);
+    } else {
+      db_scope(scope_stack_ptr->il_scope);
+    }  /* if */
+  }  /* if */
+}  /* db_scope_stack_entry_at_depth */
+
+
 void db_scope_stack_entry(a_scope_stack_entry_ptr ssep)
 /*
 Display one scope stack entry.
@@ -1099,6 +1121,8 @@ to the declaration information for the template declaration scope being pushed.
   ssep->instantiation_scope_pushed = FALSE;
   ssep->reactivated_class_being_defined = FALSE;
   ssep->is_for_init_block        = FALSE;
+  ssep->explicitly_declared_namespace_extension = FALSE;
+  ssep->microsoft_specialization_instantiation_scope = FALSE;
 #if USER_CONTROL_OF_STRUCT_PACKING
   ssep->pragma_pack_is_local     = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -1117,15 +1141,13 @@ to the declaration information for the template declaration scope being pushed.
   ssep->last_scope               = NULL;
   ssep->last_dynamic_init        = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  ssep->last_source_sequence_entry = NULL;
   ssep->source_sequence_avail_list = NULL;
-  ssep->last_src_seq_sublist     = NULL;
-  ssep->depth_innermost_ss_list_scope = depth_innermost_ss_list_scope;
   ssep->source_sequence_entries_disallowed =
                                        source_sequence_entries_disallowed;
   ssep->ss_list_instantiation_insert_point
                                  = NULL;
-  ssep->saved_last_ss_entry      = NULL;
+  ssep->source_sequence_list     = NULL;
+  ssep->end_of_source_sequence_list = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   ssep->depth_template_declaration_scope = depth_template_declaration_scope;
   ssep->depth_innermost_instantiation_scope =
@@ -1270,52 +1292,6 @@ to the declaration information for the template declaration scope being pushed.
                     instance_sym->variant.class_struct_union.extra_info->
                                                   is_prototype_instantiation;
       }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-#if 0
-      /* Instantiations may be triggered almost anywhere, but the source
-         sequence list for an instantiation has to be inserted at file scope.
-         The current insert point is maintained in the scope stack entry
-         for the file scope -- it is where the source sequence entries for
-         the current instantiation should appear.  Make the changes required
-         for this to happen. */
-      insert_point = fs_ssep->ss_list_instantiation_insert_point;
-      if (insert_point != NULL) {
-        a_type_ptr  tp = ssep->assoc_type;
-        if (tp == NULL) {
-          /* Something other than a class is being instantiated. */
-          if (tp->variant.class_struct_union.extra_info->assoc_scope != NULL) {
-            /* Class definition has already begun (and it already has a
-               scope entry on the stack) or it has been completed (in which
-               case this is part of a reactivation).  In either case,
-               the insert mechanism should not be brought into play. */
-             insert_point = NULL;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      if (insert_point != NULL) {
-        /* A non-NULL insert point is the point *before which* the source
-           sequence entries for the instantiation should be added.  Clip off
-           the segment of source sequence entries, so that insert_point->prev
-           becomes the new end-of-list entry; the segment will be restored
-           in pop_scope. */
-#if DEBUG
-        if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-          fputs("pushing template instantiation scope for \"", f_debug);
-          if (ssep->assoc_type != NULL) {
-            db_type_name(ssep->assoc_type);
-          } else {
-            db_name(source_corresp_entry_for_symbol(template_sym));
-          }  /* if */
-          fputs("\"\n", f_debug);
-        }  /* if */
-#endif /* DEBUG */
-        push_ss_insert_stack(insert_point);
-        ssep->ss_list_instantiation_insert_point = insert_point;
-      }  /* if */
-#endif /* if 0 */
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else if (kind != (a_scope_kind)sck_file &&
                kind != (a_scope_kind)sck_namespace &&
                kind != (a_scope_kind)sck_namespace_extension) {
@@ -1449,15 +1425,6 @@ to the declaration information for the template declaration scope being pushed.
     }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* Maintain the depth of the scope of the current source sequence list. */
-  if (kind == (a_scope_kind)sck_function) {
-    ssep->depth_innermost_ss_list_scope =
-      depth_innermost_ss_list_scope = depth_scope_stack;
-  } else if (kind == (a_scope_kind)sck_template_instantiation ||
-             kind == (a_scope_kind)sck_file) {
-    ssep->depth_innermost_ss_list_scope =
-      depth_innermost_ss_list_scope = DEPTH_OF_FILE_SCOPE;
-  }  /* if */
   /* The creation of source sequence entries is suppressed in certain
      contexts. */
   if (kind == (a_scope_kind)sck_template_declaration ||
@@ -3908,11 +3875,22 @@ End a name scope by popping an entry off the scope stack.
     ssep->assoc_pointers_block->add_symbols_to_inactive_list = TRUE;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (ssep->kind == (a_scope_kind)sck_file ||
+      ssep->kind == (a_scope_kind)sck_function) {
+    if (il_scope != NULL && ssep->source_sequence_list != NULL) {
+      il_scope->source_sequence_list = ssep->source_sequence_list;
+      ssep->source_sequence_list = NULL;
+      ssep->end_of_source_sequence_list = NULL;
+      if (ssep->kind == (a_scope_kind)sck_function) {
+        fixup_function_scope_source_sequence_list(il_scope);
+      }  /* if */
 #if DEBUG
-  if (db_active) {
-    /* Display source sequence lists for debug purposes. */
-    if (il_scope != NULL && il_scope->source_sequence_list != NULL) {
-      dump_ss(il_scope, (char *)NULL);
+      if (debug_level >= 3 ||
+          db_flag_is_set("dump_ss") ||
+          db_flag_is_set("dump_ss_full")) {
+        /* Display source sequence lists for debug purposes. */
+        db_ss_list_for_scope(il_scope);
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
@@ -4154,31 +4132,35 @@ End a name scope by popping an entry off the scope stack.
       update_template_param_symbols(template_decl_info->parameters,
                                     scope_stack[prev_depth].template_arg_list);
     }  /* if */
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (ssep->source_sequence_list != NULL) {
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+      fputs("popping ", f_debug);
+      db_scope_stack_entry_at_depth(depth_scope_stack);
+      fputs("\n", f_debug);
+    }  /* if */
+#endif /* DEBUG */
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-#if 0
-    if (ssep->ss_list_instantiation_insert_point != NULL) {
-      /* Restore the integrity of the file-scope source sequence list -- it
-         was temporarily changed in push_scope to allow the source sequence
-         entries for the template instantiation to "float up" to the right
-         spot in the list. */
+    if (ssep->kind == (a_scope_kind)sck_template_instantiation &&
+        !ssep->microsoft_specialization_instantiation_scope) {
+      insert_instantiation_src_seq_list(ssep);
+    } else
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    /* Do not add code here. */
+    {
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-        fputs("popping template instantiation scope for \"", f_debug);
-        if (ssep->assoc_type != NULL) {
-          db_type_name(ssep->assoc_type);
-        } else {
-          db_name(source_corresp_entry_for_symbol(ssep->template_sym));
-        }  /* if */
-        fputs("\":\n", f_debug);
+        fputs("moving source sequences to ", f_debug);
+        db_scope_stack_entry_at_depth(depth_scope_stack-1);
+        fputs(":\n", f_debug);
+        db_ss_list_for_scope_depth(depth_scope_stack);
       }  /* if */
 #endif /* DEBUG */
-      pop_ss_insert_stack();
-    }  /* if */
-#endif /* if 0 */
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    }
   }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Set the initial name lookup scope to the previous scope on the
      stack.  Note that this could be different than the previous scope
      value in the scope stack entry. */
@@ -4189,27 +4171,38 @@ End a name scope by popping an entry off the scope stack.
   if (--depth_scope_stack >= 0) {
     /* The stack is not empty, so do anything necessary to activate the
        new top entry. */
+    a_scope_stack_entry_ptr  new_ssep = &scope_stack[depth_scope_stack];
+
     /* If the new memory region is not the same as the old, activate it. */
     if (new_memory_region_number != old_memory_region_number) {
       switch_il_region(new_memory_region_number);
     }  /* if */
     /* Restore state variables. */
-    inside_local_class = scope_stack[depth_scope_stack].inside_local_class;
-    depth_innermost_function_scope = scope_stack[depth_scope_stack].
-                                            depth_innermost_function_scope;
+    inside_local_class = new_ssep->inside_local_class;
+    depth_innermost_function_scope = new_ssep->depth_innermost_function_scope;
     depth_innermost_namespace_scope =
-               scope_stack[depth_scope_stack].depth_innermost_namespace_scope;
+                                    new_ssep->depth_innermost_namespace_scope;
     innermost_function_scope =
                    (depth_innermost_function_scope != NO_SCOPE_DEPTH) ?
                          scope_stack[depth_innermost_function_scope].il_scope :
                          NULL;
     depth_template_declaration_scope =
-             scope_stack[depth_scope_stack].depth_template_declaration_scope;
+                                   new_ssep->depth_template_declaration_scope;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    depth_innermost_ss_list_scope =
-             scope_stack[depth_scope_stack].depth_innermost_ss_list_scope;
     source_sequence_entries_disallowed =
-             scope_stack[depth_scope_stack].source_sequence_entries_disallowed;
+                                 new_ssep->source_sequence_entries_disallowed;
+    if (ssep->source_sequence_list != NULL) {
+      if (new_ssep->end_of_source_sequence_list == NULL) {
+        new_ssep->source_sequence_list = ssep->source_sequence_list;
+      } else {
+        new_ssep->end_of_source_sequence_list->next =
+                                      ssep->source_sequence_list;
+        ssep->source_sequence_list->prev =
+                                      new_ssep->end_of_source_sequence_list;
+      }  /* if */
+      new_ssep->end_of_source_sequence_list =
+                                         ssep->end_of_source_sequence_list;
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {

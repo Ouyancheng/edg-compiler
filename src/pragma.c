@@ -408,8 +408,7 @@ Return a pending pragma entry to the available list.
   if (ppp->source_sequence_entry != NULL &&
       ppp->source_sequence_entry->entity.kind ==
                                       (a_byte_il_entry_kind)iek_none) {
-    a_src_seq_sublist_ptr  sublist = NULL;
-    remove_from_source_sequence_list(ppp->source_sequence_entry, &sublist);
+    remove_from_source_sequence_list(ppp->source_sequence_entry);
     ppp->source_sequence_entry = NULL;
   }  /* if */
 #endif /* if GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -1184,12 +1183,11 @@ the pragmas may be applied to each instance of a template.
     if (ppp->source_sequence_entry != NULL) {
       /* If this source sequence entry was never bound to another IL entry,
          remove it from the source sequence list. */
-      a_src_seq_sublist_ptr  sublist = NULL;
       check_assertion_str2(ppp->source_sequence_entry->entity.kind ==
                                              (a_byte_il_entry_kind)iek_none,
                            "extract_curr_construct_pragmas:",
                            "source sequence entry already in use");
-      remove_from_source_sequence_list(ppp->source_sequence_entry, &sublist);
+      remove_from_source_sequence_list(ppp->source_sequence_entry);
       ppp->source_sequence_entry = NULL;
     }  /* if */
     ppp = ppp->next;

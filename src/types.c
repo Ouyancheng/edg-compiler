@@ -5478,26 +5478,58 @@ completed.
 }  /* ttt_is_uncompleted_class_type */
 
 /* A pointer to the specific class type to be found by
-   ttt_is_specific_class_type. */
+   ttt_is_or_is_member_of_specific_class_type. */
 static a_type_ptr
 		specific_class_type;
 
-static a_boolean ttt_is_specific_class_type
+static a_boolean ttt_is_or_is_member_of_specific_class_type
                                         (a_type_ptr  type_ptr,
                                          a_boolean   *force_end_of_traversal)
 /*
 This is a service function designed to be called from traverse_type_tree
 (whence the ttt_ prefix).  It returns TRUE if the type specified by type_ptr
-is the same as the type pointed to by specified_class_type.
+is the same as the type pointed to by specified_class_type or if the latter
+is a direct or indirect parent of a type on which type_ptr depends.
 */
 {
   a_boolean  found = FALSE;
 
   if (type_ptr == specific_class_type) {
     *force_end_of_traversal = found = TRUE;
+  } else if (type_ptr->source_corresp.is_class_member) {
+    type_ptr = type_ptr->source_corresp.parent.class_type;
+    if (type_ptr == specific_class_type ||
+        type_involves_specific_class_type(type_ptr, specific_class_type,
+                                          /*members_only=*/FALSE)) {
+      *force_end_of_traversal = found = TRUE;
+    }  /* if */
   }  /* if */
   return found;
-}  /* ttt_is_specific_class_type */
+}  /* ttt_is_or_is_member_of_specific_class_type */
+
+    
+static a_boolean ttt_is_member_of_specific_class_type
+                                        (a_type_ptr  type_ptr,
+                                         a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It returns TRUE if the type specified by type_ptr
+is a member of specified_class_type or if the latter is a direct or indirect
+parent of a type on which type_ptr depends.
+*/
+{
+  a_boolean  found = FALSE;
+
+  if (type_ptr->source_corresp.is_class_member) {
+    type_ptr = type_ptr->source_corresp.parent.class_type;
+    if (type_ptr == specific_class_type ||
+        type_involves_specific_class_type(type_ptr, specific_class_type,
+                                          /*members_only=*/TRUE)) {
+      *force_end_of_traversal = found = TRUE;
+    }  /* if */
+  }  /* if */
+  return found;
+}  /* ttt_is_member_of_specific_class_type */
     
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -6025,38 +6057,55 @@ of a class whose definition has begun but has not yet been completed.
 }  /* is_or_contains_member_of_uncompleted_class */
 
 
-a_boolean template_args_involve_specific_class_type(a_type_ptr  tp,
-                                                    a_type_ptr  class_type)
+a_boolean template_args_involve_specific_class_type(
+                                             a_template_arg_ptr  tap,
+                                             a_type_ptr          class_type,
+                                             a_boolean           members_only)
 /*
-If tp is a template class, return TRUE if its template args depend on
-class_type; otherwise, return FALSE.
+When members_only is TRUE, return TRUE if any type in the template argument
+list pointed to by tap depends on a member of class_type.  When members_only
+is FALSE, return TRUE if any type in the template argument list depends on
+class_type itself.
+*/
+{
+  a_boolean                       result = FALSE;
+
+  for (; tap != NULL; tap = tap->next) {
+    if (tap->is_type) {
+      if (type_involves_specific_class_type(tap->variant.type, class_type,
+                                            members_only)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* template_args_involve_specific_class_type */
+
+
+a_boolean type_involves_specific_class_type(a_type_ptr  tp,
+                                            a_type_ptr  class_type,
+                                            a_boolean   members_only)
+/*
+When members_only is TRUE, return TRUE if a class that is a member of
+class_type appears anywhere in the type tree specified by tp.  When
+members_only is FALSE, return TRUE if class_type itself appears in tp.
 */
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_SKIP_TYPEDEFS |
-                                               TTT_TEMPLATE_ARGS |
-                                               TTT_PARAM_TYPES |
-                                               TTT_RETURN_TYPE);
-  a_boolean                       result = FALSE;
-  a_template_arg_ptr              tap;
+                                               TTT_TEMPLATE_ARGS);
+  a_type_predicate_function_ptr   func;
 
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  ttt_flags |= (TTT_RETURN_TYPE | TTT_PARAM_TYPES |
+                TTT_THIS_PARAM_TYPE | TTT_EXCEPTION_SPECS);
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   tp = skip_typerefs(tp);
-  if (is_immediate_class_type(tp) &&
-      tp->variant.class_struct_union.is_template_class) {
-    specific_class_type = class_type;
-    for (tap = tp->variant.class_struct_union.extra_info->template_arg_list;
-         tap != NULL;
-         tap = tap->next) {
-      if (tap->is_type) {
-        result = traverse_type_tree(tap->variant.type,
-                                    ttt_is_specific_class_type, ttt_flags);
-        if (result) break;
-      } else {
-        /* Ignore constant template args. */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return result;
-}  /* template_args_involve_specific_class_type */
+  specific_class_type = class_type;
+  func = members_only ? ttt_is_member_of_specific_class_type :
+                        ttt_is_or_is_member_of_specific_class_type;
+  return (traverse_type_tree(tp, func, ttt_flags));
+}  /* type_involves_specific_class_type */
 
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

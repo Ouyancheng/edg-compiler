@@ -1588,8 +1588,7 @@ start of a sequence of declarations.
       /* Remember the most recently entered source sequence entry on the list
          for the current function.  It will be used to find the source
          sequence entry corresponding to the current declaration. */
-      prev_ssep = scope_stack[depth_innermost_ss_list_scope].
-                                                 last_source_sequence_entry;
+      prev_ssep = scope_stack[depth_scope_stack].end_of_source_sequence_list;
     } else {
       /* The top of the structured statement stack already points to a
          decl-statement, meaning the current declaration is within (i.e., not
@@ -1601,8 +1600,7 @@ start of a sequence of declarations.
         /* The initial declaration must not have resulted in a source sequence
            entry's being added to the list.  Proceed as if this were the first
            declaration. */
-        prev_ssep = scope_stack[depth_innermost_ss_list_scope].
-                                                 last_source_sequence_entry;
+        prev_ssep = scope_stack[depth_scope_stack].end_of_source_sequence_list;
       }  /* if */
     }  /* if */
     if (prev_ssep != NULL) {
@@ -1659,7 +1657,7 @@ start of a sequence of declarations.
       if (debug_level >= 4 || db_flag_is_set("dump_decl_stmt")) {
         fputs("before calling declaration, ss list starting at prev_ssep:\n",
               f_debug);
-        db_source_sequence_list(prev_ssep);
+        db_ss_list(prev_ssep);
       }  /* if */
 #endif /* if DEBUG */
     }  /* if */
@@ -1672,13 +1670,16 @@ start of a sequence of declarations.
       /* The decl-statement already has a pointer to the source sequence entry
          for the first declaration. */
     } else {
-      check_assertion(prev_ssep != NULL);
       /* In the ordinary case, prev_ssep->next is the source sequence entry
          to which the stmk_decl statement should refer.  However, if any
          pragmas have intervened, we advance past any that are not explicitly
          bound to the next declaration.  Macros are also skipped -- they
          should not be pointed to by the stmk_decl statement. */
-      ssep = prev_ssep->next;
+      if (prev_ssep == NULL) {
+        ssep = scope_stack[depth_scope_stack].source_sequence_list;
+      } else {
+        ssep = prev_ssep->next;
+      }  /* if */
       while (ssep != NULL) {
         if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_pragma) {
           /* The source sequence entry represents a pragma.  See if it's
@@ -1694,9 +1695,6 @@ start of a sequence of declarations.
                past it. */
             ssep = ssep->next;
           }  /* if */
-        } else if (is_sublist_parent(ssep) && ssep->next == NULL) {
-          /* Scan the sublist. */
-          ssep = assoc_sublist_of(ssep)->source_sequence_list;
         } else if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_none) {
           /* Ignore it.  It may be associated with a pragma that has not
              yet been processed. */
@@ -1716,7 +1714,7 @@ start of a sequence of declarations.
       if (debug_level >= 4 || db_flag_is_set("dump_decl_stmt")) {
         fputs("after calling declaration, ss list starting at prev_ssep:\n",
               f_debug);
-        db_source_sequence_list(prev_ssep);
+        db_ss_list(prev_ssep);
         fprintf(f_debug, "decl statement points at:%s",
                            ssep == NULL ? " NULL\n" : "\n  ");
         if (ssep != NULL) db_source_sequence_entry(ssep);

@@ -147,7 +147,7 @@ extern void record_symbol_reference(a_symbol_reference_kind  kind,
 
 extern void reference_to_invalid_name(a_symbol_locator *locator);
 
-extern void record_param_id_list_declarations(a_param_id_ptr  pid);
+extern void record_param_id_list_declarations(a_func_info_block_ptr func_info);
 
 extern void record_using_decl(a_symbol_ptr       sym,
                               a_source_position  *pos,

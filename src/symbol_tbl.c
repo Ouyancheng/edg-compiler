@@ -8245,6 +8245,7 @@ Clear the fields of a function information block to default values.
   func_info->declared_type                  = NULL;
   func_info->prototype_scope_ss_entry_start = NULL;
   func_info->prototype_scope_ss_entry_end   = NULL;
+  func_info->prototype_scope_ss_list        = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if USER_CONTROL_OF_STRUCT_PACKING
   func_info->max_member_alignment           = 0;
@@ -9053,7 +9054,6 @@ of the front end.
   depth_template_declaration_scope = NO_SCOPE_DEPTH;
   curr_deferred_access_scope = NO_SCOPE_DEPTH;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  depth_innermost_ss_list_scope = NO_SCOPE_DEPTH;
 #if DO_IL_LOWERING
   source_sequence_entries_disallowed = il_lowering_needed();
 #else /* !DO_IL_LOWERING */

@@ -580,7 +580,7 @@ for sure yet, since this may be a friend template.
   if (depth_scope_stack == depth_innermost_namespace_scope) {
     /* Set the source-sequence insert point for instantiations to NULL -- no
        instantiations should be inserted before it. */
-    scope_stack[DEPTH_OF_FILE_SCOPE].ss_list_instantiation_insert_point = NULL;
+    reset_ss_list_instantiation_insert_point();
   }  /* if */
   /* There's not yet a name or symbol for the template declaration, so call
      update_source_sequence_list directly. */
@@ -1900,52 +1900,13 @@ might not be able to if the template itself has not yet been defined.
 #endif /* CHECKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      { /* Instantiations may be triggered almost anywhere, but the source
-           sequence entry for an instantiation has to be inserted at file
-           scope.  The current insert point is maintained in the scope stack
-            entry for the file scope -- it is where the source sequence
-            entries for the current instantiation should appear.  Make the
-            changes required for this to happen. */
-        a_source_sequence_entry_ptr  new_insert_point = NULL;
-
-        if (is_or_contains_member_of_uncompleted_class(class_type)) {
-          /* The class being instantiated is a member or is dependent on a
-             member of a class that is now being defined.  For instance,
-               template <class T> class A { ... };
-               class B {
-                 class N { ... };
-                 A<N> a;
-               };
-             The source sequence entry representing the instantiation of A<N>
-             can't be floated up to in front of B, since it depends on B::N.
-             Instead, it's left in place.  Or more precisely, it replaces the
-             secondary-decl entry that's already been entered for A<N>. */
-          a_source_sequence_entry_ptr  secondary_decl;
-          secondary_decl =
-                  last_matching_source_sequence_entry((char *)class_type);
-          if (secondary_decl != NULL &&
-              ss_entry_kind(secondary_decl) ==
-                             (an_il_entry_kind)iek_src_seq_secondary_decl) {
-            new_insert_point = secondary_decl->next;
-          }  /* if */
-        } else {
-          new_insert_point = scope_stack[DEPTH_OF_FILE_SCOPE].
-                                       ss_list_instantiation_insert_point;
-        }  /* if */
-        /* A non-NULL insert point is the point *before which* the source
-           sequence entries for the instantiation should be added.  Simply
-           clip off the segment of source sequence entries, so that
-           point->prev becomes the new end-of-list entry; the segment will
-           be restored in pop_ss_insert_stack. */
 #if DEBUG
-        if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-          fputs("full instantiation of \"", f_debug);
-          db_type_name(class_type);
-          fputs("\":\n", f_debug);
-        }  /* if */
+      if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+        fputs("full instantiation of \"", f_debug);
+        db_type_name(class_type);
+        fputs("\":\n", f_debug);
+      }  /* if */
 #endif /* DEBUG */
-        push_ss_insert_stack(new_insert_point);
-      }
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       mark_defined(instance_sym, &instance_sym->decl_position);
@@ -1971,12 +1932,15 @@ might not be able to if the template itself has not yet been defined.
          even if its instantiation happens to be triggered by a reference
          in the declaration of another entity. */
       set_autonomous_tag_decl_flag(class_type, /*is_definition=*/TRUE);
-      /* Restore the instantiation insert point. */
-      pop_ss_insert_stack();
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      check_for_and_remove_redundant_secondary_decl_ss_entry(class_type);
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* In the normal case the current token should be end_of_source,
          which was inserted to mark the end of the cached token stream.
          If necessary, keep flushing until end-of-source is found. */
@@ -2716,29 +2680,13 @@ Instantiate the body of the template function associated with tip.
 				    rout_ptr->template_arg_list);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  {
-  a_source_sequence_entry_ptr  new_insert_point;
-
-  /* If a function instantiation is triggered in the midst of processing
-     another declaration or a function body, the source sequence entry for
-     it should "float" out. */
-  new_insert_point = scope_stack[DEPTH_OF_FILE_SCOPE].
-                                     ss_list_instantiation_insert_point;
-  if (new_insert_point != NULL) {
-    /* A non-NULL insert point is the point *before which* the source
-       sequence entries for the instantiation should be added.  Clip off the
-       segment of source sequence entries, so that new_insert_point->prev
-       becomes the new end-of-list entry; the segment will be reattached
-       to the file-scope source-sequence list in pop_ss_insert_stack. */
 #if DEBUG
-    if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-      fputs("full instantiation of \"", f_debug);
-      db_name(&rout_ptr->source_corresp);
-      fputs("\":\n", f_debug);
-    }  /* if */
-#endif /* DEBUG */
-    push_ss_insert_stack(new_insert_point);
+  if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+    fputs("full instantiation of \"", f_debug);
+    db_name(&rout_ptr->source_corresp);
+    fputs("\":\n", f_debug);
   }  /* if */
+#endif /* DEBUG */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (rout_sym->defined) {
@@ -2794,13 +2742,6 @@ Instantiate the body of the template function associated with tip.
   if (curr_token == tok_rbrace) (void)get_token();
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(rout_sym, (a_statement_ptr)NULL);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  /* Restore the insert stack. */
-  if (new_insert_point != NULL) pop_ss_insert_stack();
-  }
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Pop the template instantiation scope. */
   pop_template_instantiation_scope();
   --(tssp->pending_instantiations);
@@ -3347,50 +3288,17 @@ included in the search.
       add_to_types_list(class_type, NO_SCOPE_DEPTH);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      {
-      /* Instantiations may be triggered almost anywhere, but the source
-         sequence list for an instantiation has to be inserted at file scope.
-         The current insert point is maintained in the scope stack entry
-         for the file scope -- it is where the source sequence entries for
-         the current instantiation should appear.  Make the changes required
-         for this to happen. */
-      a_source_sequence_entry_ptr  new_insert_point;
-      a_boolean                    scope_pushed = FALSE;
-
-      if (is_or_contains_member_of_uncompleted_class(class_type)) {
-        /* We must be inside a class definition and the template instance
-           depends on a member type.  That means the entry should not float
-           up to before the class definition.  Instead, the entry will be
-           added directly into the current list. */
-      } else {
-        push_template_instantiation_scope(tssp->cache.decl_info,
-                                          (a_type_ptr)NULL,
-                                          (a_routine_ptr)NULL,
-                                          sym, class_template_sym,
-                                          *new_list);
-        scope_pushed = TRUE;
-        /* Allow the instantiation to float up, if appropriate. */
-        new_insert_point = scope_stack[DEPTH_OF_FILE_SCOPE].
-                               ss_list_instantiation_insert_point;
 #if DEBUG
-        if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-          fputs("partial instantiation of \"", f_debug);
-          db_type_name(class_type);
-          fputs("\":\n", f_debug);
-        }  /* if */
-#endif /* DEBUG */
-        push_ss_insert_stack(new_insert_point);
+      if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+        fputs("partial instantiation of \"", f_debug);
+        db_type_name(class_type);
+        fputs("\":\n", f_debug);
       }  /* if */
+#endif /* DEBUG */
       add_source_sequence_entry_for_partial_instantiation(
                                              (char *)class_type,
                                              (an_il_entry_kind)iek_type,
                                              class_type);
-      if (scope_pushed) {
-        /* Restore the state. */
-        pop_ss_insert_stack();
-        pop_template_instantiation_scope();
-      }  /* if */
-      }
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
@@ -5828,49 +5736,36 @@ type based on the template argument list and the template parameter list
        definition of the parent class.  Don't generate the source sequence
        entry when the parent class is a prototype instantiation. */
   } else {
-    a_source_sequence_entry_ptr  new_insert_point = NULL;
+    /* Add a secondary source sequence entry to represent the partial
+       instantiation -- it will take the form of an explicit specialization. */
+    a_type_ptr  declared_type = tip->declared_type;
 
+    check_assertion(declared_type != NULL);
+    if (declared_type == rp->type &&
+        declared_type->kind != (a_type_kind)tk_typeref) {
+      /* Make a copy of the routine type; default_args, if any, will be
+         ignored. */
+      declared_type = copy_routine_type_with_param_types(
+                                                rp->type,
+                                                /*copy_default_args=*/FALSE);
+    } else {
+      /* Use the declared_type in the routine entry only if it has no
+         default args; otherwise, make a copy. */
+      check_assertion(!is_qualified_type(declared_type));
+      declared_type = routine_type_without_default_args(declared_type);
+    }  /* if */
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
       fputs("creating new template function:\n", f_debug);
     }  /* if */
 #endif /* DEBUG */
-    new_insert_point =
-         scope_stack[DEPTH_OF_FILE_SCOPE].ss_list_instantiation_insert_point;
-    if (new_insert_point != NULL) {
-      push_ss_insert_stack(new_insert_point);
-    }  /* if */
-    /* Add a secondary source sequence entry to represent the partial
-       instantiation -- it will take the form of an explicit specialization. */
-    { a_type_ptr  declared_type = tip->declared_type;
-
-      check_assertion(declared_type != NULL);
-      if (declared_type == rp->type &&
-          declared_type->kind != (a_type_kind)tk_typeref) {
-        /* Make a copy of the routine type; default_args, if any, will be
-           ignored. */
-        declared_type = copy_routine_type_with_param_types(
-                                                rp->type,
-                                                /*copy_default_args=*/FALSE);
-      } else {
-        /* Use the declared_type in the routine entry only if it has no
-           default args; otherwise, make a copy. */
-        check_assertion(!is_qualified_type(declared_type));
-        declared_type = routine_type_without_default_args(declared_type);
-      }  /* if */
-      add_source_sequence_entry_for_partial_instantiation(
+    add_source_sequence_entry_for_partial_instantiation(
                                                (char *)rp,
                                                (an_il_entry_kind)iek_routine,
                                                declared_type);
-    }
-    if (new_insert_point != NULL) {
-      pop_ss_insert_stack();
-    } else {
-      /* Reset the insert point so that instantiations triggered will follow
-         the entry representing the partial instantiation, not precede it. */
-      scope_stack[DEPTH_OF_FILE_SCOPE].
-                              ss_list_instantiation_insert_point = NULL;
-    }  /* if */
+    /* Reset the insert point so that instantiations triggered will follow
+       the entry representing the partial instantiation, not precede it. */
+    reset_ss_list_instantiation_insert_point();
   }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -11098,7 +10993,7 @@ that follows.
           *(decl_state->final_token_ptr) = tok_rbrace;
         } else {
           /* Update xref info on param ids. */
-          record_param_id_list_declarations(func_info.param_id_list);
+          record_param_id_list_declarations(&func_info);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -12696,8 +12591,7 @@ that might be required.
           /* Reset the insert point for instantiations to NULL.  This assures
              that the source sequence entry for the instantiation will be
              added to the end of the source-sequence list. */
-          scope_stack[DEPTH_OF_FILE_SCOPE].
-                       ss_list_instantiation_insert_point = NULL;
+          reset_ss_list_instantiation_insert_point();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           instantiate_entity(tip);
         }  /* if */
@@ -13137,12 +13031,14 @@ void make_instantiation_directive(a_pragma_kind		       pragma_kind,
                                   a_source_position            *pos,
                                   a_decl_pos_block_ptr         decl_pos_block)
 /*
-Create an IL entry to represent an instantiation directive.  kind is used
-to distinguish an instantiation directive from a "do not instantiate"
+Create an IL entry to represent an instantiation directive.  progma_kind is
+used to distinguish an instantiation directive from a "do not instantiate"
 directive (which is specified as "extern template" in Microsoft mode).
 sym identifies the entity being instantiated, pos is the source position
 of the template keyword, and ssep is the empty source sequence entry that
-should be used.
+should be used.  When EXTRA_SOURCE_POSITIONS_IN_IL is set to TRUE,
+*decl_pos_block contains source positions collected during declaration
+processing.
 */
 {
   an_instantiation_directive_ptr  idp;
@@ -13309,14 +13205,13 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
     }  /* if */
     declarator(di_flags, &do_flags, type, (a_type_ptr)NULL, &locator, &type,
                &declarator_ssep, &func_info, &decl_pos_block);
-    record_param_id_list_declarations(func_info.param_id_list);
+    record_param_id_list_declarations(&func_info);
     /* Issue diagnostic on an incomplete-type in an exception specification. */
     report_exception_spec_errors(&func_info);
     done_with_func_info(func_info);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (declarator_ssep != NULL) {
-      a_src_seq_sublist_ptr  sublist = NULL;
-      remove_from_source_sequence_list(declarator_ssep, &sublist);
+      remove_from_source_sequence_list(declarator_ssep);
       declarator_ssep = NULL;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -13436,8 +13331,7 @@ done:;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!is_pragma) {
     if (ssep != NULL && ssep->entity.kind == (a_byte_il_entry_kind)iek_none) {
-      a_src_seq_sublist_ptr  sublist = NULL;
-      remove_from_source_sequence_list(ssep, &sublist);
+      remove_from_source_sequence_list(ssep);
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

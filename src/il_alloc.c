@@ -2414,8 +2414,8 @@ to it.
     scope_depth = DEPTH_OF_FILE_SCOPE;
   } else {
     /* Use the current function scope. */
-    check_assertion(depth_innermost_ss_list_scope != NO_SCOPE_DEPTH);
-    scope_depth = depth_innermost_ss_list_scope;
+    check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
+    scope_depth = depth_innermost_function_scope;
   }  /* if */
   /* Copy the address of the available list. */
   avail_list_ptr = &scope_stack[scope_depth].source_sequence_avail_list;

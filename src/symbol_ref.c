@@ -1121,21 +1121,72 @@ created for this entity; otherwise, it is NULL.
      to put out a source sequence entry yet.) */
   if (sym_ptr->kind != (a_symbol_kind)sk_label &&
       sym_ptr->kind != (a_symbol_kind)sk_parameter) {
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    if (is_definition && !C_mode() &&
-        (sym_ptr->kind == (a_symbol_kind)sk_member_function ||
-         sym_ptr->kind == (a_symbol_kind)sk_routine) &&
-        scope_stack[depth_scope_stack].kind ==
-                                  (a_scope_kind)sck_class_struct_union &&
-        !scope_stack[depth_scope_stack].inside_local_class) {
-      /* This is a member or friend function definition inside the definition
-         of a nonlocal class.  When template instantiations are put out in the
-         source sequence list, it is necessary to move the member or friend
-         definition outside the class definition (i.e., just after it).  That
-         means a secondary-source-sequence entry should be put out here. */
-      is_primary_decl = FALSE;
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    if (is_definition && !C_mode()) {
+      if ((sym_ptr->kind == (a_symbol_kind)sk_member_function ||
+           sym_ptr->kind == (a_symbol_kind)sk_routine) &&
+          scope_stack[depth_scope_stack].kind ==
+                                    (a_scope_kind)sck_class_struct_union &&
+          !scope_stack[depth_scope_stack].inside_local_class) {
+        /* This is a member or friend function definition inside the
+           definition of a nonlocal class.  When template instantiations are
+           put out in the source sequence list, it is necessary to move the
+           member or friend definition outside the class definition (i.e.,
+           just after it).  That means a secondary-source-sequence entry
+           should be put out here. */
+        is_primary_decl = FALSE;
+      } else if (is_class_struct_union_symbol(sym_ptr)) {
+        if (scptr != NULL && scptr->source_sequence_entry == NULL) {
+          /* This is the initial declaration of this class.  If appropriate,
+             out a secondary declaration entry immediately before the
+             definition entry to deal with forward reference problems of
+             instantiations that are inserted in front of the class; if
+             there is no insertion, the entry will be removed eventually. */
+          a_boolean                     add_secondary_decl;
+          a_type_ptr                    class_type;
+          an_il_entry_kind              kind;
+          a_class_type_supplement_ptr   parent_ctsp;
+          a_src_seq_secondary_decl_ptr  sssdp;
+
+          if (scptr->is_local_to_function) {
+            /* Can't be done for local functions. */
+            add_secondary_decl = FALSE;
+          } else if (!scptr->is_class_member) {
+            /* Okay for all classes that aren't nested. */
+            add_secondary_decl = TRUE;
+          } else {
+            /* It's okay for nested classes only if it's a deferred
+               definition (i.e., the definition appears at file or
+               namespace scope). */
+            parent_ctsp = scptr->parent.class_type->
+                                  variant.class_struct_union.extra_info;
+            add_secondary_decl = (parent_ctsp->assoc_scope->
+                                     depth_in_scope_stack == NO_SCOPE_DEPTH);
+          }  /* if */
+          if (add_secondary_decl) {
+            class_type = sym_ptr->variant.class_struct_union.type;
+            kind = (an_il_entry_kind)iek_type;
+            sssdp = make_source_sequence_secondary_decl((char *)class_type,
+                                                        kind, class_type);
+            sssdp->autonomous_tag_decl = TRUE;
+            sssdp->decl_position = *source_position;
+            if (class_type->variant.class_struct_union.is_template_class) {
+#if BACK_END_IS_CP_GEN_BE
+              sssdp->specialized_with_new_syntax =
+                            !old_specializations_for_generated_instances;
+#else /* !BACK_END_IS_CP_GEN_BE */
+              sssdp->specialized_with_new_syntax = TRUE;
+#endif /* BACK_END_IS_CP_GEN_BE */
+            }  /* if */
+            kind = (an_il_entry_kind)iek_src_seq_secondary_decl;
+            add_to_source_sequence_list((char *)sssdp, kind);
+            /* Reset the insertion point for instantiations to NULL. */
+            reset_ss_list_instantiation_insert_point();
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     if (is_definition) {
       /* If this is a primary declaration (or a tentative definition that
          is the first definition of the variable), erase the previous
@@ -1447,7 +1498,7 @@ information on the reference, if required.
 }  /* reference_to_invalid_name */
 
 
-void record_param_id_list_declarations(a_param_id_ptr  pid)
+void record_param_id_list_declarations(a_func_info_block_ptr func_info)
 /*
 The function with which the param-id list headed by pid is associated has
 been declared but not defined.  The symbols associated with the parameter
@@ -1455,8 +1506,10 @@ declarations should be recorded for cross referencing and any associated
 source-sequence entries should be removed from the list.
 */
 {
+  a_param_id_ptr  pid = func_info->param_id_list;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_src_seq_sublist_ptr  sublist = NULL;
+  a_source_sequence_entry_ptr  ss_list = func_info->prototype_scope_ss_list;
+  a_source_sequence_entry_ptr  ssep, next_ssep, *avail_list;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   /* Update xref information on each symbol. */
@@ -1468,12 +1521,41 @@ source-sequence entries should be removed from the list.
     if (pid->source_sequence_entry != NULL) {
       check_assertion(ss_entry_kind(pid->source_sequence_entry) ==
                                              (an_il_entry_kind)iek_none);
-      remove_from_source_sequence_list(pid->source_sequence_entry,
-                                       &sublist);
+      if (ss_list != NULL) {
+        ssep = ss_list;
+        for (; ssep != pid->source_sequence_entry; ssep = ssep->next) {
+          check_assertion(ssep != NULL);
+        }  /* for */
+        if (ssep == ss_list) {
+          ss_list = ssep->next;
+        } else {
+          ssep->prev->next = ssep->next;
+        }  /* if */
+        if (ssep->next != NULL) ssep->next->prev = ssep->prev;
+        if (in_file_scope(ssep)) {
+          avail_list = &scope_stack[DEPTH_OF_FILE_SCOPE].
+                                              source_sequence_avail_list;
+        } else {
+          check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
+          avail_list = &scope_stack[depth_innermost_function_scope].
+                                              source_sequence_avail_list;
+        }  /* if */
+        ssep->next = *avail_list;
+        *avail_list = ssep;
+      }  /* if */
       pid->source_sequence_entry = NULL;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* for */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  for (ssep = ss_list; ssep != NULL; ssep = next_ssep) {
+    next_ssep = ssep->next;
+    if (ssep->prev != NULL) ssep->prev->next = next_ssep;
+    if (ssep->next != NULL) ssep->next->prev = ssep->prev;
+    ssep->next = ssep->prev = NULL;
+    add_source_sequence_entry_to_list(ssep);
+  }  /* for */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* record_param_id_list_declarations */
 
 

@@ -890,6 +890,8 @@ extern void db_variable(a_variable_ptr var_ptr);
 
 extern void db_expression(an_expr_node_ptr node);
 
+extern void db_expr_summary(an_expr_node_ptr  node);
+
 extern void db_dynamic_initializer(a_dynamic_init_ptr  dip,
                                    int                 level);
 
@@ -932,114 +934,6 @@ extern unsigned long db_show_based_type_fixups_used(unsigned long grand_total);
 extern unsigned long show_il_space_used(void);
 #endif /* DEBUG */
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-
-/*
-Macro to extract the kind from a source sequence entry or secondary
-declaration entry.
-*/
-#define ss_entry_kind(ssep) ((an_il_entry_kind)(ssep)->entity.kind)
-
-/*
-Macro to extract the pointer from a source sequence entry or secondary
-declaration entry.  It is cast to the indicated pointer type.
-*/
-#define ss_entry_ptr(ssep, type) ((type)(ssep)->entity.ptr)
-
-/*
-Return TRUE if the indicated source sequence entry points to a source sequence
-sublist header, i.e., it has kind iek_src_seq_sublist.
-*/
-#define is_sublist_parent(ssep) (ss_entry_kind(ssep) == iek_src_seq_sublist)
-
-/*
-ssep points to an iek_src_seq_sublist source sequence entry.  Such an entry
-resides on the function-scope source sequence list but points to a header
-for a sublist of file-scope source sequence entries.  Fetch and return a
-pointer to the sublist header.
-*/
-#define assoc_sublist_of(ssep) ss_entry_ptr((ssep), a_src_seq_sublist_ptr)
-
-#if DEBUG
-extern void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep);
-extern void db_source_sequence_list(a_source_sequence_entry_ptr  ssep);
-extern void db_ss_list_for_scope(a_scope_ptr  sp);
-extern void dump_ss(a_scope_ptr  sp,
-                    char         *str);
-#endif /* DEBUG */
-
-extern a_source_sequence_entry_ptr find_sublist_parent(
-                                               a_src_seq_sublist_ptr sublist);
-
-extern void add_source_sequence_entry_to_list(
-                                       a_source_sequence_entry_ptr new_ssep);
-
-extern void f_update_source_sequence_list(char                    *entity_ptr,
-                                          an_il_entry_kind        kind,
-                                          a_source_sequence_entry *old_ssep);
-
-/* Macro interface to f_update_source_sequence_list when there may be an
-   empty source-sequence entry on the list that needs to be filled in. */
-#define update_source_sequence_list(entity_ptr, kind, old_ssep)          \
-{ if (old_ssep != NULL || !source_sequence_entries_disallowed) {         \
-    f_update_source_sequence_list((entity_ptr), (kind), (old_ssep));     \
-  }  /* if */                                                            \
-}  /* update_source_sequence_list */
-
-/* Macro interface to f_update_source_sequence_list when a new entry is to
-   be added to the list. */
-#define add_to_source_sequence_list(entity_ptr, kind)                    \
-{ if (!source_sequence_entries_disallowed) {                             \
-    f_update_source_sequence_list((entity_ptr), (kind),                  \
-                                  (a_source_sequence_entry_ptr)NULL);    \
-  }  /* if */                                                            \
-}  /* add_to_source_sequence_list */
-
-
-extern a_src_seq_sublist_ptr sublist_header_of(
-                                            a_source_sequence_entry_ptr ssep);
-
-extern a_source_sequence_entry_ptr add_empty_source_sequence_entry(void);
-
-extern void add_end_of_construct_source_sequence_entry(
-                                                char                   *ptr,
-                                                a_byte_il_entry_kind   kind);
-
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-
-extern void add_source_sequence_entry_for_partial_instantiation(
-                                            char               *ptr,
-                                            an_il_entry_kind   kind,
-                                            a_type_ptr         declared_type);
-
-extern void push_ss_insert_stack(
-                           a_source_sequence_entry_ptr  list_to_be_removed);
-
-extern void pop_ss_insert_stack(void);
-
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-
-extern void remove_from_source_sequence_list(
-                                      a_source_sequence_entry_ptr ssep_ptr,
-                                      a_src_seq_sublist_ptr       *sublist);
-
-extern void remove_sublist_header_and_parent(
-                                      a_src_seq_sublist_ptr        sublist,
-                                      a_source_sequence_entry_ptr  parent);
-
-extern a_source_sequence_entry_ptr last_matching_source_sequence_entry(
-                                                               char *entity);
-
-extern void set_autonomous_tag_decl_flag(a_type_ptr  type,
-                                         a_boolean   is_definition);
-
-extern void set_first_declaration_flag(char *entity);
-
-extern a_type_ptr type_from_src_seq_declaration(
-                                             a_source_sequence_entry_ptr ssep);
-
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-
 #if ORPHAN_PROCESSING_NEEDED
 /*
 Record a file-scope entry as a potential orphan.  The macro here ensures
@@ -1062,6 +956,8 @@ extern void add_scope_orphaned_il_lists(a_scope_ptr scope);
 
 #if MAINTAIN_NEEDED_FLAGS
 extern void eliminate_bodies_of_unneeded_functions(void);
+
+extern void eliminate_default_arg_object_lifetimes(a_type_ptr  rout_type);
 
 extern void eliminate_unneeded_il_entries(a_scope_ptr scope);
 #endif /* MAINTAIN_NEEDED_FLAGS */

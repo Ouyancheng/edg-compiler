@@ -961,6 +961,8 @@ typedef struct a_func_info_block {
 			   is the last entry generated for declarations in the
                            function prototype scope; NULL if there no entries
                            and prototype_scope_ss_entry_end is also NULL. */
+  a_source_sequence_entry_ptr
+		prototype_scope_ss_list;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if USER_CONTROL_OF_STRUCT_PACKING
       a_targ_alignment
@@ -1251,14 +1253,14 @@ typedef struct a_template_instance {
 			   as it actually appears in the source program (i.e.,
 			   before parameter type adjustments). */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  a_src_seq_secondary_decl_ptr
+  a_source_sequence_entry_ptr
 		partial_instantiation;
-			/* A secondary-decl entry representing the partial
-			   instantiation of a function template that is
-			   dependent on a class that is currently being
-			   defined.  As long as this pointer is non-NULL,
-			   the source sequence list has not yet been
-			   updated. */
+			/* An iek_src_seq_secondary_decl source sequence
+			   entry representing the partial instantiation of
+			   a function template that is dependent on a class
+			   that is currently being defined.  As long as this
+			   pointer is non-NULL, the source sequence list has
+			   not yet been updated. */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_template_instance;

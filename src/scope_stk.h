@@ -272,6 +272,14 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if the default name linkage was explicitly
 			   specified in the source; FALSE for the default
 			   setting for the translation unit as a whole. */
+  a_bit_field	explicitly_declared_namespace_extension:1;
+			/* TRUE for sck_namespace_extension scopes that
+			   correspond to explicit declarations. */
+  a_bit_field	microsoft_specialization_instantiation_scope:1;
+			/* TRUE for an sck_template_instantiation scope pushed
+			   for compatibility with the Microsoft compiler,
+			   which permits the body of a class specialization to
+			   reference template parameters of the template. */
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_bit_field	pragma_pack_is_local:1;
 			/* TRUE for an sck_function scope of a routine in
@@ -399,23 +407,9 @@ typedef struct a_scope_stack_entry {
 			   if none. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
-		last_source_sequence_entry;
-			/* For file and function scopes, the last in the
-			   linked list of source sequence entries that are
-			   pointed to by il_scope; NULL if none. */
-  a_source_sequence_entry_ptr
 		source_sequence_avail_list;
 			/* List of freed source sequence entries that are
 			   available for reuse; NULL if none. */
-  a_src_seq_sublist_ptr
-		last_src_seq_sublist;
-			/* For function scopes, the last in the linked list
-			   of source sequence sublist entries that are pointed
-			   to by il_scope; NULL if none. */
-  a_scope_depth depth_innermost_ss_list_scope;
-			/* Depth of the innermost scope on the scope stack
-			   with a source sequence list (= DEPTH_OF_FILE_SCOPE
-			   or depth_innermost_function_scope). */
   a_source_sequence_entry_ptr
 		ss_list_instantiation_insert_point;
 			/* If kind == sck_file, pointer to a source sequence
@@ -427,12 +421,14 @@ typedef struct a_scope_stack_entry {
 			   called and to which that pointer is restored by
 			   pop_scope.  Not used for any other scope kinds. */
   a_source_sequence_entry_ptr
-		saved_last_ss_entry;
-			/* If kind == sck_template_instantiation, the current
-			   value of last_source_sequence_entry in the file
-			   scope when push_scope is called and to which that
-			   pointer is restored by pop_scope.  Not used for
-			   any other scope kinds. */
+		source_sequence_list,
+		end_of_source_sequence_list;
+			/* Head and tail of a list of source sequence entries
+			   generated while the current scope is active.  When
+			   the scope is popped, the list is merged with a
+			   list on a containing scope -- except when the scope
+			   kind is sck_function and sck_file, in which case
+			   the list is moved onto the associated IL scope. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_scope_depth depth_template_declaration_scope;
 			/* Depth of the sck_template_declaration scope entry,
@@ -757,11 +753,13 @@ EXTERN a_scope_depth
 			   access checking cannot be deferred in this scope. */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if 0
 EXTERN a_scope_depth
 		depth_innermost_ss_list_scope;
 			/* Depth of the innermost scope on the scope stack
 			   with a source sequence list (= DEPTH_OF_FILE_SCOPE
 			   or depth_innermost_function_scope). */
+#endif /* if 0 */
 EXTERN a_boolean
 		source_sequence_entries_disallowed;
 			/* TRUE if the current scope establishes or belongs to
@@ -872,6 +870,7 @@ extern void scope_stk_init(void);
 
 #if DEBUG
 extern int db_scope_kind(a_scope_kind sck);
+extern void db_scope_stack_entry_at_depth(a_scope_depth  depth);
 extern void db_scope_stack_entry(a_scope_stack_entry_ptr ssep);
 extern void db_scope_stack(void);
 #if EXTRA_SOURCE_POSITIONS_IN_IL

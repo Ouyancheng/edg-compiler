@@ -1071,10 +1071,6 @@ issue an error if a default argument expression is encountered.
   a_param_id_ptr          last_param_id;
   a_source_sequence_entry_ptr
                           param_ssep;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr
-                          ss_entry_start_prev;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_symbol_locator        param_locator;
   a_boolean               done;
   a_boolean               any_params;
@@ -1218,11 +1214,6 @@ issue an error if a default argument expression is encountered.
                      *new_type_ptr, (a_routine_ptr)NULL);
     /* Remember the scope number for later use if and when a body appears. */
     func_info->scope_number = scope_stack[depth_scope_stack].number;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (is_top_level_declarator) {
-      ss_entry_start_prev = init_param_source_sequence_sublist();
-    }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (any_params) {
       last_param_type = NULL;
       do {
@@ -1336,8 +1327,7 @@ issue an error if a default argument expression is encountered.
              sequence entry for the param id should be eliminated in that
              case, too. */
           if (param_ssep != NULL) {
-            a_src_seq_sublist_ptr  dummy = NULL;
-            remove_from_source_sequence_list(param_ssep, &dummy);
+            remove_from_source_sequence_list(param_ssep);
             param_ssep = NULL;
           }  /* if */
         } else if (param_ssep == NULL) {
@@ -1642,9 +1632,11 @@ issue an error if a default argument expression is encountered.
       func_info->prototype_scope_symbols =
              assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      /* Record the start and end of the prototype scope. */
-      terminate_param_source_sequence_sublist(func_info,
-                                              ss_entry_start_prev);
+      /* Transfer the source sequence list in the function prototype scope
+         over to the func_info block. */
+      func_info->prototype_scope_ss_list =
+                         scope_stack[depth_scope_stack].source_sequence_list;
+      scope_stack[depth_scope_stack].source_sequence_list = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
     /* Process pragmas associated with the closing paren before the current
