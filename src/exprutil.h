@@ -409,6 +409,10 @@ extern void pop_expr_stack(void);
 
 extern an_arg_operand_ptr alloc_arg_operand(void);
 
+extern void free_arg_operand_list(an_arg_operand_ptr aop);
+
+extern void free_arg_match_summary_list(an_arg_match_summary_ptr amsp);
+
 extern void issue_warning_from_arg_match_summary(
                                             an_arg_match_summary_ptr amsp,
                                             a_source_position        *err_pos);
@@ -438,15 +442,16 @@ extern a_symbol_ptr select_overloaded_function(
                            a_source_position        *call_position,
                            an_arg_match_summary_ptr *arg_match_list);
 
-extern void make_resolved_overloaded_function_operand(
+
+extern void overloaded_function_catch_up(
                                  a_symbol_ptr       function_symbol,
                                  a_symbol_ptr       overloaded_function_symbol,
-                                 a_boolean          have_selector,
-                                 an_operand         *bound_function_selector,
                                  a_boolean          is_qualified_name,
-                                 an_expression_kind expression_kind,
                                  a_source_position  *call_position,
-                                 an_operand         *function_operand);
+                                 a_boolean          elided_reference,
+                                 an_operand         *operand,
+                                 a_boolean          *access_error_reported,
+                                 an_expression_kind expression_kind);
 
 extern void adjust_overloaded_function_call_arguments(
                              a_symbol_ptr             function_symbol,
@@ -564,6 +569,9 @@ extern void make_lvalue_variable_operand(a_variable_ptr    variable,
 extern void make_rvalue_variable_operand(a_variable_ptr variable,
                                          an_operand     *result);
 
+extern void mark_routine_referenced(a_routine_ptr     routine,
+                                    a_source_position *position);
+
 extern void make_ptr_to_member_constant_operand(
                                          a_symbol_ptr      member_proj_sym,
                                          a_source_position *position,
@@ -620,13 +628,6 @@ extern a_boolean check_scalar_operand(an_operand *operand);
 
 extern void make_field_operand(a_field_ptr field,
 			       an_operand  *result);
-
-extern void make_function_call(an_expr_node_ptr  function_node,
-                               a_type_ptr        function_type,
-                               a_boolean         is_virtual,
-                               a_boolean         new_or_delete_call_for_array,
-                               a_source_position *call_pos,
-                               an_operand        *result);
 
 extern void assemble_function_call(an_operand       *function_operand,
                                    an_operand       *bound_function_selector,
