@@ -669,6 +669,8 @@ ec_no_named_fields;;"struct or union must declare at least one named field"
 ec_nonstd_unnamed_field;;"nonstandard unnamed field"
 ec_nonstd_unnamed_member;;"nonstandard unnamed member"
 ec_function_type_in_template_arg;;"a function type cannot be used as a template argument"
+ec_cl_invalid_pch_output_file;;"invalid precompiled header output file "
+ec_cl_cannot_open_pch_output_file;;"cannot open precompiled header output file "
 
 ###############################################################################
 #                                                             \  ___  /       #
