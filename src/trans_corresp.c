@@ -165,43 +165,46 @@ entity1 point to the address indicated by entity2.
 {
   trace_corresp_check(entity1);
 #if DEBUG
-  if (db_flag_is_set("trans_corresp")) {
+  {
     a_source_correspondence_ptr  scp1 = (a_source_correspondence_ptr)entity1;
     a_source_correspondence_ptr  scp2 = (a_source_correspondence_ptr)entity2;
-    a_line_number  line;
-    char           *file_name, *full_name;
-    a_boolean      at_end_of_source;
+    a_symbol_ptr                 sym = (a_symbol_ptr)scp1->assoc_info;
+    a_line_number                line;
+    char                         *file_name, *full_name;
+    a_boolean                    at_end_of_source;
 
-    fprintf(f_debug, "DBG> ");
-    if (scp1->assoc_info != NULL) {
-      a_symbol_ptr  sym = (a_symbol_ptr)scp1->assoc_info;
-      db_symbol_name(sym);
-      fprintf(f_debug, " (%s)", symbol_kind_names[(int)sym->kind]);
-    } else {
-      db_name(scp1);
-    }  /* if */
-    conv_seq_to_file_and_line(scp1->decl_position.seq, &file_name, &full_name,
-                              &line, &at_end_of_source);
-    if (line != 0) {
-      fprintf(f_debug, " in file %s (line %ld) ", file_name, line);
-    } else {
-      fprintf(f_debug, " (built-in; line %ld) ", line);
-    }  /* if */
-    if (entity2 == NULL) {
-      fprintf(f_debug, "has undetermined correspondence.\n");
-    } else if (entity1 == entity2) {
-      fprintf(f_debug, "has no correspondence.\n");
-    } else {
-      conv_seq_to_file_and_line(scp2->decl_position.seq, &file_name,
-                                &full_name, &line, &at_end_of_source);
-      fprintf(f_debug, "should correspond to ");
-      if (line != 0) {
-        fprintf(f_debug, "entity in file %s (line %ld).\n", file_name, line);
+    if ((sym != NULL && db_sym_trace("trans_corresp", sym)) ||
+        (sym == NULL && db_flag_is_set("trans_corresp"))) {
+      fprintf(f_debug, "DBG> ");
+      if (scp1->assoc_info != NULL) {
+        db_symbol_name(sym);
+        fprintf(f_debug, " (%s)", symbol_kind_names[(int)sym->kind]);
       } else {
-        fprintf(f_debug, "built-in entity (line %ld).\n", line);
+        db_name(scp1);
+      }  /* if */
+      conv_seq_to_file_and_line(scp1->decl_position.seq, &file_name,
+                                &full_name, &line, &at_end_of_source);
+      if (line != 0) {
+        fprintf(f_debug, " in file %s (line %ld) ", file_name, line);
+      } else {
+        fprintf(f_debug, " (built-in; line %ld) ", line);
+      }  /* if */
+      if (entity2 == NULL) {
+        fprintf(f_debug, "has undetermined correspondence.\n");
+      } else if (entity1 == entity2) {
+        fprintf(f_debug, "has no correspondence.\n");
+      } else {
+        conv_seq_to_file_and_line(scp2->decl_position.seq, &file_name,
+                                  &full_name, &line, &at_end_of_source);
+        fprintf(f_debug, "should correspond to ");
+        if (line != 0) {
+          fprintf(f_debug, "entity in file %s (line %ld).\n", file_name, line);
+        } else {
+          fprintf(f_debug, "built-in entity (line %ld).\n", line);
+        }  /* if */
       }  /* if */
     }  /* if */
-  }  /* if */
+  }
 #endif /* DEBUG */
   checked_trans_unit_corresp_pointer_of(entity1) = entity2;
 }  /* f_set_trans_unit_corresp */
@@ -774,7 +777,7 @@ its corresponding primary template supplement will be used instead.
   tssp->all_instantiations = slep;
   slep->symbol = inst;
 #if DEBUG
-  if (db_flag_is_set("trans_corresp")) {
+  if (db_sym_trace("trans_corresp", inst)) {
     a_line_number  line;
     char           *file_name, *full_name;
     a_boolean      at_end_of_source;
