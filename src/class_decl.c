@@ -1894,11 +1894,7 @@ is a base class.
       /* The indirect derivation gives greater access, so it's the one whose
          path we use (following ARM 11.7), even though it is not the
          derivation one would expect for a base class marked "direct". */
-#if 0
-      type_warning(ec_direct_derivation_less_accessible, base_class->type);
-#else /* if !0 */
       type_remark(ec_direct_derivation_less_accessible, base_class->type);
-#endif /* if 0 */
     } else {
       /* The direct derivation gives at least as much access as the indirect
          derivation. */
@@ -1916,11 +1912,7 @@ is a base class.
            present one, was for a direct base class, we again have the
            situation where a base class is marked "direct" but has a longer
            path. */
-#if 0
-        type_warning(ec_direct_derivation_less_accessible, base_class->type);
-#else /* if !0 */
         type_remark(ec_direct_derivation_less_accessible, base_class->type);
-#endif /* if 0 */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2293,13 +2285,6 @@ duplicate paths.  The copy will be a base class of new_class.
         if (set_data_section_base_class(bcp, path)) {
           fixup_embedded_virtual_base_classes(bcp, new_class);
         }  /* if */
-#if 0
-        if (bcp->data_section_base_class == NULL &&
-            !directly_derived_bcp->is_virtual &&
-            directly_derived_bcp->complete_subobject) {
-          bcp->data_section_base_class = directly_derived_bcp;
-        }  /* if */
-#endif /* if 0 */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
         goto done;
       }  /* if */
@@ -2326,13 +2311,6 @@ duplicate paths.  The copy will be a base class of new_class.
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
     /* The data section of an indirect virtual base class is in the
        complete subobject to which it belongs. */
-#if 0
-    /* Is this right? */
-    if (!directly_derived_bcp->is_virtual &&
-        directly_derived_bcp->complete_subobject) {
-      new_bcp->data_section_base_class = directly_derived_bcp;
-    }  /* if */
-#endif /* if 0 */
     (void)set_data_section_base_class(new_bcp, path);
     /* According to cfront all virtual base classes are complete subobjects. */
     new_bcp->complete_subobject = TRUE;
@@ -2361,11 +2339,6 @@ duplicate paths.  The copy will be a base class of new_class.
       add_indirect_base_class(bcp, new_bcp, p_end_of_add_list, new_class);
     }  /* if */
   }  /* for */
-#if 0
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-  fixup_data_section_base_class_pointers(new_bcp, new_class);
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-#endif /* if 0 */
   /* Add this to the end of add_list. */
   if (*p_end_of_add_list == NULL) {
     new_class->variant.class_struct_union.extra_info->base_classes = new_bcp;
@@ -2557,11 +2530,7 @@ or struct definition.  The syntax is
       /* Issue a warning if an explicit access specifier was not provided
          (as per the recommendation on p. 243 of the ARM). */
       if (!access_already_specified) {
-#if 0
         str_warning(ec_missing_access_specifier, default_access_str);
-#else /* if !0 */
-        str_remark(ec_missing_access_specifier, default_access_str);
-#endif /* if 0 */
       }  /* if */
       /* The current class will have to have a constructor if any of its base
          classes is virtual or itself has a constructor; it requires a
@@ -2573,6 +2542,11 @@ or struct definition.  The syntax is
       }  /* if */
       if (bcp_cssp->destructor != NULL) {
         cssp->destructor_required = TRUE;
+        if (!bcp_cssp->destructor->variant.routine->is_virtual) {
+          /* The base class has a nonvirtual destructor, which is not
+             recommended (see commentary in ARM 12.4). */
+          type_remark(ec_base_class_with_nonvirtual_dtor, base_class_type);
+        }  /* if */
       }  /* if */
       /* Indicate whether an operator new or operate delete is inherited into
          the current derived class. */
@@ -2649,11 +2623,6 @@ or struct definition.  The syntax is
         end_of_base_classes_list->next = new_direct_bcp;
       }  /* if */
       end_of_base_classes_list = new_direct_bcp;
-#if 0
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-      fixup_data_section_base_class_pointers(new_direct_bcp, type_ptr);
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-#endif /* if 0 */
       if (any_base_class_with_override_list) {
         for (bcp = base_classes_of(new_direct_bcp->type);
              bcp != NULL;
@@ -6153,31 +6122,10 @@ next_declaration:
       /* Issue a warning on a class with an operator new() but no operator
          delete() or vice versa. */
       if (cssp->has_operator_new != cssp->has_operator_delete) {
-#if 0
-        sym_warning(cssp->has_operator_new ?
-                      ec_class_with_op_new_but_no_op_delete :
-                      ec_class_with_op_delete_but_no_op_new,
-                    tag_sym);
-#else /* if !0 */
         sym_remark(cssp->has_operator_new ?
                      ec_class_with_op_new_but_no_op_delete :
                      ec_class_with_op_delete_but_no_op_new,
                    tag_sym);
-#endif /* if 0 */
-      }  /* if */
-      /* Issue a warning on a class with virtual functions but no virtual
-         destructor. */
-      if (class_type->variant.class_struct_union.any_virtual_functions) {
-        if (cssp->destructor != NULL &&
-            !cssp->destructor->variant.routine->is_virtual) {
-          /* The class has virtual functions and a destructor, but the latter
-             isn't virtual. */
-#if 0
-          sym_warning(ec_class_with_virtual_func_but_nonvirtual_dtor, tag_sym);
-#else /* if !0 */
-          sym_remark(ec_class_with_virtual_func_but_nonvirtual_dtor, tag_sym);
-#endif /* if 0 */
-        }  /* if */
       }  /* if */
       /* Issue a warning on a class with all private constructors and no
          friend functions. */
@@ -6202,11 +6150,7 @@ next_declaration:
           }  /* for */
           if (ctor_sym == NULL) {
             /* All constructors are private. */
-#if 0
             sym_warning(ec_no_access_to_constructors, tag_sym);
-#else /* if !0 */
-            sym_remark(ec_no_access_to_constructors, tag_sym);
-#endif /* if 0 */
           }  /* if */
         }  /* if */
       }  /* if */
