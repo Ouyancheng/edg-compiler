@@ -2565,6 +2565,19 @@ to indicate whether an enumeration is actually defined.
   /* Skip over "enum". */
   check_assertion(curr_token == tok_enum);
   (void)get_token();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (!C_mode() && microsoft_mode) {
+      a_boolean                    local_err;
+      an_extended_decl_info_block  extended_decl_info;
+
+      /* Scan any __declspec decl-modifiers "as if" this were a class (even
+         though they are ignored for enum types). */
+      clear_extended_decl_info_block(extended_decl_info);
+      scan_extended_decl_modifiers(/*is_class_decl=*/TRUE,
+                                   /*is_member_decl=*/FALSE,
+                                   &extended_decl_info, &local_err);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If there is an identifier next, it is a tag.  It can be the declaration
      of a new tag or a reference to an existing tag. */
   tag_id_present = is_expr_qualified_name_start();

@@ -1,5 +1,14 @@
 Version 2.46
 
+1/12/01  Microsoft compatibility: __declspec specifiers on enum definitions
+
+In Microsoft mode, the front end now accepts (but discards) the same
+__declspec specifiers on enum definitions as on class definitions.
+For example:
+
+enum __declspec(dllexport) E {};  // Accepted but the dllexport attribute is
+                                  // not recorded in the IL
+
 1/11/01  Microsoft compatibility: name lookup in templates defined outside
          of their namespace
 
