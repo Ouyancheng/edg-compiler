@@ -6305,9 +6305,6 @@ to indicate whether an enumeration is actually defined.
     enum_type->variant.integer.int_kind = (an_integer_kind)ik_int;
     enum_type->variant.integer.enum_type = TRUE;
     enum_type->variant.integer.enum_info.constant_list = NULL;
-    /* Wait to add the type to the types list; it should not be added
-       until the closing brace of the full definition appears, to get the
-       IL list in the right order. */
     /* Enter a new tag symbol, if a tag id was specified (a tag is not
        specified in something like "enum {a, b, c}"). */
     if (tag_id_present) {
@@ -6330,6 +6327,9 @@ to indicate whether an enumeration is actually defined.
     enum_type->source_corresp.access = access;
     enum_type->source_corresp.class_of_which_a_member =
                                                 class_of_which_a_member;
+    /* Wait to add the type to the types list; it should not be added
+       until the closing brace of the full definition appears, to get the
+       IL list in the right order. */
   } else {
     /* Using an existing type.  Fetch the enumerated type pointer from it. */
     enum_type = tag_sym->variant.type;
@@ -6480,11 +6480,11 @@ to indicate whether an enumeration is actually defined.
         set_source_corresp(&(enum_con->source_corresp), enum_sym);
         enum_sym->variant.constant = enum_con;
         enum_con->type = enum_con_type;
-        mark_defined(enum_sym, &locator.source_position);
         /* Specify membership and access. */
         enum_con->source_corresp.class_of_which_a_member =
                 enum_sym->class_of_which_a_member = class_of_which_a_member;
         enum_con->source_corresp.access = access;
+        mark_defined(enum_sym, &locator.source_position);
         /* Add the enumeration constant to the list under the enumerated
            type. */
         if (end_of_enum_con_list == NULL) {

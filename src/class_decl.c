@@ -3572,10 +3572,10 @@ inconsistent with the restriction to integral type.
   /* Update the symbol and the constant entry. */
   sym->variant.constant = cp;
   set_source_corresp(&(cp->source_corresp), sym);
-  mark_defined(sym, &locator->source_position);
   cp->source_corresp.access = access;
   cp->source_corresp.class_of_which_a_member =
                           sym->class_of_which_a_member = class_type;
+  mark_defined(sym, &locator->source_position);
   add_to_constants_list(cp, /*at_file_scope=*/FALSE);
   db_exit();
 }  /* decl_member_constant */
