@@ -92,6 +92,25 @@ be used.
  #error -- Must select either 2.1 compatibility or 3.0 compatibility.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY ... */
 
+/*
+TRUE if code that exploits a cfront 2.1 bug that causes a global name to be
+used by a member function when a base class has an entity with the same name.
+The conditions under which this bug occurs are quite complicated.  The
+full description can be found in lookup.c in the description of
+check_for_cfront_name_lookup_bug.  The flag
+CFRONT_2_1_OBJECT_CODE_COMPATIBILITY in targ_def.h must be TRUE when this
+feature is used.  This is really a language feature and therefore would
+be expected to be in lang_feat.h, but if it were there it couldn't
+choose a default based on CFRONT_2_1_OBJECT_CODE_COMPATIBILITY.
+*/
+#ifndef CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+#define CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG TRUE
+#else /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+#define CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG FALSE
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+#endif /* ifndef CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
+
 /* The code that implements the cfront name lookup bug makes use of the
    information recorded for semivisible nested type handling.  Consequently,
    2.1 compatibility mode is required to use the name lookup bug. */
