@@ -1152,6 +1152,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->type, a_type_ptr, iek_type);
         definition_needed_if_class(ptr->type);
         remap_next_ptr(ptr->next, an_expr_node_ptr, iek_expr_node);
+#if RECORD_FORM_OF_NAME_REFERENCE
+        walk_ptr(ptr->name_reference, a_name_reference_ptr,
+                 iek_name_reference);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
         switch (ptr->kind) {
           case enk_error:
             /* No pointers. */
@@ -1819,21 +1823,22 @@ end_sizeof:;
     case iek_name_qualifier:
       {
         a_name_qualifier_ptr ptr = (a_name_qualifier_ptr)entry_ptr;
-        walk_ptr(ptr->previous_qualifier, a_name_qualifier_ptr,
-                 iek_name_qualifier);
+        /* The "next" pointer is for front end use only. */
+        conditionally_clear_fe_pointer(ptr->next);
         if (ptr->is_class) {
           walk_ptr(ptr->qualifier.class_type, a_type_ptr, iek_type);
         } else {
           walk_ptr(ptr->qualifier.namespace_ptr, a_namespace_ptr,
                    iek_namespace);
         }  /* if */
-        /* The next pointers are used for front end use only. */
-        conditionally_clear_fe_pointer(ptr->next);
+        walk_ptr(ptr->previous_qualifier, a_name_qualifier_ptr,
+                 iek_name_qualifier);
       }
       break;
     case iek_name_reference:
       {
         a_name_reference_ptr ptr = (a_name_reference_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_name_reference_ptr, iek_name_reference);
         walk_ptr(ptr->qualifier, a_name_qualifier_ptr, iek_name_qualifier);
       }
       break;

@@ -484,6 +484,41 @@ string.
 }  /* disp_source_range */
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_FORM_OF_NAME_REFERENCE
+
+static void disp_name_reference(a_name_reference_ptr ptr)
+/*
+Display a_name_reference entry.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_name_reference);
+  disp_ptr("qualifier", (char *)ptr->qualifier, iek_name_qualifier);
+  disp_boolean("is_global_qualified_name",
+               (a_boolean)ptr->is_global_qualified_name);
+  disp_boolean("is_template_id", (a_boolean)ptr->is_template_id);
+  disp_boolean("is_super_qualified", (a_boolean)ptr->is_super_qualified);
+}  /* disp_name_reference */
+
+
+static void disp_name_qualifier(a_name_qualifier_ptr ptr)
+/*
+Display a_name_qualifier entry.
+*/
+{
+  /* The "next" field is front-end-only. */
+  disp_boolean("is_class", (a_boolean)ptr->is_class);
+  if (ptr->is_class) {
+    disp_ptr("qualifier.class_type", (char *)ptr->qualifier.class_type,
+             iek_type);
+  } else {
+    disp_ptr("qualifier.namespace_ptr", (char *)ptr->qualifier.namespace_ptr,
+             iek_namespace);
+  }  /* if */
+  disp_ptr("previous_qualifier", (char *)ptr->previous_qualifier,
+           iek_name_qualifier);
+}  /* disp_name_qualifier */
+
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* "is_enumerator" is only used to display extra source info. */
@@ -520,6 +555,10 @@ Display the indicated source correspondence entry.
     }  /* if */
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  disp_ptr("  name_references", (char *)scp->name_references,
+           iek_name_reference);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #ifdef CFE
   if (scp->is_class_member) {
     disp_boolean("  is_class_member", TRUE);

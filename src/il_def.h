@@ -939,7 +939,9 @@ typedef union a_parent_class_or_namespace {
      a_symbol_locator, each of which has an is_class_member flag.  When
      is_class_member is TRUE, the class_type pointer may be assumed to be
      non-NULL.  When it is FALSE, the entity may or may not be a direct
-     namespace member, depending on whether namespace_ptr is non-NULL. */
+     namespace member, depending on whether namespace_ptr is non-NULL.
+     a_name_qualifier also uses it, but the selector field is called
+     is_class there. */
   /* When is_class_member is TRUE: */
   a_type_ptr	class_type;
 			/* Pointer to the class of which this entry is a
@@ -993,7 +995,8 @@ typedef struct a_name_qualifier {
 		next;	/* Pointer to the next name qualifier entry for
 			   a given "qualifier" value.  This is used to
 			   find a previously allocated entry that matches
-			   a given form of reference. */
+			   a given form of reference.  Used only in the
+			   front end. */
   a_parent_class_or_namespace
 		qualifier;
 			/* Pointer to the class or namespace pointer, if
@@ -1005,10 +1008,11 @@ typedef struct a_name_qualifier {
   a_name_qualifier_ptr
 		previous_qualifier;
 			/* Pointer to the previous portion of the qualifier,
-			   if any. */
+			   if any, i.e., the parent qualifier.  NULL if
+			   this is the first/topmost qualifier. */
   a_bit_field	is_class:1;
 			/* TRUE if the qualifier is a class, FALSE if it
-			   is a namespace (or __super). */
+			   is a namespace. */
 } a_name_qualifier;
 
 /*
@@ -1027,15 +1031,15 @@ typedef struct a_name_reference {
 			   qualifier portion of the name.  NULL if there is
 			   such no qualifier. */
   a_bit_field	is_global_qualified_name:1;
-			/* TRUE if the "identifier" is a C++ qualified-name
-			   that begins with a unary "::" (e.g., "::y" or
-			   ::A::x). */
+			/* TRUE if the name begins with a unary "::"
+			   (e.g., ::y or ::A::x). */
   a_bit_field	is_template_id:1;
 			/* TRUE if the name is a template-id
-			   (i.e., template-name < template-arg-list >). */
+			   (i.e., template-name < template-arg-list >).
+			   This applies to the last component in the name. */
   a_bit_field	is_super_qualified:1;
 			/* TRUE if the name is prefixed by the Microsoft
-			   __super keyword. */
+			   __super keyword (e.g., __super::x). */
 } a_name_reference;
 
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
@@ -7731,6 +7735,14 @@ typedef struct an_expr_node {
 			   at which the operator appears in the source.
 			   Otherwise, null_source_position. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  a_name_reference_ptr
+		name_reference;
+			/* If non-NULL, points to information about the
+			   form of reference to a name that this expression
+			   node refers to (e.g., a function name for an
+			   enk_routine_address). */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 } an_expr_node;
 
 /*

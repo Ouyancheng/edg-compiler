@@ -2255,6 +2255,9 @@ its kind to the indicated kind.
   node->expr_range = null_source_range; 
   node->operator_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  node->name_reference = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   set_expr_node_kind(node, kind);
 }  /* clear_expr_node */
 
