@@ -15,12 +15,12 @@ the error text.
 
 */
 
+#include <stdlib.h>
+#include <stdio.h>
 #include "basics.h"
 #include "host_envir.h"
 
 #if __ANSIC__ || USING_ISO_C
-/* Get bsearch, qsort, and exit prototypes. */
-#include <stdlib.h>
 typedef sizeof_t qsort_nmemb_type;
 #else /* __ANSIC__ */
 EXTERN_C a_void_ptr bsearch(a_const_void_ptr key,
@@ -43,13 +43,6 @@ EXTERN_C void qsort(a_void_ptr       base,
                     int(*compar)(a_const_void_ptr,
                                  a_const_void_ptr));
 typedef sizeof_t qsort_nmemb_type;
-#endif /* __BSD__ */
-
-EXTERN_C void exit(int status);
-#if __BSD__
-EXTERN_C char *malloc(unsigned size);
-#else /* !__BSD__ */
-#include <malloc.h>
 #endif /* __BSD__ */
 #endif /* __ANSIC__ || USING_ISO_C */
 
