@@ -7419,10 +7419,12 @@ and it is legal for virtual member functions only.
   }  /* if */
   /* Advance past the "=". */
   (void)get_token();
-  if (curr_token == tok_int_constant && const_for_curr_token.is_simple_zero) {
-    /* Token following "=" is "0".  Note that we don't test for an integer
-       value of zero but rather for the literal "0", since "= 00" should
-       elicit an error. */
+  if ((curr_token == tok_int_constant &&
+       const_for_curr_token.is_simple_zero) ||
+      (gpp_mode && curr_token == tok_null)) {
+    /* Token following "=" is "0" (or perhaps "__null" in GNU C++ mode).
+       Note that we don't test for an integer value of zero but rather for
+       the literal "0", since "= 00" should elicit an error. */
     if (pure_specifier_allowed) {
       /* Update the routine and class type entities. */
       rout_sym->variant.routine.ptr->pure_virtual = TRUE;
