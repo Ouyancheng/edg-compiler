@@ -515,9 +515,8 @@ static a_template_arg_ptr build_template_arg_list(
     okay = TRUE;
   } else {
     tp = templ_rout_type->variant.routine.return_type;
-    if (!identical_types(return_type, tp)) {
-      okay = matches_template_type(return_type, tp, &templ_arg_list);
-    }  /* if */
+    okay = (identical_types(return_type, tp) ||
+            matches_template_type(return_type, tp, &templ_arg_list));
   }  /* if */
   if (okay) {
     ptp = param_type_list;
