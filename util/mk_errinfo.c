@@ -618,6 +618,7 @@ static void me_create_doc_fillin(char	**ptr_to_ptr)
               case 'a': template_args = TRUE; break;
               case 'd': decl_pos = TRUE; break;
               case 't': break;  /* New template name output -- ignored. */
+              case 'T': break;  /* Display translation unit -- ignored. */
               case 'p': break;  /* Force parameter type -- ignored. */
               case '1': break;
               case '2': break;
