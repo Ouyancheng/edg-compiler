@@ -943,6 +943,10 @@ Dump the entire scope stack (for debugging).
 static a_scope_depth scope_depth_of(a_symbol_ptr  sym,
                                     a_boolean     *is_local_to_function)
 /*
+Given a symbol with a decl_scope (which is a scope number), search the
+scope stack for the scope stack entry that corresponds to it, and return
+the depth.  Also return TRUE in *is_local_to_function if the declaration
+is in within a function body.
 */
 {
   a_scope_depth  scope_depth;
@@ -970,7 +974,7 @@ static a_scope_depth scope_depth_of(a_symbol_ptr  sym,
       check_assertion_str(scope_depth >= DEPTH_OF_FILE_SCOPE,
                           "scope_depth_of: bad decl_scope in symbol");
       if (scope_stack[scope_depth].number == sym->decl_scope) {
-        /* This is the scope stack entry corresp[230zonding to the declaration
+        /* This is the scope stack entry corresponding to the declaration
            scope number, where relevant characteristics of the scope are
            recorded. */
         if (scope_stack[scope_depth].depth_innermost_function_scope !=
@@ -7023,21 +7027,34 @@ is called only in C++.
 
 void set_decl_sequence_number(a_symbol_ptr  sym)
 /*
+Set the delaration sequence number of the symbol pointed to by sym.  The
+counters are maintained on a per-scope basis, except that a block scope uses
+the counter of the function scope to which it belongs.
 */
 {
   a_scope_stack_entry_ptr  ssep;
   a_boolean                is_local_to_function;
+  a_scope_depth            scope_depth;
 
-  ssep = &scope_stack[scope_depth_of(sym, &is_local_to_function)];
+  /* Get a pointer to the scope stack entry corresponding to the decl_scope
+     field of sym. */
+  scope_depth = scope_depth_of(sym, &is_local_to_function);
+  check_assertion(scope_depth != NO_SCOPE_DEPTH);
+  ssep = &scope_stack[scope_depth];
   if (ssep->kind == (a_scope_kind)sck_block) {
+    /* sym was declared in a block scope, so we will need the function's
+       scope stack entry. */
     ssep = &scope_stack[ssep->depth_innermost_function_scope];
   }  /* if */
+  /* Declarations are expected only in certain kinds of scopes. */
   check_assertion_str((ssep->kind == (a_scope_kind)sck_file ||
                        ssep->kind == (a_scope_kind)sck_function ||
                        ssep->kind == (a_scope_kind)sck_template_declaration ||
                        ssep->kind == (a_scope_kind)sck_func_prototype ||
                        ssep->kind == (a_scope_kind)sck_class_struct_union),
                       "set_decl_sequenc_number: bad scope kind");
+  /* Increment the counter that is kept in the scope stack entry and copy it
+     into the symbol. */
   sym->decl_seq = ++ssep->decl_seq;
 }  /* set_decl_sequence_number */
 
