@@ -9973,7 +9973,6 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
     template_binary_operation((an_expr_operator_kind)eok_assign,
                               operand_1, &operand_2,
                               result, &operator_position);
-    result->state = (an_operand_state)os_lvalue;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (is_property_ref_operand(operand_1)) {
     /* The operand is a field selection for a field declared with the
