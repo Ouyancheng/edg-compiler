@@ -503,33 +503,35 @@ are delegated to int_kind_name, but for intrinsic Microsoft __intN types
 }  /* int_type_name */
 
 
-static void form_int_kind_name(an_integer_kind                       kind,
+static void form_int_type_name(a_type_ptr                            type,
                                an_il_to_str_output_control_block_ptr octl)
 /*
 Output a string for the name of an integer kind, doing the output in the
 way described by octl.
 */
 {
-  char *str;
+  char             *str = NULL;
+  an_integer_kind  kind = type->variant.integer.int_kind;
 
   if (octl->gen_pcc_code) {
     if (kind == (an_integer_kind)ik_signed_char) {
       /* In pcc mode, "signed" doesn't exist, so this must be a plain
          char. */
-      kind = (an_integer_kind)ik_char;
+      str = int_kind_name((an_integer_kind)ik_char);
     } else if (kind == (an_integer_kind)ik_unsigned_char &&
                !il_header.plain_chars_are_signed) {
       /* In pcc mode, "char" is turned into signed char or unsigned char.
          If unsigned char is the default, we don't have to say "unsigned". */
-      kind = (an_integer_kind)ik_char;
+      str = int_kind_name((an_integer_kind)ik_char);
     }  /* if */
   }  /* if */
-  if (kind == (an_integer_kind)ik_unsigned_int && octl->gen_compilable_code) {
+  if (kind == (an_integer_kind)ik_unsigned_int && octl->gen_compilable_code &&
+      !type->variant.integer.microsoft_sized_int_type) {
     /* When generating compilable code, use "unsigned" instead of
        "unsigned int".  This is necessary when doing vacuous destructors. */
     str = "unsigned";
-  } else {
-    str = int_kind_name(kind);
+  } else if (str == NULL) {
+    str = int_type_name(type);
   }  /* if */
 #if CHECKING
   if (*str == '*'
@@ -537,11 +539,11 @@ way described by octl.
       && !octl->debug_output
 #endif /* DEBUG */
                             ) {
-    internal_error("form_int_kind_name: bad integer kind");
+    internal_error("form_int_type_name: bad integer kind");
   }  /* if */
 #endif /* CHECKING */
   octl->output_str(str);
-}  /* form_int_kind_name */
+}  /* form_int_type_name */
 
 
 char *float_kind_name(a_float_kind kind)
@@ -789,7 +791,7 @@ by octl.
           octl->output_str("logical ");
         }  /* if */
 #endif /* ifdef FFE */
-        form_int_kind_name(type->variant.integer.int_kind, octl);
+        form_int_type_name(type, octl);
       }  /* if */
       break;
     case tk_float:
