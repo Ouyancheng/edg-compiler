@@ -413,7 +413,7 @@ void conv_float_literal(a_boolean	is_hexadecimal,
 Convert a floating constant from external form to internal form.
 start_of_curr_token and end_of_curr_token point to the two ends of the
 external form.  is_hexadecimal is TRUE if the external form is specified
-in as a hexadecimal value.
+as a hexadecimal value.
 
 The internal form is placed in const_for_curr_token.  If there is no
 error, *err_code is set to ec_no_error (which is 0); otherwise,
