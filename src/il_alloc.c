@@ -2734,6 +2734,9 @@ in il_init.)
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   def_source_corresp.source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  def_source_corresp.per_instantiation_needed_flags = NULL;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 
   /* Save static variables that are needed for precompiled headers */
   if (precompiled_header_processing_required) {

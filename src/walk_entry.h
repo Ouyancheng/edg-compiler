@@ -355,12 +355,21 @@ pointers.
 #else /* !NEED_NAME_MANGLING */
 #define walk_unmangled_name(ptr) /* Nothing */
 #endif /* NEED_NAME_MANGLING */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#define walk_per_instantiation_needed_flags(ptr) \
+  walk_string_ptr((ptr).per_instantiation_needed_flags, \
+                  iek_other_text, \
+                  il_header.per_instantiation_needed_flags_vector_byte_length)
+#else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#define walk_per_instantiation_needed_flags(ptr) /* Nothing */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #define walk_source_corresp(ptr) \
 { walk_string_ptr((ptr).name, iek_id_name, 0); \
   walk_unmangled_name(ptr); \
   remap_parent(ptr); \
   remap_source_sequence_entry(ptr); \
   clear_pointer_if_remapping((ptr).assoc_info); \
+  walk_per_instantiation_needed_flags(ptr); \
 }  /* walk_source_corresp */
 #endif /* NEEDED_FLAG_WALK */
 

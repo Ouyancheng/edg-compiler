@@ -481,14 +481,26 @@ processing cannot be done reliably on template bodies.
 #else /* !MAINTAIN_NEEDED_FLAGS */
 #define DEFAULT_REMOVE_UNNEEDED_ENTITIES FALSE   /* Do not change this. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-#else /* defined(DEFAULT_REMOVE_UNNEEDED_ENTITIES) */
-#if !MAINTAIN_NEEDED_FLAGS
-#if DEFAULT_REMOVE_UNNEEDED_ENTITIES
- #error -- DEFAULT_REMOVE_UNNEEDED_ENTITIES should be FALSE \
+#endif /* ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES */
+
+#if !MAINTAIN_NEEDED_FLAGS && DEFAULT_REMOVE_UNNEEDED_ENTITIES
+ #error -- DEFAULT_REMOVE_UNNEEDED_ENTITIES must be FALSE \
            when MAINTAIN_NEEDED_FLAGS is FALSE.
-#endif /* DEFAULT_REMOVE_UNNEEDED_ENTITIES */
-#endif /* !MAINTAIN_NEEDED_FLAGS */
-#endif /* !defined(DEFAULT_REMOVE_UNNEEDED_ENTITIES) */
+#endif /* !MAINTAIN_NEEDED_FLAGS && ... */
+
+/*
+Flag that is TRUE if a separate "needed" flag should be maintained for
+each instantiation, so that multiple output files can be produced,
+each containing only the things needed for one instantiation.
+*/
+#ifndef MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#define MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS FALSE
+#endif /* ifndef MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+
+#if !MAINTAIN_NEEDED_FLAGS && MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+ #error -- MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS must be FALSE \
+           when MAINTAIN_NEEDED_FLAGS is FALSE.
+#endif /* !MAINTAIN_NEEDED_FLAGS && ... */
 
 /*
 The flag IL_WALK_NEEDED controls the compilation of the routines required

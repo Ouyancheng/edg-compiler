@@ -471,6 +471,21 @@ Display the indicated source correspondence entry.
              iek_source_sequence_entry);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  if (scp->per_instantiation_needed_flags != NULL) {
+    char     *ptr = scp->per_instantiation_needed_flags;
+    sizeof_t byte_count =
+                   il_header.per_instantiation_needed_flags_vector_byte_length;
+    disp_name("per_instantiation_needed_flags");
+    while (byte_count-- > 0) {
+      a_byte curr_byte = (a_byte)(*ptr++);
+      int    i;
+      for (i = 0; i < TARG_CHAR_BIT; i++) {
+        (void)printf("%c", ((curr_byte >> i)&1) ? '1' : '0');
+      }  /* for */
+    }  /* while */
+  }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 }  /* disp_source_corresp */
 
 

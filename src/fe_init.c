@@ -602,6 +602,9 @@ line processing is done.
   il_header.far_data_pointers = DEFAULT_FAR_DATA_POINTERS;
   il_header.far_code_pointers = DEFAULT_FAR_CODE_POINTERS;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  il_header.per_instantiation_needed_flags_vector_byte_length = 0;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 }  /* fe_early_init */
 
 

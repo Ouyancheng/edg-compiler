@@ -938,6 +938,17 @@ typedef struct a_source_correspondence {
 			   a file-scope routine or variable except within
 			   function bodies. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  char		*per_instantiation_needed_flags;
+			/* A bit vector, of length specified by the il_header
+			   per_instantiation_needed_flags_vector_byte_length
+			   field.  Bit N indicates whether the entity of
+			   which this is the source correspondence field is
+			   needed in the instantiation assigned number N.
+			   Bit 0 is used to indicate the things needed in
+			   the main body of the compilation, excluding the
+			   instantiations. */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 } a_source_correspondence;
 
 /*
@@ -7269,6 +7280,12 @@ EXTERN struct il_header_tag {
 			   desired; corresponds to global variable
 			   microsoft_version. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  sizeof_t	per_instantiation_needed_flags_vector_byte_length;
+			/* Length in bytes of the bit vectors attached to
+			   source correspondence entries to indicate entities
+			   needed by instantiations. */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 } il_header;
 
 
