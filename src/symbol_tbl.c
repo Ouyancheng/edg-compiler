@@ -5260,7 +5260,7 @@ must a tag.  Projection symbols are not considered in the lookup.
   }  /* if */
 #endif /* CHECKING */
   sym = locator->specific_symbol;
-  if (sym != NULL) {
+  if (sym != NULL && is_acceptable_symbol(sym)) {
     /* The locator is for a specific symbol, so return the symbol for it. */
   } else if (is_error_locator(*locator)) {
     /* The locator is an error locator, so return NULL (i.e., no symbol
