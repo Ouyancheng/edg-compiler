@@ -9548,8 +9548,8 @@ instantiation.
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
   if (prototype_instantiations_in_il) {
-    /* Prevent the generation of a source sequence entry for the a_template
-       entry since we have one for the recorded prototype instantiation. */
+    /* Restore the previous state wrt. the generation of source sequence
+       entries. */
     source_sequence_entries_disallowed = saved_sses_disallowed;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -11154,14 +11154,31 @@ returned to the caller.
     tssp = NULL;
   } /* if */
   if (tssp != NULL) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+    a_boolean  saved_sses_disallowed;
+    if (!nonclass_prototype_instantiations) {
+      /* Prevent the generation of a source sequence entry for the a_template
+         entry since we already did so elsewhere. */
+      saved_sses_disallowed = source_sequence_entries_disallowed;
+      source_sequence_entries_disallowed = TRUE;
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
     /* Save the information needed to create an instantiation based
        on the definition of the template. */
     set_template_cache_info(&tssp->cache, p_token_cache,
                             decl_state->decl_info);
     mark_defined(sym, &locator->source_position);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (!nonclass_prototype_instantiations) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Restore the previous state wrt. the generation of source sequence
+         entries. */
+      source_sequence_entries_disallowed = saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    } else {
       sym->variant.static_data_member.variable->template_decl =
                                                     decl_state->template_decl;
+    }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   *p_tssp = tssp;

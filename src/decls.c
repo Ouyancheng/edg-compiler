@@ -5764,6 +5764,15 @@ recorded in the IL, the template header is passed via template_decl.
     }  /* if */
   }  /* if */
   if (!is_error_locator(*locator)) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+    a_boolean  saved_sses_disallowed;
+    if (!nonclass_prototype_instantiations) {
+      /* Prevent the generation of a source sequence entry for the a_template
+         entry since we already did so elsewhere. */
+      saved_sses_disallowed = source_sequence_entries_disallowed;
+      source_sequence_entries_disallowed = TRUE;
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
     if (func_info->is_definition) {
       if (sym->defined) {
         pos_sy_error(ec_already_defined, &locator->source_position, sym);
@@ -5778,6 +5787,13 @@ recorded in the IL, the template header is passed via template_decl.
                      &locator->source_position, sym);
       } /* if */
     } /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (!nonclass_prototype_instantiations) {
+      /* Restore the previous state wrt. the generation of source sequence
+         entries. */
+      source_sequence_entries_disallowed = saved_sses_disallowed;
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
   } /* if */
   /* A routine entry is created for the function template, but it is not
      entered in the IL.  It is a convenient place to keep track of prototype
@@ -5828,7 +5844,7 @@ recorded in the IL, the template header is passed via template_decl.
   if (nonclass_prototype_instantiations) {
     a_source_sequence_entry_ptr  ssep;
     if (sym->kind == (a_symbol_kind)sk_function_template) {
-      /* We have already record (mark_defined/mark_declared) the template in
+      /* We have already recorded (mark_defined/mark_declared) the template in
          the code above, but not the prototype instantiation. */
       a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
       if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
@@ -5855,18 +5871,18 @@ recorded in the IL, the template header is passed via template_decl.
       rout_ptr->template_decl = template_decl;
     }  /* if */
   } else {
+    a_source_correspondence_ptr  scp = source_corresp_entry_for_symbol(sym);
+    if (scp != NULL && scp->source_sequence_entry != NULL) {
+      /* The call to mark_defined may have created an extra source sequence
+         entry. */
+      remove_from_src_seq_list(scp->source_sequence_entry);
+      scp->source_sequence_entry = NULL;
+    }  /* if */
     /* We're not making function prototype instantiations.  Remove the
        source sequence entry that was created for the declarator. */
     if (func_info->declarator_ssep != NULL) {
       remove_from_src_seq_list(func_info->declarator_ssep);
       func_info->declarator_ssep = NULL;
-    }  /* if */
-    if (sym->is_class_member) {
-      /* The call to mark_defined may have created a source sequence entry
-         outside the prototype class scope. */
-      a_source_correspondence_ptr  scp = source_corresp_entry_for_symbol(sym);
-      remove_from_src_seq_list(scp->source_sequence_entry);
-      scp->source_sequence_entry = NULL;
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
