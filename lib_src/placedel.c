@@ -14,6 +14,8 @@ C++ operator delete(size_t, void*);
 */
 
 #include <stddef.h>
+#include "basics.h"
+#include "runtime.h"
 #include "new.h"
 
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
