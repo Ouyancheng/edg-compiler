@@ -759,10 +759,16 @@ type.
         !identical_types(new_constant->type, new_type)) {
       implicit_cast(new_constant, new_type);
     }  /* if */
+  } else if (vla_enabled && !is_implicit_cast &&
+             is_directly_variably_modified_type(new_type)) {
+    /* A cast to a variably-modified type where the variable bound appears
+       in the cast (an opposed to inside a typedef declared elsewhere) is
+       a non-constant operation and cannot be folded. */
+    *did_not_fold = TRUE;
   }  /* if */
   /* Do the cast (by calling implicit_cast) unless there was an error or
      the cast has already been handled. */
-  if (!conversion_handled &&
+  if (!conversion_handled && !*did_not_fold &&
       (*err_code == ec_no_error || *err_severity != es_error)) {
     copy_constant(old_constant, new_constant);
     implicit_cast(new_constant, new_type);
