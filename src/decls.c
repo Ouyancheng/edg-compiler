@@ -5757,26 +5757,54 @@ A using-directive entry is created and activated for the current scope.
 }  /* using_directive */
 
 
-void using_declaration()
+static void nonmember_using_declaration()
 /*
+Scan a using_declaration in a nonclass scope.  Its syntax is:
+
+  using qualified-name ;
+
+A sk_namespace_projection is created and added to the symbol table for the
+current scope.
 */
 {
+  a_symbol_ptr  sym, new_sym;
+  a_boolean     err = FALSE;
+
+  db_enter(3, "nonmember_using_declaration");
   /* Bypass "using". */
   (void)get_token();
   add_stop_token(tok_semicolon);
   if (!is_qualified_name_start()) {
     syntax_error(ec_exp_identifier);
   } else {
-    a_boolean                  err = FALSE;
-
-    (void)coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
+    sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
                                                      ilm_normal, &err);
+    if (err) {
+      /* Diagnostic has already been issued. */
+    } else if (sym == NULL) {
+      str_error(ec_undefined_identifier,
+                locator_for_curr_id.symbol_header->identifier);
+    } else if (!locator_for_curr_id.is_qualified_name ||
+               locator_for_curr_id.is_class_member) {
+      error(ec_bad_name_in_using_decl);
+    } else {
+      check_assertion(qualifier_namespace_ptr(locator_for_curr_id) != NULL ||
+                      locator_for_curr_id.is_global_qualified_name);
+      new_sym = enter_symbol((a_symbol_kind)sk_namespace_projection,
+                             &locator_for_curr_id, depth_scope_stack,
+                             /*suppress_redecl_error=*/FALSE);
+      new_sym->variant.namespace_projection.fundamental_symbol = sym;
+      new_sym->variant.namespace_projection.is_explicit = TRUE;
+      set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
+                               (a_namespace_ptr)NULL);
+    }  /* if */
+    /* Bypass the identifier. */
     (void)get_token();
-    
   }  /* if */
   remove_stop_token(tok_semicolon);
   (void)required_token(tok_semicolon, ec_exp_semicolon);
-}  /* using_declaration */
+  db_exit();
+}  /* nonmember_using_declaration */
 
 
 /*
@@ -5939,7 +5967,7 @@ of local variables (and types, etc.) of functions and in blocks.
       if (next_token() == tok_namespace) {
         using_directive();
       } else {
-        using_declaration();
+        nonmember_using_declaration();
       }  /* if */
       goto return_point;
     } else if (check_for_overload_anachronism()) {
