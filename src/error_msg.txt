@@ -1213,6 +1213,7 @@ ec_excess_initializers_ignored;;"excess initializers are ignored"
 ec_va_start_requires_ellipsis_function;;"va_start should only appear in a function with an ellipsis parameter"
 ec_cl_short_enums_requires_gcc_mode;;"the \"short_enums\" option is only valid in GNU C mode"
 ec_bad_export_info_file;;"invalid export information file %sq1 at line number %s2"
+ec_statement_expression_in_function_only;;"statement expressions are only allowed in block scope"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

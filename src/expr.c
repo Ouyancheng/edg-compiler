@@ -8902,11 +8902,15 @@ Return an operand for the expression in *result.
   }  /* if */
   if (depth_stmt_stack < 0) {
     /* We're not inside a function, so don't try to scan the statement.
-       Just flush. */
-    check_assertion(err);
-    add_stop_token(tok_rparen);
-    flush_tokens();
-    remove_stop_token(tok_rparen);
+       Just flush to the matching closing brace. */
+    if (!err) {
+      error(ec_statement_expression_in_function_only);
+      err = 1;
+    }  /* if */
+    flush_until_matching_token();
+    /* Skip the closing brace. */
+    check_assertion(curr_token == tok_rbrace);
+    (void)get_token();
   } else {
     /* Save, clear, and later restore the expression stack, since the
        statements are not part of any expression we may currently be
