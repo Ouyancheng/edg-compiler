@@ -728,9 +728,9 @@ error code.
       break;
     case ec_not_a_member:
       if (C_dialect == C_dialect_cplusplus) {
-        m = "class %t has no member %sq";
+        m = "%n has no member %sq";
       } else {
-        m = "struct or union %t has no field %sq";
+        m = "%n has no field %sq";
       }  /* if */
       break;
     case ec_expr_not_a_modifiable_lvalue:
@@ -4157,7 +4157,7 @@ indicated position.
   error_msg_strings[1] = error_string;
   error_msg_types[1] = type;
   diag_message(error_code, error_pos, es_error, dck_standalone);
-}  /* pos_st_error */
+}  /* pos_stty_error */
 
 
 void pos_error(an_error_code     error_code,
@@ -4231,6 +4231,22 @@ indicated by error_position.
 }  /* type_error */
 
 #if !STANDALONE_UTILITY_PROGRAM
+
+void pos_stsy_error(an_error_code     error_code,
+                    a_source_position *error_pos,
+                    char              *error_string,
+                    a_symbol_ptr      symbol)
+/*
+Report the indicated error (with the indicated fill-in string) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_strings[1] = error_string;
+  error_msg_syms[1] = symbol;
+  diag_message(error_code, error_pos, es_error, dck_standalone);
+}  /* pos_stsy_error */
+
 
 void pos_sy_error(an_error_code     error_code,
                   a_source_position *error_pos,

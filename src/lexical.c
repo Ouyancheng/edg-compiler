@@ -4695,9 +4695,10 @@ the error on the final identifier not being found on lookup.
               } else {
                 /* The identifier could not be found in the class scope. */
                 if (!suppress_error) {
-                  pos_stty_error(ec_not_a_member, &error_position,
+                  pos_stsy_error(ec_not_a_member, &error_position,
                                  locator_for_curr_id.symbol_header->identifier,
-                                 class_type);
+                                 (a_symbol_ptr)class_type->
+                                                    source_corresp.assoc_info);
                 }  /* if */
               }  /* if */
             }  /* if */
