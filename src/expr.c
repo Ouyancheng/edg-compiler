@@ -1275,8 +1275,11 @@ Syntax:
       /* routine_type = NULL;  -- already set. */
     } else if (!C_mode() &&
                is_template_dependent_context() &&
-               is_template_dependent_type(operand->type)) {
-      /* A call of a dependent expression in a prototype instantiation. */
+               is_template_param_type(operand->type)) {
+      /* A call of a dependent expression in a prototype instantiation.
+         Note that we test only for a top-level parameter type here, which
+         might be a class.  More testing for other dependent cases
+         is done below. */
       routine_type = NULL;
       prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
       unknown_dependent_function = TRUE;
@@ -1300,6 +1303,15 @@ Syntax:
         /* If we can tell which routine is being called, set routine to
            the routine entry.  Otherwise, leave it NULL. */
         routine = routine_from_function_operand(operand);
+      }  /* if */
+      if (!C_mode() &&
+          is_template_dependent_context() &&
+          routine_type != NULL &&
+          is_template_dependent_type(routine_type)) {
+        /* Call through a template-dependent pointer to function or
+           pointer to member function.  Suppress argument checking. */
+        routine_type = NULL;
+        routine = NULL;
       }  /* if */
     }  /* if */
     /* Change the kind in the reference entry for the function from an
