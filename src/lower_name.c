@@ -3053,18 +3053,20 @@ and for unnamed classes and enums.  Nested types are encoded as such.
   /* The caller has already checked to see if a substitution is available for
      this entire type.  Check here to see if the type is an instantiation of a
      template for which a substitution is available. */
-  tmpl = class_template_of(type);
-  if (tmpl != NULL && 
-      add_substitution_if_available(tmpl, 
-                                    (an_il_entry_kind)iek_template, 
-                                    mctl)) {
-    type = skip_typerefs(type);
-    ctsp = type->variant.class_struct_union.extra_info;
-    mangled_template_arguments(ctsp->template_arg_list,
-                               /*partial_spec=*/FALSE,
-                               /*old_form=*/FALSE,
-                               mctl);
-    goto done;
+  /* Don't do this for typedefs passed from final_type_name_mangling. */
+  if (is_immediate_class_type(type)) {
+    tmpl = class_template_of(type);
+    if (tmpl != NULL && 
+        add_substitution_if_available(tmpl, 
+                                      (an_il_entry_kind)iek_template, 
+                                      mctl)) {
+      ctsp = type->variant.class_struct_union.extra_info;
+      mangled_template_arguments(ctsp->template_arg_list,
+                                 /*partial_spec=*/FALSE,
+                                 /*old_form=*/FALSE,
+                                 mctl);
+      goto done;
+    }  /* if */
   }  /* if */
   add_prefix_for_local_class_if_necessary(type, mctl);
 #endif /* IA64_ABI */
@@ -4944,9 +4946,9 @@ and truncated names.
                type->variant.class_struct_union.extra_info != NULL &&
                type->variant.class_struct_union.extra_info->assoc_template 
                                                                     != NULL) {
-        /* A type instantiated from a template will have a name that might
-           collide with other types in the user namespace.  Therefore, we add
-           the prefix in this case as well.  */
+      /* A type instantiated from a template will have a name that might
+         collide with other types in the user namespace.  Therefore, we add
+         the prefix in this case as well.  */
       start_mangling(&mctl);
       add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
       add_str_to_mangled_name(type->source_corresp.name, &mctl);
