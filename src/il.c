@@ -7392,8 +7392,8 @@ to it.
 }  /* alloc_object_lifetime */
 
 
-void add_to_destructions_list(a_dynamic_init_ptr      dip,
-                              an_object_lifetime_ptr  olp)
+static void add_to_destructions_list(a_dynamic_init_ptr      dip,
+                                     an_object_lifetime_ptr  olp)
 /*
 Add the indicated dynamic init entry to the destructions list of the
 indicated object lifetime entry.
@@ -7413,6 +7413,37 @@ indicated object lifetime entry.
   /* Update the lifetime pointer in the dynamic init entry. */
   dip->lifetime = olp;
 }  /* add_to_destructions_list */
+
+
+void add_to_end_of_destructions_list(a_dynamic_init_ptr      dip,
+                                     an_object_lifetime_ptr  olp)
+/*
+Add the indicated dynamic init entry to the end of the destructions list
+of the indicated object lifetime entry.
+*/
+{
+  a_dynamic_init_ptr last_dip;
+
+  check_assertion_str2(in_file_scope(olp) == in_file_scope(dip),
+                       "add_to_end_of_destructions_list: object lifetime",
+                       "and dynamic init in different memory regions");
+  check_assertion_str2(dip->lifetime == NULL,
+                       "add_to_end_of_destructions_list:",
+                       "entry is already on a destructions list");
+  last_dip = olp->destructions;
+  if (last_dip == NULL) {
+    /* The list is empty, so the entry goes at the front. */
+    olp->destructions = dip;
+  } else {
+    /* Find the end of the list and insert there. */
+    for (; last_dip->next_in_destruction_list != NULL;
+         last_dip = last_dip->next_in_destruction_list) {}
+    last_dip->next_in_destruction_list = dip;
+  }  /* if */
+  dip->next_in_destruction_list = NULL;
+  /* Update the lifetime pointer in the dynamic init entry. */
+  dip->lifetime = olp;
+}  /* add_to_end_of_destructions_list */
 
 
 void record_end_of_lifetime_destruction(a_dynamic_init_ptr  dip,
