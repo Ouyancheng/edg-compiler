@@ -1107,9 +1107,6 @@ Display a_param_type entry.
   if (ptr->passed_via_copy_constructor) {
     disp_boolean("passed_via_copy_constructor", TRUE);
   }  /* if */
-  if (ptr->type_involves_deduced_template_param) {
-    disp_boolean("type_involves_deduced_template_param", TRUE);
-  }  /* if */
   if (ptr->has_default_arg) {
     disp_boolean("has_default_arg", TRUE);
   }  /* if */
@@ -1118,6 +1115,9 @@ Display a_param_type entry.
   }  /* if */
   if (ptr->default_being_instantiated) {
     disp_boolean("default_being_instantiated", TRUE);
+  }  /* if */
+  if (ptr->type_involves_deduced_template_param) {
+    disp_boolean("type_involves_deduced_template_param", TRUE);
   }  /* if */
   if (ptr->default_arg_expr != NULL) {
     disp_ptr("default_arg_expr", (char *)ptr->default_arg_expr, iek_expr_node);
