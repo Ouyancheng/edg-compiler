@@ -4841,8 +4841,10 @@ is not a template declaration scope.
     }  /* if */
     if (sym == NULL) {
       /* Not a redeclaration. */
-      a_scope_stack_entry_ptr	ssep = &scope_stack[effective_decl_level];
-      an_error_code             error_code;
+      a_scope_stack_entry_ptr  ssep = &scope_stack[effective_decl_level];
+      an_error_code            error_code;
+      an_error_code            severity;
+      a_boolean                invalid_scope_for_new_or_delete = FALSE;
 
       if (!is_error_locator(*locator)) {
         /* If this is an overloaded operator, check for errors in the
@@ -4852,9 +4854,11 @@ is not a template declaration scope.
         check_operator_function_params(type_ptr, (a_type_ptr)NULL, locator);
         /* If it's a new or delete operator, be sure the scope is not a
            namespace scope. */
-        if (report_bad_scope_for_new_or_delete(locator, es_error)) {
+        severity = microsoft_mode ? es_warning : es_error;
+        if (report_bad_scope_for_new_or_delete(locator, severity)) {
           /* Set the is_error flag in the locator. */
-          set_to_named_error_locator(*locator);
+          if (severity == es_error) set_to_named_error_locator(*locator);
+          invalid_scope_for_new_or_delete = TRUE;
         }  /* if */
       }  /* if */
       check_default_args(type_ptr);
@@ -4872,6 +4876,7 @@ is not a template declaration scope.
         /* Another function with the same name has been declared already.  It
            may or may not be a function template.  In any case, create a new
            symbol and add it to an overload list. */
+        check_assertion(!microsoft_mode || !invalid_scope_for_new_or_delete);
         sym = enter_overloaded_symbol((a_symbol_kind)sk_function_template,
                                       locator, /*is_constructor=*/FALSE,
                                       homonym_symbol, &overload_symbol);
@@ -4880,6 +4885,14 @@ is not a template declaration scope.
         sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
                                  effective_decl_level,
                                  /*suppress_redecl_error=*/FALSE);
+        if (microsoft_mode && invalid_scope_for_new_or_delete) {
+          /* The Microsoft C++ compiler permits declaring a new or delete
+             function template in a namespace scope, but it doesn't actually
+             find the template when processing new and delete expressions.
+             We emulate this behavior by removing the symbol from the symbol
+             table. */
+          remove_symbol(sym);
+        }  /* if */
       }  /* if */
       tssp = template_supplement_for_symbol(sym);
       if (tssp->variant.function.decl_cache.decl_info == NULL) {
