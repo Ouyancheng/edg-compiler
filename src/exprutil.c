@@ -4474,6 +4474,7 @@ an operand in a template-dependent operation, where we can't tell
 what will be done with the operand.
 */
 {
+  check_assertion(is_template_dependent_context());
   if (is_indefinite_function_operand(operand)) {
     /* Replace an indefinite function by the address of an unknown
        function in the set.  The result is always an rvalue. */
@@ -4500,6 +4501,7 @@ eok_lvalue/eok_rvalue node is inserted only for the unexpected cases.
   an_expr_node_ptr expr;
   an_operand       orig_operand;
 
+  check_assertion(is_template_dependent_context());
   orig_operand = *operand;
   do_generic_operand_transformations(operand);
   if (is_an_lvalue(operand) || is_a_function_designator(operand)) {
@@ -4559,7 +4561,8 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
   a_boolean  can_fold = FALSE;
 
   orig_operand = *operand;
-  check_assertion(!is_reference_type(dest_type));
+  check_assertion(!is_reference_type(dest_type) &&
+                  is_template_dependent_context());
   /* See whether we know that the operand will be used an an rvalue. */
   if (!curr_expr_kind_is_const() &&
       (is_class_struct_union_type(dest_type) ||
