@@ -1,5 +1,15 @@
 Version 2.46
 
+2/14/01  Internal error when using non-alternate IL file format
+
+An internal error would occur when compiling a program that uses
+partial specialization of class templates with a version configured
+to use an IL file in the non-alternate IL file format.  This has
+been fixed.
+
+  template <class T, class T2> struct A { };
+  template <class T> struct A<T*, T*> { };
+
 2/12/01  RECORD_CONSTANT_EXPRESSIONS_IN_IL, enums with typedef type
 
 In some cases involving enum constants whose values are given by

@@ -8784,8 +8784,8 @@ initially used when processing the declaration of a partial specialization.
       a_class_type_supplement_ptr	partial_spec_nonreal_ctsp;
       partial_spec_nonreal_ctsp = partial_spec_nonreal_sym->variant.
                 class_struct_union.type->variant.class_struct_union.extra_info;
-      prototype_ctsp->template_arg_list =
-                                  partial_spec_nonreal_ctsp->template_arg_list;
+      prototype_ctsp->template_arg_list = copy_template_arg_list(
+                                 partial_spec_nonreal_ctsp->template_arg_list);
       /* Just as with a normal instance, in the prototype instantiation of a
          partial specialization the template_arg_list is with respect to the
          primary template while the partial_spec_template_arg_list is with
