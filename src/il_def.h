@@ -4973,6 +4973,15 @@ typedef struct a_routine {
 			   associated with this function.  0 if there is no
 			   associated bit. */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  struct a_routine_fixup
+		*routine_fixup;
+			/* Used in Microsoft mode to process the bodies of
+			   friend functions defined in class templates only
+			   when they are reference.  Points to the fixup
+			   entry for the friend function definition.  This
+			   field is for front-end use only. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef FIL
   a_byte_boolean
                 is_fortran_entry;

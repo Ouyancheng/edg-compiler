@@ -1266,14 +1266,6 @@ typedef struct a_template_instance {
 			   not yet been updated. */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_routine_fixup_ptr
-		routine_fixup;
-			/* Used in Microsoft mode to process the bodies of
-			   friend functions defined in class templates only
-			   when they are reference.  Points to the fixup
-			   entry for the friend function definition. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_template_instance;
 
 
@@ -1954,10 +1946,7 @@ typedef struct a_symbol {
                 instance_ptr;
                         /* Present for template functions and member functions
                            of template classes.  Points to information about
-                           the particular instance of the function.  In
-			   Microsoft mode, this is also present for friend
-			   functions defined in class templates, because such
-			   functions are only analyzed if they are used. */
+                           the particular instance of the function. */
     } routine;
     /* When kind == sk_label: */
     struct {

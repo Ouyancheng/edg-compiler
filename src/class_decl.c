@@ -1071,26 +1071,16 @@ Process the default argument expressions for the indicated class.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void defer_routine_fixup_until_use(a_symbol_ptr		sym,
-					  a_routine_fixup_ptr	rfp)
+static void defer_routine_fixup_until_use(a_routine_fixup_ptr	rfp)
 /*
 The Microsoft compiler treats friend functions defined in a class
 template much like a member function of such a class.  The body is
-only processed if needed.  Create a template instance entry for this
-routine and save a pointer to the fixup information there.  The fixup
-will be completed later, if needed.  "sym" is the symbol for the routine
-that is being fixed up.  "rtp" is its routine fixup entry.  Note that
-the template instance created here is different from most template instances
-in that it doesn't actually point to an instance of a template and it
-is not linked into the instantiations required list.
+only processed if needed.  Save a pointer to the routine fixup entry
+in the routine entry.  The fixup will be completed later, if needed.
+"rtp" is its routine fixup entry for the definition to be deferred.
 */
 {
-  a_template_instance_ptr	tip;
-
-  tip = alloc_template_instance();
-  tip->instance_sym = sym;
-  tip->routine_fixup = rfp;
-  sym->variant.routine.instance_ptr = tip;
+  rfp->symbol->variant.routine.ptr->routine_fixup = rfp;
 }  /* defer_routine_fixup_until_use */
 
 
@@ -1103,9 +1093,9 @@ when the enclosing class is instantiated.
 {
   a_routine_ptr  rp = rfp->symbol->variant.routine.ptr;
 
-  /* Reset the template instance pointer in the symbol to prevent this
+  /* Reset the routine fixup pointer in the routine to prevent this
      process from being attempted again. */
-  rfp->symbol->variant.routine.instance_ptr = NULL;
+  rp->routine_fixup = NULL;
   /* Reactivate the scope containing the function definition. */
   push_class_and_template_reactivation_scope(rfp->class_type,
                                              /*is_template_based=*/TRUE);
@@ -1304,7 +1294,7 @@ nested class.
           /* The Microsoft compiler treats friend functions defined in a
              class template much like a member function of such a class.
              The body is only processed if needed. */
-          defer_routine_fixup_until_use(sym, rfp);
+          defer_routine_fixup_until_use(rfp);
           /* Set rfp to NULL to prevent it from being freed below. */
           rfp = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -8075,20 +8075,19 @@ of compiler-generated function (e.g., a constructor).
   /* If the routine is compiler-generated and its definition has not
      yet been put out, force the definition now. */
   force_definition_of_compiler_generated_routine(routine);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* In Microsoft mode, friend functions defined in class templates are
+     only analyzed if they are used.  A non-NULL routine_fixup pointer
+     indicates that the definition has not yet been processed. */
+  if (routine->routine_fixup != NULL) {
+    microsoft_friend_function_fixup(routine->routine_fixup);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* If the function is an instance of a function template, mark it
+     as requiring an instantiation. */
   assoc_sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
   if (assoc_sym != NULL) {
     instance_ptr = assoc_sym->variant.routine.instance_ptr;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* In Microsoft mode, friend functions defined in class templates are
-       only analyzed if they are used.  A template instance entry with
-       a non-NULL routine_fixup pointer is created for such functions. */
-    if (instance_ptr != NULL && instance_ptr->routine_fixup != NULL) {
-      microsoft_friend_function_fixup(instance_ptr->routine_fixup);
-      instance_ptr = NULL;
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* If the function is an instance of a function template, mark it
-       as requiring an instantiation. */
     if (instance_ptr != NULL) {
       update_instantiation_required_flag(instance_ptr, TRUE,
                                          /*defer_inline=*/FALSE);
