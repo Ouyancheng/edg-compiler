@@ -1046,6 +1046,7 @@ ec_exp_class;;"expected \"class\""
 ec_struct_not_allowed;;"the \"class\" keyword must be used when declaring a template template parameter"
 ec_virtual_function_decl_hidden;;"%np2 is hidden by %no1 -- virtual function override intended?"
 ec_no_qualified_friend_definition;;"a qualified name is not allowed for a friend declaration that is a function definition"
+ec_storage_class_requires_function_or_variable;;"a storage class may not be specified (not a variable or function declaration)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -57,14 +57,15 @@ that uses the il_to_str routines.  It does not affect the output
 from the C++-generating back end, which already regenerated the name
 from the return type in all cases.
 
-11/3/99  Diagnostic for storage class on class declaration
+11/3/99  Diagnostic for storage class without a declarator
 
-The error issued when a storage class is specified on a class declaration is
+The error issued when a storage class is specified without a declarator is
 now discretionary (i.e., its severity can be weakened through the command
 line).
 
-  extern class C;  // --diag_suppress=storage_class_not_allowed suppresses
-                   // the usual diagnostic.
+  extern class C; 
+    // --diag_suppress=storage_class_requires_function_or_variable
+    // inhibits the usual diagnostic.
 
 11/2/99  Pointer conversions not allowed on nontype template argument
 

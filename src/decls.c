@@ -8699,7 +8699,7 @@ TRUE if an error was reported while the decl-specifiers were scanned.
         if (storage_class != (a_storage_class)sc_unspecified) {
           severity = (C_mode() || any_cfront_mode() || microsoft_mode) ?
                        es_warning : es_discretionary_error;
-          diagnostic(severity, ec_storage_class_not_allowed);
+          diagnostic(severity, ec_storage_class_requires_function_or_variable);
         }  /* if */
         /* ARM 7.1.6 implies that the absence of an object in this declaration
            makes it ill-formed.  Is the implication strong enough to justify
