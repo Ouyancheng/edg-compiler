@@ -8587,7 +8587,7 @@ or namespace scope) into the file scope.
       (void)fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    add_to_routines_list(routine, /*at_file_or_namespace_scope=*/TRUE);
+    add_to_routines_list(routine, DEPTH_OF_FILE_SCOPE);
   }  /* for */
   /* Clear the list of promoted routines.  Since the scope is for a class
      or namespace, we know it cannot be on the scope stack now, and therefore

@@ -2917,8 +2917,9 @@ type based on the template argument list and the template parameter list
     update_routine_decl_modifiers(rp, decl_modifiers,
                                   &locator.source_position,
                                   /*is_redecl=*/FALSE, /*is_definition=*/TRUE);
-    /* Add it to the file scope routines list. */
-    add_to_routines_list(rp, /*at_file_or_namespace_scope=*/TRUE);
+    /* Add it to the routines list of the appropriate scope; NO_SCOPE_DEPTH
+       is passed in to cause the scope to be computed. */
+    add_to_routines_list(rp, NO_SCOPE_DEPTH);
     if (tssp->befriending_classes != NULL) {
       update_befriending_classes_for_function(tssp, rp);
     }  /* if */

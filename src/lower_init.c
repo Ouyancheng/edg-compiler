@@ -123,7 +123,7 @@ be specified as NULL.  The name may be NULL.
   rout->type = rout_type;
   rout->compiler_generated = TRUE;
   /* Add the routine to the file scope list. */
-  add_to_routines_list(rout, /*at_file_or_namespace_scope=*/TRUE);
+  add_to_routines_list(rout, DEPTH_OF_FILE_SCOPE);
   return rout;
 }  /* make_rout_entry */
 
