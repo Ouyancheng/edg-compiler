@@ -522,7 +522,7 @@ if n is supplied or to the value associated with the last entry popped.
                  ec_bad_pack_alignment);
       /* Reset the current pack alignment value to zero, which means: use the
          default pack alignment that was specified on the command line. */
-      if (!microsoft_mode) { curr_max_member_alignment = 0; }
+      if (!microsoft_mode) curr_max_member_alignment = 0;
     } else {
       updated = TRUE;
     }  /* if */
