@@ -759,9 +759,9 @@ might not be able to if the template itself has not yet been defined.
             };
       */                
       sym_error(ec_runaway_recursive_instantiation, instance_sym);
-      /* Give class_type a size of 1 so it won't be treated as incomplete in
-         subsequent processing. */
-      class_type->size = 1;
+      /* Set the flag that indicates that this instancei s being specialized.
+         This will suppress subsequent attempts to instantiate this class. */
+      cssp->is_specific_template_def = TRUE;
     } else {
       /* We proceed with the instantiation. */
       /* Increment the count of instantiations-in-progress for the current
