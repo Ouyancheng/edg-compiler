@@ -8609,12 +8609,7 @@ in il_init.)
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(last_macro),
 #endif /* RECORD_MACROS_IN_IL */
-      pch_saved_var_array_terminating_elem()
-    };
-    register_pch_saved_variables(saved_vars);
 #if DEBUG
-    {
-    static a_pch_saved_variable db_saved_vars[] = {
       pch_saved_var_array_elem(num_source_files_allocated),
       pch_saved_var_array_elem(num_constants_allocated),
       pch_saved_var_array_elem(num_param_types_allocated),
@@ -8681,11 +8676,10 @@ in il_init.)
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(num_macros_allocated),
 #endif /* RECORD_MACROS_IN_IL */
-      pch_saved_var_array_terminating_elem()
-      };
-      register_pch_saved_variables(db_saved_vars);
-    }
 #endif /* if DEBUG */
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
   }  /* if */
 }  /* il_one_time_init */
 

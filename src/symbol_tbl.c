@@ -8667,12 +8667,7 @@ are handled in symbol_tbl_init.)
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
       pch_saved_var_array_elem(last_ctor_or_dtor_sym),
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
-      pch_saved_var_array_terminating_elem()
-    };
-    register_pch_saved_variables(saved_vars);
 #if DEBUG
-    {
-    static a_pch_saved_variable db_saved_vars[] = {
       pch_saved_var_array_elem(db_symbol_buffer_pointer),
       pch_saved_var_array_elem(num_access_error_descrs_allocated),
       pch_saved_var_array_elem(num_class_symbol_supplements_allocated),
@@ -8696,11 +8691,10 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_template_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_used_symbol_buckets),
       pch_saved_var_array_elem(symbol_name_string_space),
+#endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
     };
-    register_pch_saved_variables(db_saved_vars);
-    }
-#endif /* if DEBUG */
+    register_pch_saved_variables(saved_vars);
   }  /* if */
 }  /* symbol_tbl_one_time_init */
 
