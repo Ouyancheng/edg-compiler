@@ -4762,13 +4762,11 @@ function_lparen:
 }  /* declarator */
 
 
-a_symbol_ptr curr_tag_symbol(a_symbol_kind  tag_kind,
-                             a_boolean      any_class_tag_allowed)
+static a_symbol_ptr curr_tag_symbol(a_symbol_kind  tag_kind)
 /*
-The current token is an identifier.  If it is a tag of the indicated kind --
-or if any_class_tag_allowed is TRUE and the tag symbol is a class, struct,
-or union symbol -- do ambiguity and access control checking and return a
-pointer to the tag symbol.  Otherwise, return NULL.
+The current token is an identifier.  If it is a tag of the indicated kind
+do ambiguity and access control checking and return a pointer to the tag
+symbol.  Otherwise, return NULL.
 */
 {
   a_symbol_ptr assoc_symbol;
@@ -4776,8 +4774,7 @@ pointer to the tag symbol.  Otherwise, return NULL.
   /* Look up the current token.  Note that a qualified name is not allowed. */ 
   assoc_symbol = normal_id_lookup(&locator_for_curr_id, IDL_MUST_BE_TAG);
   if (assoc_symbol != NULL) {
-    if (assoc_symbol->kind != tag_kind &&
-        (!any_class_tag_allowed || !is_class_symbol(assoc_symbol))) {
+    if (assoc_symbol->kind != tag_kind) {
       /* A tag, but the wrong kind of tag (e.g., struct when union is
          required). */
       assoc_symbol = NULL;
@@ -4941,7 +4938,7 @@ caution when modifying this routine.
            scope or a base class.  This can be ascertained by doing a full
            lookup of the tag name (before, it was done just for the current
            scope). */
-        tag_sym = curr_tag_symbol(tag_kind, /*any_class_tag_allowed=*/FALSE);
+        tag_sym = curr_tag_symbol(tag_kind);
         if (tag_sym == NULL) {
           /* We will need to enter an incomplete tag that may be resolved
              later.  Just leave tag_sym NULL.  In C it will be entered at
@@ -5629,28 +5626,80 @@ Returns TRUE if there is an error in the specifiers.
 	} else {
 	  *output_flags |= DSO_FRIEND;
           is_friend_decl = TRUE;
-          if (get_token() == tok_identifier && next_token() == tok_semicolon) {
-            /* Special case -- a friend declaration of the form "friend T;"
-               which is taken to mean the same as "friend class T;" by cfront
-               (even if T has not yet been defined).  Although there is no
-               support for this syntax in the ARM, we accept it since it is
-               widely used in older C++ code.  This is a remark in normal
-               mode and a strict ANSI diagnostic in strict ANSI mode. */
-            an_error_severity   severity;       
-            if (strict_ansi_mode) {
-              /* Strict ANSI diagnostic in strict ANSI mode. */
-              severity = strict_ansi_error_severity;
+          if (num_specifiers == 0) {
+            /* Check for a special case -- a friend declaration of the form
+               "friend T;" which is taken to mean the same as "friend class T;"
+               by cfront (even if T has not yet been defined).  Although there
+               is no support for this syntax in the ARM, we accept it (except
+               in strict ANSI mode) since it is widely used in older C++
+               code.  */
+            /* Advance to the token following "friend". */
+            (void)get_token();
+            if (!is_qualified_name_start()) {
+              /* Can't be the start of an identifier -- back up to continue
+                 processing. */
+              unget_token();
+              curr_token = tok_friend;
             } else {
-              /* Default case -- remark. */
-              severity = es_remark;
+              /* Advance over the identifier, which may actually be a
+                 qualified name or even a template class. */
+              a_boolean          lookup_err;
+              a_symbol_ptr       tag_sym;
+
+              tag_sym = coalesce_and_lookup_generalized_identifier(
+                                      GID_NO_OPTIONS, ilm_normal, &lookup_err);
+              /* Even if the lookup was successful, if the next token is not
+                 a ";" this is not of the form "friend T;". */
+              if (next_token() != tok_semicolon) {
+                /* No semicolon -- back up. */
+                unget_token();
+                curr_token = tok_friend;
+              } else if (cfront_compatibility_mode && tag_sym == NULL) {
+                /* This friend declaration introduces a new type -- which is
+                   okay in cfront compatibility mode.  Still, issue a remark
+                   on use of a nonstandard feature. */
+                vacuous_decl_allowed = FALSE;
+                pos_st_remark(ec_nonstd_friend_decl,
+                              &locator_for_curr_id.source_position, "class");
+                goto process_class_specifier;
+              } else {
+                if (tag_sym == NULL || !is_class_symbol(tag_sym)) {
+                  /* Lookup failed to find a class symbol.  Issue an error. */
+                  error(ec_bad_friend_decl);
+                  err = TRUE;
+                  *type_ptr = error_type();
+                } else {
+                  /* This declaration is of the form "friend T;" and T is
+                     a previously declared class name.  Issue a diagnostic
+                     (by default a remark, but potentially a more severe
+                     diagnostic in strict ANSI mode) to report the use of a
+                     nonstandard feature. */
+                  an_error_severity  severity;
+                  char               *s;
+
+                  if (strict_ansi_mode) {
+                    /* Strict ANSI diagnostic in strict ANSI mode. */
+                    severity = strict_ansi_error_severity;
+                  } else {
+                    /* Default case -- remark. */
+                    severity = es_remark;
+                  }  /* if */
+                  *type_ptr = type_symbol_type(tag_sym);
+                  switch ((*type_ptr)->kind) {
+                    case tk_class:    s = "class";   break;
+                    case tk_struct:   s = "struct";  break;
+                    case tk_union:    s = "union";   break;
+#if CHECKING
+                    default: internal_error("decl_specifiers: bad type kind");
+#endif /* CHECKING */
+                  }  /* switch */
+                  pos_st_diagnostic(severity, ec_nonstd_friend_decl,
+                                    &locator_for_curr_id.source_position, s);
+                }  /* if */
+                basic_type = bt_struct_union;
+                is_elaborated_type_specifier = TRUE;
+              }  /* if */
             }  /* if */
-            diagnostic(severity, ec_bad_friend_decl);
-            vacuous_decl_allowed = FALSE;
-            goto process_class_specifier;
-          } else {
-            /* Not the special case -- restore the current token and continue
-               processing. */
-            unget_token();
           }  /* if */
 	}  /* if */
 	break;
