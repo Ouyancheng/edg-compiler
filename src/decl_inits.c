@@ -2952,7 +2952,7 @@ returned set to TRUE.
     } else {
       /* Only object types (except for VLAs) and incomplete arrays are
          allowed to be initialized. */
-      if (is_object_type(vp_type)) {
+      if (is_complete_object_type(vp_type)) {
         /* Object type -- okay. */
       } else if (is_array_type(vp_type) &&
                  !is_incomplete_type(array_element_type(vp_type))) {

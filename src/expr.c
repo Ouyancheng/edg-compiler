@@ -7060,7 +7060,7 @@ specification allow a variable-sized array as the top type.
      type. */
   if (err) {
     /* Error already issued (operator not valid in this kind of expression). */
-  } else if (!is_object_type(base_new_type)) {
+  } else if (!is_complete_object_type(base_new_type)) {
     /* Invalid type.  Note that base_new_type is tested instead of
        new_type, so the first-level element type of arrays is tested. */
     if (is_error_type(base_new_type)) {
@@ -9983,10 +9983,10 @@ to the compound literal.
   } else if (is_error_type(literal_type)) {
     /* An error occurred earlier.  Suppress certain processing now. */
     err = TRUE;
-  } else if (is_object_type(literal_type)) {
+  } else if (is_complete_object_type(literal_type)) {
     /* Object type, okay. */
   } else if (is_array_type(literal_type) &&
-             is_object_type(array_element_type(literal_type))) {
+             is_complete_object_type(array_element_type(literal_type))) {
     /* Incomplete arrays are okay as long as the underlying type is
        complete. */
   } else {

@@ -141,10 +141,6 @@ predicates.
 /* Pointer-to-member type. */
 #define is_ptr_to_member(tp) ((tp)->kind == (a_type_kind)tk_ptr_to_member)
 
-/* Object types are non-function and non-reference types that have sizes. */
-#define is_object(tp) (!is_function(tp) && !is_reference_ptr(tp) && \
-                       !is_incomplete(tp))
-
 /* Template parameter type. */
 #define is_template_param(tp) ((tp)->kind == (a_type_kind)tk_template_param)
 
@@ -296,12 +292,44 @@ a definition.
 
 a_boolean is_object_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is an object type (3.1.2.5).
+Return TRUE if the given type is an object type.  In C, that is always a
+complete type.  In C++, it may be an incomplete type because object types
+include incompletely-defined object types.  See is_complete_object_type
+for an alternative.
 */
 {
+  a_boolean result;
+
   tp = skip_typerefs(tp);
-  return(is_object(tp));
+  if (C_mode()) {
+    /* In C mode, object types are complete types of objects.  See C99
+       standard, 6.2.5p1: incomplete types are not object types. */
+    result = !is_function(tp) && !is_incomplete(tp);
+  } else {
+    /* In C++ mode, object types include incompletely-defined object
+       types (incomplete class types, arrays of unknown size, etc.).
+       See C++ standard, [basic.types], definition of incompletely-
+       defined object types. */
+    result = !is_function(tp) && !is_reference_ptr(tp) && !is_void(tp);
+  }  /* if */
+  return result;
 }  /* is_object_type */
+
+
+a_boolean is_complete_object_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a complete object type.  In C, that's the
+same as an object type.  In C++, it's an object type that is not
+incompletely-defined.
+*/
+{
+  a_boolean result;
+
+  tp = skip_typerefs(tp);
+  result = is_object_type(tp);
+  if (!C_mode() && is_incomplete(tp)) result = FALSE;
+  return result;
+}  /* is_complete_object_type */
 
 
 a_boolean is_void_type(a_type_ptr tp)
@@ -4586,17 +4614,13 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       if (is_void(unqual_dest_type_pointed_to)) {
         /* Destination type is "void *" or a pointer to a qualified version
            of void. */
-        if (is_object(unqual_source_type_pointed_to) ||
-            is_incomplete(unqual_source_type_pointed_to)) {
-          /* In ANSI C, a pointer to an object or incomplete type
-             may be converted to a pointer to a qualified or unqualified
-             version of void.  ANSI C 3.3.9 (equality operators);
-             ANSI C 3.3.15 (?: operator); ANSI C 3.3.16.1 (assignment:
-             preservation of qualifiers is tested below).  In C++, a pointer
-             to any non-const and non-volatile object type may be converted
-             to "void *".  ARM 4.6 (pointer conversions: preservation of
-             qualifiers is tested below; "object type" includes incomplete
-             types in the ARM definition). */
+        if (is_object_type(unqual_source_type_pointed_to) ||
+            (C_mode() && is_incomplete(unqual_source_type_pointed_to))) {
+          /* In C, a pointer to an object or incomplete type
+             may be converted to "void *".  In C++, a pointer to an
+             object type may be converted to "void *".  In both cases,
+             cv-qualifier differences are checked below.  Note that in
+             C++ an object type may be incomplete in some cases. */
           okay = TRUE;
           std_conv->pointer_normalization_needed = TRUE;
         } else if (is_function(unqual_source_type_pointed_to)) {
@@ -4630,7 +4654,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
                        (C_dialect != C_dialect_cplusplus &&
                         is_void(unqual_source_type_pointed_to));
         if (conversion_from_void_star_in_C &&
-            (is_object(unqual_dest_type_pointed_to) ||
+            (is_object_type(unqual_dest_type_pointed_to) ||
              is_incomplete(unqual_dest_type_pointed_to))) {
           /* In C but not C++, a "void *" may be converted to a pointer to an
              object or incomplete type.  ANSI C 3.3.16.1 (assignment). */

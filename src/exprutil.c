@@ -4867,8 +4867,8 @@ a_boolean check_object_pointer_operand(an_operand    *operand,
 		    		       an_error_code err_code)
 /*
 Return FALSE and issue an error message if the operand is not a pointer to
-object.  If there is an error, change "operand" to an error operand.
-See section 3.1.2.5 of the standard.
+object type (more precisely, for C++, a pointer to a complete object type).
+If there is an error, change "operand" to an error operand.
 */
 {
   a_boolean  okay = TRUE;
@@ -4880,7 +4880,7 @@ See section 3.1.2.5 of the standard.
     /* Instantiate the underlying type if it is a template class. */
     underlying_type = type_pointed_to(operand->type);
     complete_type_is_needed(underlying_type);
-    if (!is_object_type(underlying_type)) {
+    if (!is_complete_object_type(underlying_type)) {
       error_in_operand(ec_expr_not_object_pointer, operand);
       okay = FALSE;
     }  /* if */
@@ -4895,8 +4895,8 @@ a_boolean check_object_or_incomp_array_pointer_operand(an_operand    *operand,
                                                        an_operand    *otherop)
 /*
 Return FALSE and issue an error message if the operand is not a pointer to
-object or incomplete array.  If there is an error, change "operand" to an
-error operand.  See section 3.1.2.5 of the standard.  If the operand is
+complete object or incomplete array.  If there is an error, change "operand"
+to an error operand.  See section 3.1.2.5 of the standard.  If the operand is
 a pointer to incomplete array, issue a remark if otherop is a constant
 zero, a warning otherwise.  Do not accept the pointer to incomplete
 array case in strict ANSI mode.
@@ -4911,7 +4911,7 @@ array case in strict ANSI mode.
     underlying_type = type_pointed_to(operand->type);
     /* Instantiate the underlying type if it is a template class. */
     complete_type_is_needed(underlying_type);
-    if (is_object_type(underlying_type)) {
+    if (is_complete_object_type(underlying_type)) {
       /* okay = TRUE; -- Already set. */
     } else if ((!strict_ansi_mode ||
                strict_ansi_error_severity == es_warning) &&

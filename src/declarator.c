@@ -448,7 +448,8 @@ fields).
            a partial array or pointer type (see comment above), let it
            by as long as it looks okay otherwise. */
         temp_type = skip_typerefs(new_type_ptr);
-        if (is_object_type(temp_type) && !is_partial_type(temp_type)) {
+        if (is_complete_object_type(temp_type) &&
+            !is_partial_type(temp_type)) {
           /* Usually okay. */
           if (flexible_array_members_allowed) {
             /* A struct or union containing a member that is a zero-length

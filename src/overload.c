@@ -7442,7 +7442,7 @@ routine is called only in C++ mode.
 
 static a_boolean is_object_pointer_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is a pointer to an object type.
+Return TRUE if the given type is a pointer to a complete object type.
 Instantiate the underlying type if necessary to make it a complete type.
 */
 {
@@ -7451,7 +7451,7 @@ Instantiate the underlying type if necessary to make it a complete type.
   if (is_pointer_type(tp)) {
     a_type_ptr underlying_type = type_pointed_to(tp);
     complete_type_is_needed(underlying_type);
-    result = is_object_type(underlying_type);
+    result = is_complete_object_type(underlying_type);
   }  /* if */
   return result;
 }  /* is_object_pointer_type */

@@ -1,5 +1,24 @@
 Version 3.6
 
+12/23/04 static_cast of void * to pointer to incomplete class not accepted
+
+A static_cast of a void * to a pointer to an incomplete class type was
+incorrectly rejected.  The problem was partly a naming problem,
+derived from the fact that the term "object type" is defined
+differently in C than in C++ (in C++, it includes incomplete class
+types; in C, it does not) and the code that implemented the check
+for this cast used the function is_object_type, which tested the
+C version of "object type".  To resolve this, we have made
+is_object_type provide the right definition depending on the
+language, and we have added is_complete_object_type to test essentially
+what the old version tested.  Almost all calls of is_object_type
+have been changed to call is_complete_object_type.
+
+  struct X;
+  void foo(void *p) {
+    static_cast<const X *>(p);  // Formerly got spurious error
+  }
+
 12/23/04 Spurious overload resolution ambiguities, built-in operators and
          multiple conversion functions returning same effective type
 

@@ -326,7 +326,8 @@ routine that is being defined or called; may be NULL.
       }  /* if */
     } else {
       /* Declaration case. */
-      if ((is_object_type(return_type) && !is_array_type(return_type)) ||
+      if ((is_complete_object_type(return_type) &&
+           !is_array_type(return_type)) ||
           is_reference_type(return_type)) {
         /* err = FALSE; */
       } else {
