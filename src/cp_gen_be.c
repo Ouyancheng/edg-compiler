@@ -3792,14 +3792,17 @@ implements an array-to-pointer decay; return FALSE otherwise.
     if (is_array_type(source_type_pointed_to)) {
       /* A cast from a pointer to array type to a pointer type. */
       a_type_ptr dest_type_pointed_to = type_pointed_to(dest_type);
-      /* Since we know we are dealing with an implicit conversion,
-         any mismatch in the count of array levels must be due to
-         an array type decay. */
-      /* Note that we avoid using types_are_compatible here because
-         it's not available in a standalone back end. */
-      if (array_level_count(source_type_pointed_to) !=
-          array_level_count(dest_type_pointed_to)) {
-        is_array_decay = TRUE;
+      /* Rule out implicit conversions to void *. */
+      if (!is_void_type(dest_type_pointed_to)) {
+        /* Since we know we are dealing with an implicit conversion,
+           any mismatch in the count of array levels must be due to
+           an array type decay. */
+        /* Note that we avoid using types_are_compatible here because
+           it's not available in a standalone back end. */
+        if (array_level_count(source_type_pointed_to) !=
+            array_level_count(dest_type_pointed_to)) {
+          is_array_decay = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
