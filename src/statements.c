@@ -3260,6 +3260,46 @@ Scan an expression statement.
 }  /* expression_statement */
 
 
+static void start_for_init_block(a_statement_ptr  sp)
+/*
+Start a new scope for a for-init declaration (C++ only).
+*/
+{
+  a_control_flow_descr_ptr  cfdp;
+
+  db_enter(3, "start_for_init_block");
+  /* Push a block scope to represent the name scope in which a for-init
+     declaration appears, be sure an IL scope is created for it, and record
+     the IL scope in the for-loop supplement. */
+  (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
+                   (a_type_ptr)NULL, (a_routine_ptr)NULL);
+  sp->variant.for_loop.extra_info->for_init_scope =
+                   ensure_il_scope_exists(&scope_stack[depth_scope_stack]);
+  /* Add a control flow entry to represent the for-init block. */
+  cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
+  cfdp->source_pos = pos_curr_token;
+  cfdp->variant.block.object_lifetime = curr_object_lifetime;
+  add_to_control_flow_descr_list(cfdp);
+  db_exit();
+}  /* start_for_init_block */
+
+
+static void finish_for_init_block(void)
+/*
+Terminate the for-init block scope.
+*/
+{
+  db_enter(3, "finish_for_init_block");
+  /* Terminate the control flow block that was started when the for-init
+     block was started. */
+  add_to_control_flow_descr_list(
+       alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
+  /* Pop the for-init block scope. */
+  pop_scope();
+  db_exit();
+}  /* finish_for_init_block */
+
+
 static void for_init_statement(void)
 /*
 Scan the initializing expression or, in C++, declaration of a for statement.
@@ -3267,6 +3307,7 @@ Scan the initializing expression or, in C++, declaration of a for statement.
 {
   a_struct_stmt_stack_entry_ptr sssep;
 
+  db_enter(3, "for_init_statement");
   sssep = &struct_stmt_stack[depth_stmt_stack];
   /* Let add_statement know this is a for_init so that the statement is
      attached in the right place. */
@@ -3274,6 +3315,15 @@ Scan the initializing expression or, in C++, declaration of a for statement.
   if (C_dialect == C_dialect_cplusplus &&
       is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) {
     /* Scan a declaration (C++ only). */
+    /* Unless the old-style scoping is required, push a block scope to
+       contain the for-init declaration.  (Old-style scoping means the
+       declaration occurs in the scope to which the for-statement itself
+       belongs, whereas the standard (6.5.3 [stmt.for], para 3) requires,
+       in effect, that the for-init declaration have its own scope, nested
+       within the containing scope.) */
+    if (!use_nonstandard_for_init_scope) {
+      start_for_init_block(sssep->statement);
+    }  /* if */
     decl_statement();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (sssep->curr_decl_statement != NULL) {
@@ -3299,6 +3349,7 @@ Scan the initializing expression or, in C++, declaration of a for statement.
      more than one stmk_init statement, e.g.:
        for (int i = 0, j = 10; j > i; --j, ++i) { }    */
   end_stmt_sequence(sssep);
+  db_exit();
 }  /* for_init_statement */
 
 
@@ -3322,7 +3373,6 @@ either an expression statement or a declaration statement.
   a_boolean         is_condition_decl = FALSE;
 
   db_enter(3, "for_statement");
-
   check_loop_unreachable_code();
   /* Allocate the for statement. */
   sp = add_statement((a_statement_kind)stmk_for);
@@ -3373,6 +3423,12 @@ either an expression statement or a declaration statement.
   define_continue_label();
   /* End the condition block, if necessary. */
   if (is_condition_decl) finish_condition_block();
+  /* If the for-loop supplement contains a non-NULL scope pointer, it means
+     a block scope was pushed for a for-init declaration. */
+  if (sp->variant.for_loop.extra_info->for_init_scope != NULL) {
+    /* Terminate the for-init scope. */
+    finish_for_init_block();
+  }  /* if */
   /* Pop the structured statement stack. */
   pop_stmt_stack();
   /* If a label appeared in the context of the block that was just
@@ -3380,7 +3436,6 @@ either an expression statement or a declaration statement.
      the scope being resumed. */
   reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
                                    (char *)sp);
-
   db_exit();
 }  /* for_statement */
 
