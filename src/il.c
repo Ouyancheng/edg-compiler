@@ -859,9 +859,8 @@ class_struct_union:
       db_abbreviated_type(tp->variant.ptr_to_member.type);
       break;
     case tk_template_param:
-      fputs("template-param ", f_debug);
+      fprintf(f_debug, "template-param#%d ", tp->variant.list_position);
       db_name(&tp->source_corresp);
-      fprintf(f_debug, " (%d)", tp->variant.list_position);
       break;
     default:
       fputs("<bad type>", f_debug);
