@@ -721,6 +721,8 @@ extern a_symbol_ptr enter_symbol(a_symbol_kind    sym_kind,
                                  a_symbol_ptr     symbol_to_re_enter,
                                  a_boolean        suppress_error);
 
+extern a_symbol_ptr make_projection_symbol(a_symbol_ptr orig_sym);
+
 extern a_symbol_ptr full_enter_symbol(char          *identifier,
 				      sizeof_t      identifier_length,
 				      a_symbol_kind sym_kind,
