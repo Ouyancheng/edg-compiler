@@ -863,11 +863,12 @@ is TRUE.
   an_operand        *orig_arg_operand;
   a_boolean         param_is_reference;
   a_boolean         ref_to_nonconst_bound_to_rvalue = FALSE;
-  a_boolean         param_is_class_type;
+  a_boolean         param_is_class_type, arg_is_class_type;
   a_boolean         ref_type_qualifiers_dropped;
   a_type_qualifier_set
                     ref_type_qualifiers_added;
   a_std_conv_descr  std_conversion;
+  a_base_class_ptr  bcp;
   a_boolean         ambiguous;
   a_boolean         arg_operand_is_constant;
   a_constant_ptr    arg_operand_constant;
@@ -958,6 +959,9 @@ is TRUE.
       /* The standard doesn't allow binding a reference to non-const to an
          rvalue.  In the ARM, the binding was allowed in overload resolution
          and then caused an error later if chosen. */
+      /* Note that, as of Feb. 1995, the WP does not require the test for
+         non-volatile here.  It's not clear whether that's an oversight or
+         not. */
       ref_to_nonconst_bound_to_rvalue = TRUE;
     }  /* if */
     /* Check the type qualifiers to see if they can be reconciled by
@@ -1023,6 +1027,7 @@ is TRUE.
     goto have_level;
   }  /* if */
   param_is_class_type = is_immediate_class_type(unqual_param_type);
+  arg_is_class_type = is_immediate_class_type(unqual_arg_type);
   /* If the type qualifiers are not okay, do not check for the simple
      matches; go directly to user-defined conversions (which do their own
      variety of checking of type qualifiers). */
@@ -1123,28 +1128,8 @@ is TRUE.
       /* Match with standard conversions. */
       arg_summary->match_level = aml_std_conversion;
       arg_summary->conversion.std = std_conversion;
-      if (param_is_class_type && std_conversion.cast_base_class != NULL) {
-        /* The argument is a derived class and the parameter is a base
-           class. */
-        if (param_is_reference) {
-          /* This case falls under the reference standard conversions
-             (ARM 4.7). */
-          /* The operand need not be forced to an rvalue. */
-          check_assertion(arg_operand != NULL);
-          arg_summary->conversion.result_is_an_lvalue =
-                                                     is_an_lvalue(arg_operand);
-        } else {
-          /* This case falls under the aggregate initialization rules
-             (ARM 8.4.1) or the copy constructor rules (ARM 12.8).  Note
-             that this case counts as a standard conversion even if a copy
-             constructor is called. */
-          check_assertion(arg_operand != NULL);
-          set_user_conversion_for_class_copy(arg_operand,
-                                             &arg_summary->conversion,
-                                             param_type);
-        }  /* if */
-      } else if (cfront_2_1_mode && param_is_reference &&
-                 std_conversion.cast_base_class == NULL) {
+      if (cfront_2_1_mode && param_is_reference &&
+          std_conversion.cast_base_class == NULL) {
         /* cfront 2.1 has a bug: when a reference parameter is initialized
            with something that requires a standard conversion that isn't
            class-related, the cost is considered to be a user-defined
@@ -1153,6 +1138,30 @@ is TRUE.
            aml_user_conversion but arg_summary->conversion does not indicate a
            user-defined conversion. */
         arg_summary->match_level = aml_user_conversion;
+      }  /* if */
+      goto have_level;
+    }  /* if */
+    if (param_is_class_type && arg_is_class_type &&
+        (bcp = find_base_class_of(arg_type, param_type)) != NULL) {
+      /* The argument is a derived class and the parameter is a base class,
+         so the conversion can be done. */
+      arg_summary->match_level = aml_std_conversion;
+      arg_summary->conversion.std.cast_base_class = bcp;
+      if (param_is_reference) {
+        /* This case falls under the reference standard conversions
+           (ARM 4.7). */
+        /* The operand need not be forced to an rvalue. */
+        check_assertion(arg_operand != NULL);
+        arg_summary->conversion.result_is_an_lvalue= is_an_lvalue(arg_operand);
+      } else {
+        /* This case falls under the aggregate initialization rules
+           (ARM 8.4.1) or the copy constructor rules (ARM 12.8).  Note
+           that this case counts as a standard conversion even if a copy
+           constructor is called. */
+        check_assertion(arg_operand != NULL);
+        set_user_conversion_for_class_copy(arg_operand,
+                                           &arg_summary->conversion,
+                                           param_type);
       }  /* if */
       goto have_level;
     }  /* if */
@@ -1182,8 +1191,12 @@ is TRUE.
          will convert the argument type to the parameter class type. */
       set_arg_summary_for_user_conversion(arg_summary, &conversion,
                                           orig_param_type, param_is_reference);
+      /* The user-defined conversion processing deals with reference binding
+         issues itself, so clear the local flags related to them. */
+      ref_type_qualifiers_added = TQ_NONE;
+      ref_to_nonconst_bound_to_rvalue = FALSE;
       goto have_level;
-    } else if (is_immediate_class_type(unqual_arg_type) &&
+    } else if (arg_is_class_type &&
                (conversion_from_class_possible(orig_arg_operand, param_type,
                                                (a_builtin_type_kind_set)
                                                                       BTK_NONE,
@@ -1197,6 +1210,10 @@ is TRUE.
          can be converted to the parameter type via a standard conversion. */
       set_arg_summary_for_user_conversion(arg_summary, &conversion,
                                           orig_param_type, param_is_reference);
+      /* The user-defined conversion processing deals with reference binding
+         issues itself, so clear the local flags related to them. */
+      ref_type_qualifiers_added = TQ_NONE;
+      ref_to_nonconst_bound_to_rvalue = FALSE;
       goto have_level;
     }  /* if */
   }  /* if */
@@ -1204,29 +1221,17 @@ is TRUE.
   /* No match is possible. */
   arg_summary->match_level = aml_none;
 have_level:;
-  if (ref_type_qualifiers_added != TQ_NONE &&
-      (int)arg_summary->match_level < (int)aml_user_conversion) {
+  if (ref_type_qualifiers_added != TQ_NONE) {
     /* Some type qualifiers were added under a reference.  This can serve as
-       a tie-breaker later.  User-defined conversions and above work this out
-       a different way. */
+       a tie-breaker later. */
     arg_summary->conversion.std.type_qualifiers_added =
                                                      ref_type_qualifiers_added;
   }  /* if */
-  if (ref_to_nonconst_bound_to_rvalue && 
-      arg_summary->match_level != aml_none &&
-      (int)arg_summary->match_level < (int)aml_user_conversion &&
-      !any_cfront_mode()) {
+  if (ref_to_nonconst_bound_to_rvalue && !any_cfront_mode()) {
     /* You can't bind a reference to non-const to an rvalue.  This was a
        post-ARM change (in the ARM, the binding would be okay in overload
-       resolution and would get an error later if chosen).  In non-strict
-       mode we allow such a binding for class rvalues, so allow that
-       here also.  See prep_initializer_operand. */
-    if (!strict_ansi_mode && is_class_struct_union_type(arg_type)) {
-      /* Okay as an extension. */
-    } else {
-      /* Can't bind a reference to non-const to an rvalue. */
-      arg_summary->match_level = aml_none;
-    }  /* if */
+       resolution and would get an error later if chosen). */
+    arg_summary->match_level = aml_none;
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
@@ -6486,6 +6491,12 @@ initializer has previously been found to be acceptable, and
     }  /* if */
     /* Determine whether or not the reference is to a const type. */
     ref_to_const = is_const_qualified_type(base_dest_type);
+    if (!any_cfront_mode() && ref_to_const &&
+        is_volatile_qualified_type(base_dest_type)) {
+      /* A reference to const volatile cannot be bound to an rvalue, so treat
+         it as a nonconst reference.  This was added after the ARM. */
+      ref_to_const = FALSE;
+    }  /* if */
     /* The destination type must have no fewer type qualifiers than the source
        type to be usable without conversion (ARM 8.4.3). */
     dropping_qualifiers = type_is_correct_or_derived &&
@@ -6522,12 +6533,10 @@ initializer has previously been found to be acceptable, and
       /* For a bit-field case like
            struct A { int i:2; } a;
            const int &r = a.i;
-         force the use of a temporary.  This is not covered by the ARM
-         but it makes sense and cfront does it that way.  Note that in
-         the ref to nonconst case we leave the operand as it is to get
-         a more specific error message about taking the address of a
-         bit field. */
-      conv_lvalue_to_rvalue(source_operand);
+         disallow direct binding.  Note that in the ref to nonconst
+         case we leave the operand as it is to get a more specific error
+         message about taking the address of a bit field. */
+      type_is_correct_or_derived = FALSE;
     }  /* if */
     if (type_is_correct_or_derived && is_an_lvalue(source_operand)) {
       /* The initial value is an lvalue of the right type; the initialization
@@ -6557,27 +6566,30 @@ initializer has previously been found to be acceptable, and
          the initialization can be done directly. */
       conv_function_designator_to_ptr_to_function(source_operand);
     } else if (type_is_correct_or_derived &&
-               is_class_struct_union_type(base_dest_type)) {          
-      /* The source is a class rvalue but otherwise has the right type.
-         No temporary is required.  Get the address of the rvalue, then
-         cast the pointer to the right type to handle the derived-class
-         case. */
+               is_class_struct_union_type(base_dest_type) &&
+               (ref_to_const ||
+                (any_cfront_mode() && 
+                 (!initializing_variable ||
+                  operand_is_temp_init(source_operand))))) {
+      /* The source is a class rvalue but otherwise has the right type,
+         and the reference is to const non-volatile.  No temporary is
+         required.  Get the address of the rvalue, then cast the pointer
+         to the right type to handle the derived-class case.  The WP
+         allows but does not require a copy in this case; if a copy is
+         done, it must be a copy of the whole source object. */
+      /* In cfront mode we allow this also for a ref to non-const if
+         the source is already a temporary or if we're initializing
+         a non-variable (e.g., we're passing an argument). */
       conv_class_operand_to_object_pointer(source_operand);
       /* Use a pointer type instead of a reference type on the
          destination. */
       dest_type = make_pointer_type(base_dest_type);
       cast_operand(dest_type, source_operand, /*is_implicit_cast=*/TRUE);
       if (!ref_to_const) {
-        /* This is a reference to non-const initialized from a class rvalue
-           of the right type.  According to the ARM (8.4.3), this is an error.
-           We allow it as an extension. */
-        /* If you change this code, see the similar code in
-           determine_arg_match_level. */
-        if (strict_ansi_mode) {
-          pos_diagnostic(strict_ansi_error_severity,
-                         ec_nonconst_ref_init_from_rvalue,
-                         &source_operand->position);
-        }  /* if */
+        /* In cfront mode this can happen for a ref to non-const.  Issue
+           a warning in that case. */
+        pos_warning(ec_nonconst_ref_init_anachronism,
+                    &source_operand->position);
       }  /* if */
     } else {
       /* The initialization cannot be done directly; a temporary must be
@@ -6605,13 +6617,20 @@ initializer has previously been found to be acceptable, and
           /* The conversion could not be done.  An error has already been
              issued. */
         } else if (!temporary_used) {
-          /* The conversion is doable and does not requires a temporary
+          /* The conversion is doable and does not require a temporary
              (e.g., it uses a conversion function that returns a reference). */
         } else if (!ref_to_const) {
           /* A reference to non-const is initialized in a way that requires a
              temporary.  This is an error according to the ARM (8.4.3),
              but we allow it as an anachronism. */
-          if (allow_anachronisms) {
+          if (any_cfront_mode() && !initializing_variable) {
+            /* In cfront mode we allow this also for a ref to non-const if
+               we're initializing a non-variable (e.g., we're passing an
+               argument). */
+            pos_warning(ec_nonconst_ref_init_anachronism,
+                        &source_operand->position);
+            warn = TRUE;
+          } else if (allow_anachronisms && !any_cfront_mode()) {
             pos_diagnostic(anachronism_error_severity,
                            ec_nonconst_ref_init_anachronism,
                            &source_operand->position);
@@ -6622,10 +6641,9 @@ initializer has previously been found to be acceptable, and
             }  /* if */
           } else {
             /* Anachronism is not allowed. */
-            /* Use a different message for the case where the type is right but
-               the operand is an rvalue (only non-class cases of that come
-               here). */
-            error_in_operand(type_is_correct_or_derived ?
+            /* Use a different message for the case where the operand is
+               an rvalue. */
+            error_in_operand(is_an_rvalue(source_operand) ?
                                ec_nonconst_ref_init_from_rvalue :
                                ec_bad_nonconst_ref_init,
                              source_operand);
