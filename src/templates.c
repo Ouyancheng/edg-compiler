@@ -117,6 +117,16 @@ static a_boolean
 			/* TRUE when instantiation wrapup has been called
 			   to do end-of-compilation unit instantiations. */
 
+static a_boolean
+		entries_updated_during_instantiation_wrapup;
+			/* TRUE when entries on the instantiation required
+			   list have their instantiation required flag
+			   set during instantiation wrapup.  This is used to
+			   detect situations when an entry that may have
+			   already been visited by instantiation wrapup
+			   has its instantiation required flag updated
+			   while processing an entry later on the list. */
+
 
 static a_boolean instantiation_of_type_is_in_progress(a_type_ptr tp)
 /*
@@ -3457,7 +3467,7 @@ file we simply return.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 
-void add_to_instantiations_required_list(a_template_instance_ptr  tip)
+static void add_to_instantiations_required_list(a_template_instance_ptr  tip)
 /*
 Add a template instance entry to the end of the instantiatiations_required
 list.
@@ -3467,6 +3477,12 @@ list.
   if (tip->next_in_instantiation_list != NULL ||
       tip == instantiations_required_tail) {
     /* Already on the list -- don't try to add it again. */
+    if (in_instantiation_wrapup && tip->instantiation_required) {
+      /* The instantiation required flag has been set for an entry already
+         on the list.  This means that instantiation_wrapup must make another
+         pass over the instantiations list. */
+      entries_updated_during_instantiation_wrapup = TRUE;
+    }  /* if */
   } else {
     /* The entry must be added to the end of the list.  This is because new
        entries may be placed on the list even after processing on the list
@@ -4165,21 +4181,25 @@ specific definition that made it unnecessary.
      detect certain types of recursive instantiations that would otherwise
      be difficult to detect. */
   in_instantiation_wrapup = TRUE;
-  for (tip = instantiations_required;
-       tip != NULL;
-       tip = tip->next_in_instantiation_list) {
-    if (tip->instantiation_required && !tip->already_instantiated) {
-      if (should_be_instantiated(tip, /*implicit_inclusion_ok=*/TRUE)) {
-        if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-          /* Static data member definition. */
-          define_template_static_data_member(tip);
-        } else {
-          /* Function instantiation. */
-          instantiate_template_function(tip);
+  do {
+    entries_updated_during_instantiation_wrapup = FALSE;
+    for (tip = instantiations_required;
+         tip != NULL;
+         tip = tip->next_in_instantiation_list) {
+      if (tip->instantiation_required && !tip->already_instantiated) {
+        if (should_be_instantiated(tip, /*implicit_inclusion_ok=*/TRUE)) {
+          if (tip->instance_sym->kind ==
+                                        (a_symbol_kind)sk_static_data_member) {
+            /* Static data member definition. */
+            define_template_static_data_member(tip);
+          } else {
+            /* Function instantiation. */
+            instantiate_template_function(tip);
+          }  /* if */
         }  /* if */
       }  /* if */
-    }  /* if */
-  }  /* for */
+    }  /* for */
+  } while (entries_updated_during_instantiation_wrapup);
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (automatic_instantiation_mode) {
@@ -4211,6 +4231,7 @@ Initializations for template.
   instantiations_required = NULL;
   instantiations_required_tail = NULL;
   in_instantiation_wrapup = FALSE;
+  entries_updated_during_instantiation_wrapup = FALSE;
   can_instantiate_list = NULL;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   any_instantiations_required = FALSE;
