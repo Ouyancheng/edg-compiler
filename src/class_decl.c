@@ -1605,6 +1605,39 @@ nested class.
 }  /* inline_function_fixup_for_class */
 
 
+static void check_trans_unit_for_fixup(
+				a_class_fixup_ptr	cfp,
+				a_boolean		*trans_unit_pushed)
+/*
+This routine is called when going through the class fixup lists to
+ensure that the correct translation unit is on the top of the stack.
+"trans_unit_pushed" is TRUE if a prior call of this routine pushed a
+new translation unit.  It is set to TRUE if this call pushes a new
+translation unit.
+*/
+{
+  a_symbol_ptr			sym;
+  a_translation_unit_ptr	tup_needed;
+
+  sym = (a_symbol_ptr)cfp->class_type->source_corresp.assoc_info;
+  tup_needed = trans_unit_for_symbol(sym);
+  if (tup_needed != curr_translation_unit) {
+    /* The current translation unit is not the right one.  If we previously
+       pushed a translation unit, pop it now. */
+    if (*trans_unit_pushed) {
+      pop_translation_unit_stack();
+      *trans_unit_pushed = FALSE;
+    }  /* if */
+    /* If the new top of stack is still not the right one, push a new entry
+       for the translation unit needed. */
+    if (tup_needed != curr_translation_unit) {
+      push_translation_unit_stack(tup_needed);
+      *trans_unit_pushed = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* check_trans_unit_for_fixup */
+
+
 static void process_deferred_class_fixups(void)
 /*
 Do the delayed scanning of default arguments and inline function bodies.
@@ -1618,8 +1651,9 @@ a default argument of a class being fixed up at an outer level, for which
 the fixups have not yet been done.
 */
 {
-  a_class_fixup_ptr  cfp;
-  a_class_fixup_ptr  next_cfp;
+  a_class_fixup_ptr	cfp;
+  a_class_fixup_ptr	next_cfp;
+  a_boolean		trans_unit_pushed = FALSE;
 
   db_enter(3, "process_deferred_class_fixups");
   if (def_arg_class_fixup_list != NULL ||
@@ -1633,6 +1667,8 @@ the fixups have not yet been done.
     def_arg_class_fixup_list_tail = NULL;
     defer_inline_function_fixup_and_instantiations++;
     for (; cfp != NULL; cfp = cfp->next) {
+      /* Make sure we are in the right translation unit. */
+      check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
       default_argument_fixup_for_class(cfp->class_type,
                                        cfp->is_template_instantiation);
     }  /* for */
@@ -1642,12 +1678,16 @@ the fixups have not yet been done.
       inline_function_class_fixup_list = NULL;
       inline_function_class_fixup_list_tail = NULL;
       for (; cfp != NULL; cfp = next_cfp) {
+        /* Make sure we are in the right translation unit. */
+        check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
         inline_function_fixup_for_class(cfp->class_type,
                                         cfp->is_template_instantiation);
         next_cfp = cfp->next_in_inline_function_list;
         free_class_fixup(cfp);
       }  /* for */
     }  /* if */
+    /* If we pushed a translation unit above, pop it now. */
+    if (trans_unit_pushed) pop_translation_unit_stack();
   }  /* if */
   db_exit();
 }  /* process_deferred_class_fixups */
