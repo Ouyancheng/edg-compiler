@@ -18907,7 +18907,7 @@ a body (if needed) for extern inline functions.
        the definition_needed flag. */
     if (rout_ptr->assoc_scope != NULL_region_number &&
         (!rout_ptr->suppress_inline_body ||
-         !rout_ptr->address_taken
+         rout_ptr->address_taken
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
          || alt_entry_point_or_thunk_instance_required(rout_ptr)
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
