@@ -134,8 +134,34 @@ B.  Layout options
 #include "const_ints.h"
 
 
-void clear_layout_block(a_layout_block_ptr  lob,
-                        a_type_ptr          class_type)
+/* Data structure to track some information about the layout of a class
+   as it is being constructed. */
+typedef struct a_layout_block *a_layout_block_ptr;
+typedef struct a_layout_block {
+  a_type_ptr	class_type;
+			/* Pointer to the class type whose layout is being
+			   defined. */
+  a_targ_size_t	byte_offset;
+			/* Byte offset (relative to the start of the class
+			   object) for the *next* field to be entered. */
+  an_unnormalized_bit_offset
+		bit_offset;
+			/* Bit offset relative to byte_offset for the *next*
+			   bit field to be entered. */
+  a_targ_alignment
+		alignment;
+			/* The alignment for the class object as a whole,
+			   never less than the alignment required for any
+			   field or subobject of that class. */
+  a_byte_boolean
+		any_overflow;
+			/* Set to TRUE when the layout exceeds the maximum
+			   size allowed for a class object. */
+} a_layout_block;
+
+
+static void clear_layout_block(a_layout_block_ptr  lob,
+                               a_type_ptr          class_type)
 /*
 Clear the block used to contain information while working out class layout.
 */
@@ -785,7 +811,7 @@ which it is allocated.
 }  /* set_offset_and_alignment */
 
 
-void set_offsets_for_nonvirtual_base_classes(a_layout_block_ptr  lob)
+static void set_offsets_for_nonvirtual_base_classes(a_layout_block_ptr  lob)
 /*
 Lay out the class_type object to store the nonvirtual direct base classes.
 (They will precede the fields of the current class.)  Do this by going
@@ -839,74 +865,84 @@ layout block used to track the layout of the current class.
 }  /* set_offsets_for_nonvirtual_base_classes */
 
 
-#if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
-static void set_offsets_for_remaining_fields(a_layout_block_ptr  lob)
+static void set_offsets_for_fields(a_layout_block_ptr  lob)
 /*
-Set the sizes and offsets of protected and private fields that were not
-processed in decl_nonstatic_data_member.  This processing is required only
-if fields are grouped by access before being allocated.  The public fields
-will already have been done.
+Set the sizes and offsets of the fields of lob->class_type. By default (i.e.,
+when TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE is TRUE) the fields are
+allocated in exactly the same order in which they were declared. Optionally
+(i.e., when TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE is FALSE), fields
+are grouped by access before being allocated (though within each group they
+are allocated in declaration order).
 */
 {
   a_type_ptr                  class_type = lob->class_type;
-  a_field_ptr                 field;
+  a_field_ptr                 fp;
   a_targ_size_t               local_byte_offset;
+  a_targ_size_t               initial_byte_offset = lob->byte_offset;
   an_unnormalized_bit_offset  local_bit_offset;
-  int                         count;
-  an_access_specifier         access;
+#if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
+  an_access_specifier  access = (an_access_specifier)as_public;
 
-  db_enter(4, "set_offsets_for_remaining_fields");
-  /* Make two passes over the field list, one for protected fields and the
-     other for private fields. */
-  for (count = 1; count >= 0; count--) {
-    access = count ? (an_access_specifier)as_protected :
-                     (an_access_specifier)as_private;
+  /* Fields are allocated in groups based on access -- first all the public
+     fields, then all the protected fields, and finally all the private
+     fields.  Therefore, there is an outer loop that so that the field list
+     is traversed three times, once for each access category. */
+  for (;;) {
+#endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
     /* Traverse the field list. */
-    for (field = class_type->variant.class_struct_union.field_list;
-         field != NULL;
-         field = field->next) {
-      if (field->source_corresp.access == access) {
-#if CHECKING
-        if (field->bit_offset != 0) {
-          internal_error(
-                 "set_offsets_for_remaining_fields: field already allocated");
-        }  /* if */
-#endif /* CHECKING */
-        /* This field has the access specification for which allocation is
-           now being done.  Note that the code that follows is based on
-           decl_nonstatic_data_member. */
+    for (fp = class_type->variant.class_struct_union.field_list;
+         fp != NULL;
+         fp = fp->next) {
+#if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
+      if (fp->source_corresp.access == access) {
+#endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
         if (class_type->kind == (a_type_kind)tk_union) {
           /* All fields in a union have offset zero. */
-          local_byte_offset = 0;
+          local_byte_offset = initial_byte_offset;
           local_bit_offset = 0;
         } else {
           local_byte_offset = lob->byte_offset;
           local_bit_offset = lob->bit_offset;
         }  /* if */
-        if (!set_field_size_and_offset(field, &local_byte_offset,
+        if (!set_field_size_and_offset(fp, &local_byte_offset,
                                        &local_bit_offset, &lob->alignment)) {
-          /* Overflow error. */
+          /* FALSE was returned, which means an overflow error was encountered
+             in computing the new size of the struct -- i.e., this field will
+             not fit.  Remember it, so that only one such error is put out. */
           if (!lob->any_overflow) {
-            error(struct_too_large_error());
+            error(C_mode() ? ec_struct_too_large : ec_class_too_large);
             lob->any_overflow = TRUE;
           }  /* if */
+        } else {
+          /* Offset values were modified.  Save highest offset for unions,
+             last offset for structs and classes, for use in establishing the
+             size of the overall aggregate. */
+          if (class_type->kind != (a_type_kind)tk_union ||
+              local_byte_offset > lob->byte_offset ||
+              (local_byte_offset == lob->byte_offset &&
+               local_bit_offset > lob->bit_offset)) {
+            lob->byte_offset = local_byte_offset;
+            lob->bit_offset = local_bit_offset;
+          }  /* if */
         }  /* if */
-        /* Offset values were modified.  Save highest offset for unions, last
-           offset for structs and classes, for use in establishing the size of
-           the overall aggregate. */
-        if (class_type->kind != (a_type_kind)tk_union ||
-            local_byte_offset > lob->byte_offset ||
-            (local_byte_offset == lob->byte_offset &&
-             local_bit_offset > lob->bit_offset)) {
-          lob->byte_offset = local_byte_offset;
-          lob->bit_offset = local_bit_offset;
-        }  /* if */
+#if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
       }  /* if */
-    }  /* for */
-  }  /* for */
-  db_exit();
-}  /* set_offsets_for_remaining_fields */
 #endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
+      /* Continue the field list traversal. */
+    }  /* for */
+#if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
+    /* Advance to the next access specifier and resume the outer loop. */
+    if (access == (an_access_specifier)as_public) {
+      access = (an_access_specifier)as_protected;
+    } else if (access == (an_access_specifier)as_protected) {
+      access = (an_access_specifier)as_private;
+    } else {
+      /* This must be the third iteration of the outer loop -- we're done. */
+      break;
+    }  /* if */
+  }  /* for */
+#endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
+}  /* set_offsets_for_fields */
 
 
 static void set_offset_for_virtual_function_info(a_layout_block_ptr  lob)
@@ -1883,44 +1919,42 @@ virtual base class pointer is shared with some other base class.
 }  /* fixup_shared_virtual_base_class_offsets */
 
 
-void finish_laying_out_class(a_layout_block_ptr  lob)
+void do_class_layout(a_type_ptr  class_type)
 /*
-Complete laying out the object specified by the layout block's class_type.
-This includes allocating any remaining fields whose allocation may have been
-delayed and making room for virtual base classes, which appear at the end of
-the layout.
+Allocate the subobjects defined for class_type -- it's nonvirtual and
+virtual base classes, its nonstatic data members, and various pointers
+for handling virtual bases and functions.
 */
 {
-  a_type_ptr        class_type = lob->class_type;
+  a_layout_block              lob;
 
-  db_enter(3, "finish_laying_out_class");
-  /* Space for direct nonvirtual base classes was allocated right after the
-     base class specifiers were scanned.  In addition, space for nonstatic
-     data members was allocated as they were encountered (except in the
-     case where they were segregated by accessibility -- see below). */
+  db_enter(3, "do_class_layout");
+  clear_layout_block(&lob, class_type);
   if (C_dialect == C_dialect_cplusplus) {
-#if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
-    /* Only public fields were given an offset in decl_nonstatic_data_member.
-       Now that all the fields have been seen and added to the class's field
-       list, traverse the field list again and allocate protected and private
-       fields. */
-    set_offsets_for_remaining_fields(lob);
-#endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
+    /* Reserve space in the current class for its nonvirtual base classes,
+       which are located at the start of the object.  (Virtual base classes
+       appear at the end.) */
+    set_offsets_for_nonvirtual_base_classes(&lob);
+  }  /* if */
+  /* Set offsets for nonstatic data members (fields) declared for the current
+     class. */
+  set_offsets_for_fields(&lob);
+  if (C_dialect == C_dialect_cplusplus) {
     /* After the nonstatic data members allocate space for the virtual
        function info block (typically a pointer to the virtual function
        table. */
-    set_offset_for_virtual_function_info(lob);
+    set_offset_for_virtual_function_info(&lob);
     /* Next allocate space for pointers to the virtual base class data
        sections. */
-    set_virtual_base_class_pointer_offsets(lob);
+    set_virtual_base_class_pointer_offsets(&lob);
     /* Finally, allocate space for the virtual base class data sections
        themselves. */
-    set_virtual_base_class_offsets(lob);
+    set_virtual_base_class_offsets(&lob);
   }  /* if */
   /* Adjust the total size of the class to be consistent with the
      overall alignment required for the class. */
-  if (!do_alignment(&lob->byte_offset, &lob->bit_offset, lob->alignment)) {
-    if (!lob->any_overflow) error(struct_too_large_error());
+  if (!do_alignment(&lob.byte_offset, &lob.bit_offset, lob.alignment)) {
+    if (!lob.any_overflow) error(struct_too_large_error());
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     /* Go through all the indirect base classes and compute their
@@ -1932,8 +1966,8 @@ the layout.
     fixup_shared_virtual_base_class_offsets(class_type);
   }  /* if */
   /* Record the overall size and alignment in the class's type entry. */
-  class_type->size = lob->byte_offset;
-  class_type->alignment = lob->alignment;
+  class_type->size = lob.byte_offset;
+  class_type->alignment = lob.alignment;
   /* Avoid a zero-sized structure (as in "struct {int : 0;}" for C and in
      "class {}" for C++). */
   if (class_type->size == 0) class_type->size = 1;
@@ -1943,7 +1977,7 @@ the layout.
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-}  /* finish_laying_out_class */
+}  /* do_class_layout */
 
 
 /******************************************************************************

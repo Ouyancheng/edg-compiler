@@ -4217,7 +4217,7 @@ Add a field of error type to the field list for the specified class type.
 
 
 static void decl_nonstatic_data_member(a_symbol_locator    *locator,
-                                       a_layout_block_ptr  lob,
+                                       a_type_ptr          class_type,
                                        a_type_ptr          *member_type,
                                        an_access_specifier access,
                                        a_boolean           unnamed_field,
@@ -4240,9 +4240,6 @@ technique is used to assure that only one such error is put out on a given
 class, struct, or union.
 */
 {
-  a_targ_size_t                  local_byte_offset;
-  an_unnormalized_bit_offset     local_bit_offset;
-  a_type_ptr                     class_type = lob->class_type;
   long                           bit_field_size = 0;
   a_field_ptr                    field;
   a_symbol_ptr                   member_sym = NULL;
@@ -4251,9 +4248,6 @@ class, struct, or union.
 
   db_enter(3, "decl_nonstatic_data_member");
   if (class_type->kind == (a_type_kind)tk_union) {
-    /* All fields in a union have offset zero. */
-    local_byte_offset = 0;
-    local_bit_offset = 0;
     if (C_dialect == C_dialect_cplusplus) {
       /* An object of a class with a constructor, a destructor, or a user-
          defined assignment operator cannot be a member of a union. */
@@ -4261,9 +4255,6 @@ class, struct, or union.
         *member_type = error_type();
       }  /* if */
     }  /* if */
-  } else {
-    local_byte_offset = lob->byte_offset;
-    local_bit_offset = lob->bit_offset;
   }  /* if */
   /* Create the field entry. */
   field = alloc_field();
@@ -4320,39 +4311,6 @@ class, struct, or union.
     (*end_of_list)->next = field;
   }  /* if */
   *end_of_list = field;
-#if TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
-  /* Fields are allocated in the class object in exactly the same order as
-     their declaration. */
-#else /* if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
-  /* Fields are allocated in groups based on access.  Only public fields are
-     allocated at this time.  The rest are handled after all the fields have
-     been seen. */
-  if (access == (an_access_specifier)as_public) {
-#endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
-    if (!set_field_size_and_offset(field, &local_byte_offset,
-                                   &local_bit_offset, &lob->alignment)) {
-      /* FALSE was returned, which means an overflow error was encountered in
-         computing the new size of the struct -- i.e., this field will not
-         fit.  Remember it, so that only one such error is put out. */
-      if (!lob->any_overflow) {
-        error(C_mode() ? ec_struct_too_large : ec_class_too_large);
-        lob->any_overflow = TRUE;
-      }  /* if */
-    } else {
-      /* Offset values were modified.  Save highest offset for unions, last
-         offset for structs and classes, for use in establishing the size of
-         the overall aggregate. */
-      if (class_type->kind != (a_type_kind)tk_union ||
-          local_byte_offset > lob->byte_offset ||
-          (local_byte_offset == lob->byte_offset &&
-           local_bit_offset > lob->bit_offset)) {
-        lob->byte_offset = local_byte_offset;
-        lob->bit_offset = local_bit_offset;
-      }  /* if */
-    }  /* if */
-#if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
-  }  /* if */
-#endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
   if (C_dialect == C_dialect_cplusplus) {
     /* In C++ we need to keep track of whether any members have reference
        type. */
@@ -4435,11 +4393,6 @@ class, struct, or union.
     if (member_sym != NULL) {
       db_symbol(member_sym, "", 2);
     }  /* if */
-    fprintf(f_debug, "final byte offset = %lu", lob->byte_offset);
-    if (lob->bit_offset > 0) {
-      fprintf(f_debug, ", final bit offset = %d", (int)lob->bit_offset);
-    }  /* if */
-    fprintf(f_debug, ", max alignment = %d\n", (int)lob->alignment);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
@@ -5265,7 +5218,6 @@ Scan the body of a class definition, including the base classes list.
   a_boolean                       any_friend_decls = FALSE;
   a_routine_fixup_ptr             saved_routine_fixup;
   a_boolean                       any_const_or_ref_fields = FALSE;
-  a_layout_block                  layout_block;
   a_boolean                       is_template_instantiation;
   a_boolean                       is_nonreal_instantiation = FALSE;
   a_boolean                       error_on_def_in_return_type_already_issued;
@@ -5353,17 +5305,12 @@ Scan the body of a class definition, including the base classes list.
                            NO_SCOPE_NUMBER, class_type, (a_routine_ptr)NULL,
                            (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                            (a_template_arg_ptr)NULL);
-    clear_layout_block(&layout_block, class_type);
     if (C_dialect == C_dialect_cplusplus) {
       /* In C++ every class, struct, and union type entry will have a non-NULL
          pointer to a class type supplement entry.  Put a pointer to the
          IL scope entry into it. */
       class_type->variant.class_struct_union.extra_info->assoc_scope =
                                                                  scope_ptr;
-      /* Reserve space in the current class for its nonvirtual base classes,
-         which are located at the start of the object.  (Virtual base classes
-         appear at the end.) */
-      set_offsets_for_nonvirtual_base_classes(&layout_block);
       saved_routine_fixup = curr_routine_fixup;
       curr_routine_fixup = NULL;
       /* Record the scope number used for the corresponding prototype
@@ -6348,7 +6295,7 @@ Scan the body of a class definition, including the base classes list.
               /* Set the flag to record that at least one named field was
                  encountered. */
               if (!unnamed_field) any_named_fields = TRUE;
-              decl_nonstatic_data_member(&locator, &layout_block, &local_type,
+              decl_nonstatic_data_member(&locator, class_type, &local_type,
                                          access, unnamed_field,
                                          is_anonymous_union, declarator_ssep,
                                          &end_of_field_list);
@@ -6564,8 +6511,9 @@ next_declaration:
       set_shares_virtual_function_info_flag(class_type,
                                             (a_base_class_ptr)NULL);
     }  /* if */
-    /* Wrap up field allocation. */
-    finish_laying_out_class(&layout_block);
+    /* Do subobject allocation and compute the size and alignment of the
+       class. */
+    do_class_layout(class_type);
     if (C_dialect == C_dialect_cplusplus) {
       if (!is_nonreal_instantiation) {
         /* Check for inherited conversion functions.  This must be done before
