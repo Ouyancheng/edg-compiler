@@ -866,7 +866,8 @@ typedef struct an_orig_line_modif {
     /* When kind == olm_trigraph: */
     char	trigraph_orig_char;
 			/* The original third character of the trigraph,
-			   for example "=" in "??=". */
+			   for example "=" in "? ? =" (extra space added
+			   so that won't actually be a trigraph). */
     /* When kind == olm_line_splice: */
     a_seq_number
 		line_splice_seq_number;
