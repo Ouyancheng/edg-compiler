@@ -1677,6 +1677,7 @@ or struct definition.  The syntax is
   a_type_ptr                    base_class_type;
   a_boolean                     ambiguous;
   a_class_symbol_supplement_ptr cssp, bcp_cssp;
+  a_derivation_step_ptr         path;
 
   db_enter(3, "scan_base_specifier_list");
   if (type_ptr->kind == (a_type_kind)tk_union) {
@@ -1854,25 +1855,47 @@ or struct definition.  The syntax is
       /* Add base classes derived from this base class to the current class's
          base class list.  They are marked as indirect. */
       bcp = new_bcp->type->variant.class_struct_union.extra_info->base_classes;
-      for (; bcp != NULL; bcp = bcp->next) {
-        if (bcp->direct) {
-          /* Add the direct base class and all *its* base classes to the
-             base class list for the derived class. */
-          new_bcp = add_indirect_base_class(bcp, ctsp->base_classes,
-                                            &end_of_base_classes_list,
-                                            new_bcp->derivation);
-          if (new_bcp == NULL) continue;
-        } else {
-          /* Indirect base classes must have their virtual function override
-             lists copied. */
-          if (new_bcp->next == NULL || new_bcp->next->type != bcp->type) {
-            continue;
-          }  /* if */
-          new_bcp = new_bcp->next;
+      if (bcp != NULL) {
+#if CHECKING
+        if (!bcp->direct) {
+          internal_error("scan_base_specifiers_list: bcp not direct");
         }  /* if */
-        copy_virtual_function_override_list(bcp->overriding_virtual_functions,
-                                            new_bcp);
-      }  /* for */
+#endif /* CHECKING */
+        path = new_bcp->derivation;
+        for (; bcp != NULL; bcp = bcp->next) {
+          if (bcp->direct) {
+            /* Add the direct base class and all *its* base classes to the
+               base class list for the derived class. */
+            new_bcp = add_indirect_base_class(bcp, ctsp->base_classes,
+                                              &end_of_base_classes_list, path);
+            if (new_bcp == NULL) {
+              /* add_indirect_base_class returns NULL only when the class to
+                 be copied is a virtual base class and it's already on the
+                 base classes list that is being constructed. */
+#if CHECKING
+              if (!bcp->is_virtual) {
+                internal_error("scan_base_specifiers_list: bcp not virtual");
+              }  /* if */
+#endif /* CHECKING */
+              continue;
+            }  /* if */
+          } else {
+            /* Indirect base classes must have their virtual function override
+               lists copied, too. */
+            if (new_bcp->next == NULL || new_bcp->next->type != bcp->type) {
+              /* There is a gap in the new base class entries added to the
+                 list. This can be the result of duplicating a virtual base
+                 class that's aleady present on the list. */
+              continue;
+            }  /* if */
+            new_bcp = new_bcp->next;
+          }  /* if */
+          /* Copy the virtual function override entries from bcp to the
+             corresponding copied base class new_bcp. */
+          copy_virtual_function_override_list(
+                             bcp->overriding_virtual_functions, new_bcp);
+        }  /* for */
+      }  /* if */
 skip_base_class:
       /* Advance past the base class name to the comma or right brace. */
       (void)get_token();
