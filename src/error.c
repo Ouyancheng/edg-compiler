@@ -1462,9 +1462,11 @@ error code.
     case ec_missing_typedef_name:
       m = "declaration requires a typedef name";
       break;
+#ifdef REMOVED
     case ec_missing_object_name:
       m = "declaration requires an object name";
       break;
+#endif /* REMOVED */
     case ec_virtual_not_allowed:
       m = "\"virtual\" is not allowed";
       break;

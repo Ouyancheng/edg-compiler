@@ -421,7 +421,7 @@ typedef enum /*an_error_code*/ {
   ec_ambiguous_assignment_operator,
   ec_const_volatile_not_allowed,
   ec_missing_typedef_name,
-  ec_missing_object_name,
+  ec_missing_object_name,                                      /* removed */
   ec_virtual_not_allowed,
   ec_static_not_allowed,
   ec_bound_function_cast_anachronism,
