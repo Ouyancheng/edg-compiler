@@ -627,8 +627,8 @@ itself recursively to process classes nested within this class.
         /* Under certain conditions the instance pointer will be NULL.  This
            occurs for compiler generated routines and under some error
            conditions.  Simply skip this routine. */
-        update_instantiation_required_flag
-                      (tip, (a_boolean)(sym->variant.routine.ptr->is_virtual),
+        update_instantiation_required_flag(
+                       tip, (a_boolean)(sym->variant.routine.ptr->is_virtual),
                        /*defer_inline=*/TRUE);
       }  /* if */
       rout = rout->next;
@@ -6940,9 +6940,10 @@ the symbol for the instance, or NULL if no instance is found.
 }  /* find_matching_template_instance */
 
 
-static void check_for_missing_type_specifier(a_decl_flag_set   dso_flags,
+static void check_for_decl_spec_errors(a_decl_flag_set   dso_flags,
 					     a_type_ptr	       type,
 					     a_symbol_ptr      sym,
+                                             a_symbol_locator  *locator,
 					     a_source_position *pos)
 /*
 Check whether a type specifier is required by the current declaration,
@@ -6953,17 +6954,24 @@ declarator.  sym is the symbol associated with the declarator.  pos
 is the position to be used if a diagnostic is issued.
 */
 {
-  if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
-    if (is_function_type(type) && sym != NULL &&
-        (is_constructor_symbol(sym) || is_destructor_symbol(sym) ||
-         is_conversion_function_symbol(sym))) {
-      /* No type specifier is required. */
-    } else {
-      /* Error on omitted type specifier. */
-      pos_diagnostic(es_discretionary_error, ec_missing_type_specifier, pos);
+  if (!is_error_locator(*locator)) {
+    if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+      if (is_function_type(type) && sym != NULL &&
+          (is_constructor_symbol(sym) || is_destructor_symbol(sym) ||
+           is_conversion_function_symbol(sym))) {
+        /* No type specifier is required. */
+      } else {
+        /* Error on omitted type specifier. */
+        pos_diagnostic(es_discretionary_error, ec_missing_type_specifier, pos);
+      }  /* if */
+    }  /* if */
+    if (dso_flags & DSO_DEFINES_SOMETHING) {
+      /* The type specifiers included a type definition, which is not allowed
+         in this context. */
+      pos_error(ec_type_definition_not_allowed, pos);
     }  /* if */
   }  /* if */
-}  /* check_for_missing_type_specifier */
+}  /* check_for_decl_spec_errors */
 
 
 static void full_template_specialization(void)
@@ -6997,14 +7005,21 @@ that follows.
                          DSI_INLINE_ALLOWED),
                         &dso_flags, &storage_class, &type, &qualifiers,
                         &decl_modifiers);
-  if ((dso_flags & (DSO_DEFINES_SOMETHING | DSO_DECLARES_SOMETHING)) &&
-      is_template_class_type(type) &&
-      ((a_symbol_ptr)type->source_corresp.assoc_info)->
-           variant.class_struct_union.extra_info->is_specific_template_def) {
-    /* The template specialization applies to the class. */
-    if (curr_token != tok_semicolon) {
-      /* Issue the missing-semicolon error. */
-      pos_error(ec_exp_semicolon, &pos_curr_token);
+  if (is_error_type(type) && !is_declarator_start()) {
+    /* Error of some sort. */
+    set_to_error_locator(locator);
+  } else if ((dso_flags & (DSO_DEFINES_SOMETHING |
+                           DSO_DECLARES_SOMETHING |
+                           DSO_ELABORATED_TYPE_SPECIFIER)) &&
+             is_class_struct_union_type(type) && curr_token == tok_semicolon) {
+    /* The argument is something like class A<int>.  Note that this also
+       permits the class to be a nested class within a template class.  All
+       of the remaining processing is done in class_specifier. */
+    sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+    check_assertion(sym != NULL);
+    if (!is_template_instance_class_symbol(sym)) {
+      /* Not a template instance. */
+      sym_error(ec_entity_cannot_be_specialized, sym);
     }  /* if */
   } else {
     /* Assume the template specialization applies to the declarator, which
@@ -7023,7 +7038,8 @@ that follows.
         sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
       }  /* if */
     }  /* if */
-    check_for_missing_type_specifier(dso_flags, type, sym, &decl_start_pos);
+    check_for_decl_spec_errors(dso_flags, type, sym, &locator,
+                                     &decl_start_pos);
     if (is_error_locator(locator)) {
       /* Ignore it. */
     } else if (sym == NULL) {
@@ -7040,6 +7056,35 @@ that follows.
                    &locator.source_position, sym);
       sym = NULL;
     }  /* if */
+    if (sym != NULL) {
+      /* Specializations of namespace members can only occur within the
+         namespace they belong to or a namespace that encloses it. */
+      if (sym->decl_scope != scope_stack[depth_scope_stack].number &&
+          (sym->parent.namespace_ptr == NULL ||
+           !namespace_is_enclosed_by_curr_scope(sym))) {
+        pos_sy_error(ec_bad_scope_for_specialization,
+                     &locator.source_position, sym);
+        sym = NULL;
+      }  /* if */
+    }  /* if */
+    if (sym != NULL) {
+      a_source_correspondence	*scp;
+      /* Determine whether this entity has already been referenced by
+         looking at the source correspondence entry.  An entity that
+         has already been referenced cannot be specialized. */
+      if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+        scp = &sym->variant.static_data_member.variable->source_corresp;
+      } else {
+        check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
+                        sym->kind == (a_symbol_kind)sk_member_function);
+        scp = &sym->variant.routine.ptr->source_corresp;
+      }  /* if */
+      if (scp->referenced) {
+        pos_sy_error(ec_specialization_of_referenced_entity,
+                     &locator.source_position, sym);
+        sym = NULL;
+      }  /* if */
+    }  /* if */
     if (sym == NULL) {
       /* Check for the semicolon. */
       if (curr_token == tok_lbrace) {
@@ -7051,17 +7096,6 @@ that follows.
       }  /* if */
     } else {
       /* The symbol is not NULL. */
-      check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
-                      sym->kind == (a_symbol_kind)sk_member_function ||
-                      sym->kind == (a_symbol_kind)sk_static_data_member);
-      /* Specializations of namespace members can only occur within the
-         namespace they belong to or a namespace that encloses it. */
-      if (sym->decl_scope != scope_stack[depth_scope_stack].number &&
-          (sym->parent.namespace_ptr == NULL ||
-           !namespace_is_enclosed_by_curr_scope(sym))) {
-        pos_sy_error(ec_bad_scope_for_specialization,
-                     &locator.source_position, sym);
-      }  /* if */
       /* See if this is a declaration or a definition. */
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
         is_definition = (curr_token == tok_assign);
@@ -8694,7 +8728,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   if (sym == NULL) {
     sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
   }  /* if */
-  check_for_missing_type_specifier(dso_flags, type, sym, start_pos);
+  check_for_decl_spec_errors(dso_flags, type, sym, &locator, start_pos);
   if (sym == NULL) {
     /* No symbol was found.  If the declarator has a function type
        then say that the name is undefined.  If it was not a function

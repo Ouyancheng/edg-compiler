@@ -957,31 +957,49 @@ the template.
         tag_sym = NULL;
       }  /* if */
     } else if (is_class_definition && tag_sym->defined) {
-      /* This class has already been defined. */
-      pos_sy_error(ec_already_defined, &tag_position, tag_sym);
+      /* This class has already been defined.  If this is a template
+         specialization declaration, indicate that the entity being
+         specialized has already been referenced. */
+      if (is_template_specialization) {
+        pos_sy_error(ec_specialization_of_referenced_entity,
+                     &tag_position, tag_sym);
+      } else {
+        pos_sy_error(ec_already_defined, &tag_position, tag_sym);
+      }  /* if */
       error_tag_sym = tag_sym;
       tag_sym = NULL;
       set_to_named_error_locator(locator);
       err = TRUE;
     } else {
+      a_type_ptr	class_type;
+      a_boolean		class_type_is_complete;
       cssp = tag_sym->variant.class_struct_union.extra_info;
+      class_type = type_symbol_type(tag_sym);
+      class_type_is_complete = !is_incomplete_type(class_type);
       if (cssp->is_instance) {
         /* A template class or a nested class within a template class. */
         if (is_template_specialization) {
           if (is_class_definition || curr_token == tok_semicolon) {
+            is_template_specific_decl = TRUE;
             if (cssp->is_specific_template_def) {
               /* Redeclaration. */
               *declares_something = FALSE;
             } else {
-              cssp->is_specific_template_def = TRUE;
               if (tag_sym->decl_scope != ssep->number &&
                   (tag_sym->parent.namespace_ptr == NULL ||
                    !namespace_is_enclosed_by_curr_scope(tag_sym))) {
                 pos_sy_error(ec_bad_scope_for_specialization,
                              &tag_position, tag_sym);
               }  /* if */
+              if (class_type_is_complete) {
+                /* The class has already been instantiated and can't now
+                   be specialized. */
+                pos_sy_error(ec_specialization_of_referenced_entity,
+                             &tag_position, tag_sym);
+              } else {
+                cssp->is_specific_template_def = TRUE;
+              }  /* if */
             }  /* if */
-            is_template_specific_decl = TRUE;
           }  /* if */
         } else if (is_class_definition ||
             (curr_token == tok_semicolon &&
@@ -1007,6 +1025,9 @@ the template.
 		   struct B;
                  };
                Don't consider this to be a specialization. */
+          } else if (class_type_is_complete) {
+            /* The class has already been instantiated -- don't consider this
+               to be a specialization. */
           } else {
             cssp->is_specific_template_def = TRUE;
             is_template_specific_decl = TRUE;
