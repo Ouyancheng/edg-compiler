@@ -6366,30 +6366,20 @@ static a_boolean ttt_is_type_with_no_name_linkage(
                                            a_boolean   *force_end_of_traversal)
 /*
 This is a service function designed to be called from traverse_type_tree
-(whence the ttt_ prefix).  It returns TRUE if type_ptr is a typedef to a
-type composed from a struct/class/union or enum without a name. Such a
-typedef-name has no linkage. Note that typerefs should not be skipped
-during the traversal. '*force_end_of_traversal' can be set to true if the
-result of the traversal is decided (in this case, when a typedef with no
-name linkage is encountered).
+(whence the ttt_ prefix).  It returns TRUE if type_ptr is a class type or
+an enum type with no linkage (or a typedef thereof).  Note that unnamed
+class types and enum types can acquire linkage through a typedef: This
+function returns FALSE for such types.  '*force_end_of_traversal' can be
+set to true if the result of the traversal is decided (in this case, when
+a type with no name linkage is encountered).
 */
 {
   a_boolean     result = FALSE;
 
-  if (type_ptr->kind == (a_type_kind)tk_typeref &&
-      typeref_is_typedef(type_ptr)) {
-    /* First check if this typedef is ultimately built on top of an enum
-       or class type. If so, and if that underlying user-defined type has
-       no name, then the type name denoted by the typedef has no linkage.
-       Note that in 'typedef struct {} X;' the typedef name 'X' is also
-       imbued upon the underlying struct (for linkage purposes) and this
-       code will not return TRUE (which is desired behavior). */
-    a_type_ptr bottom_type = find_bottom_of_type(type_ptr);
-    if ((is_class_struct_union(bottom_type) || is_enum(bottom_type)) &&
-        bottom_type->source_corresp.name_linkage ==
-                                               (a_name_linkage_kind)nlk_none) {
-      *force_end_of_traversal = result = TRUE;
-    }  /* if */
+  type_ptr = skip_typerefs(type_ptr);
+  if ((is_class_struct_union(type_ptr) || is_enum(type_ptr)) &&
+      type_ptr->source_corresp.name_linkage == (a_name_linkage_kind)nlk_none) {
+    *force_end_of_traversal = result = TRUE;
   }  /* if */
   return result;
 }  /* ttt_is_type_with_no_name_linkage */
