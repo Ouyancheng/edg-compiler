@@ -1,5 +1,35 @@
 Version 2.33
 
+9/23/06 Support for "extern inline"
+
+In C++ support for "extern inline" is now available.  This means
+-- on nonmember function declarations "extern" and "inline" can appear
+   together;
+-- "inline" by itself on a nonmember function declaration implies external
+   linkage (so that "inline static" must now be used to specify internal
+   linkage); and
+-- a member function, including an inline function, now takes the linkage
+   of the class of which it is a member (which is usually external).
+
+Because an extern inline functions cannot be called from other translation
+units (that is, an extern inline function must be defined in every
+translation unit in which it is used), the practical impact on programs is
+small: there are a few diagnostic differences; static local variables are
+shared across translation units; and the address of an extern inline
+function will be the same throughout the program.  For example:
+
+  class A {
+    int f() {               // A::f is an "extern inline" function
+      static int i = 0;     // with --extern_inline_allowed there is only
+      return ++i;           //   one copy of local "i" in the program
+    }
+  };
+
+The behavior is controlled by command-line options --extern_inline_allowed
+and --no_extern_inline_allowed; DEFAULT_EXTERN_INLINE_ALLOWED can be set to
+determine the default, and strict mode turns extern-inline support on while
+cfront mode turns it off.
+
 9/22/96 c_gen_be.c did not compile with CHECKING and STANDALONE_UTILITY_PROGRAM
 
 Due to a change in 2.32, c_gen_be.c did not compile with CHECKING and
