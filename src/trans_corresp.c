@@ -1727,12 +1727,10 @@ also deals with the consequences of type becoming the new canonical entry.
        matching the underlying types. */
     type = skip_typerefs(type);
     corresp_type = skip_typerefs(corresp_type);
-    if (trans_unit_corresp_of(type) != NULL) {
-      /* A correspondence is set already for the type pointed to. */
-    } else if (is_immediate_class_type(type) &&
-               type->variant.class_struct_union.originally_unnamed &&
-               is_immediate_class_type(corresp_type) &&
-               corresp_type->variant.class_struct_union.originally_unnamed) {
+    if (is_immediate_class_type(type) &&
+        type->variant.class_struct_union.originally_unnamed &&
+        is_immediate_class_type(corresp_type) &&
+        corresp_type->variant.class_struct_union.originally_unnamed) {
       /* These are unnamed class types that acquired linkage through a typedef.
          Since the typedefs correspond, these types should too. */
       set_type_corresp(type, corresp_type);
