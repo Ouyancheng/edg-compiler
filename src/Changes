@@ -1,5 +1,19 @@
 Version 2.21
 
+11/24/93 Access checking on overloaded function referenced by qualified name
+
+When an overloaded function was referenced by qualified name, and
+there are ambiguous base classes, an access error could be erroneously
+given.  This has been fixed.
+
+  struct A {struct B {int bmf() int bmf(int);};};
+  struct D : virtual public A, public A::B { };
+  struct E : public A::B { };
+  struct X : public D, public E {
+    void mf() {D::bmf();} // Gave error
+  };
+
+
 11/23/93 Fixed abort on vacuous destructor field selection error
 
 An abort no longer occurs on a vacuous destructor reference in which the
