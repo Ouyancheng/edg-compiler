@@ -6277,6 +6277,7 @@ be set to the source position of the type.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (err) *p_type_cast_to = error_type();
   return err;
 }  /* cast_type_pre_check */
 
