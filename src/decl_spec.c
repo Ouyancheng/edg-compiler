@@ -4865,7 +4865,7 @@ from decl_specifiers only.
           if (old_nas != 0) {
             /* Double qualification with a named address space.  If the address
                space is identical, issue a warning; otherwise, an error. */
-            an_error_severity  severity = es_warning;
+            severity = es_warning;
             if (old_nas != new_nas) {
               severity = es_error;
               err = TRUE;
