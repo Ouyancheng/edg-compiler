@@ -548,6 +548,18 @@ instances will do nothing.
 #define TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE FALSE
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
 
+/*
+jmp_buf is a type defined by <setjmp.h> for use in setjmp/longjmp.
+By default, IL lowering uses setjmp/longjmp for exception try/throw
+statements.  jmp_buf is defined to be an array type; we further
+assume it is an array of some kind of integral type, which is not
+guaranteed by the standard but is usually a safe assumption.
+The definitions here specify the number of elements in the array type
+and the integral kind for the array element type.
+*/
+#define TARG_JMP_BUF_NUM_ELEMENTS 9  /* For SPARC, SunOS 4.1.2. */
+#define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
+
 #endif /* DO_IL_LOWERING */
 
 
