@@ -540,7 +540,11 @@ extern void record_start_of_source_file(a_source_file_ptr parent_file,
 
 extern void record_end_of_source_file(a_source_file_ptr curr_file,
 			              a_seq_number      seq_number);
-
+extern a_source_file_ptr source_file_for_seq(a_seq_number   seq_number,
+                                             a_line_number  *line_number,
+                                             a_boolean      *at_end_of_source,
+                                             unsigned long  *nesting_depth,
+                                             a_boolean      physical_line);
 extern void conv_seq_to_file_and_line(a_seq_number  seq_number,
 			              char          **file_name,
 				      char          **full_name,

@@ -912,6 +912,12 @@ Display a_source_file entry.
   disp_ptr("first_child_file", (char *)ptr->first_child_file, iek_source_file);
   disp_ptr("last_child_file", (char *)ptr->last_child_file, iek_source_file);
   disp_ptr("next", (char *)ptr->next, iek_source_file);
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+  if (sfp->related_file_implicit_include_done) {
+    disp_boolean("related_file_implicit_include_done",
+                 (a_boolean)sfp->related_file_implicit_include_done);
+  }  /* if */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 }  /* disp_source_file */
 
 

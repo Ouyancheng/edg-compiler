@@ -113,6 +113,16 @@ typedef struct a_source_file {
                 next;
                         /* The next include file referenced by the parent
                            of this file, or NULL if there is no next file. */
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+  a_byte_boolean
+		related_file_implicit_include_done;
+			/* For a header file this is TRUE if an attempt has
+			   been made to implicitly include the
+			   source file (e.g., .c file) that corresonds to this
+			   header file. This is set to TRUE
+			   even if the attempt failed (e.g., the file does not
+			   exist. */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 } a_source_file;
 
 /*
