@@ -6748,8 +6748,7 @@ rewritten) for use in error messages.
     if (is_indefinite_function_operand(source_operand)) {
       /* The source is an indefinite function, i.e., the address of an
          overloaded function.  It can be converted to an appropriate
-         pointer (ARM 13.3) or pointer-to-member type (not mentioned in ARM,
-         but sensible). */
+         pointer or pointer-to-member type (WP [over.over], ARM 13.3). */
       a_std_conv_descr std_conversion;
 
       if (find_addr_of_overloaded_function_match(
@@ -8478,7 +8477,7 @@ initializer has previously been found to be acceptable, and
 */
 {
   if (is_error_operand(source_operand)) {
-     /* Previous error.  Leave the operand alone. */
+    /* Previous error.  Leave the operand alone. */
   } else if (is_reference_type(dest_type)) {
     /* Reference initialization. */
     prep_reference_initializer_operand(source_operand, dest_type,
@@ -8626,6 +8625,25 @@ cases where bitwise copying applies.
                             incompatible_err, err_pos);
   }  /* if */
 }  /* prep_assignment_operand */
+
+
+a_boolean nontype_template_arg_conversion_possible(an_operand *operand,
+                                                   a_type_ptr param_type)
+/*
+*operand is an operand for a nontype template argument.  See if it can
+be converted to the template parameter type param_type, and return TRUE
+if so.
+*/
+{
+  a_boolean            compatible = FALSE;
+  an_arg_match_summary arg_summary;
+
+  determine_arg_match_level(operand, operand->type, param_type,
+                            /*try_user_conversions=*/FALSE,
+                            &arg_summary);
+  compatible = (arg_summary.match_level != aml_none);
+  return compatible;
+}  /* nontype_template_arg_conversion_possible */
 
 
 void overload_init(void)

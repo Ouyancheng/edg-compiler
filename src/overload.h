@@ -477,6 +477,10 @@ extern void prep_assignment_operand(an_operand        *source_operand,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos);
 
+extern a_boolean nontype_template_arg_conversion_possible(
+                                                        an_operand *operand,
+                                                        a_type_ptr param_type);
+
 extern void overload_init(void);
 
 #endif /* ifndef OVERLOAD_H */

@@ -126,6 +126,17 @@ extern void scan_class_parenthesized_initializer(
 extern void scan_template_argument_constant_expression(a_type_ptr param_type,
                                                        a_constant *constant);
 
+extern struct an_arg_operand *scan_nontype_template_argument(void);
+
+extern a_boolean nontype_template_arg_is_compatible_with_param_type(
+                                            struct an_arg_operand *arg_operand,
+                                            a_type_ptr            param_type);
+
+extern void conv_nontype_template_arg_to_param_type(
+                                            struct an_arg_operand *arg_operand,
+                                            a_type_ptr            param_type,
+                                            a_constant            *constant);
+
 extern void scan_member_constant_initializer_expression(
                                                  a_type_ptr required_type,
                                                  a_constant *constant);

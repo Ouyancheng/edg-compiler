@@ -11052,6 +11052,50 @@ e.g., a local variable.
 }  /* constant_references_non_external_entity */
 
 
+static void prep_nontype_template_argument_initializer(an_operand *operand,
+                                                       a_type_ptr param_type,
+                                                       a_constant *constant)
+/*
+operand points to an operand for a nontype template argument expression.
+Convert it to the template parameter type param_type, and put a constant
+for the converted result in *constant.  Do various error checks.
+*/
+{
+  db_enter(3, "prep_nontype_template_argument_initializer");
+
+  /* Convert to the required type if necessary.  Do not use user-defined
+     conversions. */
+  prep_initializer_operand(operand, param_type, (a_conv_descr_ptr)NULL,
+                           /*initializing_return_value=*/FALSE,
+                           /*initializing_variable=*/FALSE,
+                           /*static_lifetime=*/FALSE,
+                           /*is_copy_initialization=*/TRUE,
+                           ec_bad_nontype_template_arg);
+  /* Make a constant from the operand. */
+  extract_constant_from_operand(operand, constant);
+  /* If the template parameter has a reference type, give the constant
+     a reference type (instead of the pointer type it has). */
+  if (is_reference_type(param_type) && !is_error_operand(operand)) {
+    check_assertion(is_pointer_type(constant->type));
+    constant->type = param_type;
+  }  /* if */
+  /* Make the sure that the constant does not use any local variables,
+     etc., since the template will be created at the file scope. */
+  if (constant_references_non_external_entity(constant)) {
+    pos_error(ec_nonexternal_entity_in_template_arg, &operand->position);
+    set_error_constant(constant);
+  }  /* if */
+
+#if DEBUG
+  if (debug_level >= 3) {
+    db_constant(constant);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+}  /* prep_nontype_template_argument_initializer */
+
+
 void scan_template_argument_constant_expression(a_type_ptr param_type,
                                                 a_constant *constant)
 /*
@@ -11102,6 +11146,94 @@ Return the constant in *constant.
 #endif /* DEBUG */
   db_exit();
 }  /* scan_template_argument_constant_expression */
+
+
+an_arg_operand_ptr scan_nontype_template_argument(void)
+/*
+Scan a nontype template argument in a template reference.  Allocate
+an arg_operand entry, fill it with information about the template
+argument, and return a pointer to it to the caller.  The caller must
+at some later point call free_arg_operand_list to free the entry.
+*/
+{
+  an_arg_operand_ptr  arg_operand;
+  an_expr_stack_entry expr_stack_entry;
+
+  db_enter(3, "scan_nontype_template_argument");
+
+  push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE);
+  expr_stack_entry.is_template_arg_expression = TRUE;
+  /* Scan the constant expression. */
+  arg_operand = alloc_arg_operand();
+  scan_expr(&arg_operand->operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  pop_expr_stack();
+
+#if DEBUG
+  if (debug_level >= 3) {
+    db_operand(&arg_operand->operand);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return arg_operand;
+}  /* scan_nontype_template_argument */
+
+
+a_boolean nontype_template_arg_is_compatible_with_param_type(
+                                                an_arg_operand_ptr arg_operand,
+                                                a_type_ptr         param_type)
+/*
+arg_operand points to an argument operand for a nontype template argument
+expression previously scanned by scan_nontype_template_argument.  Determine
+whether the expression can match a template parameter of type param_type,
+and return TRUE if so.  This is callable from outside of the expression
+processing routines.
+*/
+{
+  a_boolean           compatible;
+  an_expr_stack_entry expr_stack_entry;
+
+  push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE);
+  expr_stack_entry.is_template_arg_expression = TRUE;
+  compatible = nontype_template_arg_conversion_possible(&arg_operand->operand,
+                                                        param_type);
+  pop_expr_stack();
+  return compatible;
+}  /* nontype_template_arg_is_compatible_with_param_type */
+
+
+void conv_nontype_template_arg_to_param_type(an_arg_operand_ptr arg_operand,
+                                             a_type_ptr         param_type,
+                                             a_constant         *constant)
+/*
+arg_operand points to an argument operand for a nontype template argument
+expression previously scanned by scan_nontype_template_argument.  Convert it
+to the template parameter type param_type, and put a constant for the
+converted result in *constant.  This is callable from outside of the
+expression processing routines.
+*/
+{
+  an_expr_stack_entry expr_stack_entry;
+
+  db_enter(3, "conv_nontype_template_arg_to_param_type");
+
+  push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE);
+  expr_stack_entry.is_template_arg_expression = TRUE;
+  /* Convert the operand to the parameter type and extract a constant. */
+  prep_nontype_template_argument_initializer(&arg_operand->operand,
+                                             param_type, constant);
+  pop_expr_stack();
+
+#if DEBUG
+  if (debug_level >= 3) {
+    db_constant(constant);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+}  /* conv_nontype_template_arg_to_param_type */
 
 
 void scan_member_constant_initializer_expression(a_type_ptr required_type,
