@@ -1,5 +1,21 @@
 Version 2.44
 
+6/21/00  Redeclaration of elaborated type in presence of using-declaration
+         and typedef name referring to the same type
+
+The front end used to issue a redeclaration error when referring to an
+elaborated type that has been made visible by both a using-declaration
+and a typedef declaration.
+
+  namespace N {
+    struct S {};
+  }
+  using N::S;
+  typedef ::S S;
+  void f(struct S*);  // Used to cause a redeclaration error
+
+This is now fixed (see also related Changes entries of 11/1/99 and 11/8/99).
+
 6/21/00  Non-constant sizeofs -- SIZEOF_TYPE_IS_UNKNOWN
 
 In some cases when using the C++ generating back end it is difficult
