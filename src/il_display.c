@@ -532,18 +532,15 @@ display_constant_value:
       disp_unsigned_long("length", ptr->variant.string.length);
       disp_name("value");
       goto display_constant_value;
-      break;
     case ck_float:
       (void)printf("ck_float\n");
       disp_name("float_value");
       goto display_constant_value;
-      break;
 #ifdef FFE
     case ck_complex:
       (void)printf("ck_complex\n");
       disp_name("complex_value");
       goto display_constant_value;
-      break;
 #endif /* ifdef FFE */
 #ifdef CFE
     case ck_address:
