@@ -5763,8 +5763,10 @@ instantiation.
         /* Not previously defined. */
         *resolution = is_definition;
         if (!is_definition && sym->is_class_member &&
-            !decl_state->is_template_friend) {
-          /* Redeclaration of a class member is not allowed. */
+            !decl_state->is_template_friend &&
+            (!decl_state->is_member_decl || locator.is_qualified_name)) {
+          /* Redeclaration of a class member is not allowed.  A redeclaration
+             is permitted in the class in which the member is defined. */
           pos_sy_error(ec_bad_scope_for_redeclaration,
 	                 &locator.source_position, sym);
         }  /* if */
@@ -5885,7 +5887,8 @@ instantiation.
     add_befriending_class_to_class_template(tssp,
                                             decl_state->class_declared_in);
   }  /* if */
-  if (sym->is_class_member && sym->kind == (a_symbol_kind)sk_class_template) {
+  if (sym->is_class_member && sym->kind == (a_symbol_kind)sk_class_template &&
+      !is_redecl) {
     /* This is a member class template declaration.  See if the enclosing
        class was also generated from a template.  If so, find the
        corresponding class template symbol from the prototype instantiation. */
@@ -5923,7 +5926,7 @@ instantiation.
     create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
                           is_partial_specialization);
   }  /* if */
-  if (is_partial_specialization) {
+  if (is_partial_specialization && !is_redecl) {
     /* Make sure that the template parameters are used correctly in the
        partial specialization template argument list. */
     check_partial_spec_template_param_usage(decl_state, sym);
