@@ -1797,8 +1797,8 @@ Do the logical "and" (&&) operation on integers, floats, and pointers.
 {
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
   set_integer_value(&result->variant.integer_value,
-                    !is_zero_constant(constant_1) &&
-                    !is_zero_constant(constant_2));
+                    (long)(!is_zero_constant(constant_1) &&
+                           !is_zero_constant(constant_2)));
 #if DEBUG
   db_binary_operation("&&", constant_1, constant_2, result, ec_no_error);
 #endif /* DEBUG */
@@ -1814,8 +1814,8 @@ Do the logical "or" (||) operation on integers, floats, and pointers.
 {
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
   set_integer_value(&result->variant.integer_value,
-                    !is_zero_constant(constant_1) ||
-                    !is_zero_constant(constant_2));
+                    (long)(!is_zero_constant(constant_1) ||
+                           !is_zero_constant(constant_2)));
 #if DEBUG
   db_binary_operation("||", constant_1, constant_2, result, ec_no_error);
 #endif /* DEBUG */
