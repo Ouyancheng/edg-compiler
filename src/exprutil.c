@@ -9883,6 +9883,7 @@ is a "get" if put_operand is NULL.
                                             /*do_arg_dep_lookup=*/FALSE,
                                             /*try_surrogate_functions=*/FALSE,
                                             /*is_qualified_name=*/FALSE,
+                                            /*is_property=*/TRUE,
                                             ec_no_matching_function,
                                             ec_ambiguous_overloaded_function,
                                             &locator.source_position,

@@ -1551,6 +1551,7 @@ Syntax:
                                             do_arg_dep_lookup,
                                             try_surrogate_functions,
                                          (a_boolean)operand->is_qualified_name,
+                                            /*is_property=*/FALSE,
                                             ec_no_matching_function,
                                             ec_ambiguous_overloaded_function,
                                             /* NOT &operand->position; it

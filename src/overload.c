@@ -5979,6 +5979,7 @@ static void make_resolved_overloaded_function_operand(
                                  a_boolean          *have_selector,
                                  an_operand         *bound_function_selector,
                                  a_boolean          is_qualified_name,
+                                 a_boolean          is_property,
                                  a_source_position  *function_position,
                                  a_source_position  *function_end_position,
                                  a_source_position  *id_position,
@@ -5989,16 +5990,18 @@ functions in overloaded_function_symbol (which may be a projection symbol
 and/or just a simple function), function_symbol is the specific function to
 be called (also possibly a projection symbol).  Create a function designator
 operand for the function in *function_operand.  The function was named with
-a qualified name if is_qualified_name is TRUE.  The reference has an
-associated selector object if *have_selector is TRUE; in that case,
-bound_function_selector gives the object, and function_operand is bound to
-that object.  Even when *have_selector is FALSE going in,
-bound_function_selector must point at an operand that can be filled in
-if an implicit selector is generated (*have_selector is set to TRUE for that
-case).  function_position gives the source position of the function
-in the call; if end positions are being maintained, function_end_position
-gives the corresponding end position.  id_position gives the source position
-of the function name identifier in the call.
+a qualified name if is_qualified_name is TRUE.  The call is the result
+of the expansion of a Microsoft property reference if is_property is
+TRUE.  The reference has an associated selector object if
+*have_selector is TRUE; in that case, bound_function_selector gives
+the object, and function_operand is bound to that object.  Even when
+*have_selector is FALSE going in, bound_function_selector must point
+at an operand that can be filled in if an implicit selector is
+generated (*have_selector is set to TRUE for that case).
+function_position gives the source position of the function in the
+call; if end positions are being maintained, function_end_position
+gives the corresponding end position.  id_position gives the source
+position of the function name identifier in the call.
 */
 {
   a_symbol_ptr base_function_symbol = fundamental_symbol_of(function_symbol);
@@ -6048,7 +6051,8 @@ of the function name identifier in the call.
                                        function_symbol,
                                        overloaded_function_symbol,
                                        access_error_reported,
-                                       /*do_protected_member_check=*/TRUE,
+                                       /*do_protected_member_check=*/
+                                                                  !is_property,
                                        &selector_position);
     }  /* if */
     /* Bind the function to the selector. */
@@ -7140,6 +7144,7 @@ a_type_ptr select_and_prepare_to_call_overloaded_function(
                            a_boolean               do_arg_dep_lookup,
                            a_boolean               try_surrogate_functions,
                            a_boolean               is_qualified_name,
+                           a_boolean               is_property,
                            an_error_code           err_none_applies,
                            an_error_code           err_ambiguous,
                            a_source_position       *call_position,
@@ -7175,29 +7180,31 @@ that means looking for conversion functions from the selector object
 to pointers to function type.  overloaded_function_symbol can be NULL
 in that case.  is_qualified_name is TRUE if a qualified name was used
 to name the function (that suppresses the virtual-ness of the
-function).  arg_operand_list is freed by this routine.  call_position
-is the source position of the call.  paren_tok_seq_number is the token
-sequence number of the opening parenthesis of the argument list, but
-it's required only when do_arg_dep_lookup is TRUE; it can be zero
-otherwise.  If an error of some sort is detected, issue an error at
-that position and return NULL.  err_none_applies is the error code to
-use when no function applies, and err_ambiguous is the error code to
-use when more than one function applies.  If there is no error, an
-operand for the function is built in *function_operand, an
-expression-form argument list is built and returned in *arg_expr_list
-(with the arguments cast to the proper types), and the type of the
-routine selected is returned.  function_position is the position of
-the function name or equivalent in the call, usually the same as
-call_position; if end positions are being maintained, function_end_position
-is the corresponding end position.  id_position is the source position
-of the function name identifier in the call.  closing_paren_position is
-the position of the closing parenthesis in the call; it is used only when
+function).  is_property is TRUE if this call results from the
+expansion of a Microsoft property reference.  arg_operand_list is
+freed by this routine.  call_position is the source position of the
+call.  paren_tok_seq_number is the token sequence number of the
+opening parenthesis of the argument list, but it's required only when
+do_arg_dep_lookup is TRUE; it can be zero otherwise.  If an error of
+some sort is detected, issue an error at that position and return
+NULL.  err_none_applies is the error code to use when no function
+applies, and err_ambiguous is the error code to use when more than one
+function applies.  If there is no error, an operand for the function
+is built in *function_operand, an expression-form argument list is
+built and returned in *arg_expr_list (with the arguments cast to the
+proper types), and the type of the routine selected is returned.
+function_position is the position of the function name or equivalent
+in the call, usually the same as call_position; if end positions are
+being maintained, function_end_position is the corresponding end
+position.  id_position is the source position of the function name
+identifier in the call.  closing_paren_position is the position of the
+closing parenthesis in the call; it is used only when
 do_arg_dep_lookup is TRUE.  If the call is dependent, and the function
 to be called cannot be determined, return *unknown_dependent_function
 set to TRUE (unknown_dependent_function can be NULL if the call cannot
-be dependent).  If found_through_adl is non-NULL and the callee was found
-only through ADL, *found_through_adl is returned TRUE.  This routine is
-called only in C++ mode.
+be dependent).  If found_through_adl is non-NULL and the callee was
+found only through ADL, *found_through_adl is returned TRUE.  This
+routine is called only in C++ mode.
 */
 {
   an_arg_match_summary_ptr arg_match_list;
@@ -7241,6 +7248,7 @@ called only in C++ mode.
                                               &have_selector,
                                               bound_function_selector,
                                               is_qualified_name,
+                                              is_property,
                                               function_position,
                                               function_end_position,
                                               id_position,
@@ -9826,6 +9834,7 @@ select_best_function:
                                                  &have_selector,
                                                  bound_function_selector,
                                                  /*is_qualified_name=*/FALSE,
+                                                 /*is_property=*/FALSE,
                                                  operator_position,
                                                  operator_position,
                                                  operator_position,

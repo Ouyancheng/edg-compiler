@@ -596,6 +596,7 @@ extern a_type_ptr select_and_prepare_to_call_overloaded_function(
                            a_boolean               do_arg_dep_lookup,
                            a_boolean               try_surrogate_functions,
                            a_boolean               is_qualified_name,
+                           a_boolean               is_property,
                            an_error_code           err_none_applies,
                            an_error_code           err_ambiguous,
                            a_source_position       *call_position,
