@@ -25,6 +25,7 @@ preproc.c -- Preprocessing directives.
 #include "cmd_line.h"
 #include "expr.h"
 #include "symbol_tbl.h"
+#include "symbol_ref.h"
 #include "macro.h"
 #include "const_ints.h"
 
