@@ -4615,6 +4615,9 @@ value is used).
                 } else if (vla_enabled && is_vla_type(underlying_type)) {
                   /* Variable-length arrays cannot be checked for non-negative
                      subscripts. */
+                } else if (array_type->variant.array.
+                                            is_template_dependent_size_array) {
+                  /* Can't check template-dependent-sized arrays. */
                 } else {
                   check_assertion(!has_unknown_specified_bound(array_type));
                   num_elements = array_type->
