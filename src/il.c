@@ -2392,7 +2392,7 @@ Return TRUE if node1 and node2 are equivalent expression trees.
         }  /* if */
         break;
       case enk_constant:
-        eq = eq_constants(node1->variant.constant, node1->variant.constant);
+        eq = eq_constants(node1->variant.constant, node2->variant.constant);
         break;
       case enk_variable_address:
         eq = (node1->variant.variable == node2->variant.variable);
