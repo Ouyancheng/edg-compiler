@@ -976,8 +976,9 @@ when it is a secondary file.
   keyword_init();
   init_predefined_macros(curr_date_time);
   /* Create the file scope for this translation unit. */
-  curr_translation_unit->primary_scope =
-               new_il_region(sck_file, file_scope_number, (a_routine_ptr)NULL);
+  curr_translation_unit->primary_scope = new_il_region(
+                              (a_scope_kind)sck_file,
+                              file_scope_number, (a_routine_ptr)NULL);
   /* Push an entry for the file scope onto the scope stack, saving the
      pointer to the scope in the translation unit entry.  This is done after
      the entry of keywords and predefined macros, because they do not belong

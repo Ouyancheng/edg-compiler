@@ -196,7 +196,7 @@ Make the translation unit specified by "tup" the current translation unit.
 }  /* switch_translation_unit */
 
 
-a_translation_unit_ptr alloc_translation_unit(void)
+static a_translation_unit_ptr alloc_translation_unit(void)
 /*
 Allocate a translation unit entry, initialize its fields, and return
 a pointer to the entry created.

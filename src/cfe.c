@@ -27,7 +27,6 @@ Enhanced to support C++ by J. Stephen Adamczyk and R. Michael Anderson,
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
-#include "preproc.h"
 #include "fe_init.h"
 #include "fe_wrapup.h"
 

@@ -54,8 +54,6 @@ typedef struct a_translation_unit {
 
 extern void trans_unit_early_init(void);
 
-extern a_translation_unit_ptr alloc_translation_unit(void);
-
 extern void process_translation_unit(a_boolean	is_primary);
 
 extern void switch_translation_unit(a_translation_unit_ptr	tup);

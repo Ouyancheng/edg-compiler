@@ -4244,7 +4244,7 @@ End a name scope by popping an entry off the scope stack.
   ssep = &scope_stack[depth_scope_stack];
   pointers_block = assoc_pointers_block_of(ssep);
   /* For the file scope, this processing is done in file_scope_il_wrapup. */
-  if (ssep->kind != (sck_file)) {
+  if (ssep->kind != (a_scope_kind)sck_file) {
     /* Remove symbols from the symbol table, and reenter them on the
        inactive list if necessary. */
     wrapup_scope(ssep->il_scope, kind, pointers_block,
