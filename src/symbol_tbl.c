@@ -346,6 +346,27 @@ from db_symbol.
 }  /* str_qualified_name */
 
 
+static char *str_function_name_and_param_list(char          buffer[],
+                                              a_symbol_ptr  sym)
+/*
+Construct a string the buffer that represents a qualified name plus
+function param list -- called from db_symbol.
+*/
+{
+  a_type_ptr  tp;
+
+  set_up_for_output_to_buffer(buffer);
+  form_symbol_name(sym, &octl);
+  if (sym->kind == (a_symbol_kind)sk_routine ||
+      sym->kind == (a_symbol_kind)sk_member_function) {
+    tp = sym->variant.routine.ptr->type;
+    tp = skip_typerefs(tp);
+    form_function_declarator(tp, &octl);
+  }  /* if */
+  return buffer;
+}  /* str_function_name_and_param_list */
+
+
 static char *str_path(char               buffer[],
                       a_derivation_step  *path,
                       char               *initial_string,
@@ -577,28 +598,68 @@ and indentation is the indentation desired.
         if (cssp->last_field_is_incomplete_array) {
           put_string("last field is zero-array");
         }  /* if */
+#if 0
         if (cssp->member_decl_scope != NO_SCOPE_NUMBER) {
-          sprintf(buffer, "member_decl_scope %ld\n", cssp->member_decl_scope);
+          sprintf(buffer, "member decl scope %ld", cssp->member_decl_scope);
+          put_string(buffer);
         }  /* if */
+#endif /* if 0 */
         if (cssp->template_param_for_proxy_class != NULL) {
           if (debug_level >= 4) put_string("has ptr for proxy");
         }  /* if */
-      }
-      if (temp_type->variant.class_struct_union.any_const_member) {
-        put_string("has const member");
-      }  /* if */
-      if (temp_type->variant.class_struct_union.any_mutable_member) {
-        put_string("has mutable member");
-      }  /* if */
-      if (temp_type->declared_in_function_prototype) {
-        put_string("in func prototype");
-      }  /* if */
-      if (temp_type->variant.class_struct_union.is_specialized) {
-        (void)sprintf(buffer, "%sspecialization",
-                      temp_type->variant.class_struct_union.
+        if (temp_type->variant.class_struct_union.any_const_member) {
+          put_string("has const member");
+        }  /* if */
+        if (temp_type->variant.class_struct_union.any_mutable_member) {
+          put_string("has mutable member");
+        }  /* if */
+        if (temp_type->declared_in_function_prototype) {
+          put_string("in func prototype");
+        }  /* if */
+        if (temp_type->variant.class_struct_union.is_specialized) {
+          (void)sprintf(buffer, "%sspecialization",
+                        temp_type->variant.class_struct_union.
                              specialized_with_old_syntax ? "old-style " : "");
-        put_string(buffer);
-      }  /* if */
+          put_string(buffer);
+        }  /* if */
+        if (cssp->friend_functions != NULL) {
+          a_symbol_ptr  friend_sym, overload_sym, fund_sym;
+          char          *sep;
+
+          friend_sym = cssp->friend_functions;
+          put_string("invisible friends =");
+          (void)sprintf(buffer, "[ ");
+          sep = "";
+          friend_sym = cssp->friend_functions;
+          overload_sym = NULL;
+          do {
+            if (friend_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+              overload_sym = friend_sym;
+              friend_sym = overload_sym->variant.overloaded_function.symbols;
+            }  /* if */
+            fund_sym = fundamental_symbol_of(friend_sym);
+            if (fund_sym->overload_set_member || overload_sym != NULL) {
+              (void)str_function_name_and_param_list(&buffer[strlen(buffer)],
+                                                     fund_sym);
+            } else {
+              (void)str_qualified_name(&buffer[strlen(buffer)], fund_sym);
+            }  /* if */
+            friend_sym = friend_sym->next;
+            if (overload_sym != NULL && friend_sym == NULL) {
+              friend_sym = overload_sym->next;
+              overload_sym = NULL;
+            }  /* if */
+            if (friend_sym == NULL) {
+              (void)sprintf(&buffer[strlen(buffer)], " ]");
+            }  /* if */
+            put_separator(sep, strlen(buffer));
+            fprintf(f_debug, "%s", buffer);
+            col += strlen(buffer);
+            sep = ",";
+            buffer[0] = '\0';
+          } while (friend_sym != NULL);
+        }  /* if */
+      }
       break;
     case sk_field:
       if (sym->variant.field.ptr == NULL) {
@@ -3019,6 +3080,88 @@ is called.
   link_symbol_into_symbol_table(sym_ptr, scope_depth, suppress_error);
   return sym_ptr;
 }  /* enter_namespace_projection_symbol */
+
+
+void add_friend_function_to_lookup_list_for_class(a_symbol_ptr  rout_sym,
+                                                  a_type_ptr    class_type)
+/*
+rout_sym represents a non-class-member function that has been declared a
+friend of the specified class.  Enter it on a list that is used by
+in argument dependent lookup.  
+*/
+{
+  a_class_symbol_supplement_ptr  cssp;
+  a_symbol_ptr                   sym, other_sym, overload_sym = NULL;
+  a_boolean                      duplicate = FALSE, is_list;
+
+  /* Check for other functions with the same name that have been declared
+     friends of the current class. */
+  cssp = symbol_supplement_for_class(class_type);
+  for (other_sym = cssp->friend_functions;
+       other_sym != NULL;
+       other_sym = other_sym->next) {
+    if (other_sym->header == rout_sym->header) break;
+  }  /* for */
+  if (other_sym != NULL) {
+    /* Ignore this symbol if it's a duplicate. */
+    sym = other_sym;
+    is_list = (sym->kind == (a_symbol_kind)sk_overloaded_function);
+    if (is_list) {
+      /* An overload set already exists. */
+      overload_sym = sym;
+      sym = overload_sym->variant.overloaded_function.symbols;
+    }  /* if */
+    for (; sym != NULL; sym = (is_list ? sym->next : NULL)) {
+      if (fundamental_symbol_of(sym) == rout_sym) {
+        duplicate = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!duplicate) {
+    /* Create a namespace projection symbol (one that won't actually be
+       entered in the symbol table) to point to the friend function symbol. */
+    sym = make_namespace_projection_symbol(rout_sym,
+                                           &rout_sym->decl_position,
+                                           depth_innermost_namespace_scope);
+    /* Now add the projection symbol to the class symbol supplement. */
+    if (other_sym == NULL) {
+      /* No overloading -- add it directly. */
+      sym->next = cssp->friend_functions;
+      cssp->friend_functions = sym;
+    } else if (overload_sym != NULL) {
+      /* An overload set already exists.  Add the new symbol to the overload
+         set. */
+      sym->next = overload_sym->variant.overloaded_function.symbols;
+      overload_sym->variant.overloaded_function.symbols = sym;
+      sym->overload_set_member = TRUE;
+    } else {
+      /* An overload set will have to be created.  First remove the other
+         symbol from the main list; it will be added to the overload set
+         later. */
+      if (cssp->friend_functions == other_sym) {
+        cssp->friend_functions = other_sym->next;
+      } else {
+        a_symbol_ptr  prev = cssp->friend_functions;
+        while (prev->next != other_sym) prev = prev->next;
+        prev->next = other_sym->next;
+      }  /* if */
+      other_sym->next = NULL;
+      /* Create a symbol for the overload set. */
+      overload_sym = alloc_symbol((a_symbol_kind)sk_overloaded_function,
+                                   sym->header, &other_sym->decl_position);
+      overload_sym->decl_scope = sym->decl_scope;
+      /* Add the two symbols to the overload set. */
+      overload_sym->variant.overloaded_function.symbols = sym;
+      sym->overload_set_member = TRUE;
+      sym->next = other_sym;
+      other_sym->overload_set_member = TRUE;
+      /* Add the overload set to the list. */
+      overload_sym->next = cssp->friend_functions;
+      cssp->friend_functions = overload_sym;
+    }  /* if */
+  }  /* if */
+}  /* add_friend_function_to_lookup_list_for_class */
 
 
 static

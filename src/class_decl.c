@@ -4904,6 +4904,9 @@ of the function, and again overloading is a possibility.
           class_type->source_corresp.is_local_to_function) {
         pos_sy_error(ec_bad_scope_for_definition, &pos_curr_token, sym);
       }  /* if */
+      if (arg_dependent_lookup_enabled && sym->is_invisible) {
+        add_friend_function_to_lookup_list_for_class(sym, class_type);
+      }  /* if */
     } else {
       if (sym->parent.class_type == class_type) {
         /* It's a member function of the very class that is according it

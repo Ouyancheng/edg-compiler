@@ -2456,14 +2456,17 @@ extern void set_namespace_projection_symbol(a_symbol_ptr     proj_sym,
                                             a_symbol_ptr     fund_sym,
                                             a_scope_depth    scope_depth);
 
-extern
-a_symbol_ptr enter_namespace_projection_symbol(a_symbol_ptr    fund_sym,
-                                               a_symbol_locator *location,
-                                               a_scope_depth   scope_depth,
-                                               a_boolean       suppress_error);
+extern a_symbol_ptr enter_namespace_projection_symbol(
+                                            a_symbol_ptr    fund_sym,
+                                            a_symbol_locator *location,
+                                            a_scope_depth   scope_depth,
+                                            a_boolean       suppress_error);
 
-extern
-a_symbol_ptr enter_synthesized_projection_symbol(
+extern void add_friend_function_to_lookup_list_for_class(
+                                                  a_symbol_ptr  rout_sym,
+                                                  a_type_ptr    class_type);
+
+extern a_symbol_ptr enter_synthesized_projection_symbol(
                                a_symbol_ptr		fund_sym,
                                a_symbol_locator		*location,
                                a_boolean		qualified_lookup,
