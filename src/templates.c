@@ -912,6 +912,9 @@ Instantiate the body of the template function associated with tip.
     copy_routine_type_with_param_types(skip_typerefs(rout_ptr->type), new_tp);
     rout_ptr->type = new_tp;
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  rout_ptr->declared_type = rout_ptr->type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Set the linkage and storage class. */
   if (rout_sym->class_of_which_a_member != NULL) {
     /* Member functions are handled in check_class_linkage. */
