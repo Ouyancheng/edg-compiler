@@ -4836,6 +4836,7 @@ assumed if the return type is omitted.
   a_template_instantiation_mode
 			saved_instantiation_mode = instantiation_mode;
   a_pragma_kind		pragma_kind;
+  a_stop_token_array	save_stop_tokens_array;
 
   /* The instantiation mode is set to "none" while the pragma processing is
      performed to ensure that no other instantiations are implicitly
@@ -4854,7 +4855,7 @@ assumed if the return type is omitted.
              pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {
     unexpected_condition();
   }  /* if */
-  begin_rescan_of_pragma_tokens(ppp);
+  begin_rescan_of_pragma_tokens(ppp, save_stop_tokens_array);
   /* Push a pragma scope.  This makes certain other scopes (e.g.,
      template declaration) invisible for name lookup purposes. */
   (void)push_scope((a_scope_kind)sck_pragma, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
@@ -5030,7 +5031,7 @@ assumed if the return type is omitted.
   /* Pop the pragma scope. */
   pop_scope();
   /* Stop rescanning tokens from the pragma token cache. */
-  wrapup_rescan_of_pragma_tokens();
+  wrapup_rescan_of_pragma_tokens(save_stop_tokens_array);
   instantiation_mode = saved_instantiation_mode;
 }  /* instantiation_pragma */
 

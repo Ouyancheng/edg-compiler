@@ -6783,16 +6783,22 @@ instantiation file suffix list.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 
-void begin_rescan_of_pragma_tokens(a_pending_pragma_ptr ppp)
+void begin_rescan_of_pragma_tokens(a_pending_pragma_ptr ppp,
+				   a_stop_token_array   save_stop_token_array)
 /*
 Active the token cache containing the pragma to be scanned.
 */
 {
+  /* Save and clear the list of tokens that will stop flushing on error, and
+     put the newline token into it. */
+  copy_stop_tokens(stop_token_array, save_stop_token_array);
+  clear_stop_tokens();
+  add_stop_token(tok_newline);
   rescan_reusable_cache(&ppp->token_cache);
 }  /* begin_rescan_of_pragma_tokens */
 
 
-void wrapup_rescan_of_pragma_tokens(void)
+void wrapup_rescan_of_pragma_tokens(a_stop_token_array save_stop_token_array)
 /*
 This routine is called by pragma processing routines when they have reached
 the end of the pragma directive being scanned.  This routine fetches
@@ -6809,6 +6815,8 @@ fetching all tokens up to the newline that marks the end of the pragma.
                  "wrapup_rescan_of_pragma_tokens: tok_end_of_source expected");
   /* Bypass the cache terminator. */
   (void)get_token();
+  /* Restore the stop token set as at entry. */
+  copy_stop_tokens(save_stop_token_array, stop_token_array);
 }  /* wrapup_rescan_of_pragma_tokens */
 
 
