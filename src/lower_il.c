@@ -8178,6 +8178,9 @@ Lower comparison of two pointers to members.
        law.  Note that op1 and op2 are rvalues. */
     op2_node = op1_node->next;
     int_type = integer_type((an_integer_kind)ik_int);
+    /* Make sure the struct type used to represent a pointer-to-member-function
+       is allocated. */
+    (void)make_mptr_type();
     /* Make "op1.i == op2.i". */
     select1_node = node_to_select_field_from_rvalue(op1_node, mptr_i_field);
     select2_node = node_to_select_field_from_rvalue(op2_node, mptr_i_field);
