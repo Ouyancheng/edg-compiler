@@ -69,7 +69,7 @@ Flags to be set when using the KAI inliner.
 /* Default to __BSD__ on SunOS, unless __ANSIC__ has been defined. */
 #ifndef __BSD__
 #ifndef __ANSIC__
-#define __BSD__
+#define __BSD__ 1
 #endif /* ifndef __ANSIC__ */
 #endif /* ifndef __BSD__ */
 #endif /* SUNOS */
