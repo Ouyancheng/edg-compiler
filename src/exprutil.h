@@ -85,6 +85,11 @@ extern a_boolean op_is_null_pointer_constant(an_operand *operand);
 
 extern a_boolean op_is_zero_constant(an_operand *operand);
 
+extern void make_data_member_operand(a_field_ptr       member,
+                                     a_variable_ptr    this_param_variable,
+                                     an_operand        *result,
+                                     an_xref_entry_ptr xep);
+
 extern void make_lvalue_variable_operand(a_variable_ptr    variable,
                                          an_operand        *result,
                                          an_xref_entry_ptr xep);
