@@ -1,5 +1,21 @@
 Version 2.44
 
+3/21/00  Abort in C generating back end when an empty base is followed by a
+         bit field
+
+Under some circumstances, the front end would attempt to take the address of
+a bit field when lowering the access to an empty base that was optimized to
+share the offset of a bit field.  This caused the C-generating back end to
+trigger an internal error.
+
+  struct E { void operator=(E&); };
+  struct S: public E { int s: 3; };
+  void f(S &dst, S &src) {
+    dst = src;  // Implicit access to empty base of S causes internal error
+  }
+
+This is now fixed: the lowered IL no longer takes the address of a bit field.
+
 3/16/00  Abort in pm_class_type on pointer-to-member constant in
          local static initializer, after lowering
 
