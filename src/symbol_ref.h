@@ -228,7 +228,7 @@ extern void check_name_hiding_for_scope(a_scope_ptr  sp);
 {									\
   if (vp->is_template_static_data_member &&				\
       is_incomplete_type(vp->type)) {					\
-    complete_template_static_data_member_type_is_needed(vp);			\
+    complete_template_static_data_member_type_is_needed(vp);		\
   }  /* if */								\
 }  /* complete_variable_type_is_needed */
 
