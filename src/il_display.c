@@ -1926,12 +1926,9 @@ static void disp_try_supplement(a_try_supplement_ptr ptr)
 Display the indicated exception-handling "try" supplement.
 */
 {
-  disp_ptr("statement", (char *)ptr->variant.try_block.statement,
-           iek_statement);
-  disp_ptr("handlers", (char *)ptr->variant.try_block.handlers,
-           iek_handler);
-  disp_ptr("lifetime", (char *)ptr->variant.try_block.lifetime,
-           iek_object_lifetime);
+  disp_ptr("statement", (char *)ptr->statement, iek_statement);
+  disp_ptr("handlers", (char *)ptr->handlers, iek_handler);
+  disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
 }  /* disp_try_supplement */
 
 #endif /* ifdef CFE */
