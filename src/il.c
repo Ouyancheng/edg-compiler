@@ -2695,6 +2695,7 @@ to it.
                                        = NULL;
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
   bcp->complete_subobject              = FALSE;
+  bcp->pointer_offset_is_set           = FALSE;
   bcp->data_section_base_class         = NULL;
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
 #if DO_IL_LOWERING

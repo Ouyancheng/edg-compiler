@@ -985,6 +985,14 @@ typedef struct a_base_class {
 			   class data sections -- this flag is used only when
 			   strict class-layout compatibility with AT&T's
 			   cfront is required. */
+  unsigned int	pointer_offset_is_set:1;
+			/* TRUE if the pointer_offset field has been set
+			   in the course of prior processing.  This flag is
+			   required to distinguish an initial 0 from an
+			   assigned 0.  (This flag is required only in cfront
+			   layout compatibility mode because the multipass
+			   scheme used to emulate cfront's ordering algorithm
+			   involves visiting a base class more than once.) */
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
   an_access_specifier
                 access; /* The kind of derivation (public, protected, or
