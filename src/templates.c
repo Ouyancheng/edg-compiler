@@ -496,7 +496,8 @@ done:;
 }  /* class_template_declaration */
 
 
-static void function_template_declaration(a_symbol_ptr   *sym)
+static void function_template_declaration(a_symbol_ptr  *sym,
+                                          a_type_ptr    *p_rout_type)
 /*
 */
 {
@@ -527,6 +528,7 @@ static void function_template_declaration(a_symbol_ptr   *sym)
   declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, type, (a_type_ptr)NULL,
              &locator, &type, &bottom_derived_type, &func_info,
              &dim_expr_ptr);
+  *p_rout_type = type;
   *sym = enter_symbol((a_symbol_kind)sk_function_template, &locator,
                      DEPTH_OF_FILE_SCOPE, /*suppress_redecl_error=*/FALSE);
   remove_stop_token(tok_lbrace);
@@ -690,6 +692,98 @@ to represent the template parameters.
 }  /* scan_template_param_list */
 
 
+/* Forward declaration because of recursive invocation. */
+static a_boolean template_param_appears_in_param_list(a_type_ptr  tparam_type,
+                                                      a_type_ptr  rout_type);
+
+static a_boolean template_param_appears_in_type_tree(a_type_ptr  tparam_type,
+                                                     a_type_ptr  tp)
+/*
+tparam_type is a tk_template_parameter type entry used in a template
+declaration.  Search the type tree represented by tp and return TRUE if
+tparam_type appears in the tree.  This routine traverses the type tree
+by means of recursive calls.
+*/
+{
+  a_boolean           found;
+  a_template_arg_ptr  tap;
+
+  tp = skip_typerefs(tp);
+  if (tparam_type == tp) {
+    found = TRUE;
+  } else {
+    switch (tp->kind) {
+      case tk_pointer:
+        /* Check the type pointed to. */
+        found = template_param_appears_in_type_tree(tparam_type,
+                                                    type_pointed_to(tp));
+        break;
+      case tk_array:
+        /* Check the type of an element of the array. */
+        found = template_param_appears_in_type_tree(
+                              tparam_type, underlying_array_element_type(tp));
+        break;
+      case tk_routine:
+        /* Check both the return type and all the parameter types. */
+        found = (template_param_appears_in_type_tree(
+                              tparam_type, tp->variant.routine.return_type) ||
+                 template_param_appears_in_param_list(tparam_type, tp));
+        break;
+      case tk_ptr_to_member:
+        /* Check both the member type and the class type. */
+        found = (template_param_appears_in_type_tree(tparam_type,
+                                                     pm_member_type(tp)) ||
+                 template_param_appears_in_type_tree(tparam_type,
+                                                     pm_class_type(tp)));
+        break;
+      case tk_class:
+      case tk_struct:
+      case tk_union:
+        /* If the class is an instantiation of a template, check the types
+           on which the instantiation is based. */
+        tap = tp->variant.class_struct_union.extra_info->template_arg_list;
+        for (; tap != NULL; tap = tap->next) {
+          if (tap->is_type) {
+            if (template_param_appears_in_type_tree(tparam_type,
+                                                    tap->variant.type)) {
+              found = TRUE;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        break;
+      default:
+        /* We have reached a leaf in the type tree without finding the
+           template parameter. */
+        found = FALSE;
+    }  /* switch */
+  }  /* if */
+  return found;
+}  /* template_param_appears_in_type_tree */
+
+
+static a_boolean template_param_appears_in_param_list(a_type_ptr  tparam_type,
+                                                      a_type_ptr  rout_type)
+/*
+tparam_type is a tk_template_parameter type entry used in a template
+declaration, and rout_type is a routine type.  Search each of the routine's
+parameter types to see if tparam_type appears in it.
+*/
+{
+  a_boolean         found = FALSE;
+  a_param_type_ptr  ptp;
+
+  ptp = rout_type->variant.routine.extra_info->param_type_list;
+  for (; ptp != NULL; ptp = ptp->next) {
+    if (template_param_appears_in_type_tree(tparam_type, ptp->type)) {
+      found = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return found;
+}  /* template_param_appears_in_param_list */
+
+
 void template_declaration(void)
 /*
 Scan a C++ template declaration.  Syntax:
@@ -717,6 +811,7 @@ entry is pushed on the scope stack.
   a_symbol_ptr                      sym;
   a_template_symbol_supplement_ptr  tssp;
   a_boolean                         tag_resolution = FALSE;
+  a_type_ptr                        rout_type;
 
   db_enter(3, "template_declaration");
 #if CHECKING
@@ -752,12 +847,21 @@ entry is pushed on the scope stack.
        declaration. */
   } else {
     /* It must be a function template declaration. */
-    function_template_declaration(&sym);
+    function_template_declaration(&sym, &rout_type);
     /* Go back through the template params and be sure there are only type
        args.  The other kind is allowed only for class templates. */
     for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
-      if (tpp->param_symbol->kind != (a_symbol_kind)sk_type) {
-        pos_error(ec_not_a_type_arg, &tpp->param_symbol->decl_position);
+      a_symbol_ptr  param_sym = tpp->param_symbol;
+      if (param_sym->kind != (a_symbol_kind)sk_type) {
+        pos_error(ec_not_a_type_arg, &param_sym->decl_position);
+      } else if (!param_sym->referenced ||
+                 (template_param_appears_in_type_tree(
+                                    param_sym->variant.type,
+                                    rout_type->variant.routine.return_type) &&
+                  !template_param_appears_in_param_list(
+                                    param_sym->variant.type, rout_type))) {
+        pos_sy2_error(ec_not_used_in_template_function_params,
+                     &param_sym->decl_position, param_sym, sym);
       }  /* if */
     }  /* for */
   }  /* if */
