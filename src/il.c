@@ -3140,6 +3140,42 @@ are tied to a particular source occurrence.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 }  /* break_source_corresp */
 
+
+static void fix_memory_region_problems_in_copied_constant(a_constant_ptr cp)
+/*
+The indicated allocated constant has just been created by copying from
+another constant.  If there are any memory region problems in the constant,
+fix them.
+*/
+{
+  if (in_file_scope(cp)) {
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    if (cp->expr != NULL) {
+      /* If a constant in the file scope memory region has an attached
+         expression in a function scope memory region, break the link to
+         the expression. */
+      if (!in_file_scope(cp->expr)) cp->expr = NULL;
+    }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+    if (cp->kind == (a_constant_repr_kind)ck_template_param) {
+      a_template_param_constant_kind kind = cp->variant.template_param.kind;
+      if (kind == (a_template_param_constant_kind)tpck_sizeof ||
+          kind == (a_template_param_constant_kind)tpck_alignof ||
+          kind == (a_template_param_constant_kind)tpck_uuidof) {
+        /* If a constant in the file scope memory region has an attached
+           expression in a function scope memory region, break the link to
+           the expression.  The sizeof falls back to just the type. */
+        an_expr_node_ptr expr =
+                         cp->variant.template_param.variant.templ_sizeof.expr;
+        if (expr != NULL &&
+            !in_file_scope(expr)) {
+          cp->variant.template_param.variant.templ_sizeof.expr = NULL;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* fix_memory_region_problems_in_copied_constant */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_source_correspondence *source_corresp_for_il_entry(
@@ -3562,36 +3598,28 @@ value.  Several fields are cleared or adjusted.
      constant isn't the one directly associated with the source entity,
      if any. */
   break_source_corresp(&ucp->source_corresp);
-  if (cp->kind == (a_constant_repr_kind)ck_template_param &&
-      (cp->variant.template_param.kind ==
-                      (a_template_param_constant_kind)tpck_param ||
-       cp->variant.template_param.kind ==
-                      (a_template_param_constant_kind)tpck_member ||
-       cp->variant.template_param.kind ==
-                      (a_template_param_constant_kind)tpck_unknown_function)) {
-    /* For some template parameter constants, the name in the source
-       correspondence is part of the value.  It was cleared by
-       break_source_correspondence, so restore it. */
-    ucp->source_corresp.name = cp->source_corresp.name;
-    ucp->source_corresp.is_class_member = cp->source_corresp.is_class_member;
-    ucp->source_corresp.member_of_unknown_base =
+  if (cp->kind == (a_constant_repr_kind)ck_template_param) {
+    a_template_param_constant_kind kind = cp->variant.template_param.kind;
+    if (kind == (a_template_param_constant_kind)tpck_param ||
+        kind == (a_template_param_constant_kind)tpck_member ||
+        kind == (a_template_param_constant_kind)tpck_unknown_function) {
+      /* For some template parameter constants, the name in the source
+         correspondence is part of the value.  It was cleared by
+         break_source_correspondence, so restore it. */
+      ucp->source_corresp.name = cp->source_corresp.name;
+      ucp->source_corresp.is_class_member = cp->source_corresp.is_class_member;
+      ucp->source_corresp.member_of_unknown_base =
                                      cp->source_corresp.member_of_unknown_base;
-    if (ucp->source_corresp.is_class_member) {
-      ucp->source_corresp.parent.class_type =
+      if (ucp->source_corresp.is_class_member) {
+        ucp->source_corresp.parent.class_type =
                                           cp->source_corresp.parent.class_type;
-    } else {
-      ucp->source_corresp.parent.namespace_ptr =
+      } else {
+        ucp->source_corresp.parent.namespace_ptr =
                                        cp->source_corresp.parent.namespace_ptr;
+      }  /* if */
     }  /* if */
   }  /* if */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  if (ucp->expr != NULL) {
-    /* If a constant in the file scope memory region has an attached
-       expression in a function scope memory region, break the link to
-       the expression. */
-    if (in_file_scope(ucp) && !in_file_scope(ucp->expr)) ucp->expr = NULL;
-  }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  fix_memory_region_problems_in_copied_constant(ucp);
   return ucp;
 }  /* alloc_unshared_constant */
 
@@ -4596,6 +4624,7 @@ put it on a list of constants).
         scp = fs_constant(cp->kind);
       }  /* if */
       copy_constant(cp, scp);
+      fix_memory_region_problems_in_copied_constant(scp);
 #if DEBUG
       if (list_ptr != NULL) {
         if (alloc_in_function_scope) {
