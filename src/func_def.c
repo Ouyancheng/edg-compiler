@@ -1161,8 +1161,8 @@ member declaration (allowed in some Microsoft modes only).
        !sym->variant.routine.ptr->is_template_function)) {
     /* Recent microsoft compilers only accept the out-of-class redeclaration
        syntax for template specializations. */
-    pos_error(ec_member_function_redecl_outside_class,
-              &locator->source_position);
+    pos_sy_error(ec_member_function_redecl_outside_class,
+                 &locator->source_position, sym);
   }  /* if */
   if (!is_member_function_symbol(sym)) {
     /* We must have nonfunction class member.  This is an error, so set sym
