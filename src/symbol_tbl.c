@@ -6698,9 +6698,9 @@ the base class bcp.
        member access to the class. */
     for (dsp = bcdp->path; dsp != NULL; dsp = dsp->next) {
       a_base_class_ptr base_class = dsp->base_class;
-      if (is_virtual_but_not_simple_direct_base_class(base_class)) {
-        /* Non-simple virtual base class.  Do a recursive call
-           to process the derivations of the virtual base class. */
+      if (dsp->next != NULL && base_class->is_virtual) {
+        /* Virtual base class.  Do a recursive call to process the
+           derivations of the virtual base class. */
         if (have_member_access_to_some_class_on_derivation(base_class)) {
           have_access = TRUE;
           goto have_accessibility;
