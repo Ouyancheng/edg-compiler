@@ -788,20 +788,13 @@ only if customer code modifies the IL statement tree.
 
 /*
 Flag that is TRUE if, when the C-generating back end (c_gen_be) or
-C++/C-generating back end (cp_gen_be) is run, the "restrict" keyword may
-appear in the output.
+C++/C-generating back end (cp_gen_be) is run, the "restrict" keyword should
+be suppressed in the output.  This flag is only applicable if
+RESTRICT_ALLOWED is TRUE.
 */
-#ifndef RESTRICT_ALLOWED_IN_OUTPUT
-#if RESTRICT_ALLOWED
-#define RESTRICT_ALLOWED_IN_OUTPUT TRUE   /* You can change this. */
-#else /* !RESTRICT_ALLOWED */
-#define RESTRICT_ALLOWED_IN_OUTPUT FALSE  /* Do not change this. */
-#endif /* RESTRICT_ALLOWED */
-#else /* defined(RESTRICT_ALLOWED_IN_OUTPUT) */
-#if !RESTRICT_ALLOWED
- #error -- RESTRICT_ALLOWED must be TRUE if RESTRICT_ALLOWED_IN_OUTPUT is set.
-#endif /* !RESTRICT_ALLOWED */
-#endif /* RESTRICT_ALLOWED_IN_OUTPUT */
+#ifndef SUPPRESS_RESTRICT_IN_GENERATED_CODE
+#define SUPPRESS_RESTRICT_IN_GENERATED_CODE FALSE
+#endif /* SUPPRESS_RESTRICT_IN_GENERATED_CODE */
 
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
