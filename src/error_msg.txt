@@ -944,6 +944,7 @@ ec_vla_is_not_auto;;"a variable length array cannot have static storage duration
 ec_sym_not_a_template;;"%n is not a template"
 ec_vla_at_decl_pos;INTERNAL;"variable length array dimension (declared %p)"
 ec_expected_template_arg;;"expected a template argument"
+ec_explicit_template_args_in_expr;;"explicit function template argument lists are not supported yet in expression contexts"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -2553,6 +2553,13 @@ qualified_name_check:
        functions, this checks ambiguity but not access (which can be different
        for each function in the set). */
     check_ambiguity_and_verify_access(&locator_for_curr_id);
+    if (locator_for_curr_id.is_template_id) {
+      /* At the moment, explicit template arguments on functions are not
+         supported in expressions. */
+      pos_error(ec_explicit_template_args_in_expr,
+                &locator_for_curr_id.source_position);
+      set_to_error_locator(locator_for_curr_id);
+    }  /* if */
     if (is_error_locator(locator_for_curr_id)) {
       /* Some error in ambiguity or access control checking. */
       make_error_operand(result);
@@ -9520,6 +9527,13 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
        functions, this checks ambiguity but not access (which can be different
        for each function in the set). */
     check_ambiguity_and_verify_access(&locator_for_curr_id);
+    if (locator_for_curr_id.is_template_id) {
+      /* At the moment, explicit template arguments on functions are not
+         supported in expressions. */
+      pos_error(ec_explicit_template_args_in_expr,
+                &locator_for_curr_id.source_position);
+      set_to_error_locator(locator_for_curr_id);
+    }  /* if */
     if (is_error_locator(locator_for_curr_id)) {
       /* Some kind of error in the ambiguity and access control checking. */
       make_error_operand(result);
