@@ -1359,8 +1359,13 @@ routine entry and return TRUE; otherwise return FALSE.
     if (is_virtual) goto done;
   } else {
     rout = rout_sym->variant.routine.ptr;
-    is_nonreal_instantiation =
+    if (rout_sym->is_error) {
+      /* Some kind of error on the name. */
+      goto done;
+    } else{
+      is_nonreal_instantiation =
                     symbol_supplement_for_class(class_type)->is_nonreal_class;
+    }  /* if */
   }  /* if */
   /* We scan symbols on the inactive list, since we are only interested in
      base classes symbols. */

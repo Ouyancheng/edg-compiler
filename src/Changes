@@ -1,5 +1,20 @@
 Version 2.28
 
+2/28/95  Error recovery bug
+
+An internal error is no longer triggered during error recovery in the
+following:
+
+  void f() {
+    class A {
+      virtual void g() { }
+    };
+    class B : public A {
+      void g() { }
+      void A::g() { }      // Assertion failure here has been eliminated.
+    };
+  }
+
 2/28/95  Maximum class size
 
 Global variable targ_max_class_object_size defines the maximum allowable
