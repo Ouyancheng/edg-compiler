@@ -1750,6 +1750,12 @@ issued a similar error).  Return FALSE if there is some error.
                 esdp->variant.routine.ptr->superseded_external = TRUE;
                 esdp->variant.routine.ptr = NULL;
               } else {
+                check_assertion_str2((esdp->variant.variable->storage_class ==
+                                             (a_storage_class)sc_extern) &&
+                                     (esdp->variant.variable->init_kind ==
+                                             (an_init_kind)initk_none),
+                                     "reconcile_external_symbol_types:",
+                                     "can't set superseded_external");
                 esdp->variant.variable->superseded_external = TRUE;
                 esdp->variant.variable = NULL;
               }  /* if */
@@ -2896,6 +2902,9 @@ skip_overloading:;
              void f(int i) { { extern int i; } }
            where the second declaration of i has an incompatible type, yet
            no error is issued. */
+        check_assertion_str2(storage_class == (a_storage_class)sc_extern,
+                             "decl_var_or_routine:",
+                             "can't set superseded_external");
         variable_ptr->superseded_external = TRUE;
       }  /* if */
     } else {
