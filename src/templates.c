@@ -3768,6 +3768,7 @@ void create_or_remove_instantiation_information_file(void)
         delete_file(ii_file_name);
       }  /* if */
     }  /* if */
+    discard_memory(ii_file_name);
   }  /* if */
 }  /* create_or_remove_instantiation_information_file */
 
