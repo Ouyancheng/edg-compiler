@@ -1965,6 +1965,9 @@ error code.
     case ec_template_function_declaration_context:
       m = "%sinstantiation of %na %p";
       break;
+    case ec_template_class_argument_list_context:
+      m = "%sprocessing of template argument list for %na %p";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
@@ -3104,8 +3107,8 @@ symbol_name:
 
   if (seg_ptr->variant.symbol.template_args) {
     a_scope_stack_entry_ptr  ssep = error_msg_scopes[seg_ptr->sequence_no];
-
-    check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
+    check_assertion(sym->kind == (a_symbol_kind)sk_function_template ||
+                    sym->kind == (a_symbol_kind)sk_class_template);
     check_assertion(ssep != NULL && ssep->template_arg_list != NULL);
     add_string_to_segment(" based on template argument", seg_ptr);
     if (ssep->template_arg_list->next != NULL) {
@@ -4617,8 +4620,13 @@ is set to point to a symbol that provides the context information and
     /* If the instance symbol is NULL use the template symbol instead. */
     if (sym == NULL) {
       sym = ssep->template_sym;
-      check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
-      error_code = ec_template_function_declaration_context;
+      if (sym->kind == (a_symbol_kind)sk_function_template) {
+        error_code = ec_template_function_declaration_context;
+      } else if (sym->kind == (a_symbol_kind)sk_class_template) {
+        error_code = ec_template_class_argument_list_context;
+      } else {
+        unexpected_condition();
+      }  /* if */
       result = TRUE;
     } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
       result = TRUE;

@@ -568,7 +568,8 @@ typedef enum /*an_error_code*/ {
   ec_const_function_anachronism,
   ec_dependent_stmt_is_declaration,
   ec_void_param_not_allowed,
-  ec_template_function_declaration_context
+  ec_template_function_declaration_context,
+  ec_template_class_argument_list_context
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
