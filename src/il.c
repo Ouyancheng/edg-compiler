@@ -7260,12 +7260,12 @@ void record_end_of_lifetime_destruction(a_dynamic_init_ptr  dip,
                                         a_boolean           scope_lifetime)
 /*
 If the dynamic init entry pointed to by dip has a destructor associated with
-it, add the entry to the destructors list for the appropriate object lifetime.
-If static_lifetime is TRUE, the object in question has static storage duration
--- it persists till the end of program execution (i.e., the till the final
-object clean up).  If scope_lifetime is TRUE is an object whose lifetime is
-tied to a scope.  If both flags are FALSE, the current object lifetime (the
-top of the object lifetime stack) is used.
+it, add the entry to the destructors list for the appropriate object
+lifetime.  If static_lifetime is TRUE, the object in question has static
+storage duration -- it persists till the end of program execution (i.e., till
+final object clean up).  If scope_lifetime is TRUE it is an object whose
+lifetime is tied to a scope.  If both flags are FALSE, the current object
+lifetime (the top of the object lifetime stack) is used.
 */
 {
   an_object_lifetime_ptr  olp;
