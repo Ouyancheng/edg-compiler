@@ -1,5 +1,32 @@
 Version 2.15
 
+2/23/93  Limit on recursive instantiation of inline functions
+
+The front end limits apparent "runaway" recursion in the instantiation
+of inline functions -- for instance:
+
+  template <int i> class A {
+  public:
+    void f() {
+      A<i+1> a;
+      a.f();
+    }
+  };
+  main()
+  {
+    A<1> a;
+    a.f();
+  }
+
+This example used to cause a runaway instantiation of class A<1>...A<n>.
+Now that we only instantiate inline functions when they are referenced
+the recursion actually occurs during instantiation of the inline
+function "f()".  A<1>::f instantiates A<2> and then calls A<2>::f which
+instantiates A<3> and then calls A<3>::f, and so on.  Now, after the number
+of recursive instantiations of a given function template exceeds a
+configurable value (MAX_PENDING_INSTANTIATIONS), an error is issued and
+the recursion is halted.
+
 2/23/93  Tag names first used in an argument list inside a template class
 
 In this example struct X should be entered in the global scope bug was

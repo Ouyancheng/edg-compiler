@@ -126,8 +126,7 @@ might not be able to if the template itself has not yet been defined.
     } else if (instantiation_of_type_is_in_progress(class_type)) {
       /* This particular template class (not just some other one based on
          the same template) is currently being instantiated. */
-    } else if (tssp->variant.class_template.pending_instantiations >=
-                                                 MAX_PENDING_INSTANTIATIONS) {
+    } else if (tssp->pending_instantiations >= MAX_PENDING_INSTANTIATIONS) {
       /* This class instantiation occurs within the context of other
          instantiations of the same class template.  When the number of
          such instantiations-in-progress exceeds a configuration
@@ -146,7 +145,7 @@ might not be able to if the template itself has not yet been defined.
       /* Increment the count of instantiations-in-progress for the current
          class template.  It will be decremented when the instantiation is
          complete. */
-      ++(tssp->variant.class_template.pending_instantiations);
+      ++(tssp->pending_instantiations);
 #if DEBUG
       if (debug_level >= 3) {
         fprintf(f_debug, "instantiating: ");
@@ -185,7 +184,7 @@ might not be able to if the template itself has not yet been defined.
       (void)get_token();
       /* Decrement the count of instantiations-in-progress for the current
          class template. */
-      --(tssp->variant.class_template.pending_instantiations);
+      --(tssp->pending_instantiations);
     }  /* if */
   }  /* if */
   db_exit();
@@ -283,6 +282,39 @@ Instantiate the body of the template function associated with tip.
     /* Already instantiated. */
     goto done;
   }  /* if */
+  if (rout_sym->kind == (a_symbol_kind)sk_member_function) {
+    tssp = tip->template_sym->variant.routine.instance_ptr->template_info;
+  } else {
+    tssp = tip->template_sym->variant.template_info;
+  }  /* if */
+  rout_type = rout_ptr->type;
+  rtsp = rout_type->variant.routine.extra_info;
+  if (tssp->pending_instantiations >= MAX_PENDING_INSTANTIATIONS) {
+    /* This function instantiation occurs within the context of other
+       instantiations of the same function template.  When the number of
+       such instantiations-in-progress exceeds a configuration
+       constant value, we assume this to be runaway recursion -- for
+       for instance (to give a rather unlikely example):
+
+       template <int i> class A {
+         void f() {
+           A<i+1> a;
+           a.f();
+         }
+       };
+       void main() {
+         A<1> a;
+         a.f();
+       }
+
+       Note that this can only catch recursive instantiations of inline
+       functions.  Runaway instantiations of out-of-line functions can
+       not be detected this way because they are instantiated serially
+       not recursively.
+    */                
+    type_error(ec_runaway_recursive_instantiation, rout_type);
+    goto done;
+  }  /* if */
   /* Set the linkage and storage class. */
   if (rout_sym->class_of_which_a_member != NULL) {
     /* Member functions are handled in check_class_linkage. */
@@ -298,14 +330,8 @@ Instantiate the body of the template function associated with tip.
                                   (a_name_linkage_kind)nlk_cplusplus_external;
     }  /* if */
   }  /* if */
-  rout_type = rout_ptr->type;
-  rtsp = rout_type->variant.routine.extra_info;
-  if (rout_sym->kind == (a_symbol_kind)sk_member_function) {
-    tssp = tip->template_sym->variant.routine.instance_ptr->template_info;
-  } else {
-    tssp = tip->template_sym->variant.template_info;
-  }  /* if */
   rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
+  ++(tssp->pending_instantiations);
   /* Push the template instantiation scope. */
   (void)push_scope((a_scope_kind)sck_template_instantiation,
                    tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr,
@@ -405,6 +431,7 @@ Instantiate the body of the template function associated with tip.
 
   /* Pop the template instantiation scope. */
   pop_scope();
+  --(tssp->pending_instantiations);
   /* In the normal case the current token should be end_of_source, which was
      inserted to mark the end of the cached token stream. If necessary, keep
      flushing until end-of-source is found. */

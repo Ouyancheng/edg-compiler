@@ -804,6 +804,11 @@ typedef struct a_template_symbol_supplement {
                            declaration is processed.  This scope needs
                            to be used at instantiation for symbol lookup
                            to work properly. */
+  a_pending_instantiation_count
+		pending_instantiations;
+			/* The number of instantiations of this template
+			   that are in the process of being instantiated.
+			   Used to detect runaway recursive instantiations. */
   union {
     /* When symbol kind = sk_class_template: */
     struct {
@@ -823,11 +828,6 @@ typedef struct a_template_symbol_supplement {
 			   are defined outside the class template declaration.
 			   The are linked by next pointers and thus are
 			   not actually in the symbol table. */
-      a_pending_instantiation_count
-		pending_instantiations;
-			/* The number of instantiations of this template
-			   that are in the process of being instantiated.
-			   Used to detect runaway recursive instantiations. */
       unsigned int
 		prototype_instantiation_complete:1;
 			/* TRUE when the prototype instantiation of the

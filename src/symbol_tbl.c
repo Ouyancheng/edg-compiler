@@ -1138,13 +1138,13 @@ and return a pointer to it.
   tssp->parameters = NULL;
   tssp->innermost_instantiation_scope = NO_SCOPE_DEPTH;
   tssp->declaration_scope = NO_SCOPE_NUMBER;
+  tssp->pending_instantiations = 0;
   clear_token_cache(&tssp->token_cache);
   switch (kind) {
     case sk_class_template:
       tssp->variant.class_template.instantiations = NULL;
       tssp->variant.class_template.type_kind = (a_type_kind)tk_error;
       tssp->variant.class_template.member_function_templates = NULL;
-      tssp->variant.class_template.pending_instantiations = 0;
       tssp->variant.class_template.prototype_instantiation_complete = FALSE;
 #if CHECKING 
       tssp->variant.class_template.dummy = FALSE;
