@@ -1455,6 +1455,39 @@ the same offset, NULL is returned.
 }  /* other_field_with_same_name */
 
 
+static void make_field_selection_operand(an_operand            *operand_1,
+                                         an_expr_operator_kind op,
+                                         a_symbol_ptr          field_sym,
+                                         a_type_ptr            selection_type,
+                                         an_operand            *result)
+/*
+Make an operand for a field selection.  *operand_1 is the left operand.
+op is the selection operator.  field_sym is the right operand (the field).
+selection_type is the result type.  The operand for the selection
+is created in *result.
+*/
+{
+  a_field_ptr field = field_sym->variant.field.ptr;
+  an_operand  field_operand;
+
+  make_field_operand(field, &field_operand);
+  build_binary_result_operand(operand_1, &field_operand, op,
+                              selection_type, result);
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  /* When nonstandard anonymous unions are allowed, look for
+     fields of such anonymous parents and insert the elided field
+     selections. */
+  if (field_sym->variant.field.anonymous_parent_object != NULL) {
+    an_expr_node_ptr orig_node = make_node_from_operand(result);
+    adjust_nonstandard_anonymous_object_field_references(orig_node,
+                                                         field_sym,
+                                                         /*std_also=*/FALSE);
+    make_expression_operand(orig_node, result->type, result);
+  }  /* if */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+}  /* make_field_selection_operand */
+
+
 static void do_field_selection_operation(
                                an_operand        *operand_1,
                                a_type_ptr        class_struct_union_type,
@@ -1485,7 +1518,6 @@ The result is placed in *result.
   a_type_ptr            selection_type;
   an_expr_operator_kind op;
   a_boolean             did_not_fold, template_constant;
-  an_operand            field_operand;
   a_type_qualifier_set  qualifiers;
     
   field = field_sym->variant.field.ptr;
@@ -1611,22 +1643,8 @@ The result is placed in *result.
         }  /* if */
       } else {
         /* Construct the field selection expression tree. */
-        make_field_operand(field, &field_operand);
-        build_binary_result_operand(operand_1, &field_operand, op,
-                                    selection_type, result);
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-        /* When nonstandard anonymous unions are allowed, look for
-           fields of such anonymous parents and insert the elided field
-           selections. */
-        if (field_sym->variant.field.anonymous_parent_object != NULL) {
-          an_expr_node_ptr orig_node = make_node_from_operand(result);
-          adjust_nonstandard_anonymous_object_field_references(
-                                                           orig_node,
-                                                           field_sym,
-                                                           /*std_also=*/FALSE);
-          make_expression_operand(orig_node, result->type, result);
-        }  /* if */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+        make_field_selection_operand(operand_1, op, field_sym, selection_type,
+                                     result);
         if (template_constant) {
           /* A field selection where the first operand is a template parameter
              constant.  The expression tree for the selection is placed under
@@ -1642,9 +1660,9 @@ The result is placed in *result.
          original expression and record it in the constant: */
       an_operand  result_op;
       copy_operand(operand_1, &result_op);
-      make_field_operand(field, &field_operand);
-      build_binary_result_operand(operand_1, &field_operand, op,
-                                  selection_type, &result_op);
+      make_field_selection_operand(operand_1, op, field_sym, selection_type,
+                                   &result_op);
+      check_assertion(is_expression_operand(&result_op));
       result->variant.constant.expr = result_op.variant.expression;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
