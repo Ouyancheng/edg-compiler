@@ -1,5 +1,12 @@
 Version 2.43
 
+10/13/99 Exception specification on return types
+
+The front end now accepts exception specifications on return types of
+functions.
+
+  void (*f())() throw (int);  // Now accepted.
+
 10/13/99 Abort while generating template strings
 
 A bug was introduced in 2.42 that would cause an abort when generating
