@@ -1976,8 +1976,8 @@ do_variable:
       break;
     case enk_typeid:
       (void)printf("enk_typeid\n");
-      disp_ptr("type", (char *)ptr->variant.typeid.type, iek_type);
-      disp_ptr("expr", (char *)ptr->variant.typeid.expr, iek_expr_node);
+      disp_ptr("type", (char *)ptr->variant.typeid_info.type, iek_type);
+      disp_ptr("expr", (char *)ptr->variant.typeid_info.expr, iek_expr_node);
       break;
     case enk_address_of_ellipsis:
       (void)printf("enk_address_of_ellipsis\n");

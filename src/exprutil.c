@@ -878,10 +878,10 @@ if there are any temp inits (unordered or not) in the expression.
                                         mark_all_unordered);
       break;
     case enk_typeid:
-      if (expr->variant.typeid.expr != NULL) {
+      if (expr->variant.typeid_info.expr != NULL) {
         any_temp_inits = examine_expr_for_unordered_temp_inits(
-                                                   expr->variant.typeid.expr,
-                                                   mark_all_unordered);
+                                               expr->variant.typeid_info.expr,
+                                               mark_all_unordered);
       }  /* if */
       break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING

@@ -4557,7 +4557,7 @@ typedef struct an_expr_node {
 			/* If the argument of the typeid operator is an
 			   expression, the expression specified; otherwise
 			   NULL. */
-    } typeid;
+    } typeid_info;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     /* When kind == enk_lowered_eh_construct: */
     struct {
