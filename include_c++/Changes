@@ -1,3 +1,35 @@
+Version 2.44
+
+10/6/00  C++ header files renamed
+
+Formerly, the C++ headers used the .h suffix.  The front end would
+implicitly add the .h so that, for example, an include of <typeinfo>
+would result in the inclusion of typeinfo.h.  The implicit addition of
+a .h to file names with no suffix created problems when some other
+file with the .h name was found in the include search path before the
+desired file.
+
+To resolve this, the files have been renamed with a new suffix that is
+unlikely to be used on other header files (.stdh).  The corresponding
+change has been made in the front end so that .stdh will be used when
+looking for include files that have no suffix, and .h is no longer
+used.
+
+In addition, new header files with a .h suffix have been supplied for
+compatibility purposes so that programs that still use names such as
+new.h will continue to work.  The .h versions simply include the
+version without specifying a suffix.
+
+10/6/00  C and C++ headers split into separate directories
+
+Formerly, the include directory contained both the C++ headers needed
+to work with the EDG C++ runtime library (e.g., typeinfo) and
+prototype versions of the C library header files (e.g., stdio.h).
+While the C++ headers were required when using our runtime library,
+the C headers, in general, must not be used because they are
+incompatible with the target system's C library.  The include
+directory now contains only the C++ headers.
+-------------------------------------------------------------------------------
 Version 2.44, August 1, 2000
 
 No changes.

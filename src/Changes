@@ -1,5 +1,27 @@
 Version 2.45
 
+10/6/00  Change in the default include file suffix list
+
+When a header file name is specified without a suffix, the front end
+appends each of the suffixes from the include file suffix list when
+searching for the file.
+
+Formerly, the EDG C++ headers used the .h suffix.  The front end would
+implicitly add the .h so that, for example, an include of <typeinfo>
+would result in the inclusion of typeinfo.h.  The implicit addition of
+a .h to file names with no suffix created problems when some other
+file with the .h name was found in the include search path before
+the desired file.
+
+To resolve this, the default suffix list has been changed to use a
+suffix that is unlikely to be used on other header files (.std).  The
+EDG C++ headers have been renamed to use that suffix.  The default
+suffix list continues to include the null suffix so that header files
+without a suffix may also be used.
+
+See the include directory Changes file for more information about the
+header file changes.
+
 10/5/00  C99 support
 
 We are adding support for the 1999 version of the ISO C standard.

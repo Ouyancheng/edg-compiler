@@ -1175,9 +1175,15 @@ with no suffix.  This is a colon-separated list of suffixes in the order
 in which they are to be searched.  A file will always have a suffix
 appended, so if a null suffix is to be permitted, it must be included
 in the suffix list ("::" in the list indicates a null suffix).
+
+The default setting of "::stdh:" permits include files to have no suffix,
+or to have the special suffix "stdh".
+
+If an implementation uses only header files with no suffixes (i.e., no
+suffix is to be added) this string should be set to "::".
 */
 #ifndef DEFAULT_INCLUDE_FILE_SUFFIX_LIST
-#define DEFAULT_INCLUDE_FILE_SUFFIX_LIST "::h:hpp"
+#define DEFAULT_INCLUDE_FILE_SUFFIX_LIST "::stdh:"
 #endif /* DEFAULT_INCLUDE_FILE_SUFFIX_LIST */
 
 /*
