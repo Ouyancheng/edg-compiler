@@ -6224,6 +6224,7 @@ fields to default values.
       clear_stmt_source_position(bp->final_position);
       bp->assoc_scope      = NULL;
       bp->parent_block     = NULL;
+      bp->final_source_sequence_entry = NULL;
       bp->end_of_block_reachable = TRUE;
       bp->any_initializing_decls_in_parent_block = FALSE;
 #if CHECKING
@@ -6240,6 +6241,11 @@ fields to default values.
       sp->variant.try_block.statement = NULL;
       sp->variant.try_block.handlers  = NULL;
       break;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    case stmk_decl:
+      sp->variant.last_declaration = NULL;
+      break;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if CHECKING
     default:
       internal_error("set_statement_kind: bad kind");

@@ -3587,6 +3587,10 @@ enum a_statement_kind_tag {
   stmk_init,            /* Do a dynamic initialization. */
   stmk_asm,             /* "asm" statement (or declaration). */
   stmk_try_block,       /* Try block (C++ only). */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  stmk_decl,		/* One or more consecutive declarations within a
+			   given function or block scope. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* ifdef CIL */
 #ifdef FIL
   stmk_fentry,          /* Code label for an ENTRY. */
@@ -3663,6 +3667,15 @@ typedef struct a_block {
 			   by the front end are not "real" and have this
 			   pointer NULL.  They are also not pointed to as
 			   parents. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		final_source_sequence_entry;
+			/* Pointer to the source sequence entry that is the
+			   last one associated with this block.  All the
+			   source sequence entries for the entire function are
+			   on a single flat list; this entry aids in mapping
+			   the list to the IL's tree representation. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   unsigned int	end_of_block_reachable:1;
 			/* TRUE if the end of the block is reachable.  The
 			   safe setting is TRUE. */
@@ -4048,7 +4061,9 @@ typedef struct a_statement {
 			/* Pointer to source sequence entry that represents
 			   the place this statement appears within the current
 			   function scope relative to other statements as well
-			   as declarations, comments, etc. */
+			   as declarations, comments, etc.  When kind is
+			   stmk_decl, it points to the first of a series of
+			   entries representing declarations. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   union {
     /* When kind == stmk_expr, no variant fields. */
@@ -4156,6 +4171,14 @@ typedef struct a_statement {
 			/* A linked list of entries describing the handlers
 			   (or catch-clauses) defined in the try block. */
     } try_block;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* When kind == stmk_decl: */
+    a_source_sequence_entry_ptr
+		last_declaration;
+			/* Pointer to the source sequence entry that is the
+			   last of the group of declarative entries associated
+			   with this pseudo-statement. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == stmk_fentry: */

@@ -642,6 +642,10 @@ the file scope, do not process it (but record an orphan in the latter case).
            the pointer but do not walk the subtree. */
         remap_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
         remap_ptr(ptr->parent_block, a_statement_ptr, iek_statement);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        remap_ptr(ptr->final_source_sequence_entry,
+                  a_source_sequence_entry_ptr, iek_source_sequence_entry);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
 #endif /* ifdef CFE */
       break;
@@ -719,6 +723,12 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_list(ptr->variant.try_block.handlers, a_handler_ptr,
                       iek_handler);
             break;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+          case stmk_decl:
+            remap_ptr(ptr->variant.last_declaration,
+                      a_source_sequence_entry_ptr, iek_source_sequence_entry);
+            break;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* ifdef CFE */
 #ifdef FFE
           case stmk_fentry:
