@@ -1,5 +1,13 @@
 Version 3.4
 
+1/6/04   GNU mode: Return type of certain built-in functions
+
+In GNU mode, built-in functions __builtin_creal, __builtin_crealf,
+__builtin_creall. __builtin_cimag, __builtin_cimagf, and __builtin_cimagl
+were (erroneously) predeclared with complex return types.  This has been
+fixed by changing the return types to the corresponding real types.  For
+example, __builtin_cimag now returns type double instead of complex double.
+
 1/6/04   Wrong array element size in EH info for multi-dimensional array
 
 The information added by IL lowering to support exception handling
