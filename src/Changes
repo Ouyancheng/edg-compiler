@@ -4,18 +4,28 @@ Version 2.32
 
 In a_src_seq_end_of_construct "source_position" is now "position".
 
-5/3/96  Template parameters no longer permitted in elaborated type specifiers
+5/3/96  Template parameters in elaborated type specifiers
 
-X3J16/WG21 has disallowed the use of template parameters in elaborated type
-specifiers.  To phase in this new rule we have made a change so that
-elaborated type specifiers are no longer meaningful when comparing two
-function template declarations or in doing template parameter deduction.
-Formerly, the following example declared two overloaded functions named
-"f", one that could be called with an enum type and one that could be
-called with a class type.  Under the new rules, the program is ill-formed.
-Elaborated type specifiers used in template bodies (in a class definition
-or function body, for example) may still be used as they were previously,
-except that a warning is issued (or an error in strict mode).
+X3J16/WG21 has made two decisions regarding the use of template
+parameters in elaborated type specifiers.  First, their use was
+prohibited in template declarations.  Later, to simplify the rules,
+all uses of template parameters in elaborated type specifiers were
+prohibited.  It seems likely that the second decision may be reconsidered
+because it means that template parameters cannot be the subject of
+friend declarations (e.g., "friend class T").  It is fairly clear,
+however, that at least the original restriction will remain in place.
+
+To phase in the new rules we have made a change so that elaborated
+type specifiers are no longer meaningful when comparing two function
+template declarations or in doing template parameter deduction.
+Formerly, the following example declared two overloaded functions
+named "f", one that could be called with an enum type and one that
+could be called with a class type.  Under the new rules, the program
+is ill-formed.
+
+Elaborated type specifiers used in template bodies (in a class
+definition or function body, for example) may still be used as they
+were previously, except that a remark is issued.
 
   template <class T> int f(enum T);
   template <class T> int f(class T);

@@ -2057,6 +2057,7 @@ symbol.  Otherwise, return NULL.
     if (assoc_symbol->is_template_param) {
       a_type_ptr   	tp;
       a_symbol_ptr	new_sym;
+      an_error_severity	severity;
       /* We are within a template instantiation, so the name may map to a
          template parameter.  For example,
             class A { };
@@ -2072,12 +2073,15 @@ symbol.  Otherwise, return NULL.
       tp = assoc_symbol->variant.type;
       new_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
       /* Issue a diagnostic because this usage is no longer permitted by
-         the Working Paper. */
-      pos_st_diagnostic(strict_ansi_error_severity,
+         the Working Paper.  Although this is prohibited, we expect that this
+         may be changed again.  Consequently, only a remark is issued at
+         this time. */
+      severity = es_remark;
+      pos_st_diagnostic(severity,
                         ec_template_param_in_elab_type, 
                         &error_position, assoc_symbol->header->identifier);
-      if (strict_ansi_error_severity == es_error) {
-        /* An error was issued above.  Return an error locator. */
+      if (severity == es_error) {
+        /* If an error was issued above.  Return an error locator. */
         set_to_error_locator(*locator);
         assoc_symbol = NULL;
       } else if (tp->kind == (a_type_kind)tk_template_param) {
