@@ -2987,6 +2987,10 @@ for exact pointer equality.
           /* In general, classes, structs, and unions that aren't the same
              type aren't compatible.  There are some exceptions with template
              classes.  Check for those. */
+          if (!C_mode() &&
+              equiv_class_types(type_1, type_2, error_matches_anything)) {
+            compat = TRUE;
+          }  /* if */
           break;
         case tk_routine:
           /* For functions, the return types must be compatible, the parameter
