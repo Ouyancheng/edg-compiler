@@ -7923,8 +7923,7 @@ continue_with_declaration:
       /* Issue diagnostics on missing type specifiers, etc. */
       if (!is_main_function) {
         if (decl_specifiers_omitted &&
-            (C_dialect != C_dialect_cplusplus ||
-             (!is_static_data_member && !is_function))) {
+            (C_dialect != C_dialect_cplusplus || !is_function)) {
           /* In ANSI C declaration specifiers can only be entirely omitted in
              a function definition.  This is possibly an undefined typedef
              name at the start of a declaration, so enter an error symbol
@@ -7935,7 +7934,12 @@ continue_with_declaration:
             pos_warning(ec_missing_decl_specifiers, &declarator_pos);
           } else {
             pos_error(ec_missing_decl_specifiers, &declarator_pos);
-            set_to_error_locator(locator);
+            if (is_static_data_member) {
+              /* Don't obliterate the specific_symbol pointer in the locator
+                 in the static data member case. */
+            } else {
+              set_to_error_locator(locator);
+            }  /* if */
           }  /* if */
         } else if (!has_explicit_type_specifier) {
           if (is_function) {
