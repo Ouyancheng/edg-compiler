@@ -10,8 +10,7 @@ the Cfront-like ABI.  Specifically, in a case like
 where a class name is used in a multi-level vtable name, and
 the class name begins with a capital "S", the name mangler
 failed to demangle the name.  ("__S" is the template
-specialization indication, and fooled the demangler).  Fixed.
-
+specialization indication, and fooled the demangler.)  Fixed.
 
 8/16/03 Demangling of GNU min/max operators
 
