@@ -4790,6 +4790,8 @@ as "namespace std" is never declared).
   /* Create the namespace entry and bind it to the symbol. */
   nsp = alloc_namespace(/*is_alias=*/FALSE);
   set_source_corresp(&nsp->source_corresp, symbol_for_namespace_std);
+  nsp->source_corresp.name_linkage =
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
   symbol_for_namespace_std->variant.namespace_info.ptr = nsp;
   /* Add the namespace to the namespaces list for the file scope. */
   check_assertion(depth_scope_stack == DEPTH_OF_FILE_SCOPE);

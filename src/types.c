@@ -2336,14 +2336,22 @@ Otherwise, return FALSE.
   a_boolean   changed = FALSE;
   a_type_ptr  new_type_1 = *type_1, new_type_2 = *type_2;
 
-  if (in_secondary_trans_unit(new_type_1)) {
+  if (in_secondary_trans_unit(new_type_1) &&
+      (is_immediate_class_type(new_type_1) ||
+       is_immediate_enum_type(new_type_1) ||
+       (new_type_1->kind == (a_type_kind)tk_typeref &&
+        typeref_is_typedef(new_type_1)))) {
     new_type_1 = canonical_type_entry_of(new_type_1);
     if (new_type_1 != *type_1) {
       *type_1 = new_type_1;
       changed = TRUE;
     }  /* if */
   }  /* if */
-  if (in_secondary_trans_unit(new_type_2)) {
+  if (in_secondary_trans_unit(new_type_2) &&
+      (is_immediate_class_type(new_type_2) ||
+       is_immediate_enum_type(new_type_2) ||
+       (new_type_2->kind == (a_type_kind)tk_typeref &&
+        typeref_is_typedef(new_type_2)))) {
     new_type_2 = canonical_type_entry_of(new_type_2);
     if (new_type_2 != *type_2) {
       *type_2 = new_type_2;

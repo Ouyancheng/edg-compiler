@@ -4808,6 +4808,7 @@ this routine to do a relatively simple copy of the all the fields.
       (void)strcpy(new_name_ptr, SUB_PREFIX);
       (void)strcpy(new_name_ptr+sizeof(SUB_PREFIX)-1, temp_name);
       subobject_type->source_corresp.name = new_name_ptr;
+      subobject_type->source_corresp.name_has_been_mangled = TRUE;
 #undef SUB_PREFIX
     }  /* if */
     subobject_type->source_corresp.decl_position = 
