@@ -6133,20 +6133,15 @@ associated with a label in a block.
 {
   a_statement_ptr    stmt;
   an_insert_location insert_location;
-  a_source_position  saved_code_pos;
 
-  saved_code_pos = code_pos_for_lowering;
   /* Get the statement pointer from the lifetime. */
   check_assertion(lifetime->entity.kind==(a_byte_il_entry_kind)iek_statement);
   stmt = (a_statement_ptr)(lifetime->entity.ptr);
   set_insert_location(stmt, &insert_location);
-  set_position_from_stmt_source_position(code_pos_for_lowering,
-                                         stmt->position);
   /* Visit all object lifetimes in this lifetime, and all destructions
      within those lifetimes. */
   begin_object_lifetime(lifetime, &insert_location);
   start_label_region_of_lifetime(lifetime, /*switch_clause=*/FALSE);
-  code_pos_for_lowering = saved_code_pos;
 }  /* begin_block_label_object_lifetime */
 
 
@@ -6159,25 +6154,16 @@ associated with a switch clause.
 {
   a_switch_clause_ptr switch_clause;
   an_insert_location  insert_location;
-  a_source_position   saved_code_pos;
 
-  saved_code_pos = code_pos_for_lowering;
   /* Get the switch clause pointer from the lifetime. */
   check_assertion(lifetime->entity.kind ==
                                       (a_byte_il_entry_kind)iek_switch_clause);
   switch_clause = (a_switch_clause_ptr)(lifetime->entity.ptr);
   set_switch_clause_start_insert_location(switch_clause, &insert_location);
-  /* If the switch clause contains a statement, get a source position from
-     that and use it as the position for any code created. */
-  if (switch_clause->statements != NULL) {
-    set_position_from_stmt_source_position(code_pos_for_lowering,
-                                          switch_clause->statements->position);
-  }  /* if */
   /* Visit all object lifetimes in this lifetime, and all destructions
      within those lifetimes. */
   begin_object_lifetime(lifetime, &insert_location);
   start_label_region_of_lifetime(lifetime, /*switch_clause=*/TRUE);
-  code_pos_for_lowering = saved_code_pos;
 }  /* begin_switch_clause_object_lifetime */
 
 
@@ -6281,9 +6267,7 @@ Called only in long lifetime temporaries mode.
   a_boolean          need_to_destroy_temps;
   an_insert_location insert_location;
   a_dynamic_init_ptr dip;
-  a_source_position  saved_code_pos;
 
-  saved_code_pos = code_pos_for_lowering;
   /* We need to destroy the temporaries only if the statement is reachable
      by flowing into it from the preceding code.  For statements other than
      labels, assume the statement is reachable because we don't know. */
@@ -6309,8 +6293,6 @@ Called only in long lifetime temporaries mode.
            the label as a block. */
         if (!any_temps_destroyed) {
           any_temps_destroyed = TRUE;
-          set_position_from_stmt_source_position(code_pos_for_lowering,
-                                                 (*statement)->position);
           turn_statement_into_block(*statement, &insert_location, statement);
         }  /* if */
         /* Generate the cleanup action. */
@@ -6326,7 +6308,6 @@ Called only in long lifetime temporaries mode.
       set_eh_curr_region(curr_cleanup_region_number, &insert_location);
     }  /* if */
   }  /* if */
-  code_pos_for_lowering = saved_code_pos;
 }  /* destroy_long_lifetime_temporaries_before_statement */
 
 
@@ -6364,6 +6345,9 @@ there are no statements on the list.
        again). */
     statement_next = statement->next;
     eff_statement = statement;
+    set_position_from_stmt_source_position(code_pos_for_lowering,
+                                           statement->position);
+    error_position = code_pos_for_lowering;
     /* See if a new object lifetime begins at this statement because
        it is or contains a label. */
     stmt_begins_label_lifetime = FALSE;
@@ -6437,6 +6421,13 @@ it; otherwise, switch_lifetime is NULL.
   }  /* if */
   /* Loop through the switch clauses. */
   for (clause = clause_list; clause != NULL; clause = clause->next) {
+    /* If the switch clause contains a statement, get a source position from
+       that and use it as the position for any code created. */
+    if (clause->statements != NULL) {
+      set_position_from_stmt_source_position(code_pos_for_lowering,
+                                             clause->statements->position);
+      error_position = code_pos_for_lowering;
+    }  /* if */
     lower_constant_list(clause->constant_list);
     /* Get the statement list before any insertions done for the start
        of an object lifetime. */
@@ -6464,10 +6455,6 @@ it; otherwise, switch_lifetime is NULL.
          (e.g., inside nested blocks) will be rendered as gotos. */
       if (clause->implied_break_at_end) {
         /* There is an implicit "break" at the end of the clause. */
-        a_source_position saved_code_pos;
-        saved_code_pos = code_pos_for_lowering;
-        set_position_from_stmt_source_position(code_pos_for_lowering,
-                                               clause->break_position);
         if (any_cleanup_actions(switch_lifetime)) {
           if (last_statement == NULL) {
             /* The clause is empty, so add a block statement and insert inside
@@ -6481,7 +6468,6 @@ it; otherwise, switch_lifetime is NULL.
           }  /* if */
           gen_cleanup_actions(switch_lifetime, &insert_location);
         }  /* if */
-        code_pos_for_lowering = saved_code_pos;
       }  /* if */
     }  /* if */
   }  /* for */
@@ -6866,7 +6852,7 @@ Do IL lowering of the indicated statement and everything under it.
           turn_branch_into_block(statement, &insert_location,
                                  &return_statement);
           make_block = FALSE;
-          lower_dynamic_init(dip, &ipd, /*is_expr_temporary=*/FALSE,
+          lower_dynamic_init(dip, &ipd,
                              (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                              (a_constructor_init_ptr)NULL,
                              &insert_location, &keep_dynamic_init);
