@@ -841,9 +841,9 @@ The following option formats are supported:
 
 	--option_b xxx	-- keyword option with an argument
 
-	--option_b=xxx	-- keyword option with an argument (not that no
+	--option_b=xxx	-- keyword option with an argument (note that no
 			   spaces are allowed on either side of the
-			   equals sign.
+			   equals sign).
 */
 {
   static char			*optchar = NULL;
