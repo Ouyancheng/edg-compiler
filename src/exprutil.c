@@ -2784,13 +2784,8 @@ not being maintained.
   } else {
     /* Normal case; set up an address-of-variable constant. */
     clear_operand((an_operand_kind)ok_constant, result);
+    set_variable_address_constant(variable, &result->variant.constant);
     result->type = variable_type;
-    clear_constant(&result->variant.constant,
-                   (a_constant_repr_kind)ck_address);
-    result->variant.constant.type = make_pointer_type(variable_type);
-    result->variant.constant.variant.address.kind =
-                                            (an_address_base_kind)abk_variable;
-    result->variant.constant.variant.address.variant.variable = variable;
   }  /* if */
   result->state = (an_operand_state)os_lvalue;
   copy_source_position(pos_curr_token, result->position);
@@ -2955,15 +2950,9 @@ information is not being maintained.
   }  /* if */
   /* Set up an address-of-function constant. */
   clear_operand((an_operand_kind)ok_constant, result);
+  set_routine_address_constant(routine, &result->variant.constant);
   /* The type of the operand is the function type. */
   result->type = routine->type;
-  clear_constant(&result->variant.constant,
-                 (a_constant_repr_kind)ck_address);
-  /* The type of the constant is pointer to function. */
-  result->variant.constant.type = make_pointer_type(routine->type);
-  result->variant.constant.variant.address.kind =
-                                             (an_address_base_kind)abk_routine;
-  result->variant.constant.variant.address.variant.routine = routine;
   result->state = (an_operand_state)os_function_designator;
   /* Remember whether or not the routine is virtual.  Use of a qualified
      name suppresses the virtual-ness of the function (ARM 10.2). */
