@@ -342,7 +342,8 @@ keyword.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-static void prescan_typeof_operator(a_disambig_state_ptr  state)
+static void prescan_typeof_operator(a_disambig_state_ptr       state,
+                                    a_disambig_flag_set        flags)
 /*
 Scan past (and cache) a typeof specifier.  state points to the token cache
 to be used.
@@ -352,6 +353,9 @@ to be used.
   cache_curr_token(&state->cache);
   (void)get_token();
   if (curr_token == tok_lparen) {
+    /* Advance past the left paren. */
+    cache_curr_token(&state->cache);
+    get_token_and_coalesce_if_identifier(flags);
     /* Now scan up to the matching right parenthesis. */
     cache_tokens_until(state, tok_rparen);
   }  /* if */
@@ -405,10 +409,6 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
      would have to add things like tok_c99_bool to the cases below.) */
   check_assertion(!C_mode());
   for (;;) {
-    /* For most specifiers, we leave the last token in the stream and
-       cache it in the common code after the switch.  Some specifiers,
-       however, are completely retrieved in the switch (e.g., typeof). */
-    a_boolean  one_more_token = TRUE;
     switch (curr_token) {
       /* Storage class specifiers. */
       case tok_auto:
@@ -549,8 +549,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_typeof:
         is_decl_specifier_token = TRUE;
         type_specifier_seen = TRUE;
-        prescan_typeof_operator(state);
-        one_more_token = FALSE;
+        prescan_typeof_operator(state, flags);
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       default:
@@ -560,11 +559,9 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
     /* If this token is not part of a decl-specifier then exit the loop. */
     if (!is_decl_specifier_token) break;
     any_decl_specifiers = TRUE;
-    if (one_more_token) {
-      /* Cache this token and get the next one. */
-      cache_curr_token(&state->cache);
-      get_token_and_coalesce_if_identifier(flags);
-    }  /* if */
+    /* Cache this token and get the next one. */
+    cache_curr_token(&state->cache);
+    get_token_and_coalesce_if_identifier(flags);
   }  /* for */
   if (!any_decl_specifiers && !is_ctor_or_dtor_name) {
     /* A declaration must have at least one decl-specifier, or this must be

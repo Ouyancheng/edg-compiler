@@ -1,5 +1,16 @@
 Version 3.1
 
+11/20/02  GNU compatibility: Typeof syntax ambiguities
+
+In GNU mode, expression-vs-declaration ambiguities used to lead to syntax
+errors for some uses of the GNU typeof operator.  For example:
+
+  struct S { S(int); };
+  S s(__typeof__(int)(42));  // The front end used to parse this as a function
+                             // declaration.
+
+This is now fixed.
+
 11/20/02  GNU C++ compatibility: Type definitions allowed in cast expressions
 
 In GNU C++ mode, the front end now allows type definitions in cast
