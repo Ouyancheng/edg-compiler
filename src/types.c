@@ -147,10 +147,11 @@ predicates.
 
 /* Macro that is TRUE if the two types have the same type attributes.
    The types are already known not to be typerefs and to have the
-   same type kind. */
+   same type kind.  Incomplete types do not have their alignments set
+   yet. */
 #define same_type_attributes(type_1, type_2) \
-  (type_1->alignment == type_2->alignment || \
-   is_immediate_class_type(type_1))
+  ((type_1)->alignment == (type_2)->alignment || \
+   is_incomplete(type_1) || is_incomplete(type_2))
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -2446,12 +2447,6 @@ for more information.
     } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
       /* The top level kinds are different, so the types are different. */
       /* identical = FALSE;  -- Already set. */
-#if GNU_EXTENSIONS_ALLOWED
-    } else if (!same_type_attributes(type_1, type_2)) {
-      /* The types have different attributes, so the types are
-	 different. */
-      /* identical = FALSE;  -- Already set. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     } else if (change_to_canonical_types(&type_1, &type_2,
                                          (flags & ITF_SEEK_CORRESP) != 0)) {
       /* The types might have come from different translation units: restart
@@ -2681,6 +2676,13 @@ for more information.
           internal_error("f_identical_types: bad type");
 #endif /* CHECKING */
       }  /* switch */
+#if GNU_EXTENSIONS_ALLOWED
+      if (identical &&
+          !same_type_attributes(type_1, type_2)) {
+        /* The types have different attributes, so the types are different. */
+        identical = FALSE;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
 
@@ -2898,12 +2900,6 @@ for exact pointer equality.
     } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
       /* The top level kinds are different, so the types are different. */
       /* compat = FALSE;  -- Already set. */
-#if GNU_EXTENSIONS_ALLOWED
-    } else if (!same_type_attributes(type_1, type_2)) {
-      /* The types have different attributes, so the types are
-	 different. */
-      /* compat = FALSE;  -- Already set. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     } else if (change_to_canonical_types(&type_1, &type_2,
                                          (flags & TCF_SEEK_CORRESP) != 0)) {
       /* The types might have come from different translation units: restart
@@ -3095,6 +3091,20 @@ for exact pointer equality.
           internal_error("f_types_are_compatible: bad type");
 #endif /* CHECKING */
       }  /* switch */
+#if GNU_EXTENSIONS_ALLOWED
+      if (compat &&
+          !same_type_attributes(type_1, type_2)) {
+        /* The types have different attributes, so the types are different. */
+        if (error_matches_anything &&
+            (is_or_contains_error_type(type_1) ||
+             is_or_contains_error_type(type_2))) {
+          /* If an error type match is involved, ignore an attribute
+             difference (specifically, an alignment difference). */
+        } else {
+          compat = FALSE;
+        }  /* if */
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
 
@@ -3195,9 +3205,9 @@ that is not required to be checked by the ANSI C standard.
     /* The kinds are different, so the types are not interchangeable. */
     /* interch = FALSE;  -- already set. */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (!same_type_attributes(type_1, type_2)) {
-    /* The types have different attributes, so the types are not
-       interchangeable. */
+  } else if (type_1->alignment != type_2->alignment) {
+    /* The types have different alignments (perhaps because of the gcc aligned
+       attribute), so the types are not interchangeable. */
     /* interch = FALSE;  -- Already set. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (type_1->kind == (a_type_kind)tk_integer) {
