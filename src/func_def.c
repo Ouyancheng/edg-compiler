@@ -703,9 +703,9 @@ associated with the function is returned.
        further error recovery problems, and because we need a non-shared
        routine type entry that we can modify. */
     rout_type = copy_routine_type_with_param_types(rout_type);
-    unqualified_rout_type = make_unqualified_type(rout_type);
+    unqualified_rout_type = skip_typerefs(rout_type);
   } else {
-    unqualified_rout_type = make_unqualified_type(rout_type);
+    unqualified_rout_type = skip_typerefs(rout_type);
     check_assertion(unqualified_rout_type->kind == (a_type_kind)tk_routine);
   }  /* if */
   extra_info = unqualified_rout_type->variant.routine.extra_info;
