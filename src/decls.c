@@ -3754,11 +3754,14 @@ to NULL.
         redecl_error_already_issued = TRUE;
         linked_redecl_error = TRUE;
       } else {
-        /* Check that the old and new types are compatible, and form the
-           composite type.  Note that there is a second test for compatibility
-           after old-style parameter declarations are scanned, if this
-           declaration has a body (see function_definition). */
-        if (!types_are_compatible(routine_ptr->type, type_ptr)) {
+        /* If this is not C++ mode (for which this check has already been
+           done in id_linkage), be sure that the old and new types are
+           compatible.  Then form the composite type.  Note that there is a
+           second test for compatibility after old-style parameter
+           declarations are scanned, if this declaration has a body (see
+           function_definition). */
+        if (C_dialect != C_dialect_cplusplus &&
+            !types_are_compatible(routine_ptr->type, type_ptr)) {
           pos_sy_error(ec_not_compatible_with_previous_decl,
                        &locator->source_position, linked_symbol);
           redecl_error_already_issued = TRUE;
