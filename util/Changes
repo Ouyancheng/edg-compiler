@@ -1,5 +1,10 @@
 Version 2.22
 
+1/5/94   Version of getopt routine now provided
+
+The utility programs now provide their own version of the getopt
+routine for use on systems that do not provide a getopt.
+
 1/5/94   Temporary directory used by eccp
 
 The eccp script now uses the environment variable TMPDIR as the temporary

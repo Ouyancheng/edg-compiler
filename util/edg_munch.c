@@ -27,13 +27,19 @@ This program looks for entries where "a" is "T" and "nnnn..." is "__sti__*" or
 
 */
 
-/*#include <sys/stdtypes.h>*/
 #include <stdio.h>
 #include <ctype.h>
 #include <malloc.h>
 #include "basics.h"
 #include "host_envir.h"
 #include "edg_munch.h"
+
+/*
+The getopt.h include file will provide either the declarations needed
+to use the system getopt routine or, if no system version is available,
+the body of our own version of the getopt routine.
+*/
+#include "getopt.h"
 
 typedef struct a_list_entry*  a_list_entry_ptr;
 
@@ -146,7 +152,6 @@ length of the name.
   int             result = FALSE;
   register char*  pos = &input_line_buffer[0];
   register char   ch;
-  register int    i;
   char*           local_name_pos;
   char            type;
   static int      ctor_prefix_length = 0;

@@ -22,6 +22,12 @@ Prelink utility for template instantiation.
 
 #define DEBUG 1
 
+/*
+The getopt.h include file will provide either the declarations needed
+to use the system getopt routine or, if no system version is available,
+the body of our own version of the getopt routine.
+*/
+#include "getopt.h"
 
 /* Forward declarations of pointer types required before their definitions. */
 typedef struct a_pl_input_file *a_pl_input_file_ptr;
@@ -269,9 +275,6 @@ Lines from "nm" are read into this buffer for analysis.
 #define PL_INPUT_LINE_SIZE 32767
 typedef char		a_pl_input_line[PL_INPUT_LINE_SIZE];
 static a_pl_input_line	pl_input_line;
-static int		pl_line_size;
-                	/* Number of characters in the input line not including
-	                   the final null. */
 
 /* The symbol table used for simulating the link. */
 #define PL_SYMBOL_TABLE_SIZE	10007
@@ -486,9 +489,6 @@ to the number of characters read not including the trailing null character.
   /* Determine whether to return end-of-file (FALSE). */
   result = TRUE;
   if (ch == EOF && size == 0) result = FALSE;
-
-  /* Save the number of characters read. */
-  pl_line_size = size;
 
   return (result);
 }  /* pl_read_input_line */
