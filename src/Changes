@@ -1,5 +1,10 @@
 Version 3.2
 
+2/4/03   IL display build problem with IA-64 ABI and no IL lowering
+
+The IL display program did not build correctly when using the IA-64
+ABI without IL lowering.  This has been fixed.
+
 2/3/03   GNU C++ mode: Exception specifications ignored when no support for
          C++ exception handling
 

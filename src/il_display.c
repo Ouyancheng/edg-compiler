@@ -2674,7 +2674,7 @@ Display the indicated routine.
     disp_boolean("contains_statement_expression", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if IA64_ABI
+#if DO_IL_LOWERING && IA64_ABI
   if (ptr->inline_in_class_definition) {
     disp_boolean("inline_in_class_definition", TRUE);
   }  /* if */
@@ -2686,7 +2686,7 @@ Display the indicated routine.
     disp_ctor_or_dtor_kind_name(ptr->ctor_dtor_kind);
     (void)printf("\n");
   }  /* if */
-#endif /* IA64_ABI */
+#endif /* DO_IL_LOWERING && IA64_ABI */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);
   /* Note: the keep_definition_in_il flag is not displayed, since it is
