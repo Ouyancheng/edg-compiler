@@ -3037,7 +3037,8 @@ by routine.  position is used as the error position for any
 diagnostics.
 */
 {
-  a_boolean        any_invalid_redecl, invalid_modifier, invalid_redecl;
+  a_boolean        any_invalid_redecl = FALSE, invalid_modifier,
+                   invalid_redecl;
   int              bit_number;
   a_decl_modifier  modifier_value;
   a_boolean        implicit_dllexport = FALSE;
@@ -3050,7 +3051,6 @@ diagnostics.
                        routine->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (new_modifiers->flags != DM_NONE || implicit_dllexport) {
-    any_invalid_redecl = FALSE;
     for (bit_number = 0; bit_number < (int)dmt_last; ++bit_number) {
       modifier_value = (1 << bit_number);
       if ((new_modifiers->flags & modifier_value) != 0
@@ -3126,13 +3126,19 @@ diagnostics.
         any_invalid_redecl |= invalid_redecl;
       }  /* if */
     }  /* for */
-    if (any_invalid_redecl) {
-      pos_warning(ec_decl_modifiers_incompatible_with_previous_decl, position);
-    }  /* if */
     /* Update the routine entry with any valid modifiers that were found. */
     routine->decl_modifiers |= new_modifiers->flags;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  if (!any_invalid_redecl && is_redecl &&
+      routine->source_corresp.is_class_member &&
+      (routine->decl_modifiers & DM_DLLIMPORT) &&
+      !(new_modifiers->flags & DM_DLLIMPORT)) {
+    /* An out-of-class definition not marked dllimport does not acquire the
+       dllimport flag specified on the class definition. */
+    any_invalid_redecl = TRUE;
+    routine->decl_modifiers &= ~DM_DLLIMPORT;
+  }  /* if */
   if (new_modifiers->allocate_segname != NULL) {
     /* Only allowed for variables with static storage duration. */
     pos_error(ec_declspec_allocate_not_allowed, position);
@@ -3141,6 +3147,9 @@ diagnostics.
     routine->source_corresp.is_deprecated = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (any_invalid_redecl) {
+    pos_warning(ec_decl_modifiers_incompatible_with_previous_decl, position);
+  }  /* if */
 }  /* update_routine_decl_modifiers */
 
 
