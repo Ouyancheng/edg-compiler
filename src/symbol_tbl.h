@@ -1541,14 +1541,6 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if kind is sck_template_instantiation and
 			   what is being instantiated is the prototype for a
 			   class template. */
-  unsigned int	curr_construct_pragma_list_is_on_stmt_stack:1;
-			/* The current construct pragma list may be stored
-			   in either the scope stack entry or the structured
-			   statement stack entry.  The current value is
-			   in whichever of the two contains the most
-			   recently created entry.  This flag is TRUE
-			   if the most recent value is on the statement
-			   stack. */
   a_symbol_ptr	symbols,
 		last_symbol;
 			/* First/last pointers to the list of all symbols
@@ -1749,9 +1741,10 @@ typedef struct a_scope_stack_entry {
   a_pending_pragma_ptr
 		curr_construct_pragmas;
 			/* Points to the list of pbk_next_construct
-			   pragmas associated with this scope stack entry.
-			   See ptr_to_curr_construct_pragmas
-			   below to see how this field is used. */
+			   pragmas for the construct that is currently
+			   being scanned.  This is in the scope stack entry
+			   so that it will automatically nest when
+			   template instantiations are performed. */
 } a_scope_stack_entry;
 
 

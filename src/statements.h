@@ -130,10 +130,6 @@ typedef struct a_struct_stmt_stack_entry {
 			/* TRUE if the structured statement is a for loop and
 			   the statement currently being processed is a
 			   for-init statement; FALSE otherwise. */
-  unsigned int	saved_curr_construct_pragma_list_is_on_stmt_stack:1;
-			/* Used to save the value of the scope stack entry
-			   flag that indicates where the active
-			   curr_construct_pragmas list pointer resides. */
   a_reachability_summary
 		start_reachable;
 			/* Indicates whether or not the start of the structured
@@ -142,15 +138,6 @@ typedef struct a_struct_stmt_stack_entry {
 		end_reachable;
 			/* Indicates whether or not the end of the structured
 			   statement is reachable. */
-  a_pending_pragma_ptr
-		curr_construct_pragmas;
-			/* The current construct pragma list is stored on
-			   the top scope stack entry or the top statement
-			   stack entry, whichever is most recent.  When
-			   this statement stack entry is the most recent
-			   of the two, this field contains a pointer to
-			   the pragma entries to be bound to the current
-			   statement or declaration. */
 } a_struct_stmt_stack_entry;
 
 EXTERN a_struct_stmt_stack_entry_ptr

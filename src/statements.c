@@ -1445,14 +1445,6 @@ the associated il statement.
     add_to_control_flow_descr_list(
              alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block));
   }  /* if */
-  /* Save the previous value of the flag that indicates where the current
-     curr_construct_pragmas list may be found and update the flag to
-     indicate that it is now on the statement stack. */
-  sssep->saved_curr_construct_pragma_list_is_on_stmt_stack = 
-    scope_stack[depth_scope_stack].curr_construct_pragma_list_is_on_stmt_stack;
-  scope_stack[depth_scope_stack].curr_construct_pragma_list_is_on_stmt_stack
- 									= TRUE;
-  sssep->curr_construct_pragmas = NULL;
   db_exit();
 }  /* push_stmt_stack */
 
@@ -1584,12 +1576,6 @@ a structured statement has ended.
     add_to_control_flow_descr_list(
        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
   }  /* if */
-  /* There should be no entries left on the curr_construct_pragmas list when
-     the statement stack is popped. */
-  check_assertion_str2(sssep->curr_construct_pragmas == NULL,
-		       "pop_stmt_stack:", "curr_construct_pragmas != NULL");
-  scope_stack[depth_scope_stack].curr_construct_pragma_list_is_on_stmt_stack =
-                      sssep->saved_curr_construct_pragma_list_is_on_stmt_stack;
   /* Pop the stack. */
   depth_stmt_stack--;
   /* If the break label for this statement was referenced, generate 

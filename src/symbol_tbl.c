@@ -6708,8 +6708,6 @@ of the template.
   ssep->last_label_decl_seq      = 0;
   ssep->pending_pragmas          = NULL;
   ssep->curr_construct_pragmas	 = NULL;
-  ssep->curr_construct_pragma_list_is_on_stmt_stack
-				 = FALSE;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
