@@ -156,7 +156,7 @@ matching.
   if (option_description_number == SIZE_OF_OPTION_DESCRIPTIONS) {
     /* There are more entries than fit in the array. */
 #if DEBUG
-    fprintf(f_debug, "Too many options descriptions.  Current limit is %0d\n",
+    fprintf(f_debug, "Too many options descriptions.  Current limit is %d\n",
             SIZE_OF_OPTION_DESCRIPTIONS);
 #endif /* DEBUG */
     unexpected_condition();
@@ -1016,13 +1016,13 @@ return_point:
 
 
 static void process_diag_override_option(an_option_kind kind,
-					 char		*opt_arg)
+					 char		*arg)
 /*
 Go through a comma separated list of error tags and call an error
 processing routine to update the severity.
 */
 {
-  char			*local_opt_arg;
+  char			*local_arg;
   int			number_of_arguments = 0;
   int			i;
   an_error_severity	severity;
@@ -1031,10 +1031,10 @@ processing routine to update the severity.
   /* Make a local copy of the option string.  Remove any blanks and replace
      commas with null characters.  Note that this copy is simply discarded
      after it is used. */
-  local_opt_arg = (char *)alloc_general((sizeof_t)(strlen(opt_arg) + 1));
+  local_arg = (char *)alloc_general((sizeof_t)(strlen(arg) + 1));
   {
-    char	*src = opt_arg;
-    char	*dest = local_opt_arg;
+    char	*src = arg;
+    char	*dest = local_arg;
     char	ch;
     do {
       ch = *src;
@@ -1057,11 +1057,11 @@ processing routine to update the severity.
   }  /* switch */
   /* Loop through the arguments and call a routine to update the
      error severity for the specified tag. */
-  ptr = local_opt_arg;
+  ptr = local_arg;
   for (i = 0; i < number_of_arguments; ++i) {
     char	*opt_start = ptr;
     char	*opt_end = strchr(ptr, '\0');
-    a_boolean	error;
+    a_boolean	err;
 #if DEBUG
     if (debug_level >= 4) {
       fprintf(f_debug, "Setting error severity for: %s\n", opt_start);
@@ -1069,13 +1069,13 @@ processing routine to update the severity.
 #endif /* DEBUG */
     if (isdigit((unsigned char)*opt_start)) {
       int error_number = (int)scan_opt_arg_number(opt_start);
-      error = set_severity_for_error_number(error_number, severity);
-      if (error) {
+      err = set_severity_for_error_number(error_number, severity);
+      if (err) {
         str_command_line_error(ec_cl_invalid_error_number, opt_start);
       }  /* if */
     } else {
-      error = set_severity_for_error_tag(opt_start, severity);
-      if (error) {
+      err = set_severity_for_error_tag(opt_start, severity);
+      if (err) {
         str_command_line_error(ec_cl_invalid_error_tag, opt_start);
       }  /* if */
     }  /* if */
