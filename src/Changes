@@ -44,11 +44,14 @@ This is now fixed.
 8/31/04  Microsoft compatibility/IA-64 ABI: Abort on flexible array member
 
 Under certain circumstances an internal error was triggered in "types.c"
-during the layout of a class containing a flexible array member.  For example:
+during the layout of a class containing a flexible array member.  The problem
+only occurred in Microsoft C++ mode with IA-64 ABI layout class rules.
+For example:
 
   class C {};
   struct S { C c[]; };
-  struct X { S s; };    // Internal error during class layout.
+  struct X { S s; };    // Internal error during class layout in Microsoft C++
+                        // mode with IA-64 ABI layout rules.
 
 This is now fixed.
 
