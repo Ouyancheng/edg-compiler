@@ -2445,7 +2445,7 @@ This filtering is used to avoid issueing many diagnostics on a single name.
       next_orep = next_orep->next;
     }  /* if */
   }  /* while */
-}  /*  */
+}  /* remove_name_from_override_registry */
 
 
 static void check_override_registry(an_override_registry_entry_ptr  first_orep,
