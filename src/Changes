@@ -32,6 +32,23 @@ was represented by the C++-generating back end as only a definition.
 Fixed -- the code to remove such forward declarations now only removes
 those that are compiler-generated.
 
+12/11/98  Support for near and far memory attributes
+
+Support for near and far memory attributes can now be configured
+independently of support for other Microsoft extensions.  If you configure
+MICROSOFT_EXTENSIONS_ALLOWED to TRUE, NEAR_AND_FAR_ALLOWED (see
+lang_feat.h) will default to TRUE as well, and recognition of the keywords
+is enabled when --microsoft_16 is selected on the command line; this
+corresponds the old behavior.  However, when MICROSOFT_EXTENSIONS_ALLOWED
+is TRUE but NEAR_AND_FAR_ALLOWED is FALSE, the --microsoft_16 command line
+option is not recognized.  Conversely, when MICROSOFT_EXTENSIONS_ALLOWED
+is FALSE and NEAR_AND_FAR_ALLOWED is TRUE, support for near and far
+(emulating Microsoft's semantics) is automatically enabled (there is no
+command-line control), without support for other Microsoft extensions.  In
+addition, SUPPRESS_NEAR_AND_FAR_IN_GENERATED_CODE (see targ_def.h) can be
+configured to control whether the keywords "near" and "far" are passed
+through in the output of the C- and C++-generating back ends.
+
 12/11/98  Long-lifetime temporaries mode, destruction of temporary
           on switch clause fallthrough
 
