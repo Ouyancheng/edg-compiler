@@ -672,37 +672,37 @@ Display debugging information about type information (non-IA-64 version).
 */
 {
 /* Define a macro used to indent the output lines. */
-#define do_indent() fprintf(stderr, "%*s", indent, " ")
+#define do_indent() fprintf(__f_debug, "%*s", indent, " ")
   /* Convert the user type_info pointer to a_info_impl_ptr. */
   a_type_info_impl_ptr	tiip = (a_type_info_impl_ptr)&info;
-  if (indent != 0) fprintf(stderr, "\n");
+  if (indent != 0) fprintf(__f_debug, "\n");
   do_indent();
-  fprintf(stderr, "Type information for: %s\n",
+  fprintf(__f_debug, "Type information for: %s\n",
           tiip->name == NULL ? "<NULL>" : tiip->name);
   do_indent();
-  fprintf(stderr, "  unique_id: %p\n", (void*)tiip->unique_id);
+  fprintf(__f_debug, "  unique_id: %p\n", (void*)tiip->unique_id);
 #if ABI_COMPATIBILITY_VERSION <= 237
   do_indent();
-  fprintf(stderr, "  dtor addr: %p\n", (void*)tiip->destructor);
+  fprintf(__f_debug, "  dtor addr: %p\n", (void*)tiip->destructor);
 #endif /* ABI_COMPATIBILITY_VERSION <= 237 */
   if (tiip->base_class_entries != NULL) {
     a_base_class_spec_ptr	bcsp;
     do_indent();
-    fprintf(stderr, "  base classes:\n");
+    fprintf(__f_debug, "  base classes:\n");
     for (bcsp = tiip->base_class_entries;; bcsp++) {
       const char	*name = bcsp->type_info->name;
       do_indent();
-      fprintf(stderr, "    name=%s\n", name == NULL ? "<NULL>" : name);
+      fprintf(__f_debug, "    name=%s\n", name == NULL ? "<NULL>" : name);
       do_indent();
-      fprintf(stderr, "    offset=%0ld\n", (long)bcsp->offset);
+      fprintf(__f_debug, "    offset=%0ld\n", (long)bcsp->offset);
       do_indent();
-      fprintf(stderr, "    flags:");
-      if (bcsp->flags & BCS_VIRTUAL) fprintf(stderr, " virtual");
-      if (bcsp->flags & BCS_LAST) fprintf(stderr, " last");
-      if (bcsp->flags & BCS_PUBLIC) fprintf(stderr, " public");
-      if (bcsp->flags & BCS_AMBIGUOUS) fprintf(stderr, " ambiguous");
-      if (bcsp->flags & BCS_DIRECT) fprintf(stderr, " direct");
-      fprintf(stderr, "\n");
+      fprintf(__f_debug, "    flags:");
+      if (bcsp->flags & BCS_VIRTUAL) fprintf(__f_debug, " virtual");
+      if (bcsp->flags & BCS_LAST) fprintf(__f_debug, " last");
+      if (bcsp->flags & BCS_PUBLIC) fprintf(__f_debug, " public");
+      if (bcsp->flags & BCS_AMBIGUOUS) fprintf(__f_debug, " ambiguous");
+      if (bcsp->flags & BCS_DIRECT) fprintf(__f_debug, " direct");
+      fprintf(__f_debug, "\n");
       if (bcsp->flags & BCS_LAST) break;
     }  /* for */
     /* Now display the full type information for the base classes. */
@@ -722,7 +722,7 @@ calls __r_db_type_info and supplies a zero indent value.
 */
 {
   __r_db_type_info(info, 0);
-  fprintf(stderr, "\n");
+  fprintf(__f_debug, "\n");
 }  /* __db_type_info */
 #endif /* DEBUG */
 
@@ -736,10 +736,10 @@ Display debugging information about type information (IA-64 version).
 */
 {
 /* Define a macro used to indent the output lines. */
-#define do_indent() fprintf(stderr, "%*s", indent, " ")
-  if (indent != 0) fprintf(stderr, "\n");
+#define do_indent() fprintf(__f_debug, "%*s", indent, " ")
+  if (indent != 0) fprintf(__f_debug, "\n");
   do_indent();
-  fprintf(stderr, "Type information for: %s\n", info.name());
+  fprintf(__f_debug, "Type information for: %s\n", info.name());
 #undef do_indent
 }  /* __r_db_type_info */
 
@@ -751,7 +751,7 @@ calls __r_db_type_info and supplies a zero indent value.
 */
 {
   __r_db_type_info(info, 0);
-  fprintf(stderr, "\n");
+  fprintf(__f_debug, "\n");
 }  /* __db_type_info */
 #endif /* DEBUG */
 
