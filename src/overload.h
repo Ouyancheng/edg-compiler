@@ -333,6 +333,12 @@ typedef struct a_candidate_function {
 		in_best_match_set_for_curr_argument;
 			/* TRUE if the function is in the set of best-matching
 			   functions for the current argument. */
+#if BACK_END_IS_CP_GEN_BE
+  a_byte_boolean
+		found_through_adl;
+			/* TRUE if the function was found through argument-
+			   dependent lookup */
+#endif /* BACK_END_IS_CP_GEN_BE */
 } a_candidate_function;
 
 
@@ -492,6 +498,7 @@ extern a_symbol_ptr select_overloaded_function(
                          a_token_sequence_number  paren_tok_seq_number,
                          a_boolean                *single_function,
                          a_boolean                *unknown_dependent_function,
+                         a_boolean                *found_through_adl,
                          a_symbol_ptr             *surrogate_function_conv_sym,
                          an_arg_match_summary_ptr *arg_match_list);
 
@@ -598,6 +605,7 @@ extern a_type_ptr select_and_prepare_to_call_overloaded_function(
                            a_source_position       *id_position,
                            a_source_position       *closing_paren_position,
                            a_boolean               *unknown_dependent_function,
+                           a_boolean               *found_through_adl,
                            an_operand              *function_operand,
                            an_expr_node_ptr        *arg_expr_list);
 

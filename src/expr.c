@@ -896,6 +896,7 @@ is after the closing parenthesis of the argument list.
                                                  (a_token_sequence_number)0,
                                                  (a_boolean *)NULL,
                                                  unknown_dependent_function,
+                                                 (a_boolean *)NULL,
                                                  (a_symbol_ptr *)NULL,
                                                  &arg_match_list);
     /* Build an expression-form argument list.  Convert the arguments on
@@ -1224,7 +1225,9 @@ Syntax:
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean         call_may_be_folded = FALSE;
   a_boolean         do_arg_dep_lookup = FALSE;
+  a_boolean         ordinary_lookup_failed = FALSE;
   a_boolean         arg_dep_lookup_suppressed = FALSE;
+  a_boolean         found_through_adl = FALSE;
 
   db_enter(4, "scan_function_call");
 
@@ -1395,6 +1398,7 @@ Syntax:
       if (!C_mode() && do_arg_dep_lookup) {
         overloaded_function_case = TRUE;
         overloaded_function_symbol = func_sym;
+        ordinary_lookup_failed = TRUE;
         /* routine_type = NULL;  -- already set. */
       } else {
         /* Implicitly declare the symbol as a function. */
@@ -1559,6 +1563,7 @@ Syntax:
                                             &id_position,
                                             &closing_paren_position,
                                             &unknown_dependent_function,
+                                            &found_through_adl,
                                             operand,
                                             &argument_list);
     if (unknown_dependent_function) {
@@ -1696,6 +1701,7 @@ Syntax:
                            /*compiler_generated=*/FALSE,
                            /*is_conversion=*/FALSE,
                            arg_dep_lookup_suppressed,
+                           found_through_adl,
                            &call_position, result);
 #if GNU_EXTENSIONS_ALLOWED
     if (call_may_be_folded) {
@@ -7059,6 +7065,7 @@ specification allow a variable-sized array as the top type.
                                               (a_token_sequence_number)0,
                                               (a_boolean *)NULL,
                                               &unknown_dependent_new,
+                                              (a_boolean *)NULL,
                                               (a_symbol_ptr *)NULL,
                                               &arg_match_list);
       if (proj_function_symbol != NULL) {

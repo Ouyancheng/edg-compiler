@@ -3427,6 +3427,14 @@ Display the indicated expression node.
       if (ptr->variant.operation.arg_dependent_lookup_suppressed_on_call) {
         disp_boolean("arg_dependent_lookup_suppressed_on_call", TRUE);
       }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+      if (ptr->variant.operation.only_found_through_arg_dependent_lookup) {
+        disp_boolean("only_found_through_arg_dependent_lookup", TRUE);
+      }  /* if */
+      if (ptr->variant.operation.keep_cast_for_cp_gen_be) {
+        disp_boolean("keep_cast_for_cp_gen_be", TRUE);
+      }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);
       break;

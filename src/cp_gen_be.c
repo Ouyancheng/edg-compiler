@@ -2314,9 +2314,11 @@ scp and kind entry_kind using the name-reference information in *nrp.
 
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
-static void gen_name_from_routine_address_node(an_expr_node_ptr node)
+static void gen_name_from_routine_address_node(an_expr_node_ptr node,
+                                               a_boolean        unqualified)
 /*
-Generate the name of a routine from an enk_routine_address node.
+Generate the name of a routine from an enk_routine_address node.  If
+unqualified is TRUE, force the generation of an unqualified name.
 */
 {
   a_routine_ptr rout;
@@ -2332,7 +2334,9 @@ Generate the name of a routine from an enk_routine_address node.
   } else
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
   /* Do not insert code here. */
-  {
+  if (unqualified) {
+    gen_unqualified_name(&rout->source_corresp, iek_routine);
+  } else {
     gen_routine_name(rout);
   }  /* if */
 }  /* gen_name_from_routine_address_node */
@@ -5559,7 +5563,7 @@ precedence confusion and need_parens is TRUE.
     processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_routine_address) {
     /* Address of routine: just write the routine name. */
-    gen_name_from_routine_address_node(node);
+    gen_name_from_routine_address_node(node, /*unqualified=*/FALSE);
     processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_operation) {
     an_expr_operator_kind op = node->variant.operation.kind;
@@ -6463,7 +6467,9 @@ Generate code for the indicated expression, which is a non-virtual call.
         args = args->next;
       } else {
         /* Nonmember function or static member function. */
-        gen_name_from_routine_address_node(func_expr);
+        gen_name_from_routine_address_node(
+             func_expr,
+             expr->variant.operation.only_found_through_arg_dependent_lookup);
       }  /* if */
     } else if (is_dot_static) {
       /* Call of a static member function identified by a static
@@ -7292,7 +7298,7 @@ done_with_operation_after_parens:
       gen_name_from_variable_node(expr);
       break;
     case enk_routine_address:
-      gen_name_from_routine_address_node(expr);
+      gen_name_from_routine_address_node(expr, /*unqualified=*/FALSE);
       break;
     case enk_throw:
       /* Throw. */

@@ -7669,6 +7669,10 @@ a function expression to which the argument list (including the implicit
 }  /* ctor_or_dtor_calling_own_pure_virt */
 
 
+#if !BACK_END_IS_CP_GEN_BE
+/* ARGSUSED */  /* found_through_adl is only used with the C++-generating
+                   back end.. */
+#endif /* !BACK_END_IS_CP_GEN_BE */
 static an_expr_node_ptr func_call_expr(
                                    an_expr_node_ptr  function_node,
                                    a_type_ptr        function_type,
@@ -7677,6 +7681,7 @@ static an_expr_node_ptr func_call_expr(
                                    a_boolean         compiler_generated,
                                    a_boolean         is_conversion,
                                    a_boolean         arg_dep_lookup_suppressed,
+                                   a_boolean         found_through_adl,
                                    a_source_position *err_pos)
 /*
 Make an expression for a call of the function indicated by function_node,
@@ -7695,7 +7700,9 @@ this call is compiler-generated (e.g., for an implicit conversion via
 a conversion function).  is_conversion is TRUE for a call generated for
 an explicit or implicit conversion (e.g., a conversion function call).
 arg_dep_lookup_suppressed is TRUE if argument-dependent lookup
-was suppressed on the call.
+was suppressed on the call.  found_through_adl is TRUE if the call
+was resolved only through argument-dependent lookup (i.e., ordinary
+lookup did not yield the called function).
 */
 {
   an_expr_operator_kind         op;
@@ -7754,6 +7761,10 @@ was suppressed on the call.
   call_node->variant.operation.is_conversion_call = is_conversion;
   call_node->variant.operation.arg_dependent_lookup_suppressed_on_call =
                                                      arg_dep_lookup_suppressed;
+#if BACK_END_IS_CP_GEN_BE
+  call_node->variant.operation.only_found_through_arg_dependent_lookup =
+                                                        found_through_adl;
+#endif /* BACK_END_IS_CP_GEN_BE */
   rtsp = function_type->variant.routine.extra_info;
   if (rtsp->value_returned_by_cctor) {
     /* An error was already issued for a function returning an abstract
@@ -7781,6 +7792,7 @@ void make_function_call(an_expr_node_ptr  function_node,
                         a_boolean         compiler_generated,
                         a_boolean         is_conversion,
                         a_boolean         arg_dep_lookup_suppressed,
+                        a_boolean         found_through_adl,
                         a_source_position *call_pos,
                         an_operand        *result)
 /*
@@ -7794,7 +7806,9 @@ generated call (e.g., for an implicit conversion via a conversion
 function).  is_conversion is TRUE for a call generated for an explicit
 or implicit conversion (e.g., a conversion function call).
 arg_dep_lookup_suppressed is TRUE if argument-dependent lookup was
-suppressed on the call.  *call_pos gives the source position of the call.
+suppressed on the call.  found_through_adl is TRUE if the call was
+resolved only through argument-dependent lookup (i.e., ordinary lookup did not
+yield the called function).  *call_pos gives the source position of the call.
 */
 {
   an_expr_node_ptr call_node;
@@ -7805,7 +7819,7 @@ suppressed on the call.  *call_pos gives the source position of the call.
   call_node = func_call_expr(function_node, function_type, is_virtual,
                              virtual_suppressed, compiler_generated,
                              is_conversion, arg_dep_lookup_suppressed,
-                             call_pos);
+                             found_through_adl, call_pos);
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, call_node->type, result);
   result->position = *call_pos;
@@ -7832,6 +7846,7 @@ void assemble_function_call(an_operand        *function_operand,
                             a_boolean         compiler_generated,
                             a_boolean         is_conversion,
                             a_boolean         arg_dep_lookup_suppressed,
+                            a_boolean         found_through_adl,
                             a_source_position *call_position,
                             an_operand        *result)
 /*
@@ -7842,9 +7857,11 @@ it is provided by *bound_function_selector.  argument_list points to the
 generated call (e.g., for an implicit conversion via a conversion
 function).  is_conversion is TRUE for a call generated for an explicit
 or implicit conversion (e.g., a conversion function call).
-arg_dep_lookup_suppressed is TRUE if argument-dependent lookup
-was suppressed on the call.  call_position gives the source position
-of the call.  An operand for the overall call is constructed in *result.
+arg_dep_lookup_suppressed is TRUE if argument-dependent lookup was suppressed
+on the call.  found_through_adl is TRUE if the function to be called was
+only found through argument-dependent lookup (not through ordinary lookup).
+call_position gives the source position of the call.  An operand for the
+overall call is constructed in *result.
 */
 {
   an_expr_node_ptr function_node;
@@ -7911,7 +7928,7 @@ of the call.  An operand for the overall call is constructed in *result.
                        (a_boolean)function_operand->virtual_function, 
                        (a_boolean)function_operand->is_qualified_name,
                        compiler_generated, is_conversion,
-                       arg_dep_lookup_suppressed,
+                       arg_dep_lookup_suppressed, found_through_adl,
                        call_position, result);
   }  /* if */
   result->position = *call_position;
@@ -7970,6 +7987,7 @@ intended to be called from outside of the expression routines.
                         /*compiler_generated=*/TRUE,
                         /*is_conversion=*/FALSE,
                         /*arg_dep_lookup_suppressed=*/FALSE,
+                        /*found_through_adl=*/FALSE,
                         err_pos);
   node = wrap_up_full_expression(node);
   /* Allocate the statement. */
@@ -9802,6 +9820,7 @@ is a "get" if put_operand is NULL.
                                             &locator.source_position,
                                             (a_source_position *)NULL,
                                             (a_boolean *)NULL,
+                                            (a_boolean *)NULL,
                                             &function_operand,
                                             &argument_list) == NULL) {
           /* Some error. */
@@ -9813,6 +9832,7 @@ is a "get" if put_operand is NULL.
                                  /*compiler_generated=*/TRUE,
                                  /*is_conversion=*/FALSE,
                                  /*arg_dep_lookup_suppressed=*/FALSE,
+                                 /*found_through_adl=*/FALSE,
                                  &operand_position, operand);
         }  /* if */
       }  /* if */

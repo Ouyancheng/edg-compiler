@@ -686,6 +686,9 @@ are used in resolving calls to overloaded functions.
   cfp->in_best_match_set = FALSE;
   cfp->in_best_match_set_for_some_argument = FALSE;
   cfp->in_best_match_set_for_curr_argument = FALSE;
+#if BACK_END_IS_CP_GEN_BE
+  cfp->found_through_adl = FALSE;
+#endif /* BACK_END_IS_CP_GEN_BE */
   return cfp;
 }  /* alloc_candidate_function */
 
@@ -2854,6 +2857,13 @@ accept_function:
     candidate->is_user_conversion = TRUE;
     if (!function_template_case) candidate->conversion.routine = routine;
   }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+  if (from_arg_dep_lookup) {
+    /* The C++-generating back end will need to know if the call was
+       resolved only because of argument-dependent lookup. */
+    (*candidate_functions)->found_through_adl = TRUE;
+  }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
   goto end_of_routine;
 reject_function:
   /* The function is not suitable. */
@@ -4717,6 +4727,10 @@ lookup should be suppressed.
 }  /* is_symbol_for_which_arg_dependent_lookup_should_be_suppressed */
 
 
+#if !BACK_END_IS_CP_GEN_BE
+/* ARGSUSED */  /* found_through_adl is only used with the C++-generating
+                   back end.. */
+#endif /* !BACK_END_IS_CP_GEN_BE */
 a_symbol_ptr select_overloaded_function(
                          a_symbol_ptr             overloaded_function_symbol,
                          a_boolean                is_template_id,
@@ -4731,6 +4745,7 @@ a_symbol_ptr select_overloaded_function(
                          a_token_sequence_number  paren_tok_seq_number,
                          a_boolean                *single_function,
                          a_boolean                *unknown_dependent_function,
+                         a_boolean                *found_through_adl,
                          a_symbol_ptr             *surrogate_function_conv_sym,
                          an_arg_match_summary_ptr *arg_match_list)
 /*
@@ -4767,10 +4782,11 @@ simpler processing used for non-overloaded functions, which can
 produce clearer error messages).  If the call is dependent, and
 the function to be called cannot be determined, return
 *unknown_dependent_function set to TRUE (unknown_dependent_function
-can be NULL if the call cannot be dependent).  If
-surrogate_function_conv_sym is non-NULL, look for surrogate functions
-also.  overloaded_function_symbol may be NULL in that case.  If a
-surrogate function is the best match, return in
+can be NULL if the call cannot be dependent).   If found_through_adl is
+non-NULL and the callee was found only through ADL, *found_through_adl is
+set to TRUE.  If surrogate_function_conv_sym is non-NULL, look for
+surrogate functions also.  overloaded_function_symbol may be NULL in that
+case.  If a surrogate function is the best match, return in
 *surrogate_function_conv_sym a pointer to the symbol for the
 conversion function that yields the pointer to the surrogate function,
 and return NULL.  This routine is called only in C++ mode.
@@ -4985,6 +5001,12 @@ in_instantiation:
             free_list_of_symbol_list_entries(symbol_list);
             *single_function = TRUE;
             function_symbol = symbol_list->symbol;
+#if BACK_END_IS_CP_GEN_BE
+            if (found_through_adl != NULL) {
+              *found_through_adl = (symbol_list->symbol !=
+                                                normal_lookup_function_symbol);
+            }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
             goto have_function;
           }  /* if */
         }  /* if */
@@ -5119,6 +5141,11 @@ in_instantiation:
   } else {
     /* Exactly one function applies and is best. */
     function_symbol = candidate_functions->function_symbol;
+#if BACK_END_IS_CP_GEN_BE
+    if (found_through_adl != NULL) {
+      *found_through_adl =  candidate_functions->found_through_adl;
+    }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
     *arg_match_list = candidate_functions->arg_matches;
     /* Prevent freeing of the arg_match_list when the candidate_functions
        list is freed. */
@@ -7125,6 +7152,7 @@ a_type_ptr select_and_prepare_to_call_overloaded_function(
                            a_source_position       *id_position,
                            a_source_position       *closing_paren_position,
                            a_boolean               *unknown_dependent_function,
+                           a_boolean               *found_through_adl,
                            an_operand              *function_operand,
                            an_expr_node_ptr        *arg_expr_list)
 /*
@@ -7170,7 +7198,9 @@ the position of the closing parenthesis in the call; it is used only when
 do_arg_dep_lookup is TRUE.  If the call is dependent, and the function
 to be called cannot be determined, return *unknown_dependent_function
 set to TRUE (unknown_dependent_function can be NULL if the call cannot
-be dependent).  This routine is called only in C++ mode.
+be dependent).  If found_through_adl is non-NULL and the callee was found
+only through ADL, *found_through_adl is set to TRUE.  This routine is
+called only in C++ mode.
 */
 {
   an_arg_match_summary_ptr arg_match_list;
@@ -7195,6 +7225,7 @@ be dependent).  This routine is called only in C++ mode.
                                                paren_tok_seq_number,
                                                &single_function,
                                                unknown_dependent_function,
+                                               found_through_adl,
                                                try_surrogate_functions ?
                                                  &surrogate_function_conv_sym :
                                                  (a_symbol_ptr *)NULL,
@@ -9305,6 +9336,7 @@ such cases (where operator overloading might apply, but we can't tell).
   a_boolean                arg_operand_list_not_used;
   a_boolean                dependent_call = FALSE;
   a_boolean                defer_overload_resolution = FALSE;
+  a_boolean                found_through_adl = FALSE;
 
   db_enter(4, "check_for_operator_overloading");
 #if DEBUG
@@ -9631,6 +9663,9 @@ select_best_function:
         } else {
           /* Exactly one function applies and is best. */
           proj_function_symbol = candidate_functions->function_symbol;
+#if BACK_END_IS_CP_GEN_BE
+          found_through_adl = candidate_functions->found_through_adl;
+#endif /* BACK_END_IS_CP_GEN_BE */
           arg_match = candidate_functions->arg_matches;
           if (proj_function_symbol == NULL) {
             a_boolean op_1_inside_conditional = FALSE,
@@ -9805,6 +9840,7 @@ select_best_function:
                                      /*compiler_generated=*/TRUE,
                                      /*is_conversion=*/FALSE,
                                      /*arg_dep_lookup_suppressed=*/FALSE,
+                                     found_through_adl,
                                      operator_position, result);
             }  /* if */
           }  /* if */
@@ -11049,6 +11085,7 @@ in that case.
                        /*compiler_generated=*/!is_explicit_cast,
                        /*is_conversion=*/TRUE,
                        /*arg_dep_lookup_suppressed=*/FALSE,
+                       /*found_through_adl=*/FALSE,
                        &orig_operand.position, operand);
     if (dest_type == NULL) {
       /* No specified destination type.  The result type of the conversion
