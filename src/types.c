@@ -2550,7 +2550,7 @@ checking instead of equivalence checking).
                             cssp_2->template_param_for_proxy_class)) {
           equiv = TRUE;
         }  /* if */
-     } else if (cssp_1->class_template != NULL &&
+      } else if (cssp_1->class_template != NULL &&
                 cssp_2->class_template != NULL) {
         if (identical_templates_given_symbol(cssp_1->class_template,
                                              cssp_2->class_template) ||
