@@ -56,7 +56,7 @@ end incorrectly considered the result an rvalue.  Now fixed.
 
 On a field selection of a field of reference type used thereafter
 as an lvalue, the reference field was incorrectly noted in the
-cross-reference output at being modified, when in fact in such
+cross-reference output as being modified, when in fact in such
 a case it's really just referenced.  The cross-reference output
 is now correct.
 
