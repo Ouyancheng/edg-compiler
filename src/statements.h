@@ -130,6 +130,10 @@ typedef struct a_struct_stmt_stack_entry {
 			/* TRUE if the structured statement is a for loop and
 			   the statement currently being processed is a
 			   for-init statement; FALSE otherwise. */
+  unsigned int	is_catch_clause:1;
+			/* TRUE if kind == ssk_compound and this structured
+			   statement represents the top level block of a
+			   catch clause. */
   a_reachability_summary
 		start_reachable;
 			/* Indicates whether or not the start of the structured
@@ -138,6 +142,47 @@ typedef struct a_struct_stmt_stack_entry {
 		end_reachable;
 			/* Indicates whether or not the end of the structured
 			   statement is reachable. */
+  a_statement_ptr
+		last_label_in_block;
+			/* If kind == ssk_compound, a pointer the last label
+			   statement that appeared inside the current block,
+			   either directly or in a nested block.  (A compound
+			   statement for a catch clause is not treated as
+			   nested.)  For other kinds or when no labels have
+			   appeared, this pointer is NULL. */
+  an_object_lifetime_ptr
+		last_label_object_lifetime;
+			/* If kind == ssk_compound and last_label_in_block is
+			   non-NULL, a pointer to the object lifetime pushed
+			   on the stack when last_label_in_block occurred or
+			   to an object lifetime created in a containing block
+			   that immediately after a block containing the label
+			   is terminated.  For example:
+			      {       // start lifetime (LT) for block#1
+				{     // start LT for block#2
+				  {   // start LT for block#3
+			      L:      // start LT for L-in-block#3
+				  }   // end LTs for L-in-block#3 and block#3
+				      // start LT for L-in-block#2
+				}     // end LTs for L-in-block#2 and block#2
+				      // start LT for L-in-block#1
+			      }       // end LTs for L-in-block#1 and block#1
+			   In this example there is an object lifetime created
+			   for L (at least temporarily) in all the blocks it
+			   belongs to (directly and indirectly), though they
+			   are not the same object lifetime.  Note, however,
+			   that these object lifetimes are bound not to the
+			   label but to a block statement that is created
+			   (but only if needed) and inserted into the
+			   statement stream. */
+  a_statement_ptr
+		last_label_block_insert_loc;
+			/* Pointer to the statement (either stmk_label or
+			   stmk_block) immediately after which a block
+			   statement can be inserted to provide an IL entry
+			   to which last_label_object_lifetime can bind (if
+			   it is needed).  If a block statement is inserted,
+			   this pointer is cleared. */
 } a_struct_stmt_stack_entry;
 
 EXTERN a_struct_stmt_stack_entry_ptr
@@ -168,6 +213,8 @@ extern a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
 extern a_statement_ptr compound_statement(a_boolean at_function_level,
                                           a_boolean explicit_return_type,
                                           a_boolean is_catch_clause);
+
+extern void wrapup_control_flow_processing(a_scope_ptr  scope_ptr);
 
 extern void warn_if_code_is_unreachable(an_error_code      error_code,
                                         a_source_position  *err_pos);
@@ -231,6 +278,10 @@ typedef struct a_control_flow_descr {
 			   block or a subblock of the current block.  NULL
 			   when the block is not contained within a switch
 			   statement or contains no case labels. */
+      an_object_lifetime_ptr
+		object_lifetime;
+			/* Pointer to the object lifetime, if any, pushed for
+			   the current block. */
       unsigned long
 		goto_count;
 			/* Number of goto statements in the current block and
@@ -290,7 +341,7 @@ typedef struct a_control_flow_descr {
 			   to a given label. */
     } goto_statement;
     /* When kind == cfdk_label: */
-      a_statement_ptr
+    a_statement_ptr
 		label_statement;
 			/* A pointer to an stmk_label statement. */
     /* When kind == cfdk_end_of_block: */
@@ -323,6 +374,9 @@ typedef struct a_struct_stmt_stack_state {
   a_control_flow_descr_ptr
 		end_of_control_flow_list;
 			/* Saved pointer to tail of control flow list. */
+  a_control_flow_descr_ptr
+		goto_fixup_list;
+			/* Saved pointer to fixup list for goto statements. */
 } a_struct_stmt_stack_state;
 
 extern void new_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);

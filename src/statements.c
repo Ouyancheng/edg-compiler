@@ -91,6 +91,16 @@ static a_control_flow_descr_ptr
 		avail_control_flow_descrs;
 			/* Linked list of a_control_flow_descr entries that
 			   have been freed for reuse. */
+static a_control_flow_descr_ptr
+		goto_fixup_list;
+			/* Linked list of control flow entries with kind
+			   cfdk_goto for entries that have been removed from
+			   the control flow list but need to be revisited in
+			   case the lifetime pointer in the associated
+			   statement should be cleared. */
+
+#define function_scope_object_lifetime                                \
+  (scope_stack[depth_innermost_function_scope].curr_scope_object_lifetime)
 
 #if DEBUG
 /*
@@ -255,7 +265,9 @@ entry on the list; back and forward represent the number of entries
 preceding and following cfdp that should be displayed.
 */
 {
-  int   count;
+  int                     count;
+  an_object_lifetime_ptr  olp;
+  a_boolean               is_provisional;
 
   if (cfdp != NULL) {  
     for (count = 0; count < back; ++count) {
@@ -263,11 +275,29 @@ preceding and following cfdp that should be displayed.
       cfdp = cfdp->prev;
     }  /* if */
     count = count + forward;
-    for (; count >= 0; --count) {
+    for (; count >= 0 && cfdp != NULL; --count, cfdp = cfdp->next) {
       fputs("  ", f_debug);
       db_cfd(cfdp);
-      cfdp = cfdp->next;
-      if (cfdp == NULL) break;
+      if (!C_mode()) {
+        olp = NULL;
+        is_provisional = FALSE;
+        if (cfdp->kind == (a_control_flow_descr_kind)cfdk_label) {
+          olp = cfdp->variant.label_statement->variant.label.lifetime;
+        } else if (cfdp->kind == (a_control_flow_descr_kind)cfdk_goto) {
+          olp = cfdp->variant.goto_statement.ptr->variant.label.lifetime;
+          is_provisional = (cfdp->variant.goto_statement.ptr->
+                               variant.label.ptr->variant.exec_stmt == NULL);
+        } else if (cfdp->kind == (a_control_flow_descr_kind)cfdk_block) {
+          olp = cfdp->variant.block.object_lifetime;
+        } else {
+          continue;
+        }  /* if */
+        fprintf(f_debug, "    %slifetime = %s",
+                         is_provisional ? "provisional " : "",
+                         olp == NULL ? "<null>" : "");
+        if (olp != NULL) db_object_lifetime_name(olp);
+        fputc('\n', f_debug);
+      }  /* if */
     }  /* for */
   }  /* if */
 }  /* db_cfd_list */
@@ -328,6 +358,7 @@ to it.
     case cfdk_block:
       cfdp->variant.block.end_of_block = NULL;
       cfdp->variant.block.last_case_label = NULL;
+      cfdp->variant.block.object_lifetime = NULL;
       cfdp->variant.block.goto_count = 0;
       cfdp->variant.block.any_labels = FALSE;
       cfdp->variant.block.is_switch_block = FALSE;
@@ -376,7 +407,7 @@ except "next" of entries on this list) is likely to be invalid.
 }  /* free_control_flow_descr */
 
 
-static void remove_list_of_flow_control_descrs(a_control_flow_descr_ptr  head,
+static void remove_list_of_control_flow_descrs(a_control_flow_descr_ptr  head,
                                                a_control_flow_descr_ptr  tail)
 /*
 Remove the list of control flow descriptors headed by head and terminated by
@@ -385,7 +416,7 @@ may be a sublist of the larger list, so link around it (both next and prev
 pointers) and move the list as a whole to the available list.
 */
 {
-  db_enter(5, "remove_list_of_flow_control_descrs");
+  db_enter(5, "remove_list_of_control_flow_descrs");
   if (head != NULL) {
 #if DEBUG
     if (debug_level >= 5) {
@@ -426,7 +457,7 @@ pointers) and move the list as a whole to the available list.
     avail_control_flow_descrs = head;
   }  /* if */
   db_exit();
-}  /* remove_list_of_flow_control_descrs */
+}  /* remove_list_of_control_flow_descrs */
 
 
 static void remove_control_flow_descr(a_control_flow_descr_ptr  cfdp)
@@ -445,9 +476,6 @@ forth, are decremented.
     db_cfd(cfdp);
   }  /* if */
 #endif /* DEBUG */
-  if (cfdp->kind == (a_control_flow_descr_kind)cfdk_goto) {
-    parent_cfdp = cfdp->parent;
-  }  /* if */
   /* Reset the next pointer of the entry on the list that precedes cfdp, or
      if there is no preceding entry reset the list head pointer. */
   if (cfdp->prev == NULL) {
@@ -464,11 +492,11 @@ forth, are decremented.
   } else {
     cfdp->next->prev = cfdp->prev;
   }  /* if */
-  free_control_flow_descr(cfdp);
-  if (parent_cfdp != NULL) {
-    /* Must have been a goto -- decrement the counters in the parent, the
-       parent's parent, etc. */
-    do {
+  if (cfdp->kind == (a_control_flow_descr_kind)cfdk_goto) {
+    /* Decrement the goto counters in the parent, the parent's parent, etc. */
+    for (parent_cfdp = cfdp->parent;
+         parent_cfdp != NULL;
+         parent_cfdp = grandparent_cfdp) {
       /* Save the pointer to the parent's parent, in case the parent becomes
          irrelevant and is removed from the list. */
       grandparent_cfdp = parent_cfdp->parent;
@@ -480,11 +508,30 @@ forth, are decremented.
       if (parent_cfdp->variant.block.goto_count == 0 &&
           !parent_cfdp->variant.block.any_labels &&
           parent_cfdp->variant.block.end_of_block != NULL) {
-        remove_list_of_flow_control_descrs(
+        remove_list_of_control_flow_descrs(
                         parent_cfdp, parent_cfdp->variant.block.end_of_block);
       }  /* if */
-    } while ((parent_cfdp = grandparent_cfdp) != NULL);
+    }  /* for */
+    if (cfdp->variant.goto_statement.ptr->variant.label.lifetime !=
+                                           function_scope_object_lifetime) {
+      /* The lifetime entry with which this goto is associated "survived"
+         (i.e., did not decay to the function scope object lifetime) and thus
+         will remain in the IL, so no fixup of the pointer is required. */
+    } else if (function_scope_object_lifetime->destructions == NULL) {
+      /* It is certain that the functions scope object lifetime will survive
+         in the IL.  Again, no pointer fixup is required. */
+    } else {
+      /* It may turn out that the lifetime created for the function scope will
+         be eliminated, in which case the lifetime pointer in the goto
+         statement will have to be cleared.  Put the entry on a fixup list. */
+      cfdp->next = goto_fixup_list;
+      goto_fixup_list = cfdp;
+      /* Don't return it to the available list. */
+      goto done;
+    }  /* if */
   }  /* if */
+  free_control_flow_descr(cfdp);
+done:;
   db_exit();
 }  /* remove_control_flow_descr */
 
@@ -592,7 +639,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
           if (!cfdp->variant.block.any_labels &&
               cfdp->variant.block.goto_count == 0) {
             /* A block with no labels and no forward gotos. */
-            remove_list_of_flow_control_descrs(cfdp, cfdp->variant.
+            remove_list_of_control_flow_descrs(cfdp, cfdp->variant.
                                                        block.end_of_block);
           }  /* if */
           /* Processing the subblock may mean the current block does not
@@ -712,16 +759,27 @@ initializing declarations.
 */
 {
   a_control_flow_descr_ptr  cfdp, prev_cfdp, prev_parent, parent;
+  an_object_lifetime_ptr    olp;
 
-  db_enter(5, "add_to_control_flow_descr_list");
+  db_enter(4, "add_to_control_flow_descr_list");
 #if DEBUG
-  if (debug_level >= 5) {
+  if (debug_level >= 4) {
     fprintf(f_debug, "Candidate to add to list: ");
     db_cfd(new_cfdp);
   }  /* if */
 #endif /* DEBUG */
   if (control_flow_descr_list == NULL) {
-    check_assertion(new_cfdp->kind == (a_control_flow_descr_kind)cfdk_block);
+    /* The first entry in the function should be a block entry. */
+    check_assertion_str2(new_cfdp->kind ==
+                                    (a_control_flow_descr_kind)cfdk_block,
+                         "add_to_control_flow_descr_list:",
+                         "list should start with a block entry");
+    /* The object lifetime should be that of the function scope. */
+    check_assertion_str2(new_cfdp->variant.block.object_lifetime ==
+                                      function_scope_object_lifetime,
+                         "add_to_control_flow_descr_list:",
+                         "list should start with a block entry");
+    /* Add this entry to the start of the list. */
     control_flow_descr_list = new_cfdp;
   } else {
     prev_parent = end_of_control_flow_descr_list->parent;
@@ -739,10 +797,43 @@ initializing declarations.
         /* A block with no labels and no forward gotos is being closed.  It
            can be removed from the list -- even if it has initializations,
            it can't be jumped into. */
-        remove_list_of_flow_control_descrs(prev_parent,
+        remove_list_of_control_flow_descrs(prev_parent,
                                            end_of_control_flow_descr_list);
         free_control_flow_descr(new_cfdp);
         goto done;
+      }  /* if */
+      if (!C_mode() && prev_parent->variant.block.goto_count > 0 &&
+          (olp = prev_parent->variant.block.object_lifetime) != NULL) {
+        /* The scope entry for a structured statement is about to be popped. */
+        if (prev_parent->parent == NULL) {
+          /* This must be the function scope itself.  Unresolved gotos are
+             errors, so we needn't worry about them at this point. */
+        } else if (!is_useless_object_lifetime(olp)) {
+          /* olp is going to be popped from the object lifetime stack, but
+             it is not going to be removed from the IL, so the pointers in
+             the goto entries don't have to be changed. */
+        } else {
+          /* Go through the entries for unresolved gotos and "promote" their
+             object_lifetime pointers to the parent of the object lifetime
+             that is about to be popped from the object lifetime stack. */
+          olp = innermost_local_object_lifetime(olp->parent_lifetime);
+          for (cfdp = prev_parent->next; cfdp != NULL; cfdp = cfdp->next) {
+            if (cfdp->kind == (a_control_flow_descr_kind)cfdk_goto) {
+              cfdp->variant.goto_statement.ptr->variant.label.lifetime = olp;
+            } else if (cfdp->kind == (a_control_flow_descr_kind)cfdk_block) {
+              if (cfdp->variant.block.object_lifetime == NULL &&
+                  cfdp->variant.block.goto_count > 0) {
+                /* Find the gotos in the nested block and promote their object
+                   lifetime pointers, too. */
+              } else {
+                /* Skip over the nested block.  Either it has no gotos or
+                   labels or the lifetime associated with it is not useless. */
+                cfdp = cfdp->variant.block.end_of_block;
+              }  /* if */
+            }  /* if */
+          }  /* for */
+          prev_parent->variant.block.object_lifetime = NULL;
+        }  /* if */
       }  /* if */
       /* No initialization remains "exposed" after the block is closed. */
       prev_parent->variant.block.exposed_init_in_switch = FALSE;
@@ -893,7 +984,7 @@ initializing declarations.
   end_of_control_flow_descr_list = new_cfdp;
 done:;
 #if DEBUG
-  if (debug_level >= 5) {
+  if (debug_level >= 4) {
     fprintf(f_debug, "Tail of control_flow_descr_list:\n");
     db_cfd_list(end_of_control_flow_descr_list,10,0);
   }  /* if */
@@ -953,6 +1044,7 @@ the current statement sequence.
   a_statement_ptr               extra_block;
   a_statement_ptr               temp_stmt;
   a_control_flow_descr_ptr      cfdp;
+  an_object_lifetime_ptr        olp;
 
   db_enter(4, "add_statement_at_stmt_pos");
   /* Find the header pointer for the statement list for the current
@@ -1107,6 +1199,46 @@ the current statement sequence.
     cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_init);
     cfdp->variant.init_statement = sp;
     add_to_control_flow_descr_list(cfdp);
+    if (!C_mode()) {
+      /* Set olp to point to the object lifetime that was created to cover
+         any declarations in an outer block after a label statement appeared
+         in an inner block. */
+      olp = sssep->last_label_object_lifetime;
+      if (olp != NULL && olp->entity.ptr == NULL &&
+          !is_useless_object_lifetime(olp)) {
+        /* olp is still unbound but it has a destructions list -- it must have
+           become "useful" as a result of this initialization.  Create a block
+           statement, insert it at the appropriate place in the statement list,
+           and bind the associated block entry to the object lifetime entry. */
+        a_statement_ptr  insert_loc = sssep->last_label_block_insert_loc;
+
+        check_assertion_str2(
+                olp == innermost_local_object_lifetime(curr_object_lifetime),
+                "add_statement_at_stmt_pos:",
+                "last_label_object_lifetime is not at top of lifetime stack");
+        check_assertion_str2(sssep->kind == ssk_compound,
+                             "add_statement_at_stmt_pos:",
+                             "not a compound statement");
+        check_assertion_str2(insert_loc != NULL, "add_statement_at_stmt_pos:",
+                             "insert location is NULL");
+        /* Allocate the block statement entry. */
+        extra_block = alloc_statement((a_statement_kind)stmk_block);
+        /* Set its statement position by copying that of the statement after
+           which it is to be inserted. */
+        extra_block->position = insert_loc->position;
+        /* Insert the block into the statement list. */
+        extra_block->variant.block.statements = insert_loc->next;
+        insert_loc->next = extra_block;
+        sssep->extra_block = extra_block;
+        /* Note:  sssep->last_dep_statement should not be affected. */
+        /* Now bind the associated block entry and the lifetime entry. */
+        bind_object_lifetime(olp, (an_il_entry_kind)iek_block,
+                             (char *)extra_block->variant.block.extra_info);
+        /* Clear the insert location now that it has been used -- to help
+           prevent its being used again by mistake. */
+        sssep->last_label_block_insert_loc = NULL;
+      }  /* if */
+    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   } else if (kind == (a_statement_kind)stmk_decl) {
     /* An stmk_decl is not an executable statement. */
@@ -1438,6 +1570,7 @@ algorithmic limit on the number of levels of nesting supported.
   saved_state->code_reachability = curr_reachability;
   saved_state->control_flow_list = control_flow_descr_list;
   saved_state->end_of_control_flow_list = end_of_control_flow_descr_list;
+  saved_state->goto_fixup_list = goto_fixup_list;
 }  /* new_struct_stmt_stack */
 
 
@@ -1464,6 +1597,7 @@ statement stack.
   curr_reachability = saved_state->code_reachability;
   control_flow_descr_list = saved_state->control_flow_list;
   end_of_control_flow_descr_list = saved_state->end_of_control_flow_list;
+  goto_fixup_list = saved_state->goto_fixup_list;
 }  /* restore_struct_stmt_stack */
 
 
@@ -1476,6 +1610,8 @@ the associated il statement.
 */
 {
   register a_struct_stmt_stack_entry_ptr sssep;
+  a_control_flow_descr_ptr               cfdp;
+
 
   db_enter(4, "push_stmt_stack");
   /* Expand the structured statement stack if necessary. */
@@ -1501,6 +1637,10 @@ the associated il statement.
   sssep->any_exec_statement_seen
                               = FALSE;
   sssep->for_init             = FALSE;
+  sssep->is_catch_clause      = FALSE;
+  sssep->last_label_in_block         = NULL;
+  sssep->last_label_object_lifetime  = NULL;
+  sssep->last_label_block_insert_loc = NULL;
   if (kind != ssk_compound || sp->dependent_statement) {
     /* For statements other than blocks, copy down the any_exec_statement_seen
        flag.  It's really being maintained for the block containing this
@@ -1521,8 +1661,17 @@ the associated il statement.
   } else if (kind == ssk_compound) {
     /* Represent this compound statement by adding a block entry to the
        control_flow_descr_list. */
-    add_to_control_flow_descr_list(
-             alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block));
+    cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
+    if (!C_mode()) {
+      /* Only set the object lifetime for cases in which a new object
+         lifetime will have been created for this block -- that is, for
+         every compound statement entry except those created for cfront
+         dependent statements. */
+      if (!sp->dependent_statement) {
+        cfdp->variant.block.object_lifetime = curr_object_lifetime;
+      }  /* if */
+    }  /* if */
+    add_to_control_flow_descr_list(cfdp);
   }  /* if */
   db_exit();
 }  /* push_stmt_stack */
@@ -1606,7 +1755,7 @@ a structured statement has ended.
 {
   register a_struct_stmt_stack_entry_ptr sssep;
   a_struct_stmt_kind                     kind;
-  a_statement_ptr                        sp;
+  a_statement_ptr                        sp, last_label_in_block = NULL;
   
   db_enter(4, "pop_stmt_stack");
   sssep = &struct_stmt_stack[depth_stmt_stack];
@@ -1655,16 +1804,88 @@ a structured statement has ended.
     add_to_control_flow_descr_list(
        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
   }  /* if */
+  if (kind == ssk_compound) {
+    /* Remember the last_label_in_block pointer, if there is one. */
+    last_label_in_block = sssep->last_label_in_block;
+  }  /* if */
   /* Pop the stack. */
   depth_stmt_stack--;
-  /* If the break label for this statement was referenced, generate 
-     its definition now.  This must be done after depth_stmt_stack is
-     decremented so that the label will appear outside the structured
-     statement.  It must also be done after curr_reachability has been
-     adjusted. */
-  define_label(sssep->break_label);
+  if (depth_stmt_stack > -1) {
+    /* If the break label for this statement was referenced, generate 
+       its definition now.  This must be done after depth_stmt_stack is
+       decremented so that the label will appear outside the structured
+       statement.  It must also be done after curr_reachability has been
+       adjusted. */
+    define_label(sssep->break_label);
+    if (C_mode()) {
+      /* Propagate the last-label-in-block pointer to the innermost containing
+         block, and clear the associated pointers to signal that they will
+         need to be reset. */
+      do { sssep = --sssep; } while (sssep->kind != ssk_compound);
+      sssep->last_label_in_block = last_label_in_block;
+      sssep->last_label_object_lifetime = NULL;
+      sssep->last_label_block_insert_loc = NULL;
+    }  /* if */
+  }  /* if */
   db_exit();
 }  /* pop_stmt_stack */
+
+
+static void push_last_label_object_lifetime(a_statement_ptr  stmt)
+/*
+stmt is either a label statement or a block statement associated with a
+block that just terminated.  If appropriate, push a new object lifetime
+for the last (= most recently defined) label and update fields in the
+structured statement stack.
+*/
+{
+  a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack[depth_stmt_stack];
+  int                            depth;
+
+  if (C_mode() && sssep->kind == (a_struct_stmt_kind)ssk_compound) {
+    /* If stmt is a label statement, create the new object lifetime
+       unconditionally.  If it's a block statement, create it only if a label
+       was defined in the nested block that was just terminated -- that is, if
+       there is a last-label-in-block for the current block but it has no
+       lifetime associated with it yet. */
+    if (stmt->kind == (a_statement_kind)stmk_label ||
+        (sssep->last_label_in_block != NULL &&
+         sssep->last_label_object_lifetime == NULL)) {
+      /* Push the object lifetime and set the struct-stmt-stack entry to point
+         to it. */
+      push_object_lifetime((an_il_entry_kind)iek_block, (char *)NULL,
+                           (an_object_lifetime_kind)olk_local);
+      sssep->last_label_object_lifetime = curr_object_lifetime;
+      /* If it turns out that a destructible object is attached to this
+         lifetime, it will need to be bound to a block statement.  Only then
+         will the latter be created and added to the statement list.  Record
+         the point at which it will be inserted -- namely, immediately after
+         the current label or block statement. */
+      sssep->last_label_block_insert_loc = stmt;
+    }  /* if */
+  }  /* if */
+  if (stmt->kind == (a_statement_kind)stmk_label) {
+    /* Update the last_label_in_block pointer in all enclosing blocks that
+       represent compound statements.  This is done because "in" the block
+       includes "within a nested block". Also clear the associated object
+       lifetime (if any); this will cause a new one to be created when the
+       block is returned to. */
+    for (depth = depth_stmt_stack-1; depth > -1; --depth) {
+      sssep = &struct_stmt_stack[depth];
+      if (sssep->kind == (a_struct_stmt_kind)ssk_compound) {
+        if (sssep->is_catch_clause) {
+          /* Don't propagate the last-label information out of a catch
+             clause, since you can't branch back to the label from outside
+             the handler. */
+          break;
+        }  /* if */
+        sssep->last_label_in_block = stmt;
+        sssep->last_label_object_lifetime = NULL;
+        sssep->last_label_block_insert_loc = NULL;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* push_last_label_object_lifetime */
 
 
 static void asm_statement(void)
@@ -1757,11 +1978,6 @@ being created to surround a dependent statement in C++.
                            (an_object_lifetime_kind)olk_local);
     }  /* if */
   }  /* if */
-  /* Make the parent pointer in the block point to the nearest enclosing
-     compound statement. */
-  block->parent_block = nearest_enclosing_compound_statement();
-  /* Push an entry on the structured statement stack. */
-  push_stmt_stack(ssk_compound, block_stmt);
   /* Push an associated scope.  This does not allocate the IL scope yet.
      Do not do this in cfront compatibility mode (the old rule was that no
      scope is created). */
@@ -1774,6 +1990,11 @@ being created to surround a dependent statement in C++.
       scope_stack[decl_scope_level].is_loop_scope = TRUE;
     }  /* if */
   }  /* if */
+  /* Make the parent pointer in the block point to the nearest enclosing
+     compound statement. */
+  block->parent_block = nearest_enclosing_compound_statement();
+  /* Push an entry on the structured statement stack. */
+  push_stmt_stack(ssk_compound, block_stmt);
   return block_stmt;
 }  /* start_block_statement */
 
@@ -1792,6 +2013,8 @@ the block statement.
   block->end_of_block_reachable = curr_reachability.reachable;
   if (block_stmt->dependent_statement) {
     /* cfront mode dependent statement. */
+    /* Pop the statement stack. */
+    pop_stmt_stack();
     pop_object_lifetime();
   } else {
     /* Store the IL scope pointer in the block.  This is NULL except for
@@ -1801,11 +2024,26 @@ the block statement.
       block->assoc_scope = scope_ptr;
       scope_ptr->assoc_block = block_stmt;
     }  /* if */
+    /* Pop the statement stack. */
+    pop_stmt_stack();
     /* Pop the name scope. */
     pop_scope();
+    if (!C_mode() && block_stmt->kind == (a_statement_kind)stmk_block) {
+      /* Once pop_scope has been called, check to see if a label was defined
+         in the block just terminated; if so, push a new object lifetime.  It
+         is needed handle the destructions caused by a backwards goto to a
+         label defined in an inner block -- for example:
+                  :
+                {
+              L:;
+                }
+                A x;    // x requires destruction
+                goto L;
+                  :
+      */
+      push_last_label_object_lifetime(block_stmt);
+    }  /* if */
   }  /* if */
-  /* Pop the statement stack. */
-  pop_stmt_stack();
 }  /* finish_block_statement */
 
 
@@ -1903,6 +2141,9 @@ See also 3.6.4.1.
   }  /* if */
   /* Pop the structured statement stack. */
   pop_stmt_stack();
+  /* If appropriate create an entry to represent the object lifetime for the
+     last label defined within the context that has just terminated. */
+  push_last_label_object_lifetime(sp);
 
   db_exit();
 }  /* if_statement */
@@ -1985,6 +2226,9 @@ See also 3.6.4.2.
       alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
   /* Pop the structured statement stack. */
   pop_stmt_stack();
+  /* If appropriate create an entry to represent the object lifetime for the
+     last label defined within the context that has just terminated. */
+  push_last_label_object_lifetime(sp);
 
   db_exit();
 }  /* switch_statement */
@@ -2036,6 +2280,9 @@ See also 3.6.5.1.
   define_continue_label();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
+  /* If appropriate create an entry to represent the object lifetime for the
+     last label defined within the context that has just terminated. */
+  push_last_label_object_lifetime(sp);
 
   db_exit();
 }  /* while_statement */
@@ -2093,6 +2340,9 @@ See also 3.6.5.2.
   remove_stop_token(tok_semicolon);
   /* Pop the structured statement stack. */
   pop_stmt_stack();
+  /* If appropriate create an entry to represent the object lifetime for the
+     last label defined within the context that has just terminated. */
+  push_last_label_object_lifetime(sp);
 
   db_exit();
 }  /* do_statement */
@@ -2123,9 +2373,11 @@ where handler-seq is a sequence of one or more handlers of the form
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_try_block, sp);
-  /* Push an object lifetime. */
-  push_object_lifetime(iek_try_supplement, (char *)sp->variant.try_block,
-                       (an_object_lifetime_kind)olk_local);
+  if (!C_mode()) {
+    /* Push an object lifetime. */
+    push_object_lifetime(iek_try_supplement, (char *)sp->variant.try_block,
+                         (an_object_lifetime_kind)olk_local);
+  }  /* if */
   current_routine_entry()->contains_try_block = TRUE;
 #if CHECKING
   if (curr_token != tok_try) {
@@ -2294,6 +2546,9 @@ either an expression statement or a declaration statement.
   define_continue_label();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
+  /* If appropriate create an entry to represent the object lifetime for the
+     last label defined within the context that has just terminated. */
+  push_last_label_object_lifetime(sp);
 
   db_exit();
 }  /* for_statement */
@@ -2387,6 +2642,25 @@ issue a diagnostic complaining about skipping over an initialization.
   db_exit();
 }  /* report_goto_past_init */
 
+static an_object_lifetime_ptr innermost_keepable_lifetime(
+                                            an_object_lifetime_ptr  olp)
+/*
+Starting from the object lifetime entry pointed to by olp, walk the object
+lifetime stack via parent pointers and return the first olk_local object
+lifetime entry that will be retained in the IL because it has a non-NULL
+destructions pointer. If none is found before reaching the object lifetime
+for the function scope itself, return that one (even if its destructions
+pointer is NULL).
+*/
+{
+  while (olp != function_scope_object_lifetime) {
+    if (olp->kind == (an_object_lifetime_kind)olk_local &&
+        olp->destructions != NULL) break;
+    olp = olp->parent_lifetime;
+  }  /* while */
+  return olp;
+}  /* innermost_keepable_lifetime */
+
 
 static void check_goto_and_label(a_control_flow_descr_ptr  label_cfdp,
                                  a_control_flow_descr_ptr  goto_cfdp,
@@ -2403,6 +2677,7 @@ diagnose the condition.
 {
   a_control_flow_descr_ptr  cfdp, start_cfdp, common_parent;
   an_error_severity         severity;
+  a_statement_ptr           label_stmt, goto_stmt;
 
   db_enter(4, "check_goto_and_label");
   if (is_forwards && goto_cfdp->variant.goto_statement.prev_goto != NULL) {
@@ -2564,6 +2839,45 @@ diagnose the condition.
                           &goto_cfdp->source_pos, &severity);
     if (severity != es_none) end_error();
   }  /* if */
+  if (!C_mode()) {
+    /* Find the common object lifetime containing both the goto statement and
+       the label, and update the goto statement's lifetime field to point to
+       it. */
+    an_object_lifetime_ptr  goto_olp, label_olp, olp;
+
+    label_stmt = label_cfdp->variant.label_statement;
+    label_olp = label_stmt->variant.label.lifetime;
+    goto_stmt = goto_cfdp->variant.goto_statement.ptr;
+    goto_olp = goto_stmt->variant.label.lifetime;
+    /* The outer loop follows parent pointers in the object lifetime for the
+       goto statement. */
+    while (goto_olp != function_scope_object_lifetime) {
+      /* The inner loop follows parent pointers in the object lifetime for
+         the label. */
+      olp = label_olp;
+      for (;;) {
+        /* Skip lifetime entries that are not going to be kept in the IL. */
+        olp = innermost_keepable_lifetime(olp);
+        if (olp == goto_olp) {
+          /* Found a match. */
+          goto update_goto_stmt;
+        }  /* if */
+        if (olp == function_scope_object_lifetime) {
+          /* Stop the inner loop if the function scope object lifetime is
+             reached without a match. */
+          break;
+        }  /* if */
+        /* Advance up the parent lifetime chain for the label. */
+        olp = olp->parent_lifetime;
+      }  /* for */
+      /* Advance up the parent lifetime chain for the goto statement, skipping
+         lifetime entries that are not going to be kept in the IL. */
+      goto_olp = innermost_keepable_lifetime(goto_olp->parent_lifetime);
+    }  /* while */
+update_goto_stmt:
+    /* Enter the match in the goto statement. */
+    goto_stmt->variant.label.lifetime = goto_olp;
+  }  /* if */
   if (is_forwards) {
     /* The goto entry for a forwards declaration is no longer needed, so it
        can be removed from the control_flow_descr_list. */
@@ -2620,7 +2934,7 @@ condition is not recognized till the label statement is reached.
       /* This is a backwards goto -- i.e., it references a label that has
          already been defined.  Check whether it jumps over any initializing
          declarations.  Note that the goto entry has been added to the
-         flow_control_descr_list; once the checking has been done it is
+         control_flow_descr_list; once the checking has been done it is
          taken off again, since only forward gotos need to remain on the
          list (and then only till the label is seen). */
       label_cfdp = label_sym->variant.label.assoc_control_flow_descr;
@@ -2671,6 +2985,12 @@ See also 3.6.6.1.
   add_stop_token(tok_semicolon);
   /* Scan the label identifier. */
   sp->variant.label.ptr = scan_label(/*is_definition=*/FALSE);
+  if (!C_mode()) {
+    /* Set the object lifetime.  It is a provisional setting and may be changed
+       based on the lifetime of the label definition. */
+    sp->variant.label.lifetime =
+                        innermost_local_object_lifetime(curr_object_lifetime);
+  }  /* if */
   /* If this is a forward reference to a label, record information about
      the goto to allow diagnosis of jump-over-initialization errors.  If
      it is backward reference, do the checking immediately. */
@@ -3466,6 +3786,18 @@ rescan_statement:
              definition. */
           define_label(label);
           stmt_update_source_sequence_list(label->variant.exec_stmt);
+          if (!C_mode()) {
+            /* Record the innermost object lifetime that this label is part
+               of, ignoring any object lifetimes that are "useless".  (They
+               can be ignored because, given how object lifetimes nest and
+               the way new block-bound scopes are created after labels, no
+               other destructions will ever be added to them. The exception
+               is the outermost object lifetime of the function, which may
+               turn out to be keepable after all; if not, the label
+               statement's lifetime pointer will be cleared.) */
+            label->variant.exec_stmt->variant.label.lifetime =
+                            innermost_keepable_lifetime(curr_object_lifetime);
+          }  /* if */
           /* If there have been forward gotos referencing this label, check
              whether any have jumped over initializing declarations. */
           check_for_jump_over_initialization(label->variant.exec_stmt,
@@ -3474,6 +3806,12 @@ rescan_statement:
           check_assertion(depth_innermost_function_scope > 0);
           scope_stack[depth_innermost_function_scope].last_label_decl_seq =
                    ((a_symbol_ptr)label->source_corresp.assoc_info)->decl_seq;
+          if (!C_mode()) {
+            /* Create an object lifetime to run from this point to the end of
+               the current scope.  It's needed to handle backwards gotos to
+               the current label. */
+            push_last_label_object_lifetime(label->variant.exec_stmt);
+          }  /* if */
         }  /* if */
 #if CHECKING
         if (curr_token != tok_colon) {
@@ -3568,6 +3906,7 @@ branching into it is disallowed).
     /* Block for a function. */
     set_reachable(curr_reachability);
     control_flow_descr_list = end_of_control_flow_descr_list = NULL;
+    goto_fixup_list = NULL;
     block = alloc_statement((a_statement_kind)stmk_block);
     set_stmt_source_position(block->position, pos_curr_token);
     stmt_update_source_sequence_list(block);
@@ -3590,6 +3929,7 @@ branching into it is disallowed).
     /* Push an entry on the structured statement stack. */
     push_stmt_stack(ssk_compound, block);
     /* Mark the block that was just pushed onto the stack as a handler. */
+    struct_stmt_stack[depth_stmt_stack].is_catch_clause = TRUE;
     end_of_control_flow_descr_list->variant.block.is_handler_block = TRUE;
   } else {
     /* Block nested within a function.  Link it onto the current statement
@@ -3691,8 +4031,6 @@ branching into it is disallowed).
     pop_stmt_stack();
     /* Clear statement stack just to be careful. */
     depth_stmt_stack = -1;
-    remove_list_of_flow_control_descrs(control_flow_descr_list,
-                                       end_of_control_flow_descr_list);
   } else {
     /* Block/compound statement rather than function. */
     finish_block_statement(block);
@@ -3720,6 +4058,46 @@ branching into it is disallowed).
   db_exit();
   return block;
 }  /* compound_statement */
+
+
+void wrapup_control_flow_processing(a_scope_ptr  scope_ptr)
+/*
+scope_ptr is identifies the function scope that is just now being popped.
+The corresponding compound statement has just been processed -- complete the
+processing pertaining to its control flow list.  This routine is called after
+compound statement is complete (i.e., from pop_scope) because the object
+lifetime for the function has to be popped from the object lifetime stack
+before the fixup can be done for pointers in goto and label statements.
+*/
+{
+  a_control_flow_descr_ptr  cfdp, next_cfdp;
+
+  if (control_flow_descr_list != NULL) {
+    if (!C_mode()) {
+      if (scope_ptr->lifetime == NULL) {
+        /* The function scope lifetime was eliminated, so be sure it is
+           not pointed to by any goto or label statements. */
+        /* The gotos were removed from the control_flow_descr_list but have
+           been saved on a fixup list. */
+        for (cfdp = goto_fixup_list; cfdp != NULL; cfdp = next_cfdp) {
+          next_cfdp = cfdp->next;
+          cfdp->variant.goto_statement.ptr->variant.label.lifetime = NULL;
+          free_control_flow_descr(cfdp);
+        }  /* for */
+        goto_fixup_list = NULL;
+        /* The labels are still on the control_flow_descr_list. */
+        for (cfdp = control_flow_descr_list; cfdp != NULL; cfdp = cfdp->next) {
+          if (cfdp->kind == (a_control_flow_descr_kind)cfdk_label) {
+            cfdp->variant.goto_statement.ptr->variant.label.lifetime = NULL;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+    remove_list_of_control_flow_descrs(control_flow_descr_list,
+                                       end_of_control_flow_descr_list);
+    control_flow_descr_list = end_of_control_flow_descr_list = NULL;
+  }  /* if */
+}  /* wrapup_control_flow_processing */
 
 
 #if DEBUG
@@ -3773,6 +4151,7 @@ of the front end.
 {
   control_flow_descr_list = NULL;
   end_of_control_flow_descr_list = NULL;
+  goto_fixup_list = NULL;
   avail_control_flow_descrs = NULL;
 #if DEBUG
   num_control_flow_descrs_allocated = 0;
