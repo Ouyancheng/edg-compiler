@@ -710,14 +710,15 @@ precompiled header processing.
 /*
 USE_MMAP_FOR_MEMORY_REGIONS is TRUE if memory mapping available for use
 in allocating memory regions.  By default, it is assumed to be available
-on systems other than MS-DOS.
+on systems other than MS-DOS.  When compiling a standalone utility
+program, use of mmap is disabled by default.
 */
 #ifndef USE_MMAP_FOR_MEMORY_REGIONS
-#if __MSDOS__
+#if __MSDOS__ || STANDALONE_UTILITY_PROGRAM
 #define USE_MMAP_FOR_MEMORY_REGIONS FALSE
-#else /* !__MSDOS__ */
+#else /* !(__MSDOS__ || STANDALONE_UTILITY_PROGRAM) */
 #define USE_MMAP_FOR_MEMORY_REGIONS TRUE
-#endif /* __MSDOS__ */
+#endif /* __MSDOS__ || STANDALONE_UTILITY_PROGRAM */
 #endif /* ifndef USE_MMAP_FOR_MEMORY_REGIONS */
 
 /*
