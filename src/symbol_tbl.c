@@ -2593,6 +2593,77 @@ changed if there is no error.
 }  /* add_symbol_to_scope_list */
 
 
+static void set_namespace_projection_symbol(a_symbol_ptr     proj_sym,
+                                            a_symbol_ptr     fund_sym,
+                                            a_boolean        synthesized,
+                                            a_scope_depth    scope_depth)
+/*
+Initialize the fields of the symbol proj_sym to point to be a
+a namespace projection symbol that points to fund_sym.
+proj_sym must already point to a sk_namespace_projection symbol.
+synthesized is TRUE if this is a synthesized namespace projection symbol.
+*/
+{
+  /* Make sure fund_sym is really a fundamental symbol and not another
+     projection. */
+  fund_sym = fundamental_symbol_of(fund_sym);
+  proj_sym->variant.namespace_projection.fundamental_symbol = fund_sym;
+  proj_sym->decl_scope = scope_stack[scope_depth].number;
+  proj_sym->synthesized_namespace_projection = synthesized;
+}  /* set_namespace_projection_symbol */
+
+
+static
+a_symbol_ptr make_namespace_projection_symbol(a_symbol_ptr     fund_sym,
+                                              a_symbol_locator *locator,
+                                              a_boolean        synthesized,
+                                              a_scope_depth    scope_depth)
+/*
+Create a synthesized namespace projection symbol and set it to point
+to fund_sym.  synthesized is TRUE if this is a synthesized namespace
+projection symbol.
+*/
+{
+  a_symbol_ptr	sym;
+
+  sym = alloc_symbol((a_symbol_kind)sk_namespace_projection,
+                     fund_sym->header, &locator->source_position);
+  set_namespace_projection_symbol(sym, fund_sym, synthesized, scope_depth);
+  return sym;
+}  /* make_namespace_projection_symbol */
+
+
+static
+a_symbol_ptr enter_namespace_projection_symbol(a_symbol_ptr     fund_sym,
+                                               a_symbol_locator *location,
+                                               a_boolean        synthesized,
+                                               a_scope_depth    scope_depth,
+                                               a_boolean        suppress_error)
+/*
+Create a synthesized namespace projection symbol, set it to point to fund_sym,
+and enter it in the symbol table.  synthesized is TRUE if this is a
+synthesized namespace projection symbol.  This routine is like enter_symbol,
+but it is only used to create namespace projection symbols.
+*/
+{
+  a_symbol_ptr	sym_ptr;
+
+  sym_ptr = make_namespace_projection_symbol(fund_sym, location, synthesized,
+                                             scope_depth);
+  sym_ptr->is_error = location->is_error;
+  /* Set the locator to point to the symbol entered. */
+  location->specific_symbol = sym_ptr;
+  location->is_qualified_name = FALSE;
+  /* Add the symbol to the proper scope's symbol list. */
+  add_symbol_to_scope_list(sym_ptr, scope_depth, &suppress_error);
+  /* Add the symbol to the symbol table.  This must be done after the symbol
+     is added to the scope list, because that sets the scope number, which
+     is needed to check for redeclaration. */
+  link_symbol_into_symbol_table(sym_ptr, scope_depth, suppress_error);
+  return sym_ptr;
+}  /* enter_namespace_projection_symbol */
+
+
 a_symbol_ptr enter_symbol(a_symbol_kind    sym_kind,
 			  a_symbol_locator *location,
 			  a_scope_depth    scope_depth,
@@ -2606,6 +2677,9 @@ Generate an error if the symbol is already defined in that scope and name
 space unless suppress_error is TRUE.  If *location is an error locator,
 an error symbol is created and entered.  Note that any specific symbol
 indicated in the locator is supposed to be ignored.
+
+If this routine is changed, enter_namespace_projection_symbol may need to
+be changed too.
 */
 {
   register a_symbol_ptr sym_ptr;
@@ -3254,54 +3328,6 @@ table.
   sym->decl_scope = scope_stack[depth_scope_stack].number;
   return sym;
 }  /* make_unnamed_namespace_symbol */
-
-
-static void set_synth_namespace_projection_symbol(a_symbol_ptr     proj_sym,
-                                                  a_symbol_ptr     fund_sym)
-/*
-Initialize the fields of the symbol proj_sym to point to be a
-a synthesized namespace projection symbol that points to fund_sym.
-proj_sym must already point to a sk_namespace_projection symbol.
-*/
-{
-  proj_sym->variant.namespace_projection.fundamental_symbol = fund_sym;
-  proj_sym->decl_scope = scope_stack[decl_scope_level].number;
-  proj_sym->synthesized_namespace_projection = TRUE;
-}  /* make_namespace_projection_symbol */
-
-
-static
-a_symbol_ptr make_synth_namespace_projection_symbol(a_symbol_ptr     fund_sym,
-                                                    a_symbol_locator *locator)
-/*
-Create a synthesized namespace projection symbol and set it to point
-to fund_sym.
-*/
-{
-  a_symbol_ptr	sym;
-
-  sym = alloc_symbol((a_symbol_kind)sk_namespace_projection,
-                     fund_sym->header, &locator->source_position);
-  set_synth_namespace_projection_symbol(sym, fund_sym);
-  return sym;
-}  /* make_namespace_projection_symbol */
-
-
-static
-a_symbol_ptr enter_synth_namespace_projection_symbol(a_symbol_ptr     fund_sym,
-                                                     a_symbol_locator *locator)
-/*
-Create a synthesized namespace projection symbol, set it to point to fund_sym,
-and enter it in the symbol table.
-*/
-{
-  a_symbol_ptr	sym;
-
-  sym = enter_symbol((a_symbol_kind)sk_namespace_projection, locator,
-                     decl_scope_level, /*suppress_redecl_error=*/FALSE);
-  set_synth_namespace_projection_symbol(sym, fund_sym);
-  return sym;
-}  /* enter_namespace_projection_symbol */
 
 
 a_symbol_ptr make_anonymous_parent_object_symbol(a_symbol_kind      kind,
@@ -6745,7 +6771,7 @@ symbol(s) in curr_sym.
     check_assertion(curr_sym->kind == (a_symbol_kind)sk_overloaded_function);
     for (sym = curr_sym->variant.overloaded_function.symbols;
          sym != NULL; sym = sym->next) {
-      if (curr_sym == fundamental_symbol_of(sym)) break;
+      if (new_sym == fundamental_symbol_of(sym)) break;
     }  /* for */
     if (sym != NULL) result = TRUE;
   }  /* if */
@@ -6773,11 +6799,16 @@ creating a new overload set.
     /* The new symbol is a simple function.  Make a namespace
        projection that points to it. */
     if (curr_sym == NULL) {
-      curr_sym = enter_synth_namespace_projection_symbol(new_sym, locator);
+      curr_sym = enter_namespace_projection_symbol(new_sym, locator,
+                                                  /*synthesized=*/TRUE,
+                                                  depth_scope_stack,
+                                                  /*suppress_error=*/FALSE);
     } else {
       /* If new_sym is not already in the lookup set, add it. */
       if (!already_in_lookup_set(curr_sym, new_sym)) {
-        new_sym = make_synth_namespace_projection_symbol(new_sym, locator);
+        new_sym = make_namespace_projection_symbol(new_sym, locator,
+                                                   /*synthesized=*/TRUE,
+                                                   depth_scope_stack);
         curr_sym = add_symbol_to_overload_list(new_sym, curr_sym);
       }  /* if */
     }  /* if */
@@ -6790,14 +6821,19 @@ creating a new overload set.
       /* If the current symbol is NULL, take the first member of the
          overload set and create a projection symbol to it.  Later
          we will add the remaining members and create a new overload set. */
-      curr_sym = enter_synth_namespace_projection_symbol(rout_sym, locator);
+      curr_sym = enter_namespace_projection_symbol(rout_sym, locator,
+                                                   /*synthesized=*/TRUE,
+                                                   depth_scope_stack,
+                                                   /*suppress_error=*/FALSE);
       rout_sym = rout_sym->next;
     }  /* if */
     for (; rout_sym != NULL; rout_sym = rout_sym->next) {
       /* If rout_sym is not already in the lookup set, add it. */
       if (!already_in_lookup_set(curr_sym, rout_sym)) {
-        new_rout_sym = make_synth_namespace_projection_symbol(rout_sym,
-                                                              locator);
+        new_rout_sym = make_namespace_projection_symbol(rout_sym,
+                                                        locator,
+                                                        /*synthesized=*/TRUE,
+                                                        depth_scope_stack);
         curr_sym = add_symbol_to_overload_list(new_rout_sym, curr_sym);
       }  /* if */
     }  /* for */
@@ -6834,7 +6870,10 @@ nonfunctions, or more than one nonfunction, set the any_errors flag.
       curr_sym = merge_function_into_lookup_set((a_symbol_ptr)NULL,
                                                 new_sym, locator);
     } else {
-      curr_sym = enter_synth_namespace_projection_symbol(new_sym, locator);
+      curr_sym = enter_namespace_projection_symbol(new_sym, locator,
+                                                   /*synthesized=*/TRUE,
+                                                   depth_scope_stack,
+                                                   /*suppress_error=*/FALSE);
     }  /* if */
   } else if (curr_sym->kind == (a_symbol_kind)sk_namespace_projection &&
              namespace_projection_fundamental_symbol(curr_sym) == NULL) {
@@ -6846,7 +6885,8 @@ nonfunctions, or more than one nonfunction, set the any_errors flag.
        the result of a constrained lookup (e.g., a tag lookup) which
        may not be applicable now.  Set the existing symbol to point to
        the new symbol. */
-    set_synth_namespace_projection_symbol(curr_sym, new_sym);
+    set_namespace_projection_symbol(curr_sym, new_sym, /*synthesized=*/TRUE,
+                                    depth_scope_stack);
   } else if (already_in_lookup_set(curr_sym, new_sym)) {
     /* The symbol is already present -- nothing more to do. */
   } else {
@@ -6872,7 +6912,9 @@ nonfunctions, or more than one nonfunction, set the any_errors flag.
                                        (a_symbol_kind)sk_namespace_projection,
                                  "add_symbol_to_lookup_set:",
                                  "expected a namespace projection symbol");
-            set_synth_namespace_projection_symbol(curr_sym, new_sym);
+            set_namespace_projection_symbol(curr_sym, new_sym,
+                                            /*synthesized=*/TRUE,
+                                            depth_scope_stack);
           } else {
             /* The current symbol is a nontag and the new one is a tag.
                Simply ignore the new one. */
@@ -6894,6 +6936,13 @@ nonfunctions, or more than one nonfunction, set the any_errors flag.
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("lookup_set")) {
     db_symbol(curr_sym, "add_symbol_to_lookup_set:", 0);
+    if (curr_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      a_symbol_ptr	overload_sym;
+      overload_sym = curr_sym->variant.overloaded_function.symbols;
+      for (; overload_sym != NULL; overload_sym = overload_sym->next) {
+        db_symbol(fundamental_symbol_of(overload_sym), "", 4);
+      }  /* for */
+    }  /* if */
   }  /* if */
 #endif /* DEBUG */
   return curr_sym;
@@ -6938,6 +6987,7 @@ of the lookup is returned to the caller.
   a_symbol_ptr		new_sym;
   a_symbol_ptr		sym = sym_from_scope;
 
+  db_enter(4, "do_using_directive_lookup");
   /* Look through the inactive symbols for any symbols associated with
      one of the marked namespaces. */
   new_sym = inactive_symbol_list;
@@ -7000,6 +7050,7 @@ of the lookup is returned to the caller.
       }  /* if */
     }  /* if */
   }  /* for */
+  db_exit();
   return sym;
 }  /* do_using_directive_lookup */
 
@@ -7446,6 +7497,7 @@ end_lookup:
     if (sym != NULL) {
       fprintf(f_debug, "normal_id_lookup: found %s\n",
                        sym->header->identifier);
+      if (debug_level >= 5) db_symbol(sym, "", 2);
     } else {
       fprintf(f_debug, "normal_id_lookup: not found\n");
     }  /* if */
