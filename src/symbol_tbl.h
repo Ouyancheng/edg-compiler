@@ -704,6 +704,12 @@ typedef struct a_param_id {
 			/* TRUE for an old-style parameter that for which
 			   an explicit declaration is omitted. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_byte_boolean
+		has_default_arg;
+			/* TRUE if a default argument was declared in this
+			   parameter declaration.  Used in setting the
+			   rout_src_seq_entry_for_default_arg_decl for the
+			   corresponding param-type entry. */
   a_source_sequence_entry_ptr
 		source_sequence_entry;
 			/* Source-sequence information saved during declarator
@@ -2286,6 +2292,10 @@ extern a_param_id_ptr alloc_param_id(void);
 extern void free_param_id(a_param_id_ptr *ppip);
 extern void free_param_id_list(a_param_id_ptr *pidlist);
 extern void clear_func_info(a_func_info_block *func_info);
+
+#define done_with_func_info(func_info)                                 \
+  free_param_id_list(&(func_info.param_id_list))
+
 
 extern void add_to_param_id_list(a_symbol_locator            *locator,
                                  a_type_ptr                  type_ptr,
