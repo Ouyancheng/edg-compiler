@@ -3514,24 +3514,26 @@ file we simply return.
       sfp->related_file_implicit_include_done = TRUE;
       is_system_include = sfp->included_by_system_include;
       /* Call a routine to search for a file with an appropriate suffix. */
-      f_source = open_file_for_input(sfp->file_name, 
+      f_source = open_file_for_input(sfp->name_as_written, 
                                      is_system_include ? sys_incl_search_path :
                                                          incl_search_path,
 				     /*replace_suffix=*/TRUE,
 				     &full_file_name, &display_name);
       if (f_source != NULL) {
+        /* A related source file was found.  Make sure that the name of the
+           file found is not the same as the file we started with.  This
+           could occur if the user included a .c file that contains a
+           template declaration. */
         if (strcmp(full_file_name, sfp->full_name) != 0) {
 #if DEBUG
           if (debug_level >= 3) {
             fprintf(f_debug, "  Including text from '%s'\n", full_file_name);
           }  /* if */
 #endif /* DEBUG */
-          /* A related source file was found.  Make sure that the name of the
-             file found is not the same as the file we started with.  This
-             could occur if the user included a .c file that contains a
-             template declaration. */
-          push_input_stack(f_source, display_name, full_file_name,
-                           is_system_include);
+          /* Push the new file onto the input stack and scan it.  There is
+             no "name as written" so a NULL pointer is passed in. */
+          push_input_stack(f_source, (char *)NULL, display_name,
+                           full_file_name, is_system_include);
           scan_implicitly_included_template_definition_file();
         } else {
           /* The file name returned by open_file_for_input is the same as

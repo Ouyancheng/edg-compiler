@@ -1157,7 +1157,8 @@ extern FILE *open_file_for_input(char                       *file_name,
                                  char                       **full_file_name,
                                  char                       **display_name);
 extern void push_input_stack (FILE      *new_input_file,
-                              char      *file_name,
+                              char      *name_as_written,
+                              char      *display_name,
                               char      *full_file_name,
 			      a_boolean is_system_include);
 

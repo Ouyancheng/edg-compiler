@@ -916,6 +916,8 @@ Display a_source_file entry.
 {
   disp_string_ptr("file_name", ptr->file_name, iek_other_text, (sizeof_t)0);
   disp_string_ptr("full_name", ptr->full_name, iek_other_text, (sizeof_t)0);
+  disp_string_ptr("name_as_written", ptr->name_as_written, iek_other_text,
+                  (sizeof_t)0);
   disp_unsigned_long("first_seq_number", (unsigned long)ptr->first_seq_number);
   disp_unsigned_long("last_seq_number", (unsigned long)ptr->last_seq_number);
   disp_unsigned_long("first_line_number",

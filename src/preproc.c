@@ -789,6 +789,7 @@ may have extra operand at end).
                               temp_line,
                               temp_file,
                               (char *)NULL,  /* Indicates #line entry. */
+                              (char *)NULL,  /* Indicates #line entry. */
                               &(curr_ise->assoc_il_file),
                               /*is_system_include=*/FALSE);
   if (generate_pp_output) {

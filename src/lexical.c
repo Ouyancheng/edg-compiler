@@ -1835,7 +1835,8 @@ notation and FALSE for all other files.
   input_file = open_file_for_input(file_name, search_path,
                                    /*replace_suffix=*/FALSE, &full_file_name,
                                    &display_name);
-  push_input_stack(input_file, display_name, full_file_name,
+  check_assertion(input_file != NULL);
+  push_input_stack(input_file, file_name, display_name, full_file_name,
                    is_system_include);
   db_exit();
 }  /* open_file_and_push_input_stack */
@@ -2018,6 +2019,7 @@ returned.
   
 
 void push_input_stack (FILE      *new_input_file,
+                       char      *name_as_written,
                        char      *display_name,
                        char      *full_file_name,
 		       a_boolean is_system_include)
@@ -2115,8 +2117,8 @@ Push the indicated file onto the input stack.
   record_start_of_source_file(parent_file,
                               (a_seq_number)seq_number_last_read+1,
                               (a_line_number)1, display_name,
-                              full_file_name, &(curr_ise->assoc_il_file),
-			      is_system_include);
+                              full_file_name, name_as_written,
+                              &(curr_ise->assoc_il_file), is_system_include);
   /* The two il file pointers start out the same.  They will be made to
      point to distinct entries if a #line directive is processed:
      assoc_il_file will point to the entry for the #line, and

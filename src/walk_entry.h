@@ -184,6 +184,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_source_file_ptr ptr = (a_source_file_ptr)entry_ptr;
         walk_string_ptr(ptr->file_name, iek_other_text, 0);
         walk_string_ptr(ptr->full_name, iek_other_text, 0);
+        walk_string_ptr(ptr->name_as_written, iek_other_text, 0);
         walk_list(ptr->first_child_file, a_source_file_ptr, iek_source_file);
         remap_ptr(ptr->last_child_file, a_source_file_ptr, iek_source_file);
         remap_next_ptr(ptr->next, a_source_file_ptr, iek_source_file);
