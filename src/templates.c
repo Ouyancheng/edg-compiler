@@ -7013,7 +7013,7 @@ symbols under sym (assuming it is an overload set) matches the type specified
 by type.
 */
 {
-  a_boolean	found = NULL;
+  a_boolean	found = FALSE;
 
   /* sym is a regular function name that is expected to represent one or
      more function templates.  Loop through the function templates
