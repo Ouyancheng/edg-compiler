@@ -549,8 +549,8 @@ routine is called in C++ mode only.
 */
 {
   a_type_ptr                     tp, array_type;
-  a_constant_ptr                 cp;
-  a_dynamic_init_ptr             dip, orig_dip;
+  a_constant_ptr                 cp, repeat_con;
+  a_dynamic_init_ptr             dip;
   a_class_symbol_supplement_ptr  cssp;
   a_param_type_ptr               ptp;
   a_routine_ptr                  ctor_rp;
@@ -615,21 +615,29 @@ routine is called in C++ mode only.
                                                        &pos_curr_token);
         }  /* if */
       }  /* if */
-      if (array_type != NULL) {
-        /* This field is an array, so each of its elements has to be
-           constructed. */
-        orig_dip = dip;
-        dip = alloc_dynamic_init(
-                           (a_dynamic_init_kind)dik_nonconstant_aggregate);
-        /* Build the looping constant entry. */
-        repeat_nonconstant_init(orig_dip, array_type, tp, dip,
-                                array_element_count(array_type, tp));
-      }  /* if */
-      /* Now create the constant entry that will point to the new dynamic
+      /* Create the constant entry that will point to the new dynamic
          init entry. */
       cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       cp->variant.dynamic_init = dip;
       cp->type = tp;
+      /* If the field is an array, each of its elements has to be
+         constructed. */
+      if (array_type != NULL) {
+        /* Build the looping constant entry. */
+        repeat_con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+        repeat_con->variant.init_repeat.count = 
+                                      array_element_count(array_type, tp);
+        repeat_con->variant.init_repeat.constant = cp;
+        /* Put a ck_aggregate constant on top of the ck_init_repeat.  The
+           resulting IL will look like this: ck_aggregate (representing
+           the array as a whole) on top of ck_init_repeat on top of
+           ck_dynamic_init on top of a dynamic-init entry (either dik_none,
+           dik_zero, or dik_constructor). */
+        cp = alloc_constant((a_constant_repr_kind)ck_aggregate);
+        cp->type = array_type;
+        cp->variant.aggregate.first_constant = repeat_con;
+        cp->variant.aggregate.last_constant = repeat_con;
+      }  /* if */
       /* Add the constant entry to the list of constants. */
       if (init_context->constant_list == NULL) {
         init_context->constant_list = cp;
