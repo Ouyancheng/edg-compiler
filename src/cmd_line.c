@@ -1744,6 +1744,7 @@ common_cfront_mode_settings:
     warning_on_for_init_difference = FALSE;
     remove_qualifiers_from_param_types = FALSE;
     impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
+    extern_inline_allowed = FALSE;
   } else {
     /* The dialect is C++. */
     /* Reset the SVR4 C compatibility flag just in case it is set by
