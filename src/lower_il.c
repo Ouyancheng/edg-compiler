@@ -12600,12 +12600,6 @@ C++ to C, so that a C back end can handle it without change.
      lowering phase is to be run, and if there have been no errors. */
   if (il_lowering_needed()) {
     il_lowering_underway = TRUE;
-#if DEBUG
-    if (debug_level >= 1) {
-      fprintf(f_debug, "Lowering IL in memory region %lu\n",
-                       (unsigned long)region_number);
-    }  /* if */
-#endif /* DEBUG */
     curr_context = NULL;
     innermost_function_scope = NULL;
     curr_object_lifetime = il_header.primary_scope->lifetime;
@@ -12623,6 +12617,23 @@ C++ to C, so that a C back end can handle it without change.
       lowering_file_scope = FALSE;
       scope = il_header.region_scope_entry[region_number];
     }  /* if */
+#if DEBUG
+    if (debug_level >= 1 ||
+        db_flag_is_set("dump_type_lists") ||
+        db_flag_is_set("dump_lifetimes")) {
+      fprintf(f_debug, "Lowering IL in memory region %lu\n",
+                       (unsigned long)region_number);
+      if (db_flag_is_set("dump_type_lists")) {
+        db_type_lists(scope, 0);
+      }  /* if */
+      if (db_flag_is_set("dump_lifetimes")) {
+        fprintf(f_debug, "Object lifetime for ");
+        db_scope(scope);
+        fprintf(f_debug, ":\n");
+        db_object_lifetime_tree(scope->lifetime);
+      }  /* if */
+    }  /* if */
+#endif /* DEBUG */
     /* Put the file-scope context on the context stack.  This is also done
        for function scope memory regions so there will be a file-scope
        context above the function context. */
