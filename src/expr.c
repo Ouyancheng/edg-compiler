@@ -1109,7 +1109,7 @@ static an_expr_node_ptr scan_parenthesized_initializer_expression(
 /*
 Scan a single expression in parentheses as an initializer value, and convert
 it to dest_type if necessary.  The current token is the token after the
-opening left parenthesis.  On return, the curren token is the token following
+opening left parenthesis.  On return, the current token is the token following
 the closing parenthesis.  If the conversion cannot be done, issue the
 error err_code.
 */
@@ -4336,7 +4336,7 @@ expression_kind indicates the kind of the current expression.
       make_integer_constant_operand(result, 0L);
     } else {
       /* Since the expression in parentheses is syntactically an
-         expression list, a top-level comma is not allolwed. */
+         expression list, a top-level comma is not allowed. */
       cast_options = EOPT_OPERAND_OF_CAST | EOPT_DISALLOW_COMMA_OPERATOR;
       if (cast_to_func_ptr) {
         /* In C++, allow a bound function as the operand of a cast to a
