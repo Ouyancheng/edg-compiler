@@ -269,13 +269,27 @@ entries on the list xref_list.
 {
   an_xref_entry_ptr xep;
 
-  /* Do not change the entries in a not-evaluated expression. */
+  /* Do not change the reference kinds in a not-evaluated expression. */
   if (curr_expr_is_evaluated()) {
     for (xep = xref_list; xep != NULL; xep = xep->next_operand_ref) {
       xep->kind = kind;
     }  /* for */
   }  /* if */
 }  /* change_xref_kinds */
+
+
+void if_evaluating_mark_routine_referenced(a_routine_ptr     routine,
+                                           a_source_position *position)
+/*
+Mark the indicated routine as actually referenced, but only if the current
+expression is being evaluated.  The position of the reference is position.
+This routine is an interface to mark_routine_referenced.
+*/
+{
+  if (curr_expr_is_evaluated()) {
+    mark_routine_referenced(routine, position);
+  }  /* if */
+}  /* if_evaluating_mark_routine_referenced */
 
 
 void push_expr_stack(an_expression_kind      expression_kind,
@@ -2961,7 +2975,7 @@ member_proj_sym gives the (projection) symbol for the member.
     member_type = rout->type;
     if (!rout->is_virtual) {
       /* Force the routine to be instantiated or generated. */
-      mark_routine_referenced(rout, position);
+      if_evaluating_mark_routine_referenced(rout, position);
     }  /* if */
   }  /* if */
   constant.variant.ptr_to_member.class_of_which_a_member = member_class;
@@ -3015,7 +3029,7 @@ information is not being maintained.
   /* If this is a non-virtual call, mark the routine entry as actually
      referenced. */
   if (!result->virtual_function) {
-    mark_routine_referenced(routine, position);
+    if_evaluating_mark_routine_referenced(routine, position);
   }  /* if */
 }  /* make_function_designator_operand */
 
@@ -6514,7 +6528,8 @@ Bind the operand for a function to an associated selector object.
          operand identifying the function is always just a simple address
          of a function. */
       function = function_from_virtual_function_operand(function_operand);
-      mark_routine_referenced(function, &function_operand->position);
+      if_evaluating_mark_routine_referenced(function,
+                                            &function_operand->position);
     }  /* if */
   }  /* if */
 }  /* bind_member_function_operand_to_selector */
@@ -6549,9 +6564,9 @@ Access control and ambiguity checking are always done, even if the
 overloaded_function_symbol is a non-overloaded function.  operand can be
 NULL if it is not necessary to generate the function designator operand.
 elided_reference is TRUE if the routine was referenced in the program
-but the reference is being elided in the intermediate language.
-On return, *access_error_reported is TRUE if an access control checking
-error was detected.
+but the reference is being elided in the intermediate language (operand
+should be NULL in that case).  On return, *access_error_reported is TRUE
+if an access control checking error was detected.
 */
 {
   a_symbol_locator  function_symbol_locator;
@@ -6595,20 +6610,23 @@ error was detected.
       operand->position = *call_position;
     }  /* if */
   } else {
-    if (elided_reference || !curr_expr_is_evaluated()) {
-      /* The reference to the routine was elided or is not being evaluated.
-         Mark the symbol as referenced, but not the IL entry. */
+    if (elided_reference) {
+      /* The reference to the routine was elided (e.g., in a "new" where the
+         "new" call can be folded into a constructor call).  Mark the symbol
+         as referenced, but not the IL entry. */
+      check_assertion(operand == NULL);
       mark_symbol_referenced(srk_reference, function_symbol, call_position);
     } else {
-      /* The routine is actually called. */
+      /* The reference is not elided. */
       if (operand == NULL) {
         /* We don't want an operand, presumably because the function is
            being used in some unusual way and the caller will build the
            operand.  Mark the function as referenced.  Note that we are
            ignoring whether or not the function is virtual; we are assuming
            that the reference is to exactly that function. */
-        mark_routine_referenced(function_symbol->variant.routine.ptr,
-                                call_position);
+        if_evaluating_mark_routine_referenced(
+                                          function_symbol->variant.routine.ptr,
+                                          call_position);
       } else {
         /* Normal case: build an operand for the function. */
         /* Record that the function was referenced, for cross-reference (etc.)

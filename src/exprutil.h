@@ -486,6 +486,9 @@ extern an_xref_entry_ptr xref_entry(a_symbol_ptr      sym_ptr,
 extern void change_xref_kinds(an_xref_entry_ptr       xref_list,
                               a_symbol_reference_kind kind);
 
+extern void if_evaluating_mark_routine_referenced(a_routine_ptr     routine,
+                                                  a_source_position *position);
+
 extern void push_expr_stack(an_expression_kind      expression_kind,
                             an_expr_stack_entry_ptr new_entry);
 

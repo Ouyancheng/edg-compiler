@@ -1,5 +1,20 @@
 Version 2.15
 
+2/25/93  Bug in sizeof applied to overloaded function or operator
+
+If sizeof was aplied to an expression involving an overloaded function
+or operator, the sizeof was determined on the basis of an unset variable
+and was therefore probably wrong.  Also, the intermediate language
+created included an error type, which might be the visible symptom of
+this problem.
+
+2/25/93  Functions called in not-evaluated expressions
+
+When functions are called in not-evaluated expressions (e.g., in sizeof),
+the referenced flag on the function is now not set.  Also, the function
+is not instantiated if it is a template function, nor is it generated
+if it is a compiler-generated function like a destructor.
+
 2/24/93  Inconsistent linkage specifications for variables
 
 We used to issue a warning when a variable was redeclared with a
