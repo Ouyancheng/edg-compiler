@@ -2010,7 +2010,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
     }  /* if */
     (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-    if (!C_mode() && (microsoft_mode or_near_and_far_enabled())) {
+    if (microsoft_mode or_near_and_far_enabled()) {
       a_boolean  local_err;
 
       /* Scan the decl-modifiers that apply to an entire class.  They will be

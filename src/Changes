@@ -1,5 +1,14 @@
 Version 3.4
 
+11/4/03  Microsoft C mode: __declspec attributes on struct types
+
+In Microsoft C mode the front end now accepts certain __declspec attributes
+as part of the elaborated name of a struct definition.  For example:
+
+  struct __declspec(align(8)) S { int i; };
+        // Previously only accepted in Microsoft C++ mode;
+        // now also in Microsoft C mode.
+
 11/3/03  Superfluous namespace qualifiers in declarations
 
 Standard C++ does not permit a namespace member to be declared in that
