@@ -1387,6 +1387,35 @@ the initial value of old_specializations_for_generated_instances.
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 /*
+Flag that is TRUE if, when the C-generating back end (c_gen_be) or
+C++/C-generating back end (cp_gen_be) is run, references to the
+<stdarg.h> macros should be scanned specially and output in the
+original form.  This avoids problems with language extensions
+used to implement those.  This is the initial value of
+pass_stdarg_references_to_generated_code.
+*/
+#ifndef DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE
+#if BACK_END_IS_C_GEN_BE
+#if C_GEN_BE_GENERATES_ANSI_C
+/* The C-generating back end is being used, and is generating ANSI/ISO C. */
+#define DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE TRUE
+#else /* !C_GEN_BE_GENERATES_ANSI_C */
+/* The C-generating back end is being used, and is generating old-style C. */
+#define DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE FALSE
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
+#else /* !BACK_END_IS_C_GEN_BE */
+#if BACK_END_IS_CP_GEN_BE
+/* The C++-generating back end is being used. */
+#define DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE TRUE
+#else /* !BACK_END_IS_CP_GEN_BE */
+/* Neither the C-generating back end nor the C++-generating back end is being
+   used. */
+#define DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE FALSE
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* BACK_END_IS_C_GEN_BE */
+#endif /* ifndef DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE */
+
+/*
 If this flag is TRUE, integer types with the same representation
 (same size, alignment, and signedness) are considered to be
 identical in the IL.  This requires back end support, i.e., the back
