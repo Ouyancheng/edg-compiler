@@ -3513,8 +3513,12 @@ are not checked.
           if (same_name(routine, corresp_routine) &&
               (trans_unit_corresp_of(routine) == NULL ||
                trans_unit_corresp_of(corresp_routine) == NULL) &&
-              may_have_correspondence(friend_sym) &&
-              may_have_correspondence(corresp_friend_sym) &&
+              ((may_have_correspondence(friend_sym) &&
+                may_have_correspondence(corresp_friend_sym)) ||
+               /* Allow correspondences on friend definitions even if they
+                  have internal linkage as a consequence of being inline. */
+               (routine->defined_in_friend_decl &&
+                corresp_routine->defined_in_friend_decl)) &&
               same_parents(friend_sym, corresp_friend_sym) &&
               (param_types_are_compatible(
                                        routine->type, corresp_routine->type,

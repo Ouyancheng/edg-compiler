@@ -1,5 +1,29 @@
 Version 3.2
 
+5/6/03   Correspondence between functions defined in friend declarations
+
+During compilations involving multiple translation units, a function with
+internal linkage does not normally correspond to another function of the
+same name and type in another translation unit.  However, the front end
+now makes an exception for functions defined in a friend declaration.
+(A similar exception was already made for inline member functions.)
+Such functions usually have external linkage, but in mode without support
+for "extern inline" function (e.g., Sun mode) they have internal linkage.
+For example:
+
+  // Translation unit 1:
+  struct X {
+    friend void f() {}  // (1) Internal linkage in Sun mode
+  };
+  // Translation unit 2:
+  struct X {
+    friend void f() {}  // Corresponds to (1) even in Sun mode.
+  };
+
+This special treatment avoids surprising (albeit not entirely unjustified)
+correspondence errors in Sun mode during compilations involving multiple
+translation units.
+
 5/6/03   Dual lookup of conversion type names
 
 The standard requires that the type specified in a conversion operator
