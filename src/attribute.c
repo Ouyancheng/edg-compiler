@@ -759,14 +759,16 @@ be emitted.
 static a_boolean check_variable_not_local(a_variable_ptr   variable,
                                           an_attribute_ptr attribute)
 /*
-The attribute only applies to variables with static storage duration.
-If variable is not such a variable, issue an error and return FALSE.
-Otherwise, return TRUE.
+The attribute only applies to variables that are not local to a
+function.  If variable is not such a variable, issue an error and
+return FALSE.  Otherwise, return TRUE.
 */
 {
   a_boolean is_not_local = TRUE;
 
-  if (variable->source_corresp.is_local_to_function) {
+  if (variable->source_corresp.is_local_to_function &&
+      /* Don't consider block extern declarations local. */
+      variable->storage_class != (a_storage_class)sc_extern) {
     pos_st_error(ec_attribute_does_not_apply_to_local_variable,
                  &attribute->position, 
                  attribute_kind_names[(int)attribute->kind]);
