@@ -3233,8 +3233,12 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
         err = TRUE;
       } else {
         if (is_pointer_type(operand->type)) {
-          if (!check_object_pointer_operand(operand,
-                                            ec_expr_not_pointer_to_object)) {
+          if (gcc_mode && (is_void_type(type_pointed_to(operand->type)) ||
+                           is_function_type(type_pointed_to(operand->type)))) {
+            /* In GNU C mode void and function pointers can be incremented and
+               and decremented. */
+          } else if (!check_object_pointer_operand(
+                                     operand, ec_expr_not_pointer_to_object)) {
             err = TRUE;
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3457,8 +3461,12 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
         err = TRUE;
       } else {
         if (is_pointer_type(operand.type)) {
-          if (!check_object_pointer_operand(&operand,
-                                            ec_expr_not_pointer_to_object)) {
+          if (gcc_mode && (is_void_type(type_pointed_to(operand.type)) ||
+                           is_function_type(type_pointed_to(operand.type)))) {
+            /* In GNU C mode void and function pointers can be incremented and
+               and decremented. */
+          } else if (!check_object_pointer_operand(
+                                    &operand, ec_expr_not_pointer_to_object)) {
             err = TRUE;
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
