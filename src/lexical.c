@@ -9050,7 +9050,7 @@ in a declarator of a template declaration.
   } else if (symbol_is_or_contains_template(sym)) {
     /* Okay -- the symbol found refers to a template. */
   } else if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
-    /* Ignore erros in prototype instantiations. */
+    /* Ignore errors in prototype instantiations. */
   } else if (sym->is_class_member &&
              is_prototype_instantiation_symbol((a_symbol_ptr)sym->
                               parent.class_type->source_corresp.assoc_info)) {
