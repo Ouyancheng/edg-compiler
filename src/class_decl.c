@@ -5707,18 +5707,19 @@ instantiations are recorded in the IL.
 
 
 static a_symbol_ptr decl_friend_function(a_symbol_locator       *locator,
-                                         a_type_ptr             class_type,
+                                         a_class_def_state_ptr  class_state,
                                          a_type_ptr             function_type,
                                          a_func_info_block_ptr  func_info,
                                          a_member_decl_info_ptr decl_info)
 /*
-Do processing for declaring a function (identified by *locator and with
-a type of function_type) friend of the current class (class_type).  Getting
-the correct symbol of a previously declared function means taking overloading
-into account.  For nonmember functions, this could be the initial declaration
-of the function, and again overloading is a possibility.
+Do processing for declaring a function (identified by *locator and with a type
+of function_type) friend of the current class (described through class_state).
+Getting the correct symbol of a previously declared function means taking
+overloading into account.  For nonmember functions, this could be the initial
+declaration of the function, and again overloading is a possibility.
 */
 {
+  a_type_ptr                   class_type = class_state->class_type;
   a_symbol_ptr                 sym, ext_sym;
   an_id_linkage_kind           linkage;
   a_type_ptr                   old_type;
@@ -5740,6 +5741,13 @@ of the function, and again overloading is a possibility.
     if (microsoft_mode &&
         class_type->variant.class_struct_union.is_interface) {
       pos_error(ec_interface_cannot_have_friend, &decl_info->decl_start_pos);
+    }  /* if */
+    /* Microsoft Visual C++ 7.0 and earlier do not seem to instantiate the
+       body of a friend function definition as part of a class template
+       instantiation.  (Visual C++ 7.1. fixed that.) */
+    if (microsoft_mode && microsoft_version < 1310 &&
+        class_state->is_template_instantiation) {
+      func_info->is_definition = FALSE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     sym = locator->specific_symbol;
@@ -12276,11 +12284,7 @@ passed via template_decl.
       }  /* if */
       if (friend_specified) {
         /* Process a friend function declaration. */
-        if (function_def_present && microsoft_mode &&
-            class_state->is_template_instantiation) {
-          func_info.is_definition = FALSE;
-        }  /* if */
-        rout_sym = decl_friend_function(&locator, class_type, local_type,
+        rout_sym = decl_friend_function(&locator, class_state, local_type,
                                         &func_info, &decl_info);
       } else if (is_member_template_rescan) {
         *member_template_instance_type = local_type;

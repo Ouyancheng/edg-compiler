@@ -1,6 +1,21 @@
 Version 3.4
 
-10/16/03 GNU mode: Declaration of __builtin_abort
+10/17/03 Microsoft mode: Friend definitions in templates
+
+In Microsoft mode, the front end did not always report duplicate definitions
+arising from instantiating the bodies of friend function definitions appearing
+in class templates.  Since Visual C++ 7.1 has fixed the associated bug, we now
+only emulate this behavior when microsoft_version is less than 1310.
+For example:
+
+  template<typename T> struct S {
+    friend void f() {}
+  };
+  void f() {}
+  S<int> s;  // Does not report a duplicate definition error when
+             // microsoft_version < 1310.
+
+10/17/03 GNU mode: Declaration of __builtin_abort
 
 In GNU C and C++ modes, the built-in function __builtin_abort (see the Changes
 entry of 7/30/03) was not correctly predeclared by the front end.  As a result,
@@ -17841,7 +17856,7 @@ This special treatment of friends is now implemented.
 
   void f(int);                 // A specialization in MS mode
   class A {
-    friend void f(short);      // Not a specialization is MS mode (but used
+    friend void f(short);      // Not a specialization in MS mode (but used
   };                           // to be one previously)
   template <class T> void f(T) {}
 
