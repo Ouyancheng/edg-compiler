@@ -34,8 +34,7 @@ extern void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp);
 extern a_boolean scan_class_definition(
                                    a_type_ptr     class_type,
                                    a_scope_depth  effective_decl_level,
-                                   a_boolean      is_local_class,
-                                   a_boolean      is_prototype_instantiation);
+                                   a_boolean      is_local_class);
 
 extern a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
                                  a_boolean  is_friend_decl,
