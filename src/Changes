@@ -1,5 +1,19 @@
 Version 2.42
 
+7/8/99   #include followed by non-trivial macro expansion
+
+A #include directive in which the file name is given by a non-trivial
+macro expansion now works correctly:
+
+  #define tmp2 stdio.h
+  #define tmp1(hfile) <hfile>
+  #include tmp1(tmp2)
+
+Formerly, this worked only for the simplest form of macro expansion:
+
+  #define tmp3 <stdio.h>
+  #include tmp3
+
 7/8/99   Microsoft compatibility: do not generate or allow constructor
          initializers for property fields
 
