@@ -1524,12 +1524,14 @@ typedef struct a_derivation_step {
 typedef struct a_base_class_derivation *a_base_class_derivation_ptr;
 typedef struct a_base_class_derivation {
   /* Entry identifying the unique derivation of a nonvirtual base class or
-     one of one or more of alternative derivations of a virtual base class. */
+     one of the alternative derivations of a virtual base class. */
   a_base_class_derivation_ptr
 		next;
 			/* Next in a linked list of virtual derivation entries
 			   representing the various derivations specified for
-			   a given virtual base class. */
+			   a given virtual base class; always NULL if the
+			   associated base class is nonvirtual, and NULL for
+			   the last entry in the list when it is virtual. */
   a_derivation_step_ptr
 		path;
 			/* Pointer to (all or part) of the path from the
@@ -1563,12 +1565,11 @@ typedef struct a_base_class_derivation {
 			   and a direct derivation is preferred over an
 			   indirect derivation. */
   an_access_specifier
-                access; /* The kind of derivation (public, protected, or
-                           private) specified for the final step of the
+		access; /* The kind of derivation (public, protected, or
+			   private) specified for the final step of the
 			   derivation pointed to by path.  This is tantamount
 			   to the access specified from the associated base
 			   class to the class directly derived from it. */
-  an_access_specifier
 } a_base_class_derivation;
 
 
