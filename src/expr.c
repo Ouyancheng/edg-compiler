@@ -4725,6 +4725,9 @@ implement <stdarg.h>, a standard feature.
       /* This is a type-name in parentheses. */
       is_type = TRUE;
     }  /* if */
+  } else if (microsoft_mode) {
+    /* Microsoft requires the parentheses even around an expression. */
+    pos_diagnostic(es_discretionary_error, ec_exp_lparen, &pos_curr_token);
   }  /* if */
 
   if (is_type) {

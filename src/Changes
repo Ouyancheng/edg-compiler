@@ -1,5 +1,13 @@
 Version 3.3
 
+6/18/03  Microsoft compatibility: __alignof
+
+The front end now recognizes the Microsoft __alignof operator.
+It's similar to the EDG __alignof__ extension: __alignof(type)
+and __alignof(expression) return the alignment of the indicated
+type or expression.  Parentheses are required around the expression,
+unlike for sizeof.
+
 6/18/03  Microsoft compatibility: __w64 type annotation
 
 The front end now recognizes the Microsoft __w64 type annotation.  This
