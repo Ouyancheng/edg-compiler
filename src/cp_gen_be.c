@@ -2587,7 +2587,8 @@ source sequence entry is the one associated with the field.
   adv_curr_source_sequence_entry();
   set_output_position(&field->source_corresp.decl_position);
   gen_member_access_specifier_for_decl_of(&field->source_corresp);
-  /* Generate the field type and name. */
+  /* Generate the field type and name.  No name is displayed for unnamed
+     bit fields and anonymous union fields. */
   gen_declaration_using_type(field->type,
                              has_name(field) ? &field->source_corresp : NULL,
                              (a_src_seq_secondary_decl_ptr)NULL);
@@ -2674,9 +2675,14 @@ is the one associated with the definition of the class.
   /* Position the output file to the declaration position. */
   set_output_position(&type->source_corresp.decl_position);
   write_tok_str(tag_kind(type->kind));
-  write_space();
-  /* (Note that a name will be generated for an unnamed class.) */
-  gen_type_name(type);
+  /* Write the name of the class. */
+  /* Note that a name will be generated for an unnamed class.  Suppress
+     the name for an anonymous union class. */
+  if (ctsp != NULL &&
+      ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_none) {
+    write_space();
+    gen_type_name(type);
+  }  /* if */
   /* Put out the class definition. */
   if (il_header.source_language == sl_Cplusplus) {
     /* Put out the base class list. */
@@ -4885,8 +4891,11 @@ sequence entry.
       var->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external) {
     write_tok_str("\"C\" ");
   }  /* if */
-  /* Output the variable name and its type. */
-  gen_declaration_using_type(var->type, &var->source_corresp, sec_decl);
+  /* Output the variable name and its type.  Do not put out a name for
+     anonymous union variables. */
+  gen_declaration_using_type(var->type,
+                             has_name(var) ? &var->source_corresp : NULL,
+                             sec_decl);
   /* Output the initializer, if any, but only if this is a definition. */
   if (is_definition) gen_initializer(var);
   /* Finish the declaration. */
