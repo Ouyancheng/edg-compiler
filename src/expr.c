@@ -3202,7 +3202,7 @@ operation is a pointer-to-member (see ARM 5.3).
       /* The operand has a template parameter type, so we cannot
          check its type.  Just produce an expression with a generic
          operator.  (Note that there is a generic "&" operator, but
-         no standard IL "&" operator. */
+         no standard IL "&" operator.) */
       template_unary_operation((an_expr_operator_kind)eok_address,
                                tok_ampersand, &operand,
                                result, &start_position);
