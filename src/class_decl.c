@@ -1144,7 +1144,8 @@ routine entry and return TRUE; otherwise return FALSE.
                consistent (either both must be absent or both must be present
                and qualified identically). */
             if (rp->is_virtual &&
-                param_types_are_compatible(rout->type, rp->type) &&
+                param_types_are_compatible(rout->type, rp->type,
+                                           /*allow_error_type=*/TRUE) &&
                 this_param_types_correspond(rout->type, rp->type)) {
               /* Now compare the return types. */
               if (types_are_compatible(rout->type->variant.routine.return_type,
@@ -2582,7 +2583,7 @@ without it.
         new_rts->implicit_this_param_type = NULL;
         orig_rts->implicit_this_param_type = NULL;
       }  /* if */
-      match = types_are_compatible(orig_type, new_type);
+      match = types_are_strictly_compatible(orig_type, new_type);
       if (!new_function_is_qualified) {
         /* Restore the implicit "this" parameter types in orig_type and
            new_type. */
