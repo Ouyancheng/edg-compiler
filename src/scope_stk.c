@@ -2475,7 +2475,6 @@ End a name scope by popping an entry off the scope stack.
 {
   a_scope_stack_entry_ptr  ssep, parent_ssep;
   a_scope_pointers_block_ptr pointers_block;
-  a_routine_ptr            curr_routine = NULL;
   a_memory_region_number   old_memory_region_number, new_memory_region_number;
   a_scope_kind             kind;
   an_extern_type_fixup_ptr etfp;
@@ -2487,12 +2486,13 @@ End a name scope by popping an entry off the scope stack.
   ssep = &scope_stack[depth_scope_stack];
   pointers_block = assoc_pointers_block_of(ssep);
   kind = ssep->kind;
-  if (kind == (a_scope_kind)sck_function) {
-    /* If the scope is for a routine, get a pointer to the routine. */
-    curr_routine = ssep->il_scope->variant.routine.ptr;
-  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
+    a_routine_ptr            curr_routine = NULL;
+    if (kind == (a_scope_kind)sck_function) {
+      /* If the scope is for a routine, get a pointer to the routine. */
+      curr_routine = ssep->il_scope->variant.routine.ptr;
+    }  /* if */
     if (pointers_block->symbols != NULL || debug_level >= 4) {
       fprintf(f_debug, "pop_scope: number = %d, depth = %d",
               ssep->number, depth_scope_stack);
