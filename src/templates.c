@@ -1188,14 +1188,12 @@ and the class instantiation will detect the runaway case.
 
 a_boolean equiv_template_arg_lists(a_template_arg_ptr list1,
                                    a_template_arg_ptr list2,
-                                   a_boolean          is_func_template,
                                    a_boolean          error_matches_anything)
 /*
 Return TRUE if the two linked lists of template arguments for a given template
 class or template function are equivalent -- that is, if corresponding type
 arguments refer to the same type and corresponding constant arguments refer to
-the same constant.  If is_func_template is TRUE, the lists will contain
-only type arguments.  If error_matches_anything is TRUE, an error type
+the same constant.  If error_matches_anything is TRUE, an error type
 or constant will match anything (this is used for compatibility checking
 instead of equivalence checking).
 */
@@ -1215,25 +1213,18 @@ instead of equivalence checking).
   equiv = TRUE;
   /* Loop through both lists in step, comparing arguments. */
   do {
-#if CHECKING
-    if (is_func_template) {
-      /* Nontype arguments are not allowed in function template arg lists. */
-      if (!arg1->is_type || !arg2->is_type) {
-        internal_error("equiv_template_arg_lists: nontype arg");
-      }  /* if */
-    } else {
     /* For a given class, argument lists should always have the same sequence
        of type and constant arguments. */
-      if (arg1->is_type != arg2->is_type) {
-        internal_error("equiv_template_arg_lists: arg inconsistency");
-      }  /* if */
-    }  /* if */
-#endif /* CHECKING */
-    if (!is_func_template && !arg1->is_type) {
+    check_assertion_str(arg1->is_type == arg2->is_type,
+                        "equiv_template_arg_lists: arg inconsistency");
+    if (!arg1->is_type) {
       /* Both are constant arguments.  If they are not identical, this is a
          mismatch. */
       a_constant_ptr con1 = arg1->variant.constant;
       a_constant_ptr con2 = arg2->variant.constant;
+      /* Unknown array bounds should not escape the type deduction process. */
+      check_assertion(!arg1->is_array_bound_of_unknown_type &&
+                      !arg2->is_array_bound_of_unknown_type);
       if (eq_constants(con1, con2) ||
           (error_matches_anything &&
            (is_error_constant(con1) || is_error_constant(con2)))) {
@@ -1345,7 +1336,6 @@ included in the search.
     old_list = prototype_sym->variant.class_struct_union.type->
                      variant.class_struct_union.extra_info->template_arg_list;
     if (equiv_template_arg_lists(old_list, *new_list,
-                                 /*is_func_template=*/FALSE,
                                  /*error_matches_anything=*/FALSE)) {
       /* A match.  Set sym which will suppress any further search. */
       sym = prototype_sym;
@@ -1366,7 +1356,6 @@ included in the search.
       old_list = sym->variant.type->
                      variant.class_struct_union.extra_info->template_arg_list;
       if (equiv_template_arg_lists(old_list, *new_list,
-                                   /*is_func_template=*/FALSE,
                                    /*error_matches_anything=*/FALSE)) {
         /* We've found a match.  Remove the found symbol from its current
            position in the instantiation list and add it to the front. */
@@ -1456,10 +1445,246 @@ included in the search.
 }  /* find_template_class */
 
 
+static a_template_arg_ptr get_template_arg_by_list_pos(
+                                    a_symbol_ptr              rout_templ_sym,
+                                    a_template_arg_ptr        *templ_arg_list,
+                                    a_template_param_list_pos  pos)
+/*
+Given a template parameter list position, return a pointer to the template
+argument list element that corresponds to that parameter.  If the template
+argument list has not yet been created, create one.  When the list
+is initially created, the template arguments will contain NULL type
+or constant pointers.  These will be filled in as the argument types
+are deduced.
+*/
+{
+  a_template_arg_ptr	tap;
+
+  if (*templ_arg_list == NULL) {
+    /* The template argument list does not exist yet.  Create an
+       argument list with NULL type/constant pointers. */
+    a_template_symbol_supplement_ptr	tssp;
+    a_template_param_ptr		tpp;
+    a_template_arg_ptr			prev_tap = NULL;
+    tssp = template_supplement_for_symbol(rout_templ_sym);
+    /* Loop through the template parameter list and create a template
+       argument entry of the appropriate type for each parameter. */
+    for (tpp = tssp->parameters; tpp != NULL; tpp = tpp->next) {
+      a_template_arg_ptr	tap;
+      a_boolean			is_type_param;
+      is_type_param = tpp->param_symbol->kind == (a_symbol_kind)sk_type;
+      tap = alloc_template_arg(is_type_param);
+      if (prev_tap == NULL) {
+        /* First iteration -- the start of the list. */
+        *templ_arg_list = tap;
+      } else {
+        /* Add to the end of the list. */
+        prev_tap->next = tap;
+      }  /* if */
+      prev_tap = tap;
+    }  /* for */
+  }  /* if */
+  /* For the nth template parameter find the nth template argument. */
+  for (tap = *templ_arg_list; pos > 1; pos--, tap = tap->next);
+  return tap;
+}  /* get_template_arg_by_list_pos */
+
+
+
+
+static a_template_param_ptr get_template_param_by_list_pos(
+                                    a_symbol_ptr               rout_templ_sym,
+                                    a_template_param_list_pos  pos)
+/*
+Given a template parameter list position, return a pointer to 
+a specified parameter.
+*/
+{
+  a_template_param_ptr			tpp;
+  a_template_symbol_supplement_ptr	tssp;
+
+  tssp = template_supplement_for_symbol(rout_templ_sym);
+  tpp = tssp->parameters;
+  /* For the nth template parameter find the nth template parameter. */
+  for (; pos > 1; pos--, tpp = tpp->next);
+  return tpp;
+}  /* get_template_param_by_list_pos */
+
+
+static a_boolean is_deducible_constant_param(a_constant_ptr templ_constant)
+/*
+Return TRUE if the specified constant is a template parameter constant
+that can be deduced from a function template call.
+*/
+{
+  a_boolean	result = FALSE;
+  if (templ_constant->kind == (a_constant_repr_kind)ck_template_param) {
+    /* Nontype parameters can only be deduced from simple uses of the
+       parameter, like A<I>.  Expressions are not allowed (e.g.,
+       A<I+1>) nor are references to members of a template parameter
+       (e.g., T::x).  If either of these is found, type deduction fails. */
+    if (templ_constant->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_param) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_deducible_constant_param */
+
+
+static
+a_boolean matches_template_constant(a_constant_ptr     constant,
+                                    a_constant_ptr     templ_constant,
+                                    a_template_arg_ptr *templ_arg_list,
+                                    a_symbol_ptr       rout_templ_sym)
+/*
+Called by the matches_template_type routines to determine whether
+a constant matches a constant template parameter from the parameter
+list of a template function.  Returns TRUE if a match is found.
+*/
+{
+  a_boolean	match = FALSE;
+ 
+  if (templ_constant->kind == (a_constant_repr_kind)ck_template_param) {
+    if (is_deducible_constant_param(templ_constant)) {
+      a_template_arg_ptr        tap;
+      /* This is a template parameter from the original source program
+         and not a synthesized template parameter. */
+      a_template_param_list_pos list_pos;
+      list_pos = templ_constant->variant.template_param.variant.list_position;
+      tap = get_template_arg_by_list_pos(rout_templ_sym, templ_arg_list,
+                                         list_pos);
+      /* Now we have the nth template argument, which should correspond to
+         the nth template parameter, whose constant is templ_constant. */
+      if (tap->is_array_bound_of_unknown_type) {
+        if (is_integral_type(constant->type)) {
+          /* An array bound can only match an integral value.  We have
+             a match if the number of elements matches the previously
+             deduced constant. */
+          match = cmpulit_integer_constant(constant,
+                                           tap->variant.integer_value) == 0;
+          if (match) {
+            /* The values match.  Use the constant value instead of the
+               integer array bound as the new value of the argument. */
+            tap->is_array_bound_of_unknown_type = FALSE;
+            tap->variant.constant = constant;
+          }  /* if */
+        }  /* if */
+      } else {
+        if (tap->variant.constant == NULL) {
+          /* No constant has been bound to this template argument yet, so
+             just use "constant".  This counts as a match. */
+          tap->variant.constant = constant;
+          match = TRUE;
+        } else {
+          /* A constant was already bound to this template argument.  We have a
+             match if and only if the new constant is the same as the one
+             already there.  This check also makes sure that the types
+             of the constants match. */
+          match = eq_constants(constant, tap->variant.constant);
+        }  /* if */
+        /* Note that the type of the constant does not participate in
+           type deduction.  Once all of the arguments have been deduced
+           the types of the nontype parameters are compared with the
+           types in the template parameter list. */
+        if (match) {
+          /* Make sure the type of the nontype parameter is correct.  This
+             can only be done for nontype parameters that do not depend on
+             other template parameters.  This will be checked later for
+             types that do depend on template parameters. */
+          a_template_param_ptr tpp;
+          tpp = get_template_param_by_list_pos(rout_templ_sym, list_pos);
+          if (!tpp->variant.constant.type_involves_template_param) {
+            if (!identical_types(tap->variant.constant->type,
+                                 templ_constant->type)) {
+               match = FALSE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else {
+    /* The template constant does not involve a template parameter.
+       Simply make sure the two constants are the same. */
+    match = eq_constants(constant, templ_constant);
+  }  /* if */
+  return match;
+}  /* matches_template_constant */
+
+
+static
+a_boolean matches_template_array_bound(a_targ_size_t      elements,
+                                       a_constant_ptr     templ_constant,
+                                       a_template_arg_ptr *templ_arg_list,
+                                       a_symbol_ptr       rout_templ_sym)
+/*
+A nontype template parameter is being deduced from an array bound.
+For example:
+
+	template <int I> void f(int n[10][I]);
+
+This kind of deduction is different than others in that the context
+from which the value is being deduced does not contain a type.  All
+we know of "I" when it is scanned is that it must be integral.  In
+the example above, we know that "I" must be "int" because that is how
+it is declared, but in cases like this
+
+	template <class T, A<T>::X I> void f(int n[10][I], A<T>);
+
+we don't know the type of "I" until T has been deduced.  In these cases
+we simply save the actual value of the array bound and do the checking
+of types after all of the function arguments have been processed.
+*/
+{
+  a_boolean	match = FALSE;
+
+  if (!is_deducible_constant_param(templ_constant)) {
+    /* The array bound from the template is a constant (under an expression)
+       but is not a simple template parameter.  No match. */
+  } else {
+    a_template_arg_ptr        tap;
+    /* This is a template parameter from the original source program
+       and not a synthesized template parameter. */
+    a_template_param_list_pos list_pos;
+    list_pos = templ_constant->variant.template_param.variant.list_position;
+    tap = get_template_arg_by_list_pos(rout_templ_sym, templ_arg_list,
+                                       list_pos);
+    /* Now we have the nth template argument, which should correspond to
+       the nth template parameter, whose constant is templ_constant. */
+    if (tap->is_array_bound_of_unknown_type || tap->variant.constant == NULL) {
+      /* This is either an array bound of unknown type, or no value has
+         yet been deduced. */
+      if (tap->variant.integer_value == 0) {
+        /* No value has been deduced yet.  Use this as the value and
+           consider it a match. */
+        tap->variant.integer_value = elements;
+        match = TRUE;
+        tap->is_array_bound_of_unknown_type = TRUE;
+      } else {
+        /* A previous array bound has been seen.  Make sure the values
+           match. */
+        match = tap->variant.integer_value == elements;
+      }  /* if */
+    } else {
+      /* A constant value has already been deduced for this argument. */
+      a_constant_ptr	cp = tap->variant.constant;
+      if (is_integral_type(cp->type)) {
+        /* An array bound can only match an integral value.  We have
+           a match if the number of elements matches the previously
+           deduced constant. */
+        match = cmpulit_integer_constant(cp, elements) == 0;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* matches_template_array_bound */
+
+
 static a_boolean matches_template_type_for_class_type
                                    (a_type_ptr         type,
                                     a_type_ptr         templ_type,
-                                    a_template_arg_ptr *templ_arg_list)
+                                    a_template_arg_ptr *templ_arg_list,
+                                    a_symbol_ptr       rout_templ_sym)
 /*
 Called by matches_template_type to determine whether a given class type
 matches a class type from the parameter list of a template function.
@@ -1493,36 +1718,34 @@ matches a class type from the parameter list of a template function.
                                        extra_info->template_arg_list;
     do {
       if (tap->is_type) {
+        /* A type template parameter.  See if the types match. */
         match = matches_template_type(tap->variant.type,
                                       templ_tap->variant.type,
                                       templ_arg_list,
+                                      rout_templ_sym,
                                       /*allow_conversion=*/FALSE,
                                       (a_base_class_ptr*)NULL);
-      } else if (templ_tap->variant.constant->kind ==
-                                  (a_constant_repr_kind)ck_template_param) {
-        match = matches_template_type(
-                                  tap->variant.constant->type,
-                                  templ_tap->variant.constant->type,
-                                  templ_arg_list,
-                                  /*allow_conversion=*/FALSE,
-                                  (a_base_class_ptr*)NULL);
       } else {
-        match = eq_constants(tap->variant.constant,
-                             templ_tap->variant.constant);
+        /* A nontype template parameter. */
+        match = matches_template_constant(tap->variant.constant,
+                                          templ_tap->variant.constant,
+                                          templ_arg_list,
+                                          rout_templ_sym);
       }  /* if */
-              tap = tap->next;
+      tap = tap->next;
       templ_tap = templ_tap->next;
     } while (match && tap != NULL);
   }  /* if */
   return match;
-}  /* matches_class_type_for_class_type */
+}  /* matches_template_type_for_class_type */
 
 
-a_boolean matches_template_type(a_type_ptr         type,
-                                a_type_ptr         templ_type,
-                                a_template_arg_ptr *templ_arg_list,
-				a_boolean          allow_conversion,
-                                a_base_class_ptr   *base_class_conv_needed)
+a_boolean matches_template_type(a_type_ptr           type,
+                                a_type_ptr           templ_type,
+                                a_template_arg_ptr   *templ_arg_list,
+				a_symbol_ptr         rout_templ_sym,
+				a_boolean            allow_conversion,
+                                a_base_class_ptr     *base_class_conv_needed)
 /*
 Compare type and templ_type.  The latter is from a parameter list of a
 function template (function params, not template params).  If the types are
@@ -1535,14 +1758,15 @@ allow_conversion specifies that a conversion from Derived<T> to Base<T>
 may be done if needed.  The value pointed to by base_class_conv_needed
 is set to point to the base class description if such a conversion
 is required; otherwise it is set to NULL.  base_class_conv_needed may
-be NULL if the caller does not need to know whether a conversion was performed.
+be NULL if the caller does not need to know whether a conversion was
+performed.  rout_templ_sym is the symbol associated with the function
+template associated with templ_type.
 */
 {
   a_boolean                      match = FALSE;
   a_type_ptr                     tp, ttp;
   a_param_type_ptr               ptp, tptp;
-  unsigned long                  i;
-  a_template_arg_ptr             tap, prev_tap;
+  a_template_arg_ptr             tap;
 
   db_enter(5, "matches_template_type");
   if (base_class_conv_needed != NULL) *base_class_conv_needed = NULL;
@@ -1592,43 +1816,15 @@ be NULL if the caller does not need to know whether a conversion was performed.
         /* No match. */
       } else if (templ_type->variant.template_param.kind ==
                              (a_template_param_type_kind)tptk_param) {
+        a_template_param_list_pos list_pos;
         /* This is a template parameter from the original source program
            and not a synthesized template parameter. */
         /* A real type "matches" a template parameter type if it is identical
            to the real type, if any, that was previously associated with that
            template type. */
-        /* For the nth template parameter find the nth template argument.  If
-           the nth template argument hasn't been created yet, create it along
-           with all missing template args that should precede it in the linked
-           list. */
-        prev_tap = NULL;
-        for (i = templ_type->variant.template_param.list_position;
-                                                               i > 0; --i) {
-          if (prev_tap == NULL) {
-            /* This must be the first time through the loop. */
-            tap = *templ_arg_list;
-          } else {
-            /* Not the first iteration. */
-            tap = prev_tap->next;
-          }  /* if */
-          /* If the template arg doesn't exist yet, create it and add it to the
-             list.  Note that some of the template args on the list will have
-             NULL type pointers. */
-          if (tap == NULL) {
-            tap = alloc_template_arg(/*is_arg_type=*/TRUE);
-            if (prev_tap == NULL) {
-              /* First iteration -- the start of the list. */
-              *templ_arg_list = tap;
-            } else {
-              /* Add to the end of the list. */
-              prev_tap->next = tap;
-            }  /* if */
-          }  /* if */
-          /* Remember the current entry so that next time though (if there is a
-             next time) we can find its successor or, if necessary, append a
-             new entry to it. */
-          prev_tap = tap;
-        }  /* for */
+        list_pos = templ_type->variant.template_param.list_position;
+        tap = get_template_arg_by_list_pos(rout_templ_sym, templ_arg_list,
+                                           list_pos);
         /* Now we have the nth template argument, which should correspond to
            the nth template parameter, whose type is templ_type. */
         if (tap->variant.type == NULL) {
@@ -1674,6 +1870,7 @@ be NULL if the caller does not need to know whether a conversion was performed.
               cssp = symbol_supplement_for_class(ttp);
               ttp = cssp->template_param_for_proxy_class;
               if (matches_template_type(tp, ttp, templ_arg_list,
+				        rout_templ_sym,
                                         /*allow_conversion=*/FALSE,
                                         (a_base_class_ptr*)NULL)) {
                 /* Members have the same names and the parent classes
@@ -1724,6 +1921,7 @@ be NULL if the caller does not need to know whether a conversion was performed.
           if (sym->header != templ_sym->header) {
             /* Members have different names -- no match. */
           } else if (matches_template_type(tp, ttp, templ_arg_list,
+                                           rout_templ_sym,
                                            /*allow_conversion=*/FALSE,
                                            (a_base_class_ptr*)NULL)) {
             /* Members have the same names and the parent classes "match". */
@@ -1739,7 +1937,8 @@ be NULL if the caller does not need to know whether a conversion was performed.
           case tk_struct:
           case tk_union:
             match = matches_template_type_for_class_type(type, templ_type,
-                                                         templ_arg_list);
+                                                         templ_arg_list,
+                                                         rout_templ_sym);
             if (!match && allow_conversion) {
               a_base_class_ptr	bcp;
               /* See if the type matches a base class type of actual argument
@@ -1749,7 +1948,8 @@ be NULL if the caller does not need to know whether a conversion was performed.
               while (bcp != NULL) {
                 match = matches_template_type_for_class_type(bcp->type,
                                                              templ_type,
-                                                             templ_arg_list);
+                                                             templ_arg_list,
+                                                             rout_templ_sym);
                 if (match) {
                   if (base_class_conv_needed != NULL) {
                     *base_class_conv_needed = bcp;
@@ -1768,6 +1968,7 @@ be NULL if the caller does not need to know whether a conversion was performed.
               tp = type->variant.typeref.type;
               ttp = templ_type->variant.typeref.type;
               match = matches_template_type(tp, ttp, templ_arg_list,
+                                            rout_templ_sym,
                                             /*allow_conversion=*/FALSE,
                                             (a_base_class_ptr*)NULL);
             }  /* if */
@@ -1775,15 +1976,38 @@ be NULL if the caller does not need to know whether a conversion was performed.
           case tk_array:
             /* Array types match if their element types match and the number of
                elements is the same. */
-            check_assertion(!type->variant.array.is_variable_size_array);
-            check_assertion(!templ_type->variant.array.is_variable_size_array);
-            if (type->variant.array.variant.number_of_elements !=
+            if (type->variant.array.is_variable_size_array) {
+              /* If the actual argument has a variable size, this is not a
+                 match (this shouldn't happen. */
+              unexpected_condition();
+            } else if (templ_type->variant.array.is_variable_size_array) {
+              /* The type from the template has a variable size.  If the
+                 variable size is a constant that refers to a template
+                 parameter, then this could be a match. */
+              an_expr_node_ptr expr;
+              expr = templ_type->variant.array.variant.element_count_expr;
+              if (expr->kind == (an_expr_node_kind)enk_constant) {
+                a_constant_ptr cp = expr->variant.constant;
+                a_targ_size_t  elements;
+                elements = type->variant.array.variant.number_of_elements;
+                match = matches_template_array_bound(elements, cp,
+                                                     templ_arg_list,
+                                                     rout_templ_sym);
+              }  /* if */
+            } else if (type->variant.array.variant.number_of_elements !=
                         templ_type->variant.array.variant.number_of_elements) {
-              /* Not a match. */
+              /* Both have constant bounds but the number of elements do
+                 not match. */
             } else {
+              /* The bounds match. */
+              match = TRUE;
+            }  /* if */
+            /* If the bounds match, check the element type. */
+            if (match) {
               tp = type->variant.array.element_type;
               ttp = templ_type->variant.array.element_type;
               match = matches_template_type(tp, ttp, templ_arg_list,
+                                            rout_templ_sym,
                                             /*allow_conversion=*/FALSE,
                                             (a_base_class_ptr*)NULL);
             }  /* if */
@@ -1798,6 +2022,7 @@ be NULL if the caller does not need to know whether a conversion was performed.
               tp = type->variant.pointer.type;
               ttp = templ_type->variant.pointer.type;
               match = matches_template_type(tp, ttp, templ_arg_list,
+                                            rout_templ_sym,
                                             /*allow_conversion=*/FALSE,
                                             (a_base_class_ptr*)NULL);
             }  /* if */
@@ -1808,11 +2033,13 @@ be NULL if the caller does not need to know whether a conversion was performed.
             tp = type->variant.ptr_to_member.type;
             ttp = templ_type->variant.ptr_to_member.type;
             if (matches_template_type(tp, ttp, templ_arg_list,
+                                      rout_templ_sym,
                                       /*allow_conversion=*/FALSE,
                                       (a_base_class_ptr*)NULL)) {
               tp = type->variant.ptr_to_member.class_of_which_a_member;
               ttp = templ_type->variant.ptr_to_member.class_of_which_a_member;
               match = (matches_template_type(tp, ttp, templ_arg_list,
+                                             rout_templ_sym,
                                              /*allow_conversion=*/FALSE,
                                              (a_base_class_ptr*)NULL));
             }  /* if */
@@ -1824,6 +2051,7 @@ be NULL if the caller does not need to know whether a conversion was performed.
             tp = type->variant.routine.return_type;
             ttp = templ_type->variant.routine.return_type;
             if (matches_template_type(tp, ttp, templ_arg_list,
+                                      rout_templ_sym,
                                       /*allow_conversion=*/FALSE,
                                       (a_base_class_ptr*)NULL) &&
                 (type->variant.routine.extra_info->has_ellipsis ==
@@ -1841,6 +2069,7 @@ be NULL if the caller does not need to know whether a conversion was performed.
                 tp = ptp->type;
                 ttp = tptp->type;
                 if (!matches_template_type(tp, ttp, templ_arg_list,
+                                           rout_templ_sym,
                                            /*allow_conversion=*/FALSE,
                                            (a_base_class_ptr*)NULL)) {
                   /* The first param type for which there is a mismatch causes
@@ -1868,7 +2097,8 @@ be NULL if the caller does not need to know whether a conversion was performed.
 
 a_boolean member_of_overload_set_matches_template_type(
 			       a_type_ptr       type,
-		  	       a_type_ptr       templ_type)
+		  	       a_type_ptr       templ_type,
+                               a_symbol_ptr     rout_templ_sym)
 /*
 This routine calls matches_template_type to determine whether the
 type specified by "type" matches the type specified by "templ_type" with
@@ -1883,11 +2113,89 @@ It is called once for each member of the overload set.
 
   db_enter(5, "member_of_overload_set_matches_template_type");
   result = matches_template_type(type, templ_type, &templ_arg_list,
-                        /*allow_conversion=*/FALSE, (a_base_class_ptr*)NULL);
+                                 rout_templ_sym, /*allow_conversion=*/FALSE,
+                                 (a_base_class_ptr*)NULL);
   if (templ_arg_list != NULL) free_template_arg_list(templ_arg_list);
   db_exit();
   return result;
 }  /* member_of_overload_set_matches_template_type */
+
+
+a_boolean verify_function_template_nontype_args(
+                                        a_template_arg_ptr templ_arg_list,
+                                        a_symbol_ptr       rout_templ_sym)
+/*
+This routine is used after doing argument deduction for each function
+argument to ensure that any nontype parameter whose type depends on a
+template parameter is consistent with the deduced value.  Also,
+types are supplied for nontype parameters that are deduced entirely
+from array bounds.
+*/
+{
+  a_boolean				match = TRUE;
+  a_template_param_ptr			tpp;
+  a_template_arg_ptr			tap;
+  a_template_symbol_supplement_ptr	tssp;
+
+  tssp = template_supplement_for_symbol(rout_templ_sym);
+  /* Make an initial pass through the argument list to see if all of the
+     arguments have deduced values. */
+  tpp = tssp->parameters;
+  tap = templ_arg_list;
+  for (; tpp != NULL; tpp = tpp->next, tap = tap->next) {
+    a_boolean	arg_okay = FALSE;
+    arg_okay = tap != NULL &&
+               ((tap->is_type && tap->variant.type != NULL) ||
+                (tap->is_array_bound_of_unknown_type) ||
+                (tap->variant.constant != NULL));
+    if (!arg_okay) {
+      match = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (match) {
+    tpp = tssp->parameters;
+    tap = templ_arg_list;
+    for (; tpp != NULL; tpp = tpp->next, tap = tap->next) {
+      a_type_ptr	constant_type;
+      /* Only nontype parameters need to be processed. */
+      if (tap->is_type) continue;
+      if (tpp->variant.constant.type_involves_template_param) {
+        /* Rescan the tokens that make up the parameter declaration. */
+        constant_type = rescan_template_constant_parameter
+                                   (rout_templ_sym, tpp->param_symbol, tpp,
+                                    templ_arg_list, /*do_default_arg=*/FALSE,
+                                    (a_constant_ptr*)NULL);
+      } else {
+        constant_type = tpp->variant.constant.ptr->type;
+      }  /* if */
+      if (tap->is_array_bound_of_unknown_type) {
+        /* The constant was deduced from an array bound and does not yet
+           have a type.  Make sure the declared type is integral, then
+           create a constant of the appropriate type. */
+        if (!is_integral_type(constant_type)) {
+          match = FALSE;
+        } else {
+          a_constant_ptr	constant;
+          constant = fs_constant((a_constant_repr_kind)ck_integer);
+          set_unsigned_integer_constant
+                       (constant, (unsigned long)tap->variant.integer_value,
+                        constant_type->variant.integer.int_kind);
+          tap->variant.constant = constant;
+          tap->is_array_bound_of_unknown_type = FALSE;
+        }  /* if */
+      } else {
+        /* The template argument has a deduced value with a type.  The
+           type must match the declared type.  This test is only needed if
+           the type involves a template parameter. */
+        if (tpp->variant.constant.type_involves_template_param) {
+          match = identical_types(constant_type, tap->variant.constant->type);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return match;
+}  /* verify_function_template_nontype_args */
 
 
 
@@ -1908,11 +2216,10 @@ Do some simple consistency checking on a function template argument list.
     tpp = templ_sym->variant.template_info->parameters;
   }  /* if */
   for (tap = templ_arg_list; tap != NULL; tap = tap->next) {
-    if (!tap->is_type) {
-      internal_error("check_template_arg_list: not a type arg");
-    } else if (tap->variant.type == NULL) {
-      internal_error("check_template_arg_list: missing type ptr");
-    }  /* if */
+    check_assertion_str2((tap->is_type && tap->variant.type != NULL) ||
+                         (!tap->is_type && tap->variant.constant != NULL),
+                         "check_template_arg_list:",
+                         "missing type or constant pointer");
     if (tpp == NULL) {
       internal_error("check_template_arg_list: too many template args");
     }  /* if */
@@ -2385,7 +2692,8 @@ get_next_sym:;
      template arg list is returned; otherwise, NULL is returned. */
   if (!matches_template_type(curr_type->variant.routine.return_type,
                              templ_rout_type->variant.routine.return_type,
-                             templ_arg_list, /*allow_conversion=*/FALSE,
+                             templ_arg_list, templ_sym,
+                             /*allow_conversion=*/FALSE,
                              (a_base_class_ptr*)NULL)) {
     goto done;
   } else {
@@ -2395,13 +2703,20 @@ get_next_sym:;
     other_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
     for (; other_ptp != NULL; other_ptp = other_ptp->next) {
       if (!matches_template_type(ptp->type, other_ptp->type,
-                                 templ_arg_list, /*allow_conversion=*/FALSE,
+                                 templ_arg_list, templ_sym,
+                                 /*allow_conversion=*/FALSE,
                                  (a_base_class_ptr*)NULL)) {
         goto done;
       }  /* if */
       ptp = ptp->next;
     }  /* for */
     match = TRUE;
+  }  /* if */
+  /* Make sure that the types of nontype template parameters that depend
+     on other template parameters agree with the types of the deduced
+     values. */
+  if (match) {
+    match = verify_function_template_nontype_args(*templ_arg_list, templ_sym);
   }  /* if */
 done:
   if (!match && *templ_arg_list != NULL) {
@@ -2857,14 +3172,16 @@ structure.
   /* Check for invalid type arguments.  Local types may not be used as
      arguments nor may unnamed types.  Issue an error if any are found. */
   while (tap != NULL) {
-    a_type_ptr	type = tap->variant.type;
-    a_boolean	is_unnamed;
-    a_boolean	is_local;
-    if (is_or_contains_unnamed_or_local_type(type, &is_unnamed, &is_local)) {
-      if (is_local) {
-        pos_error(ec_local_type_in_template_arg, source_pos);
-      } else if (is_unnamed) {
-        pos_error(ec_unnamed_type_in_template_arg, source_pos);
+    if (tap->is_type) {
+      a_type_ptr	type = tap->variant.type;
+      a_boolean		is_unnamed;
+      a_boolean		is_local;
+      if (is_or_contains_unnamed_or_local_type(type, &is_unnamed, &is_local)) {
+        if (is_local) {
+          pos_error(ec_local_type_in_template_arg, source_pos);
+        } else if (is_unnamed) {
+          pos_error(ec_unnamed_type_in_template_arg, source_pos);
+        }  /* if */
       }  /* if */
     }  /* if */
     tap = tap->next;
@@ -2873,7 +3190,6 @@ structure.
   prev_tip = NULL;
   for (; tip != NULL; tip = tip->next) {
     if (equiv_template_arg_lists(tip->arg_list, *new_list,
-                                 /*is_func_template=*/TRUE,
                                  /*error_matches_anything=*/FALSE)) {
       /* We've found a match.  Remove the found function instantiation entry
          from its current position in the instantiation list and add it to
@@ -3680,6 +3996,7 @@ Place the tokens for a template parameter into a token cache.
 }  /* prescan_template_param_decl */
 
 
+static
 void scan_a_template_parameter_declaration(a_symbol_locator *param_locator,
 					   a_type_ptr       *param_type_ptr)
 /*
@@ -3750,14 +4067,14 @@ first parameter.  Return a pointer to the linked list that is created
 to represent the template parameters.
 */
 {
-  a_symbol_ptr         sym;
-  a_template_param_ptr template_param;
-  a_template_param_ptr template_param_list = NULL;
-  a_template_param_ptr end_of_template_param_list = NULL;
-  a_type_ptr           template_param_type;
-  int                  template_param_list_pos = 0;
-  a_token_cache        param_cache;
-  a_boolean	       parameter_cache_used = FALSE;
+  a_symbol_ptr         		sym;
+  a_template_param_ptr 		template_param;
+  a_template_param_ptr 		template_param_list = NULL;
+  a_template_param_ptr 		end_of_template_param_list = NULL;
+  a_type_ptr           		template_param_type;
+  a_token_cache        		param_cache;
+  a_boolean	       		parameter_cache_used = FALSE;
+  a_template_param_list_pos	template_param_list_pos = 0;
 
   db_enter(3, "scan_template_param_list");
   /* Check for an bypass the "<". */
@@ -3972,10 +4289,131 @@ to represent the template parameters.
 }  /* scan_template_param_list */
 
 
+a_type_ptr rescan_template_constant_parameter
+                                     (a_symbol_ptr	   template_sym,
+                                      a_symbol_ptr	   param_sym,
+			              a_template_param_ptr param_ptr,
+				      a_template_arg_ptr   arg_list,
+                                      a_boolean		   do_default_arg,
+                                      a_constant_ptr       *constant)
+/*
+Rescan the tokens of a template parameter declaration and/or default
+argument using the current values of any previous parameters so that
+the declaration and/or default argument is processed with the types
+with which the class is to be instantiated.  This is used to get the
+correct types for template parameters whose types depend on other
+template parameters.  If the type of the constant depends on a
+template parameter, then the type is rescanned.  Otherwise, the
+existing type is simply used.  If do_default_arg is TRUE, then the
+default argument constant is processed too.  A pointer to the
+resulting constant is stored in the pointer pointed to by "constant".
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_type_ptr				constant_type;
+  a_symbol_locator   			param_locator;
+  a_source_position  			saved_pos_curr_token;
+  a_source_position  			saved_error_position;
+  a_boolean				type_involves_template_param;
+  a_boolean				constant_involves_template_param;
+
+  type_involves_template_param =
+               param_ptr->variant.constant.type_involves_template_param;
+  constant_involves_template_param =
+            param_ptr->def_arg_involves_template_param;
+  tssp = template_sym->variant.template_info;
+  /* Push the template instantiation scope.  Note that the instance symbol
+     passed to push_scope is NULL because we don't yet know which instance
+     is being instantiated.  Also note that a class type is not being
+     passed for the same reason. */
+  (void)push_template_instantiation_scope(tssp->declaration_scope,
+					  (a_type_ptr)NULL,
+					  (a_routine_ptr)NULL,
+					  (a_symbol_ptr)NULL,
+					  template_sym, arg_list,
+					  /*nested_instantiation=*/FALSE);
+  saved_pos_curr_token = pos_curr_token;
+  saved_error_position = error_position;
+  if (type_involves_template_param) {
+    /* Rescan the tokens of the function declaration. */
+    rescan_reusable_cache(&param_ptr->token_cache);
+    /* Scan the declaration specifiers. */
+    scan_a_template_parameter_declaration(&param_locator, &constant_type);
+    /* Skip past any tokens remaining in the cache.  Extra tokens will
+       be present under certain error conditions and when a default argument
+       has been supplied. */
+    flush_past_token_cache_terminator();
+  } else {
+    constant_type = param_sym->variant.constant->type;
+  }  /* if */
+  if (do_default_arg) {
+    /* This parameter has a default argument whose value is to be used. */
+    if (constant_involves_template_param) {
+      rescan_reusable_cache(&param_ptr->default_arg.token_cache);
+      *constant = fs_constant((a_constant_repr_kind)ck_error);
+      delayed_scan_of_template_default_arg_expr(constant_type, *constant);
+    } else {
+      *constant = param_ptr->default_arg.constant;
+    }  /* if */
+  }  /* if */
+  error_position = saved_error_position;
+  pos_curr_token = saved_pos_curr_token;
+  /* Pop the template instantiation scope. */
+  pop_scope();
+  return constant_type;
+}  /* rescan_template_constant_parameter */
+
+
+a_type_ptr rescan_template_type_default_arg
+                                     (a_symbol_ptr	   template_sym,
+			              a_template_param_ptr param_ptr,
+				      a_template_arg_ptr   arg_list)
+/*
+Rescan the tokens of a template parameter default argument using the
+current values of any previous parameters so that the default argument
+is processed with the types with which the class is to be instantiated.
+This is used to get the correct types for type default arguments that
+depend on other template parameters.  If the default depends on
+a template parameter then the cache is rescanned, otherwise, the
+existing type is simply used. 
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_source_position  			saved_pos_curr_token;
+  a_source_position  			saved_error_position;
+  a_type_ptr				tp;
+
+  tssp = template_sym->variant.template_info;
+  /* Push the template instantiation scope.  Note that the instance symbol
+     passed to push_scope is NULL because we don't yet know which instance
+     is being instantiated.  Also note that a class type is not being
+     passed for the same reason. */
+  (void)push_template_instantiation_scope(tssp->declaration_scope,
+					  (a_type_ptr)NULL,
+					  (a_routine_ptr)NULL,
+					  (a_symbol_ptr)NULL,
+					  template_sym, arg_list,
+					  /*nested_instantiation=*/FALSE);
+  saved_pos_curr_token = pos_curr_token;
+  saved_error_position = error_position;
+  if (param_ptr->def_arg_involves_template_param) {
+    rescan_reusable_cache(&param_ptr->default_arg.token_cache);
+    tp = delayed_scan_of_template_default_type_arg();
+  } else {
+    tp = param_ptr->default_arg.type;
+  }  /* if */
+  error_position = saved_error_position;
+  pos_curr_token = saved_pos_curr_token;
+  /* Pop the template instantiation scope. */
+  pop_scope();
+  return tp;
+}  /* rescan_template_type_default_arg */
+
+
 static a_boolean template_param_appears_in_param_list
-				(a_type_ptr  tparam_type,
-                                 a_type_ptr  rout_type,
-			         a_boolean   *only_used_in_default_args)
+				(a_symbol_ptr param_sym,
+                                 a_type_ptr   rout_type,
+			         a_boolean    *only_used_in_default_args)
 /*
 tparam_type is a tk_template_parameter type entry used in a template
 declaration, and rout_type is a routine type.  Search each of the routine's
@@ -3988,14 +4426,32 @@ arguments.
   a_boolean         found = FALSE;
   a_boolean	    only_in_default_args;
   a_param_type_ptr  ptp;
+  a_type_ptr	    tparam_type;
+  a_constant_ptr    tparam_constant;
+  a_boolean	    is_type_param;
 
+  is_type_param = param_sym->kind == (a_symbol_kind)sk_type;
+  if (is_type_param) {
+    tparam_type = param_sym->variant.type;
+  } else {
+    tparam_constant = param_sym->variant.constant;
+  }  /* if */
   /* Only do this check if the pointer passed by the caller is non-NULL. */
   only_in_default_args = (only_used_in_default_args != NULL);
   ptp = rout_type->variant.routine.extra_info->param_type_list;
   for (; ptp != NULL; ptp = ptp->next) {
     if (ptp->type_involves_template_param) {
-      if (is_or_contains_specific_template_param(ptp->type, tparam_type)) {
-        found = TRUE;
+      if (is_type_param) {
+        if (is_or_contains_specific_template_param(ptp->type, tparam_type)) {
+          found = TRUE;
+        }  /* if */
+      } else {
+        if (type_contains_specific_template_param_constant(ptp->type,
+                                                           tparam_constant)) {
+          found = TRUE;
+        }  /* if */
+      }  /* if */
+      if (found) {
         if (!ptp->has_default_arg) only_in_default_args = FALSE;
       }  /* if */
       /* If we've found all the information we are looking for then stop. */
@@ -4239,41 +4695,35 @@ Make sure that all of the template parameters are used as part of the
 signature of the functions that will be generated from this template.
 Use in a function parameter with a default argument is not counted as
 it would not be possible to deduce the value of a template parameter
-when the associated function argument was omitted.  Also make sure that
-only type parameters are used (nontype parameters for function templates
-are a new feature and are not yet implemented).
+when the associated function argument was omitted.
 */
 {
   a_template_param_ptr   tpp;
   a_type_ptr	         rout_type = skip_typerefs(type);
   for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr param_sym = tpp->param_symbol;
+    a_boolean	 only_in_default_args;
+    a_boolean	 param_used;
     if (tpp->has_default_arg) {
       pos_error(ec_default_template_arg_not_allowed,
                 &param_sym->decl_position);
     }  /* if */
-    if (param_sym->kind != (a_symbol_kind)sk_type) {
-      pos_error(ec_not_a_type_arg, &param_sym->decl_position);
-      tssp->variant.function.cannot_be_called = TRUE;
-    } else {
-      /* Make sure that all template parameters are used by
-	 function parameter types and not just by parameters
-	 with default arguments.  If an error occurs set the
-	 cannot_be_called flag to prevent an instantiation from
+    /* Make sure that all template parameters are used by
+       function parameter types and not just by parameters
+       with default arguments.  If an error occurs set the
+       cannot_be_called flag to prevent an instantiation from
 	 being attempted with an incomplete set of template arguments. */
-      a_boolean	only_in_default_args;
-      a_boolean	param_used;
-      param_used = template_param_appears_in_param_list
-	(param_sym->variant.type, rout_type, &only_in_default_args);
-      if (!param_used) {
-	pos_sy2_error(ec_not_used_in_template_function_params,
-		      &param_sym->decl_position, param_sym, sym);
-	tssp->variant.function.cannot_be_called = TRUE;
-      } else if (only_in_default_args) {
-	pos_sy2_error(ec_template_param_only_used_in_default_args,
-		      &param_sym->decl_position, param_sym, sym);
-	tssp->variant.function.cannot_be_called = TRUE;
-      } /* if */
+    param_used = template_param_appears_in_param_list
+                                        (param_sym, rout_type,
+                                         &only_in_default_args);
+    if (!param_used) {
+      pos_sy2_error(ec_not_used_in_template_function_params,
+                    &param_sym->decl_position, param_sym, sym);
+      tssp->variant.function.cannot_be_called = TRUE;
+    } else if (only_in_default_args) {
+      pos_sy2_error(ec_template_param_only_used_in_default_args,
+                    &param_sym->decl_position, param_sym, sym);
+        tssp->variant.function.cannot_be_called = TRUE;
     } /* if */
   } /* for */
 }  /* check_function_template_param_usage */

@@ -579,6 +579,7 @@ a pointer to it.
   }  /* if */
   tap->next             = NULL;
   tap->is_type          = is_type_arg;
+  tap->is_array_bound_of_unknown_type = FALSE;
   if (is_type_arg) {
     tap->variant.type     = NULL;
   } else {

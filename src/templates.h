@@ -25,20 +25,37 @@ extern a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
                                         a_source_position   *source_pos,
 				 	a_boolean	    prototype_allowed);
 
-extern void scan_a_template_parameter_declaration
-                                          (a_symbol_locator *param_locator,
-					   a_type_ptr       *param_type_ptr);
+extern a_type_ptr rescan_template_constant_parameter
+                                     (a_symbol_ptr	   template_sym,
+                                      a_symbol_ptr	   param_sym,
+			              a_template_param_ptr param_ptr,
+				      a_template_arg_ptr   arg_list,
+                                      a_boolean		   do_default_arg,
+                                      a_constant_ptr       *constant);
 
-extern a_boolean matches_template_type
-                                  (a_type_ptr          type,
-                                   a_type_ptr          templ_type,
-                                   a_template_arg_ptr  *templ_arg_list,
-                                   a_boolean           allow_conversion,
-                                   a_base_class_ptr   *base_class_conv_needed);
+extern a_type_ptr rescan_template_type_default_arg
+                                     (a_symbol_ptr	   template_sym,
+			              a_template_param_ptr param_ptr,
+				      a_template_arg_ptr   arg_list);
 
-extern a_boolean member_of_overload_set_matches_template_type(
-			               a_type_ptr       type,
-		  	               a_type_ptr       templ_type);
+extern
+a_boolean matches_template_type(a_type_ptr           type,
+                                a_type_ptr           templ_type,
+                                a_template_arg_ptr   *templ_arg_list,
+				a_symbol_ptr         rout_templ_sym,
+				a_boolean            allow_conversion,
+                                a_base_class_ptr     *base_class_conv_needed);
+
+extern
+a_boolean member_of_overload_set_matches_template_type(
+			       a_type_ptr       type,
+		  	       a_type_ptr       templ_type,
+                               a_symbol_ptr     rout_templ_sym);
+
+extern a_boolean verify_function_template_nontype_args(
+                                        a_template_arg_ptr templ_arg_list,
+                                        a_symbol_ptr       rout_templ_sym);
+
 
 extern a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
                                            a_template_arg_ptr  *templ_arg_list,
@@ -67,7 +84,6 @@ extern void f_instantiate_template_class(a_type_ptr  type);
 extern a_boolean equiv_template_arg_lists(
                                     a_template_arg_ptr list1,
                                     a_template_arg_ptr list2,
-                                    a_boolean          is_func_template,
                                     a_boolean          error_matches_anything);
 
 extern void prescan_function_template_default_arg_expr(a_param_type_ptr  ptp);

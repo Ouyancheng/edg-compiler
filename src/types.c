@@ -1757,7 +1757,6 @@ checking instead of equivalence checking).
                                                             template_arg_list,
                              type_2->variant.class_struct_union.extra_info->
                                                             template_arg_list,
-                             /*is_func_template=*/FALSE,
                              error_matches_anything)) {
             equiv = TRUE;
           }  /* if */
@@ -4776,9 +4775,6 @@ containing such a reference to the type.
 }  /* is_or_contains_specific_template_param */
 
 
-#if 0
-/* The following is not needed until support for nontype template parameters
-   on function templates is added. */
 a_boolean type_contains_specific_template_param_constant(a_type_ptr     tp,
                                                          a_constant_ptr cp)
 /*
@@ -4797,7 +4793,6 @@ in the type tree represented by tp.
   return (traverse_type_tree(tp, ttt_contains_template_param_constant,
                              ttt_flags));
 }  /* type_contains_specific_template_param_constant */
-#endif /* if 0 */
 
 
 void set_force_external_linkage_flag(a_type_ptr  type_ptr)

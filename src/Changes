@@ -1,5 +1,12 @@
 Version 2.29
 
+5/9/95   Nontype template parameters may be used in function templates
+
+Function templates may now make use of nontype template parameters.
+
+  template <int I> struct A {};
+  template <int I> void f(A<I>);
+
 5/9/95   for-init declaration marker in source-sequence list
 
 When GENERATE_SOURCE_SEQUENCE_ENTRIES is TRUE and a for-init-statement

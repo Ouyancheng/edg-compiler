@@ -1979,16 +1979,31 @@ typedef struct a_template_arg {
      argument list for such an instance. */
   a_template_arg_ptr
                 next;   /* Next in a linked list template arguments. */
-  a_boolean     is_type;
+  unsigned int
+		is_type:1;
                         /* TRUE if this argument is a type argument.  FALSE
                            if it is a constant value. */
+  unsigned int
+		is_array_bound_of_unknown_type:1;
+			/* TRUE if the template argument is a deduced array
+			   bound whose type is not yet known. */
+  bitfield_to_avoid_codecenter_warnings();
   union {
     /* When is_type == TRUE. */
     a_type_ptr  type;   /* The type supplied as the argument. */
-    /* When is_type == FALSE. */
+    /* When is_type == FALSE and is_array_bound_of_unknown_type == FALSE. */
     a_constant_ptr
                 constant;
                         /* The constant supplied as the argument. */
+    /* When is_type == FALSE and is_array_bound_of_unknown_type == FALSE. */
+    a_targ_size_t
+		integer_value;
+			/* The integer value deduced from an array bound.
+                           This value is only used during type deduction.
+                           At the end of type deduction, the type of the
+                           parameter being deduced is known and this value
+                           is converted into a normal constant parameter.
+                           Contains zero if no value has been deduced yet. */
   } variant;
 } a_template_arg;
 

@@ -239,14 +239,18 @@ source_pos is the source position of the reference.  See ARM 13.3,
 }  /* find_addr_of_overloaded_function_match */
 
 
-static a_boolean indefinite_function_can_be_template_arg(an_operand *operand,
-                                                         a_type_ptr param_type,
-                                                         a_type_ptr *arg_type)
+static
+a_boolean indefinite_function_can_be_template_arg(an_operand   *operand,
+                                                  a_type_ptr   param_type,
+                                                  a_type_ptr   *arg_type,
+                                                  a_symbol_ptr templ_sym)
 /*
 operand is an indefinite function operand.  See if it can be matched against
 a parameter of type param_type from a function template.  If so, return
 TRUE and set *arg_type to the argument type to use.  *arg_type is not
-changed if this function returns FALSE.
+changed if this function returns FALSE.  templ_sym points to the
+function template symbol associated with the template associated with
+param_type.
 */
 {
   a_boolean    can_be_arg = FALSE;
@@ -271,7 +275,8 @@ changed if this function returns FALSE.
                                               sym->class_of_which_a_member);
       }  /* if */
       if (member_of_overload_set_matches_template_type(ptr_routine_type,
-                                                       param_type)) {
+                                                       param_type,
+                                                       templ_sym)) {
         /* This function matches.  Only one is allowed to match, so if
            a previous one matched, the overall match fails. */ 
         if (can_be_arg) {
@@ -2011,7 +2016,8 @@ evaluated (but not checked to see if the match is good enough).
            Only one is allowed to match. */
         if (!indefinite_function_can_be_template_arg(&arg_operand->operand,
                                                      param_type,
-                                                     &arg_type)) goto done;
+                                                     &arg_type,
+                                                     templ_sym)) goto done;
       }  /* if */
       /* An incomplete type operand cannot be made to match anything.
          This comes up for something like
@@ -2078,6 +2084,7 @@ evaluated (but not checked to see if the match is good enough).
          This conversion was not allowed by the ARM but has been blessed
          by the standards committee. */
       if (!matches_template_type(arg_type, param_type, &templ_arg_list,
+                                 templ_sym,
                                  /*allow_conversion=*/TRUE,
                                  &base_class_conv_needed)) {
         /* Mismatch. */
@@ -2121,6 +2128,12 @@ evaluated (but not checked to see if the match is good enough).
       }  /* if */
     }  /* if */
   }  /* for */
+  /* Make sure that the types of nontype template parameters that depend
+     on other template parameters agree with the types of the deduced
+     values. */
+  if (!verify_function_template_nontype_args(templ_arg_list, templ_sym)) {
+    goto done;
+  }  /* if */
   if (arg_operand != NULL) {
     /* We ran out of parameters, but we still have arguments.  There should
        be an ellipsis. */

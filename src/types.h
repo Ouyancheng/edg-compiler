@@ -439,13 +439,9 @@ extern void set_type_involves_template_param_flags(a_type_ptr  rout_type);
 extern a_boolean is_or_contains_specific_template_param
 						(a_type_ptr  type_ptr,
 						 a_type_ptr  tparam_type);
-#if 0
-/* The following is not needed until support for nontype template parameters
-   on function templates is added. */
 extern a_boolean type_contains_specific_template_param_constant(
                                                          a_type_ptr     tp,
                                                          a_constant_ptr cp);
-#endif /* if 0 */
 extern void set_force_external_linkage_flag(a_type_ptr  type_ptr);
 extern void set_used_in_exception_flag(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_ptr_or_ref_to_unknown_bound_array(
