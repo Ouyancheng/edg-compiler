@@ -2755,20 +2755,24 @@ Do processing for a member constant, including scanning the initializer
 constant and entering the name in the symbol table.  This construct is
 not supported in the ARM.  The syntax we allow is:
 
-  "const" type-specifier    constant-member-name "=" constant-expression
-                        opt
+  "const" simple-type-name    constant-member-name "=" constant-expression
+                          opt
 
-where the type specifier includes no storage class.  When the type specifier
-is omitted, it defaults to "int".
+where the type specifier includes no storage class.  When simple-type-name
+is omitted, the type defaults to "int".
 */
 {
   a_symbol_ptr     sym;
   a_constant_ptr   cp;
 
   db_enter(3, "decl_member_constant");
-  /* The current token is the "=".  Pointing to it issue a warning that is
+  /* The current token is the "=".  Pointing to it issue a warning that this
      is a nonstandard construct. */
-  warning(ec_nonstd_const_member);
+  if (strict_ansi_mode) {
+    warning(ec_nonstd_const_member);
+  } else {
+    remark(ec_nonstd_const_member);
+  }  /* if */
   /* Advance past the "=". */
   (void)get_token();
   /* Scan the constant expression. */
