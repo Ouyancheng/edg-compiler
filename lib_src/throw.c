@@ -656,15 +656,15 @@ a try block with a catch that matches the type of the object thrown.
     if (kind == (an_eh_stack_entry_kind)ehsek_function) {
       /* Do nothing with function blocks at this time. */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
-#if 0
-       /* Skip over try blocks for which a catch is active. */
-#endif /* 0 */
-      int result = check_catches(ehsep, thrown_typeinfo, thrown_is_pointer,
-                                 &object_ptr);
-      if (result != 0) {
-        destination_ehsep = ehsep;
-        destination_catch_value = result;
-        break;
+      if (ehsep->variant.try_block.catch_info == NULL) {
+        /* Skip over try blocks for which a catch is active. */
+        int result = check_catches(ehsep, thrown_typeinfo, thrown_is_pointer,
+                                   &object_ptr);
+        if (result != 0) {
+          destination_ehsep = ehsep;
+          destination_catch_value = result;
+          break;
+        }  /* if */
       }  /* if */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_spec) {
 #if 0
@@ -706,6 +706,11 @@ a try block with a catch that matches the type of the object thrown.
     __catch_clause_number = destination_catch_value;
     __curr_eh_stack_entry = destination_ehsep;
     __caught_object_address = object_ptr;
+#if 0
+#else /* 0 */
+   /* This should point to runtime memory management information. */
+   destination_ehsep->variant.try_block.catch_info = (void*)object_ptr;
+#endif /* 0 */
    longjmp(destination_ehsep->variant.try_block.setjmp_buffer, 1);
   }  /* if */
   return 0;
@@ -720,8 +725,7 @@ Rethrow the current thrown obejct.
 #if 0
   /* Additional memory management stuff needs to go here. */
 #else
-  fprintf(stderr, "rethrow not yet implemented\n");
-  exit(1);
+  __throw();
 #endif /* 0 */
 }  /* __rethrow */
 
