@@ -8390,7 +8390,7 @@ Lower an stmk_return statement.
 */
 {
   an_expr_node_ptr   return_expr = statement->expr;
-  a_statement_ptr    return_statement;
+  a_statement_ptr    return_statement, assign_statement;
   a_boolean          make_block, any_cleanup_on_return;
   a_dynamic_init_ptr dip;
   a_variable_ptr     temp_var;
@@ -8469,9 +8469,11 @@ Lower an stmk_return statement.
                              &return_statement);
       make_block = FALSE;
       /* Insert the "temp = return-expr;" statement. */
-      (void)insert_var_assignment_statement(temp_var,
+      assign_statement = insert_var_assignment_statement(
+                                            temp_var,
                                             (an_expr_operator_kind)eok_last,
                                             return_expr, &insert_location);
+      set_stmt_pos_to_code_pos_for_lowering(assign_statement);
     }  /* if */
   }  /* if */
   if (any_cleanup_on_return) {
