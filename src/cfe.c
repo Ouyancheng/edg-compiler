@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
   /* Exit with the return code appropriate to the highest severity error
      detected. */
   exit_compilation(most_severe_diagnostic);
-  /*NOTREACHED*/
+  return 0;  /* Not reached; here to keep lint happy. */
 }  /* main */
 
 
