@@ -1300,7 +1300,7 @@ delete is unusual, and exceptions are enabled:
   a)  A ::new of a class type, where the class declares a class-specific
       operator delete but no class-specific operator new, and
       NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE (default for the Cfront-like
-      ABI).  The allocation was performed by the contructor, which
+      ABI).  The allocation was performed by the constructor, which
       would call the wrong operator delete if an exception is thrown.
       The allocation is now done before calling the constructor.
   b)  A new of an array type, where the class declares a class-specific
