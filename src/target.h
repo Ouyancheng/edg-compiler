@@ -250,7 +250,7 @@ errors are still generated for type mismatches.
 ??=error -- TARG_MAX_BIT_FIELD_SIZE is too big
 #endif /* TARG_MAX_BIT_FIELD_SIZE ... */
 /* Second check required for definition of a_field (see il_def.h).  We add
-   1 to TARG_MAX_BIT_FIELD_SIZE for a front end use (see class_decl.c). */
+   1 to TARG_MAX_BIT_FIELD_SIZE for a front end use (see layout.c). */
 #if BYTE_MAX < TARG_MAX_BIT_FIELD_SIZE+1
 ??=error -- TARG_MAX_BIT_FIELD_SIZE is too big.
 #endif /* BYTE_MAX < TARG_MAX_BIT_FIELD_SIZE */
