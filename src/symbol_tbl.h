@@ -3595,8 +3595,7 @@ extern a_boolean is_block_extern_symbol(a_symbol_ptr sym);
 
 extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
 
-extern a_symbol_ptr find_label_symbol(a_symbol_header_ptr	sym_hdr,
-				      a_scope_number		scope_number);
+extern a_symbol_ptr find_label_symbol(a_symbol_header_ptr	sym_hdr);
 
 extern a_symbol_ptr find_macro_symbol(a_symbol_header_ptr	sym_hdr);
 

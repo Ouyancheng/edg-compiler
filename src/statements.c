@@ -3176,7 +3176,7 @@ static a_statement_ptr start_block_statement(a_boolean generated_statement,
 Do processing to begin a block or compound statement.  Return a pointer
 to the block statement.  generated_statement is TRUE if the block is
 generated, e.g., to surround a dependent statement in C++ or C99.
-is_statement_expr is TRUE if the statement is the top of a GNU C
+is_statement_expr is TRUE if the statement is the top of a GNU
 statement expression, ({ ... }).
 */
 {
@@ -3187,7 +3187,7 @@ statement expression, ({ ... }).
     /* Allocate a block statement and add it to the statements list. */
     block_stmt = add_statement((a_statement_kind)stmk_block);
   } else {
-    /* A GNU C statement expression.  Do not link the statement into
+    /* A GNU statement expression.  Do not link the statement into
        the current statement on the statement stack. */
     block_stmt = alloc_statement((a_statement_kind)stmk_block);
     set_stmt_source_position(block_stmt->position, pos_curr_token);
@@ -6564,12 +6564,12 @@ expr_statement:
 
 static void local_label_declaration(a_boolean  is_statement_expr)
 /*
-Scan a GNU C local label declaration of the form:
+Scan a GNU local label declaration of the form:
 	__label__ l1, l2, ..., ln;
 Normally, they should only appear at the beginning of a statement expression.
 */
 {
-  check_assertion(gcc_mode && curr_token == tok_identifier);
+  check_assertion(gnu_mode && curr_token == tok_identifier);
   if (!is_statement_expr) {
     warning(ec_local_labels_only_in_statement_expressions);
   }  /* if */
@@ -6615,7 +6615,7 @@ come out on the closing "}".  If is_catch_clause is TRUE this is being called
 to scan the body of an exception handler.  The scope stack has already been
 pushed, but otherwise this is handled like an ordinary block (except that
 branching into it is disallowed).  If is_statement_expr is TRUE, this
-compound statement is the statement in a GNU C statement expression,
+compound statement is the statement in a GNU statement expression,
 e.g., ({ ... }).
 */
 {
@@ -6704,9 +6704,9 @@ e.g., ({ ... }).
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) check_for_upc_pragmas(block);
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  /* It is also the only place where a GNU C local label can be declared.
+  /* It is also the only place where a GNU local label can be declared.
      Normally, such labels should only appear in statement expressions. */
-  while (gcc_mode && curr_token == tok_identifier &&
+  while (gnu_mode && curr_token == tok_identifier &&
          strcmp("__label__",
                 locator_for_curr_id.symbol_header->identifier) == 0) {
     local_label_declaration(is_statement_expr);

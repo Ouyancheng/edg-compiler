@@ -5678,21 +5678,39 @@ Return the symbol header for the specified identifier.
 }  /* find_symbol_header */
 
 
-a_symbol_ptr find_label_symbol(a_symbol_header_ptr	sym_hdr,
-			       a_scope_number		scope_number)
+a_symbol_ptr find_label_symbol(a_symbol_header_ptr	sym_hdr)
 /*
 Look through the active list of sym_hdr for a label symbol declared in
-scope_number.
+the current function.  Return the symbol if one is found, or NULL if not.
 */
 {
-  a_symbol_ptr	sym;
+  a_symbol_ptr   sym;
+  a_scope_number func_scope_number;
 
+  /* The important thing here is that we do not want to find labels
+     declared in functions surrounding this one, e.g., if we're in
+     a member function of a local class. */
+  check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
+  func_scope_number = scope_stack[depth_innermost_function_scope].number;
   for (sym = sym_hdr->symbol; sym != NULL; sym = sym->next) {
-    if (sym->kind == (a_symbol_kind)sk_label &&
-        (scope_number == NO_SCOPE_NUMBER || sym->decl_scope == scope_number)) {
-      break;
+    if (sym->kind == (a_symbol_kind)sk_label) {
+      if (sym->decl_scope == func_scope_number) break;
+      /* In GNU mode there can be local label declarations in statement
+         expressions.  They have block scope. */
+      if (gnu_mode) {
+        a_scope_stack_entry_ptr ssep;
+        /* Look at the scopes from the current top of the scope stack to
+           the innermost enclosing function scope.  If the label is
+           declared in one of those scopes it is in the current function. */
+        for (ssep = &scope_stack[decl_scope_level];
+             ssep->number != func_scope_number;
+             ssep = previous_scope_of(ssep)) {
+          if (ssep->number == sym->decl_scope) goto have_sym;
+        }  /* for */
+      }  /* if */
     }  /* if */
   }  /* for */
+have_sym:
   return sym;
 }  /* find_label_symbol */
 

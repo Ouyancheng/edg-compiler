@@ -7599,11 +7599,11 @@ symbol has already been entered as an undefined symbol.
 a_label_ptr scan_label(a_boolean  is_definition,
                        a_boolean  is_declaration)
 /*
-Scan a label as part of a statement label, a goto statement, or a GNU C local
+Scan a label as part of a statement label, a goto statement, or a GNU local
 label declaration.  Return a pointer to the IL label.  The current token
 should be a label identifier.  is_definition is TRUE if the label is being
 scanned as part of a label definition.  is_declaration is TRUE if the label
-is being scanned as part of a GNU C local label declaration.
+is being scanned as part of a GNU local label declaration.
 */
 {
   a_symbol_ptr  label_sym;
@@ -7622,16 +7622,11 @@ is being scanned as part of a GNU C local label declaration.
     err = TRUE;
   } else {
     /* See if the label identifier is already in the symbol table. */
-    a_scope_number  scope_number;
-    /* In GNU C mode, labels may be block-scoped. */
-    scope_number = gcc_mode ? NO_SCOPE_NUMBER
-                            : scope_stack[depth_innermost_function_scope].
-                                                             il_scope->number;
-    label_sym = find_label_symbol(locator_for_curr_id.symbol_header,
-                                  scope_number);
+    label_sym = find_label_symbol(locator_for_curr_id.symbol_header);
     if (is_declaration && label_sym != NULL) {
-      if (label_sym->decl_scope ==
-                             scope_stack[decl_scope_level].il_scope->number) {
+      /* For a local label declaration, we have to check whether the
+         new declaration is in the same scope as the one found. */
+      if (label_sym->decl_scope == scope_stack[decl_scope_level].number) {
         /* A duplicate declaration. */
         sym_error(ec_already_defined, label_sym);
         err = TRUE;
@@ -7644,7 +7639,7 @@ is being scanned as part of a GNU C local label declaration.
   if (label_sym == NULL) {
     /* Enter the label identifier into the symbol table.  This is normally
        done at the function level even if we are inside some blocks.  The
-       exception is a GNU C local label declaration.  Use a locator with an
+       exception is a GNU local label declaration.  Use a locator with an
        undefined source position; the decl_position will be handled
        explicitly shortly. */
     a_scope_depth  depth = is_declaration ? decl_scope_level
