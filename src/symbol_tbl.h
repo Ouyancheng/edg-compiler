@@ -617,6 +617,13 @@ typedef struct a_class_symbol_supplement {
 			   of a class template or a nested class of a class
 			   template.  NULL for other classes including 
 			   other instantiations of the template. */
+  a_symbol_ptr	next_in_instantiations_list;
+			/* When the class is an instance of a class template
+			   or a nested class of a class template, this field
+			   points to the next instance in the instantiations
+			   list pointed to by the template symbol supplement
+			   of the template with which this instance is
+			   associated. */
   a_scope_number
 		member_decl_scope;
 			/* Scope number of members of the class.  For
@@ -2984,6 +2991,11 @@ supplement.
    must be a namespace symbol. */
 #define namespace_symbol_namespace(sym)					\
   (skip_namespace_aliases((sym)->variant.namespace_info.ptr))
+
+/* Return a pointer to the next instance symbol in a list of class
+   instantiations. */
+#define next_instance_sym(sym)						\
+  ((sym)->variant.class_struct_union.extra_info->next_in_instantiations_list)
 
 extern void form_symbol_name(a_symbol_ptr                          sym,
                              an_il_to_str_output_control_block_ptr octl);
