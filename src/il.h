@@ -113,14 +113,6 @@ expand temp_text_buffer by reallocating it.
 }  /* ensure_temp_text_buffer_space */
 
 
-extern char *alloc_il(sizeof_t size);
-
-extern void set_constant_kind(a_constant           *cp,
-                              a_constant_repr_kind kind);
-
-extern void clear_constant(a_constant           *cp,
-                           a_constant_repr_kind kind);
-
 extern void set_error_constant(a_constant *cp);
 
 extern void set_routine_address_constant(a_routine_ptr routine,
@@ -140,39 +132,13 @@ extern void set_constant_address_constant(a_constant_ptr constant,
 extern void set_arg_transfer_method_flag(a_param_type_ptr   ptp,
                                          a_source_position  *err_pos);
 
-extern a_param_type_ptr alloc_param_type(a_type_ptr type);
-
 extern a_param_type_ptr make_param_type(a_type_ptr         tp,
                                         a_source_position  *decl_pos);
 
-extern an_access_adjustment_ptr alloc_access_adjustment(an_il_entry_kind kind);
-
-extern a_class_list_entry_ptr alloc_list_entry_for_class(void);
-
-extern a_routine_list_entry_ptr alloc_list_entry_for_routine(void);
-
-extern a_derivation_step_ptr alloc_derivation_step(void);
-
-extern a_base_class_derivation_ptr alloc_base_class_derivation(void);
-
-extern an_overriding_virtual_function_ptr
-                                       alloc_overriding_virtual_function(void);
-
-extern a_template_arg_ptr alloc_template_arg(a_boolean is_type_arg);
-
-extern void free_template_arg_list(a_template_arg_ptr  tap);
-
-extern a_template_param_type_descr_ptr alloc_template_param_type_descr(void);
-
-extern a_base_class_ptr alloc_base_class(void);
-
-extern void set_type_kind(a_type_ptr  pte,
-                          a_type_kind kind);
-
-extern a_type_ptr alloc_type(a_type_kind kind);
-
 extern void add_to_types_list(a_type_ptr     type_ptr,
                               a_scope_depth  scope_level);
+
+extern an_integer_kind char_int_kind_from_string_type(a_type_ptr str_type);
 
 extern a_type_ptr integer_type(an_integer_kind kind);
 
@@ -187,8 +153,6 @@ extern a_type_ptr float_type(a_float_kind kind);
 extern a_type_ptr string_type(a_targ_size_t num_chars);
 
 extern a_type_ptr wide_string_type(a_targ_size_t num_chars);
-
-extern an_integer_kind char_int_kind_from_string_type(a_type_ptr str_type);
 
 extern a_type_ptr error_type(void);
 
@@ -263,10 +227,6 @@ extern a_scope_ptr new_il_region(a_scope_kind   kind,
                                  a_scope_number scope_number,
                                  a_routine_ptr  assoc_routine);
 
-extern a_constant_ptr alloc_constant(a_constant_repr_kind kind);
-
-extern a_constant_ptr fs_constant(a_constant_repr_kind kind);
-
 extern void copy_constant(a_constant *from,
                           a_constant *to);
 
@@ -315,19 +275,9 @@ extern a_boolean is_wide_string_constant(a_constant_ptr constant);
 extern void make_zero_of_proper_type(a_type_ptr desired_type,
                                      a_constant *zero_constant);
 
-extern char *alloc_text_of_string_literal(sizeof_t size);
-
-extern void set_dynamic_init_kind(a_dynamic_init_ptr  dip,
-                                  a_dynamic_init_kind kind);
-
-extern void clear_dynamic_init(a_dynamic_init_ptr  dip,
-                               a_dynamic_init_kind kind);
-
-extern a_dynamic_init_ptr alloc_dynamic_init(a_dynamic_init_kind kind);
-
 extern void add_to_dynamic_inits_list(a_dynamic_init_ptr dip);
 
-extern a_local_static_variable_init_ptr alloc_local_static_variable_init(
+extern a_local_static_variable_init_ptr make_local_static_variable_init(
                                                   a_variable_ptr     var,
                                                   a_scope_ptr        var_scope,
                                                   an_init_kind       init_kind,
@@ -343,8 +293,6 @@ extern void get_variable_initializer(a_variable_ptr     variable,
                                      an_init_kind       *init_kind,
                                      an_initializer_ptr *initializer);
 
-extern a_variable_ptr alloc_variable(a_storage_class  storage_class);
-
 extern void remove_from_variables_list(a_variable_ptr var_ptr);
 
 extern void add_to_variables_list(a_variable_ptr var_ptr,
@@ -356,46 +304,16 @@ extern a_variable_ptr make_handler_parameter(a_type_ptr  type_ptr);
 
 extern a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type);
 
-extern a_field_ptr alloc_field(void);
-
 extern a_field_ptr next_initializable_field(a_field_ptr field);
-
-extern an_exception_specification_ptr alloc_exception_specification(void);
-
-extern an_exception_specification_type_ptr
-                                  alloc_exception_specification_type(void);
-
-extern a_routine_ptr alloc_routine(void);
 
 extern void remove_from_routines_list(a_routine_ptr rout_ptr);
 
 extern void add_to_routines_list(a_routine_ptr rout_ptr,
                                  a_boolean    at_file_scope);
 
-extern an_asm_entry_ptr alloc_asm_entry(void);
-
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-extern char *alloc_asm_function_body(sizeof_t  len);
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-
 extern void add_to_asm_entries_list(an_asm_entry_ptr asm_entry_ptr);
 
-extern a_label_ptr alloc_label(void);
-
 extern void add_to_labels_list(a_label_ptr label_ptr);
-
-extern void set_expr_node_kind(an_expr_node_ptr  node,
-                               an_expr_node_kind kind);
-
-extern void clear_expr_node(an_expr_node_ptr  node,
-                            an_expr_node_kind kind);
-
-extern an_expr_node_ptr alloc_expr_node(an_expr_node_kind node_kind);
-
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-extern an_expr_node_ptr alloc_lowered_eh_construct_node(
-                                             a_lowered_eh_construct_kind kind);
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 
 extern void copy_statement(a_statement *from,
                            a_statement *to);
@@ -470,41 +388,17 @@ extern a_statement_ptr make_assignment_statement(an_expr_node_ptr dest,
 extern a_statement_ptr make_array_assignment_statement(an_expr_node_ptr dest,
                                                       an_expr_node_ptr source);
 
-extern a_switch_clause_ptr alloc_switch_clause(void);
-
-extern an_accessible_base_class_ptr alloc_accessible_base_class(
-                                                         a_base_class_ptr bcp);
-
-extern a_handler_ptr alloc_handler(void);
-
 extern void set_block_scope_handler(a_handler_ptr  handler);
-
-extern void set_statement_kind(a_statement_ptr  sp,
-                               a_statement_kind kind);
 
 extern a_statement_ptr alloc_expr_statement(an_expr_node_ptr node);
 
-extern a_statement_ptr alloc_statement(a_statement_kind stmt_kind);
-
-extern a_constructor_init_ptr alloc_ctor_init(a_constructor_init_kind  kind);
-
-#if RECORD_HIDDEN_NAMES_IN_IL
-extern a_hidden_name_ptr alloc_hidden_name(void);
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
-
 #if RECORD_TEMPLATES_IN_IL
-extern a_template_ptr alloc_template(void);
-
 extern void add_to_templates_list(a_template_ptr  tp);
 #endif /* RECORD_TEMPLATES_IN_IL */
 
 #if RECORD_MACROS_IN_IL
-extern a_macro_ptr alloc_macro(void);
-
 extern void add_to_macros_list(a_macro_ptr  mp);
 #endif /* RECORD_MACROS_IN_IL */
-
-extern a_pragma_ptr alloc_pragma(a_pragma_kind  kind);
 
 extern void add_to_pragma_list(a_pragma_ptr   pragma,
                                a_boolean      at_file_scope,
@@ -552,10 +446,6 @@ extern a_boolean pop_object_lifetime(void);
 
 extern an_object_lifetime_ptr innermost_block_object_lifetime(
                                              an_object_lifetime_ptr  olp);
-
-extern a_scope_ptr alloc_scope(a_scope_kind   kind,
-                               a_scope_number number,
-                               a_routine_ptr  assoc_routine);
 
 extern void record_start_of_source_file(a_source_file_ptr parent_file,
 	  		                a_seq_number      seq_number,
@@ -776,11 +666,6 @@ extern void db_ss_list_for_scope(a_scope_ptr  sp);
 extern void dump_ss(a_scope_ptr  sp);
 #endif /* DEBUG */
 
-extern a_src_seq_secondary_decl_ptr alloc_src_seq_secondary_decl(void);
-
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-extern a_comment_ptr alloc_comment(void);
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 
 extern a_source_sequence_entry_ptr find_sublist_parent(
                                                a_src_seq_sublist_ptr sublist);
