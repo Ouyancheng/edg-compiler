@@ -1140,6 +1140,11 @@ may have extra operand at end).
   if (get_token() == tok_newline) {
     /* The optional file name is missing, so keep the same name. */
     temp_file = curr_ise->file_name;
+    if (curr_ise->assoc_il_file->from_system_include_dir) {
+      /* If this is a subsequent line directive for a file that had the system
+         header flag on a prior entry, still treat it as a system header. */
+      from_system_include = TRUE;
+    }  /* if */
   } else if (curr_token == tok_string_literal && *start_of_curr_token != 'L') {
     /* Check for "L" is to disallow wide string literals. */
     /* The file name is present.  Since the constant is unconverted, allocate

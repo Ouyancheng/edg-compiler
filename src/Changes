@@ -1,5 +1,12 @@
 Version 3.5
 
+7/6/04   System header flag when compiling preprocessed source
+
+When compiling preprocessed source containing GNU line directives,
+the system header flag from an earlier line directive for a given
+file should apply to later directives for the same file (that contain
+only a line number and not a file name).  This now works correctly.
+
 7/6/04   Internal error on globally qualified destructor name
 
 Versions prior to 3.4 gave an error on a globally qualified destructor.
