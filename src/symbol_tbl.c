@@ -3661,6 +3661,21 @@ for the function scope case; it must be NULL in other cases.
           (kind != (a_scope_kind)sck_class_reactivation)) {
     decl_scope_level = depth_scope_stack;
   }  /* if */
+  /* Keep track of the number of current classes and class reactivations.
+     (If either count is non-zero name lookup is more involved.) */
+  if (C_dialect == C_dialect_cplusplus) {
+    if (kind == (a_scope_kind)sck_class_struct_union ||
+        kind == (a_scope_kind)sck_class_reactivation) {
+      num_classes_on_scope_stack++;
+      /* If we're entering a class and we're already inside a function,
+         the class is a local class. */
+      /* Note that this is done before depth_innermost_function_scope is
+         cleared below. */
+      if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+        inside_local_class = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   /* Maintain the depth of the innermost function scope. */
   if (kind == (a_scope_kind)sck_function) {
     depth_innermost_function_scope = depth_scope_stack;
@@ -3670,16 +3685,8 @@ for the function scope case; it must be NULL in other cases.
        becomes invisible in some respects.  (In particular, some expression
        processing routines need to know whether a function scope is the
        immediate context for processing.)  So clear out the variable and
-       recompute it in pop scope. */
+       restore it in pop_scope. */
     depth_innermost_function_scope = NO_SCOPE_DEPTH;
-  }  /* if */
-  /* Keep track of the number of current classes and class reactivations.
-     (If either count is non-zero name lookup is more involved.) */
-  if (C_dialect == C_dialect_cplusplus) {
-    if (kind == (a_scope_kind)sck_class_struct_union ||
-        kind == (a_scope_kind)sck_class_reactivation) {
-      num_classes_on_scope_stack++;
-    }  /* if */
   }  /* if */
   /* Maintain the depth of the innermost stack entry that affects access
      control. */
@@ -4126,27 +4133,6 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
     done_with_memory_region(old_memory_region_number);
   }  /* if */
-  /* Keep track of the number of current classes and class reactivations.
-     (If either count is non-zero name lookup is more involved.) */
-  if (C_dialect == C_dialect_cplusplus) {
-    if (kind == (a_scope_kind)sck_class_struct_union ||
-        kind == (a_scope_kind)sck_class_reactivation) {
-      num_classes_on_scope_stack--;
-    }  /* if */
-  }  /* if */
-  /* Maintain the depth of the innermost stack entry that affects access
-     control. */
-  if (C_dialect == C_dialect_cplusplus &&
-      is_scope_kind_that_affects_access_control(kind)) {
-    depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
-    for (scope_depth = depth_scope_stack-1; scope_depth >= 0; scope_depth--) {
-      if (is_scope_kind_that_affects_access_control(
-                                              scope_stack[scope_depth].kind)) {
-        depth_of_innermost_scope_that_affects_access_control = scope_depth;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
   /* Determine the memory region to restore for the outer scope. */
   new_memory_region_number = ssep->prev_il_memory_region;
   /* Pop the stack. */
@@ -4158,6 +4144,69 @@ End a name scope by popping an entry off the scope stack.
       switch_il_region(new_memory_region_number);
     }  /* if */
   }  /* if */
+  /* Maintain the depth of the innermost function scope. */
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+      depth_innermost_function_scope <= depth_scope_stack) {
+    /* Value doesn't have to be recomputed. */
+  } else {
+    /* There may or may not be a function scope on the stack, so look for
+       one.  (When the variable has the value NO_SCOPE_DEPTH, it may
+       mean that a class-struct-union scope has hidden the function scope.) */
+    a_scope_depth sd = depth_scope_stack;
+    depth_innermost_function_scope = NO_SCOPE_DEPTH;
+    for (; sd > DEPTH_OF_FILE_SCOPE; sd--) {
+      a_scope_kind skind = scope_stack[sd].kind;
+      if (skind == (a_scope_kind)sck_function) {
+        depth_innermost_function_scope = sd;
+        break;
+      } else if (C_dialect == C_dialect_cplusplus &&
+                 skind == (a_scope_kind)sck_class_struct_union) {
+        depth_innermost_function_scope = NO_SCOPE_DEPTH;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* Keep track of the number of current classes and class reactivations.
+     (If either count is non-zero name lookup is more involved.) */
+  if (C_dialect == C_dialect_cplusplus) {
+    if (kind == (a_scope_kind)sck_class_struct_union ||
+        kind == (a_scope_kind)sck_class_reactivation) {
+      num_classes_on_scope_stack--;
+      /* Determine whether or not we are inside a local class. */
+      inside_local_class = FALSE;
+      if (num_classes_on_scope_stack != 0 &&
+          depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+        /* We are inside both a class and a function.  Find the innermost class
+           and see if it's inside a function. */
+        a_scope_depth sd;
+        for (sd = depth_scope_stack; ; sd--) {
+          a_scope_kind skind = scope_stack[sd].kind;
+          if (skind == (a_scope_kind)sck_class_struct_union ||
+              skind == (a_scope_kind)sck_class_reactivation) break;
+        }  /* for */
+        /* See if the innermost class is inside a function. */
+        for (sd--; sd > DEPTH_OF_FILE_SCOPE; sd--) {
+          if (scope_stack[sd].kind == (a_scope_kind)sck_function) {
+            inside_local_class = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Maintain the depth of the innermost stack entry that affects access
+     control. */
+  if (C_dialect == C_dialect_cplusplus &&
+      is_scope_kind_that_affects_access_control(kind)) {
+    depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
+    for (scope_depth = depth_scope_stack; scope_depth >= 0; scope_depth--) {
+      if (is_scope_kind_that_affects_access_control(
+                                              scope_stack[scope_depth].kind)) {
+        depth_of_innermost_scope_that_affects_access_control = scope_depth;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   /* Maintain the current declarative level.  It is the same as 
      depth_scope_stack except when struct/union field scopes are
      active; when they are, it indicates the first non-struct-or-union
@@ -4167,35 +4216,13 @@ End a name scope by popping an entry off the scope stack.
   for (decl_scope_level = depth_scope_stack;
        decl_scope_level >= DEPTH_OF_FILE_SCOPE;
        decl_scope_level--) {
-    a_scope_kind kind = scope_stack[decl_scope_level].kind;
+    a_scope_kind skind = scope_stack[decl_scope_level].kind;
     if ((C_dialect != C_dialect_cplusplus) ?
             /* C -- struct/union scopes are not real scopes. */
-            (kind != (a_scope_kind)sck_class_struct_union) :
+            (skind != (a_scope_kind)sck_class_struct_union) :
             /* C++ -- class reactivations are not real scopes. */
-            (kind != (a_scope_kind)sck_class_reactivation)) break;
+            (skind != (a_scope_kind)sck_class_reactivation)) break;
   }  /* for */
-  /* Maintain the depth of the innermost function scope. */
-  if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-      depth_innermost_function_scope <= depth_scope_stack) {
-    /* Value doesn't have to be recomputed. */
-  } else {
-    /* There may or may not be a function scope on the stack, so look for
-       one.  (When the variable has the value NO_SCOPE_DEPTH, it may
-       mean that a class-struct-union scope had hidden the function scope.) */
-    a_scope_depth sd = depth_scope_stack;
-    depth_innermost_function_scope = NO_SCOPE_DEPTH;
-    for (; sd >= DEPTH_OF_FILE_SCOPE; --sd) {
-      a_scope_kind kind = scope_stack[sd].kind;
-      if (kind == (a_scope_kind)sck_function) {
-        depth_innermost_function_scope = sd;
-        break;
-      } else if (C_dialect == C_dialect_cplusplus &&
-                 kind == (a_scope_kind)sck_class_struct_union) {
-        depth_innermost_function_scope = NO_SCOPE_DEPTH;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
   db_exit();
 }  /* pop_scope */
 
@@ -4213,7 +4240,7 @@ scope).  Otherwise, return NO_SCOPE_DEPTH.
     if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
       func_scope_depth = depth_innermost_function_scope;
     } else {
-      for (sd = depth_scope_stack; sd >= DEPTH_OF_FILE_SCOPE; sd--) {
+      for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; sd--) {
         if (scope_stack[sd].kind == (a_scope_kind)sck_function) {
           func_scope_depth = sd;
           break;
@@ -4593,6 +4620,7 @@ to avoid an 8-character external name clash with symbol_table.)
   depth_scope_stack = NO_SCOPE_DEPTH;
   decl_scope_level = NO_SCOPE_DEPTH;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
+  inside_local_class = FALSE;
   next_scope_number = FILE_SCOPE_NUMBER;
 
   /* Static variables in symbol_tbl.c: */

@@ -1268,6 +1268,9 @@ error code.
     case ec_ptr_to_incomplete_class_type_not_allowed:
       m = "pointer to incomplete class type is not allowed";
       break;
+    case ec_ref_to_nested_function_var:
+      m = "reference to local variable of enclosing function is not allowed";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -935,6 +935,10 @@ EXTERN a_scope_depth
 			/* Level in the scope stack that contains the innermost
 			   function scope, or NO_SCOPE_DEPTH if there isn't
 			   one. */
+EXTERN a_boolean
+		inside_local_class;
+			/* TRUE if we are currently inside a local class,
+			   i.e., a class defined within a function. */
 EXTERN a_scope_number
 		next_scope_number;
 			/* Next scope number to be assigned.  These are
