@@ -296,7 +296,6 @@ possible.
 }  /* alloc_pending_pragma */
 
 
-
 a_pending_pragma_ptr alloc_copy_of_pending_pragma
                                             (a_pending_pragma_ptr orig_ppp)
 /*
@@ -321,6 +320,35 @@ it.  Reuse a freed entry if possible.
   ppp->next = NULL;
   return ppp;
 }  /* alloc_pending_pragma_copy */
+
+
+a_pending_pragma_ptr make_copy_of_pragma_list(a_pending_pragma_ptr old_list)
+/*
+Make a copy of a list of pending pragma entries and set the flag in the
+entry that indicates that this is a copy.  This routine is used, for
+example, when rescanning tokens from a reusable cache.  When a token with
+associated pragma entries is rescanned, the pragma entries must be copied
+because the original entries will remain attached to the token in the
+reusable cache and must not be affected by operations performed on the
+copies associated with the token being processed.
+*/
+{
+  a_pending_pragma_ptr	new_list = NULL;
+  a_pending_pragma_ptr	new_list_end = NULL;
+  a_pending_pragma_ptr	src_ppp;
+  a_pending_pragma_ptr	dest_ppp;
+
+  src_ppp = old_list;
+  while (src_ppp != NULL) {
+    dest_ppp = alloc_copy_of_pending_pragma(src_ppp);
+    dest_ppp->discard_cache_when_done = FALSE;
+    if (new_list == NULL) new_list = dest_ppp;
+    if (new_list_end != NULL) new_list_end->next = dest_ppp;
+    new_list_end = dest_ppp;
+    src_ppp = src_ppp->next;
+  }  /* while */
+  return new_list;
+}  /* make_copy_of_pragma_list */
 
 
 void free_pending_pragma(a_pending_pragma_ptr ppp)
@@ -554,41 +582,47 @@ there is additional processing to be done.
   a_pragma_ptr            pp;
   a_memory_region_number  region_to_switch_back_to;
 
-  if (entity_ptr != NULL) {
-    /* If we are binding to an entity, the IL pragma entry should be allocated
-       in the current memory if class_type is NULL, or at file scope if
-       a class_type is specified. */
-    at_file_scope = class_type != NULL || in_file_scope(entity_ptr);
-  }  /* if */
-  if (at_file_scope) switch_to_file_scope_region(&region_to_switch_back_to);
-  pp = alloc_pragma(ppp->descr_ptr->kind);
-  pp->decl_position = ppp->id_position;
-  pp->pragma_text = ppp->pragma_text;
-  pp->ignore_in_back_end = ppp->descr_ptr->ignore_in_back_end;
-  if (entity_ptr != NULL) {
-    check_assertion(ppp->descr_ptr->binding_kind ==
-                                (a_pragma_binding_kind)pbk_next_construct);
-    pp->entity.kind = (a_byte_il_entry_kind)entity_kind;
-    pp->entity.ptr = entity_ptr;
-    if (entity_kind == (an_il_entry_kind)iek_statement) {
-      ((a_statement_ptr)entity_ptr)->has_associated_pragma = TRUE;
-    } else {
-      ((a_variable_ptr)entity_ptr)->
-                      source_corresp.has_associated_pragma = TRUE;
+  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+    /* Pragmas are never added to the IL inside a prototype instantiation. */
+  } else {
+    if (entity_ptr != NULL) {
+      /* If we are binding to an entity, the IL pragma entry should be
+         allocated in the current memory if class_type is NULL, or at file
+         scope if a class_type is specified. */
+      at_file_scope = class_type != NULL || in_file_scope(entity_ptr);
     }  /* if */
-  }  /* if */
-  add_to_pragma_list(pp, at_file_scope, class_type);
-  if (at_file_scope) switch_back_to_original_region(region_to_switch_back_to);
+    if (at_file_scope) switch_to_file_scope_region(&region_to_switch_back_to);
+    pp = alloc_pragma(ppp->descr_ptr->kind);
+    pp->decl_position = ppp->id_position;
+    pp->pragma_text = ppp->pragma_text;
+    pp->ignore_in_back_end = ppp->descr_ptr->ignore_in_back_end;
+    if (entity_ptr != NULL) {
+      check_assertion(ppp->descr_ptr->binding_kind ==
+                                  (a_pragma_binding_kind)pbk_next_construct);
+      pp->entity.kind = (a_byte_il_entry_kind)entity_kind;
+      pp->entity.ptr = entity_ptr;
+      if (entity_kind == (an_il_entry_kind)iek_statement) {
+        ((a_statement_ptr)entity_ptr)->has_associated_pragma = TRUE;
+      } else {
+        ((a_variable_ptr)entity_ptr)->
+                       source_corresp.has_associated_pragma = TRUE;
+      }  /* if */
+    }  /* if */
+    add_to_pragma_list(pp, at_file_scope, class_type);
+    if (at_file_scope) {
+      switch_back_to_original_region(region_to_switch_back_to);
+    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
-                              &pp->decl_position,
-                              ppp->source_sequence_entry);
-  /* The source sequence entry is now attached to the IL pragma entry.
-     Clear the copy of the source_sequence_entry pointer in the pending
-     pragma entry because it is now obsolete. */
-  ppp->source_sequence_entry = NULL;
+    update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
+                                &pp->decl_position,
+                                ppp->source_sequence_entry);
+    /* The source sequence entry is now attached to the IL pragma entry.
+       Clear the copy of the source_sequence_entry pointer in the pending
+       pragma entry because it is now obsolete. */
+    ppp->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  ppp->il_pragma_entry = pp;
+    ppp->il_pragma_entry = pp;
+  }  /* if */
 }  /* add_pragma_to_il */
 
 

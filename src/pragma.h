@@ -287,6 +287,9 @@ extern a_pending_pragma_ptr alloc_pending_pragma
 extern a_pending_pragma_ptr alloc_copy_of_pending_pragma
 					(a_pending_pragma_ptr src_ppp);
 
+extern a_pending_pragma_ptr make_copy_of_pragma_list
+					(a_pending_pragma_ptr old_list);
+
 extern void free_pending_pragma(a_pending_pragma_ptr ppp);
 
 extern void free_pending_pragma_list(a_pending_pragma_ptr ppp);

@@ -297,36 +297,6 @@ Issue a diagnostic on unimplemented keywords.
 }  /* unimplemented_keyword_diagnostic */
 
 
-static a_pending_pragma_ptr make_copy_of_pragma_list
-					(a_pending_pragma_ptr old_list)
-/*
-Make a copy of a list of pending pragma entries and set the flag in the
-entry that indicates that this is a copy.  This routine is used when
-rescanning tokens from a reusable cache.  When a token with associated
-pragma entries is rescanned, the pragma entries must be copied because
-the original entries will remain attached to the token in the
-reusable cache and must not be affected by operations performed on the
-copies associated with the token being processed.
-*/
-{
-  a_pending_pragma_ptr	new_list = NULL;
-  a_pending_pragma_ptr	new_list_end = NULL;
-  a_pending_pragma_ptr	src_ppp;
-  a_pending_pragma_ptr	dest_ppp;
-
-  src_ppp = old_list;
-  while (src_ppp != NULL) {
-    dest_ppp = alloc_copy_of_pending_pragma(src_ppp);
-    dest_ppp->discard_cache_when_done = FALSE;
-    if (new_list == NULL) new_list = dest_ppp;
-    if (new_list_end != NULL) new_list_end->next = dest_ppp;
-    new_list_end = dest_ppp;
-    src_ppp = src_ppp->next;
-  }  /* while */
-  return new_list;
-}  /* make_copy_of_pragma_list */
-
-
 void clear_token_cache(a_token_cache *cache,
 		       a_boolean     reusable)
 /*
