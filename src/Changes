@@ -1,5 +1,11 @@
 Version 2.29
 
+4/6/95   Bug with default arguments in --long_lifetime_temps mode
+
+Temporaries required in default argument expressions had been
+incorrectly made static when --long_lifetime_temps is set.
+Now fixed.
+
 4/6/95   Use of "//" as a comment delimiter in C mode
 
 In Microsoft compatibility mode, "//" is now recognized as a comment
