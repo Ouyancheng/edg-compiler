@@ -1,5 +1,24 @@
 Version 2.26
 
+10/7/94  Using copy constructors for derived --> base conversions
+
+The front end now considers copy constructors for derived --> based class
+conversions even when the base class allows bitwise copy.  An example:
+
+  struct B;
+  struct A {
+    A();
+    A(B);
+  };
+  struct B : public A { B(); } b;
+  void f(A);
+  main () {
+    A a (b);  // Has always used the A(B) copy constructor
+    A c = b;  // Should use the copy constructor
+    f(b);     // Should use the copy constructor
+    c = b;    // Should use the copy constructor, then bitwise assign
+  }
+
 10/7/94  Fixed bug in processing abstract classes
 
 An internal error (caused by a bug in copy_type) has been fixed -- it
