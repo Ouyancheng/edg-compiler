@@ -716,8 +716,8 @@ returned.
 a_base_class_ptr find_direct_base_class_of(a_type_ptr  derived_class,
                                            a_type_ptr  base_class_type)
 /*
-Find the direct base class of derived_class with a type identical to
-base_class_type.
+Return a pointer to the direct base class of derived_class with a type
+identical to base_class_type.  Return NULL if none is found.
 */
 {
   a_base_class_ptr  bcp;
@@ -740,8 +740,8 @@ Find the base class under new_class that is the same as the base class
 indicated by base_class, and return a pointer to it.  The base class must
 be found.  There may be more than one base class that matches; in that
 case, disambiguator (if non-null) may used to decide which to use -- it is
-also a base class of new_class, and its presence on the derivation list
-serves to confirm the match.
+also a base class of new_class, and its presence as the immediately preceding
+step on the derivation list serves to confirm the match. 
 */
 {
   a_base_class_ptr       new_base_class, bcp;
@@ -749,6 +749,7 @@ serves to confirm the match.
 
   db_enter(4, "corresponding_base_class");
 #if CHECKING
+  /* Be sure the disambiguator is a base class of new_class. */
   if (disambiguator != NULL &&
       disambiguator->derived_class != new_class) {
     internal_error("corresponding_base_class: bad disambiguator");
@@ -769,6 +770,8 @@ serves to confirm the match.
   }  /* if */
   /* Look for a match among the base classes of new_class. */
   for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
+    /* The first requirement of a match is that the type of the matching
+       base class be the same as the type of the reference base_class. */
     if (bcp->type == base_class->type) {
       /* The types match. */
       if (base_class->is_virtual) {
@@ -781,27 +784,38 @@ serves to confirm the match.
         /* base_class is nonvirtual, so keep looking for a nonvirtual with
            the same type. */
       } else if (base_class->direct) {
-        for (step = bcp->derivation; step != NULL; step = step->next) {
+        /* base_class is a direct base class, so it has a trivial derivation
+           path.  See if the class of which bcp is a direct base class is the
+           same that of which base_class is a direct base class. */
+        if (bcp->direct) {
+          /* bcp has a trivial derivation, too. */
+          if (!bcp->ambiguous && disambiguator != NULL) {
+            /* Keep looking. */
+          } else {
+#if 0
+/* It's not clear what the right thing to do is when bcp is ambiguous. */
+#endif /* if 0 */
+            new_base_class = bcp;
+            goto done;
+          }  /* if */
+        } else {
+          /* Find the immediate predecessor in bcp's derivation path. */
+          for (step = bcp->derivation;
+               step->next->next != NULL;
+               step = step->next);
           if (step->base_class->type == base_class->derived_class) {
-            if (!bcp->ambiguous || disambiguator == NULL) {
+            /* If bcp is ambiguous use the disambiguator to determine
+               whether we have a match.  It that will be the immediate
+               predecessor of bcp on bcp's derivation path. */
+            if (bcp->ambiguous && disambiguator != NULL &&
+                step->base_class != disambiguator) {
+              /* Fails the disambiguation test. */
+            } else {
               new_base_class = bcp;
               goto done;
-            } else {
-              /* Even with the type match this is not conclusive.  Check to
-                 see if the disambiguator is on bcp's derivation list.  If it
-                 is, return bcp; otherwise, keep looking for another match. */
-              for (step = bcp->derivation; step != NULL; step = step->next) {
-                if (step->base_class == disambiguator) {
-                  new_base_class = bcp;
-                  goto done;
-                }  /* if */
-              }  /* for */
-              /* Falling through to here means the disambiguation check
-                 failed and bcp should not be returned. */
-              break;
             }  /* if */
           }  /* if */
-        }  /* for */
+        }  /* if */
       } else if (!bcp->ambiguous && !base_class->ambiguous) {
         new_base_class = bcp;
         goto done;
@@ -810,12 +824,16 @@ serves to confirm the match.
            is more than one instance of the base class in the base classes
            list.  Check the derivations to resolve the ambiguity. */
         if (disambiguator != NULL) {
-          for (step = bcp->derivation; step != NULL; step = step->next) {
+          if (!bcp->direct) {
+            /* Find the immediate predecessor in bcp's derivation path. */
+            for (step = bcp->derivation;
+                 step->next->next != NULL;
+                 step = step->next);
             if (step->base_class == disambiguator) {
               new_base_class = bcp;
               goto done;
             }  /* if */
-          }  /* for */
+          }  /* if */
         } else if (equivalent_paths(bcp->derivation, base_class->derivation)) {
           new_base_class = bcp;
           goto done;
