@@ -509,7 +509,7 @@ extern void push_object_lifetime(an_il_entry_kind  entity_kind,
 
 extern a_boolean is_useless_object_lifetime(an_object_lifetime_ptr  olp);
 
-extern void make_object_lifetime_useless(an_object_lifetime_ptr  olp);
+extern void mark_object_lifetime_as_useless(an_object_lifetime_ptr  olp);
 
 extern void pop_object_lifetime(void);
 

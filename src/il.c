@@ -7453,7 +7453,7 @@ with it.  Entries associated with scopes must also have no child entries.
 }  /* is_useless_object_lifetime */
 
 
-void make_object_lifetime_useless(an_object_lifetime_ptr  olp)
+void mark_object_lifetime_as_useless(an_object_lifetime_ptr  olp)
 /*
 */
 {
@@ -7463,11 +7463,11 @@ void make_object_lifetime_useless(an_object_lifetime_ptr  olp)
       olp->entity.kind == (a_byte_il_entry_kind)iek_try_supplement ||
       olp->entity.kind == (a_byte_il_entry_kind)iek_new_delete_supplement) {
     /* Cannot be made useless. */
-    internal_error("make_object_lifetime_useless: bad entity kind");
+    internal_error("mark_object_lifetime_as_useless: bad entity kind");
   }  /* if */
 #endif /* CHECKING */
   olp->destructions = NULL;
-}  /* make_object_lifetime_useless */
+}  /* mark_object_lifetime_as_useless */
 
 
 void pop_object_lifetime(void)
