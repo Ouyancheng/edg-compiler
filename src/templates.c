@@ -466,6 +466,7 @@ Instantiate the body of the template function associated with tip.
   }  /* if */
 #endif /* DEBUG */
   rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
+  rout_sym->defined = TRUE;
   /* Set the linkage and storage class. */
   if (rout_sym->class_of_which_a_member != NULL) {
     /* Member functions are handled in check_class_linkage. */
@@ -3469,15 +3470,20 @@ updated but not removed from the list.
     if (sym == tip->template_sym) {
       /* Somehow a member function of a nonreal class (e.g., a prototype
          instantiation of a class template) has been referenced.  (This
- s        can occur in a sizeof operation applied to the address of a
+         can occur in a sizeof operation applied to the address of a
          static member function -- anywhere else?).  Do not instantiate
          the function. */
     } else if (is_function_symbol(sym) &&
                tssp->token_cache.first_token != NULL &&
-               sym->variant.routine.ptr->is_inline) {
+               (tssp->variant.function.routine->is_inline ||
+                tssp->variant.function.func_info.is_inline)) {
       /* Inline (member or nonmember) functions are instantiated at the
          point of first use, in case the back end requires the function
-         body immediately to perform inlining. */
+         body immediately to perform inlining.  Note in the above test that
+         for member functions the inline flag in the routine entry reflects
+         the declaration in the class template declaration, whereas the flag
+         in the func_info block reflects the function template definition, if
+         any. */
       if (!tip->already_instantiated) {
         instantiate_template_function(tip);
       }  /* if */
