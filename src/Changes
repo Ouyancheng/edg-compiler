@@ -1,5 +1,22 @@
 Version 2.46
 
+10/2/01  Spurious error possible when using-declaration refers to both
+         a tag and non-tag
+
+A special lookup is done to determine whether a using-declaration refers
+to both a tag and non-tag name.  A problem in this lookup could cause
+it to find the incorrect symbol, resulting in a spurious error.  This
+has been fixed.
+
+  template <class A> struct X {};
+  struct A {};
+  int A;
+  namespace N {
+    using ::A;
+    int B = N::A;
+    struct N::A x;
+  };
+
 10/1/01  Ordering of variable-length array deallocation and return expressions
 
 The front end used to create deallocation points for variable length arrays

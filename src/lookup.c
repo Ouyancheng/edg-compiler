@@ -3556,6 +3556,7 @@ namespace_qualified_id_lookup.
      decl_seq_number >= (sym)->decl_seq)))
 
   db_enter(4, "lookup_in_namespace");
+  check_assertion(ns_ptr != NULL);
   /* Get the declaration sequence number to be used for this lookup. */
   decl_seq_number = get_effective_decl_seq();
   /* Search for a symbol in the right scope. */

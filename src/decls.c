@@ -9191,9 +9191,18 @@ only if a redeclaration error is issued.
   *redecl_error = FALSE;
   locator = locator_for_curr_id;
   clear_specific_symbol(locator);
-  tag_sym = namespace_qualified_id_lookup(
-              &locator, nsp,
-              IDL_MUST_BE_TAG | IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
+  /* Look for a tag symbol in the namespace referenced by the
+     using-declaration. */
+  if (nsp == NULL) {
+    tag_sym = file_scope_id_lookup(il_header.primary_scope,
+                                   &locator,
+                                   IDL_MUST_BE_TAG |
+                                   IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
+  } else {
+    tag_sym = namespace_qualified_id_lookup(
+                          &locator, nsp,
+                          IDL_MUST_BE_TAG | IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
+  }  /* if */
   if (tag_sym != NULL) {
     a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
     clear_specific_symbol(locator);
