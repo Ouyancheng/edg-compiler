@@ -11440,6 +11440,7 @@ nested classes when their definition appears outside of the class template.
 #endif /* BACK_END_IS_CP_GEN_BE */
     if (cssp->is_prototype_instantiation ||
         (scope_stack[depth_scope_stack].in_prototype_instantiation &&
+         class_tssp != NULL &&
          class_type->source_corresp.is_local_to_function)) {
       /* This is a prototype instantiation or an instantiation of a local
          class type (template template parameter), so the resulting class is
