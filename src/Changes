@@ -6,12 +6,12 @@ A bug has been fixed in processing a member function of an unnamed nested
 class: its default arguments and function body were not handled properly.
 Here's an example:
 
- class C {
- public:
-   struct {
-     void f() {};
-   } s;
- };
+  class C {
+  public:
+    struct {
+      void f() {};
+    } s;
+  };
 
 The body for S::<unnamed>::f() was not being generated (resulting in a
 diagnostic from the linker if it was called).
