@@ -565,22 +565,36 @@ in the cache, nothing is done.
 }  /* rescan_cached_tokens */
 
 
+static void free_cached_token(a_cached_token_ptr ctp)
 /*
 Free a cached token entry, i.e., put it on the avail list to be reused.
 */
-#define free_cached_token(ctp)                                        \
-{ ctp->next = avail_cached_tokens;                                    \
-  avail_cached_tokens = ctp;                                          \
+{
+  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
+    /* The entry points to a constant entry; free it. */
+    a_constant_ptr con = ctp->variant.constant;
+    con->next = avail_cached_constants;
+    avail_cached_constants = con->next;
+  }  /* if */
+  ctp->next = avail_cached_tokens;
+  avail_cached_tokens = ctp;
 }  /* free_cached_token */
 
 
+void discard_token_cache(a_token_cache *cache)
 /*
-Free a cached constant entry, i.e., put it on the avail list to be reused.
+The token cache *cache has been built but is not needed; free the cached
+tokens therein and clear the cache.
 */
-#define free_cached_constant(ctp)                                     \
-{ ctp->next = avail_cached_constants;                                 \
-  avail_cached_constants = ctp;                                       \
-}  /* free_cached_constant */
+{
+  a_cached_token_ptr ctp, ctp_next;
+
+  for (ctp = cache->first_token; ctp != NULL; ctp = ctp_next) {
+    ctp_next = ctp->next;
+    free_cached_token(ctp);
+  }  /* for */
+  clear_token_cache(cache);
+}  /* discard_token_cache */
 
 
 static a_token_kind get_token_from_cached_token_rescan_list(void)
@@ -618,7 +632,6 @@ current token, and return its token kind.
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
-    free_cached_constant(ctp->variant.constant);
   }  /* if */
   free_cached_token(ctp);
   db_exit();
