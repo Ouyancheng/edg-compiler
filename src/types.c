@@ -3166,7 +3166,10 @@ static a_boolean ttt_is_local_type(a_type_ptr  type_ptr,
 This is a service function designed to be called from traverse_type_tree
 (whence the ttt_ prefix).  It returns TRUE if type_ptr is a local type
 (i.e., a class or enumeration defined within a function or block scope,
-including any class or enum defined within a local class).
+including any class or enum defined within a local class).  Note that
+typedefs are skipped, as they in name mangling; it is the underlying
+type, not the typedef name (which can be declared anywhere) that we really
+care about.
 */
 {
   a_boolean  is_local = FALSE;
