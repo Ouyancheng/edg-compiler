@@ -887,7 +887,23 @@ skip_tag_scan:
                      namespace_is_enclosed_by_curr_scope(parent_sym)) {
             /* Also okay to define the nested class in this scope -- it is a
                a scope (namespace- or file-scope) enclosing the namespace
-               scope in which the parent class was defined.  */
+               scope in which the parent class was defined.  Handle this like
+               the case where the parent class itself is defined in such an
+               enclosing scope, so that we get the innermost namespace scope
+               and the effective declaration level right.  Here's an example:
+                 namespace NS1 {
+                   namespace NS2 {
+                     class A;
+                     class B { class N; };
+                   }
+                 }
+                 class NS1::NS2::A { class N; };   // Okay (handled above)
+                 class NS1::NS2::A::N { };         // Okay (handled here)
+                 class NS1::NS2::B::N { };         // Okay (handled here)
+               Specifically, push the namespace extension scope. */
+            push_namespace_extension_scope(parent_sym->parent.namespace_ptr);
+            namespace_extension_pushed = TRUE;
+            effective_decl_level = depth_scope_stack;
             delayed_nested_class_def = TRUE;
           } else {
             pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
@@ -1064,7 +1080,32 @@ skip_tag_scan:
       err = TRUE;
     }  /* if */
     /* If necessary, pop the namespace extension scope. */
-    if (namespace_extension_pushed) pop_namespace_extension_scope();
+    if (namespace_extension_pushed) {
+      pop_namespace_extension_scope();
+      if (delayed_nested_class_def) {
+        /* Enter a typedef entry in the current scope that points at the
+           nested class that was just defined.  It serves to indicate just
+           where (in the sequence of type declarations in the current scope)
+           the delayed nested type definition appeared. */
+        a_type_ptr  placeholder = alloc_type((a_type_kind)tk_typeref);
+        placeholder->variant.typeref.type = class_type;
+        placeholder->variant.typeref.
+                                is_placeholder_for_nested_class_def = TRUE;
+        class_type->variant.class_struct_union.
+                                nested_class_defined_outside_of_parent = TRUE;
+        if (scope_stack[depth_scope_stack].kind ==
+                                       (a_scope_kind)sck_namespace) {
+          /* This class is being defined in a namespace scope instead of the
+             file scope.  Make the placeholder a member of the namespace. */
+          a_namespace_ptr nsp = scope_stack[depth_scope_stack].il_scope->
+                                                      variant.assoc_namespace;
+          set_namespace_membership((a_symbol_ptr)NULL,
+                                   &placeholder->source_corresp,
+                                   nsp);
+        }  /* if */
+        add_to_types_list(placeholder, depth_scope_stack);
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (err) {
     *type_ptr = error_type();
