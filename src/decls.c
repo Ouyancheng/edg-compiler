@@ -3022,6 +3022,7 @@ symbol sym.
   if (sym != NULL) {
     sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);
+    mark_defined(sym, &sym->decl_position);
     mark_variable_value_set(sym);
   }  /* if */
   add_to_parameters_list(vp);
