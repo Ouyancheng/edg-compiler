@@ -4348,7 +4348,9 @@ End a name scope by popping an entry off the scope stack.
 #endif /* DO_IL_LOWERING */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
     if (kind == (a_scope_kind)sck_function &&
-        !curr_routine->is_trivial_default_constructor) {
+        !curr_routine->is_trivial_default_constructor &&
+        !(ssep->in_prototype_instantiation &&
+          !prototype_instantiations_in_il)) {
       /* If a function or block scope has local types or static variables,
          make a special entry to record those orphan lists on the il_header
          scope_orphaned_list_headers list so they can be found when processing
