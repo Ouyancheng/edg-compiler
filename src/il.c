@@ -2820,12 +2820,6 @@ members), and does not enter those.
       case iek_constant:
         do_source_corresp_check = TRUE;
         break;
-      case iek_variable:
-        do_source_corresp_check = TRUE;
-        break;
-      case iek_routine:
-        do_source_corresp_check = TRUE;
-        break;
       case iek_type:
         do_source_corresp_check = TRUE;
         { a_type_ptr type = (a_type_ptr)entry_ptr;
@@ -2836,11 +2830,17 @@ members), and does not enter those.
           }  /* if */
         }
         break;
+      case iek_variable:
+      case iek_routine:
       case iek_namespace:
+      case iek_field:
+      case iek_template:
       case iek_based_type_list_member:
+        /* Things that should always be on lists. */
         could_be_orphan = FALSE;
         break;
       default:
+        could_be_orphan = FALSE;
         break;
     }  /* switch */
     if (do_source_corresp_check && could_be_orphan) {
