@@ -815,7 +815,8 @@ Transform the given cast expression into a function call (compatible with C89).
         expr->variant.operation.kind == (an_expr_operator_kind)eok_xne) {
       /* Do further lowering for complex != 0. */
       /* Lower the complex zero constant. */
-      lower_c99_expr(expr->variant.operation.operands->next);
+      lower_c99_expr(expr->variant.operation.operands->next,
+                     /*used_as_lvalue=*/FALSE);
       lower_c99_xne(expr);
     } else if (is_operation_node(expr) &&
                expr->variant.operation.kind == (an_expr_operator_kind)eok_fne&&
@@ -823,7 +824,8 @@ Transform the given cast expression into a function call (compatible with C89).
                                expr->variant.operation.operands->next->type)) {
       /* Do further lowering for imaginary != 0. */
       /* Lower the imaginary zero constant. */
-      lower_c99_expr(expr->variant.operation.operands->next);
+      lower_c99_expr(expr->variant.operation.operands->next,
+                     /*used_as_lvalue=*/FALSE);
     }  /* if */
 #endif /* LOWER_COMPLEX */
 #if LOWER_COMPLEX
@@ -1209,11 +1211,27 @@ in C99 mode to represent a compound literal.
 }  /* lower_c99_temp_init */
 
 
+static void lower_c99_expr_list(an_expr_node_ptr  list,
+                                unsigned int      lvalue_mask)
+/*
+*/
+{
+  an_expr_node_ptr  expr;
+
+  for (expr = list; expr != NULL; expr = expr->next) {
+    a_boolean  used_as_lvalue = (lvalue_mask & 1);
+    lower_c99_expr(expr, used_as_lvalue);
+    lvalue_mask >>= 1;
+  }  /* if */
+}  /* lower_c99_expr_list */
+
+
 #if !MINIMAL_INLINING
 /*ARGSUSED*/ /* <-- statement is not used in this case. */
 #endif /* !MINIMAL_INLINING */
 static void lower_c99_expr_full(an_expr_node_ptr  expr,
-                                a_statement_ptr   statement)
+                                a_statement_ptr   statement,
+                                a_boolean         used_as_lvalue)
 /*
 Transform the given expression to remove certain C99-specific constructs.
 If statement is non-NULL, expr is the expression of the expression
@@ -1221,18 +1239,25 @@ statement "statement".  See lower_c99_expr for an interface without the
 second parameter.
 */
 {
-  an_expr_node_ptr  operand;
+  unsigned int  lvalue_mask = 0, bool_controlling_expr_mask = 0;
 
   switch (expr->kind) {
     case enk_operation:
       /* First lower all the operands (if any). */
-      for (operand = expr->variant.operation.operands;
-           operand != NULL;
-           operand = operand->next) {
-        lower_c99_expr(operand);
-      }  /* if */
+      /* Determine which operands if any are lvalues, and whether or not
+         the operand has boolean-controlling-expression operands. */
+      set_lvalue_and_boolean_controlling_expr_masks(
+                                                 expr, used_as_lvalue,
+                                                 &lvalue_mask,
+                                                 &bool_controlling_expr_mask);
+      lower_c99_expr_list(expr->variant.operation.operands, lvalue_mask);
       /* Then transform the current operator if needed. */
       lower_c99_operator(expr);
+#if LOWER_LVALUE_RETURNING_OPERATIONS
+      /* Transform lvalue-returning "?" and "," operators into valid C. */
+      lower_operations_returning_lvalue_instead_of_usual_rvalue(
+                                                        expr, used_as_lvalue);
+#endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
 #if MINIMAL_INLINING
       if (expr->variant.operation.kind == (an_expr_operator_kind)eok_call) {
         /* Do inlining of a call if appropriate. */
@@ -1255,7 +1280,8 @@ second parameter.
       break;
     case enk_runtime_sizeof:
       if (!expr->variant.runtime_sizeof.is_type) {
-        lower_c99_expr(expr->variant.runtime_sizeof.variant.expr);
+        lower_c99_expr(expr->variant.runtime_sizeof.variant.expr,
+                       /*used_as_lvalue=*/FALSE);
       }  /* if */
       break;
 #if GNU_EXTENSIONS_ALLOWED
@@ -1271,12 +1297,14 @@ second parameter.
 }  /* lower_c99_expr_full */
 
 
-void lower_c99_expr(an_expr_node_ptr expr)
+void lower_c99_expr(an_expr_node_ptr  expr,
+                    a_boolean         used_as_lvalue)
 /*
-Do C99 lowering on the indicated expression.
+Do C99 lowering on the indicated expression.  If used_as_lvalue is TRUE, the
+given expression is used as an lvalue (e.g., assigned to).
 */
 {
-  lower_c99_expr_full(expr, (a_statement_ptr)NULL);
+  lower_c99_expr_full(expr, (a_statement_ptr)NULL, used_as_lvalue);
 }  /* lower_c99_expr */
 
 
@@ -1296,7 +1324,7 @@ Do C99 lowering on the indicated full expression.  A full expression is
 one not contained inside another expression.
 */
 {
-  lower_c99_expr(expr);
+  lower_c99_expr(expr, /*used_as_lvalue=*/FALSE);
   end_of_c99_full_expr();
 }  /* lower_c99_full_expr */
 
@@ -1419,7 +1447,8 @@ Do C99 lowering on the indicated statement.
          statement pointer to allow better inlining. */
       lower_c99_expr_full(statement->expr,
                           (statement->kind == (a_statement_kind)stmk_expr) ?
-                                            statement : (a_statement_ptr)NULL);
+                                            statement : (a_statement_ptr)NULL,
+                          /*used_as_lvalue=*/FALSE);
       end_of_c99_full_expr();
     }  /* if */
     switch (statement->kind) {

@@ -4119,7 +4119,7 @@ C99 mode for the same reason.
           if (options & LDIO_FULL_EXPR) {
             lower_c99_full_expr(source_node);
           } else {
-            lower_c99_expr(source_node);
+            lower_c99_expr(source_node, /*used_as_lvalue=*/FALSE);
           }  /* if */
         }  /* if */
 #endif /* DO_C99_IL_LOWERING */

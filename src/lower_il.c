@@ -283,12 +283,6 @@ static void adjust_bool_operation_types(an_expr_node_ptr expr,
 static void lower_pm_comparison(an_expr_node_ptr expr,
                                 a_boolean        operand1_lowered);
 static void do_scope_namespace_member_promotion(a_scope_ptr scope);
-#if LOWER_LVALUE_RETURNING_OPERATIONS
-static void lower_operations_returning_lvalue_instead_of_usual_rvalue(
-                                                   an_expr_node_ptr expr,
-                                                   a_boolean        is_lvalue);
-#endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
-
 
 static void clear_insert_location(an_insert_location      *insert_location,
                                   an_insert_location_kind kind)
@@ -7635,8 +7629,7 @@ the expression have already been lowered.
 }  /* lower_pm_field */
 
 #if LOWER_LVALUE_RETURNING_OPERATIONS
-
-static void lower_operations_returning_lvalue_instead_of_usual_rvalue(
+void lower_operations_returning_lvalue_instead_of_usual_rvalue(
                                                     an_expr_node_ptr expr,
                                                     a_boolean        is_lvalue)
 /*
@@ -7919,6 +7912,54 @@ leaving the enk_runtime_sizeof itself in the IL.
 }  /* lower_runtime_sizeof */
 
 
+void set_lvalue_and_boolean_controlling_expr_masks(
+                             an_expr_node_ptr  expr,
+                             a_boolean         is_lvalue,
+                             unsigned int      *is_lvalue_mask,
+                             unsigned int      *is_bool_controlling_expr_mask)
+/*
+Given the expression node expr and whether it is used as an lvalue (is_lvalue)
+this routine sets bits in is_lvalue_mask and is_bool_controlling_expr_mask to
+indicate whether the corresponding operand is used as an lvalue and/or a
+controlling boolean expression.
+*/
+{
+  an_expr_operator_kind  op = expr->variant.operation.kind;
+
+  *is_lvalue_mask = 0;
+  *is_bool_controlling_expr_mask = 0;
+  if (op == (an_expr_operator_kind)eok_question) {
+    /* Question mark's second and third operands are lvalues if the
+       question mark itself is. */
+    if (is_lvalue) *is_lvalue_mask = 0x6;
+    /* The first operand is a boolean controlling expression. */
+    *is_bool_controlling_expr_mask = 1;
+  } else if (op == (an_expr_operator_kind)eok_land ||
+             op == (an_expr_operator_kind)eok_lor) {
+    /* "&&" and "||". */
+    *is_bool_controlling_expr_mask = 3;
+  } else if (op == (an_expr_operator_kind)eok_not) {
+    *is_bool_controlling_expr_mask = 1;
+  } else if (op == (an_expr_operator_kind)eok_comma) {
+    /* Comma's second operand is an lvalue if the comma itself is. */
+    if (is_lvalue) *is_lvalue_mask = 0x2;
+  } else if (op == (an_expr_operator_kind)eok_points_to_static ||
+             op == (an_expr_operator_kind)eok_lvalue_dot_static ||
+             op == (an_expr_operator_kind)eok_rvalue_dot_static) {
+    /* A static selection's second operand is an lvalue if the
+       selection itself is. */
+    if (is_lvalue) *is_lvalue_mask = 0x2;
+  } else if (op == (an_expr_operator_kind)eok_cast) {
+    /* The operand of a cast is considered an lvalue if the result
+       of the cast is used as the address of an lvalue. */
+    if (is_lvalue) *is_lvalue_mask = 0x1;
+  } else {
+    /* Other operators.  See if the first operand is an lvalue. */
+    if (operator_takes_lvalue_operand(op)) *is_lvalue_mask = 0x1;
+  }  /* if */
+}  /* set_lvalue_and_boolean_controlling_expr_masks */
+
+
 void lower_expr(an_expr_node_ptr expr,
                 a_boolean        is_lvalue)
 /*
@@ -8034,14 +8075,10 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       } else {
         /* Determine which operands if any are lvalues, and whether or not
            the operand has boolean-controlling-expression operands. */
-        is_lvalue_mask = 0;
-        is_bool_controlling_expr_mask = 0;
+        set_lvalue_and_boolean_controlling_expr_masks(
+                                             expr, is_lvalue, &is_lvalue_mask,
+                                             &is_bool_controlling_expr_mask);
         if (op == (an_expr_operator_kind)eok_question) {
-          /* Question mark's second and third operands are lvalues if the
-             question mark itself is. */
-          if (is_lvalue) is_lvalue_mask = 0x6;
-          /* The first operand is a boolean controlling expression. */
-          is_bool_controlling_expr_mask = 1;
           /* Look for a "?" operator where one of the operands is a throw
              expression and the other has a non-void type.  The throw
              operation will be adjusted by putting a comma operation over
@@ -8062,28 +8099,6 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
               throw_operand = operand3;
             }  /* if */
           }  /* if */
-        } else if (op == (an_expr_operator_kind)eok_land ||
-                   op == (an_expr_operator_kind)eok_lor) {
-          /* "&&" and "||". */
-          is_bool_controlling_expr_mask = 3;
-        } else if (op == (an_expr_operator_kind)eok_not) {
-          is_bool_controlling_expr_mask = 1;
-        } else if (op == (an_expr_operator_kind)eok_comma) {
-          /* Comma's second operand is an lvalue if the comma itself is. */
-          if (is_lvalue) is_lvalue_mask = 0x2;
-        } else if (op == (an_expr_operator_kind)eok_points_to_static ||
-                   op == (an_expr_operator_kind)eok_lvalue_dot_static ||
-                   op == (an_expr_operator_kind)eok_rvalue_dot_static) {
-          /* A static selection's second operand is an lvalue if the
-             selection itself is. */
-          if (is_lvalue) is_lvalue_mask = 0x2;
-        } else if (op == (an_expr_operator_kind)eok_cast) {
-          /* The operand of a cast is considered an lvalue if the result
-             of the cast is used as the address of an lvalue. */
-          if (is_lvalue) is_lvalue_mask = 0x1;
-        } else {
-          /* Other operators.  See if the first operand is an lvalue. */
-          if (operator_takes_lvalue_operand(op)) is_lvalue_mask = 0x1;
         }  /* if */
         if (bool_is_keyword && op == (an_expr_operator_kind)eok_cast &&
             is_bool_type(operand_node->type)) {

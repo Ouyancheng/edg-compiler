@@ -8001,11 +8001,11 @@ C-style casts and C++ functional-notation type conversions.
             /* The cast can add or drop cv-qualifiers.  If it does, we
                have to add a cast. */
             microsoft_lvalue_cv_qual_adjustment(operand, type_cast_to);
-          } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode ||
+          } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode || gcc_mode ||
                       (microsoft_mode && C_mode())) &&
                      is_an_lvalue(operand) &&
                      still_an_lvalue(source_type, type_cast_to)) {
-            /* In pcc, SVR4 C, or Microsoft C mode, some lvalues cast to
+            /* In pcc, SVR4 C, GNU C or Microsoft C mode, some lvalues cast to
                other types remain lvalues (e.g., int to unsigned). */
             /* Use a special "lvalue cast" operator.  Always do the cast on
                an expression node, even if the lvalue address is currently
@@ -10578,10 +10578,12 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   expr_stack->evaluated = saved_evaluated;
 
   /* Check the second and third operand types. */
-  if (!C_mode()) {
-    /* Checks specific to C++ mode: */
+  if (!C_mode() || gcc_mode) {
     types_are_the_same = same_types_for_question_operator(&operand_2,
                                                           &operand_3);
+  }  /* if */
+  if (!C_mode()) {
+    /* Checks specific to C++ mode: */
     if (is_template_dependent_context() &&
         (is_template_dependent_type(operand_1->type) ||
          is_template_dependent_type(operand_2.type) ||
@@ -10718,7 +10720,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     }  /* if */
   }  /* if */
   if (!processed && !err) {
-    if (!C_mode() && types_are_the_same &&
+    if ((!C_mode() || (gcc_mode && !binary_conditional)) &&
+        types_are_the_same &&
         ((is_an_lvalue(&operand_2) && is_an_lvalue(&operand_3)) ||
          (is_a_function_designator(&operand_2) &&
           !is_sym_for_member_operand(&operand_2) &&
@@ -10726,8 +10729,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
           is_a_function_designator(&operand_3) &&
           !is_sym_for_member_operand(&operand_3) &&
           !is_indefinite_function_operand(&operand_3)))) {
-      /* In C++, if the second and third operands have the same type and
-         they are lvalues, the result is also an lvalue. */
+      /* In C++ and GNU C, if the second and third operands have the same type
+         and they are lvalues, the result is also an lvalue. */
       result_is_an_lvalue = TRUE;
     } else {
       /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
@@ -11808,9 +11811,9 @@ EOPT_DISALLOW_COMMA_OPERATOR).
       simplify_void_operand(operand_1);
       do_operand_transformations(&operand_2,
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-      /* In C++ mode, an lvalue in the second operand is preserved.  In C
-         mode, an lvalue is converted to an rvalue. */
-      if (C_dialect == C_dialect_cplusplus) {
+      /* In C++ and GNU C modes, an lvalue in the second operand is preserved.
+         In C mode, an lvalue is converted to an rvalue. */
+      if (C_dialect == C_dialect_cplusplus || gcc_mode) {
         result_is_an_lvalue = is_an_lvalue(&operand_2);
       } else {
         conv_lvalue_to_rvalue(&operand_2);

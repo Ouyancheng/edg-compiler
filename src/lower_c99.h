@@ -26,7 +26,8 @@ lower_c99.h -- Declarations related to lower_c99.c.
 
 extern void lower_c99_constant(a_constant_ptr constant);
 
-extern void lower_c99_expr(an_expr_node_ptr expr);
+extern void lower_c99_expr(an_expr_node_ptr expr,
+                           a_boolean        used_as_lvalue);
 
 extern void lower_c99_full_expr(an_expr_node_ptr expr);
 

@@ -205,6 +205,10 @@ and function types and evaluates to the value one.  Arithmetic on pointers
 to these types is possible (they behave much like char*). [10/2/01] Variables
 can be redeclared with different top-level cv-qualifiers (the new qualification
 is merged into existing qualifiers). [10/3/01] Locally declared labels.
+[10/11/01] Generalized lvalues: the (ternary) conditional operation produces
+an lvalue if its second and third operand are lvalues, the comma operator
+produces an lvalue if its second operand is an lvalue, and certain casts
+also preserve the lvalueness of their operands.
 
 8/28/01  C++-generating back end: unnamed classes/structs not given names
 

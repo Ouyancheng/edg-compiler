@@ -5765,16 +5765,17 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
     /* Build the expression tree for the operation. */
     build_question_result_operand(operand_1, operand_2, operand_3,
                                   operation_type, result);
-    if (!C_mode()) {
+    if (!C_mode() || gcc_mode) {
       if (result_is_an_lvalue) {
         check_assertion(is_expression_operand(result) &&
                         is_operation_node(result->variant.expression));
         result->variant.expression->variant.operation.
                                  returns_lvalue_instead_of_usual_rvalue = TRUE;
       }  /* if */
-      if (is_template_param_constant_operand(operand_1) ||
-          is_template_param_constant_operand(operand_2) ||
-          is_template_param_constant_operand(operand_3)) {
+      if (!C_mode() &&
+          (is_template_param_constant_operand(operand_1) ||
+           is_template_param_constant_operand(operand_2) ||
+           is_template_param_constant_operand(operand_3))) {
         /* For an expression based on a template parameter, scanned
            during the prototype instantiation, make a ck_template_param
            constant for the result. */
