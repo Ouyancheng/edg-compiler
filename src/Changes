@@ -5,7 +5,7 @@ Version 3.6
 
 When looking up a class name in a friend class declaration, the g++ compiler
 finds names made visible by using-directives.  We now emulate this in g++
-mode.
+and Microsoft modes.
 
   namespace N { struct A { }; }
   using namespace N;
