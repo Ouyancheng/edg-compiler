@@ -1,5 +1,22 @@
 Version 2.46
 
+1/3/01   Dependent lookup problem with base classes of nested classes
+
+When using dependent name lookup, a dependent base class of a nested class
+of a class template was incorrectly being treated as nondependent during
+real instantiations.  This could result in incorrect name resolution.
+This has been fixed.
+
+  template <class T> struct A {
+    typedef int X;
+  };
+  template <class T> struct B {
+    typedef T X;
+    struct C : A<T> {
+	typedef X my_X;  // X should be B::X not A::X
+    };
+};
+
 1/2/01   Spurious error on initialization of multilevel array field
 
 In C++ and C99 modes, the front end used to issue a spurious error message

@@ -4739,7 +4739,8 @@ skip_base_class:
   /* Determine which, if any, of the base classes was specified with a
      template-dependent name and so should not be visible for certain
      lookups. */
-  if (class_state->is_template_instantiation) {
+  if (type_ptr->variant.class_struct_union.is_template_class &&
+      !type_ptr->variant.class_struct_union.is_specialized) {
     mark_dependent_base_classes(type_ptr, class_state);
   }  /* if */
 #if DEBUG
