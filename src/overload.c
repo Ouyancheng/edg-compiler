@@ -5345,6 +5345,10 @@ This routine is only used in C++ mode.
       conv_routine_type = conversion_routine->type;
     } else {
       /* The symbol is a function template. */
+      /* Don't do type deduction if that would produce a conversion
+         function that returns an abstract class type (which would be
+         invalid). */
+      if (is_abstract_class_type(dest_type)) goto reject_function;
       /* Do type deduction on the return type. */
       tssp = base_conversion_symbol->variant.template_info;
       conversion_routine = tssp->variant.function.routine;

@@ -1,5 +1,16 @@
 Version 2.42
 
+3/31/99  Overload resolution will not consider a template conversion function
+         for a conversion to an abstract class type
+
+Overload resolution will no longer consider a template conversion
+function for a conversion to an abstract class type.  A conversion
+function is not allowed to return an abtract class type, so instantiating
+such a thing causes an error.  This change operates before type
+deduction is attempted on the template, and therefore avoids an error
+on the partial instantiation of a conversion function that turns out
+later not to be the function selected by overload resolution.
+
 3/31/99  --preinclude and using precompiled header file
 
 When a compilation specified a --preinclude file, and also used a
