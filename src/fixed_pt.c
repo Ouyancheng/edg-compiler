@@ -1048,7 +1048,7 @@ and result.  If an error occurs (e.g., overflow), err is set to TRUE.
 static a_boolean conv_constant_to_long_double(a_constant_ptr          cp,
 					      an_internal_float_value *result)
 /*
-Convert the constant "cp", to a long double value in "result".  Return TRUE
+Convert the constant "cp" to a long double value in "result".  Return TRUE
 if the conversion was successful.  The conversion is only attempted if
 the constant is a fixed-point or integer value.
 */
