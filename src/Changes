@@ -1,5 +1,20 @@
 Version 2.33
 
+8/29/96 Integral promotion of wchar_t when wchar_t is already a promoted type
+
+When wchar_t was configured as a type that is already a promoted integral
+type (e.g., int), the code to do integral promotion left it alone, when
+it should have promoted it to the corresponding plain integral type.
+As a consequence, cases like the following were falsely diagnosed as
+ambiguous:
+
+  void foo(int);
+  void foo(long);
+  void bar()
+  {
+    foo(L'a');
+  }
+
 8/20/96 C++-generating back end: Abort on cast to typedef pointer type
 
 The C++-generating back end generated an internal error when trying

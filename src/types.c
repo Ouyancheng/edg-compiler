@@ -1569,9 +1569,10 @@ expects to receive an rvalue type.
       /* bool always promotes to int. */
       promoted_type = integer_type((an_integer_kind)(ik_int));
     } else {
-      /* In C++, when wchar_t is a keyword, wchar_t is represented
-         by one of the existing integer kinds.  For promotion purposes, it is
-         treated in the same way as its underlying type. */
+      /* In C++, enums and wchar_t (when a keyword) go through the
+         normal promotion processing for the underlying type.  If the type
+         is unchanged, it will be converted to the corresponding plain
+         integral type (see below). */
       switch (unqual_type->variant.integer.int_kind) {
         case ik_char:
           if (targ_has_signed_chars) goto do_signed_char;
@@ -1638,13 +1639,15 @@ do_signed_char:;
 #endif /* CHECKING */
       }  /* switch */
     }  /* if */
-    /* In C++, enumeration types lose their enumeration identity when they
-       get promoted. */
     if (C_dialect == C_dialect_cplusplus) {
+      /* enums and wchar_t get promoted to the corresponding integral type
+         (and lose their special properties) if they were not promoted
+         above. */
       unqual_type = skip_typerefs(promoted_type);
-      if (unqual_type->variant.integer.enum_type) {
-        /* Make a "plain" version of this enum type, i.e., the same underlying
-           integral type but not tagged as an enum. */
+      if (unqual_type->variant.integer.enum_type ||
+          unqual_type->variant.integer.wchar_t_type) {
+        /* Make a "plain" version of this type, i.e., the same underlying
+           integral type but not tagged as an enum or wchar_t. */
         promoted_type = integer_type(unqual_type->variant.integer.int_kind);
       }  /* if */
     }  /* if */
