@@ -6679,9 +6679,11 @@ process_class_specifier:
                should again be the name of the class being defined. */
             rescan_cached_tokens(&cache);
             if (is_constructor) {
-              a_type_ptr    tp = scope_stack[decl_scope_level].assoc_type;
-              a_symbol_ptr  tag_sym =
-                                 (a_symbol_ptr)tp->source_corresp.assoc_info;
+              a_type_ptr         tp = scope_stack[decl_scope_level].assoc_type;
+              a_symbol_ptr       tag_sym =
+                                   (a_symbol_ptr)tp->source_corresp.assoc_info;
+              a_source_position  pos;
+
               basic_type = bt_no_type;
               *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
               /* Turn the current locator from a "specific symbol" locator
@@ -6707,8 +6709,9 @@ process_class_specifier:
                 }  /* if */
                 locator_for_curr_id.specific_symbol = tag_sym;
               }  /* if */
+              pos = locator_for_curr_id.source_position;
               change_class_locator_into_constructor_locator(
-                                                     &locator_for_curr_id);
+                                                   &locator_for_curr_id, &pos);
               /* Note that with a branch to exit_loop the get_token call
                  is bypassed.  This means curr_token will still represent
                  the constructor name (= class name) upon return to the

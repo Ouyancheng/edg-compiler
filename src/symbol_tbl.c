@@ -2635,7 +2635,8 @@ names match and FALSE if they do not match.
 }  /* destructor_name_matches_class_name */
 
 
-void change_class_locator_into_constructor_locator(a_symbol_locator *locator)
+void change_class_locator_into_constructor_locator(a_symbol_locator  *locator,
+                                                   a_source_position *pos)
 /*
 Change a locator for a class name into the locator for the constructor for
 the class.  The original locator must be for a specific symbol.  pos_curr_token
@@ -2650,7 +2651,7 @@ used in C++ mode.
 #if CHECKING
   if (class_symbol == NULL) {
     internal_error(
- "change_class_locator_into_constructor_locator: locator not specific symbol");
+        "change_class_locator_into_constructor_locator: NULL specific symbol");
   }  /* if */
   if (class_symbol->kind != (a_symbol_kind)sk_class_or_struct_tag &&
       class_symbol->kind != (a_symbol_kind)sk_union_tag) {
@@ -2669,7 +2670,7 @@ used in C++ mode.
     hdr_ptr->identifier = locator->symbol_header->identifier;
     hdr_ptr->identifier_length = locator->symbol_header->identifier_length;
   }  /* if */
-  clear_locator(locator, &pos_curr_token);
+  clear_locator(locator, pos);
   locator->symbol_header = hdr_ptr;
 }  /* change_class_locator_into_constructor_locator */
 

@@ -1617,7 +1617,8 @@ extern void tildize_locator(a_symbol_locator *locator);
 extern a_boolean destructor_name_matches_class_name(a_symbol_ptr class_sym);
 
 extern void change_class_locator_into_constructor_locator(
-                                                    a_symbol_locator *locator);
+                                                  a_symbol_locator   *locator,
+                                                  a_source_position  *pos);
 
 extern void make_opname_locator(an_opname_kind    opname,
                                 a_symbol_locator  *locator,
