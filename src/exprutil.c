@@ -653,7 +653,7 @@ major expression.
   if (expr_stack->lifetime != NULL) {
     /* An object lifetime was pushed for the expression, so it must be
        popped now. */
-    pop_object_lifetime();
+    (void)pop_object_lifetime();
   }  /* if */
   /* Flush the reference entries list for the current expression. */
   flush_ref_entries_list();

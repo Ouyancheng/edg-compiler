@@ -7973,7 +7973,7 @@ End a name scope by popping an entry off the scope stack.
                                           ssep->curr_scope_object_lifetime,
                            "pop_scope: unexpected curr_object_lifetime",
                            "for function or block scope");
-      pop_object_lifetime();
+      (void)pop_object_lifetime();
       if (kind == (a_scope_kind)sck_function) {
         if (!il_scope->variant.routine.ptr->compiler_generated) {
           /* Flow control wrapup for statement processing is done here because
@@ -8082,7 +8082,7 @@ End a name scope by popping an entry off the scope stack.
     if (kind == (a_scope_kind)sck_file) {
       check_assertion(curr_object_lifetime ==
                       ssep->curr_scope_object_lifetime);
-      pop_object_lifetime();
+      (void)pop_object_lifetime();
     }  /* if */
 #if DO_IL_LOWERING
     if (!old_region_still_needed && il_lowering_needed()) {
