@@ -7,14 +7,14 @@ configured to TRUE, support is now provided for "covariant" return types
 on overriding virtual functions.  That is, the return types of an
 overriding and an overridden virtual function are permitted to differ as
 long as they are pointer (or reference) to D and B, respectively, where
-class D is derived from class B.
+class D is derived from class B (see Working Paper 10.3 [class.virtual]).
 
-An ABI change is involved because an adjustment must sometimes be made
-dynamically to how the address of the object is returned.
+An ABI change is involved because a dynamic adjustment must sometimes be
+made to the address that is returned.
 
-IL CHANGE -- two now fields: return_adjustment_base_class has been added
-to an_overriding_virtual_function, and covariant_return_virtual_override
-has been added to a_routine.
+IL CHANGE: Two new fields have been added, return_adjustment_base_class
+to an_overriding_virtual_function and covariant_return_virtual_override
+to a_routine.
 
 10/31/96 IL CHANGE: name field added to a_param_type
 
