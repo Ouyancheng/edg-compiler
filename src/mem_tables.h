@@ -77,12 +77,6 @@ typedef struct an_il_entry_prefix {
 			/* Flipped from 0 to 1 by IL lowering to indicate
 			   IL entries that have been visited. */
 #endif /* DO_IL_LOWERING */
-#if 0
-#else
-  unsigned int  check_bits:7;
-			/* Temporary -- to check that something is a prefix. */
-  /* When removing -- remove "7" below. */
-#endif /* 0 */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #if ALTERNATE_IL_FILE_FORMAT
   unsigned int	entry_written:1;
@@ -93,7 +87,7 @@ typedef struct an_il_entry_prefix {
      is where it is stored.   Pick a size that makes the whole prefix
      struct the same size as a long.  (This is just for efficiency;
      other sizes will work too.) */
-#define NUM_OF_BIT_FIELDS_IN_PREFIX (3 + 7 + DO_IL_LOWERING)
+#define NUM_OF_BIT_FIELDS_IN_PREFIX (3 + DO_IL_LOWERING)
 #define BITS_IN_ENTRY_NUMBER                                          \
   (sizeof(long)*CHAR_BIT - NUM_OF_BIT_FIELDS_IN_PREFIX)
 
@@ -148,7 +142,6 @@ the entry has been allocated in the file scope memory region, FALSE otherwise.
   epp->file_scope = is_in_file_scope;                                 \
   epp->il_walk_flag = 0;                                              \
   clear_il_lowering_flag(epp);                                        \
-  epp->check_bits = 067; /* Magic number */                           \
   clear_entry_written_flag(epp);                                      \
   clear_il_entry_number(epp);                                         \
 }  /* clear_il_entry_prefix */
@@ -196,9 +189,7 @@ Return TRUE if the IL entry pointed to by ptr is in the file scope
 memory region.  ptr must point to something allocated in an IL memory
 region.
 */
-#define in_file_scope(ptr) (f_in_file_scope((char *)ptr))
-
-extern a_boolean f_in_file_scope(char *ptr);
+#define in_file_scope(ptr) (il_entry_prefix_of(ptr).file_scope)
 			
 
 EXTERN a_mem_block_header_ptr
