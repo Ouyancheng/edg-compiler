@@ -2523,7 +2523,7 @@ Return
 This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
 */
 {
-  int                      cmp = 0, prev_cmp = 0;
+  int                      result_cmp = 0;
   an_arg_match_summary_ptr arg1, arg2;
   a_type_ptr               param_type1, param_type2;
 
@@ -2540,7 +2540,7 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
   for (arg1 = cfp1->arg_matches, arg2 = cfp2->arg_matches;
        arg1 != NULL;
        arg1 = arg1->next, arg2 = arg2->next) {
-    cmp = 0;
+    int cmp = 0;
     check_assertion(arg2 != NULL);
     if (arg1->conversion.std.type_qualifiers_added ||
         arg2->conversion.std.type_qualifiers_added) {
@@ -2581,11 +2581,11 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
         if (cmp != 0) {
           /* This tie-breaker applies only if no other arguments contradict
              it. */
-          if (prev_cmp == 0) {
+          if (result_cmp == 0) {
             /* No previous argument had a tiebreaker.  Remember this one and
                keep going to see if any later argument contradicts it. */
-            prev_cmp = cmp;
-          } else if (prev_cmp != cmp) {
+            result_cmp = cmp;
+          } else if (result_cmp != cmp) {
             /* This contradicts a previous argument, so the tie-breaker does
                not apply. */
             cmp = 0;
@@ -2608,11 +2608,11 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
       }  /* if */
       /* This tie-breaker applies only if no other arguments contradict
          it. */
-      if (prev_cmp == 0) {
+      if (result_cmp == 0) {
         /* No previous argument had a tiebreaker.  Remember this one and
            keep going to see if any later argument contradicts it. */
-        prev_cmp = cmp;
-      } else if (prev_cmp != cmp) {
+        result_cmp = cmp;
+      } else if (result_cmp != cmp) {
         /* This contradicts a previous argument, so the tie-breaker does
            not apply. */
         cmp = 0;
@@ -2620,7 +2620,7 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
       }  /* if */
     }  /* if */
   }  /* for */
-  return cmp;
+  return result_cmp;
 }  /* compare_argument_tiebreakers */
 
 
