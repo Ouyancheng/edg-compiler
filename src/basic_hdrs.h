@@ -29,6 +29,11 @@ basic_hdrs.h -- Inclusion of low-level universal header files.
 /* Target configuration. */
 #include "targ_def.h"
 
+#ifdef _lint
+/* Directives to control lint diagnostics. */
+#include "lint.h"
+#endif /* ifdef _lint */
+
 #endif /* ifndef BASIC_HDRS_H */
 
 /******************************************************************************
