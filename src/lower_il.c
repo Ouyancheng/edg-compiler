@@ -11767,6 +11767,11 @@ between clauses of the switch.  They are processed at the proper points.
             /* Insert after the last statement. */
             set_insert_location(last_statement, &insert_location);
           }  /* if */
+          if (seq_number_from_stmt_source_position(clause->break_position)
+                                                                        != 0) {
+            set_position_from_stmt_source_position(code_pos_for_lowering,
+                                                   clause->break_position);
+          }  /* if */
           gen_cleanup_actions(switch_lifetime, &insert_location);
         }  /* if */
       } else {
@@ -12507,6 +12512,10 @@ curr_context->curr_cleanup_state had at the start of the block.
     /* Insert any cleanup actions after the last statement in the block
        if the end of the block is reachable. */
     if (block->end_of_block_reachable) {
+      if (seq_number_from_stmt_source_position(block->final_position) != 0) {
+        set_position_from_stmt_source_position(code_pos_for_lowering,
+                                               block->final_position);
+      }  /* if */
       gen_cleanup_actions(lifetime, &insert_location);
     } else {
       /* The end of the block is not reachable, because of a transfer of
