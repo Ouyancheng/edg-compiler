@@ -221,49 +221,55 @@ recorded right away and no entry is created; NULL is returned.
   a_boolean       evaluated = curr_expr_is_potentially_evaluated();
   a_symbol_ptr    fund_sym = fundamental_symbol_of(sym_ptr);
 
-  /* For only certain kinds of symbols can the kind of reference be affected
-     by context: for example, variables can have SRK_USE, SRK_MODIFICATION,
-     and SRK_ADDRESS_TAKEN references, but types can only have SRK_REFERENCE
-     references. */
-  switch (fund_sym->kind) {
-    case sk_constant:            /* Constant (enumerator). */
-    case sk_variable:            /* Variable or parameter. */
-    case sk_field:               /* Nonstatic data member of a class. */
-    case sk_static_data_member:  /* Static data member of a class. */
-    case sk_member_function:     /* Member function of a class. */
-    case sk_routine:             /* Nonmember function. */
-      ref_kind_can_be_affected_by_context = TRUE;
-      break;
-#if CHECKING
-    case sk_overloaded_function: /* Overloaded function (member or not). */
-      internal_error("ref_entry: overloaded function");
-#endif /* CHECKING */
-    default:;
-      ref_kind_can_be_affected_by_context = FALSE;
-      break;
-  }  /* switch */
-  /* References in not-evaluated expressions are always plain references,
-     since they don't use or affect the values of variables. */
-  if (!ref_kind_can_be_affected_by_context || !evaluated) {
-    /* The kind of reference is independent of context, so record it right
-       away and do not build an entry. */
-    record_symbol_reference(SRK_REFERENCE, sym_ptr, source_position,
-                            /*update_il_entry=*/evaluated);
+  if (sym_ptr->ambiguous) {
+    /* Do not record references to ambiguous symbols, since we don't
+       know which symbol is referenced. */
     rep = NULL;
   } else {
-    /* The kind of reference can be affected by context, so build an entry
-       for it. */
-    rep = alloc_ref_entry(sym_ptr, source_position);
-    /* Put the entry on the list of entries for the current expression.
-       The list is dumped when flush_ref_entries_list is called.
-       The entry is put at the end of the list to preserve source order. */
-    if (curr_expr_ref_entries == NULL) {
-      curr_expr_ref_entries = rep;
+    /* For only certain kinds of symbols can the kind of reference be affected
+       by context: for example, variables can have SRK_USE, SRK_MODIFICATION,
+       and SRK_ADDRESS_TAKEN references, but types can only have SRK_REFERENCE
+       references. */
+    switch (fund_sym->kind) {
+      case sk_constant:            /* Constant (enumerator). */
+      case sk_variable:            /* Variable or parameter. */
+      case sk_field:               /* Nonstatic data member of a class. */
+      case sk_static_data_member:  /* Static data member of a class. */
+      case sk_member_function:     /* Member function of a class. */
+      case sk_routine:             /* Nonmember function. */
+        ref_kind_can_be_affected_by_context = TRUE;
+        break;
+#if CHECKING
+      case sk_overloaded_function: /* Overloaded function (member or not). */
+        internal_error("ref_entry: overloaded function");
+#endif /* CHECKING */
+      default:;
+        ref_kind_can_be_affected_by_context = FALSE;
+        break;
+    }  /* switch */
+    /* References in not-evaluated expressions are always plain references,
+       since they don't use or affect the values of variables. */
+    if (!ref_kind_can_be_affected_by_context || !evaluated) {
+      /* The kind of reference is independent of context, so record it right
+         away and do not build an entry. */
+      record_symbol_reference(SRK_REFERENCE, fund_sym, source_position,
+                              /*update_il_entry=*/evaluated);
+      rep = NULL;
     } else {
-      for (last_rep = curr_expr_ref_entries;
-           last_rep->next != NULL;
-           last_rep = last_rep->next) {}
-      last_rep->next = rep;
+      /* The kind of reference can be affected by context, so build an entry
+         for it. */
+      rep = alloc_ref_entry(fund_sym, source_position);
+      /* Put the entry on the list of entries for the current expression.
+         The list is dumped when flush_ref_entries_list is called.
+         The entry is put at the end of the list to preserve source order. */
+      if (curr_expr_ref_entries == NULL) {
+        curr_expr_ref_entries = rep;
+      } else {
+        for (last_rep = curr_expr_ref_entries;
+             last_rep->next != NULL;
+             last_rep = last_rep->next) {}
+        last_rep->next = rep;
+      }  /* if */
     }  /* if */
   }  /* if */
   return rep;

@@ -2528,6 +2528,7 @@ qualified_name_check:
          ambiguous, some versions of y might be nonstatic and some static,
          which means we do not know whether x is really used. */
       change_operand_refs_to_error(operand_1);
+      change_refs_to_error(rep);
     } else {
       /* See what kind of member we have. */
       switch (member_sym->kind) {
@@ -9204,7 +9205,7 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
     if (is_error_locator(locator_for_curr_id)) {
       /* Some kind of error in the ambiguity and access control checking. */
       make_error_operand(result);
-      if (rep != NULL) change_ref_kinds(rep, SRK_ERROR);
+      change_refs_to_error(rep);
     } else {
       if (warning_on_for_init_difference) {
         /* Unless it is a qualified-name reference, if sym_ptr is visible with
