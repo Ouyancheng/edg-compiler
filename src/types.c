@@ -2836,7 +2836,7 @@ not compared.  flags is a set of bit flags that modify the comparison.
             -- because default_argument_promotion drops type qualifiers. */
         param_1_type = skip_typerefs(param_1_type);
         param_2_type = skip_typerefs(param_2_type);
-        if (!list2_prototyped) {
+        if (!list2_prototyped && !(flags & TCF_NO_DEFAULT_ARG_PROMOTIONS)) {
           param_2_type = default_argument_promotion(param_2_type);
         }  /* if */
       }  /* if */

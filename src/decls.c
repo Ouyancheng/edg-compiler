@@ -4942,21 +4942,32 @@ declaration.
         }  /* if */
         if (!routines_compat) {
           /* The old and new declarations are incompatible.  There is special
-             handling for SVR4 and Microsoft C compatibility modes. */
+             handling for SVR4, Microsoft C and GNU C compatibility modes. */
           a_type_ptr  old_return_type = return_type_of(routine_ptr->type);
           a_type_ptr  new_return_type = return_type_of(type_ptr);
-          if (SVR4_C_mode &&
-              incompatible_types_are_SVR4_compatible(type_ptr,
-                                                     routine_ptr->type)) {
+          if ((SVR4_C_mode &&
+               incompatible_types_are_SVR4_compatible(type_ptr,
+                                                      routine_ptr->type)) ||
+              (gcc_mode && is_function_def &&
+               !type_ptr->variant.routine.extra_info->prototyped &&
+               routine_ptr->type->variant.routine.extra_info->prototyped &&
+               f_types_are_compatible(routine_ptr->type, type_ptr,
+                                      TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                      TCF_NO_DEFAULT_ARG_PROMOTIONS))) {
             /* The routine types are incompatible, but in SVR4 mode this is
                not an error as long as the incompatibility is only in the
-               return type. */
-            pos_sy_warning(ec_not_compatible_with_previous_decl,
-                           &locator->source_position, linked_symbol);
-            /* There is compatibility but for the return type.  If this is the
-               definition, reset the type of the routine entry to use the new
-               type. */
+               return type or if one of the declarations is prototyped while
+               the other is not. */
+            /* GNU C compilers accept old-style definitions with unpromoted
+               types after having seen a prototype (also with unpromoted type).
+               */
+            if (SVR4_C_mode) {
+              pos_sy_warning(ec_not_compatible_with_previous_decl,
+                             &locator->source_position, linked_symbol);
+            }  /* if */
             *old_type = routine_ptr->type;
+            /* If this is the definition, reset the type of the routine entry
+               to use the new type. */
             if (is_function_def) routine_ptr->type = type_ptr;
           } else if (microsoft_mode && C_mode() &&
                      identical_types(old_return_type, new_return_type)) {

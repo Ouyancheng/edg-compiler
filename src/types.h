@@ -432,6 +432,11 @@ Bit flags for calls of f_types_are_compatible et al.
 			   should have its correspondence pointer point to
 			   the corresponding component of the second type
 			   (only applies to enum and struct/union types). */
+#define TCF_NO_DEFAULT_ARG_PROMOTIONS 0x200
+			/* The second type has an unprototype parameter list
+			   (i.e., from an old-style function definition).
+			   Compare the parameter types without the usual
+			   default promotions.  (Used in GNU C mode.) */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 
