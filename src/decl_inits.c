@@ -1725,6 +1725,18 @@ subaggregate.  The function returns a pointer to an IL a_constant entity.
   a_dynamic_init_ptr dip = 0;
 
   check_for_opening_brace(&brace_flag);
+  if (gcc_mode && curr_token == tok_lbrace && context->prev_context != NULL &&
+      context->pending_init_con == NULL) {
+    /* In GNU C mode (but not in GNU C++ mode), an arbitrary number of
+       extraneous braces are accepted.  Each level of braces, can also
+       contain a trailing comma.  For example:
+         struct S s = { { { 1, }, }, };
+       We handle these cases via recursion.  A warning will already have
+       been issued for the outermost braces in get_initializer.  (Source
+       code rarely takes advantage of this GNU bug.) */
+    constant = get_single_value_for_aggregate_initializer(init_info, context);
+    goto process_closing_brace;
+  }  /* if */
   if (context->pending_init_con != NULL) {
     /* The initializer has been prescanned when checking for whole-object
        initialization.  Use the pending initializer rather than doing
@@ -1822,6 +1834,7 @@ subaggregate.  The function returns a pointer to an IL a_constant entity.
      per ARM 8.4, offered in C along with the extension that permits
      brace-enclosed initializers on non-aggregate variables in the first
      place). */
+process_closing_brace:
   if (brace_flag && curr_token == tok_comma) (void)get_token();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (brace_flag && curr_token == tok_rbrace) {

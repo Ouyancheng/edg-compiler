@@ -1,5 +1,18 @@
 Version 3.6
 
+2/2/05   GNU C compatibility: Extraneous braces in initializers
+
+In nonstrict C modes, the front end already accepted an extra level of braces
+around the scalar components of a brace-enclosed initializer.  For example:
+
+  int a[1] = { { 1 } };  // Accepted with a warning in nonstrict C modes.
+
+In GNU C mode, an arbitrary number of such extra levels is now accepted.
+For example:
+
+  int b[1] = { { { 1 } } };  // Accepted with a warning in GNU C mode.
+                             // An error is issued in other modes.
+
 2/1/05   Compile-time floating-point processing under Cygwin
 
 The GNU headers under Cygwin define the isfinite macro; however, it is
