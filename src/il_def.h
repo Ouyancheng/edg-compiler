@@ -1422,6 +1422,13 @@ typedef struct a_pragma {
 			   declared in the current scope. */
   a_pragma_kind	kind;
 			/* The kind of pragma. */
+  a_byte_boolean
+		ignore_in_back_end;
+			/* TRUE if this pragma may be ignored by the back
+			   end if it is not recognized; the flag will be set
+			   (for example) on pragmas that are in the IL but
+			   are for use by other (earlier) phases of the
+			   compilation. */
   a_tagged_pointer
 		entity;
 			/* A struct containing a tag and a generic pointer to

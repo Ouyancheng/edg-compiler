@@ -6694,6 +6694,7 @@ pointer to it.
 #endif /* DEBUG */
   pp->next                  = NULL;
   pp->kind                  = kind;
+  pp->ignore_in_back_end    = FALSE;
   pp->entity.kind           = (a_byte_il_entry_kind)iek_none;
   pp->entity.ptr            = NULL;
   pp->decl_position         = null_source_position;

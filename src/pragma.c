@@ -596,6 +596,7 @@ there is additional processing to be done.
   pp = alloc_pragma(ppp->descr_ptr->kind);
   pp->decl_position = ppp->id_position;
   pp->pragma_text = ppp->pragma_text;
+  pp->ignore_in_back_end = ppp->descr_ptr->ignore_in_back_end;
   if (entity_ptr != NULL) {
     check_assertion(ppp->descr_ptr->binding_kind ==
                                 (a_pragma_binding_kind)pbk_next_construct);

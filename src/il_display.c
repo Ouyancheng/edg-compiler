@@ -2538,6 +2538,7 @@ Display the indicated pragma entry.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   disp_string_ptr("pragma_text", ptr->pragma_text, iek_other_text,
                   (sizeof_t)0);
+  if (ptr->ignore_in_back_end) disp_boolean("ignore_in_back_end", TRUE);
   disp_name("kind");
   disp_pragma_kind_name(ptr->kind);
 }  /* disp_pragma */
