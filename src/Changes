@@ -805,8 +805,8 @@ of incorrect behavior. Now fixed.
 12/18/03 Problem with precompiled headers when not using mmap
 
 When USE_MMAP_FOR_MEMORY_REGIONS is FALSE. a problem introduced in
-version 3.0 would cause a catastrophic error when writing a precompiled
-header file.  Now fixed.
+version 3.0 would cause an "error while writing PCH file" catastrophic
+error.  Now fixed.
 
 12/17/03 C99 has "F" conversion specifier for printf
 
