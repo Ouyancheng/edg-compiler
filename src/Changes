@@ -1,5 +1,23 @@
 Version 2.31
 
+10/31/95  Default on SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
+
+The default for SAME_REPR_INTS_INTERCHANGEABLE_IN_IL in targ_def.h has
+been changed to be FALSE except when the C-generating back end is being used
+and K&R C is being generated.  The TRUE setting is really the safer
+setting, so it's a more appropriate default.
+
+10/30/95  IL CHANGE: unmangled_name in source correspondence
+
+The a_source_correspondence structure now contains (when name mangling is
+needed) a field unmangled_name which preserves the original form of the
+name of an entity when the name is mangled.  The field is NULL until the
+name is mangled.
+
+This was added to deal with some bugs in getting the type name string set
+correctly in type_info structures (sometimes the string included mangled
+names).
+
 10/30/95  Copying expression containing enk_typeid
 
 copy_expr_tree had a bug with regard to copying expressions containing
@@ -35,6 +53,15 @@ END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE is defined as TRUE.
 IL lowering now clears the class/namespace membership information in
 the source correspondence entry of entities promoted out of classes
 and namespaces.  This makes the IL arguably more correct as C code.
+This change can be undone by eliminating the call of clear_parent_information
+in lower_il.c.
+
+Some minor bugs in this area were corrected when this change was made:
+member constants promoted out of local classes now have their names
+mangled, and their is_local_to_function flags cleared; enum constants
+promoted out of functions now have their is_local_to_function flags cleared;
+member functions promoted out of local classes now have their
+is_local_to_function flags cleared.
 
 10/25/95  IL CHANGE: new field defined_outside_of_parent
 
