@@ -5481,6 +5481,7 @@ This routine may only be called in C++ mode.
   a_source_position	tilde_position;
   a_boolean             might_be_qualifier;
   a_token_kind          qualifier_separator = tok_colon_colon;
+  a_boolean		class_type_is_really_a_class;
 
   db_enter(4, "f_is_generalized_identifier_start");
   /* If the current token is an identifier, then check the flag in the
@@ -5713,8 +5714,20 @@ This routine may only be called in C++ mode.
             last_aedp = aedp;
 	    if (first_aedp == NULL) first_aedp = aedp;
           }  /* if */
-          class_type = skip_typerefs(class_symbol->
+          if (is_class_symbol(class_symbol)) {
+            /* Get the type associated with the class symbol. */
+            class_type = skip_typerefs(class_symbol->
                                           variant.class_struct_union.type);
+            class_type_is_really_a_class = TRUE;
+          } else {
+            /* The class symbol points to a type.  This is the case when
+               a class qualifier contains template parameter types.  Set
+               class type to the template parameter type. */
+            check_assertion(class_symbol->kind == (a_symbol_kind)sk_type);
+            class_type = class_symbol->variant.type;
+            check_assertion(is_template_param_type(class_type));
+            class_type_is_really_a_class = FALSE;
+          }  /* if */
         }  /* if */
         /* Skip over the class-name, and the "::". */
         (void)get_token();
@@ -5731,14 +5744,14 @@ This routine may only be called in C++ mode.
         if (!err) {
 
           a_boolean	might_be_vacuous_dtor = next_tok_2 == tok_compl;
-          if (first_class) {
+          if (first_class && class_type_is_really_a_class) {
             /* Make sure that this class has been instantiated.  This is
                only needed for the first class name because template classes
                must be at file scope. */
             check_for_uninstantiated_template_class(class_type);
           }  /* if */
           /* Make sure that the class type is a complete type. */
-          if (is_incomplete_type(class_type) &&
+          if (class_type_is_really_a_class && is_incomplete_type(class_type) &&
               class_type->variant.class_struct_union.
                                          extra_info->assoc_scope == NULL) {
             /* If the type is incomplete we also check whether the type is
@@ -5868,7 +5881,7 @@ This routine may only be called in C++ mode.
         }  /* if */
       }  /* if */
       /* Make sure that the class has been instantiated. */
-      if (!err && class_type != NULL) {
+      if (!err && class_type != NULL && class_type_is_really_a_class) {
         check_for_uninstantiated_template_class(class_type);
       }  /* if */
     }  /* if */
