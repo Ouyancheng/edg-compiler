@@ -1389,7 +1389,6 @@ Dump a linked list of base class entries, for debug purposes.
   if (is_class_struct_union_type(tp)) {
     fputs("base classes for ", f_debug);
     db_name(&tp->source_corresp);
-    fputs(":", f_debug);
     bcp = base_classes_of(tp);
     if (bcp == NULL) {
       fputs(": <null list>\n", f_debug);
