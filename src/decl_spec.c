@@ -789,13 +789,6 @@ caution when modifying this routine.
     /* Tag symbol is a qualified name or a template class reference. */
     /* Return a copy of the locator to the caller. */
     *locator = locator_for_curr_id;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    /* Set the end-of-decl-specifiers position provisionally.  It will be
-       reset later if this is a tag definition. */
-    if (decl_pos_block != NULL) {
-      decl_pos_block->specifiers_range.end = end_pos_curr_token;
-    }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else if (tag_err) {
     /* An error occurred while handling a qualified name or a template
        reference earlier. */
@@ -984,6 +977,10 @@ done:
        is returned to the caller an error locator. */
     set_to_error_locator(*locator);
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block->identifier_range.end = end_pos_curr_token;
+  decl_pos_block->specifiers_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Now that we have completed the lookup on the tag identifier we can
      advance past it. */
   (void)get_token();
@@ -1154,11 +1151,16 @@ the template.
   an_inheritance_kind     inheritance_kind = (an_inheritance_kind)ihk_none;
   a_source_position       inheritance_kind_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_decl_pos_block        local_decl_pos_block;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
   *defines_something = FALSE;
   decl_start_pos = pos_curr_token;
+  clear_decl_pos_block(&local_decl_pos_block);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  local_decl_pos_block.specifiers_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Determine whether this is a template class instantiation or a local
      class (one being declared within a function scope). */
   ssep = &scope_stack[depth_scope_stack];
@@ -1224,12 +1226,15 @@ the template.
        tag, even if it just repeats a previous name.  At least, there's
        a Plum Hall test that implies that. */
     tag_position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    local_decl_pos_block.identifier_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     *declares_something = TRUE;
     check_assertion(!vacuous_decl_allowed || !is_friend_decl);
     tag_sym = scan_tag_name(tag_kind, &locator, is_friend_decl,
                             &vacuous_decl_allowed, is_ref_within_new_expr,
                             &effective_decl_level, &tag_resolution,
-                            decl_pos_block);
+                            &local_decl_pos_block);
   }  /* if */
   if (tag_id_present) {
     if (tag_sym != NULL) {
@@ -1820,7 +1825,7 @@ the template.
                               orig_decl_level, is_local_class,
                               delayed_nested_class_def,
                               /*is_template_instantiation=*/FALSE,
-                              decl_pos_block)) {
+                              &local_decl_pos_block)) {
       *defines_something = TRUE;
     } else {
       err = TRUE;
@@ -1828,6 +1833,30 @@ the template.
     /* If necessary, pop the namespace extension scope. */
     if (namespace_extension_pushed) pop_namespace_extension_scope();
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL) {
+    decl_pos_block->specifiers_range.end =
+                             local_decl_pos_block.specifiers_range.end;
+  }  /* if */
+  if (is_class_definition || !is_redeclaration) {
+    a_decl_position_supplement_ptr  dpsp = class_type->
+                                               source_corresp.decl_pos_info;
+    if (dpsp != NULL) {
+      dpsp->specifiers_range = local_decl_pos_block.specifiers_range;
+      if (tag_id_present) {
+        dpsp->identifier_range = local_decl_pos_block.identifier_range;
+      }  /* if */
+#if DEBUG
+      if (delayed_nested_class_def) {
+        if (debug_level != 3 || db_flag_is_set("dump_decl_pos_info")) {
+          fprintf(f_debug, "decl-pos info for delayed nested class def\n");
+          db_decl_pos_info(tag_sym);
+        }  /* if */
+      }  /* if */
+#endif /* DEBUG */
+    }  /* if */
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (err) {
     *type_ptr = error_type();
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
@@ -1895,6 +1924,7 @@ to indicate whether an enumeration is actually defined.
   a_boolean                is_redeclaration;
   a_boolean                namespace_extension_pushed = FALSE;
   a_source_position        tag_position;
+  a_decl_pos_block        local_decl_pos_block;
 
   db_enter(3, "enum_specifier");
 
@@ -1908,6 +1938,10 @@ to indicate whether an enumeration is actually defined.
     class_of_which_a_member = NULL;
     access = (an_access_specifier)as_public;
   }  /* if */
+  clear_decl_pos_block(&local_decl_pos_block);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  local_decl_pos_block.specifiers_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Skip over "enum". */
   check_assertion(curr_token == tok_enum);
   (void)get_token();
@@ -1921,6 +1955,9 @@ to indicate whether an enumeration is actually defined.
        a Plum Hall test that implies that. */
     *declares_something = TRUE;
     tag_position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    local_decl_pos_block.identifier_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
                             /*is_friend_decl=*/FALSE, &vacuous_decl_allowed,
                             /*is_ref_within_new_expr=*/FALSE,
@@ -2313,9 +2350,7 @@ to indicate whether an enumeration is actually defined.
       remove_stop_token(tok_rbrace);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (curr_token == tok_rbrace && decl_pos_block != NULL) {
-      decl_pos_block->specifiers_range.end = pos_curr_token;
-    }  /* if */
+    local_decl_pos_block.specifiers_range.end = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Check for and pass over the closing "}". */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
@@ -2373,6 +2408,25 @@ to indicate whether an enumeration is actually defined.
        the fixup list and complete the declarations. */
     check_dependent_type_fixup_list(tag_sym);
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL) {
+    decl_pos_block->specifiers_range.end =
+                             local_decl_pos_block.specifiers_range.end;
+  }  /* if */
+  if (*defines_something || !is_redeclaration) {
+    /* This is either the definition of the enumeration or its initial
+       declaration.  Update the extra source position information in the
+       type entry. */
+    a_decl_position_supplement_ptr  dpsp = enum_type->
+                                               source_corresp.decl_pos_info;
+    if (dpsp != NULL) {
+      dpsp->specifiers_range = local_decl_pos_block.specifiers_range;
+      if (tag_id_present) {
+        dpsp->identifier_range = local_decl_pos_block.identifier_range;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Add the type to the types list for the current scope.  This is done
      after the closing brace, if any, to get the IL types list in the right
      order.  Incomplete enums are added to the types list even though the
@@ -4497,6 +4551,11 @@ exit_loop:
       *output_flags |= DSO_ELABORATED_TYPE_SPECIFIER;
     }  /* if */
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL && !any_decl_specifiers_seen) {
+    decl_pos_block->specifiers_range.start = null_source_position;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   /* Return the position of the first specifier as the position of the
      overall list of specifiers for error purposes. */

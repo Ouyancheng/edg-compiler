@@ -666,6 +666,16 @@ a new symbol is created and entered in the symbol table.
     mark_defined(sym, &sym->decl_position);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     mark_variable_value_set(sym);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    {
+    a_decl_position_supplement_ptr  dpsp = vp->source_corresp.decl_pos_info;
+    if (dpsp != NULL) {
+      dpsp->identifier_range = param_id->identifier_range;
+      dpsp->specifiers_range = param_id->specifiers_range;
+      dpsp->declarator_range = param_id->declarator_range;
+    }  /* if */
+    }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if DEBUG
     if (debug_level >= 3) {
       db_symbol(sym, "Changed from parameter symbol: ", 4);
@@ -1088,7 +1098,8 @@ static void define_member_function(a_symbol_locator            *locator,
                                    an_id_linkage_kind          *linkage_ptr,
                                    a_decl_modifiers_block_ptr  decl_modifiers,
 				   a_type_ptr	               *old_type,
-				   a_symbol_ptr	               *ext_sym)
+				   a_symbol_ptr	               *ext_sym,
+                                   a_decl_pos_block_ptr        decl_pos_block)
 /*
 This routine is called in the case of a member function definition.  Its
 function is similar to that of decl_routine, which is called for
@@ -1312,6 +1323,22 @@ on a prior declaration.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     copy_source_position(locator->source_position,
                          rp->source_corresp.decl_position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    {
+    a_decl_position_supplement_ptr  dpsp = rp->source_corresp.decl_pos_info;
+    if (dpsp != NULL) {
+      dpsp->identifier_range = decl_pos_block->identifier_range;
+      dpsp->specifiers_range = decl_pos_block->specifiers_range;
+      dpsp->declarator_range = decl_pos_block->declarator_range;
+#if DEBUG
+      if (debug_level != 3 || db_flag_is_set("dump_decl_pos_info")) {
+        fprintf(f_debug, "decl-pos info for member function def\n");
+        db_decl_pos_info(sym);
+      }  /* if */
+#endif /* DEBUG */
+    }  /* if */
+  }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   if (!exceptions_enabled && !func_info->is_inline &&
       func_info->throw_position.seq != 0) {
@@ -1384,7 +1411,8 @@ a_symbol_ptr function_definition(
                         a_func_info_block          *func_info,
                         a_storage_class            storage_class,
                         a_boolean                  has_explicit_type_specifier,
-                        a_decl_modifiers_block_ptr decl_modifiers)
+                        a_decl_modifiers_block_ptr decl_modifiers,
+                        a_decl_pos_block_ptr       decl_pos_block)
 /*
 Scan a function definition.  The declarator has already been scanned; the
 old-style parameter declarations and the compound statement for the body
@@ -1442,7 +1470,8 @@ associated with the function is returned.
     /* This is the definition of a member function. */
     check_assertion(prototyped);
     define_member_function(locator, rout_type, func_info, &symbol_ptr,
-                           &linkage, decl_modifiers, &old_type, &ext_sym);
+                           &linkage, decl_modifiers, &old_type, &ext_sym,
+                           decl_pos_block);
   } else {
     if (!prototyped) {
       /* Old-style id list.  Before calling decl_routine scan the
@@ -1567,7 +1596,8 @@ associated with the function is returned.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     decl_routine(locator, storage_class, rout_type, func_info,
                  declarator_ssep, (SRK_DECLARATION | SRK_DEFINITION),
-                 decl_modifiers, &symbol_ptr, &linkage, &old_type, &ext_sym);
+                 decl_modifiers, &symbol_ptr, &linkage, &old_type, &ext_sym,
+                 decl_pos_block);
   }  /* if */
   routine_ptr = symbol_ptr->variant.routine.ptr;
   /* Scan the function body. */

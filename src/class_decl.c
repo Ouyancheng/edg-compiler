@@ -538,6 +538,10 @@ typedef struct a_member_decl_info {
 		decl_modifiers;
 			/* Decl-modifiers returned from decl_specifiers
 			   (Microsoft compatibility mode only). */
+  a_decl_pos_block
+		decl_pos_block;
+			/* Additional source position information on the
+			   declaration. */
   a_storage_class
 		storage_class;
 			/* Storage class returned from decl_specifiers. */
@@ -600,6 +604,7 @@ static void initialize_member_decl_info(a_member_decl_info_ptr mdip,
   mdip->do_flags = DO_NO_OUTPUT_FLAGS;
   mdip->qualifiers = TQ_NONE;
   clear_decl_modifiers_block(&mdip->decl_modifiers);
+  clear_decl_pos_block(&mdip->decl_pos_block);
   mdip->storage_class = (a_storage_class)sc_unspecified;
   mdip->is_first_in_declarator_list = TRUE;
   mdip->is_constructor = FALSE;
@@ -4551,7 +4556,8 @@ of the function, and again overloading is a possibility.
       }  /* if */
       decl_routine(locator, storage_class, function_type, func_info,
                    declarator_ssep, srk_flags, &decl_info->decl_modifiers,
-                   &sym, &linkage, &old_type, &ext_sym);
+                   &sym, &linkage, &old_type, &ext_sym,
+                   &decl_info->decl_pos_block);
       /* WP 11.4 para 5 prohibits defining a nonmember function in a local
          class friend declaration. */
       if (func_info->is_definition &&
@@ -5517,6 +5523,16 @@ declared member functions.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     record_symbol_declaration(srk_flags, sym, &locator->source_position,
                               declarator_ssep);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    {
+    a_decl_position_supplement_ptr  dpsp = rtn->source_corresp.decl_pos_info;
+    if (dpsp != NULL) {
+      dpsp->identifier_range = decl_info->decl_pos_block.identifier_range;
+      dpsp->specifiers_range = decl_info->decl_pos_block.specifiers_range;
+      dpsp->declarator_range = decl_info->decl_pos_block.declarator_range;
+    }  /* if */
+    }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (func_info->is_definition) {
       /* For a definition enter the function type as the "declared_type" in
@@ -6050,6 +6066,16 @@ respectively.
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position,
                             decl_info->declarator_ssep);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  {
+  a_decl_position_supplement_ptr  dpsp = cp->source_corresp.decl_pos_info;
+  if (dpsp != NULL) {
+    dpsp->identifier_range = decl_info->decl_pos_block.identifier_range;
+    dpsp->specifiers_range = decl_info->decl_pos_block.specifiers_range;
+    dpsp->declarator_range = decl_info->decl_pos_block.declarator_range;
+  }  /* if */
+  }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
@@ -6173,8 +6199,18 @@ member declaration, respectively.
          usable as a member constant.  Note that the variable entry will
          have an initializer but it is not yet considered defined. */
       a_constant constant;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        decl_info->decl_pos_block.var_init_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Advance past the "=". */
       (void)get_token();
+#if 0
+#else /* if !0 */
+/* Temporary!  But it works sometimes. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      decl_info->decl_pos_block.var_init_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* if 0 */
       /* Scan the constant expression. */
       scan_member_constant_initializer_expression(member_type, &constant);
       var->init_kind = (an_init_kind)initk_static;
@@ -6189,6 +6225,19 @@ member declaration, respectively.
      definition must appear outside the class definition. */
   record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
                             decl_info->declarator_ssep);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  {
+  a_decl_position_supplement_ptr  dpsp = var->source_corresp.decl_pos_info;
+  if (dpsp != NULL) {
+    dpsp->identifier_range = decl_info->decl_pos_block.identifier_range;
+    dpsp->specifiers_range = decl_info->decl_pos_block.specifiers_range;
+    dpsp->declarator_range = decl_info->decl_pos_block.declarator_range;
+    if (var->is_member_constant) {
+      var->initializer_range = decl_info->decl_pos_block.var_init_range;
+    }  /* if */
+  }  /* if */
+  }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   (void)set_src_seq_secondary_decl_type((char *)var, member_type,
                                         /*is_specialization=*/FALSE);
@@ -7478,6 +7527,16 @@ specific information about the member declaration, respectively.
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
                               &locator->source_position,
                               decl_info->declarator_ssep);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    {
+    a_decl_position_supplement *dpsp = field->source_corresp.decl_pos_info;
+    if (dpsp != NULL) {
+      dpsp->identifier_range = decl_info->decl_pos_block.identifier_range;
+      dpsp->specifiers_range = decl_info->decl_pos_block.specifiers_range;
+      dpsp->declarator_range = decl_info->decl_pos_block.declarator_range;
+    }  /* if */
+    }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Do processing required for any pragmas that are bound to the current
        declaration. */
     process_curr_construct_pragmas(member_sym, (a_statement_ptr)NULL);
@@ -9162,12 +9221,10 @@ function template declarations.
   a_member_decl_info   decl_info;
   a_boolean            is_member_template_rescan;
   a_boolean            any_decl_other_than_nonstatic_data_member = TRUE;
-  a_decl_pos_block     decl_pos_block;
 
   db_enter(3, "class_member_declaration");
   *skip_semicolon_check = FALSE;
   decl_start_pos = pos_curr_token;
-  clear_decl_pos_block(&decl_pos_block);
   initialize_member_decl_info(&decl_info, &decl_start_pos);
   is_member_template_rescan = (scope_stack[depth_scope_stack].kind ==
                                  (a_scope_kind)sck_template_instantiation);
@@ -9189,7 +9246,7 @@ function template declarations.
   add_stop_token(tok_colon);
   (void)decl_specifiers(dsi_flags, &dso_flags, &decl_info.storage_class,
                         &member_type, &qualifiers, &decl_info.decl_modifiers,
-                        &decl_pos_block);
+                        &decl_info.decl_pos_block);
   decl_info.dso_flags = dso_flags;
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING) && !is_error_type(member_type)) {
@@ -9381,7 +9438,7 @@ function template declarations.
       declarator(di_flags, &decl_info.do_flags, member_type,
                  friend_specified ? (a_type_ptr)NULL : class_type,
                  &locator, &local_type, &decl_info.declarator_ssep,
-                 &func_info, &decl_pos_block);
+                 &func_info, &decl_info.decl_pos_block);
       if (!C_mode()) {
         remove_stop_token(tok_lbrace);
         check_completed_member_type(&local_type, &locator, class_state,
@@ -9690,7 +9747,7 @@ function template declarations.
       }  /* if */
       /* Typedef declaration. */
       decl_typedef(&locator, local_type, class_type, &decl_info.member_sym,
-                   decl_info.declarator_ssep);
+                   decl_info.declarator_ssep, &decl_info.decl_pos_block);
       /* Note: access will have been set in decl_typedef. */
       if (curr_routine_fixup != NULL &&
           curr_routine_fixup->def_arg_expr_fixup_list != NULL) {

@@ -95,7 +95,8 @@ type symbol for the typedef, for use in diagnostics.
 }  /* is_cfront_member_function_typedef */
 
 
-static a_type_qualifier_set collect_type_qualifiers(void)
+static a_type_qualifier_set collect_type_qualifiers(
+                                       a_decl_pos_block_ptr  decl_pos_block)
 /*
 Call decl_specifiers to scan one or more declarator qualifiers, and return
 a bit vector describing what was found.  At least one qualifier must be
@@ -108,13 +109,21 @@ token is a qualifier).
   a_type_ptr              dummy_type_ptr;
   a_decl_modifiers_block  dummy_decl_modifiers;
   a_type_qualifier_set    qualifiers;
-  a_decl_pos_block        decl_pos_block;
+  a_decl_pos_block        local_decl_pos_block;
 
-  clear_decl_pos_block(&decl_pos_block);
+  clear_decl_pos_block(&local_decl_pos_block);
   (void)decl_specifiers(DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS, &dso_flags,
                         &dummy_storage_class, &dummy_type_ptr,
-                        &qualifiers, &dummy_decl_modifiers, &decl_pos_block);
+                        &qualifiers, &dummy_decl_modifiers,
+                        &local_decl_pos_block);
   check_assertion(qualifiers != TQ_NONE);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL) {
+    check_assertion(local_decl_pos_block.specifiers_range.end.seq != 0);
+    decl_pos_block->declarator_range.end =
+                       local_decl_pos_block.specifiers_range.end;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return qualifiers;
 }  /* collect_type_qualifiers */
 
@@ -1222,6 +1231,14 @@ issue an error if a default argument expression is encountered.
                              &param_type_pos, param_storage_class,
                              func_info, param_ssep, &last_param_id);
         last_param_id->declared_type = declared_type;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        last_param_id->specifiers_range =
+                            local_decl_pos_block.specifiers_range;
+	last_param_id->declarator_range =
+                            local_decl_pos_block.declarator_range;
+	last_param_id->identifier_range =
+                            local_decl_pos_block.identifier_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         if (remove_qualifiers_from_param_types) {
           /* Strip off top-level type qualifiers.  They are not part of the
              type signature of a C++ function -- see 8.3.5 para 3.  However,
@@ -1544,6 +1561,9 @@ issue an error if a default argument expression is encountered.
       /* Keep looping on a comma, stop otherwise. */
     } while (loop_token(tok_comma));
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block->declarator_range.end = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for closing right parenthesis.  We temporarily clear the stop
      token array values for tok_comma and tok_assign, in order to flush past
      either to the right paren. */
@@ -1594,7 +1614,7 @@ issue an error if a default argument expression is encountered.
       a_boolean          qualifier_err = FALSE;
 
       copy_source_position(pos_curr_token, qualifier_pos);
-      qualifiers = collect_type_qualifiers();
+      qualifiers = collect_type_qualifiers(decl_pos_block);
 #if RESTRICT_ALLOWED
       /* When a member function is declared with the restrict qualifier, the
          qualifier attaches to the this pointer, not to *this (as with const
@@ -1750,7 +1770,7 @@ nonstatic data member of a class.
     a_type_qualifier_set  qualifiers;
 
     qualifier_pos = pos_curr_token;
-    qualifiers = collect_type_qualifiers();
+    qualifiers = collect_type_qualifiers(decl_pos_block);
     if (restrict_allowed) {
       /* This must be a declaration of a function parameter type, and
          moreover it must be the top level declaration. */
@@ -1879,6 +1899,9 @@ nonstatic data member of a class.
     /* The size of the array (in bytes) is updated in 
        add_to_derived_type_list. */
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block->declarator_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for closing right bracket. */
   (void)required_token(tok_rbracket, ec_exp_rbracket);
   remove_stop_token(tok_rbracket);
@@ -2123,11 +2146,12 @@ Clear the pointer stored in "var" if it is used.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void collect_microsoft_pointer_declarator_qualifiers(
-                                              a_type_qualifier_set *qualifiers,
-                                              a_source_position    *qual_pos,
-                                              a_call_conv_descr    *call_conv,
-                                              a_variable_ptr       *based_var,
-                                              a_source_position    *based_pos)
+                                          a_type_qualifier_set *qualifiers,
+                                          a_source_position    *qual_pos,
+                                          a_call_conv_descr    *call_conv,
+                                          a_variable_ptr       *based_var,
+                                          a_source_position    *based_pos,
+                                          a_decl_pos_block_ptr decl_pos_block)
 /*
 Collect a set of pointer declarator qualifiers in Microsoft mode.  Aside
 from the standard const/volatile, Microsoft mode also allows near/far,
@@ -2150,7 +2174,7 @@ encountered, they are scanned and thrown away with a warning.
       /* Normal qualifiers like const, and declarator-only qualifiers like
          near. */
       *qual_pos = pos_curr_token;
-      new_qualifiers = collect_type_qualifiers();
+      new_qualifiers = collect_type_qualifiers(decl_pos_block);
       if ((new_qualifiers & TQ_NEAR) && (*qualifiers & TQ_FAR )) {
         /* Incompatible near and far specifications. */
         error(ec_mem_attrib_incompatible);
@@ -2175,6 +2199,9 @@ encountered, they are scanned and thrown away with a warning.
     } else if (is_microsoft_calling_convention()) {
       /* Calling conventions like __cdecl. */
       call_conv->position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      decl_pos_block->declarator_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       scan_microsoft_calling_convention(&call_conv->call_conv);
     } else if (curr_token == tok_based) {
       /* __based. */
@@ -2210,6 +2237,9 @@ encountered, they are scanned and thrown away with a warning.
       /* The Microsoft compiler appears to accept and ignore "mutable" during
          declarator processing.  Issue a warning and continue. */
       warning(ec_mutable_not_allowed);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      decl_pos_block->declarator_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)get_token();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
@@ -2365,7 +2395,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                                                     &pending_qualifiers_pos,
                                                     &ccd,
                                                     &based_var,
-                                                    &based_pos);
+                                                    &based_pos,
+                                                    decl_pos_block);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Loop while there are pointer declarators. */
@@ -2543,6 +2574,9 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
         complete_type = ptr_to_member_type(complete_type, class_type);
       }  /* if */
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_pos_block->declarator_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Advance past the "*", "&", or "Name::*". */
     (void)get_token();
     /* Scan any qualifiers following the pointer declarator, e.g.,
@@ -2555,7 +2589,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                                                       &pending_qualifiers_pos,
                                                       &ccd,
                                                       &based_var,
-                                                      &based_pos);
+                                                      &based_pos,
+                                                      decl_pos_block);
       /* Break the qualifiers into those like const that are handled
          immediately and those like near that stay pending into the next
          iteration of the loop. */
@@ -2565,7 +2600,9 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Not Microsoft mode; just look for type qualifiers. */
       qualifiers = TQ_NONE;
-      if (is_type_qualifier()) qualifiers = collect_type_qualifiers();
+      if (is_type_qualifier()) {
+        qualifiers = collect_type_qualifiers(decl_pos_block);
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2660,7 +2697,8 @@ static void scan_real_declarator_id(
                           a_boolean         *is_constructor,
                           a_boolean         *is_destructor,
                           a_boolean         *parenthesized_initializer_allowed,
-                          a_type_ptr        *p_member_parent_type)
+                          a_type_ptr        *p_member_parent_type,
+                          a_decl_pos_block  *decl_pos_block)
 /*
 This routine is called by declarator for real declarators; it scans the name
 that is specified.  The current token is the beginning of the name (usually
@@ -2684,6 +2722,9 @@ to FALSE if the entity being declared is not initializable.
 
   db_enter(3, "scan_real_declarator_id");
   declarator_pos = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block->identifier_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Process the identifier.  This is done if we are at the beginning of a
      qualified name.  A special test is done to exclude a destructor name
      that is not part of a qualified name -- this case is handled separately
@@ -2870,6 +2911,10 @@ to FALSE if the entity being declared is not initializable.
     }  /* if */
     /* Save information on the identifier to be declared. */
     *locator = locator_for_curr_id;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_pos_block->identifier_range.end = end_pos_curr_token;
+    decl_pos_block->declarator_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
   } else {
     if (!(input_flags & DI_IS_FRIEND_DECL)) {
@@ -2907,6 +2952,10 @@ to FALSE if the entity being declared is not initializable.
           }  /* if */
         }  /* if */
       }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      decl_pos_block->identifier_range.end = end_pos_curr_token;
+      decl_pos_block->declarator_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Advance past the destructor. */
       (void)get_token();
     } else {
@@ -3268,7 +3317,7 @@ The syntax is:
       scan_real_declarator_id(input_flags, output_flags, locator,
                               is_constructor, is_destructor,
                               &parenthesized_initializer_allowed,
-                              &member_parent_type);
+                              &member_parent_type, decl_pos_block);
     }  /* if */
   }  /* if */
   /* The declarator can end at this point, or an array or function
@@ -3293,6 +3342,10 @@ The syntax is:
     if (curr_token == tok_lparen) {
       /* Appears to be a function declarator.  But be sure it's not the
          start of a parenthesized initializer (C++ only). */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      a_source_position  lparen_pos;
+      lparen_pos = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Advance past the left parenthesis. */
       (void)get_token();
       if (parenthesized_initializer_allowed &&
@@ -3344,6 +3397,9 @@ The syntax is:
           }  /* if */
           if (!is_function_decl) {
             *output_flags |= DO_PARENTHESIZED_INITIALIZER;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+            decl_pos_block->var_init_range.start = lparen_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
             /* Function_declarator should not be called, so exit the loop. */
             break;
           }  /* if */
@@ -3746,6 +3802,10 @@ the parameters.
   check_assertion_str(!is_constructor || member_parent_type != NULL ||
                       (input_flags & DI_IS_FRIEND_DECL),
                       "declarator: parent class is NULL for ctor");
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block->declarator_range.start = pos_curr_token;
+  decl_pos_block->declarator_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   r_declarator(input_flags, output_flags, specifiers_type,
                member_parent_type, locator, p_complete_type,
                &bottom_derived_type, &is_constructor, &is_destructor,

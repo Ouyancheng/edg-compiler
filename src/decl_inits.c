@@ -1966,6 +1966,13 @@ returned set to TRUE.
        permitted as the initializer. */
     check_for_opening_brace(&brace_flag);
     nonconstant_allowed = (!C_mode() || !static_lifetime);
+#if 0
+#else /* if !0 */
+/* Temporary!  But it works sometimes. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_pos_block->var_init_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* if 0 */
     /* Scan the initializer.  Either a constant pointer is returned or else
        a dynamic init entry representing an expression. */
     init_con =
@@ -1983,6 +1990,12 @@ returned set to TRUE.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (brace_flag && curr_token == tok_rbrace && decl_pos_block != NULL) {
       decl_pos_block->var_init_range.end = pos_curr_token;
+    } else if (init_con == NULL) {
+      check_assertion(init_dip != NULL);
+      if (init_dip->kind == (a_dynamic_init_kind)dik_expression) {
+        decl_pos_block->var_init_range.end =
+                         init_dip->variant.expression->expr_range.end;
+      }  /* if */
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     check_for_matching_closing_brace(brace_flag);

@@ -3723,7 +3723,8 @@ void decl_routine(a_symbol_locator             *locator,
                   a_symbol_ptr                 *symbol_ptr,
                   an_id_linkage_kind           *linkage_ptr,
                   a_type_ptr                   *old_type,
-                  a_symbol_ptr                 *ext_sym)
+                  a_symbol_ptr                 *ext_sym,
+                  a_decl_pos_block_ptr         decl_pos_block)
 /*
 Enter the declaration of an identifier for a nonmember routine.  *locator
 gives the symbol locator (and thus its name and its declaration position).
@@ -4459,6 +4460,17 @@ skip_overloading:;
      entry. */
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             declarator_ssep);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (is_function_def || !redeclaration) {
+    a_decl_position_supplement_ptr  dpsp;
+    dpsp = routine_ptr->source_corresp.decl_pos_info;
+    if (dpsp != NULL) {
+      dpsp->identifier_range = decl_pos_block->identifier_range;
+      dpsp->specifiers_range = decl_pos_block->specifiers_range;
+      dpsp->declarator_range = decl_pos_block->declarator_range;
+    }  /* if */
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (is_function_def && is_friend_decl) {
     /* Mark this function as defined in a friend declaration. */
     routine_ptr->defined_in_friend_decl = TRUE;
@@ -5177,7 +5189,8 @@ void decl_typedef(a_symbol_locator             *locator,
                   a_type_ptr                   type_ptr,
                   a_type_ptr                   class_type,
                   a_symbol_ptr                 *symbol_ptr,
-                  a_source_sequence_entry_ptr  declarator_ssep)
+                  a_source_sequence_entry_ptr  declarator_ssep,
+                  a_decl_pos_block_ptr         decl_pos_block)
 /*
 Enter the declaration of an identifier for a typedef.  *locator gives the
 symbol locator (and thus its name and its declaration position).  type_ptr
@@ -5353,6 +5366,16 @@ return a pointer to it in *symbol_ptr.
   }  /* if */
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position, declarator_ssep);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  {
+  a_decl_position_supplement_ptr  dpsp = tp->source_corresp.decl_pos_info;
+  if (dpsp != NULL && decl_pos_block != NULL) {
+    dpsp->identifier_range = decl_pos_block->identifier_range;
+    dpsp->specifiers_range = decl_pos_block->specifiers_range;
+    dpsp->declarator_range = decl_pos_block->declarator_range;
+  }  /* if */
+  }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   add_to_types_list(tp, decl_scope_level);
   /* Issue a diagnostic if size_t is declared in a way inconsistent with
      the target configuration. */
@@ -5460,7 +5483,7 @@ symbol has already been entered as an undefined symbol.
   decl_routine(&locator, (a_storage_class)sc_extern, rout_type, &func_info,
                (a_source_sequence_entry_ptr)NULL,
                (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers, &symbol_ptr,
-               &linkage, &old_type, &ext_sym);
+               &linkage, &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL);
   done_with_func_info(func_info);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
@@ -6843,6 +6866,7 @@ Return a pointer to the variable that is declared.
   {
   a_decl_position_supplement_ptr  dpsp = sym->variant.variable.ptr->
                                                 source_corresp.decl_pos_info;
+  dpsp->identifier_range = decl_pos_block.identifier_range;
   dpsp->specifiers_range = decl_pos_block.specifiers_range;
   dpsp->declarator_range = decl_pos_block.declarator_range;
   }
@@ -7811,7 +7835,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_type_qualifier_set         qualifiers;
   a_decl_modifiers_block       decl_modifiers, local_decl_modifiers;
   a_decl_flag_set              dsi_flags, di_flags;
-  a_symbol_ptr                 symbol_ptr, ext_sym;
+  a_symbol_ptr                 symbol_ptr = NULL, ext_sym;
   a_boolean	               decl_specifiers_omitted = FALSE;
   a_boolean                    is_function, is_main_function;
   a_boolean                    is_constructor_or_destructor;
@@ -8416,23 +8440,10 @@ continue_with_declaration:
           /* Do processing required for a function definition, including
              scanning the function body.  Note that the closing '}' will not
              been consumed -- that will be done by the caller. */
-          symbol_ptr =
-                function_definition(&locator, local_type_ptr, &func_info,
-                                    local_storage_class,
+          (void)function_definition(&locator, local_type_ptr,
+                                    &func_info, local_storage_class,
                                     has_explicit_type_specifier,
-                                    &decl_modifiers);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-          if (symbol_ptr->kind == (a_symbol_kind)sk_routine ||
-              symbol_ptr->kind == (a_symbol_kind)sk_member_function) {
-            a_decl_position_supplement_ptr  dpsp;
-            dpsp = symbol_ptr->variant.routine.ptr->
-                                      source_corresp.decl_pos_info;
-            if (dpsp != NULL) {
-              dpsp->specifiers_range = decl_pos_block.specifiers_range;
-              dpsp->declarator_range = decl_pos_block.declarator_range;
-            }  /* if */
-          }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+                                    &decl_modifiers, &decl_pos_block);
           done_with_func_info(func_info);
           /* The presence of a final '}' will already have been checked for. */
           check_assertion(curr_token == tok_rbrace ||
@@ -8641,7 +8652,7 @@ continue_with_declaration:
       } else if (local_storage_class == (a_storage_class)sc_typedef) {
         /* A typedef declaration. */
         decl_typedef(&locator, local_type_ptr, (a_type_ptr)NULL,
-                     &symbol_ptr, declarator_ssep);
+                     &symbol_ptr, declarator_ssep, &decl_pos_block);
       } else if (is_static_data_member) {
         /* A static data member definition. */
         define_static_data_member(&locator, local_storage_class,
@@ -8687,19 +8698,7 @@ continue_with_declaration:
         decl_routine(&locator, local_storage_class, local_type_ptr,
                      &func_info, declarator_ssep, SRK_DECLARATION,
                      &local_decl_modifiers, &symbol_ptr, &linkage, &old_type,
-                     &ext_sym);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        if (symbol_ptr->kind == (a_symbol_kind)sk_routine ||
-            symbol_ptr->kind == (a_symbol_kind)sk_member_function) {
-          a_decl_position_supplement_ptr  dpsp;
-          dpsp = symbol_ptr->variant.routine.ptr->
-                                      source_corresp.decl_pos_info;
-          if (dpsp != NULL) {
-            dpsp->specifiers_range = decl_pos_block.specifiers_range;
-            dpsp->declarator_range = decl_pos_block.declarator_range;
-          }  /* if */
-        }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+                     &ext_sym, &decl_pos_block);
       } else {
         /* A variable declaration. */
         a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
@@ -8818,9 +8817,18 @@ continue_with_declaration:
         a_decl_position_supplement_ptr  dpsp = var_ptr->
                                                source_corresp.decl_pos_info;
         if (dpsp != NULL) {
+          dpsp->identifier_range = decl_pos_block.identifier_range;
           dpsp->specifiers_range = decl_pos_block.specifiers_range;
           dpsp->declarator_range = decl_pos_block.declarator_range;
         }  /* if */
+#if DEBUG
+        if (is_static_data_member) {
+          if (debug_level != 3 || db_flag_is_set("dump_decl_pos_info")) {
+            fprintf(f_debug, "decl-pos info for static data member def\n");
+            db_decl_pos_info(symbol_ptr);
+          }  /* if */
+        }  /* if */
+#endif /* DEBUG */
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       incomplete_type_error_reported = FALSE;
