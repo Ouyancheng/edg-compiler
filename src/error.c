@@ -1748,7 +1748,7 @@ error code.
     "argument of type %t1 is incompatible with template parameter of type %t2";
       break;
     case ec_init_needing_temp_not_allowed:
-      m = "initialization requiring a temporary is not allowed";
+      m = "initialization requiring a temporary or conversion is not allowed";
       break;
     case ec_decl_hides_function_parameter:
       m = "declaration of %sq hides function parameter";
