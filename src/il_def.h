@@ -585,7 +585,7 @@ typedef struct a_src_seq_secondary_decl {
 			/* TRUE when the declaration is a friend declaration;
 			   "entity" will refer to a routine or class. */
   a_bit_field	implicit_decl:1;
-			/* TRUE when this declaration is an implcit function
+			/* TRUE when this declaration is an implicit function
 			   declaration. */
   bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;
