@@ -1367,6 +1367,7 @@ and return a pointer to it.
   tssp->parameters = NULL;
   tssp->declaration_scope = NO_SCOPE_NUMBER;
   tssp->pending_instantiations = 0;
+  tssp->pragmas_bound_to_template = NULL;
   clear_token_cache(&tssp->token_cache, /*reusable=*/TRUE);
   switch (kind) {
     case sk_class_template:
@@ -6542,13 +6543,13 @@ class reactivations and template instantiations are not real scopes.
          (kind) != (a_scope_kind)sck_template_instantiation))
 
 
-a_scope_ptr push_scope(a_scope_kind       kind,
-		       a_scope_number     scope_number_to_reuse,
-                       a_type_ptr         assoc_type,
-                       a_routine_ptr      assoc_routine,
-                       a_symbol_ptr       instance_sym,
-                       a_symbol_ptr       template_sym,
-                       a_template_arg_ptr template_arg_list)
+a_scope_ptr push_scope(a_scope_kind         kind,
+		       a_scope_number       scope_number_to_reuse,
+                       a_type_ptr           assoc_type,
+                       a_routine_ptr        assoc_routine,
+                       a_symbol_ptr         instance_sym,
+                       a_symbol_ptr         template_sym,
+                       a_template_arg_ptr   template_arg_list)
 /*
 Begin a new name scope by pushing an entry on the scope stack.  kind indicates
 the kind of scope (file, function, block, function prototype, etc.).  Returns
@@ -6797,6 +6798,10 @@ of the template.
                                                 is_prototype_instantiation;
         }  /* if */
       }  /* if */
+      /* Make a copy of the list of pragmas associated with this template and
+         set this scope's current construct list to point to the new copy. */
+      ssep->curr_construct_pragmas =
+                    make_copy_of_pragma_list(tssp->pragmas_bound_to_template);
     } else if (kind != (a_scope_kind)sck_file) {
       ssep->in_prototype_instantiation = (ssep-1)->in_prototype_instantiation;
     }  /* if */

@@ -974,6 +974,10 @@ typedef struct a_template_symbol_supplement {
 			/* The number of instantiations of this template
 			   that are in the process of being instantiated.
 			   Used to detect runaway recursive instantiations. */
+  a_pending_pragma_ptr
+		pragmas_bound_to_template;
+			/* A list of pbk_next_construct pragmas to be bound
+			   to each instance generated from this template. */
   union {
     /* When symbol kind = sk_class_template: */
     struct {
