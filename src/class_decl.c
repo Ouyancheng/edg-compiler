@@ -10305,7 +10305,7 @@ to be returned to the caller.
            processed. */
         if (prescan_function_definition(&first_token_number,
                                         &last_token_number,
-                                        decl_info.is_constructor)) {
+                                        (a_boolean)decl_info.is_constructor)) {
           /* Advance past the terminating right brace. */
           (void)get_token();
         }  /* if */
