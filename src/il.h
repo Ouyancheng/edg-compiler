@@ -438,11 +438,12 @@ extern an_expr_node_ptr node_for_integer_constant(long            value,
                                                   an_integer_kind kind);
 
 extern a_constant_ptr copy_template_param_con_with_substitution(
-                                    a_constant_ptr           con,
-                                    a_template_arg_ptr       template_arg_list,
-                                    a_template_nesting_depth depth,
-                                    a_source_position        *source_pos,
-                                    a_boolean                *copy_error);
+                                  a_constant_ptr           con,
+                                  a_template_arg_ptr       template_arg_list,
+                                  a_template_nesting_depth depth,
+                                  a_type_ptr               template_param_type,
+                                  a_source_position        *source_pos,
+                                  a_boolean                *copy_error);
 
 extern a_boolean is_operator_returning_bool(an_expr_operator_kind op);
 

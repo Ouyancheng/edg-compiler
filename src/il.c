@@ -6412,13 +6412,17 @@ and return a pointer to it.
 }  /* node_for_integer_constant */
 
 
-static a_constant_ptr copy_template_param_constant(a_constant_ptr con)
+static a_constant_ptr copy_template_param_constant(
+                                            a_constant_ptr con,
+                                            a_type_ptr     template_param_type)
 /*
 Copy a ck_template_param constant, and return a pointer to the
 copy.  In the process of copying, replace any template parameters
 as indicated by the global variables ctpcws_depth, ctpcws_template_arg_list,
-ctpcws_source_pos, and ctpcws_copy_error.  If the constant is not a
-ck_template_param constant, return the original pointer.
+ctpcws_source_pos, and ctpcws_copy_error.  template_param_type, if
+non-NULL, gives the type of a template parameter for which con is the
+template actual argument.  If the constant is not a ck_template_param
+constant, return the original pointer.
 */
 {
   a_constant_ptr con_copy = con, other_con;
@@ -6448,13 +6452,23 @@ ck_template_param constant, return the original pointer.
       case tpck_cast:
         /* The template param constant represents a cast of a constant to
            a template parameter type. */
-        new_type = copy_type_with_substitution(con->type,
-                                               ctpcws_template_arg_list,
-                                               ctpcws_depth,
-                                               &ctpcws_source_pos,
-                                               ctpcws_copy_error);
+        if (template_param_type != NULL &&
+            con->type->kind == (a_type_kind)tk_template_param &&
+            con->type->variant.template_param.kind ==
+                   (a_template_param_type_kind)tptk_type_of_unknown_constant) {
+          /* For a cast to a tptp_type_of_unknown_constant type, when a
+             template parameter is provided, use that type instead. */
+          new_type = template_param_type;
+        } else {
+          new_type = copy_type_with_substitution(con->type,
+                                                 ctpcws_template_arg_list,
+                                                 ctpcws_depth,
+                                                 &ctpcws_source_pos,
+                                                 ctpcws_copy_error);
+        }  /* if */
         other_con = copy_template_param_constant(
-                                 con->variant.template_param.variant.constant);
+                                 con->variant.template_param.variant.constant,
+                                 (a_type_ptr)NULL);
         if (new_type == con->type &&
             other_con == con->variant.template_param.variant.constant) {
           /* No change in the type or constant. */
@@ -6466,7 +6480,7 @@ ck_template_param constant, return the original pointer.
                                /*is_implicit_cast=*/FALSE,
                                /*constant_context=*/TRUE,
                                /*evaluated_context=*/TRUE,
-                               /*fold_constant_addr_exprs=*/TRUE,
+                               /*fold_constant_addr_exprs=*/FALSE,
                                /*is_reinterpret_cast=*/FALSE,
                                &did_not_fold,
                                &ctpcws_source_pos);
@@ -6520,20 +6534,22 @@ ck_template_param constant, return the original pointer.
 
 
 a_constant_ptr copy_template_param_con_with_substitution(
-                                    a_constant_ptr           con,
-                                    a_template_arg_ptr       template_arg_list,
-                                    a_template_nesting_depth depth,
-                                    a_source_position        *source_pos,
-                                    a_boolean                *copy_error)
+                                  a_constant_ptr           con,
+                                  a_template_arg_ptr       template_arg_list,
+                                  a_template_nesting_depth depth,
+                                  a_type_ptr               template_param_type,
+                                  a_source_position        *source_pos,
+                                  a_boolean                *copy_error)
 /*
 Copy a ck_template_param constant, and return a pointer to the
 copy.  In the process of copying, replace any template parameters at
 depth "depth" with the corresponding values from the template argument list
-template_arg_list.  source_pos provides the source position for any
-calls of copy_type_with_substitution.  If there is an error in the
-copying (specifically, if there is an error in doing substitution
-on a type), set *copy_error to TRUE.  The copy of the constant is always
-placed in the file scope memory region.
+template_arg_list.  template_param_type, if non-NULL, is the type of the
+template parameter for which con is the actual argument.  source_pos
+provides the source position for any calls of copy_type_with_substitution.
+If there is an error in the copying (specifically, if there is an error
+in doing substitution on a type), set *copy_error to TRUE.  The copy of
+the constant is always placed in the file scope memory region.
 */
 {
   /* Save the global state variables in case of recursion. */
@@ -6551,7 +6567,7 @@ placed in the file scope memory region.
   ctpcws_depth = depth;
   ctpcws_source_pos = *source_pos;
   ctpcws_copy_error = copy_error;
-  con = copy_template_param_constant(con);
+  con = copy_template_param_constant(con, template_param_type);
   /* Restore the previous values of the global state variables. */
   ctpcws_template_arg_list = saved_ctpcws_template_arg_list;
   ctpcws_depth = saved_ctpcws_depth;
@@ -6700,7 +6716,8 @@ a set of options for the copy.
       if (options & CE_DOING_SUBSTITUTION_OF_TEMPLATE_ARGS) {
         /* Doing any necessary substitution of template arguments. */
         expr_copy->variant.constant =
-                          copy_template_param_constant(expr->variant.constant);
+                          copy_template_param_constant(expr->variant.constant,
+                                                       (a_type_ptr)NULL);
       }  /* if */
       break;
     case enk_operation:
