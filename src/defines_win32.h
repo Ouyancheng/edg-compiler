@@ -34,7 +34,6 @@ This is the version for Windows 95/98/NT/etc.
 #define TARG_ALIGNOF_DOUBLE 8
 #define TARG_SIZEOF_LONG_DOUBLE 8
 #define TARG_ALIGNOF_LONG_DOUBLE 8
-#define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C 0
 #define HOST_ALIGNMENT_REQUIRED 4
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC TRUE
 #define TARG_MINIMUM_STRUCT_ALIGNMENT 1
@@ -57,9 +56,12 @@ Definitions for Windows NT/95/98:
 #define TARG_MICROSOFT_BIT_FIELD_ALLOCATION 1
 #define LONG_LONG_ALLOWED 1
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
-#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 1
 #define GUARD_MACRO_FOR_VA_LIST "_VA_LIST_DEFINED"
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
+
+/* The Microsoft compiler uses the same size for double and long double. */
+#define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C 1
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
 
 /* The EDG driver on NT does not support one instantiation per object mode. */
 #define ONE_INSTANTIATION_PER_OBJECT 0
