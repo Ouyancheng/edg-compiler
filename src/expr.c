@@ -9384,6 +9384,13 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
          For incomplete classes, assume a predefined meaning to get clearer
          error messages. */
       has_predef_meaning = is_incomplete_type(operand_1->type);
+      if (any_cfront_mode()) {
+        /* In cfront mode, an operator= is not generated in every case. */
+        if (symbol_supplement_for_class(operand_1->type)->
+                                          assignment_by_bitwise_copy_allowed) {
+          has_predef_meaning = TRUE;
+        }  /* if */
+      }  /* if */
       check_for_operator_overloading((an_opname_kind)onk_assign,
                                      /*unary_operator=*/FALSE,
                                      /*must_be_member_function=*/TRUE,
