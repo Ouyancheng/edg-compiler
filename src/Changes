@@ -1,5 +1,41 @@
 Version 2.32
 
+3/6/96    Bug in hidden-name support (friend declaration in local class)
+
+When RECORD_HIDDEN_NAMES_IN_IL set to TRUE (e.g., when the C++-generating
+back end is being used), a bug has been fixed in producing hidden-name
+information for friend declarations in local classes.  In the following
+case, the generated C++ is the same for the two friend declarations -- the
+global qualifier is omitted for both because the block-extern declaration
+doesn't really hide "f" inside the class bodies.
+
+  void f();
+  void g() {
+    extern void f();
+    class A {
+      friend void ::f();
+    };
+    class B {
+      friend void f();
+    };
+  }
+
+A related problem has also been fixed.  Correct C++ is now generated for
+the following:
+
+  void f() {
+    int X, Y;
+    void Z();
+    struct A {
+      struct X *p;
+      friend struct Y;
+      friend struct Z;
+    };
+    struct X *px;           // generated C++ now includes "struct"
+    struct Y *py;           // generated C++ now includes "struct"
+    struct Z *pz;           // generated C++ now includes "struct"
+  }
+
 3/5/96    Nontype member of nonreal class incorrectly considered to
           have an incomplete type
 
@@ -40,7 +76,6 @@ internal error could occur.  This has been fixed.
 
   template <int i = i> class A {};
   A<> a;
-
 
 2/27/96   "explicit" keyword (nonconverting constructors)
 
