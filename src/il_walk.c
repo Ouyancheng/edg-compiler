@@ -541,18 +541,21 @@ only the entries marked as "needed" are marked to keep in the IL.
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
-static void set_keep_in_il_on_sslist(a_source_sequence_entry_ptr sslist)
+static void set_keep_in_il_on_sslist(
+                                    a_source_sequence_entry_ptr sslist,
+                                    a_boolean                   function_local)
 /*
 Walk the indicated source sequence list, and set the keep_in_il
 flags in the source sequence entries thereon.  A source sequence entry
 must be kept in the IL if and only if its associated entry must be
-kept.
+kept.  If function_local is TRUE, this list is local to a function that
+is being kept, and all entries should be marked to be kept.
 */
 {
   a_source_sequence_entry_ptr  ssep;
   a_src_seq_secondary_decl_ptr sec_decl;
   char                         *entry_ptr;
-  a_boolean                    assoc_entry_keep_in_il;
+  a_boolean                    keep_in_il;
 
   for (ssep = sslist; ssep != NULL; ssep = ssep->next) {
     if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
@@ -564,13 +567,19 @@ kept.
       sec_decl = NULL;
       entry_ptr = ssep->entity.ptr;
     }  /* if */
-    /* See if the associated IL entity is marked with keep_in_il. */
-    assoc_entry_keep_in_il = il_entry_prefix_of(entry_ptr).keep_in_il;
-    /* Mark the source sequence entry the same way (and the secondary
+    if (function_local) {
+      /* Keep all function-local source sequence entries. */
+      keep_in_il = TRUE;
+      il_entry_prefix_of(entry_ptr).keep_in_il = TRUE;
+    } else {
+      /* See if the associated IL entity is marked with keep_in_il. */
+      keep_in_il = il_entry_prefix_of(entry_ptr).keep_in_il;
+    }  /* if */
+    /* Mark the source sequence entry the right way (and the secondary
        declaration entry too, if there is one). */
-    il_entry_prefix_of(ssep).keep_in_il = assoc_entry_keep_in_il;
+    il_entry_prefix_of(ssep).keep_in_il = keep_in_il;
     if (sec_decl != NULL) {
-      il_entry_prefix_of(sec_decl).keep_in_il = assoc_entry_keep_in_il;
+      il_entry_prefix_of(sec_decl).keep_in_il = keep_in_il;
     }  /* if */
   }  /* for */
 }  /* set_keep_in_il_on_sslist */
@@ -589,18 +598,19 @@ the file scope because their subtree can change (e.g., on a definition
 or redeclaration).
 */
 {
-  set_keep_in_il_on_sslist(scope->source_sequence_list);
-  if (scope->kind == (a_scope_kind)sck_file) {
-    /* When processing the file scope, also process the orphaned lists for
-       local scopes. */
-    a_scope_orphaned_list_header_ptr solhp;
-    for (solhp = il_header.scope_orphaned_list_headers;
-         solhp != NULL;
-         solhp = solhp->next) {
-      set_keep_in_il_on_sslist(solhp->orphaned_src_seq_sublists->
-                                                         source_sequence_list);
-    }  /* for */
-  }  /* if */
+  a_src_seq_sublist_ptr ssslp;
+  a_boolean             function_local =
+                                  (scope->kind == (a_scope_kind)sck_function ||
+                                   scope->kind == (a_scope_kind)sck_block);
+
+  set_keep_in_il_on_sslist(scope->source_sequence_list, function_local);
+  /* For a function scope, visit the sublists in the file scope too. */
+  for (ssslp = scope->src_seq_sublist_list;
+       ssslp != NULL;
+       ssslp = ssslp->next) {
+    set_keep_in_il_on_sslist(ssslp->source_sequence_list,
+                             function_local);
+  }  /* for */
 }  /* set_keep_in_il_on_source_sequence_entries */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
