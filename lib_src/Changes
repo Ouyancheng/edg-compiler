@@ -1,5 +1,11 @@
 Version 3.2
 
+3/19/03  Incorrect test of base class flags in IA-64 runtime
+
+The IA-64 runtime included some incorrect tests of the base class
+flags field, which could result in incorrect behavior in dynamic_cast
+and exception handling operations.  This has been fixed.
+
 3/18/03  __cxa_vec_cleanup added to IA-64 runtime
 
 The __cxa_vec_cleanup routine was missing from our IA-64 runtime.  This
