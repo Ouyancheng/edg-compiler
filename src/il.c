@@ -7313,8 +7313,6 @@ region -- and then add it to the end of the source sequence list.
 */
 {
   a_source_sequence_entry_ptr  ssep;
-  a_boolean                    switch_to_fs = FALSE;
-  a_memory_region_number       region_to_switch_back_to;
 
   db_enter(4, "add_empty_source_sequence_entry");
   if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
@@ -7332,16 +7330,10 @@ region -- and then add it to the end of the source sequence list.
     ssep = NULL;
 #endif /* if 0 */
   } else {
-    if (depth_innermost_ss_list_scope != NO_SCOPE_DEPTH &&
-        scope_stack[depth_scope_stack].kind ==
-                                       (a_scope_kind)sck_func_prototype) {
-      switch_to_file_scope_region(&region_to_switch_back_to);
-      switch_to_fs = TRUE;
-    }  /* if */
+    check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER ||
+                    scope_stack[depth_scope_stack].kind !=
+                                       (a_scope_kind)sck_func_prototype);
     ssep = alloc_source_sequence_entry();
-    if (switch_to_fs) {
-      switch_back_to_original_region(region_to_switch_back_to);
-    }  /* if */
     ssep->entity.kind = (a_byte_il_entry_kind)iek_none;
     /* Note that the entity.ptr field is left NULL. */
     add_to_source_sequence_list(ssep);
