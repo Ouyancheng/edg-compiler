@@ -2756,7 +2756,10 @@ be kept, FALSE if it should be deleted.
       check_assertion_str(curr_object_lifetime == lifetime ||
                           (processing_file_scope_init_routine &&
                            lifetime->kind ==
-                                   (an_object_lifetime_kind)olk_global_static),
+                                 (an_object_lifetime_kind)olk_global_static) ||
+                          (curr_object_lifetime->kind ==
+                                 (an_object_lifetime_kind)olk_expr_temporary &&
+                           curr_object_lifetime->parent_lifetime == lifetime),
      "lower_dynamic_init: dynamic init has lifetime other than curr lifetime");
     }  /* if */
   }  /* if */
