@@ -1,5 +1,21 @@
 Version 2.44
 
+1/18/00  Internal error on pragma before template-id when using
+         source sequence lists
+
+An internal error could occur if a pragma appeared in a function body
+immediately before a template-id when using source sequence lists.
+For example:
+
+  template <class T> struct A { static int f() { return 0; } };
+  void g() {
+    int i = 
+  #pragma weak x
+             A<int>::f();
+  }  // Internal error while reading IL
+
+This has been fixed.
+
 1/17/00  Microsoft compatibility: cast to abstract class is allowed
 
 In Microsoft bugs mode, a cast to an abstract class type is now

@@ -502,12 +502,25 @@ if it turns out that no IL pragma entry is created).
   db_enter(4, "add_source_sequence_entry_to_curr_token_pragmas");
   if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
       depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+    a_memory_region_number   region_to_switch_back_to;
+    a_scope_depth            scope_depth_to_switch_to;
+    /* If we are inside a function scope, allocate the source sequence entry
+       in the function scope so that it will match the IL pragma entry to
+       which it gets bound later on. */
+    scope_depth_to_switch_to = scope_stack[depth_scope_stack].
+                                               depth_innermost_function_scope;
+    if (scope_depth_to_switch_to == NO_SCOPE_DEPTH) {
+      scope_depth_to_switch_to = DEPTH_OF_FILE_SCOPE;
+    }  /* if */
+    switch_to_scope_region(scope_depth_to_switch_to,
+                           &region_to_switch_back_to);
     while (ppp != NULL) {
       if (ppp->source_sequence_entry == NULL) {
         ppp->source_sequence_entry = add_empty_source_sequence_entry();
       }  /* if */
       ppp = ppp->next;
     }  /* while */
+    switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
   db_exit();
 }  /* add_source_sequence_entry_to_curr_token_pragmas */
