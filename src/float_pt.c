@@ -58,6 +58,43 @@ The problem applies to hollerith constants as well.
 #endif /* ifdef FFE */
 
 
+#ifdef SUNOS_STRTOD_BUG
+/*
+Under SunOS, 4.0 at least, strtod has a bug -- an uninitialized stack
+variable is referenced.  Calling this routine ensures that the variable
+is cleared.
+*/
+static void init_strtod(void)
+{
+  int temp[200]; /* Magic numbers. */
+  temp[55] = 0;
+}  /* init_strtod */
+#endif /* ifdef SUNOS_STRTOD_BUG */
+
+
+static double strtod_interface(char *str)
+/*
+Interface routine to call strtod.  Converts the string str to double, and
+returns the converted value.  errno is set to zero for no error, a non-zero
+value for any error.
+*/
+{
+  double temp;
+
+  errno = 0;
+#ifdef SUNOS_STRTOD_BUG
+  /* Under SunOS, 4.0 at least, strtod has a bug -- an uninitialized stack
+     variable is referenced.  Calling this routine ensures that the variable
+     is cleared. */
+  init_strtod();
+#endif /* ifdef SUNOS_STRTOD_BUG */
+  /* strtod is used instead of atof because of a report that on some SGI
+     systems errno==ERANGE is not set properly by atof. */
+  temp = strtod(str, (char **)NULL);
+  return temp;
+}  /* strtod_interface */
+
+
 static void store_double(double                  temp,
                          a_float_kind            kind,
                          an_internal_float_value *float_value,
@@ -68,55 +105,73 @@ kind.  Set *err TRUE if there is an error.  If *err is already TRUE,
 do nothing.
 */
 {
-  float float_temp;
-
   if (!*err) {
     /* Zero the memory so that comparisons are easy even if we do not
        fill the whole area reserved for the float value. */
     memzero((char *)float_value, sizeof(an_internal_float_value));
     if (kind == (a_float_kind)fk_float) {
-      /* Convert to float and store a float in float_value. */
-      float_temp = (float)temp;
-      /* Check for a loss of information on the conversion.   This is crude,
-         but it's hard to do much here that is portable. */
-      { double double_temp;
-        /* Convert back to double again to see if we get the same thing. */
-        double_temp = (double)float_temp;
-        if (double_temp == temp) {
-          /* Got the original number back, so everything is okay.  This also
-             handles NaNs and infinities in the source double, so they do not
-             get into the tests below. */
-        } else if (float_temp == 0.0 && temp != 0.0) {
+      /* Converting to float. */
+#ifdef FLT_MAX
+      /* FLT_MAX is available, so we can use it to test for overflow.  We do
+         this before converting to float in case an overflow on such a
+         conversion would cause a float exception. */
+      static a_boolean init_done = FALSE;
+      static double    double_flt_max;
+      /* Initialize double_flt_max to FLT_MAX converted as a double.  This
+         might be slightly larger than FLT_MAX evaluated as a float (because
+         of greater precision), but it's what the conversion of the actual
+         FLT_MAX will yield, so it's the right value to use for the overflow
+         comparison. */
+      if (!init_done) {
+        init_done = TRUE;
+        double_flt_max = strtod_interface(FLT_MAX);
+        check_assertion_str(errno == 0,
+                            "store_double: error on conversion of FLT_MAX");
+      } /* if */
+      if ((temp >= 0.0) ? temp > double_flt_max : temp < -double_flt_max) {
+        /* Overflow. */
+        *err = TRUE;
+      } else {
+#endif /* ifdef FLT_MAX */
+      if (!*err) {
+        /* Convert to float and store a float in float_value. */
+        float float_temp = (float)temp;
+        if (float_temp == 0.0 && temp != 0.0) {
           /* Underflow. */
           *err = TRUE;
-#ifdef FLT_MAX
-        /* In ANSI/ISO C, we know the maximum float value and can test for
-           overflow. */
-        } else if (temp > FLT_MAX || temp < -FLT_MAX) {
-          /* Overflow. */
-          *err = TRUE;
-#else /* !defined(FLT_MAX) */
-        } else if (temp < 10000.0 && temp > -10000.0) {
-          /* Assume that numbers in the range -10000.0 .. +10000.0 cannot
-             overflow. */
+#ifndef FLT_MAX
         } else {
-          /* One last shot -- on machines with NaNs and infinities, printing
-             such a thing often prints "Infinity" or the like.  Print the
-             number and see if the first character is a digit.  Note that
-             above we ruled out the case where the source double is a NaN
-             or infinity. */
-          char float_string[15], *ptr;
-          (void)sprintf(float_string, "%.2e", float_temp);
-          ptr = float_string;
-          if (*ptr == '-') ptr++;
-          if (!isdigit(*ptr)) {
-            /* Probably overflow. */
-            *err = TRUE;
+          /* FLT_MAX is not available.  Check for overflow.  This is crude,
+             but it's hard to do much here that is portable. */
+          double double_temp;
+          /* Convert back to double again to see if we get the same thing. */
+          double_temp = (double)float_temp;
+          if (double_temp == temp) {
+            /* Got the original number back, so everything is okay.  This also
+               handles NaNs and infinities in the source double, so they do not
+               get into the tests below. */
+          } else if (temp < 10000.0 && temp > -10000.0) {
+            /* Assume that numbers in the range -10000.0 .. +10000.0 cannot
+               overflow. */
+          } else {
+            /* One last shot -- on machines with NaNs and infinities, printing
+               such a thing often prints "Infinity" or the like.  Print the
+               number and see if the first character is a digit.  Note that
+               above we ruled out the case where the source double is a NaN
+               or infinity. */
+            char float_string[15], *ptr;
+            (void)sprintf(float_string, "%.2e", float_temp);
+            ptr = float_string;
+            if (*ptr == '-') ptr++;
+            if (!isdigit(*ptr)) {
+              /* Probably overflow. */
+              *err = TRUE;
+            }  /* if */
           }  /* if */
-#endif /* ifdef FLT_MAX */
+#endif /* ifndef FLT_MAX */
         }  /* if */
-      }
-      (void)memcpy((char *)float_value, (char *)&float_temp, sizeof(float));
+        (void)memcpy((char *)float_value, (char *)&float_temp, sizeof(float));
+      }  /* if */
     } else {
       /* Store a double in float_value. */
       /* Use memcpy to copy the value since float_value might not be correctly
@@ -188,20 +243,6 @@ depends on the rounding mode, *depends_on_rounding_mode is returned TRUE
 }  /* fp_change_kind */
 
 
-#ifdef SUNOS_STRTOD_BUG
-/*
-Under SunOS, 4.0 at least, strtod has a bug -- an uninitialized stack
-variable is referenced.  Calling this routine ensures that the variable
-is cleared.
-*/
-static void init_strtod(void)
-{
-  int temp[200]; /* Magic numbers. */
-  temp[55] = 0;
-}  /* init_strtod */
-#endif /* ifdef SUNOS_STRTOD_BUG */
-
-
 void fp_string_to_float(a_float_kind            kind,
                         char                    *str,
                         an_internal_float_value *float_value,
@@ -222,16 +263,7 @@ look like an integer).  It may have a leading "-" sign.
   /* This is a simplistic version, which should probably be replaced by
      something "real" for a given implementation. */
   /* Convert the number. */
-  errno = 0;
-#ifdef SUNOS_STRTOD_BUG
-  /* Under SunOS, 4.0 at least, strtod has a bug -- an uninitialized stack
-     variable is referenced.  Calling this routine ensures that the variable
-     is cleared. */
-  init_strtod();
-#endif /* ifdef SUNOS_STRTOD_BUG */
-  /* strtod is used instead of atof because of a report that on some SGI
-     systems errno==ERANGE is not set properly by atof. */
-  temp = strtod(str, (char **)NULL);
+  temp = strtod_interface(str);
   if (errno == ERANGE && temp != 0.0) {
     /* Do not give an error on cases that involve partial loss of significance,
        e.g., extremely small values like 4.9e-324. */
