@@ -11929,7 +11929,7 @@ tokens should be fetched from the insertion string.
   a_cached_token_ptr	ctp;
 
   alloc_cached_token(ctp);
-  ctp->extra_info_kind = teik_insert_string;
+  ctp->extra_info_kind = (a_token_extra_info_kind)teik_insert_string;
   ctp->next = cached_token_rescan_list;
   cached_token_rescan_list = ctp;
 }  /* push_string_insert_cache_entry */

@@ -75,6 +75,9 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(755,check_assertion_or_expect_error_str2)*/
 /*lint -esym(759, fetch_host_fp_value)*/
 /*lint -esym(765, fetch_host_fp_value)*/
+/*lint -esym(759,insert_string_into_token_stream)*/
+/*lint -esym(765,insert_string_into_token_stream)*/
+/*lint -esym(714,insert_string_into_token_stream)*/
 
 /* Used in the main programs for the standalone c_gen_be, cp_gen_be, and
    il_display: */
