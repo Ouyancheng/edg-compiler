@@ -8646,7 +8646,8 @@ issued.
                                 ? parent_tp->source_corresp.parent.class_type
                                 : NULL;
   }  /* while */
-  if (depth != decl_state->number_of_template_param_clauses) {
+  if (depth != decl_state->number_of_template_param_clauses &&
+      !decl_state->decl_scope_err) {
     /* The depths do not match, issue a diagnostic. */
     pos_sy_diagnostic(es_discretionary_error,
                       ec_template_depth_mismatch, pos, sym);
@@ -8985,7 +8986,7 @@ that follows.
           }  /* if */
           /* Scan the function body. */
           scan_function_body(sym->variant.routine.ptr, &func_info,
-                             SFB_NO_FLAGS);
+                             SFB_NEW_STRUCT_STMT_STACK_REQUIRED);
           /* Leave it to the caller to advance past the closing right brace. */
           *(decl_state->final_token_ptr) = tok_rbrace;
         } else {

@@ -1,5 +1,21 @@
 Version 2.36
 
+4/16/97   Internal error on specialization in invalid context
+
+An internal error could result if a specialization of a member function
+template appeared in a class definition, and that class is later instantiated
+within another function.  This has been fixed.
+
+  template <class T> struct A {
+    template <class U> void f(U);
+    template <> void f(long){}
+  };
+  int main()
+  {
+    A<int> a;
+    a.f(1);
+  }
+
 4/14/97   Internal error on end-of-source in template static data
           member perenthesized intiailizer
 
