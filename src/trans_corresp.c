@@ -1854,6 +1854,7 @@ other entities.  (Not significant in C mode: C enumerators have no linkage.)
             same_parents(sym, enum_sym)) {
           if (may_have_correspondence(sym)) {
             if (sym->kind == (a_symbol_kind)sk_constant &&
+                same_name(type, sym->variant.constant->type) &&
                 seek_type_corresp(type, sym->variant.constant->type) &&
                 same_entities(enumerator, sym->variant.constant)) {
               /* We found a corresponding enumerator in another TU. */
