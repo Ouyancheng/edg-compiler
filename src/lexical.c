@@ -2355,7 +2355,8 @@ is TRUE.
        If the previous output line did not end with a newline,
        line numbering can't be adjusted at this point. */
     if (curr_seq_number != next_seq_in_pp_output &&
-        prev_pp_output_line_was_complete) {
+        prev_pp_output_line_was_complete &&
+        line_start_source_line_modif == NULL) {
       if (curr_seq_number <= next_seq_in_pp_output+5 &&
           /* Following line is needed for some cases involving reinsertion
              of a macro id at the beginning of a line.  The reinserted id
@@ -2409,7 +2410,6 @@ is TRUE.
          gen_expanded_raw_listing_output_for_curr_line.  If you change
          this routine, change the other too. */
       set_up_for_walk_of_source_line(loc_in_line, slmp);
-      prev_pp_output_line_was_complete = FALSE;
       prev_ch = '\n';
       token_start = FALSE;
       for (;;) {
@@ -2475,6 +2475,7 @@ is TRUE.
                                           putc(' ', f_pp_output));
           /* Output the character. */
           putc(ch, f_pp_output);
+          prev_pp_output_line_was_complete = FALSE;
           loc_in_line++;
         }  /* if */
       }  /* for */
