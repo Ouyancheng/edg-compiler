@@ -5510,9 +5510,15 @@ back down to find A<T>::B).
          that sym established. */
       decl_scope = sym->variant.class_struct_union.type->
                     variant.class_struct_union.extra_info->assoc_scope->number;
-      for (sym = curr_sym->header->inactive_symbols;
-           sym != NULL;
-           sym = sym->next) {
+      if (is_incomplete_type(sym->variant.class_struct_union.type)) {
+        /* We must still be in the midst of the prototype instantiation, so
+           the symbol is still on the active list. */
+        sym = curr_sym->header->symbol;
+      } else {
+        /* Look through the symbols on the inactive list. */
+        sym = curr_sym->header->inactive_symbols;
+      }  /* if */
+      for (; sym != NULL; sym = sym->next) {
         if (sym->decl_scope == decl_scope && sym->kind == curr_sym->kind) {
           corresp_prototype_tag_sym = sym;
           break;
@@ -5599,6 +5605,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
   a_boolean               is_template_instantiation;
   a_boolean               is_nonreal_instantiation = FALSE;
 
+  db_enter(3, "scan_class_definition");
   /* Set a flag to indicate whether we scanning a class template declaration
      for the sake of producing a "prototype instantiation" of the template.
      This amounts to scanning the declarative sections (i.e., no function
@@ -5820,9 +5827,11 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                                                    source_corresp.assoc_info);
             if (sym != NULL &&
                 sym->class_of_which_a_member != class_type) {
-             internal_error("class_specifier: bad parent type on nested type");
+             internal_error(
+                      "scan_class_definition: bad parent type on nested type");
             } else if (member_type->source_corresp.access != access) {
-              internal_error("class_specifier: bad access on nested type");
+              internal_error(
+                      "scan_class_definition: bad access on nested type");
             } /* if */
           }  /* if */
 #endif /* CHECKING */
@@ -6283,7 +6292,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
             a_symbol_ptr        typedef_sym_ptr;
 #if CHECKING
             if (C_dialect != C_dialect_cplusplus) {
-              internal_error("decl_class: typedef not expected");
+              internal_error("scan_class_definition: typedef not expected");
             }  /* if */
 #endif /* CHECKING */
             if (!type_explicitly_specified) {
@@ -6609,6 +6618,8 @@ next_declaration:
        was current upon entry. */
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
+
+  db_exit();
   return !err;
 }  /* scan_class_definition */
 
