@@ -2618,7 +2618,7 @@ everything went fine.
     if (too_large) {
       /* Adjust the shift count for a too-large value. */
       int object_bit_size =
-                         (skip_typerefs(constant_1->type)->size)*targ_char_bit;
+                  (int)((skip_typerefs(constant_1->type)->size)*targ_char_bit);
       if (targ_too_large_shift_count_is_taken_modulo_size) {
         /* We're supposed to reduce the shift count modulo the bit size
            of the object. */
