@@ -3143,9 +3143,9 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
             error_in_operand(ec_enum_type_not_allowed, operand);
             err = TRUE;
           }  /* if */
-        } else if (is_bool_type(operand->type)) {
-          /* "++" on bool is allowed but deprecated.  "--" on bool is not
-             allowed. */
+        } else if (!C_mode() && is_bool_type(operand->type)) {
+          /* "++" on bool in C++ is allowed but deprecated.  "--" on bool
+             is not allowed. */
           if (is_increment) {
             pos_warning(ec_incr_of_bool_deprecated, &operand->position);
           } else {
@@ -3367,9 +3367,9 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
             error_in_operand(ec_enum_type_not_allowed, &operand);
             err = TRUE;
           }  /* if */
-        } else if (is_bool_type(operand.type)) {
-          /* "++" on bool is allowed but deprecated.  "--" on bool is not
-             allowed. */
+        } else if (!C_mode() && is_bool_type(operand.type)) {
+          /* "++" on bool in C++ is allowed but deprecated.  "--" on bool
+             is not allowed. */
           if (is_increment) {
             pos_warning(ec_incr_of_bool_deprecated, &operand.position);
           } else {
