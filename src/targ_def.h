@@ -1079,21 +1079,16 @@ no smaller than the size of a_virtual_function_number.
 /*
 This switch controls whether or not the ABI changes for runtime
 type information (RTTI) are done.  This affects element 0 of virtual
-function tables, the BCS_PUBLIC flag in base class arrays, and the
-name field in the typeinfo implementation structure.  Because the
-name field must be initialized in all cases, typeinfo variables for
-non-class types are always initialized in the new scheme (in the
-old scheme, a tentative definition with default initialization to
-zero was enough).  If the switch is off, compatibility with
-versions up to 2.28 is preserved, but the RTTI language features
-are turned off.  The typeinfo generated in that case is adequate
-for exception handling but not for RTTI.  This ABI difference is
-mostly upward-compatible: the only potential issue is the extra
-field in the typeinfo implementation structure.  If the linker
-will not complain about tentative definitions with different
-sizes, the new layout can coexist with the old layout.  Also, if
-the old code did not use exceptions, it contained no typeinfo
-entries, and therefore the changes are upward-compatible.
+function tables, the BCS_PUBLIC and BCS_AMBIGUOUS flags in base class
+arrays, and the user type_info and name fields in the typeinfo
+implementation structure.  Because the name field must be initialized
+in all cases, typeinfo variables for non-class types are always
+initialized in the new scheme (in the old scheme, a tentative
+definition with default initialization to zero was enough).
+If the switch is off, compatibility with versions up to 2.28
+is preserved, but the RTTI language features are turned off.
+The typeinfo generated in that case is adequate for exception
+handling but not for RTTI.
 */
 #ifndef ABI_CHANGES_FOR_RTTI
 #if ABI_COMPATIBILITY_VERSION <= 228
