@@ -1124,6 +1124,9 @@ error code.
     case ec_ambiguous_conversion_constructor:
       m = "more than one constructor or conversion function applies";
       break;
+    case ec_inaccessible_assignment_operator:
+      m = "assignment operator \"%s\" is inaccessible";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
