@@ -1676,10 +1676,15 @@ typedef enum /*a_symbol_reference_kind*/ {
   srk_use,		/* Use of the value of an object. */
   srk_use_and_modif,	/* Use and modification of the value of an object in
 			   a single operation (e.g., an increment) */
-  srk_reference		/* All other kinds of references (e.g., a reference to
+  srk_reference,	/* All other kinds of references (e.g., a reference to
 			   a class or typedef name in a declaration, to a
 			   label in a goto statement, to a routine name in a
 			   call, to a variable in a sizeof operation, etc.). */
+  srk_error		/* A reference so some sort, but because of an error
+			   in the source the kind of reference is uncertain;
+			   such a reference is treated both as a use and as a
+			   modification, in order to suppress use/def
+			   diagnostics. */
 } a_symbol_reference_kind;
 
 extern a_symbol_ptr find_symbol(char             *identifier,
