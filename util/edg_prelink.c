@@ -240,6 +240,9 @@ typedef struct a_pl_input_file {
   char		*compilation_file_name;
 			/* The file name to be recompiled, relative to the
 			   directory in which the compilation is done. */
+  char		*secondary_files;
+			/* An optional list of secondary files to be used when
+			   the compilation is done. */
   char		*instantiation_directory;
 			/* The directory containing instantiations associated
 			   with this file when one instantiation per object
@@ -2246,6 +2249,10 @@ that line type.
       } else if (strncmp(line_type, "fnm:", 4) == 0) {
         /* The file name of the file to be used to recompile the file. */
         pifp->compilation_file_name = pl_copy_string(info);
+      } else if (strncmp(line_type, "stu:", 4) == 0) {
+        /* A list of secondary translation units to be used when
+           recompiling. */
+        pifp->secondary_files = pl_copy_string(info);
       } else if (strncmp(line_type, "idn:", 4) == 0) {
         /* The instantiation directory containing the instantiation object
            files. */
@@ -2615,14 +2622,35 @@ static void pl_change_directory(char *new_dir)
 }  /* pl_change_directory */
 
 
+static void add_to_command_line(char	**dest,
+				char	*source)
+/*
+Copy characters from source to dest.  If we find any quotes, add an escape
+character before each one.
+*/
+{
+  char	*from = source;
+  char	*to = *dest;
+
+  while (*from != '\0') {
+    if (*from == '\'' || *from == '"') *to++ = '\\';
+    *to++ = *from++;
+  }  /* while */
+  /* Append a blank, if the command does not already end with a blank. */
+  if (*(to-1) != ' ') *to++ = ' ';
+  *dest = to;
+}  /* add_to_command_line */
+
+
 static char *build_command_line(char *part1,
                                 char *part2,
-                                char *part3)
+                                char *part3,
+				char *part4)
 /*
 Construct the command line by concatenating the strings in part1, part2,
-and part3.  If any string contains any quotes, insert an escape (\) before the
-quote.  Return a pointer to the dynamically allocated string created to
-hold the command.
+part3, and part4.  If any string contains any quotes, insert an escape (\)
+before the quote.  Return a pointer to the dynamically allocated string
+created to hold the command.
 */
 {
   int		pass;
@@ -2634,29 +2662,16 @@ hold the command.
      for added escape characters. */
   if (part2 == NULL) part2 = "";
   if (part3 == NULL) part3 = "";
+  if (part4 == NULL) part4 = "";
   check_assertion(part1 != NULL);
-  length = (strlen(part1) + strlen(part2) + strlen(part3)) * 2;
+  length = (strlen(part1) + strlen(part2) + strlen(part3) + strlen(part4)) * 2;
   check_assertion(length > 3);
   command = (char *)pl_malloc_with_check(length);
   to = command;
-  for (pass = 1; pass <= 3; pass++) {
-    /* The first time through the loop copy from part1, the second time,
-       from part2. */
-    char	*from;
-    switch (pass) {
-      case 1: from = part1; break;
-      case 2: from = part2; break;
-      case 3: from = part3; break;
-    }  /* switch */
-    /* Copy each string putting an escape character (\) before each
-       quote. */
-    while (*from != '\0') {
-      if (*from == '\'' || *from == '"') *to++ = '\\';
-      *to++ = *from++;
-    }  /* while */
-    /* Append a blank, if the command does not already end with a blank. */
-    if (*(to-1) != ' ') *to++ = ' ';
-  }  /* for */
+  add_to_command_line(&to, part1);
+  add_to_command_line(&to, part2);
+  add_to_command_line(&to, part3);
+  add_to_command_line(&to, part4);
   /* Replace the last blank with a null. */
   *(to-1) = '\0';
   return command;
@@ -2688,14 +2703,16 @@ to be used when displaying the command line.
     pl_change_directory(pifp->compilation_directory);
   }  /* if */
   command = build_command_line(pifp->command_line, extra_command_args,
-                               pifp->compilation_file_name);
+                               pifp->compilation_file_name,
+                               pifp->secondary_files);
   if (extra_args_for_display != NULL) {
     /* If an alternate version of the extra arguments was supplied for
        display purposes, create an alternate version of the command
        line. */
     display_command = build_command_line(pifp->command_line,
                                          extra_args_for_display,
-                                         pifp->compilation_file_name);
+                                         pifp->compilation_file_name,
+                                         pifp->secondary_files);
   } else {
     display_command = command;
   }  /* if */
@@ -2767,6 +2784,12 @@ information.
     fprintf(stderr, "Expected %s to include a directory name\n",
             pifp->file_name);
     pl_internal_error("Directory name missing");
+  }  /* if */
+  if (pifp->secondary_files != NULL) {
+    /* "copy if nonlocal" mode cannot be used when secondary translation units
+       have been specified (because their file names do not get updated). */
+    pl_internal_error(
+                 "copy if nonlocal cannot be used with secondary trans units");
   }  /* if */
   pifp->file_name = pl_copy_string(ptr+1);
   orig_request_file_name = pifp->request_file_name;

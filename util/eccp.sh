@@ -268,6 +268,11 @@ any_l_or_o_files=0
 #
 any_c_files=0
 #
+# If --multi_trans_unit mode is used, the secondary files specified on
+# the command line.
+#
+secondary_files=
+#
 # A list of options to pass to front end.
 #
 feoptions=$defines
@@ -926,12 +931,19 @@ process_option()
     *\.c | *\.C | *\.cc | *\.cpp | *\.CPP | *\.cxx | *\.CXX)
 #     Collect a list of .c files.
       if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
-      cfiles=$cfiles" "$arg;
       if [ $multi_trans_unit -eq 0 -o $any_c_files -eq 0 ] ; then
         # In --multi_trans_unit mode only include the first object file
         # name in the list of object_files.
         obj_file_name=`expr //$arg : '.*/\(.*\)\.'`.o  # Get basename.o
         object_files=$object_files" "$obj_file_name
+      fi
+      if [ $multi_trans_unit -ne 0 -a $any_c_files -ne 0 ] ; then
+        # In --multi_trans_unit mode, this is a secondary file.  Add it to
+        #  the list of secondary files.
+        secondary_files=$secondary_files" "$arg;
+      else
+        # A primary source file, or not in --multi_trans_unit mode.
+        cfiles=$cfiles" "$arg;
       fi
       any_c_files=1
       add_to_instantiation_command=0
@@ -1619,13 +1631,11 @@ do
       fi
     fi
   fi
-  command=${CPFE}" "$feoptions" "$gen_c_option" "$ii_file_option" "$ti_file_option" "$instantiation_dir_option" "$EDG_CPFE_DEFAULT_OPTIONS
+  command=${CPFE}" "$feoptions" "$gen_c_option" "$ii_file_option" "$ti_file_option" "$instantiation_dir_option" "$EDG_CPFE_DEFAULT_OPTIONS" "$cfile
   # Normally we just append the file to be compiled, but in multi_trans_unit
   # mode we append the list of files.
-  if [ $multi_trans_unit -eq 0 ] ; then
-    command=$command" "$cfile
-  else
-    command=$command" "$allfiles
+  if [ $multi_trans_unit -ne 0 ] ; then
+    command=$command" "$secondary_files
   fi
   if [ $trans_unit_test_mode -eq 1 ] ; then
     # In translation unit test mode, specify the source file to be compiled
@@ -1684,6 +1694,9 @@ do
         echo "fnm:$cfile" >>$ti_tmp
         if [ $one_instantiation_per_object -ne 0 ] ; then
           echo "idn:$instantiation_dir" >>$ti_tmp
+        fi
+        if [ $multi_trans_unit -ne 0 ] ; then
+          echo "stu:$secondary_files" >>$ti_tmp
         fi
         cat $ti_file_name >>$ti_tmp
         rm -f $ti_file_name
