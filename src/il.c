@@ -2186,11 +2186,15 @@ the file scope if at_file_scope == TRUE.
 
   db_enter(5, "alloc_param_type");
 
+#if 0
   if (at_file_scope) {
     ptp = (a_param_type_ptr)alloc_il(sizeof(a_param_type));
   } else {
     ptp = (a_param_type_ptr)alloc_cil(sizeof(a_param_type));
   }  /* if */
+#else
+  ptp = (a_param_type_ptr)alloc_il(sizeof(a_param_type));
+#endif /* if !0 */
 #if DEBUG
   num_param_types_allocated++;
 #endif /* DEBUG */
@@ -2460,26 +2464,6 @@ variant fields to default values.
 }  /* clear_type */
 
 
-a_type_ptr alloc_type(a_type_kind kind)
-/*
-Allocate a new type entry and return a pointer to it.  Set general fields,
-set kind to the indicated value, and set the associated variant fields
-to default values.
-*/
-{
-  a_type_ptr pte;
-
-  db_enter(5, "alloc_type");
-  pte = (a_type_ptr)alloc_cil(sizeof(a_type));
-#if DEBUG
-  num_types_allocated++;
-#endif /* DEBUG */
-  clear_type(pte, kind);
-  db_exit();
-  return (pte);
-}  /* alloc_type */
-
-
 static a_scope_ptr ensure_il_scope_exists(a_scope_stack_entry_ptr ssep)
 /*
 Make sure that the scope stack entry pointed to by ssep points to an IL
@@ -2615,23 +2599,81 @@ in_old_style_param_decl_list is TRUE.
 }  /* add_to_types_list */
 
 
-a_type_ptr fs_type(a_type_kind kind)
+a_type_ptr alloc_type(a_type_kind kind)
 /*
-Same as alloc_type, but allocates a type in the file scope memory region.
-This is useful for types that are going to be reused, and therefore must
-be in that memory region so they will always be accessible.  The type is
-put onto the file-scope types list.
+Allocate a new type entry in the file scope memory region and return a pointer
+to it.  Set general fields, set kind to the indicated value, and set the
+associated variant fields to default values.  Add the type entry to the
+types list for the file scope.
 */
 {
-  a_type_ptr             pte;
+  a_type_ptr tp;
   a_memory_region_number region_to_switch_back_to;
 
+  db_enter(5, "alloc_type");
   switch_to_file_scope_region(&region_to_switch_back_to);
-  pte = alloc_type(kind);
-  add_to_types_list(pte, DEPTH_OF_FILE_SCOPE,
-                    /*in_old_style_param_decl_list=*/FALSE);
+  tp = (a_type_ptr)alloc_il(sizeof(a_type));
+#if DEBUG
+  num_types_allocated++;
+#endif /* DEBUG */
+  clear_type(tp, kind);
+  if (kind != (a_type_kind)tk_error) {
+    add_to_types_list(tp, DEPTH_OF_FILE_SCOPE,
+                      /*in_old_style_param_decl_list=*/FALSE);
+  }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
-  return pte;
+  db_exit();
+  return (tp);
+}  /* alloc_type */
+
+
+a_type_ptr alloc_named_type(a_type_kind kind)
+{
+  a_type_ptr tp;
+  a_memory_region_number region_to_switch_back_to;
+
+  db_enter(5, "alloc_unnamed_type");
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  tp = (a_type_ptr)alloc_il(sizeof(a_type));
+#if DEBUG
+  num_types_allocated++;
+#endif /* DEBUG */
+  clear_type(tp, kind);
+  if (kind != (a_type_kind)tk_error) {
+    add_to_types_list(tp, DEPTH_OF_FILE_SCOPE,
+                      /*in_old_style_param_decl_list=*/FALSE);
+  }  /* if */
+  switch_back_to_original_region(region_to_switch_back_to);
+  db_exit();
+  return (tp);
+}  /* alloc_named_type */
+
+
+a_type_ptr alloc_local_scope_type(a_type_kind    kind,
+                                  a_scope_depth  scope_level,
+                                  a_boolean      in_old_style_param_decl_list)
+{
+  a_type_ptr tp;
+
+  db_enter(5, "alloc_local_scope_type");
+  tp = (a_type_ptr)alloc_cil(sizeof(a_type));
+#if DEBUG
+  num_types_allocated++;
+#endif /* DEBUG */
+  clear_type(tp, kind);
+  if (kind != (a_type_kind)tk_error) {
+    add_to_types_list(tp, scope_level, in_old_style_param_decl_list);
+  }  /* if */
+  db_exit();
+  return (tp);
+}  /* alloc_local_scope_type */
+
+#if 0
+/* Remove this once all calls to it have been removed. */
+#endif /* if 0 */
+a_type_ptr fs_type(a_type_kind kind)
+{
+  return alloc_type(kind);
 }  /* fs_type */
 
 
@@ -2648,7 +2690,7 @@ return a pointer to it.
     pit = int_types[kind];
   } else {
     /* The type must be created. */
-    int_types[kind] = pit = fs_type((a_type_kind)tk_integer);
+    int_types[kind] = pit = alloc_type((a_type_kind)tk_integer);
     pit->variant.integer.int_kind = kind;
     set_type_size(pit);
   }  /* if */
@@ -2666,7 +2708,7 @@ pointer to the type entry.
 {
   if (il_signed_int_type == NULL) {
     /* The type must be created. */
-    il_signed_int_type = fs_type((a_type_kind)tk_integer);
+    il_signed_int_type = alloc_type((a_type_kind)tk_integer);
     il_signed_int_type->variant.integer.int_kind = (an_integer_kind)ik_int;
     il_signed_int_type->variant.integer.explicitly_signed = TRUE;
     set_type_size(il_signed_int_type);
@@ -2688,7 +2730,7 @@ return a pointer to it.
     pft = float_types[kind];
   } else {
     /* The type must be created. */
-    float_types[kind] = pft = fs_type((a_type_kind)tk_float);
+    float_types[kind] = pft = alloc_type((a_type_kind)tk_float);
     pft->variant.float_kind = kind;
     set_type_size(pft);
   }  /* if */
@@ -2710,7 +2752,7 @@ and return a pointer to it.
     pst = string_types[num_chars];
   } else {
     /* The type must be created. */
-    pst = fs_type((a_type_kind)tk_array);
+    pst = alloc_type((a_type_kind)tk_array);
     pst->variant.array.element_type = integer_type(plain_char_int_kind);
     pst->variant.array.number_of_elements = num_chars;
     set_type_size(pst);
@@ -2736,7 +2778,7 @@ and return a pointer to it.
     pst = wide_string_types[num_chars];
   } else {
     /* The type must be created. */
-    pst = fs_type((a_type_kind)tk_array);
+    pst = alloc_type((a_type_kind)tk_array);
     pst->variant.array.element_type =
                           integer_type((an_integer_kind)TARG_WCHAR_T_INT_KIND);
     pst->variant.array.number_of_elements = num_chars;
@@ -2781,7 +2823,7 @@ Make or find a type entry for an error type, and return a pointer to it.
 */
 {
   if (il_error_type == NULL) {
-    il_error_type = fs_type((a_type_kind)tk_error);
+    il_error_type = alloc_type((a_type_kind)tk_error);
     set_type_size(il_error_type);
   }  /* if */
   return il_error_type;
@@ -2810,7 +2852,7 @@ Make or find a type entry for an void type, and return a pointer to it.
 */
 {
   if (il_void_type == NULL) {
-    il_void_type = fs_type((a_type_kind)tk_void);
+    il_void_type = alloc_type((a_type_kind)tk_void);
   }  /* if */
   return (il_void_type);
 }  /* void_type */
@@ -2825,7 +2867,7 @@ on the specified member and class types.
 {
   a_type_ptr  tp;
 
-  tp = fs_type((a_type_kind)tk_ptr_to_member);
+  tp = alloc_type((a_type_kind)tk_ptr_to_member);
 #if CHECKING
   if (member_type != NULL && !in_file_scope((char *)member_type)) {
     internal_error("ptr_to_member_type: member type not in file scope");
@@ -2908,14 +2950,13 @@ an existing entry if possible.
      for the base type, and the pointer type can be reused. */
   ptr = get_based_type(type_pointed_to, (a_based_type_kind)btk_pointer);
   if (ptr == NULL) {
-    /* No allocated entry, need to allocate one.  If the entry is a pointer
-       to a file-scope type, make sure it gets allocated in the file-scope
-       memory region. */
-    if (in_file_scope((char *)type_pointed_to)) {
-      ptr = fs_type((a_type_kind)tk_pointer);
-    } else {
-      ptr = alloc_type((a_type_kind)tk_pointer);
+    /* No allocated entry, need to allocate one. */
+#if CHECKING
+    if (!in_file_scope((char *)type_pointed_to)) {
+      internal_error("make_pointer_type: type pointed to not in file scope");
     }  /* if */
+#endif /* CHECKING */
+    ptr = alloc_type((a_type_kind)tk_pointer);
     ptr->variant.pointer.type = type_pointed_to;
     set_type_size(ptr);
     /* Remember the existence of this pointer type by putting a pointer
@@ -2942,14 +2983,13 @@ an existing entry if possible.
      reused. */
   ptr = get_based_type(type_pointed_to, (a_based_type_kind)btk_reference);
   if (ptr == NULL) {
-    /* No allocated entry, need to allocate one.  If the entry is a reference
-       to a file-scope type, make sure it gets allocated in the file-scope
-       memory region. */
-    if (in_file_scope((char *)type_pointed_to)) {
-      ptr = fs_type((a_type_kind)tk_pointer);
-    } else {
-      ptr = alloc_type((a_type_kind)tk_pointer);
+    /* No allocated entry, need to allocate one. */
+#if CHECKING
+    if (!in_file_scope((char *)type_pointed_to)) {
+      internal_error("make_reference_type: type pointed to not in file scope");
     }  /* if */
+#endif /* CHECKING */
+    ptr = alloc_type((a_type_kind)tk_pointer);
     ptr->variant.pointer.type = type_pointed_to;
     ptr->variant.pointer.is_reference = TRUE;
     set_type_size(ptr);
@@ -3016,11 +3056,12 @@ they are not already present.
       /* No allocated entry, need to allocate one.  If the entry is a typeref
          to a file-scope type, make sure it gets allocated in the file-scope
          memory region. */
-      if (in_file_scope((char *)base_type)) {
-        ptr = fs_type((a_type_kind)tk_typeref);
-      } else {
-        ptr = alloc_type((a_type_kind)tk_typeref);
+#if CHECKING
+      if (!in_file_scope((char *)base_type)) {
+        internal_error("make_qualified_type: base type not in file scope");
       }  /* if */
+#endif /* CHECKING */
+      ptr = alloc_type((a_type_kind)tk_typeref);
       ptr->variant.typeref.type        = base_type;
       ptr->variant.typeref.is_const    = (is_const != 0);
       ptr->variant.typeref.is_volatile = (is_volatile != 0);
