@@ -3194,7 +3194,10 @@ but the instance needs to be called "operator int".
   } else {
     sym_hdr = templ_sym->header;
   }  /* if */
-  sym = alloc_symbol((a_symbol_kind)sk_routine, sym_hdr, pos);
+  sym = alloc_symbol(templ_sym->is_class_member
+                                   ? (a_symbol_kind)sk_member_function
+                                   : (a_symbol_kind)sk_routine,
+                     sym_hdr, pos);
   /* Template functions will be in the same scope as the template (which
      should always be the file scope. */
   sym->decl_scope = templ_sym->decl_scope;;
