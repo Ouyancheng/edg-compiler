@@ -1643,9 +1643,6 @@ associated with the function is returned.
   }  /* if */
   extra_info = unqualified_rout_type->variant.routine.extra_info;
   prototyped = extra_info->prototyped;
-  /* Force the storage class of a function with a body to unspecified
-     (meaning external) or either static or inline (meaning internal);
-     i.e., change extern to unspecified. */
   /* Create the symbol entry and routine entry for the routine. */
   if (locator->specific_symbol != NULL &&
       locator->specific_symbol->is_class_member) {
