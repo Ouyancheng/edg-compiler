@@ -1153,8 +1153,9 @@ be NULL if the caller does not need to know whether a conversion was performed.
           tap->variant.type = type;
           match = TRUE;
         } else {
-          /* A type was already bound to this template argument.  We have a match
-             if and only if the new type is the same as the one already there. */
+          /* A type was already bound to this template argument.  We have a
+             match if and only if the new type is the same as the one
+             already there. */
           if (identical_types(type, tap->variant.type)) {
             /* Okay. */
             match = TRUE;
