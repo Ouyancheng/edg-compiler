@@ -1,5 +1,17 @@
 Version 3.6
 
+1/11/05  GNU C++ compatibility: for-init scope
+
+In GNU C++ mode, the front end now allows the name of a variable defined in
+a for-init construct to be reused for another variable in the loop's body.
+For example:
+
+  void f() {
+    for (int i = 0;;) {
+      int i = 3;  // Now okay in GNU C++ mode. (Hides the for-init variable.)
+    }
+  }
+
 1/11/05  C++-generating back end: ambiguous references caused by
          using-directives
 
