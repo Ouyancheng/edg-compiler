@@ -7083,15 +7083,27 @@ to indicate whether the class/struct/union is actually defined.
       /* Check for tag mismatch.  This can only happen when an instance of a
          class template is being referenced in an elaborated type specifier. */
       if (tag_sym->kind == (a_symbol_kind)sk_type) {
-        check_assertion(tag_sym->variant.type->kind ==
-                                             (a_type_kind)tk_template_param);
-        /* Template param used in with a class-key -- for instance:
-             template <class T> class A {
-               class T x;
-             };
-           During prototype instantiation we have to assume that T can be a
-           valid class name.  Therefore "class T x" is treated as synonymous
-           with "T x".  In addition, "friend class T" is also supported. */
+        if (tag_sym->variant.type->kind == (a_type_kind)tk_template_param) {
+          /* Template param used in with a class-key -- for instance:
+               template <class T> class A {
+                 class T x;
+               };
+             During prototype instantiation we have to assume that T can be a
+             valid class name.  Therefore "class T x" is treated as synonymous
+             with "T x".  In addition, "friend class T" is also supported. */
+        } else if (cfront_compatibility_mode && curr_token == tok_semicolon) {
+          /* Cfront 2.1 bug that allows this:
+               typedef class A B;
+               class B;
+             The current declaration must be a vacuous declaration and the
+             typedef name must refer to a class type. */
+          check_assertion(is_class_struct_union_type(tag_sym->variant.type));
+          mark_declared(tag_sym, &locator.source_position);
+#if CHECKING
+        } else {
+          internal_error("class_specifier: invalid sk_type tag_sym");
+#endif /* CHECKING */
+        }  /* if */
       } else if (tag_sym->kind != tag_kind) {
         check_assertion(is_template_class_symbol(tag_sym));
         /* Error -- tag-kind mismatch in a specialization. */
@@ -7102,7 +7114,7 @@ to indicate whether the class/struct/union is actually defined.
         error_tag_sym = tag_sym;
         tag_sym = NULL;
       }  /* if */
-    }  /* if */    
+    }  /* if */
     if (is_error_locator(locator)) err = TRUE;
   } else {
     /* No tag identifier present. */

@@ -6515,6 +6515,23 @@ caution when modifying this routine.
           C_dialect != C_dialect_pcc) {
         /* This is indeed a vacuous declaration.  Leave tag_sym set to NULL
            to force the creation of a new symbol in the current scope. */
+        if (cfront_compatibility_mode &&
+            tag_kind != (a_symbol_kind)sk_enum_tag) {
+          /* ... except in cfront compatibility mode, where a vacuous class
+             declaration may specify a typedef name that refers to a class. */
+          a_symbol_ptr  sym = curr_scope_id_lookup(locator, IDL_NO_OPTIONS);
+          if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
+            /* Name is already declared in the current scope as a typedef. */
+            a_type_ptr  tp = skip_typerefs(sym->variant.type);
+            if (is_immediate_class_type(tp) &&
+                ((tag_kind == (a_symbol_kind)sk_union_tag) ==
+                 (tp->kind == (a_type_kind)tk_union))) {
+              /* This is the special case.  Return an sk_type symbol instead
+                 of the normally expected sk_class_or_struct_tag. */
+              tag_sym = sym;
+            }  /* if */
+          }  /* if */
+        }  /* if */
       } else {
         /* This may be a reference to an existing tag from a containing
            scope or a base class.  This can be ascertained by doing a full
@@ -9814,14 +9831,13 @@ of local variables (and types, etc.) of functions and in blocks.
     dsi_flags |= DSI_IS_PARAMETER;
     dsi_flags |= DSI_IS_OLD_STYLE_PARAM_DECL;
   } else {
+    /* A "vacuous declaration" of a class, struct, or union is allowed, but
+       only has an effect when not at file scope. */
+    dsi_flags |= DSI_VACUOUS_TAG_DECL_ALLOWED;
     if (function_definition_allowed) {
       dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
       /* "inline" is allowed only on function declarations at file scope. */
       if (!extern_implied) dsi_flags |= DSI_INLINE_ALLOWED;
-    } else {
-      /* A "vacuous declaration" of a class, struct, or union only makes sense
-         when we are not at file scope. */
-      dsi_flags |= DSI_VACUOUS_TAG_DECL_ALLOWED;
     }  /* if */
   }  /* if */
   /* Scan the initial declaration specifiers (including storage class,
