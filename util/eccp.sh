@@ -370,6 +370,11 @@ do
 #     Supress automatic template instantiation processing
       feoptions=$feoptions" "$1;
       ;;
+    -B)
+#     Enable or disable implicit inclusion of template instantiation
+#     source files (depending on how the front end is configured)
+      feoptions=$feoptions" "$1;
+      ;;
     -sun*)
 #     SunOS 4.n option, as in "-sun4" -- ignored.
       ;;
