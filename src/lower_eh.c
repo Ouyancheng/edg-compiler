@@ -1560,6 +1560,70 @@ static a_variable_ptr
 		region_table_var;
 
 
+static void add_region_table_entry(a_routine_ptr           dtor_routine,
+                                   a_targ_size_t           handle_number,
+                                   a_cleanup_region_number prev_region_number,
+                                   unsigned long           flags_value,
+                                   a_constant_ptr          *prev_region_con)
+/*
+Create an entry in the exception cleanup region table.  dtor_routine,
+handle_number, prev_region_number, and flags_value give the values for the
+various fields.  Create an aggregate constant for the entry and add it
+to the initial value of region_table_var.  Return the address of the
+previous region constant in *prev_region_con if prev_region_con is non-NULL.
+*/
+{
+  a_constant_ptr dtor_con, handle_con, prev_con, flags_con, aggr_con;
+  a_type_ptr     ptr_func_type;
+
+  /* The current memory region should be the file scope memory region. */
+  /* Make the aggregate constant for the entry in the region description
+     table.  It has a structure as follows:
+       struct region_descr {
+         __vptp         dtor;    // Destructor or delete routine pointer
+         unsigned short handle;  // Index of object in object address table
+         unsigned short prev;    // Previous cleanup region
+         unsigned char  flags;   // Bit flags
+       };
+  */
+  /* Make the destructor pointer. */
+  dtor_con = alloc_constant((a_constant_repr_kind)ck_address);
+  /* Create the generic function pointer type if it does not exist already. */
+  ptr_func_type = make_vptp_type();
+  if (dtor_routine == NULL) {
+    /* The object has no destructor; use a NULL pointer. */
+    make_zero_of_proper_type(ptr_func_type, dtor_con);
+  } else {
+    /* The class has a destructor.  Make a pointer to the routine. */
+    set_routine_address_constant(dtor_routine, dtor_con);
+    implicit_cast(dtor_con, ptr_func_type);
+  }  /* if */
+  /* Make the handle. */
+  handle_con = alloc_constant((a_constant_repr_kind)ck_integer);
+  set_unsigned_integer_constant_with_overflow_check(handle_con,
+                                                    handle_number,
+                                                    TARG_VAR_HANDLE_INT_KIND);
+  /* Make the previous region index number. */
+  prev_con = alloc_constant((a_constant_repr_kind)ck_integer);
+  if (prev_region_con != NULL) *prev_region_con = prev_con;
+  set_unsigned_integer_constant(prev_con, prev_region_number,
+                                TARG_REGION_NUMBER_INT_KIND);
+  /* Make the flags constant. */
+  flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
+  set_unsigned_integer_constant(flags_con, flags_value,
+                                (an_integer_kind)ik_unsigned_char);
+  /* Link the constants together to make an aggregate constant. */
+  dtor_con->next = handle_con;
+  handle_con->next = prev_con;
+  prev_con->next = flags_con;
+  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  aggr_con->variant.aggregate.first_constant = dtor_con;
+  aggr_con->variant.aggregate.last_constant = flags_con;
+  /* Add the aggregate as an element of the region table array. */
+  (void)add_elem_to_array_var(region_table_var, aggr_con);
+}  /* add_region_table_entry */
+
+
 void make_region_table_entry(a_cleanup_action_ptr cap,
                              an_insert_location   *insert_location)
 /*
@@ -1572,11 +1636,9 @@ already be linked on the list of cleanup actions so its "next"
 pointer can be examined.
 */
 {
-  a_targ_size_t    handle_number;
+  a_targ_size_t    handle_number, conditional_handle_number;
   a_memory_region_number
                    region_to_switch_back_to;
-  a_constant_ptr   dtor_con, handle_con, prev_con, flags_con, aggr_con;
-  a_type_ptr       ptr_func_type;
   unsigned long    flags_value = 0;
   a_cleanup_region_number
                    prev_region_number;
@@ -1597,12 +1659,20 @@ pointer can be examined.
                    object_addr_table_entry(&cap->variant.object.init_pos_descr,
                                            insert_location);
   }  /* if */
+  if (cap->variant.object.first_time_test_var != NULL) {
+    /* This entry needs a conditional flag.  More on this below. */
+    an_init_pos_descr ipd;
+    set_var_init_pos_descr(cap->variant.object.first_time_test_var, &ipd);
+    conditional_handle_number = object_addr_table_entry(&ipd, insert_location);
+    flags_value |= RDF_CONDITIONAL_FLAG;
+  }  /* if */
   /* Assign a region number to this entry. */
   cap->region_number = next_region_number++;
   /* Insert an assignment statement that sets the global variable
      __eh_curr_region to the region number for this entry.  Don't do
      this in destructor wrappers (the assignment gets done explicitly
-     at the right time). */
+     at the right time).  Note that this is done after the object address
+     table is set. */
   if (!cap->destructor_wrapper_cleanup) {
     assign_region_number_to_eh_curr_region(cap->region_number,
                                            insert_location);
@@ -1617,17 +1687,7 @@ pointer can be examined.
           make_init_unnamed_local_static_array_var(make_region_descr_type(),
                                                    /*in_function_scope=*/TRUE);
   }  /* if */
-  /* Make the aggregate constant for the entry in the region description
-     table.  It has a structure as follows:
-       struct region_descr {
-         __vptp         dtor;    // Destructor or delete routine pointer
-         unsigned short handle;  // Index of object in object address table
-         unsigned short prev;    // Previous cleanup region
-         unsigned char  flags;   // Bit flags
-       };
-  */
   /* Make the destructor pointer. */
-  dtor_con = alloc_constant((a_constant_repr_kind)ck_address);
   if (cap->kind == (a_cleanup_action_kind)cak_new_allocation) {
     /* For the new-allocation case, put the delete routine in the entry. */
     dtor_routine = cap->variant.object.delete_routine;
@@ -1636,26 +1696,9 @@ pointer can be examined.
     /* Normal case; put the destructor routine in the entry. */
     dtor_routine = cap->variant.object.dynamic_init.destructor;
   }  /* if */
-  /* Create the generic function pointer type if it does not exist already. */
-  ptr_func_type = make_vptp_type();
-  if (dtor_routine == NULL) {
-    /* The object has no destructor; use a NULL pointer. */
-    make_zero_of_proper_type(ptr_func_type, dtor_con);
-  } else {
-    /* The class has a destructor.  Make a pointer to the routine. */
-    set_routine_address_constant(dtor_routine, dtor_con);
-    implicit_cast(dtor_con, ptr_func_type);
-  }  /* if */
-  /* Make the handle. */
-  handle_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_unsigned_integer_constant_with_overflow_check(handle_con,
-                                                    handle_number,
-                                                    TARG_VAR_HANDLE_INT_KIND);
   /* Make the previous region index number.  In the destructor wrapper
      case the list runs backwards, so link the previous last entry to
      this one and link this one to null for now. */
-  prev_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  cap->prev_cleanup_region_constant = prev_con;
   if (cap->destructor_wrapper_cleanup) {
     if (cap->next != NULL) {
       /* Fix the "previous region" value in the last entry of the table so
@@ -1673,21 +1716,15 @@ pointer can be examined.
     prev_region_number = context_cleanup_region_number(curr_context,
                                                        cap->next);
   }  /* if */
-  set_unsigned_integer_constant(prev_con, prev_region_number,
-                                TARG_REGION_NUMBER_INT_KIND);
-  /* Make the flags constant. */
-  flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_unsigned_integer_constant(flags_con, flags_value,
-                                (an_integer_kind)ik_unsigned_char);
-  /* Link the constants together and make an aggregate constant. */
-  dtor_con->next = handle_con;
-  handle_con->next = prev_con;
-  prev_con->next = flags_con;
-  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-  aggr_con->variant.aggregate.first_constant = dtor_con;
-  aggr_con->variant.aggregate.last_constant = flags_con;
-  /* Add the aggregate as an element of the region table array. */
-  (void)add_elem_to_array_var(region_table_var, aggr_con);
+  /* Make the region table entry. */
+  add_region_table_entry(dtor_routine, handle_number, prev_region_number,
+                         flags_value, &cap->prev_cleanup_region_constant);
+  if (cap->variant.object.first_time_test_var != NULL) {
+    /* Make the second region table entry. */
+    add_region_table_entry((a_routine_ptr)NULL, conditional_handle_number,
+                           max_region_number, (unsigned long)0,
+                           (a_constant_ptr *)NULL);
+  }  /* if */
   /* Return to the memory region that was current when this routine was
      entered. */
   switch_back_to_original_region(region_to_switch_back_to);
