@@ -765,6 +765,7 @@ position following what was demangled.
       /* Skip the rest of the index. */
       while (isdigit((unsigned char)get_char(p, dctl)) ||
              (get_char(p, dctl) == 'n')) p++;
+      dctl->end_of_name = prev_end;
       p = advance_past_underscore(p, dctl);
       /* If the index number starts with 'n', this is a non-virtual
          function. */
@@ -811,7 +812,6 @@ position following what was demangled.
           for (; nchars > 0; nchars--, index++) write_id_ch(*index, dctl);
         }  /* if */
       }  /* if */
-      dctl->end_of_name = prev_end;
     }  /* if */
   } else if (ch == 'Z') {
     /* A template parameter. */
