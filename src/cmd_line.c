@@ -1307,7 +1307,110 @@ by a command line option.
     allow_nonconst_call_anachronism = (microsoft_version < 1000);
   }  /* if */
 }  /* set_microsoft_mode_flags */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+static void set_cfront_mode_flags(an_option_kind	kind)
+/*
+Set other options whose values should be changed when cfront mode
+is enabled.  Only set the option values if they were not already set
+by a command line option.  "kind" is either optk_cfront_2_1_mode or
+optk_cfront_3_0_mode.
+*/
+{
+  if (kind == optk_cfront_2_1_mode) {  
+    /* cfront 2.1 compatibility mode.  If both 2.1 and 3.0 modes are
+       selected, only the most recent applies. */
+    cfront_2_1_mode = TRUE;
+    cfront_3_0_mode = FALSE;
+    if (!(option_kind_used[(int)optk_special_subscript_cost])) {
+      special_subscript_cost = FALSE;
+    }  /* if */
+    allow_nonconst_call_anachronism = TRUE;
+  } else {
+    /* cfront 3.0 compatibility mode.  If both 2.1 and 3.0 modes are
+       selected, only the most recent applies. */
+    cfront_3_0_mode = TRUE;
+    cfront_2_1_mode = FALSE;
+    if (!(option_kind_used[(int)optk_special_subscript_cost])) {
+      special_subscript_cost = TRUE;
+    }  /* if */
+    allow_nonconst_call_anachronism = FALSE;
+  }  /* if */
+  /* Processing common to both cfront modes. */
+  /* This option implies C++ dialect. */
+  C_dialect = C_dialect_cplusplus;
+  /* Set flags to the appropriate mode unless they have been explicitly
+     set by other command line options. */
+  if (!(option_kind_used[(int)optk_cplusplus_anachronisms])) {
+    allow_anachronisms = TRUE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_nonconst_ref_anachronism])) {
+    allow_nonconst_ref_anachronism = TRUE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_long_lifetime_temps])) {
+    long_lifetime_temps = TRUE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_bool_is_keyword])) {
+    bool_is_keyword = FALSE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_explicit])) {
+    explicit_keyword_enabled = FALSE;
+  }  /* if */
+#if !RUNTIME_USES_NAMESPACES
+  if (!(option_kind_used[(int)optk_arg_dependent_lookup])) {
+    arg_dependent_lookup_enabled = FALSE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_namespaces])) {
+    namespaces_enabled = FALSE;
+  }  /* if */
+#endif /* !RUNTIME_USES_NAMESPACES */
+#if !RUNTIME_USES_TYPENAME
+  if (!(option_kind_used[(int)optk_typename])) {
+    typename_enabled = FALSE;
+  }  /* if */
+#endif /* !RUNTIME_USES_TYPENAME */
+  if (!(option_kind_used[(int)optk_implicit_typename])) {
+    implicit_typename_enabled = TRUE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_old_for_init])) {
+    use_nonstandard_for_init_scope = TRUE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_base_assign_op_is_default])) {
+    allow_copy_assignment_op_with_base_class_param = TRUE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_guiding_decls])) {
+    guiding_decls_allowed = FALSE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_old_specializations])) {
+    old_specializations_allowed = TRUE;
+  }  /* if */
+#if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
+  if (!(option_kind_used[(int)optk_implicit_extern_c_type_conversion])) {
+    impl_conv_between_c_and_cpp_function_ptrs_allowed = TRUE;
+  }  /* if */
+#endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
+  if (!(option_kind_used[(int)optk_extern_inline])) {
+    extern_inline_allowed = FALSE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_enum_overloading])) {
+    operator_overloading_on_enums_enabled = FALSE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_const_string_literals])) {
+    string_literals_are_const = FALSE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_late_tiebreaker])) {
+    do_late_ovl_res_tiebreaker = TRUE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_friend_injection])) {
+    friend_injection_enabled = TRUE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_dependent_name_processing])) {
+    do_dependent_name_processing = FALSE;
+  }  /* if */
+  /* Set flags that cannot be overridden by command line options. */
+  ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
+}  /* set_cfront_mode_flags */
 
 
 static void check_pch_file_name(char *file_name)
@@ -2041,51 +2144,9 @@ Process the arguments on the command line that invoked the compiler.
         allow_anachronisms = opt_value;
         break;
       case optk_cfront_2_1_mode:
-        /* cfront 2.1 compatibility mode.  If both 2.1 and 3.0 modes are
-           selected, only the most recent applies. */
-        check_assertion(opt_value == TRUE);
-        cfront_2_1_mode = TRUE;
-        cfront_3_0_mode = FALSE;
-        special_subscript_cost = FALSE;
-        allow_nonconst_call_anachronism = TRUE;
-        goto common_cfront_mode_settings;
       case optk_cfront_3_0_mode:
-        /* cfront 3.0 compatibility mode.  If both 2.1 and 3.0 modes are
-           selected, only the most recent applies. */
         check_assertion(opt_value == TRUE);
-        cfront_3_0_mode = TRUE;
-        cfront_2_1_mode = FALSE;
-        special_subscript_cost = TRUE;
-        allow_nonconst_call_anachronism = FALSE;
-common_cfront_mode_settings:
-        /* This option implies C++ dialect. */
-        C_dialect = C_dialect_cplusplus;
-        allow_anachronisms = TRUE;
-        allow_nonconst_ref_anachronism = TRUE;
-        long_lifetime_temps = TRUE;
-        bool_is_keyword = FALSE;
-        explicit_keyword_enabled = FALSE;
-#if !RUNTIME_USES_NAMESPACES
-        namespaces_enabled = FALSE;
-        arg_dependent_lookup_enabled = FALSE;
-#endif /* !RUNTIME_USES_NAMESPACES */
-#if !RUNTIME_USES_TYPENAME
-        typename_enabled = FALSE;
-#endif /* !RUNTIME_USES_TYPENAME */
-        implicit_typename_enabled = TRUE;
-        use_nonstandard_for_init_scope = TRUE;
-        allow_copy_assignment_op_with_base_class_param = TRUE;
-        guiding_decls_allowed = FALSE;
-        old_specializations_allowed = TRUE;
-#if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
-        impl_conv_between_c_and_cpp_function_ptrs_allowed = TRUE;
-#endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
-        extern_inline_allowed = FALSE;
-        operator_overloading_on_enums_enabled = FALSE;
-        string_literals_are_const = FALSE;
-        ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
-        do_late_ovl_res_tiebreaker = TRUE;
-        friend_injection_enabled = TRUE;
+        set_cfront_mode_flags(kind);
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
