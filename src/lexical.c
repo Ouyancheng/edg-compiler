@@ -4809,26 +4809,24 @@ will be TRUE.  This routine may only be called in C++ mode.
         }  /* if */
         /* Skip over the class-name, and the "::". */
         (void)get_token();
-        if (get_token() == tok_identifier && first_class) {
-          /* We have an identifier after the part of the qualifier that has
-             been scanned so far.  Since this identifier will have to be
-             looked up, make sure that the current class is instantiated.
-             This only needs to be done for the first class in a qualified
-             name because only the first class can be a template class. */
-          if (!*err) check_for_uninstantiated_template_class(*class_type);
-          first_class = FALSE;
-        }  /* if */
-        if (curr_token != tok_identifier || next_token() != tok_colon_colon) {
+        if (get_token() != tok_identifier || next_token() != tok_colon_colon) {
           /* Not an identifier followed by "::", so end the loop. */
           break;
         }  /* if */
         /* There is another level of qualification.  Search for the identifier
            in the given scope. */
         if (!*err) {
+          if (first_class) {
+            /* Make sure that this class has been instantiated.  This is
+               only needed for the first class name because template classes
+               must be at file scope. */
+            check_for_uninstantiated_template_class(*class_type);
+          }  /* if */
           class_symbol = class_qualified_id_lookup(&locator_for_curr_id,
                                                    *class_type,
                                                    IDL_MUST_BE_CLASS);
         }  /* if */
+        first_class = FALSE;
       }  /* for */
     }  /* if */
   }  /* if */
@@ -4921,7 +4919,16 @@ the error on the final identifier not being found on lookup.
           /* Save the start position of the qualified name (get_class_qualifier
              puts it in error_position). */
           start_position = error_position;
-          /* Get then token following the identifier. */
+          /* Make sure that the class has been instantiated and is not
+             an incomplete type. */
+          if (!qualifier_err && class_type != NULL) {
+            check_for_uninstantiated_template_class(class_type);
+            if (is_incomplete_type(class_type)) {
+              pos_error(ec_incomplete_type_not_allowed, &start_position);
+              qualifier_err = TRUE;
+            }  /* if */
+          }  /* if */
+          /* Get then token following the qualifier. */
           get_token();
           set_err_pos_to_curr_token();
           okay = FALSE;

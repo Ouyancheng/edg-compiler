@@ -1008,7 +1008,10 @@ extern a_boolean get_qualified_name(an_id_lookup_options_set options);
      case QUALIFIED_NAME_START_CASE:
    Note that one must check for "::new" and "::delete" separately.
 */
-#define QUALIFIED_NAME_START_CASE tok_identifier: case tok_colon_colon
+#define QUALIFIED_NAME_START_CASE tok_identifier:	\
+                             case tok_colon_colon:	\
+                             case tok_class_qualifier
+
 /* Get a C++ qualified name or a normal id. */
 extern a_symbol_ptr get_normal_id_or_qualified_name(
                                              an_id_lookup_options_set options);

@@ -4483,12 +4483,17 @@ otherwise it is NULL.  The syntax is:
         (void)simplify_curr_class_qualified_name();
       }  /* if */
       if (is_qualified_name_start()) {  /* Identifier or "::". */
+        a_boolean    is_file_scope_qualifier, has_global_qualifier;
+        a_boolean    is_ptr_to_member, qualifier_err;
+        a_type_ptr   class_type;
         /* The declarator may be a qualified name or a normal name. */
         an_id_lookup_options_set lookup_options = IDL_NO_OPTIONS;
         /* The unary "::" is not allowed in declarators. */
-        if (curr_token == tok_colon_colon ||
-            curr_token == tok_identifier &&
-                                locator_for_curr_id.is_global_qualified_name) {
+        if ((curr_token == tok_identifier &&
+             locator_for_curr_id.is_global_qualified_name) ||
+            (get_class_qualifier(&class_type, &is_file_scope_qualifier,
+                                 &has_global_qualifier, &is_ptr_to_member,
+                                 &qualifier_err) && has_global_qualifier)) {
           error(ec_unary_colon_colon_in_declarator);
           /* Suppress a second error on the name not being found in the
              indicated class. */

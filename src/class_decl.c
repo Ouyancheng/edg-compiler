@@ -539,48 +539,27 @@ constructor for class A is declared A::A() rather than A().  The ARM does
 not specifically allow this syntax, but it is supported by cfront.
 */
 {
-  a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
-  a_symbol_ptr             class_sym;
-  a_token_cache            cache;
+  a_type_ptr               class_type;
+  a_boolean                is_file_scope_qualifier, has_global_qualifier, err;
+  a_boolean                is_ptr_to_member;
   a_boolean                is_member_id = FALSE;
-  a_source_position        error_position;
+  a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
 
   db_enter(3, "simplify_curr_class_qualified_name");
-  if (curr_token == tok_identifier && next_token() == tok_colon_colon &&
-      ssep->kind == (a_scope_kind)sck_class_struct_union) {
-    class_sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
-    if (locator_for_curr_id.symbol_header == class_sym->header) {
-      /* Save the current source position for possible error reporting. */
-      copy_source_position(pos_curr_token, error_position);
-      /* We are inside a class declaration and the name is a qualified
-         name starting with the name of the class being declared.  Advance
-         to the member name, but cache the tokens so they are not lost. */
-      clear_token_cache(&cache);
-      /* Put the class name token in the cache. */
-      cache_curr_token(&cache);
-      /* Advance to the "::" and put it in the cache, too. */
-      (void)get_token();
-      cache_curr_token(&cache);
-      /* Now get the next token. */
-      (void)get_token();
-      if (curr_token == tok_identifier || curr_token == tok_compl ||
-          curr_token == tok_operator) {
-        /* We specifically check for A::<name> and A::~ and A::operator
-           to be sure we don't have a pointer-to-member. */
-        is_member_id = TRUE;
-      }  /* if */
-      rescan_cached_tokens(&cache);
-      if (is_member_id) {
-        /* Advance past the class name and the "::". */
-        (void)get_token();
-        (void)get_token();
-       /* Accepting qualified member names is an extension so issue a
+
+  if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
+      get_class_qualifier(&class_type, &is_file_scope_qualifier,
+                          &has_global_qualifier, &is_ptr_to_member, &err)) {
+    if (class_type == ssep->assoc_type) {
+      is_member_id = TRUE;
+      /* Skip to the token after the qualifier (the identifier). */
+      get_token();
+      /* Accepting qualified member names is an extension so issue a
          diagnostic in strict ANSI mode. */
-       if (strict_ansi_mode) {
-         pos_diagnostic(strict_ansi_error_severity,
-                        ec_qualifier_in_member_declaration, &error_position);
-       }  /* if */ 
-     }  /* if */
+      if (strict_ansi_mode) {
+        pos_diagnostic(strict_ansi_error_severity,
+                       ec_qualifier_in_member_declaration, &error_position);
+      }  /* if */ 
     }  /* if */
   }  /* if */
   db_exit();
