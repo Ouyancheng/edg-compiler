@@ -3799,6 +3799,8 @@ errors.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
+/*lint -esym(759,pos_st_catastrophe)*/
+/*lint -esym(765,pos_st_catastrophe)*/
 DOES_NOT_RETURN pos_st_catastrophe(an_error_code     error_code,
                                    a_source_position *error_pos,
                                    char              *error_string)
