@@ -4211,7 +4211,7 @@ generating cross-reference output describing this declaration.
         sym->variant.routine.instance_ptr->specific_decl = TRUE;
         routine_ptr = sym->variant.routine.ptr;
         old_decl_has_body = (routine_ptr->assoc_scope != NULL_region_number);
-        if (is_function_def) {
+        if (old_decl_has_body) {
           routine_ptr->specific_def = TRUE;
           sym->variant.routine.instance_ptr->specific_def = TRUE;
           sym->variant.routine.instance_ptr->instantiation_required = FALSE;
