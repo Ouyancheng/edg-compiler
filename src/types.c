@@ -1356,13 +1356,16 @@ Return TRUE if the given constant is the address of a string constant.
 }  /* is_address_of_string_constant */
 
 
-a_boolean impl_pointer_conversion(a_type_ptr source_type,
-                                  a_boolean  source_is_constant,
-                                  a_constant *source_constant,
-                                  a_type_ptr dest_type,
-                                  a_boolean  check_as_operands_not_conversion,
-                                  a_boolean  *pointer_normalization_needed,
-                                  a_boolean  *warning_suggested)
+a_boolean impl_pointer_conversion(
+                                a_type_ptr    source_type,
+                                a_boolean     source_is_constant,
+                                a_constant    *source_constant,
+                                a_type_ptr    dest_type,
+                                a_boolean     check_as_operands_not_conversion,
+                                a_boolean     *pointer_normalization_needed,
+                                a_boolean     suppress_extensions,
+                                an_error_code default_warning_code,
+                                an_error_code *warning_suggested)
 /*
 Return TRUE if it's okay to implicitly convert something of type source_type
 (any type) to something of type dest_type (a pointer type).
@@ -1373,10 +1376,14 @@ is TRUE, the two types are the types of the operands of an operation; only
 do the checks required in that case, which are fewer than the checks required
 for a conversion.  *pointer_normalization_needed is returned TRUE if the
 conversion involves a pointer normalization (null pointer constant --> pointer
-or pointer --> "void *").  *warning_suggested is returned TRUE if the
-conversion is nonstandard and should probably be flagged with a warning.
-In strict ANSI mode, if a conversion flagged with *warning_suggested is done,
-the warning is required.
+or pointer --> "void *").  suppress_extensions is TRUE if conversions
+that are extensions should not be allowed (what constitutes an
+extension depends on C_dialect, of course).  If the conversion is
+suspect and should be tagged with a warning, *warning_suggested is
+set to an appropriate error code; normally, it is set to ec_no_error.
+default_warning_code will be copied into *warning_suggested when no
+specific message applies.  In strict ANSI mode, if a conversion
+flagged with *warning_suggested is done, the warning is required.
 
 Note that any type qualifiers on the types themselves (rather than the
 types pointed to) are ignored.
@@ -1401,7 +1408,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
   }  /* if */
 #endif /* DEBUG */
   *pointer_normalization_needed = FALSE;
-  *warning_suggested = FALSE;
+  *warning_suggested = ec_no_error;
 #if CHECKING
   if (!is_pointer_type(dest_type)) {
     internal_error("impl_pointer_conversion: dest_type is not pointer");
@@ -1485,26 +1492,27 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         /* In C but not C++, a "void *" may be converted to a pointer to an
            object or incomplete type.  ANSI C 3.3.16.1 (assignment). */
         okay = TRUE;
-      } else if (source_is_constant &&
+      } else if (!suppress_extensions && source_is_constant &&
                  is_address_of_string_constant(source_constant) &&
                  is_character_type(unqual_source_type_pointed_to) &&
                  is_character_type(unqual_dest_type_pointed_to)) {
         /* Allow a character string to be converted to a pointer to any kind
            of char.  This is an extension in both C and C++. */
         okay = TRUE;
-        if (strict_ansi_mode) *warning_suggested = TRUE;
+        if (strict_ansi_mode) *warning_suggested = default_warning_code;
       } else if (C_dialect == C_dialect_pcc) {
         /* In pcc mode, allow conversion between incompatible pointer types,
            with a warning. */
         okay = TRUE;
-        *warning_suggested = TRUE;
-      } else if (interchangeable_types(unqual_dest_type_pointed_to,
+        *warning_suggested = default_warning_code;
+      } else if (!suppress_extensions &&
+                 interchangeable_types(unqual_dest_type_pointed_to,
                                        unqual_source_type_pointed_to)) {
         /* In ANSI C and C++ mode, allow conversion between pointers to
-           interchangeable types, with a warning.  This covers cases
-           like unsigned char * --> char *. */
+           interchangeable types, as an extension, with a warning.
+           This covers cases like unsigned char * --> char *. */
         okay = TRUE;
-        *warning_suggested = TRUE;
+        *warning_suggested = default_warning_code;
       }  /* if */
     }  /* if */
     if (okay && !check_as_operands_not_conversion) {
@@ -1527,7 +1535,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
        pointer constant --> pointer case has been handled above and does
        not come here. */
     okay = TRUE;
-    *warning_suggested = TRUE;
+    *warning_suggested = default_warning_code;
   } else if (is_error(source_type)) {
     /* Error --> pointer is always allowed. */
     okay = TRUE;
@@ -1544,19 +1552,25 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 }  /* impl_pointer_conversion */
 
 
-a_boolean impl_conversion(a_type_ptr source_type,
-                          a_boolean  source_is_constant,
-                          a_constant *source_constant,
-                          a_type_ptr dest_type,
-                          a_boolean  *warning_suggested)
+a_boolean impl_conversion(a_type_ptr    source_type,
+                          a_boolean     source_is_constant,
+                          a_constant    *source_constant,
+                          a_type_ptr    dest_type,
+                          a_boolean     suppress_extensions,
+                          an_error_code default_warning_code,
+                          an_error_code *warning_suggested)
 /*
 Return TRUE if it is okay to implicitly convert something of type source_type
 to something of type dest_type.  If source_is_constant is TRUE, the source
 is a constant, and source_constant points to the constant value.  (That's
 needed to check for conversions of a null pointer constant to a pointer type.)
-Any type qualifiers on the types themselves are ignored.  *warning_suggested
-is returned TRUE if the conversion is nonstandard and should probably be
-flagged with a warning.  In strict ANSI mode, if a conversion flagged with
+Any type qualifiers on the types themselves are ignored.  suppress_extensions
+is TRUE if conversions that are extensions should not be allowed (what
+constitutes an extension depends on C_dialect, of course).  If the conversion
+is suspect and should be tagged with a warning, *warning_suggested is
+set to an appropriate error code; normally, it is set to ec_no_error.
+default_warning_code will be copied into *warning_suggested when no
+specific message applies.  In strict ANSI mode, if a conversion flagged with
 *warning_suggested is done, the warning is required.
 
 See chapter 4 of the ARM (standard conversions).  Note that integral
@@ -1567,8 +1581,9 @@ handled in normal expression processing rather than here.
 See also 3.3.16.1 in the ANSI C standard (simple assignment).
 */
 {
-  a_boolean okay = FALSE;
-  a_boolean pointer_normalization_needed;
+  a_boolean      okay = FALSE;
+  a_boolean      pointer_normalization_needed;
+  a_constant_ptr dest_enum_list, source_enum_list;
 
   db_enter(4, "impl_conversion");
 #if DEBUG
@@ -1580,15 +1595,50 @@ See also 3.3.16.1 in the ANSI C standard (simple assignment).
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
-  *warning_suggested = FALSE;
+  *warning_suggested = ec_no_error;
   /* Drop any type qualifiers and typedefs on the two types. */
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
-  if (is_arithmetic(dest_type)) {
+  if (is_incomplete(dest_type)) {
+    /* Catch cases where an actual argument is being converted to an incomplete
+       enum or struct/union type because a function parameter has that type.
+       One is allowed to declare a parameter of that type, but the type must
+       be completed if the function is defined or called. */
+    /* okay = FALSE; -- already set. */
+  } else if (is_arithmetic(dest_type)) {
     /* Destination type is arithmetic. */
     if (is_arithmetic(source_type)) {
       /* Arithmetic --> arithmetic.  Okay. */
       okay = TRUE;
+      /* Check for a mixture of an enumerated type with any other type, which
+         may be invalid or call for a warning. */
+      if (is_integral(dest_type) && is_integral(source_type)) {
+        dest_enum_list = dest_type->variant.integer.enum_constant_list;
+        source_enum_list = source_type->variant.integer.enum_constant_list;
+        if (dest_enum_list != NULL || source_enum_list != NULL) {
+          /* We have either two enum types or one enum type and one integral
+             type. */
+          if (C_dialect != C_dialect_cplusplus) {
+            /* In C, give a warning for any mixture of an enum with something
+               else. */
+            if (dest_enum_list != source_enum_list) {
+              *warning_suggested = ec_mixed_enum_type;
+            }  /* if */
+          } else {
+            /* C++: */
+            if (source_enum_list != NULL && dest_enum_list == NULL) {
+              /* enum --> integral, okay.  No warning. */
+            } else {
+              /* integral --> enum, allowed only with explicit cast;
+                 enum --> different enum, never allowed (but enum1 -->
+                 integral --> enum2 is an acceptable path, and since
+                 enum1 --> integral can happen implicitly as an integral
+                 promotion, ...). */
+              okay = FALSE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
     } else if (C_dialect == C_dialect_pcc &&
                is_pointer(source_type) &&
                is_integral(dest_type) &&
@@ -1596,7 +1646,7 @@ See also 3.3.16.1 in the ANSI C standard (simple assignment).
       /* In pcc mode, allow pointer --> integer if the integer is big enough.
          Issue a warning. */
       okay = TRUE;
-      *warning_suggested = TRUE;
+      *warning_suggested = default_warning_code;
     } else {
       /* Non-arithmetic --> arithmetic.  Error. */
       okay = FALSE;
@@ -1611,7 +1661,13 @@ See also 3.3.16.1 in the ANSI C standard (simple assignment).
                                    source_constant, dest_type,
                                    /*check_as_operands_not_conversion=*/FALSE,
                                    &pointer_normalization_needed,
+                                   suppress_extensions,
+                                   default_warning_code,
                                    warning_suggested);
+  } else if (is_class_struct_union(dest_type)) {
+    /* A complete class, struct, or union can be converted to a compatible
+       class, struct, or union type. */
+    okay = types_are_compatible(dest_type, source_type);
   } else if (is_error(dest_type)) {
     /* Anything can be converted to an error type. */
     okay = TRUE;
@@ -1630,19 +1686,22 @@ See also 3.3.16.1 in the ANSI C standard (simple assignment).
 }  /* impl_conversion */
 
 
-a_boolean expl_conversion(a_type_ptr source_type,
-                          a_boolean  source_is_constant,
-                          a_constant *source_constant,
-                          a_type_ptr dest_type,
-                          a_boolean  *warning_suggested)
+a_boolean expl_conversion(a_type_ptr    source_type,
+                          a_boolean     source_is_constant,
+                          a_constant    *source_constant,
+                          a_type_ptr    dest_type,
+                          an_error_code default_warning_code,
+                          an_error_code *warning_suggested)
 /*
 Return TRUE if it is okay to explicitly convert something of type source_type
 to something of type dest_type.  If source_is_constant is TRUE, the source
 is a constant, and source_constant points to the constant value.  (That's
 needed to check for conversions of a null pointer constant to a pointer type.)
-Any type qualifiers on the types themselves are ignored.  *warning_suggested
-is returned TRUE if the conversion is nonstandard and should probably be
-flagged with a warning.  In strict ANSI mode, if a conversion flagged with
+Any type qualifiers on the types themselves are ignored.  If the conversion
+is suspect and should be tagged with a warning, *warning_suggested is
+set to an appropriate error code; normally, it is set to ec_no_error.
+default_warning_code will be copied into *warning_suggested when no
+specific message applies.  In strict ANSI mode, if a conversion flagged with
 *warning_suggested is done, the warning is required.
 
 Any implicit conversion is allowed (see impl_conversion).  Also, the
@@ -1650,7 +1709,8 @@ explicit conversions allowed in casts (ARM 5.2.3 and 5.4; ANSI C 3.3.4)
 are allowed.
 */
 {
-  a_boolean okay = FALSE, impl_okay, impl_warning_suggested = FALSE;
+  a_boolean     okay = FALSE, impl_okay;
+  an_error_code impl_warning_suggested;
 
   db_enter(4, "expl_conversion");
 #if DEBUG
@@ -1662,17 +1722,24 @@ are allowed.
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
-  *warning_suggested = FALSE;
+  *warning_suggested = ec_no_error;
   /* Drop any type qualifiers and typedefs on the two types. */
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
 
   /* See if there is an implicit conversion between the types. */
   impl_okay = impl_conversion(source_type, source_is_constant, source_constant,
-                              dest_type, &impl_warning_suggested);
-  if (impl_okay && !impl_warning_suggested) {
+                              dest_type, /*suppress_extensions=*/FALSE,
+                              default_warning_code, &impl_warning_suggested);
+  if (impl_okay && impl_warning_suggested == ec_no_error) {
     /* There is an implicit conversion, and it's not questionable. */
     okay = TRUE;
+  } else if (is_incomplete(dest_type)) {
+    /* Catch cases where an actual argument is being converted to an incomplete
+       enum or struct/union type because a function parameter has that type.
+       One is allowed to declare a parameter of that type, but the type must
+       be completed if the function is defined or called. */
+    /* okay = FALSE; -- already set. */
   } else if (is_pointer(source_type) && is_integral(dest_type) &&
              dest_of_ptr_cast_big_enough(source_type, dest_type)) {
     /* Pointer --> integral is okay if the integer is big enough. */
@@ -1719,7 +1786,9 @@ are allowed.
          the destination is big enough.  Allowed as an extension in C. */
       if (dest_of_ptr_cast_big_enough(source_type, dest_type)) {
         okay = TRUE;
-        *warning_suggested = (C_dialect != C_dialect_cplusplus);
+        if (C_dialect != C_dialect_cplusplus) {
+          *warning_suggested = ec_mixed_function_object_pointers;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1730,7 +1799,7 @@ are allowed.
        conversions that aren't allowed as explicit conversions, but this code
        is here in case one is added. */
     okay = TRUE;
-    *warning_suggested = TRUE;
+    *warning_suggested = impl_warning_suggested;
   }  /* if */
 
 #if DEBUG
@@ -2101,9 +2170,6 @@ Only callable in C++ mode.  See ARM 13.
       /* The types aren't compatible, so see if they are sufficiently
          different that they are distinguishable by overload resolution.
          Compare the parameter types. */
-#if 0
-          default arguments
-#endif
       for (old_param = old_type->variant.routine.extra_info->param_type_list,
            new_param = new_type->variant.routine.extra_info->param_type_list;
            old_param != NULL || new_param != NULL;
@@ -2166,7 +2232,7 @@ If arg_is_constant is TRUE, the actual argument is a constant and arg_constant
 points to the constant value.
 */
 {
-  a_boolean warning_suggested;
+  an_error_code warning_suggested;
 
   arg_match->match_level = aml_none;
   arg_match->downward_cast_levels = 0;
@@ -2178,9 +2244,11 @@ points to the constant value.
 #if 0
 #else
     if (impl_conversion(arg_type, arg_is_constant, arg_constant, param_type,
-                        &warning_suggested) && !warning_suggested) {
+                        /*suppress_extensions=*/TRUE,
+                        ec_incompatible_param, &warning_suggested)) {
       /* Match with standard conversions. */
       arg_match->match_level = aml_standard_conv;
+      arg_match->warning_suggested = warning_suggested;
     } else {
       /* No match. */
       arg_match->match_level = aml_none;
