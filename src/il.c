@@ -903,7 +903,7 @@ Dump the contents of the indicated constant, for debug purposes.
       fputs("<error constant>", f_debug);
       break;
     case ck_integer:
-      fprintf(f_debug, "%ld", cp->variant.integer_value);
+      write_integer_constant(f_debug, cp);
       break;
     case ck_string:
       fputs("\"", f_debug);
@@ -2158,12 +2158,13 @@ bucket of the shareable_constants_table to use for the constant.
   a_targ_size_t         length;
   char                  *cptr;
   sizeof_t              n;
+  a_boolean             ovflo;
 
   /* Compute a hash value from the constant.  The hash doesn't have to
      be perfect, but it should spread the expected constants fairly widely. */
   switch (cp->kind) {
     case ck_integer:
-      hash_value = (a_constant_hash_value)cp->variant.integer_value;
+      hash_value = (a_constant_hash_value)value_of_integer_constant(cp,&ovflo);
       break;
     case ck_string:
       length = cp->variant.string.length;
@@ -2247,7 +2248,7 @@ Return TRUE if the two constants are identical.
         eq = TRUE;
         break;
       case ck_integer:
-        eq = (cp1->variant.integer_value == cp2->variant.integer_value);
+        eq = (cmp_integer_constants(cp1, cp2) == 0);
         break;
       case ck_string:
         if (cp1->variant.string.length == cp2->variant.string.length) {

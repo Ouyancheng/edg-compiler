@@ -511,13 +511,7 @@ Print a short version of the constant at *cp.
       (void)printf("<error constant>");
       break;
     case ck_integer:
-      /* Print unsigned types as unsigned, signed as signed. */
-      if (con_type->kind == (a_type_kind)tk_integer &&
-          int_kind_is_signed(con_type->variant.integer.int_kind)) {
-        (void)printf("%ld", cp->variant.integer_value);
-      } else {
-        (void)printf("%lu", cp->variant.integer_value);
-      }  /* if */
+      write_integer_constant(stdout, cp);
       break;
     case ck_float:
       fkind = con_type->variant.float_kind;
@@ -916,14 +910,7 @@ Display the indicated constant entry.
       break;
     case ck_integer:
       (void)printf("ck_integer\n");
-      /* Print unsigned types as unsigned, signed as signed. */
-      if (ptr->type->kind == (a_type_kind)tk_integer &&
-          int_kind_is_signed(ptr->type->variant.integer.int_kind)) {
-        disp_long("integer_value", (long)ptr->variant.integer_value);
-      } else {
-        disp_unsigned_long("integer_value",
-                           (unsigned long)ptr->variant.integer_value);
-      }  /* if */
+      write_integer_constant(stdout, ptr);
       break;
     case ck_string:
       (void)printf("ck_string\n");
