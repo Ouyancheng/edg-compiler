@@ -835,6 +835,9 @@ to default values.
       break;
     case tk_integer:
       pte->variant.integer.int_kind = (an_integer_kind)ik_int;
+#ifdef FIL
+      pte->variant.integer.logical_type = FALSE;
+#endif /* ifdef FIL */
       pte->variant.integer.explicitly_signed = FALSE;
       pte->variant.integer.enum_type = FALSE;
       pte->variant.integer.wchar_t_type = FALSE;
