@@ -1,5 +1,18 @@
 Version 3.1
 
+6/18/02  GNU C compatibility: Redefinition of extern __inline__ function
+
+In GNU C mode, a "extern __inline__" function definition can be followed
+by another definition of that function (a warning is issued).  The earlier
+definition is discarded and replaced by the latest one. For example:
+
+  extern __inline__ int f() { return 3; }  // No out-of-line copy
+  int f() { return 3; }                    // Out-of-line copy
+
+A call to the function may appear between two such definitions; if that
+call is inlined (by the lowering process), the first definition will be
+used for that purpose.
+
 6/17/02  Sun and Microsoft compatibility: Declaration of a variable visible
          through a using-declaration.
 

@@ -4972,6 +4972,22 @@ declaration.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         old_decl_has_body = TRUE;
       }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+      if (gcc_mode && old_decl_has_body && is_function_def &&
+          routine_ptr->is_inline && routine_ptr->suppress_inline_body) {
+        /* We're in GNU C mode and this routine was previously defined with
+           "extern __inline__".  In GNU C mode, the new definition simply
+           replaces the previous one. */
+        pos_sy_warning(ec_already_defined, &locator->source_position, sym);
+        old_decl_has_body = FALSE;
+        clear_function_body(
+                      il_header.region_scope_entry[routine_ptr->assoc_scope]);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* The declared type we be reset to the type of the new definition. */
+        routine_ptr->declared_type = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       if (is_function_def && old_decl_has_body) {
         /* Previous routine already has a body, and new one does (or will)
            too. */
