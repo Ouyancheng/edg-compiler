@@ -2729,7 +2729,7 @@ initial parts of the qualified names.
   } else
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   if (parent_class != NULL) {
-    /* Nested class.  Do the containing class names. */
+    /* Nested type.  Do the containing class names. */
     name_length = mangled_type_name(parent_class, nesting_level+1, store_at);
     mangled_name_length += name_length;
     if (store_at != NULL) store_at += name_length;
@@ -3374,24 +3374,25 @@ Mangle the name of the indicated class, if necessary.
 }  /* mangle_class_name */
 
 
-static void mangle_nested_class_name(a_type_ptr class_type)
+static void mangle_nested_type_name(a_type_ptr type)
 /*
-Mangle the name of the indicated class, if it is nested.  This does special
-processing for nested class names that must be delayed until all of the
+Mangle the name of the indicated type, if it is nested.  This does special
+processing for nested type names that must be delayed until all of the
 other name mangling that might use the name is done.
 */
 {
   sizeof_t mangled_name_length;
   char     *mangled_name;
 
-  error_position = class_type->source_corresp.decl_position;
-  if (class_type->source_corresp.class_of_which_a_member != NULL
+  error_position = type->source_corresp.decl_position;
+  if (type->source_corresp.class_of_which_a_member != NULL &&
+      type->source_corresp.name != NULL
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
       /* If this a cfront 2.1 nested type, leave it in the unnested form. */
-      && !class_type->use_cfront_transitional_nested_type_name_mangling
+      && !type->use_cfront_transitional_nested_type_name_mangling
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-                                                                ) {
-    /* Nested class names must be mangled (because they exist in a scope
+                                       ) {
+    /* Nested type names must be mangled (because they exist in a scope
        that does not exist in the generated C code).  The mangled form
        is something like
          __Q2_1A1B
@@ -3399,21 +3400,21 @@ other name mangling that might use the name is done.
        name, and the prefix makes it unique (i.e., makes it distinct
        from all user identifiers). */
     /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_encoding_for_type(class_type, (char *)NULL) +
+    mangled_name_length = mangled_encoding_for_type(type, (char *)NULL) +
                           2;  /* "__" */
     /* Allocate space for the mangled name and build it.  The old name is
        just thrown away. */
     mangled_name = alloc_il(mangled_name_length + 1);
     mangled_name[0] = '_';
     mangled_name[1] = '_';
-    (void)mangled_encoding_for_type(class_type, mangled_name + 2);
+    (void)mangled_encoding_for_type(type, mangled_name + 2);
     mangled_name[mangled_name_length] = '\0';
     /* Note that the mangled name is not put into the type until after it has
        been completely built, because the old name is used in building the
        mangled form. */
-    class_type->source_corresp.name = mangled_name;
+    type->source_corresp.name = mangled_name;
   }  /* if */
-}  /* mangle_nested_class_name */
+}  /* mangle_nested_type_name */
 
 
 static void do_scope_class_name_mangling(a_scope_ptr scope)
@@ -3489,10 +3490,10 @@ sub-scopes.
 }  /* do_scope_other_name_mangling */
 
 
-static void do_scope_nested_class_name_mangling(a_scope_ptr scope)
+static void do_scope_nested_type_name_mangling(a_scope_ptr scope)
 /*
-Do name mangling for nested class names in scope and all its sub-scopes.
-This must be done separately from and later than normal class name mangling
+Do name mangling for nested type names in scope and all its sub-scopes.
+This must be done separately from and later than normal type name mangling
 because the simple form of the name must remain available for use in
 mangled names (e.g., virtual function table variable names).
 */
@@ -3500,17 +3501,17 @@ mangled names (e.g., virtual function table variable names).
   a_type_ptr  type;
   a_scope_ptr class_scope, block_scope;
 
-  /* Visit all types to find all class types. */
+  /* Visit all types to find all named types. */
   /* Note that when processing a function or block scope we will be crossing
      into the file scope here, but these class types are truly local types
      and are not used in the file scope, so it's okay to change their names
      now. */
   for (type = scope->types; type != NULL; type = type->next) {
+    mangle_nested_type_name(type);
     if (is_immediate_class_type(type)) {
-      mangle_nested_class_name(type);
       class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
       if (class_scope != NULL) {
-        do_scope_nested_class_name_mangling(class_scope);
+        do_scope_nested_type_name_mangling(class_scope);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -3518,9 +3519,9 @@ mangled names (e.g., virtual function table variable names).
   for (block_scope = scope->scopes;
        block_scope != NULL;
        block_scope = block_scope->next) {
-    do_scope_nested_class_name_mangling(block_scope);
+    do_scope_nested_type_name_mangling(block_scope);
   }  /* for */
-}  /* do_scope_nested_class_name_mangling */
+}  /* do_scope_nested_type_name_mangling */
 
 
 static void do_memory_region_name_mangling(a_scope_ptr scope)
@@ -3534,8 +3535,8 @@ sub-scopes in the same memory region.
   do_scope_class_name_mangling(scope);
   /* Do function and static data member name mangling. */
   do_scope_other_name_mangling(scope);
-  /* Mangle nested class names. */
-  do_scope_nested_class_name_mangling(scope);
+  /* Mangle nested type names. */
+  do_scope_nested_type_name_mangling(scope);
 }  /* do_memory_region_name_mangling */
 
 
