@@ -1,5 +1,11 @@
 Version 2.06
 
+5/7/92   Allow null initializer for a field in a ctor-initializer list
+
+This used to be disallowed with a complaint about "i()":
+
+  class A { int i; A() : i() { } };
+
 5/6/92   Improve ambiguity checking
 
 This change fixes a bug where a static data member (or a member type or a
