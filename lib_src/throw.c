@@ -124,12 +124,18 @@ plus 1).
 
   etsp = ehsep->variant.try_block.catch_entries;
   do {
+    a_boolean	match = FALSE;
     index++;
 #if 0
     /* Pointer and reference handling needs to be added. */
     /* Base class handling needs to be added. */
 #endif /* 0 */
-    if (matching_typeinfo(etsp->typeinfo, typeinfo)) {
+    if (etsp->flags & ETS_IS_ELLIPSIS) {
+      match = TRUE;
+    } else if (matching_typeinfo(etsp->typeinfo, typeinfo)) {
+      match = TRUE;
+    }  /* if */
+    if (match) {
       result = index;
       break;
     }  /* if */
