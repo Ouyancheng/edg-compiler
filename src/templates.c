@@ -285,6 +285,20 @@ Initialize a template declaration state block.
 }  /* init_templ_decl_state */
 
 
+static void wrapup_templ_decl_state(a_tmpl_decl_state_ptr decl_state)
+/*
+Free the token caches that were used while processing a template declaration.
+*/
+{
+  /* If the declaration token cache is not needed, discard it. */
+  if (!decl_state->decl_token_cache_used) {
+    discard_token_cache(&decl_state->decl_token_cache);
+  }  /* if */
+  /* Discard the token cache used to store the template parameter list. */
+  discard_token_cache(&decl_state->param_list_cache);
+}  /* wrapup_templ_decl_state */
+
+
 #if RECORD_TEMPLATES_IN_IL
 /*
 Static variables and routines that are used to build up a string representation
@@ -7148,8 +7162,6 @@ any non-empty template parameter lists that were scanned.
       }  /* if */
     }  /* if */
 #endif /* RECORD_TEMPLATES_IN_IL */
-    /* The cache for the template parameter list is no longer needed. */
-    discard_token_cache(&decl_state->param_list_cache);
     /* When member function bodies are not extract above, they are done now
        that the template string for the class has been created.  Nested class
        bodies are always extracted at this point. */
@@ -7158,10 +7170,6 @@ any non-empty template parameter lists that were scanned.
                                   /*functions_only=*/FALSE);
     } /* if */
   }
-  /* If the declaration token cache is not needed, discard it. */
-  if (!decl_state->decl_token_cache_used) {
-    discard_token_cache(&decl_state->decl_token_cache);
-  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     if (sym != NULL) db_symbol(sym, "template symbol: ", 2);
@@ -7839,6 +7847,7 @@ are either the specialization of a template or a template declaration.
     /* The entity being declared is a template. */
     template_declaration(&decl_state);
   }  /* if */
+  wrapup_templ_decl_state(&decl_state);
   curr_default_args = saved_curr_default_args;
 }  /* template_or_specialization_declaration */
 

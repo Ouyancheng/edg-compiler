@@ -1,5 +1,11 @@
 Version 2.33
 
+7/30/96 Some cached tokens not freed for explicit specializations
+
+The declaration token cache and the parameter token cache were
+not being freed for new-style explicit specializations.  This
+has been fixed.
+
 7/30/96 Incorrect linkage test for template declarations
 
 Template declarations were incorrectly required to have C++ linkage,
