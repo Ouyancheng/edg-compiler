@@ -5743,12 +5743,6 @@ class/struct/union is actually defined.
               /* Member function. */
               a_boolean suppress_pure_specifier_error = FALSE;
 
-#if 0
-              /* Add the function type to the types list of the scope for
-                 the current class. */
-              add_to_types_list(local_type, decl_scope_level,
-                                /*in_old_style_param_decl_list=*/FALSE);
-#endif /* if 0 */
               if (friend_specified) {
                 if (virtual_specified ||
                     member_storage_class != (a_storage_class)sc_unspecified) {
