@@ -4,11 +4,11 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1996 Edison Design Group Inc.                        [_]          *
+* Copyright 1996-2004 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
-Copyright (c) 1996, Edison Design Group, Inc.
+Copyright (c) 1996-2004, Edison Design Group, Inc.
 
 Redistribution and use in source and binary forms are permitted
 provided that the above copyright notice and this paragraph are
@@ -44,6 +44,6 @@ void decode_identifier(char      *id,
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1996 Edison Design Group Inc.                        [_]          *
+* Copyright 1996-2004 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
