@@ -1980,8 +1980,8 @@ error code.
     case ec_masked_by_handler:
       m = "handler is masked by previous handler for type %t";
       break;
-    case ec_local_type_not_allowed:
-      m = "local type is not allowed";
+    case ec_local_type_used_in_exception:
+      m = "use of a local type to specify an exception";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:

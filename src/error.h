@@ -574,7 +574,7 @@ typedef enum /*an_error_code*/ {
   ec_missing_exception_declaration,
   ec_masked_by_default_handler,
   ec_masked_by_handler,
-  ec_local_type_not_allowed
+  ec_local_type_used_in_exception
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
