@@ -2098,6 +2098,7 @@ call.
   if (do_dependent_name_processing && !from_arg_dep_lookup &&
       depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
       !function_symbol->is_class_member &&
+      !is_local_symbol(function_symbol) &&
       function_symbol->decl_seq > get_effective_decl_seq()) {
     /* This symbol is not visible in this template instantiation (it
        was declared after the template definition). */
