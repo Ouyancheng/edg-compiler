@@ -1895,16 +1895,16 @@ The given expression is a GNU-style binary conditional expression of the form
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if !FIXED_POINT_ALLOWED
+#if !LOWER_FIXED_POINT
 /*ARGSUSED*/  /* <-- expr is not used in that case. */
-#endif /* !FIXED_POINT_ALLOWED */
+#endif /* !LOWER_FIXED_POINT */
 static void lower_c99_call(an_expr_node_ptr expr)
 /*
 Do any required lowering on an eok_call expression node.  The operands
 have been lowered already.
 */
 {
-#if FIXED_POINT_ALLOWED
+#if LOWER_FIXED_POINT
   if (fixed_point_enabled) {
     /* May need to widen some fixed-point arguments passed to
        unprototyped parameters. */
@@ -1927,7 +1927,7 @@ have been lowered already.
       }  /* if */
     }  /* for */
   }  /* if */
-#endif /* FIXED_POINT_ALLOWED */
+#endif /* LOWER_FIXED_POINT */
 }  /* lower_c99_call */
 
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
@@ -2256,12 +2256,12 @@ _Bool type, and VLA types.
          must be lowered to get the value reduced to 0/1. */
       if (is_bool_type(expr->type)) {
         rewrite_compound_assignment(expr, /*is_lvalue=*/FALSE);
-#if FIXED_POINT_ALLOWED
+#if LOWER_FIXED_POINT
       } else if (is_fixed_point_type(expr->type)) {
         /* Also rewrite operations that involve a fixed-point operand but
            aren't a fixed-point operation (e.g., fixed_point += double). */
         rewrite_compound_assignment(expr, /*is_lvalue=*/FALSE);
-#endif /* FIXED_POINT_ALLOWED */
+#endif /* LOWER_FIXED_POINT */
       }  /* if */
       break;
     case eok_ipost_incr:

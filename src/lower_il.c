@@ -9582,7 +9582,7 @@ is_lvalue is TRUE.
     op1 = op_node;
   }  /* if */
   op1_for_operation = add_indirection_to_node(op1_for_operation);
-#if FIXED_POINT_ALLOWED
+#if LOWER_FIXED_POINT
   if (is_fixed_point_type(operation_type)) {
     a_type_ptr op1_type = skip_typerefs(op1_for_operation->type);
     a_type_ptr op2_type = skip_typerefs(op2->type);
@@ -9599,7 +9599,7 @@ is_lvalue is TRUE.
                                                         new_fx_type);
     }  /* if */
   } else
-#endif /* FIXED_POINT_ALLOWED */
+#endif /* LOWER_FIXED_POINT */
   /* Do not insert code here. */
   {
     /* Cast the first operand (as an rvalue) to the operation type. */
