@@ -6908,8 +6908,11 @@ TRUE if the declaration following this one is such a continuation.
     push_name_context(scope);
     /* For an old-style function, declare the parameters. */
     /* Note that this does not use rtsp->prototyped, which is inaccurate
-       when there is a prototyped declaration and an old-style definition. */
-    if (rtsp->old_style_params_scanned) {
+       when there is a prototyped declaration and an old-style definition.
+       Also note that this goes back to the routine type, not its
+       declared_type, to get the proper value of old_style_params_scanned. */
+    if (f_skip_typerefs(rout->type)->variant.routine.extra_info->
+                                                    old_style_params_scanned) {
       gen_old_style_parameter_decls();
     }  /* if */
     write_space();
