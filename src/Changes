@@ -178,7 +178,8 @@ the function.  Because this feature is nonstandard, and because it can
 produce incorrect results for programs that expect the standard behavior,
 guiding declarations are now disabled in default mode in our standard
 configuration.  The old behavior can be obtained by setting the configuration
-macro DEFAULT_GUIDING_DECLS_ALLOWED to TRUE.
+macro DEFAULT_GUIDING_DECLS_ALLOWED to TRUE or by using the --guiding_decls
+command line option.
 
   template <class T> void f(T, T){}
   // The following is now treated as a normal function declaration, not
