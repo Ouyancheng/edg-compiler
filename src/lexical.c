@@ -4311,6 +4311,25 @@ only in C++ mode.
 }  /* f_get_opname */
 
 
+a_boolean is_global_new_or_delete(void)
+/*
+Return TRUE if the current and next token form ":: new" or ":: delete".
+These look like qualified names but aren't.
+*/
+{
+  a_boolean    is_new_or_delete = FALSE;
+  a_token_kind ntoken;
+
+  if (curr_token == tok_colon_colon) {
+    ntoken = next_token();
+    if (ntoken == tok_new || ntoken == tok_delete) {
+      is_new_or_delete = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_new_or_delete;
+}  /* is_global_new_or_delete */
+
+
 a_boolean get_class_qualifier(a_type_ptr *class_type,
                               a_boolean  *is_file_scope_qualifier,
                               a_boolean  *has_global_qualifier,
@@ -4339,10 +4358,10 @@ mode.
   *is_file_scope_qualifier = FALSE;
   start_position = pos_curr_token;
   /* Look for a leading unary "::". */
-  *has_global_qualifier = (curr_token == tok_colon_colon);
-  if (*has_global_qualifier) {
-    is_qualifier = TRUE;
-    *is_file_scope_qualifier = TRUE;
+  /* Don't be fooled by "::new" and "::delete". */
+  *has_global_qualifier = FALSE;
+  if (curr_token == tok_colon_colon && !is_global_new_or_delete()) {
+    *has_global_qualifier = *is_file_scope_qualifier = is_qualifier = TRUE;
     (void)get_token();
   }  /* if */
   /* See if we have an identifier followed by "::". */
@@ -4532,11 +4551,12 @@ the error on the final identifier not being found on lookup.
 
 a_symbol_ptr get_normal_id_or_qualified_name(an_id_lookup_options_set options)
 /*
-The current token is an identifier, which may be either the start of a
-qualified name or just a normal identifier.  Call get_qualified_name and then
-normal_id_lookup, and return a pointer to the symbol found, if any.
-options is a bit set of options controlling the lookup of the final
-id of a qualified name or the normal identifier.
+The current token is the start of a name, qualified or not.
+Call get_qualified_name and then normal_id_lookup, and return a
+pointer to the symbol found, if any.  options is a bit set of options
+controlling the lookup of the final id of a qualified name or the
+normal identifier.  The caller should guarantee that is_qualified_name()
+is TRUE (specifically, that "::new" or "::delete" is not next).
 */
 {
   a_symbol_ptr symbol;
@@ -4552,6 +4572,11 @@ id of a qualified name or the normal identifier.
 #endif /* CHECKING */
     reduce_projection_symbol_to_fundamental_symbol(symbol);
   } else {
+#if CHECKING
+    if (curr_token != tok_identifier) {
+      internal_error("get_normal_id_or_qualified_name: not identifier");
+    }  /* if */
+#endif /* CHECKING */
     /* Normal identifier -- look it up. */
     symbol = normal_id_lookup(&locator_for_curr_id, options);
   }  /* if */
