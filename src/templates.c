@@ -3065,12 +3065,8 @@ entry is pushed on the scope stack.
       a_boolean  err = FALSE;
 
       /* Process a function template declaration. */
-      decl_function_template(&locator, type, &sym, storage_class,
+      decl_function_template(&locator, type, &func_info, &sym, storage_class,
                              (dso_flags & DSO_INLINE) != 0);
-      /* Bind the throw specification to the routine entry.  Do compatibility
-         checking if this is a redeclaration. */
-      add_throw_specification(func_info.throw_specification,
-                              sym->variant.routine.ptr);
       if (is_error_locator(locator)) {
         err = TRUE;
       } else if (curr_token == tok_lbrace ||

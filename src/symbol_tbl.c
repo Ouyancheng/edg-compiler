@@ -623,22 +623,30 @@ and indentation is the indentation desired.
         put_string(buffer);
         (void)str_name_linkage(buffer, &(rp->source_corresp));
         put_string(buffer);
-        if (C_dialect == C_dialect_cplusplus && !rp->compiler_generated) {
+        if (C_dialect == C_dialect_cplusplus) {
           a_throw_specification_ptr  tsp = rp->throw_specification;
-          if (tsp == NULL) {
-            put_string("throws any");
-          } else if (tsp->type == NULL && tsp->next == NULL) {
-            put_string("throws none");
-          } else {
-            (void)sprintf(buffer, "throws (");
-            (void)str_type(&buffer[strlen(buffer)], tsp->type);
-            for (tsp = tsp->next; tsp != NULL; tsp = tsp->next) {
-              put_string(buffer);
-              buffer[0] = 0;
-              (void)str_type(buffer, tsp->type);
-            }  /* for */
-            (void)sprintf(&buffer[strlen(buffer)], ")");
-            put_string(buffer);
+          if (tsp != NULL) {
+            switch (tsp->kind) {
+              case tsk_any:
+                put_string("throws any");
+                break;
+              case tsk_none:
+                put_string("throws none");
+                break;
+              case tsk_list_entry:
+                (void)sprintf(buffer, "throws (");
+                (void)str_type(&buffer[strlen(buffer)], tsp->type);
+                for (tsp = tsp->next; tsp != NULL; tsp = tsp->next) {
+                  put_string(buffer);
+                  buffer[0] = 0;
+                  (void)str_type(buffer, tsp->type);
+                }  /* for */
+                (void)sprintf(&buffer[strlen(buffer)], ")");
+                put_string(buffer);
+                break;
+              default:
+                put_string("throws ???");
+            }  /* switch */
           }  /* if */
         }  /* if */
         type = rp->type;
@@ -2975,12 +2983,13 @@ entry is marked as compiler generated; if a user declaration appears later,
 the compiler-generated flag should be cleared.
 */
 {
-  a_symbol_locator    locator;
-  a_source_position   pos;
+  a_symbol_locator               locator;
+  a_source_position              pos;
   a_symbol_ptr                   sym = NULL, ext_sym;
   a_type_ptr                     tp, rout_type, old_type;
   a_routine_type_supplement_ptr  extra_info;
   an_id_linkage_kind             linkage;
+  a_func_info_block              func_info;
 
   db_enter(5, "make_global_operator_new_or_delete_symbol");
 #if CHECKING
@@ -3012,15 +3021,7 @@ the compiler-generated flag should be cleared.
   extra_info->param_type_list = alloc_param_type(tp);
   extra_info->prototyped = TRUE;
   set_routine_calling_method_flag(rout_type);
-  /* Create the symbol and routine entry.  Note that the routine entry
-     is given a storage class of sc_extern since there is no definition
-     in the current translation unit. */
-  decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
-                      /*is_implicit_function=*/FALSE,
-                      /*if_function_def_with_body=*/FALSE,
-                      /*is_inline=*/FALSE, /*is_main_function=*/FALSE, &sym,
-                      &linkage, &old_type, &ext_sym);
-  sym->variant.routine.ptr->compiler_generated = TRUE;
+  clear_func_info(&func_info);
 #if 0
 #else
 #define exceptions_disallowed FALSE
@@ -3030,8 +3031,17 @@ the compiler-generated flag should be cleared.
     /* No explicit throw specification, meaning anything may be thrown. */
     tsp = alloc_throw_specification((a_throw_spec_kind)tsk_any);
     tsp->decl_position = pos_curr_token;
-    sym->variant.routine.ptr->throw_specification = tsp;
+    func_info.throw_specification = tsp;
   }  /* if */
+  /* Create the symbol and routine entry.  Note that the routine entry
+     is given a storage class of sc_extern since there is no definition
+     in the current translation unit. */
+  decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
+                      &func_info, /*is_implicit_function=*/FALSE,
+                      /*if_function_def_with_body=*/FALSE,
+                      /*is_inline=*/FALSE, /*is_main_function=*/FALSE, &sym,
+                      &linkage, &old_type, &ext_sym);
+  sym->variant.routine.ptr->compiler_generated = TRUE;
   db_exit();
 }  /* make_global_operator_new_or_delete_symbol */
 

@@ -3506,6 +3506,7 @@ not be TRUE.
 void decl_var_or_routine(a_symbol_locator      *locator,
                          a_storage_class       storage_class,
                          a_type_ptr            type_ptr,
+                         a_func_info_block_ptr func_info,
                          a_boolean             is_implicit_function,
                          a_boolean             is_function_def_with_body,
                          a_boolean             inline_specified,
@@ -3788,6 +3789,15 @@ skip_overloading:;
     /* This is an implicit declaration of a function.  The symbol has
        already been entered and marked as declared. */
   } else {
+    if (C_dialect == C_dialect_cplusplus && is_function) {
+      /* Do compatibility checking on the throw specification and, if this
+         is a definition, bind the throw specification to the routine entry.
+         Note that if it is a definition the checking must be done before
+         the routine's decl position is modified, to assure that the
+         "original declaration line number" is displayed accurately. */
+      check_assertion(routine_ptr != NULL);
+      add_throw_specification(func_info, routine_ptr);
+    }  /* if */
     /* There is a linked symbol that is compatible with the new declaration.
        Record the re-declaration for cross-reference purposes. */
     mark_declared(sym, &locator->source_position,
@@ -3906,11 +3916,15 @@ skip_overloading:;
       reconcile_routine_types(routine_ptr, type_ptr,
                               /*preserve_rout_type=*/TRUE,
                               /*preserve_type_ptr=*/FALSE);
+      /* Do compatibility checking for the throw specification. */
+      add_throw_specification(func_info, routine_ptr);
     } else if (routine_ptr == NULL) {
       /* There is no IL entry, so create one now, and add it to the routine
          list of the file scope. */
       routine_ptr = make_routine(type_ptr, storage_class,
                                  /*at_file_scope=*/TRUE, /*add_to_list=*/TRUE);
+      /* Bind the throw specification to the routine entry. */
+      routine_ptr->throw_specification = func_info->throw_specification;
       if (C_dialect == C_dialect_cplusplus) {
         if (locator->is_operator_name) {
           routine_ptr->special_kind = (a_special_function_kind)sfk_operator;
@@ -4087,6 +4101,7 @@ skip_overloading:;
 
 void decl_function_template(a_symbol_locator    *locator,
                             a_type_ptr          type_ptr,
+                            a_func_info_block   *func_info,
                             a_symbol_ptr        *symbol_ptr,
                             a_storage_class     storage_class,
                             a_boolean           is_inline)
@@ -4245,6 +4260,9 @@ class template.
                                 (a_name_linkage_kind)nlk_cplusplus_external :
                                 (a_name_linkage_kind)nlk_internal;
   }  /* if */
+  /* Bind the throw specification to the routine entry.  Do compatibility
+     checking if this is a redeclaration. */
+  add_throw_specification(func_info, rout_ptr);
   if (overload_symbol != NULL) {
     /* A new symbol was added to an overload list which may have included
        functions that were specific declarations of the current template.
@@ -4389,6 +4407,7 @@ the symbol and its linkage (which is always "none").
 
 static void define_member_function(a_symbol_locator   *locator,
 				   a_type_ptr         type_ptr,
+                                   a_func_info_block  *func_info,
                                    a_boolean          inline_specified,
 				   a_symbol_ptr       *symbol_ptr,
                                    an_id_linkage_kind *linkage_ptr,
@@ -4523,6 +4542,11 @@ on a prior declaration.
         }  /* if */
       }  /* if */
     }  /* if */
+    /* Do compatibility checking on the throw specification and bind the
+       throw specification to the routine entry. Note that the checking must
+       be done before the routine's decl position is modified, to assure that
+       the "original declaration line number" is displayed accurately. */
+    add_throw_specification(func_info, rp);
     mark_declared(sym, &locator->source_position,
                   /*save_as_decl_position=*/TRUE);
     copy_source_position(locator->source_position,
@@ -4749,6 +4773,7 @@ symbol has already been entered as an undefined symbol.
   a_symbol_ptr           ext_sym;
   a_symbol_locator       locator;
   a_memory_region_number region_to_switch_back_to;
+  a_func_info_block      func_info;
 
   db_enter(4, "decl_default_function");
   /* Change the symbol kind to routine.  Note that the symbol has already
@@ -4785,8 +4810,9 @@ symbol has already been entered as an undefined symbol.
   }  /* if */
   make_locator_for_symbol(symbol_ptr, &locator);
   /* Declare the function identifier. */
+  clear_func_info(&func_info);
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
-                      /*is_implicit_function=*/TRUE,
+                      &func_info, /*is_implicit_function=*/TRUE,
                       /*is_function_def_with_body=*/FALSE,
                       /*inline_specified=*/FALSE,
                       /*is_main_function=*/FALSE,
@@ -8164,7 +8190,7 @@ explicitly specified (rather than defaulted to "int").
     /* This is the definition of a member function. */
     check_assertion(prototyped);
     is_member_function_def = TRUE;
-    define_member_function(locator, rout_type, inline_specified,
+    define_member_function(locator, rout_type, func_info, inline_specified,
                            &symbol_ptr, &linkage, &old_type, &ext_sym);
   } else {
     if (!prototyped) {
@@ -8235,7 +8261,7 @@ explicitly specified (rather than defaulted to "int").
       pop_scope();
     }  /* if */
     /* Create the symbol entry and routine entry for the routine. */
-    decl_var_or_routine(locator, storage_class, rout_type,
+    decl_var_or_routine(locator, storage_class, rout_type, func_info,
                         /*is_implicit_function=*/FALSE,
                         /*is_function_def_with_body=*/TRUE, inline_specified,
                         is_main_function, &symbol_ptr, &linkage,
@@ -8243,11 +8269,6 @@ explicitly specified (rather than defaulted to "int").
   }  /* if */
   symbol_ptr->defined = TRUE;
   routine_ptr = symbol_ptr->variant.routine.ptr;
-  if (C_dialect == C_dialect_cplusplus) {
-    /* Bind the throw specification to the routine entry.  Do compatibility
-       checking if this is a redeclaration. */
-    add_throw_specification(func_info, routine_ptr);
-  }  /* if */
   check_assertion(make_unqualified_type(routine_ptr->type) ==
                                                       unqualified_rout_type);
   if (!is_member_function_def &&
@@ -9371,15 +9392,11 @@ continue_with_declaration:
         local_type_ptr = symbol_ptr->variant.variable.ptr->type;
       } else {
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
+                            is_function ? &func_info : NULL,
                             /*is_implicit_function=*/FALSE,
                             /*is_function_def_with_body=*/FALSE,
                             inline_specified, is_main_function, &symbol_ptr,
                             &linkage, &old_type, &ext_sym);
-        if (C_dialect == C_dialect_cplusplus && is_function) {
-          /* Bind the throw specification to the routine entry.  Do
-             compatibility checking if this is a redeclaration. */
-          add_throw_specification(&func_info, symbol_ptr->variant.routine.ptr);
-        }  /* if */
         if (is_old_style_param_decl) {
           /* A variable has been entered for a name that appears in an
              old-style param declaration but for which no corresponding

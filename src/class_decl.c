@@ -2818,10 +2818,11 @@ without it.
 }  /* member_function_redecl_sym */
 
 
-static a_symbol_ptr decl_friend_function(a_symbol_locator    *locator,
-                                         a_type_ptr          class_type,
-                                         a_type_ptr          function_type,
-                                         a_boolean           is_inline)
+static a_symbol_ptr decl_friend_function(a_symbol_locator      *locator,
+                                         a_type_ptr            class_type,
+                                         a_type_ptr            function_type,
+                                         a_func_info_block_ptr func_info,
+                                         a_boolean             is_inline)
 /*
 Do processing for declaring a function (identified by *locator and with
 a type of function_type) friend of the current class (class_type).  Getting
@@ -2886,33 +2887,39 @@ of the function, and again overloading is a possibility.
       } else {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
-      decl_var_or_routine(locator, storage_class, function_type,
+      decl_var_or_routine(locator, storage_class, function_type, func_info,
                           /*is_implicit_function=*/FALSE,
                           is_function_def_with_body, is_inline,
                           is_main_function, &sym, &linkage, &old_type,
                           &ext_sym);
-    } else if (sym->class_of_which_a_member == class_type) {
-      /* It's a member function of the very class that is according it
-         friendship.  Issue a diagnostic. */
-      diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
-                 ec_self_friendship);
     } else {
-      /* It's a member function.  Find the right type signature for this
-         member function name.  If none can be found, NULL is returned. */
-      is_overloaded_function =
-                        sym->kind == (a_symbol_kind)sk_overloaded_function;
-      sym = member_function_redecl_sym(sym, function_type);
-      if (sym == NULL) {
-        sym_error(is_overloaded_function ?
-                        ec_overloaded_function_incompatible_type :
-                        ec_not_compatible_with_previous_decl,
-                  locator->specific_symbol);
-        set_to_error_locator(*locator);
+      if (sym->class_of_which_a_member == class_type) {
+        /* It's a member function of the very class that is according it
+           friendship.  Issue a diagnostic. */
+        diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
+                   ec_self_friendship);
       } else {
-        if (is_inline && !is_function_def_with_body &&
-            !sym->variant.routine.ptr->is_inline) {
-          error(ec_inline_not_allowed);
+        /* It's a member function.  Find the right type signature for this
+           member function name.  If none can be found, NULL is returned. */
+        is_overloaded_function =
+                          sym->kind == (a_symbol_kind)sk_overloaded_function;
+        sym = member_function_redecl_sym(sym, function_type);
+        if (sym == NULL) {
+          sym_error(is_overloaded_function ?
+                          ec_overloaded_function_incompatible_type :
+                          ec_not_compatible_with_previous_decl,
+                    locator->specific_symbol);
+          set_to_error_locator(*locator);
+        } else {
+          if (is_inline && !is_function_def_with_body &&
+              !sym->variant.routine.ptr->is_inline) {
+            error(ec_inline_not_allowed);
+          }  /* if */
         }  /* if */
+      }  /* if */
+      if (sym != NULL) {
+        /* Do throw specification compatibility checking. */
+        add_throw_specification(func_info, sym->variant.routine.ptr);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3244,6 +3251,7 @@ static a_symbol_ptr decl_member_function(
                                    a_symbol_locator        *locator,
                                    a_type_ptr              class_type,
                                    a_type_ptr              member_type,
+                                   a_func_info_block_ptr   func_info,
                                    an_access_specifier     access,
                                    a_boolean               is_inline,
                                    a_boolean               is_virtual,
@@ -3314,6 +3322,7 @@ special function kind (e.g., constructor, destructor), if any.
     rtn->source_corresp.access = access;
     rtn->is_inline = is_inline;
     rtn->compiler_generated = compiler_generated;
+    rtn->throw_specification = func_info->throw_specification;
     if (cssp->is_nonreal_class) {
       /* This symbol represents a member function of a prototype instantiation
          of a class template.  As such it is a quasi function template itself.
@@ -4119,9 +4128,9 @@ routine body is generated at this time.
 {
   a_type_ptr                rout_type;
   a_routine_type_supplement *extra_info;
-  a_symbol_ptr              rout_sym;
   a_symbol_locator          locator;
   a_source_position         pos;
+  a_func_info_block         func_info;
 
   db_enter(3, "generate_special_function");
   /* Allocate and initialize the routine type entry for the function. */
@@ -4158,12 +4167,7 @@ routine body is generated at this time.
       tildize_locator(&locator);
     }  /* if */
   }  /* if */
-  /* Create a symbol and enter it in the symbol table, and create a routine
-     entry and add it to the routines list for the current scope. */
-  rout_sym = decl_member_function(&locator, class_type, rout_type,
-                                  (an_access_specifier)as_public,
-                                  /*is_inline=*/TRUE, /*is_virtual=*/FALSE,
-                                  /*compiler_generated=*/TRUE, sfkind);
+  clear_func_info(&func_info);
 #if 0
 #else
 #define exceptions_disallowed FALSE
@@ -4173,8 +4177,14 @@ routine body is generated at this time.
     /* No explicit throw specification, meaning anything may be thrown. */
     tsp = alloc_throw_specification((a_throw_spec_kind)tsk_any);
     tsp->decl_position = pos_curr_token;
-    rout_sym->variant.routine.ptr->throw_specification = tsp;
+    func_info.throw_specification = tsp;
   }  /* if */
+  /* Create a symbol and enter it in the symbol table, and create a routine
+     entry and add it to the routines list for the current scope. */
+  (void)decl_member_function(&locator, class_type, rout_type, &func_info,
+                             (an_access_specifier)as_public,
+                             /*is_inline=*/TRUE, /*is_virtual=*/FALSE,
+                             /*compiler_generated=*/TRUE, sfkind);
   /* It can be that the head of symbols list for the scope has been
      modified (it may have been changed to an sk_overloaded_function, or
      it may have been empty), so update the class symbol supplement, just to
@@ -6224,7 +6234,7 @@ Scan the body of a class definition, including the base classes list.
               if (friend_specified) {
                 rout_sym =
                       decl_friend_function(&locator, class_type, local_type,
-                                           inline_specified);
+                                           &func_info, inline_specified);
               } else {
                 if (is_destructor) {
                   spec_kind = (a_special_function_kind)sfk_destructor;
@@ -6234,7 +6244,8 @@ Scan the body of a class definition, including the base classes list.
                 }  /* if */
                 /* Create a symbol for the member function. */
                 rout_sym = decl_member_function(
-                                   &locator, class_type, local_type, access,
+                                   &locator, class_type, local_type,
+                                   &func_info, access,
                                    inline_specified, virtual_specified,
                                    /*compiler_generated=*/FALSE, spec_kind);
                 if (corresp_prototype_tag_sym != NULL) {
@@ -6249,10 +6260,6 @@ Scan the body of a class definition, including the base classes list.
                   }  /* if */
                 }  /* if */
               }  /* if */
-              /* Bind the throw specification to the routine entry.  Do
-                 compatibility checking if this is a redeclaration. */
-              add_throw_specification(&func_info,
-                                      rout_sym->variant.routine.ptr);
               if (!function_def_present) {
                 if (func_info.param_id_list != NULL) {
                   /* Free the list of parameter identifiers -- they're not
