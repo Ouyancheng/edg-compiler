@@ -7000,7 +7000,7 @@ that follows.
   a_source_position             decl_start_pos;
   a_boolean                     has_parenthesized_initializer;
 
-  db_enter(3, "full_instantiation");
+  db_enter(3, "full_specialization");
   decl_start_pos = pos_curr_token;
   /* First scan the decl-specifiers. */
   (void)decl_specifiers((DSI_IS_SPECIALIZATION |
@@ -7026,6 +7026,12 @@ that follows.
     if (!is_template_instance_class_symbol(sym)) {
       /* Not a template instance. */
       sym_error(ec_entity_cannot_be_specialized, sym);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    } else if (dso_flags & (DSO_DEFINES_SOMETHING | DSO_DECLARES_SOMETHING)) {
+      /* The specialization should be marked as an autonomous declaration. */
+      set_autonomous_tag_decl_flag(type,
+                                   (dso_flags & DSO_DEFINES_SOMETHING) != 0);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   } else {
     /* Assume the template specialization applies to the declarator, which
@@ -7047,7 +7053,7 @@ that follows.
       }  /* if */
     }  /* if */
     check_for_decl_spec_errors(dso_flags, type, sym, &locator,
-                                     &decl_start_pos);
+                               &decl_start_pos);
     if (is_error_locator(locator)) {
       /* Ignore it. */
     } else if (sym == NULL) {
