@@ -16074,10 +16074,11 @@ Scan the affinity expression for a upc_forall statement.  Return an
 integer expression for the thread number.
 */
 {
-  an_operand          operand;
-  an_expr_stack_entry expr_stack_entry;
-  an_expr_node_ptr    node;
-  a_source_position   operator_position;
+  an_operand                    operand;
+  an_expr_stack_entry           expr_stack_entry;
+  an_expr_node_ptr              node;
+  a_source_position             operator_position;
+  a_transformation_options_set  options;
 
   copy_source_position(pos_curr_token, operator_position);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
@@ -16085,13 +16086,16 @@ integer expression for the thread number.
                   /*suppress_object_lifetime=*/FALSE);
   /* Scan an expression. */
   scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
-  /* Do not convert lvalues to rvalues, arrays to pointers,
-     or functions to pointers. */
-  do_operand_transformations(&operand,
-                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                             TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                             TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
-                             TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
+  /* Do not convert lvalues to rvalues or functions to pointers, unless we're
+     dealing with an array type or with a pointer-to-shared type. */
+  if (is_ptr_to_shared_type(operand.type) || is_array_type(operand.type)) {
+    options = TOPT_NO_OPTIONS;
+  } else {
+    options = TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+              TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
+              TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION;
+  }  /* if */
+  do_operand_transformations(&operand, options);
   if (is_pointer_type(operand.type)) {
     if (!is_ptr_to_shared_type(operand.type)) {
       pos_error(ec_bad_affinity, &operator_position);

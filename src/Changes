@@ -1,5 +1,11 @@
 Version 3.1
 
+9/27/02  Default transformation of UPC affinity expression
+
+An implicit array-to-pointer conversion now applies to UPC affinity expressions
+of array type.  In addition, lvalue-to-rvalue conversions are performed if
+the expression is a pointer to a shared entity.
+
 9/27/02  Diagnostic on redeclaration of parameter in catch clause
 
 In a function try block, the standard prohibits a catch handler variable
