@@ -996,6 +996,13 @@ might not be able to if the template itself has not yet been defined.
       saved_linkage = def_external_linkage;
       def_external_linkage.kind = class_type->source_corresp.name_linkage;
       def_external_linkage.is_explicit = FALSE;
+#if CHECKING
+      if (def_external_linkage.kind == (a_name_linkage_kind)nlk_internal ||
+          def_external_linkage.kind == (a_name_linkage_kind)nlk_none) {
+        unexpected_condition_str2("f_instantiate_template_class:",
+                                  "bad default name linkage kind");
+      }  /* if */
+#endif /* CHECKING */
       /* The tokens of the template definition have been cached away.
          Activate the cache so that they can be rescanned in light of
          the new values associated with the template parameters. */
@@ -1771,11 +1778,19 @@ Instantiate the body of the template function associated with tip.
     pos_error(ec_no_exception_support,
               &func_info_ptr->throw_position);
   }  /* if */
-  /* Set the default name linkage to that of the template.  It will be
+  /* Set the default routine linkage to that of the template.  It will be
      active while the function body is scanned and then restored. */
   saved_linkage = def_external_linkage;
-  def_external_linkage.kind = rout_ptr->source_corresp.name_linkage;
+  def_external_linkage.kind = skip_typerefs(rout_ptr->type)->variant.
+                                     routine.extra_info->routine_name_linkage;
   def_external_linkage.is_explicit = FALSE;
+#if CHECKING
+  if (def_external_linkage.kind == (a_name_linkage_kind)nlk_internal ||
+      def_external_linkage.kind == (a_name_linkage_kind)nlk_none) {
+    unexpected_condition_str2("instantiate_template_function:",
+                              "bad default name linkage kind");
+  }  /* if */
+#endif /* CHECKING */
   /* Reactivate the tokens comprising the function body and scan them. */
   rescan_reusable_cache(&tcp->tokens);
   scan_function_body(rout_ptr, func_info_ptr,
