@@ -2106,8 +2106,10 @@ new_bcp is the base class being created in new_class.
         /* Be sure to select the right base class (its type could appear
            multiple times in the object hierarchy). */
         a_base_class_ptr  disambiguator = NULL;
-        if (!new_bcp->is_virtual) {
-          /* If the base class is virtual, no disambiguator is needed.
+        if (!new_bcp->is_virtual &&
+            !new_bcp->derivation->path->base_class->is_virtual) {
+          /* If the base class is virtual (or the base of a virtual base
+             class), no disambiguator is needed.
              Otherwise, there is only one derivation path and we can search
              for a disambiguator along that path. */
           disambiguator = find_disambiguator(
