@@ -2039,10 +2039,12 @@ do_set_proper_definition_needed_flag:
             walk_ptr(ptr->variant.expression, an_expr_node_ptr, iek_expr_node);
             break;
           case dik_constructor:
-            remap_ptr(ptr->variant.constructor.ptr, a_routine_ptr,
-                      iek_routine);
-            set_proper_routine_definition_needed_flag(
+            if (ptr->variant.constructor.ptr != NULL) {
+              remap_ptr(ptr->variant.constructor.ptr, a_routine_ptr,
+                        iek_routine);
+              set_proper_routine_definition_needed_flag(
                                                  ptr->variant.constructor.ptr);
+            }  /* if */
             walk_list(ptr->variant.constructor.args, an_expr_node_ptr,
                       iek_expr_node);
             break;
