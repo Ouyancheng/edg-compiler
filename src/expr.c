@@ -1919,7 +1919,8 @@ bound with the function in *bound_function_selector.
           /* For a template parameter type, switch to the corresponding
              proxy class. */
           orig_class_struct_union_type =
-                  proxy_class_for_template_param(orig_class_struct_union_type);
+                      proxy_class_for_template_param(
+                                  skip_typerefs(orig_class_struct_union_type));
         }  /* if */
         /* Drop any qualifiers or typedefs on the class/struct/union type. */
         class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
