@@ -4581,8 +4581,11 @@ declaration.
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
 #if IA64_ABI && NEED_NAME_MANGLING
   if (variable_ptr->storage_class == (a_storage_class)sc_static &&
-      variable_ptr->source_corresp.is_local_to_function &&
-      !variable_ptr->source_corresp.is_class_member) {
+      variable_ptr->source_corresp.is_local_to_function) {
+    /* Local static variables may need to be mangled.  If two (or more) such
+       variables in a function have the same name, a discriminator must be
+       appended to the mangled name (for the IA-64 ABI).  It is convenient
+       to compute this discriminator at this time. */
     compute_name_collision_discriminator(sym);
   }  /* if */
 #endif /* IA64_ABI && NEED_NAME_MANGLING */

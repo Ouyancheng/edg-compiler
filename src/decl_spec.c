@@ -2244,6 +2244,10 @@ new expression and should therefore not be treated as a declaration.
       }  /* if */
 #if IA64_ABI && NEED_NAME_MANGLING
       if (depth_innermost_function_scope != NO_SCOPE_NUMBER) {
+        /* This is a nonnested local class.  The IA-64 ABI sometimes requires
+           that a discriminator be appended to its mangled name if two or more
+           such classes share the same name within the same function.  It is
+           convenient to compute this discriminator at this time. */
         compute_name_collision_discriminator(tag_sym);
       }  /* if */
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
