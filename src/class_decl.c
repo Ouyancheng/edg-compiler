@@ -6415,10 +6415,33 @@ ones are allocated in the scope specified by decl_scope_level.
       case sk_field:
         apo_sym = sym->variant.field.anonymous_parent_object;
         if (reuse_symbol) {
+          a_boolean  suppress_reenter_symbol_call = FALSE;
+
           /* Unlink the symbol from the inactive list and link it back into
              the symbol table in the current scope. */
           remove_anonymous_union_member_from_inactive_symbols_list(sym);
-          reenter_symbol(sym, depth_scope_stack, /*suppress_error=*/FALSE);
+          if (microsoft_bugs && class_type != NULL) {
+            /* The Microsoft compiler does not diagnose promoting an
+               anonymous union member into a scope in which its name has
+               already been declared.  Emulate the behavior by suppressing
+               the reenter_symbol call. */
+            a_symbol_locator  locator;
+            a_symbol_ptr      other_sym;
+
+            clear_locator(&locator, &sym->decl_position);
+            locator.symbol_header = sym->header;
+            other_sym = class_qualified_id_lookup(&locator, class_type,
+                                               IDL_DIRECT_CLASS_MEMBERS_ONLY);
+            if (other_sym != NULL && !is_tag_symbol(other_sym)) {
+              pos_st_warning(ec_id_already_declared, &(sym->decl_position),
+                             sym->header->identifier);
+              suppress_reenter_symbol_call = TRUE;
+            }  /* if */
+          }  /* if */
+          if (!suppress_reenter_symbol_call) {
+            /* Enter the symbol back into the current scope. */
+            reenter_symbol(sym, depth_scope_stack, /*suppress_error=*/FALSE);
+          }  /* if */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
         } else {
           /* The symbol has to be kept bound to the type, since the latter
