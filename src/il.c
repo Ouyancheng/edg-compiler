@@ -5050,6 +5050,38 @@ unevaluated expression.
 }  /* alloc_dtor_dynamic_init */
 
 
+an_expr_node_ptr alloc_temp_init_node(a_type_ptr temp_type,
+                                      a_boolean  result_is_addr)
+/*
+Create an enk_temp_init node and return a pointer to it.  The implied
+temporary has type temp_type.  The value of the enk_temp_init is the address
+(rather than the value) of the temporary if result_is_addr is TRUE.
+No dynamic initialization entry is attached under the node (the caller
+must do that).
+*/
+{
+  an_expr_node_ptr temp_init_node =
+                             alloc_expr_node((an_expr_node_kind)enk_temp_init);
+
+  temp_init_node->variant.init.result_is_addr = result_is_addr;
+  if (result_is_addr) {
+    /* The result is the address of the temporary, so the type is a pointer
+       to the type of the temporary. */
+    temp_init_node->type = make_pointer_type(temp_type);
+  } else {
+    /* The result is the value of the temporary, so the type is the type
+       of the temporary. */
+    temp_init_node->type = temp_type;
+  }  /* if */
+  /* Make sure the IL scope that the temporary is part of exists.  Even though
+     the temporary does not exist as a variable, it's still (from a language
+     point of view) part of this scope.  That's important, because it has to
+     be destroyed at the right point. */
+  (void)ensure_il_scope_exists(&scope_stack[decl_scope_level]);
+  return temp_init_node;
+}  /* alloc_temp_init_node */
+
+
 an_expr_node_ptr create_expr_temporary(a_type_ptr temp_type,
                                        a_boolean  result_is_addr,
                                        a_boolean  evaluated)
@@ -5070,23 +5102,8 @@ Only used in C++.
   dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_none, temp_type,
                                 evaluated);
   /* Make an enk_temp_init node that points at the dynamic init entry. */
-  temp_init_node = alloc_expr_node((an_expr_node_kind)enk_temp_init);
+  temp_init_node = alloc_temp_init_node(temp_type, result_is_addr);
   temp_init_node->variant.init.dynamic_init = dip;
-  temp_init_node->variant.init.result_is_addr = result_is_addr;
-  if (result_is_addr) {
-    /* The result is the address of the temporary, so the type is a pointer
-       to the type of the temporary. */
-    temp_init_node->type = make_pointer_type(temp_type);
-  } else {
-    /* The result is the value of the temporary, so the type is the type
-       of the temporary. */
-    temp_init_node->type = temp_type;
-  }  /* if */
-  /* Make sure the IL scope that the temporary is part of exists.  Even though
-     the temporary does not exist as a variable, it's still (from a language
-     point of view) part of this scope.  That's important, because it has to
-     be destroyed at the right point. */
-  (void)ensure_il_scope_exists(&scope_stack[decl_scope_level]);
   return temp_init_node;
 }  /* create_expr_temporary */
 

@@ -395,6 +395,9 @@ extern a_dynamic_init_ptr alloc_dtor_dynamic_init(
                                                 a_type_ptr          type,
                                                 a_boolean           evaluated);
 
+extern an_expr_node_ptr alloc_temp_init_node(a_type_ptr temp_type,
+                                             a_boolean  result_is_addr);
+
 extern an_expr_node_ptr create_expr_temporary(a_type_ptr temp_type,
                                               a_boolean  result_is_addr,
                                               a_boolean  evaluated);
