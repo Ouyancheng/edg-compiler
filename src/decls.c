@@ -9792,7 +9792,8 @@ TRUE if an error was reported while the decl-specifiers were scanned.
         }  /* if */
         /* Inline can only be specified for a function (ARM 7.1.2). */
         if (inline_specified) {
-          pos_error(ec_inline_and_nonfunction, decl_start_pos);
+          pos_diagnostic(gcc_mode ? es_warning : es_error,
+                         ec_inline_and_nonfunction, decl_start_pos);
         }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (defines_something || declares_something) {
@@ -10688,7 +10689,8 @@ continue_with_declaration:
       if (inline_specified) {
         if (!is_function) {
           /* Not a function declaration. */
-          pos_error(ec_inline_and_nonfunction, &decl_start_pos);
+          pos_diagnostic(gcc_mode ? es_warning : es_error,
+                         ec_inline_and_nonfunction, &decl_start_pos);
         } else {
           func_info.is_inline = TRUE;
         }  /* if */

@@ -5128,8 +5128,8 @@ Returns TRUE if there is an error in the specifiers.
                     !extern_inline_allowed &&
                     *storage_class == (a_storage_class)sc_extern)) {
           /* "inline" allowed on certain function declarations only. */
-          error(ec_inline_not_allowed);
-          err = TRUE;
+          diagnostic(gcc_mode ? es_warning : es_error, ec_inline_not_allowed);
+          err = !gcc_mode;
         } else if (decl_specifiers_seen & DS_INLINE) {
           /* Only one "inline" specifier at a time.  C99 and Microsoft C++
              allow multiple "inline" specifiers, but that is unlikely the
