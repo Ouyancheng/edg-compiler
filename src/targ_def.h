@@ -136,7 +136,7 @@ Wide character constant type (wchar_t, see stddef.h and stdlib.h).
 			/* Default value, used to initialize global variable
 			   targ_wchar_t_int_kind. */
 #endif /* !defined(TARG_WCHAR_T_INT_KIND) */
-#ifndef TARG_SIZEOF_WCHAR_T TARG_SIZEOF_SHORT
+#ifndef TARG_SIZEOF_WCHAR_T
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_SHORT
 			/* Default value, used to initialize global variable
 			   targ_sizeof_wchar_t. */
