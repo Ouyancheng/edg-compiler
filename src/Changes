@@ -1,5 +1,14 @@
 Version 2.26
 
+9/30/94  ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
+
+ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C has been added to
+targ_def.h.  It is TRUE to indicate that when generating C or C++ code,
+the front end should add extra braces around "if" statements without an
+"else" to avoid the "dangling else" problem.  This is necessary only
+if customer code modifies the IL statement tree, so the flag is off
+by default.
+
 9/30/94  Access errors now discretionary
 
 All access errors have been made discretionary, i.e., they can be suppressed

@@ -760,6 +760,15 @@ generating K&R C.)
 #define SUPPRESS_CONST_IN_GENERATED_C FALSE
 #endif /* !defined(SUPPRESS_CONST_IN_GENERATED_C) */
 
+/*
+When generating C or C++ code, add extra braces around "if" statements
+without an "else" to avoid the "dangling else" problem.  This is necessary
+only if customer code modifies the IL statement tree.
+*/
+#ifndef ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
+#define ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C FALSE
+#endif /* ifndef ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
+
 #if DO_IL_LOWERING
 
 /* Switches that control aspects of IL lowering: */

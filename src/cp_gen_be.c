@@ -4104,6 +4104,7 @@ Generate code for the indicated statement.
 {
   a_statement_kind    kind;
   a_switch_clause_ptr scp;
+  a_statement_ptr     else_stmt;
   a_boolean           suppress_trailing_space = FALSE;
 
   if (statement == NULL) {
@@ -4163,15 +4164,27 @@ Generate code for the indicated statement.
     case stmk_if:
       /* "if" statement: generate "if (expr) statement" or
                                   "if (expr) statement else statement". */
+      else_stmt = statement->variant.if_stmt.else_statement;
+#if ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
+      /* Add braces around an "if" without an "else" to avoid the "dangling
+         else" problem.  This is necessary only if customer code modifies
+         the IL tree. */
+      if (else_stmt == NULL) write_tok_ch('{');
+#endif /* ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
       write_tok_str("if ");
       gen_full_boolean_controlling_expression(statement->expr);
       write_space();
       /* Generate the "then" part. */
       gen_statement(statement->variant.if_stmt.then_statement);
-      if (statement->variant.if_stmt.else_statement != NULL) {
+      if (else_stmt != NULL) {
         /* Generate the "else" part. */
         write_tok_str("else ");
-        gen_statement(statement->variant.if_stmt.else_statement);
+        gen_statement(else_stmt);
+#if ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
+      } else {
+        /* Close the set of braces begun above. */
+        write_tok_ch('}');
+#endif /* ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
       }  /* if */
       break;
     case stmk_while:

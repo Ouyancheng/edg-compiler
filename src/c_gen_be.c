@@ -4292,13 +4292,19 @@ Generate C for a statement.
       write_tok_ch(';');
       break;
     case stmk_if:
+      else_stmt = statement->variant.if_stmt.else_statement;
+#if ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
+      /* Add braces around an "if" without an "else" to avoid the "dangling
+         else" problem.  This is necessary only if customer code modifies
+         the IL tree. */
+      if (else_stmt == NULL) write_tok_ch('{');
+#endif /* ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
       write_tok_str("if ");
       dump_boolean_controlling_expression(statement->expr);
       /* Dump the "then" part. */
       indent += 2;
       dump_statement(statement->variant.if_stmt.then_statement);
       indent -= 2;
-      else_stmt = statement->variant.if_stmt.else_statement;
       if (else_stmt != NULL) {
         /* Use the position from the "else" statement for the keyword. */
         set_output_position_for_stmt(&else_stmt->position);
@@ -4306,6 +4312,11 @@ Generate C for a statement.
 	indent += 2;
 	dump_statement(else_stmt);
 	indent -= 2;
+#if ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
+      } else {
+        /* Close the set of braces begun above. */
+        write_tok_ch('}');
+#endif /* ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
       }  /* if */
       break;
     case stmk_while:
