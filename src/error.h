@@ -118,7 +118,11 @@ EXTERN an_error_severity
                            modified by a command line option. */
 
 EXTERN a_boolean
-                brief_diagnostics /* = FALSE */;
+                brief_diagnostics
+#if VAR_INITIALIZERS
+                                  = DEFAULT_BRIEF_DIAGNOSTICS
+#endif /* VAR_INITIALIZERS */
+                                                             ;
                         /* TRUE if diagnostic output should omit the
 			   source line information and suppress wrapping
 			   of the error message text. */

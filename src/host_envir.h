@@ -211,6 +211,16 @@ severity explicitly included in the message.
 #endif /* ifndef ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES */
 
 /*
+Flag that is TRUE if "brief" diagnostics (each diagnostic is all on
+one line) should be put out.  This is the initial value of the variable
+brief_diagnostics, which can be overridden by the --[no]brief_diagnostics
+command-line option.
+*/
+#ifndef DEFAULT_BRIEF_DIAGNOSTICS
+#define DEFAULT_BRIEF_DIAGNOSTICS FALSE
+#endif /* ifndef DEFAULT_BRIEF_DIAGNOSTICS */
+
+/*
 Is the C-generating back end being used as the back end?
 See also C_GEN_BE_GENERATES_ANSI_C et al. in targ_def.h.
 */

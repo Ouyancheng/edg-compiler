@@ -1,5 +1,12 @@
 Version 2.32
 
+4/16/96 DEFAULT_BRIEF_DIAGNOSTICS
+
+A default initial value for the variable brief_diagnostics is now
+provided by DEFAULT_BRIEF_DIAGNOSTICS.  This variable controls the
+"brief" output mode for diagnostics, and is also set by the
+--[no]brief_diagnostics command-line option.
+
 4/16/96 bool allowed as left operand of compound assignment operator
 
 As of the Monterey X3J16/WG21 meeting, motion 2h, compound assignment
