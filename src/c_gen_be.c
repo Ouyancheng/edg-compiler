@@ -1695,13 +1695,17 @@ is non-NULL, in which case that is the function scope.
 
   if (scope != NULL) param_var = scope->variant.routine.parameters;
   write_tok_str("(");
-  if (!rtsp->prototyped
-#if !C_GEN_BE_GENERATES_ANSI_C
-      /* When generating K&R C, a definition of a prototyped function is put
-         out as an old-style function. */
-      || scope != NULL
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-                       ) {
+  /* A routine is put out as unprototyped if its interface is unprototyped
+     or if this is the definition and the definition is old-style (i.e.,
+     there was a prototyped declaration and then an old-style definition). */
+  /* When generating K&R C, a definition of a prototyped function is put
+     out as an old-style function. */
+  if (!rtsp->prototyped ||
+      (scope != NULL
+#if C_GEN_BE_GENERATES_ANSI_C
+                     && rtsp->old_style_params_scanned
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
+                                                      )) {
     /* Old-style list. */
     if (scope != NULL) {
       /* This is the definition of an old-style function.  Put out the
@@ -4751,7 +4755,11 @@ for the definition of the indicated routine.  scope is the associated scope.
                         /*need_paren=*/TRUE);
 #if C_GEN_BE_GENERATES_ANSI_C
   /* For an old-style function, declare the parameters. */
-  if (!rout->type->variant.routine.extra_info->prototyped)
+  /* A routine is put out as unprototyped if its interface is unprototyped
+     or if the definition is old-style (i.e., there was a prototyped
+     declaration and then an old-style definition). */
+  if (!rout->type->variant.routine.extra_info->prototyped ||
+      rout->type->variant.routine.extra_info->old_style_params_scanned)
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   {
     dump_old_style_parameter_decls(rout, scope);
