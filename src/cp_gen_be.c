@@ -6427,7 +6427,11 @@ Generate code for the indicated statement.
       /* Add braces around an "if" without an "else" to avoid the "dangling
          else" problem.  This is necessary only if customer code modifies
          the IL tree. */
-      if (else_stmt == NULL && !statement->has_empty_else_clause) {
+      if (else_stmt == NULL
+#if !REPRESENT_EMPTY_STATEMENTS_IN_IL
+                            && !statement->has_empty_else_clause
+#endif /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
+                                                                ) {
         write_tok_ch('{');
       }  /* if */
 #endif /* ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
