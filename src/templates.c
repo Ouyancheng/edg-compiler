@@ -5121,23 +5121,29 @@ Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
       a_boolean new_has_default;
       old_has_default = old_tpp->has_default_arg;
       new_has_default = new_tpp->has_default_arg;
-      if (old_has_default && new_has_default) {
-        /* This parameter already has a default argument. */
+      if (old_has_default && new_has_default && !microsoft_mode) {
+        /* This parameter already has a default argument.  The
+           Microsoft compiler permits this, and uses the new value. */
         pos_error(ec_default_arg_already_defined, &
                   new_tpp->param_symbol->decl_position);
       } else if (old_has_default || new_has_default) {
+        /* One or the other has a default argument, or we are in Microsoft
+           mode and both have default arguments. */
         a_template_param_ptr	from_tpp;
         a_template_param_ptr	to_tpp;
         /* Copy the default information into the other parameter.  We
            end up with two argument lists with complete parameter
            information. This is done because we don't know which parameter
            list is going to end up being the one actually used. */
-        if (old_has_default) {
-          from_tpp = old_tpp;
-          to_tpp = new_tpp;
-        } else {
+        if (new_has_default) {
+          /* If the new declaration has a default, use it.  It must be done
+             in this order because in Microsoft mode a declaration may have
+             both an old and new default value. */
           from_tpp = new_tpp;
           to_tpp = old_tpp;
+        } else {
+          from_tpp = old_tpp;
+          to_tpp = new_tpp;
         }  /* if */
         to_tpp->has_default_arg = TRUE;
         def_arg_involves_template_param =

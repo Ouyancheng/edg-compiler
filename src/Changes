@@ -1,5 +1,18 @@
 Version 2.36
 
+4/23/97   Microsoft compatibility: default template arguments can be
+          redefined
+
+The Microsoft compiler permits a template default argument to be redeclared,
+which is not permitted by the Working Paper.  The Microsoft compiler permits
+this even when the new value is different from the old one (in which case
+the new value is used).  We now emulate this behavior in Microsoft mode.
+
+  template <class T, class T2 = char> struct A;
+  template <class T, class T2 = int> struct A {
+     T2 t2;  // T2 will have type "int" when the default value is used
+  };
+
 4/22/97   Needed flag walk: dynamic_cast source/destination must be pointers
           to complete classes
 
