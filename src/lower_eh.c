@@ -648,12 +648,13 @@ been generated already.
         a_variable_ptr vtbl_var = type->variant.class_struct_union.extra_info->
                                                     virtual_function_table_var;
         if (vtbl_var != NULL) {
-          definition_needed =
-                           (vtbl_var->init_kind == (an_init_kind)initk_static);
           /* The typeinfo variable is static if the virtual function table
              is static. */
           force_static =
                        (vtbl_var->storage_class == (a_storage_class)sc_static);
+          definition_needed =
+                (vtbl_var->storage_class == (a_storage_class)sc_unspecified) ||
+                force_static;
         } else {
           /* The class has no virtual function table (i.e., it's not
              polymorphic), so its typeinfo variable must be defined and must
