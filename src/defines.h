@@ -135,6 +135,7 @@ Flags to be set when using the KAI inliner.
 #define MICROSOFT_EXTENSIONS_ALLOWED 1
 #define DEFAULT_WCHAR_T_IS_KEYWORD 0
 #define DEFAULT_BOOL_IS_KEYWORD 0
+#define LONG_LONG_ALLOWED 1
 #ifndef OPTIMIZED_VERSION
 #define OPTIMIZED_VERSION 1
 #endif /* !defined(OPTIMIZED_VERSION) */
