@@ -6377,7 +6377,8 @@ by IL lowering.
     (void)strcat(name, module_init_id);
     /* Generate the declaration of the routine. */
     end_output_line_if_begun();
-    write_tok_str("void ");
+    /* An implicit "int" return type is used because the routine is
+       called before it is declared. */
     write_tok_str(name);
     write_tok_str("()");
 #if GCC_IS_C_GEN_BE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C
