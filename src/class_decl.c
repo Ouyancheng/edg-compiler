@@ -7428,17 +7428,24 @@ been completed (C++ only).
                 error(ec_function_type_not_allowed);
                 local_type = error_type();
               } else if (is_incomplete_type(local_type)) {
-                /* As a C extension (but not C++), allow an array of unknown
-                   size as the last member of a struct.  It can't be the first
-                   member, though. */
-                if (C_mode() && class_type->kind == (a_type_kind)tk_struct &&
-                    is_array_type(local_type) && !is_first_field &&
-                    !is_incomplete_type(
-                           underlying_array_element_type(local_type)) &&
+                /* As a C extension (and in C++ in microsoft mode), allow an
+                   array of unknown size as the last member of a struct.
+                   It can't be the first member, though. */
+                if (is_array_type(local_type) &&
                     (curr_token == tok_rbrace ||
                      (curr_token == tok_semicolon &&
-                      next_token() == tok_rbrace))) {
-                  /* Okay -- unless we're in ANSI mode. */
+                      next_token() == tok_rbrace)) &&
+                    !is_incomplete_type(
+                           underlying_array_element_type(local_type)) &&
+                    !is_first_field && (C_mode()
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                   /* Allowed in Microsoft C++ but only for aggregates. */
+                       || (microsoft_mode &&
+                           !class_aggregate_ruled_out &&
+                           access == (an_access_specifier)as_public)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                    )) {
+                  /* Okay -- unless we're in ANSI-C mode. */
                   if (strict_ansi_mode) {
                     diagnostic(strict_ansi_error_severity,
                                ec_incomplete_type_not_allowed);

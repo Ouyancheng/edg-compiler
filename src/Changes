@@ -1,5 +1,26 @@
 Version 2.30
 
+8/25/95  Incomplete array as final field in Microsoft C++ mode
+
+In C, as an extension, it is allowed to declared the final field of a
+struct with zero-length array:
+
+  struct S {
+    int a,b,c,d[];       // Okay in Microsoft C++ mode
+  };
+
+This is now accepted in Microsoft C++ mode as well, as long as the class
+type is an "aggregate" (no private members, no constructor, no base
+classes, no virtual functions).
+
+In addition, the use of [0] for such cases in place of [], already accepted
+in Microsoft C mode, is now accepted in Microsoft C++ mode, too.  That
+means the above can be written as:
+
+  struct S {
+    int a,b,c,d[0];      // Okay in Microsoft C++ mode
+  };
+
 8/25/95  _asm in Microsoft mode
 
 In Microsoft mode, "_asm" is now accepted as a synonym for "asm" or "__asm".
