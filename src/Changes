@@ -451,6 +451,24 @@ function, but the parameters of the generated function were unnamed.
 As a consequence, the generated C code did not compile.  Now, the
 parameters of the generated function are given the appropriate names.
 
+9/16/97   Lookup of qualified names in class member accesses
+
+The new "dual lookup" of qualified names in class member accesses is now
+implemented.  The B in B::i in the following example is now looked up
+both in the context of the expression (i.e., a normal lookup) and in the
+class of the left operand of the "." or "->" operator (struct A, in this
+example).  A diagnostic is issued if the name is found in both contexts
+and the two names found do not refer to the same entity.
+
+  struct A {
+    typedef A B;
+    int i;
+  };
+  int main() {
+    A       a;
+    a.B::i = 1;  // not previously allowed
+  }
+
 9/16/97   Abort eliminated on use of incomplete enum in "?" in pcc mode
 
 The following program, which uses an enumerator from an enum within
