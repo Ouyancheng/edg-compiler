@@ -3533,7 +3533,7 @@ is omitted, the type defaults to "int".
   /* Scan the constant expression. */
   cp = alloc_constant((a_constant_repr_kind)ck_error);
   scan_constant_initializer_expression(member_type, cp);
-  add_to_constants_list(cp);
+  add_to_constants_list(cp, /*at_file_scope=*/FALSE);
   /* Enter the constant name in the symbol table.  Do this after scanning
      the expression to avoid problems with a recursive reference, though
      it may mean the order in which errors are issued is a little strange. */
@@ -6357,12 +6357,13 @@ Scan the body of a class definition, including the base classes list.
             typedef_sym_ptr->variant.type->
                           source_corresp.class_of_which_a_member = class_type;
           } else if (curr_token == tok_assign &&
+                     is_integral_type(local_type) &&
                      is_const_qualified_type(local_type) &&
                      !is_volatile_qualified_type(local_type) &&
                      member_storage_class == (a_storage_class)sc_unspecified &&
                      C_dialect == C_dialect_cplusplus) {
             /* Provide support for the nonstandard declaration of a member
-               constant -- e.g., "const int I = 2;". */
+               constant of integral type -- e.g., "const int I = 2;". */
             decl_member_constant(&locator, class_type, local_type, access);
           } else {
             if (C_dialect == C_dialect_cplusplus) {
