@@ -1260,9 +1260,9 @@ file should be a binary file if binary_file is TRUE.
     if (dir_len + need_slash + 24 > TEMP_NAME_BUFFER_SIZE) {
       str_catastrophe(ec_temp_file_dir_name_too_long, temp_dir);
     }  /* if */
-    (void)sprintf(buffer, "%s%sedg%lu_%d", temp_dir, 
+    (void)sprintf(buffer, "%s%sedg%lu_%ld", temp_dir, 
 					   need_slash ? "/" : "", seed++,
-                                           getpid());
+                                           (long)getpid());
 #if DEBUG
     if (debug_level >= 4) {
       fprintf(f_debug, "Opening temporary file %s\n", buffer);
