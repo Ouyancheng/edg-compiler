@@ -61,7 +61,10 @@ This version is for the Sun Solaris operating system.
 /*
 Definitions for Solaris:
 */
+#ifndef __BSD__
+/* __BSD__ may be set if building on SunOS. */
 #define __ANSIC__ 1
+#endif /* ifndef __BSD__ */
 #define C_GEN_BE_GENERATES_ANSI_C 1
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
 #define LONG_LONG_ALLOWED 1

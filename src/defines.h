@@ -58,6 +58,22 @@ Flags to be set when using the KAI inliner.
 
 #ifdef sun
 
+/* Default to SOLARIS unless SUNOS is defined. */
+#ifndef SUNOS
+#ifndef SOLARIS
+#define SOLARIS
+#endif /* ifndef SOLARIS */
+#endif /* ifndef SUNOS */
+
+#if SUNOS
+/* Default to __BSD__ on SunOS, unless __ANSIC__ has been defined. */
+#ifndef __BSD__
+#ifndef __ANSIC__
+#define __BSD__
+#endif /* ifndef __ANSIC__ */
+#endif /* ifndef __BSD__ */
+#endif /* SUNOS */
+
 #ifndef SUN_TEST_VERSION
 #define SUN_TEST_VERSION 1
 #endif /* ifndef SUN_TEST_VERSION */
