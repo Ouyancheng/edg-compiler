@@ -1,5 +1,25 @@
 Version 2.43
 
+11/19/99 Error on repeated default arguments on function templates
+
+Default arguments on function templates and members functions of class
+templates can only appear in the first declaration of those functions.
+However, the front end used to not diagnose default arguments on a second
+declaration if it appeared outside the namespace scope of the first
+declaration.  Similarly, no diagnostic was issued if a member function of a
+nested class template was defined outside its enclosing class.
+
+  struct X {
+    template<class T> struct Y {
+      void f(int i = 0);
+    };
+  };
+  template<class T>
+    void X::Y<T>::f(int i = 0) {}  // Error cannot redeclare default arguments
+                                   // (used to be silent).
+
+This is now fixed.
+
 11/18/99 Typedef of operator names
 
 The front end now correctly diagnoses attempts to introduce an operator name

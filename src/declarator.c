@@ -1515,14 +1515,25 @@ declaration.
               cache_default_arg = TRUE;
               ignore_default_arg_expr = TRUE;
             } else if (parent_scope_kind ==
-                                  (a_scope_kind)sck_class_reactivation &&
-                       scope_stack[depth_scope_stack-2].kind ==
-                                   (a_scope_kind)sck_template_declaration) {
-              /* A member function declaration of a template class
-                 outside of the class declaration.  This is not supported. */
-              pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
-              default_arg_allowed_on_curr_param = FALSE;
-              ignore_default_arg_expr = TRUE;
+                                   (a_scope_kind)sck_class_reactivation ||
+                       parent_scope_kind ==
+                                   (a_scope_kind)sck_namespace_reactivation) {
+              /* First skip surrounding reactivation scopes: */
+              int  template_scope = depth_scope_stack-2;
+              while (scope_stack[template_scope].kind ==
+                                   (a_scope_kind)sck_class_reactivation ||
+                     scope_stack[template_scope].kind ==
+                                   (a_scope_kind)sck_namespace_reactivation) {
+                --template_scope;
+              }  /* while */
+              if (scope_stack[template_scope].kind ==
+                                     (a_scope_kind)sck_template_declaration) {
+                /* A member function declaration of a template class outside
+                   of the class declaration.  This is not allowed. */
+                pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
+                default_arg_allowed_on_curr_param = FALSE;
+                ignore_default_arg_expr = TRUE;
+              }  /* if */
             }  /* if */
           }  /* if */
           if (curr_token == tok_comma || curr_token == tok_rparen ||
