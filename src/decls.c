@@ -4273,11 +4273,13 @@ syntax is:
       a_boolean  restrict_seen;
 
       array_declarator(&new_type_ptr, /*nonconstant_allowed=*/TRUE,
+                       /*top_level_field_decl=*/FALSE,
                        /*restrict_allowed=*/FALSE, &restrict_seen);
       add_to_derived_type_list(new_type_ptr,
                                &derived_type, &bottom_derived_type);
       while (curr_token == tok_lbracket) {
         array_declarator(&new_type_ptr, /*nonconstant_allowed=*/FALSE,
+                         /*top_level_field_decl=*/FALSE,
                          /*restrict_allowed=*/FALSE, &restrict_seen);
         /* Add the new type to the bottom of the existing derived type list.
            Note that this involves error checking. */

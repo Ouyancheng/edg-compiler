@@ -1510,8 +1510,12 @@ scope is that of a class definition.
 #if !RESTRICT_ALLOWED
 /*ARGSUSED*/ /* <-- because "restrict_allowed" is not used. */
 #endif /* !RESTRICT_ALLOWED */
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- because "top_level_field_decl" is not used. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void array_declarator(a_type_ptr *new_type_ptr,
                       a_boolean  nonconstant_dimension_allowed,
+                      a_boolean  top_level_field_decl,
                       a_boolean  restrict_allowed,
                       a_boolean  *restrict_seen)
 /*
@@ -1523,7 +1527,9 @@ expression (e.g., with a new type name); that case is indicated by
 nonconstant_dimension_allowed.  When RESTRICT_ALLOWED is TRUE,
 restrict_allowed may be TRUE to indicate that this is a function parameter
 declaration for which the special restrict-array syntax is permitted.
-If "restrict" is seen, set *restrict_seen to TRUE.
+If "restrict" is seen, set *restrict_seen to TRUE.  top_level_field_decl
+is TRUE to indicate that this is the declaration of nonstatic data member
+of a class.
 */
 {
   a_targ_size_t           num_of_elements;
@@ -1578,13 +1584,22 @@ If "restrict" is seen, set *restrict_seen to TRUE.
       switch (constant.kind) {
         case ck_integer:
           /* Array size must be greater than zero. */
-          if (sign_of_integer_constant(&constant) <= 0) {
-            error(ec_array_size_must_be_positive);
-            err = TRUE;
-          } else {
+          if (sign_of_integer_constant(&constant) > 0) {
             num_of_elements =
                         unsigned_value_of_integer_constant(&constant, &err);
             if (err) error(ec_array_size_too_large);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (microsoft_mode && C_mode() && top_level_field_decl &&
+                     sign_of_integer_constant(&constant) == 0) {
+            /* In Microsoft C mode a field may be zero-size array type if
+               it is the last field of the struct.  Thus
+                 struct S { int a,b,c[0]; }
+               is allowed, and "c[0]" has the same semantics as "c[]". */
+            num_of_elements = 0;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          } else {
+            error(ec_array_size_must_be_positive);
+            err = TRUE;
           }  /* if */
           break;
         case ck_template_param:
@@ -2686,6 +2701,7 @@ function_lparen:
     } else {
       /* Left bracket, indicating array declarator. */
       a_boolean  restrict_seen, restrict_allowed = FALSE;
+      a_boolean  top_level_field_decl;
 
 #if RESTRICT_ALLOWED
       if (restrict_recognized) {
@@ -2702,8 +2718,12 @@ function_lparen:
         }  /* if */
       }  /* if */
 #endif /* RESTRICT_ALLOWED */
+      /* This is a top-level declarator if derived_type is NULL; it's a field
+         declaration only if the nonstatic member flag is set. */
+      top_level_field_decl = (input_flags & DI_NONSTATIC_MEMBER) &&
+                             derived_type == NULL;
       array_declarator(&new_type_ptr, nonconstant_dimension_allowed,
-                       restrict_allowed, &restrict_seen);
+                       top_level_field_decl, restrict_allowed, &restrict_seen);
 #if RESTRICT_ALLOWED
       if (restrict_seen) {
         *output_flags |= DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY;

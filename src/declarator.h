@@ -186,6 +186,7 @@ a_type_ptr pointer_declarator(
 
 extern void array_declarator(a_type_ptr *new_type_ptr,
                              a_boolean  nonconstant_dimension_allowed,
+                             a_boolean  top_level_field_decl,
                              a_boolean  restrict_allowed,
                              a_boolean  *restrict_seen);
 
