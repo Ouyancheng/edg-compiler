@@ -497,7 +497,9 @@ Flag that is TRUE if external names begin with an added underscore.
 This is used by some utility programs (e.g., edg_munch) that deal with
 names.  The front end doesn't add the underscore.
 */
+#ifndef TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED TRUE
+#endif /* !defined(TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED) */
 
 /*
 Flag that is TRUE if class and struct fields are allocated in the same order
