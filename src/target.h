@@ -151,16 +151,23 @@ errors are still generated for type mismatches.
 #define SAME_REPR_INTS_INTERCHANGEABLE_IN_IL TRUE
 
 /* Maximum size of a bit-field.  Must not be larger than the size of a
-   long. */
+   long (or a long long, if they are allowed). */
 #define TARG_MAX_BIT_FIELD_SIZE (TARG_SIZEOF_INT*TARG_CHAR_BIT)
-#if TARG_MAX_BIT_FIELD_SIZE > (TARG_SIZEOF_LONG*TARG_CHAR_BIT)
-error -- TARG_MAX_BIT_FIELD_SIZE may not be bigger than the size of a long
+/* Check the value: */
+#if LONG_LONG_ALLOWED
+#define QQ_MAX_ALLOWED TARG_SIZEOF_LONG_LONG
+#else /* !LONG_LONG_ALLOWED */
+#define QQ_MAX_ALLOWED TARG_SIZEOF_LONG
+#endif /* LONG_LONG_ALLOWED */
+#if TARG_MAX_BIT_FIELD_SIZE > (QQ_MAX_ALLOWED*TARG_CHAR_BIT)
+??=error -- TARG_MAX_BIT_FIELD_SIZE is too big
 #endif /* TARG_MAX_BIT_FIELD_SIZE ... */
 /* Second check required for definition of a_field (see il_def.h).  We add
    1 to TARG_MAX_BIT_FIELD_SIZE for a front end use (see class_decl.c). */
 #if BYTE_MAX < TARG_MAX_BIT_FIELD_SIZE+1
-error -- TARG_MAX_BIT_FIELD_SIZE is too big.
+??=error -- TARG_MAX_BIT_FIELD_SIZE is too big.
 #endif /* BYTE_MAX < TARG_MAX_BIT_FIELD_SIZE */
+#undef QQ_MAX_ALLOWED
 
 /* Container size to be used for bit-fields.  If > 0, indicates the
    size in bytes of one of the integral types.  0 means "use the smallest
