@@ -8115,7 +8115,7 @@ matches, a new argument list is returned in *new_arg_list.
     }  /* if */
   }  /* if */
   /* If there was no match, free the new template argument list, if any. */
-  if (result_type != NULL && *new_arg_list != NULL) {
+  if (result_type == NULL && *new_arg_list != NULL) {
     free_template_arg_list(*new_arg_list);
     *new_arg_list = NULL;
   }  /* if */
