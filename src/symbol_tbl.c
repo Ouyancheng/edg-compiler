@@ -3157,7 +3157,11 @@ this is not allowed, an error will be issued by the caller.
          for-statement, but it does not conflict with the declaration of other
          variables in that scope.  This handles the case where the for-init
          declaration comes first; decl_variable handles the other case. */
-      if (!suppress_error) {
+      if (!suppress_error && use_nonstandard_for_init_scope) {
+        /* The nonstandard scope of a for-init variable has been preempted
+           by a newer declaration: Issue a warning only in modes with pre-
+           standard for-init scopes.  By default, the warning will not be
+           issued when microsoft_version >= 1310. */
         pos_start_diagnostic(es_warning, ec_declaration_hides_for_init,
                              &new_sym->decl_position);
         add_diag_info_with_pos_insert(ec_for_init_hidden_declaration,
