@@ -68,6 +68,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #endif /* ifndef BACK_END_IS_CP_GEN_BE */
 #define KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED TRUE
 #define MICROSOFT_EXTENSIONS_ALLOWED 1
+#define DEFAULT_MICROSOFT_MODE 0
 /* Use 1 for mmap PCH, 0 for non-mmap PCH. */
 #if 1
 #define USE_FIXED_ADDRESS_FOR_MMAP 1
