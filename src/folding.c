@@ -1432,7 +1432,7 @@ Return TRUE if the given constant is a null pointer constant.
        in C.  Only certain kinds of casts are allowed. */
     if (!constant->null_pointer_constant_ruled_out &&
         cmplit_integer_constant(constant, 0L) == 0) {
-      if (is_enum_type(constant->type) && !C_mode() && !any_cfront_mode()) {
+      if (!enum_type_is_integral && is_enum_type(constant->type)) {
         /* In C++ (except for cfront compatibility) an enumerator with value
            zero is not a null pointer constant. */
       } else {
