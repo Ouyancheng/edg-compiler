@@ -282,10 +282,12 @@ That is what the remap function does.
   walk_string_ptr(il_header.compiler_version, iek_other_text, 0);
   walk_string_ptr(il_header.time_of_compilation, iek_other_text, 0);
   /* region_scope_entry should not be walked. */
-  /* Walk through the orphaned_il_entry_list IL entries that are only
-     referenced in "il_header". */
-  walk_list(il_header.orphaned_il_list, an_orphaned_il_list_ptr,
-            iek_orphaned_il_list);
+  /* Walk the lists of local types and static variables for functions, which
+     are logically in function scopes but allocated in the file scope
+     memory region. */
+  walk_list(il_header.scope_orphaned_list_headers,
+            a_scope_orphaned_list_header_ptr,
+            iek_scope_orphaned_list_header);
   /* Walk through the orphaned IL entries referenced from 
      function scopes, but in the file scope memory region. */
   walk_orphaned_file_scope_il_entries();

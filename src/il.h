@@ -658,9 +658,10 @@ extern void remove_sublist_header_and_parent(
 #if ORPHAN_PROCESSING_NEEDED
 extern void add_orphaned_file_scope_il_entry(char             *entry_ptr,
                                              an_il_entry_kind entry_kind);
-
-extern void add_scope_orphaned_il_lists(a_scope_ptr scope);
 #endif /* ORPHAN_PROCESSING_NEEDED */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+extern void add_scope_orphaned_il_lists(a_scope_ptr scope);
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
 extern void il_reset(void);
 

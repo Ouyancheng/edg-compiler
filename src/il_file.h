@@ -123,7 +123,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_comment),
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  sizeof(an_orphaned_il_list),
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  sizeof(a_scope_orphaned_list_header),
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

@@ -830,8 +830,8 @@ the file scope, do not process it (but record an orphan in the latter case).
           /* The local "types" and static "variables" at function scope or
              block scope within a function are in the file scope memory region.
              They will be processed during the file scope memory region
-             walk because an_orphaned_il_list entry for these lists would
-             have been created. */
+             walk because a_scope_orphaned_list_header entry for these lists
+             would have been created. */
           remap_ptr(ptr->types, a_type_ptr, iek_type);
           remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
         }  /* if */
@@ -1323,11 +1323,12 @@ the file scope, do not process it (but record an orphan in the latter case).
       break;
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    case iek_orphaned_il_list:
+    case iek_scope_orphaned_list_header:
       {
-        an_orphaned_il_list_ptr ptr = (an_orphaned_il_list_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_orphaned_il_list_ptr,
-                       iek_orphaned_il_list);
+        a_scope_orphaned_list_header_ptr ptr =
+                                   (a_scope_orphaned_list_header_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_scope_orphaned_list_header_ptr,
+                       iek_scope_orphaned_list_header);
         walk_list(ptr->orphaned_types, a_type_ptr, iek_type);
         walk_list(ptr->orphaned_variables, a_variable_ptr, iek_variable);
         walk_list(ptr->orphaned_src_seq_sublists, a_src_seq_sublist_ptr,
@@ -1369,8 +1370,8 @@ The subtree is not processed.
   remap_ptr(il_header.main_routine, a_routine_ptr, iek_routine);
   remap_ptr(il_header.compiler_version, a_char_ptr, iek_other_text);
   remap_ptr(il_header.time_of_compilation, a_char_ptr, iek_other_text);
-  remap_ptr(il_header.orphaned_il_list, an_orphaned_il_list_ptr,
-            iek_orphaned_il_list);
+  remap_ptr(il_header.scope_orphaned_list_headers,
+            a_scope_orphaned_list_header_ptr, iek_scope_orphaned_list_header);
   /* region_scope_entry should not be changed; it's not a pointer into
      IL memory in the usual way.  It's changed explicitly as needed. */
 }  /* remap_il_header_pointers. */

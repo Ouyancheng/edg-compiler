@@ -203,7 +203,6 @@ It is forced to TRUE if STANDALONE_IL_DISPLAY, STANDALONE_C_GEN_BE,
 or STANDALONE_CP_GEN_BE is TRUE.
 */
 #if STANDALONE_IL_DISPLAY || STANDALONE_C_GEN_BE || STANDALONE_CP_GEN_BE
-#undef STANDALONE_UTILITY_PROGRAM
 #define STANDALONE_UTILITY_PROGRAM TRUE /* Do not change this. */
 #else /* !(STANDALONE_IL_DISPLAY || STANDALONE_C_GEN_BE || ...) */
 #ifndef STANDALONE_UTILITY_PROGRAM
@@ -217,7 +216,6 @@ form on stdout is to be compiled.  This flag may be set on the command
 line or will be forced to TRUE if STANDALONE_IL_DISPLAY is TRUE.
 */
 #if STANDALONE_IL_DISPLAY
-#undef NEED_IL_DISPLAY
 #define NEED_IL_DISPLAY TRUE /* Do not change this. */
 #else /* !STANDALONE_IL_DISPLAY */
 #ifndef NEED_IL_DISPLAY
@@ -230,7 +228,6 @@ Flag that is TRUE if the intermediate language should be written to a file.
 FALSE means the IL is passed in memory to the back end.
 */
 #if STANDALONE_UTILITY_PROGRAM
-#undef IL_SHOULD_BE_WRITTEN_TO_FILE
 #define IL_SHOULD_BE_WRITTEN_TO_FILE TRUE /* Do not change this. */
 #else /* !STANDALONE_UTILITY_PROGRAM */
 #ifndef IL_SHOULD_BE_WRITTEN_TO_FILE
@@ -255,7 +252,6 @@ slower.
 #define ALTERNATE_IL_FILE_FORMAT TRUE
 #endif /* ifndef ALTERNATE_IL_FILE_FORMAT */
 #else /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
-#undef ALTERNATE_IL_FILE_FORMAT
 #define ALTERNATE_IL_FILE_FORMAT FALSE /* Do not change this. */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
@@ -265,7 +261,6 @@ to walk the IL.  These routines are needed if NEED_IL_DISPLAY is TRUE or
 IL_SHOULD_BE_WRITTEN_TO_FILE is TRUE.
 */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE || NEED_IL_DISPLAY
-#undef IL_WALK_NEEDED
 #define IL_WALK_NEEDED TRUE /* Do not change this. */
 #else /* !IL_WALK_NEEDED */
 #ifndef IL_WALK_NEEDED
@@ -294,7 +289,6 @@ be used when the back end is invoked by the driver as a separate program.
 #else /* STANDALONE_UTILITY_PROGRAM */
 /* Compiling a standalone utility program, so the back end is not
    being called (not from the front end, anyway). */
-#undef BACK_END_SHOULD_BE_CALLED
 #define BACK_END_SHOULD_BE_CALLED FALSE  /* Do not change this. */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -311,7 +305,6 @@ See also C_GEN_BE_GENERATES_ANSI_C in target.h.
 #define BACK_END_IS_C_GEN_BE TRUE  /* You can change this. */
 #else /* !BACK_END_SHOULD_BE_CALLED */
 /* Back end is not called, so back end is not included. */
-#undef BACK_END_IS_C_GEN_BE
 #define BACK_END_IS_C_GEN_BE FALSE  /* Do not change this. */
 #endif /* BACK_END_SHOULD_BE_CALLED */
 #endif /* ifndef BACK_END_IS_C_GEN_BE */
@@ -328,7 +321,6 @@ if the back end is being called).
 #define BACK_END_IS_CP_GEN_BE FALSE  /* You can change this. */
 #else /* !BACK_END_SHOULD_BE_CALLED */
 /* Back end is not called, so back end is not included. */
-#undef BACK_END_IS_CP_GEN_BE
 #define BACK_END_IS_CP_GEN_BE FALSE  /* Do not change this. */
 #endif /* BACK_END_SHOULD_BE_CALLED */
 #endif /* ifndef BACK_END_IS_CP_GEN_BE */
@@ -438,12 +430,10 @@ recognize them for special handling.
 #endif /* DO_IL_LOWERING */
 
 /*
-Flag that is TRUE to cause support for orphaned file scope IL entries to 
-be part of the compiler.  This flag is automatically TRUE if either
-DO_IL_LOWERING or IL_WALK_NEEDED is TRUE.
+Flag that is TRUE to enable support for processing of orphaned file scope
+IL entries.  This is needed if IL lowering or IL walking is to be done.
 */
 #if DO_IL_LOWERING || IL_WALK_NEEDED
-#undef ORPHAN_PROCESSING_NEEDED
 #define ORPHAN_PROCESSING_NEEDED TRUE /* Do not change this. */
 #else /* !(DO_IL_LOWERING || IL_WALK_NEEDED) */
 #ifndef ORPHAN_PROCESSING_NEEDED
@@ -452,11 +442,24 @@ DO_IL_LOWERING or IL_WALK_NEEDED is TRUE.
 #endif /* DO_IL_LOWERING || IL_WALK_NEEDED */
 
 /*
+Flag that is TRUE to enable support for maintenance of lists of the local
+types and static variables of function and block scopes as file-scope
+orphan lists.  This is needed if general orphan processing is needed,
+and also if the C-generating back end is being used.
+*/
+#if ORPHAN_PROCESSING_NEEDED || BACK_END_IS_C_GEN_BE
+#define SCOPE_ORPHANED_LIST_PROCESSING_NEEDED TRUE /* Do not change this. */
+#else /* !ORPHAN_PROCESSING_NEEDED ... */
+#ifndef SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+#define SCOPE_ORPHANED_LIST_PROCESSING_NEEDED FALSE
+#endif /* ifndef SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#endif /* ORPHAN_PROCESSING_NEEDED ... */
+
+/*
 Flag that is TRUE if name mangling is needed.  Automatically TRUE if
 IL lowering is used or if automatic template instantiation is selected.
 */
 #if DO_IL_LOWERING || AUTOMATIC_TEMPLATE_INSTANTIATION
-#undef NEED_NAME_MANGLING
 #define NEED_NAME_MANGLING TRUE  /* Do not change this. */
 #else /* !DO_IL_LOWERING ... */
 #ifndef NEED_NAME_MANGLING

@@ -3164,6 +3164,7 @@ Display the indicated source sequence end-of-construct entry.
            (an_il_entry_kind)ptr->entity.kind);
 }  /* disp_src_seq_end_of_construct */
 
+
 static void disp_src_seq_sublist(a_src_seq_sublist_ptr sssp)
 /*
 Display the indicated source sequence sublist header.
@@ -3176,7 +3177,6 @@ Display the indicated source sequence sublist header.
            (char *)sssp->last_source_sequence_entry,
            iek_source_sequence_entry);
 }  /* disp_src_seq_sublist */
-
 
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
 
@@ -3196,20 +3196,25 @@ static void disp_comment(a_comment_ptr cp)
 
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if ORPHAN_PROCESSING_NEEDED
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
-static void disp_orphaned_il_list(an_orphaned_il_list_ptr ptr)
+static void disp_scope_orphaned_list_header(
+                                          a_scope_orphaned_list_header_ptr ptr)
 /*
-Display the indicated an_orphaned_il_list entry.
+Display the indicated a_scope_orphaned_list_header entry.
 */
 {
+  disp_ptr("next", (char *)ptr->next, iek_scope_orphaned_list_header);
   disp_ptr("orphaned_types", (char *)ptr->orphaned_types, iek_type);
   disp_ptr("orphaned_variables", (char *)ptr->orphaned_variables,
            iek_variable);
-  disp_ptr("next", (char *)ptr->next, iek_orphaned_il_list);
-}  /* disp_orphaned_il_list */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  disp_ptr("orphaned_src_seq_sublists", (char *)ptr->orphaned_src_seq_sublists,
+           iek_src_seq_sublist);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* disp_scope_orphaned_list_header */
 
-#endif /* ORPHAN_PROCESSING_NEEDED */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
 static void disp_entry(char             *entry_ptr,
                        an_il_entry_kind entry_kind)
@@ -3364,11 +3369,12 @@ This routine is called during IL walking.
           break;
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if ORPHAN_PROCESSING_NEEDED
-        case iek_orphaned_il_list:
-          disp_orphaned_il_list((an_orphaned_il_list_ptr)entry_ptr);
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+        case iek_scope_orphaned_list_header:
+          disp_scope_orphaned_list_header(
+                                  (a_scope_orphaned_list_header_ptr)entry_ptr);
           break;
-#endif /* ORPHAN_PROCESSING_NEEDED */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #endif /* ifdef CFE */
         default:
           (void)printf("**BAD ENTRY KIND**\n");

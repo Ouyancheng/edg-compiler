@@ -4963,11 +4963,11 @@ Do lowering on the file-scope dynamic initializations list.
     free_return_memo_list(return_memo_list);
     processing_file_scope_init_routine = FALSE;
     pop_context();
-#if ORPHAN_PROCESSING_NEEDED
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
     /* Make orphan lists for any local types or static variables in the
        routine or any of its blocks. */
     add_scope_orphaned_il_lists(scope);
-#endif /* ORPHAN_PROCESSING_NEEDED */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
     done_with_memory_region(file_scope_init_routine_il_region);
     switch_il_region(FILE_SCOPE_REGION_NUMBER);
     file_scope->dynamic_inits = NULL;
@@ -5008,11 +5008,11 @@ Do lowering on the file-scope dynamic initializations list.
     /* Free any return memos that were not used. */
     free_return_memo_list(return_memo_list);
     pop_context();
-#if ORPHAN_PROCESSING_NEEDED
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
     /* Make orphan lists for any local types or static variables in the
        routine or any of its blocks. */
     add_scope_orphaned_il_lists(scope);
-#endif /* ORPHAN_PROCESSING_NEEDED */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
     done_with_memory_region(file_scope_term_routine_il_region);
     switch_il_region(FILE_SCOPE_REGION_NUMBER);
   }  /* if */

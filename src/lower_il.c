@@ -7466,9 +7466,9 @@ Do IL lowering of the indicated scope and everything under it.
        the file scope memory region, and are not lowered at this time.
        They are lowered as part of lowering the file scope memory region. */
     /* Note that an entry for this scope will be placed on the
-       il_header.orphaned_il_list if either of those pointers is non-NULL.
-       The entry is created after IL lowering runs so that IL lowering
-       can alter those local lists. */
+       il_header.scope_orphaned_list_headers list if either of those
+       pointers is non-NULL.  The entry is created after IL lowering
+       runs so that IL lowering can alter those local lists. */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
     /* If there is reason to promote the local types and static variables
        to the file scope, do that now and clear the lists.  That makes the
@@ -7562,15 +7562,17 @@ to only from a function scope, and are therefore in the file scope but
 not reachable from the normal file-scope IL tree.
 */
 {
-  an_orphaned_il_list_ptr oilp;
-  an_il_entry_kind        kind;
-  char                    *entry_ptr;
+  a_scope_orphaned_list_header_ptr solhp;
+  an_il_entry_kind                 kind;
+  char                             *entry_ptr;
 
   /* First lower the list of orphaned types and variables from function
      and block scopes. */
-  for (oilp = il_header.orphaned_il_list; oilp != NULL; oilp = oilp->next) {
-    lower_type_list(oilp->orphaned_types);
-    lower_variable_list(oilp->orphaned_variables);
+  for (solhp = il_header.scope_orphaned_list_headers;
+       solhp != NULL;
+       solhp = solhp->next) {
+    lower_type_list(solhp->orphaned_types);
+    lower_variable_list(solhp->orphaned_variables);
     /* The source sequence sublist list need not be visited. */
   }  /* if */
   /* Now visit all the orphaned entries recorded by the more general scheme. */

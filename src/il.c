@@ -110,9 +110,12 @@ static unsigned long
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ORPHAN_PROCESSING_NEEDED
 static unsigned long
-		num_fs_orphan_pointers_allocated,
-		num_orphaned_il_lists_allocated;
+		num_fs_orphan_pointers_allocated;
 #endif /* ORPHAN_PROCESSING_NEEDED */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+static unsigned long
+		num_scope_orphaned_list_headers_allocated;
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
 /*
 Number of times the based_types lists of types are searched for related types.
@@ -121,6 +124,13 @@ static unsigned long
 		num_get_based_type_calls;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* DEBUG */
+
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+static a_scope_orphaned_list_header_ptr
+		last_scope_orphaned_list_header;
+			/* End of list for
+			   il_header.scope_orphaned_list_headers. */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
 /*
 Data structure used to save information about the last source sequence
@@ -2100,13 +2110,13 @@ allocated immediately preceding the entry.
 }  /* add_orphaned_file_scope_il_entry */
 
 #endif /* ORPHAN_PROCESSING_NEEDED */
-#if ORPHAN_PROCESSING_NEEDED
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
 void add_scope_orphaned_il_lists(a_scope_ptr scope)
 /*
 If the indicated scope contains non-empty lists that are in the file scope
 memory region (e.g., local types or static variables), create
-an_orphaned_il_list entry to hold those pointers in the file scope
+a_scope_orphaned_list_header entry to hold those pointers in the file scope
 so that orphan processing can be done on the lists later.  Also use recursion
 to visit all block scopes attached to this scope and do the same processing.
 */
@@ -2123,19 +2133,25 @@ to visit all block scopes attached to this scope and do the same processing.
                                          || sublists != NULL
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
                                                             ) {
-    /* At least one of the IL pointers is not NULL; create an_orphaned_il_list
-       entry in the file scope region and add it to the list headed by
-       il_header.orphaned_il_list. */
-    an_orphaned_il_list_ptr oil_ptr =
-                (an_orphaned_il_list_ptr)alloc_il(sizeof(an_orphaned_il_list));
+    /* At least one of the IL pointers is not NULL; create
+       a_scope_orphaned_list_header in the file scope region and add it to
+       the list headed by il_header.scope_orphaned_list_headers. */
+    a_scope_orphaned_list_header_ptr solhp =
+                        (a_scope_orphaned_list_header_ptr)
+                                alloc_il(sizeof(a_scope_orphaned_list_header));
 #if DEBUG && !STANDALONE_UTILITY_PROGRAM
-    num_orphaned_il_lists_allocated++;
+    num_scope_orphaned_list_headers_allocated++;
 #endif /* DEBUG  && !STANDALONE_UTILITY_PROGRAM */
-    oil_ptr->orphaned_types = types;
-    oil_ptr->orphaned_variables = variables;
-    oil_ptr->orphaned_src_seq_sublists = sublists;
-    oil_ptr->next = il_header.orphaned_il_list;
-    il_header.orphaned_il_list = oil_ptr;
+    solhp->orphaned_types = types;
+    solhp->orphaned_variables = variables;
+    solhp->orphaned_src_seq_sublists = sublists;
+    solhp->next = NULL;
+    if (il_header.scope_orphaned_list_headers == NULL) {
+      il_header.scope_orphaned_list_headers = solhp;
+    } else {
+      last_scope_orphaned_list_header->next = solhp;
+    }  /* if */
+    last_scope_orphaned_list_header = solhp;
   }  /* if */
   /* Process subscopes of this scope. */
   for (block_scope = scope->scopes;
@@ -2145,7 +2161,7 @@ to visit all block scopes attached to this scope and do the same processing.
   }  /* for */
 }  /* add_scope_orphaned_il_lists */
 
-#endif /* ORPHAN_PROCESSING_NEEDED */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if !STANDALONE_UTILITY_PROGRAM
 
 static void add_to_scopes_list(a_scope_ptr             scope_ptr,
@@ -7602,9 +7618,12 @@ Display and return the amount of space used for various IL tables.
   db_space_used("comment", num_comments_allocated, a_comment);
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  db_space_used("orphaned list headers",
+                num_scope_orphaned_list_headers_allocated,
+                a_scope_orphaned_list_header);
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if ORPHAN_PROCESSING_NEEDED
-  db_space_used("orphaned il list", num_orphaned_il_lists_allocated,
-                an_orphaned_il_list);
   db_space_used_nontype("fs orphan pointers", num_fs_orphan_pointers_allocated,
                         SPACE_FOR_FS_ORPHAN_POINTER);
 #endif /* ORPHAN_PROCESSING_NEEDED */
@@ -7789,9 +7808,14 @@ of the front end.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ORPHAN_PROCESSING_NEEDED
   num_fs_orphan_pointers_allocated       = 0;
-  num_orphaned_il_lists_allocated        = 0;
 #endif /* ORPHAN_PROCESSING_NEEDED */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  num_scope_orphaned_list_headers_allocated = 0;
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #endif /* DEBUG */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  last_scope_orphaned_list_header = NULL;
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   avail_template_args = NULL;
   il_reset();
 }  /* il_init */

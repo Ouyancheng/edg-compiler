@@ -302,11 +302,14 @@ typedef enum /*an_il_entry_kind*/ {
   iek_comment,		/* a_comment */
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  iek_orphaned_il_list, /* an_orphaned_il_list */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  iek_scope_orphaned_list_header,
+			/* a_scope_orphaned_list_header */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
-/* For storing an il entry kind more compactly. */
+/* For storing an IL entry kind more compactly. */
 typedef a_byte a_byte_il_entry_kind;
 
 /* Macro to test whether or not an entry kind is a string kind. */
@@ -316,7 +319,7 @@ typedef a_byte a_byte_il_entry_kind;
 
 #if NEED_IL_DISPLAY || DEBUG
 /*
-Display names for il entry kinds.
+Display names for IL entry kinds.
 */
 EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if VAR_INITIALIZERS
@@ -387,7 +390,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_comment */			"comment",
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-/* iek_orphaned_il_list */		"orphaned-il-list",
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+/* iek_scope_orphaned_list_header */	"scope-orphaned-list-header",
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -4417,7 +4422,7 @@ typedef struct a_constructor_init {
 } a_constructor_init;
 
 #endif /* ifdef CIL */
-#if ORPHAN_PROCESSING_NEEDED
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
 /*
 Entry used to hold pointers to lists of orphaned IL type and variable
@@ -4431,8 +4436,11 @@ attached to the file scope memory region.  The list of orphaned lists
 allows one to find the orphans when processing the file scope memory
 region.
 */
-typedef struct an_orphaned_il_list *an_orphaned_il_list_ptr;
-typedef struct an_orphaned_il_list {
+typedef struct a_scope_orphaned_list_header *a_scope_orphaned_list_header_ptr;
+typedef struct a_scope_orphaned_list_header {
+  a_scope_orphaned_list_header_ptr
+		next;
+			/* Pointer to the next header on the list. */
   a_type_ptr	orphaned_types;
 			/* Pointer to the orphaned file scope IL type entry
 			   list for a function scope. */
@@ -4447,13 +4455,9 @@ typedef struct an_orphaned_il_list {
 			/* Pointer to the orphaned file scope IL source
 			   sequence sublist list for a function scope. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  an_orphaned_il_list_ptr
-		next;
-			/* Pointer to the next orphaned IL entry list for 
-			   another function. */
-} an_orphaned_il_list;
+} a_scope_orphaned_list_header;
 
-#endif /* ORPHAN_PROCESSING_NEEDED */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
 /*
 Numbering for scopes.  Each new scope is given a number.  These
@@ -4747,14 +4751,14 @@ EXTERN struct il_header {
                            this table is handled specially by memory management
                            and in writing and reading the IL.  We are counting
                            on default initialization of this field to NULL. */
-#if ORPHAN_PROCESSING_NEEDED
-  an_orphaned_il_list_ptr
-		orphaned_il_list;
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  a_scope_orphaned_list_header_ptr
+		scope_orphaned_list_headers;
 			/* Pointer to a list of entries that point to lists
 			   of "orphaned" file scope IL entries -- entries
 			   whose parents are in a function scope memory
 			   region.  */
-#endif /* ORPHAN_PROCESSING_NEEDED */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   a_source_language
                 source_language;
                         /* Code for the language in which the source program

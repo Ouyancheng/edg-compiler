@@ -7445,17 +7445,17 @@ End a name scope by popping an entry off the scope stack.
     /* Do IL lowering (change the C++ IL into C IL). */
     lower_il_memory_region(old_memory_region_number);
 #endif /* DO_IL_LOWERING */
-#if ORPHAN_PROCESSING_NEEDED
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
     if (kind == (a_scope_kind)sck_function) {
       /* If a function or block scope has local types or static variables,
          make a special entry to record those orphan lists on the il_header
-         orphaned_il_list so they can be found when processing the file
-         scope memory region.  Note that processing for block scopes is done
-         at the end of the function scope to give IL lowering a chance to
-         add variables and types in block scopes. */
+         scope_orphaned_list_headers list so they can be found when processing
+         the file scope memory region.  Note that processing for block scopes
+         is done at the end of the function scope to give IL lowering a chance
+         to add variables and types in block scopes. */
       add_scope_orphaned_il_lists(il_scope);
     }  /* if */
-#endif /* ORPHAN_PROCESSING_NEEDED */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
     /* Clear out the shareable constants table for the file scope or a
        function scope. */
     if (old_memory_region_number == FILE_SCOPE_REGION_NUMBER) {

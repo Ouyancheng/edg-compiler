@@ -869,9 +869,9 @@ Initialize everything that has to do with the front end.
   il_header.time_of_compilation = strcpy(
                                 alloc_il((sizeof_t)(strlen(curr_date_time)+1)),
                                 curr_date_time);
-#if ORPHAN_PROCESSING_NEEDED
-  il_header.orphaned_il_list = NULL;
-#endif /* ORPHAN_PROCESSING_NEEDED */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  il_header.scope_orphaned_list_headers = NULL;
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   il_header.plain_chars_are_signed = targ_has_signed_chars;
 #ifdef FIL
   il_header.one_trip_do_loops = FALSE;
