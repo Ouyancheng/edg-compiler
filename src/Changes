@@ -1,5 +1,11 @@
 Version 3.0
 
+3/4/02   Internal error in reactivate_class_scope with --parse_templates
+
+An internal error could occur in reactivate_class_scope when doing
+nonclass prototype instantiations.  The error is "pushing class
+not from curr. namespace" and is now fixed.
+
 3/4/02   GNU C: variable-length array fields of local structs
 
 The GNU C compiler accepts variable-length array fields in local struct

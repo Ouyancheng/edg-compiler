@@ -45,14 +45,6 @@ Variables and constants related to the scope_stack:
 			   time it is reallocated; also the initial
 			   allocation. */
 
-#if CHECKING
-static a_boolean
-		pushing_template_instantiation_scope;
-			/* Flag that is set to TRUE while a new
-			   template instantiation context is in the
-			   process of being created. */
-#endif /* CHECKING */
-
 #if DEBUG
 int db_scope_kind(a_scope_kind sck)
 /*
@@ -2678,11 +2670,6 @@ is pushed here, and popped when the instantiation scope is popped.
     nested_in_prototype_instantiation = is_nested_in_prototype_instantiation(
                                                                  template_sym);
   }  /* if */
-#if CHECKING
-  /* Set a flag that indicates that the processing to push a new
-     instantiation scope is in progress. */
-  pushing_template_instantiation_scope = TRUE;
-#endif /* CHECKING */
   if (!nested_in_prototype_instantiation) {
     /* If the template was defined in a namespace, reactivate the namespace
        scope before pushing the instantiation scope. */
@@ -2700,9 +2687,6 @@ is pushed here, and popped when the instantiation scope is popped.
        is potentially modified below. */
     new_innermost_namespace_scope = definition_depth;
   }  /* if */
-#if CHECKING
-  pushing_template_instantiation_scope = FALSE;
-#endif /* CHECKING */
   if (is_template) {
     (void)push_scope_full((a_scope_kind)sck_template_instantiation,
                           decl_info->declaration_scope, assoc_type,
@@ -5249,17 +5233,6 @@ current scope is already an extension of the requested scope.
   a_namespace_ptr		curr_nsp = NULL;
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
 
-#if CHECKING
-  /* A namespace extension should not be pushed inside of a template
-     instantiation scope unless we are in the process of pushing yet
-     another template instantiation scope. */
-  if (scope_stack[depth_scope_stack].kind ==
-                                   (a_scope_kind)sck_template_instantiation) {
-    check_assertion_str2(pushing_template_instantiation_scope,
-                         "f_push_namespace_extension_scope:",
-                         "namespace extension within template instantiation");
-  }  /* if */
-#endif /* CHECKING */
   /* If the current scope is a namespace (or namespace extension) scope,
      see if it matches the one that we are pushing.  If so, don't actually
      push the scope, just increment the count of the number of excess
@@ -5409,16 +5382,6 @@ current scope is already a reactivation of the requested scope.
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
   a_boolean			initial_scope_is_template_decl;
 
-#if CHECKING
-  /* A namespace extension should not be pushed inside of a template
-     instantiation scope unless we are in the process of pushing yet
-     another template instantiation scope. */
-  if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
-    check_assertion_str2(pushing_template_instantiation_scope,
-                         "push_namespace_extension_scope:",
-                         "namespace extension within template instantiation");
-  }  /* if */
-#endif /* CHECKING */
   initial_scope_is_template_decl = ssep->kind ==
                                         (a_scope_kind)sck_template_declaration;
   /* If the current scope is a namespace (or namespace extension) scope,
@@ -5522,26 +5485,15 @@ value of extend_namespace).
   } else if (class_sym->parent.namespace_ptr != NULL) {
     /* The class is nested in a namespace -- push enclosing namespace(s). */
     a_namespace_ptr		parent_nsp;
-    a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
     parent_nsp = class_sym->parent.namespace_ptr;
-    if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
-      /* When a class is reactivated immediately within a template
-         instantiation scope, the namespace of the class must match the
-         current innermost namespace scope. */
-      check_assertion_str2(parent_nsp ==
-                 scope_stack[depth_innermost_namespace_scope].assoc_namespace,
-                           "reactivate_class_scope:",
-                           "pushing class not from curr. namespace");
+    /* The namespace is either extended or reactivated depending on the
+       value of extend_namespace. */
+    if (extend_namespace) {
+      push_namespace_extension_scope(parent_nsp);
     } else {
-      /* The namespace is either extended or reactivated depending on the
-         value of extend_namespace. */
-      if (extend_namespace) {
-        push_namespace_extension_scope(parent_nsp);
-      } else {
-        push_namespace_reactivation_scope(parent_nsp);
-      }  /* if */
-      namespace_pushed = TRUE;
+      push_namespace_reactivation_scope(parent_nsp);
     }  /* if */
+    namespace_pushed = TRUE;
   }  /* if */
   if (orig_depth == NO_SCOPE_DEPTH) orig_depth = depth_scope_stack;
   push_single_class_reactivation_scope(class_type);
@@ -5880,9 +5832,6 @@ of the front end.
   depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
   depth_of_initial_lookup_scope = NO_SCOPE_DEPTH;
   num_classes_on_scope_stack = 0;
-#if CHECKING
-  pushing_template_instantiation_scope = FALSE;
-#endif /* CHECKING */
   avail_names_hidden_by_old_for_init = NULL;
   name_linkage_stack = NULL;
   avail_name_linkage_stack_entries = NULL;
