@@ -1,5 +1,11 @@
 Version 2.32
 
+3/26/96   Bug in suppressing instantiation flags
+
+When the --suppress_instantiation_flags option was used, __TIR__
+symbols were still being generated for certain virtual functions.
+This is now fixed.
+
 3/25/96   Include search path bug when using implicit inclusion
 
 The include search path entry that represents the directory of the primary
