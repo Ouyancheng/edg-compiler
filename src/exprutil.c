@@ -645,7 +645,7 @@ is not being maintained.  The operand is put into *operand.
     fund_sym = fund_sym->variant.overloaded_function.symbols;
   }  /* if */
   if (fund_sym->kind == (a_symbol_kind)sk_member_function) {
-    rout = fund_sym->variant.routine;
+    rout = fund_sym->variant.routine.ptr;
     if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
         rout->special_kind == (a_special_function_kind)sfk_destructor) {
       error_in_operand(ec_addr_of_constructor_or_destructor, operand);
@@ -2774,7 +2774,7 @@ member_proj_sym gives the (projection) symbol for the member.
     /* Pointer to nonstatic member function. */
     constant.variant.ptr_to_member.is_function_ptr = TRUE;
     constant.variant.ptr_to_member.variant.routine = rout =
-                                                   member_sym->variant.routine;
+                                               member_sym->variant.routine.ptr;
     member_type = rout->type;
     /* If the routine is compiler-generated and its definition has not
        yet been put out, force the definition now.  Do not force generation
@@ -2815,7 +2815,7 @@ information is not being maintained.
     internal_error("make_function_designator_operand: sym not function");
   }  /* if */
 #endif /* CHECKING */
-  routine = routine_sym->variant.routine;
+  routine = routine_sym->variant.routine.ptr;
   /* Set up an address-of-function constant. */
   clear_operand((an_operand_kind)ok_constant, result);
   /* The type of the operand is the function type. */
@@ -5091,7 +5091,7 @@ TRUE; that allows a different error message.
           selector_match_with_this_param(bound_function_selector,
                                          selector_is_object_pointer,
                                          /*conversion_function_case=*/FALSE,
-                                         function_symbol->variant.routine,
+                                         function_symbol->variant.routine.ptr,
                                          routine_type, this_match);
           /* Set the "next" pointer again, because it is cleared by
              selector_match_with_this_param. */
@@ -6331,7 +6331,8 @@ function entry.  This routine is only used in C++ mode.
       selector_match_with_this_param(source_operand,
                                      /*selector_is_object_pointer=*/FALSE,
                                      /*conversion_function_case=*/TRUE,
-                                     base_conversion_symbol->variant.routine,
+                                     base_conversion_symbol->
+                                                           variant.routine.ptr,
                                      conv_routine_type,
                                      &this_match);
       /* Ignore this function if it cannot be called for this argument. */
@@ -7477,7 +7478,7 @@ free that list.  This routine is only used in C++.
     check_symbol_ambiguous_by_inheritance(conversion_symbol, ambiguous);
     if (!*ambiguous) {
       okay = TRUE;
-      *conversion_routine = conversion_symbol->variant.routine;
+      *conversion_routine = conversion_symbol->variant.routine.ptr;
     }  /* if */
   }  /* if */
   if (*ambiguous && ambiguity_list != NULL) {
@@ -7569,7 +7570,7 @@ conversion is required after the conversion function, return
     check_symbol_ambiguous_by_inheritance(conversion_symbol, ambiguous);
     if (!*ambiguous) {
       okay = TRUE;
-      *conversion_routine = conversion_symbol->variant.routine;
+      *conversion_routine = conversion_symbol->variant.routine.ptr;
       *std_conversion_needed =
                  candidate_functions->std_conversion_after_conversion_function;
     }  /* if */

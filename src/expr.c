@@ -1228,7 +1228,7 @@ remove it later, as this routine takes care of that.
   if (constructor_sym != NULL) {
     /* Check that the constructor is accessible and mark it referenced. */
     reference_to_implicitly_invoked_function(constructor_sym, err_pos);
-    *conversion_routine = constructor_sym->variant.routine;
+    *conversion_routine = constructor_sym->variant.routine.ptr;
   }  /* if */
   db_exit();
 }  /* scan_ctor_arguments */
@@ -1472,7 +1472,7 @@ Syntax:
                                        operand->xref_entries_list,
                                        operand);
       conv_function_designator_to_ptr_to_function(operand, expression_kind);
-      routine = func_sym->variant.routine;
+      routine = func_sym->variant.routine.ptr;
       routine_type = routine_symbol_type(func_sym);
     } else if (is_indefinite_function_operand(operand)) {
       /* Overloaded function.  That means the routine type is not known yet. */
@@ -1814,7 +1814,7 @@ i.e, is a nonstatic member function.  This routine is used only in C++ mode.
     /* All of the member functions are static or all are nonstatic.  Look at
        the first function to see which. */
     routine_ptr = overloaded_function_symbol->variant.overloaded_function.
-                                                      symbols->variant.routine;
+                                                  symbols->variant.routine.ptr;
     if (routine_type_is_nonstatic_member_function(routine_ptr->type)) {
       /* Nonstatic member function. */
       needs_selector = TRUE;
@@ -2104,7 +2104,7 @@ bound with the function in *bound_function_selector.
           break;
         case sk_member_function:
           /* Member function (static or non-static). */
-          routine_ptr = member_sym->variant.routine;
+          routine_ptr = member_sym->variant.routine.ptr;
           if (routine_type_is_nonstatic_member_function(routine_ptr->type)) {
             /* Nonstatic member function. */
             /* Also continue here for an overloaded function. */
@@ -3529,7 +3529,7 @@ specification allow a variable-sized array as the top type.
       make_error_operand(result);
     } else {
       /* Make an expression for the address of the function. */
-      new_routine = operator_new_symbol->variant.routine;
+      new_routine = operator_new_symbol->variant.routine.ptr;
       function_node = make_node_from_operand(&function_operand);
       /* Make a call of the new routine with the size argument. */
       function_node->next = arg_expr_list;
@@ -3829,7 +3829,7 @@ As an anachronism, allow an expression inside the [ ].
                             opname_function_symbol((an_opname_kind)onk_delete);
       }  /* if */
       /* Make an expression for the address of the function. */
-      delete_routine = operator_delete_symbol->variant.routine;
+      delete_routine = operator_delete_symbol->variant.routine.ptr;
       /* Mark the routine referenced. */
       mark_referenced(operator_delete_symbol, &delete_position);
       function_node = function_addr_expr(delete_routine);
@@ -6372,7 +6372,7 @@ normal_function:
           break;
         case sk_member_function:
           /* Static member functions get handled like normal functions. */
-          routine_ptr = sym_ptr->variant.routine;
+          routine_ptr = sym_ptr->variant.routine.ptr;
           if (!routine_type_is_nonstatic_member_function(routine_ptr->type)) {
             goto normal_function;
           }  /* if */

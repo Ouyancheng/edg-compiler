@@ -2594,7 +2594,7 @@ determine_linkage:
         is_object = !is_function;
         file_scope = TRUE;
         if (is_function) {
-          local_storage_class = other_decl->variant.routine->storage_class;
+          local_storage_class = other_decl->variant.routine.ptr->storage_class;
         } else {
           local_storage_class = other_decl->variant.variable->storage_class;
         }  /* if */
@@ -3221,7 +3221,7 @@ otherwise, set *ext_sym to NULL.
       /* Linked symbol and new symbol are both routines.  The new declaration
          must be compatible with the old. */
       sym = linked_symbol;
-      routine_ptr = linked_symbol->variant.routine;
+      routine_ptr = linked_symbol->variant.routine.ptr;
 #if CHECKING
       if (routine_ptr == NULL) {
         internal_error(
@@ -3284,7 +3284,7 @@ otherwise, set *ext_sym to NULL.
       an_error_code  error_code;
 
       if (homonym_symbol->kind != (a_symbol_kind)sk_overloaded_function) {
-        a_routine_ptr  rp = homonym_symbol->variant.routine;
+        a_routine_ptr  rp = homonym_symbol->variant.routine.ptr;
         if (rp->special_kind == (a_special_function_kind)sfk_operator &&
             rp->opname_kind == (an_opname_kind)onk_delete) {
           /* Overloading is not allowed for operator delete() (ARM 12.5). */
@@ -3497,7 +3497,7 @@ skip_overloading:;
     if (inline_specified) routine_ptr->is_inline = TRUE;
     source_corresp_ptr = &routine_ptr->source_corresp;
     /* Link the symbol to the IL routine entry. */
-    sym->variant.routine = routine_ptr;
+    sym->variant.routine.ptr = routine_ptr;
     if (*ext_sym != NULL) {
       /* Link the external symbol to the IL routine entry. */
       (*ext_sym)->variant.extern_symbol_descr->variant.routine = routine_ptr;
@@ -3545,7 +3545,7 @@ skip_overloading:;
              sp != NULL;
              sp = sp->next) {
           if (sp != sym &&
-              sp->variant.routine->source_corresp.name_linkage ==
+              sp->variant.routine.ptr->source_corresp.name_linkage ==
                                          (a_name_linkage_kind)nlk_external) {
             pos_sy_error(ec_overloaded_function_linkage,
                          &locator->source_position, overload_symbol);
@@ -3762,7 +3762,7 @@ on a prior declaration.
                         ec_overloaded_function_incompatible_type :
                         ec_not_compatible_with_previous_decl,
                    &locator->source_position, locator->specific_symbol);
-    } else if (sym->variant.routine->compiler_generated) {
+    } else if (sym->variant.routine.ptr->compiler_generated) {
       /* Attempting to give a definition for a function that was implicitly
          declared. */
       pos_error(ec_definition_of_implicitly_declared_function,
@@ -3771,8 +3771,8 @@ on a prior declaration.
          so that that this routine will be treated as user-declared from
          now on. */
       if (!sym->defined) {
-        sym->variant.routine->compiler_generated = FALSE;
-        sym->variant.routine->is_inline = FALSE;
+        sym->variant.routine.ptr->compiler_generated = FALSE;
+        sym->variant.routine.ptr->is_inline = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3784,7 +3784,7 @@ on a prior declaration.
     if (sym != NULL) {
       /* Type was okay, but this member function has a body. */
       pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
-      other_rp = sym->variant.routine;
+      other_rp = sym->variant.routine.ptr;
       type_ptr->variant.routine.extra_info->implicit_this_param_type =
           other_rp->type->variant.routine.extra_info->implicit_this_param_type;
     } else {
@@ -3809,7 +3809,7 @@ on a prior declaration.
     sym->class_of_which_a_member = class_type;
     rp = make_routine(type_ptr, (a_storage_class)sc_static,
                       /*at_file_scope=*/TRUE);
-    sym->variant.routine = rp;
+    sym->variant.routine.ptr = rp;
     set_source_corresp(&(rp->source_corresp), sym);
     rp->source_corresp.class_of_which_a_member = class_type;
     if (other_rp != NULL) {
@@ -3823,10 +3823,10 @@ on a prior declaration.
     /* The types may be compatible but not identical.  Create (in type_ptr)
        a composite type.  First copy the implicit this param type pointer
        into type_ptr:  it is always wrong for nonstatic member functions. */
-    rp = sym->variant.routine;
+    rp = sym->variant.routine.ptr;
     type_ptr->variant.routine.extra_info->implicit_this_param_type =
                rp->type->variant.routine.extra_info->implicit_this_param_type;
-    reconcile_routine_types(sym->variant.routine, type_ptr,
+    reconcile_routine_types(sym->variant.routine.ptr, type_ptr,
                             /*preserve_rout_type=*/FALSE,
                             /*preserve_type_ptr=*/TRUE);
     if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
@@ -3859,7 +3859,7 @@ on a prior declaration.
     copy_source_position(locator->source_position,
                          rp->source_corresp.decl_position);
   }  /* if */
-  if (inline_specified) sym->variant.routine->is_inline = TRUE;
+  if (inline_specified) sym->variant.routine.ptr->is_inline = TRUE;
   sym->defined = TRUE;
   *symbol_ptr = sym;
   *ext_sym = NULL;
@@ -4081,7 +4081,7 @@ symbol has already been entered as an undefined symbol.
                       &symbol_ptr, &linkage, &old_type, &ext_sym);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
-  symbol_ptr->variant.routine->source_corresp.referenced = TRUE;
+  symbol_ptr->variant.routine.ptr->source_corresp.referenced = TRUE;
   switch_back_to_original_region(region_to_switch_back_to);
 #if DEBUG
   if (debug_level >= 3) {
@@ -6801,7 +6801,7 @@ explicitly specified (rather than defaulted to "int").
                         &old_type, &ext_sym);
   }  /* if */
   symbol_ptr->defined = TRUE;
-  routine_ptr = symbol_ptr->variant.routine;
+  routine_ptr = symbol_ptr->variant.routine.ptr;
 #if CHECKING
   if (make_unqualified_type(routine_ptr->type) != unqualified_rout_type) {
     internal_error("function_definition: routine type not preserved");

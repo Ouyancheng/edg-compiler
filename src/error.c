@@ -2355,7 +2355,7 @@ declaration position to eliminate redundant file names in a diagnostic.
     case sk_routine:
     case sk_member_function:
       type = routine_symbol_type(fund_sym);
-      routine = fund_sym->variant.routine;
+      routine = fund_sym->variant.routine.ptr;
       entity_kind = "function ";
       is_declaration_like = TRUE;
       goto symbol_name;

@@ -3842,7 +3842,7 @@ initialization entry.
       /* The class is a C++ class. */
       if (cssp->destructor != NULL) {
         /* The class has a destructor. */
-        dip->destructor = cssp->destructor->variant.routine;
+        dip->destructor = cssp->destructor->variant.routine.ptr;
         reference_to_implicitly_invoked_function(cssp->destructor,
                                                  &error_position);
       }  /* if */

@@ -1177,7 +1177,7 @@ routine entry and return TRUE; otherwise return FALSE.
   a_virtual_function_number    virtual_function_number = 0;
 
   db_enter(4, "check_for_virtual_function");
-  rout = rout_sym->variant.routine;
+  rout = rout_sym->variant.routine.ptr;
   ctsp = class_type->variant.class_struct_union.extra_info;
   is_virtual = virtual_specified;
   /* We scan symbols on the inactive list, since we are only interested in
@@ -1192,7 +1192,7 @@ routine entry and return TRUE; otherwise return FALSE.
       sym = (symbol_supplement_for_class(bcp->type))->destructor;
       if (sym != NULL) {
         /* Base class does have a destructor. */
-        rp = sym->variant.routine;
+        rp = sym->variant.routine.ptr;
         if (rp->is_virtual) {
           /* Base class destructor is virtual. */
           is_virtual = TRUE;
@@ -1235,7 +1235,7 @@ routine entry and return TRUE; otherwise return FALSE.
              for loop because we can be sure of the initial conditions on the
              first iteration. */
           do {
-            rp = sym->variant.routine;
+            rp = sym->variant.routine.ptr;
             /* We are only interested in virtual functions with the same
                type signature.  See first whether the parameter types are
                compatible and whether the implicit "this" param types are
@@ -1275,7 +1275,7 @@ next_base_class:;
   }  /* for */
   if (is_virtual) {
     /* Mark the routine entry. */
-    rout_sym->variant.routine->is_virtual = TRUE;
+    rout_sym->variant.routine.ptr->is_virtual = TRUE;
     class_type->variant.class_struct_union.any_virtual_functions = TRUE;
     if (virtual_function_number != 0) {
       /* The virtual base class is being shared between the current class
@@ -1295,7 +1295,7 @@ next_base_class:;
       }  /* if */
       virtual_function_number = ++(ctsp->highest_virtual_function_number);
     }  /* if */
-    rout_sym->variant.routine->virtual_function_number =
+    rout_sym->variant.routine.ptr->virtual_function_number =
                                                     virtual_function_number;
   }  /* if */
   db_exit();
@@ -2516,7 +2516,7 @@ or struct definition.  The syntax is
       }  /* if */
       if (bcp_cssp->destructor != NULL) {
         cssp->destructor_required = TRUE;
-        if (!bcp_cssp->destructor->variant.routine->is_virtual) {
+        if (!bcp_cssp->destructor->variant.routine.ptr->is_virtual) {
           /* The base class has a nonvirtual destructor, which is not
              recommended (see commentary in ARM 12.4). */
           type_remark(ec_base_class_with_nonvirtual_dtor, base_class_type);
@@ -2801,7 +2801,7 @@ without it.
   /* Go through the symbol list and look for an instance in which the
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
-    orig_type = sym->variant.routine->type;
+    orig_type = sym->variant.routine.ptr->type;
     orig_rts = (skip_typerefs(orig_type))->variant.routine.extra_info;
     orig_this_type = orig_rts->implicit_this_param_type;
     orig_function_is_qualified =
@@ -2909,7 +2909,7 @@ of the function, and again overloading is a possibility.
         set_to_error_locator(*locator);
       } else {
         if (is_inline && !is_function_def_with_body &&
-            !sym->variant.routine->is_inline) {
+            !sym->variant.routine.ptr->is_inline) {
           error(ec_inline_not_allowed);
         }  /* if */
       }  /* if */
@@ -2922,13 +2922,13 @@ of the function, and again overloading is a possibility.
     sym = enter_symbol((a_symbol_kind)sk_routine, locator,
                        /*at_file_scope=*/FALSE,
                        /*suppress_redecl_error=*/FALSE);
-    sym->variant.routine = make_routine(function_type,
-                                        (a_storage_class)sc_static,
-                                        /*at_file_scope=*/TRUE);
+    sym->variant.routine.ptr = make_routine(function_type,
+                                            (a_storage_class)sc_static,
+                                            /*at_file_scope=*/TRUE);
     /* Set the source correspondence. */
-    set_source_corresp(&sym->variant.routine->source_corresp, sym);
+    set_source_corresp(&sym->variant.routine.ptr->source_corresp, sym);
   } else {
-    clep = sym->variant.routine->befriending_classes;
+    clep = sym->variant.routine.ptr->befriending_classes;
     /* Issue a warning if this is a duplicate friend declaration. */
     for (; clep != NULL; clep = clep->next) {
       if (clep->class_type == class_type) {
@@ -2940,8 +2940,8 @@ of the function, and again overloading is a possibility.
       /* No duplication was detected. */
       clep = alloc_list_entry_for_class();
       clep->class_type = class_type;
-      clep->next = sym->variant.routine->befriending_classes;
-      sym->variant.routine->befriending_classes = clep;
+      clep->next = sym->variant.routine.ptr->befriending_classes;
+      sym->variant.routine.ptr->befriending_classes = clep;
     }  /* if */
   }  /* if */
   db_exit();
@@ -3025,7 +3025,7 @@ Return TRUE is sym is a symbol for an operator delete() function.
   if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
     is_operator_delete = FALSE;
   } else {
-    rp = sym->variant.routine;
+    rp = sym->variant.routine.ptr;
     is_operator_delete =
                (rp->special_kind == (a_special_function_kind)sfk_operator &&
                 rp->opname_kind == (an_opname_kind)onk_delete);
@@ -3145,7 +3145,7 @@ too different from the first.  Changing it back to support such behavior
 is just a matter of changing where and how diagnostics are issued.)
 */
 {
-  a_routine_ptr             rp = sym->variant.routine;
+  a_routine_ptr             rp = sym->variant.routine.ptr;
   a_param_type_ptr          ptp1, ptp2;
   a_def_arg_expr_fixup_ptr  daefp;
 
@@ -3253,7 +3253,7 @@ special function kind (e.g., constructor, destructor), if any.
 #endif /* if 0 */
   /* Look for a prior declaration or function overloading. */
   sym = symbol_for_member_function(locator, member_type, &overload_sym);
-  if (sym->variant.routine != NULL) {
+  if (sym->variant.routine.ptr != NULL) {
     /* symbol_for_member_function has returned a symbol that has already been
        declared.  It is an error to redeclare a member function, but we try
        merge the declarations anyway. */
@@ -3266,9 +3266,9 @@ special function kind (e.g., constructor, destructor), if any.
        by curr_il_region_number -- i.e., in the memory region of the scope in
        which its class is declared. */
     /* Member functions are static by default. */
-    sym->variant.routine = rtn = make_routine(member_type,
-                                              (a_storage_class)sc_static,
-                                              /*at_file_scope=*/FALSE);
+    sym->variant.routine.ptr = rtn = make_routine(member_type,
+                                                  (a_storage_class)sc_static,
+                                                  /*at_file_scope=*/FALSE);
     /* Set the source correspondence, including the access specifier. */
     set_source_corresp(&rtn->source_corresp, sym);
     rtn->source_corresp.class_of_which_a_member = class_type;
@@ -3429,7 +3429,7 @@ and it is legal for virtual member functions only.
   /* A pure specifier is allowed for virtual functions only.  (Check the
      class_of_which_a_member to exclude friend declarations.) */
   pure_specifier_allowed = (rout_sym->class_of_which_a_member == class_type &&
-                            rout_sym->variant.routine->is_virtual);
+                            rout_sym->variant.routine.ptr->is_virtual);
   if (!pure_specifier_allowed && !suppress_error) {
     pos_error(ec_pure_specifier_on_nonvirtual_function, &pos_curr_token);
   }  /* if */
@@ -3440,7 +3440,7 @@ and it is legal for virtual member functions only.
     /* Token following "=" is "0". */
     if (pure_specifier_allowed) {
       /* Update the routine and class type enties. */
-      rout_sym->variant.routine->pure_virtual = TRUE;
+      rout_sym->variant.routine.ptr->pure_virtual = TRUE;
       class_type->variant.class_struct_union.abstract = TRUE;
       class_type->variant.class_struct_union.any_pure_virtual_functions = TRUE;
     }  /* if */
@@ -3580,7 +3580,7 @@ function, return TRUE if at least one of the functions qualifies.  Set
        argument type. */
     for (; sym != NULL; sym = sym_is_overloaded ? sym->next : NULL) {
       ptp = routine_symbol_type(sym)->
-                                 variant.routine.extra_info->param_type_list;
+                               variant.routine.extra_info->param_type_list;
       if (ptp != NULL) {
         tp = skip_typerefs(ptp->type);
         /* We are looking for a reference to the current class. */
@@ -3644,7 +3644,7 @@ such member functions are present.
          But if it's overloaded, there must be a user-defined operator. */
       sym = cssp->assignment_operator;
       if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
-          !sym->variant.routine->compiler_generated) {
+          !sym->variant.routine.ptr->compiler_generated) {
         is_valid = FALSE;
       }  /* if */
     }  /* if */
@@ -3734,7 +3734,7 @@ of assoc_field_object and assoc_var_object is defined.
           is_overloaded = FALSE;
         }  /* if */
         for (; mf_sym != NULL; mf_sym = is_overloaded ? mf_sym->next : NULL) {
-          if (!mf_sym->variant.routine->compiler_generated) {
+          if (!mf_sym->variant.routine.ptr->compiler_generated) {
             error(ec_anon_union_member_function);
             member_function_error_already_issued = TRUE;
             break;
@@ -4095,7 +4095,8 @@ and record it in the class's assoc_operator_new_routine field.
       }  /* if */
 #endif /* CHECKING */
     }  /* if */
-    ctsp->assoc_operator_new_routine = new_function_symbol->variant.routine;
+    ctsp->assoc_operator_new_routine = new_function_symbol->
+                                                    variant.routine.ptr;
   }  /* if */
 }  /* set_class_assoc_operator_new_routine */
 
@@ -4173,7 +4174,7 @@ and record it in the class's assoc_operator_delete_routine field.
     }  /* if */
     
     ctsp->assoc_operator_delete_routine =
-                                       delete_function_symbol->variant.routine;
+                                   delete_function_symbol->variant.routine.ptr;
   }  /* if */
 }  /* set_class_assoc_operator_delete_routine */
 
@@ -4338,7 +4339,7 @@ assignment operator.
       /* Check that the function is accessible and mark it referenced. */
       reference_to_implicitly_invoked_function(opass_sym, err_pos);
     }  /* if */
-    opass_routine = opass_sym->variant.routine;
+    opass_routine = opass_sym->variant.routine.ptr;
   }  /* if */
   db_exit();
   return opass_routine;
@@ -4702,7 +4703,7 @@ ARM 12.8).  This function deals with implicitly called constructors,
 destructors, assignment operators, and conversion functions.
 */
 {
-  a_routine_ptr  rp = sym->variant.routine;
+  a_routine_ptr  rp = sym->variant.routine.ptr;
 
 #if CHECKING
   if (rp->special_kind != (a_special_function_kind)sfk_constructor &&
@@ -4977,11 +4978,11 @@ a pointer to it.
   aap->access = access;
   /* Add a pointer to the correct IL entity. */
   switch (aa_kind) {
-    case aak_variable:  aap->variant.variable = sym->variant.variable;  break;
-    case aak_constant:  aap->variant.constant = sym->variant.constant;  break;
-    case aak_type:      aap->variant.type = sym->variant.type;          break;
-    case aak_routine:   aap->variant.routine = sym->variant.routine;    break;
-    case aak_field:     aap->variant.field = sym->variant.field.ptr;    break;
+    case aak_variable:  aap->variant.variable = sym->variant.variable;   break;
+    case aak_constant:  aap->variant.constant = sym->variant.constant;   break;
+    case aak_type:      aap->variant.type = sym->variant.type;           break;
+    case aak_routine:   aap->variant.routine = sym->variant.routine.ptr; break;
+    case aak_field:     aap->variant.field = sym->variant.field.ptr;     break;
   }  /* switch */
 
   return aap;
@@ -5618,7 +5619,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                                                 /*compiler_generated=*/FALSE,
                                                 spec_kind);
               }  /* if */
-              curr_routine_fixup->routine = rout_sym->variant.routine;
+              curr_routine_fixup->routine = rout_sym->variant.routine.ptr;
               curr_routine_fixup->func_info = func_info;
               if (curr_token == tok_lbrace ||
                   (spec_kind == (a_special_function_kind)sfk_constructor &&
@@ -5638,7 +5639,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                      decl_friend_function, which also handles cases in which
                      it should be left unset despite the presence of a
                      function body. */
-                  rout_sym->variant.routine->is_inline = TRUE;
+                  rout_sym->variant.routine.ptr->is_inline = TRUE;
                 }  /* if */
                 remove_stop_token(tok_comma);
                 /* Cache the tokens comprising the function definition
@@ -5958,7 +5959,7 @@ next_declaration:
              access control. */
           for (; ctor_sym != NULL;
                ctor_sym = is_overloaded ? ctor_sym->next : NULL) {
-            if (ctor_sym->variant.routine->source_corresp.access !=
+            if (ctor_sym->variant.routine.ptr->source_corresp.access !=
                                             (an_access_specifier)as_private) {
               /* Break out of the loop with non-null ctor_sym. */
               break;
@@ -5988,7 +5989,7 @@ next_declaration:
          time, since the routine may be called indirectly through the virtual
          function table. */
       if (cssp->destructor != NULL) {
-        a_routine_ptr  rp = cssp->destructor->variant.routine;
+        a_routine_ptr  rp = cssp->destructor->variant.routine.ptr;
         if (rp->is_virtual && rp->compiler_generated) {
           define_special_member_function(rp, class_type, &error_position);
         }  /* if */

@@ -390,7 +390,7 @@ and indentation is the indentation desired.
       break;
     case sk_member_function:
     case sk_routine:
-      rp = sym->variant.routine;
+      rp = sym->variant.routine.ptr;
       if (rp == NULL) {
         put_string("<null>");
       } else {
@@ -824,7 +824,8 @@ state.
       break;
     case sk_routine:
     case sk_member_function:
-      sym_ptr->variant.routine = NULL;
+      sym_ptr->variant.routine.ptr = NULL;
+      sym_ptr->variant.routine.instance_ptr = NULL;
       break;
     case sk_label:
       sym_ptr->variant.label = NULL;
@@ -2120,7 +2121,7 @@ new(), and therefore might be a projection symbol.
   for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
     /* Look for a symbol for a function with just one parameter.
        Default arguments are not allowed and need not be checked for. */
-    ptp = sym->variant.routine->type->variant.routine.extra_info->
+    ptp = sym->variant.routine.ptr->type->variant.routine.extra_info->
                                                                param_type_list;
     if (ptp != NULL && ptp->next == NULL) break;
   }  /* for */
@@ -2182,7 +2183,7 @@ the compiler-generated flag should be cleared.
                       /*if_function_def_with_body=*/FALSE,
                       /*is_inline=*/FALSE, /*is_main_function=*/FALSE, &sym,
                       &linkage, &old_type, &ext_sym);
-  sym->variant.routine->compiler_generated = TRUE;
+  sym->variant.routine.ptr->compiler_generated = TRUE;
 
   db_exit();
 }  /* make_global_operator_new_or_delete_symbol */
@@ -2223,7 +2224,7 @@ only used in C++ mode.
      There may be more than one.  For instance, there may be a constructor
      with no arguments and one with one argument with a default value. */
   for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-    if (is_default_constructor(sym->variant.routine)) {
+    if (is_default_constructor(sym->variant.routine.ptr)) {
       /* sym is a default constructor. */
       if (ctor_sym != NULL) {
         /* A default constructor had already been found, so there's
@@ -2248,7 +2249,7 @@ only used in C++ mode.
     /* Exactly one default constructor. */
     /* Check that the constructor is accessible and mark it referenced. */
     reference_to_implicitly_invoked_function(ctor_sym, err_pos);
-    ctor_routine = ctor_sym->variant.routine;
+    ctor_routine = ctor_sym->variant.routine.ptr;
   }  /* if */
   return ctor_routine;
 }  /* select_default_constructor */
@@ -2271,7 +2272,7 @@ Otherwise, return NULL.
     if (dtor_sym != NULL) {
       /* Check that the destructor is accessible and mark it referenced. */
       reference_to_implicitly_invoked_function(dtor_sym, &error_position);
-      dtor_routine = dtor_sym->variant.routine;
+      dtor_routine = dtor_sym->variant.routine.ptr;
     }  /* if */
   }  /* if */
   return dtor_routine;
@@ -2329,7 +2330,7 @@ and return NULL.  If a bitwise copy is allowed, return NULL and
        There may be more than one.  For instance, there may be a copy
        constructor that can copy a const object and another that cannot. */
     for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-      if (is_copy_constructor(sym->variant.routine,
+      if (is_copy_constructor(sym->variant.routine.ptr,
                               sym->class_of_which_a_member,
                               &const_object_okay, &volatile_object_okay)) {
         if ((const_object_required && !const_object_okay) || 
@@ -2426,7 +2427,7 @@ used in C++ mode.
     /* Exactly one copy constructor is best. */
     /* Check that the constructor is accessible and mark it referenced. */
     reference_to_implicitly_invoked_function(cctor_sym, err_pos);
-    cctor_routine = cctor_sym->variant.routine;
+    cctor_routine = cctor_sym->variant.routine.ptr;
   }  /* if */
   return cctor_routine;
 }  /* select_copy_constructor */
@@ -2469,7 +2470,7 @@ allowed for that kind of symbol).
       break;
     case sk_routine:
     case sk_member_function:
-      entry_ptr = (a_constant_ptr)sym_ptr->variant.routine;
+      entry_ptr = (a_constant_ptr)sym_ptr->variant.routine.ptr;
       break;
     case sk_label:
       entry_ptr = (a_constant_ptr)sym_ptr->variant.label;
@@ -3062,9 +3063,9 @@ Issue the appropriate error on the inaccessibility of sym.
 
   if (is_function_symbol(sym)) {
     if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      rp = sym->variant.overloaded_function.symbols->variant.routine;
+      rp = sym->variant.overloaded_function.symbols->variant.routine.ptr;
     } else {
-      rp = sym->variant.routine;
+      rp = sym->variant.routine.ptr;
     }  /* if */
     if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
         rp->special_kind == (a_special_function_kind)sfk_destructor ||
@@ -3422,13 +3423,13 @@ only the same members of the same class but with equivalent derivations).
           /* Either all are static or all are nonstatic.  Check the first in
              the list. */
           rout_type = fundamental_sym1->variant.overloaded_function.symbols->
-                                                         variant.routine->type;
+                                                    variant.routine.ptr->type;
           goto check_rout_type;
         }
       case sk_member_function:
         /* See if the member function is static.  Otherwise the paths must be
            compared. */
-        rout_type = fundamental_sym1->variant.routine->type;
+        rout_type = fundamental_sym1->variant.routine.ptr->type;
 check_rout_type:
         if (!routine_type_is_nonstatic_member_function(rout_type)) {
           /* There is only one instance of a static member function. */
@@ -4657,7 +4658,7 @@ called.
       }  /* if */
       for (; rout_sym != NULL;
              rout_sym = (is_overloaded ? rout_sym->next : NULL)) {
-        rp = rout_sym->variant.routine;
+        rp = rout_sym->variant.routine.ptr;
         if (rp->source_corresp.referenced) {
           /* Referenced. */
           if (rp->storage_class == (a_storage_class)sc_static &&
@@ -4792,7 +4793,7 @@ NULL.
 check_routine:
       for (; rout_sym != NULL;
              rout_sym = (is_overloaded ? rout_sym->next : NULL)) {
-        rout_ptr = rout_sym->variant.routine;
+        rout_ptr = rout_sym->variant.routine.ptr;
         if (rout_sym->kind != (a_symbol_kind)sk_member_function) {
           if (rout_sym->referenced) {
             /* Referenced function. */
@@ -5446,7 +5447,7 @@ flag in the associated IL entry, if any.
      corresponding IL entry.  When it is, the flag is set explicitly
      elsewhere. */
   if (sym_ptr->kind == (a_symbol_kind)sk_member_function &&
-      sym_ptr->variant.routine->is_virtual) {
+      sym_ptr->variant.routine.ptr->is_virtual) {
     /* Do not set IL referenced flag. */
   } else {
     scptr = source_corresp_entry_for_symbol(sym_ptr);
@@ -5714,8 +5715,11 @@ Allocate a new function instantiation entry and return a pointer to it.
   num_function_instantiation_entries_allocated++;
 #endif /* DEBUG */
   ptr->next    = NULL;
-  ptr->routine = NULL;
-  
+  ptr->routine_sym = NULL;
+  ptr->template_sym = NULL;
+  ptr->instantiation_required = FALSE;
+  ptr->specialization_seen = FALSE;
+
   db_exit();
   return ptr;
 }  /* alloc_function_instantiation_entry */

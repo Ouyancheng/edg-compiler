@@ -495,9 +495,21 @@ typedef struct a_function_instantiation_entry {
                 next;
                         /* Pointer to the next instance of a given
                            function template. */
-  a_routine_ptr routine;
-                        /* Pointer to the IL entry that describes this
+  a_symbol_ptr  routine_sym;
+                        /* Pointer to the symbol entry that describes this
                            template function instance. */
+  a_symbol_ptr  template_sym;
+                        /* For a function template this points back to the
+                           template function symbol.  For member functions
+                           of template classes this points to the member
+                           function symbol of the template class. */
+  unsigned int  instantiation_required:1;
+                        /* TRUE if the routine associated with this
+                           instantiation is needed by this compilation
+                           and a specialization has not been seen. */
+  unsigned int  specialization_seen:1;
+                        /* TRUE if a specialization of this routine has
+                           been encountered. */
 } a_function_instantiation_entry;
 
 
@@ -682,9 +694,16 @@ typedef struct a_symbol {
 			   a pointer to that variable; otherwise NULL. */
     } field;
     /* When kind == sk_routine or sk_member_function: */
-    a_routine_ptr
-		routine;
+    struct {
+      a_routine_ptr 
+                ptr;
 			/* The routine. */
+      a_function_instantiation_entry_ptr
+                instance_ptr;
+                        /* Present for template functions and member functions
+                           of template classes.  Points to information about
+                           the particular instance of the function. */
+    } routine;
     /* When kind == sk_label: */
     a_label_ptr	label;
 			/* The label. */
@@ -1395,7 +1414,7 @@ extern a_template_param_ptr alloc_template_param(void);
 /* Return TRUE if an sk_routine or sk_member_function symbol "sym" is marked
    as being of special function kind "kind". */
 #define is_special_kind_function_symbol(sym, kind)                    \
-  ((sym)->variant.routine->special_kind == (a_special_function_kind)kind)
+  ((sym)->variant.routine.ptr->special_kind == (a_special_function_kind)kind)
 
 /* Return TRUE if a symbol is a constructor symbol. */
 #define is_constructor_symbol(sym)                                    \
@@ -1414,7 +1433,7 @@ extern a_template_param_ptr alloc_template_param(void);
 #define is_copy_constructor_symbol(sym, p_const_okay, p_volatile_okay)\
   ((sym)->kind == (a_symbol_kind)sk_member_function &&                \
    is_special_kind_function_symbol((sym), sfk_constructor) &&         \
-   is_copy_constructor((sym)->variant.routine,                        \
+   is_copy_constructor((sym)->variant.routine.ptr,                        \
                        (sym)->class_of_which_a_member,                \
                        p_const_okay, p_volatile_okay))
 
@@ -1439,7 +1458,7 @@ Extract the routine type from the routine associated with an sk_routine
 or sk_member_function symbol.
 */
 #define routine_symbol_type(sym)                                      \
-  (skip_typerefs((sym)->variant.routine->type))
+  (skip_typerefs((sym)->variant.routine.ptr->type))
 
 /*
 Extract a pointer to the class symbol supplement for a given type for
