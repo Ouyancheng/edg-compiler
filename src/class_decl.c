@@ -9785,8 +9785,7 @@ or implicit) controlling the declaration.
          here. */
       error(ec_template_id_not_allowed);
       err = TRUE;
-    } else if (locator_for_curr_id.parent.class_type->kind ==
-                                            (a_type_kind)tk_template_param) {
+    } else if (is_template_param_type(locator_for_curr_id.parent.class_type)) {
       /* Suppress the base class check and create a dummy base class. */
       bcp = alloc_base_class();
       bcp->type = declared_sym->parent.class_type;

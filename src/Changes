@@ -1,5 +1,15 @@
 Version 2.46
 
+6/20/01  Spurious error on member using declaration
+
+A spurious error was issued when a class member using-declaration referred
+to a typedef of a template dependent type.  This has been fixed.
+
+  template <class T> struct A : T {
+     typedef typename T::X my_x;
+     using typename my_x::Y;
+  };
+
 6/19/01  C++-generating back end, prototype instantiations: output
          of name from unknown dependent base class
 
