@@ -345,10 +345,13 @@ extern void pos_sy2_error(an_error_code     error_code,
                           a_source_position *error_pos,
                           struct a_symbol   *symbol1,
                           struct a_symbol   *symbol2);
+#if 0
+/* This routine is not currently used by the compiler. */
 extern void pos_syty_error(an_error_code     error_code,
                            a_source_position *error_pos,
                            struct a_symbol   *symbol,
                            struct a_type     *type);
+#endif /* 0 */
 extern void sym_error(an_error_code   error_code,
                       struct a_symbol *symbol);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
