@@ -5626,31 +5626,34 @@ is the current expression kind.
 }  /* reference_cast */
 
 
-static void do_reference_conversions(an_operand         *operand_1,
-                                     an_operand         *operand_2,
-                                     an_expression_kind expression_kind)
+static a_boolean check_reference_conversions(
+                                            an_operand         *operand_1,
+                                            an_operand         *operand_2,
+                                            an_expression_kind expression_kind)
 /*
 operand_1 and operand_2 are the second and third operands of a "?" operator,
-and they are lvalues that came from references.  Do the reference conversions
-of ARM 4.7 if possible to bring them to a common type.  expression_kind
-is the current expression kind.
+and they are class lvalues that came from references.  Check to see if the
+reference conversions of ARM 4.7 can be used to bring bring them to a
+common type.  If so, apply the conversion and return TRUE; otherwise,
+return FALSE.  expression_kind is the current expression kind.
 */
 {
+  a_boolean        ref_conversions_apply = FALSE;
   a_type_ptr       type_1 = operand_1->type;
   a_type_ptr       type_2 = operand_2->type;
   a_base_class_ptr bcp;
 
-  if (is_class_struct_union_type(type_1) &&
-      is_class_struct_union_type(type_2)) {
-    if ((bcp = find_base_class_of(type_1, type_2)) != NULL) {
-      /* type_2 is a base class of type_1, so cast operand_1 to type_2. */
-      reference_cast(operand_1, bcp, expression_kind);
-    } else if ((bcp = find_base_class_of(type_2, type_1)) != NULL) {
-      /* type_1 is a base class of type_2, so cast operand_2 to type_1. */
-      reference_cast(operand_2, bcp, expression_kind);
-    }  /* if */
+  if ((bcp = find_base_class_of(type_1, type_2)) != NULL) {
+    /* type_2 is a base class of type_1, so cast operand_1 to type_2. */
+    ref_conversions_apply = TRUE;
+    reference_cast(operand_1, bcp, expression_kind);
+  } else if ((bcp = find_base_class_of(type_2, type_1)) != NULL) {
+    /* type_1 is a base class of type_2, so cast operand_2 to type_1. */
+    ref_conversions_apply = TRUE;
+    reference_cast(operand_2, bcp, expression_kind);
   }  /* if */
-}  /* do_reference_conversions */
+  return ref_conversions_apply;
+}  /* check_reference_conversions */
 
 
 static void scan_conditional_operator(an_operand         *operand_1,
@@ -5734,7 +5737,6 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 
   /* Check the operands for compatibility.  Both must be arithmetic,
      both compatible struct/union types, both void, or both pointers. */
-  result_type = operand_2.type;  /* Assume. */
   if (is_error_operand(&operand_2) || is_error_operand(&operand_3)) {
     /* One or both of the operands has an error. */
     err = TRUE;
@@ -5754,37 +5756,41 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       conv_lvalue_to_rvalue(&operand_3, expr3_kind);
     }  /* if */
   } else {
-    /* Not C++ mode, or the operand types are not the same. */
-    if (C_dialect == C_dialect_cplusplus &&
-        (is_class_struct_union_type(operand_2.type) ||
-         is_class_struct_union_type(operand_3.type))) {
-      /* Look for C++ operator overloading cases.  The operator itself
-         cannot be overloaded, but this also checks for cases where conversion
-         functions can be used to convert the operands to types suitable for
-         the built-in meaning of the operator. */
-      check_for_operator_overloading((an_opname_kind)onk_question,
-                                     /*unary_operator=*/FALSE,
-                                     /*must_be_member_function=*/FALSE,
-                                     /*try_conversions=*/TRUE,
-                                     /*has_predef_meaning=*/TRUE,
-                                     &operand_2, &operand_3,
-                                     expression_kind, &operator_position,
-                                     result, &processed);
-    }  /* if */
-    /* "processed" at this point indicates an error already handled. */
-    if (processed) {
-      err = TRUE;
-    } else {
-      if (C_dialect == C_dialect_cplusplus &&
-          is_an_lvalue(&operand_2) && is_an_lvalue(&operand_3) &&
-          operand_2.came_from_reference &&
-          operand_3.came_from_reference) {
-        /* The two operands are lvalues that came from references.  Bring
-           them to a common type if possible by using the reference
-           conversions of ARM 4.7.  Note that we know that they
-           do not have the same type, or they would have been handled above. */
-        do_reference_conversions(&operand_2, &operand_3, expression_kind);
+    /* Deal with cases where the operands are classes. */
+    if (C_dialect == C_dialect_cplusplus) {
+      a_boolean operand_2_is_class =is_class_struct_union_type(operand_2.type);
+      a_boolean operand_3_is_class =is_class_struct_union_type(operand_3.type);
+      if (operand_2_is_class || operand_3_is_class) {
+        /* If both operands are references, see if the reference conversions 
+           of ARM 4.7 apply. */
+        if (operand_2_is_class && operand_3_is_class &&
+            is_an_lvalue(&operand_2) && is_an_lvalue(&operand_3) &&
+            operand_2.came_from_reference &&
+            operand_3.came_from_reference &&
+            check_reference_conversions(&operand_2, &operand_3,
+                                        expression_kind)) {
+          /* The reference conversions do apply.  The subroutine has done
+             them already. */
+        } else {
+          /* Look for C++ operator overloading cases.  The operator itself
+             cannot be overloaded, but this also checks for cases where
+             conversion functions can be used to convert the operands to
+             types suitable for the built-in meaning of the operator. */
+          check_for_operator_overloading((an_opname_kind)onk_question,
+                                         /*unary_operator=*/FALSE,
+                                         /*must_be_member_function=*/FALSE,
+                                         /*try_conversions=*/TRUE,
+                                         /*has_predef_meaning=*/TRUE,
+                                         &operand_2, &operand_3,
+                                         expression_kind, &operator_position,
+                                         result, &processed);
+          /* processed TRUE means an error has been detected. */
+          if (processed) err = TRUE;
+        }  /* if */
       }  /* if */
+    }  /* if */
+    if (!processed) {
+      result_type = operand_2.type;  /* Assume. */
       conv_lvalue_to_rvalue(&operand_2, expr2_kind);
       conv_lvalue_to_rvalue(&operand_3, expr3_kind);
       operand_2_is_pointer = is_pointer_type(operand_2.type);
@@ -5935,6 +5941,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 	 as the result. */
       copy_operand(&operand_2, result);
     }  /* if */
+    result->came_from_reference = FALSE;
   } else {
     /* The first operand is not a constant, so build the expression. */
     /* Make an operator node with the first part of the expression. */
