@@ -8318,10 +8318,16 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
       if (err || (C_mode() && !gcc_mode)) {
         error(ec_bad_bit_field_size);
       } else if (bit_field_size > max_size_allowed) {
-        /* A warning in C++. */
+        /* A warning in C++ and GNU C modes. */
         char  buffer[8];
         sprintf(buffer, "%ld", max_size_allowed);
         pos_st_warning(ec_extra_bits_ignored, &error_position, buffer);
+        if (gcc_mode) {
+          /* In GNU C mode, oversized bitfields are turned into
+             ordinary fields. */
+          field->is_bit_field = FALSE;
+          goto done;
+        }  /* if */
       }  /* if */
       bit_field_size = max_size_allowed;
     } else if (bit_field_size == 0) {
@@ -8421,7 +8427,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   *p_base_type = base_type;
   field->bit_size = (a_byte)bit_field_size;
   field->bit_field_is_signed = is_signed;
-
+done:;
   db_exit();
 }  /* scan_bit_field_size */
 
@@ -8693,13 +8699,13 @@ specific information about the member declaration, respectively.
   field = alloc_field();
   /* A colon next indicates a bit-field. */
   if (curr_token == tok_colon) {
+    field->is_bit_field = TRUE;
     /* Scan the bit-field size and determine the bit-field type. */
     scan_bit_field_size(field, &unnamed_field, &member_type, locator);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_info->decl_pos_block.declarator_range.end =
                                             curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    field->is_bit_field = TRUE;
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   /* Find the last attribute. */
