@@ -13607,7 +13607,7 @@ is TRUE if this is the expression in a switch statement.
 
 an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop,
                                       a_boolean marked_as_gnu_extension,
-                                      a_boolean result_used)
+                                      a_boolean is_statement_expr)
 /*
 Scan a "void expression," i.e., one whose value is discarded.  This is
 used for expression statements, the increment expression of a "for", etc.
@@ -13616,15 +13616,17 @@ the increment of a "for").  This routine is not used for constant
 or not-evaluated expressions.  This routine should only be used to
 scan full expressions (except for the GNU C statement expression case).
 If marked_as_gnu_extension is TRUE, the upcoming expression was
-preceded by the GNU __extension__ keyword.  Issue a warning for an
-expression that has no side effects unless result_used is TRUE
-(which is the case for the expression of the last statement of a
-GNU C statement expression).
+preceded by the GNU __extension__ keyword.  is_statement_expr is
+TRUE if this expression is being scanned as a statement inside a
+GNU C statement expression.  Issue a warning for an expression that has
+no side effects unless this expression is the last in a statement
+expression.
 */
 {
   an_expr_node_ptr    expression;
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
+  a_boolean           result_used = FALSE;
 
   db_enter(3, "scan_void_expression");
 
@@ -13636,6 +13638,13 @@ GNU C statement expression).
   scan_expr(&result, PREC_LOWEST,
             marked_as_gnu_extension ? EOPT_MARKED_AS_GNU_EXTENSION
                                     : EOPT_NO_OPTIONS);
+  if (is_statement_expr &&
+      curr_token == tok_semicolon &&
+      next_token() == tok_rbrace) {
+    /* This is the last statement in a GNU C statement expression.
+       As such, it is the value of the expression. */
+    result_used = TRUE;
+  }  /* if * */
   if (!result_used) {
     simplify_void_operand(&result);
   } else {

@@ -6176,7 +6176,14 @@ Generate C for a statement.
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
     case stmk_expr:
 #if CHECKING
-      check_result_not_used_flag(statement->expr);
+#if GNU_EXTENSIONS_ALLOWED
+      /* An expression statement that is the last in a GNU C statement
+         expression does have its value used. */
+      if (statement->next != NULL)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      {
+        check_result_not_used_flag(statement->expr);
+      }  /* if */
 #endif /* CHECKING */
       dump_expression(statement->expr);
       write_tok_ch(';');

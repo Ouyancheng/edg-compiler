@@ -4005,24 +4005,18 @@ the statement was preceded by the GNU C __extension__ keyword.
 {
   a_statement_ptr  sp;
   an_expr_node_ptr expr;
-  a_boolean        result_used = FALSE;
-  a_token_kind     token;
+  a_boolean        is_statement_expr =
+                         struct_stmt_stack[depth_stmt_stack].is_statement_expr;
 
   sp = add_statement((a_statement_kind)stmk_expr);
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
-  if ((a_boolean)struct_stmt_stack[depth_stmt_stack].is_statement_expr &&
-      ((void)next_two_tokens(tok_semicolon, &token), token == tok_rbrace)) {
-    /* This is the last statement in a GNU C statement expression.
-       As such, it is the value of the expression. */
-    result_used = TRUE;
-  }  /* if * */
   /* Scan the expression. */
   expr = scan_void_expression(/*repeated_in_loop=*/FALSE,
                               marked_as_gnu_extension,
-                              result_used);
+                              is_statement_expr);
   sp->expr = expr;
   /* If the expression is a throw expression or the call of a function that
      is known not to return, the code following is unreachable. */
@@ -4197,7 +4191,7 @@ either an expression statement or a declaration statement.
     sp->variant.for_loop.extra_info->increment =
                       scan_void_expression(/*repeated_in_loop=*/TRUE,
                                            /*marked_as_gnu_extension=*/FALSE,
-                                           /*result_used=*/FALSE);
+                                           /*is_statement_expr=*/FALSE);
     /* Restore the global variable. */
     suppress_used_before_set_warnings = saved_flag;
   }  /* if */
