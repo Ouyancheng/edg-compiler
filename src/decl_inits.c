@@ -222,7 +222,84 @@ a copy is made and modified.
 }  /* set_initialized_array_size */
 
 
-static a_boolean check_for_string_constant_initializer(
+a_boolean check_string_constant_initializer(a_type_ptr      *var_type,
+                                            a_constant_ptr  string_con)
+/*
+var_type is an array of char or wchar_t.  Return TRUE if and only if it can
+be initialized with the given string literal.  If necessary, the string
+literal may be truncated and the type may be modified (e.g., to set the
+length of the string).
+*/
+{
+  /* The object being initialized has type array of char or wchar_t, and
+     is being initialized with a string.  Handle this case specially. */
+  a_type_ptr     array_type;
+  a_targ_size_t  string_length, num_elems;
+  a_targ_size_t  array_length;
+  a_boolean      is_wide_string = FALSE;
+  a_boolean      err = FALSE;
+
+  /* The object to be initialized is an array (possibly incomplete) of
+     char or wchar_t -- i.e., a string or wide string. */
+  /* The constant and the array should have the same underlying character
+     element type -- e.g., it's a mismatch if one is a wide string
+     and the other a normal string. */
+  err = (is_char_array_type(*var_type) !=
+                                        is_char_array_type(string_con->type));
+  if (!err) {
+    /* The constant is a string with characters that are compatible with
+       the array element type.  (Note that an array of characters of any
+       signedness can be initialized with a string literal: ANSI C 3.5.7.) */
+    num_elems = string_length = string_con->variant.string.length;
+    if (is_wide_string) {
+      /* Adjust the wide string number of elements. */
+      num_elems /= targ_sizeof_wchar_t;
+    }  /* if */
+    array_type = skip_typerefs(*var_type);
+    if (is_incomplete_type(array_type)) {
+      /* The array type is incomplete, and therefore the array size
+         is set from the string length. */
+      set_initialized_array_size(&array_type, num_elems);
+      *var_type = array_type;
+    } else if (array_type->variant.array.is_template_dependent_size_array) {
+      /* This should only happen during prototype instantiations where the
+         array length is a template parameter dependent constant. */
+    } else {
+      /* The object being initialized is an array that has a definite
+         size.  See if the string will fit in the array. */
+      check_assertion(!has_unknown_specified_bound(array_type));
+      array_length = array_type->variant.array.variant.number_of_elements;
+      if (num_elems > array_length) {
+        /* The string is longer than the array.  Check to see if the
+           string will fit if we drop the final null.  See 3.5.7.  In C++
+           the truncation of the final null is not supported (ARM 8.4.2). */
+        if (num_elems-1 == array_length &&
+            C_dialect != C_dialect_cplusplus) {
+          /* Decrement the string length, and change its type,
+             thus "dropping" the final null.  Note that this depends on
+             the string not being shared. */
+          num_elems--;
+          if (!is_wide_string) {
+            string_length--;
+            string_con->type = string_type(num_elems);
+          } else {
+            string_length -= targ_sizeof_wchar_t;
+            string_con->type = wide_string_type(num_elems);
+          }  /* if */
+          string_con->variant.string.length = string_length;
+        } else {
+          /* The initializer string is too long for the array being
+             initialized. */
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return !err;
+}  /* check_string_constant_initializer */
+
+
+static a_boolean process_for_string_constant_initializer(
                                  a_type_ptr                     *type_ptr,
                                  a_constant_ptr                 *init_con,
                                  an_aggregate_init_context_ptr  init_context)
@@ -280,10 +357,6 @@ If there is an error, issue an error and return an error constant.
     /* The object being initialized has type array of char or wchar_t, and
        is being initialized with a string.  Handle this case specially. */
     a_type_ptr     local_type = *type_ptr;
-    a_type_ptr     array_type;
-    a_targ_size_t  string_length, num_elems;
-    a_targ_size_t  array_length;
-    a_boolean      is_wide_string = FALSE;
     a_boolean      err = FALSE;
 
     /* The object to be initialized is an array (possibly incomplete) of
@@ -296,68 +369,7 @@ If there is an error, issue an error and return an error constant.
         err = TRUE;
       }  /* if */
     }  /* if */
-    if (!err) {
-      /* The constant and the array should have the same underlying character
-         element type -- e.g., it's a mismatch if one is a wide string
-         and the other a normal string. */
-      if (is_char_array_type(local_type)) {
-        err = !is_char_array_type(cp->type);
-      } else if (is_wchar_t_array_type(local_type) &&
-                 is_wchar_t_array_type(cp->type)) {
-        is_wide_string = TRUE;
-      } else {
-        err = TRUE;
-      }  /* if */
-    }  /* if */
-    if (!err) {
-      /* The constant is a string with characters that are compatible with
-         the array element type.  (Note that an array of characters of any
-         signedness can be initialized with a string literal: ANSI C 3.5.7.) */
-      num_elems = string_length = cp->variant.string.length;
-      if (is_wide_string) {
-        /* Adjust the wide string number of elements. */
-        num_elems /= targ_sizeof_wchar_t;
-      }  /* if */
-      array_type = skip_typerefs(local_type);
-      if (is_incomplete_type(array_type)) {
-        /* The array type is incomplete, and therefore the array size
-           is set from the string length. */
-        set_initialized_array_size(&array_type, num_elems);
-        local_type = array_type;
-      } else if (array_type->variant.array.is_template_dependent_size_array) {
-        /* This should only happen during prototype instantiations where the
-           array length is a template parameter dependent constant. */
-      } else {
-        /* The object being initialized is an array that has a definite
-           size.  See if the string will fit in the array. */
-        check_assertion(!has_unknown_specified_bound(array_type));
-        array_length = array_type->variant.array.variant.number_of_elements;
-        if (num_elems > array_length) {
-          /* The string is longer than the array.  Check to see if the
-             string will fit if we drop the final null.  See 3.5.7.  In C++
-             the truncation of the final null is not supported (ARM 8.4.2). */
-          if (num_elems-1 == array_length &&
-              C_dialect != C_dialect_cplusplus) {
-            /* Decrement the string length, and change its type,
-               thus "dropping" the final null.  Note that this depends on
-               the string not being shared. */
-            num_elems--;
-            if (!is_wide_string) {
-              string_length--;
-              cp->type = string_type(num_elems);
-            } else {
-              string_length -= targ_sizeof_wchar_t;
-              cp->type = wide_string_type(num_elems);
-            }  /* if */
-            cp->variant.string.length = string_length;
-          } else {
-            /* The initializer string is too long for the array being
-               initialized. */
-            err = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
+    err = !check_string_constant_initializer(type_ptr, cp);
     if (err) {
       /* There was an error of some kind. */
       if (!is_error_type(cp->type)) {
@@ -394,7 +406,7 @@ If there is an error, issue an error and return an error constant.
     }  /* if */
   }  /* if */
   return is_string_init;
-}  /* check_for_string_constant_initializer */
+}  /* process_for_string_constant_initializer */
 
 
 static void check_for_opening_brace(a_boolean *flag)
@@ -876,7 +888,7 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
   a_boolean        is_constant;
   a_constant       constant, *cp = NULL;
 
-  if (check_for_string_constant_initializer(
+  if (process_for_string_constant_initializer(
                                    &type, &cp,
                                    (an_aggregate_init_context_ptr)NULL)) {
     /* The object being initialized has type array of char or wchar_t, and
@@ -1757,7 +1769,7 @@ this function points to a tree that includes a dynamic-init entry.
     } else {
       brace_flag = FALSE;
     }  /* if */
-    if (check_for_string_constant_initializer(type, &init_con, &context)) {
+    if (process_for_string_constant_initializer(type, &init_con, &context)) {
       /* The object being initialized has type array of char or wchar_t, and
          is being initialized with a string. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -2964,7 +2976,7 @@ returned set to TRUE.
       a_constant  constant;
       scan_constant_initializer_expression(vp_type, &constant);
       init_con = alloc_unshared_constant(&constant);
-      if (!var_err && vp != NULL && constant.type != vp->type) {
+      if (!var_err && vp != NULL && is_incomplete_type(vp->type)) {
         put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
                                     constant.type);
       }  /* if */

@@ -14568,24 +14568,36 @@ nonstandard class member constants.  Assumes copy-initialization
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   if (is_array_type(required_type) && is_array_type(result.type)) {
+    /* If the initializer is a string literal we will need access to the
+       string constant. */
+    a_boolean  string_literal_case = is_string_type(result.type) &&
+                                  result.kind == (an_operand_kind)ok_constant;
+    a_constant_ptr  string_con = NULL;
+    if (string_literal_case) {
+      string_con = &result.variant.constant;
+      if (is_an_lvalue(&result)) {
+        /* The operand represents a &"..." form: strip the ck_address constant
+           to recover the plain string literal. */
+        check_assertion(string_con->kind == (a_constant_repr_kind)ck_address &&
+                        string_con->variant.address.kind ==
+                                           (an_address_base_kind)abk_constant);
+        string_con = string_con->variant.address.variant.constant;
+      }  /* if */
+    }  /* if */
     check_assertion(gcc_mode || is_string_type(result.type));
-    if (!types_are_compatible(result.type, required_type)) {
+    if ((string_literal_case &&
+         !check_string_constant_initializer(&required_type, string_con)) ||
+        (!string_literal_case &&
+         !types_are_compatible(result.type, required_type))) {
       pos_ty2_error(ec_bad_initializer_type, &result.position,
                     result.type, required_type);
       conv_to_error_operand(&result);
     }  /* if */
     /* Make a constant from the operand. */
     if (is_an_lvalue(&result)) {
-      /* The operand represents a &"..." form: strip the ck_address constant
-         to recover the plain string literal. */
-      a_constant_ptr  string_con;
-      check_assertion(is_string_type(result.type) &&
-                      result.kind == (an_operand_kind)ok_constant);
-      string_con = &result.variant.constant;
-      check_assertion(string_con->kind == (a_constant_repr_kind)ck_address &&
-                      string_con->variant.address.kind ==
-                                          (an_address_base_kind)abk_constant);
-      copy_constant(string_con->variant.address.variant.constant, constant);
+      /* Use the previously computed string_con. */
+      check_assertion(string_literal_case);
+      copy_constant(string_con, constant);
     } else {
       /* The operand could be a constant or an error. */
       extract_constant_from_operand(&result, constant);
