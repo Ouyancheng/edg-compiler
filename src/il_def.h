@@ -2046,6 +2046,7 @@ typedef struct a_variable {
 			   definition.  FALSE for all other cases including
 			   a static data member of a template class that
 			   was initialized with a specific definition. */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
   unsigned int  can_be_instantiated:1;
 			/* TRUE if this is a template static data member
                            that could be instantiated by this compilation.
@@ -2064,6 +2065,20 @@ typedef struct a_variable {
 			   The flag is only set very late in the compilation
 			   process and should not be relied upon for any
 			   other purpose. */
+  unsigned int	instance_required:1;
+			/* TRUE for a static data member of a
+			   template class for which a definition (either
+			   template generated or a specific definition)
+			   must be supplied in this compilation unit or in
+			   another compilation unit with which this unit
+			   will be linked.
+                           This flag is provided in the IL so that a
+			   back end can pass the information along to
+			   a link-time automatic instantiation mechanism.
+			   The flag is only set very late in the compilation
+			   process and should not be relied upon for any
+			   other purpose. */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #endif /* ifdef CIL */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any. */
@@ -2362,6 +2377,7 @@ typedef struct a_routine {
 			   including specific definitions of template
 			   functions and member functions of template
 			   classes. */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
   unsigned int  can_be_instantiated:1;
 			/* TRUE if this is a template function
                            that could be instantiated by this compilation.
@@ -2380,6 +2396,20 @@ typedef struct a_routine {
 			   The flag is only set very late in the compilation
 			   process and should not be relied upon for any
 			   other purpose. */
+  unsigned int	instance_required:1;
+			/* TRUE for a template function or member function of
+			   a template class for which a definition (either
+			   template generated or a specific definition)
+			   must be supplied in this compilation unit or in
+			   another compilation unit with which this unit
+			   will be linked.
+                           This flag is provided in the IL so that a
+			   back end can pass the information along to
+			   a link-time automatic instantiation mechanism.
+			   The flag is only set very late in the compilation
+			   process and should not be relied upon for any
+			   other purpose. */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   a_class_list_entry_ptr
                 befriending_classes;
                         /* A linked list of entries identifying classes that
