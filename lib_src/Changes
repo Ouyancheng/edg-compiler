@@ -3,11 +3,13 @@ Version 2.38
 12/16/97 Destructor pointer no longer in the type_info_impl object
 
 The destructor pointer has been removed from the type_info_impl object
-and is instead passed to the runtime each time an object is thrown.
-The presence of the destructor pointer in the type_info_impl object
-could require that a destructor be provided when one was not otherwise
-needed.  Passing the destructor pointer as part of processing a throw
-fixes this problem.
+and is instead passed to the runtime each time an object is thrown
+using a new runtime routine named __throw_setup_dtor.  The presence of
+the destructor pointer in the type_info_impl object could require that
+a destructor be provided when one was not otherwise needed.  Passing
+the destructor pointer as part of processing a throw fixes this
+problem.  See the "Destructor for thrown object" entry in the front
+end Changes file for additional information.
 
 12/16/97 Restructuring of include files used by the runtime
 
