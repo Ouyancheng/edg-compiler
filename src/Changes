@@ -31,8 +31,9 @@ whether an old-style template specialization (i.e., one without the
 DEFAULT_OLD_SPECIALIZATIONS_ALLOWED, and it may be adjusted on the command
 line by --[no_]old_specializations.  Moreover, it is set to TRUE in
 cfront-compatibility mode, and it is set to FALSE in strict ANSI mode
-(unless --old_specializations appears on the command line, in which case a
-warning/discretionary error on using a nonstandard feature is issued).
+(unless --old_specializations appears on the command line).  When
+old_specializations_allowed is FALSE, a discretionary error is issued when
+an old-style template specialization is encountered.
 
 5/13/96 Failure to find conversion function in template
 
