@@ -3251,6 +3251,27 @@ is just a matter of changing where and how diagnostics are issued.)
 }  /* redecl_member_function */
 
 
+static void add_to_conversion_list(a_symbol_ptr                   sym,
+                                   a_class_symbol_supplement_ptr  cssp)
+/*
+Create a conversion list entry for sym, which represents a conversion
+operator, and add it to the conversion list in the class symbol supplement
+pointed to by cssp.
+*/
+{
+  a_conversion_list_entry_ptr    clep;
+
+  db_enter(4, "add_to_conversion_list");
+  /* Allocate the new entry and make it point to the symbol. */
+  clep = alloc_conversion_list_entry();
+  clep->symbol = sym;
+  /* Add it to the list associated with the parent class. */
+  clep->next = cssp->conversion_list;
+  cssp->conversion_list = clep;
+  db_exit();
+}  /* add_to_conversion_list */
+
+
 static a_symbol_ptr decl_member_function(
                                    a_symbol_locator        *locator,
                                    a_type_ptr              class_type,
@@ -3278,7 +3299,6 @@ special function kind (e.g., constructor, destructor), if any.
   a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
   a_boolean                     const_object_okay, dummy_flag;
   a_type_ptr                    tp;
-  a_conversion_list_entry_ptr   clep;
 
   db_enter(3, "decl_member_function");
   /* If this is a user-defined conversion or an overloaded operator,
@@ -3366,10 +3386,7 @@ special function kind (e.g., constructor, destructor), if any.
       /* Create a conversion list entry.  This list provides an alternative
          to traversing the entire symbols list for a class to find its
          conversion functions. */
-      clep = alloc_conversion_list_entry();
-      clep->symbol = sym;
-      clep->next = cssp->conversion_list;
-      cssp->conversion_list = clep;
+      add_to_conversion_list(sym, cssp);
       /* Check the target type of the conversion. */
       tp = skip_typerefs(rtn->type->variant.routine.return_type);
       if (is_reference_type(tp)) {
@@ -5122,6 +5139,7 @@ destination type is not yet on the current class's conversion list.
   a_conversion_list_entry_ptr   clep, bcclep;
   a_symbol_locator              loc;
   a_boolean                     update = FALSE;
+  a_symbol_ptr                  sym;
 
   /* Examine each direct base class. */
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
@@ -5140,11 +5158,6 @@ destination type is not yet on the current class's conversion list.
            conversion defined in the base class.  Otherwise, go ahead and
            create a projection into the current class. */
         if (clep == NULL) {
-          /* Allocate the new conversion list entry and link it in the
-             list for the current class. */
-          clep = alloc_conversion_list_entry();
-          clep->next = cssp->conversion_list;
-          cssp->conversion_list = clep;
           /* Create the projection symbol and record it in the new conversion
              list entry. */
           make_locator_for_symbol(bcclep->symbol, &loc);
@@ -5152,13 +5165,16 @@ destination type is not yet on the current class's conversion list.
           (void)find_projected_symbol(class_type, &loc, /*must_be_tag=*/FALSE,
                                       /*must_be_type_name=*/FALSE,
                                       /*add_to_active_list=*/TRUE,
-                                      (a_symbol_ptr)NULL, &clep->symbol);
+                                      (a_symbol_ptr)NULL, &sym);
 #if CHECKING
-          if (clep->symbol == NULL) {
+          if (sym == NULL) {
             internal_error(
                      "project_base_class_conversion_functions: no projection");
           }  /* if */
 #endif /* CHECKING */
+          /* Allocate the new conversion list entry and link it in the
+             list for the current class. */
+          add_to_conversion_list(sym, cssp);
           update = TRUE;
         }  /* if */
         /* Get the next conversion list entry from the base class. */
@@ -5170,8 +5186,7 @@ destination type is not yet on the current class's conversion list.
     /* Since the scope symbol list may have been empty before and since
        at least one new symbol has been added, update the symbols list
        attached to the class. */
-    (symbol_supplement_for_class(class_type))->symbols =
-                                      scope_stack[depth_scope_stack].symbols;
+    cssp->symbols = scope_stack[depth_scope_stack].symbols;
   }  /* if */
 }  /* project_base_class_conversion_functions */
 
@@ -5399,7 +5414,19 @@ and "class_type" indicates the class in which the declaration occurs.
     }  /* if */
     /* This is a valid access adjustment. */
     projection_into_curr_class->variant.projection.access = access;
-    if (is_overloaded_function) sym = sym->variant.overloaded_function.symbols;
+    if (is_overloaded_function) {
+      sym = sym->variant.overloaded_function.symbols;
+    } else if (sym->kind == (a_symbol_kind)sk_member_function) {
+      /* If the projection symbol represents a conversion operator, be sure
+         it is entered into the conversion list. */
+      if (sym->variant.routine.ptr->special_kind ==
+                                   (a_special_function_kind)sfk_conversion) {
+        /* Allocate the new conversion list entry and link it in the
+           list for the current class. */
+        add_to_conversion_list(projection_into_curr_class,
+                               symbol_supplement_for_class(class_type));
+      }  /* if */
+    }  /* if */
     for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
       /* Create an access-adjustment entry to represent this declaration in
          the IL. */
