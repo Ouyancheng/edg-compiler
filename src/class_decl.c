@@ -6179,30 +6179,114 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
 }  /* scan_bit_field_size */
 
 
-static void decl_nonstatic_data_member(
-                       a_symbol_locator             *locator,
-                       a_type_ptr                   class_type,
-                       a_type_ptr                   *member_type,
-                       a_class_def_state_ptr        class_state,
-                       a_boolean                    unnamed_field,
-                       a_boolean                    is_anonymous_union,
-                       a_boolean                    is_nonstd_anonymous_union,
-                       a_boolean                    is_mutable,
-                       a_source_sequence_entry_ptr  ssep)
+static void check_field_type(a_symbol_locator        *locator,
+                             a_type_ptr              *member_type,
+                             a_class_def_state_ptr   class_state,
+                             a_member_decl_info_ptr  decl_info)
+
+/*
+Check that the type of a nonstatic data member is valid, and report incomplete
+types and incorrect types on bit-field declarations.  *locator is the symbol
+locator for the field being declared, and *member_type is its type.
+*class_state and *decl_info track general information about the class
+definition and specific information about the member declaration,
+respectively.
+*/
+{
+  a_type_ptr  field_type = *member_type;
+
+  /* The type specified must be complete. */
+  complete_type_is_needed(field_type);
+  if (C_mode() && is_function_type(field_type) &&
+      decl_info->storage_class != (a_storage_class)sc_typedef) {
+    pos_error(ec_function_type_not_allowed, &locator->source_position);
+    field_type = error_type();
+  } else if (is_incomplete_type(field_type)) {
+    /* As a C extension (and in C++ in Microsoft mode), allow an array of
+       unknown size as the last member of a struct. It can't be the first
+       member, though. */
+    if (is_array_type(field_type) &&
+        (curr_token == tok_rbrace ||
+         (curr_token == tok_semicolon && next_token() == tok_rbrace)) &&
+        !is_incomplete_type(underlying_array_element_type(field_type)) &&
+        !class_state->is_first_field && (C_mode()
+#if MICROSOFT_EXTENSIONS_ALLOWED
+         /* Allowed in Microsoft C++ but only for aggregates. */
+         || (microsoft_mode && !class_state->class_aggregate_ruled_out &&
+             class_state->access == (an_access_specifier)as_public)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                       )) {
+      /* Okay -- unless we're in ANSI-C mode. */
+      if (strict_ansi_mode) {
+        pos_diagnostic(strict_ansi_error_severity,
+                       ec_incomplete_type_not_allowed,
+                       &locator->source_position);
+      }  /* if */
+    } else if (is_template_param_type(field_type)) {
+      check_assertion(skip_typerefs(field_type)->variant.template_param.kind ==
+                                   (a_template_param_type_kind)tptk_member);
+      /* Okay. */
+    } else {
+      if (!C_mode() && is_error_locator(*locator) &&
+          !decl_info->is_unnamed_field) {
+        /* Don't issue an error since we can't be sure this was intended to
+           be field -- it could be an ill-formed function declaration with
+           a void return type, such as
+             void operator?:();
+           in which the param list is not processed. */
+      } else {
+        pos_error(ec_incomplete_type_not_allowed, &locator->source_position);
+      }  /* if */
+      field_type = error_type();
+    }  /* if */
+  }  /* if */
+  if (curr_token == tok_colon) {
+    /* Bit-field declaration -- be sure the type is okay. */
+    a_type_ptr  unqual_type = skip_typerefs(field_type);
+    if (!is_integral_type(unqual_type)) {
+      /* Error, not an integral type. */
+      if (is_error_type(unqual_type)) {
+        /* An error has already been issued. */
+      } else if (is_template_param_type(unqual_type)) {
+        /* We're in a prototype instantiation -- don't issue an error. */
+      } else {
+        /* Invalid type. */
+        pos_error(ec_bad_bit_field_type, &decl_info->decl_start_pos);
+        field_type = error_type();
+      }  /* if */
+    } else {
+      /* Integral base type.  In strict ANSI C mode, give a diagnostic about
+         a nonstandard base type (anything other than int, unsigned int, and
+         signed int). */
+      if (C_mode() && strict_ansi_mode) {
+        if (unqual_type->variant.integer.enum_type ||
+            (unqual_type->variant.integer.int_kind !=
+                                        (an_integer_kind)ik_int &&
+             unqual_type->variant.integer.int_kind !=
+                                        (an_integer_kind)ik_unsigned_int)) {
+          pos_diagnostic(strict_ansi_error_severity, ec_nonstd_bit_field_type,
+                         &decl_info->decl_start_pos);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  *member_type = field_type;
+}  /* check_field_type */
+
+
+static void decl_nonstatic_data_member(a_symbol_locator        *locator,
+                                       a_type_ptr              class_type,
+                                       a_type_ptr              *member_type,
+                                       a_class_def_state_ptr   class_state,
+                                       a_member_decl_info_ptr  decl_info)
 /*
 Scan a nonstatic data member of a class, struct, or union, create a field
 entry to represent it in the IL, and create an entry in the symbol table
 for it if it has a name.  class_type is a pointer to the tk_class,
 tk_struct, or tk_union type entry for the entity of which the member is a
-member.  *locator and *member_type describe what is so far known about the
-member, and access specifies whether it is a public, protected, or private
-member.  If it is unnamed, unnamed_field will be TRUE.  The field entry
-that is created is added to the end of a list in a structure pointed to by
-field_list; this list will be transferred to the list on the class_type
-later.  If the field is too large to fit in the struct and *any_overflow
-is FALSE, an error is issued and *any_overflow is set to TRUE; this
-technique is used to assure that only one such error is put out on a given
-class, struct, or union.
+member.  *locator is the symbol locator for the declaration.  *class_state
+and *decl_info track general information about the class definition and
+specific information about the member declaration, respectively.
 */
 {
   long                           bit_field_size = 0;
@@ -6210,15 +6294,18 @@ class, struct, or union.
   a_symbol_ptr                   member_sym = NULL;
   a_class_symbol_supplement_ptr  cssp;
   a_boolean                      bit_field_is_signed = FALSE;
+  a_boolean                      unnamed_field = decl_info->is_unnamed_field;
 
   db_enter(3, "decl_nonstatic_data_member");
-  if (class_type->kind == (a_type_kind)tk_union) {
-    if (C_dialect == C_dialect_cplusplus) {
-      /* An object of a class with a constructor, a destructor, or a user-
-         defined assignment operator cannot be a member of a union. */
-      if (!is_valid_union_field(*member_type, &locator->source_position)) {
-        *member_type = error_type();
-      }  /* if */
+  /* Do error checking on the type. */
+  check_field_type(locator, member_type, class_state, decl_info);
+  /* Set the flag to record that at least one named field was encountered. */
+  if (!decl_info->is_unnamed_field) class_state->any_named_fields = TRUE;
+  if (!C_mode() && class_type->kind == (a_type_kind)tk_union) {
+    /* An object of a class with a constructor, a destructor, or a user-
+       defined assignment operator cannot be a member of a union. */
+    if (!is_valid_union_field(*member_type, &locator->source_position)) {
+      *member_type = error_type();
     }  /* if */
   }  /* if */
   /* Create the field entry. */
@@ -6247,11 +6334,11 @@ class, struct, or union.
        from record_symbol_declaration).  An exception is made for unnamed
        fields; call the subroutine directly. */
     update_source_sequence_list((char *)field, (an_il_entry_kind)iek_field,
-                                ssep);
+                                decl_info->declarator_ssep);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else {
     /* Create the field symbol. */
-    if (is_anonymous_union) {
+    if (decl_info->is_anonymous_union) {
       member_sym = make_anonymous_parent_object_symbol(
                                        (a_symbol_kind)sk_field,
                                        &locator->source_position,
@@ -6264,17 +6351,19 @@ class, struct, or union.
       set_source_corresp(&(field->source_corresp), member_sym);
     }  /* if */
     member_sym->variant.field.ptr = field;
+    decl_info->member_sym = member_sym;
   }  /* if */
   /* Set the parent class in the field and (unless member_sym is NULL) in the
      symbol. */
   set_class_membership(member_sym, &field->source_corresp, class_type);
   if (C_dialect == C_dialect_cplusplus) {
     field->source_corresp.access = class_state->access;
-    field->is_mutable = is_mutable;
+    field->is_mutable = ((decl_info->dso_flags & DSO_MUTABLE) != 0);
   }  /* if */
-  if (member_sym != NULL && !is_anonymous_union) {
+  if (member_sym != NULL && !decl_info->is_anonymous_union) {
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
-                              &locator->source_position, ssep);
+                              &locator->source_position,
+                              decl_info->declarator_ssep);
     /* Do processing required for any pragmas that are bound to the current
        declaration. */
     process_curr_construct_pragmas(member_sym, (a_statement_ptr)NULL);
@@ -6318,10 +6407,10 @@ class, struct, or union.
       cssp->assignment_by_bitwise_copy_allowed = FALSE;
     }  /* if */
   }  /* if */
-  if (is_anonymous_union) {
+  if (decl_info->is_anonymous_union) {
     /* Do checking, promote symbols to the current class. */
     check_anonymous_union_symbols(member_sym, class_type,
-                                  is_nonstd_anonymous_union);
+                                  decl_info->is_nonstd_anonymous_union);
   }  /* if */
   if (is_aggregate_or_union_type(*member_type)) {
     /* If the member's type is class, struct, or union -- or array of class,
@@ -6373,6 +6462,27 @@ class, struct, or union.
        default args are scanned (once the entire class has been scanned). */
     curr_routine_fixup->symbol = member_sym;
   }  /* if */
+  if (!class_state->class_aggregate_ruled_out) {
+    if (class_state->access != (an_access_specifier)as_public) {
+      if (decl_info->is_unnamed_field) {
+        /* Unnamed bit fields are not subject to initialization (and
+           are not even members, according to WP 9.6) so a nonpublic
+           one (whatever that means) has no effect on aggregate
+           state. */
+      } else {
+        /* No class with private or protected nonstatic data members
+           is an aggregate (WP 8.5.1). */
+        class_state->class_aggregate_ruled_out = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!class_state->any_const_or_ref_fields &&
+      !decl_info->is_anonymous_union && !decl_info->is_unnamed_field &&
+      (is_reference_type(*member_type) ||
+       is_const_qualified_type(*member_type))) {
+    class_state->any_const_or_ref_fields = TRUE;
+  }  /* if */
+  class_state->is_first_field = FALSE;
 #if DEBUG
   if (debug_level >= 3) {
     if (member_sym != NULL) {
@@ -7816,96 +7926,6 @@ information about the current declaration and is updated if an error is found.
 }  /* check_for_invalid_use_of_virtual */
 
 
-static void check_field_type(a_symbol_locator        *locator,
-                             a_type_ptr              *member_type,
-                             a_class_def_state_ptr   class_state,
-                             a_boolean               is_unnamed,
-                             a_source_position       *decl_start_pos)
-/*
-Check that the type of a nonstatic data member is valid, and report incomplete
-types and incorrect types on bit-field declarations.  *locator is the symbol
-locator for the field being declared, and *member_type is its type.
-is_unnamed is TRUE if it is an unnamed bit field, access is the access
-specification in effect for the declaration, is_non_aggregate_class is TRUE
-when if a declaration has already appeared that causes the current class
-not to be an aggregate, and *decl_start_pos is a source position for some of
-the diagnostics that may be issued.
-*/
-{
-  a_type_ptr  field_type = *member_type;
-
-  if (is_incomplete_type(field_type)) {
-    /* As a C extension (and in C++ in Microsoft mode), allow an array of
-       unknown size as the last member of a struct. It can't be the first
-       member, though. */
-    if (is_array_type(field_type) &&
-        (curr_token == tok_rbrace ||
-         (curr_token == tok_semicolon && next_token() == tok_rbrace)) &&
-        !is_incomplete_type(underlying_array_element_type(field_type)) &&
-        !class_state->is_first_field && (C_mode()
-#if MICROSOFT_EXTENSIONS_ALLOWED
-         /* Allowed in Microsoft C++ but only for aggregates. */
-         || (microsoft_mode && !class_state->class_aggregate_ruled_out &&
-             class_state->access == (an_access_specifier)as_public)
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                       )) {
-      /* Okay -- unless we're in ANSI-C mode. */
-      if (strict_ansi_mode) {
-        pos_diagnostic(strict_ansi_error_severity,
-                       ec_incomplete_type_not_allowed,
-                       &locator->source_position);
-      }  /* if */
-    } else if (is_template_param_type(field_type)) {
-      check_assertion(skip_typerefs(field_type)->variant.template_param.kind ==
-                                   (a_template_param_type_kind)tptk_member);
-      /* Okay. */
-    } else {
-      if (!C_mode() && is_error_locator(*locator) && !is_unnamed) {
-        /* Don't issue an error since we can't be sure this was intended to
-           be field -- it could be an ill-formed function declaration with
-           a void return type, such as
-             void operator?:();
-           in which the param list is not processed. */
-      } else {
-        pos_error(ec_incomplete_type_not_allowed, &locator->source_position);
-      }  /* if */
-      field_type = error_type();
-    }  /* if */
-  }  /* if */
-  if (curr_token == tok_colon) {
-    /* Bit-field declaration -- be sure the type is okay. */
-    a_type_ptr  bit_field_type = skip_typerefs(field_type);
-    if (!is_integral_type(bit_field_type)) {
-      /* Error, not an integral type. */
-      if (is_error_type(bit_field_type)) {
-        /* An error has already been issued. */
-      } else if (is_template_param_type(bit_field_type)) {
-        /* We're in a prototype instantiation -- don't issue an error. */
-      } else {
-        /* Invalid type. */
-        pos_error(ec_bad_bit_field_type, decl_start_pos);
-        field_type = error_type();
-      }  /* if */
-    } else {
-      /* Integral base type.  In strict ANSI C mode, give a diagnostic about
-         a nonstandard base type (anything other than int, unsigned int, and
-         signed int). */
-      if (C_mode() && strict_ansi_mode) {
-        if (bit_field_type->variant.integer.enum_type ||
-            (bit_field_type->variant.integer.int_kind !=
-                                        (an_integer_kind)ik_int &&
-             bit_field_type->variant.integer.int_kind !=
-                                        (an_integer_kind)ik_unsigned_int)) {
-          pos_diagnostic(strict_ansi_error_severity, ec_nonstd_bit_field_type,
-                         decl_start_pos);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  *member_type = field_type;
-}  /* check_field_type */
-
-
 static void report_missing_constructor(a_symbol_ptr  tag_sym)
 /*
 tag_sym is a class/struct/union symbol for which no constructor was
@@ -8558,45 +8578,8 @@ following the member declaration.
         }  /* if */
       } else {
         /* Non-static data member (= field). */
-        /* The type specified must be complete. */
-        complete_type_is_needed(local_type);
-        if (C_mode() && is_function_type(local_type) &&
-          decl_info.storage_class != (a_storage_class)sc_typedef) {
-          pos_error(ec_function_type_not_allowed, &locator.source_position);
-          local_type = error_type();
-        } else {
-          check_field_type(&locator, &local_type, class_state,
-                           decl_info.is_unnamed_field, &decl_start_pos);
-        }  /* if */
-        /* Set the flag to record that at least one named field was
-           encountered. */
-        if (!decl_info.is_unnamed_field) class_state->any_named_fields = TRUE;
         decl_nonstatic_data_member(&locator, class_type, &local_type,
-                                   class_state, decl_info.is_unnamed_field,
-                                   decl_info.is_anonymous_union,
-                                   decl_info.is_nonstd_anonymous_union,
-                                   mutable_specified, decl_info.declarator_ssep);
-        if (!class_state->class_aggregate_ruled_out) {
-          if (class_state->access != (an_access_specifier)as_public) {
-            if (decl_info.is_unnamed_field) {
-              /* Unnamed bit fields are not subject to initialization (and
-                 are not even members, according to WP 9.6) so a nonpublic
-                 one (whatever that means) has no effect on aggregate
-                 state. */
-            } else {
-              /* No class with private or protected nonstatic data members
-                 is an aggregate (WP 8.5.1). */
-              class_state->class_aggregate_ruled_out = TRUE;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        if (!class_state->any_const_or_ref_fields &&
-            !decl_info.is_anonymous_union && !decl_info.is_unnamed_field &&
-            (is_reference_type(local_type) ||
-             is_const_qualified_type(local_type))) {
-          class_state->any_const_or_ref_fields = TRUE;
-        }  /* if */
-        class_state->is_first_field = FALSE;
+                                   class_state, &decl_info);
       }  /* if */
       if (C_dialect == C_dialect_cplusplus) {
         /* Issue an error if there appears to be an attempt to initialize a
