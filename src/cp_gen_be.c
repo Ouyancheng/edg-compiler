@@ -6590,7 +6590,7 @@ is the one associated with the template.
      will be generated from those. */
   from_proto = gen_template_from_prototype_instantiation(tp);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-  if (!from_proto) {
+  if (!from_proto) { /*lint !e774*/
     /* No prototype instantiation is available in the IL; generate the
        template from the stored text string. */
     set_output_position(&tp->source_corresp.decl_position);
