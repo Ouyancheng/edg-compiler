@@ -1078,10 +1078,10 @@ memory or with an IL file.
     if (scope->kind == (a_scope_kind)sck_function) {
 #if MAINTAIN_NEEDED_FLAGS
       if (!il_entry_prefix_of(scope).keep_in_il) {
-        /* This is the memory region for a function scope that may not be
-           needed.  As an optimization to keep the IL file from growing too
-           large, don't write it out.  If we later discover that it's needed,
-           the memory region will be written out at that time. */
+        /* This memory region so far looks as if it's unneeded.  Hold on
+           to it for now.  If we make it to the end of the compilation with
+           the memory region still unneeded, we will have the option of
+           just freeing it at that point. */
         write_region = FALSE;
         keep_memory = TRUE;
       }  /* if */
@@ -1093,6 +1093,12 @@ memory or with an IL file.
         keep_memory = TRUE;
       }  /* if */
 #endif /* MINIMAL_INLINING */
+    }  /* if */
+    /* Don't write the memory region again if it has already been written.
+       This can happen for cases like inline functions where the function is
+       written out but kept in memory. */
+    if (index_for_il_file[region_number] != NULL) {
+      write_region = FALSE;
     }  /* if */
     if (write_region)
 #endif /* MAINTAIN_NEEDED_FLAGS || MINIMAL_INLINING */
