@@ -392,6 +392,7 @@ EXTERN unsigned long
 EXTERN an_expr_node_ptr
 		curr_full_expression;
 			/* If doing IL lowering inside an expression, this
+			   is the full expression.  NULL otherwise. */
 
 EXTERN a_return_memo_ptr
 		return_memo_list;
