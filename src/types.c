@@ -260,10 +260,12 @@ case.
       result = TRUE;
       break;
     } else {
-      tp = skip_typerefs(tp->variant.array.element_type);
+      tp = tp->variant.array.element_type;
+      if (tp == NULL) break;
+      tp = skip_typerefs(tp);
     }  /* if */
   }  /* while */
-  if (gcc_mode &&
+  if (gcc_mode && tp != NULL &&
       (tp->kind == (a_type_kind)tk_struct ||
        tp->kind == (a_type_kind)tk_union) &&
       tp->variant.class_struct_union.is_empty_class) {
