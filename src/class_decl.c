@@ -9676,13 +9676,6 @@ non-NULL, *p_ms_attributes is returned NULL.
     /* Apply the attributes to the field. */
     member_type = apply_attributes_to_variable_type(attributes, member_type);
   }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
-  /* If the class type was marked with the "packed" attribute, also apply that
-     attribute to this field. */
-  if (class_type->variant.class_struct_union.is_packed) {
-    field->is_packed = TRUE;
-  }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Copy the type (which may have been changed by scan_bit_field_size) into
      the field entry. */

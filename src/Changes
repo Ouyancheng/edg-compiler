@@ -1,5 +1,24 @@
 Version 3.6
 
+12/10/04 GNU IA-64 ABI: Attributes "packed" and "aligned" and bit fields
+
+Some changes were made to the class layout algorithm when emulating the GNU
+IA-64 ABI.  Attribute "packed" applied to a class definition prior to the
+actual class body no longer causes all its fields to be marked as packed.
+Furthermore, attribute "aligned" applied to a bit field now affects the
+alignment of the bit field's container.  Finally, the alignment of a
+nonzero-length unnamed bit-field now affects the alignment of its enclosing
+class.  For example:
+
+  struct __attribute__((packed)) S {
+    char c1;
+    int x2:1 __attribute(((aligned(8)));
+    int x3:4;
+  } ;
+
+When configured to match gcc on an IA-32-based Linux, the front end now
+correctly computes the size of S as 16, whereas previously it was 2.
+
 12/10/04 Build errors when FULL_SOURCE_POS_IN_IL_STATEMENT set to FALSE
 
 Some compilation errors occurred when configuring the front end with

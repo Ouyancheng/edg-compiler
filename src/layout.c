@@ -806,6 +806,56 @@ if necessary.
 
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
+static a_targ_alignment alignment_of_field(a_field_ptr  field)
+/*
+Return the alignment of the given field, taking into account any Microsoft or
+GNU attributes specified on that field.
+*/
+{
+  a_type_ptr        class_type = field->source_corresp.parent.class_type;
+  a_targ_alignment  field_alignment = field_alignment_for(field->type);
+
+  class_type = skip_typerefs(class_type);
+#if USER_CONTROL_OF_STRUCT_PACKING
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  /* If the alignment of this field was explicitly specified, honor that. */
+  if (field->alignment != 0) {
+#if GNU_EXTENSIONS_ALLOWED
+    if (gnu_mode && field->alignment < field_alignment &&
+        !(field->is_packed ||
+          class_type->variant.class_struct_union.is_packed)) {
+      /* GNU C compilers ignore alignment directives that reduce the
+         alignment, unless the packed attribute was also specified. */
+      pos_warning(ec_alignment_reduction_ignored,
+                  &field->source_corresp.decl_position);
+      field->alignment = field_alignment;
+    } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    {
+      field_alignment = field->alignment;
+    }  /* if */
+#if IA64_ABI
+  } else if (emulate_gnu_abi_bugs && field->is_bit_field &&
+             field->bit_size == 0 && !is_union_type(class_type)) {
+    /* Note that GNU compilers do not consider the alternative field
+       alignment for zero-width bit fields in structs and classes (but
+       they do in unions).  We therefore do not use "field_alignment_for"
+       here, and instead we access the type's intrinsic alignment
+       directly. */
+    field_alignment = alignment_of_type(field->type);
+#endif /* IA64_ABI */
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    /* Adjust the field's alignment for packing, if required. */
+    adjust_alignment_for_packing(&field_alignment, class_type);
+  }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  return field_alignment;
+}  /* alignment_of_field */
+
+
 static a_boolean increment_field_offsets(
                                      a_targ_size_t               *byte_offset,
                                      an_unnormalized_bit_offset  *bit_offset,
@@ -959,6 +1009,68 @@ Return the longest signed integer type that is not longer than the bit field.
 
 #endif /* IA64_ABI */
 
+static void update_class_alignment_for_bit_field(a_field_ptr         field,
+                                                 a_targ_alignment    alignment,
+                                                 a_layout_block_ptr  lob)
+/*
+field is a bit field allocated in a container with the given alignment.  Adjust
+the alignment of the class being laid out (as recorded in lob) as needed.
+*/
+{
+  a_boolean  do_update = TRUE;
+
+#if IA64_ABI
+  if (emulate_gnu_abi_bugs && is_union_type(lob->class_type)) {
+    /* In the GNU implementation of the IA-64 ABI, bit fields seem to affect
+       the alignment of unions, but usually not that of classes and structs. */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (field->bit_size != 0 && field->alignment != 0) {
+    /* Nonzero-length bit fields with an explicitly specified alignment
+       always affect the alignment of the enclosing type in GNU compilers
+       (even if the bit field is unnamed). */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  } else
+#endif /* IA64_ABI */
+  /* Do not insert code here. */
+  if (
+      ((field->bit_size == 0 &&
+        !targ_zero_width_bit_field_affects_struct_alignment) ||
+       (!targ_unnamed_bit_field_affects_struct_alignment &&
+        field->source_corresp.assoc_info == (char *)unnamed_field_symbol()))) {
+    /* This is a zero-width bit field or an unnamed bit field, but the
+       alignment it forces should not affect the alignment of the struct as
+       a whole. */
+    do_update = FALSE;
+  }  /* if */
+  if (do_update) {
+    /* Remember the most stringent alignment requirement as the alignment
+       requirement for the overall struct. */
+#if IA64_ABI
+      /* In the GNU implementation of the IA-64 ABI, zero-length bit fields
+         seem  to affect the alignment of unions.  The resulting alignment is
+         at least the alignment of an int. */
+      if (emulate_gnu_abi_bugs &&
+          is_union_type(lob->class_type) && field->bit_size == 0 &&
+          alignment < targ_alignof_int) {
+        alignment = targ_alignof_int;
+      }  /* if */
+#endif /* IA64_ABI */
+#if USER_CONTROL_OF_STRUCT_PACKING
+    /* The alignment was not adjusted earlier on because the environment does
+       not apply packing directives to the relative layout of bit fields that
+       straddle their base type's alignment boundary.  The class as a whole
+       still obeys the packing directive however. */
+    if (!targ_user_control_of_struct_packing_affects_bit_fields) {
+      adjust_alignment_for_packing(&alignment, lob->class_type);
+    }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+    if (alignment > lob->alignment) {
+      lob->alignment = alignment;
+    }  /* if */
+  }  /* if */
+}  /* update_class_alignment_for_bit_field */
+
+
 static a_boolean align_offsets_for_bit_field(a_field_ptr         field,
                                              a_layout_block_ptr  lob)
 /*
@@ -1010,21 +1122,8 @@ targ_microsoft_bit_field_allocation is FALSE.)
       container_alignment = (a_targ_alignment)1;
     } else {
       /* targ_zero_width_bit_field_alignment < 0 */
-      /* Use the base type alignment. */
-#if IA64_ABI
-      if (emulate_gnu_abi_bugs && !is_union_type(lob->class_type)) {
-        /* Note that GNU compilers do not consider the alternative field
-           alignment for zero-width bit fields in structs and classes (but
-           they do in unions).  We therefore do not use "field_alignment_for"
-           here, and instead we access the type's intrinsic alignment
-           directly. */
-        container_alignment = alignment_of_type(field->type);
-      } else
-#endif /* IA64_ABI */
-      /* Do not insert code here. */
-      {
-        container_alignment = field_alignment_for(field->type);
-      }  /* if */
+      /* Use the normal field alignment. */
+      container_alignment = alignment_of_field(field);
     }  /* if */
     if (targ_microsoft_bit_field_allocation) {
       /* Special handling of zero-width bit fields in Microsoft mode,
@@ -1160,14 +1259,12 @@ targ_microsoft_bit_field_allocation is FALSE.)
          before skip_typerefs in case a GNU typedef attribute must be picked
          up. */
       container_size      = base_type->size;
-      container_alignment = field_alignment_for(field->type);
-#if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
-      if (field->alignment != 0) {
-        /* Honor the "packed" or "alignment" attribute, even on bit
-           fields. */
-        container_alignment = field->alignment;
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
+      container_alignment = alignment_of_field(field);
+#if IA64_ABI
+      if (emulate_gnu_abi_bugs && container_alignment > container_size) {
+        container_size = container_alignment;
+      }  /* *if */
+#endif /*IA64_ABI */
     }  /* if */
   }  /* if */
 
@@ -1181,9 +1278,10 @@ targ_microsoft_bit_field_allocation is FALSE.)
      terms the field may end up being unaligned.)  For such environments, the
      adjustment is made later on. */
 #if IA64_ABI
-  if (gnu_mode && field->bit_size == 0) {
+  if (gnu_mode && field->is_bit_field &&
+      (field->bit_size == 0 || field->alignment != 0)) {
     /* The GNU IA-64 ABI does not apply packing directives to zero-length
-       bit fields. */
+       bit fields or bit fields with an explicit alignment directive. */
   } else
 #endif /* IA64_ABI */
   /* Do not insert code here. */
@@ -1249,46 +1347,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
     overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
                              container_alignment);
   }  /* if */
-  if (
-#if IA64_ABI
-      /* In the GNU implementation of the IA-64 ABI, zero-length bit fields
-         seem  to affect the alignment of unions, but not that of classes and
-         structs. */
-      !(emulate_gnu_abi_bugs && is_union_type(lob->class_type)) &&
-#endif /* IA64_ABI */
-      ((bit_size == 0 &&
-        !targ_zero_width_bit_field_affects_struct_alignment) ||
-       (!targ_unnamed_bit_field_affects_struct_alignment &&
-        field->source_corresp.assoc_info == (char *)unnamed_field_symbol()))) {
-    /* This is a zero-width bit field or an unnamed bit field, but the
-       alignment it forces should not affect the alignment of the struct as
-       a whole. */
-  } else {
-    /* Remember the most stringent alignment requirement as the alignment
-       requirement for the overall struct. */
-#if IA64_ABI
-      /* In the GNU implementation of the IA-64 ABI, zero-length bit fields
-         seem  to affect the alignment of unions.  The resulting alignment is
-         at least the alignment of an int. */
-      if (emulate_gnu_abi_bugs &&
-          is_union_type(lob->class_type) && bit_size == 0 &&
-          container_alignment < targ_alignof_int) {
-        container_alignment = targ_alignof_int;
-      }  /* if */
-#endif /* IA64_ABI */
-#if USER_CONTROL_OF_STRUCT_PACKING
-    /* The alignment was not adjusted earlier on because the environment does
-       not apply packing directives to the relative layout of bit fields that
-       straddle their base type's alignment boundary.  The class as a whole
-       still obeys the packing directive however. */
-    if (!targ_user_control_of_struct_packing_affects_bit_fields) {
-      adjust_alignment_for_packing(&container_alignment, lob->class_type);
-    }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-    if (container_alignment > lob->alignment) {
-      lob->alignment = container_alignment;
-    }  /* if */
-  }  /* if */
+  update_class_alignment_for_bit_field(field, container_alignment, lob);
 #if IA64_ABI && USER_CONTROL_OF_STRUCT_PACKING
 done:
 #endif /* IA64_ABI && USER_CONTROL_OF_STRUCT_PACKING */
@@ -2435,34 +2494,7 @@ there's no overflow TRUE is returned.
            proceeding. */
         pad_ms_bit_field_container(lob);
       }  /* if */
-      field_alignment = field_alignment_for(field->type);
-#if USER_CONTROL_OF_STRUCT_PACKING
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-      /* If the alignment of this field was explicitly specified,
-         honor that. */
-      if (field->alignment != 0) {
-#if GNU_EXTENSIONS_ALLOWED
-        if (gnu_mode && field->alignment < field_alignment &&
-            !(field->is_packed ||
-              class_type->variant.class_struct_union.is_packed)) {
-          /* GNU C compilers ignore alignment directives that reduce the
-             alignment, unless the packed attribute was also specified. */
-          pos_warning(ec_alignment_reduction_ignored,
-                      &field->source_corresp.decl_position);
-          field->alignment = field_alignment;
-        } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-        {
-          field_alignment = field->alignment;
-        }  /* if */
-      } else
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Do not insert code here. */
-      {
-        /* Adjust the field's alignment for packing, if required. */
-        adjust_alignment_for_packing(&field_alignment, class_type);
-      }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      field_alignment = alignment_of_field(field);
       overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
                                field_alignment);
       /* Remember the most stringent alignment requirement as the alignment
