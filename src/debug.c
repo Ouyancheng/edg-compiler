@@ -343,13 +343,31 @@ correspondence, do nothing.
     char *name = db_name_str(scp, entry_kind);
     /* Compare it against the list of debug requests. */
     for (request = debug_requests; request != NULL; request = request->next) {
-      if (request->action == da_name &&
-          strcmp(name, request->name) == 0) {
-        /* A match. */
-        result = TRUE;
-        break;
+      if (request->action == da_name) {
+        char *eff_name = name;
+        char *eff_request_name = request->name;
+        if (request->name[0] != '[') {
+          /* A name on the command line without a translation unit file
+             name matches any translation unit.  Skip past the translation
+             unit name on the generated name, if there is one. */
+          if (name[0] == '[') {
+            eff_name = strchr(name, ']');
+            check_assertion(eff_name != NULL);
+            eff_name++;
+          }  /* if */
+        } else if (request->name[1] == ']') {
+          /* A name on the command line beginning with [] matches only
+             a name in the primary translation unit. */
+          if (name[0] == '[') continue;
+          eff_request_name += 2;
+        }  /* if */
+        if (strcmp(eff_name, eff_request_name) == 0) {
+          /* A match. */
+          result = TRUE;
+          break;
+        }  /* if */
       }  /* if */
-    }  /* if */
+    }  /* for */
   }  /* if */
   return result;
 }  /* f_db_has_traced_name */
@@ -362,7 +380,12 @@ information about it in the debug requests list.  Its format is
 
   --db_name=name
 
-Return TRUE if there was an error.
+Return TRUE if there was an error.  If the name includes a translation
+unit name, e.g., --db_name=[test_2.c]A::X, only the name in that (secondary)
+translation unit will match.  If the name does not include a translation
+unit name, e.g., --db_name==A::X, a name from any translation unit will match.
+To select only a name from the primary translation unit, use [], e.g.,
+--db_name=[]A::X.
 */
 {
   a_debug_request_ptr request;
