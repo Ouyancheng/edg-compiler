@@ -8168,7 +8168,7 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     need_to_unset_typedefs = FALSE;
   a_scope_ptr                   common_scope, orig_scope = NULL;
   a_boolean                     need_extern_C_closing_brace = FALSE;
-  a_boolean                     microsoft_out_of_class_redecl = FALSE;
+  a_boolean                     out_of_class_redecl = FALSE;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   a_template_decl_ptr           template_decl = NULL;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -8334,14 +8334,14 @@ TRUE if the declaration following this one is such a continuation.
       /* A declaration of a function. */
       /* Normally, this should not be a member function, but in Microsoft
          mode it is possible to redeclare a member without defining it. */
-      microsoft_out_of_class_redecl = rout->source_corresp.is_class_member;
+      out_of_class_redecl = rout->source_corresp.is_class_member;
       /* The function is not defined (here), so use "extern" instead of
          no storage class.  Also use "extern" for file-scope static routines
          declared extern inside functions.  Again, Microsoft member
          redeclarations are an exception (storage class should be omitted).
          Also out of line declarations of templates, when prototype
          instantiations are preserved in the IL. */
-      if (microsoft_out_of_class_redecl) {
+      if (out_of_class_redecl) {
         check_assertion(microsoft_mode || rout->is_prototype_instantiation);
         storage_class = (a_storage_class)sc_unspecified;
       } else if (storage_class == (a_storage_class)sc_unspecified ||
@@ -8436,7 +8436,7 @@ TRUE if the declaration following this one is such a continuation.
      using-directives. */
   force_unqualified_name = C_mode() ||
                            (!is_definition && !is_specialization &&
-                            !microsoft_out_of_class_redecl) ||
+                            !out_of_class_redecl) ||
                            (decl_scope_of(&rout->source_corresp) ==
                                                curr_name_context->assoc_scope);
   /* Generate a declaration for the routine name with the right type. */
