@@ -5896,6 +5896,10 @@ syntax is:
   a_storage_class       storage_class;
 
   db_enter(3, "new_type_name");
+  if (!is_parenthesized && curr_token == tok_lparen) {
+    is_parenthesized = TRUE;
+    (void)get_token();
+  }  /* if */
   if (is_parenthesized) add_stop_token(tok_rparen);
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
