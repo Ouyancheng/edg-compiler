@@ -142,7 +142,12 @@ available.
   check_assertion_str(LDBL_MAX_EXP == 16384, /*lint !e506*/
                       "long_double_is_finite: unsupported exponent size");
   if (host_little_endian) {
-    p += sizeof(long double);
+    /* The test for a 64 bit mantissa is intended to detect the Intel
+       80-bit long double format.  That format is typically stored in
+       a 12 byte value, so we can't use sizeof to get to the other
+       end of the value. */
+    p += (LDBL_MANT_DIG == 64 ? (LDBL_MANT_DIG + 16 / CHAR_BIT)
+                              : sizeof(long double));
     exponent = (p[-1] << CHAR_BIT) | p[-2];
   } else {
     /* Big-endian host. */
