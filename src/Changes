@@ -1,5 +1,11 @@
 Version 2.46
 
+7/19/01  Incorrect storage class for function prototype instantiations
+
+When generating non-class prototype instantiations, the storage class
+for the prototype instantiation of a function with external linkage
+was sc_extern but should have been sc_unspecified.  This has been fixed.
+
 7/18/01  Built-in operators on enums with same signature as user-written
          functions are discarded
 

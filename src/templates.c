@@ -2855,6 +2855,12 @@ user later during real instantiations.
     /* The routine is already defined (a duplicate definition error should
        have already been issued). */
   } else {
+    if (rout_ptr->storage_class != (a_storage_class)sc_static) {
+      /* Set the linkage for the definition of an externally linked routine. */
+      rout_ptr->storage_class = (a_storage_class)sc_unspecified;
+      rout_ptr->source_corresp.name_linkage =
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
+    }  /* if */
     func_info_ptr = func_info_for_template(tssp);
     /* Push the template instantiation scope. */
     tcp = cache_for_template(tssp);
