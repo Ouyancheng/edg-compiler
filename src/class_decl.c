@@ -9255,7 +9255,13 @@ next_declaration:
            inline member function definitions must be done.  The actual
            processing will be done when all pending class definitions have
            been completed. */
+#if 0
         add_to_class_fixup_list(class_type, is_template_instantiation);
+#else
+        /* Temporary -- will be removed when context reactivation changes
+           are completed. */
+        delayed_scan_fixup_for_class(class_type, is_template_instantiation);
+#endif
       }  /* if */
       curr_routine_fixup = saved_routine_fixup;
       if (cssp->is_prototype_instantiation) {
@@ -9284,12 +9290,6 @@ next_declaration:
   }  /* if */
   /* Decrement the counter of class definitions currently in progress. */
   pending_class_definitions--;
-#if 0
-#else
-  /* This is currently done unconditionally until the revised class
-     reactivation facility is provided. */
-    process_deferred_class_fixups();
-#endif
   if (pending_class_definitions == 0) {
     /* While one or more class definitions are pending, the fixup of
        member function bodies and default arguments is deferred until
