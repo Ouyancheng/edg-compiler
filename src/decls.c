@@ -4499,9 +4499,15 @@ otherwise it is NULL.  The syntax is:
           if (input_flags & DI_QUALIFIED_NAME_ALLOWED) {
             a_symbol_ptr sym = locator_for_curr_id.specific_symbol;
             /* See if the name is the name of a member function. */
-            if (is_member_function_symbol(sym) ||
-                (sym->kind == (a_symbol_kind)sk_function_template &&
-                 sym->class_of_which_a_member != NULL)) {
+#if 0
+            /* The following test replaces a call to is_member_function, which
+               however doesn't know about sk_function_template member functions
+               yet.  Is a change to the macro appropriate? */
+#endif /* if 0 */
+            if (sym->kind == (a_symbol_kind)sk_member_function ||
+                (sym->class_of_which_a_member != NULL &&
+                 (sym->kind == (a_symbol_kind)sk_overloaded_function ||
+                  sym->kind == (a_symbol_kind)sk_function_template))) {
               /* It is a member function.  Save information about the class
                  needed to reopen the class scope if a function declarator
                  is scanned. */
