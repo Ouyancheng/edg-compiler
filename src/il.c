@@ -9567,7 +9567,7 @@ eliminated, if appropriate.
       next_solhp = solhp->next;
       rp = solhp->assoc_routine;
       if (rp->defined) {
-        /* The "defined" flag has not be reset to FALSE so the body of this
+        /* The "defined" flag has not been reset to FALSE so the body of this
            routine has not been eliminated. */
         prev_solhp = solhp;
       } else {
@@ -9651,7 +9651,7 @@ eliminated, if appropriate.
           solhp->orphaned_src_seq_sublists = NULL;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        /* Only retain scope-orphaned-list header for which non-NULL lists
+        /* Only retain scope-orphaned-list headers for which non-NULL lists
            remain. */
         if (solhp->orphaned_variables != NULL ||
             solhp->orphaned_types != NULL) {
