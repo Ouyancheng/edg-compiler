@@ -22,6 +22,7 @@ types.c -- Utility routines that check types.
 #include "cmd_line.h"
 #include "mem_manage.h"
 #include "folding.h"
+#include "const_ints.h"
 #include "templates.h"
 
 /*

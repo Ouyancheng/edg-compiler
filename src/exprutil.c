@@ -23,6 +23,7 @@ exprutil.c -- Expression scanning utility routines.
 #include "exprutil.h"
 #include "preproc.h"
 #include "folding.h"
+#include "const_ints.h"
 #include "cmd_line.h"
 #include "types.h"
 #include "decls.h"

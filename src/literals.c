@@ -22,6 +22,7 @@ literals.c -- Literal constant conversion to and from internal form.
 #include "preproc.h"
 #include "lexical.h"
 #include "float_pt.h"
+#include "const_ints.h"
 #include "types.h"
 
 
