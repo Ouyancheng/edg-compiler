@@ -4980,16 +4980,16 @@ location is the insert_location2 value (after the assignment statement).
 #endif /* IA64_ABI */
 
   /* Make the static first-time-test variable in the current scope. */
-#if !IA64_ABI
+#if !IA64_ABI || IA64_ABI_USE_INT_STATIC_INIT_GUARD
   int_kind = (an_integer_kind)ik_int;
-#else /* IA64_ABI */
+#else /* !(IA64_ABI || IA64_ABI_USE_INT_STATIC_INIT_GUARD) */
   /* The ABI specifies that we use a 64-bit integer type.  Try that, and
      then fall back to "int". */
   int_kind = int_kind_for_bit_size(64, /*is_signed=*/FALSE);
   if (int_kind == (an_integer_kind)ik_none) {
-    int_kind = (an_integer_kind)int_kind;
+    int_kind = (an_integer_kind)ik_int;
   }  /* if */
-#endif /* IA64_ABI */
+#endif /* (IA64_ABI || IA64_ABI_USE_INT_STATIC_INIT_GUARD) */
   int_type = integer_type(int_kind);
   if (routine_might_exist_in_multiple_copies(
                                  innermost_function_scope->variant.routine.ptr)
@@ -5028,6 +5028,16 @@ location is the insert_location2 value (after the assignment statement).
   test_var_node = var_rvalue_expr(*test_var);
   test_var_node->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
 #else /* IA64_ABI */
+#if IA64_ABI_USE_INT_STATIC_INIT_GUARD
+  /* The ARM EABI test is "(test_var & 1) == 0" */
+  test_var_node = var_rvalue_expr(*test_var);
+  test_var_node->next = node_for_integer_constant(1L,
+                                                  (an_integer_kind)ik_int);
+  test_var_node = make_operator_node((an_expr_operator_kind)eok_and,
+                                     int_type, test_var_node);
+  test_var_node->next = node_for_integer_constant(0L,
+                                                  (an_integer_kind)ik_int);
+#else /* !IA64_ABI_USE_INT_STATIC_INIT_GUARD */
   /* In the IA64 ABI, only the first byte of the variable is specified by 
      the ABI.  The remainder is reserved for use in multithreaded
      implementations. */
@@ -5035,6 +5045,7 @@ location is the insert_location2 value (after the assignment statement).
   test_var_node = add_indirection_to_node(test_var_node);
   test_var_node->next = node_for_integer_constant(0L, 
                                                   (an_integer_kind)ik_char);
+#endif /* IA64_ABI_USE_INT_STATIC_INIT_GUARD */
 #endif /* IA64_ABI */
   compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
                                     int_type, test_var_node);

@@ -113,6 +113,15 @@ solution in the runtime.
 #endif /* ifndef IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
 
 /*
+TRUE to use "int"-sized guard variables for local static variable
+initializations in the IA-64 ABI.  See 3.2.3.1 in the ARM EABI
+document.  The test code is also altered somewhat.
+*/
+#ifndef IA64_ABI_USE_INT_STATIC_INIT_GUARD
+#define IA64_ABI_USE_INT_STATIC_INIT_GUARD FALSE
+#endif /* ifndef IA64_ABI_USE_INT_STATIC_INIT_GUARD */
+
+/*
 TRUE to use the variant representation of pointers to member
 functions with the IA-64 ABI.  The normal representation
 requires an architecture where the address of a function can

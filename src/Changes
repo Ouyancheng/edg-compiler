@@ -66,6 +66,8 @@ by IA64_ABI_USE_GUARD_ACQUIRE_RELEASE.  Now, we have added:
   - Support for the alternate rule for determining the key function
     for a virtual function table, which is selected by
     IA64_ABI_VARIANT_KEY_FUNCTION.
+  - Support for "int"-sized guard variables for initializations of
+    local static variables.
 
 The runtime has also been updated to support these features.
 
