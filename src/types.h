@@ -99,11 +99,11 @@ an enum type).
 #define is_unknown_type(tp) ((tp)->kind == (a_type_kind)tk_unknown)
 
 #define typeref_is_qualified(tp)                                      \
- ((tp)->variant.typeref.qualifier != TQ_NONE)
+ ((tp)->variant.typeref.qualifiers != TQ_NONE)
 #define typeref_is_const_qualified(tp)                                \
- ((tp)->variant.typeref.qualifier & TQ_CONST)
+ ((tp)->variant.typeref.qualifiers & TQ_CONST)
 #define typeref_is_volatile_qualified(tp)                             \
- ((tp)->variant.typeref.qualifier & TQ_VOLATILE)
+ ((tp)->variant.typeref.qualifiers & TQ_VOLATILE)
 
 /*
 Check for type qualifiers.  In C++ this includes looking for qualifiers

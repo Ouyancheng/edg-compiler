@@ -1118,7 +1118,7 @@ scope is that of a class definition.
   remove_stop_token(tok_rparen);
   if (C_dialect == C_dialect_cplusplus) {
     a_type_ptr            this_param_type = NULL;
-    a_type_qualification  qualifier;
+    a_type_qualifier_set  qualifiers;
 
     /* Create a pointer to the implicit this parameter.  This can be done
        for nonstatic function declarations within a class definition or
@@ -1165,11 +1165,11 @@ scope is that of a class definition.
         }  /* if */
         this_param_type = member_function_parent_type;
       } else {
-        qualifier = TQ_NONE;
-        if (dso_flags & DSO_CONST_QUALIFIED) qualifier |= TQ_CONST;
-        if (dso_flags & DSO_VOLATILE_QUALIFIED) qualifier |= TQ_VOLATILE;
+        qualifiers = TQ_NONE;
+        if (dso_flags & DSO_CONST_QUALIFIED) qualifiers |= TQ_CONST;
+        if (dso_flags & DSO_VOLATILE_QUALIFIED) qualifiers |= TQ_VOLATILE;
         this_param_type = make_qualified_type(member_function_parent_type,
-                                              qualifier);
+                                              qualifiers);
       }  /* if */
       if (qualifier_err) {
         pos_error(ec_function_qualifier_not_allowed, &qualifier_pos);
@@ -1184,8 +1184,8 @@ scope is that of a class definition.
          class-type" or, if there was a const qualifier on the function,
          "const pointer to const class-type". */
       this_param_type = make_pointer_type(this_param_type);
-      qualifier = TQ_CONST;
-      this_param_type = make_qualified_type(this_param_type, qualifier);
+      qualifiers = TQ_CONST;
+      this_param_type = make_qualified_type(this_param_type, qualifiers);
       extra_info->implicit_this_param_type = this_param_type;
     }  /* if */
 #if 0
@@ -1413,7 +1413,7 @@ parameter controls the restrictions imposed by the context.
       a_decl_flag_set       dso_flags;
       a_storage_class       dummy_storage_class;
       a_type_ptr            dummy_type_ptr;
-      a_type_qualification  qualifier = TQ_NONE;
+      a_type_qualifier_set  qualifier = TQ_NONE;
 
       set_err_pos_to_curr_token();
       (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,

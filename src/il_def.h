@@ -2322,7 +2322,7 @@ A bit vector whose values represent the presence of one or type qualifiers
 (const, volatile, along with others that an implementation might choose to
 support, such as restrict).
 */
-typedef unsigned int a_type_qualification;
+typedef unsigned int a_type_qualifier_set;
 /*
 Definitions of the bits comprising bit vectors of type a_type_qualifier.
 */
@@ -2600,8 +2600,8 @@ typedef struct a_type {
 			   to something, this points to a copy of the original
 			   type.  NULL otherwise. */
 #endif /* DO_IL_LOWERING */
-      a_type_qualification
-		qualifier:NUM_BITS_FOR_TYPE_QUALIFIER;
+      a_type_qualifier_set
+		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER;
 			/* Bit vector with bits set to indicate the presence
 			   of one or more type qualifiers (const, volatile,
 			   or other(s) as defined by the implementation). */
