@@ -3777,7 +3777,7 @@ enable_microsoft_mode:
 #if ONE_INSTANTIATION_PER_OBJECT
   if (one_instantiation_per_object) {
     /* If "one instantiation per object" mode is being used, supply a default
-       for the instantiation directory.  This should always be specified
+       for the instantiation directory.  This should always be specified by
        the driver.  The default value is primarily for testing purposes. */
     if (instantiation_dir_name == NULL) instantiation_dir_name = ".";
   } else {
