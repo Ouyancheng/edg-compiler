@@ -36,18 +36,6 @@ instead passed on to the back end verbatim.
 #endif /* ifndef ASM_FUNCTION_ALLOWED */
 
 /*
-Flag that is true if the asm string manipulation routines and data
-structures are needed.  These are needed when asm functions are allowed
-or when Microsoft extensions (including Microsoft asms) are allowed.
-*/
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-#define ASM_SUPPORT_NEEDED TRUE
-#else /* !(ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED) */
-#define ASM_SUPPORT_NEEDED FALSE
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-
-
-/*
 Flag that is TRUE if assignment to "this" (a C++ anachronism) should
 be allowed.  This affects the source language accepted.  If assignment
 to "this" is allowed, the interface to and wrapper code within constructors
@@ -1147,6 +1135,17 @@ of the disallowed optimization.
 #ifndef DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED
 #define DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED FALSE
 #endif /* ifndef DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED */
+
+/*
+Flag that is true if the asm string manipulation routines and data
+structures are needed.  These are needed when asm functions are allowed
+or when Microsoft extensions (including Microsoft asms) are allowed.
+*/
+#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#define ASM_SUPPORT_NEEDED TRUE
+#else /* !(ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED) */
+#define ASM_SUPPORT_NEEDED FALSE
+#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LANG_FEAT_H */
 

@@ -320,9 +320,11 @@ static a_stop_token_stack_entry_ptr
 			/* List of stop token stack entries that have been
 			   freed and are available for reuse. */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 static a_boolean
 		scanning_microsoft_asm;
 			/* TRUE while scanning a Microsoft asm. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Flag that indicates whether a dollar sign was found in any identifiers.
@@ -11454,7 +11456,9 @@ done to determine whether a precompiled header may be used.
   curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   any_tokens_fetched_from_curr_input_file = FALSE;
   curr_token_asm_string = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   scanning_microsoft_asm = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if ASM_SUPPORT_NEEDED
   asm_func_body_buffer = NULL;
   size_asm_func_body_buffer = 0;
