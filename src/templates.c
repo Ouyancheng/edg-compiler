@@ -68,8 +68,7 @@ yet been defined.
 #endif /* CHECKING */
         (void)push_scope(sck_template_instantiation, tssp->declaration_scope,
                          type, (a_routine_ptr)NULL);
-        /* Scan the base specifiers list, if any, and the body of the the
-           class. */
+        /* Scan the base specifiers list, if any, and the body of the class. */
         (void)scan_class_definition(type, DEPTH_OF_FILE_SCOPE,
                                     /*is_local_class=*/FALSE);
         pop_scope();
@@ -92,7 +91,7 @@ static a_boolean equiv_class_template_arg_lists(a_template_arg_ptr  list1,
 Return TRUE if the two linked lists of template arguments for a given
 template class are equivalent -- that is, if corresponding type arguments
 refer to the same type and corresponding constant arguments refer to the
-same constant.  This routine should not be call for function template
+same constant.  This routine should not be called for function template
 argument lists.
 */
 {
