@@ -14580,12 +14580,18 @@ that follows.
                DI_IS_SPECIALIZATION |
                DI_PARENTHESIZED_INITIALIZER_ALLOWED |
                DI_OPERATOR_NAME_ALLOWED;
-    if (decl_state->is_member_decl && (dso_flags & DSO_CONSTRUCTOR)) {
-      /* If this is a Microsoft mode specialization in a class context, and
-         decl_specifiers returned a constructor flag, pass the constructor
-         flag into declarator.  This flag can only be set when a parent class
-         type is provided to declarator. */
-      di_flags |= DI_IS_CONSTRUCTOR;
+    if (decl_state->is_member_decl) {
+      if (dso_flags & DSO_CONSTRUCTOR) {
+        /* If this is a Microsoft mode specialization in a class context, and
+           decl_specifiers returned a constructor flag, pass the constructor
+           flag into declarator.  This flag can only be set when a parent class
+           type is provided to declarator. */
+        di_flags |= DI_IS_CONSTRUCTOR;
+      } else {
+        /* A Microsoft in-class specialization should be considered a
+           nonstatic member so that qualifiers will be accepted. */
+        di_flags |= DI_NONSTATIC_MEMBER;
+      }  /* if */
     }  /* if */
     if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
         qualifiers == TQ_NONE) {

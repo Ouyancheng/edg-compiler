@@ -1,5 +1,15 @@
 Version 3.1
 
+9/11/02  Microsoft compatibility: qualifiers on in-class specializations
+
+Qualifiers were not accepted in Microsoft in-class specializations.  This
+has been fixed.
+
+  struct C {
+    template <class T> void f(T) const;
+    template <> void f(int) const { }
+  };
+
 9/11/02  Abort when using implicit inclusion
 
 Version 3.0 introduced a problem that could cause an abort when processing
