@@ -137,12 +137,12 @@ typedef struct a_mem_allocation {
 } a_mem_allocation;
 
 #if ABI_CHANGES_FOR_RTTI
-extern a_byte	MANGLED_NAME_OF_UNIQUE_ID_OF_VOID;
+a_byte		MANGLED_NAME_OF_UNIQUE_ID_OF_VOID;
 			/* This is used to get the address of the
 			   unique ID for the void type for pointer to
 			   void* conversions. */
 #else /* !ABI_CHANGES_FOR_RTTI */
-extern a_type_info_impl
+a_type_info_impl
                 MANGLED_NAME_OF_VOID;
 			/* This is used to get the address of the
 			   type_info for the void type for pointer to
