@@ -449,16 +449,20 @@ to an array of abstract class objects.
                is abstract, then so will this instance of it be. */
             a_class_symbol_supplement_ptr  cssp =
                                               symbol_supplement_for_class(tp);
+            a_symbol_ptr                   prototype_sym;
+
             if (!cssp->is_specific_template_def) {
               /* This is not a specific definition, so this instance will
                  be based on the template.  To get from here to the type
                  created for the prototype instantiation indirect through
                  the template symbol to its supplement to the symbol
                  representing the prototype instantiation to the type. */
-              if (cssp->class_template->variant.template_info->
-                             variant.class_template.prototype_instantiation->
-                             variant.class_struct_union.type->
-                             variant.class_struct_union.abstract) {
+              prototype_sym = cssp->class_template->variant.template_info->
+                                variant.class_template.prototype_instantiation;
+              if (prototype_sym == NULL) {
+                /* Class template has not yet been defined. */
+              } else if (prototype_sym->variant.class_struct_union.type->
+                                         variant.class_struct_union.abstract) {
                 is_abstract = TRUE;
               }  /* if */
             }  /* if */
