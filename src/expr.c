@@ -5599,13 +5599,10 @@ specification allow a variable-sized array as the top type.
       /* Use the global "operator new" or "operator new[]". */
       operator_new_symbol = opname_function_symbol(opname_kind);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode && opname_kind == (an_opname_kind)onk_array_new &&
-          operator_new_symbol != NULL &&
-          operator_new_symbol->kind == (a_symbol_kind)sk_routine &&
-          operator_new_symbol->variant.routine.ptr->compiler_generated &&
-          placement_new) {
-        /* In Microsoft mode, if all we have is the default operator new[]
-           and this is a placement new, go to the non-array operator new. */
+      if (microsoft_mode && operator_new_symbol == NULL) {
+        /* In Microsoft mode, if no array new is found, search for a
+           non-array operator new.  Note that there is no predeclared
+           operator new[] in Microsoft mode. */
         opname_kind = (an_opname_kind)onk_new;
         operator_new_symbol = opname_function_symbol(opname_kind);
       }  /* if */
@@ -5950,6 +5947,15 @@ if the selected delete routine is ambiguous.
   if (operator_delete_set == NULL) {
     /* Use the global "operator delete" or "operator delete[]". */
     operator_delete_set = opname_function_symbol(opname_kind);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && operator_delete_set == NULL) {
+      /* In Microsoft mode, if no array delete is found, search for a
+         non-array operator delete.  Note that there is no predeclared
+         operator delete[] in Microsoft mode. */
+      opname_kind = (an_opname_kind)onk_delete;
+      operator_delete_set = opname_function_symbol(opname_kind);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (operator_delete_set != NULL) {
     a_boolean ambiguous;
