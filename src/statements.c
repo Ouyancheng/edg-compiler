@@ -399,14 +399,15 @@ struct_stmt_stack_container, and struct_stmt_stack.
 /* Macro to check whether the structured statement stack is large enough to
    accept one more entry and if it is not to reallocate it to a larger size. */
 #define ensure_struct_stmt_stack_space()                            	\
-  if (struct_stmt_stack -						\
-		 struct_stmt_stack_container + depth_stmt_stack + 1 ==  \
-                                size_struct_stmt_stack_container) {   \
+  if ((sizeof_t)(struct_stmt_stack -					\
+		 struct_stmt_stack_container +                          \
+                 depth_stmt_stack + 1) ==                               \
+                                          size_struct_stmt_stack_container) { \
     expand_struct_stmt_stack();                                   \
   }  /* if */
 
 
-void new_struct_stmt_stack(int                     *saved_container_pos,
+void new_struct_stmt_stack(a_ptrdiff               *saved_container_pos,
                            int                     *saved_depth_stmt_stack,
                            a_reachability_summary  *saved_code_reachability)
 /*
@@ -427,7 +428,7 @@ algorithmic limit on the number of levels of nesting supported.
 }  /* new_struct_stmt_stack */
 
 
-void restore_struct_stmt_stack(int                    saved_container_pos,
+void restore_struct_stmt_stack(a_ptrdiff              saved_container_pos,
                                int                    saved_depth_stmt_stack,
                                a_reachability_summary *saved_code_reachability)
 /*
@@ -437,7 +438,7 @@ statement stack.
 {
 #if CHECKING
   if (saved_container_pos < 0 ||
-      saved_container_pos > size_struct_stmt_stack_container) {
+      saved_container_pos > (a_ptrdiff)size_struct_stmt_stack_container) {
     internal_error(
               "restore_struct_stmt_stack: saved_container_pos out of range");
   } else if (saved_container_pos + saved_depth_stmt_stack >

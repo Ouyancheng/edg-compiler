@@ -143,11 +143,11 @@ extern a_statement_ptr compound_statement(a_boolean at_function_level,
                                           a_boolean explicit_return_type);
 extern a_boolean curr_code_reachable(void);
 extern void new_struct_stmt_stack(
-                           int                     *saved_container_pos,
+                           a_ptrdiff               *saved_container_pos,
                            int                     *saved_depth_stmt_stack,
                            a_reachability_summary  *saved_code_reachability);
 extern void restore_struct_stmt_stack(
-                              int                    saved_container_pos,
+                              a_ptrdiff              saved_container_pos,
                               int                    saved_depth_stmt_stack,
                               a_reachability_summary *saved_code_reachability);
 

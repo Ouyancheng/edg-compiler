@@ -219,6 +219,9 @@ EXTERN_C int bzero(char *, int);
 /* Use sizeof_t for size_t because size_t appears in <sys/types.h> on
    some UNIX systems. */
 typedef size_t	sizeof_t;
+/* Use a_ptrdiff for ptrdiff_t because ptrdiff_t appears in <sys/types.h> on
+   some UNIX systems. */
+typedef ptrdiff_t a_ptrdiff;
 /* Macro used to pass standard library arguments that used to be
    int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
 #define size_t_arg(arg) ((size_t)(arg))
@@ -244,6 +247,9 @@ typedef size_t	sizeof_t;
    sizeof_t instead. */
 typedef unsigned int
 		sizeof_t;
+/* Can't define ptrdiff_t, since it appears in <sys/types.h>, so define
+   a_ptrdiff instead. */
+typedef int     a_ptrdiff;
 /* Macro used to pass standard library arguments that used to be
    int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
 #define size_t_arg(arg) ((int)(arg))

@@ -7634,7 +7634,8 @@ and for the instantiation of template functions.
   a_scope_number                 scope_number;
   a_param_id_ptr                 param_id;
   a_scope_ptr                    scope_ptr;
-  int                            saved_container_pos, saved_depth_stmt_stack;
+  int                            saved_depth_stmt_stack;
+  a_ptrdiff                      saved_container_pos;
   a_reachability_summary         saved_curr_reachability;
 
   db_enter(3, "scan_function_body");
