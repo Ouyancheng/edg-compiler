@@ -1,5 +1,21 @@
 Version 3.1
 
+9/12/02  Sun compatibility: template parameters visible in specializations
+
+The Sun compiler incorrectly makes template parameters visible within
+specializations of class templates and specializations of members of
+class templates.  We now emulate this in Sun mode.
+
+  template <class T> struct A {
+    void f();
+  };
+  template <> struct A<int> {
+    T t;  // T should not be visible here
+  };
+  template <> void A<char>::f() {
+    T t;  // T should not be visible here
+  }
+
 9/12/02  GNU C++ Compatibility: elimination of previous dependent lookup
          facility
 

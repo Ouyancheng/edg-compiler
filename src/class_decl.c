@@ -12540,7 +12540,8 @@ classes.
                                  &saved_pack_alignment_state);
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-    if (microsoft_mode && is_template_instance_specific_def_symbol(tag_sym)) {
+    if (use_microsoft_specialization_scope &&
+        is_template_instance_specific_def_symbol(tag_sym)) {
       /* The Microsoft compiler permits a class specialization to reference
          template parameters of the template.  Push an instantiation scope
          if this is a specialization definition. */

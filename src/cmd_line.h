@@ -1515,6 +1515,17 @@ EXTERN a_boolean
 			   accepted. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
+EXTERN a_boolean
+		use_microsoft_specialization_scope
+#if VAR_INITIALIZERS
+			= FALSE
+#endif /* VAR_INITIALIZERS */
+			       ;
+			/* TRUE if a template instantiation scope should be
+			   pushed before the class definition scope for
+			   a specialized template class and for class
+			   reactivation scopes of other template classes.
+			   This is also used in Sun mode. */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

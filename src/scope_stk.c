@@ -1735,7 +1735,7 @@ the scope being pushed.
            disallowed for the instantiation scope pushed for the reactivation
            of a template class. */
         source_sequence_entries_disallowed =
-        !(microsoft_mode &&
+        !(use_microsoft_specialization_scope &&
           (assoc_type->variant.class_struct_union.is_specialized ||
            !is_incomplete_type(assoc_type))) &&
         !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS; /*lint !e506*/
@@ -5605,12 +5605,16 @@ the class symbol supplement points to the partial specialization).
   /* Get the template declaration information associated with the class. */
   tssp = template_supplement_for_symbol(template_sym);
   decl_info = cache_for_template(tssp)->decl_info;
-  if (is_microsoft_specialization_scope) {
+  if (is_microsoft_specialization_scope && !sun_mode) {
     /* When pushing a Microsoft specialization scope, don't do the full
        instantiation scope processing.  This is done because the enclosing
        scopes should be visible for these cases (Microsoft specialization
        scopes are pushed for class scopes for explicitly specialized classes,
-       and for class reactivation scopes for all template classes). */
+       and for class reactivation scopes for all template classes).  In
+       Sun mode do the normal processing.  This has the effect of making
+       the class's template parameters visible while possibly hiding
+       a set of template parameters that really should have been used
+       (as in the case of a definition of a member of a class template). */
     if (class_type->source_corresp.is_class_member) {
       /* Reactivate the parent class. */
       a_type_ptr	parent_class;
@@ -5682,7 +5686,7 @@ extend_namespace).
   if (is_any_template_instance_class_symbol(class_sym)) {
     is_template = ((!is_template_instance_specific_def_symbol(class_sym) &&
                   reactivate_template_params));
-    if (microsoft_mode) {
+    if (use_microsoft_specialization_scope) {
       /* Determine whether the instantiation scope is being pushed only
          because we are in Microsoft mode. */
       is_microsoft_specialization_scope = !is_template;

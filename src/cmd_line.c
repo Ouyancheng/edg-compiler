@@ -1506,6 +1506,8 @@ by a command line option.
     allow_nonconst_ref_anachronism = TRUE;
     allow_nonconst_call_anachronism = (microsoft_version < 1000);
     flexible_array_members_allowed = TRUE;
+    /* Make template parameters visible in specialization scopes. */
+    use_microsoft_specialization_scope = TRUE;
   }  /* if */
 }  /* set_microsoft_mode_flags */
 
@@ -2370,6 +2372,10 @@ checked again here.)
        option, turn it off now. */
     extern_inline_allowed = FALSE;
   }  /* if */
+  /* The Sun compiler suffers from the same problem as the Microsoft
+     compiler with respect to making template parameters visible in
+     specializations. */
+  use_microsoft_specialization_scope = TRUE;
 }  /* check_and_set_sun_mode_options */
 
 

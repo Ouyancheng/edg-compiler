@@ -34,7 +34,8 @@ typedef int a_push_scope_options_set;
 			/* The scope being pushed is a template instantiation
 			   scope that is pushed around a class or class
 			   reactivation scope in Microsoft mode to make the
-			   template parameters visible. */
+			   template parameters visible.  This is also used
+			   in Sun mode. */
 #define PS_PROTOTYPE_INSTANTIATION	0x02
 			/* The scope being pushed is the template instantiation
 			   scope for a prototype instantiation. */
@@ -320,7 +321,7 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if, when pushing a class and template
 			   reactivation scope, a template instantiation
 			   scope was pushed for a Microsoft specialization
-			   scope. */
+			   scope.  This is also used in Sun mode. */
   a_bit_field	stop_token_stack_pushed:1;
 			/* TRUE if, when pushing a template instantiation
 			   scope, a new stop token stack entry was pushed.
@@ -348,7 +349,8 @@ typedef struct a_scope_stack_entry {
 			/* TRUE for an sck_template_instantiation scope pushed
 			   for compatibility with the Microsoft compiler,
 			   which permits the body of a class specialization to
-			   reference template parameters of the template. */
+			   reference template parameters of the template.  This
+			   is also used in Sun mode. */
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_bit_field	pragma_pack_is_local:1;
 			/* TRUE for an sck_function scope of a routine in
