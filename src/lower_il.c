@@ -6794,6 +6794,49 @@ Those operations set the lvalue to true instead of incrementing.
 }  /* lower_bool_increment */                  
 
 
+static void eliminate_assignment_if_empty_class(an_expr_node_ptr expr)
+/*
+expr is an eok_sassign assignment.  Eliminate it if it copies an empty
+class, so that it will not disturb surrounding objects if the class
+happens to be a base class.  Keep any side effects.
+*/
+{
+  a_type_ptr class_type = expr->type;
+
+  if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+    /* The assignment returns an lvalue, so the expression type is a
+       pointer to the class type. */
+    class_type = type_pointed_to(class_type);
+  }  /* if */
+  class_type = skip_typerefs(class_type);
+  check_assertion(is_immediate_class_type(class_type));
+  if (class_type->variant.class_struct_union.is_empty_class) {
+    /* An empty class.  Eliminate the assignment but keep the side effects
+       by rewriting it as a comma node. */
+    an_expr_node_ptr op1 = expr->variant.operation.operands;
+    an_expr_node_ptr op2 = op1->next;
+    /* Unless the assignment returns an lvalue, op1 needs an extra indirection
+       to produce an rvalue. */
+    if (!expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+      op1 = add_indirection_to_node(op1);
+    }  /* if */
+    /* If op2 has no side effects, just overwrite the original expression
+       with the (possibly adjusted) op1. */
+    if (!node_has_side_effects(op2, (a_boolean *)NULL)) {
+      overwrite_node(expr, op1);
+    } else {
+      /* Rewrite the expression as a comma node. */
+      /* Flip the operands so that the left-side operand is returned, for
+         the case where the assignment returns an lvalue. */
+      op2->next = op1;
+      op1->next = NULL;
+      set_node_operator(expr, (an_expr_operator_kind)eok_comma,
+                        expr->type, op2);
+    }  /* if */
+  }  /* if */
+}  /* eliminate_assignment_if_empty_class */
+
+
 static a_routine_ptr routine_from_node(an_expr_node_ptr node)
 /*
 node is an expression node that is the address of a specific routine.
@@ -8053,6 +8096,9 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             expr->variant.operation.kind =
                  lowered_ptr_to_member_assignment_operator(operand_node->next->
                                                                          type);
+            break;
+          case eok_sassign:
+            eliminate_assignment_if_empty_class(expr);
             break;
           case eok_pm_field:
             /* Pointer-to-member selection of a data member. */

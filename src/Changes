@@ -1,5 +1,15 @@
 Version 2.44
 
+5/2/00   Lowering of assignments of empty classes
+
+IL lowering now suppresses assignments of empty classes (preserving
+any side effects in the operands of the assignment).  This was
+made necessary by the changes to optimize allocation of empty base
+classes.  If a pointer to such a base class is obtained, and an
+assignment is made to the base class, the assignment must copy
+nothing, or otherwise it would destroy bytes of the following
+subobjects.
+
 5/2/00   C++-generating back end compilation problem when
          SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE is TRUE
 
