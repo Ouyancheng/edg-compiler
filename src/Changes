@@ -1,5 +1,16 @@
 Version 2.37
 
+7/1/97    Microsoft compatibility: cv-qualifiers following a comma
+
+Microsoft allows declarations like the following, which are nonstandard:
+
+  int i, const j;
+
+In MSVC++ 2.0, the declared type of j ends up as "const int", and we
+duplicated that in Microsoft mode.  In 4.2 and 5.0, however, the invalid
+const cv-qualifier is ignored, with a warning.  We now do the same for
+--microsoft_version=1000 or greater.
+
 7/1/97    Microsoft C mode: integral <--> pointer implicit conversions
 
 In Microsoft C mode, implicit conversions between pointers and integral

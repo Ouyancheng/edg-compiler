@@ -2333,13 +2333,14 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     if (microsoft_mode) {
       /* Apply pending qualifiers to the complete type being built up, now
          that we know those are not unbound qualifiers. */
-      if (pending_qualifiers != TQ_NONE) {
+      if ((pending_qualifiers & ~(TQ_NEAR | TQ_FAR)) != TQ_NONE) {
         /* Drop qualifiers like const/volatile because Microsoft drops
            them:
              int p, const *q;
            q has type "int *", not "const int *".  The only qualifiers
            like this that can be dropped are from the qualifiers collected
            above before the first iteration of the loop. */
+        pos_warning(ec_type_qualifier_ignored, &pending_qualifiers_pos);
         pending_qualifiers &= (TQ_NEAR | TQ_FAR);
       }  /* if */
       if (pending_qualifiers != TQ_NONE) {
@@ -2557,6 +2558,15 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
   if (microsoft_mode) {
     /* Return unbound qualifiers to the caller. */
     if (pending_qualifiers != TQ_NONE) {
+      if (microsoft_version >= 1000 &&
+          (pending_qualifiers & ~(TQ_NEAR | TQ_FAR)) != TQ_NONE) {
+        /* Case like
+             int i, const j;
+           The type qualifiers were applied in MSVC++ 2.0, but they are
+           ignored in 4.2 and 5.0. */
+        pos_warning(ec_type_qualifier_ignored, &pending_qualifiers_pos);
+        pending_qualifiers &= (TQ_NEAR | TQ_FAR);
+      }  /* if */
       /* Qualifiers like near and far. */
       if (unbound_qualifiers != NULL) {
         *unbound_qualifiers = pending_qualifiers;
