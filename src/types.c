@@ -2016,7 +2016,7 @@ the other matches default_calling_convention.
   type1 = skip_typerefs(type1);
   rtsp1 = type1->variant.routine.extra_info;
   cc1 = rtsp1->calling_convention;
-  type1 = skip_typerefs(type2);
+  type2 = skip_typerefs(type2);
   rtsp2 = type2->variant.routine.extra_info;
   cc2 = rtsp2->calling_convention;
   if (cc1 == cc2 ||
