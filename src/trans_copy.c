@@ -2866,11 +2866,13 @@ therefore will not be copied.
 
   db_enter(1, "copy_secondary_trans_unit_IL_to_primary");
   check_assertion(total_errors == 0 && !trans_unit_test_mode);
+#if CHECKING
   /* This code doesn't handle source sequence lists, so the result won't
      work with the C++-generating back end. */
   { a_boolean okay = !BACK_END_IS_CP_GEN_BE;
     check_assertion(okay);
   }
+#endif /* CHECKING */
   check_assertion(initial_value_for_il_lowering_flag == FALSE);/*lint !e527*/
   in_trans_copy_setup = TRUE;
   in_primary_il_reference_rewrite = FALSE;
