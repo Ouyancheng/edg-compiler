@@ -5043,8 +5043,7 @@ it's to be moved to another position in the list.
         may_be_added = FALSE;
       } else if (type_ptr->source_corresp.is_class_member) {
         if (ssep->kind != (a_scope_kind)sck_class_struct_union ||
-            !same_entities(ssep->assoc_type,
-                           type_ptr->source_corresp.parent.class_type)) {
+            ssep->assoc_type != type_ptr->source_corresp.parent.class_type) {
           /* May be an out-of-class definition of a C++ nested class.  It's
              already on the list. */
           may_be_added = FALSE;
@@ -5143,8 +5142,8 @@ instantiations) below that on the scope stack.
       /* A placeholder is not needed for an instantiation within a
          function definition. */
     } else if (type_ptr->source_corresp.is_class_member &&
-               same_entities(type_ptr->source_corresp.parent.class_type,
-                             ssep->assoc_type)) {
+               type_ptr->source_corresp.parent.class_type ==
+                                                            ssep->assoc_type) {
       /* Nor is a placeholder needed within the class to which a member
          template class instance belongs. */
     } else {
@@ -5262,13 +5261,13 @@ removed from the list.
     /* May be an error case. */
   } else {
     check_assertion(pointers_block != NULL);
-    if (same_entities(pointers_block->last_type, type_ptr)) {
+    if (pointers_block->last_type == type_ptr) {
       /* It's already the last entry on the list. */
     } else {
       /* Scan the list until a match is found. */
       prev_tp = NULL;
       tp = sp->types;
-      while (!same_entities(tp, type_ptr)) {
+      while (tp != type_ptr) {
         prev_tp = tp;
         tp = tp->next;
         check_assertion_str2(tp != NULL, "move_to_end_of_types_list:",
@@ -5920,7 +5919,7 @@ that points to base_type.  If none is found, create one and add it to the list.
     prev_btfp = NULL;
     for (btfp = trans_unit->based_type_fixup_list;
          btfp != NULL; btfp = btfp->next) {
-      if (same_entities(btfp->base_type, base_type)) {
+      if (btfp->base_type == base_type) {
         /* The specified base type is already represented on the fixup list.
            Unless it's already there, move the entry to the head of the
            list (as an optimization for subsequent traversals of the list). */
@@ -5989,8 +5988,7 @@ list.
     if (btlmp->kind == kind) {
       ptr = btlmp->based_type;
       if (kind == (a_based_type_kind)btk_ptr_to_member &&
-          !same_entities(ptr->variant.ptr_to_member.class_of_which_a_member,
-                         class_type)) {
+          ptr->variant.ptr_to_member.class_of_which_a_member != class_type) {
         /* Pointer-to-member parent class does not match class type -- keep
            looking. */
         ptr = NULL;
@@ -6224,7 +6222,7 @@ return the original member type.
     /* A function type under a pointer-to-member must be a member function
        and therefore must have a "this" parameter type. */
     check_assertion(old_this_class != NULL);
-    if (!same_entities(old_this_class, class_type)) {
+    if (old_this_class != class_type) {
       /* Make a new function type with the right "this" class.  Note that
          there is no sharing of types going on here, so this may be
          wasteful if called a lot. */
@@ -7004,7 +7002,7 @@ declaration rather than a constructor reference.
       (ptp->next == NULL || ptp->next->has_default_arg)) {
     a_type_ptr  tp = type_pointed_to(ptp->type);
     a_type_ptr  unqualified_tp = skip_typerefs(tp);
-    if (same_entities(unqualified_tp, class_of_which_a_member)) {
+    if (unqualified_tp == class_of_which_a_member) {
       /* It is probably a copy constructor. */
       is_cctor = TRUE;
       if (!is_declarative_context) {
@@ -11682,7 +11680,7 @@ cleared.
       clep = friend_ctsp->befriending_classes;
       for (; clep != NULL; clep = next_clep) {
         next_clep = clep->next;
-        if (same_entities(clep->class_type, class_type)) {
+        if (clep->class_type == class_type) {
 #if DEBUG
           if (debug_level >= 4 ||
               db_trace("dump_elim", friend_class, iek_type)) {
@@ -11733,7 +11731,7 @@ cleared.
     clep = friend_rout->befriending_classes;
     for (; clep != NULL; clep = next_clep) {
       next_clep = clep->next;
-      if (same_entities(clep->class_type, class_type)) {
+      if (clep->class_type == class_type) {
         /* A match -- link around it. */
 #if DEBUG
           if (debug_level >= 4 ||
