@@ -4373,9 +4373,9 @@ storage class information represented by bits in the DSO information
 in "flags".
 */
 {
-  var->dllimport_used = (flags & DSO_DLLIMPORT) != 0;
-  var->dllexport_used = (flags & DSO_DLLEXPORT) != 0;
-  var->thread_used = (flags & DSO_THREAD) != 0;
+  var->dllimport_used |= (flags & DSO_DLLIMPORT) != 0;
+  var->dllexport_used |= (flags & DSO_DLLEXPORT) != 0;
+  var->thread_used |= (flags & DSO_THREAD) != 0;
 #if 0
   /* Add error tests for improper use of other storage classes. */
 #endif /* 0 */
@@ -4390,10 +4390,10 @@ storage class information represented by bits in the DSO information
 in "flags".
 */
 {
-  routine->dllimport_used = (flags & DSO_DLLIMPORT) != 0;
-  routine->dllexport_used = (flags & DSO_DLLEXPORT) != 0;
-  routine->naked_used = (flags & DSO_NAKED) != 0;
-  routine->microsoft_inline_used = (flags & DSO_MICROSOFT_INLINE) != 0;
+  routine->dllimport_used |= (flags & DSO_DLLIMPORT) != 0;
+  routine->dllexport_used |= (flags & DSO_DLLEXPORT) != 0;
+  routine->naked_used |= (flags & DSO_NAKED) != 0;
+  routine->microsoft_inline_used |= (flags & DSO_MICROSOFT_INLINE) != 0;
 #if 0
   /* Add error tests for improper use of other storage classes. */
 #endif /* 0 */
@@ -5040,6 +5040,7 @@ continue_with_declaration:
           local_storage_class != (a_storage_class)sc_typedef &&
           curr_token != tok_semicolon && curr_token != tok_comma &&
           curr_token != tok_assign && curr_token != tok_end_of_source) {
+        a_symbol_ptr rout_sym;
         if (!has_explicit_type_specifier && !is_main_function) {
           /* Function with no explicitly specified return type.  Issue a
              remark (except in pcc mode and except for C++ constructors,
@@ -5060,16 +5061,19 @@ continue_with_declaration:
         /* Do processing required for a function definition, including
            scanning the function body.  Note that the closing '}' will not
            been consumed -- that will be done by the caller. */
-        function_definition(&locator, local_type_ptr, &func_info,
-                            local_storage_class, has_explicit_type_specifier);
+        rout_sym = function_definition(&locator, local_type_ptr, &func_info,
+                                       local_storage_class,
+                                       has_explicit_type_specifier);
         done_with_func_info(func_info);
         /* The presence of a final '}' will already have been checked for. */
         check_assertion(curr_token == tok_rbrace ||
                         curr_token == tok_end_of_source);
 #if MICROSOFT_KEYWORDS_ALLOWED        
         {
-          a_routine_ptr	rp = skip_typerefs(local_type_ptr)->
-                                    variant.routine.extra_info->assoc_routine;
+          a_routine_ptr	rp;
+          check_assertion_str(rout_sym != NULL,
+                              "declaration: routine symbol pointer NULL");
+          rp = rout_sym->variant.routine.ptr;
           check_assertion_str(rp != NULL, "declaration: routine pointer NULL");
           update_microsoft_routine_info(rp, dso_flags);
         }

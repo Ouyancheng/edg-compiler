@@ -60,11 +60,12 @@ extern a_boolean check_function_return_type(a_type_ptr         return_type,
                                             a_source_position  *err_pos,
                                             a_boolean          is_expr_use);
 
-extern void function_definition(a_symbol_locator  *locator,
-                                a_type_ptr        rout_type,
-                                a_func_info_block *func_info,
-                                a_storage_class   storage_class,
-                                a_boolean         has_explicit_type_specifier);
+extern
+a_symbol_ptr function_definition(a_symbol_locator  *locator,
+                                 a_type_ptr        rout_type,
+                                 a_func_info_block *func_info,
+                                 a_storage_class   storage_class,
+                                 a_boolean         has_explicit_type_spec);
 
 extern void force_definition_of_compiler_generated_routine(a_routine_ptr rp);
 

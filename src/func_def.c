@@ -659,11 +659,11 @@ on a prior declaration.
 }  /* define_member_function */
 
 
-void function_definition(a_symbol_locator   *locator,
-                         a_type_ptr         rout_type,
-                         a_func_info_block  *func_info,
-                         a_storage_class    storage_class,
-                         a_boolean          has_explicit_type_specifier)
+a_symbol_ptr function_definition(a_symbol_locator  *locator,
+                                 a_type_ptr        rout_type,
+                                 a_func_info_block *func_info,
+                                 a_storage_class   storage_class,
+                                 a_boolean         has_explicit_type_specifier)
 /*
 Scan a function definition.  The declarator has already been scanned; the
 old-style parameter declarations and the compound statement for the body
@@ -675,7 +675,8 @@ parameters, as well as field function_type_from_typedef (when it is FALSE,
 the function type came from the declarator; when it is TRUE an error is
 reported); storage_class is the storage class from the specifiers list; and
 has_explicit_type_specifier is TRUE if the type of the function was explicitly
-specified (rather than defaulted to "int").
+specified (rather than defaulted to "int").  A pointer to the symbol pointer
+associated with the function is returned.
 */
 {
   a_symbol_ptr                   symbol_ptr, ext_sym;
@@ -875,7 +876,7 @@ specified (rather than defaulted to "int").
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 
   db_exit();
-  return;
+  return symbol_ptr;
 }  /* function_definition */
 
 
