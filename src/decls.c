@@ -2786,7 +2786,8 @@ created; the caller must set it.
       old_name = scp->name;
       new_name = locator->symbol_header->identifier;
       check_assertion(old_name != NULL);
-      if (((a_name_linkage_kind)scp->name_linkage != name_linkage &&
+      if ((!C_mode() &&
+           (a_name_linkage_kind)scp->name_linkage != name_linkage &&
            ((a_name_linkage_kind)scp->name_linkage ==
                                            (a_name_linkage_kind)nlk_external ||
             name_linkage == (a_name_linkage_kind)nlk_external)) ||
