@@ -1859,6 +1859,7 @@ has an explicit template argument list, given by template_arg_list.
 
   /* This routine is a simplified version of mangled_function_name. */
 #if IA64_ABI
+  add_str_to_mangled_name("L_Z", mctl);
   /* Add a parent qualifier for a member if needed. */
   mangled_ia64_parent_qualifier(&con->source_corresp, iek_constant,
                                 &need_nested_name_close, mctl);
@@ -1888,6 +1889,7 @@ has an explicit template argument list, given by template_arg_list.
   }  /* if */
 #else /* IA64_ABI */
   close_ia64_nested_name(need_nested_name_close, mctl);
+  add_to_mangled_name('E', mctl);
 #endif /* !IA64_ABI */
 }  /* mangled_encoding_for_unknown_function */
 
