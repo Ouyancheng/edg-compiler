@@ -1192,7 +1192,8 @@ the secondary translation unit IL).
   /* suppress_inline_body is only valid on routines with bodies.  Save the
      destination value only if the destination routine already has a
      body. */
-  a_boolean saved_suppress_inline_body = (primary_rout->assoc_scope != NULL) ?
+  a_boolean saved_suppress_inline_body =
+                            (primary_rout->assoc_scope != NULL_region_number) ?
                                            primary_rout->suppress_inline_body :
                                            rout->suppress_inline_body;
   do_saves_for_overwrite(primary_rout, a_routine_ptr);
