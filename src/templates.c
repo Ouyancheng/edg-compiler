@@ -2578,6 +2578,19 @@ might not be able to if the template itself has not yet been defined.
 #endif /* DEBUG */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* Check whether an explicit alignment was specified using
+         __declspec(align(...)) and if so record that in the IL.
+         We use the prototype instantiation to determine whether
+         the alignment was set explicitly. */
+      if (microsoft_mode) {
+        a_type_ptr proto_type = type_symbol_type(cssp->corresp_prototype_sym);
+        if (proto_type->alignment_set_explicitly) {
+          set_declspec_align(class_type, proto_type->alignment,
+                             &class_type->source_corresp.decl_position);
+        }  /* if */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       mark_defined(instance_sym, &instance_sym->decl_position);
       /* Scan the base specifiers list, if any, and the body of the class.
          The pending class definition counter is incremented while processing
