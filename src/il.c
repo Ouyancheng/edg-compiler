@@ -4789,9 +4789,9 @@ constructor's first parameter is const or volatile qualified (or both).
   *const_object_okay = FALSE;
   *volatile_object_okay = FALSE;
   /* A constructor is deemed a copy constructor if (1) the type of the first
-     parameter is reference-to-class or reference-to-const-class where
-     "class" is the class of which it is a member function, and (2) where
-     the function can be called with only one argument. */
+     parameter is reference-to-class or reference-to-qualified-class where
+     "class" is the class of which it is a member function, and
+     (2) the function can be called with only one argument. */
   ptp = ctor_rout->type->variant.routine.extra_info->param_type_list;
   /* If the param type entry is non-NULL there is at least one argument.  If
      there is a second argument and it has a default expression, the function
