@@ -778,6 +778,12 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_ptr(ptr->variant.array.bound_constant,
                      a_constant_ptr, iek_constant);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+            /* In some error cases, some array types on the vla_dimensions
+               list are incomplete during the needed flag and keep-in-IL
+               walks. */
+            if (ptr->variant.array.element_type == NULL) break;
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
             walk_ptr(ptr->variant.array.element_type, a_type_ptr, iek_type);
             definition_needed_if_class(ptr->variant.array.element_type);
             break;
