@@ -6453,8 +6453,7 @@ the cleanup at *insert_location.
     /* One or more calls was generated and exceptions are enabled.
        Reset eh_curr_region.   Do not do this if the context being exited
        is the function context or if we're cleaning up for all contexts
-       including the file scope (that happens in the file-scope termination
-       routine). */
+       including the file scope. */
     if (outer_context != nearest_function_context &&
         outer_context->parent != NULL) {
       set_eh_curr_region(outer_context->parent, insert_location);
