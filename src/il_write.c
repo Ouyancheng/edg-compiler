@@ -483,7 +483,7 @@ Finish writing the IL file, if there is one.
     /* Seek back to just after the "magic" string at the beginning of the
        file. */
     if (fseek(f_il_output,(long)LEN_IL_FILE_MAGIC_STRING,SEEK_SET) != 0) {
-      str_catastrophe(ec_file_write_error, "intermediate language");
+      str_catastrophe(ec_file_write_error, "intermediate language (1)");
     }  /* if */
     /* Write the number of regions. */
     (void)fwrite((char *)&highest_used_region_number,
@@ -495,7 +495,7 @@ Finish writing the IL file, if there is one.
 		 sizeof(a_file_position), 1, f_il_output);
     /* Flush the IL file and check for errors on it. */
     if (fflush(f_il_output) || ferror(f_il_output)) {
-      str_catastrophe(ec_file_write_error, "intermediate language");
+      str_catastrophe(ec_file_write_error, "intermediate language (2)");
     }  /* if */
   }  /* if */
 }  /* finish_il_file */
@@ -517,7 +517,7 @@ a temporary_file.
       /* The  intermediate language file is being written to an external
          file; close it. */
       if (fclose(f_il_output)) {
-        str_catastrophe(ec_file_write_error, "intermediate language");
+        str_catastrophe(ec_file_write_error, "intermediate language (3)");
       }  /* if */
 #if BACK_END_SHOULD_BE_CALLED
     }  /* if */
@@ -633,7 +633,7 @@ its length.
   if (fwrite(entry_ptr, size_t_arg(entry_length), 1, f_il_output) != 1) {
     /* Error on write.  This check supplements the check done when the
        file is closed. */
-    str_catastrophe(ec_file_write_error, "intermediate language");
+    str_catastrophe(ec_file_write_error, "intermediate language (4)");
   }  /* if */
   if (!is_string_entry) {
     /* Restore the original pointers. */
@@ -774,7 +774,7 @@ Write the indicated memory region to the file f_il_output.
       /* Go back and write the array of entry counts.  This time it matters
          which one we write. */
       if (fseek(f_il_output, count_array_pos, SEEK_SET) != 0) {
-        str_catastrophe(ec_file_write_error, "intermediate language");
+        str_catastrophe(ec_file_write_error, "intermediate language (5)");
       }  /* if */
       /* The first entry of the array is skipped. */
       (void)fwrite((char *)&(writing_file_scope_il ?
@@ -785,7 +785,7 @@ Write the indicated memory region to the file f_il_output.
          for future writes.  SEEK_END is not used because ANSI doesn't 
          guarantee it for binary files. */
       if (fseek(f_il_output, end_pos, SEEK_SET) != 0) {
-        str_catastrophe(ec_file_write_error, "intermediate language");
+        str_catastrophe(ec_file_write_error, "intermediate language (6)");
       }  /* if */
     }
 #else /* !ALTERNATE_IL_FILE_FORMAT */
@@ -843,7 +843,7 @@ Write the indicated memory region to the file f_il_output.
                     1, f_il_output) != 1)) {
           /* Error on write.  This check supplements the check done when the
              file is closed. */
-          str_catastrophe(ec_file_write_error, "intermediate language");
+          str_catastrophe(ec_file_write_error, "intermediate language (7)");
         }  /* if */
       }  /* for */
     }
@@ -872,7 +872,7 @@ Write the indicated memory region to the file f_il_output.
                        sizeof(a_memory_region_number)+
                        2*sizeof(a_file_position)),
                 SEEK_SET) != 0) {
-        str_catastrophe(ec_file_write_error, "intermediate language");
+        str_catastrophe(ec_file_write_error, "intermediate language (8)");
       }  /* if */
       /* Save il_header; it gets modified, written, then restored. */
       (void)memcpy(il_header_copy, (char *)&il_header, sizeof(il_header));
@@ -908,7 +908,7 @@ Write the indicated memory region to the file f_il_output.
       /* Restore the position at the end of the file.  SEEK_END is not
          used because ANSI doesn't guarantee it for binary files. */
       if (fseek(f_il_output, end_pos, SEEK_SET) != 0) {
-        str_catastrophe(ec_file_write_error, "intermediate language");
+        str_catastrophe(ec_file_write_error, "intermediate language (9)");
       }  /* if */
     }  /* if */
   }  /* if */
