@@ -2966,7 +2966,7 @@ Scan and process a #define directive.
       mdp = assoc_symbol->variant.macro_def;
       if ((a_boolean)mdp->object_like == object_like &&
           smemcmp(mdp->repl_text, buffer_start, new_length) == 0 &&
-          mdp->repl_text[new_length] == rt_null){
+          mdp->repl_text[new_length] == (char)rt_null){
         /* Check parameter lists to make sure they match. */
         for (pp = param_list, pp2 = mdp->param_list;
              pp != NULL && pp2 != NULL;
@@ -2991,7 +2991,7 @@ redef_error:
     macro_definition_space += repl_text_len+1;
 #endif /* DEBUG */
     (void)memcpy(repl_text, buffer_start, size_t_arg(repl_text_len));
-    repl_text[repl_text_len] = '\0';
+    repl_text[repl_text_len] = (char)rt_null;
     /* Allocate and fill the macro definition block. */
     if (mdp == NULL) {
       mdp = alloc_macro_def();
