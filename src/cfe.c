@@ -56,14 +56,11 @@ program using the name edg_main.  If EDG_MAIN is not set, the default
 #define EDG_MAIN main
 #endif /* ifndef(EDG_MAIN) */
 
-int EDG_MAIN(int argc, char *argv[])
+void cfe_main(int argc, char *argv[])
 /*
-The main routine for the front end.
-
-When MAKE_FRONT_END_CALLABLE is FALSE, the front end exits at the end
-of the compilation with an exit status that indicates the status of
-the compilation.  When MAKE_FRONT_END_CALLABLE is TRUE, the exit
-status is returned to the caller.
+This routine does the actual work to perform a compilation.  This is
+called by the EDG_MAIN wrapper that performs error handling when
+MAKE_FRONT_END_CALLABLE is TRUE.
 */
 {
   an_error_severity most_severe_diagnostic = es_none, diagnostic_level;
@@ -177,17 +174,36 @@ status is returned to the caller.
     display_time_used("Total compilation time", &start_time, &end_time);
   }  /* if */
 
-#if !MAKE_FRONT_END_CALLABLE
   /* Exit with the return code appropriate to the highest severity error
      detected. */
   exit_compilation(most_severe_diagnostic);
   /*NOTREACHED*/
+}  /* cfe_main */
+
+
+int EDG_MAIN(int argc, char *argv[])
+/*
+The main routine for the front end.
+
+When MAKE_FRONT_END_CALLABLE is FALSE, the front end exits at the end
+of the compilation with an exit status that indicates the status of
+the compilation.  When MAKE_FRONT_END_CALLABLE is TRUE, the exit
+status is returned to the caller.
+*/
+{
+#if !MAKE_FRONT_END_CALLABLE
+  (void)cfe_main(argc, argv);
+  /*NOTREACHED*/
 #else /* MAKE_FRONT_END_CALLABLE */
+
+  if (setjmp(edg_main_setjmp_buffer) == 0) {
+    cfe_main(argc, argv);
+  }  /* if */
   /* Free all memory used by the compilation. */
   mem_manage_wrapup();
-  return most_severe_diagnostic;
+  return exit_status;
 #endif /* !MAKE_FRONT_END_CALLABLE */
-}  /* main */
+}  /* EDG_MAIN */
 
 
 /******************************************************************************

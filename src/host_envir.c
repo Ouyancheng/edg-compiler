@@ -1541,6 +1541,24 @@ Only write the signoff if there ARE errors, and if we are supposed to.
 }  /* write_signoff */
 
 
+DOES_NOT_RETURN cfe_exit(int status)
+/*
+This is a wrapper around the exit function.  Normally, it just calls
+the exit routine, but when the front end is callable this routine
+saves the return status and transfers control back to the top-level
+routine of the front end, so that it can return to the caller.
+*/
+{
+#if !MAKE_FRONT_END_CALLABLE
+  exit(status);
+  /*NOTREACHED*/
+#else /* MAKE_FRONT_END_CALLABLE */
+  exit_status = status;
+  longjmp(edg_main_setjmp_buffer, 1);
+#endif /* !MAKE_FRONT_END_CALLABLE */
+}  /* cfe_exit */
+
+
 DOES_NOT_RETURN exit_compilation(an_error_severity severity)
 /*
 Exit the compilation.  severity indicates the severity of the most
@@ -1563,18 +1581,18 @@ severe diagnostic issued in this compilation.  This routine does not return.
   switch (severity) {
     case es_none:
     case es_remark:
-      exit(RC_NORMAL);
+      cfe_exit(RC_NORMAL);
     case es_warning:
-      exit(RC_WARNING);
+      cfe_exit(RC_WARNING);
     case es_error:
-      exit(RC_ERROR);
+      cfe_exit(RC_ERROR);
     case es_catastrophe:
     case es_command_line_error:
-      exit(RC_CATASTROPHE);
+      cfe_exit(RC_CATASTROPHE);
     case es_internal_error:
     default:
 #if EXIT_ON_INTERNAL_ERROR
-      exit(RC_CATASTROPHE);
+      cfe_exit(RC_CATASTROPHE);
 #else /* !EXIT_ON_INTERNAL_ERROR */
       (void)fflush(stderr);
       abort();
@@ -3306,6 +3324,7 @@ This is done before command line processing.
   template_search_path = NULL;
   template_search_path_tail = NULL;
   avail_directory_name_entries = NULL;
+  C_dialect = C_dialect_cplusplus;
   /* Get the name of the EDG_BASE directory.  This may be overridden by
      a command-line option.  If the environment variable is not set, use
      a built-time default value. */
@@ -3352,6 +3371,9 @@ This is done before command line processing.
   pragma_define_type_info_is_required = PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED;
   use_predefined_macro_file = DEFAULT_USE_PREDEFINED_MACRO_FILE;
   memzero(predef_macro_mode_values, sizeof(predef_macro_mode_values));
+#if MAKE_FRONT_END_CALLABLE
+  exit_status = 0;
+#endif /* MAKE_FRONT_END_CALLABLE */
   /* Make sure the predefined macro mode enumeration and the array of
      mode names match. */
   check_assertion_str2(predef_macro_mode_names[(int)pmm_last] != NULL &&
