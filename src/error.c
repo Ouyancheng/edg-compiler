@@ -1931,6 +1931,9 @@ error code.
     case ec_nonstd_pp_directive:
       m = "nonstandard preprocessing directive";
       break;
+    case ec_unexpected_template_arg_list:
+      m = "%n may not have a template argument list";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

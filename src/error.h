@@ -560,7 +560,8 @@ typedef enum /*an_error_code*/ {
   ec_converting_to_incomplete_class,
   ec_missing_initializer_on_unnamed_const,
   ec_unnamed_object_with_uninitialized_field,
-  ec_nonstd_pp_directive
+  ec_nonstd_pp_directive,
+  ec_unexpected_template_arg_list
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
