@@ -750,6 +750,24 @@ necessary to make it directly accessible in memory.
                      num_same, num_different);
   }  /* if */
 #endif /* DEBUG */
+  if (!any_blocks_at_different_addresses && !reading_file_scope_il) {
+    /* When reading a function scope memory region, the remapping has
+       to be done if the file scope memory region moved. */
+    a_block_remap_entry_ptr fsbrep;
+    for (fsbrep = fs_block_remap_list;
+         fsbrep != NULL;
+         fsbrep = fsbrep->next) {
+      if (fsbrep->old_start_addr != fsbrep->new_start_addr) {
+        any_blocks_at_different_addresses = TRUE;
+#if DEBUG
+        if (debug_level >= 2) {
+          fprintf(f_debug, "Will have to remap because fs region moved\n");
+        }  /* if */
+#endif /* DEBUG */
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* for */
   if (any_blocks_at_different_addresses) {
     /* Some block addresses have changed.  Pointers must be adjusted. */
     /* Change the address of the primary scope entry to a "new" address. */
