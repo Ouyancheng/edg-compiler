@@ -4056,6 +4056,34 @@ Return TRUE is sym is a symbol for an operator delete() function.
 #endif /* if 0 */
 
 
+static a_symbol_ptr find_direct_member_function(a_symbol_locator  *locator,
+                                                a_type_ptr        class_type)
+/*
+Find a member function (or member function template or overload set thereof)
+that has the same symbol header as *locator and that is also either a direct
+member of class_type or else a name brought in by a using-declaration.
+Return NULL if none is found.
+*/
+{
+  a_symbol_ptr                   sym = NULL;
+
+  clear_specific_symbol(*locator);
+  (void)class_qualified_id_lookup(locator, class_type,
+                                  IDL_DIRECT_CLASS_MEMBERS_ONLY);
+  sym = locator->specific_symbol;
+  if (sym != NULL &&
+      !(is_function_or_template_symbol(sym) ||
+        (sym->kind == (a_symbol_kind)sk_projection &&
+         sym->variant.projection.is_using_decl &&
+         is_function_or_template_symbol(fundamental_symbol_of(sym))))) {
+    /* Ignore the symbol if it is not a member function or a projection
+       symbol for using-declaration that refers to a member function. */
+    sym = NULL;
+  }  /* if */
+  return sym;
+}  /* find_direct_member_function */
+
+
 static a_symbol_ptr symbol_for_member_function(a_symbol_locator  *locator,
                                                a_type_ptr        type,
                                                a_type_ptr        class_type,
@@ -4080,10 +4108,7 @@ function symbols.
     sym = NULL;
   } else {
     /* See if there's already a member function with this name. */
-    clear_specific_symbol(*locator);
-    (void)class_qualified_id_lookup(locator, class_type,
-                                    IDL_MEMBER_FUNCTION_LOOKUP);
-    sym = locator->specific_symbol;
+    sym = find_direct_member_function(locator, class_type);
     if (sym != NULL) {
       /* A member function by this name has already been entered into the
          symbol table.  This could be a redeclaration, which is illegal for
@@ -5002,7 +5027,8 @@ in-class member function declarations.)
 {
   a_template_symbol_supplement_ptr   tssp;
   a_routine_ptr                      rtn;
-  a_symbol_ptr                       sym, other_sym, overload_sym = NULL;
+  a_symbol_ptr                       sym = NULL;
+  a_symbol_ptr                       other_sym, overload_sym = NULL;
   a_class_symbol_supplement_ptr      cssp;
   a_scope_depth                      effective_decl_level;
 
@@ -5025,32 +5051,31 @@ in-class member function declarations.)
     }  /* if */
   }  /* if */
   check_operator_function_params(member_type, class_type, locator);
-  clear_specific_symbol(*locator);
   if (!is_error_locator(*locator)) {
-    (void)class_qualified_id_lookup(locator, class_type,
-                                    IDL_MEMBER_FUNCTION_LOOKUP);
-  }  /* if */
-  sym = locator->specific_symbol;
-  if (sym != NULL) {
-    /* Be sure the declaration does not conflict with a previous member
-       function template declaration in the current class. */
-    a_boolean  is_list = (sym->kind == (a_symbol_kind)sk_overloaded_function);
-    other_sym = is_list ? sym->variant.overloaded_function.symbols : sym;
-    for (; other_sym != NULL; other_sym = is_list ? other_sym->next : NULL) {
-      if (other_sym->kind == (a_symbol_kind)sk_function_template) {
-        /* Issue an error if the other member function template declaration
-           has a type compatible with this one -- compare the routine types. */
-        a_type_ptr  tp = other_sym->variant.template_info->
+    sym = find_direct_member_function(locator, class_type);
+    if (sym != NULL) {
+      /* Be sure the declaration does not conflict with a previous member
+         function template declaration in the current class. */
+      a_boolean  is_list =
+                      (sym->kind == (a_symbol_kind)sk_overloaded_function);
+      other_sym = is_list ? sym->variant.overloaded_function.symbols : sym;
+      for (; other_sym != NULL; other_sym = is_list ? other_sym->next : NULL) {
+        if (other_sym->kind == (a_symbol_kind)sk_function_template) {
+          /* Issue an error if the other member function template declaration
+             has a type compatible with this one -- compare the routine
+             types. */
+          a_type_ptr  tp = other_sym->variant.template_info->
                                          variant.function.routine->type;
-        if (routine_types_are_compatible(tp, member_type, TCF_NO_FLAGS)) {
-          pos_sy_error(ec_member_function_redeclaration,
-                       &locator->source_position, other_sym);
-          set_to_named_error_locator(*locator);
-          sym = NULL;
-          break;
+          if (routine_types_are_compatible(tp, member_type, TCF_NO_FLAGS)) {
+            pos_sy_error(ec_member_function_redeclaration,
+                         &locator->source_position, other_sym);
+            set_to_named_error_locator(*locator);
+            sym = NULL;
+            break;
+          }  /* if */
         }  /* if */
-      }  /* if */
-    }  /* for */
+      }  /* for */
+    }  /* if */
   }  /* if */
   /* Set a flag in each param type entry whose associated type is or
      contains a template parameter. */
