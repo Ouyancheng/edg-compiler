@@ -2391,6 +2391,8 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
   /* Treat "long long" as a standard feature. */
   long_long_is_standard = TRUE;
   long_long_promotion_allowed = FALSE;
+  /* The underlying type for an enum could be long long. */
+  enum_types_can_be_larger_than_int = TRUE;
   /* Hexadecimal floating point constants are permitted. */
   hex_floating_point_constants_allowed = TRUE;
   null_chars_allowed_in_source = TRUE;
