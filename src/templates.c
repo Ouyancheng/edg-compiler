@@ -4441,22 +4441,15 @@ prototype instantiation is considered as a potential match.
           class_type->variant.class_struct_union.is_nonreal_class = TRUE;
         }  /* if */
       }  /* if */
-#if 0
       if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
-#endif
         /* Local typedef names (legal if they refer to nonlocal types) should
            not be part of the type signature of the template class itself,
            which is nonlocal.  Strip them off, if there are any. */
         if (is_type_templ_arg(tap)) {
-          a_boolean	is_local, is_unnamed;
           tap->variant.type =
                            strip_local_and_nonreal_typedefs(tap->variant.type);
-          check_assertion(!is_or_contains_unnamed_or_local_type(
-                                   tap->variant.type, &is_unnamed, &is_local));
         }  /* if */
-#if 0
       }  /* if */
-#endif
     }  /* for */
     /* Record the argument list in the type.  It should be available in the
        IL at least for name generation and possibly for debuggers, too.  Note,
