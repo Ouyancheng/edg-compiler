@@ -186,6 +186,11 @@ extern a_line_number update_file_index(struct a_source_file *src_file,
                                        a_line_number        physical_line,
                                        long                 file_pos);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+extern a_boolean set_severity_for_error_tag(char		*tag,
+				            an_error_severity	severity);
+extern a_boolean set_severity_for_error_number(int		  error_number,
+				               an_error_severity  severity);
 extern DOES_NOT_RETURN command_line_error(an_error_code error_code);
 extern DOES_NOT_RETURN str_command_line_error(an_error_code error_code,
                                               char          *fill_in_string);

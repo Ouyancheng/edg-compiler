@@ -3361,6 +3361,27 @@ If the tag cannot be found return TRUE, otherwise return FALSE.
 }  /* set_severity_for_error_tag */
 
 
+a_boolean set_severity_for_error_number(int		   error_number,
+				        an_error_severity  severity)
+/*
+Given an error number, this routine updates the table used to override the
+error severity of diagnostic messages. If the error number is out of range
+return TRUE, otherwise return FALSE.
+*/
+{
+  an_error_code			error_code;
+  a_boolean			error;
+
+
+  error = (error_number <= (int)ec_no_error || error_number >= (int)ec_last);
+  if (!error) {
+    error_code = (an_error_code)error_number;
+    severity_for_error_code[error_code] = severity;
+  }  /* if */
+  return error;
+}  /* set_severity_for_error_number */
+
+
 void pos_st_diagnostic(an_error_severity error_severity,
                        an_error_code     error_code,
                        a_source_position *error_pos,

@@ -495,6 +495,52 @@ end_of_routine:
 }  /* get_option */
 
 
+static void add_to_def_undef_list(char *str,
+                                  a_def_undef_string_ptr *du_list)
+/*
+Add the string pointed to by str (which comes from a command-line -D
+or -U macro define/undefine option) to the list of def/undef strings
+pointed to by *du_list.
+*/
+{
+  a_def_undef_string_ptr du_new;
+
+  /* alloc_general is called (rather than alloc_fe) because the general
+     mem_manage.c routines are not yet initialized, and because the
+     strings may be used several times if several files are compiled. */
+  du_new = (a_def_undef_string_ptr)alloc_general(sizeof(a_def_undef_string));
+  du_new->next = *du_list;
+  du_new->text = str;
+  /* Add the new entry to the front of the list of defs or undefs. */
+  *du_list = du_new;
+}  /* add_to_def_undef_list */
+
+
+static long scan_optarg_number(char *optstr)
+/*
+Scan an argument option as a decimal number, and return its value.
+*/
+{
+  char *arg_ptr;
+  long result = 0;
+  int  digit;
+
+  for (arg_ptr = optstr; *arg_ptr != '\0'; arg_ptr++) {
+    if (!isdigit((unsigned char)*arg_ptr)) goto number_error;
+    digit = *arg_ptr - '0';
+    if (result > LONG_MAX / 10) goto number_error;
+    result *= 10;
+    if (result > LONG_MAX-digit) goto number_error;
+    result += digit;
+  }  /* for */
+  goto return_point;
+number_error:
+  str_command_line_error(ec_cl_invalid_number, optstr);
+return_point:
+  return result;
+}  /* scan_optarg_number */
+
+
 static void process_diag_override_option(an_option_kind kind,
 					 char		*optarg)
 /*
@@ -543,62 +589,24 @@ processing routine to update the severity.
     a_boolean	error;
 #if DEBUG
     if (debug_level >= 4) {
-      fprintf(f_debug, "Setting error severity for tag: %s\n", opt_start);
+      fprintf(f_debug, "Setting error severity for: %s\n", opt_start);
     }  /* if */
 #endif /* DEBUG */
-    error = set_severity_for_error_tag(opt_start, severity);
-    if (error) {
-      str_command_line_error(ec_cl_invalid_error_tag, opt_start);
+    if (isdigit(*opt_start)) {
+      int error_number = scan_optarg_number(opt_start);
+      error = set_severity_for_error_number(error_number, severity);
+      if (error) {
+        str_command_line_error(ec_cl_invalid_error_number, opt_start);
+      }  /* if */
+    } else {
+      error = set_severity_for_error_tag(opt_start, severity);
+      if (error) {
+        str_command_line_error(ec_cl_invalid_error_tag, opt_start);
+      }  /* if */
     }  /* if */
     ptr = opt_end + 1;
   }  /* for */
 }  /* process_diag_override_option */
-
-
-static void add_to_def_undef_list(char *str,
-                                  a_def_undef_string_ptr *du_list)
-/*
-Add the string pointed to by str (which comes from a command-line -D
-or -U macro define/undefine option) to the list of def/undef strings
-pointed to by *du_list.
-*/
-{
-  a_def_undef_string_ptr du_new;
-
-  /* alloc_general is called (rather than alloc_fe) because the general
-     mem_manage.c routines are not yet initialized, and because the
-     strings may be used several times if several files are compiled. */
-  du_new = (a_def_undef_string_ptr)alloc_general(sizeof(a_def_undef_string));
-  du_new->next = *du_list;
-  du_new->text = str;
-  /* Add the new entry to the front of the list of defs or undefs. */
-  *du_list = du_new;
-}  /* add_to_def_undef_list */
-
-
-static long scan_optarg_number(char *optstr)
-/*
-Scan an argument option as a decimal number, and return its value.
-*/
-{
-  char *arg_ptr;
-  long result = 0;
-  int  digit;
-
-  for (arg_ptr = optstr; *arg_ptr != '\0'; arg_ptr++) {
-    if (!isdigit((unsigned char)*arg_ptr)) goto number_error;
-    digit = *arg_ptr - '0';
-    if (result > LONG_MAX / 10) goto number_error;
-    result *= 10;
-    if (result > LONG_MAX-digit) goto number_error;
-    result += digit;
-  }  /* for */
-  goto return_point;
-number_error:
-  str_command_line_error(ec_cl_invalid_number, optstr);
-return_point:
-  return result;
-}  /* scan_optarg_number */
 
 
 #if COMPILE_MULTIPLE_SOURCE_FILES
