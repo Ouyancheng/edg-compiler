@@ -8982,6 +8982,7 @@ otherwise the original "sym" is returned.
                      variant.class_struct_union.extra_info->template_arg_list);
       sym = orig_template_sym;
       locator_for_curr_id.specific_symbol = sym;
+      locator_for_curr_id.is_unknown_template_reference = TRUE;
     }  /* if */
   }  /* if */
   return sym;
@@ -10897,7 +10898,7 @@ scanned is, in fact, an identifier).
      been coalesced. */
   if (symbol != NULL &&
       is_class_template_or_injected_template_symbol(symbol)) {
-    if (locator_for_curr_id.is_template_id) {
+    if (locator_for_curr_id.is_unknown_template_reference) {
       /* This is a template class reference that was changed back to a
          template reference by ensure_correct_nonreal_instance_kind.
          It is now being used in a way that requires a type of some kind.
@@ -10912,6 +10913,7 @@ scanned is, in fact, an identifier).
         symbol = find_template_class(symbol, &arg_list,
                                      /*prototype_allowed=*/FALSE,
                                      (a_symbol_ptr)NULL);
+        locator_for_curr_id.is_unknown_template_reference = FALSE;
       }  /* if */
     } else {
       symbol = coalesce_template_class_reference(symbol, options, &templ_err);

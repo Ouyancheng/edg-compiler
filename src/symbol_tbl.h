@@ -167,6 +167,10 @@ typedef struct a_symbol_locator {
 			/* TRUE if is_qualified_name is TRUE and the entity
 			   pointed to by the parent field is a class
 			   (not a namespace). */
+  a_bit_field	is_unknown_template_reference:1;
+			/* TRUE if this is a reference to a nonreal template
+			   that was uncoalesced by ensure_correct_nonreal-
+			   instance_kind. */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,

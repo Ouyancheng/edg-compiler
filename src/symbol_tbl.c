@@ -9998,6 +9998,7 @@ are handled in symbol_tbl_init.)
   cleared_locator.is_error                        = FALSE;
   cleared_locator.do_not_clear_specific_symbol    = FALSE;
   cleared_locator.is_template_id                  = FALSE;
+  cleared_locator.is_unknown_template_reference   = FALSE;
   cleared_locator.is_class_member                 = FALSE;
   cleared_locator.specific_symbol                 = NULL;
   cleared_locator.parent.class_type               = NULL;
