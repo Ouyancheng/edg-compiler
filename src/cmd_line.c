@@ -301,7 +301,7 @@ to is the option letter.
     if (is_keyword_option) {
       match = odp->keyword != NULL &&
               keyword_length == odp->keyword_length &&
-              strncmp(optchar, odp->keyword, keyword_length) == 0;
+              strncmp(optchar, odp->keyword, size_t_arg(keyword_length)) == 0;
     } else {
       match = odp->letter != '\0' && *optchar == odp->letter;
     }  /* if */
@@ -852,8 +852,8 @@ Process the arguments on the command line that invoked the compiler.
         /* Specify output file for preprocessing output or IL. */
         ofile_name = optarg;
         break;
-      case ok_module_list_for_union_init:
 #if BACK_END_IS_C_GEN_BE
+      case ok_module_list_for_union_init:
         /* Save a string of comma-separated module names that will be linked
            with this one.  This is used by c_gen_be to generate calls
            to file-scope initialization routines that handle union
@@ -861,23 +861,15 @@ Process the arguments on the command line that invoked the compiler.
            used to generate C output for testing. */
         module_list_for_union_init = optarg;
         break;
-#else /* !BACK_END_IS_C_GEN_BE */
-	optarg = "-i";
-        goto unknown_option;
-#define DID_GOTO_UNKNOWN_OPTION
 #endif /* BACK_END_IS_C_GEN_BE */
-      case ok_debug:
 #if DEBUG
+      case ok_debug:
         /* Set debug level. */
         if (proc_debug_option(optarg)) {
 	  command_line_error(ec_cl_error_in_debug_option_argument);
 	}  /* if */
         init_debug_level = debug_level;
         break;
-#else /* !DEBUG */
-	optarg = "-d";
-        goto unknown_option;
-#define DID_GOTO_UNKNOWN_OPTION
 #endif /* DEBUG */
       default:
         /* It should not be possible to get here. */
