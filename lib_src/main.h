@@ -39,9 +39,13 @@ struct __linkl {
 The AT&T patch utility will link all the struct __linkl *__link defined
 in separate compilations onto a linked list pointed to by __head.
 */
-struct __linkl	*__head;        /* Pointer to the head of the linked list
+struct __linkl	*__head         /* Pointer to the head of the linked list
 				   of initialization and termination
 				   structures. */
+#if VAR_INITIALIZERS
+                        = NULL
+#endif /* VAR_INITIALIZERS */
+                              ;
 
 
 /*
