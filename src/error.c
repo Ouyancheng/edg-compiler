@@ -2999,7 +2999,10 @@ Return TRUE if the diagnostic should be suppressed.
 {
   a_boolean	suppress_diagnostic = FALSE;
 
-  if (is_template_dependent_context()) {
+  if (depth_scope_stack == NO_SCOPE_DEPTH) {
+    /* The scope stack is empty, don't check further (probably a
+       command-line error. */
+  } else if (is_template_dependent_context()) {
     record_prototype_diagnostic(error_code, severity, error_pos);
   } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
     if (find_prototype_diagnostic(error_code, severity, error_pos)) {
