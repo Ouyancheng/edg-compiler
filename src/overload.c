@@ -973,9 +973,13 @@ is TRUE.
       /* There are some type qualifiers on the argument type that do not
          appear on the parameter type, so some type qualifiers are being
          dropped. */
-      /* cfront allows a temporary to be used in cases like this, so
-         let them through.  Note that all cases handled here are arguments. */
-      if (!any_cfront_mode()) ref_type_qualifiers_dropped = TRUE;
+      /* cfront allows dropping of qualifiers on nonclass arguments.
+         Note that all cases handled here are arguments. */
+      if (any_cfront_mode() && !is_class_struct_union_type(param_type)) {
+        /* Okay to drop qualifiers. */
+      } else {
+        ref_type_qualifiers_dropped = TRUE;
+      }  /* if */
     } else {
       /* Some type qualifiers are being added.  That's okay, but it may
          be a tie-breaker later. */
@@ -6598,17 +6602,19 @@ initializer has previously been found to be acceptable, and
     } else {
       /* The initialization cannot be done directly; a temporary must be
          used and/or an implicit conversion must be done. */
+      a_boolean cfront_argument_case = any_cfront_mode() &&
+                                       !initializing_variable;
       if (curr_expr_kind_is_const()) {
         /* In a constant context (e.g., a nontype template argument),
            a temporary or conversion is not allowed. */
         error_in_operand(ec_init_needing_temp_not_allowed, source_operand);
       } else if (dropping_qualifiers &&
-                 !(any_cfront_mode() && !initializing_variable)) {
+                 !(cfront_argument_case &&
+                   !is_class_struct_union_type(base_dest_type))) {
         /* Type qualifiers were dropped (and otherwise the type is okay).
            Note that testing this early means that an implicit conversion
-           cannot be used to drop the qualifiers.  cfront allows use of
-           a temporary when passing arguments even when qualifiers are
-           dropped. */
+           cannot be used to drop the qualifiers.  cfront allows dropping
+           qualifiers when passing nonclass arguments. */
         error_in_operand(ec_qualifier_dropped_in_ref_init, source_operand);
       } else {
         /* Allocate a temporary and copy the operand into it, converting
@@ -6631,14 +6637,14 @@ initializer has previously been found to be acceptable, and
           /* A reference to non-const is initialized in a way that requires a
              temporary.  This is an error according to the ARM (8.4.3),
              but we allow it as an anachronism. */
-          if ((any_cfront_mode() && !initializing_variable) ||
+          if (cfront_argument_case ||
               (cfront_2_1_mode && operand_is_temp_init(source_operand) &&
                source_operand->variant.expression->variant.
                                    init.dynamic_init->kind ==
                                        (a_dynamic_init_kind)dik_constructor)) {
             /* In cfront mode we allow this also for a ref to non-const if
-               we're initializing a non-variable (e.g., we're passing an
-               argument), or if we have a constructed temporary in 2.1 mode. */
+               we're passing an argument, or if we have a constructed
+               temporary in 2.1 mode. */
             pos_warning(ec_nonconst_ref_init_anachronism,
                         &source_operand->position);
             warn = TRUE;
