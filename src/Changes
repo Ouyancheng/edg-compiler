@@ -1,5 +1,11 @@
 Version 2.07
 
+6/4/92  Errors on implicit calls of functions with incomplete return types.
+
+Routines in expr.c, exprutil.c, il.c, and class_decl.c were changed
+to add checking for incomplete return types on implicitly-generated
+function calls.
+
 6/4/92  Set address_taken flag on virtual function table variables.
 
 IL lowering now sets the address_taken flag on virtual function table
