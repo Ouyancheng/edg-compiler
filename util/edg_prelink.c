@@ -528,18 +528,41 @@ This routine was designed to accept the input from Solaris 2.x.  If this
 format differs from the standard SVR4 format then this routine may not
 work correctly for systems other than Solaris.
 
-The output for an object (.o) file is expected to look like:
+The nm output is expected to look like:
 
-0x12345678 T xxx.o:name1
-0x12345678 T xxx.o:name2
+s.o:
 
-The output for an archive file (.a) is expected to look like:
-xxx.a[x1.o]:
+0000000000 f s.o:s.c
+0000000000 t s.o:static_func
+0000000000 n s.o:DATA.
+0000000008 n s.o:RDATA.
+0000000000 b s.o:static_int
+0000000000 D s.o:glob_def_int
+0000000000 U s.o:extern_func
+0000000004 D s.o:common_int
+0000000000 U s.o:extern_int
+0000000008 T s.o:defined_func
 
-0x12345678 T xxx.a:x1.o:name1
-0x12345678 T xxx.a:x1.o:name2
-0x12345678 T xxx.a:x2.o:name3
-0x12345678 T xxx.a:x2.o:name4
+
+/usr/lib/libbsdmalloc.a[malloc.bsd43.o]:
+
+0000000000 f /usr/lib/libbsdmalloc.a:malloc.bsd43.o:malloc.bsd43.c
+0000000356 t /usr/lib/libbsdmalloc.a:malloc.bsd43.o:morecore
+0000000004 b /usr/lib/libbsdmalloc.a:malloc.bsd43.o:pagesz
+0000000000 b /usr/lib/libbsdmalloc.a:malloc.bsd43.o:pagebucket
+0000000920 t /usr/lib/libbsdmalloc.a:malloc.bsd43.o:findbucket
+0000000008 b /usr/lib/libbsdmalloc.a:malloc.bsd43.o:nextf
+0000000528 T /usr/lib/libbsdmalloc.a:malloc.bsd43.o:free
+0000000000 T /usr/lib/libbsdmalloc.a:malloc.bsd43.o:malloc
+0000000592 T /usr/lib/libbsdmalloc.a:malloc.bsd43.o:realloc
+
+/usr/lib/libbsdmalloc.a[xyz.o]:
+
+0000000000 U /usr/lib/libbsdmalloc.a:xyz.o:sbrk
+0000000000 U /usr/lib/libbsdmalloc.a:xyz.o:getpagesize
+0000000000 U /usr/lib/libbsdmalloc.a:xyz.o:.div
+0000000000 D /usr/lib/libbsdmalloc.a:xyz.o:realloc_srchlen
+0000000000 U /usr/lib/libbsdmalloc.a:xyz.o:bcopy
 
 Returns TRUE if the line contains symbol information; returns FALSE
 if the line is a blank line, or a header line that should not be
@@ -613,34 +636,78 @@ Read the output of the nm command.  This routine is written to accept
 the output of the nm command on systems such as HP/UX and Motorola 88000 SVR4
 using the -p, -x and -r options.
 
-The output for an object (.o) file is expected to look like:
+For HP/UX the nm output is expected to look like:
 
-xxx.o:
+t.o:
+t.o:                0000000200 T  main
+t.o:                0000000000 U  _main
+t.o:                0000000240 t  __ct__1AFv
+t.o:                0000000000 U  __nw__FUi
+t.o:                0000000000 U  printf
+t.o:                0000000000 U  __dl__FPv
 
-0x12345678 T xxx.o:name1
-0x12345678 T xxx.o:name2
+t2.o:
+t2.o:               0000000004 c  __TIR____ct__10A__pt__2_iFv
+t2.o:               0000000004 c  __CBI____ct__10A__pt__2_iFv
+t2.o:               0000000200 T  main
+t2.o:               0000000248 T  __cgi__t2_c_Fri_Sep_10_15_09_24_1993_
+t2.o:               0000000000 U  _main
+t2.o:               0000000000 U  __ct__10A__pt__2_iFv
 
-The output for an archive file (.a) is expected to look like:
+.../lib/libC.a[main.o]:
+.../lib/libC.a:      0000000004 c  __head
+.../lib/libC.a:      0000000200 T  _main
+.../lib/libC.a:      0000000000 U  __call_ctors__Fv
+.../lib/libC.a:      0000000232 T  __cgi__main_c_Fri_Sep_10_14_43_17_1993_
 
-xxx.a[x1.o]:
+.../lib/libC.a[placenew.o]:
+.../lib/libC.a:      0000000200 T  __nw__FUiPv
+.../lib/libC.a:      0000000216 T  __cgi__placenew_c_Fri_Sep_10_14_43_20_1993_
 
-0x12345678 T x1.o:name1
-0x12345678 T x1.o:name2
+For M88K the nm output is expected to look like:
 
-xxx.a[x1.o]:
+s.o:
 
-0x12345678 T x2.o:name3
-0x12345678 T x2.o:name4
+0000000000 D s.o:glob_def_int
+0000000036 T s.o:defined_func
+0000000000 U s.o:extern_int
+0000000000 U s.o:extern_func
+0000000008 D s.o:common_int
 
-Or on HP/UX systems, like this:
 
-xxx.o
-xxx.o:              0123456789 T name1
-xxx.o:              0123456789 T name2
+/usr/lib/libapg.a[new.o]:
 
-xxx.a[x1.o]:
-xxx.a:              0123456789 T name1
-xxx.a:              0123456789 T name2
+0000000000 U new.o:_getpid
+0000000000 U new.o:_kill
+
+
+/usr/lib/libapg.a[hack.o]:
+
+0000000000 U hack.o:_fcvt
+0000000000 U hack.o:_ecvt
+0000000000 U hack.o:_fcntl
+
+
+For anon1 the nm output is expected to look like:
+
+s.o:
+s.o:                00000000 t _static_func
+s.o:                00000004 T _defined_func
+s.o:                00000000 U _extern_int
+s.o:                00000000 U _extern_func
+s.o:                00000096 d _static_int
+s.o:                00000100 D _glob_def_int
+s.o:                00000004 C _common_int
+
+/usr/lib/liby.a[libmai.o]:
+/usr/lib/liby.a:    00000000 T _main
+/usr/lib/liby.a:    00000000 U _yyparse
+
+/usr/lib/liby.a[libzer.o]:
+/usr/lib/liby.a:    00000000 T _yyerror
+/usr/lib/liby.a:    00000000 U __iob
+/usr/lib/liby.a:    00000000 U _fprintf
+
 
 Returns TRUE if the line contains symbol information; returns FALSE
 if the line is a blank line, or a header line that should not be
@@ -704,7 +771,7 @@ processed further.
     } else {
       rest_of_line = pl_input_line;
     }  /* if */
-    /* The value field may optionally be preceeded by one or more blanks.
+    /* The value field may optionally be preceded by one or more blanks.
        Skip over any blanks that appear here. */
     pos = rest_of_line;
     while (*pos == ' ') pos++;
@@ -753,17 +820,72 @@ Read the output of the nm command.  This routine is written to accept
 the output of the nm command on SunOS and may have to be modified
 for other systems.
 
-The output for an object (.o) file is expected to look like:
+Default nm output is expected to look like:
 
-xxx.o:01230123 T _name1
-xxx.o:01230124 T _name2
+i1.o:00000001 C ___CBI__f__10A__pt__2_dFv
+i1.o:0000018c T _f__10A__pt__2_iFv
+i1.o:0000016c T _f__Fi
+i1.o:00000250 T _g__10A__pt__2_dFv
+i1.o:000001ac T _g__10A__pt__2_iFv
+i1.o:         U _i2__Fv
+i1.o:00000110 T _main
+i1.o:         U _x__Fv
+i2.o:00000001 C ___CBI__f__10A__pt__2_cFv
+i2.o:00000328 T ___cgi__i2_c_Mon_Oct__4_16_54_51_1993_
+i2.o:         U ___nw__FUi
+i2.o:000001e0 T _f__10A__pt__2_cFv
+i2.o:00000284 T _f__10A__pt__2_fFv
+i2.o:         U _f__Ff
+i2.o:         U _f__Fi
+i2.o:00000200 T _g__10A__pt__2_cFv
+i2.o:000002a4 T _g__10A__pt__2_fFv
+i2.o:00000110 T _i2__Fv
 
-The output for an archive file (.a) is expected to look like:
-xxx.a:
-xxx.a:x1.o:01230123 T _name1
-xxx.a:x1.o:01230124 T _name2
-xxx.a:x2.o:01230123 T _name3
-xxx.a:x2.o:01230124 T _name4
+libi.a:
+libi.a:x.o:00000004 C ___CBI__f__10A__pt__2_dFv
+libi.a:x.o:00000004 C ___CBI__g__10A__pt__2_dFv
+libi.a:x.o:00000004 C ___TIR__f__10A__pt__2_dFv
+libi.a:x.o:00000004 C ___TIR__g__10A__pt__2_dFv
+libi.a:x.o:0000012c T ___cgi__x_c_Tue_Aug_17_14_11_40_1993_
+libi.a:y.o:00000110 T _x__Fv
+libi.a:y.o:00000004 C ___CBI__f__10A__pt__2_dFv
+libi.a:y.o:00000004 C ___CBI__g__10A__pt__2_dFv
+libi.a:y.o:00000004 C ___TIR__f__10A__pt__2_dFv
+libi.a:y.o:00000004 C ___TIR__g__10A__pt__2_dFv
+libi.a:y.o:00000110 T _y__Fv
+
+SGI nm output is expected to look like:
+
+Z.a:A.o:        00000120 t __dt__1AFv
+Z.a:A.o:        000001c4 t set__1AFi
+Z.a:A.o:        000001d8 t __dt__1BFv
+Z.a:A.o:        00000000 T foo__Fv
+Z.a:A.o:        00000000 U __nw__FUi
+Z.a:A.o:        0000003c D __ptbl_vec__A_C_foo_
+Z.a:A.o:        000000cc T main
+Z.a:A.o:        00000000 U printf
+Z.a:A.o:        00000000 U __dl__FPv
+Z.a:A.o:        00000000 U _gp_disp
+Z.a:Q.o:        00000000 b foo
+Z.a:Q.o:        00000000 t func__Fv
+Z.a:Q.o:        00000000 D Name__4Test
+Z.a:Q.o:        00000000 U z__4Test
+Z.a:Q.o:        00000028 T __ct__4TestFv
+Z.a:Q.o:        00000000 U __nw__FUi
+Z.a:Q.o:        00000008 D bar
+Z.a:Q.o:        000000a8 T main
+Z.a:Q.o:        00000000 U _gp_disp
+X.o:    00000320 t __dt__1BFv
+X.o:    00000000 T __dt__1AFv
+X.o:    00000000 U __dl__FPv
+X.o:    00000000 D bar
+X.o:    0000008c T main
+X.o:    00000000 U __nw__FUi
+X.o:    00000000 U printf
+X.o:    00000030 D __vtbl__1B__X_C
+X.o:    00000048 D __vtbl__1A
+X.o:    00000000 U _gp_disp
+
 
 Returns TRUE if the line contains symbol information; returns FALSE
 if the line is a blank line, or a header line that should not be
@@ -807,7 +929,7 @@ processed further.
     }  /* if */
     pos = rest_of_line;
     if (nm_format == nmfk_SGI) {
-      /* The value field may optionally be preceeded by one or more blanks.
+      /* The value field may optionally be preceded by one or more blanks.
          Skip over any blanks that appear here. */
       while (*pos == ' ') pos++;
     }  /* if */
