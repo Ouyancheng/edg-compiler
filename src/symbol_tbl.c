@@ -2669,7 +2669,7 @@ and attach them to rout_sym, and return the function template symbol.
     template_sym = tip->template_sym;
   } else {
     /* Note that the function template symbol is not entered in the symbol
-       table, since it need only be accessed only through the corresponding
+       table, since it need only be accessed through the corresponding
        member function symbol rout_sym. */
     template_sym = alloc_symbol((a_symbol_kind)sk_function_template,
                                 rout_sym->header, &rout_sym->decl_position);
