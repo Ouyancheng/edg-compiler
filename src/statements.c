@@ -1689,7 +1689,8 @@ expression is to be evaluated to fix the size of the array.
 {
   a_statement_ptr          vla_stmt;
 
-  vla_stmt = add_statement_at_stmt_pos(stmk_set_vla_size, pos);
+  vla_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_set_vla_size,
+                                       pos);
   vla_stmt->variant.vla_dimension = vdp;
 }  /* set_vla_size_statement */
 
