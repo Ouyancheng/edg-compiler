@@ -5702,7 +5702,7 @@ Returns TRUE if there is an error in the specifiers.
         break;
       case tok_const:
         /* const type qualifier (3.5.3). */
-        if (input_flags & DSI_IS_NEW_TYPE_NAME) {
+        if (input_flags & DSI_IS_NEW_TYPE_NAME && !cfront_compatibility_mode) {
           /* const may not appear in a new-type-name. */
           error(ec_const_volatile_not_allowed);
           err = TRUE;
@@ -5720,7 +5720,7 @@ Returns TRUE if there is an error in the specifiers.
         break;
       case tok_volatile:
         /* volatile type qualifier (3.5.3). */
-        if (input_flags & DSI_IS_NEW_TYPE_NAME) {
+        if (input_flags & DSI_IS_NEW_TYPE_NAME && !cfront_compatibility_mode) {
           /* volatile may not appear in a new-type-name. */
           error(ec_const_volatile_not_allowed);
           err = TRUE;
