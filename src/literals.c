@@ -373,12 +373,15 @@ kind_established:;
     /* Build a constant with the right type and value. */
     clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_integer);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    const_for_curr_token.type                  =
-        extended_integer_type(kind, microsoft_version >= 1200 &&
-                                    isuffix_kind != (an_integer_kind)ik_none);
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-    const_for_curr_token.type                  = integer_type(kind);
+    if (microsoft_mode && microsoft_version >= 1200 &&
+        isuffix_kind != (an_integer_kind)ik_none) {
+      const_for_curr_token.type = microsoft_sized_integer_type(kind);
+    } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      const_for_curr_token.type = integer_type(kind);
+    }  /* if */
     /* For values that might be negative (possible in pcc mode), do
        sign extension. */
     if (do_sign_extension) {

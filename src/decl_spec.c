@@ -3519,12 +3519,15 @@ decl_specifiers.
         /* In Microsoft Visual C++ 6.0 __int8 is a distinct type (not just a
            synonym for a char type). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        *type_ptr = extended_integer_type((an_integer_kind)ikind,
-                                          microsoft_version >= 1200 &&
-                                          (int)size == (int)size_int8);
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-        *type_ptr = integer_type((an_integer_kind)ikind);
+        if (microsoft_mode && microsoft_version >= 1200 &&
+            size == size_int8) {
+          *type_ptr = microsoft_sized_integer_type((an_integer_kind)ikind);
+        } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          *type_ptr = integer_type((an_integer_kind)ikind);
+        }  /* if */
       }  /* if */
       break;
     case bt_wchar_t:
@@ -3625,25 +3628,28 @@ decl_specifiers.
            Plain "int" and "signed int" have to be kept separate because
            they may mean different things as bit-field types.  The same
            applies to explicitly signed short, long, and long long. */
-        *type_ptr = extended_signed_integer_type((an_integer_kind)ikind,
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                                                 microsoft_version >= 1200 &&
-                                                 (int)size >= (int)size_int8 &&
-                                                 (int)size <= (int)size_int64
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-                                                 /*microsoft_intrinsic=*/FALSE
+        if (microsoft_mode && microsoft_version >= 1200 &&
+            (int)size >= (int)size_int8 && (int)size <= (int)size_int64) {
+          *type_ptr = microsoft_sized_signed_integer_type(
+                                                      (an_integer_kind)ikind);
+        } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                             );
+        /* Do not insert code here. */
+        {
+          *type_ptr = signed_integer_type((an_integer_kind)ikind);
+        }  /* if */
       } else {
-        *type_ptr = extended_integer_type((an_integer_kind)ikind,
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                                          microsoft_version >= 1200 &&
-                                          (int)size >= (int)size_int8 &&
-                                          (int)size <= (int)size_int64
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-                                          /*microsoft_intrinsic=*/FALSE
+        if (microsoft_mode && microsoft_version >= 1200 &&
+            (int)size >= (int)size_int8 && (int)size <= (int)size_int64) {
+          *type_ptr = microsoft_sized_integer_type((an_integer_kind)ikind);
+        } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                       );
+        /* Do not insert code here. */
+        {
+          *type_ptr = integer_type((an_integer_kind)ikind);
+        }  /* if */
       }  /* if */
       break;
     case bt_float:

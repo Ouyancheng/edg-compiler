@@ -3759,7 +3759,8 @@ typedef struct a_type {
       a_bit_field
 		microsoft_sized_int_type:1;
 			/* TRUE if this is a Microsoft __intN type that should
-			   be treated as a built-in. */
+			   be treated as a distinct built-in type (rather than
+			   a typedef for another integer type). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
                 enum_type:1;

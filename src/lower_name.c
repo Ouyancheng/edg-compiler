@@ -1818,7 +1818,7 @@ Add to the mangled name the encoding for the type "type".
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (type->variant.integer.microsoft_sized_int_type) {
           /* Mangling of __intN types in certain Microsoft modes (Visual C++
-             6.0 started treating these as new intrinsic types. */
+             6.0 started treating these as new intrinsic types). */
           an_integer_kind  kind = type->variant.integer.int_kind;
           if (kind == targ_int8_int_kind) {
             s = "m1";
