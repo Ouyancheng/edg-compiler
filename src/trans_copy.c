@@ -821,7 +821,7 @@ secondary scope to the primary file IL.
           *primary_routine = *corresp_routine;
           corresp_routine = primary_routine;
         }  /* if */
-        if (corresp_routine->assoc_scope != NULL) {
+        if (corresp_routine->assoc_scope != NULL_region_number) {
           a_scope_ptr rout_scope =
                     il_header.region_scope_entry[corresp_routine->assoc_scope];
           /* For a routine with a body, the code in the function scope memory
