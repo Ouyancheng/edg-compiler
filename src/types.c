@@ -2635,6 +2635,10 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
   a_boolean        qualifiers_added;
 
   db_enter(5, "impl_pointer_conversion");
+#if 0
+#else
+  check_as_operands_not_conversion = FALSE;
+#endif
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "impl_pointer_conversion: source_type = ");
@@ -2969,6 +2973,10 @@ are the destination and source types of a conversion.
 {
   a_boolean correspond;
 
+#if 0
+#else
+  check_as_operands_not_conversion = FALSE;
+#endif
   rout_type_1 = skip_typerefs(rout_type_1);
   rout_type_2 = skip_typerefs(rout_type_2);
   correspond = types_are_compatible(rout_type_1->variant.routine.return_type,
@@ -2999,6 +3007,10 @@ and source_type are the destination and source types of a conversion.
 {
   a_boolean correspond;
 
+#if 0
+#else
+  check_as_operands_not_conversion = FALSE;
+#endif
   *qualifiers_added = FALSE;
   if (!is_function_type(dest_type) || !is_function_type(source_type)) {
     /* This is not the special function case, so the normal check will work. */
@@ -3045,6 +3057,10 @@ pointers to members).
   a_boolean  okay = FALSE;
   a_type_ptr dest_type_pointed_to, source_type_pointed_to;
 
+#if 0
+#else
+  check_as_operands_not_conversion = FALSE;
+#endif
   db_enter(5, "impl_ptr_to_member_conversion");
 #if DEBUG
   if (debug_level >= 5) {
