@@ -1,5 +1,21 @@
 Version 3.5
 
+8/14/04  Spurious ambiguity on using-declaration of conversion operator
+
+A spurious ambiguity error was sometimes issued if a derived class named
+a base class conversion operator in a using-declaration.  Now fixed.
+
+  struct B {
+   operator void *();
+  };
+  template <class T> struct D : B {
+   using B::operator void *;
+  };
+  int main() {
+    D<int> d;
+    d == 0;  // spurious "more than one operator == matches these operands"
+  }
+
 8/13/04  Microsoft mode: dllimport and member function definitions
 
 In Microsoft mode, the front end previously eliminated the bodies of inline

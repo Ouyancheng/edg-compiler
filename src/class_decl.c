@@ -10469,10 +10469,9 @@ class_type.  Set *updated if a projection symbol is created.
             /* The symbol is from the current class.  Ignore the base
                symbol. */
             break;
-          } else if (!slep->symbol->variant.projection.is_using_decl) {
-            /* A projection symbol, but not from a using-declaration.  Ignore
-               this entry if it refers to the same function or template
-               as one already on the list. */
+          } else {
+            /* A projection symbol.  Ignore this entry if it refers to the
+	       same function or template as one already on the list. */
             a_symbol_ptr	fund_curr_sym =
                                            fundamental_symbol_of(slep->symbol);
             a_symbol_ptr	fund_base_sym =
