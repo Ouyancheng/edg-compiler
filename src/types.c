@@ -7192,7 +7192,13 @@ Set the used_in_exception_or_rtti flag in type_ptr to indicate that it
 has been used in an exception handling or RTTI construct.
 */
 {
-  if (type_ptr->used_in_exception_or_rtti) {
+  if (in_front_end &&
+      (depth_scope_stack != NO_SCOPE_DEPTH &&
+       is_template_dependent_context() &&
+       !prototype_instantiations_in_il)) {
+    /* We're currently inside a prototype instantiation, and we're
+       not going to save it, so do not record the use. */
+  } else if (type_ptr->used_in_exception_or_rtti) {
     /* Already set.  No further action is required. */
   } else {
     a_type_ptr eff_type = type_ptr;
