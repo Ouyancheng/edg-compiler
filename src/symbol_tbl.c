@@ -6857,6 +6857,7 @@ a_routine_ptr select_copy_constructor(
                                   a_source_position     *err_pos,
                                   a_type_ptr            object_class_type,
                                   a_boolean             *class_bitwise_copy,
+                                  a_boolean             record_ref,
                                   a_boolean             evaluated)
 /*
 Find and return a pointer to a routine representing a copy constructor for
@@ -6869,7 +6870,10 @@ one acceptable copy constructor is found, issue a (different) diagnostic and
 return NULL.  object_class_type points to the type of the object being
 copied; class_type may be a base class of object_class_type.  This is needed
 for protected member access checking.  If a bitwise copy is allowed, return
-NULL and *class_bitwise_copy TRUE.  If evaluated is FALSE, the reference is
+NULL and *class_bitwise_copy TRUE.  If record_ref is TRUE, a reference
+is recorded against the copy constructor selected; as a side effect,
+access to the copy constructor is checked, and an error issued if
+the copy constructor is inaccessible.  If evaluated is FALSE, the reference is
 within an unevaluated expression.  This routine is only used in C++ mode.
 */
 {
@@ -6896,12 +6900,14 @@ within an unevaluated expression.  This routine is only used in C++ mode.
     }  /* if */
   } else {
     /* Exactly one copy constructor is best. */
-    /* Check that the constructor is accessible and mark it referenced. */
-    reference_to_implicitly_invoked_function(cctor_sym, err_pos,
-                                             object_class_type,
-                                             /*honor_virtual=*/FALSE,
-                                             evaluated,
-                                             /*instantiate=*/TRUE);
+    if (record_ref) {
+      /* Check that the constructor is accessible and mark it referenced. */
+      reference_to_implicitly_invoked_function(cctor_sym, err_pos,
+                                               object_class_type,
+                                               /*honor_virtual=*/FALSE,
+                                               evaluated,
+                                               /*instantiate=*/TRUE);
+    }  /* if */
     cctor_routine = cctor_sym->variant.routine.ptr;
   }  /* if */
   return cctor_routine;

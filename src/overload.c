@@ -11676,6 +11676,7 @@ happen only in C++ mode.
                                 is_an_rvalue(source_operand),
                                 &source_operand->position, class_type,
                                 &class_bitwise_copy,
+                                /*record_ref=*/TRUE,
                                 curr_expr_is_potentially_evaluated());
         }  /* if */
       }  /* if */
@@ -11852,14 +11853,17 @@ in C++ mode.
       /* C struct. */
       /* cctor_case = FALSE;  -- already set */
     } else {
-      /* A copy constructor must be used.  An error is issued if an appropriate
-         one does not exist or is inaccessible. */
+      /* A copy constructor must be used.  An error is issued if there
+         is no applicable copy constructor or if it is inaccessible.
+         No access checking is done here because set_up_for_constructor_call
+         does it below. */
       cctor_routine = select_copy_constructor(
                                 unqual_temp_type,
                                 get_type_qualifiers(operand->type),
                                 is_an_rvalue(operand),
                                 &operand->position, unqual_temp_type,
                                 &class_bitwise_copy,
+                                /*record_ref=*/FALSE,
                                 curr_expr_is_potentially_evaluated());
       if (class_bitwise_copy) {
         /* A bitwise copy can be done. */

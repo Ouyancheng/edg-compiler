@@ -9588,6 +9588,7 @@ a normal try.
                                           (a_type_qualifier_set)TQ_NONE,
                                           /*source_is_rvalue=*/FALSE,
                                           &pos, type_ptr, &bitwise_copy,
+                                          /*record_ref=*/TRUE,
                                           /*evaluated=*/TRUE);
           /* Only an implicit copy constructor (cctor == NULL) can correspond
              to a bitwise copy.  However, cctor can also be NULL if the

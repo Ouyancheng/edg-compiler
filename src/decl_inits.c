@@ -4648,7 +4648,9 @@ scan_paren:
                                        required_qualifiers | object_qualifiers,
                                        /*source_is_rvalue=*/FALSE,
                                        &err_pos, object_class_type,
-                                       &bitwise_copy, /*evaluated=*/TRUE);
+                                       &bitwise_copy,
+                                       /*record_ref=*/TRUE,
+                                       /*evaluated=*/TRUE);
         }  /* if */
         if (bitwise_copy) {
           /* Construction by bitwise copy is allowed. */
