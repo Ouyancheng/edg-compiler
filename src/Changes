@@ -1,5 +1,21 @@
 Version 2.21
 
+12/15/93  Fixed bug in name mangling
+
+Having a type qualifier above an unnamed class, an unnamed enum, or
+a function type in a parameter list resulted in a truncated mangled
+name:
+
+  typedef const struct {} *P;
+  extern void f(int, P, const char *);
+  typedef const enum {e} *E;
+  extern void g(E, const char *);
+  typedef int (F)(int);
+  typedef const F *PF;
+  extern void h(PF, const char *);
+  main () { &f; &g; &h; return 0; }
+
+
 12/14/93  Vacuous destructor call combining typedef and type keyword
 
 A bug has been fixed that resulted in an internal error when a

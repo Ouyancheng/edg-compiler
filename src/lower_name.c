@@ -921,7 +921,7 @@ See ARM 7.2.1c for name encoding.
       case tk_integer:
         if (type->variant.integer.enum_type) {
           /* Unnamed enum.  mangled_type_name will make up a name. */
-          mangled_name_length = mangled_type_name(type, store_at);
+          mangled_name_length += mangled_type_name(type, store_at);
           goto have_whole_mangled_name;
         }  /* if */
         switch (type->variant.integer.int_kind) {
@@ -978,9 +978,9 @@ See ARM 7.2.1c for name encoding.
         break;
       case tk_routine:
         /* Function.  Put out "F" and the argument types. */
-        mangled_name_length = mangled_encoding_for_function_type(type,
-                                                                 store_at);
-        if (store_at != NULL) store_at += mangled_name_length;
+        section_length = mangled_encoding_for_function_type(type, store_at);
+        mangled_name_length += section_length;
+        if (store_at != NULL) store_at += section_length;
         /* Add the return type at the end, as "_" followed by the type. */
         mangled_name_length++;
         if (store_at != NULL) *store_at++ = '_';
@@ -992,7 +992,7 @@ See ARM 7.2.1c for name encoding.
       case tk_struct:
       case tk_union:
         /* Unnamed classes.  mangled_type_name will make up a name. */
-        mangled_name_length = mangled_type_name(type, store_at);
+        mangled_name_length += mangled_type_name(type, store_at);
         goto have_whole_mangled_name;
 #if CHECKING
       default:
