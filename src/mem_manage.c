@@ -1405,6 +1405,7 @@ Do one-time initialization of variables related to the mem_manage routines.
     static a_pch_saved_variable saved_vars[] = {
     /* highest_used_region_number is saved directly in the PCH file, and
        therefore doesn't need to be saved here. */
+      pch_saved_var_array_elem(reusable_blocks_list),
 #if DEBUG
       pch_saved_var_array_elem(total_mem_used),
       pch_saved_var_array_elem(num_alignment_bytes_allocated),
@@ -1427,9 +1428,6 @@ Do one-time initialization of variables related to the mem_manage routines.
   large_mem_block_needed = FALSE;
   total_mem_blocks_allocated = 0;
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  num_of_mem_alloc_history_entries = 0;
-  size_of_mem_alloc_history = 0;
-  mem_alloc_history_entries_used = 0;
   /* Register variables that must be saved and restored when switching
      between translation units. */
   register_trans_unit_variable(file_scope_region_number);
@@ -1475,6 +1473,18 @@ must be initialized for each translation unit.
     init_memory_region(file_scope_region_number, (sizeof_t)0);
   }  /* if */
 }  /* mem_manage_trans_unit_init */
+
+
+void mem_manage_early_init(void)
+/*
+One time initialization that must take place early on in the front end.
+This is done before command line processing.
+*/
+{
+  num_of_mem_alloc_history_entries = 0;
+  size_of_mem_alloc_history = 0;
+  mem_alloc_history_entries_used = 0;
+}  /* mem_manage_early_init */
 
 
 void mem_manage_init(void)

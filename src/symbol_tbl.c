@@ -11156,6 +11156,9 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(symbol_for_namespace_std),
       pch_saved_var_array_elem(symbol_for_namespace_std_entered),
       pch_saved_var_array_elem(va_list_global_alias_has_been_created),
+      pch_saved_var_array_elem(file_scope_symbols_are_on_inactive_list),
+      pch_saved_var_array_elem(symbols_with_no_scope),
+      pch_saved_var_array_elem(symbols_with_no_scope_tail),
 #if IA64_ABI
       pch_saved_var_array_elem(symbol_for_namespace_abi),
 #endif /* IA64_ABI */

@@ -1,5 +1,19 @@
 Version 3.4
 
+12/18/03 Possible incorrect memory reuse when using precompiled headers
+
+Although this has not been observed in released versions of the front end,
+it is possible that under certain unusual circumstances when using a
+precompiled header file, the same block of memory could be allocated for
+two different purposes.  This could result in aborts and/or other kinds
+of incorrect behavior. Now fixed.
+
+12/18/03 Problem with precompiled headers when not using mmap
+
+When USE_MMAP_FOR_MEMORY_REGIONS is FALSE. a problem introduced in
+version 3.0 would cause a catastrophic error when writing a precompiled
+header file.  Now fixed.
+
 12/17/03 C99 has "F" conversion specifier for printf
 
 C99 added an "F" conversion specifier for the library functions in
