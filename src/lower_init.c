@@ -5607,19 +5607,20 @@ the insert location.
 
 
 static an_expr_node_ptr make_construction_vtbl_transfer_pointer_lvalue(
-                                                         an_expr_node_ptr expr)
+                                                   an_expr_node_ptr expr,
+                                                   a_type_ptr       class_type)
 /*
-expr is an expression for the address of a class object.  Modify the expression
-so that it is an lvalue for the transfer pointer in the object, and return
-a pointer to the modified expression.  The transfer pointer is a virtual
-function table pointer or virtual base class pointer within the indicated
-object (including non-virtual base classes) which is available to be used
-to pass information to a subobject constructor or destructor for the
+expr is an expression for the address of a class object.  class_type
+is the type of object pointed to, provided because the underlying type of
+expr might be a type-as-subobject.  Modify the expression so that it is
+an lvalue for the transfer pointer in the object, and return a pointer
+to the modified expression.  The transfer pointer is a virtual function
+table pointer or virtual base class pointer within the indicated object
+(including non-virtual base classes) which is available to be used to
+pass information to a subobject constructor or destructor for the
 subobject pointed to by expr.
 */
 {
-  a_type_ptr class_type = f_skip_typerefs(type_pointed_to(expr->type));
-
   if (class_type->variant.class_struct_union.any_virtual_functions) {
     /* The class has a virtual function table pointer (possibly allocated
        in and shared with a nonvirtual base class).  Use it as the transfer
@@ -5665,14 +5666,15 @@ have_pointer:
 
 static void receive_construction_vtbls_in_subobject_constructor(
                                      a_variable_ptr     construction_vtbls_var,
+                                     a_type_ptr         class_type,
                                      a_variable_ptr     this_param_var,
                                      an_insert_location *insert_location)
 /*
 Insert an assignment statement to set the construction_vtbls_var temporary to
 the pointer to an array of special virtual function tables passed into
 a subobject constructor or destructor via the so-called transfer pointer
-in the object.  this_param_var is the "this" parameter variable for the
-constructor or destructor.
+in the object.  class_type is the subobject class type.  this_param_var
+is the "this" parameter variable for the constructor or destructor.
 */
 {
   an_expr_node_ptr trans_ptr_node;
@@ -5681,7 +5683,8 @@ constructor or destructor.
   /* Get the address of a pointer in the object that is used to
      do the transfer. */
   trans_ptr_node =
-                make_construction_vtbl_transfer_pointer_lvalue(trans_ptr_node);
+                 make_construction_vtbl_transfer_pointer_lvalue(trans_ptr_node,
+                                                                class_type);
   trans_ptr_node = add_indirection_to_node(trans_ptr_node);
   trans_ptr_node = add_cast(trans_ptr_node, construction_vtbls_var->type);
   (void)insert_var_assignment_statement(construction_vtbls_var,
@@ -5693,6 +5696,7 @@ constructor or destructor.
 
 static void pass_construction_vtbls_to_subobject_constructor(
                         a_variable_ptr                  construction_vtbls_var,
+                        a_type_ptr                      subobject_class_type,
                         a_construction_vtbl_array_index index,
                         an_init_pos_descr_ptr           ipdp,
                         an_insert_location              *insert_location)
@@ -5701,7 +5705,9 @@ Insert an assignment statement to store the address of the "index-1"-th
 element of the array of special virtual functions pointed to by
 construction_vtbls_var into the so-called transfer pointer in the
 subobject described by ipdp to pass the array to a subobject constructor
-or destructor.
+or destructor.  The subobject class type is subobject_class_type (this is
+passed because the type of the expression produced from ipdp may have the
+type-as-subobject).
 */
 {
   an_expr_node_ptr array_addr, trans_ptr_node;
@@ -5714,7 +5720,8 @@ or destructor.
   /* Get the address of a pointer in the object that is used to
      do the transfer. */
   trans_ptr_node =
-                make_construction_vtbl_transfer_pointer_lvalue(trans_ptr_node);
+          make_construction_vtbl_transfer_pointer_lvalue(trans_ptr_node,
+                                                         subobject_class_type);
   array_addr = add_cast(array_addr, type_pointed_to(trans_ptr_node->type));
   (void)insert_assignment_statement(trans_ptr_node,
                                     (an_expr_operator_kind)eok_passign,
@@ -5815,6 +5822,7 @@ inserted at *insert_location, and *insert_location is updated.
           check_assertion(construction_vtbls_var != NULL);
           pass_construction_vtbls_to_subobject_constructor(
                     construction_vtbls_var,
+                    base_class->type,
                     base_class->base_subarray_index_in_construction_vtbl_array,
                     &ipd,
                     insert_location);
@@ -5831,6 +5839,7 @@ inserted at *insert_location, and *insert_location is updated.
                                           base_class->base_construction_vtbls);
           pass_construction_vtbls_to_subobject_constructor(
                             array_var,
+                            base_class->type,
                             (a_construction_vtbl_array_index)1,
                             &ipd,
                             insert_location);
@@ -6071,6 +6080,7 @@ constructor, but may instead be after an assignment to "this".
          constructor. */
       receive_construction_vtbls_in_subobject_constructor(
                                                         construction_vtbls_var,
+                                                        class_type,
                                                         this_param_var,
                                                         &else_insert_location);
     }  /* if */
@@ -6445,6 +6455,7 @@ The statements created are inserted at *insert_location, and
           check_assertion(destruction_vtbls_var != NULL);
           pass_construction_vtbls_to_subobject_constructor(
                     destruction_vtbls_var,
+                    base_class->type,
                     base_class->base_subarray_index_in_construction_vtbl_array,
                     &ipd,
                     insert_location);
@@ -6461,6 +6472,7 @@ The statements created are inserted at *insert_location, and
                                           base_class->base_construction_vtbls);
           pass_construction_vtbls_to_subobject_constructor(
                             array_var,
+                            base_class->type,
                             (a_construction_vtbl_array_index)1,
                             &ipd,
                             insert_location);
@@ -6738,6 +6750,7 @@ destructor scope, and also lower the user code.
        transfer pointer to pass information down to the subclass
        destructor. */
     receive_construction_vtbls_in_subobject_constructor(destruction_vtbls_var,
+                                                        class_type,
                                                         this_param_var,
                                                         &else_insert_location);
   }  /* if */
