@@ -1,5 +1,11 @@
 Version 2.06
 
+5/8/92   Fixed bug in virtual function table generation/use in IL lowering.
+
+Previously, virtual function tables were not generated for
+virtual base classes if the derived class had no virtual functions.
+This caused virtual function calls to go to the wrong routine.
+
 5/8/92   Changed name mangling of virtual function tables to more closely
          match cfront.
 
