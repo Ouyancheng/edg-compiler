@@ -712,19 +712,19 @@ static void issue_folding_diagnostic(an_error_code     err_code,
 /*
 An error or warning has been detected in a folding operation; err_code
 and err_severity indicate what it is.  If not in a constant_context, reduce
-an error to a warning and set *did_not_fold to TRUE.  Issue the disgnostic
+an error to a warning and set *did_not_fold to TRUE.  Issue the diagnostic
 at source position *err_pos.  Set *result to the proper result (often, an
 error constant).  
 */
 {
-  if (constant_context) {
-    set_error_constant(result);
-  } else {
+  if (!constant_context && err_severity == es_error) {
+    /* Reduce an error to a warning in a nonconstant context. */
     err_severity = es_warning;
     *did_not_fold = TRUE;
   }  /* if */
   if (err_severity == es_error) {
     pos_error(err_code, err_pos);
+    set_error_constant(result);
   } else {
     pos_warning(err_code, err_pos);
   }  /* if */
