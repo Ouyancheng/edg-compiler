@@ -2086,6 +2086,9 @@ do_variable:
                    (char *)ptr->variant.lowered_eh.variant.epilogue_try_block,
                    iek_try_supplement);
           break;
+        case leck_exception_caught:
+          (void)printf("leck_exception_caught\n");
+          break;
         default:
           (void)printf("**BAD LOWERED EH CONSTRUCT KIND**\n");
       }  /* switch */

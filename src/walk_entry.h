@@ -1039,6 +1039,9 @@ do_set_proper_definition_needed_flag:
                           ptr->variant.lowered_eh.variant.epilogue_try_block,
                           a_try_supplement_ptr, iek_try_supplement);
                 break;
+              case leck_exception_caught:
+                /* No pointers. */
+                break;
               default:
                 unexpected_condition_str(
                       "walk_entry_and_subtree: bad lowered eh construct kind");

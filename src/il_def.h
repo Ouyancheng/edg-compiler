@@ -4481,7 +4481,9 @@ enum a_lowered_eh_construct_kind_tag {
   leck_function_epilogue,
 			/* Epilogue for function. */
   leck_catch_epilogue,	/* Epilogue for catch clause. */
-  leck_try_epilogue	/* Epilogue for try block. */
+  leck_try_epilogue,	/* Epilogue for try block. */
+  leck_exception_caught	/* Point after entry/copy of catch, where exception
+			   has actually been caught. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_lowered_eh_construct_kind;
@@ -5128,6 +5130,7 @@ typedef struct an_expr_node {
         /* When kind == leck_try_epilogue: */
         a_try_supplement_ptr
 		epilogue_try_block;
+        /* When kind == leck_exception_caught, no variant fields. */
       } variant;
     } lowered_eh;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */

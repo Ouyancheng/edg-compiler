@@ -1,5 +1,15 @@
 Version 2.33
 
+9/25/96 Indication of point in catch clause where exception has been caught
+        (IL CHANGE if EH partially lowered)
+
+The point in a catch clause after the parameter has been copied, and
+where therefore the exception can be said to be fully caught, is now
+marked.  With full lowering of EH features, the point is marked by
+a call to the new runtime routine __exception_caught.  With partial
+lowering, the point is marked by a new enk_lowered_eh_construct/
+leck_exception_caught expression node.
+
 9/25/96 Internal error in IL lowering on binding static reference
 
 When a static reference is bound to an expression that includes a

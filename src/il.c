@@ -1206,6 +1206,9 @@ Dump the contents of the indicated expression node for debug purposes.
         case leck_try_epilogue:
           fputs("try epilogue\n", f_debug);
           break;
+        case leck_exception_caught:
+          fputs("exception caught\n", f_debug);
+          break;
         default:
           fputs("<bad lowered eh construct kind>\n", f_debug);
       }  /* switch */

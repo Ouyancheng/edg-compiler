@@ -3493,6 +3493,9 @@ done_with_operation:
         case leck_try_epilogue:
           write_tok_str("try_epilogue");
           break;
+        case leck_exception_caught:
+          write_tok_str("exception_caught");
+          break;
         default:
           unexpected_condition_str("dump_expr: bad lowered EH construct kind");
       }  /* switch */

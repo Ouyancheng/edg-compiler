@@ -3058,6 +3058,16 @@ param_type is the type of the catch parameter.
 }  /* make_caught_object_address_node */
 
 
+#if DO_FULL_PORTABLE_EH_LOWERING
+/*
+Pointer to the routine entry for the runtime routine __exception_caught.
+NULL until created.
+*/
+static a_routine_ptr
+		exception_caught_routine;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+
+
 void begin_catch_clause(a_handler_ptr handler)
 /*
 Generate code for the start of a catch clause.  The current context is
@@ -3067,10 +3077,10 @@ for the scope of the handler.
   an_init_pos_descr  ipd;
   an_insert_location insert_location;
 
+  set_block_start_insert_location(handler->statement, &insert_location);
   if (handler->parameter != NULL) {
     /* Insert code to initialize the catch clause parameter from the
        runtime copy of the thrown object. */
-    set_block_start_insert_location(handler->statement, &insert_location);
     set_var_init_pos_descr(handler->parameter, &ipd);
     lower_dynamic_init(handler->dynamic_init, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
@@ -3080,6 +3090,26 @@ for the scope of the handler.
     /* Mark the parameter as referenced. */
     handler->parameter->source_corresp.referenced = TRUE;
   }  /* if */
+  /* Mark the point where the catch entry processing is finished, and the
+     exception can be considered caught. */
+#if DO_FULL_PORTABLE_EH_LOWERING
+  /* Portable scheme: */
+  /* Make a call of the runtime routine __exception_caught.  This tells
+     the runtime it can now destroy the caught object and free the space
+     for it. */
+  make_call_statement(make_runtime_routine("__exception_caught",
+                                           &exception_caught_routine,
+                                           void_type()),
+                      (an_expr_node_ptr)NULL,
+                      &insert_location);
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+  /* In other schemes, insert an enk_lowered_eh_construct/
+     leck_exception_caught expression node. */
+  { an_expr_node_ptr node = alloc_lowered_eh_construct_node(
+                           (a_lowered_eh_construct_kind)leck_exception_caught);
+    (void)insert_expr_statement(node, &insert_location);
+  }
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 }  /* begin_catch_clause */
 
 
@@ -3903,6 +3933,7 @@ with each new translation unit are handled in eh_lower_init.)
       pch_saved_var_array_elem(setjmp_routine),
       pch_saved_var_array_elem(suppress_optim_on_vars_in_try_routine),
       pch_saved_var_array_elem(free_thrown_object_routine),
+      pch_saved_var_array_elem(exception_caught_routine),
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
       pch_saved_var_array_terminating_elem()
     };
@@ -3949,6 +3980,7 @@ invocation of the front end.
   setjmp_routine = NULL;
   suppress_optim_on_vars_in_try_routine = NULL;
   free_thrown_object_routine = NULL;
+  exception_caught_routine = NULL;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   /* Variables in lower_eh.h: */
 #if ABI_CHANGES_FOR_RTTI
