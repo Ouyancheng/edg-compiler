@@ -1,5 +1,10 @@
 Version 2.31
 
+1/12/96   Exception specification on overriding virtual function
+
+An error is now issued when the exception specification on an overriding
+virtual function is not as restrictive as that of the overridden function.
+
 1/12/96   Name mangling abort on obscure nontype template argument case
 
 The name mangling code for nontype template arguments expected that
