@@ -5784,8 +5784,8 @@ This routine may only be called in C++ mode.
           the qualified name represents a class, not some other type).
           See if the class has a destructor.  If it does not, this is a
           vacuous reference. */
-       if (class_symbol->variant.class_struct_union.extra_info->destructor ==
-	 							      NULL) {
+       check_assertion_str(class_type != NULL, "figis: class_type == NULL");
+       if (symbol_supplement_for_class(class_type)->destructor == NULL) {
          is_vacuous_dtor = TRUE;
        }  /* if */
      } else if (dtor_must_be_nonclass && !is_qualified_name) {
