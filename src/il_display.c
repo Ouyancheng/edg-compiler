@@ -11,7 +11,7 @@
 
 il_display.c -- Display the intermediate language in human-readable form.
 
-Compile with STANDALONE_UTILITY_PROGRAM defined to get an IL display
+Compile with STANDALONE_IL_DISPLAY defined to get an IL display
 utility main program.  Otherwise, a version to be called in the same
 program as the front end is produced.
 
@@ -21,7 +21,7 @@ program as the front end is produced.
 #ifdef STANDALONE_IL_DISPLAY
 #define EXTERN /*empty*/
 #define VAR_INITIALIZERS 1
-#endif /* ifdef STANDALONE_UTILITY_PROGRAM */
+#endif /* ifdef STANDALONE_IL_DISPLAY */
 
 #include "basics.h"
 #include "host_envir.h"
@@ -43,7 +43,7 @@ NEED_IL_DISPLAY and a call of il_display should be added in the front end.
 #include "const_ints.h"
 #include "lang_feat.h"
 
-#if STANDALONE_UTILITY_PROGRAM
+#if STANDALONE_IL_DISPLAY
 
 #include "mem_manage.h"
 
@@ -58,7 +58,7 @@ NEED_IL_DISPLAY and a call of il_display should be added in the front end.
 #include "cmd_line.h"
 
 
-#endif /* STANDALONE_UTILITY_PROGRAM */
+#endif /* STANDALONE_IL_DISPLAY */
 
 static a_boolean
 		displaying_file_scope_il;
@@ -625,7 +625,7 @@ kind entry_kind.
       /* Print the entry kind. */
       s = retrieve_il_entry_kind_name(entry_kind);
       (void)printf(" %s", s);
-#if ALTERNATE_IL_FILE_FORMAT && STANDALONE_UTILITY_PROGRAM
+#if ALTERNATE_IL_FILE_FORMAT && STANDALONE_IL_DISPLAY
       /* Use entry_number.  After entries are read in, they
          are allocated in an array of entries, so one can determine the
          entry number from the offset relative to the base of the array
@@ -653,10 +653,10 @@ kind entry_kind.
                                                               gross_entry_size;
         (void)printf("#%ld", (unsigned long)entry_number);
       }
-#else /* !(ALTERNATE_IL_FILE_FORMAT && STANDALONE_UTILITY_PROGRAM) */
+#else /* !(ALTERNATE_IL_FILE_FORMAT && STANDALONE_IL_DISPLAY) */
       /* Use pointer address. */
       (void)printf("@%lx", (unsigned long)entry_ptr);
-#endif /* !(ALTERNATE_IL_FILE_FORMAT && STANDALONE_UTILITY_PROGRAM) */
+#endif /* !(ALTERNATE_IL_FILE_FORMAT && STANDALONE_IL_DISPLAY) */
     }  /* if */
   }  /* if */
 }  /* disp_ptr_value */
@@ -3027,7 +3027,7 @@ form.
 }  /* disp_routine_scope_il */
 
 
-#if STANDALONE_UTILITY_PROGRAM
+#if STANDALONE_IL_DISPLAY
 int main(int argc, char *argv[])
 /*
 Main program for il_display as a program.  The program is invoked by
@@ -3092,7 +3092,7 @@ where file.cil specifies the IL file.  Output is to stdout.
   normal_termination();
   /*NOTREACHED*/
 }  /* main */
-#endif /* STANDALONE_UTILITY_PROGRAM */
+#endif /* STANDALONE_IL_DISPLAY */
 
 #endif /* NEED_IL_DISPLAY */
 
