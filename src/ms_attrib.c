@@ -1313,7 +1313,7 @@ converted into a string.
   /* Save the position of the token following the argument. */
   last_token = curr_token_sequence_number;
   /* Create the string version of the argument. */
-  init_token_string(&start_position);
+  init_token_string(&start_position, /*keep_spacing=*/FALSE);
   add_token_cache_segment_to_string(&attribute_cache, first_token,
                                     last_token);
   /* Copy the string to IL memory. */
@@ -1696,7 +1696,7 @@ declaration.
     /* Save the position of the token following the attribute. */
     last_token = curr_token_sequence_number;
     /* Create the string version of the attribute. */
-    init_token_string(&start_position);
+    init_token_string(&start_position, /*keep_spacing=*/FALSE);
     add_token_cache_segment_to_string(&attribute_cache, first_token,
                                       last_token);
     /* Copy the string to IL memory. */

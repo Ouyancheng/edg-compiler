@@ -2015,7 +2015,8 @@ void add_token_cache_segment_to_string(a_token_cache_ptr	cache,
 
 extern void add_token_cache_to_string(a_token_cache_ptr	cache);
 
-extern void init_token_string(a_source_position *pos);
+extern void init_token_string(a_source_position *pos,
+                              a_boolean         keep_spacing);
 
 extern char *make_copy_of_token_string(void);
 

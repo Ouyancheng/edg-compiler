@@ -687,7 +687,8 @@ the "text" field of *template_ptr to point to it.
   /* Initialize the buffer that will be used to build the token string.  Use
      the position of the template declaration as the starting position of
      the token string. */
-  init_token_string(&template_ptr->source_corresp.decl_position);
+  init_token_string(&template_ptr->source_corresp.decl_position,
+                    /*keep_spacing=*/TRUE);
   /* The outer loop goes though the three token caches in order, beginning
      with "template < ... >". */
   cache = template_param_list_cache;

@@ -13152,21 +13152,32 @@ static an_il_to_str_output_control_block
 			/* Output control block used to interface to the
 			   il_to_str routines. */
 
+static a_boolean
+		keep_spacing_in_token_string;
+			/* If TRUE, spacing between tokens in the cache
+			   should be preserved in the string, including
+			   newlines for line breaks. */
+
 
 static void add_whitespace_to_string(a_seq_number     seq_incr,
-                                              a_column_number  column_incr)
+                                     a_column_number  column_incr)
 
 /*
 Add seq_incr newline characters and column_incr blanks to temp_text_buffer,
 incrementing pos_in_temp_text_buffer accordingly.
 */
 {
-  for (; seq_incr > 0; --seq_incr) {
-    put_ch_to_temp_text_buffer('\n');
-  }  /* for */
-  for (; column_incr > 0; --column_incr) {
+  if (keep_spacing_in_token_string) {
+    for (; seq_incr > 0; --seq_incr) {
+      put_ch_to_temp_text_buffer('\n');
+    }  /* for */
+    for (; column_incr > 0; --column_incr) {
+      put_ch_to_temp_text_buffer(' ');
+    }  /* for */
+  } else if (seq_incr > 0 || column_incr > 0) {
+    /* Not keeping original spacing, so just put out one space. */
     put_ch_to_temp_text_buffer(' ');
-  }  /* for */
+  }  /* if */
 }  /* add_whitespace_to_string */
 
 
@@ -13359,7 +13370,7 @@ and < end_tsn are included in the string.
 
 #if DEBUG
   if (db_flag_is_set("atcts")) {
-    db_token_cache(cache, "add_token_cache_to_string");
+    db_token_cache(cache, "add_token_cache_segment_to_string");
   }  /* if */
 #endif /* DEBUG */
   /* Skip any tokens that are before the desired starting point. */
@@ -13449,15 +13460,19 @@ values for the starting/ending token sequence numbers.
 }  /* add_token_cache_to_string */
 
 
-void init_token_string(a_source_position *pos)
+void init_token_string(a_source_position *pos,
+                       a_boolean         keep_spacing)
 /*
 Prepare to generate a string from one or more token caches.  Initialize
 the string length to zero and set the current sequence number to the
-position specified by pos.
+position specified by pos.  If keep_spacing is TRUE, the string will
+preserve the original spacing, including newlines to indicate line
+breaks in the source.
 */
 {
   curr_seq = pos->seq;
   pos_in_temp_text_buffer = 0;
+  keep_spacing_in_token_string = keep_spacing;
 }  /* init_token_string */
 
 
