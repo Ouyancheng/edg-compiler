@@ -2378,13 +2378,13 @@ current source position and severity or restore the previously saved settings.
 */
 {
   static a_source_position  saved_error_position;
-  static an_error_severity  saved_severity = (an_error_severity)es_none;
+  static an_error_severity  saved_severity = (an_error_severity)es_default;
 
 #if CHECKING
-  /* The saved severity level should be es_none if and only if this is a
+  /* The saved severity level should be es_default if and only if this is a
      diagnostic without extra message lines or if it is the first message
      with such extra lines. */
-  if ((saved_severity == (an_error_severity)es_none) !=
+  if ((saved_severity == (an_error_severity)es_default) !=
       (diag_kind == (a_diagnostic_category_kind)dck_standalone ||
        diag_kind == (a_diagnostic_category_kind)dck_primary ||
        diag_kind == (a_diagnostic_category_kind)dck_context_primary)) {
@@ -2410,7 +2410,7 @@ current source position and severity or restore the previously saved settings.
 #if CHECKING
     if (diag_kind == (a_diagnostic_category_kind)dck_end_list ||
         diag_kind == (a_diagnostic_category_kind)dck_end_context) {
-      saved_severity = (an_error_severity)es_none;
+      saved_severity = (an_error_severity)es_default;
     }  /* if */
 #endif /* CHECKING */
   }  /* if */
@@ -3508,7 +3508,7 @@ position and symbol fill-in.
 {
   init_error_params();
   error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_error, dck_primary);
+  diag_message(error_code, error_pos, es_discretionary_error, dck_primary);
 }  /* pos_sy_start_error */
 
 
