@@ -138,6 +138,7 @@ directory.  getwd is used on BSD, getcwd on other systems.
 #else /* !__MSDOS___ */
 #if __BSD__
 #include <sys/param.h>
+extern char* getwd(char *pathname);
 #define USE_GETCWD 0
 #else /* !__BSD__ */
 #include <unistd.h>
@@ -1882,7 +1883,7 @@ should be added.
        about the after_end_of_block comparison in mem_manage.c. */
     addr = (a_void_ptr)mmap((char*)0, incremental_size + 1,
                             PROT_WRITE | PROT_READ, MAP_PRIVATE,
-                            fd, (a_ptrdiff)curr_size);
+                            fd, (off_t)curr_size);
 #if DEBUG
     if (debug_level >= 5) {
       fprintf(f_debug, "Allocated %lu bytes of mmap memory at %p\n",
