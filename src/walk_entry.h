@@ -1091,10 +1091,14 @@ the file scope, do not process it (but record an orphan in the latter case).
           rout_type = skip_typerefs(rout_type);
           definition_needed_if_class(rout_type->variant.routine.return_type);
         }  /* if */
-        /* If this is a function generated from a template, we have used a
-           template (and we may not be able to accurately remove unneeded
-           entities). */
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+#if IA64_ABI && DO_IL_LOWERING
+        if (ptr->special_kind == (a_special_function_kind)sfk_constructor ||
+            ptr->special_kind == (a_special_function_kind)sfk_destructor) {
+          conditionally_clear_fe_pointer(
+                                ptr->variant.ctor_dtor.alternate_entry_points);
+        }  /* if */
+#endif /* IA64_ABI && DO_IL_LOWERING */
         /* No processing of befriending_classes for the "needed" sweep. */
 #if !NEEDED_FLAG_WALK
 #if KEEP_IN_IL_WALK
