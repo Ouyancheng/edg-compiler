@@ -4493,6 +4493,7 @@ specified by decl_scope_level.
   check_assertion(decl_scope_level == depth_scope_stack || C_mode());
   for (; sym != NULL; sym = next_sym) {
     next_sym = sym->next_in_scope;
+    if (sym->synthesized_namespace_projection) continue;
     if (reuse_symbol) {
 #if DEBUG
       if (debug_level >= 4) {
