@@ -9020,21 +9020,16 @@ object lifetime if it is an expr-temporary lifetime).
            includes this entity. */
         /* Find the lifetime immediately under the olp lifetime and
            adjust its parent_destruction_sublist. */
+        /* Note that some of the entries on the list may relate to freeing
+           of storage allocated by a "new" (is_freeing_of_storage_on_exception
+           is TRUE) rather than being temporaries in the strict sense. */
         while (temp_olp->parent_lifetime != olp) {
           temp_olp = temp_olp->parent_lifetime;
         }  /* while */
-        { a_dynamic_init_ptr dtor_dip = temp_olp->destructions;
-          /* Ignore dynamic initialization entries that are there to indicate
-             freeing storage. */
-          while (dtor_dip != NULL &&
-                 dtor_dip->is_freeing_of_storage_on_exception) {
-            dtor_dip = dtor_dip->next_in_destruction_list;
-          }  /* while */
-          if (dtor_dip != NULL) {
-            temp_olp->parent_destruction_sublist = dip;
-            dip->overlaps_temps_in_inner_lifetime = TRUE;
-          }  /* if */
-        }
+        if (temp_olp->destructions != NULL) {
+          temp_olp->parent_destruction_sublist = dip;
+          dip->overlaps_temps_in_inner_lifetime = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     /* Now that we've determined the appropriate object lifetime, add the

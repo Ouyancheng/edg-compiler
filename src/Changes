@@ -1,5 +1,43 @@
 Version 2.44
 
+2/1/00   Exception handling cleanup state: new not folded into constructor
+
+When "new" operations are not folded into constructors
+(NEW_CAN_BE_FOLDED_INTO_CTOR is FALSE), the exception handling cleanup
+state was sometimes incorrect when a new operation is done as part of
+the initialization of a member or variable.  Now fixed.
+
+  void might_throw();
+  struct A {
+    A(int j);
+    int a_member;
+  };
+  struct B {
+    B(A *a);
+    ~B();
+    A *b_member;
+  };
+  struct C : public B {
+    C(int i, int j);
+    int c_member;
+    ~C();
+  };
+  C::C(int i, int j) : B(new A(j)),  // Cleanup state after this was wrong:
+                                     // did not include destroying base class
+                       c_member(i) {
+    might_throw();
+  }
+
+2/1/00   Microsoft mode: freeing-on-exception entry for array new that uses
+         non-array delete
+
+In Microsoft mode, an array new operation can use a non-array operator
+new if no operator new[] is found.  If placement delete applies, the
+corresponding (non-array) operator delete will be called.  The dynamic
+initialization entry that requests the deletion was left in the IL tree
+by IL lowering, which is incorrect because the deletion is done by a
+runtime routine.  The entry is now removed.
+
 1/31/00  Microsoft mode: block extern declaration not linked to a later
                          redeclaration
 

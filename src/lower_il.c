@@ -8529,7 +8529,7 @@ If insert_location == NULL, no initialization code is generated.
   dip->destructible_entity_descr = dedp = alloc_destructible_entity_descr();
   if (dip->is_freeing_of_storage_on_exception) {
     a_routine_ptr delete_routine = dip->destructor;
-    if (delete_routine->opname_kind == (an_opname_kind)onk_array_delete ||
+    if (dip->is_array_freeing ||
         !is_default_operator_delete(delete_routine)) {
       /* Freeing of arrays is handled by runtime routines, so the freeing
          on exception is no longer visible at this level. */

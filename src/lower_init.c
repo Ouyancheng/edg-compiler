@@ -3016,7 +3016,9 @@ destructible temporaries in an inner object lifetime are still in existence.
 temp_dip points to the destruction for one of those temporaries.
 Update the region table information for the temporary and those
 following it in its object lifetime so that the cleanup list includes
-the temporaries and then the outer-lifetime entity.
+the temporaries and then the outer-lifetime entity.  Note that some
+entries on the list may be ones indicating freeing of storage on
+exceptions, rather than temporaries in the strict sense.
 */
 #if GENERATE_EH_TABLES
 /*
@@ -3029,15 +3031,15 @@ The region table entry for dip has already been created.
 {
 #if GENERATE_EH_TABLES
   a_destructible_entity_descr_ptr dedp = temp_dip->destructible_entity_descr;
+  a_dynamic_init_ptr              next_dip = dedp->next_in_region_table;
 
-  if (dedp->next_in_region_table == NULL) {
+  if (next_dip == NULL) {
     /* End of the list, beginning of the object lifetime of the temporaries. */
     curr_context->latest_initialization = NULL;
     curr_context->curr_cleanup_state = dip;
   } else {
     /* Use a recursive call to process the rest of the list. */
-    adjust_cleanup_state_for_inner_lifetime_temporaries(
-                                              dedp->next_in_region_table, dip);
+    adjust_cleanup_state_for_inner_lifetime_temporaries(next_dip, dip);
   }  /* if */
   /* Adjust the pointer to the previous entity, to one after this one on
      the cleanup list. */
@@ -3054,7 +3056,7 @@ The region table entry for dip has already been created.
      destruction if there is only one temporary destruction on the
      list. */
   if (temp_dip != temp_dip->lifetime->destructions) {
-    clone_region_table_entry_list(temp_dip, dedp->next_in_region_table);
+    clone_region_table_entry_list(temp_dip, next_dip);
   }  /* if */
 #else /* !GENERATE_EH_TABLES */
   /* Find the last destruction entry for a temporary and reset its
@@ -3387,7 +3389,7 @@ static void push_init_expr_lifetime(
 /*
 *init_expr_lifetime points to an object lifetime that is attached to a
 dynamic initialization and surrounds the initialization.  Push it onto the
-context stack.  If copy_lifetime is TRUE, Push a copy instead, update
+context stack.  If copy_lifetime is TRUE, push a copy instead, update
 *init_expr_lifetime to point to the copy, and unbind the original.  context is
 the address of a context block to be pushed onto the stack.  *insert_location
 is the point at which any generated code should be inserted.  If this
@@ -3877,7 +3879,15 @@ lower initialization for nonconstant aggregates.
        this is done late so that when processing the file-scope initialization
        routine (a) the lifetime has been copied and (b) any lifetimes under
        this one have been copied and attached to it. */
+    /* Restore the pointer from the dynamic init to the lifetime, which is
+       required for some processing when removing destructions that aren't
+       needed.  The pointer was cleared when the object lifetime was
+       rebound to a block statement because the dynamic initialization
+       entry is not going to stay in the IL. */
+    an_object_lifetime_ptr saved_init_expr_lifetime = dip->init_expr_lifetime;
+    dip->init_expr_lifetime = init_expr_lifetime;
     begin_object_lifetime(init_expr_lifetime, eff_insert_location);
+    dip->init_expr_lifetime = saved_init_expr_lifetime;
   }  /* if */
   switch (dip->kind) {
     case dik_none:
@@ -6864,7 +6874,9 @@ constructor scope, and also lower the user code.
   a_statement_ptr    last_statement, wrapper_code = NULL;
   an_insert_location insert_location;
   a_source_position  saved_error_position, saved_code_pos;
+#if NEW_CAN_BE_FOLDED_INTO_CTOR || ASSIGNMENT_TO_THIS_ALLOWED
   a_routine_ptr      ctor_routine = scope->variant.routine.ptr;
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR || ASSIGNMENT_TO_THIS_ALLOWED */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
   a_type_ptr         class_type =
                           ctor_routine->source_corresp.parent.class_type;
