@@ -438,6 +438,14 @@ Initialize the option information table.
                          "no_preproc_only",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if ABI_CHANGES_FOR_RTTI
+  add_option_description(optk_rtti, "rtti", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_rtti, "no_rtti", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* ABI_CHANGES_FOR_RTTI */
 }  /* initialize_option_descriptions */
 
 
@@ -873,10 +881,6 @@ Process the arguments on the command line that invoked the compiler.
           strict_ansi_error_severity = es_warning;
           strict_ansi_discretionary_severity = es_warning;
         }  /* if */
-	/* Enable recognition of operator keywords and digraphs. */
-	alternative_tokens_allowed = TRUE;
-        /* Temporary lifetime is short. */
-        long_lifetime_temps = FALSE;
         break;
       case optk_preprocess_only_emit_line_dirs:
         /* Do preprocessing only, output to stdout, with #line information. */
@@ -1306,6 +1310,12 @@ Process the arguments on the command line that invoked the compiler.
 	   be done. */
         suppress_do_preprocessing_only = opt_value;
         break;
+#if ABI_CHANGES_FOR_RTTI
+      case optk_rtti:
+        /* Enable/disable runtime type information (RTTI). */
+        rtti_enabled = opt_value;
+        break;
+#endif /* ABI_CHANGES_FOR_RTTI */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1352,15 +1362,21 @@ Process the arguments on the command line that invoked the compiler.
     if (option_kind_used[(int)optk_exception_handling]) {
       command_line_error(ec_cl_exceptions_option_only_in_cplusplus);
     }  /* if */
+    if (option_kind_used[(int)optk_rtti]) {
+      command_line_error(ec_cl_rtti_option_only_in_cplusplus);
+    }  /* if */
     if (option_kind_used[(int)optk_wchar_t_is_keyword]) {
       command_line_error(ec_cl_wchar_t_option_only_in_cplusplus);
     }  /* if */
     if (option_kind_used[(int)optk_alternative_tokens]) {
       command_line_error(ec_cl_alternative_token_option_only_in_cplusplus);
     }  /* if */
-    /* Set wchar_t_is_keyword to FALSE, just in case the default value
-       is TRUE.  The value must not be TRUE in C mode. */
+    /* Turn off language features that must not be on in C mode, in case
+       the default value is on. */
+    exceptions_enabled = FALSE;
+    rtti_enabled = FALSE;
     wchar_t_is_keyword = FALSE;
+    alternative_tokens_allowed = FALSE;
   } else {
     /* The dialect is C++. */
     /* Reset the SVR4 C compatibility flag just in case it is set by
@@ -1417,6 +1433,17 @@ Process the arguments on the command line that invoked the compiler.
         /* SVR4 C mode enabled by default.  Silently disable it. */
 	SVR4_C_mode = FALSE;
       }  /* if */
+    }  /* if */
+    if (!C_mode()) {
+      /* Set optional features to standard settings for strict C++ mode. */
+      /* Enable recognition of operator keywords and digraphs. */
+      alternative_tokens_allowed = TRUE;
+      /* Temporary lifetime is short. */
+      long_lifetime_temps = FALSE;
+#if ABI_CHANGES_FOR_RTTI
+      /* Enable RTTI. */
+      rtti_enabled = TRUE;
+#endif /* ABI_CHANGES_FOR_RTTI */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the
        error threshold was set at a higher level. */

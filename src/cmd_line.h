@@ -118,6 +118,9 @@ typedef enum /*an_option_kind*/ {
   optk_brief_diagnostics,
   optk_nonconst_ref_anachronism,
   optk_no_preproc_only,
+#if ABI_CHANGES_FOR_RTTI
+  optk_rtti,
+#endif /* ABI_CHANGES_FOR_RTTI */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -261,6 +264,21 @@ EXTERN a_boolean
 			   configurable, and the -x option toggles the
 			   default value.  In cfront mode it is always FALSE.
 			   It has no meaning in C mode. */
+EXTERN a_boolean
+		rtti_enabled
+#if VAR_INITIALIZERS
+                             =
+#if ABI_CHANGES_FOR_RTTI
+                               DEFAULT_RTTI_ENABLED
+#else /* !ABI_CHANGES_FOR_RTTI */
+                               FALSE
+#endif /* ABI_CHANGES_FOR_RTTI */
+#endif /* VAR_INITIALIZERS */
+                                                   ;
+			/* TRUE if support for runtime type identification
+			   (RTTI) is enabled.  Significant only in C++ mode.
+			   RTTI cannot be enabled if the extended typeinfo
+			   for it is not generated. */
 EXTERN an_integer_kind
 		plain_char_int_kind;
 			/* Integer kind for a "plain" char, dependent on
