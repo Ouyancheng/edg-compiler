@@ -3338,6 +3338,11 @@ special function kind (e.g., constructor, destructor), if any.
   a_conversion_list_entry_ptr    clep;
 
   db_enter(3, "decl_member_function");
+  /* If this is a user-defined conversion or an overloaded operator,
+     check for errors in the argument list.  Note that this is done before
+     creating the symbol, since an invalid conversion or operator should not
+     be added to the overload list. */
+  check_operator_function_params(member_type, class_type, locator);
 #if 0
   /* We have at least one unresolved problem when a member function is
      declared using a typedef name.  The referenced type will have no
@@ -3481,9 +3486,6 @@ special function kind (e.g., constructor, destructor), if any.
       cssp->construction_by_bitwise_copy_allowed = FALSE;
       cssp->assignment_by_bitwise_copy_allowed = FALSE;
     }  /* if */
-    /* If this is a user-defined conversion or an overloaded operator,
-       check for errors in the argument list. */
-    check_operator_function_params(rtn, &locator->source_position);
     if (spec_kind == (a_special_function_kind)sfk_constructor) {
       /* Set the pointer to the constructor symbol in the class symbol
          supplement. */

@@ -114,8 +114,9 @@ extern a_boolean scan_conversion_operator(a_source_position  *pos);
 
 extern a_type_ptr type_keyword(void);
 
-extern void check_operator_function_params(a_routine_ptr      rout,
-                                           a_source_position  *pos);
+extern void check_operator_function_params(a_type_ptr        rout_type,
+                                           a_type_ptr        class_type,
+                                           a_symbol_locator  *locator);
 
 extern void decl_parameter(a_param_id_ptr    param_id,
                            a_param_type_ptr  ptp,

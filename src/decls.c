@@ -1076,8 +1076,9 @@ Check to see if any type qualifiers that are specified are meaningful.
 }  /* check_type_qualifiers */
 
 
-void check_operator_function_params(a_routine_ptr      rout,
-                                    a_source_position  *pos)
+void check_operator_function_params(a_type_ptr        rout_type,
+                                    a_type_ptr        class_type,
+                                    a_symbol_locator  *locator)
 /*
 Check the argument list on the declaration of a user-defined conversion
 or overloaded operator function.  For conversion functions, no arguments
@@ -1085,29 +1086,40 @@ are allowed.  For operators there are different requirements for different
 operator kinds.  Issue a diagnostic if an error is found.
 */
 {
+  an_opname_kind    opname;
   int               param_count;
   a_param_type_ptr  ptp;
   a_boolean         any_class_type_params = FALSE;
-  an_opname_kind    opname;
   a_type_ptr        tp;
   a_boolean         is_nonstatic_member_function;
   an_error_code     error_code = ec_no_error;
+  a_boolean         err = FALSE;
 
   db_enter(4, "check_operator_function_params");
-  if (rout->special_kind == (a_special_function_kind)sfk_conversion) {
-    /* Any parameter is too many for a conversion function. */
-    if (rout->type->variant.routine.extra_info->param_type_list != NULL) {
-      pos_error(ec_too_many_args_for_conversion, pos);
-    }  /* if */
-  } else if (rout->special_kind == (a_special_function_kind)sfk_operator) {
-    /* It's an operator.  Get the specific kind. */
-    opname = rout->opname_kind;
-    is_nonstatic_member_function =
-                routine_type_is_nonstatic_member_function(rout->type);
+  if (is_error_locator(*locator)) {
+    /* Nothing to do. */
+  } else if (locator->is_conversion_name) {
 #if CHECKING
-    if (is_nonstatic_member_function &&
-        (opname == (an_opname_kind)onk_new ||
-         opname == (an_opname_kind)onk_delete)) {
+    if (class_type == NULL) {
+      internal_error("check_operator_function_params: nonmeber conversion op");
+    }  /* if */
+#endif /* CHECKING */
+    /* Any parameter is too many for a conversion function. */
+    if (rout_type->variant.routine.extra_info->param_type_list != NULL) {
+      pos_error(ec_too_many_args_for_conversion, &locator->source_position);
+      err = TRUE;
+    }  /* if */
+  } else if (locator->is_operator_name) {
+    /* It's an operator. */
+    opname = locator->variant.opname;
+    is_nonstatic_member_function =
+                routine_type_is_nonstatic_member_function(rout_type);
+#if CHECKING
+    if (opname == (an_opname_kind)onk_none) {
+      internal_error("check_operator_function_params: bad opname kind");
+    } else if (is_nonstatic_member_function &&
+               (opname == (an_opname_kind)onk_new ||
+                opname == (an_opname_kind)onk_delete)) {
       internal_error(
                "check_operator_function_params: new or delete is nonstatic");
     }  /* if */
@@ -1119,7 +1131,7 @@ operator kinds.  Issue a diagnostic if an error is found.
        initialized to 1. This is because the implicit "this" parameter is
        counted in the latter case. */
     param_count = is_nonstatic_member_function ? 1 : 0;
-    ptp = rout->type->variant.routine.extra_info->param_type_list;
+    ptp = rout_type->variant.routine.extra_info->param_type_list;
     for (; ptp != NULL; ptp = ptp->next) {
       param_count++;
       tp = ptp->type;
@@ -1150,7 +1162,7 @@ operator kinds.  Issue a diagnostic if an error is found.
       if (param_count == 0) {
 	error_code = ec_too_few_args_for_operator;
       } else if (opname == (an_opname_kind)onk_new) {
-        ptp = rout->type->variant.routine.extra_info->param_type_list;
+        ptp = rout_type->variant.routine.extra_info->param_type_list;
         tp = ptp->type;
         if (!is_error_type(tp)) {
           if (!is_integral_type(tp) ||
@@ -1162,22 +1174,24 @@ operator kinds.  Issue a diagnostic if an error is found.
         }  /* if */
       }  /* if */
     } else if (opname == (an_opname_kind)onk_delete) {
-      ptp = rout->type->variant.routine.extra_info->param_type_list;
+      ptp = rout_type->variant.routine.extra_info->param_type_list;
       if (param_count == 0) {
 	error_code = ec_too_few_args_for_operator;
       } else {
         tp = ptp->type;
         if (!is_error_type(tp)) {
           if (!is_pointer_type(tp) || !is_void_type(type_pointed_to(tp))) {
-            pos_error(ec_bad_first_arg_type_for_operator_delete, pos);
+            pos_error(ec_bad_first_arg_type_for_operator_delete,
+                      &locator->source_position);
             ptp->type = error_type();
+            err = TRUE;
           }  /* if */
         }  /* if */
         ptp = ptp->next;
         if (ptp != NULL) {
           /* There is a second argument.  This is permitted for class operator
              delete() but not for global operator delete() (ARM 12.5). */
-          if (rout->source_corresp.class_of_which_a_member == NULL) {
+          if (class_type == NULL) {
             error_code = ec_too_many_args_for_operator;
           } else {
             /* The second argument must be of type size_t (ARM 12.5). */
@@ -1186,8 +1200,10 @@ operator kinds.  Issue a diagnostic if an error is found.
               if (!is_integral_type(tp) ||
                   skip_typerefs(tp)->variant.integer.int_kind !=
                                     (an_integer_kind)TARG_SIZE_T_INT_KIND) {
-                pos_error(ec_bad_second_arg_type_for_operator_delete, pos);
+                pos_error(ec_bad_second_arg_type_for_operator_delete,
+                          &locator->source_position);
                 ptp->type = error_type();
+                err = TRUE;
               }  /* if */
             }  /* if */
             /* More than two arguments are not allowed. */
@@ -1203,41 +1219,49 @@ operator kinds.  Issue a diagnostic if an error is found.
 	error_code = ec_too_few_args_for_operator;
       }  /* if */
     }  /* if */
-    if (error_code != ec_no_error) pos_error(error_code, pos);
+    if (error_code != ec_no_error) {
+      pos_error(error_code, &locator->source_position);
+      err = TRUE;
+    }  /* if */
     /* Check return type. */
     if (opname == (an_opname_kind)onk_arrow) {
       /* For operator->() do a special check on the return type.  It must
          be something that can be used as a pointer -- either a pointer
          to a class or an object of or reference to a class for which
          operator->() is defined (ARM 13.4.6). */
-      tp = rout->type->variant.routine.return_type;
+      tp = rout_type->variant.routine.return_type;
       if (!is_error_type(tp)) {
-        a_boolean  err;
+        a_boolean  local_err;
         if (is_pointer_type(tp)) {
-          err = !is_class_struct_union_type(type_pointed_to(tp));
+          local_err = !is_class_struct_union_type(type_pointed_to(tp));
         } else {
           if (is_reference_type(tp)) tp = type_pointed_to(tp);
-          err = (!is_class_struct_union_type(tp) ||
-                 tp == rout->source_corresp.class_of_which_a_member ||
-                 opname_member_function_symbol(opname, tp) == NULL);
+          local_err = (!is_class_struct_union_type(tp) || tp == class_type ||
+                       opname_member_function_symbol(opname, tp) == NULL);
         }  /* if */
-        if (err) {
-          pos_error(ec_bad_return_type_for_op_arrow, pos);
-          rout->type->variant.routine.return_type = error_type();
+        if (local_err) {
+          pos_error(ec_bad_return_type_for_op_arrow,
+                    &locator->source_position);
+          rout_type->variant.routine.return_type = error_type();
+          err = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
     if (opname == (an_opname_kind)onk_new ||
         opname == (an_opname_kind)onk_delete) {
-      tp = rout->type->variant.routine.return_type;
+      tp = rout_type->variant.routine.return_type;
       if (!is_error_type(tp)) {
         if (opname == (an_opname_kind)onk_new) {
           if (!is_pointer_type(tp) || !is_void_type(type_pointed_to(tp))) {
-            pos_error(ec_bad_return_type_for_op_new, pos);
+            pos_error(ec_bad_return_type_for_op_new,
+                      &locator->source_position);
+            err = TRUE;
           }  /* if */
         } else {
           if (!is_void_type(tp)) {
-            pos_error(ec_bad_return_type_for_op_delete, pos);
+            pos_error(ec_bad_return_type_for_op_delete,
+                      &locator->source_position);
+            err = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -1246,10 +1270,12 @@ operator kinds.  Issue a diagnostic if an error is found.
          operands of class type or reference-to-class type, issue an error.
          This restriction does not apply to new and delete, however. */
       if (!is_nonstatic_member_function && !any_class_type_params) {
-        pos_error(ec_no_args_with_class_type, pos);
+        pos_error(ec_no_args_with_class_type, &locator->source_position);
+        err = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
+  if (err) set_to_error_locator(*locator);
   db_exit();
 }  /* check_operator_function_params */
 
@@ -2956,7 +2982,6 @@ otherwise, set *ext_sym to NULL.
                     *source_corresp_ptr;
   a_scope_depth     effective_decl_level = decl_scope_level;
   a_boolean         template_function_specific_decl = FALSE;
-
   db_enter(3, "decl_var_or_routine");
 #if CHECKING
   if (storage_class == (a_storage_class)sc_typedef) {
@@ -2974,7 +2999,13 @@ otherwise, set *ext_sym to NULL.
 #endif /* CHECKING */
     storage_class = (a_storage_class)sc_static;
   }  /* if */
-  if (!is_function) {
+  if (is_function) {
+    if (C_dialect == C_dialect_cplusplus) {
+      /* If this is an overloaded operator, check for errors in the
+         argument list. */
+      check_operator_function_params(type_ptr, /*class_type=*/NULL, locator);
+    }  /* if */
+  } else {
     /* Set the is_variable_definition flag.  The rules are slightly different
        in C and C++, since the latter does not allow tentative definitions.
        In C++ the declaration of any variable without an "extern"
@@ -3319,12 +3350,7 @@ skip_overloading:;
         if (locator->is_operator_name) {
           routine_ptr->special_kind = (a_special_function_kind)sfk_operator;
           routine_ptr->opname_kind = locator->variant.opname;
-        } else if (locator->is_conversion_name) {
-          routine_ptr->special_kind = (a_special_function_kind)sfk_conversion;
         }  /* if */
-        /* If this is a user-defined conversion or an overloaded operator,
-           check for errors in the argument list. */
-        check_operator_function_params(routine_ptr, &locator->source_position);
       }  /* if */
     } else {
       /* There is an existing IL entry that we are reusing. */
