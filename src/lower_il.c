@@ -2655,9 +2655,9 @@ static a_routine_ptr
 		pure_virtual_called_routine;
 
 
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
+#if !AUTOMATIC_TEMPLATE_INSTANTIATION
 /*ARGSUSED*/ /* <-- first_virtual is not used if no automatic instantiation. */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+#endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
 static void add_vtbl_entry_init(a_targ_ptrdiff_t delta,
                                 a_routine_ptr    func_to_call,
                                 a_constant_ptr   aggr_con,
