@@ -1748,6 +1748,12 @@ the default constructor (if one exists) is called.
                                /*suppress_access_check=*/FALSE);
       if (ctor == NULL && dtor == NULL) {
         /* No constructor for default initialization; no destructor either. */
+        if (!cssp->any_nonstatic_data_members) {
+          /* An empty class.  Except in strict mode, pretend it was
+             initialized.  Returning TRUE will cause the variable to be
+             marked as "set". */
+          if (!strict_ansi_mode) def_init_performed = TRUE;
+        }  /* if */
       } else {
         if (ctor != NULL) {
           /* Normal case -- there's a constructor to do the initialization. */
