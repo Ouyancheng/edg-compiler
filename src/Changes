@@ -1,5 +1,19 @@
 Version 2.28
 
+2/24/95  Linkage specification as a function type attribute
+
+The linkage specification in effect at the point of a function type
+declaration is now recorded in the routine type supplement (field
+routine_name_linkage).  The front end makes this information available to
+the back end in case, for example, different linkages imply different
+calling conventions.  This is especially useful when a call is made
+through a function pointer or pointer-to-member.
+
+(Note: the routine_name_linkage value does not necessarily correspond to
+the name linkage with which an associated function, if any, was declared.
+Moreover, it is expected that an implementation that makes use of it will
+layer additional functionality on top of it.)
+
 2/24/95  SVR4 C compatibility mode
 
 An option has been added to provide additional compatibility with the
