@@ -158,6 +158,8 @@ extern a_boolean is_decl_start(void);
 
 extern void type_name(a_type_ptr *type_ptr);
 
+extern a_boolean scan_conversion_operator(a_source_position  *pos);
+
 extern a_type_ptr type_keyword(void);
 
 extern void check_operator_function_params(a_routine_ptr      rout,

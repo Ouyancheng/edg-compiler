@@ -5048,6 +5048,48 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
 }  /* type_name */
 
 
+a_boolean scan_conversion_operator(a_source_position  *id_pos)
+/*
+The token "operator" has been seen and passed; we are now on the token
+immediately following it.  If it marks the start of a type name we have
+an identifier for a conversion operator -- scan the type name, update the
+locator, and return TRUE.  If it doesn't, return FALSE.
+*/
+{
+  a_storage_class           storage_class;
+  a_decl_flag_set           dso_flags, do_flags;
+  a_type_ptr                specifiers_type, complete_type;
+  a_type_ptr                bottom_derived_type = NULL;
+  an_extern_linkage         dummy_linkage;
+  a_source_position         type_pos;
+  a_boolean                 is_conversion_operator;
+
+  if (C_dialect == C_dialect_cplusplus && is_type_start()) {
+    /* It is the start of a type name. */
+    is_conversion_operator = TRUE;
+    set_err_pos_to_curr_token();
+    copy_source_position(pos_curr_token, type_pos);
+    (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
+                          &storage_class, &specifiers_type, &dummy_linkage);
+    if (C_dialect == C_dialect_cplusplus &&
+        (dso_flags & DSO_DEFINES_SOMETHING)) {
+      /* Definition of a class, struct, union, or enum type is not allowed. */
+      pos_error(ec_type_definition_not_allowed, &type_pos);
+    } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+      /* Missing type specifier. */
+      warning(ec_missing_type_specifier);
+    }  /* if */
+    complete_type = pointer_declarator(specifiers_type, &bottom_derived_type);
+    unget_token();
+    curr_token = tok_identifier;
+    make_type_conversion_locator(complete_type, &locator_for_curr_id, id_pos);
+  } else {
+    is_conversion_operator = FALSE;
+  }  /* if */
+  return is_conversion_operator;
+}  /* scan_conversion_operator */
+
+
 a_type_ptr type_keyword(void)
 /*
 The current token is a type keyword (e.g., int, long); return the type
