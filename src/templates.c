@@ -6918,7 +6918,6 @@ any non-empty template parameter lists that were scanned.
 #if RECORD_TEMPLATES_IN_IL
   a_token_cache                     *p_template_body_cache = NULL;
 #endif /* RECORD_TEMPLATES_IN_IL */
-  a_boolean                         is_class_template = FALSE;
   a_template_cache_segment_ptr	    cache_segments;
 
   db_enter(3, "template_declaration");
@@ -6948,7 +6947,6 @@ any non-empty template parameter lists that were scanned.
   if (is_class_template_decl(&decl_state->decl_token_cache)) {
     class_template_declaration(decl_state, &sym,
 			       &tag_resolution, &prototype_type);
-    is_class_template = TRUE;
     tssp = sym != NULL ? template_supplement_for_symbol(sym) : NULL;
 #if RECORD_TEMPLATES_IN_IL
     if (decl_state->defines_something && sym != NULL) {
