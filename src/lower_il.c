@@ -1101,7 +1101,7 @@ is the file scope.  Return a pointer to it.
     if (ssep != NULL) last_ptr_ptr = &ssep->last_nonstatic_variable;
   }  /* if */
   /* The temporary goes at the front, but after any unnamed entities.  That
-     ensures that temporaries built later come after temporaries build
+     ensures that temporaries built later come after temporaries built
      earlier, which is needed for record_needed_destruction is called
      for a temporary. */
   while (*prev_ptr_ptr != NULL && !has_name(*prev_ptr_ptr)) {
@@ -1109,7 +1109,7 @@ is the file scope.  Return a pointer to it.
   }  /* while */
   temp->next = *prev_ptr_ptr;
   *prev_ptr_ptr = temp;
-  if (last_ptr_ptr != NULL) *last_ptr_ptr = temp;
+  if (last_ptr_ptr != NULL && *last_ptr_ptr == NULL) *last_ptr_ptr = temp;
   return temp;
 }  /* make_temporary_in_scope */
 
