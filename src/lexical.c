@@ -6733,6 +6733,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   a_token_kind			  next_tok;
   a_boolean			  class_is_being_instantiated;
   a_boolean			  arg_list_coalesced = FALSE;
+  a_boolean			  arg_list_processed = FALSE;
 
   db_enter(3, "coalesce_template_class_reference");
 
@@ -6767,6 +6768,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
       make_specific_symbol_error_locator(&locator_for_curr_id);
       new_sym = template_sym;
       any_errors = TRUE;
+      arg_list_processed = TRUE;
       goto normal_exit;
     } else {
       /* Just return the symbol that was passed in. */
@@ -6833,6 +6835,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
        have been supplied. */
     arg_list = scan_nonreal_member_template_arg_list(&any_errors);
   }  /* if */
+  arg_list_processed = TRUE;
   /* We should now be at the closing angle bracket.  Note that we don't
      scan the token after the closing angle because we update the current
      token below to represent the original identifier with the newly
@@ -6903,7 +6906,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   remove_stop_token(tok_semicolon);
 
 normal_exit:
-  if (curr_token != tok_gt) {
+  if (arg_list_processed && curr_token != tok_gt) {
     /* Below we will set curr_token to tok_identifier.  Do an unget
        of the token that stopped the flush so that it can be processed
        later. */
