@@ -214,6 +214,9 @@ typedef int a_decl_flag_set;
 			   non-type-name identifier is found before the first
 			   specifier.  Simply set the default type and return
 			   a flag signaling that there are no specifiers. */
+#define DSI_CONSTRUCTOR_DESTRUCTOR_ALLOWED 0x20
+			/* If this bit is set allow the declaration of a
+                           constructor or a destructor. */
 /* Constants defining bits in the output bit vector, returned from
    decl_specifiers. */
 #define DSO_NO_OUTPUT_FLAGS 0x0
@@ -261,12 +264,6 @@ typedef int a_decl_flag_set;
                            consist of (1) a keyword class, struct, union, or
                            enum and (2) an identifier (and optionally (3) the
                            keyword friend). */
-#define DSO_CONSTRUCTOR 0x1000
-			/* If this bit is set the declaration is that of a
-			   constructor.   An identifier will have been found,
-			   but it is the name of the class currently being
-			   defined, followed by a left parenthesis; however,
-			   curr_token will have been left on the identifier. */
 
 extern a_boolean decl_specifiers(a_decl_flag_set input_flags,
 				 a_decl_flag_set *output_flags,
