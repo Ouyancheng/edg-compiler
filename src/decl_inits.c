@@ -1797,7 +1797,7 @@ returned set to TRUE.
       push_namespace_reactivation_scope(symbol_ptr->parent.namespace_ptr);
     }  /* if */
     if (exceptions_enabled && static_lifetime &&
-        depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+        vp != NULL && vp->source_corresp.is_local_to_function) {
       /* This is the initialization of a local static variable.  Push
          a block lifetime around the entire initialization. */
       push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
