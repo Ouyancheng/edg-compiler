@@ -746,6 +746,10 @@ return a pointer to the copy.
 
   copy_statement(statement, new_statement);
   set_stmt_pos_to_code_pos_for_lowering(new_statement);
+  new_statement->has_associated_pragma = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  new_statement->source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   insert_statement(new_statement, insert_location);
   return new_statement;
 }  /* copy_inlined_statement */
