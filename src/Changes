@@ -1,5 +1,10 @@
 Version 2.26
 
+9/30/94  Access errors now discretionary
+
+All access errors have been made discretionary, i.e., they can be suppressed
+or demoted to warnings via a command-line option.
+
 9/30/94  Cast as disambiguator for overloaded function
 
 A cast can now be used to select one function out of a set of overloaded

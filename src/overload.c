@@ -5582,7 +5582,7 @@ at *err_pos if not.
   } else {
     if (!have_access_to_symbol(cctor_sym)) {
       if (strict_ansi_mode) {
-        pos_sy_diagnostic(strict_ansi_error_severity,
+        pos_sy_diagnostic(strict_ansi_discretionary_severity,
                           ec_inaccessible_special_function,
                           err_pos, cctor_sym);
       } else {

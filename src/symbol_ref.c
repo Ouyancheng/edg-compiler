@@ -712,7 +712,7 @@ control checking is done.
   if (!suppress_access_check) {
     /* Check for accessibility. */
     if (!have_access_to_symbol(sym)) {
-      an_error_severity  severity = es_error;
+      an_error_severity  severity = es_discretionary_error;
       /* Normally an error, but in cfront mode there is a special case
          involving a private base class destructor where we issue a warning. */
       if (any_cfront_mode() &&

@@ -4299,7 +4299,7 @@ Issue the appropriate error on the inaccessibility of sym.
 */
 {
   an_error_code  	error_code = ec_no_access_to_name;
-  an_error_severity	error_severity = es_error;
+  an_error_severity	error_severity = es_discretionary_error;
   a_routine_ptr  rp;
 
   if (is_function_symbol(sym)) {
