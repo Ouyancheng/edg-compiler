@@ -710,7 +710,7 @@ necessary to make it directly accessible in memory.
     /* Free any extra space allocated at the end of the block. */
     trim_memory_region(region_number);
     /* Read the block into the allocated space. */
-    fread_with_check(new_start_of_block, block_used);
+    if (block_used != 0) fread_with_check(new_start_of_block, block_used);
     total_bytes -= block_used;
     /* The memory block was at one address when written out, and is
        probably at a different address now that it has been read in.

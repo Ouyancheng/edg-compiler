@@ -838,7 +838,8 @@ Write the indicated memory region to the file f_il_output.
 #endif /* DEBUG */
         if ((fwrite((char *)hdr, sizeof(a_mem_block_header),
                     1, f_il_output) != 1) ||
-            (fwrite(hdr->start_of_block, size_t_arg(block_used),
+            (block_used != 0 &&
+             fwrite(hdr->start_of_block, size_t_arg(block_used),
                     1, f_il_output) != 1)) {
           /* Error on write.  This check supplements the check done when the
              file is closed. */

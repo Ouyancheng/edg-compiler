@@ -1,3 +1,12 @@
+Version 2.41
+
+12/9/98   IL write/read problem with zero-length memory blocks
+
+In some obscure cases, a zero-length memory block could end up on the
+list of blocks for a region.  IL write and IL read had difficulty
+with such blocks.  Now fixed.
+
+-------------------------------------------------------------------------------
 Version 2.40, December 8, 1998
 
 12/8/98   IL version changed to 2.32
