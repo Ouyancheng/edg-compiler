@@ -2506,6 +2506,8 @@ to it.
   bcp->pointer_offset                  = 0;
   bcp->derivation                      = NULL;
   bcp->overriding_virtual_functions    = NULL;
+  bcp->base_class_with_same_virtual_function_info
+                                       = NULL;
 #if DO_IL_LOWERING
   bcp->virtual_function_table_var      = NULL;
 #endif /* DO_IL_LOWERING */

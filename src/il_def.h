@@ -1019,6 +1019,14 @@ typedef struct a_base_class {
                            current base class.  These entries are sorted by
 			   virtual function number of the routine pointed
 			   to by the primary_function field. */
+  a_base_class_ptr
+		base_class_with_same_virtual_function_info;
+			/* Pointer to another base class entry associated with
+			   the same class (but on the base classes list of
+			   a different class) which has the identical list of
+			   overriding virtual functions.  This pointer would
+			   aid in determining when virtual functions tables
+			   can be shared. */
 #if DO_IL_LOWERING
   a_variable_ptr
 		virtual_function_table_var;
