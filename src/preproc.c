@@ -1748,7 +1748,7 @@ Process a predefined C99 STDC pragma.  These pragmas have the following form:
 
 This routine is called to process the pragmas when they are known to appear
 in a valid location.  It is called from compound_statement for block scope
-pragmas, and by stdc_pragma for pragmas that appear in the file scope.
+pragmas, and by translation_unit for pragmas that appear in the file scope.
 */
 {
   a_stdc_pragma_kind	kind = (a_stdc_pragma_kind)stdc_pk_none;
