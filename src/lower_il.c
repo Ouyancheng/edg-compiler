@@ -6723,7 +6723,7 @@ is copied in the condition declaration case).
   an_expr_node_ptr expr = statement->expr;
   a_context        context;
   a_boolean        is_switch_stmt =
-                            (statement->kind != (a_statement_kind)stmk_switch);
+                            (statement->kind == (a_statement_kind)stmk_switch);
 
   if (expr->kind != (an_expr_node_kind)enk_condition) {
     /* Normal expression. */
