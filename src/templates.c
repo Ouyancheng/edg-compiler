@@ -9835,7 +9835,7 @@ depends on a template parameter type, return TRUE in *template_dependent
   a_decl_modifiers_block       decl_modifiers;
   a_storage_class              param_storage_class;
   a_source_position            param_pos;
-  a_source_sequence_entry_ptr  declarator_ssep;
+  a_source_sequence_entry_ptr  declarator_ssep = NULL;
   a_type_ptr                   tp;
   a_decl_pos_block             decl_pos_block;
 
@@ -11841,78 +11841,6 @@ information gathered in the front end structures.
   }  /* for */
   return result;
 }  /* make_template_decl */
-
-
-static void attach_template_decl_structure(a_tmpl_decl_state_ptr  decl_state,
-                                           a_symbol_ptr           sym)
-/*
-This routine is responsible for attaching the template parameterization info
-(extracted from decl_state) to the IL entity referred to by sym.
-If applicable, source sequence entries are also created as needed.
-*/
-{
-  if (sym != NULL && !sym->is_error && decl_state->template_decl != NULL) {
-    switch (sym->kind) {
-      case sk_class_template:
-        if (sym->variant.template_info != NULL) {
-          a_symbol_ptr proto = sym->variant.template_info->
-                               variant.class_template.prototype_instantiation;
-          if (proto != NULL) {
-            a_type_ptr                  tp = type_symbol_type(proto);
-            a_class_type_supplement_ptr ctsp;
-            check_assertion(is_class_struct_union_type(tp));
-            ctsp = tp->variant.class_struct_union.extra_info;
-            check_assertion(ctsp != NULL);
-            if (ctsp->template_decl == NULL || decl_state->defines_something) {
-              ctsp->template_decl = decl_state->template_decl;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        break;
-      case sk_function_template:
-        if (sym->variant.template_info != NULL) {
-          a_routine_ptr rp =
-                         sym->variant.template_info->variant.function.routine;
-          check_assertion(rp->is_prototype_instantiation);
-          if (rp->template_decl == NULL || decl_state->defines_something) {
-            rp->template_decl = decl_state->template_decl;
-          }  /* if */
-        }  /* if */
-        break;
-      case sk_class_or_struct_tag:
-      case sk_union_tag:
-        if (sym->variant.class_struct_union.type != NULL) {
-          a_type_ptr tp = sym->variant.class_struct_union.type;
-          a_class_type_supplement_ptr ctsp;
-          check_assertion(is_class_struct_union_type(tp));
-          ctsp = tp->variant.class_struct_union.extra_info;
-          check_assertion(ctsp != NULL);
-          if (ctsp->template_decl == NULL || decl_state->defines_something) {
-            ctsp->template_decl = decl_state->template_decl;
-          }  /* if */
-        }  /* if */
-      case sk_member_function:
-        if (sym->variant.routine.ptr != NULL) {
-          a_routine_ptr rp = sym->variant.routine.ptr;
-          check_assertion(rp->is_prototype_instantiation);
-          if (rp->template_decl == NULL || decl_state->defines_something) {
-            rp->template_decl = decl_state->template_decl;
-          }  /* if */
-        }  /* if */
-      case sk_static_data_member:
-        if (sym->variant.variable.ptr != NULL) {
-          a_variable_ptr vp = sym->variant.variable.ptr;
-          check_assertion(vp->is_template_static_data_member);
-          if (vp->template_decl == NULL || decl_state->defines_something) {
-            vp->template_decl = decl_state->template_decl;
-          }  /* if */
-        }  /* if */
-      default:
-        unexpected_condition_str(
-                         "attach_template_decl_structure: unexpected symbol");
-    }  /* switch */
-  }  /* if */
-}  /* attach_template_decl_structure */
 
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
