@@ -2265,6 +2265,20 @@ initialized is not a reference.
 }  /* gen_initializer_constant */
 
 
+static void gen_export(void)
+/*
+Print the "export" keyword and a space.
+*/
+{
+  /* The export keyword must not be put out on the declaration of a
+     template within a class definition. */
+  if (!curr_name_context_is_a_class()) {
+    write_tok_str("export");
+    write_space();
+  }  /* if */
+}  /* gen_export */
+
+
 static void gen_storage_class(a_storage_class storage_class)
 /*
 Print the storage class and a space.  If there is no printable storage class,
@@ -3898,14 +3912,15 @@ this one is such a continuation.
   a_scope_ptr                  common_scope, orig_scope = NULL;
   a_boolean                    need_extern_C_closing_brace = FALSE;
   a_template_decl_ptr          template_decl = NULL;
+  a_template_ptr               assoc_template;
 
   *another_decl_in_comma_list = FALSE;
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     if (ss_entry_kind(sec_decl) == iek_template) {
-      a_template_ptr  templ = ss_entry_ptr(sec_decl, a_template_ptr);
-      template_decl = templ->template_decl;
-      type = templ->prototype_instantiation.type;
+      assoc_template = ss_entry_ptr(sec_decl, a_template_ptr);
+      template_decl = assoc_template->template_decl;
+      type = assoc_template->prototype_instantiation.type;
     } else {
       type = ss_entry_ptr(sec_decl, a_type_ptr);
     }  /* if */
@@ -3913,10 +3928,10 @@ this one is such a continuation.
     is_specialization = sec_decl->specialized_with_new_syntax;
   } else {
     if (ss_entry_kind(curr_source_sequence_entry) == iek_template) {
-      a_template_ptr  templ = ss_entry_ptr(curr_source_sequence_entry,
-                                           a_template_ptr);
-      template_decl = templ->template_decl;
-      type = templ->prototype_instantiation.type;
+      assoc_template = ss_entry_ptr(curr_source_sequence_entry,
+                                    a_template_ptr);
+      template_decl = assoc_template->template_decl;
+      type = assoc_template->prototype_instantiation.type;
     } else {
       type = ss_entry_ptr(curr_source_sequence_entry, a_type_ptr);
     }  /* if */
@@ -3955,6 +3970,7 @@ this one is such a continuation.
                     type->variant.class_struct_union.extra_info
                                                     ->assoc_template != NULL);
     if (template_decl != NULL) {
+      if (assoc_template->canonical_template->is_exported) gen_export();
       gen_template_header(template_decl);
     } else if (is_specialization) {
       /* A specialization. */
@@ -6773,6 +6789,7 @@ is the one associated with the template.
        template from the stored text string. */
     set_output_position(&tp->source_corresp.decl_position);
     gen_member_access_specifier_for_decl_of(&tp->source_corresp);
+    if (tp->canonical_template->is_exported) gen_export();
     /* Write the template string. */
     write_code_string(tp->text);
     /* Advance past the source sequence entry for the template. */
@@ -7874,13 +7891,14 @@ declaration following this one is such a continuation.
   a_boolean                    force_unqualified_name;
   a_scope_ptr                  common_scope, orig_scope = NULL;
   a_template_decl_ptr          template_decl = NULL;
+  a_template_ptr	       assoc_template;
                              
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     if (ss_entry_kind(sec_decl) == iek_template) {
-      a_template_ptr  templ = ss_entry_ptr(sec_decl, a_template_ptr);
-      template_decl = templ->template_decl;
-      var = templ->prototype_instantiation.variable;
+      assoc_template = ss_entry_ptr(sec_decl, a_template_ptr);
+      template_decl = assoc_template->template_decl;
+      var = assoc_template->prototype_instantiation.variable;
     } else {
       var = ss_entry_ptr(sec_decl, a_variable_ptr);
     }  /* if */
@@ -7891,10 +7909,10 @@ declaration following this one is such a continuation.
     is_specialization = sec_decl->specialized_with_new_syntax;
   } else {
     if (ss_entry_kind(curr_source_sequence_entry) == iek_template) {
-      a_template_ptr  templ = ss_entry_ptr(curr_source_sequence_entry,
-                                           a_template_ptr);
-      template_decl = templ->template_decl;
-      var = templ->prototype_instantiation.variable;
+      assoc_template = ss_entry_ptr(curr_source_sequence_entry,
+                                    a_template_ptr);
+      template_decl = assoc_template->template_decl;
+      var = assoc_template->prototype_instantiation.variable;
     } else {
       var = ss_entry_ptr(curr_source_sequence_entry, a_variable_ptr);
     }  /* if */
@@ -7923,6 +7941,7 @@ declaration following this one is such a continuation.
   check_assertion(!var->is_template_static_data_member ||
                   var->assoc_template != NULL);
   if (template_decl != NULL) {
+    if (assoc_template->canonical_template->is_exported) gen_export();
     gen_template_header(template_decl);
   } else if (is_specialization) {
     adjust_namespace_state_for_specialization(&var->source_corresp,
@@ -8347,6 +8366,7 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     need_extern_C_closing_brace = FALSE;
   a_boolean                     out_of_class_redecl = FALSE;
   a_template_decl_ptr           template_decl = NULL;
+  a_template_ptr		assoc_template;
 
   *another_decl_in_comma_list = FALSE;
   /* Note that compiler-generated routines don't appear on the source sequence
@@ -8354,9 +8374,9 @@ TRUE if the declaration following this one is such a continuation.
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     if (ss_entry_kind(sec_decl) == iek_template) {
-      a_template_ptr  templ = ss_entry_ptr(sec_decl, a_template_ptr);
-      template_decl = templ->template_decl;
-      rout = templ->prototype_instantiation.routine;
+      assoc_template = ss_entry_ptr(sec_decl, a_template_ptr);
+      template_decl = assoc_template->template_decl;
+      rout = assoc_template->prototype_instantiation.routine;
     } else {
       rout = ss_entry_ptr(sec_decl, a_routine_ptr);
     }  /* if */
@@ -8368,10 +8388,10 @@ TRUE if the declaration following this one is such a continuation.
     is_specialization = sec_decl->specialized_with_new_syntax;
   } else {
     if (ss_entry_kind(curr_source_sequence_entry) == iek_template) {
-      a_template_ptr  templ = ss_entry_ptr(curr_source_sequence_entry,
-                                           a_template_ptr);
-      template_decl = templ->template_decl;
-      rout = templ->prototype_instantiation.routine;
+      assoc_template = ss_entry_ptr(curr_source_sequence_entry,
+                                    a_template_ptr);
+      template_decl = assoc_template->template_decl;
+      rout = assoc_template->prototype_instantiation.routine;
     } else {
       rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
     }  /* if */
@@ -8415,6 +8435,7 @@ TRUE if the declaration following this one is such a continuation.
                   rout->is_prototype_instantiation ||
                   rout->assoc_template != NULL);
   if (template_decl != NULL) {
+    if (assoc_template->canonical_template->is_exported) gen_export();
     gen_template_header(template_decl);
   }  /* if */
   if (is_definition) {

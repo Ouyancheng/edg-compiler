@@ -12091,10 +12091,7 @@ caller.
       decl_state->decl_token_cache_used = TRUE;
       /* Set the assoc_template field of the prototype instantiation routine
          entry. */
-      { a_template_ptr	templ;
-        templ = decl_state->il_template_entry;
-        tssp->variant.function.routine->assoc_template = templ;
-      }
+      tssp->variant.function.routine->assoc_template = tssp->il_template_entry;
     }  /* if */
     if (decl_state->defines_something || 
         tssp->cache.decl_info == NULL) {

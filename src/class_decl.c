@@ -6562,8 +6562,8 @@ declared member functions.
          class is declared as exported and the function is not inline. */
       templ->is_exported = class_is_exported(class_type) &&
                            !func_info->is_inline;
+      add_to_templates_list(templ, decl_scope_level);
       if (prototype_instantiations_in_il) {
-        add_to_templates_list(templ, decl_scope_level);
         templ->prototype_instantiation.routine = rtn;
       }  /* if */
       templ->canonical_template = templ;

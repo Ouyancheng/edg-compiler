@@ -259,10 +259,14 @@ extern void form_lvalue_address_constant(
                           an_il_to_str_output_control_block_ptr octl);
 
 
+#if BACK_END_IS_CP_GEN_BE
+
 extern void remap_template_param(a_template_param_coordinate_ptr  coord,
                                  a_source_correspondence_ptr      scp);
 
 extern void unmap_template_param(a_template_param_coordinate_ptr  coord);
+
+#endif /* BACK_END_IS_CP_GEN_BE */
 
 #endif /* ifndef IL_TO_STR_H */
 
