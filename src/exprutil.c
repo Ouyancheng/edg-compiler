@@ -4799,8 +4799,10 @@ address of the temporary is returned.  This routine is only used in C++ mode.
   an_expr_node_ptr  node;
 
   orig_operand = *operand;
+#if 0
   do_operand_transformations(operand,
                              TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+#endif
   if (is_error_operand(operand)) {
     /* Error operand -- leave alone. */
 #if CHECKING
@@ -5244,6 +5246,43 @@ type.
 }  /* type_after_array_to_pointer_transformation */
 
 
+static an_expr_node_ptr conv_array_rvalue_expr_to_object_pointer(
+                                                         an_expr_node_ptr expr)
+/*
+expr is an expression tree for an array rvalue.  Make an expression for
+an object pointer to the array, and return a pointer to it.  Used only in
+C++.  Calls itself recursively with expressions from the subtree, some
+of which will no longer have array type.
+*/
+{
+  if (is_operation_node(expr) &&
+      expr->variant.operation.kind == (an_expr_operator_kind)eok_value_field) {
+    /* Rewrite an rvalue field selection by rewriting the rvalue as an
+       lvalue address, and then using a normal eok_field selection. */
+    an_expr_node_ptr op1 = expr->variant.operation.operands;
+    an_expr_node_ptr op1_next = op1->next;
+    an_expr_node_ptr op1_modified;
+
+    op1->next = NULL;
+    op1_modified = conv_array_rvalue_expr_to_object_pointer(op1);
+    op1_modified->next = op1_next;
+    if (op1_modified != op1) {
+      expr->variant.operation.operands = op1_modified;
+    }  /* if */
+    expr->type = make_pointer_type(expr->type);
+    expr->variant.operation.kind = (an_expr_operator_kind)eok_field;
+  } else {
+    /* We should have worked our way up to a class rvalue. */
+    an_operand operand;
+
+    make_expression_operand(expr, expr->type, &operand);
+    conv_class_operand_to_object_pointer(&operand);
+    expr = make_node_from_operand(&operand);
+  }  /* if */
+  return expr;
+}  /* conv_array_rvalue_expr_to_object_pointer */
+
+
 void conv_array_operand_to_pointer_operand(an_operand *operand)
 /*
 Apply the implicit array to pointer-to-first-element-of-array transformation
@@ -5258,9 +5297,22 @@ are left alone.
 
   if (is_array_type(operand->type)) {
     if (is_an_rvalue(operand)) {
-      /* An array rvalue -- error. */
-      error_in_operand(ec_bad_rvalue_array, operand);
-    } else if (is_an_lvalue(operand)) {
+      /* An array rvalue. */
+      if (C_mode()) {
+        /* Error in C mode. */
+        error_in_operand(ec_bad_rvalue_array, operand);
+      } else {
+        /* C++ -- valid.  Convert the operand to an lvalue for the array. */
+        an_expr_node_ptr expr;
+
+        check_assertion(is_expression_operand(operand));
+        expr = operand->variant.expression;
+        expr = conv_array_rvalue_expr_to_object_pointer(expr);
+        make_expression_operand(expr, expr->type, operand);
+        conv_object_pointer_to_lvalue(operand);
+      }  /* if */
+    }  /* if */
+    if (is_an_lvalue(operand)) {
       /* An array lvalue -- convert to a pointer. */
       orig_operand = *operand;
       /* Convert to an rvalue that is the pointer, and change its type
