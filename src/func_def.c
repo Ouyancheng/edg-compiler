@@ -2301,11 +2301,10 @@ in case it's useful.
         cssp = symbol_supplement_for_class(tp);
         if (cssp->destructor != NULL) {
           rp = cssp->destructor->variant.routine.ptr;
-          if (!routine_has_been_defined(rp) &&
-              external_typeinfo_will_be_defined_for_class(tp)) {
+          if (external_typeinfo_will_be_defined_for_class(tp)) {
             /* The destructor for the current class is needed because it is
-               referenced from the typeinfo variable, but it has not yet
-               been defined.  See if we can create a definition. */
+               referenced from the typeinfo variable.  Create a definition
+               if needed, and force its instantiation if a template. */
             mark_routine_referenced(rp);
           }  /* if */
         }  /* if */
