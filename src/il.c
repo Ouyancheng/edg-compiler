@@ -4627,9 +4627,10 @@ a list pointed to by an IL scope entry.  Return a pointer to that IL scope
 entry, along with the associated pointers-block.  When scope_level is
 NO_SCOPE_DEPTH, the scope is either the file scope or the scope associated
 with the class or namespace of which the entry is a member, and the
-scope need not be on the scope stack.  *pointers_block is returned NULL
-if there is no pointers block (anymore) for the scope, which means no
-last-pointer is being maintained (anymore).
+scope need not be on the scope stack.  That mode cannot be used for
+function-local entities unless they are class or namespace members.
+*pointers_block is returned NULL if there is no pointers block (anymore)
+for the scope, which means no last-pointer is being maintained (anymore).
 */
 {
   a_scope_stack_entry_ptr  ssep;
@@ -4648,7 +4649,10 @@ last-pointer is being maintained (anymore).
       /* Compute the scope and pointers-block for the namespace scope if this
          is a namespace member or the file scope otherwise. */
       nsp = scp->parent.namespace_ptr;
-      if (nsp == NULL) scope_level = DEPTH_OF_FILE_SCOPE;
+      if (nsp == NULL) {
+        check_assertion(!scp->is_local_to_function)
+        scope_level = DEPTH_OF_FILE_SCOPE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (class_type != NULL) {
@@ -4680,7 +4684,7 @@ last-pointer is being maintained (anymore).
     sp = curr_translation_unit->primary_scope;
     *pointers_block = &curr_translation_unit->file_scope_pointers_block;
   } else {
-    /* Use the IL scope associated with scope_level. */
+    /* Use the IL scope associated with scope_level on the scope_stack. */
     check_assertion(scope_level >= 0 && scope_level <= depth_scope_stack);
     ssep = &scope_stack[scope_level];
     sp = ensure_il_scope_exists(ssep);
