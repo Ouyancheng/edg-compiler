@@ -1,5 +1,10 @@
 Version 3.2
 
+1/29/03  IA-64 ABI: performance with complex class hierarchies
+
+The performance on examples with very large complex inheritance
+hierarchies has been improved when using IL lowering.
+
 1/29/03  IA-64 ABI: extra unneeded thunks
 
 In the IA-64 ABI, extra unneeded thunks were sometimes generated
