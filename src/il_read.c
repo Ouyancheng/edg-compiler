@@ -734,12 +734,12 @@ necessary to make it directly accessible in memory.
   if (debug_level >= 2) {
     /* See how many of the blocks ended up at their original addresses. */
     unsigned long           num_same = 0, num_different = 0;
-    a_block_remap_entry_ptr remap_entry;
+    a_block_remap_entry_ptr remap_entryd;
 
-    for (remap_entry = block_remap_list;
-         remap_entry != NULL;
-         remap_entry = remap_entry->next) {
-      if (remap_entry->old_start_addr == remap_entry->new_start_addr) {
+    for (remap_entryd = block_remap_list;
+         remap_entryd != NULL;
+         remap_entryd = remap_entryd->next) {
+      if (remap_entryd->old_start_addr == remap_entryd->new_start_addr) {
         num_same++;
       } else {
         num_different++;
