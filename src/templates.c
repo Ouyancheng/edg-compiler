@@ -3897,6 +3897,9 @@ and the class instantiation will detect the runaway case.
   /* Note that Microsoft decl_modifiers are not processed on static
      data member definitions.  Microsoft does not allow this either. */
   var_ptr->assoc_template = tssp->il_template_entry;
+  /* Notify the correspondence routines that a definition of this function
+     is now present. */
+  establish_variable_instantiation_corresp(var_ptr);
 done:
   db_exit();
 }  /* define_template_static_data_member */
