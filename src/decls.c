@@ -5049,6 +5049,7 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean    dangling_type_specifier = FALSE;
   a_boolean    is_elaborated_type_specifier = FALSE;
   a_boolean    is_friend_decl = FALSE;
+  a_boolean    is_inline = FALSE;
 
   enum {bt_none, bt_void, bt_char, bt_int,
         bt_float, bt_double, bt_typedef,
@@ -5112,8 +5113,7 @@ Returns TRUE if there is an error in the specifiers.
 	       "register" and (in C++ only) "auto". */
             error(ec_bad_param_storage_class);
             err = TRUE;
-          } else if ((*output_flags & DSO_INLINE) &&
-                     curr_token != tok_static) {
+          } else if (is_inline && curr_token != tok_static) {
             error(ec_bad_storage_class_with_inline);
             err = TRUE;
           } else if (is_member_decl &&
@@ -5236,11 +5236,12 @@ Returns TRUE if there is an error in the specifiers.
           /* "inline" allowed on certain function declarations only. */
           error(ec_inline_not_allowed);
           err = TRUE;
-	} else if (*output_flags & DSO_INLINE) {
+	} else if (is_inline) {
 	  /* Only one "inline" specifier at at time. */
 	  error(ec_dupl_decl_specifier);
 	  err = TRUE;
 	} else {
+          is_inline = TRUE;
 	  *output_flags |= DSO_INLINE;
 	}  /* if */
 	break;
@@ -5385,8 +5386,7 @@ process_class_specifier:
                the token following the left paren is a right paren or the
                start of a formal parameter declaration. */
             if (is_member_decl &&
-                (num_specifiers == 0 ||
-                 (num_specifiers == 1 && (*output_flags & DSO_INLINE))) &&
+                num_specifiers == (is_inline ? 1 : 0) &&
                 has_name_of_curr_class(&locator_for_curr_id)) {
               /* The name is the same as that of a class being defined.  This
                  is treated as a constructor declaration if the next two
@@ -5552,8 +5552,8 @@ process_class_specifier:
           basic_type = bt_typedef;
           *type_ptr = error_type();
           break;
-        } else if (num_specifiers == 0 ||
-                   (num_specifiers == 1 && (*output_flags & DSO_INLINE))) {
+        } else if (num_specifiers ==
+                     ((is_friend_decl ? 1 : 0) + (is_inline ? 1 : 0))) {
           a_symbol_ptr  sym = locator_for_curr_id.specific_symbol;
 
           /* A function declaration without declaration specifiers is
