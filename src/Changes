@@ -1,5 +1,18 @@
 Version 2.44
 
+5/1/00   Suppressing duplicate diagnostics in template instantiations
+
+When an error was detected while scanning a template definition, duplicate
+diagnostics would often be issued during the instantiation of the
+template.  These redundant diagnostics are now suppressed.  Note that
+only diagnostics initially generated during the prototype instantiation
+of a template are suppressed, so when the same diagnostic is issued during
+different instantiations of a template (but not during the prototype
+instantiation), the duplicate messages are not suppressed.  In addition,
+because this processing depends on prototype instantiation processing,
+duplicate messages in function bodies are suppressed only when doing
+prototype instantiations of functions.
+
 4/28/00  Internal error when a qualified file scope declaration find an
          overload set in an unnamed namespace
 
