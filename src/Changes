@@ -1,5 +1,13 @@
 Version 2.30
 
+9/18/95  Instantiation pragma and nested classes
+
+When a template-id is used as the argument of an instantiation pragma
+the pragma should apply to all of the members of the class.  A bug
+resulted in the pragma applying only to the members of the top
+level class and not to the members of any nested classes.  This has
+been fixed.
+
 8/17/95  Removing type qualifiers from parameter types, again
 
 The changes to remove or preserve qualifiers on parameter types have been

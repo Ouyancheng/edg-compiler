@@ -6457,7 +6457,6 @@ data members within a given template class.
   a_symbol_ptr	mem_sym;
   a_type_ptr	class_type;
 
-  check_assertion(is_template_class_symbol(sym));
   class_type = sym->variant.class_struct_union.type;
   if (pragma_kind == (a_pragma_kind)pk_can_instantiate) {
     /* The can_instantiate pragma is a special case.  Instead of
@@ -6496,6 +6495,10 @@ data members within a given template class.
           }  /* for */
         } else if (mem_sym->kind == (a_symbol_kind)sk_static_data_member) {
           update_instantiation_flags(mem_sym, pragma_kind, pos);
+        } else if (mem_sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
+                   mem_sym->kind == (a_symbol_kind)sk_union_tag) {
+          /* Instantiate the members of any nested classes. */
+          update_instantiation_flags_for_class(mem_sym, pragma_kind, pos);
         }  /* if */
       }  /* for */
     }  /* if */
