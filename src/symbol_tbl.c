@@ -489,8 +489,8 @@ void add_name_of_type(a_type_ptr  type,
 	  case ik_unsigned_int:    str = "unsigned int";    break;
 	  case ik_long:            str = "long";            break;
 	  case ik_unsigned_long:   str = "unsigned long";   break;
-#if CHECKING
           default:
+#if CHECKING
             internal_error("add_name_of_type:  bad integer kind");
 #endif /* CHECKING */
             str = "int";
@@ -502,8 +502,8 @@ void add_name_of_type(a_type_ptr  type,
           case fk_float:        str = "float";        break;
           case fk_double:       str = "double";       break;
           case fk_long_double:  str = "long double";  break;
-#if CHECKING
           default:
+#if CHECKING
             internal_error("add_name_of_type:  bad float kind");
 #endif /* CHECKING */
             str = "float";
