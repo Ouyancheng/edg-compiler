@@ -465,6 +465,9 @@ extern a_boolean seq_is_in_include_file(a_seq_number seq_number);
 
 extern void break_source_corresp(a_source_correspondence *sc);
 
+extern a_source_correspondence *source_corresp_for_il_entry(
+                                                 char              *entity_ptr,
+                                                 an_il_entry_kind  kind);
 /*
 Return TRUE if a constant is an error constant.
 */

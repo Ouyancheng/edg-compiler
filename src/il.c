@@ -703,7 +703,8 @@ Dump information on an access adjustment entry, for debug purposes.
     fputs("<bad access adjustment kind>", f_debug);
   } else {
     db_access_control(aap->access);
-    sc = &((a_variable_ptr)aap->entity.ptr)->source_corresp;
+    sc = source_corresp_for_il_entry(aap->entity.ptr, aap->entity.kind);
+    check_assertion(sc != NULL);
     fprintf(f_debug, " \"%s\" = %s ", sc->name, str);
     db_name(sc);
   }  /* if */
@@ -2211,6 +2212,34 @@ break the correspondence.
   sc->assoc_info = NULL;
   sc->name       = NULL;
 }  /* break_source_corresp */
+
+
+a_source_correspondence *source_corresp_for_il_entry(
+                                                 char              *entity_ptr,
+                                                 an_il_entry_kind  kind)
+/*
+Given an IL entry pointer (entity_ptr) of a given kind (kind), return a
+pointer to its source correspondence entry if it has one and NULL if it does
+not.
+*/
+{
+  a_source_correspondence *scp;
+
+  switch (kind) {
+    case iek_constant:
+    case iek_type:
+    case iek_variable:
+    case iek_field:
+    case iek_routine:
+    case iek_asm_entry:
+    case iek_label:
+      scp = &((a_constant_ptr)entity_ptr)->source_corresp;
+      break;
+    default:
+      scp = NULL;
+  }  /* switch */
+  return scp;
+}  /* source_corresp_for_il_entry */
 
 
 void set_constant_kind(a_constant           *cp,
@@ -7096,11 +7125,15 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       } else {
         if (kind == (an_il_entry_kind)iek_src_seq_secondary_decl) {
           sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
-          scp = &((a_variable_ptr)sssdp->entity.ptr)->source_corresp;
+          scp = source_corresp_for_il_entry(sssdp->entity.ptr,
+                                            sssdp->entity.kind);
+          check_assertion(scp != NULL);
           pos = &sssdp->decl_position;
           if (sssdp->autonomous_tag_decl) autonomous = TRUE;
         } else {
-          scp = &((a_variable_ptr)ssep->entity.ptr)->source_corresp;
+          scp = source_corresp_for_il_entry(ssep->entity.ptr,
+                                            ssep->entity.kind);
+          check_assertion(scp != NULL);
           pos = &scp->decl_position;
           if (kind == (an_il_entry_kind)iek_type) {
             if (((a_type_ptr)ssep->entity.ptr)->autonomous_primary_tag_decl) {
@@ -7677,18 +7710,20 @@ entry that has already been created and linked in for this entity.
     kind = (an_il_entry_kind)sssdp->entity.kind;
     entity_ptr = sssdp->entity.ptr;
   }  /* if */
-  switch (kind) {
-    case iek_statement:
-      /* Statement. */
-      ((a_statement_ptr)entity_ptr)->source_sequence_entry = new_ssep;
-      break;
-    case iek_variable:
-    case iek_routine:
-    case iek_type:
-    case iek_constant:
-    case iek_field:
-      /* Declared entity -- extract the source correspondence field. */
-      scp = &((a_variable_ptr)entity_ptr)->source_corresp;
+  if (kind == (an_il_entry_kind)iek_statement) {
+    /* Statement. */
+    ((a_statement_ptr)entity_ptr)->source_sequence_entry = new_ssep;
+  } else if (kind == (an_il_entry_kind)iek_pragma) {
+    /* Pragma. */
+    ((a_pragma_ptr)entity_ptr)->source_sequence_entry = new_ssep;
+  } else {
+    /* See if there's a source sequence entry. */
+    scp = source_corresp_for_il_entry(entity_ptr, kind);
+    if (scp == NULL) {
+      /* No source correspondence, so no pointer back from the IL entry to
+         the source sequence entry. */
+    } else {
+      /* Declared entity (variable, routine, etc.). */
       if (scp->source_sequence_entry == NULL) {
         /* The entity does not yet point to a source sequence entry.  Note
            that this includes the case where the pointer has been cleared
@@ -7696,19 +7731,11 @@ entry that has already been created and linked in for this entity.
            -- e.g., a forward reference to a function -- see mark_declared. */
         scp->source_sequence_entry = new_ssep;
       }  /* if */
-      break;
-    case iek_pragma:
-      ((a_pragma_ptr)entity_ptr)->source_sequence_entry = new_ssep;
-      break;
-    default:;
-      /* No pointer back to the source source sequence entry. */
-  }  /* switch */
+    }  /* if */
+  }  /* if */
   if (old_ssep == NULL) {
     add_to_source_sequence_list(new_ssep);
   } else {
-#if 0
-    /* ??? */
-#endif /* if 0 */
 #if DEBUG
     if (debug_level >= 4) {
       fputs("empty ss entry changed to ", f_debug);
