@@ -302,9 +302,14 @@ the current statement sequence.
         internal_error("add_statement: stmt list not allowed under stmt");
       }  /* if */
 #endif /* CHECKING */
-      if ((*head_ptr)->kind == (a_statement_kind)stmk_block) {
+      if ((*head_ptr)->kind == (a_statement_kind)stmk_block &&
+          (*head_ptr)->variant.block.extra_info->assoc_scope == NULL) {
         /* There is an existing block from a source construct.  Find the 
-           end of its statement list, and add there. */
+           end of its statement list, and add there.  Note that blocks that
+           contain declarations are ruled out: we don't want to add a
+           statement inside such a block.  (That's especially true in
+           C++, where the end of the block may kick off destructor calls
+           which must be done before the statement being added is executed.) */
         extra_block = *head_ptr;
         temp_stmt = extra_block->variant.block.statements;
         if (temp_stmt != NULL) {
