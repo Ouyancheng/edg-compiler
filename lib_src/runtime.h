@@ -215,8 +215,24 @@ EXTERN_C STD_NAMESPACE::new_handler
 			/* Pointer to the new handler routine to be called. */
 
 #ifdef __EDG_IA64_ABI
+
 typedef void *a_dso_handle;
 			/* Type of a DSO handle. */
+
+/*
+Guard variables are 64 bits in the IA-64 ABI but only 32 bits in the ARM EABI.
+This definition must match the type selected in
+lower_init.c:add_first_time_test.
+*/
+#ifdef __EDG_IA64_ABI_USE_INT_STATIC_INIT_GUARD
+typedef int an_ia64_guard;
+#else /* ifndef __EDG_IA64_ABI_USE_INT_STATIC_INIT_GUARD */
+typedef unsigned long long an_ia64_guard;
+#endif /* ifdef __EDG_IA64_ABI_USE_INT_STATIC_INIT_GUARD */
+  
+typedef an_ia64_guard *an_ia64_guard_ptr;
+			/* A pointer to a guard variable. */
+
 #endif /* defined(__EDG_IA64_ABI) */
 
 #endif /* RUNTIME_H */

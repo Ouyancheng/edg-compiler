@@ -18,20 +18,12 @@ C++ functions to for one-time initialization guard variables.
 
 #ifdef __EDG_IA64_ABI
 
-typedef unsigned long long a_guard;
-			/* A guard variable.  This definition must
-			   match the type selected in
-			   lower_init.c:add_first_time_test. */
-
-typedef a_guard *a_guard_ptr;
-			/* A pointer to a guard variable. */
-
 /*
 These functions are used by the front end only if
 IA64_ABI_USE_GUARD_ACQUIRE_RELEASE is TRUE.
 */
 
-EXTERN_C int ABI_NAMESPACE::__cxa_guard_acquire(a_guard_ptr guard)
+EXTERN_C int ABI_NAMESPACE::__cxa_guard_acquire(an_ia64_guard_ptr guard)
 /*
 If the guard variable indicates that the guarded variable has already
 been initialized, return 0.  Otherwise, return 1.
@@ -47,7 +39,7 @@ been initialized, return 0.  Otherwise, return 1.
 }  /* __cxa_guard_acquire */
 
 
-EXTERN_C void ABI_NAMESPACE::__cxa_guard_release(a_guard_ptr guard)
+EXTERN_C void ABI_NAMESPACE::__cxa_guard_release(an_ia64_guard_ptr guard)
 /*
 Called when the initialization of the guarded object is complete.
 */
@@ -59,7 +51,7 @@ Called when the initialization of the guarded object is complete.
 }  /* __cxa_guard_release */
 
 
-EXTERN_C void ABI_NAMESPACE::__cxa_guard_abort(a_guard_ptr guard)
+EXTERN_C void ABI_NAMESPACE::__cxa_guard_abort(an_ia64_guard_ptr guard)
 /*
 The initialization of the guarded object has been aborted due to an
 exception being thrown.  Reset the guard so that the initialization 

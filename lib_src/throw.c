@@ -679,7 +679,7 @@ requires cleanup.
          need to be cleared (although the runtime routine does do so).  The
          call of __cxa_guard_abort is primarily done so that a lock can be
          released, if the implementation uses such locks. */
-      ABI_NAMESPACE::__cxa_guard_abort((unsigned long long*)flag_addr);
+      ABI_NAMESPACE::__cxa_guard_abort((an_ia64_guard_ptr)flag_addr);
 #else /* ifndef __EDG_IA64_ABI */
       *flag_addr = 0;
 #endif /* ifdef __EDG_IA64_ABI */
