@@ -6567,7 +6567,8 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
         child1->variant.operation.returns_lvalue_instead_of_usual_rvalue &&
         ((child_op = child1->variant.operation.kind) ==
                                          (an_expr_operator_kind)eok_question ||
-         child_op == (an_expr_operator_kind)eok_comma)) {
+         child_op == (an_expr_operator_kind)eok_comma) &&
+        expr->variant.operation.kind != (an_expr_operator_kind)eok_comma) {
       /* The first operand of expr is an lvalue-returning "?" or ",".
          That is, expr is the node on top of a "?" or ",". */
       an_expr_node_ptr child2 = child1->next;
