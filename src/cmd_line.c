@@ -1724,11 +1724,13 @@ enable_microsoft_mode:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
       case optk_far_data_pointers:
-        /* Set size of data pointers in Microsoft 16-bit mode. */
+        /* Set size (either near or far) of data pointers when near/far
+           support is enabled. */
         il_header.far_data_pointers = opt_value;
         break;
       case optk_far_code_pointers:
-        /* Set size of code pointers in Microsoft 16-bit mode. */
+        /* Set size (either near or far) of code pointers when near/far
+           support is enabled. */
         il_header.far_code_pointers = opt_value;
         break;
 #endif /* NEAR_AND_FAR_ALLOWED */
@@ -2130,6 +2132,10 @@ enable_microsoft_mode:
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+    /* If near and far were enabled by default, turn off support. */
+    il_header.near_and_far_are_enabled = FALSE;
+#endif /* NEAR_AND_FAR_ALLOWED */
     /* Strict ANSI mode is incompatible with allowing anachronisms. */
     if (allow_anachronisms) {
       if (option_kind_used[(int)optk_cplusplus_anachronisms]) {
