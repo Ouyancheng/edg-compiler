@@ -1668,7 +1668,22 @@ a few special quirks.
     /* Get the length. */
     p = get_length(p, &nchars, &prev_end, dctl);
     while (!dctl->err_in_id) {
+      a_boolean nested_name_case = FALSE;
+      /* Check a "Q" nested-type-name specification by checking for "Q",
+         some digits, and an underscore.  This rules out class names that
+         start with "Q".  A class whose name starts with something like
+         "Q2_" is still going to be a problem, but that's a truly
+         ambiguous case.  This is inherited from Cfront. */
       if (get_char(p, dctl) == 'Q') {
+        char *p2 = p+1;
+        if (isdigit((unsigned char)get_char(p2, dctl))) {
+          do { p2++; } while (isdigit((unsigned char)get_char(p2, dctl)));
+          if (get_char(p2, dctl) == '_') {
+            nested_name_case = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (nested_name_case) {
         /* Nested class name. */
         char          *end_ptr = demangle_type_name(p, dctl);
         unsigned long chars_taken = end_ptr - p;
