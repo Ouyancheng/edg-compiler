@@ -1160,7 +1160,6 @@ and the class instantiation will detect the runaway case.
     /* Reactivate any pragmas that should be bound to the generated
        instance. */
     reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
-    push_class_reactivation_scope(static_data_member_sym->parent.class_type);
     /* Call mark_defined *after* the template instantiation scope is pushed --
        correct behavior for source sequence entry generation depends on it. */
     mark_defined(static_data_member_sym, &tip->template_sym->decl_position);
@@ -1172,7 +1171,7 @@ and the class instantiation will detect the runaway case.
     /* Bypass the "=" or "(". */
     (void)get_token();
     initializer(static_data_member_sym, &tip->template_sym->decl_position,
-                idl_internal, has_parenthesized_initializer,
+                idl_external, has_parenthesized_initializer,
                 /*is_old_style_param_decl=*/FALSE,
                 &incomplete_type_error_reported);
     if (curr_token != tok_end_of_source) {
@@ -1182,7 +1181,6 @@ and the class instantiation will detect the runaway case.
     /* By pass end-of-source token, which is probably the terminator token
        in the cache. */
     (void)get_token();
-    pop_class_reactivation_scope();
     /* Process any pragmas that are to be bound to this instance. */
     process_curr_construct_pragmas(static_data_member_sym,
                                    (a_statement_ptr)NULL);
@@ -1201,6 +1199,21 @@ and the class instantiation will detect the runaway case.
   var_ptr->source_corresp.referenced = TRUE;
   var_ptr->is_template_static_data_member = TRUE;
   tip->already_instantiated = TRUE;
+  if (var_ptr->storage_class == (a_storage_class)sc_extern) {
+    var_ptr->storage_class = (a_storage_class)sc_unspecified;
+#if CHECKING
+    check_assertion_str2(var_ptr->source_corresp.name_linkage ==
+                                  (a_name_linkage_kind)nlk_cplusplus_external,
+                         "define_template_static_data_member:",
+                         "bad name linkage");
+  } else {
+    check_assertion_str2(var_ptr->source_corresp.name_linkage ==
+                                  (a_name_linkage_kind)nlk_internal &&
+                          var_ptr->storage_class == (a_storage_class)sc_static,
+                         "define_template_static_data_member:",
+                         "bad storage class or name linkage");
+#endif /* CHECKING */
+  }  /* if */
 #if 0
   /* Note that Microsoft decl_modifiers are not processed on static
      data member definitions.  Microsoft does not allow this either. */
