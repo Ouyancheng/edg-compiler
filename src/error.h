@@ -561,7 +561,8 @@ typedef enum /*an_error_code*/ {
   ec_unnamed_object_with_uninitialized_field,
   ec_nonstd_pp_directive,
   ec_unexpected_template_arg_list,
-  ec_missing_initializer_list
+  ec_missing_initializer_list,
+  ec_incompatible_ptr_to_member_selection_operands
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

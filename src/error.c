@@ -1934,6 +1934,10 @@ error code.
     case ec_missing_initializer_list:
       m = "initialization with \"{...}\" expected for aggregate object";
       break;
+    case ec_incompatible_ptr_to_member_selection_operands:
+      m =
+      "pointer-to-member selection class types are incompatible (%t1 and %t2)";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

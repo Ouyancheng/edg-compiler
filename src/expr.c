@@ -2448,8 +2448,9 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
           /* Related classes. */
         } else {
           /* Bad combination. */
-          pos_ty2_error(ec_incompatible_operands, &operator_position,
-                        operand_1_type, operand_2_type);
+          pos_ty2_error(ec_incompatible_ptr_to_member_selection_operands,
+                        &operator_position,
+                        operand_1_type, operand_2_class);
           err = TRUE;
         }  /* if */
       }  /* if */
