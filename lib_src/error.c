@@ -59,7 +59,7 @@ Return the string associated with the specified error code.
       s = "terminate() called itself recursively";
       break;
     case ec_nonpositive_vla_size:
-      s = "nonpositive VLA size";
+      s = "nonpositive size for variable-length array";
       break;
     case ec_vla_allocation_failed:
       s = "VLA allocation failed";
