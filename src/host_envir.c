@@ -2161,9 +2161,11 @@ Set module_id to the string.
     }  /* if */
     if (external_name == NULL) {
       /* In the very unlikely event that the file does not define any
-         externally visible variables or routines, use the time of
-         compilation and current directory name. */
+         externally visible variables or routines, use the modification
+         time of the source file and the current directory name.  If
+         there is no source file, use the time of compilation. */
       str1 = get_file_modification_time_string(file_name);
+      if (str1 == NULL) str1 = il_header.time_of_compilation;
       str2 = current_directory_name;
     } else {
       str1 = external_name;
