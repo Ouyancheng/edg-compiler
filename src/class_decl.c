@@ -3165,7 +3165,11 @@ Return TRUE is sym is a symbol for an operator delete() function.
   if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
     is_operator_delete = FALSE;
   } else {
-    rp = sym->variant.routine.ptr;
+    if (sym->kind == (a_symbol_kind)sk_function_template) {
+      rp = sym->variant.template_info->variant.function.routine;
+    } else {
+      rp = sym->variant.routine.ptr;
+    }  /* if */
     is_operator_delete =
                (rp->special_kind == (a_special_function_kind)sfk_operator &&
                 rp->opname_kind == (an_opname_kind)onk_delete);
@@ -3191,8 +3195,6 @@ function symbols.
   a_symbol_ptr  sym, new_sym = NULL;
   an_error_code error_code;
   a_boolean     suppress_redecl_error = FALSE;
-  a_boolean     template_case = 
-                          (symbol_kind == (a_symbol_kind)sk_function_template);
 
   db_enter(4, "symbol_for_member_function");
   *overload_sym = NULL;
@@ -3248,7 +3250,8 @@ function symbols.
         /* Overloading is not allowed for operator delete() (ARM 12.5). */
         pos_error(ec_delete_already_declared, &locator->source_position);
         suppress_redecl_error = TRUE;
-      } else if (!overload_distinguishable(sym, type, template_case,
+      } else if (!overload_distinguishable(sym, type,
+                                           /*template_case=*/FALSE, /* sic! */
                                            &error_code)) {
         pos_error(error_code, &locator->source_position);
         suppress_redecl_error = TRUE;
