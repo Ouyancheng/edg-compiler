@@ -2607,11 +2607,13 @@ Add the first of possibly two parts of a type reference.
                           !is_pointer_or_reference_type(local_type)),
                          seg_ptr);
     if (need_parens) add_string_to_segment("(", seg_ptr);
-  } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
+  } else if (unqualified_type->kind == (a_type_kind)tk_ptr_to_member) {
     /* C++ pointer to member type. */
-    form_type_first_part(type->variant.ptr_to_member.type,
+    form_type_qualifier(type, seg_ptr);
+    form_type_first_part(unqualified_type->variant.ptr_to_member.type,
                          /*needs_parens=*/TRUE, seg_ptr);
-    form_class_qualifier(type->variant.ptr_to_member.class_of_which_a_member,
+    form_class_qualifier(unqualified_type->
+                            variant.ptr_to_member.class_of_which_a_member,
                          seg_ptr);
     add_string_to_segment("*", seg_ptr);
     if (need_parens) add_string_to_segment("(", seg_ptr);
