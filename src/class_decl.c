@@ -2009,7 +2009,7 @@ routine entry and return TRUE; otherwise return FALSE.
                     an_error_code  error_code =
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
                         ec_bad_return_type_on_virtual_function_override;
-#else /* !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN*/
+#else /* !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
                         ec_different_return_type_on_virtual_function_override;
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
                     pos_syty_error(error_code, source_pos, sym,
