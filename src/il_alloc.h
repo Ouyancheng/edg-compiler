@@ -35,6 +35,8 @@ extern a_per_instantiation_needed_flags_entry_ptr
            alloc_per_instantiation_needed_flags_entry(a_boolean at_file_scope);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+extern a_trans_unit_corresp_ptr alloc_trans_unit_corresp(void);
+
 extern void set_template_param_constant_kind(
                                       a_constant                     *cp,
                                       a_template_param_constant_kind kind);
@@ -227,6 +229,11 @@ extern void il_alloc_init(void);
 void trace_alloc_check(void *ptr);
 #endif /* TRACE_ALLOC */
 
+/*
+Macro that allocates an entry for the specified type in the file scope
+memory region.
+*/
+#define alloc_il_of_type(type) (type*)alloc_il(sizeof(type))
 
 #endif /* ifndef IL_ALLOC_H */
 

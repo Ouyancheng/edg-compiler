@@ -88,6 +88,7 @@ static unsigned long
 		num_scopes_allocated,
 		num_il_entry_prefixes_allocated,
 		string_literal_text_space_allocated,
+                num_trans_unit_corresps_allocated,
                 num_trans_unit_corresp_pointers_allocated;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static unsigned long
@@ -474,6 +475,25 @@ region if at_file_scope is TRUE.
 }  /* alloc_per_instantiation_needed_flags_entry */
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+
+a_trans_unit_corresp_ptr alloc_trans_unit_corresp(void)
+/*
+Allocate a translation unit correspondence entry, initialize its fields,
+and return a pointer to it.
+*/
+{
+  a_trans_unit_corresp_ptr tucp;
+
+  tucp = alloc_il_of_type(a_trans_unit_corresp);
+#if DEBUG
+  num_trans_unit_corresps_allocated++;
+#endif /* DEBUG */
+  tucp->kind = iek_none;
+  tucp->canonical = NULL;
+  tucp->primary = NULL;
+  return tucp;
+}  /* alloc_trans_unit_corresp */
+
 
 void set_template_param_constant_kind(a_constant                     *cp,
                                       a_template_param_constant_kind kind)
@@ -896,6 +916,7 @@ to it.
   bcp->next                            = NULL;
   bcp->type                            = NULL;
   bcp->derived_class                   = NULL;
+  bcp->trans_unit_corresp              = NULL;
   bcp->decl_position                   = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   bcp->base_specifier_range            = null_source_range;
@@ -3239,6 +3260,9 @@ Display and return the amount of space used for various IL tables.
   db_space_used("template_decls", num_template_decls_allocated,
                 a_template_decl);
   db_space_used("templates", num_templates_allocated, a_template);
+  db_space_used("trans. unit corresps",
+                num_trans_unit_corresps_allocated,
+                a_trans_unit_corresp);
 #if RECORD_MACROS_IN_IL
   db_space_used("macros", num_macros_allocated, a_macro);
 #endif /* RECORD_MACROS_IN_IL */
@@ -3261,7 +3285,7 @@ Display and return the amount of space used for various IL tables.
   db_space_used_nontype("fs orphan pointers", num_fs_orphan_pointers_allocated,
                         SPACE_FOR_FS_ORPHAN_POINTER);
 #endif /* ORPHAN_PROCESSING_NEEDED */
-  db_space_used_nontype("trans. unit corresp.",
+  db_space_used_nontype("trans. unit corresp. ptr.",
                         num_trans_unit_corresp_pointers_allocated,
                         SPACE_FOR_TRANS_UNIT_CORRESP_POINTER);
   db_space_used("IL entry prefix", num_il_entry_prefixes_allocated,
@@ -3296,6 +3320,7 @@ in il_alloc_init.)
 #if NEED_NAME_MANGLING
   def_source_corresp.unmangled_name = NULL;
 #endif /* NEED_NAME_MANGLING */
+  def_source_corresp.trans_unit_corresp = NULL;
   def_source_corresp.parent.class_type = NULL;
   def_source_corresp.decl_position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -3423,6 +3448,7 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_src_seq_sublists_allocated),
       pch_saved_var_array_elem(num_instantiation_directives_allocated),
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      pch_saved_var_array_elem(num_trans_unit_corresps_allocated),
       pch_saved_var_array_elem(num_trans_unit_corresp_pointers_allocated),
 #if ORPHAN_PROCESSING_NEEDED
       pch_saved_var_array_elem(num_fs_orphan_pointers_allocated),
@@ -3564,7 +3590,8 @@ initializations that are done for each compilation.
   num_src_seq_sublists_allocated         = 0;
   num_instantiation_directives_allocated = 0;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  num_trans_unit_corresp_pointers_allocated    = 0;
+  num_trans_unit_corresps_allocated      = 0;
+  num_trans_unit_corresp_pointers_allocated = 0;
 #if ORPHAN_PROCESSING_NEEDED
   num_fs_orphan_pointers_allocated       = 0;
 #endif /* ORPHAN_PROCESSING_NEEDED */

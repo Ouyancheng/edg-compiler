@@ -964,6 +964,30 @@ typedef struct a_per_instantiation_needed_flags_entry {
 
 #endif /* ifdef CIL */
 
+/*
+Entry pointed to by the trans_unit_corresp field of a_source_correspondence
+to describe a linkage-based correspondence between entities in different
+translation units.  Each entity with linkage will point to one of these
+entries, and that entry also be pointed to by all equivalent entities in
+other translation units.
+*/
+typedef struct a_trans_unit_corresp *a_trans_unit_corresp_ptr;
+typedef struct a_trans_unit_corresp {
+  an_il_entry_kind
+                kind;   /* Kind of entity. */
+  char          *canonical;
+                        /* The instance of the entity that is considered the
+                           canonical one, which means the one with the most
+                           information.  Points to a definition if one is
+                           available, and to a specialization if one is
+                           available.  Always non-NULL. */
+  char          *primary;
+                        /* The instance of the entity in the primary IL, if
+                           there is one.  NULL otherwise. */
+} a_trans_unit_corresp;
+
+
+
 typedef struct a_source_correspondence *a_source_correspondence_ptr;
 typedef struct a_source_correspondence {
   /* Structure placed within several IL constructs to tie the IL construct
@@ -989,6 +1013,16 @@ typedef struct a_source_correspondence {
 			/* If name_has_been_mangled is TRUE, points to the
 			   original name before mangling.  Otherwise, NULL. */
 #endif /* NEED_NAME_MANGLING */
+  a_trans_unit_corresp_ptr
+		trans_unit_corresp;
+			/* When compiling multiple translation units, when
+			   an entry is referenced by more than one translation
+			   unit, all entries that refer to the same entity
+			   share a trans_unit_corresp entry.  An entity used
+			   only in the primary translation unit may have a
+			   NULL trans_unit_corresp pointer.  An entity used
+			   only in a secondary translation unit will have a
+			   non-NULL trans_unit_corresp pointer. */
 #ifdef CIL
   a_parent_class_or_namespace
 		parent;
@@ -3582,6 +3616,13 @@ typedef struct a_base_class {
 			/* The class derived (directly or indirectly) from
 			   this base class on whose base_classes list it
 			   appears. */
+  a_trans_unit_corresp_ptr
+		trans_unit_corresp;
+			/* When compiling multiple translation units, points
+			   to an entry used to describe entries that refer
+			   to the same entity.  See the trans_unit_corresp
+			   field of the source correspondence entry for more
+			   information. */
   a_source_position
 		decl_position;
 			/* For a direct base class, the source position of
