@@ -2866,10 +2866,16 @@ the latter will be NULL for variables.
              param types are treated not as incompatible declarations of a
              routine but as an instance of illegal overloading of a routine
              name.  The error is issued later. */
+          /* Note that error types are not considered compatible with
+             anything here, and that's deliberate to avoid a false clash
+             on something like
+               int f(int)   { return 0; }
+               int f(undef) { return 0; }
+          */
           if (param_types_are_compatible(
                                  rout_type,
                                  sym_ptr->variant.extern_symbol_descr->type,
-                                 TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
+                                 TCF_NO_FLAGS)) {
             /* Param types are compatible, so we have a match.  */
             break;
           }  /* if */
