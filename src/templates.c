@@ -300,193 +300,6 @@ Free the token caches that were used while processing a template declaration.
 
 
 #if RECORD_TEMPLATES_IN_IL
-/*
-Static variables and routines that are used to build up a string representation
-of a template.  Characters are added to the temp_text_buffer, which is
-indefinitely expandable, and then a string is created -- a copy of the
-assigned portion of the buffer, with a null terminator appended -- that
-the IL template entry can point to.
-*/
-static a_seq_number
-		curr_seq;
-			/* The sequence number of the source position of the
-			   most recently added token, etc., in the buffer. */
-
-static an_il_to_str_output_control_block
-		octl;
-			/* Output control block used to interface to the
-			   il_to_str routines. */
-
-
-static void add_whitespace_to_template_string(a_seq_number     seq_incr,
-                                              a_column_number  column_incr)
-
-/*
-Add seq_incr newline characters and column_incr blanks to temp_text_buffer,
-incrementing pos_in_temp_text_buffer accordingly.
-*/
-{
-  for (; seq_incr > 0; --seq_incr) {
-    put_ch_to_temp_text_buffer('\n');
-  }  /* for */
-  for (; column_incr > 0; --column_incr) {
-    put_ch_to_temp_text_buffer(' ');
-  }  /* for */
-}  /* add_whitespace_to_template_string */
-
-
-static void add_token_to_template_string(void)
-/*
-Copy characters representing the current token into temp_text_buffer, and
-increase pos_in_temp_text_buffer by the number of characters added.
-*/
-{
-  a_seq_number     seq_incr;
-  a_column_number  column_incr;
-
-  db_enter(5, "add_token_to_template_string");
-  if (pos_curr_token.seq <= curr_seq) {
-    /* We're on the same line as the previous token processed, so just add
-       a space (in most cases) to separate the tokens.  (Note: the line for
-       the current token may be less than curr_seq when a macro expansion
-       occurs.  Treat the token as being on the current line.) */
-    if (curr_token == tok_comma || curr_token == tok_semicolon ||
-        pos_in_temp_text_buffer == 0) {
-      /* No space is needed before a comma or semicolon -- or if this is
-         the very first token of the declaration. */
-      column_incr = 0;
-    } else {
-      check_assertion(pos_in_temp_text_buffer > 0 ||
-                      curr_seq < pos_curr_token.seq);
-      /* Add a single space. */
-      column_incr = 1;
-    }  /* if */
-    /* Don't add a line feed. */
-    seq_incr = 0;
-  } else {
-    /* We've moved to a new line.  Compute the indentation. */
-    column_incr = pos_curr_token.column - 1;
-    /* Compute the number of line feed characters to add. */
-    seq_incr =  pos_curr_token.seq - curr_seq;
-    /* Reset the current line. */
-    curr_seq = pos_curr_token.seq;
-  }  /* if */
-  /* Add any spaces and line feeds that might be required. */
-  if (seq_incr > 0 || column_incr > 0) {
-    add_whitespace_to_template_string(seq_incr, column_incr);
-  }  /* if */
-  /* Now put out the characters representing the token. */
-  if (curr_token == tok_int_constant || curr_token == tok_float_constant ||
-      curr_token == tok_string_literal || curr_token == tok_char_constant) {
-    /* Write out a string that represents the constant. */
-    if (const_for_curr_token.kind == (a_constant_repr_kind)ck_error) {
-      /* If there was an error in scanning the token, reset the flag to avoid
-         an assertion failure in the subroutine.  This means something like
-         "<error-const>" will be put out in the template string. */
-      octl.gen_compilable_code = FALSE;
-    }  /* if */
-    form_constant(&const_for_curr_token, /*need_parens=*/TRUE, &octl);
-    /* Reset the flag, in case it had been changed. */
-    octl.gen_compilable_code = TRUE;
-  } else if (curr_token == tok_newline) {
-    /* Ignore tok_newline.  It only comes up in pragma token caches, and
-       when the sequence number changes the required number of newline
-       characters will be added to the cache anyway. */
-#if CHECKING
-    /* Check for tokens that should not show up in the cached tokens of
-       a template declaration. */
-  } else if (curr_token == tok_end_of_source ||
-             curr_token == tok_header_name ||
-             curr_token == tok_pp_number ||
-             curr_token == tok_digit_sequence ||
-             curr_token == tok_cpp_quote ||
-             curr_token == tok_ptr_to_member) {
-    internal_error("add_token_to_template_string: unexpected token");
-#endif /* CHECKING */
-  } else if (curr_token == tok_identifier) {
-    /* An identifier. */
-    check_assertion(!locator_for_curr_id.has_been_coalesced);
-    put_str_to_temp_text_buffer(locator_for_curr_id.symbol_header->
-                                                               identifier);
-  } else {
-    /* A keyword or other token whose literal name can be put out. */
-    put_str_to_temp_text_buffer(token_names[(int)curr_token]);
-  }  /* if */    
-  db_exit();
-}  /* add_token_to_template_string */
-
-
-static void add_curr_token_pragmas_to_template_string(void)
-/*
-If the current token has any pragmas associated with it, add strings to
-represent them to temp_text_buffer.  Note that all pragmas that are
-encountered, whatever their other characteristics, are included.
-*/
-{
-  a_pending_pragma_ptr  ppp;
-  a_boolean             is_pseudo_pragma;
-  a_seq_number          seq_incr;
-  a_column_number       column_incr;
-
-  db_enter(5, "add_curr_token_pragmas_to_template_string");
-  for (ppp = curr_token_pragmas; ppp != NULL; ppp = ppp->next) {
-    if (ppp->pragma_position.seq <= curr_seq) {
-      /* We're on the same line as the previous token processed, so just add
-         a space (in most cases) to separate the tokens.  (Note: the line for
-         the current token may be less than curr_seq when a macro expansion
-         occurs.  Treat the token as being on the current line.) */
-      column_incr = 1;
-      /* Don't add a line feed. */
-      seq_incr = 0;
-    } else {
-      /* We've moved to a new line.  Compute the indentation. */
-      column_incr = ppp->pragma_position.column - 1;
-      /* Compute the number of line feed characters to add. */
-      seq_incr =  ppp->pragma_position.seq - curr_seq;
-      /* Reset the current line. */
-      curr_seq = ppp->pragma_position.seq;
-    }  /* if */
-    /* Add any spaces and line feeds that might be required. */
-    if (seq_incr > 0 || column_incr > 0) {
-      add_whitespace_to_template_string(seq_incr, column_incr);
-    }  /* if */
-    is_pseudo_pragma = ppp->descr_ptr->is_pseudo_pragma;
-    if (is_pseudo_pragma) {
-      /* Add comment delimiter to the template string. */
-      put_str_to_temp_text_buffer("/*");
-    } else {
-      /* Add "#pragma " to the template string. */
-      put_str_to_temp_text_buffer("#pragma ");
-    }  /* if */
-    if (ppp->descr_ptr->make_text_not_tokens) {
-      /* Note: the pragma id is already part of pragma_text. */
-      check_assertion(ppp->pragma_text != NULL);
-      put_str_to_temp_text_buffer(ppp->pragma_text);
-    } else {
-      /* The pragma id is not part of pragma_text, so it has to be added
-         explicitly. */
-      put_str_to_temp_text_buffer(pragma_ids[(int)ppp->descr_ptr->kind]);
-      if (ppp->token_cache.first_token != NULL) {
-	/* Activate the cache and then go through each of its tokens. */
-	rescan_reusable_cache(&ppp->token_cache);
-	while (curr_token != tok_end_of_source) {
-	  add_token_to_template_string();
-	  /* Advance to the next token in the cache. */
-	  (void)get_token();
-	}  /* while */
-	/* Advance past the end-of-source token. */
-	flush_past_token_cache_terminator();
-      }  /* if */
-    }  /* if */
-    if (is_pseudo_pragma) {
-      /* Add terminating comment delimiter to the template string. */
-      put_str_to_temp_text_buffer("*/");
-    }  /* if */
-  }  /* for */
-  db_exit();
-}  /* add_curr_token_pragmas_to_template_string */
-
-
 static void make_template_string(a_template_ptr  template_ptr,
                                  a_token_cache   *template_param_list_cache,
                                  a_token_cache   *template_decl_cache,
@@ -504,34 +317,17 @@ the "text" field of *template_ptr to point to it.
   char                  *il_string;
 
   db_enter(3, "make_template_string");
-  /* curr_seq is initialized to the line on which the template declaration
-     begins. */
-  curr_seq = template_ptr->source_corresp.decl_position.seq;
-  pos_in_temp_text_buffer = 0;
+  /* Initialize the buffer that will be used to build the token string.  Use
+     the position of the template declaration as the starting position of
+     the token string. */
+  init_token_string(&template_ptr->source_corresp.decl_position);
   /* The outer loop goes though the three token caches in order, beginning
      with "template < ... >". */
   cache = template_param_list_cache;
   for (;;) {
     check_assertion(cache != NULL);
-    /* Activate the cache and then go through each of its tokens. */
-    rescan_reusable_cache(cache);
-    while (curr_token != tok_end_of_source) {
-      if (curr_token_pragmas != NULL) {
-        /* One or more pragmas appeared immediately before the current token.
-           Add them to the template string too. */
-        add_curr_token_pragmas_to_template_string();
-        /* Clear the curr_token_pragmas pointer, since those pragmas should
-           not actually be processed at this time. */
-        curr_token_pragmas = NULL;
-      }  /* if */
-      /* Now add something to the template string to represent the current
-         token. */
-      add_token_to_template_string();
-      /* Advance to the next token in the cache. */
-      (void)get_token();
-    }  /* while */
-    /* Advance past the end-of-source token. */
-    flush_past_token_cache_terminator();
+    /* Add the tokens from this cache to the template string. */
+    add_token_cache_to_string(cache);
     /* Advance to the next token cache. */
     if (cache == template_param_list_cache) {
       cache = template_decl_cache;
@@ -9777,12 +9573,6 @@ Initializations for template.
   f_instantiation_info = NULL;
   memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-#if RECORD_TEMPLATES_IN_IL
-  /* Initialize the output control block for the il-to-str routines. */
-  clear_il_to_str_output_control_block(&octl);
-  octl.output_str = put_str_to_temp_text_buffer;
-  octl.gen_compilable_code = TRUE;
-#endif /* RECORD_TEMPLATES_IN_IL */
   /* Allocate a type to be used for template parameter constants whose
      real types cannot be known.  This type will be used for all such
      constants that are created. */

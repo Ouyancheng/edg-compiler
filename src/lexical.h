@@ -1124,9 +1124,17 @@ EXTERN a_boolean
 			   This is set when tokens are being rescanned
 			   from a cache or when there are pragmas that
 			   are associated with the current token. */
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+
+#if ASM_FUNCTION_ALLOWED
 EXTERN a_boolean
 		in_asm_function_body;
+			/* TRUE if processing takes place during the scan of
+			   an asm function body. */
+#endif /* ASM_FUNCTION_ALLOWED */
+
+#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+EXTERN a_boolean
+		in_asm_block_or_function;
 			/* TRUE if processing takes place during the scan of
 			   an asm function body or a Microsoft-style asm
 			   block. */
@@ -1177,6 +1185,19 @@ EXTERN a_boolean
 			   see END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE. */
 
 /*
+Structure used to record information about a pp token in a token cache.
+*/
+typedef struct a_pp_token_descr *a_pp_token_descr_ptr;
+typedef struct a_pp_token_descr {
+  char		*token_start;
+			/* Pointer to the first character of the token. */
+  char		*token_end;
+			/* Pointer to the last character of the token.
+			   The last character will be followed by a null
+			   terminator. */
+} a_pp_token_descr;
+
+/*
 Data structure used to save information about a token so that the token
 can be cached and then rescanned.  Note that this is never done with
 pp-tokens.  See cache_curr_token et al.
@@ -1186,7 +1207,8 @@ enum a_token_extra_info_kind_tag {
   teik_none,		/* No extra information, i.e., normal token. */
   teik_identifier,	/* Extra information for an identifier. */
   teik_constant,	/* Extra information for a literal constant. */
-  teik_pragma		/* Extra information for a pragma. */
+  teik_pragma,		/* Extra information for a pragma. */
+  teik_pp_token         /* Extra information for a pp token. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_token_extra_info_kind;
@@ -1226,6 +1248,11 @@ typedef struct a_cached_token {
 		*pragmas;
 			/* A list of pragmas associated with the next token
 			   in the cache. */
+    /* When extra_info_kind == teik_pp_token: */
+    a_pp_token_descr	pp_token_descr;
+			/* When a pp token is cached a copy of the string
+			   that represents the token is saved as part of
+			   the cache. */
   } variant;
 } a_cached_token;
 
@@ -1539,6 +1566,24 @@ extern void lexical_init(void);
     /* Advance past the end-of-source token. */			\
     (void)get_token();						\
   }
+
+/*
+Flag that is TRUE if the routines that convert a token cache into a
+string are needed.  These routines are used for creating template strings
+and for converting token caches for Microsoft-style asm blocks into strings.
+*/
+#if RECORD_TEMPLATES_IN_IL || MICROSOFT_EXTENSIONS_ALLOWED
+#define TOKENS_TO_STRING_NEEDED TRUE
+#else /* !(RECORD_TEMPLATES_IN_IL || MICROSOFT_EXTENSIONS_ALLOWED) */
+#define TOKENS_TO_STRING_NEEDED FALSE
+#endif /* RECORD_TEMPLATES_IN_IL || MICROSOFT_EXTENSIONS_ALLOWED */
+
+#if TOKENS_TO_STRING_NEEDED
+extern void add_token_cache_to_string(a_token_cache_ptr	cache);
+
+extern void init_token_string(a_source_position *pos);
+#endif /* TOKENS_TO_STRING_NEEDED */
+
 
 #if DEBUG
 /* Show space used in the lexical routines, for debugging purposes. */

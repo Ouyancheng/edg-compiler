@@ -1,5 +1,20 @@
 Version 2.34
 
+10/29/96 Microsoft-style asm blocks in templates and member functions
+
+Formerly, Microsoft-style asm blocks were not supported in contexts
+in which the tokens were cached and rescanned later, which includes
+the bodies of member functions and function templates.  The token
+caching routines now permit pp-tokens to be cached and rescanned later.
+Consequently, asm blocks are now supported in these contexts.
+
+10/29/96 White space and comments within Microsoft-style asm blocks
+
+White space and comments are no longer preserved when converting
+Microsoft-style asm blocks into text strings.  This is a consequence
+of the changes made to permit asm blocks in templates and member
+functions described above.
+
 10/29/96 Improper lowering of stmk_init for local static variables
 
 A change made in 2.33 resulted in stmk_init statements for local static

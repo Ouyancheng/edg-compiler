@@ -302,6 +302,7 @@ static unsigned long
                 num_file_suffixes_allocated,
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 		num_include_file_histories_allocated,
+		cached_pp_token_string_space,
 		num_reusable_cache_entries_allocated;
 #endif /* DEBUG */
 
@@ -529,6 +530,35 @@ the newly created token.
 }  /* build_cached_token */
 
 
+static void make_copy_of_pp_token(a_pp_token_descr_ptr pptdp)
+/*
+Allocates memory and copies the token string indicated by
+start_of_curr_token and end_of_curr_token to the newly allocated
+memory.
+*/
+{
+  char		*new_start;
+  char		*new_end;
+  sizeof_t	length;
+
+  /* Compute the length of the string not including a null terminator
+     that will be added. */
+  length = end_of_curr_token - start_of_curr_token + 1;
+  /* Allocate the string, adding space for the terminator. */
+  new_start = (char *)alloc_fe(length+1);
+#if DEBUG
+  /* Track the amount of space used for pp token strings. */
+  cached_pp_token_string_space += length+1;
+#endif /* DEBUG */
+  new_end = new_start + length;
+  strncpy(new_start, start_of_curr_token, size_t_arg(length));
+  /* Add the terminator to the new string. */
+  new_start[length] = '\0';
+  pptdp->token_start = new_start;
+  pptdp->token_end = new_end;
+}  /* make_copy_of_pp_token */
+
+
 void cache_curr_token(a_token_cache *cache)
 /*
 Save the current token on the end of the list of tokens saved in *cache.
@@ -536,13 +566,8 @@ This is used to save tokens for later rescanning.  This may not be used
 for pp-tokens.
 */
 {
-  a_cached_token_ptr ctp;
+  a_cached_token_ptr	ctp;
 
-#if CHECKING
-  if (fetch_pp_tokens) {
-    internal_error("cache_curr_token: called with fetch_pp_tokens TRUE");
-  }  /* if */
-#endif /* CHECKING */
   /* If there are any pragmas associated with the current token, create
      a token cache entry to preserve the pragma information before adding
      the token cache entry for the current token. */
@@ -554,7 +579,12 @@ for pp-tokens.
   alloc_cached_token(ctp);
   ctp->token = (a_byte_token_kind)curr_token;
   ctp->token_sequence_number = curr_token_sequence_number;
-  if (curr_token == tok_identifier || curr_token == tok_ptr_to_member) {
+  if (fetch_pp_tokens) {
+    /* The token being saved is a pp token.  Save this by copying the token
+       string. */
+    ctp->extra_info_kind = (a_token_extra_info_kind)teik_pp_token;
+    make_copy_of_pp_token(&ctp->variant.pp_token_descr);
+  } else if (curr_token == tok_identifier || curr_token == tok_ptr_to_member) {
     /* Identifier -- save information about it. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_identifier;
     ctp->variant.locator = locator_for_curr_id;
@@ -825,6 +855,7 @@ be copies to the new cache.
   a_token_sequence_number	first_tsn = curr_token_sequence_number;
   a_token_sequence_number	last_tsn;
   a_token_sequence_number	last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
+  a_token_kind			prev_token = tok_error;
 
   db_enter(4, "cache_token_stream_with_coalesce_flag");
   if (coalesce_ids) {
@@ -856,16 +887,48 @@ be copies to the new cache.
      ')', ']', or '}' is reached. */
   while (stop_tokens[(int)curr_token] == 0) {
     a_boolean	error;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    a_boolean	is_asm_block;
+    /* Check for the start of an Microsoft-style asm block.  This can
+       take one of two forms:
+
+		asm { asm-instructions }
+		asm asm-instruction newline
+
+       The asm-instruction(s) are fetches as pp-tokens, and so must be
+       handled specially during the caching process. */
+    is_asm_block = prev_token == tok_asm && curr_token != tok_lparen;
+    if (is_asm_block) {
+      in_asm_block_or_function = TRUE;
+      fetch_pp_tokens = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (curr_token == tok_lparen || curr_token == tok_lbracket ||
         curr_token == tok_lbrace) {
       error = cache_token_stream_until_matching_token(cache, coalesce_ids,
                                                       last_tsn_in_cache);
       if (error) break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (is_asm_block) {
+      /* An asm that is not enclosed in braces.  Take all tokens up to a
+         newline. */
+      while (curr_token != tok_newline && curr_token != tok_end_of_source) {
+        if (!coalesce_ids) cache_curr_token(cache);
+        get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
+      }  /* while */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     /* Stop immediately when end of source is reached. */
     if (curr_token == tok_end_of_source) break;
     /* Add the current token to the cache and advance to its successor. */
     if (!coalesce_ids) cache_curr_token(cache);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_asm_block) {
+      in_asm_block_or_function = FALSE;
+      fetch_pp_tokens = FALSE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    prev_token = curr_token;
     get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
   }  /* while */
   /* Leave error_position associated with what is now curr_token. */
@@ -1296,6 +1359,22 @@ an equivalent change.
     curr_token_pragmas = ctp->variant.pragmas;
     free_cached_token(ctp);
   }  /* for */
+  /* When fetch_pp_tokens is FALSE, make sure that the token being retrieved
+     is not a cached pp-token.  If it is, flush any cached pp-tokens and
+     issue an error at the point at which we resume scanning normal tokens.
+     It should not be possible to run out of tokens while flushing the
+     pp-tokens. */
+  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token &&
+      !fetch_pp_tokens) {
+    while (ctp != NULL &&
+           ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
+      ctp = ctp->next;
+    }  /* while */
+    check_assertion_str2(ctp != NULL, "get_token_from_reusable_cache_stack:",
+                         "pp-token flush consumed all tokens");
+    pos_error(ec_end_of_flush, &ctp->source_position);
+    cached_token_rescan_list = ctp->next;
+  }  /* if */
   /* Entry is for a token (normal case). */
   ctoken = (a_token_kind)ctp->token;
   pos_curr_token = ctp->source_position;
@@ -1303,7 +1382,13 @@ an equivalent change.
   curr_token_sequence_number = ctp->token_sequence_number;
   start_of_curr_token = end_of_curr_token = NULL;
   len_of_curr_token = 0;
-  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_identifier) {
+  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
+    /* This is a cached pptoken.  Restore the starting and ending token
+       positions. */
+    start_of_curr_token = ctp->variant.pp_token_descr.token_start;
+    end_of_curr_token = ctp->variant.pp_token_descr.token_end;
+  } else if (ctp->extra_info_kind ==
+                                    (a_token_extra_info_kind)teik_identifier) {
     /* For an identifier, restore the locator. */
     locator_for_curr_id = ctp->variant.locator;
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
@@ -1347,6 +1432,22 @@ an equivalent change.
                   "get_token_from...: pragma found in suppress_pragma mode");
     curr_token_pragmas = make_copy_of_pragma_list(ctp->variant.pragmas);
   }  /* for */
+  /* When fetch_pp_tokens is FALSE, make sure that the token being retrieved
+     is not a cached pp-token.  If it is, flush any cached pp-tokens and
+     issue an error at the point at which we resume scanning normal tokens.
+     It should not be possible to run out of tokens while flushing the
+     pp-tokens. */
+  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token &&
+      !fetch_pp_tokens) {
+    while (ctp != NULL &&
+           ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
+      ctp = ctp->next;
+    }  /* while */
+    check_assertion_str2(ctp != NULL, "get_token_from_reusable_cache_stack:",
+                         "pp-token flush consumed all tokens");
+    pos_error(ec_end_of_flush, &ctp->source_position);
+    reusable_cache_stack->next_cached_token = ctp->next;
+  }  /* if */
   /* Entry is for a token (normal case). */
   ctoken = (a_token_kind)ctp->token;
   pos_curr_token = ctp->source_position;
@@ -1354,7 +1455,13 @@ an equivalent change.
   curr_token_sequence_number = ctp->token_sequence_number;
   start_of_curr_token = end_of_curr_token = NULL;
   len_of_curr_token = 0;
-  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_identifier) {
+  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
+    /* This is a cached pptoken.  Restore the starting and ending token
+       positions. */
+    start_of_curr_token = ctp->variant.pp_token_descr.token_start;
+    end_of_curr_token = ctp->variant.pp_token_descr.token_end;
+  } else if (ctp->extra_info_kind ==
+                                    (a_token_extra_info_kind)teik_identifier) {
     /* For an identifier, restore the locator. */
     locator_for_curr_id = ctp->variant.locator;
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
@@ -4034,13 +4141,13 @@ source text (end of token, start of expansion, end of expansion).
    we avoid doing the comment deletion if we will not be outputting the
    modified line text in some way (as preprocessing or raw listing output). */
 /* If asm functions are allowed, also delete comments if inside an asm
-   function body (this includes Microsoft asm blocks).  The comments
-   are copied to the asm string before they are deleted. */
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+   function body.  The comments are copied to the asm string before they
+   are deleted. */
+#if ASM_FUNCTION_ALLOWED
 #define or_in_asm_function_body() || in_asm_function_body
-#else /* !(ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED) */
+#else /* !ASM_FUNCTION_ALLOWED */
 #define or_in_asm_function_body() /* Nothing */
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ASM_FUNCTION_ALLOWED  */
 #define need_to_delete_comment()                                      \
   ((((generate_pp_output && !do_not_put_curr_line_in_pp_output) ||    \
      f_raw_listing != NULL) &&                                        \
@@ -4073,7 +4180,7 @@ white_space_loop:
       if (in_preprocessing_directive) goto end_skip;
 #if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       /* Newline is also a token in asm functions. */
-      if (in_asm_function_body) goto end_skip;
+      if (in_asm_block_or_function) goto end_skip;
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
       /* The newline character is white space, and is being thrown away. */
       kind_skipped |= WHITE_SPACE_OTHER;
@@ -5180,7 +5287,7 @@ to speed in some cases.
 */
 #if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 /*
-If in_asm_function_body is TRUE, return tok_newline for ends of lines.
+If in_asm_block_or_function is TRUE, return tok_newline for ends of lines.
 */
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 {
@@ -5282,7 +5389,7 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       if (in_preprocessing_directive
 #if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
           /* ... or if inside an asm function body. */
-          || in_asm_function_body
+          || in_asm_block_or_function
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
                                     ) {
         ctoken = tok_newline;
@@ -8766,6 +8873,234 @@ is actived is popped here.
 }  /* wrapup_rescan_of_pragma_tokens */
 
 
+#if TOKENS_TO_STRING_NEEDED
+/*
+Static variables and routines that are used to build up a string representation
+of a token cache.  Characters are added to the temp_text_buffer, which is
+indefinitely expandable, and then a string is created -- a copy of the
+assigned portion of the buffer, with a null terminator appended.
+*/
+static a_seq_number
+		curr_seq;
+			/* The sequence number of the source position of the
+			   most recently added token, etc., in the buffer. */
+
+static an_il_to_str_output_control_block
+		octl;
+			/* Output control block used to interface to the
+			   il_to_str routines. */
+
+
+static void add_whitespace_to_string(a_seq_number     seq_incr,
+                                              a_column_number  column_incr)
+
+/*
+Add seq_incr newline characters and column_incr blanks to temp_text_buffer,
+incrementing pos_in_temp_text_buffer accordingly.
+*/
+{
+  for (; seq_incr > 0; --seq_incr) {
+    put_ch_to_temp_text_buffer('\n');
+  }  /* for */
+  for (; column_incr > 0; --column_incr) {
+    put_ch_to_temp_text_buffer(' ');
+  }  /* for */
+}  /* add_whitespace_to_string */
+
+
+static void add_token_to_string(a_cached_token_ptr ctp)
+/*
+Copy characters representing the token specified by ctp into
+temp_text_buffer, and increase pos_in_temp_text_buffer by the number
+of characters added.
+*/
+{
+  a_seq_number     seq_incr;
+  a_column_number  column_incr;
+  a_token_kind	   token = (a_token_kind)ctp->token;
+
+  db_enter(5, "add_token_to_string");
+  if (ctp->source_position.seq <= curr_seq) {
+    /* We're on the same line as the previous token processed, so just add
+       a space (in most cases) to separate the tokens.  (Note: the line for
+       the current token may be less than curr_seq when a macro expansion
+       occurs.  Treat the token as being on the current line.) */
+    if (token == tok_comma || token == tok_semicolon ||
+        pos_in_temp_text_buffer == 0) {
+      /* No space is needed before a comma or semicolon -- or if this is
+         the very first token of the declaration. */
+      column_incr = 0;
+    } else {
+      check_assertion(pos_in_temp_text_buffer > 0 ||
+                      curr_seq < ctp->source_position.seq);
+      /* Add a single space. */
+      column_incr = 1;
+    }  /* if */
+    /* Don't add a line feed. */
+    seq_incr = 0;
+  } else {
+    /* We've moved to a new line.  Compute the indentation. */
+    column_incr = ctp->source_position.column - 1;
+    /* Compute the number of line feed characters to add. */
+    seq_incr =  ctp->source_position.seq - curr_seq;
+    /* Reset the current line. */
+    curr_seq = ctp->source_position.seq;
+  }  /* if */
+  /* Add any spaces and line feeds that might be required. */
+  if (seq_incr > 0 || column_incr > 0) {
+    add_whitespace_to_string(seq_incr, column_incr);
+  }  /* if */
+  /* Now put out the characters representing the token. */
+  if (token == tok_newline) {
+    /* Ignore tok_newline.  It only comes up in pragma token caches, and
+       when the sequence number changes the required number of newline
+       characters will be added to the cache anyway. */
+  } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
+    /* A token that was saved as a pp-token.  This token should be added to
+       the string using the start of token pointer.  Note that the
+       copy of the token made for a cached pp-token is known to be null
+       terminated. */
+    put_str_to_temp_text_buffer(ctp->variant.pp_token_descr.token_start);
+  } else if (token == tok_int_constant ||
+             token == tok_float_constant ||
+             token == tok_string_literal ||
+             token == tok_char_constant) {
+    a_constant_ptr	constant = ctp->variant.constant;
+    /* Write out a string that represents the constant. */
+    if (constant->kind == (a_constant_repr_kind)ck_error) {
+      /* If there was an error in scanning the token, reset the flag to avoid
+         an assertion failure in the subroutine.  This means something like
+         "<error-const>" will be put out in the template string. */
+      octl.gen_compilable_code = FALSE;
+    }  /* if */
+    form_constant(constant, /*need_parens=*/TRUE, &octl);
+    /* Reset the flag, in case it had been changed. */
+    octl.gen_compilable_code = TRUE;
+#if CHECKING
+    /* Check for tokens that should not show up in the cached tokens of
+       a template declaration.  These tokens will be accepted if cached
+       as pp-tokens. */
+  } else if (token == tok_end_of_source ||
+             token == tok_header_name ||
+             token == tok_pp_number ||
+             token == tok_digit_sequence ||
+             token == tok_cpp_quote ||
+             token == tok_ptr_to_member) {
+    internal_error("add_token_to_string: unexpected token");
+#endif /* CHECKING */
+  } else if (token == tok_identifier) {
+    /* An identifier. */
+    check_assertion(!ctp->variant.locator.has_been_coalesced);
+    put_str_to_temp_text_buffer(ctp->variant.locator.symbol_header->
+                                                               identifier);
+  } else {
+    /* A keyword or other token whose literal name can be put out. */
+    put_str_to_temp_text_buffer(token_names[(int)token]);
+  }  /* if */    
+  db_exit();
+}  /* add_token_to_string */
+
+
+static void add_pragmas_to_string(a_pending_pragma_ptr pragmas)
+/*
+If the current token has any pragmas associated with it, add strings to
+represent them to temp_text_buffer.  Note that all pragmas that are
+encountered, whatever their other characteristics, are included.
+*/
+{
+  a_pending_pragma_ptr  ppp;
+  a_boolean             is_pseudo_pragma;
+  a_seq_number          seq_incr;
+  a_column_number       column_incr;
+
+  db_enter(5, "add_pragmas_to_string");
+  for (ppp = pragmas; ppp != NULL; ppp = ppp->next) {
+    if (ppp->pragma_position.seq <= curr_seq) {
+      /* We're on the same line as the previous token processed, so just add
+         a space (in most cases) to separate the tokens.  (Note: the line for
+         the current token may be less than curr_seq when a macro expansion
+         occurs.  Treat the token as being on the current line.) */
+      column_incr = 1;
+      /* Don't add a line feed. */
+      seq_incr = 0;
+    } else {
+      /* We've moved to a new line.  Compute the indentation. */
+      column_incr = ppp->pragma_position.column - 1;
+      /* Compute the number of line feed characters to add. */
+      seq_incr =  ppp->pragma_position.seq - curr_seq;
+      /* Reset the current line. */
+      curr_seq = ppp->pragma_position.seq;
+    }  /* if */
+    /* Add any spaces and line feeds that might be required. */
+    if (seq_incr > 0 || column_incr > 0) {
+      add_whitespace_to_string(seq_incr, column_incr);
+    }  /* if */
+    is_pseudo_pragma = ppp->descr_ptr->is_pseudo_pragma;
+    if (is_pseudo_pragma) {
+      /* Add comment delimiter to the template string. */
+      put_str_to_temp_text_buffer("/*");
+    } else {
+      /* Add "#pragma " to the template string. */
+      put_str_to_temp_text_buffer("#pragma ");
+    }  /* if */
+    if (ppp->descr_ptr->make_text_not_tokens) {
+      /* Note: the pragma id is already part of pragma_text. */
+      check_assertion(ppp->pragma_text != NULL);
+      put_str_to_temp_text_buffer(ppp->pragma_text);
+    } else {
+      /* The pragma id is not part of pragma_text, so it has to be added
+         explicitly. */
+      put_str_to_temp_text_buffer(pragma_ids[(int)ppp->descr_ptr->kind]);
+      if (ppp->token_cache.first_token != NULL) {
+	/* Add the tokens from the pragma token cache to the string. */
+        add_token_cache_to_string(&ppp->token_cache);
+      }  /* if */
+    }  /* if */
+    if (is_pseudo_pragma) {
+      /* Add terminating comment delimiter to the template string. */
+      put_str_to_temp_text_buffer("*/");
+    }  /* if */
+  }  /* for */
+  db_exit();
+}  /* add_pragmas_to_string */
+
+
+void add_token_cache_to_string(a_token_cache_ptr	cache)
+/*
+Go through the a token cache and add the tokens to the string that is
+being constructed that represents the tokens in the cache.
+*/
+{
+  a_cached_token_ptr	ctp = cache->first_token;
+
+  for (; ctp != NULL; ctp = ctp->next) {
+    /* Stop when we run out of tokens or hit an end-of-source token. */
+    if ((a_token_kind)ctp->token == tok_end_of_source) break;
+    if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
+      /* This token entry represents one or more pragmas.  Call a routine
+         to add the pragmas to the string. */
+      add_pragmas_to_string(ctp->variant.pragmas);
+    } else {
+      /* A normal token (including, possibly, a pp-token). */
+      add_token_to_string(ctp);
+    }  /* if */
+  }  /* for */
+}  /* add_token_cache_to_string */
+
+
+void init_token_string(a_source_position *pos)
+/*
+Prepare to generate a string from one or more token caches.  Initialize
+the string length to zero and set the current sequence number to the
+position specified by pos.
+*/
+{
+  curr_seq = pos->seq;
+  pos_in_temp_text_buffer = 0;
+}  /* init_token_string */
+#endif /* TOKENS_TO_STRING_NEEDED */
+
+
 #if DEBUG
 unsigned long show_lexical_space_used(void)
 /*
@@ -8808,6 +9143,9 @@ Display and return the amount of space used for various lexical tables.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   db_space_used("include file histories", num_include_file_histories_allocated,
                 an_include_file_history);
+  db_space_used_other("cached pp token strings", cached_pp_token_string_space,
+                      "");
+  grand_total += cached_pp_token_string_space;
 
   total = after_end_of_curr_source_line - curr_source_line;
   db_space_used_general_buffer("curr_source_line", total);
@@ -9004,6 +9342,7 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(num_pending_pragmas_allocated),
       pch_saved_var_array_elem(num_pragma_descriptions_allocated),
       pch_saved_var_array_elem(num_include_file_histories_allocated),
+      pch_saved_var_array_elem(cached_pp_token_string_space),
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -9071,6 +9410,12 @@ of the front end.
   avail_pending_pragmas = NULL;
   dollar_in_id_diagnostic_issued = FALSE;
   include_file_history_list = NULL;
+#if TOKENS_TO_STRING_NEEDED
+  /* Initialize the output control block for the il-to-str routines. */
+  clear_il_to_str_output_control_block(&octl);
+  octl.output_str = put_str_to_temp_text_buffer;
+  octl.gen_compilable_code = TRUE;
+#endif /* TOKENS_TO_STRING_NEEDED */
 #if DEBUG
   num_orig_line_modifs_allocated = 0;
   num_source_line_modifs_allocated = 0;
@@ -9082,6 +9427,7 @@ of the front end.
   num_pending_pragmas_allocated = 0;
   num_pragma_descriptions_allocated = 0;
   num_include_file_histories_allocated = 0;
+  cached_pp_token_string_space = 0;
 #endif /* DEBUG */
 }  /* lexical_init */
 

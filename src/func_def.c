@@ -30,7 +30,7 @@ func_def.c -- Processing for function definitions (both user supplied and
 #include "lower_il.h"
 #include "statements.h"
 
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if ASM_FUNCTION_ALLOWED
 
 #define ASM_FUNC_BODY_BUFFER_INCREMENTAL_ALLOCATION 1024
 			/* Initial and incremental allocation size for
@@ -45,16 +45,6 @@ static sizeof_t size_asm_func_body_buffer = 0;
 static sizeof_t pos_in_asm_func_body_buffer;
 			/* The number of characters that have been added to
 			   asm_func_body_buffer thus far in processing. */
-
-
-  /*
-  * These two remember where the previous copy_from_source_to_asm_func_buffer()
-  * left off.  They are set by scan_asm_function_body() to start
-  * just after the initial left brace.
-  */
-static char *prev_stop_char;
-static a_seq_number prev_seq_number;
-
 
 static void expand_asm_func_body_buffer(sizeof_t size_needed)
 /*
@@ -89,6 +79,111 @@ Add len characters to the asm function body buffer, beginning at start_char
           start_char, size_t_arg(len));
   pos_in_asm_func_body_buffer += len;
 }  /* add_to_asm_func_buffer */
+#endif /* ASM_FUNCTION_ALLOWED */
+
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+char *scan_asm_block(a_boolean  is_asm_block)
+/*
+Scan an "asm block", which is either the text between the opening and
+closing brace of a Microsoft asm statement, or, when is_asm_block is
+FALSE, it is assumed that no braces are present and it is just a
+single asm instruction line that is to be scanned (another version of
+the Microsoft asm statement).  In the normal case, when is_asm_block
+is TRUE, proceed token by token until the matching right brace is
+found; otherwise, proceed until the end-of-line is reached.  Then
+tokens of an asm block are fetched as pp-tokens.  Each token is placed
+in a token cache.  When the block is in the cache,
+add_token_cache_to_string is used to convert the token cache into a
+string.  When the entire text of the asm block has been created, a
+string of appropriate size is allocated in the memory region of the
+asm function and the buffer is copied to it.  When is_asm_block is
+TRUE the current token upon entry to the routine is the opening brace;
+when it is FALSE the current token is the first token of the asm
+instruction.
+*/
+{
+  unsigned int     nbrace = 1;
+  char             *body;
+  a_token_cache	   asm_cache;
+
+  db_enter(3, "scan_asm_block");
+  clear_token_cache(&asm_cache, /*reusable=*/FALSE);
+  init_token_string(&pos_curr_token);
+  /* Initialize global variables used by lexical routines. */
+  in_asm_block_or_function = TRUE;
+  fetch_pp_tokens = TRUE;
+  /* Advance past the opening brace, if there is one.  Note that this token
+     must be fetched after setting fetch_pp_tokens because the token stream
+     may have originally been cached when prescanning a member function or
+     template body and the setting of fetch_pp_tokens here must match the
+     setting used when the tokens were originally cached. */
+  if (is_asm_block) {
+    cache_curr_token(&asm_cache);
+    (void)get_token();
+  }  /* if */
+  /* Loop through the tokens and build the string token by token. */
+  while (curr_token != tok_end_of_source) {
+    /* There are two ways (other running off the end of the source stream)
+       to terminate this loop -- if is_asm_block is TRUE, stop when
+       a zero-level right brace is reached; otherwise, stop when tok_newline
+       or tok_semicolon is reached. */
+    if (is_asm_block) {
+      /* Keep track of braces. */
+      if (curr_token == tok_rbrace && --nbrace == 0) {
+        /* This right brace matches the opening left brace, marking the end of
+           the asm function body. */
+        cache_curr_token(&asm_cache);
+        break;
+      }  /* if */
+      /* Special handling for a left brace embedded within the assembler
+         code: assume it has a matching right brace. */
+      if (curr_token == tok_lbrace) ++nbrace;
+    } else if (curr_token == tok_newline) {
+      /* When it's not a brace-enclosed block of statements terminate the
+         scan when end-of-line is reached -- finish the copy, excluding
+         the current token. */ 
+      cache_curr_token(&asm_cache);
+      break;
+    }  /* if */
+    /* Copy characters from the source line to the buffer, from
+       last_stop_char through the end of the current token. */
+    cache_curr_token(&asm_cache);
+    /* Advance to the next token. */
+    (void)get_token();
+  }  /* while */
+  fetch_pp_tokens = FALSE;
+  in_asm_block_or_function = FALSE;
+  /* Convert the cached tokens into a string and free the token cache. */
+  add_token_cache_to_string(&asm_cache);
+  discard_token_cache(&asm_cache);
+  /* Allocate a block of the current IL memory region (the one established
+     for the asm function) -- the asm buffer will be copied into it, along
+     with a trailing null character. */
+  body = alloc_asm_function_body((sizeof_t)(pos_in_temp_text_buffer + 1));
+  (void)memcpy(body, temp_text_buffer, size_t_arg(pos_in_temp_text_buffer));
+  /* Add a null terminator. */
+  body[pos_in_temp_text_buffer] = '\0';
+#if DEBUG
+  if (debug_level >= 3 || db_flag_is_set("asm_block")) {
+    fprintf(f_debug, "asm block: %s\n", body);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return body;
+}  /* scan_asm_block */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
+#if ASM_FUNCTION_ALLOWED
+
+/*
+These two remember where the previous copy_from_source_to_asm_func_buffer()
+left off.  They are set by scan_asm_function_body() to start
+just after the initial left brace.
+*/
+static char *prev_stop_char;
+static a_seq_number prev_seq_number;
 
 #if !INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
 /*ARGSUSED*/ /* after_comment_stop_char is unused. */
@@ -195,64 +290,44 @@ non-NULL, also append the characters in the comment, through but not including
 }  /* copy_from_source_to_asm_func_buffer */
 
 
-char *scan_asm_block(a_boolean  is_asm_block)
+char *scan_asm_function(void)
 /*
-Scan an "asm block", which is usually the text between the opening and
-closing brace of an asm function or a Microsoft asm statement; also, when
-is_asm_block is FALSE, it is assumed that no braces are present and it is
-just a single asm instruction line that is to be scanned (another version of
-the Microsoft asm statement).  In the normal case, when is_asm_block is
-TRUE, proceed token by token until the matching right brace is found;
-otherwise, proceed until the end-of-line is reached.  For each token, copy
-the source text directly into the asm function body buffer; when the entire
-text of the asm function body has been copied, a string of appropriate size
-is allocated in the memory region of the asm function and the buffer is
-copied to it.  When is_asm_block is TRUE the current token upon entry to the
-routine is the opening brace; when it is FALSE the current token is the
-first token of the asm instruction.
+Scan the text between the opening and closing brace of an asm
+function.  Proceed token by token until the matching right brace is
+found.  For each token, copy the source text directly into the asm
+function body buffer; when the entire text of the asm function body
+has been copied, a string of appropriate size is allocated in the
+memory region of the asm function and the buffer is copied to it.
+Comments in asm functions are saved along with the normal tokens.
 */
 {
   unsigned int     nbrace = 1;
   char             *body;
 
-  db_enter(3, "scan_asm_block");
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-  /* is_asm_block can be FALSE only in Microsoft mode. */
-  check_assertion(is_asm_block == TRUE);
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+  db_enter(3, "scan_asm_function");
   /* Initialize static variables used for building the string. */
   pos_in_asm_func_body_buffer = 0;
   prev_stop_char = NULL;
   prev_seq_number = curr_seq_number;
   /* Initialize global variables used by lexical routines. */
   in_asm_function_body = TRUE;
+  in_asm_block_or_function = TRUE;
   fetch_pp_tokens = TRUE;
-  /* Advance past the opening brace, if there is one. */
-  if (is_asm_block) (void)get_token();
+  /* Advance past the opening brace. */
+  (void)get_token();
   /* Loop through the tokens and build the string token by token. */
   while (curr_token != tok_end_of_source) {
-    /* There are two ways (other running off the end of the source stream)
-       to terminate this loop -- if is_asm_block is TRUE, stop when
-       a zero-level right brace is reached; otherwise, stop when tok_newline
-       or tok_semicolon is reached. */
-    if (is_asm_block) {
-      /* Keep track of braces. */
-      if (curr_token == tok_rbrace && --nbrace == 0) {
-        /* This right brace matches the opening left brace, marking the end of
-           the asm function body.  Copy white space up to the current token. */
-        copy_from_source_to_asm_func_buffer(start_of_curr_token, (char *)NULL);
-        break;
-      }  /* if */
-      /* Special handling for a left brace embedded within the assembler
-         code: assume it has a matching right brace. */
-      if (curr_token == tok_lbrace) ++nbrace;
-    } else if (curr_token == tok_newline) {
-      /* Microsoft mode: when it's not a brace-enclosed block of statements
-         terminate the scan when end-of-line is reached -- finish the copy,
-         excluding the current token. */
+    /* Stop when a zero-level right brace is reached.
+       Keep track of braces. */
+    if (curr_token == tok_rbrace && --nbrace == 0) {
+      /* This right brace matches the opening left brace, marking the end of
+         the asm function body.  Copy white space up to the current token. */
       copy_from_source_to_asm_func_buffer(start_of_curr_token, (char *)NULL);
       break;
     }  /* if */
+    /* Special handling for a left brace embedded within the assembler
+       code: assume it has a matching right brace. */
+    if (curr_token == tok_lbrace) ++nbrace;
     /* Copy characters from the source line to the buffer, from
        last_stop_char through the end of the current token. */
     copy_from_source_to_asm_func_buffer(end_of_curr_token + 1, (char *)NULL);
@@ -261,6 +336,7 @@ first token of the asm instruction.
   }  /* while */
   fetch_pp_tokens = FALSE;
   in_asm_function_body = FALSE;
+  in_asm_block_or_function = FALSE;
   /* Allocate a block of the current IL memory region (the one established
      for the asm function) -- the asm buffer will be copied into it, along
      with a trailing null character. */
@@ -270,16 +346,13 @@ first token of the asm instruction.
   /* Add a null terminator. */
   body[pos_in_asm_func_body_buffer] = '\0';
 #if DEBUG
-  if (debug_level >= 3) {
+  if (debug_level >= 3 || db_flag_is_set("asm_function")) {
     fprintf(f_debug, "asm block: %s\n", body);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
   return body;
-}  /* scan_asm_block */
-
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-#if ASM_FUNCTION_ALLOWED
+}  /* scan_asm_function */
 
 static a_statement_ptr scan_asm_function_body(void)
 /*
@@ -292,7 +365,7 @@ stmk_asm statement is returned to the caller.
   db_enter(3, "scan_asm_function_body");
   stmt = alloc_statement((a_statement_kind)stmk_asm_func_body);
   set_stmt_source_position(stmt->position, pos_curr_token);
-  stmt->variant.asm_func_body = scan_asm_block(/*is_asm_block=*/TRUE);
+  stmt->variant.asm_func_body = scan_asm_function();
   db_exit();
   return stmt;
 }  /* scan_asm_function_body */

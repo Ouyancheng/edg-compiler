@@ -332,19 +332,18 @@ is set when ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE.
 
 /*
 Flag that is TRUE if comments appearing within the text of an asm function
-body or asm block should be preserved as part of the string representation
-(and passed on to the back end).  May be TRUE only if ASM_FUNCTION_ALLOWED
-or MICROSOFT_EXTENSIONS_ALLOWED is TRUE.
+body should be preserved as part of the string representation (and passed
+on to the back end).  May be TRUE only if ASM_FUNCTION_ALLOWED is TRUE.
 */
 #ifndef INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
 #define INCLUDE_COMMENTS_IN_ASM_FUNC_BODY FALSE
 #endif /* ifndef INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
-#if !ASM_FUNCTION_ALLOWED && !MICROSOFT_EXTENSIONS_ALLOWED
+#if !ASM_FUNCTION_ALLOWED
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
  #error -- INCLUDE_COMMENTS_IN_ASM_FUNC_BODY cannot be true unless       \
-           ASM_FUNCTION_ALLOWED or MICROSOFT_EXTENSIONS_ALLOWED is true
+           ASM_FUNCTION_ALLOWED is true
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
-#endif /* !ASM_FUNCTION_ALLOWED && !MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* !ASM_FUNCTION_ALLOWED  */
 
 
 /*

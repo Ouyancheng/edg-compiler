@@ -63,12 +63,14 @@ extern void force_definition_of_compiler_generated_routine(a_routine_ptr rp);
 
 extern void generate_required_virtual_destructor_bodies(a_scope_ptr  scope);
 
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-extern char *scan_asm_block(a_boolean  stop_at_end_of_line);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern char *scan_asm_block(a_boolean  is_asm_block);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if ASM_FUNCTION_ALLOWED
 extern void copy_from_source_to_asm_func_buffer(char *stop_char,
                                                 char *after_comment_stop_char);
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ASM_FUNCTION_ALLOWED */
 
 #endif /* FUNC_DEF_H */
 
