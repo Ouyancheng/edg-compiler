@@ -1469,7 +1469,8 @@ by a command line option.
       implicit_typename_enabled = TRUE;
     }  /* if */
     if (!option_kind_used[(int)optk_guiding_decls]) {
-      guiding_decls_allowed = TRUE;
+      /* Guiding declarations are supported by MSVC++ through version 7.0. */
+      guiding_decls_allowed = microsoft_version <= 1300;
     }  /* if */
     if (!option_kind_used[(int)optk_old_specializations]) {
       old_specializations_allowed = TRUE;

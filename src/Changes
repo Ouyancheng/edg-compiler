@@ -1,5 +1,19 @@
 Version 3.3
 
+7/29/03  Microsoft compatibility: guiding declarations no longer accepted
+
+Version 7.1 of the Microsoft compiler no longer accepts guiding declarations,
+so they are now disabled in Microsoft mode when Microsoft version is >= 1310.
+
+  template <class T> struct A {
+    friend void f(A);  // No longer refers to an instance of the template f
+  };
+  template <class T> void f(T){}
+  int main() {
+    A<int> ai;
+    f(ai);
+  }
+
 7/29/03  C++-generating back end: avoid putting out both inline and Microsoft
          __forceinline
 
