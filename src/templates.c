@@ -7557,9 +7557,7 @@ are either the specialization of a template or a template declaration.
     a_scope_stack_entry_ptr ssep = scope_stack_entry_for(depth_scope_stack);
     if ((ssep->kind == (a_scope_kind)sck_file ||
         ssep->kind == (a_scope_kind)sck_namespace ||
-        ssep->kind == (a_scope_kind)sck_namespace_extension) ||
-        (ssep->kind == (a_scope_kind)sck_class_struct_union &&
-         decl_state.is_template_friend)) {
+        ssep->kind == (a_scope_kind)sck_namespace_extension)) {
       /* A valid template specialization scope. */
     } else {
       error(ec_explicit_specialization_not_in_namespace_scope);
