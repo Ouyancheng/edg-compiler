@@ -1833,12 +1833,6 @@ Dump the definition ({...}) if body is TRUE.
     fputs(" {", f_C_output);
     field = type->variant.class_struct_union.field_list;
     indent += 2;
-    if (field == NULL) {
-      /* In the bizarre case "struct {int :0;}" the struct has no component
-         fields. */
-      startline((a_seq_number)0);
-      fputs("char __dummy;", f_C_output);
-    }  /* if */
     while (field != NULL) {
       /* Output a field to do necessary alignment if this field is not
          right after the previous field. */
