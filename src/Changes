@@ -1,5 +1,15 @@
 Version 2.44
 
+3/22/00  C-generating back end: extraneous casts on function call targets
+
+Under some circumstances, the C-generating back end used to emit a cast on the
+name of a function in a function call even though the function already had the
+right type in the context of the call.  This extraneous cast can hinder some
+C compilers from fully optimizing the expression.  Such casts are now entirely
+avoided when the C-generating back is not configured as a standalone utility.
+A standalone C-generating back end may still issue the casts in C mode or in
+Microsoft C++ mode.
+
 3/22/00  Microsoft compatibility: abort in IL lowering on __leave in __try
 
 The object lifetime processing in the front end was not right for
