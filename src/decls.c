@@ -10295,8 +10295,10 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
       }  /* if */
-      /* See if any type qualifiers were specified, and if they are okay. */
-      check_type_qualifiers(&local_type_ptr);
+      if (local_storage_class != (a_storage_class)sc_typedef) {
+        /* See if any type qualifiers were specified, and if they are okay. */
+        check_type_qualifiers(&local_type_ptr);
+      }  /* if */
       if (need_lbrace_remove_stop_token) {
         remove_stop_token(tok_lbrace);
         need_lbrace_remove_stop_token = FALSE;
