@@ -190,13 +190,19 @@ static unsigned long
 
 
 /*
-The following variable indicates the context in which a name is being
-generated.
+The following variables indicate the context in which a name or expression
+is being generated.
 */
 static a_boolean
 		in_friend_declaration;
 			/* TRUE if the name being generated appears within
 			   a friend declaration's parameter list. */
+static a_boolean
+		in_ctor_default_argument;
+			/* TRUE if the expression being generated appears
+			   in the default argument of a constructor
+			   parameter (needed to work around a Microsoft 6.0
+			   bug). */
 
 /*
 Entry used to record an adjustment needed at the end of a name context,
@@ -3748,7 +3754,9 @@ default arguments should be suppressed (needed for template specializations).
         }  /* if */
         if (!suppress_def_args) {
           /* Put out a default argument expression if there is one. */
+          in_ctor_default_argument = rtsp->assoc_routine_is_ctor;
           gen_default_arg_expr(param);
+          in_ctor_default_argument = FALSE;
         }  /* if */
         param = param->next;
         if (param == NULL) break;
@@ -6782,16 +6790,32 @@ call in the normal way.
       operand_1->variant.routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
     a_routine_ptr routine = operand_1->variant.routine;
+    a_type_ptr    return_type =
+                     skip_typerefs(routine->type)->variant.routine.return_type;
     /* This is a call of a conversion function. */
     if (expr->variant.operation.compiler_generated) {
       /* This is an implicit conversion.  Put out just the operand. */
       gen_lvalue(operand_2);
       handled = TRUE;
+    } else if (in_ctor_default_argument &&
+               msvc_is_generated_code_target &&
+               msvc_target_version_number == 1200 &&
+               skip_typerefs(return_type)->source_corresp.is_class_member &&
+               has_name_before_mangling(return_type)) {
+      /* Some builds of MSVC 6.0 (12.00.8804, for instance, but not
+         12.00.8168) have a bug in which using an old-style cast to a
+         nested class type in the default argument of a constructor causes
+         an internal compiler error.  A different bug causes a spurious
+         error if a functional cast to the nested class type is enclosed
+         in parentheses in that context. */
+      gen_type_name(return_type);
+      write_tok_ch('(');
+      gen_lvalue(operand_2);
+      write_tok_ch(')');
+      handled = TRUE;
     } else {
       /* Put out the call as an old-style cast.  This is necessary in some
          cases, e.g., when the conversion function cannot be named. */
-      a_type_ptr return_type =
-                     skip_typerefs(routine->type)->variant.routine.return_type;
       write_tok_ch('(');
       gen_cast(return_type);
       gen_lvalue(operand_2);
@@ -9932,6 +9956,7 @@ Note that the destructor, if any, is implicit and need not be put out.
 {
   a_constant_ptr con;
   a_boolean      might_use_old_style_cast = FALSE, is_value_init;
+  a_boolean      suppress_outermost_parentheses = FALSE;
 
   if (dip->is_explicit_cast && !parenthesized_init) {
     a_boolean has_one_argument = FALSE;
@@ -9978,26 +10003,42 @@ Note that the destructor, if any, is implicit and need not be put out.
       might_use_old_style_cast = TRUE;
     }  /* if */
     if (might_use_old_style_cast) {
-      write_tok_ch('(');
-      if (has_name_before_mangling(init_entity_type) &&
-          !msvc_is_generated_code_target) {
-        /* Generate a functional-notation cast.  We always put out an extra
-           set of parentheses around the generated code, regardless of whether
-           we use a functional cast or an old-style cast, so we don't have
-           to worry about the ambiguity of a functional cast -- "(X(y))",
-           because of the surrounding parentheses, can only be an expression,
-           unlike "X(y)", which might be either an expression or a declaration.
-           Using the functional notation also avoids a Sun quirk where
-           functional casts are lvalues but old-style casts are not  (i.e.,
-           we don't want to turn "X(y)" into "(X)(y)"). */
-        /* MSVC versions through at least 7.1 have parser bugs such that
-           "(X(y))" is sometimes treated as a syntax error, so we always
-           generate old-style casts when one of those compilers is the
-           target. */
+      if (in_ctor_default_argument &&
+          msvc_is_generated_code_target &&
+          msvc_target_version_number == 1200 &&
+          dip->kind == (a_dynamic_init_kind)dik_constructor &&
+          skip_typerefs(init_entity_type)->source_corresp.is_class_member &&
+          has_name_before_mangling(init_entity_type)) {
+        /* Some builds of MSVC 6.0 (12.00.8804, for instance, but not
+           12.00.8168) have a bug in which using an old-style cast to a
+           nested class type in the default argument of a constructor causes
+           an internal compiler error.  A different bug causes a spurious
+           error if a functional cast to the nested class type is enclosed
+           in parentheses in that context. */
+        suppress_outermost_parentheses = TRUE;
         gen_type_name(init_entity_type);
       } else {
-        /* Put out an old-style cast, e.g., (X)y. */
-        gen_cast(init_entity_type);
+        write_tok_ch('(');
+        if (has_name_before_mangling(init_entity_type) &&
+            !msvc_is_generated_code_target) {
+          /* Generate a functional-notation cast.  We always put out an extra
+             set of parentheses around the generated code, regardless of
+             whether we use a functional cast or an old-style cast, so we
+             don't have to worry about the ambiguity of a functional cast --
+             "(X(y))", because of the surrounding parentheses, can only be an
+             expression, unlike "X(y)", which might be either an expression
+             or a declaration.  Using the functional notation also avoids a
+             Sun quirk where functional casts are lvalues but old-style casts
+             are not  (i.e., we don't want to turn "X(y)" into "(X)(y)"). */
+          /* MSVC versions through at least 7.1 have parser bugs such that
+             "(X(y))" is sometimes treated as a syntax error, so we always
+             generate old-style casts when one of those compilers is the
+             target. */
+          gen_type_name(init_entity_type);
+        } else {
+          /* Put out an old-style cast, e.g., (X)y. */
+          gen_cast(init_entity_type);
+        }  /* if */
       }  /* if */
       if (!has_one_argument) {
         /* If the initialization doesn't have exactly one argument, use
@@ -10131,7 +10172,9 @@ Note that the destructor, if any, is implicit and need not be put out.
       unexpected_condition_str("gen_dynamic_init: bad kind");
   }  /* switch */
   /* Generate a closing parenthesis if needed for an old-style cast. */
-  if (might_use_old_style_cast) write_tok_ch(')');
+  if (might_use_old_style_cast && !suppress_outermost_parentheses) {
+    write_tok_ch(')');
+  }  /* if */
 end_of_routine:;
 }  /* gen_dynamic_init */
 
@@ -11579,6 +11622,7 @@ Initialize for the C++/C-generating back end.
   curr_switch_statement = NULL;
   num_curr_switch_statements = 0;
   in_friend_declaration = FALSE;
+  in_ctor_default_argument = FALSE;
   curr_name_context = NULL;
   avail_hidden_name_fixups = NULL;
   avail_name_contexts = NULL;

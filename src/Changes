@@ -1,5 +1,33 @@
 Version 3.6
 
+2/26/05  C++-generating back end: Microsoft compatibility in casts to a nested
+         class type
+
+Some builds of MSVC++ 6.0 (12.00.8804, for instance, but not 12.00.8168) have
+a bug in which using an old-style cast to a nested class type in the default
+argument of a constructor causes an internal compiler error.  For example:
+
+  struct S { } s;
+  struct Outer {
+    struct Inner1 {
+      Inner1(S);
+    };
+    struct Inner2 {
+      Inner2(const Inner1& r = Inner1(s));
+    };
+  };
+
+The default argument for Outer::Inner2 was formerly generated using an
+old-style cast, i.e.,
+
+      Inner2(const Inner1& r = ((Inner1)(s)));
+
+thus triggering the MSVC++ 6.0 bug.  Now, when msvc_is_generated_code_target
+is TRUE and msvc_target_version_number is 1200, the default argment will be
+generated as a functional cast with no enclosing parentheses:
+
+      Inner2(const Inner1& t = Inner1(s));
+
 2/18/05  Preprocessor memory usage
 
 Deeply-nested pseudo-recursive macro expansions, such as found in the BOOST
