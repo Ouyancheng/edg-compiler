@@ -92,7 +92,10 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 			/* If this bit is set "asm" is recognized as a decl-
 			   specifier.  Used only when ASM_FUNCTION_ALLOWED is
 			   TRUE. */
-#define DSI_LAST DSI_ASM_ALLOWED
+#define DSI_HAS_DIRECT_LINKAGE_SPECIFICATION (a_decl_flag_set)(0x8000)
+			/* If this bit is set the declaration belongs to
+			   a non-brace-enclosed linkage specification. */
+#define DSI_LAST DSI_HAS_DIRECT_LINKAGE_SPECIFICATION
 			/* Last bit in the bit vector that is in use. */
 
 /* Constants defining bits in the output bit vector returned from

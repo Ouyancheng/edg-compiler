@@ -1986,6 +1986,16 @@ Returns TRUE if there is an error in the specifiers.
                    curr_token != tok_static && curr_token != tok_typedef) {
           error(ec_bad_member_storage_class);
           err = TRUE;
+        } else if (input_flags & DSI_HAS_DIRECT_LINKAGE_SPECIFICATION &&
+                   curr_token != tok_typedef) {
+          /* We disallow
+               extern "C" static void f();
+             but in order to support association between a name linkage and a
+             function type we do allow
+               extern "C" typedef void FT();
+          */
+          error(ec_storage_class_not_allowed);
+          err = TRUE;
         } else if (input_flags & DSI_IS_TEMPLATE_DECLARATION &&
                    curr_token != tok_extern && curr_token != tok_static) {
           error(ec_bad_storage_class_on_template_decl);
