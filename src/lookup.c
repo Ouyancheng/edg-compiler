@@ -2295,10 +2295,8 @@ in a friend declaration.
       tp = assoc_symbol->variant.type;
       new_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
       /* Issue a diagnostic because this usage is no longer permitted by
-         the Working Paper.  Although this is prohibited, we expect that this
-         may be changed again.  Consequently, only a remark is issued at
-         this time. */
-      severity = es_remark;
+         the Working Paper. */
+      severity = strict_ansi_error_severity;
       pos_st_diagnostic(severity,
                         ec_template_param_in_elab_type, 
                         &error_position, assoc_symbol->header->identifier);

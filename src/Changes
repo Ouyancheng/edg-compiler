@@ -1,5 +1,14 @@
 Version 2.35
 
+1/8/97  Template parameters in elaborated type specifiers
+
+X3J16/WG21 has reaffirmed their previous decision that template
+parameters are not permitted in elaborated type specifiers in any
+circumstances, including declarations such as "friend class T".
+Consequently, the diagnostic for such use has been promoted from a
+remark to a warning in default mode, and to an error in strict
+mode (-A).
+
 1/7/97   Internal error on IL lowering of covariant return types
 
 In cases where an overriding virtual function had a return type that
