@@ -52,6 +52,17 @@ to the actual file scope.
 */
 #define PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE BACK_END_IS_C_GEN_BE
 
+/*
+This switch controls whether or not all functions and function calls will
+be turned into old-style unprototyped form.  This is what cfront effectively
+does, in generating old-style C that is compiled by a C compiler.
+This change is important if one wants to be able to call libraries that
+were compiled by cfront.  (cfront's +a1 option requests generation of ANSI C
+code; if one wants compatibility with cfront in that mode, this option
+should be set to FALSE.)
+*/
+#define MAKE_ALL_FUNCTIONS_UNPROTOTYPED CFRONT_OBJECT_CODE_COMPATIBILITY
+
 
 static a_boolean
 		lowering_file_scope;
@@ -1949,7 +1960,8 @@ should be specified as NULL.
 
   rout_type = alloc_type((a_type_kind)tk_routine);
   rout_type->variant.routine.return_type = return_type;
-  rout_type->variant.routine.extra_info->prototyped = TRUE;
+  rout_type->variant.routine.extra_info->prototyped =
+                                              !MAKE_ALL_FUNCTIONS_UNPROTOTYPED;
   if (param_1_type != NULL) {
     ptp = alloc_param_type(param_1_type);
     /* It is not necessary to set il_walk_flag; the entry does not need
@@ -2298,6 +2310,54 @@ operator op.  Insert the statement at *insert_location and update
 }  /* insert_var_assignment_statement */
 
 
+static void do_default_arg_promotions_on_node(an_expr_node_ptr expr)
+/*
+expr is an argument to a call.  If necessary, add a cast to it to
+do any default argument promotions needed to pass it as an argument to
+an unprototyped function (or to an ellipis position on a prototyped
+function).
+*/
+{
+  a_type_ptr arg_type = expr->type, promoted_type;
+
+  /* Note that we drop type qualifiers so we won't add a cast to drop
+     type qualifiers. */
+  arg_type = skip_typerefs(arg_type);
+  if (is_integral_type(arg_type)) {
+    /* Note that default_argument_promotion is not used for integral
+       expressions because special handling is required for bit fields. */
+    promoted_type = node_type_after_integral_promotion(expr);
+  } else if (is_floating_type(arg_type)) {
+    promoted_type = default_argument_promotion(arg_type);
+  } else {
+    promoted_type = arg_type;
+  }  /* if */
+  if (promoted_type != arg_type) {
+    /* Put in the promotion cast. */
+    an_expr_node_ptr expr_cast = expr;
+    an_expr_node     node_copy;
+
+    cast_node(&expr_cast, promoted_type, /*is_implicit_cast=*/TRUE,
+              &error_position);
+    if (expr_cast != expr) {
+      /* A cast was added, so swap the cast and the original node so that the
+         cast node ends up at the original address. */
+      node_copy = *expr;
+      *expr = *expr_cast;
+      *expr_cast = node_copy;
+#if CHECKING
+      if (!is_operation_node(expr) ||
+          expr->variant.operation.kind != (an_expr_operator_kind)eok_cast ||
+          expr->variant.operation.operands != expr) {
+        internal_error("do_default_arg_promotions_on_node: bad cast node");
+      }  /* if */
+#endif /* CHECKING */
+      expr->variant.operation.operands = expr_cast;
+    }  /* if */
+  }  /* if */
+}  /* do_default_arg_promotions_on_node */
+
+
 static an_expr_node_ptr make_call_node(a_routine_ptr    routine,
                                        an_expr_node_ptr arg_list)
 /*
@@ -2309,6 +2369,20 @@ if the routine is virtual.
   an_expr_node_ptr call_node, rout_node;
   a_type_ptr       rout_type, rout_return_type;
 
+#if MAKE_ALL_FUNCTIONS_UNPROTOTYPED
+  /* If transforming all functions to old-style unprototyped form (for
+     cfront compatibility), do default argument promotions on the arguments.
+     It might seem wasteful to do this on every argument list, since
+     not many of the arguments will require promotion.  However, doing it
+     here guarantees that all calls created by IL lowering will have
+     properly-promoted arguments without special-case checks all over the
+     place. */
+  { an_expr_node_ptr arg_node;
+    for (arg_node = arg_list; arg_node != NULL; arg_node = arg_node->next) {
+      do_default_arg_promotions_on_node(arg_node);
+    }  /* for */
+  }
+#endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
   /* Make a node for the address of the routine. */
   rout_node = function_addr_expr(routine);
   routine->source_corresp.referenced = TRUE;
@@ -3817,9 +3891,8 @@ static void lower_field(a_field_ptr field);
 static void lower_routine(a_routine_ptr routine);
 static void lower_label(a_label_ptr label);
 static void lower_asm_entry(an_asm_entry_ptr asm_entry);
-static void lower_expr_list(an_expr_node_ptr expr_list,
-                            unsigned int     is_lvalue_mask,
-                            a_boolean        is_conditional_operator);
+static void lower_arg_expr_list(an_expr_node_ptr expr_list,
+                                a_type_ptr       called_rout_type);
 static void lower_expr(an_expr_node_ptr expr,
                        a_boolean        is_lvalue);
 #define lower_normal_expr(expr) lower_expr(expr, /*is_lvalue=*/FALSE)
@@ -5299,6 +5372,14 @@ Do IL lowering of the indicated type and everything under it.
         lower_type(type->variant.routine.return_type);
         { a_routine_type_supplement_ptr rtsp =type->variant.routine.extra_info;
           a_param_type_ptr ptp;
+#if MAKE_ALL_FUNCTIONS_UNPROTOTYPED
+          /* Make all function types unprototyped.  Note that the
+             param_type_list is not cleared even if the function has no
+             body.  This can create a function type with prototyped == FALSE,
+             assoc_routine == NULL, and param_type_list != NULL, which is
+             not otherwise possible. */
+          rtsp->prototyped = FALSE;
+#endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
           if (rtsp->caller_provides_place_to_put_return_value) {
             /* Add an extra parameter in which the return address will be
                passed. */
@@ -5576,7 +5657,8 @@ is non-NULL, it points to an expression that is the source for a copy
 constructor call.  implied_arg_list is a list of implied extra virtual
 base class pointer arguments for the constructor, or NULL if this routine
 should generate them if required.  Insert the statement at *insert_location
-and update *insert_location.
+and update *insert_location.  The additional-arguments list given by
+dip->variant.constructor.args has already been lowered.
 */
 {
   a_routine_ptr    constr_routine = dip->variant.constructor.routine;
@@ -5824,11 +5906,12 @@ static a_routine_ptr default_version_of_routine(
 Return a pointer to a routine that does the same thing as "routine" but
 in which the parameters that have default argument expressions have been
 removed.  The values to be used for those default arguments are given
-by default_arg_list.  Implicitly-generated parameters of constructors and
-destructors are also removed.  This is used to generate a version of a
-constructor or destructor that can be called with just a "this" parameter,
-or of a copy constructor that can be called with just a "this" parameter
-and a source pointer.  The routine must have a "this" parameter.
+by default_arg_list (the expressions are already lowered).  Implicitly-
+generated parameters of constructors and destructors are also removed.
+This is used to generate a version of a constructor or destructor that
+can be called with just a "this" parameter, or of a copy constructor
+that can be called with just a "this" parameter and a source pointer.
+The routine must have a "this" parameter.
 */
 {
   a_memory_region_number
@@ -6008,7 +6091,8 @@ dip indicates the initialization to be performed; entity_node gives the
 address of the array; source_node (if non-NULL) gives the address of
 the source for a copy constructor call; and array_element_count gives the
 number of elements in the array.  Insert the statements at *insert_location
-and update *insert_location.
+and update *insert_location.  The additional-arguments list given by
+dip->variant.constructor.args has already been lowered.
 */
 {
   a_routine_ptr    ctor_routine;
@@ -6793,9 +6877,10 @@ do_assignment:;
       add_init_assignment(dip, entity_node, insert_location);
       break;
     case dik_constructor:
+      /* Initialize the entity by calling a constructor. */
       /* The routine does not need to be lowered from here. */
-      lower_expr_list(dip->variant.constructor.args, /*is_lvalue_mask=*/0,
-                      /*is_conditional_operator=*/FALSE);
+      lower_arg_expr_list(dip->variant.constructor.args,
+                          dip->variant.constructor.routine->type);
       if (processing_file_scope_init_routine ||
           first_time_test_var != NULL) {
         /* When generating the file-scope initialization routine we have
@@ -7246,7 +7331,10 @@ a conditional operator ("?", "&&", or "||").
     if (is_conditional_operator && expr != expr_list) {
       num_conditional_exprs_inside_of++;
     }  /* if */
+    /* Lower the expression on the list. */
     lower_expr(expr, (a_boolean)(is_lvalue_mask & 1));
+    /* If the count of conditional operands was incremented above, restore it
+       to what it was. */
     if (is_conditional_operator && expr != expr_list) {
       num_conditional_exprs_inside_of--;
     }  /* if */
@@ -7254,6 +7342,44 @@ a conditional operator ("?", "&&", or "||").
     is_lvalue_mask >>= 1;
   }  /* for */
 }  /* lower_expr_list */
+
+
+static void lower_arg_expr_list(an_expr_node_ptr expr_list,
+                                a_type_ptr       called_rout_type)
+/*
+Do IL lowering of the indicated list of expressions and everything under it.
+The expressions are the argument list for a call.  The type of the routine
+being called is called_rout_type.
+*/
+{
+  an_expr_node_ptr              expr;
+  a_routine_type_supplement_ptr rtsp;
+  a_param_type_ptr              param;
+
+  called_rout_type = skip_typerefs(called_rout_type);
+  rtsp = called_rout_type->variant.routine.extra_info;
+  /* Track the current parameter type as we go through the list. */
+  param = (rtsp->prototyped) ? rtsp->param_type_list : NULL;
+  for (expr = expr_list; expr != NULL; expr = expr->next) {
+    lower_expr(expr, FALSE);
+    if (param != NULL) {
+      /* Prototyped parameter. */
+#if MAKE_ALL_FUNCTIONS_UNPROTOTYPED
+      /* Do default argument promotions on any arguments that need it,
+         because they were generated for a call to a prototyped function, but
+         we're changing all functions to unprototyped (for cfront
+         compatibility). */
+      do_default_arg_promotions_on_node(expr);
+#endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
+      param = param->next;
+    } else {
+      /* Unprototyped parameter: old-style function or ellipsis. */
+      /* Widen pointers-to-data-members that have been turned into integers
+         and are passed to an old-style function or ellipsis. */
+      do_default_arg_promotions_on_node(expr);
+    }  /* if */
+  }  /* for */
+}  /* lower_arg_expr_list */
 
 
 static void add_null_preservation_code(an_expr_node_ptr expr,
@@ -7805,9 +7931,9 @@ them.  The call has already been lowered.
 
   implied_arg_list = NULL;
   if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
-     /* Constructor. */
-     make_ctor_implied_arg_list(rout, &implied_arg_list,
-                                &end_implied_arg_list);
+    /* Constructor. */
+    make_ctor_implied_arg_list(rout, &implied_arg_list,
+                               &end_implied_arg_list);
   } else if (rout->special_kind == (a_special_function_kind)sfk_destructor) {
     /* Destructor. */
     make_dtor_implied_arg_list(rout, /*have_complete_object=*/TRUE,
@@ -8451,8 +8577,9 @@ that calls the "new" function.  dip points to the dynamic init entry that
 describes the initialization to be done after the allocation, or is NULL
 if there is no such initialization.  The expression after lowering must
 end up at the address given by top_expr, which is the top of the original
-expression tree (and may be the same as alloc_expr).  The subtrees of the
-original expressions have not been lowered yet.
+expression tree (and may be the same as alloc_expr; if it isn't, what's
+between top_expr and alloc_expr is casts).  The subtrees of the original
+expressions have not been lowered yet.
 */
 {
   a_routine_ptr      ctor_routine;
@@ -8499,8 +8626,8 @@ original expressions have not been lowered yet.
     ctor_routine = elem_dip->variant.constructor.routine;
     /* If the constructor has default arguments, make a routine that
        calls the constructor with the necessary default arguments. */
-    lower_expr_list(elem_dip->variant.constructor.args, /*is_lvalue_mask=*/0,
-                    /*is_conditional_operator=*/FALSE);
+    lower_arg_expr_list(elem_dip->variant.constructor.args,
+                        ctor_routine->type);
     ctor_routine = default_version_of_routine(ctor_routine,
                                            elem_dip->variant.constructor.args);
   } else {
@@ -8702,7 +8829,7 @@ lowered yet.
     dtor_routine = elem_dip->destructor;
 #if CHECKING
     if (dtor_routine == NULL) {
-      internal_error("lower_array_new: elem_dip has no destructor");
+      internal_error("lower_array_delete: elem_dip has no destructor");
     } /* if */
 #endif /* CHECKING */
   } else {
@@ -8722,7 +8849,8 @@ lowered yet.
 static void lower_new_init(an_expr_node_ptr expr)
 /*
 Do IL lowering of an enk_new_init expression node, used to do initialization
-for a "new" or destruction for a "delete".
+for a "new" or destruction for a "delete".  The subtree of the node has not
+yet been lowered.
 */
 {
   a_constant         null_constant;
@@ -8806,9 +8934,8 @@ for a "new" or destruction for a "delete".
           }  /* if */
           /* Preserve any additional parameters from the constructor call. */
           if (dip->variant.constructor.args != NULL) {
-            lower_expr_list(dip->variant.constructor.args,
-                            /*is_lvalue_mask=*/0,
-                            /*is_conditional_operator=*/FALSE);
+            lower_arg_expr_list(dip->variant.constructor.args,
+                                ctor_routine->type);
             if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
                 in_file_scope(dip->variant.constructor.args)) {
               /* When generating the file-scope initialization routine we have
@@ -8991,14 +9118,19 @@ static void lower_simple_delete(an_expr_node_ptr expr,
                                 an_expr_node_ptr dtor_this)
 /*
 Rewrite a simple delete with destructor call as just a destructor call.
-dtor_routine points to the destructor routine and dtor_this is the
-"this" argument for the destructor (unlowered).
+expr points to the eok_call node for the delete call.  dtor_routine points
+to the destructor routine and dtor_this is the "this" argument for the
+destructor, which is a subtree somewhere inside expr.  Neither expr nor
+dtor_this has been lowered.
 */
 {
   an_expr_node_ptr operand_node = expr->variant.operation.operands;
   an_expr_node_ptr dtor_this_copy, compare_node;
   a_constant       null_constant;
 
+  /* Lower the pointer to the object to be deleted.  Note that "expr"
+     itself is not lowered; the parts outside of dtor_this (a subtree)
+     are replaced. */
   lower_normal_expr(dtor_this);
   /* We have a call of a delete routine for which the "this" pointer is run
      through a destructor.  We can rewrite this call to call the destructor
@@ -9061,7 +9193,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   a_dynamic_init_ptr    dip;
   a_variable_ptr        var, temp_var;
   unsigned int          is_lvalue_mask;
-  a_boolean             is_conditional_operator;
+  a_boolean             is_conditional_operator, is_call;
   a_routine_ptr         dtor_routine;
   an_expr_node_ptr      dtor_this;
 
@@ -9149,6 +9281,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
            the operand has conditional operands. */
         is_lvalue_mask = 0;
         is_conditional_operator = FALSE;
+        is_call = FALSE;
         if (op == (an_expr_operator_kind)eok_question) {
           /* Question mark's second and third operands are lvalues if the
              question mark itself is. */
@@ -9158,13 +9291,23 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                    op == (an_expr_operator_kind)eok_lor) {
           /* "&&" and "||". */
           is_conditional_operator = TRUE;
+        } else if (op == (an_expr_operator_kind)eok_call ||
+                   op == (an_expr_operator_kind)eok_virtual_call ||
+                   op == (an_expr_operator_kind)eok_pm_call) {
+          is_call = TRUE;
         } else {
           /* Other operators.  See if the first operand is an lvalue. */
           if (operator_takes_lvalue_operand(op)) is_lvalue_mask = 0x1;
         }  /* if */
-        /* Lower the operands of the expression. */
-        lower_expr_list(operand_node, is_lvalue_mask,
-                        is_conditional_operator);
+        /* Lower the operands of the expression.  For calls, the lowering
+           is done in a special way. */
+        if (is_call) {
+          lower_arg_expr_list(operand_node->next,
+                              type_pointed_to(operand_node->type));
+        } else {
+          lower_expr_list(operand_node, is_lvalue_mask,
+                          is_conditional_operator);
+        }  /* if */
         /* Do any special lowering required for this operator after the
            operands have been lowered. */
         switch (op) {
