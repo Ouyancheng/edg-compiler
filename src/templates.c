@@ -988,8 +988,8 @@ values, and the handling of array bounds of unknown type.
           a_constant_ptr	constant;
           constant = fs_constant((a_constant_repr_kind)ck_integer);
           set_unsigned_integer_constant
-                       (constant, (unsigned long)tap->variant.integer_value,
-                        constant_type->variant.integer.int_kind);
+                      (constant, (unsigned long)tap->variant.integer_value,
+                       skip_typerefs(constant_type)->variant.integer.int_kind);
           tap->variant.constant = constant;
           tap->is_array_bound_of_unknown_type = FALSE;
         }  /* if */
