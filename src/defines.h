@@ -112,15 +112,6 @@ Flags to be set when using the KAI inliner.
 #define GCC_IS_C_GEN_BE_TARGET 1
 #endif /* ifdef __SUNPRO_C */
 
-#ifdef sparc
-/* SPARC Solaris version. */
-#else /* !defined(sparc) */
-/* Intel Solaris version. */
-#define TARG_LITTLE_ENDIAN TRUE
-#define TARG_HAS_SIGNED_CHARS TRUE
-#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT TRUE
-#define TARG_JMP_BUF_NUM_ELEMENTS 10
-#endif /* ifndef sparc */
 #else /* !defined(SOLARIS) */
 /* SunOS version. */
 #ifndef __ANSIC__

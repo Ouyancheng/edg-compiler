@@ -17,10 +17,20 @@ This version is for the Sun Solaris operating system.
 */
 
 /* Configuration definitions determined by dettarg.c: */
+
+#ifdef sparc
+/* Sparc Solaris specific defines. */
 #define TARG_LITTLE_ENDIAN FALSE
+#define TARG_JMP_BUF_NUM_ELEMENTS 12
+#else /* ifndef sparc */
+/* Intel Solaris specific defines. */
+#define TARG_LITTLE_ENDIAN TRUE
+#define TARG_JMP_BUF_NUM_ELEMENTS 10
+#endif /* ifdef sparc */
+
 #define TARG_CHAR_BIT 8
-#define TARG_HAS_SIGNED_CHARS TRUE
 #define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT TRUE
+#define TARG_HAS_SIGNED_CHARS TRUE
 #define TARG_SIZEOF_SHORT 2
 #define TARG_ALIGNOF_SHORT 2
 #define TARG_SIZEOF_INT 4
@@ -46,7 +56,6 @@ This version is for the Sun Solaris operating system.
 #define HOST_ALIGNMENT_REQUIRED 4
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC TRUE
 #define TARG_MINIMUM_STRUCT_ALIGNMENT 1
-#define TARG_JMP_BUF_NUM_ELEMENTS 12
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
 
 /*
