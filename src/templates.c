@@ -3420,12 +3420,14 @@ It is FALSE if the instantiation scope was pushed by the caller.
 }  /* delayed_scan_for_function_template_default_args */
 
 
-static a_type_ptr create_error_routine_type(a_routine_ptr	templ_rout)
+static a_type_ptr create_error_routine_type(a_routine_ptr	templ_rout,
+					    a_type_ptr		parent_class)
 /*
 Given a routine pointer (templ_rout) create a new routine type entry
 with the same number of parameters as templ_rout, but all of whose
 parameter types are error types, and whose return type is also an error
-type.
+type.  parent_class points to the class type of which the routine with
+the error type is a member, or is NULL for a nonmember.
 */
 {
   a_type_ptr			rout_type;
@@ -3456,6 +3458,10 @@ type.
     }  /* if */
     last_ptp = ptp;
   }  /* for */
+  if (templ_rtsp->implicit_this_param_type != NULL) {
+    /* If this is a member function, set the implicit this parameter type. */
+    rtsp->implicit_this_param_type = make_pointer_type(parent_class);
+  }  /* if */
   return rout_type;
 }  /* create_error_routine_type */
 
@@ -3463,7 +3469,8 @@ type.
 static
 void check_for_invalid_instantiation(a_type_ptr		*type,
 				     a_routine_ptr	templ_rout,
-				     a_boolean		suppress_diagnostic)
+				     a_boolean		suppress_diagnostic,
+				     a_type_ptr		parent_class)
 /*
 This routine is called after a declaration of a function has been rescanned
 to create a partial instantiation.  It determines whether all of the tokens
@@ -3485,7 +3492,7 @@ the diagnostic is suppressed.
     /* The scanning of the declaration must produce a suitable function
        type.  Create a function type with a suitable number of parameters
        whose types are error types. */
-    *type = create_error_routine_type(templ_rout);
+    *type = create_error_routine_type(templ_rout, parent_class);
   }  /* if */
 }  /* check_for_invalid_instantiation */
 
@@ -3628,7 +3635,8 @@ with the original declaration of a template and is only present
        type.  If not all of the tokens were used, or if the type created
        is not a function type, issue a diagnostic. */
     check_for_invalid_instantiation(type, templ_rout,
-                                    (a_boolean)is_error_locator(*locator));
+                                    (a_boolean)is_error_locator(*locator),
+                                    (a_type_ptr)NULL);
     flush_past_token_cache_terminator();
   }  /* if */
 }  /* scan_template_declaration */
@@ -3652,7 +3660,7 @@ routine associated with the original declaration of a template.
      type.  If not all of the tokens were used, or if the type created
      is not a function type, issue a diagnostic. */
   check_for_invalid_instantiation(&instance_type, templ_rout,
-                                  /*suppress_diagnostic=*/FALSE);
+                                  /*suppress_diagnostic=*/FALSE, parent_class);
   /* In the normal case the current token should be end_of_source,
      which was inserted to mark the end of the cached token stream.
      If necessary, keep flushing until end-of-source is found. */

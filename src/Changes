@@ -1,5 +1,15 @@
 Version 2.35
 
+1/13/97 Internal error or abort on invalid member template constructor
+
+An internal error or abort could result when an invalid member template
+constructor was used.
+
+  struct A {
+    template <class T> A (T) x;
+  };
+  A a(1);
+
 1/13/97 Conversion for direct reference binding should be done only on lvalue
 
 On a reference binding, a conversion function that returns a reference
