@@ -1614,84 +1614,102 @@ them through remap_function.
   a_remap_function_ptr prev_remap_func = remap_func;
 
   remap_func = remap_function;
+#if ALTERNATE_IL_FILE_FORMAT
+  /* For the alternate IL file format, the pointer to the first IL entry
+     of each type must be updated separately, since each linked list will
+     not be walked during IL reading. */
   remap_orphan_list_first(iek_source_file);
-  remap_orphan_list_last(iek_source_file);
   remap_orphan_list_first(iek_constant);
-  remap_orphan_list_last(iek_constant);
   remap_orphan_list_first(iek_param_type);
-  remap_orphan_list_last(iek_param_type);
   remap_orphan_list_first(iek_routine_type_supplement);
-  remap_orphan_list_last(iek_routine_type_supplement);
   remap_orphan_list_first(iek_based_type_list_member);
-  remap_orphan_list_last(iek_based_type_list_member);
   remap_orphan_list_first(iek_type);
-  remap_orphan_list_last(iek_type);
   remap_orphan_list_first(iek_variable);
-  remap_orphan_list_last(iek_variable);
 #ifdef CFE
   remap_orphan_list_first(iek_field);
-  remap_orphan_list_last(iek_field);
 #endif /* ifdef CFE */
   remap_orphan_list_first(iek_routine);
-  remap_orphan_list_last(iek_routine);
   remap_orphan_list_first(iek_label);
-  remap_orphan_list_last(iek_label);
   remap_orphan_list_first(iek_expr_node);
-  remap_orphan_list_last(iek_expr_node);
 #ifdef CFE
   remap_orphan_list_first(iek_switch_clause);
-  remap_orphan_list_last(iek_switch_clause);
 #endif /* ifdef CFE */
   remap_orphan_list_first(iek_block);
-  remap_orphan_list_last(iek_block);
   remap_orphan_list_first(iek_statement);
-  remap_orphan_list_last(iek_statement);
   remap_orphan_list_first(iek_scope);
-  remap_orphan_list_last(iek_scope);
   /* The string types iek_id_name, iek_string_text, and iek_other_text
      are not maintained on an orphan list.  String types at the file
      scope that are reference from a function scope are written in that
      function scope region. */
 #ifdef FFE
   remap_orphan_list_first(iek_internal_complex_value);
-  remap_orphan_list_last(iek_internal_complex_value);
   remap_orphan_list_first(iek_bound_info_entry);
-  remap_orphan_list_last(iek_bound_info_entry);
   remap_orphan_list_first(iek_do_loop);
-  remap_orphan_list_last(iek_do_loop);
   remap_orphan_list_first(iek_label_list_entry);
-  remap_orphan_list_last(iek_label_list_entry);
   remap_orphan_list_first(iek_io_specifier);
-  remap_orphan_list_last(iek_io_specifier);
   remap_orphan_list_first(iek_io_list_item);
-  remap_orphan_list_last(iek_io_list_item);
   remap_orphan_list_first(iek_namelist_group_member);
-  remap_orphan_list_last(iek_namelist_group_member);
   remap_orphan_list_first(iek_namelist_group);
-  remap_orphan_list_last(iek_namelist_group);
   remap_orphan_list_first(iek_input_output_description);
-  remap_orphan_list_last(iek_input_output_description);
   remap_orphan_list_first(iek_entry_param);
-  remap_orphan_list_last(iek_entry_param);
   remap_orphan_list_first(iek_entry_description);
-  remap_orphan_list_last(iek_entry_description);
 #endif /* ifdef FFE */
 #ifdef CFE
   remap_orphan_list_first(iek_dynamic_init);
-  remap_orphan_list_last(iek_dynamic_init);
   remap_orphan_list_first(iek_access_adjustment);
-  remap_orphan_list_last(iek_access_adjustment);
   remap_orphan_list_first(iek_overriding_virtual_function);
-  remap_orphan_list_last(iek_overriding_virtual_function);
   remap_orphan_list_first(iek_derivation_step);
-  remap_orphan_list_last(iek_derivation_step);
   remap_orphan_list_first(iek_base_class);
-  remap_orphan_list_last(iek_base_class);
   remap_orphan_list_first(iek_class_list_entry);
-  remap_orphan_list_last(iek_class_list_entry);
   remap_orphan_list_first(iek_class_type_supplement);
-  remap_orphan_list_last(iek_class_type_supplement);
   remap_orphan_list_first(iek_constructor_init);
+#endif /* ifdef CFE */
+#endif /* ALTERNATE_IL_FILE_FORMAT */
+
+  remap_orphan_list_last(iek_source_file);
+  remap_orphan_list_last(iek_constant);
+  remap_orphan_list_last(iek_param_type);
+  remap_orphan_list_last(iek_routine_type_supplement);
+  remap_orphan_list_last(iek_based_type_list_member);
+  remap_orphan_list_last(iek_type);
+  remap_orphan_list_last(iek_variable);
+#ifdef CFE
+  remap_orphan_list_last(iek_field);
+#endif /* ifdef CFE */
+  remap_orphan_list_last(iek_routine);
+  remap_orphan_list_last(iek_label);
+  remap_orphan_list_last(iek_expr_node);
+#ifdef CFE
+  remap_orphan_list_last(iek_switch_clause);
+#endif /* ifdef CFE */
+  remap_orphan_list_last(iek_block);
+  remap_orphan_list_last(iek_statement);
+  remap_orphan_list_last(iek_scope);
+  /* The string types iek_id_name, iek_string_text, and iek_other_text
+     are not maintained on an orphan list.  String types at the file
+     scope that are reference from a function scope are written in that
+     function scope region. */
+#ifdef FFE
+  remap_orphan_list_last(iek_internal_complex_value);
+  remap_orphan_list_last(iek_bound_info_entry);
+  remap_orphan_list_last(iek_do_loop);
+  remap_orphan_list_last(iek_label_list_entry);
+  remap_orphan_list_last(iek_io_specifier);
+  remap_orphan_list_last(iek_io_list_item);
+  remap_orphan_list_last(iek_namelist_group_member);
+  remap_orphan_list_last(iek_namelist_group);
+  remap_orphan_list_last(iek_input_output_description);
+  remap_orphan_list_last(iek_entry_param);
+  remap_orphan_list_last(iek_entry_description);
+#endif /* ifdef FFE */
+#ifdef CFE
+  remap_orphan_list_last(iek_dynamic_init);
+  remap_orphan_list_last(iek_access_adjustment);
+  remap_orphan_list_last(iek_overriding_virtual_function);
+  remap_orphan_list_last(iek_derivation_step);
+  remap_orphan_list_last(iek_base_class);
+  remap_orphan_list_last(iek_class_list_entry);
+  remap_orphan_list_last(iek_class_type_supplement);
   remap_orphan_list_last(iek_constructor_init);
 #endif /* ifdef CFE */
 
