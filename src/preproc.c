@@ -300,13 +300,14 @@ the #endif.
     }  /* if */
   } else {
     /* The #else is valid, process it. */
+    a_byte	ifg_state = get_ifg_state();
     if (pp_if_stack_depth == (base_pp_if_stack_depth+1) &&
-	curr_ise->ifg_state != IFG_STATE_FAIL &&
-	curr_ise->ifg_state != IFG_STATE_ONCE) {
+	ifg_state != IFG_STATE_FAIL &&
+	ifg_state != IFG_STATE_ONCE) {
       /* We've encountered a #else at the outermost level.  This
          means that this file is not a candidate for suppression
          of subsequent includes. */
-      curr_ise->ifg_state = IFG_STATE_FAIL;
+      set_ifg_state(IFG_STATE_FAIL);
     }  /* if */
     pp_if_stack[pp_if_stack_depth].else_encountered = TRUE;
     (void)get_token();
@@ -334,13 +335,14 @@ evaluate the expression, and do the skip if appropriate.
     flush_to_newline();
   } else {
     /* The #elif is valid, process it. */
+    a_byte	ifg_state = get_ifg_state();
     if (pp_if_stack_depth == (base_pp_if_stack_depth+1) &&
-	curr_ise->ifg_state != IFG_STATE_FAIL &&
-	curr_ise->ifg_state != IFG_STATE_ONCE) {
+	ifg_state != IFG_STATE_FAIL &&
+	ifg_state != IFG_STATE_ONCE) {
       /* We've encountered a #elif at the outermost level.  This
          means that this file is not a candidate for suppression
          of subsequent includes. */
-      curr_ise->ifg_state = IFG_STATE_FAIL;
+      set_ifg_state(IFG_STATE_FAIL);
     }  /* if */
     if (perform_elif) {
       /* When an #elif is hit when not skipping, it always acts like an
@@ -370,10 +372,11 @@ Scan and process an #endif directive.
          that we're OK as long as we don't see any more tokens from this
          file.  If we are in any other state (not including ONCE, then
          goto the FAIL state. */
-      if (curr_ise->ifg_state == IFG_STATE_INTERMED) {
-	curr_ise->ifg_state = IFG_STATE_ACCEPT;
-      } else if (curr_ise->ifg_state != IFG_STATE_ONCE) {
-	curr_ise->ifg_state = IFG_STATE_FAIL;
+      a_byte	ifg_state = get_ifg_state();
+      if (ifg_state == IFG_STATE_INTERMED) {
+        set_ifg_state(IFG_STATE_ACCEPT);
+      } else if (ifg_state != IFG_STATE_ONCE) {
+        set_ifg_state(IFG_STATE_FAIL);
       }  /* if */
     }  /* if */
 #if DEBUG
@@ -565,22 +568,23 @@ FALSE, respectively).
       some_error_in_curr_directive = TRUE;
     }  /* if */
   } else {
-    if (curr_ise->ifg_state == IFG_STATE_START) {
+    a_byte	ifg_state = get_ifg_state();
+    if (ifg_state == IFG_STATE_START) {
       /* If we are at the start of an include file then record 
          information about this @ifdef so that it can be used later to
          see if subsequent includes can be suppressed. */
       char *nm = alloc_fe(len_of_curr_token+2);
       strncpy(nm, start_of_curr_token, len_of_curr_token);
       nm[len_of_curr_token] = 0;
-      curr_ise->ifg_state = IFG_STATE_INTERMED;
+      set_ifg_state(IFG_STATE_INTERMED);
       if (is_ifdef) {
         curr_ise->include_history->ifdef_guard = TRUE;
       } else {
         curr_ise->include_history->ifndef_guard = TRUE;
       }  /* if */
       curr_ise->include_history->controlling_macro_name = nm;
-    } else if (curr_ise->ifg_state == IFG_STATE_ACCEPT) {
-      curr_ise->ifg_state = IFG_STATE_FAIL;
+    } else if (ifg_state == IFG_STATE_ACCEPT) {
+      set_ifg_state(IFG_STATE_FAIL);
     } else {
       /* Do nothing if state is FAIL, INTERMED or ONCE. */
     }  /* if */
@@ -675,6 +679,7 @@ Scan and process a #include directive.
   char                       *name_start_pos;
   a_directory_name_entry_ptr search_path;
   a_boolean		     is_system_include;
+  a_byte		     ifg_state;
 
   /* The syntax is one of the following (see standard, 3.8.2):
 
@@ -685,11 +690,12 @@ Scan and process a #include directive.
      (where the pp-tokens are macro-expanded to yield one of the
      first two forms.)
   */
-  if (curr_ise->ifg_state < IFG_STATE_FAIL) {
+  ifg_state = get_ifg_state();
+  if (ifg_state < IFG_STATE_FAIL) {
     /* If another include is seen outside of the #ifndef/#endif guard
        code of the current file then it is not a candidate for suppression
        of a subsequent include. */
-    curr_ise->ifg_state = IFG_STATE_FAIL;
+    set_ifg_state(IFG_STATE_FAIL);
   }  /* if */
   /* Try to expand macros to get one of the normal forms. */
   expand_macros = TRUE;
@@ -1071,7 +1077,7 @@ Scan and process a #pragma directive.
         /* This file should be included only once, and if it is #included
            again in the same compilation unit, the include should be skipped.
            Record this information in the input stack entry. */
-        curr_ise->ifg_state = IFG_STATE_ONCE;
+        set_ifg_state(IFG_STATE_ONCE);
         curr_ise->include_history->pragma_once = TRUE;
         processed = TRUE;
       }  /* if */
@@ -1091,7 +1097,7 @@ Scan and process a #pragma directive.
         /* This file should be included only once, and if it is #included
            again in the same compilation unit, the include should be skipped.
            Record this information in the input stack entry. */
-	curr_ise->ifg_state = IFG_STATE_ONCE;
+        set_ifg_state(IFG_STATE_ONCE);
         curr_ise->include_history->pragma_once = TRUE;
 	processed = TRUE;
       } else {
@@ -1303,8 +1309,11 @@ execute the preprocessor directive.
          called above. */
       break;
     default:
-      if (curr_ise != NULL && curr_ise->ifg_state < IFG_STATE_FAIL)
-	curr_ise->ifg_state = IFG_STATE_FAIL;
+      {
+        a_byte	ifg_state = get_ifg_state();
+        if (ifg_state < IFG_STATE_FAIL)
+          ifg_state = IFG_STATE_FAIL;
+        }  /* if */
       break;
   }  /* switch */
   /* Check that all of the text of the directive was taken. */

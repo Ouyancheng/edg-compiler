@@ -1973,6 +1973,47 @@ the latter case.
 }  /* find_include_history */
 
 
+a_byte get_ifg_state(void)
+/*
+Get the current include file guard state from the current input stack entry.
+The state is first normalized by taking into account the
+any_tokens_fetched_from_curr_input_file global variable.
+*/
+{
+  /* If we are in the START or ACCEPT state and we have encountered some
+     tokens, move to the fail state.  This means there were tokens before
+     the opening #ifndef or after the #endif. */
+  a_byte state;
+  if (curr_ise == NULL) {
+    state = IFG_STATE_FAIL;
+  } else {
+    if (curr_ise->ifg_state < IFG_STATE_FAIL &&
+        any_tokens_fetched_from_curr_input_file) {
+      curr_ise->ifg_state = IFG_STATE_FAIL;
+    }  /* if */
+    state = curr_ise->ifg_state;
+  }  /* if */
+  return state;
+}  /* get_ifg_state */
+
+
+void set_ifg_state(a_byte	new_state)
+/*
+Update the include file guard state.  This routine resets the
+any_tokens_fetched_from_curr_input_file when appropriate.
+*/
+{
+  if (curr_ise != NULL) {
+    curr_ise->ifg_state = new_state;
+    if (new_state == IFG_STATE_ACCEPT) {
+      /* We've just seen the closing #endif, there should be no more tokens in
+         this file. */
+      any_tokens_fetched_from_curr_input_file = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* set_ifg_state */
+
+
 static a_boolean suppress_subsequent_include
 				(an_include_file_history_ptr ifhp)
 /*
@@ -2103,7 +2144,7 @@ notation and FALSE for all other files.
        have no effect, so it should be suppressed. */
     fclose(input_file);
 #if DEBUG
-    if (debug_level >= 4) {
+    if (debug_level >= 0) {
       fprintf(f_debug,
           "open_file_and_push_input_stack: skipping guarded include file %s\n",
           file_name);
@@ -2381,6 +2422,9 @@ Push the indicated file onto the input stack.
   curr_ise->nested_inclusion = (times_name_appears != 0);
   curr_ise->include_history   = fstate->include_history;
   curr_ise->ifg_state = IFG_STATE_START;
+  curr_ise->saved_any_tokens_fetched =
+				      any_tokens_fetched_from_curr_input_file;
+  any_tokens_fetched_from_curr_input_file = FALSE;
   /* Create an intermediate file record describing this file.  It is
      useful later in converting sequence numbers into file name/line
      information. */
@@ -2490,6 +2534,7 @@ at the next level down.
 */
 {
   a_boolean	is_end_of_primary_source_file = FALSE;
+  a_byte	ifg_state;
   db_enter(2, "pop_input_stack");
 
 #if DEBUG
@@ -2504,15 +2549,19 @@ at the next level down.
      final determination of whether an actual subsequent include of this
      file can be suppressed can only be determined at the point of the
      include because the controlling macro must be tested at that point. */
-  if (curr_ise->ifg_state != IFG_STATE_ACCEPT &&
-      curr_ise->ifg_state != IFG_STATE_ONCE &&
-      curr_ise->ifg_state != IFG_STATE_START) {
+  ifg_state = get_ifg_state();
+  if (ifg_state != IFG_STATE_ACCEPT &&
+      ifg_state != IFG_STATE_ONCE &&
+      ifg_state != IFG_STATE_START) {
     /* Not a candidate for include suppression. */
   } else {
     /* This file does meet the criteria for suppression of subsequent
        includes. */
     curr_ise->include_history->suppress_subsequent_include = TRUE;
   }
+  /* Restore the previous value of the any_tokens_fetched flag. */
+  any_tokens_fetched_from_curr_input_file =
+					  curr_ise->saved_any_tokens_fetched;
   /* Remember the final sequence number in the file, for sequence number
      mapping purposes. */
   record_end_of_source_file(curr_ise->assoc_actual_il_file,
@@ -2670,7 +2719,7 @@ at the next level down.
                have no effect, so it should be suppressed. */
 	    fclose(f_source);
 #if DEBUG
-	    if (debug_level >= 3) {
+	    if (debug_level >= 0) {
 	      fprintf(f_debug,
 		      "pop_input_stack: skipping guarded include file %s\n",
 		      full_file_name);
@@ -5109,13 +5158,8 @@ return_from_token_scan:
     (void)fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
-  /* The following test means "if we are processing an include file and
-      we have not yet entered the #ifndef that guards the code agains
-      multiple inclusion, then the presence of any token means that this
-      file is not a candidate for suppression of subsequent includes." */
-  if (!in_preprocessing_directive && curr_ise != NULL &&
-      curr_ise->ifg_state < IFG_STATE_FAIL) {
-    curr_ise->ifg_state = IFG_STATE_FAIL;
+  if (!in_preprocessing_directive) {
+    any_tokens_fetched_from_curr_input_file = TRUE;
   }  /* if */
   return (curr_token = ctoken);
 
@@ -7451,6 +7495,7 @@ of the front end.
   last_token_sequence_number_used = NO_TOKEN_SEQUENCE_NUMBER;
   curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   include_file_history_list = NULL;
+  any_tokens_fetched_from_curr_input_file = FALSE;
 #if DEBUG
   num_orig_line_modifs_allocated = 0;
   num_source_line_modifs_allocated = 0;

@@ -500,6 +500,20 @@ extern a_boolean suppress_subsequent_include_of_file
 				(char                   *full_name,
 				 a_file_inclusion_state *fstate);
 
+extern a_byte get_ifg_state(void);
+extern void set_ifg_state(a_byte new_state);
+
+EXTERN a_boolean
+		any_tokens_fetched_from_curr_input_file;
+			/* TRUE if any "real" tokens have been fetched from
+			   the current input file.  This is used to
+			   determine whether the current file is a candidate
+			   to have subsequent inclusions suppressed.  This
+			   variable is cleared at various times during the
+			   scanning of the include file so great care must
+			   be used before attempting to use this value for
+			   some more general purpose. */
+
 
 /*
 Variables pertaining to the input stack (for include files and the
@@ -562,6 +576,9 @@ typedef struct an_input_stack_entry {
 	        nested_inclusion:1;
 			/* TRUE if this is a nested inclusion of a file
 			   already on the input stack. */
+  unsigned int	saved_any_tokens_fetched;
+			/* Used to save and restore the value of the global
+			   variable any_tokens_fetched_from_curr_input_file. */
   a_byte        ifg_state;
 			/* Include file guard state information used to
                            determine whether subsequent inclusions of this
@@ -578,7 +595,8 @@ EXTERN an_input_stack_entry_ptr
 		curr_ise;
 			/* Pointer to input_stack[depth_input_stack].  NULL
 			   if depth_input_stack == -1. */
-    
+
+
 /*
 Variables pertaining to the current logical source line.  A "logical"
 source line is what results after trigraph characters (see standard,
