@@ -1775,6 +1775,17 @@ associated with the function is returned.
            an anachronism.  However, the internal representation should be
            the same as for a prototyped param list. */
         extra_info->prototyped = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        if (func_info->declared_type != NULL) {
+          /* Replace the declared_type that was recorded in the func-info
+             block with one that records the param-type entries. */
+          /* It doesn't make any difference how copy_default_args is set;
+             there shouldn't be any on an old-style declaration. */
+          func_info->declared_type =
+              copy_routine_type_with_param_types(rout_type,
+                                                 /*copy_default_args=*/FALSE);
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
       /* Parameter symbols are not actually entered in the function
          prototype scope, but other symbols (in consequence of an error or
