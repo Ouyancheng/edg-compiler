@@ -248,7 +248,7 @@ perhaps it will be completed later in this compilation).
 
 #endif /* ABI_CHANGES_FOR_RTTI */
 
-static a_type_ptr make_typeinfo_type(void)
+a_type_ptr make_typeinfo_type(void)
 /*
 Make the typeinfo struct type (used to represent runtime type information)
 if it is not made already, and return a pointer to it.  Its definition is

@@ -37,6 +37,8 @@ EXTERN a_cleanup_region_number
 		null_eh_region_number;
 
 
+extern a_type_ptr make_typeinfo_type(void);
+
 extern void type_is_used_in_exception(a_type_ptr type);
 
 extern void define_scope_class_typeinfo_vars(a_scope_ptr scope);
