@@ -1206,6 +1206,12 @@ assumed if the return type is omitted.
       /* Not a function symbol -- issue an error. */
       pos_error(ec_invalid_instantiation_pragma_argument, &start_pos);
       err = TRUE;
+    } else if (type->kind != (a_type_kind)tk_routine) {
+      /* The symbol represents a function but the type is not a routine
+         type.  This can occur if a declaration contains the name of a
+         function but the declaration is not a function declarator. */
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+                   &locator.source_position, sym);
     } else if (is_member_function_symbol(sym)) {
       /* A member function symbol, find the member function that matches
 	 the specified type. */
