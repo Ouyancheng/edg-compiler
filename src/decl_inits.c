@@ -252,23 +252,21 @@ for unions and aggregates at that level).
   an_expr_node_ptr    expression;
   a_dynamic_init_ptr  dip;
   a_source_position   expr_pos;
-  a_class_symbol_supplement_ptr
-                      cssp;
   a_routine_ptr       conversion_routine;
+  a_boolean           class_bitwise_copy;
 
   db_enter(4, "get_initializer");
   err = FALSE;
   local_type = skip_typerefs(*type);
-  if (is_class_struct_union_type(local_type)) {
-    cssp = symbol_supplement_for_class(local_type);
-  } else {
-    cssp = NULL;
-  }  /* if */
-  if (cssp != NULL && cssp->constructor != NULL) {
+  if (C_dialect == C_dialect_cplusplus &&
+      is_class_struct_union_type(local_type)) {
 #if CHECKING
+    a_class_symbol_supplement_ptr cssp =
+                                    symbol_supplement_for_class(local_type);
     if (top_level) {
-      internal_error("get_initializer: constructor encountered at top level");
-    } else if (!cssp->has_copy_constructor) {
+      internal_error("get_initializer: class encountered at top level");
+    } else if (!cssp->has_copy_constructor &&
+               !cssp->construction_by_bitwise_copy_allowed) {
       internal_error("get_initializer: missing copy constructor");
     }  /* if */
 #endif /* CHECKING */
@@ -277,18 +275,26 @@ for unions and aggregates at that level).
        call. */
     copy_source_position(pos_curr_token, expr_pos);
     expression = scan_class_initializer_expression(local_type,
-                                                   &conversion_routine);
-    if (conversion_routine == NULL) {
-      /* No such constructor was found.  Abort the initialization. */
+                                                   &conversion_routine,
+                                                   &class_bitwise_copy);
+    if (!class_bitwise_copy && conversion_routine == NULL) {
+      /* No constructor was found.  Abort the initialization. */
       err = TRUE;
     } else {
-      /* An appropriate constructor (copy or other) was found.  Build
-         a dynamic init entry to call it. */
       init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-      init_con->variant.dynamic_init = dip =
+      if (conversion_routine != NULL) {
+        /* An appropriate constructor (copy or other) was found.  Build
+           a dynamic init entry to call it. */
+        init_con->variant.dynamic_init = dip =
                       alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-      dip->variant.constructor.routine = conversion_routine;
-      dip->variant.constructor.args = expression;
+        dip->variant.constructor.routine = conversion_routine;
+        dip->variant.constructor.args = expression;
+      } else {
+        /* Generate code for a bitwise copy. */
+        init_con->variant.dynamic_init = dip =
+                      alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+        dip->variant.expression = expression;
+      }  /* if */
       if (*di_list == NULL) {
         *di_list = dip;
       } else {
@@ -668,6 +674,7 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
   a_routine_ptr                  conversion_routine;
   a_source_position              expr_pos;
   a_memory_region_number         region_to_switch_back_to = NULL_region_number;
+  a_boolean                      class_bitwise_copy;
 
   db_enter(3, "initializer");
 
@@ -783,47 +790,29 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
        object of the same type as long as dynamic initialization is otherwise
        allowed. */
     copy_source_position(pos_curr_token, expr_pos);
-    if (cssp == NULL || cssp->constructor == NULL) {
+    expression = scan_class_initializer_expression(vp_type,
+                                                   &conversion_routine,
+                                                   &class_bitwise_copy);
+    if (class_bitwise_copy) {
       /* The case of C-style structs.  No constructor exists, but simple
-         struct assignment can be performed.  Scan the expression on the
-         right-hand side of the equal sign.  Check the type by assignment
-         rules. */
-      expression = scan_required_type_expression(vp_type,
-                                               /*allow_top_level_comma=*/FALSE,
-                                                 ec_bad_initializer_type);
-      /* Set the dynamic init entry to represent non-constant assignment
-         initialization. */
+         struct assignment can be performed.  Set the dynamic init entry to
+         represent non-constant assignment initialization. */
       clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_expression);
       local_di.variant.expression = expression;
-    } else {
+    } else if (conversion_routine != NULL) {
       /* Initializing a class object that has a constructor in a statement
          that looks like an assignment (see discussion in ARM 12.6.1).
          It is as though the expression on the right hand side is constructed
          into a temporary and then a copy constructor is called to actually
          do the initialization -- e.g., complex x = 1 is to be treated as
-         complex x = complex(1).  The policy is that the copy constructor
-         (which is guaranteed to exist) must be accessible for the statement
-         to be legal, but, as an optimization, it need not actually be used in
-         the operation.  Accordingly, the following constructs directly into
-         the object being initialized -- e.g., complex x = 1 is treated as
-         complex x(1). */
-#if CHECKING
-      if (!cssp->has_copy_constructor) {
-        internal_error("initializer: missing copy constructor");
-      }  /* if */
-#endif /* CHECKING */
-      expression = scan_class_initializer_expression(vp_type,
-                                                     &conversion_routine);
-      if (conversion_routine == NULL) {
-        /* No appropriate constructor was found.  Abort the initialization. */
-        err = TRUE;
-      } else {
-        /* Set the dynamic init entry to represent constructor
-           initialization. */
-        clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-        local_di.variant.constructor.routine = conversion_routine;
-        local_di.variant.constructor.args = expression;
-      }  /* if */
+         complex x = complex(1).  Set the dynamic init entry to represent
+         constructor initialization. */
+      clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
+      local_di.variant.constructor.routine = conversion_routine;
+      local_di.variant.constructor.args = expression;
+    } else {
+      /* No appropriate constructor was found.  Abort the initialization. */
+      err = TRUE;
     }  /* if */
     initialization_is_dynamic = TRUE;
   } else if (is_aggregate_or_union_type(vp_type)) {
