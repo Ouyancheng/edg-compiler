@@ -5170,13 +5170,22 @@ class/struct/union is actually defined.
           if (friend_specified) {
             if ((dso_flags & DSO_ELABORATED_TYPE_SPECIFIER) &&
                 !is_enum_type(member_type)) {
+              /* This is a friend class declaration, of the form:
+                         friend class A;
+                 (which is the only form the ARM (see 11.4) allows. */
               (void)decl_friend_class(class_type, member_type);
             } else if (is_class_struct_union_type(member_type) &&
                        member_storage_class == (a_storage_class)sc_unspecified
                        && !local_defines_something && !virtual_specified) {
+              /* This is an illegal friend declaration of the form:
+                         friend A;
+                 where A is already defined as a class name.  We accept it
+                 only to provide upward compatibility, even though it is not
+                 listed as an anachronism; however, we do issue a warning. */
               pos_warning(ec_bad_friend_decl, &decl_start_pos);
               (void)decl_friend_class(class_type, member_type);
             } else {
+              /* Invalid friend declaration. */
               pos_error(ec_bad_friend_decl, &decl_start_pos);
             }  /* if */
             (void)get_token();
