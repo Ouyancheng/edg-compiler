@@ -1178,7 +1178,7 @@ is bad (incorrectly formed or has an illegal suffix).
   }  /* if */
 }  /* reopen_error_output_file */
 
-#if __VMS
+#if __VMS__
 EXTERN_C int delete(char *file_name);
 #endif /* __VMS__ */
 
