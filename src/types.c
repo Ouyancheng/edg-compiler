@@ -1999,6 +1999,25 @@ done:;
   return compatible;  
 }  /* param_types_are_compatible */
 
+#if MICROSOFT_KEYWORDS_ALLOWED
+
+static a_boolean calling_conventions_are_compatible(a_calling_convention cc1,
+                                                    a_calling_convention cc2)
+/*
+Return TRUE if the two given calling conventions are compatible.  That
+means they are identical or one is cc_default and the other matches
+default_calling_convention.
+*/
+{
+  a_boolean compatible = (cc1 == cc2 ||
+                          (cc1 == (a_calling_convention)cc_default &&
+                           cc2 == default_calling_convention) ||
+                          (cc2 == (a_calling_convention)cc_default &&
+                           cc1 == default_calling_convention));
+  return compatible;
+}  /* calling_conventions_are_compatible */
+
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
 a_boolean f_types_are_compatible(a_type_ptr              type_1,
                                  a_type_ptr              type_2,
@@ -2150,7 +2169,12 @@ for exact pointer equality.
                   (rtsp2->implicit_this_param_type != NULL &&
                    f_types_are_compatible(rtsp1->implicit_this_param_type,
                                           rtsp2->implicit_this_param_type,
-                                          flags)))) {
+                                          flags)))
+#if MICROSOFT_KEYWORDS_ALLOWED
+              && calling_conventions_are_compatible(rtsp1->calling_convention,
+                                                    rtsp2->calling_convention)
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+                                                  ) {
             compat = TRUE;
           }  /* if */
           break;
@@ -3281,6 +3305,10 @@ is allocated, it is allocated in the file scope.
   a_type_ptr       param_1_type, param_2_type;
   a_routine_type_supplement_ptr
                    rtsp1, rtsp2;
+#if MICROSOFT_KEYWORDS_ALLOWED
+  a_calling_convention
+                   comp_calling_convention;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
   db_enter(5, "composite_type");
 
@@ -3426,6 +3454,12 @@ is allocated, it is allocated in the file scope.
           list1_prototyped = rtsp1->prototyped;
           list2_prototyped = rtsp2->prototyped;
           comp_prototyped = list1_prototyped || list2_prototyped;
+#if MICROSOFT_KEYWORDS_ALLOWED
+          comp_calling_convention = rtsp1->calling_convention;
+          if (comp_calling_convention == (a_calling_convention)cc_default) {
+            comp_calling_convention = rtsp2->calling_convention;
+          }  /* if */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
           if (!comp_prototyped) {
             /* Both types have old-style (non-prototyped) interfaces, so
                there is no real parameter information in the composite.
@@ -3577,16 +3611,22 @@ is allocated, it is allocated in the file scope.
              same value, and likewise the implicit "this" parameter type. */
           if (base_type_1->variant.routine.return_type == comp_elem &&
               rtsp1->param_type_list == comp_param_list &&
-              list1_prototyped == comp_prototyped) {
+              list1_prototyped == comp_prototyped
+#if MICROSOFT_KEYWORDS_ALLOWED
+              && rtsp1->calling_convention == comp_calling_convention
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+                                                 ) {
             comp_type = base_type_1;
             if (rtsp1->exception_specification == NULL) {
               rtsp1->exception_specification = rtsp2->exception_specification;
             }  /* if */
           } else if (base_type_2->variant.routine.return_type == comp_elem &&
-              base_type_2->variant.routine.extra_info->param_type_list ==
-                                                             comp_param_list &&
-              (a_boolean)base_type_2->variant.routine.extra_info->prototyped ==
-                                                             comp_prototyped) {
+              rtsp2->param_type_list == comp_param_list &&
+              (a_boolean)rtsp2->prototyped == comp_prototyped
+#if MICROSOFT_KEYWORDS_ALLOWED
+              && rtsp2->calling_convention == comp_calling_convention
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+                                                             ) {
             comp_type = base_type_2;
             if (rtsp2->exception_specification == NULL) {
               rtsp2->exception_specification = rtsp1->exception_specification;
@@ -3599,6 +3639,9 @@ is allocated, it is allocated in the file scope.
             rtsp = comp_type->variant.routine.extra_info;
             rtsp->param_type_list = comp_param_list;
             rtsp->prototyped = comp_prototyped;
+#if MICROSOFT_KEYWORDS_ALLOWED
+            rtsp->calling_convention = comp_calling_convention;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
             rtsp->has_ellipsis = rtsp1->has_ellipsis;
             rtsp->implicit_this_param_type = rtsp1->implicit_this_param_type;
             if (rtsp1->exception_specification != NULL) {
