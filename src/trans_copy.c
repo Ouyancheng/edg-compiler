@@ -1865,9 +1865,9 @@ end_of_type_list_add:;
 end_of_variable_list_add:;
 #if MAINTAIN_NEEDED_FLAGS
         if (!merge_pass &&
-            corresp_variable->storage_class ==
+            (corresp_variable->storage_class ==
                                              (a_storage_class)sc_unspecified ||
-            corresp_variable->init_kind == (an_init_kind)initk_dynamic) {
+             corresp_variable->init_kind == (an_init_kind)initk_dynamic)) {
           /* Mark an externally-defined variable or one with initialization
              side effects as "needed". */
           mark_as_needed((char *)corresp_variable,
