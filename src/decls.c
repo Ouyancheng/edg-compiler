@@ -3069,19 +3069,29 @@ diagnostics.
               /* This is an error.  A function with dllimport specified on its
                  definition has to be inline. */
               invalid_modifier = TRUE;
-            } else if (is_redecl) {
-              if (!(routine->decl_modifiers & DM_DLLIMPORT)) {
-                /* Any previous declaration should have been declared
-                   with dllimport.  Issue a warning. */
-                invalid_redecl = TRUE;
-              } else if (!(DM_DLLIMPORT &
-                           routine->decl_modifiers &
-                           new_modifiers->flags)) {
-                /* The current declaration is inconsistent with a previous
-                   declaration.  Issue a warning and clear the previous
-                   dllimport state. */
-                invalid_redecl = TRUE;
-                routine->decl_modifiers &= ~DM_DLLIMPORT;
+            } else {
+              if (is_redecl) {
+                if (!(routine->decl_modifiers & DM_DLLIMPORT)) {
+                  /* Any previous declaration should have been declared
+                     with dllimport.  Issue a warning. */
+                  invalid_redecl = TRUE;
+                } else if (!(DM_DLLIMPORT &
+                             routine->decl_modifiers &
+                             new_modifiers->flags)) {
+                  /* The current declaration is inconsistent with a previous
+                     declaration.  Issue a warning and clear the previous
+                     dllimport state. */
+                  invalid_redecl = TRUE;
+                  routine->decl_modifiers &= ~DM_DLLIMPORT;
+                }  /* if */
+              }  /* if */
+              if (is_inline &&
+                  (!invalid_redecl ||
+                   (routine->decl_modifiers & DM_DLLIMPORT))) {
+                /* The combination of "inline" and "dllimport" indicates that
+                   the body should only be used for inlining.  It should never
+                   be spilled. */
+                routine->suppress_inline_body = TRUE;
               }  /* if */
             }  /* if */
             break;
@@ -5583,8 +5593,7 @@ declaration.
         new_rp->next = NULL;
         routine_ptr = new_rp;
         old_decl_has_body = FALSE;
-        routine_ptr->is_inline = FALSE;
-        routine_ptr->suppress_inline_body = FALSE;
+        set_inline_flag(routine_ptr, FALSE);
         sym->defined = FALSE;
         sym->variant.routine.ptr = routine_ptr;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -5803,7 +5812,7 @@ declaration.
           if (func_info->is_inline && !routine_ptr->is_inline) {
             changed_to_inline = TRUE;
           }  /* if */
-          routine_ptr->is_inline = func_info->is_inline;
+          set_inline_flag(routine_ptr, func_info->is_inline);
           routine_ptr->source_corresp.name_linkage =
                           (storage_class == (a_storage_class)sc_static) ?
                                 (a_name_linkage_kind)nlk_internal :
@@ -5940,7 +5949,7 @@ declaration.
         if (func_info->is_inline && !routine_ptr->is_inline) {
           changed_to_inline = TRUE;
         }  /* if */
-        routine_ptr->is_inline = func_info->is_inline;
+        set_inline_flag(routine_ptr, func_info->is_inline);
         routine_ptr->source_corresp.name_linkage =
                           (storage_class == (a_storage_class)sc_static) ?
                                 (a_name_linkage_kind)nlk_internal :
@@ -6224,7 +6233,7 @@ skip_overloading:;
       }  /* if */
     }  /* if */
   }  /* if */
-  if (func_info->is_inline) routine_ptr->is_inline = TRUE;
+  if (func_info->is_inline) set_inline_flag(routine_ptr, TRUE);
   if (c99_mode && !gcc_mode) {
     /* In C99 mode the suppress_inline_body flag is set only if that is
        justified by every declaration of a given inline function. */
@@ -7035,7 +7044,9 @@ is not necessarily the canonical entry for the template being declared.
     switch_back_to_original_region(region_to_switch_back_to);
     rout_ptr->type = type_ptr;
     rout_ptr->storage_class = storage_class;
-    rout_ptr->is_inline = func_info->is_inline;
+    if (func_info->is_inline) {
+      set_inline_flag(rout_ptr, TRUE);
+    }  /* if */
     if (locator->is_operator_name) {
       set_routine_special_kind(rout_ptr,
                                (a_special_function_kind)sfk_operator);
@@ -7069,7 +7080,7 @@ is not necessarily the canonical entry for the template being declared.
   } else {
     if (func_info->is_inline) {
       if (!rout_ptr->is_inline) {
-        rout_ptr->is_inline = TRUE;
+        set_inline_flag(rout_ptr, TRUE);
         changed_to_inline = TRUE;
       }  /* if */
     }  /* if */
@@ -7163,7 +7174,7 @@ is not necessarily the canonical entry for the template being declared.
           sym_remark(ec_called_function_redeclared_inline,
                      tip->instance_sym);
         }  /* if */
-        rp->is_inline = TRUE;
+        set_inline_flag(rp, TRUE);
       }  /* if */
     }  /* if */
   }  /* if */

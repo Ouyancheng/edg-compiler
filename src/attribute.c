@@ -1515,7 +1515,8 @@ messages about any invalid attributes.
         rp->section = ap->variant.section;
         break;
       case ak_alias:
-        if (rp->is_inline && rp->assoc_scope != NULL_region_number &&
+        if (gcc_mode && rp->is_inline &&
+            rp->assoc_scope != NULL_region_number &&
             rp->suppress_inline_body) {
           /* GNU C accepts the alias attribute on a function that was
              previously defined as an extern inline function, and ignores
@@ -1527,7 +1528,7 @@ messages about any invalid attributes.
           /* clear_function_body clears rp->defined, but not the defined flag
              on the associated symbol. */
           sym->defined = FALSE;
-          rp->is_inline = FALSE;
+          set_inline_flag(rp, FALSE);
         }  /* if */
         add_alias_fixup((a_symbol_ptr)rp->source_corresp.assoc_info,
                         (char*)NULL, ap->variant.alias, &ap->position);

@@ -5536,7 +5536,7 @@ yet.
   }  /* if */  
   entry_routine->source_corresp.name_linkage = 
                               overriding_function->source_corresp.name_linkage;
-  entry_routine->is_inline = overriding_function->is_inline;
+  set_inline_flag(entry_routine, overriding_function->is_inline);
 #if ONE_INSTANTIATION_PER_OBJECT
   /* Use the needed bit number from the overriding function.  This is needed
      when instantiating inline functions. */

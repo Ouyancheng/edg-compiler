@@ -3635,7 +3635,7 @@ body.  Only called in C++ mode.
               rp->storage_class = (a_storage_class)sc_extern;
               rp->source_corresp.name_linkage =
                                (a_name_linkage_kind)nlk_cplusplus_external;
-              rp->is_inline = FALSE;
+              set_inline_flag(rp, FALSE);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -5225,9 +5225,11 @@ discarded right after they have been generated.
     /* Discard trivial default constructors. */
     discard = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && (routine->decl_modifiers & DM_DLLIMPORT)) {
+  } else if (microsoft_mode && (routine->decl_modifiers & DM_DLLIMPORT) &&
+             !routine->is_inline) {
     /* In Microsoft mode, routines marked __declspec(dllimport) can
-       have bodies, which are discarded. */
+       have bodies, which are discarded.  Inline function definitions are
+       not discarded but their bodies should only be used for inlining. */
     discard = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (routine->is_prototype_instantiation &&

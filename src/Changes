@@ -2,14 +2,11 @@ Version 3.5
 
 8/13/04  Microsoft mode: dllimport and member function definitions
 
-In Microsoft mode, the front end eliminates the bodies of inline functions
-declared with "dllimport" (see Changes entry of 12/5/98).  Normally, the
-__declspec(dllimport) from an enclosing class definition is ignored for
-out-of-class member function definitions (see Changes entry of 3/8/00),
-but that was not the case for explicit class template specializations.
-This bug caused the spurious elimination of certain out-of-class member
-definitions and could result in the C++-generating back end producing
-invalid code.  For example:
+In Microsoft mode, the front end previously eliminated the bodies of inline
+functions declared with "dllimport" (see Changes entry of 12/5/98).  However,
+Microsoft compilers do use such function definitions for inlining purposes.
+Eliminating the definition altogether could result in the C++-generating back
+end producing invalid code.  For example:
 
   template<typename T> struct S;
   template<> struct __declspec(dllimport) S<int> {
@@ -19,7 +16,8 @@ invalid code.  For example:
                                     // Previously erroneously rendered as
                                     // "inline S();"
 
-This is now fixed.
+This is now fixed by not eliminating the definition and instead setting the
+flag "suppress_inline_body" to TRUE (see also Changes entry of 1/19/00).
 
 8/12/04  C++-generating back end: Spurious qualifiers cause lookup failure
 

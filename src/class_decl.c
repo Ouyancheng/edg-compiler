@@ -5696,7 +5696,7 @@ instantiations are recorded in the IL.
   if (func_info->is_definition) {
     rp->defined = sym->defined = TRUE;
     rp->defined_in_friend_decl = TRUE;
-    rp->is_inline = TRUE;
+    set_inline_flag(rp, TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     rp->declared_type = func_info->declared_type;
     if (ssep != NULL && prototype_instantiations_in_il) {
@@ -7123,7 +7123,7 @@ is set to NULL by this function.
   if (func_info->is_inline) {
     /* Inline member function (either because "inline" was specified or
        a function definition is present). */
-    rtn->is_inline = TRUE;
+    set_inline_flag(rtn, TRUE);
   }  /* if */
   if (locator->is_operator_name) {
     /* Overloaded operator function. */
@@ -7675,7 +7675,7 @@ in-class member function declarations.)
   if (func_info->is_inline) {
     /* Inline member function (either because "inline" was specified or
        a function definition is present). */
-    rtn->is_inline = TRUE;
+    set_inline_flag(rtn, TRUE);
   }  /* if */
   if (func_info->is_inline && !extern_inline_allowed) {
     rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;

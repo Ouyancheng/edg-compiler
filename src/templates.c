@@ -3650,7 +3650,7 @@ supplement already associated with ft_symbol.
          removed. */
       tssp->variant.function.func_info.is_inline =
                                orig_tssp->variant.function.func_info.is_inline;
-      rp->is_inline = orig_rp->is_inline;
+      set_inline_flag(rp, orig_rp->is_inline);
       rp->storage_class = orig_rp->storage_class;
       rp->source_corresp.name_linkage = orig_rp->source_corresp.name_linkage;
     }
@@ -3757,7 +3757,7 @@ Instantiate the body of the template function associated with tip.
   }  /* if */
 #endif /* DEBUG */
   if (func_info_ptr->is_inline) {
-    rout_ptr->is_inline = TRUE;
+    set_inline_flag(rout_ptr, TRUE);
     if (!extern_inline_allowed) {
       rout_ptr->storage_class = (a_storage_class)sc_static;
       rout_ptr->source_corresp.name_linkage =
@@ -8347,7 +8347,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
                                                    : templ_rout->storage_class;
     set_routine_special_kind(rp, templ_rout->special_kind);
     rp->variant = templ_rout->variant;
-    rp->is_inline = templ_rout->is_inline;
+    set_inline_flag(rp, templ_rout->is_inline);
 #if DO_IL_LOWERING && IA64_ABI
     rp->inline_in_class_definition = templ_rout->inline_in_class_definition;
 #endif /* DO_IL_LOWERING && IA64_ABI */
@@ -8965,7 +8965,7 @@ is the template entry for the template being declared.
         if (rp->called) {
           sym_remark(ec_called_function_redeclared_inline, rout_sym);
         }  /* if */
-        rp->is_inline = TRUE;
+        set_inline_flag(rp, TRUE);
       } else {
         if (rp->is_inline) {
           sym_warning(ec_incompatible_inline_specifier_on_specific_decl,
@@ -15978,7 +15978,7 @@ that follows.
         }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         rp->is_specialized = TRUE;
-        rp->is_inline = func_info.is_inline;
+        set_inline_flag(rp, func_info.is_inline);
         if ((func_info.is_inline && !extern_inline_allowed) ||
             rp->storage_class == (a_storage_class)sc_static) {
           /* Function was declared "static" or it was declared "inline" and
@@ -16052,7 +16052,7 @@ that follows.
             add_routine_fixup_for_specialization(decl_state->class_declared_in,
                                                  sym, &func_info, &body_cache);
             /* An in-class specialization in implicitly inline. */
-            rp->is_inline = TRUE;
+            set_inline_flag(rp, TRUE);
             /* The param_id_list is needed because the func_info information
                is on the routine fixup list.  Don't discard it below. */
             keep_func_info = TRUE;

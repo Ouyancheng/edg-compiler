@@ -1213,7 +1213,7 @@ member declaration (allowed in Microsoft mode only).
          now on. */
       if (!sym->defined) {
         sym->variant.routine.ptr->compiler_generated = FALSE;
-        sym->variant.routine.ptr->is_inline = FALSE;
+        set_inline_flag(sym->variant.routine.ptr, FALSE);
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (sym->ambiguous) {
@@ -1409,7 +1409,7 @@ member declaration (allowed in Microsoft mode only).
   }  /* if */
   if (func_info->is_inline) {
     if (!rp->is_inline) {
-      rp->is_inline = TRUE;
+      set_inline_flag(rp, TRUE);
       if (rp->called) {
         /* In the ARM, member functions could not be redeclared inline after
            being called.  This restriction has been eliminated in the

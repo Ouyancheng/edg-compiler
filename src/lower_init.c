@@ -3383,7 +3383,7 @@ destructors in the IA-64 ABI.
     new_routine = make_rout_entry_no_add((char *)NULL, new_storage_class,
                                          return_type,
                                          this_param_type);
-    new_routine->is_inline = routine->is_inline;
+    set_inline_flag(new_routine, routine->is_inline);
 #if DECL_MODIFIERS_IN_USE
     new_routine->decl_modifiers = routine->decl_modifiers;
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -3453,7 +3453,7 @@ destructors in the IA-64 ABI.
     }  /* if */
     /* Set is_inline again because templates don't have a reliable value
        before they are defined. */
-    new_routine->is_inline = routine->is_inline;
+    set_inline_flag(new_routine, routine->is_inline);
     new_routine->suppress_inline_body = routine->suppress_inline_body;
     define_default_version_of_routine(routine, new_routine, 
                                       (an_expr_node_ptr)NULL);
