@@ -4313,12 +4313,10 @@ a projection symbol pointing to that sk_overloaded_function symbol.
 }  /* overload_check_ambiguity_and_verify_access */
 
 
-a_boolean max_access_of_overloaded_function(a_symbol_ptr        sym,
-                                            an_access_specifier *max_access)
+a_boolean uniform_access_of_overloaded_function(a_symbol_ptr  sym)
 /*
-Given overloaded function symbol sym, return in *max_access the access control
-value of the most accessible of the functions.  If not all the functions have
-the same access, the function returns FALSE.
+Given overloaded function symbol sym, return TRUE if all the functions have
+the same access, FALSE otherwise.
 */
 {
   an_access_specifier  access;
@@ -4330,15 +4328,37 @@ the same access, the function returns FALSE.
   }  /* if */
 #endif /* CHECKING */
   sym = sym->variant.overloaded_function.symbols;
-  *max_access = access_for_symbol(sym);
+  access = access_for_symbol(sym);
   while ((sym = sym->next) != NULL) {
-    access = access_for_symbol(sym);
-    if (is_more_accessible(access, *max_access)) {
-      *max_access = access;
+    if (access != access_for_symbol(sym)) {
       all_have_same_access = FALSE;
+      break;
     }  /* if */
   }  /* while */
   return all_have_same_access;
+}  /* max_access_of_overloaded_function */
+
+
+static an_access_specifier max_access_of_overloaded_function(a_symbol_ptr  sym)
+/*
+Given overloaded function symbol sym, return in *max_access the access control
+value of the most accessible of the functions.
+*/
+{
+  an_access_specifier  access, max_access;
+
+#if CHECKING
+  if (sym->kind != (a_symbol_kind)sk_overloaded_function) {
+    internal_error("max_access_of_overloaded_functions: bad symbol kind");
+  }  /* if */
+#endif /* CHECKING */
+  sym = sym->variant.overloaded_function.symbols;
+  max_access = access_for_symbol(sym);
+  while ((sym = sym->next) != NULL) {
+    access = access_for_symbol(sym);
+    if (is_more_accessible(access, max_access)) max_access = access;
+  }  /* while */
+  return max_access;
 }  /* max_access_of_overloaded_function */
 
 
