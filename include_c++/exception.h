@@ -31,6 +31,13 @@ namespace std {
 
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace */
+
+#ifdef __EDG_IMPLICIT_USING_STD
+/* Implicitly include a using directive for the STD namespace when this
+   preprocessing flag is TRUE. */
+using namespace std;
+#endif /* ifdef __EDG_IMPLICIT_USING_STD */
+
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
 #endif /* _EXCEPTION_H */

@@ -6,6 +6,11 @@ typeinfo.h, stdexcept.h, new.h, and exception.h have been changed to
 put standard types in namespace std, but only if the front-end flag
 RUNTIME_USES_NAMESPACES is set to TRUE.
 
+When the runtime uses namespaces, the front end will define a
+preprocessing flag (named __EDG_IMPLICIT_USING_STD by default) that
+will be TRUE if the --using_std option was specified when the front
+end was invoked.  The runtime tests this flag and does a "using
+namespace std" directive when it is set.
 -----------------------------------------------------------------------------
 Version 2.29, May 24, 1995
 
