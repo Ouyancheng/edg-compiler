@@ -34,33 +34,15 @@ Usage:
 #include "basics.h"
 #include "host_envir.h"
 
-#if STDLIB_H_INCLUDED
-/* qsort and exit prototypes provided by host_envir.h include of stdlib.h. */
-typedef sizeof_t qsort_nmemb_type;
+#if !STDLIB_H_INCLUDED
 #else /* !STDLIB_H_INCLUDED */
-#if __BSD__
-EXTERN_C int qsort(a_void_ptr       base,
-                   int              nmemb,
-                   int              size,
-                   int(*compar)(a_const_void_ptr,
-                                a_const_void_ptr));
-typedef int qsort_nmemb_type;
-#else /* !__BSD__ */
-EXTERN_C void qsort(a_void_ptr       base,
-                    sizeof_t         nmemb,
-                    sizeof_t         size,
-                    int(*compar)(a_const_void_ptr,
-                                 a_const_void_ptr));
-typedef sizeof_t qsort_nmemb_type;
-#endif /* __BSD__ */
-
 EXTERN_C void exit(int status);
 #if __BSD__
 EXTERN_C char *malloc(unsigned size);
 #else /* !__BSD__ */
 #include <malloc.h>
 #endif /* __BSD__ */
-#endif /* STDLIB_H_INCLUDED */
+#endif /* !STDLIB_H_INCLUDED */
 
 /*
 Lines from "nm" are read into this buffer for analysis.
