@@ -39,6 +39,10 @@ namespace std {
     // constructor" warning
 #endif /* 0 */
     type_info(const type_info&);  // Not actually defined
+#ifdef __EDG_IA64_ABI
+  private:
+    const char *__type_name;
+#endif /* ifdef __EDG_IA64_ABI */
   };
 
   class bad_cast : public exception {
