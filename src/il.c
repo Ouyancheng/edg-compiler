@@ -2574,11 +2574,17 @@ would not be considered "identical", since the type qualifiers are different.
 
 a_boolean expr_tree_contains_template_param_constant(an_expr_node_ptr  node,
                                                      a_constant_ptr    cp)
+/*
+cp is a pointer to a simple template parameter constant.  Return TRUE if
+node refers to that constant directly or contains it among its operands.
+*/
 {
   a_boolean         found = FALSE;
   a_constant_ptr    cp2;
   an_expr_node_ptr  op;
 
+  check_assertion(cp->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_param);
   if (node->kind == (an_expr_node_kind)enk_constant) {
     cp2 = node->variant.constant;
     if (cp2->kind == (a_constant_repr_kind)ck_template_param) {
