@@ -4505,14 +4505,20 @@ is not a template declaration scope.
            ptp != NULL;
            ptp = ptp->next) {
         if (ptp->has_default_arg) {
-          an_error_severity  severity = es_warning;
+          an_error_severity  severity;
+          an_error_code      error_code;
           if (tssp->variant.function.instantiations != NULL) {
             severity = es_error;
-          } else if (strict_ansi_mode) {
-            severity = strict_ansi_error_severity;
+            error_code = ec_default_arg_on_function_template_not_allowed;
+          } else {
+            if (strict_ansi_mode) {
+              severity = strict_ansi_error_severity;
+            } else {
+              severity = es_warning;
+            }  /* if */
+            error_code = ec_nonstd_default_arg_on_function_template_redecl;
           }  /* if */
-          pos_diagnostic(severity, ec_default_arg_on_function_template_redecl,
-                         &locator->source_position);
+          pos_diagnostic(severity, error_code, &locator->source_position);
           break;
         }  /* if */
       }  /* for */

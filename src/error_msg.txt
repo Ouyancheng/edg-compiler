@@ -849,7 +849,8 @@ ec_cl_old_specializations_option_only_in_cplusplus;;"option \"old_specialization
 ec_nonstd_old_specialization;;"specializing %n without \"template<>\" syntax is nonstandard"
 ec_bad_linkage_for_decl;;"this declaration may not have extern \"C\" linkage"
 ec_not_a_template_name;;"%sq is not a class or function template name"
-ec_default_arg_on_function_template_redecl;;"default argument is only allowed on the initial declaration of a function template"
+ec_nonstd_default_arg_on_function_template_redecl;;"specifying a default argument when redeclaring an unreferenced function template is nonstandard"
+ec_default_arg_on_function_template_not_allowed;;"specifying a default argument when redeclaring an already referenced function template is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
