@@ -658,7 +658,7 @@ s1.  So, for example, if s1 is "byte", s2 will match if it is either
       result = FALSE;
     } else {
       /* Compare the remainder of the strings. */
-      result = strncmp(s1, s2, length_1) == 0;
+      result = strncmp(s1, s2, size_t_arg(length_1)) == 0;
     }  /* if */
   }  /* if */
 
