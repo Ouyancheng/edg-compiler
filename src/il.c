@@ -3607,6 +3607,13 @@ of the front end.
     internal_error(
                 "il_init: incorrect initialization of db_storage_class_names");
   }  /* if */
+  /* Check that the table of operator names is correctly initialized.  This
+     guards against someone changing the enumeration and forgetting to update
+     db_operator_names. */
+  if (db_operator_names[(int)eok_last] == NULL ||
+      strcmp(db_operator_names[(int)eok_last], "last") != 0) {
+    internal_error("il_init: incorrect initialization of db_operator_names");
+  }  /* if */
 #endif /* CHECKING && DEBUG */
 
   /* Static variables in il.c: */
