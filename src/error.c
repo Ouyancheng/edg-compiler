@@ -5238,6 +5238,8 @@ position and symbol fill-in.
 }  /* pos_sy_start_warning */
 
 
+#if 0
+/* This routine is not currently used by the compiler. */
 void pos_sy2_warning(an_error_code     error_code,
                      a_source_position *error_pos,
                      struct a_symbol   *symbol1,
@@ -5252,6 +5254,7 @@ indicated position.
   error_msg_syms[2] = symbol2;
   diag_message(error_code, error_pos, es_warning, dck_standalone);
 }  /* pos_sy2_warning */
+#endif /* 0 */
 
 
 void sym_add_diag_info(an_error_code error_code,
