@@ -7512,10 +7512,11 @@ not include the function scope memory region, if any.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if LOWER_EXTERN_INLINE
     if (treat_as_extern_inline(routine)) {
-#if !IA64_ABI
-      /* An extern inline routine.  Make it a normal static inline routine.
-         Other transformations (e.g., promoting local static variables
+      /* An extern inline routine. */
+      /* Other transformations (e.g., promoting local static variables
          out as external variables) are done elsewhere. */
+#if !IA64_ABI
+      /* Make it a normal static inline routine. */
       routine->storage_class = (a_storage_class)sc_static;
       routine->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
       routine->source_corresp.externalized = FALSE;
@@ -7532,16 +7533,23 @@ not include the function scope memory region, if any.
       /* Place the routine in a COMDAT group so that the linker will eliminate
          duplicate copies. */
       put_routine_into_comdat_group(routine);
-#if INSTANTIATE_TEMPLATES_EVERYWHERE_USED
-    } else if (routine->is_template_function &&
-               !routine->is_specialized &&
-               routine->storage_class == (a_storage_class)sc_unspecified) {
-      /* A defined non-inline template goes into a COMDAT group also. */
-      put_routine_into_comdat_group(routine);
-#endif /* INSTANTIATE_TEMPLATES_EVERYWHERE_USED */
-#endif /* IA64_ABI */
+#endif /* !IA64_ABI */
     } /* if */
 #endif /* LOWER_EXTERN_INLINE */
+#if IA64_ABI
+    if (routine->is_template_function &&
+        !routine->is_specialized &&
+        routine->storage_class == (a_storage_class)sc_unspecified &&
+        !routine->use_comdat) {
+      /* A defined non-inline template goes into a COMDAT group.
+         Note that this is done even when the prelinker is used.  If we
+         have the COMDAT feature, it's good to be able to ignore
+         multiple copies if, say, -tused is specified in two
+         compilations and that creates two instances of a template
+         function. */
+      put_routine_into_comdat_group(routine);
+    }  /* if */
+#endif /* IA64_ABI */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
     { a_routine_ptr	overriding_function;
       overriding_function = routine->
