@@ -1866,7 +1866,7 @@ error code.
       m = "template argument list must match the parameter list";
       break;
     case ec_conversion_to_self_not_allowed:
-      m = "operator to convert from %t1 to %t2 is not allowed";
+      m = "conversion function to convert from %t1 to %t2 is not allowed";
       break;
     case ec_bad_extra_arg_for_postfix_operator:
       m = "extra argument of postfix \"operator%s\" must be of type \"int\"";
