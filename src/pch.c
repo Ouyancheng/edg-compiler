@@ -125,7 +125,7 @@ Macro to write a value to the PCH output file.
 
 static void bad_pch_file(void)
 /*
-Called when a read operation on a PCH file fails.  Issue a catestrophic
+Called when a read operation on a PCH file fails.  Issue a catastrophic
 error.
 */
 {
@@ -140,7 +140,7 @@ error.
 
 static void pch_write_error(void)
 /*
-Called when a write operation on a PCH file fails.  Issue a catestrophic
+Called when a write operation on a PCH file fails.  Issue a catastrophic
 error.
 */
 {
