@@ -634,6 +634,26 @@ new fields are set properly.
                member delete was allowed exactly two (and the second had to
                be size_t).  This restriction is no longer imposed, given the
                rules on matching delete to new in WP 5.3.4 para 18-19. */
+            if (!exceptions_enabled && !err) {
+              /* On the other hand, placement-delete declarations are useless
+                 when exception handling is disabled. */
+              ptp = ptp->next;
+              if (ptp != NULL) {
+                /* There is a second argument.  Except for the case in which
+                   a class member operator delete has a second parameter type
+                   of size_t, issue a diagnostic. */
+                tp = skip_typerefs(ptp->type);
+                if (!is_error_type(tp)) {
+                  if (class_type != NULL && is_integral_type(tp) &&
+                      tp->variant.integer.int_kind == targ_size_t_int_kind) {
+                    /* No warning for X::operator delete(void *, size_t). */
+                  } else {
+                    pos_remark(ec_useless_placement_delete,
+                               &locator->source_position);
+                  }  /* if */
+                }  /* if */
+              }  /* if */
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
