@@ -335,11 +335,12 @@ The variable can also be controlled from the command line by
 Flag that is used as the default setting for global variable
 friend_injection_enabled.  This controls whether a class or function
 first declared only in friend declarations is visible to normal lookups.
-The variable can also be controlled from the command line by
+The standard specifies that such names are not visible to normal
+lookups.  The variable can also be controlled from the command line by
 --[no_]friend_injection.
 */
 #ifndef DEFAULT_FRIEND_INJECTION
-#define DEFAULT_FRIEND_INJECTION FALSE
+#define DEFAULT_FRIEND_INJECTION TRUE
 #endif /* DEFAULT_FRIEND_INJECTION */
 
 /*
