@@ -800,15 +800,6 @@ Do intialization that does not have to be redone with each translation
 unit, in case multiple source files are allowed.
 */
 {
-  /* Determine number of data bits per character used when representing
-     target characters as a string on the host. */
-  if (targ_char_bit > CHAR_BIT) {
-    /* When the target char larger than the host char, individual characters in
-       string literals are limited by what is representable in a host char. */
-    targ_host_string_char_bit = CHAR_BIT;
-  } else {
-    targ_host_string_char_bit = targ_char_bit;
-  }  /* if */
 }  /* fe_one_time_init */
 
 
