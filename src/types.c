@@ -732,6 +732,27 @@ identical to base_class_type.  Return NULL if none is found.
 }  /* find_direct_base_class_of */
 
 
+a_base_class_ptr find_direct_or_virtual_base_class_of(
+                                                   a_type_ptr  derived_class,
+                                                   a_type_ptr  base_class_type)
+/*
+Return a pointer to the direct or virtual base class of derived_class with
+a type identical to base_class_type.  Return NULL if none is found.
+*/
+{
+  a_base_class_ptr  bcp;
+
+  db_enter(4, "find_direct_or_virtual_base_class_of");
+  bcp = base_classes_of(derived_class);
+  for (; bcp != NULL; bcp = bcp->next) {
+    if ((bcp->direct || bcp->is_virtual) &&
+        bcp->type == base_class_type) break;
+  }  /* for */
+  db_exit();
+  return bcp;
+}  /* find_direct_or_virtual_base_class_of */
+
+
 a_base_class_ptr corresponding_base_class(a_base_class_ptr  base_class,
                                           a_type_ptr        new_class,
                                           a_base_class_ptr  disambiguator)

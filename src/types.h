@@ -121,10 +121,13 @@ extern a_base_class_ptr corresponding_base_class(
                                             a_type_ptr        new_class,
                                             a_base_class_ptr  disambiguator);
 
-extern a_base_class_ptr find_direct_base_class_of(a_type_ptr  derived_class,
-                                                  a_type_ptr  base_class_type);
 extern a_base_class_ptr find_base_class_of(a_type_ptr derived_class,
                                            a_type_ptr base_class);
+extern a_base_class_ptr find_direct_base_class_of(a_type_ptr  derived_class,
+                                                  a_type_ptr  base_class_type);
+extern a_base_class_ptr find_direct_or_virtual_base_class_of(
+                                                  a_type_ptr  derived_class,
+                                                  a_type_ptr  base_class_type);
 extern a_boolean is_same_class_or_base_class_thereof(a_type_ptr class_1,
                                                      a_type_ptr class_2);
 extern a_boolean f_related_class_pointers(a_type_ptr       type_1,
