@@ -1595,7 +1595,7 @@ initialized is not a reference.
         check_assertion_str(field != NULL,
                             "gen_initializer_constant: ran out of fields");
         sub_type = field->type;
-        field = next_initializable_field(field);
+        field = next_initializable_field(field->next);
       }  /* if */
       gen_initializer_constant(sub_con, sub_type);
       sub_con = sub_con->next;
@@ -4363,6 +4363,30 @@ done:;
 }  /* gen_statement */
 
 
+static a_boolean default_class_array_initialization(a_dynamic_init_ptr dip)
+/*
+Return TRUE if the indicated dynamic initialization entry performs
+default initialization on an array of classes.  Default initialization
+for such a case is to call the default constructor for each element of the
+array.
+*/
+{
+  a_boolean is_default_array_init = FALSE;
+
+  if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+    a_constant_ptr con = dip->variant.constant;
+    check_assertion(con->kind == (a_constant_repr_kind)ck_aggregate);
+    if (con->variant.aggregate.first_constant->kind ==
+                                        (a_constant_repr_kind)ck_init_repeat) {
+      /* A ck_init_repeat constant is used only to do default initialization
+         of an array, so we need check no further. */
+      is_default_array_init = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_default_array_init;
+}  /* default_class_array_initialization */
+
+
 static a_boolean rout_is_copy_constructor(a_routine_ptr rout)
 /*
 Return TRUE if the indicated routine (a constructor) is a copy constructor.
@@ -4415,6 +4439,8 @@ nothing is put out (in either mode), except that if force_parens is
 TRUE, "()" is put out.
 */
 {
+  a_constant_ptr con;
+
   /* Note that the destructor, if any, is implicit and need not be put out. */
   /* If the variable is known, and the type is not, fetch the type from
      the variable. */
@@ -4427,17 +4453,33 @@ TRUE, "()" is put out.
       if (force_parens) write_tok_str("()");
       break;
     case dik_constant:
-    case dik_nonconstant_aggregate:
       /* Constant (simple or aggregate). */
-      /* An aggregate constant cannot be put out in a parenthesized
+      con = dip->variant.constant;
+      /* An aggregate constant cannot be put out as a parenthesized
          initializer. */
-      check_assertion_str(!parenthesized_init ||
-                          dip->variant.constant->kind !=
-                                            (a_constant_repr_kind)ck_aggregate,
+      check_assertion_str(con->kind != (a_constant_repr_kind)ck_aggregate ||
+                          !parenthesized_init,
                           "gen_dynamic_init: aggregate in parens");
       if (parenthesized_init) write_tok_ch('(');
-      gen_initializer_constant(dip->variant.constant, init_entity_type);
+      gen_initializer_constant(con, init_entity_type);
       if (parenthesized_init) write_tok_ch(')');
+      break;
+    case dik_nonconstant_aggregate:
+      /* Nonconstant aggregate constant, used in cases like
+           int a[3] = {1, i+j, 3};
+      */
+      con = dip->variant.constant;
+      if (default_class_array_initialization(dip)) {
+        /* This is default initialization for a class array, so nothing
+           need be put out. */
+        break;
+      }  /* if */
+      /* The constant must be an aggregate and it cannot be put out as
+         a parenthesized initializer. */
+      check_assertion_str(con->kind == (a_constant_repr_kind)ck_aggregate &&
+                          !parenthesized_init,
+                          "gen_dynamic_init: bad nonconst aggr");
+      gen_initializer_constant(con, init_entity_type);
       break;
     case dik_expression:
       /* Expression. */
@@ -4513,6 +4555,10 @@ Output the initializer, if any, for the indicated variable.
       if (dip->kind == (a_dynamic_init_kind)dik_none) {
         /* No initialization at all.  (The dynamic init is here because
            there is a destructor, but it's implicit.) */
+        break;
+      } else if (default_class_array_initialization(dip)) {
+        /* This is default initialization for a class array, so put out
+           nothing. */
         break;
       }  /* if */
       /* Use the parenthesized initialization form, e.g.,
