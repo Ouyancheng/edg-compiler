@@ -196,6 +196,10 @@ suppress_c_to_object_diagnostics=0
 #
 driver_debug=0
 #
+# Special option for testing precompiled headers
+#
+pch_test_mode=0
+#
 # Go through every argument, identify it, and add it a list if appropriate.
 #
 while [ -n "$1" ]
@@ -328,6 +332,10 @@ do
       ;;
     -sun*)
 #     SunOS 4.n option, as in "-sun4" -- ignored.
+      ;;
+    --pch_test_mode)
+#     Special option for testing precompiled headers
+      pch_test_mode=1
       ;;
     *\.a)
 #     Collect a list of library archive names (.a) files.
@@ -588,8 +596,20 @@ do
   if [ $driver_debug -ne 0 ] ; then
     echo $command
   fi
-  $command
-  status=$?
+  if [ $pch_test_mode -eq 1 ] ; then
+    # In PCH test mode, we immediatly repeat the same compilation.
+    # The first compilation should generate a PCH file, the second should
+    # use the generated file.  The output of the first compilation is
+    # discarded.
+    $command >/dev/null 2>&1
+    $command
+    status=$?
+    rm -f *.pch
+  else
+    # Normal mode, just run the front end.
+    $command
+    status=$?
+  fi
   #
   # If we are doing automatic instantiation and if the program involves
   # templates then the a .ii file will exist after the compilation.
