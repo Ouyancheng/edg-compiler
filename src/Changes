@@ -1,5 +1,19 @@
 Version 2.43
 
+11/23/99 Internal error on erroneous use of reserved class name "type_info"
+
+Some unusual and erroneous uses of the reserved class name "type_info" in
+namespace "std" used to lead to an internal error.
+
+  namespace std {
+    class type_info {
+      union type_info(const type_info&);  // Could lead to an internal error
+    };
+  }
+
+The abort occurred when the configuration flags ABI_CHANGES_FOR_RTTI and
+PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED were both TRUE.  This is now fixed.
+
 11/23/99 Internal error when redeclaring namespace std using a template-id
 
 The following example no longer triggers an internal error:

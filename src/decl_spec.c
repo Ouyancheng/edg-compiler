@@ -1048,8 +1048,11 @@ caution when modifying this routine.
                            &locator_for_curr_id.source_position,
                            (char *)(type_info_in_namespace_std
                                             ? "std::type_info" : "type_info"));
+              tag_err = TRUE;
+              tag_sym = NULL;
+            } else {
+              tag_sym = type_info_sym;
             }  /* if */
-            tag_sym = type_info_sym;
 #endif /* ABI_CHANGES_FOR_RTTI */
 #endif /* !PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED */
           }  /* if */
