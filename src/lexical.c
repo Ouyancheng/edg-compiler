@@ -5551,7 +5551,7 @@ This routine may only be called in C++ mode.
         /* This is a vacuous destructor reference for a non-class
            type (e.g., int::~int).  Make sure the type of the thing
            before the "::" matches the type of the thing after it. */
-        /* If the dtor_class_type is NULL then an error occured while
+        /* If the dtor_class_type is NULL then an error occurred while
 	   scanning the part before the "::~", so don't issue another
            error here.  If the type of the thing after the "::~" is NULL,
            or doesn't match dtor_class_type, issue an error. */

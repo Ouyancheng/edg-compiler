@@ -5224,7 +5224,7 @@ of the template.
       depth_of_innermost_instantiation_scope = depth_scope_stack;
       /* Update the symbols of the template parameters to represent the
          values of the actual arguments by simply changing each to point to
-         the type or constant specifed by the corresponding template argument.
+         the type or constant specified by the corresponding template argument.
          The old values do not need to be saved because they can be easily
          recreated by pop_scope. */
       update_template_param_symbols(template_sym, template_arg_list);
@@ -6603,9 +6603,9 @@ void add_to_instantiations_required_list(
                                     a_function_instantiation_entry_ptr fiep,
                                     a_static_data_member_def_ptr       sdmdp)
 /*
-Allocate a template-definition entry, intializing it with the pointer passed
+Allocate a template-definition entry, initializing it with the pointer passed
 in (a pointer either to a function instantiation entry or to a static data
-member defintion entry), and add it to the instantiatiations_required list.
+member definition entry), and add it to the instantiatiations_required list.
 */
 {
   a_template_definition_ptr  tdp;

@@ -747,7 +747,8 @@ typedef struct a_template_definition {
 			   definition. (The defined flag in the static data
 			   member symbol, which can be set after the entry
 			   has been added to the list, must be checked to
-			   determine if the object still needs a defintion.) */
+			   determine if the object still needs a
+			   definition.) */
   } variant;
 } a_template_definition;
 
@@ -1378,7 +1379,7 @@ typedef struct a_scope_stack_entry {
 			   or NO_SCOPE_DEPTH if there is no containing
 			   function scope or if the scope of a local class or
 			   template instantiation intervenes between the
-			   current scope and the containting function scope. */
+			   current scope and the containing function scope. */
 } a_scope_stack_entry;
 
 
