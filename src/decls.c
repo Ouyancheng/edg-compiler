@@ -3297,9 +3297,9 @@ skip_overloading:;
        a local type. */
     if (source_corresp_ptr->name_linkage != (a_name_linkage_kind)nlk_none) {
       if (is_or_contains_local_type(type_ptr)) {
-        pos_warning(is_function ? ec_local_type_in_function :
-                                  ec_local_type_in_nonlocal_var,
-                    &locator->source_position);
+        pos_error(is_function ? ec_local_type_in_function :
+                                ec_local_type_in_nonlocal_var,
+                  &locator->source_position);
       }  /* if */
     }  /* if */
   }  /* if */
