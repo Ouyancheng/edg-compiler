@@ -3008,7 +3008,7 @@ reference entry, or is NULL if none is needed.
          x;
          &x;
     */
-    make_expression_operand(var_rvalue_expr(variable), variable->type,
+    make_expression_operand(var_rvalue_expr(variable), variable_type,
                             result);
     copy_source_position(pos_curr_token, result->position);
   } else {
