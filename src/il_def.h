@@ -5825,6 +5825,7 @@ enum an_expr_operator_kind_tag {
   eok_const_cast,       /* Generic const_cast from the source. */
   eok_reinterpret_cast, /* Generic reinterpret_cast from the source. */
   eok_lvalue,           /* Indicates that the operand is an lvalue. */
+  eok_rvalue,           /* Indicates that the operand is an rvalue. */
 #endif /* ifdef CIL */
   /* Special operators: */
   eok_error,            /* This is a special operator used in the cases when
@@ -8118,7 +8119,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "&T", "T.", "T->", "T.*", "T->*",
    "T.()", "T->()", "T.*()", "T->*()",
    "static cast", "const cast", "reinterpret cast",
-   "lvalue",
+   "lvalue", "rvalue",
 #endif /* ifdef CIL */
    "error", "last"
 }
