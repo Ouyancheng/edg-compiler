@@ -17,6 +17,10 @@ symbol_tbl.h - Declarations related to symbol table processing.
 #ifndef SYMBOL_TBL_H
 #define SYMBOL_TBL_H 1
 
+/* Type used for the options set for the name lookup routines.  This
+   is declared here to prevent recursion problems. */
+typedef int an_id_lookup_options_set;
+
 /* Declare pointer types up front to minimize mutual recursion problems. */
 typedef struct a_symbol        *a_symbol_ptr;
 typedef struct a_symbol_header *a_symbol_header_ptr;
@@ -39,85 +43,6 @@ typedef struct a_def_arg_expr_fixup *a_def_arg_expr_fixup_ptr;
 typedef struct a_pending_pragma *a_pending_pragma_ptr;
 
 /* Some other things declared up front to avoid mutual recursion problems. */
-
-/*
-Options for normal_id_lookup, class_qualified_id_lookup, etc.,
-represented as a bit set:
-*/
-typedef int an_id_lookup_options_set;
-#define IDL_MUST_BE_CLASS_OR_NAMESPACE  0x1
-				/* The symbol must be a class, struct, or
-				   union name, a typedef of one of those, or
-                                   a namespace.  In other words, one of the
-                                   things that, in C++, may precede a ::. */
-#define IDL_MUST_BE_TAG 0x2	/* The symbol must be a class, struct, union,
-				   or enum (not a typedef of one of those). */
-#define IDL_CONSTRAINTS (IDL_MUST_BE_CLASS_OR_NAMESPACE | IDL_MUST_BE_TAG)
-				/* The set of all options that impose
-				   constraints on the symbol to be found. */
-#define IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR 0x4
-				/* Suppress the error on a qualified name
-				   not being found on lookup. */
-#define IDL_TENTATIVE_TYPE_LOOKUP 0x8
-                                /* We are looking up a symbol to see if it is
-				   a type name.  This mode suppresses the
-				   introduction of new symbols as a consequence
-				   of the lookup.  The primary example of this
-				   is when the symbol found is a projection
-				   from a base class.  In that case we do not
-				   actually create the symbol to represent
-				   that projection unless is a type name -- a
-				   typedef or tag symbol (class, struct,
-				   union, or enum) -- but return NULL instead.
-				   This flag also suppresses the out of
-				   scope declaration lookup in SVR4 C
-				   compatibility mode. */
-#define IDL_SKIP_CURR_FUNCTION_SCOPE 0x10
-				/* Causes normal_id_lookup to skip over
-				   the innermost scope entry which
-				   must be a function scope.  This is
-				   used to look up the identifiers used
-				   in constructor initializer lists.  Names
-				   of parameters of the constructor must not
-				   be visible during this lookup. */
-#define IDL_DO_NOT_ADD_TO_NONREAL_CLASS 0x20
-				/* When a name is being looked up in
-				   a proxy or nonreal class, this flag
-				   suppresses the creation of a new
-				   symbol if the name is not found in the
-				   class. */
-#define IDL_LINKAGE_LOOKUP 0x40
-				/* A special lookup used for determining
-				   identifier linkage.  This lookup stops
-				   at the first namespace scope and suppresses
-				   some of the special lookups (such as
-				   the using directive lookup). */
-#define IDL_PROJ_SYMBOL_ALLOWED 0x80
-				/* Causes curr_scope_id_lookup to consider
-				   projection symbols (but not synthesized
-				   namespace projections). */
-#define IDL_SKIP_CLASS_SCOPES 0x100
-				/* Causes class and class reactivation scopes
-				   to be ignored. */
-#define IDL_INSTANTIATION_CONTEXT 0x200
-				/* Used within normal_id_lookup to create
-				   synthesized namespace projection symbols
-				   for instantiation context lookups. */
-#define IDL_NO_OPTIONS 0	/* No special lookup options. */
-
-/*
-Returns TRUE if the specified set of lookup options represents a lookup
-whose result can be saved as a synthesized projection symbol and
-reused later.
-*/
-#define is_reusable_using_directive_lookup(option)			\
-  ((options & ~(IDL_MUST_BE_TAG |					\
-                IDL_MUST_BE_CLASS_OR_NAMESPACE |			\
-		IDL_INSTANTIATION_CONTEXT |				\
-                IDL_TENTATIVE_TYPE_LOOKUP |				\
-                IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) == 0)
-
-
 /*
 A symbol-reference kind is a bit vector whose values are defined in
 symbol_ref.h.  The typedef declaration is here to avoid mutual inclusion
@@ -2508,11 +2433,23 @@ a_symbol_ptr make_namespace_projection_symbol(a_symbol_ptr     fund_sym,
                                               a_symbol_locator *locator,
                                               a_scope_depth    scope_depth);
 
+extern void set_namespace_projection_symbol(a_symbol_ptr     proj_sym,
+                                            a_symbol_ptr     fund_sym,
+                                            a_scope_depth    scope_depth);
+
 extern
 a_symbol_ptr enter_namespace_projection_symbol(a_symbol_ptr    fund_sym,
                                                a_symbol_locator *location,
                                                a_scope_depth   scope_depth,
                                                a_boolean       suppress_error);
+
+extern
+a_symbol_ptr enter_synthesized_projection_symbol(
+                               a_symbol_ptr		fund_sym,
+                               a_symbol_locator		*location,
+                               a_boolean		qualified_lookup,
+                               a_namespace_ptr		qualifier_namespace,
+                               an_id_lookup_options_set	options);
 
 extern a_symbol_ptr add_symbol_to_overload_list(a_symbol_ptr    new_sym,
                                                 a_symbol_ptr    other_sym,
@@ -2561,6 +2498,10 @@ extern void make_symbol_for_type_of_type_info(void);
 extern void set_symbol_kind(a_symbol_ptr  sym_ptr,
 			    a_symbol_kind sym_kind);
 
+extern a_symbol_ptr alloc_symbol(a_symbol_kind       kind,
+                                 a_symbol_header_ptr hdr_ptr,
+                                 a_source_position   *position);
+
 extern void remove_symbol(a_symbol_ptr sym_ptr);
 
 extern void remove_anonymous_union_member_from_inactive_symbols_list
@@ -2571,6 +2512,8 @@ extern a_boolean symbols_may_coexist_in_curr_scope
                                          a_symbol_ptr  new_sym,
                                          a_symbol_ptr  *insert_sym,
 					 a_boolean     suppress_error);
+
+extern void add_symbol_to_inactive_list(a_symbol_ptr sym_ptr);
 
 extern a_symbol_ptr find_external_symbol(a_symbol_locator     *location,
                                          a_name_linkage_kind  linkage,
@@ -2863,40 +2806,14 @@ extern a_boolean is_accessible_virtual_base_class(
                                              a_base_class_ptr bcp,
                                              a_type_ptr       viewpoint_class);
 
-extern a_boolean already_in_lookup_set(a_symbol_ptr curr_sym,
-                                       a_symbol_ptr new_sym);
-
-extern a_symbol_ptr curr_scope_id_lookup(a_symbol_locator         *locator,
-                                         an_id_lookup_options_set options);
-
-extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
-                                     an_id_lookup_options_set options);
-
-extern a_symbol_ptr curr_tag_symbol(a_symbol_locator  *locator,
-                                    a_symbol_kind     tag_kind);
-
-extern a_symbol_ptr class_qualified_id_lookup(
-                                         a_symbol_locator         *locator,
-                                         a_type_ptr               class_type,
-                                         an_id_lookup_options_set options);
-
-extern
-a_symbol_ptr namespace_qualified_id_lookup(a_symbol_locator         *locator,
-                                           a_namespace_ptr          ns_ptr,
-                                           an_id_lookup_options_set options);
-
-extern a_symbol_ptr file_scope_id_lookup(a_symbol_locator         *locator,
-                                         an_id_lookup_options_set options);
-
-extern a_symbol_ptr opname_member_function_symbol(an_opname_kind kind,
-                                                  a_type_ptr     class_type);
-
-extern a_symbol_ptr opname_function_symbol(an_opname_kind kind);
-
-extern a_symbol_list_entry_ptr nonmember_operator_function_lookup(
-                                 an_opname_kind kind,
-                                 a_type_ptr	type_1,
-                                 a_type_ptr     type_2);
+extern a_symbol_ptr find_progenitor_symbol(
+                                        a_type_ptr            class_ptr,
+                                        a_symbol_locator      *locator,
+                                        a_boolean             must_be_tag,
+                                        a_derivation_step_ptr *path,
+                                        an_access_specifier   *access,
+                                        a_boolean             *ambiguous,
+                                        a_boolean             *any_using_decl);
 
 
 /* Begin a name scope. */
@@ -2933,9 +2850,16 @@ a_scope_depth scope_depth_of_symbol(a_symbol_ptr  sym,
                                     a_boolean     *is_local_to_function);
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
+
+extern
+void set_source_corresp_with_scope_depth(a_source_correspondence *sc,
+                                         a_symbol_ptr            sp,
+			                 a_scope_depth		depth);
+
 extern void set_class_membership(a_symbol_ptr             sym,
                                  a_source_correspondence  *scp,
                                  a_type_ptr               class_type);
+
 extern void set_namespace_membership(a_symbol_ptr             sym,
                                      a_source_correspondence  *scp,
                                      a_namespace_ptr          nsp);
@@ -3180,7 +3104,16 @@ extern void db_symbol(a_symbol_ptr	sym,
                       int		indentation);
 
 extern int db_scope_kind(a_scope_kind sck);
+extern void db_scope_stack_entry(a_scope_stack_entry_ptr ssep);
 extern void db_scope_stack(void);
+
+/*
+Information used to gather performance statistics related to symbol
+table processing that needs to be externally visible.
+*/
+EXTERN unsigned long
+		num_fast_id_lookups,
+		num_slow_id_lookups;
 #endif /* DEBUG */
 
 extern void symbol_tbl_one_time_init(void);

@@ -87,6 +87,9 @@ incorporated:
 #if !STANDALONE_UTILITY_PROGRAM
 /* Symbol table declarations.  symbol_tbl.h also pulls in lexical.h. */
 #include "symbol_tbl.h"
+
+/* Identifier lookup routines. */
+#include "lookup.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /* Type system support. */

@@ -553,6 +553,7 @@ unit, in case multiple source files are allowed.
   error_one_time_init();
   expr_one_time_init();
   il_one_time_init();
+  lookup_one_time_init();
   layout_one_time_init();
   lexical_one_time_init();
   macro_one_time_init();
@@ -620,6 +621,7 @@ to replace the initial portion of this compilation.
   def_arg_init();
   templates_init();
   expr_init();
+  lookup_init();
   macro_init();
   statements_init();
   pch_init();
