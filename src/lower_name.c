@@ -1054,24 +1054,27 @@ Determine the mangled encoding for the type "type".  Place the encoding at
 See ARM 7.2.1c for name encoding.
 */
 {
-  a_type_ptr named_type, named_typedef, pm_base_type;
+  a_type_ptr named_type, pm_base_type;
+#if ABI_COMPATIBILITY_VERSION < 230
+  a_type_ptr named_typedef = NULL;
+#endif /* ABI_COMPATIBILITY_VERSION < 230 */
   sizeof_t   mangled_name_length, section_length;
   char       *s;
   a_type_qualifier_set
              qualifiers;
 
   mangled_name_length = 0;
-  /* Walk through any typerefs above the type.  Remember type qualifiers,
-     remember the bottommost named typedef, and skip down to the "real"
-     underlying type. */
-  named_typedef = NULL;
+  /* Walk through any typerefs above the type.  Remember type qualifiers
+     and skip down to the "real" underlying type. */
   qualifiers = 0;
   for (; type->kind == (a_type_kind)tk_typeref;
        type = type->variant.typeref.type) {
     /* Remember type qualifiers encountered. */
     qualifiers |= type->variant.typeref.qualifiers;
+#if ABI_COMPATIBILITY_VERSION < 230
     /* Remember the bottommost named typedef encountered. */
     if (type->source_corresp.name != NULL) named_typedef = type;
+#endif /* ABI_COMPATIBILITY_VERSION < 230 */
   }  /* for */
   /* Put out type qualifiers, if any. */
   if (qualifiers != 0) {
@@ -1081,19 +1084,19 @@ See ARM 7.2.1c for name encoding.
   }  /* if */
   /* See if the type is a named class or enum. */
   named_type = NULL;
-  if (is_enum_type(type)) {
-    if (type->source_corresp.name != NULL) {
-      /* Named enum. */
-      named_type = type;
-    } else {
-      /* Unnamed enum; if there is a named typedef above the enum, use its
-         name.  Note that we use the typedef name even if it's the name of
-         a qualified version of the enum; that's what cfront does. */
-      named_type = named_typedef;
-    }  /* if */
-  } else if (is_immediate_class_type(type)) {
-    /* Class type. */
-    if (type->source_corresp.name != NULL) named_type = type;
+  if (has_name(type) &&
+      (is_immediate_class_type(type) || is_immediate_enum_type(type))) {
+    /* Named class or enum type. */
+    named_type = type;
+#if ABI_COMPATIBILITY_VERSION < 230
+  } else if (named_typedef != NULL && is_immediate_enum_type(type)) {
+    /* Unnamed enum with a typedef above it.  Use the typedef name for the
+       enum even though it's the name of a qualified version of the enum.
+       In ABI versions >= 2.30, the processing for this was moved
+       to decls.c for greater compatibility with cfront when
+       CFRONT_OBJECT_CODE_COMPATIBILITY is TRUE, and eliminated otherwise. */
+    named_type = named_typedef;
+#endif /* ABI_COMPATIBILITY_VERSION < 230 */
   }  /* if */
   /* If the type is named, use the name. */
   if (named_type != NULL) {
@@ -2299,9 +2302,10 @@ a virtual function table name.  Place the mangled name at *store_at if
 store_at != NULL, and (always) return the length of the name.
 */
 {
-  sizeof_t mangled_name_length, name_length, digits;
-
+  sizeof_t mangled_name_length;
 #if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
+  sizeof_t name_length, digits;
+
   /* cfront mode. */
   if (type_needs_parent_qualifier(type)) {
     /* The type is a nested type.  Add a length in front of the mangled
