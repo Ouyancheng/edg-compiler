@@ -4859,11 +4859,20 @@ ARM:
 It can appear at file scope, function scope, and block scope.  In C mode,
 where declarations and executable statements may not be mingled, an asm
 "declaration" at function or block scope is always treated as executable.
+
+In Microsoft mode support is provided for additional syntax:
+
+  asm { asm-instruction-list } ;opt
+  asm asm-instruction ;opt
+
+where an asm-instruction-list is a semi-colon-delimited list of asm
+instructions (unquoted).
 */
 {
   a_constant        asm_string;
   an_asm_entry_ptr  ap = NULL;
   a_source_position asm_pos;
+  a_boolean         is_asm_block = FALSE;
 
   db_enter(3, "asm_declaration");
   check_assertion(curr_token == tok_asm);
@@ -4879,6 +4888,47 @@ where declarations and executable statements may not be mingled, an asm
   copy_source_position(pos_curr_token, asm_pos);
   /* Skip past the "asm". */
   (void)get_token();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    if (curr_token == tok_lparen) {
+      /* Fall through for normal processing. */
+    } else {
+      if (curr_token == tok_lbrace) {
+      /* In Microsoft mode an asm statement may have the form "__asm { ... }",
+         with a sequence of individual asm statements between the braces.  In
+         other words, it looks just like the body of an asm function. */
+        is_asm_block = TRUE;
+        add_stop_token(tok_rbrace);
+      } else {
+        /* In Microsoft mode one may also write "__asm xxx" -- i.e., the
+           parens may be omitted and a quoted string is not used. */
+        /* is_asm_block is already set to FALSE. */
+        /* Don't advance to the next token -- scan_asm_block assumes the
+           current token is the one preceding the first token of the asm
+           block (which it is -- namely tok_lbrace -- when the "{ ... }"
+           form is used). */
+      }  /* if */
+      clear_constant(&asm_string, (a_constant_repr_kind)ck_string);
+      /* Scan the block of asm statements and copy the tokens into a string. */
+      asm_string.variant.string.value = scan_asm_block(is_asm_block);
+      asm_string.variant.string.length =
+                                  strlen(asm_string.variant.string.value) + 1;
+      asm_string.type = string_type(asm_string.variant.string.length);
+      if (is_asm_block) {
+        /* Check for and skip the closing brace. */
+        (void)required_token(tok_rbrace, ec_exp_rbrace);
+        remove_stop_token(tok_rbrace);
+        /* Check for and skip the optional semicolon. */
+        if (curr_token == tok_semicolon) (void)get_token();
+      } else {
+        if (curr_token == tok_semicolon || curr_token == tok_newline) {
+          (void)get_token();
+        }  /* if */
+      }  /* if */
+      goto make_asm_entry;
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
@@ -4895,11 +4945,15 @@ where declarations and executable statements may not be mingled, an asm
   remove_stop_token(tok_rparen);
   /* Check for and skip the semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+make_asm_entry:
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
   /* Update the IL. */
   if (asm_decl_allowed) {
     /* Allocate and set the asm-entry. */
     ap = alloc_asm_entry();
     ap->asm_string = alloc_unshared_constant(&asm_string);
+    ap->is_asm_block = is_asm_block;
     copy_source_position(asm_pos, ap->source_corresp.decl_position);
     if (!is_asm_statement) {
       /* Add the asm entry to the list for the current scope.  This is only
