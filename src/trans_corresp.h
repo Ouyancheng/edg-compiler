@@ -202,6 +202,8 @@ extern void establish_class_instantiation_corresp(a_type_ptr  type);
 
 extern void establish_function_instantiation_corresp(a_routine_ptr  routine);
 
+extern void establish_variable_instantiation_corresp(a_variable_ptr  var);
+
 extern void corresp_one_time_init(void);
 
 extern void corresp_trans_unit_init(void);

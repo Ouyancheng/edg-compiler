@@ -228,7 +228,21 @@ the primary translation unit is preferred.
     if (tcp->canonical != entity) {
       switch (kind) {
         case iek_constant:
-          /* FIXME */
+          {
+            a_source_correspondence  *scp = (a_source_correspondence*)entity;
+            if (scp->is_class_member) {
+              a_type_ptr  parent = scp->parent.class_type;
+              if (canonical_il_entry_of(parent) == (char*)parent) {
+                do_update = TRUE;
+              }  /* if */
+            } else if (scp->parent.namespace_ptr != NULL &&
+                       canonical_il_entry_of(scp->parent.namespace_ptr) ==
+                                           (char*)scp->parent.namespace_ptr) {
+              do_update = TRUE;
+            } else if (!in_secondary_trans_unit(entity)) {
+              do_update = TRUE;
+            }  /* if */
+          }
           break;
         case iek_field:
           {
@@ -252,36 +266,38 @@ the primary translation unit is preferred.
           }  /* if */
           break;
         case iek_template:
-          if (assoc_sym_defined(entity) &&
-              (!assoc_sym_defined(canonical_il_entry_of(entity)) ||
-               !in_secondary_trans_unit(entity))) {
-            /* Since the canonical template is changing, the associated
-               all_instantiations list must be moved too. */
+          {
             a_template_ptr
                  corresp_templ = (a_template_ptr)entity,
                  templ = (a_template_ptr)canonical_il_entry_of(entity);
-            a_symbol_ptr
+            if (assoc_sym_defined(entity) &&
+                (!assoc_sym_defined(canonical_il_entry_of(entity)) ||
+                 !in_secondary_trans_unit(entity))) {
+              /* Since the canonical template is changing, the associated
+                 all_instantiations list must be moved too. */
+              a_symbol_ptr
                  templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info,
                  corresp_sym =
                        (a_symbol_ptr)corresp_templ->source_corresp.assoc_info;
-            a_template_symbol_supplement_ptr
+              a_template_symbol_supplement_ptr
                  tssp = template_supplement_for_symbol(templ_sym),
                  corresp_tssp = template_supplement_for_symbol(corresp_sym);
-            if (tssp->all_instantiations != NULL) {
-              /* The canonical entry is changing: the list of all
-                 instantiations should be reattached to the new canonical
-                 entry. */
-              check_assertion(corresp_tssp->all_instantiations == NULL);
+              if (tssp->all_instantiations != NULL) {
+                /* The canonical entry is changing: the list of all
+                   instantiations should be reattached to the new canonical
+                   entry. */
+                check_assertion(corresp_tssp->all_instantiations == NULL);
 #if DEBUG
-              if (db_flag_is_set("trans_corresp")) {
-                fprintf(f_debug, "all_instantiations transferred because\n");
-              }  /* if */
+                if (db_flag_is_set("trans_corresp")) {
+                  fprintf(f_debug, "all_instantiations transferred because\n");
+                }  /* if */
 #endif /* DEBUG */
-              corresp_tssp->all_instantiations = tssp->all_instantiations;
-              tssp->all_instantiations = NULL;
+                corresp_tssp->all_instantiations = tssp->all_instantiations;
+                tssp->all_instantiations = NULL;
+              }  /* if */
+              do_update = TRUE;
             }  /* if */
-            do_update = TRUE;
-          }  /* if */
+          }
           break;
         case iek_type:
           {
@@ -2838,6 +2854,19 @@ instantiated.  Such an event may cause routine to become the canonical entry.
     update_canonical_entry(iek_routine, (char*)routine);
   }  /* if */
 }  /* establish_function_instantiation_corresp */
+
+
+void establish_variable_instantiation_corresp(a_variable_ptr  var)
+/*
+This routine is called when the definition of the given variable (a static
+data member) has been instantiated.  Such an event may cause var to become
+the canonical entry.
+*/
+{
+  if (trans_unit_corresp_of(var) != NULL) {
+    update_canonical_entry(iek_variable, (char*)var);
+  }  /* if */
+}  /* establish_variable_instantiation_corresp */
 
 
 a_boolean seek_type_corresp(a_type_ptr  type_1,
