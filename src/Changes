@@ -1,5 +1,11 @@
 Version 3.4
 
+8/6/03   GNU IA-64 ABI: Virtual base cannot overlap with nonvirtual empty base
+
+Early GNU implementations of the IA-64 ABI do not allocate a virtual base
+at the same offset as a nonvirtual empty base.  This behavior is now imitated
+when emulating GNU IA-64 bugs.
+
 8/5/03   Missing error (and abort) on invalid partial specialization
 
 The front end failed to diagnose an invalid out-of-class partial

@@ -3807,12 +3807,14 @@ Reserve space at the end of the class object for virtual base classes.
 #if IA64_ABI
     if (emulate_gnu_abi_bugs) {
       /* Early GNU implementations for the IA-64 ABI force an alignment
-         boundary before allocating trailing virtual bases. */
+         boundary before allocating trailing virtual bases.  They also
+         avoid overlapping a virtual base with a trailing empty base. */
       if (!do_alignment(&lob->byte_offset, &lob->bit_offset, lob->alignment) &&
           !lob->any_overflow) {
         error(struct_too_large_error());
         lob->any_overflow = TRUE;
       }  /* if */
+      adjust_size_for_empty_bases(lob);
     }  /* if */
 #endif /* IA64_ABI */
 #if !TARG_REUSE_TAIL_PADDING
