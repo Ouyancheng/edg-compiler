@@ -413,7 +413,7 @@ If need_trailing_space is TRUE, put out a space after the type qualifier
 
   check_assertion_str(type->kind == (a_type_kind)tk_typeref,
                       "form_type_qualifier: bad type kind");
-  if (type->variant.typeref.is_const) {
+  if (typeref_is_const_qualified(type)) {
     if (suppress_const || octl->gen_pcc_code
 #if SUPPRESS_CONST_IN_GENERATED_C
         || octl->c_generating_back_end
@@ -425,7 +425,7 @@ If need_trailing_space is TRUE, put out a space after the type qualifier
       qualifier_put_out = TRUE;
     }  /* if */
   }  /* if */
-  if (type->variant.typeref.is_volatile) {
+  if (typeref_is_volatile_qualified(type)) {
     if (octl->gen_pcc_code) {
       /* "volatile" suppressed when generating K&R C. */
     } else {
@@ -561,7 +561,7 @@ Note that derived types should be handled above this level.
         if (octl->c_generating_back_end && !octl->gen_pcc_code) {
           /* Some compilers have trouble with "const void".  Drop the const
              in that case. */
-          if (type->variant.typeref.is_const &&
+          if (typeref_is_const_qualified(type) &&
               skip_typerefs(type->variant.typeref.type)->kind ==
                                                         (a_type_kind)tk_void) {
             suppress_const = TRUE;

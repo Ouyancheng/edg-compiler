@@ -430,8 +430,7 @@ symbol "used" or "set", if appropriate.
           /* We are in the midst of a template instantiation. */
           for(;;) {
             if (tp->kind == (a_type_kind)tk_typeref) {
-              if (tp->variant.typeref.is_const ||
-                  tp->variant.typeref.is_volatile) {
+              if (typeref_is_qualified(tp)) {
                 tp = tp->variant.typeref.type;
               } else {
                 sym_for_xref = (a_symbol_ptr)tp->source_corresp.assoc_info;

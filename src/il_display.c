@@ -946,10 +946,17 @@ do_struct_union:
 #endif /* DO_IL_LOWERING */
       if (ptr->variant.typeref.is_placeholder_for_file_scope_type) {
         disp_boolean("is_placeholder_for_file_scope_type", TRUE);
-      } else {
-        disp_boolean("is_const", (a_boolean)ptr->variant.typeref.is_const);
-        disp_boolean("is_volatile",
-                     (a_boolean)ptr->variant.typeref.is_volatile);
+      } else if (ptr->variant.typeref.qualifier != TQ_NONE) {
+        disp_name("qualifier");
+        if (ptr->variant.typeref.qualifier & TQ_CONST) {
+          if (ptr->variant.typeref.qualifier & TQ_VOLATILE) {
+            (void)printf("%s\n", "const volatile");
+          } else {
+            (void)printf("%s\n", "const");
+          }  /* if */
+        } else if (ptr->variant.typeref.qualifier & TQ_VOLATILE) {
+          (void)printf("%s\n", "volatile");
+        }  /* if */
       }  /* if */
       break;
     case tk_ptr_to_member:

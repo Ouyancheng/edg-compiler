@@ -137,8 +137,7 @@ are not dropped here.
 */
 {
   while (type_ptr->kind == (a_type_kind)tk_typeref &&
-         !type_ptr->variant.typeref.is_const &&
-         !type_ptr->variant.typeref.is_volatile) {
+         !typeref_is_qualified(type_ptr)) {
     type_ptr = type_ptr->variant.typeref.type;
 #if CHECKING
     if (type_ptr == NULL) {
@@ -570,9 +569,7 @@ qualification.
 
   if (type->kind == (a_type_kind)tk_typeref) {
     /* Ignore typedefs, and typerefs that do nothing. */
-    if (type->source_corresp.name == NULL &&
-        (type->variant.typeref.is_const ||
-         type->variant.typeref.is_volatile)) {
+    if (type->source_corresp.name == NULL && typeref_is_qualified(type)) {
       /* This is a type qualifier. */
       is_type_qual = TRUE;
     }  /* if */
@@ -596,7 +593,7 @@ should be used instead of calling this routine directly.
   for (;;) {
     if (tp->kind == (a_type_kind)tk_typeref) {
       /* May be a typedef or a qualification. */
-      if (tp->variant.typeref.is_const) {
+      if (typeref_is_const_qualified(tp)) {
         is_const = TRUE;
         break;
       }  /* if */
@@ -627,7 +624,7 @@ should be used instead of calling this routine directly.
   for (;;) {
     if (tp->kind == (a_type_kind)tk_typeref) {
       /* May be a typedef or a qualification. */
-      if (tp->variant.typeref.is_volatile) {
+      if (typeref_is_volatile_qualified(tp)) {
         is_volatile = TRUE;
         break;
       }  /* if */
@@ -658,7 +655,7 @@ should be used instead of calling this routine directly.
   for (;;) {
     if (tp->kind == (a_type_kind)tk_typeref) {
       /* May be a typedef or a qualification. */
-      if (tp->variant.typeref.is_const || tp->variant.typeref.is_volatile) {
+      if (typeref_is_qualified(tp)) {
         is_qualified = TRUE;
         break;
       }  /* if */
@@ -4723,8 +4720,7 @@ the original type.
   while (type->kind == (a_type_kind)tk_typeref &&
          type->source_corresp.is_local_to_function) {
     /* The top level type is a local typedef. */
-    check_assertion(!type->variant.typeref.is_const &&
-                    !type->variant.typeref.is_volatile);
+    check_assertion(!typeref_is_qualified(type));
     type = type->variant.typeref.type;
   }  /* while */
   return traverse_and_modify_type_tree(type, tmtt_strip_local_typedef,
