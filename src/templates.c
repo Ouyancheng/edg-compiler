@@ -1634,7 +1634,7 @@ to rout_sym (if the name is overloaded, use the source position to decide),
 and create a function instantiation entry to bind the two symbols together.
 */
 {
-  a_symbol_ptr                       sym;
+  a_symbol_ptr                       sym, template_sym;
   a_template_symbol_supplement_ptr   tssp;
   a_function_instantiation_entry_ptr fiep;
   a_type_ptr                         tp;
@@ -1657,7 +1657,7 @@ and create a function instantiation entry to bind the two symbols together.
          sym != NULL;
          sym = sym->next) {
       if (sym->decl_scope == corresp_prototype_decl_scope &&
-          (sym->kind == (a_symbol_kind)sk_function_template ||
+          (sym->kind == (a_symbol_kind)sk_member_function ||
            sym->kind == (a_symbol_kind)sk_overloaded_function)) {
         break;
       }  /* if */
@@ -1673,7 +1673,7 @@ and create a function instantiation entry to bind the two symbols together.
     for (sym = sym->variant.overloaded_function.symbols;
          sym != NULL;
          sym = sym->next) {
-      if (sym->kind == (a_symbol_kind)sk_function_template &&
+      if (sym->kind == (a_symbol_kind)sk_member_function &&
           sym->decl_position.seq == rout_sym->decl_position.seq &&
           sym->decl_position.column == rout_sym->decl_position.column) {
         /* sym is the template function symbol for rout_sym. */
@@ -1682,17 +1682,18 @@ and create a function instantiation entry to bind the two symbols together.
     }  /* for */
   }  /* if */
 #if CHECKING
-  if (sym == NULL || sym->kind != (a_symbol_kind)sk_function_template ||
+  if (sym == NULL || sym->kind != (a_symbol_kind)sk_member_function ||
       sym->decl_position.seq != rout_sym->decl_position.seq ||
       sym->decl_position.column != rout_sym->decl_position.column) {
     internal_error("find_member_function_template: no corresponding template");
   }  /* if */
 #endif /* CHECKING */
+  template_sym = get_member_function_template_symbol(sym);
   /* sym is the template symbol for which member function rout_sym is an
      instantiation.  Create the function instantiation entry and set the
      pointers to bind them together. */
   fiep = alloc_function_instantiation_entry();
-  fiep->template_sym = sym;
+  fiep->template_sym = template_sym;
   /* Get the template arg list for the class and use it.  Note that if
      this is a nested class we have to climb the parent chain to find the
      template class in which the template arg list is recorded. */
@@ -1702,7 +1703,7 @@ and create a function instantiation entry to bind the two symbols together.
   }  /* if */
   fiep->arg_list =
              tp->variant.class_struct_union.extra_info->template_arg_list;
-  tssp = sym->variant.template_info;
+  tssp = template_sym->variant.template_info;
   /* Link the new entry to the start of the instantiation list of the
      function template. */
   fiep->next = tssp->variant.function.instantiations;

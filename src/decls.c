@@ -3704,8 +3704,9 @@ class template.
   }  /* if */
   effective_decl_level = DEPTH_OF_FILE_SCOPE;
   if (locator->is_qualified_name && locator->specific_symbol != NULL) {
+    /* Member function template. */
     sym = locator->specific_symbol;
-    if (sym->kind != (a_symbol_kind)sk_function_template &&
+    if (sym->kind != (a_symbol_kind)sk_member_function &&
         sym->kind != (a_symbol_kind)sk_overloaded_function) {
       /* We must have nonfunction class member.  This is an error, so set sym
          to NULL to force the creation of a fake member function symbol. */
@@ -3726,6 +3727,10 @@ class template.
                         ec_not_compatible_with_previous_decl,
                    &locator->source_position, locator->specific_symbol);
         set_to_error_locator(*locator);
+      } else {
+        /* This is a member function symbol of a prototoye instantiation.
+           Get the associated function template. */
+        sym = get_member_function_template_symbol(sym);
       }  /* if */
     }  /* if */
   } else if (!is_error_locator(*locator)) {

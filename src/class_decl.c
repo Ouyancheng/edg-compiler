@@ -2925,16 +2925,7 @@ without it.
   /* Go through the symbol list and look for an instance in which the
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
-    if (sym->kind == (a_symbol_kind)sk_function_template) {
-      orig_type = sym->variant.template_info->
-                                          variant.function.routine->type;
-#if CHECKING
-    } else if (sym->kind != (a_symbol_kind)sk_member_function) {
-      internal_error("member_function_redecl_sym: bad sym kind");
-#endif /* CHECKING */
-    } else {
-      orig_type = sym->variant.routine.ptr->type;
-    }  /* if */
+    orig_type = sym->variant.routine.ptr->type;
     orig_rts = (skip_typerefs(orig_type))->variant.routine.extra_info;
     orig_this_type = orig_rts->implicit_this_param_type;
     orig_function_is_qualified =
@@ -3180,7 +3171,6 @@ Return TRUE is sym is a symbol for an operator delete() function.
 
 static a_symbol_ptr symbol_for_member_function(a_symbol_locator  *locator,
                                                a_type_ptr        type,
-                                               a_symbol_kind     symbol_kind,
                                                a_symbol_ptr      *overload_sym)
 /*
 Return a pointer to an sk_member_function symbol to represent a function
@@ -3213,8 +3203,7 @@ function symbols.
       } else if (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) {
         /* Matches a name in the current scope. */
         if (sym->kind == (a_symbol_kind)sk_member_function ||
-            sym->kind == (a_symbol_kind)sk_overloaded_function ||
-            sym->kind == (a_symbol_kind)sk_function_template) {
+            sym->kind == (a_symbol_kind)sk_overloaded_function) {
           /* Remember sym -- it represents a member function. */
         } else {
           /* Found the name in the current class, but it is not a member
@@ -3261,8 +3250,8 @@ function symbols.
         suppress_redecl_error = TRUE;
       } else {
         /* Enter this symbol as an instance of overloading. */
-        new_sym = enter_overloaded_symbol(symbol_kind, locator, sym,
-                                          overload_sym);
+        new_sym = enter_overloaded_symbol((a_symbol_kind)sk_member_function,
+                                          locator, sym, overload_sym);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3270,8 +3259,8 @@ function symbols.
     /* No member function symbol with this name exists yet, or else this is a
        redeclaration which will cause an error to be issued.  Create a new
        member function symbol. */
-    new_sym = enter_local_symbol(symbol_kind, locator, decl_scope_level,
-                                 suppress_redecl_error);
+    new_sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
+                                 decl_scope_level, suppress_redecl_error);
   }  /* if */
   db_exit()
   return new_sym;
@@ -3409,24 +3398,15 @@ special function kind (e.g., constructor, destructor), if any.
      declarations should be handled. */
 #endif /* if 0 */
   /* Look for a prior declaration or function overloading. */
-  sym = symbol_for_member_function(locator, member_type,
-                                   is_func_template ?
-                                     (a_symbol_kind)sk_function_template :
-                                     (a_symbol_kind)sk_member_function,
-                                   &overload_sym);
-
-  if (is_func_template) {
+  sym = symbol_for_member_function(locator, member_type, &overload_sym);
+  rtn = sym->variant.routine.ptr;
 #if 0
-    rtn = sym->variant.template_info->variant.function.routine;
 #else
     /* What about redeclaration when a function template is involved?  Is that
        important to worry about in a prototype instantiation?  For now we'll
        ignore redeclarations. */
-    rtn = NULL;
+  if (is_func_template) rtn = NULL;
 #endif /* if 0 */
-  } else {
-    rtn = sym->variant.routine.ptr;
-  }  /* if */
   if (rtn != NULL) {
     /* symbol_for_member_function has returned a symbol that has already been
        declared.  It is an error to redeclare a member function, but we try
@@ -3442,11 +3422,7 @@ special function kind (e.g., constructor, destructor), if any.
     /* Member functions are static by default. */
     rtn = make_routine(member_type, (a_storage_class)sc_static,
                        /*at_file_scope=*/FALSE, /*add_to_list=*/TRUE);
-    if (is_func_template) {
-      sym->variant.template_info->variant.function.routine = rtn;
-    } else {
-      sym->variant.routine.ptr = rtn;
-    }  /* if */
+    sym->variant.routine.ptr = rtn;
     /* Set the source correspondence, including the access specifier. */
     set_source_corresp(&rtn->source_corresp, sym);
     rtn->source_corresp.class_of_which_a_member = class_type;
