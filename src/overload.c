@@ -192,8 +192,7 @@ cast.
     if (number_of_matches == 0 && need_templates_pass &&
         is_function_type(dest_underlying_type)) {
       a_partial_order_candidate_ptr candidate_list = NULL;
-      /* Try matching function templates.  Do not try if the underlying type
-         is not a function type. */
+      /* Try matching function templates. */
       for (proj_sym = ovl_sym;
            proj_sym != NULL;
            proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
