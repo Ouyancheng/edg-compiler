@@ -1,5 +1,17 @@
 Version 3.1
 
+11/19/02  GNU C++ compatibility: template argument list following
+          constructor name
+
+g++ permits a template argument list to appear following a constructor name
+in a constructor definition that appears outside of the class.  This is now
+accepted in g++ mode.
+
+  template <class T> struct A {
+    A();
+  };
+  template <class T> A<T>::A<T>(){}
+
 11/19/02 GNU C++ compatibility: redeclaration of handler parameters
 
 In a catch clause, an entity may be declared with the same name as the
