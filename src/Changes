@@ -1,5 +1,11 @@
 Version 3.1
 
+7/30/02  Uninitialized field in statement control flow block
+
+The any_vla_variables field of the statement control flow block
+was not initialized, which could cause a reference to an
+uninitialized value later.  Fixed.
+
 7/23/02  GNU C mode: Enumerator constant types
 
 In GNU C mode, enumerator constants take on the first type from the following

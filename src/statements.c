@@ -519,6 +519,7 @@ to it.
       cfdp->variant.block.object_lifetime = NULL;
       cfdp->variant.block.goto_count = 0;
       cfdp->variant.block.any_labels = FALSE;
+      cfdp->variant.block.any_vla_variables = FALSE;
       cfdp->variant.block.is_switch_block = FALSE;
       cfdp->variant.block.is_switch_subblock = FALSE;
       cfdp->variant.block.exposed_init_in_switch = FALSE;
