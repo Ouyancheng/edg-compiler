@@ -5024,8 +5024,10 @@ function declarations.)
   }  /* if */
   check_operator_function_params(member_type, class_type, locator);
   clear_specific_symbol(*locator);
-  (void)class_qualified_id_lookup(locator, class_type,
-                                  IDL_MEMBER_FUNCTION_LOOKUP);
+  if (!is_error_locator(*locator)) {
+    (void)class_qualified_id_lookup(locator, class_type,
+                                    IDL_MEMBER_FUNCTION_LOOKUP);
+  }  /* if */
   sym = locator->specific_symbol;
   if (sym != NULL) {
     /* Be sure the declaration does not conflict with a previous member
