@@ -2309,6 +2309,7 @@ added to the scope symbols list and is not linked into the symbol table.
       if (bcp->type == pdp->fundamental_symbol->class_of_which_a_member) {
         pdp->fundamental_base_class = bcp;
 #if CHECKING
+#if 0
         /* Confirm that the type match was in fact sufficient.  The code
            corresponds to the more expensive search used in the presence of
            ambiguity (see below). */
@@ -2328,6 +2329,7 @@ added to the scope symbols list and is not linked into the symbol table.
         }  /* if */
         check_assertion(
                   congruent_paths(preferred_derivation_of(bcp)->path, path));
+#endif /* 0 */
 #endif /* CHECKING */
         break;
       }  /* if */
@@ -3521,8 +3523,8 @@ an_access_specifier access_to_end_of_path(
 /*
 Compute the accessibility (public, protected, private, inaccessible) to an
 entity with access sym_access from the end of the derivation path pointed
-to by "path".  If bcdp is non-NULL, this path is part of the path for
-the indicated virtual base class derivation.
+to by "path".  This path is part of the path for the base class derivation
+bcdp.
 */
 {
   a_base_class_ptr            bcp;
@@ -3531,16 +3533,18 @@ the indicated virtual base class derivation.
   if (path != NULL) {
     /* Use a recursive call to compute the access over all the steps
        after the first one. */
-    if (path->next != NULL) {
+    if (path->next != NULL) {  /* Test is for speed. */
       sym_access = access_to_end_of_path(sym_access, path->next, bcdp);
     }  /* if */
     /* Now modify the access to account for the first step. */
     /* Virtual base classes get special handling, but not when they appear as
-       the last step of their own derivations. */
+       the last step of derivations. */
     bcp = path->base_class;
-    if (bcdp != NULL && path->next == NULL) {
-      /* This is the last step in the derivation for a virtual base class.
-         Add the effect of this step into the accumulated access. */
+    if (path->next == NULL) {
+      /* This is the last step in the derivation for a base class.
+         Add the effect of this step into the accumulated access.
+         Use the derivation access specified in the header for the base
+         class derivation (important for virtual base classes). */
       sym_access = compute_access(sym_access, bcdp->access);
     } else if (is_virtual_but_not_simple_direct_base_class(bcp)) {
       /* The first step is a virtual step which is more than a direct base
@@ -3681,17 +3685,19 @@ is used is determining access to protected members and in the presence
 of protected derivations.
 */
 {
-  a_boolean        accessible = FALSE;
-  a_base_class_ptr bcp;
+  a_boolean                   accessible = FALSE;
+  a_base_class_ptr            bcp;
+  a_base_class_derivation_ptr preferred_derivation;
 
   /* See if class_type is a base class of derived_class. */
   bcp = find_base_class_of(derived_class, class_type);
   if (bcp != NULL) {
     /* Yes.  See if the derivation steps are such that a protected member
        of the base class can be accessed in the derived class. */
+    preferred_derivation = preferred_derivation_of(bcp);
     if (access_to_end_of_path((an_access_specifier)as_protected,
-                              preferred_derivation_of(bcp)->path,
-                              (a_base_class_derivation_ptr)NULL) !=
+                              preferred_derivation->path,
+                              preferred_derivation) !=
                                         (an_access_specifier)as_inaccessible) {
       accessible = TRUE;
     }  /* if */
@@ -3826,30 +3832,61 @@ Programming Language", 2nd Edition.
 }  /* have_protected_member_access_privilege */
 
 
-static a_boolean have_access_across_path(a_symbol_ptr          fund_sym,
-                                         a_type_ptr            viewpoint_class,
-                                         a_derivation_step_ptr path,
-                                         a_symbol_ptr          proj_sym)
+
+/*
+Entry used to keep track of stacking in processing virtual steps on
+a derivation path in have_access_across_path.  These are allocated as
+auto variables and chained together.
+*/
+typedef struct a_virtual_step_stack_entry *a_virtual_step_stack_entry_ptr;
+typedef struct a_virtual_step_stack_entry {
+  a_virtual_step_stack_entry_ptr
+		next;	/* Next entry on the list. */
+  a_derivation_step_ptr
+		virtual_step;
+			/* Derivation step for a virtual base class, being
+			   expanded. */
+  a_base_class_derivation_ptr
+		derivation;
+			/* The base class derivation of whose path virtual_step
+			   is a step. */
+} a_virtual_step_stack_entry;
+
+
+static a_boolean have_access_across_path(
+                             a_symbol_ptr                   fund_sym,
+                             a_type_ptr                     viewpoint_class,
+                             a_derivation_step_ptr          path,
+                             a_base_class_derivation_ptr    bcdp,
+                             a_symbol_ptr                   proj_sym,
+                             a_virtual_step_stack_entry_ptr virtual_step_stack)
 /*
 Return TRUE if the symbol fund_sym is accessible at the current location
 in the source program when viewed from the class viewpoint_class.
 path is the derivation path from viewpoint_class to fund_sym;
-it is NULL if fund_sym is in viewpoint_class.  proj_sym is the projection
+it is NULL if fund_sym is in viewpoint_class.  If non-NULL, it is part of
+the path of the base class derivation bcdp.  proj_sym is the projection
 symbol from which we started this access check, or an updated one picked
 up during the recursive descent through the derivation; it is ignored if
 path == NULL, but otherwise it must be a projection symbol (although
 its fundamental symbol might not be fund_sym, for example in the overloaded
-function case).
+function case).  virtual_step_stack is a pointer to a linked list that
+describes a stack of virtual steps being expanded by invocations of
+this routine above this one.
 */
 {
-  a_boolean           have_access = FALSE, base_class_accessible;
-  a_boolean           need_to_compute_access;
-  an_access_specifier access, bcp_access;
-  a_symbol_ptr        step_proj_sym;
-  a_boolean           have_member_access, determined_member_access;
-  a_boolean           have_protected_member_access;
-  a_boolean           determined_protected_member_access;
-  a_base_class_ptr    bcp;
+  a_boolean             have_access = FALSE, base_class_accessible;
+  a_boolean             need_to_compute_access;
+  an_access_specifier   access, base_class_deriv;
+  a_symbol_ptr          step_proj_sym;
+  a_boolean             have_member_access, determined_member_access;
+  a_boolean             have_protected_member_access;
+  a_boolean             determined_protected_member_access;
+  a_base_class_ptr      bcp;
+  a_virtual_step_stack_entry
+                        vsse;
+  a_boolean             virtual_step;
+  a_derivation_step_ptr path_next;
 
   /* Determine the effective access to the fundamental symbol from the
      viewpoint class. */
@@ -3926,8 +3963,7 @@ have_proj_sym:
       /* The access must be determined by looking at the derivation steps.
          This is probably a little faster than looking for the projection
          symbol. */
-      access = access_to_end_of_path(access_for_symbol(fund_sym), path,
-                                     (a_base_class_derivation_ptr)NULL);
+      access = access_to_end_of_path(access_for_symbol(fund_sym), path, bcdp);
     }  /* if */
   }  /* if */
   /* We now have the effective access to the member in the viewpoint class,
@@ -3957,59 +3993,191 @@ have_proj_sym:
     have_access = TRUE;
   } else {
     /* We do not have access to the member in this class, but perhaps we
-       have access to it in a base class. */
+       have access to it in a base class.  This would be because of some
+       member access to a base class that does not figure into the
+       general-case access determined above.  We walk down the path
+       to the fundamental base class, continuing as long as the base
+       class at each step is accessible from the original class, and we
+       check for special access at each step. */
     if (path == NULL) {
       /* We're already in the class of the fundamental symbol, so we do
          not have access. */
       /* have_access = FALSE;  -- already set. */
     } else {
-      /* Determine whether or not the base class is accessible.  A base class
-         is accessible if its public members are accessible from the derived
-         class.  This is like the macro is_accessible_imm_base_class, but
-         optimized to use whatever we've already determined about member
-         access to the viewpoint class. */
+      /* Find the base class that's first on the path.  It most cases, that's
+         trivial, but for virtual base classes we have to go to the virtual
+         base class itself and run down its derivation (or derivations,
+         as there may be several).  The final step on the derivation for
+         a virtual base class is not treated specially -- it's just a simple
+         step to that base class. */
       bcp = path->base_class;
-      bcp_access = bcp->derivation->access;
-      base_class_accessible = FALSE;
-      if (bcp_access == (an_access_specifier)as_public) {
-        /* The base class is public, so it is accessible. */
-        base_class_accessible = TRUE;
-      } else {
-        /* See if we have member access privilege to the viewpoint class. */
-        if (!determined_member_access) {
-          have_member_access = have_member_access_privilege(viewpoint_class);
+      virtual_step = FALSE;
+      if (bcp->is_virtual && path->next != NULL) {
+        /* Virtual step.  We have to examine the various derivations for
+           the virtual base class.  Add an entry to the stack of virtual step
+           entries being processed.  This stack is used when the other end of
+           the virtual base class derivation is reached, to know where to
+           continue on the derivation path following this virtual step. */
+        vsse.next = virtual_step_stack;
+        vsse.virtual_step = path;
+        vsse.derivation = bcdp;
+        virtual_step_stack = &vsse;
+        virtual_step = TRUE;
+        /* The loop will go through all the derivations of the virtual
+           base class.  Start with the first.  It doesn't seem necessary to
+           start with the preferred derivation, since we've already failed
+           to obtain access in the usual way over the preferred derivation.
+           Any access we get now is going to be unusual in some way. */
+        bcdp = bcp->derivation;
+        path = bcdp->path;
+      }  /* if */
+      /* Loop through the derivation paths to be considered.  There is more
+         than one path only in the virtual step case. */
+      for (;;) {
+        /* Determine whether or not the base class is accessible.  A base class
+           is accessible if its public members are accessible from the derived
+           class.  This is like the macro is_accessible_imm_base_class, but
+           optimized to use whatever we've already determined about member
+           access to the viewpoint class. */
+        /* Get the derivation access for this derivation step.  If this step
+           is the last on a derivation, get the access from the base class
+           derivation entry (important for virtual base classes). */
+        path_next = path->next;
+        if (path_next == NULL) {
+          base_class_deriv = bcdp->access;
+        } else {
+          base_class_deriv = path->base_class->derivation->access;
         }  /* if */
-        if (have_member_access) {
-          /* We have member access to the viewpoint class, so the base class
-             is accessible regardless of the type of derivation. */
+        base_class_accessible = FALSE;
+        if (base_class_deriv == (an_access_specifier)as_public) {
+          /* The base class is public, so it is accessible. */
           base_class_accessible = TRUE;
         } else {
-          /* See if special protected member access privilege applies.  This
-             is only meaningful when the base class derivation is protected. */
-          if (bcp_access == (an_access_specifier)as_protected) {
-            if (!determined_protected_member_access) {
-              have_protected_member_access =
+          /* See if we have member access privilege to the viewpoint class. */
+          if (!determined_member_access) {
+            determined_member_access = TRUE;
+            have_member_access = have_member_access_privilege(viewpoint_class);
+          }  /* if */
+          if (have_member_access) {
+            /* We have member access to the viewpoint class, so the base class
+               is accessible regardless of the type of derivation. */
+            base_class_accessible = TRUE;
+          } else {
+            /* See if special protected member access privilege applies.  This
+               is only meaningful when the base class derivation is
+               protected. */
+            if (base_class_deriv == (an_access_specifier)as_protected) {
+              if (!determined_protected_member_access) {
+                determined_protected_member_access = TRUE;
+                have_protected_member_access =
                        have_protected_member_access_privilege(viewpoint_class);
-            }  /* if */
-            if (have_protected_member_access) {
-              base_class_accessible = TRUE;
+              }  /* if */
+              if (have_protected_member_access) {
+                base_class_accessible = TRUE;
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
-      }  /* if */
-      if (base_class_accessible) {
-        /* The base class is accessible, so do a recursive call to see if
-           the member is accessible in the base class. */
-        if (have_access_across_path(fund_sym, bcp->type, path->next,
-                                    proj_sym)) {
-          /* Yes, it is. */
-          have_access = TRUE;
+        if (base_class_accessible) {
+          /* The base class is accessible, so we want to do a recursive call
+             to check accessibility at the next step.  Determine the path
+             for the next step.  Usually, it's just path->next, already in
+             path_next. */
+          a_virtual_step_stack_entry_ptr local_virtual_step_stack =
+                                                            virtual_step_stack;
+          a_base_class_derivation_ptr    local_bcdp = bcdp;
+          while (path_next == NULL && virtual_step_stack != NULL) {
+            /* At the end of the derivation path for a virtual step, continue
+               with the step following the virtual step (up one level in
+               the stack). */
+            path_next = virtual_step_stack->virtual_step->next;
+            local_bcdp = virtual_step_stack->derivation;
+            local_virtual_step_stack = virtual_step_stack->next;
+          }  /* while */
+          /* Do a recursive call to see if the member is accessible in the
+             base class. */
+          if (have_access_across_path(fund_sym, bcp->type, path_next,
+                                      local_bcdp, proj_sym,
+                                      local_virtual_step_stack)) {
+            /* Yes, it is. */
+            have_access = TRUE;
+          }  /* if */
         }  /* if */
-      }  /* if */
+        /* Loop only for the virtual step case. */
+        if (!virtual_step) break;
+        bcdp = bcdp->next;
+        /* Stop after the last derivation for the virtual step case. */
+        /* Note that we do not have to take the stack entry off the stack
+           or restore bcdp et al., since we have not affected the caller's
+           variables.  If there were more processing to be done in this
+           routine, that might be a good thing to do. */
+        if (bcdp == NULL) break;
+        /* Loop for another derivation. */
+        path = bcdp->path;
+      }  /* for */
     }  /* if */
   }  /* if */
   return have_access;
 }  /* have_access_across_path */
+
+
+static a_boolean have_access_across_derivations(a_symbol_ptr symbol,
+                                                a_symbol_ptr view_sym)
+/*
+Return TRUE if the symbol "symbol" is accessible at the current location
+in the source program when viewed from the class of which view_sym is a
+member.  view_sym is either the same as the fundamental symbol of "symbol",
+or is an overloaded function symbol containing that fundamental symbol,
+or is a projection symbol for one of those.
+*/
+{
+  a_boolean                   have_access = FALSE;
+  a_base_class_ptr            bcp;
+  a_base_class_derivation_ptr derivations, preferred_derivation, bcdp;
+  a_derivation_step_ptr       preferred_path;
+  a_type_ptr                  viewpoint_class =
+                                             view_sym->class_of_which_a_member;
+
+  symbol = fundamental_symbol_of(symbol);
+  if (view_sym->kind == (a_symbol_kind)sk_projection) {
+    /* The view symbol is a projection symbol. */
+    bcp = view_sym->variant.projection.extra_info->fundamental_base_class;
+    derivations = bcp->derivation;
+    preferred_derivation = preferred_derivation_of(bcp);
+    preferred_path = preferred_derivation->path;
+  } else {
+    /* The view symbol is not a projection symbol, so the view class is the
+       same as the class of the viewed symbol. */
+    derivations = preferred_derivation = NULL;
+    preferred_path = NULL;
+  }  /* if */
+  /* Check the preferred derivation (the one that gives the most access
+     statically).  preferred_derivation and preferred_path are NULL if the
+     view class is the same class as the class of the viewed symbol. */
+  if (have_access_across_path(symbol, viewpoint_class,
+                              preferred_path, preferred_derivation,
+                              view_sym,
+                              (a_virtual_step_stack_entry_ptr)NULL)) {
+    /* The preferred derivation gives access. */
+    have_access = TRUE;
+  } else {
+    /* The preferred derivation does not give access.  Check all the other
+       derivations, if any.  Only virtual base classes can have more than
+       one derivation. */
+    for (bcdp = derivations; bcdp != NULL; bcdp = bcdp->next) {
+      if (!bcdp->preferred) {
+        if (have_access_across_path(symbol, viewpoint_class, bcdp->path, bcdp,
+                                    view_sym,
+                                    (a_virtual_step_stack_entry_ptr)NULL)) {
+          /* This derivation gives access. */
+          have_access = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return have_access;
+}  /* have_access_across_derivations */
 
 
 a_boolean have_access_to_symbol(a_symbol_ptr symbol)
@@ -4018,27 +4186,7 @@ Return TRUE if the indicated symbol is accessible from the current location
 in the source program.
 */
 {
-  a_boolean             have_access;
-  a_symbol_ptr          fund_sym;
-  a_derivation_step_ptr derivation;
-
-  if (symbol->kind == (a_symbol_kind)sk_projection) {
-    /* The symbol is a projection symbol. */
-    fund_sym = fundamental_symbol_of(symbol);
-#if 0
-    /* Temporary. */
-#endif /* 0 */
-    derivation = symbol->variant.projection.extra_info->
-                                      fundamental_base_class->derivation->path;
-  } else {
-    fund_sym = symbol;
-    derivation = NULL;
-  }  /* if */
-  /* See if we have access to the symbol. */
-  have_access = have_access_across_path(fund_sym,
-                                        symbol->class_of_which_a_member,
-                                        derivation,
-                                        symbol);
+  a_boolean have_access = have_access_across_derivations(symbol, symbol);
   return have_access;
 }  /* have_access_to_symbol */
 
@@ -4132,8 +4280,6 @@ the sk_overloaded_function symbol containing the locator symbol, or
 a projection symbol pointing to that sk_overloaded_function symbol.
 */
 {
-  a_derivation_step_ptr derivation;
-
   /* This routine looks like
      member_check_ambiguity_verify_access_and_return_error_descr. */
   if (overloaded_symbol->class_of_which_a_member == NULL) {
@@ -4149,21 +4295,8 @@ a projection symbol pointing to that sk_overloaded_function symbol.
       set_to_error_locator(*locator);
     } else {
       /* See if we have access to the symbol. */
-      if (overloaded_symbol->kind == (a_symbol_kind)sk_projection) {
-        /* The symbol is a projection symbol. */
-#if 0
-        /* Temporary. */
-#endif /* 0 */
-        derivation = overloaded_symbol->variant.projection.extra_info->
-                                      fundamental_base_class->derivation->path;
-      } else {
-        derivation = NULL;
-      }  /* if */
-      if (!have_access_across_path(
-                               fundamental_symbol_of(locator->specific_symbol),
-                               overloaded_symbol->class_of_which_a_member,
-                               derivation,
-                               overloaded_symbol)) {
+      if (!have_access_across_derivations(locator->specific_symbol,
+                                          overloaded_symbol)) {
         /* The symbol is not accessible. */
         issue_access_error(fundamental_symbol_of(locator->specific_symbol),
                            &locator->source_position);
@@ -4334,7 +4467,7 @@ Return TRUE if the base class bcp (a virtual base class) is accessible from
 the current point in the program, relative to viewpoint_class.
 */
 {
-  a_boolean                   accessible = TRUE, last_step;
+  a_boolean                   accessible = FALSE, last_step;
   a_base_class_derivation_ptr bcdp, step_bcdp;
   a_derivation_step_ptr       dsp;
   a_base_class_ptr            base_class;
@@ -4349,8 +4482,9 @@ the current point in the program, relative to viewpoint_class.
     for (dsp = bcdp->path; dsp != NULL; dsp = dsp->next) {
       base_class = dsp->base_class;
       /* See if the base class at this step is accessible. */
-      /* Treat the last step as a direct base class and as the specific
-         derivation of the base class. */
+      /* Virtual steps cause recursive calls, but treat the last step
+         as a direct base class and as the specific derivation of the base
+         class even if it is virtual. */
       last_step = (dsp->next == NULL);
       step_bcdp = last_step ? bcdp : base_class->derivation;
       if ((!last_step &&
@@ -4359,21 +4493,19 @@ the current point in the program, relative to viewpoint_class.
           is_accessible_virtual_base_class(base_class, curr_type) :
           /* Simple direct base class, or last step on derivation. */
           is_accessible_direct_base_class_derivation(step_bcdp, curr_type)) {
-        /* Base class is accessible. */
+        /* Base class is accessible, so keep going on the path for this
+           derivation. */
       } else {
-        /* Base class is not accessible. */
+        /* Base class is not accessible, so go on to the next derivation. */
         goto next_derivation;
       }  /* if */
       curr_type = base_class->type;
     }  /* for */
     /* We've found a derivation that gives access, so we can stop now. */
-    /* accessible = true;  -- already set. */
-    goto have_accessibility;
+    accessible = TRUE;
+    break;
 next_derivation:;
   }  /* for */
-  /* None of the virtual derivations gives access. */
-  accessible = FALSE;
-have_accessibility:;
   return accessible;
 }  /* is_accessible_virtual_base_class */
 
@@ -4486,7 +4618,14 @@ class of its derived class.
   if (sym != NULL) {
     /* Some symbol was found.  Determine its derivation and access
        specification. */
-    *path = make_derivation_step(base_class, *path);
+    /* The path is not augmented if it starts with a virtual base class,
+       unless it is only a single step.  This is consistent with the way
+       derivations are constructed for base classes: the steps between the
+       most derived class and an intermediate virtual base class are elided. */
+    if (*path == NULL || (*path)->next == NULL ||
+        !(*path)->base_class->is_virtual) {
+      *path = make_derivation_step(base_class, *path);
+    }  /* if */
     *access = compute_access(*access,
                              preferred_derivation_of(base_class)->access);
   }  /* if */
