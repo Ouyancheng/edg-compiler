@@ -1741,6 +1741,31 @@ be NULL if the caller does not need to know whether a conversion was performed.
 }  /* matches_template_type */
 
 
+a_boolean member_of_overload_set_matches_template_type(
+			       a_type_ptr       type,
+		  	       a_type_ptr       templ_type)
+/*
+This routine calls matches_template_type to determine whether the
+type specified by "type" matches the type specified by "templ_type" with
+appropriate substitution of the template parameters in "templ_type".
+We return TRUE if the types match.  This routine is used to determine
+whether any of the members of an overload set match a given parameter.
+It is called once for each member of the overload set.
+*/
+{
+  a_template_arg_ptr   templ_arg_list = NULL;
+  a_boolean            result;
+
+  db_enter(5, "member_of_overload_set_matches_template_type");
+  result = matches_template_type(type, templ_type, &templ_arg_list,
+                        /*allow_conversion=*/FALSE, /*a_base_class_ptr*/NULL);
+  if (templ_arg_list != NULL) free_template_arg_list(templ_arg_list);
+  db_exit();
+  return result;
+}  /* member_of_overload_set_matches_template_type */
+
+
+
 #if CHECKING
 static void check_function_template_arg_list(
                                     a_template_arg_ptr  templ_arg_list,
