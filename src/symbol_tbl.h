@@ -671,6 +671,12 @@ typedef struct a_symbol_header {
 			/* A list of symbols that are currently inactive
 			   but can be reached with some sort of qualification,
 			   i.e., members of structs/unions/classes. */
+  a_byte_boolean
+                any_nested_classes_on_inactive_list;
+			/* TRUE if a symbol for a nested class has been
+                           transferred to the inactive list.  This field is
+                           used to speed up processing to support the
+                           nested class anachronism (ARM 18.3.5). */
 } a_symbol_header;
 
 
