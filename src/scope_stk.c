@@ -4701,6 +4701,8 @@ End a name scope by popping an entry off the scope stack.
       /* This is a function whose body should be discarded (e.g., a
          trivial default constructor).  Discard it now. */
       clear_function_body(il_scope);
+      /* Put the "defined" flag back on. */
+      curr_routine->defined = TRUE;
     } else {
       /* Write the memory region and free it as appropriate. */
       check_for_done_with_memory_region(old_memory_region_number);

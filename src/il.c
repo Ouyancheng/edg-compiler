@@ -11523,11 +11523,8 @@ because, for example, they appear on orphan lists.
        solhp = next_solhp) {
     next_solhp = solhp->next;
     rp = solhp->assoc_routine;
-    if (rp->defined) {
-      /* The "defined" flag has not been reset to FALSE so the body of this
-         routine has not been eliminated. */
-      prev_solhp = solhp;
-    } else {
+    /* Look for a routine whose body has been eliminated. */
+    if (rp->assoc_scope == NULL_region_number) {
       /* This one has.  First traverse the variables list.  If any
          variables on the orphaned list are marked "keep_in_il", the
          orphaned-list header itself has to be kept, too. */

@@ -152,6 +152,18 @@ extern unsigned long assign_instantiation_needed_bit_number(void);
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+/*
+Macro that returns TRUE if a routine has been defined.  The value is
+TRUE from the beginning of scanning of the function body (not just
+after the closing brace), and is also TRUE for functions with
+compiler-generated bodies.  The value remains TRUE if the body of
+the function is discarded, as for example with trivial default
+constructors.
+*/
+#define routine_has_been_defined(rout) \
+  ((rout)->defined || (rout)->assoc_scope != NULL_region_number)
+
+
 /* Macro to fetch the value of the needed flag. */
 #if ONE_INSTANTIATION_PER_OBJECT
 #define needed_flag_is_set(scp) \

@@ -135,7 +135,7 @@ on the override_list.
   if (cssp->destructor != NULL) {
     a_routine_ptr dtor_rout = cssp->destructor->variant.routine.ptr;
     if (dtor_rout->compiler_generated && dtor_rout->is_virtual &&
-        dtor_rout->assoc_scope == NULL_region_number) {
+        !routine_has_been_defined(dtor_rout)) {
       /* Force generation of a compiler-generated virtual destructor. */
       define_special_member_function(dtor_rout);
     }  /* if */
@@ -2247,24 +2247,15 @@ whose definition has not yet been generated, force the definition now.
   a_special_function_kind  skind = rp->special_kind;
 
   if (rp->compiler_generated) {
-    /* Check the assoc_scope pointer instead of the routine's "defined" flag
-       in case there is some sort of recursive reference. */
-    if (rp->assoc_scope == NULL_region_number) {
-      if (rp->is_trivial_default_constructor && rp->defined) {
-        /* Trivial default constructor is already defined even though there
-           is no associated memory region -- this can happen because its
-           memory region is freed immediately after the pseudo-definition has
-           been completed. */
-      } else {
-        /* Only force a definition for constructors, destructors, and
-           operator= functions.  In particular, do not try to define operator
-           new and delete functions. */
-        if (skind == (a_special_function_kind)sfk_constructor ||
-            skind == (a_special_function_kind)sfk_destructor  ||
-            (skind == (a_special_function_kind)sfk_operator &&
-             rp->opname_kind == (an_opname_kind)onk_assign)) {
-          define_special_member_function(rp);
-        }  /* if */
+    if (!routine_has_been_defined(rp)) {
+      /* Only force a definition for constructors, destructors, and
+         operator= functions.  In particular, do not try to define operator
+         new and delete functions. */
+      if (skind == (a_special_function_kind)sfk_constructor ||
+          skind == (a_special_function_kind)sfk_destructor  ||
+          (skind == (a_special_function_kind)sfk_operator &&
+           rp->opname_kind == (an_opname_kind)onk_assign)) {
+        define_special_member_function(rp);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2306,7 +2297,8 @@ in case it's useful.
         cssp = symbol_supplement_for_class(tp);
         if (cssp->destructor != NULL) {
           rp = cssp->destructor->variant.routine.ptr;
-          if (rp->compiler_generated && !rp->defined) {
+          if (rp->compiler_generated &&
+              !routine_has_been_defined(rp)) {
             /* The destructor for the current class was generated
                automatically but has not yet been defined. */
             if (external_typeinfo_will_be_defined_for_class(tp)) {
