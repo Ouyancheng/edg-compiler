@@ -12530,11 +12530,16 @@ passed via template_decl.
                  (For a non-virtual function we issue the error when it is
                  referenced.) */
               sym_error(ec_local_class_function_def_missing, rout_sym);
-            } else {
+            } else if (class_state->corresp_prototype_tag_sym == NULL) {
               /* An undefined virtual member function in an unnamed class (or
                  in a named class that is nested in an unnamed class) cannot
                  be defined later (there's no way to name it), so issue an
-                 error. */
+                 error.  Note that if the enclosing class is a real template
+                 instantiation, the function body may actually exist but it
+                 was replaced by a semicolon in extract_member_bodies.  In
+                 those cases no error should be issued (but if indeed the
+                 body is missing, an error will have been issued on the
+                 prototype instantiation). */
               a_type_ptr  tp = class_type;
               for (;;) {
                 if (tp->variant.class_struct_union.originally_unnamed) {

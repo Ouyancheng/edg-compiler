@@ -1,5 +1,24 @@
 Version 3.4
 
+2/5/04  Spurious error or internal error on virtual function in unnamed type
+
+The definitions of virtual functions declared in unnamed classes or nested
+classes thereof must appear within the definition of their enclosing class
+because there is no syntax to define the outside the class.  However, when
+such a virtual function definition appeared inside a class template, the
+front end emitted a spurious error indicating the definition is missing.
+In GNU and Microsoft C++ modes, an internal error was sometimes triggered
+when the unnamed class type was a nonstandard anonymous union.
+
+  template<typename T> struct S {
+    struct {
+      virtual void f() {}  // Previously triggered a spurious error.
+    } x;
+  };
+  template struct S<void>;
+
+This is now fixed.
+
 2/4/04   GNU C++ compatibility: Strong using-directives
 
 Strong using-directives are now supported in g++ mode.  The strong
