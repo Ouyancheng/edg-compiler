@@ -225,7 +225,6 @@ Dump the contents of the indicated type entry, for debug purposes.
 {
   a_field_ptr      fp;
   a_param_type_ptr ptp;
-  a_base_class_ptr bcp;
   a_boolean	   comma_required;
 
   switch (tp->kind) {
@@ -281,20 +280,23 @@ print_name:
       db_type(tp->variant.array.element_type);
       fprintf(f_debug, ")[%lu]", tp->variant.array.number_of_elements);
       break;
-    case tk_class:
-      fputs("class {", f_debug);
-      bcp = tp->variant.class.extra_info->base_classes;
-      while (bcp != NULL) {
-        db_base_class(bcp);
-        bcp = bcp->next;
-      }  /* while */
-      goto class_struct_union;
     case tk_struct:
       fputs("struct {", f_debug);
       goto class_struct_union;
     case tk_union:
       fputs("union {", f_debug);
+      goto class_struct_union;
+    case tk_class:
+      fputs("class {", f_debug);
 class_struct_union:
+      if (tp->variant.class.extra_info != NULL) {
+        a_base_class_ptr bcp = tp->variant.class.extra_info->base_classes;
+
+        while (bcp != NULL) {
+          db_base_class(bcp);
+          bcp = bcp->next;
+        }  /* while */
+      }  /* if */
       fp = tp->variant.class.field_list;
       while (fp != NULL) {
         db_field(fp);
@@ -1474,6 +1476,25 @@ at_file_scope == TRUE.
 }  /* alloc_param_type */
 
 
+a_class_type_supplement_ptr alloc_class_type_supplement(void)
+{
+  a_class_type_supplement_ptr	ctsp;
+
+  ctsp = (a_class_type_supplement_ptr)alloc_cil(
+			      sizeof(a_class_type_supplement));
+#if DEBUG
+  num_class_type_supplements_allocated++;
+#endif /* DEBUG */
+  ctsp->static_data_members           = NULL;
+  ctsp->member_functions              = NULL;
+  ctsp->base_classes                  = NULL;
+  ctsp->access_adjustments            = NULL;
+  ctsp->befriending_classes           = NULL;
+  ctsp->types                         = NULL;
+  ctsp->template_args                 = NULL;
+}  /* alloc_class_type_supplement */
+
+
 a_type_ptr alloc_type(a_type_kind kind)
 /*
 Allocate a new type entry and return a pointer to it.  Set general fields,
@@ -1522,26 +1543,8 @@ to default values.
     case tk_struct:
     case tk_union:
       pte->variant.class.field_list       = NULL;
+      pte->variant.class.extra_info       = NULL;
       pte->variant.class.any_const_member = FALSE;
-      if (kind == tk_class) {
-        a_class_type_supplement_ptr	ctsp;
-
-        pte->variant.class.extra_info = ctsp =
-			(a_class_type_supplement_ptr)alloc_cil(
-					      sizeof(a_class_type_supplement));
-#if DEBUG
-        num_class_type_supplements_allocated++;
-#endif /* DEBUG */
-	ctsp->static_data_members           = NULL;
-	ctsp->member_functions              = NULL;
-	ctsp->base_classes                  = NULL;
-	ctsp->access_adjustments            = NULL;
-	ctsp->befriending_classes           = NULL;
-	ctsp->types                         = NULL;
-	ctsp->template_args                 = NULL;
-      } else {
-        pte->variant.class.extra_info       = NULL;
-      }  /* if */
       break;
     case tk_routine:
       pte->variant.routine.return_type = NULL;
