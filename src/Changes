@@ -1,5 +1,17 @@
 Version 2.44
 
+7/29/00  C++-generating back end: Abort on pointer-to-member of class
+         from unnamed namespace
+
+The C++-generating back end aborted on trying to output a pointer-to-
+member type based on a class that is a member of an unnamed namespace.
+Now fixed.
+
+  namespace {
+    class A;
+  }
+  A A::* p1;
+
 7/26/00  in_front_end variable
 
 A global variable "in_front_end" has been added, which is TRUE while
