@@ -4363,7 +4363,7 @@ typedef struct a_block {
   an_object_lifetime_ptr
 		lifetime;
 			/* The object lifetime associated with this block,
-			   or NULL if there isn't one.  Useful in the case that
+			   or NULL if there isn't one.  Used only when
 			   assoc_scope is NULL but nevertheless there is
 			   an object lifetime region associated with this
 			   block (e.g., for cfront dependent statements). */
