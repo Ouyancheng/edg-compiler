@@ -6337,17 +6337,16 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                 goto next_declaration;
               } else {
                 /* Not a function definition. */
-                if (!friend_specified && is_local_class) {
-                  /* A member function declared in a local class definition
-                     (which is the current case) must be defined within the
-                     class definition (ARM 9.8). */
-                  error(ec_local_class_function_def_missing);
-                }  /* if */
                 if (curr_token == tok_assign) {
                   /* Look for a pure specifier ("= 0"), which may appear on
                      virtual functions. */
                   scan_pure_specifier(rout_sym, class_type,
                                       suppress_pure_specifier_error);
+                } else if (!friend_specified && is_local_class) {
+                  /* A member function declared in a local class definition
+                     (which is the current case) must be defined within the
+                     class definition (ARM 9.8). */
+                  error(ec_local_class_function_def_missing);
                 }  /* if */
                 if (curr_token == tok_comma &&
                          (is_destructor || is_constructor)) {
