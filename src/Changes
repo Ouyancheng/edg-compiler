@@ -1,27 +1,40 @@
 Version 2.21
 
+12/10/93  Spurious error eliminated
+
+We no longer issue a spurious syntax error for the following case:
+
+  class A { /* ... */ } A[2];
+
 12/10/93 Lowering of destructor routine types in calls
 
-In cases where a virtual destructor was called between the point
-where the destructor was declared and the point where it was defined,
-the function pointer used in the virtual call would not have the
-implicit extra "int" argument.  That is now corrected.
+In cases where a virtual destructor was called between the point where the
+destructor was declared and the point where it was defined, the function
+pointer used in the virtual call would not have the implicit extra "int"
+argument.  That is now corrected.
+
+12/10/93  IL Change:  two flags added to a_routine_type_supplement
+
+Flags assoc_routine_is_ctor and assoc_routine_is_dtor have been added to
+a_routine_type_supplement.  They are TRUE for routine types created for
+contructors and destructors, respectively, and will be set even if
+a routine entry has not yet been bound to the type.
 
 12/10/93 Spurious "class may not have a template argument list" error
 
 A bug has been fixed that caused a spurious error in the following example:
 
-struct XX {};
-struct A {
-  int XX;
-};
-int main()
-{
-  A a = {1};
-  int i = 0;
-  if (a.XX < 1) i = 2;  // Spurious error on this line
-  return i;
-}
+  struct XX {};
+  struct A {
+    int XX;
+  };
+  int main()
+  {
+    A a = {1};
+    int i = 0;
+    if (a.XX < 1) i = 2;  // Spurious error on this line
+    return i;
+  }
 
 12/10/93 Leading "::" allowed in member selections
 
@@ -31,9 +44,9 @@ X3J16/WG21 at the 3/93 meeting.
 
 12/9/93  Expression temporaries destroyed at labels
 
-Temporaries generated in expressions are now destroyed at labels.
-This avoids the eventuality of destroying the temporaries at the
-end of the scope in cases where they were never constructed.
+Temporaries generated in expressions are now destroyed at labels.  This
+avoids the eventuality of destroying the temporaries at the end of the
+scope in cases where they were never constructed.
 
   struct A {A(); ~A();};
   void m() {
@@ -45,23 +58,23 @@ end of the scope in cases where they were never constructed.
 
 12/9/93  Implicit conversions on expressions inside []
 
-Implicit conversions are now considered for the second operand of
-the [] operator (the one inside the brackets) and for the expression
-inside the brackets in a new-type, e.g., "new A[n]".
+Implicit conversions are now considered for the second operand of the []
+operator (the one inside the brackets) and for the expression inside the
+brackets in a new-type, e.g., "new A[n]".
 
 12/9/93  Walking of IL tree when using non-alternate file format
 
-A bug was fixed in the handling of shared a_param_type lists (i.e.,
-one list pointed to by several routine type supplements) when the file
-format selected is the "non-alternate" file format.  Formerly, an
-internal error was reported from ptr_remap_function.
+A bug was fixed in the handling of shared a_param_type lists (i.e., one
+list pointed to by several routine type supplements) when the file format
+selected is the "non-alternate" file format.  Formerly, an internal error
+was reported from ptr_remap_function.
 
 12/9/93  IL lowering: conditional flags for global scope expressions
 
-Conditional flags for temporaries constructed within conditional
-operators in global scope expressions are now correctly allocated as
-global-scope variables so they will survive into the file-scope
-termination routine.  The following formerly provoked an abort:
+Conditional flags for temporaries constructed within conditional operators
+in global scope expressions are now correctly allocated as global-scope
+variables so they will survive into the file-scope termination routine.
+The following formerly provoked an abort:
 
   struct A {A(int); ~A();};
   int x;
@@ -69,9 +82,9 @@ termination routine.  The following formerly provoked an abort:
 
 12/4/93  Dynamic initialization of pointer-to-member-function in aggregate
 
-IL lowering no longer generates an error constant in an aggregate
-constant after lowering a constant that is a pointer-to-member-function
-dynamic initialization (ck_dynamic_init).
+IL lowering no longer generates an error constant in an aggregate constant
+after lowering a constant that is a pointer-to-member-function dynamic
+initialization (ck_dynamic_init).
 
 12/1/93  C-generating back end outputs extern void variable as char
 
@@ -83,7 +96,6 @@ The following now gets an error:
 
   extern void v;
   &v;  /* Error, "v" is not an lvalue. */
-
 
 12/1/93  (void *)0 cases in C mode
 
@@ -101,21 +113,23 @@ the second problem was that standard conversions were not preferred
 to nonstandard ones when reconciling the operands of a pointer operation,
 which meant an inappropriate warning was issued in non-strict C mode.
 
-12/1/93  New IL representation for virtual base class derivations
+12/1/93  New IL representation for base class derivations
 
-The derivations of virtual base classes are now represented in a
-way that indicates all the paths to a virtual base class (and not just
-the preferred one).  This solves some problems in very convoluted
-cases involving differing access to virtual base classes along different
-paths to the virtual base class.
+A new structure, a_base_class_derivation, has been added to represent a
+derivation from the derived class to a given base class.  Nonvirtual base
+class point to exactly one such entry, but virtual base classes point to a
+linked list of one or more, where each identifies a different derivation
+path.
 
-A side effect of the change is that casts of pointers to base or
-derived classes will now go directly to a virtual base class in a
-single step rather than by way of several casts through the intervening
-classes.
+This approach, which preserves information about all the paths to a
+virtual base class (and not just the preferred one, as before), enabled us
+to fix an obscure bug in checking for "dominance" and solves some problems
+in unusual cases involving differing access to virtual base classes along
+different paths to the virtual base class.
 
-Note that this change has no effect on those who use IL lowering,
-since IL lowering erases this information.
+A side effect of the change is that casts of pointers to base or derived
+classes will now go directly to a virtual base class in a single step
+rather than by way of several casts through the intervening classes.
 
 12/1/93  Name mangling for unnamed enums
 
@@ -138,7 +152,6 @@ an unnamed enumeration.
     enum { e1};
     f(e1);
   }
-
 
 11/30/93  Setting decl_position in IL entry
 
