@@ -1,5 +1,14 @@
 Version 3.0
 
+3/2/02   Cast of non-class rvalue to reference to const
+
+Explicit casts of rvalues of non-class type to a reference-to-const
+type are now accepted.
+
+  void f() {
+    static_cast<const int&>(123);
+  }
+
 3/1/02   Missing typeinfo variable, class mentioned in catch type
 
 The typeinfo variable was not defined for a class mentioned in a

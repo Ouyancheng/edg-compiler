@@ -7705,9 +7705,9 @@ This is a static_cast or old-style cast.  If the cast can be done by
 a user-defined conversion, do it and return *processed TRUE.  If the
 cast could only be done by a user-defined conversion and there was some
 error with that, set *err TRUE as well.  If the cast (to a reference type)
-is expected to be rewritten later and a class rvalue should be allowed,
-*allow_rvalue_on_rewrite is returned TRUE.  This routine is called only in
-C++ mode.
+is expected to be rewritten later and an rvalue should be allowed,
+*allow_rvalue_on_rewrite is returned TRUE (note that this is set even
+for non-class operands).  This routine is called only in C++ mode.
 */
 {
   a_boolean    cast_to_reference, failed;
@@ -7719,33 +7719,34 @@ C++ mode.
   /* Don't check for user-defined conversions in constant expressions. */
   if (!curr_expr_kind_is_const()) {
     if (cast_to_reference) {
-      a_type_ptr eff_type_cast_to = type_pointed_to(type_cast_to);
-      /* A cast from a class to a reference type can be handled by a
-         conversion function that returns a reference.  Look for such
-         a function, but if one is not found, go on to the general case
-         of casting to a reference (below).  This is different than
-         other user-defined conversion cases, where if there is a
-         class operand and no user-defined conversion applies,
-         we know we have an error.  That's the reason that
-         user_defined_conversion_possible is not called. */
-      if (is_class_struct_union_type(operand->type)) {
-        a_boolean    ambiguous;
-        a_boolean    ref_to_const, ref_to_const_volatile;
-        a_boolean    binding_to_rvalue_allowed, dropping_qualifiers;
-        a_symbol_ptr function_symbol;
-        if (direct_reference_binding_possible(operand,
-                                              operand->type,
-                                              type_cast_to,
-                                              &ref_to_const,
-                                              &ref_to_const_volatile,
-                                              &binding_to_rvalue_allowed,
-                                              &dropping_qualifiers,
-                                              &function_symbol)) {
-          /* The operand can be cast directly to the reference type,
-             so don't look for a way to do the cast using a conversion
-             function. */
-          *allow_rvalue_on_rewrite = binding_to_rvalue_allowed;            
-        } else if (conversion_from_class_possible(
+      a_boolean    ref_to_const, ref_to_const_volatile;
+      a_boolean    binding_to_rvalue_allowed, dropping_qualifiers;
+      a_symbol_ptr function_symbol;
+      if (direct_reference_binding_possible(operand,
+                                            operand->type,
+                                            type_cast_to,
+                                            &ref_to_const,
+                                            &ref_to_const_volatile,
+                                            &binding_to_rvalue_allowed,
+                                            &dropping_qualifiers,
+                                            &function_symbol)) {
+        /* The operand can be cast directly to the reference type,
+           so don't look for a way to do the cast using a conversion
+           function.  Note that even non-class operands are handled here. */
+        *allow_rvalue_on_rewrite = binding_to_rvalue_allowed;
+      } else {
+        /* A cast from a class to a reference type can be handled by a
+           conversion function that returns a reference.  Look for such
+           a function, but if one is not found, go on to the general case
+           of casting to a reference (below).  This is different than
+           other user-defined conversion cases, where if there is a
+           class operand and no user-defined conversion applies,
+           we know we have an error.  That's the reason that
+           user_defined_conversion_possible is not called. */
+        a_type_ptr eff_type_cast_to = type_pointed_to(type_cast_to);
+        if (is_class_struct_union_type(operand->type)) {
+          a_boolean  ambiguous;
+          if (conversion_from_class_possible(
                                            operand, eff_type_cast_to,
                                            (a_builtin_type_kind_set)BTK_NONE,
                                            /*need_lvalue_result=*/TRUE,
@@ -7753,18 +7754,18 @@ C++ mode.
                                            /*is_reference_binding=*/TRUE,
                                            &conversion, &ambiguous,
                                            (a_candidate_function_ptr *)NULL)) {
-          /* A user-defined conversion can be done. */
-          user_convert_operand(operand, eff_type_cast_to, &conversion,
-                               (a_conv_descr *)NULL,
-                               /*force_temp_for_class_bitwise_copy=*/FALSE,
-                               /*is_explicit_cast=*/TRUE);
-          *processed = TRUE;
-        } else if (ambiguous) {
-          /* The conversion is ambiguous.  Do the analysis again to get
-             the error message. */
-          *err = TRUE;
-          *processed = TRUE;
-          (void)user_defined_conversion_possible(
+            /* A user-defined conversion can be done. */
+            user_convert_operand(operand, eff_type_cast_to, &conversion,
+                                 (a_conv_descr *)NULL,
+                                 /*force_temp_for_class_bitwise_copy=*/FALSE,
+                                 /*is_explicit_cast=*/TRUE);
+            *processed = TRUE;
+          } else if (ambiguous) {
+            /* The conversion is ambiguous.  Do the analysis again to get
+               the error message. */
+            *err = TRUE;
+            *processed = TRUE;
+            (void)user_defined_conversion_possible(
                                             operand, eff_type_cast_to,
                                             /*need_lvalue_result=*/TRUE,
                                             /*is_copy_initialization=*/FALSE,
@@ -7772,15 +7773,16 @@ C++ mode.
                                             &conversion,
                                             (a_conv_descr *)NULL,
                                             &failed);
+          }  /* if */
+        } else if (is_template_param_type(operand->type)) {
+          /* A template parameter type could be a class type, so assume that
+             a conversion is possible. */
+          *processed = TRUE;
+          generic_cast_operand(operand, make_pointer_type(eff_type_cast_to),
+                               (an_expr_operator_kind)eok_cast,
+                               /*is_implicit_cast=*/FALSE,
+                               /*is_reference_cast=*/TRUE);
         }  /* if */
-      } else if (is_template_param_type(operand->type)) {
-        /* A template parameter type could be a class type, so assume that
-           a conversion is possible. */
-        *processed = TRUE;
-        generic_cast_operand(operand, make_pointer_type(eff_type_cast_to),
-                             (an_expr_operator_kind)eok_cast,
-                             /*is_implicit_cast=*/FALSE,
-                             /*is_reference_cast=*/TRUE);
       }  /* if */
     } else {
       /* Normal case (not a cast to a reference type). */
@@ -7830,7 +7832,7 @@ C++ mode.
 static void rewrite_cast_to_reference_as_pointer_cast(
                                       a_type_ptr            *type_cast_to,
                                       an_operand            *operand,
-                                      a_boolean             allow_class_rvalue,
+                                      a_boolean             allow_rvalue,
                                       an_expr_operator_kind cast_op,
                                       a_boolean             *processed)
 /*
@@ -7855,11 +7857,11 @@ From [expr.reinterpret.cast]:
 
 *operand is the expression being cast, and *type_cast_to is the reference type.
 On return, *type_cast_to has been changed to the corresponding pointer
-type.  allow_class_rvalue is TRUE if a class rvalue should be allowed
-(e.g., for a static_cast to a reference-to-const type).  Return *processed
-TRUE if the cast has been processed internally in this routine; this
-happens for casts involving unknown template types, in which case a
-generic cast using the operator cast_op is generated.
+type, and operand is a pointer rvalue.  allow_rvalue is TRUE if an rvalue
+should be allowed (e.g., for a static_cast to a reference-to-const type).
+Return *processed TRUE if the cast has been processed internally in this
+routine; this happens for casts involving unknown template types, in which
+case a generic cast using the operator cast_op is generated.
 */
 {
   *processed = FALSE;
@@ -7878,12 +7880,28 @@ generic cast using the operator cast_op is generated.
   } else if (is_a_function_designator(operand)) {
     conv_function_designator_to_ptr_to_function(operand,
                                                 /*allow_ctor=*/FALSE);
-  } else if ((allow_class_rvalue || any_cfront_mode() || sun_mode ||
+  } else if ((allow_rvalue || any_cfront_mode() || sun_mode ||
               allow_nonconst_ref_anachronism) &&
              is_class_struct_union_type(operand->type)) {
     /* Allow a cast of a class rvalue to a reference type, when appropriate
        (e.g., for a static_cast to a reference-to-const type). */
     conv_class_operand_to_object_pointer(operand);
+  } else if (allow_rvalue) {
+    /* Allow a cast of a non-class rvalue when appropriate (e.g., for
+       a static_cast to a reference-to-const type).  This requires a
+       temporary. */
+    a_dynamic_init_ptr dip;
+    an_expr_node_ptr   temp_init_node;
+
+    temp_init_node = create_expr_temporary(operand->type,
+                                           /*result_is_addr=*/TRUE,
+                                           /*is_explicit_cast=*/TRUE,
+                                           /*suppress_abstract_test=*/FALSE,
+                                           (a_dynamic_init_kind)dik_expression,
+                                           &operand->position,
+                                           &dip);
+    dip->variant.expression = make_node_from_operand(operand);
+    make_expression_operand(temp_init_node, temp_init_node->type, operand);
   } else {
     if (!is_error_operand(operand)) {
       error_in_operand(ec_expr_not_an_lvalue, operand);
