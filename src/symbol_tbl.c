@@ -1412,22 +1412,18 @@ Initialize the fields in a scope-pointers-block substructure.
 #if RECORD_TEMPLATES_IN_IL
   spbp->last_template                = NULL;
 #endif /* RECORD_TEMPLATES_IN_IL */
-  spbp->active_using_directives      = NULL;
   spbp->unnamed_namespace_sym        = NULL;
   spbp->add_symbols_to_inactive_list = FALSE;
 }  /* clear_scope_pointers_block */
 
 
-void add_active_using_directive(a_using_directive_ptr udp)
+static an_active_using_directive_ptr alloc_active_using_directive(void)
 /*
 Allocate a new active using directive entry, initialize its fields, and
-link it into a list of active using directives for the current scope.
-Reuse a freed entry if possible. */
+return a pointer to the new entry. Reuse a freed entry if possible.
+*/
 {
   an_active_using_directive_ptr  audp;
-  a_scope_pointers_block_ptr     pointers_block;
-  a_namespace_ptr		 nsp;
-  a_symbol_ptr			 ns_sym;
 
   if (avail_active_using_directives != NULL) {
     /* Reuse a freed entry. */
@@ -1441,16 +1437,66 @@ Reuse a freed entry if possible. */
     num_active_using_directives_allocated++;
 #endif /* DEBUG */
   }  /* if */
-  audp->entry = udp;
-  audp->next_in_lookup_list = NULL;
+  audp->entry               = NULL;
+  audp->next                = NULL;
+  return audp;
+}  /* alloc_active_using_directive */
+
+
+
+
+static void add_active_using_directives_for_namespace(a_namespace_ptr nsp)
+/*
+Create active using directive entries for any using directives present
+in the specified namespace.
+*/
+{
+  a_using_directive_ptr	udp = nsp->variant.assoc_scope->using_directives;
+  while (udp != NULL) {
+    add_active_using_directive(udp);
+    udp = udp->next;
+  }  /* while */
+}  /* add_active_using_directives_for_namespace */
+
+
+void add_active_using_directive(a_using_directive_ptr udp)
+/*
+Allocate a new active using directive entry, initialize its fields, and
+link it into a list of active using directives for the current scope.
+Reuse a freed entry if possible. */
+{
+  an_active_using_directive_ptr  audp;
+  a_scope_stack_entry_ptr	 ssep = &scope_stack[depth_scope_stack];
+  a_namespace_ptr		 nsp;
+  a_symbol_ptr			 ns_sym;
+
+  /* Get a pointer to the namespace to be used. */
   nsp = skip_namespace_aliases(udp->assoc_namespace);
-  ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
-  audp->namespace_supplement = ns_sym->variant.namespace_info.extra_info;
-  pointers_block = assoc_pointers_block_of(&scope_stack[depth_scope_stack]);
-  audp->next = pointers_block->active_using_directives;
-  pointers_block->active_using_directives = audp;
-  /* Now that a using directive is active, inactive symbols may be visible. */
-  scope_stack[depth_scope_stack].inactive_symbols_may_be_visible = TRUE;
+  /* See if this entry is already on the list. */
+  audp = ssep->active_using_directives;
+  while (audp != NULL) {
+    if (skip_namespace_aliases(audp->entry->assoc_namespace) == nsp) {
+      break;
+    }  /* if */
+    audp = audp->next;
+  }  /* while */
+  if (audp == NULL) {
+    /* The entry is not already on the list -- add it. */
+    audp = alloc_active_using_directive();
+    audp->entry = udp;
+    ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
+    audp->namespace_supplement = ns_sym->variant.namespace_info.extra_info;
+    audp->next = ssep->active_using_directives;
+    ssep->active_using_directives = audp;
+    /* Set the "on_active_using_list" flag for this namespace. */
+    audp->namespace_supplement->on_active_using_list = TRUE;
+    /* Add active using directives for the namespaces that should be
+       visible because of the transitivity of using directives. */
+    add_active_using_directives_for_namespace(nsp);
+    /* Now that a using directive is active, inactive symbols may be
+       visible. */
+    scope_stack[depth_scope_stack].inactive_symbols_may_be_visible = TRUE;
+  }  /* if */
 }  /* add_active_using_directive */
 
 
@@ -6729,8 +6775,6 @@ C and C++.
       /* There are inactive symbols and they may be visible, so the more
          complicated search is required. */
       a_boolean				check_for_nonreal_bases;
-      an_active_using_directive_ptr	active_using_list = NULL;
-      an_active_using_directive_ptr	active_using_tail = NULL;
       a_boolean				found_at_file_scope = FALSE;
 #if DEBUG
       num_slow_id_lookups++;
@@ -6754,19 +6798,6 @@ C and C++.
          class reactivation). */
       for (first_scope = TRUE;; first_scope = FALSE) {
         a_scope_kind	kind = ssep->kind;
-        {
-          /* Add any using directives from this scope to the list of
-             active using directives for this lookup. */
-          an_active_using_directive_ptr	audp;
-          audp = assoc_pointers_block_of(ssep)->active_using_directives;
-          if (active_using_list == NULL) active_using_list = audp;
-          for (; audp != NULL; audp = audp->next) {
-            if (active_using_tail != NULL) {
-              active_using_tail->next_in_lookup_list = audp;
-            }  /* if */
-            active_using_tail = audp;
-          }  /* while */
-        }
         if (kind == (a_scope_kind)sck_class_reactivation ||
             kind == (a_scope_kind)sck_namespace_extension ||
 	    kind == (a_scope_kind)sck_template_instantiation) {
@@ -6955,13 +6986,7 @@ check_for_using_directives:
            scope, look for symbols that are visible as a result of
            using directives. */
         if (sym == NULL || found_at_file_scope) {
-          an_active_using_directive_ptr	audp;
           a_symbol_ptr			new_sym;
-          /* Set a flag in the namespace supplement for each of the
-             namespaces on the active using list. */
-          for (audp = active_using_list; audp != NULL; audp = audp->next) {
-            audp->namespace_supplement->on_active_using_list = TRUE;
-          }  /* for */
           /* Look through the inactive symbols for any symbols associated with
              one of the marked namespaces. */
           new_sym = inactive_symbol_list;
@@ -6990,11 +7015,6 @@ check_for_using_directives:
                 if (err) break;
               }  /* if */
             }  /* if */
-          }  /* for */
-          /* Clear the flag in the namespace supplement that was set
-             earlier. */
-          for (audp = active_using_list; audp != NULL; audp = audp->next) {
-            audp->namespace_supplement->on_active_using_list = FALSE;
           }  /* for */
         }  /* if */
       }  /* if */
@@ -7655,6 +7675,39 @@ declaration is scanned and are used as placeholders between instantiations.
 }  /* restore_default_template_params */
 
 
+static void set_on_active_using_list_flags(a_scope_depth starting_depth,
+                                           a_boolean     new_value)
+/*
+This routine goes through the active using list for the scopes that
+are now active and updates the "on_active_using_list" for each
+of the namespaces referenced.  The flag is set to the value specified
+by new_value.  starting_depth is the innermost scope to be
+processed.
+*/
+{
+  a_scope_stack_entry_ptr	ssep = &scope_stack[starting_depth];
+  for (;;) {
+    an_active_using_directive_ptr	audp = ssep->active_using_directives;
+    /* Set the flag for any active using directives for this scope. */
+    for (; audp != NULL; audp = audp->next) {
+      audp->namespace_supplement->on_active_using_list = new_value;
+    }  /* for */
+    /* Determine the next scope to be processed.  If this is an
+       instantiation scope (but not a nested instantiation) skip
+       directly to the file scope. */
+    if (ssep->kind == (a_scope_kind)sck_file) {
+      /* There are no more scopes to be processed. */
+      break;
+    } else if (ssep->kind == (a_scope_kind)sck_template_instantiation &&
+        !ssep->nested_instantiation) {
+      ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+    } else {
+      ssep--;
+    }  /* if */
+  }  /* for */
+}  /* set_on_active_using_list_flags */
+
+
 /*
 Return TRUE if the scope stack entry kind given by kind is for something
 that has an effect on access control (a class, class reactivation, or
@@ -7896,6 +7949,7 @@ specific version of the template.
   ssep->templ_member_class_sym   = NULL;
   ssep->depth_innermost_namespace_scope = depth_innermost_namespace_scope;
   ssep->num_of_extra_times_pushed = 0;;
+  ssep->active_using_directives   = NULL;
   /* Clear the substructure shared with namespace symbol supplements. */
   ssep->assoc_pointers_block     = NULL;
   clear_scope_pointers_block(&ssep->pointers_block);
@@ -7987,6 +8041,10 @@ specific version of the template.
                                                 is_prototype_instantiation;
         }  /* if */
       }  /* if */
+      /* Because a template instantiation introduces a new context for
+         name lookup purposes, we need to clear the on_active_using_list
+         flag for any namespaces for which it is currently set. */
+      set_on_active_using_list_flags(depth_scope_stack-1, /*new_value=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       {
       /* Instantiations may be triggered almost anywhere, but the source
@@ -8249,6 +8307,9 @@ entry (for "extension-namespace-definitions").
                           (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                           (a_template_arg_ptr)NULL,
                           /*nested_instantiation=*/FALSE);
+  /* Add active using directives for the namespaces that should be
+     visible because of the transitivity of using directives. */
+  add_active_using_directives_for_namespace(assoc_namespace);
   return scope;
 }  /* push_namespace_scope */
 
@@ -9165,19 +9226,20 @@ End a name scope by popping an entry off the scope stack.
     if (kind == (a_scope_kind)sck_file) {
       wrapup_namespace_scopes(il_header.primary_scope);
     }  /* if */
-    /* Free any active using directive entries.  This is not done for
-       namespace and namespace extension scopes because the entries
-       are used if the extension scope is reactivated. */
-    if (kind != (a_scope_kind)sck_namespace &&
-        kind != (a_scope_kind)sck_namespace_extension) {
-      a_scope_pointers_block_ptr	pointers_block;
-      an_active_using_directive_ptr	audp;
-      pointers_block = assoc_pointers_block_of(ssep);
-      audp = pointers_block->active_using_directives;
-      if (audp != NULL) {
-        free_active_using_directive_list(audp);
-        pointers_block->active_using_directives = NULL;
+    /* If the scope specified additional using directives, clear all of the
+       "on_active_using_list" flags, and reset them to the values specified
+       by the previous scope stack entries. */
+    if (ssep->active_using_directives != NULL) {
+      set_on_active_using_list_flags(depth_scope_stack, /*new_value=*/FALSE);
+      if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
+        set_on_active_using_list_flags(depth_scope_stack-1,
+                                       /*new_value=*/TRUE);
       }  /* if */
+    }  /* if */
+    /* Free any active using directive entries. */
+    if (ssep->active_using_directives != NULL) {
+      free_active_using_directive_list(ssep->active_using_directives);
+      ssep->active_using_directives = NULL;
     }  /* if */
     /* Do management related to the object lifetime stack.  Don't pop the
        file scope object lifetime yet, though, because we need it in IL

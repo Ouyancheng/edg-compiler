@@ -1279,11 +1279,6 @@ typedef struct a_scope_pointers_block {
 			/* End of the list of template entries entered on
 			   the corresponding IL scope entry; NULL if none. */
 #endif /* RECORD_TEMPLATES_IN_IL */
-  an_active_using_directive_ptr
-		active_using_directives;
-			/* Linked list of entries representing the
-			   using-directives currently active in the current
-			   scope; NULL if none. */
   a_symbol_ptr	unnamed_namespace_sym;
 			/* For sck_file and sck_namespace scopes only, pointer
 			   to the symbol representing the unnamed namespace
@@ -1334,13 +1329,6 @@ typedef struct an_active_using_directive {
 			   corresponds; there is a one-to-one correspondence
 			   between the two sorts of entries, though a pointer
 			   is required in one direction only. */
-  an_active_using_directive_ptr
-		next_in_lookup_list;
-			/* Next in a linked list created during name lookup to
-			   track occurrences of a given name across the set
-			   of potentially relevant namespaces, as indicated by
-			   using directives.  If set, this pointer is cleared
-			   again as soon as the lookup has completed. */
   a_namespace_symbol_supplement_ptr
 		namespace_supplement;
 			/* The namespace symbol supplement associated with
@@ -2199,6 +2187,11 @@ typedef struct a_scope_stack_entry {
 			   scope is popped, it is possible to know when
 			   the scope should actually be removed from
 			   the stack. */
+  an_active_using_directive_ptr
+		active_using_directives;
+			/* Linked list of entries representing the
+			   using-directives currently active in the current
+			   scope; NULL if none. */
 } a_scope_stack_entry;
 
 
