@@ -310,12 +310,7 @@ Return a pointer to the nearest enclosing compound statement.
   a_statement_ptr               stmt;
 
   for (sssep = &struct_stmt_stack[depth_stmt_stack]; ; sssep--) {
-    if (sssep->extra_block != NULL) {
-      /* The structured statement has an extra block attached to it so
-         that it can have more than one statement sttached to it. */
-      stmt = sssep->extra_block;
-      break;
-    } else if (sssep->kind == ssk_compound) {
+    if (sssep->kind == ssk_compound) {
       /* The structured statement is a compound statement. */
       stmt = sssep->statement;
       break;
