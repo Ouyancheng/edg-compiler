@@ -520,7 +520,7 @@ is disabled by default except when using the C generating back end.
 #define ONE_INSTANTIATION_PER_OBJECT TRUE
 #else /* !BACK_END_IS_C_GEN_BE */
 #define ONE_INSTANTIATION_PER_OBJECT FALSE
-#endif /* !BACK_END_IS_C_GEN_BE */
+#endif /* BACK_END_IS_C_GEN_BE */
 #else /* DRIVER_COMPATIBILITY_VERSION < 237 */
 #define ONE_INSTANTIATION_PER_OBJECT FALSE
 #endif /* DRIVER_COMPATIBILITY_VERSION >= 237 */
