@@ -2571,7 +2571,9 @@ been completed.
       /* Clear the "needed" flag to keep mark_as_needed from returning
          immediately. */
       rp->source_corresp.needed = FALSE;
-      /* Clear the "defined" flag to keep the body from being walked again. */
+      /* If the "defined" flag is TRUE, the body will already have been
+         walked to mark its constituents as needed; we clear the flag to
+         keep it from being walked again. */
       saved_defined = rp->defined;
       rp->defined = FALSE;
       /* Mark the routine type, etc., as needed. */
