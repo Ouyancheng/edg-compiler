@@ -6535,12 +6535,8 @@ C++ mode.
       }  /* if */
     } else {
       /* Normal case (not a cast to a reference type). */
-      /* Check for user-defined conversions. */
-      /* Don't check for user-defined conversions when casting to void
-         or a template parameter (unknown) type. */
-      if (!is_void_type(type_cast_to) &&
-          !(is_template_dependent_context() &&
-            is_or_contains_template_param(type_cast_to))) {
+      /* Check for user-defined conversions, but not when casting to void. */
+      if (!is_void_type(type_cast_to)) {
         if (user_defined_conversion_possible(operand, type_cast_to,
                                              /*need_lvalue_result=*/FALSE,
                                              /*is_copy_initialization=*/FALSE,
