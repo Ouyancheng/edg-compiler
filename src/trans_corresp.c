@@ -1199,7 +1199,8 @@ symbol supplement.
 }  /* record_function_template_instantiation */
 
 
-void record_instantiation(a_symbol_ptr  inst)
+void record_instantiation(a_symbol_ptr                      inst,
+                          a_template_symbol_supplement_ptr  tssp)
 /*
 Check if the given instantiation has a corresponding entry in another
 translation unit and record the correspondence if so.  If not, add the
@@ -1208,22 +1209,7 @@ template.
 */
 {
   if (is_primary_translation_unit) {
-    a_template_symbol_supplement_ptr  tssp;
-    a_symbol_list_entry_ptr           sym_entry;
-
-    if (is_class_struct_union_symbol(inst)) {
-      a_symbol_ptr  proto_sym = inst->variant.class_struct_union.extra_info
-                                    ->corresp_prototype_sym;
-      tssp = template_supplement_for_symbol(proto_sym);
-    } else if (is_function_symbol(inst)) {
-      tssp = template_supplement_for_symbol(inst->variant.routine.instance_ptr
-                                                ->template_sym);
-    } else {
-      check_assertion(inst->kind == (a_symbol_kind)sk_static_data_member);
-      tssp = template_supplement_for_symbol(
-                 inst->variant.static_data_member.instance_ptr->template_sym);
-    }  /* if */
-    sym_entry = alloc_symbol_list_entry();
+    a_symbol_list_entry_ptr  sym_entry = alloc_symbol_list_entry();
     sym_entry->next = tssp->all_instantiations;
     tssp->all_instantiations = sym_entry;
     sym_entry->symbol = inst;
