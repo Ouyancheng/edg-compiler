@@ -1,5 +1,36 @@
 Version 2.19
 
+8/16/93 Declaring nonlocal variable or function with a local type
+
+A warning is now issued in C++ mode if a nonlocal variable or function is
+declared using a local type -- e.g.,
+
+  void f() {
+    struct S { };           // Local type S
+    extern S *x();          // Warning
+    extern void y(S&)       // Warning
+    extern S z;             // Warning
+  }
+
+The warning also is issued for noninline friend functions declared within
+local class.
+
+8/16/93 Instantiating return type of template function
+
+When a template class type was the return type of a template function, it
+sometimes failed to be instantiated when the function itself was
+instantiated and an internal error resulted.  This has now been fixed.
+
+8/16/93 Spurious error on label defined in function template
+
+We no longer issue a spurious error on cases like this:
+
+  template <class T> inline void f(T) { L: return; }
+  void g(int i) {
+  L: f(i);                // f(int) is instantiated in place; g's L
+                          //   should not conflict with f's L.
+  }
+
 8/16/93 Array --> pointer and function --> pointer transformations
 
 The array to pointer and function to pointer implicit transformations
@@ -7,15 +38,15 @@ are now done more accurately.  Formerly, they were never done when
 initializing a reference, and always done otherwise.  This did not
 accommodate some strange cases like the following:
 
-void ff();
-void g(char *const &r);
-void g(float);
-void i(void (*const (&r2))());
-void i(float);
-void m() {
-  g("abc");  // Now okay
-  i(ff);     // Now okay
-}
+  void ff();
+  void g(char *const &r);
+  void g(float);
+  void i(void (*const (&r2))());
+  void i(float);
+  void m() {
+    g("abc");  // Now okay
+    i(ff);     // Now okay
+  }
 
 8/16/93 Guard code around template static data member initializations
 
@@ -53,7 +84,6 @@ An internal error is no longer issued for cases like the following
     f(s);  // No internal error now
   }
 
-
 8/14/93 IL CHANGE: initk_zero initialization kind for variables
 
 The IL for dynamically-initialized static variables is changed by IL
@@ -67,6 +97,15 @@ a variable that is defined but for which all initialization has been
 rendered as code is given the initialization kind initk_zero, which
 means "statically initialize to zero".
 
+8/13/93 push_input_stack repackaged
+
+A new routine, open_file_for_input, has been broken out of
+push_input_stack, and calls to push_input_stack have been replaced by
+calls to open_file_and_push_input_stack.  Moreover, new functionality has
+been added to open_file_for_input to permit suffix replacement, as
+required for the implicit inclusion feature of automatic template
+instantiation.
+
 8/13/93 Member function as argument to function template
 
 The following no longer causes an internal error:
@@ -79,6 +118,14 @@ The following no longer causes an internal error:
   }
 
 This is an extension relative to the ARM.
+
+8/11/93 Linkage of enumeration types
+
+An enumeration type declared at file scope is now given external linkage
+if it is used to form the type of an externally linked function or
+variable, in the definition of an externally linked class, or as a
+template argument.  (This goes beyond what the ARM specifies but is
+implicit.)
 
 8/11/93 Destruction of temporaries created in loop test expressions
 
@@ -147,6 +194,15 @@ references to arrays came out as "address-taken" where in fact
 Constant addressing expressions that appear as initializer expressions
 in C++ mode are (once again) folded to constant entries and rendered
 as static initializations.
+
+8/6/93  Additional IL changes to support exception handling
+
+A new entry, a_throw_spec_type, was added, and the enumeration
+a_throw_spec_kind has been eliminated.  Now "throws anything" is
+represented by a NULL throw_specification pointer in the
+routine-type-supplement; "throws nothing" is represented by a NULL
+throw-spec-type pointer in the throw-specification entry; and "throws
+this particular exception" is represented by a throw-spec-type entry.
 
 8/5/93  Error recovery on functional-notation cast
 
@@ -289,6 +345,11 @@ be called later.
     int t = 1;
     sss loc = t ? sss() : foo();
   }
+
+7/22/93  Exception handling IL support
+
+The pointer to a_throw_specification has been moved from a_routine to
+a_routine_type_supplement.
 
 7/9/93   cfront compatibility: extra macro arguments are just a warning
 
