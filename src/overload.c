@@ -4046,6 +4046,9 @@ is only used in C++ mode.
   db_enter(4, "try_conversion_function_match");
   /* This routine is similar to try_overloaded_function_match. */
   source_type = source_operand->type;
+  /* If the source type is a template class, instantiate it to make its
+     conversion functions visible. */
+  instantiate_template_class(source_type);
   /* Look at all the conversion functions for the source class. */
   for (slep = symbol_supplement_for_class(source_type)->conversion_list;
        slep != NULL;

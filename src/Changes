@@ -1,5 +1,18 @@
 Version 2.31
 
+12/7/95   Instantiation of template class to look for conversion functions
+
+In cases like the following the front end failed to instantiate a template
+class in order to look for conversion functions.  Now fixed.
+
+  template <class T> struct B {
+    operator char *();
+  };
+  extern void f(char *s);
+  void g(B<int> *b) {
+    f(*b);
+  }
+
 12/1/95   Friend class declaration using typedef name (cfront mode)
 
 A bug has been fixed to allow (in cfront-compatibility mode) using a
