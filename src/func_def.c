@@ -821,10 +821,11 @@ it calls reconcile_routine_types to merge the current type with the type
 on a prior declaration.
 */
 {
-  a_symbol_ptr   sym;
-  a_type_ptr     class_type;
-  a_routine_ptr  rp;
-  a_type_ptr     rout_type;
+  a_symbol_ptr         sym;
+  a_type_ptr           class_type;
+  a_routine_ptr        rp;
+  a_type_ptr           rout_type;
+  a_scope_stack_entry  *ssep = &scope_stack[depth_scope_stack];
 
   db_enter(3, "define_member_function");
   class_type = locator->specific_symbol->parent.class_type;
@@ -840,6 +841,11 @@ on a prior declaration.
       pos_sy_error(ec_not_compatible_with_previous_decl,
                    &locator->source_position, sym);
     }  /* if */
+    sym = NULL;
+  } else if (!namespace_is_enclosed_by_scope(sym, ssep)) {
+    /* This member function is being defined in a scope that does not
+       enclose the scope in which the parent class was defined. */
+    sym_error(ec_bad_scope_for_definition, sym);
     sym = NULL;
   } else {
     /* Look for a member function symbol of this type in the symbol table.
