@@ -16446,6 +16446,13 @@ that might be required.
       (void)is_static_or_inline_template_entity(tip);
       /* Skip entries that have already been instantiated. */
       if (tip->already_instantiated) continue;
+#if DEBUG
+      if (db_flag_is_set("dani")) {
+        fprintf(f_debug, "do_any_needed_instantiations, checking: ");
+        db_symbol_name(tip->instance_sym);
+        fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
       /* See if the entity should be instantiated.  Note that the value
          returned by can_be_instantiated is not used to determine whether
          should_be_instantiated is called because the tests done by
@@ -16467,8 +16474,7 @@ that might be required.
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
       /* See if the entity should be instantiated as a result of an
          assignment by the automatic instantiation mechanism. */
-      if (is_primary_translation_unit &&
-          entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE) &&
+      if (entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE) &&
           tip->automatically_instantiated && !tip->already_instantiated) {
         do_automatic_instantiation_of_entity(tip);
       }  /* if */
