@@ -1372,7 +1372,8 @@ funcs_not_identical:;
 
 
 a_boolean param_types_are_compatible(a_type_ptr  rout_type_1,
-                                     a_type_ptr  rout_type_2)
+                                     a_type_ptr  rout_type_2,
+                                     a_boolean   allow_error_type)
 /*
 rout_type_1 and rout_type_2 point to routine type entries.  Return TRUE if the
 parameter lists are compatible.  The "this" parameter types (if any) are
@@ -1434,7 +1435,8 @@ not compared.
         if (!list2_prototyped) {
           param_2_type = default_argument_promotion(param_2_type);
         }  /* if */
-        if (!types_are_compatible(list1->type, param_2_type)) {
+        if (!f_types_are_compatible(list1->type, param_2_type,
+                                    allow_error_type)) {
           /* The parameter types are not compatible. */
           goto funcs_not_compatible;
         }  /* if */
@@ -1449,13 +1451,16 @@ funcs_not_compatible:;
 
 
 a_boolean f_types_are_compatible(a_type_ptr type_1,
-                                 a_type_ptr type_2)
+                                 a_type_ptr type_2,
+                                 a_boolean  allow_error_type)
 /*
 Compare two types for compatibility.  See section 3.1.2.6 in the standard.
-An error type is considered compatible with any other type.  This routine
-always checks for compatibility of type-qualifiers.  This routine should
-never be called directly; it's meant to be called only by the macro
-types_are_compatible, which does the initial test for exact pointer equality.
+An error type is considered compatible with any other type if allow_error_type
+is TRUE; otherwise an error type is compatible with no other type including an
+error type. This routine always checks for compatibility of type-qualifiers.
+This routine should never be called directly; it's meant to be called only by
+the macros types_are_compatible and types_are_strictly_compatible, which do
+the initial test for exact pointer equality.
 */
 {
   register a_boolean            compat = FALSE;
@@ -1472,12 +1477,16 @@ types_are_compatible, which does the initial test for exact pointer equality.
     type_1 = skip_typerefs(type_1);
     type_2 = skip_typerefs(type_2);
     if (type_1 == type_2) {
-      /* If the types are now the same, they are compatible. */
-      compat = TRUE;
+      /* If the types are now the same, they are compatible -- unless
+         allow_error_type is FALSE and both are error types. */
+      compat = allow_error_type || !is_error(type_1);
     } else if (type_1->kind == type_2->kind) {
       /* The top level kinds are the same, check further. */
       switch (type_1->kind) {
         case tk_error:
+          /* Unless allow_error_type is set, the types are compatible. */
+          compat = !allow_error_type;
+          break;
         case tk_unknown:
         case tk_void:
           /* No further check needed.  The types are compatible. */
@@ -1512,15 +1521,17 @@ types_are_compatible, which does the initial test for exact pointer equality.
              references and must point to compatible types. */
           if (type_1->variant.pointer.is_reference ==
                                         type_2->variant.pointer.is_reference) {
-            compat = types_are_compatible(type_1->variant.pointer.type,
-                                          type_2->variant.pointer.type);
+            compat = f_types_are_compatible(type_1->variant.pointer.type,
+                                            type_2->variant.pointer.type,
+                                            allow_error_type);
           }  /* if */
           break;
         case tk_array:
           /* For arrays, if both have sizes the sizes must be the same.  The
              element types must be compatible. */
-          if (types_are_compatible(type_1->variant.array.element_type,
-                                   type_2->variant.array.element_type)) {
+          if (f_types_are_compatible(type_1->variant.array.element_type,
+                                     type_2->variant.array.element_type,
+                                     allow_error_type)) {
             if (type_1->variant.array.number_of_elements == 0 ||
                 type_2->variant.array.number_of_elements == 0 ||
                 type_1->variant.array.number_of_elements ==
@@ -1541,14 +1552,16 @@ types_are_compatible, which does the initial test for exact pointer equality.
              must be compatible. */
           rtsp1 = type_1->variant.routine.extra_info;
           rtsp2 = type_2->variant.routine.extra_info;
-          if (types_are_compatible(type_1->variant.routine.return_type,
-                                   type_2->variant.routine.return_type) &&
-              param_types_are_compatible(type_1, type_2) &&
+          if (f_types_are_compatible(type_1->variant.routine.return_type,
+                                     type_2->variant.routine.return_type,
+                                     allow_error_type) &&
+              param_types_are_compatible(type_1, type_2, allow_error_type) &&
               ((rtsp1->implicit_this_param_type == NULL) ?
                   (rtsp2->implicit_this_param_type == NULL) :
                   (rtsp2->implicit_this_param_type != NULL &&
-                   types_are_compatible(rtsp1->implicit_this_param_type,
-                                        rtsp2->implicit_this_param_type)))) {
+                   f_types_are_compatible(rtsp1->implicit_this_param_type,
+                                          rtsp2->implicit_this_param_type,
+                                          allow_error_type)))) {
             compat = TRUE;
           }  /* if */
           break;
@@ -1557,16 +1570,17 @@ types_are_compatible, which does the initial test for exact pointer equality.
              class type and their member types are compatible. */
           compat = (pm_class_type(type_1) == pm_class_type(type_2) &&
                     f_types_are_compatible(pm_member_type(type_1),
-                                           pm_member_type(type_2)));
+                                           pm_member_type(type_2),
+                                           allow_error_type));
           break;
 #if CHECKING
         default:
           internal_error("f_types_are_compatible: bad type");
 #endif /* CHECKING */
       }  /* switch */
-    } else if (type_1->kind == (a_type_kind)tk_error ||
-               type_2->kind == (a_type_kind)tk_error) {
-      /* An error type is compatible with any other type. */
+    } else if (allow_error_type && is_error(type_1) && is_error(type_2)) {
+      /* An error type is compatible with any other type unless
+         allow_error_type is FALSE. */
       compat = TRUE;
     }  /* if */
   }  /* if */
@@ -1951,7 +1965,8 @@ difference in the underlying class of their "this" parameter types.
   rout_type_2 = skip_typerefs(rout_type_2);
   correspond = types_are_compatible(rout_type_1->variant.routine.return_type,
                                    rout_type_2->variant.routine.return_type) &&
-               param_types_are_compatible(rout_type_1, rout_type_2) &&
+               param_types_are_compatible(rout_type_1, rout_type_2,
+                                          /*allow_error_type=*/TRUE) &&
                this_param_types_correspond(rout_type_1, rout_type_2);
   return correspond;
 }  /* function_types_correspond */
