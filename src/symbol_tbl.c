@@ -1300,7 +1300,9 @@ changed if there is no error.
     }  /* if */
     if (C_dialect == C_dialect_cplusplus) {
       /* In C++, it's an error for something with the same name as a class to
-         be defined within the class unless it's a constructor. */
+         be defined within the class unless it's a constructor (the symbol
+         for which is not added to the scope list) or a nonstatic data
+         member that is not an anonymous union member (ARM 9.2). */
       if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
         a_type_ptr   class_type = ssep->assoc_type;
         a_symbol_ptr class_symbol = 
@@ -1310,11 +1312,19 @@ changed if there is no error.
            so that the header here will be different from the class header
            even though the name is the same. */
         if (class_symbol->header == sym_ptr->header) {
-          /* Error: an identifier that is not a constructor and that
-             has the same name as a class is being defined within the
-             class. */
-          pos_error(ec_id_has_same_name_as_class, &sym_ptr->decl_position);
-          *err = TRUE;
+          /* If no constructor already exists we permit a field with the same
+             name as the class of which it is a member. */
+          if (sym_ptr->kind == (a_symbol_kind)sk_field &&
+              class_symbol->variant.
+                          class_struct_union.extra_info->constructor == NULL) {
+            /* No error. */
+          } else {
+            /* Error: an identifier that is not a constructor and that
+               has the same name as a class is being defined within the
+               class. */
+            pos_error(ec_id_has_same_name_as_class, &sym_ptr->decl_position);
+            *err = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
