@@ -1,5 +1,19 @@
 Version 2.35
 
+1/13/97 Microsoft compatibility: special lookup of template names
+
+In the following example the Microsoft compiler incorrectly finds the
+global template instead of the base class member.  We now duplicate
+this behavior in Microsoft mode.
+
+  template <class T> struct x {};
+  class A {
+    int x;
+  };
+  class B : public A {
+    typedef x<int> xi;  // Microsoft compiler finds template ::x
+  };
+
 1/13/97 Microsoft compatibility: guiding declarations are disabled
 
 In Microsoft compatibility mode a function declaration that matches a

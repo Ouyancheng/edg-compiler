@@ -2071,14 +2071,16 @@ extern a_symbol_ptr find_symbol(char             *identifier,
 				a_symbol_locator *location);
 
 extern
-a_boolean find_projected_symbol(a_type_ptr               class_ptr,
-                                a_symbol_locator         *locator,
-                                an_id_lookup_options_set options,
-                                a_boolean                tentative_type_lookup,
-                                a_boolean                add_to_active_list,
-                                a_symbol_ptr             insert_sym,
-                                a_symbol_ptr             *projected_symbol,
-                                a_boolean		 can_create_nonreal);
+a_boolean find_projected_symbol(
+			a_type_ptr               class_ptr,
+                        a_symbol_locator         *locator,
+                        an_id_lookup_options_set options,
+                        a_boolean                tentative_type_lookup,
+                        a_boolean                tentative_template_lookup,
+                        a_boolean                add_to_active_list,
+                        a_symbol_ptr             insert_sym,
+                        a_symbol_ptr             *projected_symbol,
+                        a_boolean		 can_create_nonreal);
 
 extern void make_locator_for_symbol(a_symbol_ptr     sym_ptr,
                                     a_symbol_locator *location);
@@ -2730,6 +2732,11 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
 #define is_type_symbol(sym)                                           \
   ((sym)->kind == (a_symbol_kind)sk_type ||                           \
    (C_dialect == C_dialect_cplusplus && is_tag_symbol(sym)))
+
+/* Return TRUE if a symbol is a class or function template symbol. */
+#define is_template_symbol(sym)                                           \
+  ((sym)->kind == (a_symbol_kind)sk_class_template ||                  \
+   (sym)->kind == (a_symbol_kind)sk_function_template)
 
 /* Return TRUE if a symbol is a function symbol. */
 #define is_function_symbol(sym)                                       \

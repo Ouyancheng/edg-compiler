@@ -1108,6 +1108,9 @@ typedef struct a_lookup_state {
   a_boolean	tentative_type_lookup;
 			/* TRUE if the IDL_TENTATIVE_TYPE_LOOKUP option
 			   was specified for this lookup. */
+  a_boolean	tentative_template_lookup;
+			/* TRUE if the IDL_TENTATIVE_TEMPLATE_LOOKUP option
+			   was specified for this lookup. */
   a_boolean	is_linkage_lookup;
 			/* TRUE if the IDL_LINKAGE_LOOKUP option
 			   was specified for this lookup. */
@@ -1191,6 +1194,7 @@ value.
   cleared_lookup_state.must_be_namespace             = FALSE;
   cleared_lookup_state.must_be_class                 = FALSE;
   cleared_lookup_state.tentative_type_lookup         = FALSE;
+  cleared_lookup_state.tentative_template_lookup     = FALSE;
   cleared_lookup_state.is_linkage_lookup             = FALSE;
   cleared_lookup_state.is_friend_lookup              = FALSE;
   cleared_lookup_state.terminate_lookup              = FALSE;
@@ -1553,6 +1557,7 @@ that do normal id lookup processing.
   if (find_projected_symbol(ssep->assoc_type, locator,
                             lookup_state->options,
                             lookup_state->tentative_type_lookup,
+                            lookup_state->tentative_template_lookup,
                             lookup_state->add_to_active_list,
                             lookup_state->insert_sym, &sym,
                             /*can_create_nonreal=*/FALSE)) {
@@ -2055,6 +2060,8 @@ C and C++.
     lookup_state.must_be_class = (options & IDL_MUST_BE_CLASS) != 0;
     lookup_state.tentative_type_lookup =
                                     (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0;
+    lookup_state.tentative_template_lookup =
+                                    (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0;
     lookup_state.is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP) != 0;
     lookup_state.is_friend_lookup = (options & IDL_FRIEND_LOOKUP) != 0;
     lookup_state.skip_curr_function_scope =
@@ -2592,6 +2599,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                                    &insert_sym);
         (void)find_projected_symbol(class_type, locator, options,
                                     /*tentative_type_lookup=*/FALSE,
+                                    /*tentative_template_lookup=*/FALSE,
                                     add_to_active_list, insert_sym, &sym,
                                     /*can_create_nonreal=*/TRUE);
         if (sym == NULL && locator->is_conversion_name &&

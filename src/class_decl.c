@@ -7500,8 +7500,9 @@ class_type.  Set *updated if a projection symbol is created.
            a new conversion list entry. */
         make_locator_for_symbol(bcslep->symbol, &loc);
         clear_specific_symbol(loc);
-        (void)find_projected_symbol(class_type, &loc, /*must_be_tag=*/FALSE,
-                                    /*must_be_type_name=*/FALSE,
+        (void)find_projected_symbol(class_type, &loc, IDL_NO_OPTIONS,
+                                    /*tentative_type_lookup=*/FALSE,
+                                    /*tentative_template_lookup=*/FALSE,
                                     /*add_to_active_list=*/TRUE,
                                     (a_symbol_ptr)NULL, &sym,
                                     /*can_create_nonreal=*/is_template_list);

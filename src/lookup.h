@@ -112,6 +112,12 @@ represented as a bit set:
 				   enclosing function or block scope), and
 				   (2) that using-directives are ignored. May
 				   be combined with IDL_MUST_BE_TAG. */
+#define IDL_TENTATIVE_TEMPLATE_LOOKUP 0x10000
+				/* This is similar to a tentative type lookup
+				   but for template names.  In other words,
+				   a new symbol (i.e., projection symbol) will
+				   not be created unless it is for a
+				   template. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*

@@ -7032,15 +7032,68 @@ entry that points to the class in which the nonreal member is created.
 }  /* create_nonreal_progenitor_symbol */
 
 
+static
+a_boolean check_for_microsoft_template_lookup_bug(a_symbol_ptr sym)
+/*
+The Microsoft compiler (as of version 4.2) includes a bug in the lookup
+of template names that, in the following example, will find the global
+template x instead of the base class member.
 
-a_boolean find_projected_symbol(a_type_ptr               class_ptr,
-                                a_symbol_locator         *locator,
-                                an_id_lookup_options_set options,
-                                a_boolean                tentative_type_lookup,
-                                a_boolean                add_to_active_list,
-                                a_symbol_ptr             insert_sym,
-                                a_symbol_ptr             *projected_symbol,
-                                a_boolean		 can_create_nonreal)
+  template <class T> struct x {};
+  class A {
+    int x;
+  };
+  class B : public A {
+    typedef x<int> xi;  // Microsoft compiler finds template ::x
+  };
+
+For this to occur the base class member must be a nonstatic member, or an
+overload set containing nonstatic members.
+
+sym is the progenitor symbol that was found.  Return TRUE if it represents
+a symbol that should be ignored in favor of a template to be found later.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (sym->kind == (a_symbol_kind)sk_field) {
+    /* The name found is a nonstatic data member -- discard it. */
+    result = TRUE;
+  } else if (is_function_symbol(sym)) {
+    a_boolean		mixed_static_nonstatic = FALSE;
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      mixed_static_nonstatic =
+                      sym->variant.overloaded_function.mixed_static_nonstatic;
+      sym = sym->variant.overloaded_function.symbols;
+    }  /* if */
+    if (mixed_static_nonstatic) {
+      /* There is at least one static member function.  This symbol must
+         not be ignored. */
+    } else {
+      a_routine_ptr			rp;
+      a_routine_type_supplement_ptr	rtsp;
+      /* All of the symbols are either static or all are nonstatic.
+         Check the first symbol on the list to see which. */
+      rp = sym->variant.routine.ptr;
+      rtsp = rp->type->variant.routine.extra_info;
+      /* If the name found is a nonstatic member function, discard it. */
+      if (rtsp->implicit_this_param_type != NULL) result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* check_for_microsoft_template_lookup_bug */
+
+
+a_boolean find_projected_symbol(
+			a_type_ptr               class_ptr,
+                        a_symbol_locator         *locator,
+                        an_id_lookup_options_set options,
+                        a_boolean                tentative_type_lookup,
+                        a_boolean                tentative_template_lookup,
+                        a_boolean                add_to_active_list,
+                        a_symbol_ptr             insert_sym,
+                        a_symbol_ptr             *projected_symbol,
+                        a_boolean		 can_create_nonreal)
 /*
 Given class_ptr, which identifies a class (or struct or union) type, search
 its base classes for a symbol that projects the name specified in *locator
@@ -7055,7 +7108,9 @@ active list (which is order dependent) immediately following insert_sym
 it is added to the end of the scope entry symbol list for the class.
 The symbol found must meet the criteria indicated by "options".  If
 tentative_type_lookup is TRUE, a projection symbol is only created if
-the symbol returned by find_progenitor_symbol is a type.  Note that
+the symbol returned by find_progenitor_symbol is a type.  Likewise, if
+tentative_template_lookup is TRUE, a projection symbol is only created
+if the symbol returned by find_progentor_symbol is a template.  Note that
 "options" and tentative_type_lookup are handled differently: a
 symbol that fails the lookup options test does not hide symbols from
 deeper base classes, while a symbol that is not a type does hide
@@ -7103,6 +7158,15 @@ created if a projected symbol cannot be found in any of the real bases.
     progenitor_sym = find_progenitor_symbol(class_ptr, locator, options,
                                             &path, &access, &ambiguous,
                                             &any_using_decl);
+    /* In Microsoft mode, if the progenitor symbol is for a nonstatic
+       member (data or function), and we are doing a tentative template
+       lookup, ignore this symbol. */
+    if (microsoft_mode &&
+        progenitor_sym != NULL && tentative_template_lookup) {
+      if (check_for_microsoft_template_lookup_bug(progenitor_sym)) {
+        progenitor_sym = NULL;
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (progenitor_sym == NULL && can_create_nonreal &&
       cssp->any_nonreal_base_classes) {
@@ -7122,10 +7186,15 @@ created if a projected symbol cannot be found in any of the real bases.
     found = FALSE;
   } else {
     /* A symbol was found. */
+    a_symbol_ptr	fund_progenitor_sym;
+    fund_progenitor_sym = fundamental_symbol_of(progenitor_sym);
     found = TRUE;
-    if (tentative_type_lookup &&
-        !is_type_symbol(fundamental_symbol_of(progenitor_sym))) {
+    if (tentative_type_lookup && !is_type_symbol(fund_progenitor_sym)) {
       /* The symbol found is not a type name symbol, so do not create a
+         projection for it. */
+    } else if (tentative_template_lookup &&
+        !is_template_symbol(fund_progenitor_sym)) {
+      /* The symbol found is not a template name symbol, so do not create a
          projection for it. */
     } else {
       /* Create a new symbol based on the symbol returned. */

@@ -7892,7 +7892,9 @@ selection operator, in which case it points to the type of the left operand.
          being scanned is followed by a "<" we don't yet know whether this
          is a template reference or simply a less than sign.  We must
          assume it could be a less than sign and do a normal
-         (nonclass) lookup. This should not make any difference for
+         (nonclass) lookup.  Furthermore, this is done as a "tentative type"
+         lookup so that, should a template not be found, a projection symbol
+         is not created.  This should not make any difference for
          file scope lookups because class template names cannot
          coexist with other names at file scope.  A normal lookup must
          also be done when scanning what might be a use of a "." in
@@ -7900,7 +7902,9 @@ selection operator, in which case it points to the type of the left operand.
          is being used as a qualifier or as a field selection operator
          so we need to do a normal lookup and then decide based on the
          type of the thing we find. */
-      if (next_tok == tok_lt || qualifier_separator == tok_period) {
+      if (next_tok == tok_lt) {
+        lookup_kind = IDL_TENTATIVE_TEMPLATE_LOOKUP;
+      } else if (qualifier_separator == tok_period) {
         lookup_kind = IDL_NO_OPTIONS;
       } else {
         lookup_kind = IDL_MUST_BE_CLASS_OR_NAMESPACE;
@@ -8123,7 +8127,7 @@ selection operator, in which case it points to the type of the left operand.
                We must assume it could be a less than sign and do a normal
                (nonclass) lookup. */
             lookup_options = next_tok == tok_lt
-                                   ? IDL_NO_OPTIONS
+                                   ? IDL_TENTATIVE_TEMPLATE_LOOKUP
                                    : IDL_MUST_BE_CLASS_OR_NAMESPACE;
             if ((options & GID_IS_TYPENAME) != 0) {
               /* If this name followed the typename keyword, indicate that the
