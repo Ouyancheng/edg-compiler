@@ -4364,6 +4364,43 @@ error cases.
 }  /* remove_all_local_stop_tokens */
 
 
+#if MICROSOFT_KEYWORDS_ALLOWED
+void update_microsoft_variable_info(a_variable_ptr  var,
+                                    a_decl_flag_set flags)
+/*
+Update the variable information to reflect any Microsoft extended
+storage class information represented by bits in the DSO information
+in "flags".
+*/
+{
+  var->dllimport_used = (flags & DSO_DLLIMPORT) != 0;
+  var->dllexport_used = (flags & DSO_DLLEXPORT) != 0;
+  var->thread_used = (flags & DSO_THREAD) != 0;
+#if 0
+  /* Add error tests for improper use of other storage classes. */
+#endif /* 0 */
+}  /* update_microsoft_variable_info */
+
+
+void update_microsoft_routine_info(a_routine_ptr   routine,
+                                   a_decl_flag_set flags)
+/*
+Update the routine information to reflect any Microsoft extended
+storage class information represented by bits in the DSO information
+in "flags".
+*/
+{
+  routine->dllimport_used = (flags & DSO_DLLIMPORT) != 0;
+  routine->dllexport_used = (flags & DSO_DLLEXPORT) != 0;
+  routine->naked_used = (flags & DSO_NAKED) != 0;
+  routine->microsoft_inline_used = (flags & DSO_MICROSOFT_INLINE) != 0;
+#if 0
+  /* Add error tests for improper use of other storage classes. */
+#endif /* 0 */
+}  /* update_microsoft_routineiable_info */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+
+
 void declaration(a_boolean      function_definition_allowed,
                  a_boolean      extern_implied,
                  a_boolean      is_old_style_param_decl,
@@ -5029,6 +5066,14 @@ continue_with_declaration:
         /* The presence of a final '}' will already have been checked for. */
         check_assertion(curr_token == tok_rbrace ||
                         curr_token == tok_end_of_source);
+#if MICROSOFT_KEYWORDS_ALLOWED        
+        {
+          a_routine_ptr	rp = skip_typerefs(local_type_ptr)->
+                                    variant.routine.extra_info->assoc_routine;
+          check_assertion_str(rp != NULL, "declaration: routine pointer NULL");
+          update_microsoft_routine_info(rp, dso_flags);
+        }
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
         goto advance_past_final_token;
       }  /* if */
       /* Not a function definition, must be a declaration. */
@@ -5239,11 +5284,14 @@ continue_with_declaration:
         /* All static data member declarations that that pass though this
            code are definitions. */
         is_variable_def = TRUE;
+        update_microsoft_variable_info(var_ptr, dso_flags);
       } else if (is_function) {
         /* A function declaration with no body. */
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
                             &func_info, declarator_ssep, SRK_DECLARATION,
                             &symbol_ptr, &linkage, &old_type, &ext_sym);
+        update_microsoft_routine_info(symbol_ptr->variant.routine.ptr,
+                                      dso_flags);
       } else {
         /* A variable declaration. */
         a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
@@ -5297,6 +5345,7 @@ continue_with_declaration:
              suppress subsequent "declared and not referenced" warnings. */
           mark_symbol_to_suppress_warnings(symbol_ptr);
         }  /* if */
+        update_microsoft_variable_info(var_ptr, dso_flags);
       }  /* if */
       if (is_variable_def && C_dialect == C_dialect_cplusplus) {
         /* At the point at which an object of incomplete template class is

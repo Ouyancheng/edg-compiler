@@ -289,6 +289,19 @@ extern an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed,
    declaration routines.  Each bit represents a flag. */
 typedef unsigned long a_decl_flag_set;
 
+#if MICROSOFT_KEYWORDS_ALLOWED
+extern void update_microsoft_variable_info(a_variable_ptr  var,
+                                           a_decl_flag_set flags);
+
+extern void update_microsoft_routine_info(a_routine_ptr   routine,
+                                          a_decl_flag_set flags);
+#else /* !MICROSOFT_KEYWORDS_ALLOWED */
+/* Supply macros that do nothing when Microsoft keywords are not
+   recognized. */
+#define update_microsoft_variable_info(x,y) /* nothing */
+#define update_microsoft_routine_info(x,y) /* nothing */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+
 #endif /* DECLS_H */
 
 /******************************************************************************
