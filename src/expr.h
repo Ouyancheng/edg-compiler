@@ -173,6 +173,9 @@ extern a_symbol_ptr find_copy_constructor(
                                    a_boolean             *ambiguous,
                                    a_boolean             *class_bitwise_copy);
 
+extern void process_unattached_template_argument_list(
+                                         a_template_arg_ptr template_arg_list);
+
 /*
 Macro that is TRUE if the node is an operation node.
 */

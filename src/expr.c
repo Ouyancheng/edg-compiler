@@ -12704,7 +12704,7 @@ parameter type is not known.
     /* No destination type.  Make a constant from the operand.  This comes
        up for errors and for nonreal templates in prototype instantiations. */
     if (is_template_dependent_context()) {
-      prep_generic_template_argument(&result);
+      prep_generic_nontype_template_argument(&result);
     } else {
       /* Error recovery. */
       check_assertion(total_errors != 0);
@@ -13643,6 +13643,31 @@ This routine is used only in C++ mode.
   expr_stack = saved_expr_stack;
   return cctor_sym;
 }  /* find_copy_constructor */
+
+
+void process_unattached_template_argument_list(
+                                          a_template_arg_ptr template_arg_list)
+/*
+The template argument list pointed to by template_arg_list is going to be
+saved as the template argument list for an unknown template in a prototype
+instantiation.  Go through it and do any necessary processing for that.
+*/
+{
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+
+  /* Even though this is not an expression scan, make sure the expr_stack
+     has something on it.  If there is already something on the stack,
+     save it, clear the stack, and restore it later. */
+  saved_expr_stack = expr_stack;
+  expr_stack = NULL;
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  prep_generic_template_argument_list(template_arg_list);
+  pop_expr_stack();
+  expr_stack = saved_expr_stack;
+}  /* process_unattached_template_argument_list */
 
 
 /******************************************************************************

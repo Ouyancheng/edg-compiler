@@ -2383,10 +2383,10 @@ conversions.
 }  /* cast_node */
 
 
-void prep_generic_template_argument(an_operand *operand)
+void prep_generic_nontype_template_argument(an_operand *operand)
 /*
-The template argument indicated by "operand" is going to be saved in
-the template argument list for an unknown template in a prototype
+The nontype template argument indicated by "operand" is going to be saved
+in the template argument list for an unknown template in a prototype
 instantiation.  Process it so it can be turned into a constant
 and saved in the IL with enough information to recover whether it
 was an lvalue or rvalue, etc.
@@ -2405,11 +2405,10 @@ was an lvalue or rvalue, etc.
     an_expr_node_ptr expr = make_node_from_operand(operand);
     make_template_param_expr_constant_operand(expr, operand);
   }  /* if */
-}  /* prep_generic_template_argument */
+}  /* prep_generic_nontype_template_argument */
 
 
-static void prep_generic_template_argument_list(
-                                          a_template_arg_ptr template_arg_list)
+void prep_generic_template_argument_list(a_template_arg_ptr template_arg_list)
 /*
 The template argument list pointed to by template_arg_list is going to be
 saved as the template argument list for an unknown template in a prototype
@@ -2426,7 +2425,7 @@ so it can go into the IL.
       a_constant             constant;
       a_memory_region_number region_to_switch_back_to;
 
-      prep_generic_template_argument(operand);
+      prep_generic_nontype_template_argument(operand);
       /* Fetch the constant and use it as the template argument. */
       extract_constant_from_operand(operand, &constant);
       switch_to_file_scope_region(&region_to_switch_back_to);
