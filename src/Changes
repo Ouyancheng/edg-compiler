@@ -1,5 +1,12 @@
 Version 2.42
 
+4/4/99   C++-generating back end: initial explicit declaration of a
+         predeclared type
+
+When the initial explicit declaration of a predeclared type (e.g., class
+type_info, struct _GUID) was not a definition, the C++-generating back end
+was sometimes putting out invalid code.  Now fixed.
+
 4/3/99   Microsoft compatibility: preprocessing problem fixed
 
 A preprocessing problem in Microsoft mode, introduced in 2.41 (see

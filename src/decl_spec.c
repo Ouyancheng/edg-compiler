@@ -775,6 +775,7 @@ static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_boolean         is_ref_within_new_expr,
                                   a_scope_depth     *effective_decl_level,
                                   a_boolean         *tag_resolution,
+                                  a_boolean         *is_predeclared_type_decl,
                                   a_decl_pos_block  *decl_pos_block)
 /*
 Scan a tag identifier for a class, struct, union, or enum declaration.
@@ -1061,6 +1062,7 @@ caution when modifying this routine.
         /* The referenced flag may have been reset by set_source_corresp. */
         predeclared_type->source_corresp.referenced = tag_sym->referenced;
         add_to_types_list(predeclared_type, computed_decl_level);
+        *is_predeclared_type_decl = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1434,6 +1436,7 @@ the template.
   a_boolean               namespace_extension_pushed = FALSE;
   a_boolean               is_redeclaration;
   a_boolean               is_template_specific_decl = FALSE;
+  a_boolean               is_predeclared_type_decl = FALSE;
   a_decl_pos_block        local_decl_pos_block;
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   an_extended_decl_info_block
@@ -1519,7 +1522,7 @@ the template.
     tag_sym = scan_tag_name(tag_kind, &locator, &is_friend_decl,
                             &vacuous_decl_allowed, is_ref_within_new_expr,
                             &effective_decl_level, &tag_resolution,
-                            &local_decl_pos_block);
+                            &is_predeclared_type_decl, &local_decl_pos_block);
   }  /* if */
   if (tag_id_present) {
     if (tag_sym != NULL) {
@@ -2054,7 +2057,7 @@ the template.
       tag_sym->is_invisible = FALSE;
     }  /* if */
     /* Record cross-reference information. */
-    if (is_class_definition ||
+    if (is_class_definition || is_predeclared_type_decl ||
         (curr_token == tok_semicolon &&
          (vacuous_decl_allowed ||
           is_friend_decl || is_template_specific_decl))) {
@@ -2077,6 +2080,16 @@ the template.
       }  /* if */
       record_symbol_declaration(srk_flags, tag_sym, &locator.source_position,
                                 (a_source_sequence_entry_ptr)NULL);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (is_predeclared_type_decl && !is_class_definition) {
+        /* This is the first explicit declaration of a predeclared type --
+           set the first_declaration flag in the associated source-sequence
+           secondary declaration entry. */
+        (void)set_src_seq_secondary_decl_fields((char *)class_type,
+                                                (a_type_ptr)NULL,
+                                                SSSD_FIRST_DECLARATION);
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       /* Not a definition, not a vacuous declaration, so presumably a
          reference. */
@@ -2298,6 +2311,7 @@ to indicate whether an enumeration is actually defined.
   a_boolean                namespace_extension_pushed = FALSE;
   a_source_position        tag_position;
   a_decl_pos_block         local_decl_pos_block;
+  a_boolean                is_predeclared_type_decl = FALSE;
 
   db_enter(3, "enum_specifier");
 
@@ -2338,7 +2352,7 @@ to indicate whether an enumeration is actually defined.
                             &is_friend_decl, &vacuous_decl_allowed,
                             /*is_ref_within_new_expr=*/FALSE,
                             &effective_decl_level, &tag_resolution,
-                            &local_decl_pos_block);
+                            &is_predeclared_type_decl, &local_decl_pos_block);
     if (tag_resolution) {                            
       /* Resolution of a previous incomplete declaration. */
       if (effective_decl_level != decl_scope_level) {
