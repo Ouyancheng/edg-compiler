@@ -13699,6 +13699,49 @@ the sk_variable symbol.  Otherwise, return NULL.
 }  /* anonymous_parent_variable_of */
 
 
+static a_boolean is_field_selection_on_var_foldable(a_variable_ptr var)
+/*
+var indicates a variable referenced in an expression.  If the variable
+is followed by a field selection operator (e.g., ".") and we're
+in a constant expression and a dialect such that the field selection
+might be foldable to a constant, return TRUE.  For example,
+
+   struct A {
+     enum E { e1 = 1 };
+   } a;
+   int b[a.e1];  // a.e1 accepted as a constant in some modes.
+
+Note that there will still be a check later that the expression did
+in fact turn out to be a constant.
+*/
+{
+  a_boolean foldable = FALSE;
+  if ((any_cfront_mode() ||
+       (microsoft_mode && !C_mode()) ||
+       gpp_mode) &&
+      (curr_expr_kind_is(ek_integral_constant) ||
+       curr_expr_kind_is(ek_template_arg) ||
+       (gpp_mode && curr_expr_kind_is(ek_init_constant)))) {
+    /* We're in a constant expression and in a dialect that accepts
+       this construct. */
+    a_type_ptr var_type = var->type;
+    if ((is_class_struct_union_type(var_type) ||
+         (is_reference_type(var_type) &&
+          is_class_struct_union_type(type_pointed_to(var_type)))) &&
+         next_token() == tok_period) {
+      /* a.b where a is a class or a reference to class. */
+      foldable = TRUE;
+    } else if (is_pointer_type(var_type) &&
+               is_class_struct_union_type(type_pointed_to(var_type)) &&
+               next_token() == tok_arrow) {
+      /* a->b where a is a pointer to class. */
+      foldable = TRUE;
+    }  /* if */
+  }  /* if */
+  return foldable;
+}  /* is_field_selection_on_var_foldable */
+
+
 static void scan_identifier(an_operand               *result,
                             a_local_expr_options_set local_options,
                             int                      prec_level,
@@ -13902,24 +13945,21 @@ variable:
               /* Make an lvalue operand for the variable. */
               make_lvalue_variable_operand(var_ptr, result, rep,
                                            /*record_expr=*/TRUE);
-            } else if ((any_cfront_mode() || (microsoft_mode && !C_mode())) &&
-                       (curr_expr_kind_is(ek_integral_constant) ||
-                        curr_expr_kind_is(ek_template_arg)) &&
-                       ((is_class_struct_union_type(var_ptr->type) &&
-                         next_token() == tok_period) ||
-                        (is_pointer_type(var_ptr->type) &&
-                         is_class_struct_union_type(
-                                             type_pointed_to(var_ptr->type)) &&
-                         next_token() == tok_arrow))) {
+            } else if (is_field_selection_on_var_foldable(var_ptr)) {
               /* In cfront or Microsoft C++ mode, allow a class variable
                  identifier followed by a field selection dot, or a pointer
                  to class variable identifier followed by "->".  This is
                  needed because cfront and MSVC++ allow things like x.e,
                  where e is something like an enumerator constant, as part
                  of a constant expression. */
+              /* Change the expression kind temporarily to avoid errors
+                 when the left operand is a reference. */
+              an_expression_kind saved_expr_kind = expr_stack->expression_kind;
+              expr_stack->expression_kind = (an_expression_kind)ek_normal;
               /* Make an lvalue operand for the variable. */
               make_lvalue_variable_operand(var_ptr, result, rep,
                                            /*record_expr=*/TRUE);
+              expr_stack->expression_kind = saved_expr_kind;
             } else if (!C_mode() && is_const_variable(var_ptr)) {
               /* In C++, integral const identifiers can be used in constant
                  expressions.  */

@@ -1,5 +1,23 @@
 Version 3.5
 
+10/25/04 Microsoft and GNU compatibility: x.y constant when x is a reference
+
+In Microsoft and GNU C++ compatibility modes, the front end now accepts
+expressions of the form x.y, where x is a reference to class and y is
+a constant (e.g., an enumerator) in constant expression contexts.
+This is an extension beyond what the C++ standard allows.
+
+  struct A {
+    enum {LENGTH = 1};
+  };
+  void f(const A& a) {
+    int aa[a.LENGTH];  // Now accepted
+  }
+
+Also, the simpler versions of this extension, x.y where x has a class
+type and p->y where p has a pointer-to-class type, are now also enabled
+in g++ mode.  (See Changes entry of 2/5/00.)
+
 10/25/04 C++-generating back end: Microsoft compatibility for inherited
          enumeration constants
 
