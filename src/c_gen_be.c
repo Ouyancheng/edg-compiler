@@ -4583,8 +4583,6 @@ Generate C for a statement.
            braces. */
 	indent += 4;
         if (body_statement->variant.block.extra_info->assoc_scope != NULL) {
-          /* Dump declarations in the block. */
-          dump_block_declarations(body_statement);
           /* Do the prescan for temporaries needed in the switch clauses,
              which was put off until now (when we are inside the braces
              for the scope). */
@@ -4593,6 +4591,8 @@ Generate C for a statement.
                switch_clause = switch_clause->next) {
             dump_prescan_temps(switch_clause->statements);
           }  /* for */
+          /* Dump declarations in the block. */
+          dump_block_declarations(body_statement);
         }  /* if */
         /* If there are statements in the body statement, dump them. */
         if (body_statement->variant.block.statements != NULL) {
