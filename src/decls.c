@@ -3966,6 +3966,22 @@ source sequence entry created for the IL entry pointed to by il_entry_ptr.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+
+static void mark_symbol_to_suppress_warnings(a_symbol_ptr  sym)
+/*
+The given symbol is involved in an error in some way or another.  Set flags
+as appropriate to suppress warnings (e.g., in end_of_scope_symbol_check).
+*/
+{
+  /* Suppress declared-but-not-referenced warnings. */
+  sym->referenced = TRUE;
+  if (sym->kind == (a_symbol_kind)sk_variable) {
+    /* Suppress set-but-not-used warnings. */
+    sym->variant.variable.used = TRUE;
+  }  /* if */
+}  /* mark_symbol_to_suppress_warnings */
+
+
 void decl_var_or_routine(a_symbol_locator             *locator,
                          a_storage_class              storage_class,
                          a_type_ptr                   type_ptr,
@@ -4131,7 +4147,7 @@ generating cross-reference output describing this declaration.
            involved initialization.  Also, to suppress a declared-but-not-used
            message, set the referenced flag in the linked symbol. */
         suppress_ext_sym_lookup = TRUE;
-        linked_symbol->referenced = TRUE;
+        mark_symbol_to_suppress_warnings(linked_symbol);
       } else {
         /* Linked symbol and new symbol are both variables.  See if they
            are compatible. */
@@ -4182,7 +4198,7 @@ generating cross-reference output describing this declaration.
            possible declared-but-not-used message, set the referenced flag
            in the linked symbol. */
         suppress_ext_sym_lookup = TRUE;
-        linked_symbol->referenced = TRUE;
+        mark_symbol_to_suppress_warnings(linked_symbol);
       } else {
         /* If this is not C++ mode (for which this check has already been
            done in id_linkage), be sure that the old and new types are
@@ -10995,7 +11011,7 @@ continue_with_declaration:
         if (is_old_style_param_decl) {
           /* Error case (described above).  Mark the symbol referenced, to
              suppress subsequent "declared and not referenced" warnings. */
-          symbol_ptr->referenced = TRUE;
+          mark_symbol_to_suppress_warnings(symbol_ptr);
         }  /* if */
       }  /* if */
       if (is_variable_def && C_dialect == C_dialect_cplusplus) {
