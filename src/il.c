@@ -1982,6 +1982,38 @@ by recording that the last sequence number contained therein is seq_number.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+#if DEBUG
+static void db_indent(int indent)
+/*
+Indent the current line by "indent" characters.
+*/
+{
+  fprintf(f_debug, "%*s", indent, "");
+}  /* db_indent */
+
+
+static void db_source_file_seq_info(a_source_file_ptr sfp,
+				    int		      indent)
+/*
+Display the sequence number information associated with a source
+file.
+*/
+{
+  for (; sfp != NULL; sfp = sfp->next) {
+    db_indent(indent);
+    fprintf(f_debug, "Source file seq. info for: %s\n", sfp->file_name);
+    db_indent(indent);
+    fprintf(f_debug, "First_seq: %0d, last_seq: %0d\n", sfp->first_seq_number,
+            sfp->last_seq_number);
+    db_indent(indent);
+    fprintf(f_debug, "First_line_number: %0d\n", sfp->first_line_number);
+    if (sfp->first_child_file != NULL) {
+      db_source_file_seq_info(sfp->first_child_file, indent+2);
+    }  /* if */
+  }  /* for */
+}  /* db_source_file_seq_info */
+#endif /* DEBUG */
+
 a_source_file_ptr source_file_for_seq(a_seq_number   seq_number,
                                       a_line_number  *line_number,
                                       a_boolean      *at_end_of_source,
@@ -2006,6 +2038,11 @@ physical line position for the sequence number.
   long		    line_offset;
 
   db_enter(5, "source_file_for_seq");
+#if DEBUG
+  if (debug_level >= 5) {
+    db_source_file_seq_info(il_header.primary_source_file, 0);
+  }  /* if */
+#endif /* DEBUG */
   *at_end_of_source = FALSE;
   *line_number = 0;
   *nesting_depth = 0;
