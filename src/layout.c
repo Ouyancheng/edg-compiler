@@ -2122,11 +2122,20 @@ there's no overflow TRUE is returned.
           if (emulate_gnu_abi_bugs && bit_size > field->bit_size &&
               class_type->kind == (a_type_kind)tk_union) {
             /* Overlong bit fields in unions are handled strangely in early
-               GNU implementations of the IA-64 ABI: Their effective length is
-               decreased by the number of bits in the underlying type selected
-               for layout purposes. */
-            bit_size -= targ_char_bit*
-                          longest_integer_type_fitting_in_bits(bit_size)->size;
+               GNU implementations of the IA-64 ABI.  Let T be the declared
+               type of the bit field, and T' be the largest signed integer
+               type that will fit in the declared length of the bit field.
+               Then, the portion of the bit field size exceeding the bit
+               length of T' is decreased by the bit length of T'. */
+            an_unnormalized_bit_offset  min_length = targ_char_bit*
+                         longest_integer_type_fitting_in_bits(bit_size)->size;
+            bit_size -= min_length;
+            if (bit_size < min_length) {
+              /* The portion of the declared bit field size exceeding the bit
+                 length of T' is smaller than the length of T' itself: Restore
+                 the length to that of T'. */
+              bit_size = min_length;
+            }  /* if */
           }  /* if */
 #endif /* IA64_ABI */
         }  /* if */
