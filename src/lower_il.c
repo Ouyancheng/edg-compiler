@@ -68,10 +68,6 @@ static a_boolean
 		lowering_file_scope;
 			/* TRUE if lowering the file scope's IL, FALSE if
 			   lowering a routine scope's IL. */
-static a_boolean
-		il_walk_flag_value_set_by_lowering;
-			/* The value the IL walk flags in the memory region
-			   being lowered get changed to after being visited. */
 static a_label_ptr
 		destructor_epilogue_label;
 			/* Set while lowering the body of a destructor;
@@ -210,22 +206,26 @@ static a_boolean
 
 
 /*
-Access the il_walk_flag in an IL entry.
+Access the il_lowering_flag in an IL entry.
 */
-#define il_walk_flag_of(entry_ptr)                                    \
-  ((entry_ptr)->source_corresp.il_walk_flag)
+#define il_lowering_flag_of(entry_ptr)                                \
+  (il_entry_prefix_of(entry_ptr).il_lowering_flag)
 
 /*
 Macro that tests whether or not a given entry has been visited yet.
 */
-#define visited_yet(entry_ptr)                                        \
-  (il_walk_flag_of(entry_ptr) == il_walk_flag_value_set_by_lowering)
+#define visited_yet(entry_ptr) (il_lowering_flag_of(entry_ptr))
 
 /*
 Set the flag to indicate that an entry has been visited.
 */
-#define mark_as_visited(entry_ptr)                                    \
-  (il_walk_flag_of(entry_ptr) = il_walk_flag_value_set_by_lowering)
+#define mark_as_visited(entry_ptr) (il_lowering_flag_of(entry_ptr) = TRUE)
+
+/*
+Set the flag to indicate that an entry has not been visited.  Used
+when a just-allocated entry requires lowering.
+*/
+#define mark_as_not_visited(entry_ptr) (il_lowering_flag_of(entry_ptr) = FALSE)
 
 
 /*
@@ -2203,7 +2203,7 @@ should be specified as NULL.
                                               !MAKE_ALL_FUNCTIONS_UNPROTOTYPED;
   if (param_1_type != NULL) {
     ptp = alloc_param_type(param_1_type);
-    /* It is not necessary to set il_walk_flag; the entry does not need
+    /* It is not necessary to clear il_lowering_flag; the entry does not need
        to be lowered. */
     rout_type->variant.routine.extra_info->param_type_list = ptp;
   }  /* if */
@@ -5844,7 +5844,7 @@ Do IL lowering of the indicated type and everything under it.
                           make_pointer_type(type->variant.routine.return_type);
             ptp = alloc_param_type(ptr_return_type);
             /* Force lowering in the loop that follows. */
-            ptp->il_walk_flag = !il_walk_flag_value_set_by_lowering;
+            mark_as_not_visited(ptp);
             ptp->next = rtsp->param_type_list;
             rtsp->param_type_list = ptp;
             /* The return value type becomes pointer to class. */
@@ -5855,7 +5855,7 @@ Do IL lowering of the indicated type and everything under it.
           if (rtsp->implicit_this_param_type != NULL) {
             ptp = alloc_param_type(rtsp->implicit_this_param_type);
             /* Force lowering in the loop that follows. */
-            ptp->il_walk_flag = !il_walk_flag_value_set_by_lowering;
+            mark_as_not_visited(ptp);
             ptp->next = rtsp->param_type_list;
             rtsp->param_type_list = ptp;
             /* Leave the implicit_this_param_type unchanged; it's helpful
@@ -5865,8 +5865,8 @@ Do IL lowering of the indicated type and everything under it.
           for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
             /* Only process each param type entry if it has not been
                previously visited. */
-            if (ptp->il_walk_flag != il_walk_flag_value_set_by_lowering) {
-              ptp->il_walk_flag = il_walk_flag_value_set_by_lowering;
+            if (!visited_yet(ptp)) {
+              mark_as_visited(ptp);
               lower_type(ptp->type);
               /* If the parameter must be passed using a copy constructor,
                  change its type to pointer-to-class. */
@@ -6451,9 +6451,7 @@ The routine must have a "this" parameter.
        "this" parameter (this comes up, for instance, on the copy
        constructor case). */
     src_param_type = rtsp->param_type_list;
-    already_lowered = src_param_type != NULL &&
-                      (src_param_type->il_walk_flag ==
-                       il_walk_flag_value_set_by_lowering);
+    already_lowered = src_param_type != NULL && visited_yet(src_param_type);
     if (already_lowered) {
       /* The routine type has already been lowered (i.e., the "this"
          parameter type is already on the explicit parameter type list).
@@ -6482,7 +6480,7 @@ The routine must have a "this" parameter.
         pass_through_param_type = make_pointer_type(pass_through_param_type);
       }  /* if */
       param_type = alloc_param_type(pass_through_param_type);
-      /* It is not necessary to set il_walk_flag; the entry does not need
+      /* It is not necessary to clear il_lowering_flag; the entry does not need
          to be lowered.  Also note that the parameter types will be lowered
          when the original function is lowered, and do not need to be
          lowered here. */
@@ -6757,7 +6755,7 @@ are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
   /* Mark the constant as visited.  This is necessary if the aggregate
      constant ends up being kept because something constant remains after
      the non-constant parts have been rewritten. */
-  aggr_const->source_corresp.il_walk_flag = il_walk_flag_value_set_by_lowering;
+  mark_as_visited(aggr_const);
   /* Determine the type of the aggregate being initialized. */
   if (ipdp->modifiers != NULL) {
     aggr_type = ipdp->modifiers->type;
@@ -7650,7 +7648,7 @@ entry and the type, not of the routine body if any
                                                              type_as_subobject;
         added_param = alloc_param_type(make_pointer_type(subobject_type));
         /* Note that the original parameter entries have already been lowered,
-           so it is not necessary to set il_walk_flag to ensure that the
+           so it is not necessary to clear il_lowering_flag to ensure that the
            whole list will be visited. */
         added_param->next = prev_param->next;
         prev_param->next = added_param;
@@ -7683,7 +7681,7 @@ entry and the type, not of the routine body if any
      add_destructor_params does the similar processing for param variables. */
   added_param = alloc_param_type(integer_type((an_integer_kind)ik_int));
   /* Note that the original parameter entries have already been lowered,
-     so it is not necessary to set il_walk_flag to ensure that the
+     so it is not necessary to set il_lowering_flag to ensure that the
      whole list will be visited. */
   added_param->next = first_param->next;
   first_param->next = added_param;
@@ -11781,19 +11779,13 @@ C++ to C, so that a C back end can handle it without change.
     curr_context = NULL;
     nearest_scope = nearest_function_scope = NULL;
     switch_il_region(region_number);
-    /* During this traversal flip the il_walk_flag value in all function
-       scope entries to the opposite of what it is now. */
-    il_walk_flag_value_set_by_lowering =
-                  curr_initial_il_walk_flag_setting =
-                                          !curr_initial_il_walk_flag_setting;
+    /* Mark entries created during this traversal as having already been
+       visited by IL lowering. */
+    initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
     if (region_number == FILE_SCOPE_REGION_NUMBER) {
       /* The file scope. */
       lowering_file_scope = TRUE;
       scope = il_header.primary_scope;
-      /* During this traversal flip the il_walk_flag value in all file scope
-         entries to the opposite of what it is now. */
-     curr_fs_initial_il_walk_flag_setting =
-                                   !curr_fs_initial_il_walk_flag_setting;
     } else {
       /* A function scope. */
       lowering_file_scope = FALSE;
@@ -11822,14 +11814,8 @@ C++ to C, so that a C back end can handle it without change.
          are not linked into the file scope memory region IL tree, so they have
          to be found through a separate list. */
       lower_orphaned_entries();
-      /* Flip the default IL walk flag setting for the file scope back
-         again. */
-      curr_fs_initial_il_walk_flag_setting =
-                                         !curr_fs_initial_il_walk_flag_setting;
     }  /* if */
-    /* Flip the default IL walk flag setting for the function scope back
-       again. */
-    curr_initial_il_walk_flag_setting = !curr_initial_il_walk_flag_setting;
+    initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
   }  /* if */
   db_exit();
 }  /* lower_il_memory_region */
