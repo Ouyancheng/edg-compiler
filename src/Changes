@@ -1,5 +1,21 @@
 Version 2.34
 
+12/11/96 Internal error caused by badly formed aggregate initializer
+
+A bug has been fixed in building the initializer for an aggregate, the type
+of whose subject(s) is a class with a destructor but no constructor.  The
+problem only appeared when support for exceptions was enabled and had to do
+with recording the destructor to be called if an exception were thrown
+before the aggregate was completely initialized; the internal error that
+resulted appeared during IL-lowering.  Here's an example:
+
+  struct S {
+    int i;
+    ~S() { }
+  };
+  extern int k;
+  S d[] = { k, 0 };          // No longer triggers an internal error
+
 12/6/96  Abort with member template for operator=
 
 An abort has been fixed that could occur when a member template was
