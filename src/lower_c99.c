@@ -54,8 +54,8 @@ static a_type_list_entry_ptr
 
 static void record_vla_type_for_lowering(a_type_ptr  tp)
 /*
-The given type must be a VLA type.  Add it to the list of types to be lowered
-later on.
+The given type must be a VLA-based type.  Add it to the list of types to be
+lowered later on.
 */
 {
   a_type_list_entry_ptr  entry = alloc_type_list_entry();
@@ -133,6 +133,9 @@ Lower all VLA types that were recorded by record_vla_type_for_lowering.
       a_type_ptr  tp = type_pointed_to(entry->type);
       check_assertion(is_vla_type(tp));
       entry->type->variant.pointer.type = underlying_array_element_type(tp);
+    } else if (entry->type->kind == (a_type_kind)tk_typeref) {
+      check_assertion(typeref_is_typedef(entry->type));
+      entry->type->variant.typeref.has_variably_modified_type = FALSE;
     }  /* if */
   }  /* for */
   for (entry = vla_types; entry != NULL; entry = entry->next) {
@@ -2344,6 +2347,11 @@ on the scope types list.
   if (vla_enabled &&
       type->kind == (a_type_kind)tk_typeref && typeref_is_typedef(type)) {
     record_vla_component_types_for_lowering(type->variant.typeref.type);
+    if (type->variant.typeref.has_variably_modified_type) {
+      /* The "has_variably_modified_type" flag will need to be cleared
+         when the underlying type is lowered. */
+      record_vla_type_for_lowering(type);
+    }  /* if */
   }  /* if */
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_type */
