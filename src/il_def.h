@@ -1288,6 +1288,7 @@ enum a_storage_class_tag {
                            parameters declared "register". */
   sc_asm,               /* An asm function.  Only used if ASM_FUNCTION_ALLOWED
                            is TRUE. */
+  sc_inline,            /* A C++ inline function. */
 #endif /* ifdef CIL */
 #ifdef FIL
   sc_local,             /* Auto or static at back end's preference. */
@@ -1309,7 +1310,7 @@ EXTERN char     *db_storage_class_names[(int)sc_last + 1]
 #if VAR_INITIALIZERS
 = {"extern", "static", "auto", "unspecified",
 #ifdef CIL
-   "typedef", "register", "asm",
+   "typedef", "register", "asm", "inline",
 #endif /* ifdef CIL */
 #ifdef FIL
    "local", "common", "associated", "intrinsic", "pointer_based",
@@ -1590,9 +1591,6 @@ typedef struct a_routine {
 			   constructor, destructor); sfk_none when it is an
 			   ordinary member function or not a member function
 			   at all. */
-  unsigned int	is_inline:1;
-			/* TRUE for functions declared with an "inline"
-			   specifier (C++ only). */
   unsigned int	is_virtual:1;
 			/* TRUE for class member functions declared with a
 			   "virtual" specifier (C++ only). */
