@@ -891,6 +891,9 @@ Display the indicated source correspondence entry.
         (void)printf("**BAD NAME LINKAGE KIND**\n");
     }  /* switch */
   }  /* if */
+#if RECORD_SCOPE_DEPTH_IN_IL
+  disp_long("  scope_depth", (long)sc->scope_depth);
+#endif /* RECORD_SCOPE_DEPTH_IN_IL */
 }  /* disp_source_corresp */
 
 
