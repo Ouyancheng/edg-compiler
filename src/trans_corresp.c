@@ -1500,7 +1500,8 @@ also deals with the consequences of type becoming the new canonical entry.
   }  /* if */
   canon = (a_type_ptr)canonical_il_entry_of(corresp_type);
   set_trans_unit_corresp(iek_type, type, corresp_type);
-  if (type->kind != corresp_type->kind) {
+  if (type->kind != corresp_type->kind &&
+      is_class_or_struct(type) != is_class_or_struct(corresp_type)) {
     /* This is an error and will be caught later (in the verification process).
        Don't attempt to handle the substructure of the type. */
     if (is_immediate_class_type(type)) {
