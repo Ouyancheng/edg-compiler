@@ -601,6 +601,7 @@ extern a_boolean type_contains_specific_template_template_param(
 extern a_boolean type_contains_specific_template_param_constant(
                                                          a_type_ptr     tp,
                                                          a_constant_ptr cp);
+extern a_boolean dependent_type_could_be_class(a_type_ptr tp);
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
