@@ -889,6 +889,41 @@ typedef struct a_source_correspondence {
 			   is 0.  Can be valid even if there is no associated
 			   source name, to indicate the place where the
 			   entity appeared without being named. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		decl_end_position;
+			/* If decl_position is specified, the end of the
+			   sequence of tokens that corresponds to the
+			   identifier, as explicitly spelled in the source
+			   program (e.g., including "<template-args>" if they
+			   were specified explicitly).  May be
+			   null_source_position if decl_position does not
+			   refer to an explicit name in the source. */
+  a_source_position
+		specifiers_start_position;
+			/* If decl_position is specified and the declaration
+			   involves declaration-specifiers, the source
+			   position corresponding to the start of the first
+			   declaration-specifier of the declaration.  May be
+			   null_source_position. */
+  a_source_position
+		specifiers_end_position;
+			/* If specifiers_start_position is specified, the
+			   source position corresponding to the end of the
+			   last declaration-specifier of the declaration;
+			   otherwise, null_source_position. */
+  a_source_position
+		declarator_start_position;
+			/* If decl_position is specified and the declaration
+			   involves a declarator, the source position
+			   corresponding to the start of the declarator.  May
+			   be null_source_position. */
+  a_source_position
+		declarator_end_position;
+			/* If declarator_start_position is specified, the
+			   source position corresponding to the end of the
+			   the declarator; otherwise, null_source_position. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #ifdef CIL
   a_bit_field /* an_access_specifier */
 		access:2;
@@ -4183,6 +4218,21 @@ typedef struct a_variable {
 		initializer;
 			/* Union discriminated by init_kind and indicating the
 			   initializer. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		initializer_start_position;
+			/* When an initializer appears explicitly in the
+			   source, the source position corresponding to the
+			   start of the top-level initializer construct
+			   (i.e, including "=" or "(").  May be
+			   null_source_position. */
+  a_source_position
+		initializer_end_position;
+			/* When initializer_start_position is specified, the
+			   source position corresponding to the end of the
+			   initializer construct (e.g., ")"); otherwise,
+			   null_source_position. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
 			/* The type as it actually appears in the declaration
@@ -5719,6 +5769,25 @@ typedef struct an_expr_node {
                            definitions everywhere. */
 #endif /* ifdef FIL */
   } variant;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		start_position;
+			/* When the node corresponds to an explicit sequence
+			   of tokens in the source, the source position of
+			   start of the expression.  Otherwise, the source
+			   position where the expression would appear if it
+			   were explicit.  May be null_source_position. */
+  a_source_position
+		end_position;
+			/* When start_position is specified, the source
+			   position of the end of the expression.  Otherwise,
+			   null_source_position. */
+  a_source_position
+		operator_position;
+			/* When kind == enk_operator, the source position
+			   at which the operator appears in the source.
+			   Otherwise, null_source_position. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } an_expr_node;
 
 /*
@@ -6591,6 +6660,18 @@ typedef struct a_constructor_init {
 			/* The initial value to be assigned to the object
 			   being initialized, represented by a dynamic
 			   initialization entry. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		start_position;
+			/* When the mem-initializer is explicit in the source,
+			   the source position corresponding to the opening
+			   "(".  May be null_source_position. */
+  a_source_position
+		end_position;
+			/* When start_position is specified, the source
+			   position corresponding to the closing ")";
+			   otherwise, null_source_position. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_constructor_init;
 
 #endif /* ifdef CIL */

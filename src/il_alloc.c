@@ -1250,6 +1250,10 @@ to it.
   vp->init_kind                   = (an_init_kind)initk_none;
   /* One of the variant fields, chosen arbitrarily, is initialized. */
   vp->initializer.constant        = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  vp->initializer_start_position  = null_source_position;
+  vp->initializer_end_position    = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #ifdef CIL
   vp->referenced_non_locally      = FALSE;
   vp->modified_within_try_block   = FALSE;
@@ -1697,6 +1701,11 @@ its kind to the indicated kind.
 #if CHECKING
   node->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  node->start_position = null_source_position; 
+  node->end_position = null_source_position;
+  node->operator_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   set_expr_node_kind(node, kind);
 }  /* clear_expr_node */
 
@@ -2050,6 +2059,10 @@ pointer to it.
 #endif /* CHECKING */
   }  /* switch */
   cip->initializer = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  cip->start_position = null_source_position; 
+  cip->end_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   return cip;
 }  /* alloc_ctor_init */
@@ -2749,6 +2762,13 @@ in il_init.)
 #endif /* NEED_NAME_MANGLING */
   def_source_corresp.parent.class_type = NULL;
   def_source_corresp.decl_position = null_source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  def_source_corresp.decl_end_position = null_source_position;
+  def_source_corresp.specifiers_start_position = null_source_position;
+  def_source_corresp.specifiers_end_position = null_source_position;
+  def_source_corresp.declarator_start_position = null_source_position;
+  def_source_corresp.declarator_end_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* access is set to "public" because "no access restriction" is the default
      for everything except class members.  For the latter the field must be
      set manually. */

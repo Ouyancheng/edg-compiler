@@ -409,6 +409,23 @@ Display the indicated field name and name linkage kind.
 }  /* disp_name_linkage */
 
 
+static void disp_source_position(char               *str,
+                                 a_source_position  *pos)
+/*
+Display the indicated source position, preceding it with the specified
+string.  Note that nothing is printed out when *pos is null_source_position.
+*/
+{
+  check_assertion(str != NULL);
+  if (pos->seq != 0 || pos->column != 0) {
+    (void)printf("%s.", str);
+    disp_unsigned_long("seq", (unsigned long)pos->seq);
+    (void)printf("%s.", str);
+    disp_unsigned_long("column", (unsigned long)pos->column);
+  }  /* if */
+}  /* disp_source_position */
+
+
 static void disp_source_corresp(a_source_correspondence *scp)
 /*
 Display the indicated source correspondence entry.
@@ -424,13 +441,18 @@ Display the indicated source correspondence entry.
                     (sizeof_t)0);
   }  /* if */
 #endif /* NEED_NAME_MANGLING */
-  if (scp->decl_position.seq != 0 ||
-      scp->decl_position.column != 0 ) {
-    disp_unsigned_long("  decl_position.seq",
-                       (unsigned long)scp->decl_position.seq);
-    disp_unsigned_long("  decl_position.column",
-                       (unsigned long)scp->decl_position.column);
-  }  /* if */
+  disp_source_position("  decl_position", &scp->decl_position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_position("  decl_end_position", &scp->decl_end_position);
+  disp_source_position("  specifiers_start_position",
+                       &scp->specifiers_start_position);
+  disp_source_position("  specifiers_end_position",
+                       &scp->specifiers_end_position);
+  disp_source_position("  declarator_start_position",
+                       &scp->declarator_start_position);
+  disp_source_position("  declarator_end_position",
+                       &scp->declarator_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #ifdef CFE
   if (scp->is_class_member) {
     disp_boolean("  is_class_member", TRUE);
@@ -1243,6 +1265,12 @@ Display the indicated variable.
     disp_boolean("is_parameter", TRUE);
   }  /* if */
   disp_initializer(ptr->init_kind, &ptr->initializer);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_position("initializer_start_position",
+                       &ptr->initializer_start_position);
+  disp_source_position("initializer_end_position",
+                       &ptr->initializer_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #ifdef FFE
   disp_boolean("by_address", (a_boolean)ptr->by_address);
 #endif /*ifdef FFE */
@@ -2272,22 +2300,24 @@ cleanup_state_common:
     default:
       (void)printf("**BAD EXPR NODE KIND**\n");
   }  /* switch */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_position("start_position", &ptr->start_position);
+  disp_source_position("end_position", &ptr->end_position);
+  disp_source_position("operator_position", &ptr->operator_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_expr_node */
 
 
 /*
 Macro to display a statement source position, which may be a full source
-position or (to save space) just a sequence number.
-str, str_seq, and str_column are the output labels (the latter two including
-".seq" and ".column".)
+position or (to save space) just a sequence number.  str is the output label.
 */
 #if FULL_SOURCE_POS_IN_IL_STATEMENT
-#define disp_stmt_source_position(str, str_seq, str_column, stmt_pos) \
-{ disp_unsigned_long((str_seq), (unsigned long)(stmt_pos).seq);       \
-  disp_unsigned_long((str_column), (unsigned long)(stmt_pos).column); }
+#define disp_stmt_source_position(str, stmt_pos)                      \
+  disp_source_position((str), &(stmt_pos));
 #else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-#define disp_stmt_source_position(str, str_seq, str_column, stmt_pos) \
-{ disp_unsigned_long(str, (unsigned long)(stmt_pos)); }
+#define disp_stmt_source_position(str, stmt_pos)                      \
+  disp_unsigned_long((str), (unsigned long)(stmt_pos));
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
 #ifdef CFE
@@ -2301,14 +2331,8 @@ Display the indicated switch clause.
   disp_ptr("constant_list", (char *)ptr->constant_list, iek_constant);
   disp_ptr("statements", (char *)ptr->statements, iek_statement);
   disp_boolean("implied_break_at_end", (a_boolean)ptr->implied_break_at_end);
-  disp_stmt_source_position("break_position",
-                            "break_position.seq",
-                            "break_position.column",
-                            ptr->break_position);
-  disp_stmt_source_position("default_position",
-                            "default_position.seq",
-                            "default_position.column",
-                            ptr->default_position);
+  disp_stmt_source_position("break_position", ptr->break_position);
+  disp_stmt_source_position("default_position", ptr->default_position);
 }  /* disp_switch_clause */
 
 
@@ -2333,10 +2357,7 @@ Display the indicated exception-specification entry.
            (char *)ptr->exception_specification_type_list,
            iek_exception_specification_type);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  disp_unsigned_long("throw_position.seq",
-                     (unsigned long)ptr->throw_position.seq);
-  disp_unsigned_long("throw_position.column",
-                     (unsigned long)ptr->throw_position.column);
+  disp_source_position("throw_position", &ptr->throw_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_exception_specification */
 
@@ -2347,10 +2368,7 @@ Display the indicated handler.
 */
 {
   disp_ptr("next", (char *)ptr->next, iek_handler);
-  disp_stmt_source_position("catch_position",
-                            "catch_position.seq",
-                            "catch_position.column",
-                            ptr->catch_position);
+  disp_stmt_source_position("catch_position", ptr->catch_position);
   disp_ptr("parameter", (char *)ptr->parameter, iek_variable);
   disp_ptr("statement", (char *)ptr->statement, iek_statement);
   disp_ptr("dynamic_init", (char *)ptr->dynamic_init, iek_dynamic_init);
@@ -2389,10 +2407,7 @@ static void disp_block(a_block_ptr ptr)
 Display the indicated block.
 */
 {
-  disp_stmt_source_position("final_position",
-                            "final_position.seq",
-                            "final_position.column",
-                            ptr->final_position);
+  disp_stmt_source_position("final_position", ptr->final_position);
 #ifdef CFE
   disp_ptr("assoc_scope", (char *)ptr->assoc_scope, iek_scope);
   disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
@@ -2407,10 +2422,7 @@ static void disp_statement(a_statement_ptr ptr)
 Display the indicated statement.
 */
 {
-  disp_stmt_source_position("position",
-                            "position.seq",
-                            "position.column",
-                            ptr->position);
+  disp_stmt_source_position("position", ptr->position);
   disp_ptr("next", (char *)ptr->next, iek_statement);
   if (ptr->has_associated_pragma) {
     disp_boolean("has_associated_pragma", TRUE);
@@ -2633,10 +2645,7 @@ Display the indicated pragma entry.
   disp_ptr("next", (char *)ptr->next, iek_pragma);
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
-  disp_unsigned_long("position.seq",
-                     (unsigned long)ptr->position.seq);
-  disp_unsigned_long("position.column",
-                     (unsigned long)ptr->position.column);
+  disp_source_position("position", &ptr->position);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
            iek_source_sequence_entry);
@@ -3186,8 +3195,7 @@ Display the indicated using-directive entry.
   disp_ptr("next", (char *)ptr->next, iek_using_decl);
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
-  disp_unsigned_long("position.seq", (unsigned long)ptr->position.seq);
-  disp_unsigned_long("position.column", (unsigned long)ptr->position.column);
+  disp_source_position("position", &ptr->position);
   disp_boolean("is_using_directive", ptr->is_using_directive);
   if (!ptr->is_using_directive) {
     /* Either a class member using-declaration or a nonmember
@@ -3543,6 +3551,7 @@ Display the indicated constructor init entry.
 {
   disp_ptr("next", (char *)ptr->next, iek_constructor_init);
   disp_name("kind");
+  disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
   switch (ptr->kind) {
     case cik_virtual_base_class:
       (void)printf("cik_virtual_base_class\n");
@@ -3561,7 +3570,10 @@ do_base_class:
       (void)printf("**BAD CONSTRUCTOR INIT KIND**\n");
   }  /* switch */
   disp_ptr("initializer", (char *)ptr->initializer, iek_dynamic_init);
-  disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_position("start_position", &ptr->start_position);
+  disp_source_position("end_position", &ptr->end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_constructor_init */
 
 
@@ -3595,10 +3607,7 @@ static void disp_src_seq_secondary_decl(a_src_seq_secondary_decl_ptr sssdp)
 Display the indicated source sequence secondary declaration entry.
 */
 {
-  disp_unsigned_long("decl_position.seq",
-                     (unsigned long)sssdp->decl_position.seq);
-  disp_unsigned_long("decl_position.column",
-                     (unsigned long)sssdp->decl_position.column);
+  disp_source_position("decl_position", &sssdp->decl_position);
   disp_ptr("entity", (char *)sssdp->entity.ptr,
            (an_il_entry_kind)sssdp->entity.kind);
   disp_ptr("declared_type", (char *)sssdp->declared_type, iek_type);
@@ -3620,8 +3629,7 @@ static void disp_src_seq_end_of_construct(a_src_seq_end_of_construct_ptr ptr)
 Display the indicated source sequence end-of-construct entry.
 */
 {
-  disp_unsigned_long("position.seq", (unsigned long)ptr->position.seq);
-  disp_unsigned_long("position.column", (unsigned long)ptr->position.column);
+  disp_source_position("position", &ptr->position);
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
 }  /* disp_src_seq_end_of_construct */
@@ -3647,14 +3655,8 @@ static void disp_comment(a_comment_ptr cp)
 Display the indicated comment entry.
 */
 {
-  disp_unsigned_long("start_position.seq",
-                     (unsigned long)cp->range.start_position.seq);
-  disp_unsigned_long("start_position.column",
-                     (unsigned long)cp->range.start_position.column);
-  disp_unsigned_long("end_position.seq",
-                     (unsigned long)cp->range.end_position.seq);
-  disp_unsigned_long("end_position.column",
-                     (unsigned long)cp->range.end_position.column);
+  disp_source_position("start_position", &cp->range.end_position);
+  disp_source_position("end_position", &cp->range.end_position);
 }  /* disp_comment */
 
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
@@ -3664,8 +3666,7 @@ static void disp_instantiation_directive(an_instantiation_directive_ptr  idp)
 Display the indicated instantiation-directive entry.
 */
 {
-  disp_unsigned_long("position.seq", (unsigned long)idp->position.seq);
-  disp_unsigned_long("position.column", (unsigned long)idp->position.column);
+  disp_source_position("position", &idp->position);
   disp_ptr("entity", (char *)idp->entity.ptr,
            (an_il_entry_kind)idp->entity.kind);
   if (idp->do_not_instantiate) {
