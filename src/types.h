@@ -199,6 +199,8 @@ extern a_type_ptr composite_type(a_type_ptr type_1,
 extern a_boolean overload_distinguishable(a_symbol_ptr  old_sym_ptr,
                                           a_type_ptr    new_type,
                                           an_error_code *err_code);
+a_boolean is_or_contains_local_type(a_type_ptr  type_ptr);
+a_boolean is_or_contains_template_param(a_type_ptr  type_ptr);
 
 /*
 Return TRUE if type_1 does not have some top-level type qualifier that
@@ -241,56 +243,6 @@ may be called only for class, struct, and union types and only in C++ mode.
 */
 #define base_classes_of(tp) \
   ((tp)->variant.class_struct_union.extra_info->base_classes)
-
-/* Bit vector used to pass flags into traverse_type_tree.  Each bit
-   represents a flag. */
-typedef int a_type_tree_traversal_flag_set;
-/* Constants defining bits in the input bit vector used in calls to
-   declarator. */
-#define TTT_NO_INPUT_FLAGS 0x0
-#define TTT_RETURN_TYPE 0x1
-			/* When the type being traversed is a function type,
-			   apply the predicate check to the return type. */
-#define TTT_PARAM_TYPES 0x2
-			/* When the type being traversed is a function type,
-			   apply the predicate check to the parameter types. */
-#define TTT_THIS_PARAM_TYPE 0x4
-			/* When the type being traversed is a function type,
-			   apply the predicate check to the implicit this
-			   param type. */
-#define TTT_MEMBER_TYPES 0x8
-			/* When the type being traversed is a class type,
-			   apply the predicate check to nested classes,
-			   enums, and typedef names. */
-#define TTT_TYPES_OF_MEMBER_FUNCTIONS 0x10
-			/* When the type being traversed is a class type,
-			   apply the predicate check to types of member
-			   functions. */
-#define TTT_TYPES_OF_DATA_MEMBERS 0x20
-			/* When the type being traversed is a class type,
-			   apply the predicate check to the types of data
-			   members. */
-#define TTT_BASE_CLASSES 0x40
-			/* When the type being traversed is a class type,
-			   apply the predicate check to its base classes. */
-#define TTT_SKIP_TYPEDEFS 0x80
-			/* Skip over typedefs before applying the predicate
-			   check to a given type. */
-
-/* Type of service function called by traverse_type_tree to return TRUE or
-   FALSE status regarding a given type in a type tree. */
-typedef a_boolean a_type_predicate_function(a_type_ptr tp, a_boolean *flag);
-typedef a_type_predicate_function *a_type_predicate_function_ptr;
-
-extern a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
-                                    a_type_predicate_function_ptr  func,
-                                    a_type_tree_traversal_flag_set flags);
-
-/* Service functions of traverse_type_tree (whence the ttt_ prefix). */
-extern a_boolean ttt_is_local_class(a_type_ptr  type_ptr,
-                                    a_boolean   *force_end_of_traversal);
-extern a_boolean ttt_is_template_param(a_type_ptr  type_ptr,
-                                       a_boolean   *force_end_of_traversal);
 
 #endif /* ifndef TYPES_H */
 

@@ -3116,9 +3116,91 @@ distinguishable_determined:;
 }  /* overload_distinguishable */
 
 
-a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
-                             a_type_predicate_function_ptr  func,
-                             a_type_tree_traversal_flag_set flags)
+/* Bit vector used to pass flags into traverse_type_tree.  Each bit
+   represents a flag. */
+typedef int a_type_tree_traversal_flag_set;
+/* Constants defining bits in the input bit vector used in calls to
+   declarator. */
+#define TTT_NO_INPUT_FLAGS 0x0
+#define TTT_RETURN_TYPE 0x1
+			/* When the type being traversed is a function type,
+			   apply the predicate check to the return type. */
+#define TTT_PARAM_TYPES 0x2
+			/* When the type being traversed is a function type,
+			   apply the predicate check to the parameter types. */
+#define TTT_THIS_PARAM_TYPE 0x4
+			/* When the type being traversed is a function type,
+			   apply the predicate check to the implicit this
+			   param type. */
+#define TTT_MEMBER_TYPES 0x8
+			/* When the type being traversed is a class type,
+			   apply the predicate check to nested classes,
+			   enums, and typedef names. */
+#define TTT_TYPES_OF_MEMBER_FUNCTIONS 0x10
+			/* When the type being traversed is a class type,
+			   apply the predicate check to types of member
+			   functions. */
+#define TTT_TYPES_OF_DATA_MEMBERS 0x20
+			/* When the type being traversed is a class type,
+			   apply the predicate check to the types of data
+			   members. */
+#define TTT_BASE_CLASSES 0x40
+			/* When the type being traversed is a class type,
+			   apply the predicate check to its base classes. */
+#define TTT_SKIP_TYPEDEFS 0x80
+			/* Skip over typedefs before applying the predicate
+			   check to a given type. */
+
+/* Type of service function called by traverse_type_tree to return TRUE or
+   FALSE status regarding a given type in a type tree. */
+typedef a_boolean a_type_predicate_function(a_type_ptr tp, a_boolean *flag);
+typedef a_type_predicate_function *a_type_predicate_function_ptr;
+
+static a_boolean ttt_is_local_type(a_type_ptr  type_ptr,
+                                   a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It returns TRUE if type_ptr is a local type
+(i.e., a class or enumeration defined within a function or block scope,
+including any class or enum defined within a local class).
+*/
+{
+  a_boolean  is_local = FALSE;
+
+  if (is_immediate_class_type(type_ptr)) {
+    /* Local classes are easily recognizable from their name linkage; any
+       class declared at file scope must have either internal or external
+       name linkage. */
+    if (type_ptr->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_none) {
+      *force_end_of_traversal = is_local = TRUE;
+    }  /* if */
+  } else if (is_enum(type_ptr)) {
+  }  /* if */
+  return is_local;
+}  /* ttt_is_local_type */
+
+
+static a_boolean ttt_is_template_param(a_type_ptr  type_ptr,
+                                       a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It returns TRUE if type_ptr is a template
+parameter type.
+*/
+{
+  a_boolean  is_templ_param = FALSE;
+
+  if (is_template_param(type_ptr)) {
+    *force_end_of_traversal = is_templ_param = TRUE;
+  }  /* if */
+  return is_templ_param;
+}  /* ttt_is_template_param */
+
+
+static a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
+                                    a_type_predicate_function_ptr  func,
+                                    a_type_tree_traversal_flag_set flags)
 /*
 Traverse the type tree indicated type type_ptr and for each type in the
 tree call func, which returns a boolean value.  Terminate the traversal as
@@ -3136,9 +3218,9 @@ its parameters?).
 
   if (flags & TTT_SKIP_TYPEDEFS) type_ptr = skip_typedefs(type_ptr);
   status = func(type_ptr, &force_end_of_traversal);
-  if (status || force_end_of_traversal) {
-    /* The function has either return TRUE or determined that no further
-       traversal is appropriate because FALSE is the proper status. */
+  if (force_end_of_traversal) {
+    /* The function has determined that no further traversal is appropriate;
+       return the current status to the caller. */
   } else {
     /* Traverse the tree. */
     switch (type_ptr->kind) {
@@ -3217,43 +3299,31 @@ its parameters?).
 }  /* traverse_type_tree */
 
 
-a_boolean ttt_is_local_class(a_type_ptr  type_ptr,
-                             a_boolean   *force_end_of_traversal)
+a_boolean is_or_contains_local_type(a_type_ptr  type_ptr)
 /*
-This is a service function designed to be called from traverse_type_tree
-(whence the ttt_ prefix).  It returns TRUE if type_ptr is a local class
-(i.e., a class defined within a function or block scope, including any
-class nested within a local class).  They are easily recognizable from
-their name linkage; any class declared at file scope must have either
-internal or external name linkage.
+Return TRUE if the type pointed to by type_ptr is itself a local class, struct,
+union or enum type or is a type tree containing such a type.
 */
 {
-  a_boolean  is_local = FALSE;
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_THIS_PARAM_TYPE |
+                                               TTT_PARAM_TYPES);
 
-  /* Doesn't really have to be set, but is to avoid a not-used warning. */
-  *force_end_of_traversal = FALSE;
-  if (is_immediate_class_type(type_ptr)) {
-    if (type_ptr->source_corresp.name_linkage ==
-                                          (a_name_linkage_kind)nlk_none) {
-      is_local = TRUE;
-    }  /* if */
-  }  /* if */
-  return is_local;
-}  /* ttt_is_local_class */
+  return (traverse_type_tree(type_ptr, ttt_is_local_type, ttt_flags));
+}  /* is_or_constains_local_type */
 
 
-a_boolean ttt_is_template_param(a_type_ptr  type_ptr,
-                                a_boolean   *force_end_of_traversal)
+a_boolean is_or_contains_template_param(a_type_ptr  type_ptr)
 /*
-This is a service function designed to be called from traverse_type_tree
-(whence the ttt_ prefix).  It returns TRUE if type_ptr is a template
-parameter type.
+Return TRUE if the type pointed to by type_ptr is itself a tk_template_param
+type entry or is a type tree containing such a type.
 */
 {
-  /* Doesn't really have to be set, but is to avoid a not-used warning. */
-  *force_end_of_traversal = FALSE;
-  return is_template_param(type_ptr);
-}  /* ttt_is_template_param */
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_PARAM_TYPES);
+
+  return (traverse_type_tree(type_ptr, ttt_is_template_param, ttt_flags));
+}  /* is_or_contains_template_param */
 
 
 /******************************************************************************
