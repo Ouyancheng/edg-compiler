@@ -6607,6 +6607,7 @@ initializer has previously been found to be acceptable, and
         /* Allocate a temporary and copy the operand into it, converting
            if necessary.  source_operand is set to the address of the
            temporary. */
+        a_boolean operand_was_rvalue = is_an_rvalue(source_operand);
         /* The temp has the same type as the operand, but without
            type qualifiers. */
         convert_operand_into_temp(source_operand, base_dest_type, dest_type,
@@ -6643,7 +6644,7 @@ initializer has previously been found to be acceptable, and
             /* Anachronism is not allowed. */
             /* Use a different message for the case where the operand is
                an rvalue. */
-            error_in_operand(is_an_rvalue(source_operand) ?
+            error_in_operand(operand_was_rvalue ?
                                ec_nonconst_ref_init_from_rvalue :
                                ec_bad_nonconst_ref_init,
                              source_operand);
