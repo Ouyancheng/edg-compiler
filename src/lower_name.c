@@ -1945,7 +1945,7 @@ has an explicit template argument list, given by template_arg_list.
   if (conversion_type != NULL) {
     special_kind = (a_special_function_kind)sfk_conversion;
   } else if (opname_kind != (an_opname_kind)onk_none) {
-    special_kind = sfk_operator;
+    special_kind = (a_special_function_kind)sfk_operator;
   }  /* if */
   mangled_function_base_name(&con->source_corresp,
                              special_kind,
