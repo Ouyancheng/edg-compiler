@@ -15,8 +15,9 @@ easier for back ends.
 4/21/03  GNU C++: Format attribute on nonstatic member functions
 
 In GNU C++ mode, the parameter numbering scheme for the "format" and
-"format_arg" attributes treats the implicit "*this" parameter of nonstatic
-member functions as "number one."
+"format_arg" attributes treats the implicit "this" parameter of nonstatic
+member functions as number one.  Previously, the front end ignored the "this"
+parameter and treated the first explicit parameter as number one.
 
   struct S {
     void f(char const*, ...) __attribute__((format(printf, 2, 3)));
