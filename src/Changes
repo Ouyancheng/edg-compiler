@@ -1,5 +1,25 @@
 Version 2.25
 
+7/28/94  Repackaging of decls.c and class_decl.c
+
+Because decls.c and class_decl.c were getting too large, we have moved
+some of their routines to new files:
+
+  disambig.c   -- contains f_is_decl_not_expr and its subroutines.
+
+  decl_spec.c  -- contains decl_specifiers and its subroutines (including
+                  class_specifier from class_decl.c).  The associated
+                  header file decl_spec.h now contains the definitions of
+                  DSI_xxx and DSO_xxx values.
+
+  declarator.c -- contains declarator and its subroutines; declarator.h
+                  contains the definitions of DI_xxx and DO_xxx values.
+
+  func_def.c   -- contains function_definition and scan_function_body
+                  (with the SFB_xxx definitions moved to func_def.h);
+                  it also contains code, formerly in class_decl.c, to
+                  produce the IL for compiler-generated function bodies.
+
 7/28/94  New files symbol_ref.c and symbol_ref.h
 
 Routines dealing with symbol references (including the one that puts out
