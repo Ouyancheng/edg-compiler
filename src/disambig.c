@@ -385,8 +385,19 @@ definition.  The locator must refer to a qualified name.
                                                ilm_tentative_type,
                                                &err);
       sym = locator_for_curr_id.specific_symbol;
-      if (sym != NULL && is_constructor_symbol(sym)) {
-        result = TRUE;
+      if (sym != NULL) {
+        if (is_constructor_symbol(sym)) {
+          result = TRUE;
+        } else if (gpp_mode && is_injected_class_symbol(sym) &&
+                   locator_for_curr_id.is_qualified_name &&
+                   locator_for_curr_id.is_class_member &&
+                   same_entities(locator_for_curr_id.parent.class_type,
+                                 sym->parent.class_type)) {
+          /* Qualified lookup is done differently in g++ mode with respect
+             to constructors vs. injected class names.  Consider this to be
+             a constructor if we get the injected class name back. */
+          result = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

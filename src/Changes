@@ -1,5 +1,16 @@
 Version 3.2
 
+4/2/03   GNU C++ mode: lookup of injected class name vs. constructor
+
+g++ finds the injected class name in certain contexts where, according
+to the standard, the constructor should be found.  We now emulate this
+in g++ mode.
+
+  struct A {
+    A(int) {};
+  };
+  A::A a(1);
+
 4/1/03   Microsoft compatibility: __noop
 
 The __noop keyword, added in MSVC++ 7.0, is now implemented.

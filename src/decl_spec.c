@@ -6028,7 +6028,11 @@ process_class_specifier:
               curr_token_type_symbol->variant.type.is_injected_class_name &&
               (!(decl_specifiers_seen &
                  ~(DS_FRIEND | DS_INLINE | DS_DECLSPEC |
-                   DS_MICROSOFT_INLINE | DS_FORCEINLINE)))) {
+                   DS_MICROSOFT_INLINE | DS_FORCEINLINE))) &&
+              /* g++ allows X::X to be used in most places as a type name.
+                 A left parenthesis seems to be used to detect the constructor
+                 case. */
+              (!gpp_mode || next_token() == tok_lparen)) {
             /* This identifier appears to specify a constructor. */
             a_type_ptr    tp = type_symbol_type(curr_token_type_symbol);
             a_symbol_ptr  sym = symbol_supplement_for_class(tp)->constructor;
