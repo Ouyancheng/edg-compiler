@@ -349,6 +349,10 @@ caution when modifying this routine.
   } else if (tag_err) {
     /* An error occurred while handling a qualified name or a template
        reference earlier. */
+  } else if (is_error_locator(locator_for_curr_id)) {
+    /* There was some other error on the lookup -- e.g., maybe this was
+       an ambiguous namespace projection. */
+    tag_err = TRUE;
   } else {
     a_boolean  is_tag_definition = FALSE;
     a_boolean  is_vacuous_declaration = FALSE;
