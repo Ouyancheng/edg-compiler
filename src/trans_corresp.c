@@ -125,8 +125,12 @@ has not yet been examined for a matching entry in another translation unit.
     }  /* if */
     conv_seq_to_file_and_line(scp1->decl_position.seq, &file_name, &full_name,
                               &line, &at_end_of_source);
-    fprintf(f_debug, " in file %s (line %ld) has no correspondence.\n",
-            file_name, line);
+    if (line != 0) {
+      fprintf(f_debug, " in file %s (line %ld) has no correspondence.\n",
+              file_name, line);
+    } else {
+      fprintf(f_debug, " (built-in; line %ld) has no correspondence.\n", line);
+    }  /* if */
   }  /* if */
 #endif /* DEBUG */
   trans_unit_corresp_pointer_of(ptr) = ptr;
@@ -165,11 +169,19 @@ entity1 point to the IL node pointed to by entity2.
     }  /* if */
     conv_seq_to_file_and_line(scp1->decl_position.seq, &file_name, &full_name,
                               &line, &at_end_of_source);
-    fprintf(f_debug, " in file %s (line %ld) should correspond to ",
-            file_name, line);
+    if (line != 0) {
+      fprintf(f_debug, " in file %s (line %ld) should correspond to ",
+              file_name, line);
+    } else {
+      fprintf(f_debug, " (built-in; line %ld) should correspond to ", line);
+    }  /* if */
     conv_seq_to_file_and_line(scp2->decl_position.seq, &file_name, &full_name,
                               &line, &at_end_of_source);
-    fprintf(f_debug, "entity in file %s (line %ld).\n", file_name, line);
+    if (line != 0) {
+      fprintf(f_debug, "entity in file %s (line %ld).\n", file_name, line);
+    } else {
+      fprintf(f_debug, "built-in entity (line %ld).\n", line);
+    }  /* if */
   }  /* if */
 #endif /* DEBUG */
 }  /* f_record_trans_unit_corresp */
