@@ -4652,7 +4652,17 @@ Syntax:
     /* The type cast to must be a pointer or reference to a complete class
        type, or void*. */
     cast_type_okay = FALSE;
-    if (is_ptr_or_ref_type(cast_type)) {
+    if (is_template_dependent_context() &&
+        is_or_contains_template_param(cast_type)) {
+      /* Casting to a template parameter type is okay in a prototype
+         instantiation. */
+      template_param_case = TRUE;
+      /* ... but avoid saying something like T[] is okay. */
+      if (is_template_param_type(cast_type) ||
+          is_ptr_or_ref_type(cast_type)) {
+        cast_type_okay = TRUE;
+      }  /* if */
+    } else if (is_ptr_or_ref_type(cast_type)) {
       reference_case = is_reference_type(cast_type);
       underlying_cast_type = type_pointed_to(cast_type);
       if (is_class_struct_union_type(underlying_cast_type)) {
@@ -4669,12 +4679,6 @@ Syntax:
         /* Casting to void * is okay. */
         cast_type_okay = TRUE;
       }  /* if */
-    } else if (is_template_dependent_context() &&
-               is_or_contains_template_param(cast_type)) {
-      /* Casting to a template parameter type is okay in a prototype
-         instantiation. */
-      cast_type_okay = TRUE;
-      template_param_case = TRUE;
     } else {
       /* cast_type is not a pointer or reference type; error. */
       cast_type_okay = FALSE;
