@@ -5485,15 +5485,15 @@ This routine may only be called in C++ mode.
 	   present, skip the lookup and set class_type to NULL so that the
 	   only error to be issued will be "global qualifier not allowed"
 	   error issued by the coalesce routine. */
-        a_symbol_ptr	type_sym;
-	a_type_ptr	cowam = class_symbol->class_of_which_a_member;
+        a_symbol_ptr	type_sym = NULL;
+	a_type_ptr	cowam;
         /* Set dtor_class_type to class_type.  This is only needed when
 	   we have a typedef name.  For a type name like "int" it will
 	   already have been set. */
         dtor_class_type = class_type;
         if (is_global_qualified_name || class_symbol == NULL) {
 	  class_type = NULL;
-	} else if (cowam != NULL) {
+	} else if ((cowam = class_symbol->class_of_which_a_member) != NULL) {
           type_sym = class_qualified_id_lookup(&locator_for_curr_id, cowam,
                                                IDL_NO_OPTIONS);
 	} else {
