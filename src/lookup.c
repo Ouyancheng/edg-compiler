@@ -2337,8 +2337,14 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     }  /* if */
     any_nonreal_base_classes = cssp->any_nonreal_base_classes;
   }  /* if */
-  if ((sym = locator->specific_symbol) != NULL) {
-    /* There is an existing specific symbol. */
+  sym = locator->specific_symbol;
+  if (is_error_locator(*locator)) {
+    /* The locator is an error locator, so return NULL (i.e., no symbol
+       found). */
+    sym = NULL;
+  } else if (sym != NULL) {
+    /* The locator is for a specific symbol, so return the symbol for it. */
+    check_assertion(is_acceptable_symbol(sym));
   } else {
     /* Search for a symbol in the right scope. */
     /* First, search the list of inactive symbols.  These are class
