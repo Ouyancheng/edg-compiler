@@ -7147,6 +7147,74 @@ is the position to be used if a diagnostic is issued.
 }  /* check_for_decl_spec_errors */
 
 
+static void check_template_nesting_depth(a_symbol_ptr		sym,
+					 a_source_position	*pos,
+					 a_decl_state_ptr	decl_state)
+/*
+This routine is used to determine whether the number of template clauses
+in a full specialization matches the template nesting depth of the
+entity being specialized.  If a mismatch is found, a diagnostic is
+issued.
+*/
+{
+  a_template_nesting_depth	depth = 0;
+  a_template_arg_ptr		arg_list = NULL;
+  a_type_ptr			parent_tp;
+
+  /* Get the symbol for the template on which this entity is based. */
+  switch (sym->kind) {
+    case sk_class_or_struct_tag:
+    case sk_union_tag:
+    {
+      a_type_ptr	tp;
+      tp = sym->variant.class_struct_union.type;
+      arg_list = tp->variant.class_struct_union.extra_info->template_arg_list;
+      break;
+    }
+    case sk_member_function:
+    case sk_routine:
+    {
+      a_routine_ptr	rp;
+      rp = sym->variant.routine.ptr;
+      arg_list = rp->template_arg_list;
+      break;
+    }
+    case sk_static_data_member:
+      break;
+    default:
+      unexpected_condition_str("check_template_nesting_depth: bad sym kind");
+  }  /* switch */
+  /* The presence of a template argument list indicates that this entity is
+     an instance of a class or function template.  A member function of
+     a class template or a nested class within a class template will not
+     have a template argument list. */
+  if (arg_list != NULL) depth++;
+  /* Check the parent classes.  Stop if we find a parent class that is
+     specialized. */
+  parent_tp = sym->is_class_member ? sym->parent.class_type : NULL;
+  while (parent_tp != NULL) {
+    a_class_type_supplement_ptr	ctsp;
+    parent_tp = skip_typerefs(parent_tp);
+    /* If the parent class is a specialization, don't search any further.
+       The nesting depth is relative to the innermost specialization. */
+    if (parent_tp->variant.class_struct_union.is_specialized) break;
+    ctsp = parent_tp->variant.class_struct_union.extra_info;
+    /* If the enclosing class has a template argument list, increment the
+       nesting depth of this entity. */
+    if (ctsp->template_arg_list != NULL) depth++;
+    /* Process the next enclosing class, if any. */
+    parent_tp = parent_tp->source_corresp.is_class_member
+                                ? parent_tp->source_corresp.parent.class_type
+                                : NULL;
+  }  /* while */
+  if (depth != decl_state->number_of_template_param_clauses) {
+    /* The depths do not match, issue a diagnostic. */
+    pos_sy_diagnostic(es_discretionary_error,
+                      ec_template_depth_mismatch, pos, sym);
+  }  /* if */
+}  /* check_template_nesting_depth */
+
+
 static void full_specialization(a_decl_state_ptr decl_state)
 /*
 One or more empty template parameter clauses ("template <>") have been
@@ -7209,6 +7277,9 @@ that follows.
       /* The specialization should be marked as an autonomous declaration. */
       is_definition = ((dso_flags & DSO_DEFINES_SOMETHING) != 0);
       set_autonomous_tag_decl_flag(type, is_definition);
+      /* Make sure that this declaration has the correct number of
+         "template <>" clauses. */
+      check_template_nesting_depth(sym, &decl_start_pos, decl_state);
       if (is_definition) {
         type->variant.class_struct_union.is_specialized = TRUE;
       } else {
@@ -7349,6 +7420,13 @@ that follows.
         /* This may have been intended to be a function definition.  Flush
            tokens to the closing right brace. */
         flush_until_matching_token();
+      } else if (curr_token == tok_assign) {
+        /* This may have been intended to be a static data member
+           initialization.  Flush to a semicolon. */
+        add_stop_token(tok_semicolon);
+        flush_tokens();
+        remove_stop_token(tok_semicolon);
+        (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
       } else {
         (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
       }  /* if */
@@ -7359,7 +7437,9 @@ that follows.
       /* Update cross reference info, etc. */
       record_symbol_declaration(srk_flags, sym, &locator.source_position,
                                 declarator_ssep);
-
+      /* Make sure that this declaration has the correct number of
+         "template <>" clauses. */
+      check_template_nesting_depth(sym, &locator.source_position, decl_state);
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Do fixup on the source sequence entry that was just created to
