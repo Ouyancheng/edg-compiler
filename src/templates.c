@@ -1969,20 +1969,22 @@ that make up the declaration and do a prototype instantiation.
        name conflict or a redefinition. */
     if (sym != NULL) {
       if (sym->kind == (a_symbol_kind)sk_class_template) {
-        is_redecl = TRUE;
         tssp = sym->variant.template_info;
-        if (!sym->defined) {
-          *resolution = TRUE;
+        is_redecl = TRUE;
+        if ((type_kind == (a_type_kind)tk_union) !=
+              (tssp->variant.class_template.type_kind ==
+                                                    (a_type_kind)tk_union)) {
+          /* Cannot mix union and nonunion declarations. */
+          pos_sy_error(ec_not_compatible_with_previous_decl,
+                       &locator.source_position, sym);
+          suppress_redecl_error = TRUE;
+          sym = NULL;
+        } else if (!sym->defined) {
+          /* Not previously defined. */
+          *resolution = is_definition;
         } else if (is_definition) {
           /* Attempting to redefine a class template. */
           pos_sy_error(ec_already_defined, &locator.source_position, sym);
-          suppress_redecl_error = TRUE;
-          sym = NULL;
-        } else if ((type_kind == (a_type_kind)tk_union) !=
-                   (tssp->variant.class_template.type_kind ==
-                                                    (a_type_kind)tk_union)) {
-          pos_sy_error(ec_not_compatible_with_previous_decl,
-                       &locator.source_position, sym);
           suppress_redecl_error = TRUE;
           sym = NULL;
         }  /* if */
