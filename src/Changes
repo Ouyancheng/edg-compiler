@@ -1,5 +1,21 @@
 Version 2.16
 
+4/21/93  Bug in computing base class offsets
+
+A bug in the management of base classes has been fixed.  It could only
+show up when a nonvirtual base class appeared multiple times in the
+derivation graph, as in the following:
+
+  class Link { /* ... */ };
+  class X : public Link { /* ... */ };
+  class Y : public Link { /* ... */ };
+  class D : public X, public Y { /* ... */ };
+
+Here, for instance, one result of the bug was that the offset of one
+of the Link base classes in D (the one accessed along the path
+==>Y==Link) was not being computed correctly, and consequently the
+delta value in its virtual function table was not being set properly.
+
 4/20/93  Optimization of return via copy constructor
 
 In functions that return their values via a copy constructor call,
