@@ -1882,7 +1882,8 @@ or struct definition.  The syntax is
           } else {
             /* Indirect base classes must have their virtual function override
                lists copied, too. */
-            if (new_bcp->next == NULL || new_bcp->next->type != bcp->type) {
+            if (new_bcp == NULL || new_bcp->next == NULL ||
+                new_bcp->next->type != bcp->type) {
               /* There is a gap in the new base class entries added to the
                  list. This can be the result of duplicating a virtual base
                  class that's aleady present on the list. */
