@@ -6381,6 +6381,19 @@ This routine is only used in C++ mode.
 
   db_enter(4, "try_conversion_function_match");
   /* This routine is similar to try_overloaded_function_match. */
+  if (dest_type == NULL) {
+    if (builtin_types_allowed == BTK_BOOL) {
+      /* There's only one type in the BTK_BOOL category, so make this a
+         conversion to a specific type so that templates can be used. */
+      dest_type = bool_type();
+      builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
+    } else if (builtin_types_allowed == BTK_PTRDIFF_T) {
+      /* There's only one type in the BTK_PTRDIFF_T category, so make this a
+         conversion to a specific type so that templates can be used. */
+      dest_type = integer_type(targ_ptrdiff_t_int_kind);
+      builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
+    }  /* if */
+  }  /* if */
   source_type = source_operand->type;
   check_assertion_str(is_class_struct_union_type(source_type),
                       "try_conversion_function_match: source not class");
@@ -6614,31 +6627,12 @@ This routine is only used in C++ mode.
         /* This conversion function returns an acceptable built-in type. */
         compatible = TRUE;
         /* The result does not have to be forced to an rvalue. */
-      } else if ((builtin_types_allowed & BTK_BOOL) != 0 &&
-                                 (is_arithmetic_or_enum_type(return_type) ||
-                                  is_pointer_type(return_type) ||
-                                  is_ptr_to_member_type(return_type))) {
-        /* The conversion function returns something that can be converted to
-           the desired kind of type via a standard conversion. */
-        compatible = TRUE;
-        std_conversion.nontrivial_conversion = TRUE;
-        /* The result does not have to be forced to an rvalue. */
       } else if ((builtin_types_allowed & BTK_INTEGRAL) != 0 &&
-                                  is_enum_type(return_type)) {
+                                         is_enum_type(return_type)) {
         /* The conversion function returns an enum type, which can be
            converted to the desired integral type. */
         compatible = TRUE;
         std_conversion.nontrivial_conversion = TRUE;
-      } else if ((builtin_types_allowed & BTK_PTRDIFF_T) != 0 &&
-                                  is_arithmetic_or_enum_type(return_type)) {
-        /* The conversion function returns something that can be converted to
-           ptrdiff_t via a standard conversion. */
-        compatible = TRUE;
-        std_conversion.nontrivial_conversion = TRUE;
-        if (is_ptrdiff_t_type(type_after_integral_promotion(return_type))) {
-          std_conversion.promotion = TRUE;
-        }  /* if */
-        /* The result does not have to be forced to an rvalue. */
       }  /* if */
     }  /* if */
     /* Give up on this function if it does not return a type we can use. */
@@ -8037,6 +8031,15 @@ Adjust the operand type to match the type requirement.
     }  /* if */
     specific_type = candidate_function->specific_type;
     if (specific_type == NULL) {
+      /* For some type codes, there is only one possible type, so convert to
+         that type. */
+      if (type_code == BOOL_TYPE_CODE) {
+        specific_type = bool_type();
+      } else if (type_code == PTRDIFF_T_TYPE_CODE) {
+        specific_type = integer_type(targ_ptrdiff_t_int_kind);
+      }  /* if */
+    }  /* if */
+    if (specific_type == NULL) {
       /* Non-specific type case.  The conversion function result type is the
          right type. */
       if (conv_usable(&arg_match->conversion)) {
@@ -9141,14 +9144,7 @@ Issue an error and set *processed to TRUE if the conversion is ambiguous.
   if (is_class_struct_union_type(operand->type)) {
     /* See if the class type can be converted to an acceptable built-in
        type. */
-    a_type_ptr dest_type = NULL;
-    if (builtin_types_allowed == BTK_BOOL) {
-      /* There's only one type in the BTK_BOOL category, so make that a
-         conversion to a specific type so that templates can be used. */
-      dest_type = bool_type();
-      builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
-    }  /* if */
-    if (conversion_from_class_possible(operand, dest_type,
+    if (conversion_from_class_possible(operand, (a_type_ptr)NULL,
                                        builtin_types_allowed,
                                        /*need_lvalue_result=*/FALSE,
                                        /*is_copy_initialization=*/TRUE,
