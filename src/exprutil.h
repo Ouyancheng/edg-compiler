@@ -322,6 +322,8 @@ extern a_boolean is_bit_field_operand(an_operand *operand);
 extern void take_address_of_lvalue(an_operand         *operand,
                                    an_expression_kind expression_kind);
 
+extern void conv_object_pointer_to_lvalue(an_operand *operand);
+
 extern void conv_lvalue_to_rvalue(an_operand         *operand,
                                   an_expression_kind expresion_kind);
 
@@ -471,14 +473,14 @@ extern void cast_node(an_expr_node_ptr  *node,
 
 extern void integral_promote_node(an_expr_node_ptr *node);
 
-extern void prepare_initializer_operand(an_operand         *right_side_operand,
-                                        a_type_ptr         left_side_type,
+extern void prepare_initializer_operand(an_operand         *source_operand,
+                                        a_type_ptr         dest_type,
                                         an_expression_kind expression_kind,
                                         an_error_code      incompatible_err,
                                         a_source_position  *err_pos);
 
-extern void prepare_assignment_operand(an_operand         *right_side_operand,
-                                       a_type_ptr         left_side_type,
+extern void prepare_assignment_operand(an_operand         *source_operand,
+                                       a_type_ptr         dest_type,
                                        an_expression_kind expression_kind,
                                        an_error_code      incompatible_err,
                                        a_source_position  *err_pos,
