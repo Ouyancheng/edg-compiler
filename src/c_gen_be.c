@@ -7849,7 +7849,6 @@ Generate old-style (K&R/pcc) C from the intermediate language.
   char        *C_output_file_name;
   a_boolean   cannot_open, bad_name;
   char        *source_language_name;
-  a_boolean   missing_call_of_init_routine = FALSE;
 
   /* Open the output file. */
   if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) == 0) {
@@ -7936,49 +7935,51 @@ Generate old-style (K&R/pcc) C from the intermediate language.
   dump_all_routines(scope, /*bodies=*/TRUE);
 
 #ifdef CFE
-  /* Generate the routine called to do file-scope dynamic initializations.
-     The routine is always generated, but it's usually empty. */
-  startline((a_seq_number)0);
-  (void)fprintf(f_C_output, "__%s_file_scope_inits() {", module_name);
-  if (f_file_scope_inits != NULL) {
-    if (!file_scope_init_routine_called) missing_call_of_init_routine = TRUE;
-    copy_and_delete_file(&f_file_scope_inits);
-  }  /* if */
-  startline((a_seq_number)0);
-  fputc('}', f_C_output);
-  if (missing_call_of_init_routine) {
-    /* There was no opportunity to call the file-scope initialization routine.
-       In C++, generate a __link variable that will get it called.  In
-       C, a "-i" command-line option will be needed. */
-    if (il_header.source_language == sl_Cplusplus) {
-      /* C++ -- Generate the __link variable expected by the AT&T patch
-         program. */
-      (void)fprintf(f_C_output, "\nstatic struct __linkl {\n");
-      (void)fprintf(f_C_output,
-                   "struct __linkl *next; void (*ctor)(); void (*dtor)();}\n");
-      (void)fprintf(f_C_output, "__link = {0, __%s_file_scope_inits, 0};\n",
-                                module_name);
-    } else {
-      /* The file-scope-init routine was not called from anywhere in
-         this module.  It must be called from the main program, by using
-         the appropriate option. */
-      (void)fprintf(stderr,
-"This file contains file-scope initializations that involve executable code.\n"
-                   );
-      (void)fprintf(stderr,
-"For it to execute correctly, you must include \"%s\" in the list of\n",
-              module_name);
-      (void)fprintf(stderr,
-"modules in the \"-i\" option during compilation of the associated main\n");
-      (void)fprintf(stderr,
-"program.\n");
+  { a_boolean missing_call_of_init_routine = FALSE;
+    /* Generate the routine called to do file-scope dynamic initializations.
+       The routine is always generated, but it's usually empty. */
+    startline((a_seq_number)0);
+    (void)fprintf(f_C_output, "__%s_file_scope_inits() {", module_name);
+    if (f_file_scope_inits != NULL) {
+      if (!file_scope_init_routine_called) missing_call_of_init_routine = TRUE;
+      copy_and_delete_file(&f_file_scope_inits);
     }  /* if */
-  }  /* if */
+    startline((a_seq_number)0);
+    fputc('}', f_C_output);
+    if (missing_call_of_init_routine) {
+      /* There was no opportunity to call the file-scope initialization
+         routine.  In C++, generate a __link variable that will get it called.
+         In C, a "-i" command-line option will be needed. */
+      if (il_header.source_language == sl_Cplusplus) {
+        /* C++ -- Generate the __link variable expected by the AT&T patch
+           program. */
+        (void)fprintf(f_C_output, "\nstatic struct __linkl {\n");
+        (void)fprintf(f_C_output,
+                   "struct __linkl *next; void (*ctor)(); void (*dtor)();}\n");
+        (void)fprintf(f_C_output, "__link = {0, __%s_file_scope_inits, 0};\n",
+                                  module_name);
+      } else {
+        /* The file-scope-init routine was not called from anywhere in
+           this module.  It must be called from the main program, by using
+           the appropriate option. */
+        (void)fprintf(stderr,
+"This file contains file-scope initializations that involve executable code.\n"
+                     );
+        (void)fprintf(stderr,
+"For it to execute correctly, you must include \"%s\" in the list of\n",
+                      module_name);
+        (void)fprintf(stderr,
+"modules in the \"-i\" option during compilation of the associated main\n");
+        (void)fprintf(stderr,
+"program.\n");
+      }  /* if */
+    }  /* if */
 #if CHECKING
-  if (f_rout_dynamic_inits != NULL) {
-    internal_error("Routine assignment inits not dumped out");
-  }  /* if */
+    if (f_rout_dynamic_inits != NULL) {
+      internal_error("Routine assignment inits not dumped out");
+    }  /* if */
 #endif /* CHECKING */
+  }
 #endif /* ifdef CFE */
 
   /* Print one more newline to force out the last line. */
