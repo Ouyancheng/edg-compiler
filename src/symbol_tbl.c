@@ -1451,6 +1451,7 @@ state.
         cssp->corresp_prototype_sym = NULL;
         cssp->prototype_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
         cssp->referencing_namespace = NULL;
+        cssp->partial_instantiation_placeholder = NULL;
         cssp->dependent_type_fixup_list = NULL;
         cssp->operator_lookup_namespaces = NULL;
         cssp->constructor_required = FALSE;
