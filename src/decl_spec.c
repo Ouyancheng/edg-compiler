@@ -225,7 +225,8 @@ caution when modifying this routine.
   /* Check for the presence of a qualified name.  If we have a qualified
      name, do the lookup in a manner that will only find tag names. */
   if (coalesce_and_lookup_qualified_name(GID_TEMPLATE_ARGS_OPTIONAL,
-                                         ilm_tag, &err)) {
+                                         ilm_tag, &err) ||
+      (curr_token == tok_identifier && locator_for_curr_id.is_template_id)) {
     if (err) {
       /* An error occurred while scanning or looking up the qualified
          name. */
