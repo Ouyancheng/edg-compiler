@@ -4056,6 +4056,7 @@ to indicate whether an enumeration is actually defined.
   a_scope_stack_entry_ptr  ssep;
   a_type_ptr               class_of_which_a_member;
   an_access_specifier      access;
+  a_scope_depth            effective_decl_level = decl_scope_level;
 
   db_enter(3, "enum_specifier");
 
@@ -4134,6 +4135,25 @@ to indicate whether an enumeration is actually defined.
       if (strict_ansi_mode) {
         pos_warning(ec_nonstd_forward_def_enum, &locator.source_position);
       }  /* if */
+      /* In C the new symbol is entered at the scope level indicated by
+         decl_scope_level.  In C++ we need to pop out to the innermost
+         non-class/non-prototype scope.  (This follows the same approach that
+         is used for incomplete class-struct-union tag symbols.) */
+      if (C_dialect == C_dialect_cplusplus) {
+        /* Pop out to the containing scope -- file scope, function scope, or
+           block scope.  effective_decl_level has already been initialized to
+           decl_scope_level. */
+        while (scope_stack[effective_decl_level].kind ==
+                                     (a_scope_kind)sck_class_struct_union ||
+               scope_stack[effective_decl_level].kind ==
+                                     (a_scope_kind)sck_func_prototype) {
+          effective_decl_level--;
+        }  /* while */
+        if (effective_decl_level != decl_scope_level) {
+          class_of_which_a_member = NULL;
+          access = (an_access_specifier)as_public;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   if (tag_sym == NULL) {
@@ -4153,7 +4173,7 @@ to indicate whether an enumeration is actually defined.
        specified in something like "enum {a, b, c}"). */
     if (tag_id_present) {
       tag_sym = enter_local_symbol((a_symbol_kind)sk_enum_tag, &locator,
-                                   decl_scope_level,
+                                   effective_decl_level,
                                    /*suppress_redecl_error=*/FALSE);
       *declares_something = TRUE;
       set_source_corresp(&(enum_type->source_corresp), tag_sym);
