@@ -5789,11 +5789,10 @@ not include the function scope memory region, if any.
              ptp = ptp->next) {
           an_expr_node_ptr def_arg_expr = ptp->default_arg_expr;
           if (def_arg_expr != NULL) {
-            if (!keep_object_lifetime_info_in_lowered_il) {
-              /* If the expression has an object lifetime node at top,
-                 eliminate it. */
-              (void)eliminate_expr_object_lifetime(def_arg_expr);
-            }  /* if */
+            /* If the expression has an object lifetime node at top,
+               eliminate it, because the expression is not staying in the
+               IL tree. */
+            (void)eliminate_expr_object_lifetime(def_arg_expr);
             ptp->default_arg_expr = NULL;
           }  /* if */
         }  /* for */
