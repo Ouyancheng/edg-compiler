@@ -587,40 +587,6 @@ for the class to which they belong.
   db_exit();
 }  /* insert_in_virtual_function_override_list */
 
-#if 0
-static void merge_virtual_function_override_lists(
-                                            a_base_class_ptr  other_base_class,
-                                            a_base_class_ptr  base_class)
-/*
-Merge the overriding virtual function lists from two base class entries
-(both of which, it is assumed, refer to the same class); the list from
-other_base_class is merged into that of base_class.  Before the merge the
-lists are assumed to be ordered by virtual function number of the primary
-function (the routine being overridden).  The same will be true after the
-merge.
-*/
-{
-  an_overriding_virtual_function_ptr  ovfp, ovfp_next;
-
-  db_enter(4, "merge_virtual_function_override_lists");
-  ovfp = other_base_class->overriding_virtual_functions;
-  for (; ovfp != NULL; ovfp = ovfp_next) {
-#if DEBUG
-    if (debug_level >= 4) {
-      fputs("merging (base class ", f_debug);
-      db_name(&base_class->type->source_corresp);
-      fputs("): ", f_debug);
-      db_virtual_function_override(ovfp);
-    }  /* if */
-#endif /* DEBUG */
-    ovfp_next = ovfp->next;
-    ovfp->next = NULL;
-    insert_in_virtual_function_override_list(base_class, ovfp);
-  }  /* for */
-  other_base_class->overriding_virtual_functions = NULL;
-  db_exit();
-}  /* merge_virtual_function_override_lists */
-#endif /* if 0 */
 
 static void copy_virtual_function_override_list(
                              an_overriding_virtual_function_ptr list,
@@ -1866,26 +1832,6 @@ skip_base_class:
        specifier. */
     remove_stop_token(tok_comma);
   } while (loop_token(tok_comma));
-#if 0
-  /* The base classes of indirect virtual base classes have yet to be added
-     to the list.  Add them now. */
-  for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-    if (bcp->is_virtual && !bcp->direct) {
-      /* We've found an virtual base class that is not also specified as
-         a direct base class of the current class.  It is *its* direct base
-         classes that must now be added. */
-      a_base_class_ptr  bcp2 = bcp->type->variant.
-                                  class_struct_union.extra_info->base_classes;
-      for (; bcp2 != NULL; bcp2 = bcp2->next) {
-        if (bcp2->direct) {
-          add_indirect_base_class(bcp2, ctsp->base_classes,
-                                  &end_of_base_classes_list,
-                                  bcp->derivation);
-        }  /* if */
-      }  /* for */
-    }  /* if */
-  }  /* for */
-#endif /* if 0 */
 #if CHECKING
   for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
     verify_path_consistency(type_ptr, bcp);
@@ -3083,7 +3029,6 @@ void check_anonymous_union_symbols(a_type_ptr     class_type,
                                    a_field_ptr    assoc_field_object,
                                    a_variable_ptr assoc_var_object)
 /*
-
 Do processing for an anonymous union that is declared within a class (when
 class_type is non-NULL) or outside a class (when class_type is NULL).
 Specifically, make a pass over all the members of the anonymous union, do
@@ -3094,11 +3039,9 @@ class (assoc_field_object).  When class_type is NULL, the containing scope
 is the file scope, a routine scope, or a block scope, and the anonymous
 union as a whole is represented as a variable (assoc_var_object).  Only one
 of assoc_field_object and assoc_var_object is defined.
-
 */
 {
   a_symbol_ptr                   sym, next_sym, mf_sym;
-  a_type_ptr                     member_type;
   a_class_symbol_supplement_ptr  cssp;
   an_anonymous_union_ptr         aup;
   an_access_specifier            access;
@@ -3106,14 +3049,12 @@ of assoc_field_object and assoc_var_object is defined.
   a_boolean                      member_function_error_already_issued = FALSE;
   a_boolean                      is_overloaded;
 
+  db_enter(4, "check_anonymous_union_symbols");
   /* The symbols list for the anonymous union will be eliminated.  Its
      field symbols are promoted to the scope of the containing class. */
-  if (class_type == NULL) {
-    member_type = assoc_var_object->type;
-  } else {
-    member_type = assoc_field_object->type;
-  }  /* if */
-  cssp = symbol_supplement_for_class(member_type);
+  cssp = symbol_supplement_for_class(class_type == NULL ?
+                                         assoc_var_object->type :
+                                         assoc_field_object->type);
   sym = cssp->symbols;
   cssp->symbols = NULL;
   /* Go through each of the symbols on the list. */
@@ -3173,6 +3114,7 @@ of assoc_field_object and assoc_var_object is defined.
       /* A member that is a type?  Ignore it. */
     }  /* if */
   }  /* for */
+  db_exit();
 }  /* check_anonymous_union_symbols */
 
 
