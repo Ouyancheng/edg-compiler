@@ -4186,8 +4186,8 @@ a_symbol_ptr find_corresponding_symbol_in_trans_unit(
 					a_symbol_ptr		sym_to_find,
 					a_translation_unit_ptr	tup)
 /*
-Find a symbol associated with the translation unit specified by tup
-that is refers to an entity that corresponds to sym_to_find.
+Find the symbol associated with the translation unit specified by tup
+that refers to the entity that corresponds to sym_to_find.
 */
 {
   a_symbol_ptr		result_sym = NULL;
