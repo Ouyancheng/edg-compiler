@@ -2511,6 +2511,12 @@ typedef struct a_func_block {
 		cv_quals;
 			/* If the function is a cv-qualified member function,
 			   the set of cv-qualifiers.  0 otherwise. */
+  char		ctor_dtor_kind;
+			/* If the function is a constructor or destructor,
+			   the character from the mangled name identifying its
+			   kind, e.g., '2' for a subobject constructor/
+			   destructor.  ' ' if the function is not a
+			   constructor or destructor. */
 } a_func_block;
 
 
@@ -2589,6 +2595,7 @@ static char *demangle_nested_name_components(
                               unsigned long              num_levels,
                               a_boolean                  *is_no_return_name,
                               a_boolean                  *has_templ_arg_list,
+                              char                       *ctor_dtor_kind,
                               char                       **last_component_name,
                               a_decode_control_block_ptr dctl);
 static char *demangle_unscoped_name(char                       *ptr,
@@ -2609,6 +2616,7 @@ Clear a function information block to default values.
 {
   func_block->no_return_type = FALSE;
   func_block->cv_quals = 0;
+  func_block->ctor_dtor_kind = ' ';
 }  /* clear_func_block */
 
 
@@ -2803,6 +2811,7 @@ of constructors and destructors.
           case subk_prefix:
           case subk_template_prefix:
             { a_boolean is_no_return_name, has_templ_arg_list;
+              char      ctor_dtor_kind;
               /* Take the right number of levels of the name.  Note that a
                  substitution counts as one level even if it represents
                  several. */
@@ -2811,6 +2820,7 @@ of constructors and destructors.
                                                     subp->num_levels,
                                                     &is_no_return_name,
                                                     &has_templ_arg_list,
+                                                    &ctor_dtor_kind,
                                                     last_component_name,
                                                     dctl);
               }  /* if */
@@ -3911,6 +3921,7 @@ static char *demangle_nested_name_components(
                               unsigned long              num_levels,
                               a_boolean                  *is_no_return_name,
                               a_boolean                  *has_templ_arg_list,
+                              char                       *ctor_dtor_kind,
                               char                       **last_component_name,
                               a_decode_control_block_ptr dctl)
 /*
@@ -3926,7 +3937,9 @@ was demangled.  *is_no_return_name is returned TRUE if the final
 component scanned is a function name of a kind that does not take a
 return type (constructor, destructor, or conversion function).
 *has_templ_arg_list is returned TRUE if the final component includes a
-template argument list.  If last_component_name is non-NULL,
+template argument list.  If the final component is a constructor or
+destructor name, *ctor_dtor_kind is set to the character identifying
+the kind of constructor or destructor.  If last_component_name is non-NULL,
 *last_component_name will be set to the start position of the encoding
 for the name of the last component.  If the last component is a
 substitution, the name of the last component in the substitution is used.
@@ -3938,6 +3951,7 @@ substitution, the name of the last component in the substitution is used.
 
   *is_no_return_name = FALSE;
   *has_templ_arg_list = FALSE;
+  *ctor_dtor_kind = ' ';
   for (;;) {
     /* Demangle one level of the nested name. */
     a_boolean is_substitution = FALSE;
@@ -3985,36 +3999,21 @@ substitution, the name of the last component in the substitution is used.
           /* Rescan and output the class name (no template argument list). */
           (void)demangle_unqualified_name(prev_component_name, &dummy, dctl);
           /* Check that the second character of the constructor/destructor
-             name is a valid digit and identify the kind of constructor or
-             destructor if necessary. */
-          switch (ptr[1]) {
-            case '0':
-              write_id_str(" [deleting] ", dctl);
-              ptr += 2;
-              break;
-            case '1':
-              /* Complete constructor or destructor gets no extra label. */
-              ptr += 2;
-              break;
-            case '2':
-              write_id_str(" [subobject] ", dctl);
-              ptr += 2;
-              break;
-            case '3':
-              write_id_str(" [allocating] ", dctl);
-              ptr += 2;
-              break;
-            case '9':
-              /* The EDG front end uses '9' for the routine called by the
-                 other entry points. */
-              write_id_str(" [internal] ", dctl);
-              ptr += 2;
-              break;
-            default:
-              /* The second character of the constructor or destructor name
-                 encoding is bad. */
-              bad_mangled_name(dctl);
-          }  /* switch */
+             name is a valid digit. */
+          /* '9' is the code used by the EDG C++ Front End for the
+             underlying routine called by the various entry points.
+             It's not part of the ABI spec. */
+          if (ptr[1] == '1' || ptr[1] == '2' || ptr[1] == '9' ||
+              (ptr[0] == 'C' ? ptr[1] == '3' :
+                               ptr[1] == '0')) {
+            /* Okay. */
+            *ctor_dtor_kind = ptr[1];
+            ptr += 2;
+          } else {
+            /* The second character of the constructor or destructor name
+               encoding is bad. */
+            bad_mangled_name(dctl);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -4089,6 +4088,7 @@ For function names, additional information is returned in *func_block.
                                         /*num_levels=*/0,
                                         &is_no_return_name,
                                         &has_templ_arg_list,
+                                        &func_block->ctor_dtor_kind,
                                         (char **)NULL,
                                         dctl);
   ptr = advance_past('E', ptr, dctl);
@@ -4386,6 +4386,32 @@ Do not output function parameters if include_func_params is FALSE.
                              /*trailing_space=*/FALSE, dctl);
       }  /* if */
       if (!include_func_params) dctl->suppress_id_output--;
+    }  /* if */
+    if (func_block.ctor_dtor_kind != ' ') {
+      /* Identify the kind of constructor or destructor if necessary. */
+      switch (func_block.ctor_dtor_kind) {
+        case '0':
+          write_id_str(" [deleting]", dctl);
+          break;
+        case '1':
+          /* Complete constructor or destructor gets no extra label. */
+          break;
+        case '2':
+          write_id_str(" [subobject]", dctl);
+          break;
+        case '3':
+          write_id_str(" [allocating]", dctl);
+          break;
+        case '9':
+          /* The EDG front end uses '9' for the routine called by the
+             other entry points. */
+          write_id_str(" [internal]", dctl);
+          break;
+        default:
+          /* Bad character.  This shouldn't happen, because the character
+             was checked earlier. */
+          bad_mangled_name(dctl);
+      }  /* switch */
     }  /* if */
   }  /* if */
   return ptr;
