@@ -840,7 +840,7 @@ a partial specialization.  This has been fixed.
 
   template <class T> struct A {};
   struct B {
-    template <class T> friend struct A<T*> {};
+    template <class T> friend struct A<T*>;
   };
 
 2/5/97  A using-declaration may not name a conversion template instance
