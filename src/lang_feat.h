@@ -233,6 +233,16 @@ to be performed when the compiler is executed.
 #endif /* ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 /*
+Flag that is TRUE if template nontype parameters with floating point
+types are allowed.  X3J16 made floating point template parameters
+ill-formed in 3/94 but they are allowed by some compilers (e.g.,
+Borland).
+*/
+#ifndef ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
+#define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS TRUE
+#endif /* !defined(ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS) */
+
+/*
 Flag that is TRUE if a stack model is used to manage the include search
 list and FALSE if some other model (by default, a replace-restore model) is
 to be used instead.  The stack model says that when an include file is

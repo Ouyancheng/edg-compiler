@@ -2980,8 +2980,18 @@ Scan the declaration of a single template nontype parameter.
     /* A parameter type of void is not allowed. */
     error(ec_void_template_parameter);
   } else if (tp->kind == tk_float) {
-    /* A floating point parameter type of void is no longer permitted. */
+#if ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
+    /* Though no longer permitted by the working paper (as of 3/94) floating 
+       point template parameters are allowed for backward compatibility.
+       Issue a diagnostic in strict ANSI mode. */
+    if (strict_ansi_mode) {
+      diagnostic(strict_ansi_error_severity, ec_float_template_parameter);
+    }  /* if */
+#else /* !ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS */
+    /* A floating point parameter type of void is no longer allowed
+       as of 3/94. */
     error(ec_float_template_parameter);
+#endif /* ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS */
   }  /* if */
 }  /* scan_a_template_parameter_declaration */
 
