@@ -203,10 +203,45 @@ the general identifier option.
 #define get_token_and_coalesce_if_identifier(flags)			\
   f_get_token_and_coalesce_if_identifier((flags), GID_NO_OPTIONS)
 
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED || \
+    GNU_EXTENSIONS_ALLOWED
+
+static void prescan_until_closing_paren(a_disambig_state_ptr  state,
+                                        a_disambig_flag_set   flags)
+/*
+Get tokens, and optionally cache them, until we encounter an unmatched
+right parenthesis (that matches a left parenthesis that we have already
+scanned.
+*/
+{
+  int	paren_count = 0;
+
+  for (;;) {
+    if (state != NULL) cache_curr_token(&state->cache);
+    get_token_and_coalesce_if_identifier(flags);
+    if (curr_token == tok_rparen) {
+      /* A right parenthesis.  Break out if this is a zero level
+         parenthesis. */
+      if (paren_count == 0) break;
+        paren_count--;
+    } else if (curr_token == tok_lparen) {
+      paren_count++;   
+    } else if (curr_token == tok_semicolon ||
+               curr_token == tok_end_of_source ||
+               curr_token == tok_lbrace) {
+      break;
+    }  /* if */
+  }  /* for */
+}  /* prescan_until_closing_paren */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED ||
+          GNU_EXTENSIONS_ALLOWED */
+
+
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 
-static void prescan_extended_decl_modifiers (a_disambig_state_ptr  state,
-                                             a_disambig_flag_set   flags)
+static void prescan_extended_decl_modifiers(a_disambig_state_ptr  state,
+                                            a_disambig_flag_set   flags)
 /*
 For Microsoft compatibility, prescan the following Microsoft modifiers:
 
@@ -224,10 +259,6 @@ A NULL state pointer may be provided if the tokens that are scanned do
 not need to be cached.
 */
 {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  int	paren_count = 0;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
   for (;;) {
 #if NEAR_AND_FAR_ALLOWED
     if (is_near_or_far()) {
@@ -253,22 +284,7 @@ not need to be cached.
            to be properly nested (the same number of opening and closing
            parentheses), and to improve error recovery, it is not expected to
            include a semicolon, left brace, or end-of-source token. */
-        for (;;) {
-          if (state != NULL) cache_curr_token(&state->cache);
-          get_token_and_coalesce_if_identifier(flags);
-          if (curr_token == tok_rparen) {
-            /* A right parenthesis.  Break out if this is a zero level
-               parenthesis. */
-            if (paren_count == 0) break;
-            paren_count--;
-          } else if (curr_token == tok_lparen) {
-            paren_count++;   
-          } else if (curr_token == tok_semicolon ||
-                     curr_token == tok_end_of_source ||
-                     curr_token == tok_lbrace) {
-           break;
-          }  /* if */
-        }  /* for */
+        prescan_until_closing_paren(state, flags);
         if (curr_token == tok_rparen) {
           if (state != NULL) cache_curr_token(&state->cache);
           get_token_and_coalesce_if_identifier(flags);
@@ -302,6 +318,51 @@ not need to be cached.
 }  /* prescan_extended_decl_modifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+
+#if GNU_EXTENSIONS_ALLOWED
+
+static void prescan_attribute(a_disambig_state_ptr  state,
+                              a_disambig_flag_set   flags)
+/*
+Prescan a GNU attribute list of the form:
+
+  __attribute__ (( attribute-list [opt] ))
+
+When this routine is called, the "__attribute__" token is the current token.
+This routine does not actually enforce the syntax of the elements of the
+attribute list.  It simply requires that the parentheses be properly nested
+(the same number of left and right parentheses).
+*/
+{
+  check_assertion(curr_token == tok_attribute);
+  /* Bypass the attribute token. */
+  cache_curr_token(&state->cache);
+  (void)get_token();
+  if (curr_token == tok_lparen) {
+    /* Bypass the first left parenthesis. */
+    cache_curr_token(&state->cache);
+    (void)get_token();
+    if (curr_token == tok_lparen) {
+      /* Bypass the second left parenthesis. */
+      cache_curr_token(&state->cache);
+      (void)get_token();
+      /* Look for the closing parenthesis of the attribute. */
+      prescan_until_closing_paren(state, flags);
+    }  /* if */
+    /* We should now be at the closing "))" of the attribute. */
+    if (curr_token == tok_rparen) {
+      if (state != NULL) cache_curr_token(&state->cache);
+      get_token_and_coalesce_if_identifier(flags);
+    }  /* if */
+    if (curr_token == tok_rparen) {
+      if (state != NULL) cache_curr_token(&state->cache);
+      get_token_and_coalesce_if_identifier(flags);
+    }  /* if */
+  }  /* if */
+}  /* prescan_attribute */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void prescan_based_modifier(a_disambig_state_ptr       state,
@@ -451,6 +512,13 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         next_token_fetched = TRUE;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+      case tok_attribute:
+        /* A GNU __attribute__. */
+        prescan_attribute(state, flags);
+        next_token_fetched = TRUE;
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       /* Type specifier - identifier that may be a simple type name.
          If we haven't yet seen a type specifier, then this identifier,
          if it is a type, is the type specifier.  Otherwise, this is
