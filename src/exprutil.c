@@ -8187,6 +8187,35 @@ to member constant.
 }  /* conv_sym_for_member_operand_to_ptr_to_member */
 
 
+static void clear_lvalue_result_flags_in_expr_tree(an_expr_node_ptr expr)
+/*
+The indicated expression has been representing a function designator, and
+it is now undergoing the function-to-pointer decay and will be representing
+an rvalue.  Go through the indicated expression tree and clear the
+returns_lvalue_instead_of_usual_rvalue flags in the tree.  This matches
+the sense of the transformation, which is not a change of value but rather
+a change of intent.  Clearing the flag prevents some potential incorrect
+transformations in lowering.
+*/
+{
+  if (is_operation_node(expr) &&
+      expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+    an_expr_operator_kind op = expr->variant.operation.kind;    
+    an_expr_node_ptr      op1 = expr->variant.operation.operands;
+    expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+    if (op == (an_expr_operator_kind)eok_question) {
+      clear_lvalue_result_flags_in_expr_tree(op1->next);
+      clear_lvalue_result_flags_in_expr_tree(op1->next->next);
+    } else if (op == (an_expr_operator_kind)eok_comma ||
+               op == (an_expr_operator_kind)eok_points_to_static ||
+               op == (an_expr_operator_kind)eok_lvalue_dot_static ||
+               op == (an_expr_operator_kind)eok_rvalue_dot_static) {
+      clear_lvalue_result_flags_in_expr_tree(op1->next);
+    }  /* if */
+  }  /* if */
+}  /* clear_lvalue_result_flags_in_expr_tree */
+
+
 void conv_function_designator_to_ptr_to_function(an_operand *operand,
                                                  a_boolean  allow_ctor)
 /*
@@ -8235,6 +8264,7 @@ allowed).
        expression already has that type, just copy the type from the
        expression. */
     operand->type = operand->variant.expression->type;
+    clear_lvalue_result_flags_in_expr_tree(operand->variant.expression);
   } else if (is_sym_for_member_operand(operand)) {
     /* Convert a member name to a pointer-to-member. */
     conv_sym_for_member_operand_to_ptr_to_member(operand);
