@@ -1089,13 +1089,11 @@ a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
                                 a_scope_depth    scope_level,
                                 a_boolean        suppress_redecl_error)
 /*
-
 Enter a symbol declarative scope specified by scope_level.  kind indicates
 the kind of symbol (e.g., a variable), and *locator is a locator for the
 identifier.  Enter the symbol at the file scope if is_file_scope is TRUE.
 If suppress_redecl_error is TRUE, suppress any error on a duplicate
 declaration of this symbol.
-
 */
 {
   a_symbol_ptr  sym;
