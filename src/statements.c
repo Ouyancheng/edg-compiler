@@ -1132,7 +1132,7 @@ the current routine.
   /* Get a pointer to the current routine entry, and get its return
      type. */
   rout = current_routine_entry();
-  rout_type = rout->type->variant.routine.return_type;
+  rout_type = skip_typerefs(rout->type)->variant.routine.return_type;
   if (!is_void_type(rout_type) && !is_error_type(rout_type)) {
     /* If a return with no expression appears in a function with a
        non-void type, issue a warning.  Do not issue the warning for
@@ -1189,7 +1189,7 @@ See also 3.6.6.4.
     /* Get a pointer to the current routine entry, and get its return
        type. */
     rout = current_routine_entry();
-    rout_type = rout->type->variant.routine.return_type;
+    rout_type = skip_typerefs(rout->type)->variant.routine.return_type;
     if (is_void_type(rout_type)) {
       /* A void function may not return a value. */
       error(ec_value_returned_in_void_function);
@@ -1778,7 +1778,13 @@ come out on the closing "}".
      a block). */
   scope_ptr = NULL;
   if (!at_function_level) {
+    /* Store the IL scope pointer in the block.  This is NULL except for
+       blocks with declarations. */
     scope_ptr = scope_stack[decl_scope_level].il_scope;
+    if (scope_ptr != NULL) {
+      block->variant.block.extra_info->assoc_scope = scope_ptr;
+      scope_ptr->assoc_block = block;
+    }  /* if */
     pop_scope();
   }  /* if */
   /* Pop the statement stack. */
@@ -1788,9 +1794,6 @@ come out on the closing "}".
     depth_stmt_stack = -1;
   }  /* if */
 
-  /* Store the scope pointer in the block.  This is NULL except for
-     blocks with declarations. */
-  block->variant.block.extra_info->assoc_scope = scope_ptr;
   /* Remember the sequence number of the current token, which is expected
      to be the closing brace. */
   block->variant.block.extra_info->final_seq_number = pos_curr_token.seq;
