@@ -1062,21 +1062,28 @@ string.
 		slmp,
                 slmp2;
   sizeof_t      len_new;
+  a_token_kind  last_token_of_expansion;
+  char          last_char_of_expansion;
+  a_byte        cat_last_char, cat_next_char;
+  a_boolean     aux_buffer_modified = FALSE;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
      must be registered by calling register_pointer_variable so that they
      can be updated on any reallocation. */
   char          *pos_in_aux_buffer, *pos_in_macro_buffer, *save_curr_char_loc;
+  char          *loc_following_insertion;
   a_pointer_registration
                 pos_in_aux_buffer_reg, pos_in_macro_buffer_reg,
-                save_curr_char_loc_reg;
+                save_curr_char_loc_reg, loc_following_insertion_reg;
   a_pointer_registration_ptr
                 save_registered_pointers = registered_pointers;
 
   register_pointer_variable(pos_in_aux_buffer,   pos_in_aux_buffer_reg);
   register_pointer_variable(pos_in_macro_buffer, pos_in_macro_buffer_reg);
   register_pointer_variable(save_curr_char_loc,  save_curr_char_loc_reg);
+  register_pointer_variable(loc_following_insertion,
+                                                 loc_following_insertion_reg);
 
   db_enter(4, "expand_top_level_pcc_macro");
   /* The macro body is at main_slmp->inserted_text.  It's a single piece
@@ -1098,6 +1105,7 @@ string.
   main_slmp->is_isolated_text = TRUE;
   sequence_id = main_slmp->sequence_id;
   pos_in_aux_buffer = aux_buffer_for_pcc_macros;
+  last_token_of_expansion = tok_end_of_source;
   while (arg_get_token(&any_white_space_skipped) != tok_end_of_source) {
     /* Make enough room in the aux. buffer for the token text. */
     ensure_aux_buffer_for_pcc_macros_space(len_of_curr_token +
@@ -1109,9 +1117,62 @@ string.
     /* Copy the text of the token to the auxiliary buffer. */
     memcpy(pos_in_aux_buffer, start_of_curr_token, (int)len_of_curr_token);
     pos_in_aux_buffer += len_of_curr_token;
+    last_token_of_expansion = curr_token;
   }  /* while */
+  /* Special trick to deal with cases like
+       #define x(a) "a
+       char *y = x(1)23";
+     i.e., token pasting across the end of a top-level macro call.
+     If the macro expansion ends with tok_error, or if the final character
+     of the expansion looks like it could be pasted with the first character
+     following the expansion, tack the rest of the primary source line onto
+     the end of the aux. buffer. */
+  /* Use pp_lexical_category to see if the last character and next character
+     could appear together in a token.  If they're singletons, they always
+     stand alone and therefore could not appear next to one another.
+     Otherwise, if they have the same category, they might appear next to one
+     another in a token. */
+  if (pos_in_aux_buffer != aux_buffer_for_pcc_macros) {
+    last_char_of_expansion = pos_in_aux_buffer[-1];
+  } else {
+    last_char_of_expansion = '\n';
+  }  /* if */
+  cat_last_char = pp_lexical_category[last_char_of_expansion-CHAR_MIN];
+  /* Determine the location in the primary source line that immediately follows
+     the end of the macro expansion. */
+  leave_insertion(main_slmp, loc_following_insertion);
+  cat_next_char = pp_lexical_category[*loc_following_insertion-CHAR_MIN];
+  if (last_token_of_expansion == tok_error ||
+      (cat_last_char != PLC_SINGLETON && cat_next_char != PLC_SINGLETON &&
+       cat_last_char == cat_next_char)) {
+    /* Tack the rest of the primary source line onto the end of the expansion
+       buffer so that the macro and what follows have a chance to be pasted
+       together. */
+    sizeof_t remaining_text_length = strlen(loc_following_insertion);
+    aux_buffer_modified = TRUE;
+    /* Leave the newline on the primary source line if it's there. */
+    if (remaining_text_length > 0 &&
+        loc_following_insertion[remaining_text_length-1] == '\n') {
+      remaining_text_length--;
+    }  /* if */
+#if DEBUG
+    if (debug_level >= 3) {
+      fprintf(f_debug,
+           "Tacking rest of primary source line onto macro expansion:\n%.*s\n",
+              (int)remaining_text_length, loc_following_insertion);
+    }  /* if */
+#endif /* DEBUG */
+    ensure_aux_buffer_for_pcc_macros_space(remaining_text_length,
+                                           pos_in_aux_buffer);
+    memcpy(pos_in_aux_buffer, loc_following_insertion,
+           (int)remaining_text_length);
+    pos_in_aux_buffer += remaining_text_length;
+    /* Adjust the line modification so that the additional text in the
+       primary source line is also deleted. */
+    main_slmp->num_chars_to_delete += remaining_text_length;
+  }  /* if */
   /* Put a null at the end of the aux. buffer. */
-  ensure_aux_buffer_for_pcc_macros_space(1, pos_in_aux_buffer);
+  ensure_aux_buffer_for_pcc_macros_space(1L, pos_in_aux_buffer);
   *pos_in_aux_buffer++ = '\0';
   /* Restore the flags that were changed before the scan. */
   main_slmp->is_isolated_text = FALSE;
@@ -1123,21 +1184,26 @@ string.
   /* See if there are any source line modifications made since the one
      to insert the macro body.  If so, some macro expansion was done;
      we free the entries and go on to do the copy.  If not, no macro
-     expansion was done, and the old and new strings should be the same. */
+     expansion was done. */
   if (sequence_id != sequence_id_for_source_line_modifs) {
     /* There was at least one internal macro expansion, so the aux. buffer
        will be copied into macro_buffer. */
+    aux_buffer_modified = TRUE;
     /* Remove the source modifications for the internal macro expansion.
        We don't need the information in them, since we have the full text
        we want in the aux. buffer. */
     for (slmp = source_line_modif_list; slmp != NULL;) {
-         slmp2 = slmp;
-         slmp = slmp->next;
+      slmp2 = slmp;
+      slmp = slmp->next;
       if (slmp2->sequence_id > sequence_id) {
         rem_source_line_modif(slmp2);
         free_source_line_modif(&slmp2);
       }  /* if */
     }  /* for */
+  }  /* if */
+  if (aux_buffer_modified) {
+    /* Copy the aux. buffer text into macro_buffer, replacing the old
+       expansion of the macro. */
     /* The new text can be copied onto the old, since the old text and
        everything following it is no longer necessary.  However, since the
        new text may be longer than the old, we have to make sure we have
@@ -1563,7 +1629,7 @@ end_scan_for_macro_modifs:;
             (void)arg_get_token(&any_white_space_skipped);
           }  /* while */
           /* Place terminating null. */
-          ensure_arg_raw_text_space(1, map);
+          ensure_arg_raw_text_space(1L, map);
           map->raw_text[map->raw_len] = '\0';
 #if DEBUG
           if (debug_level >= 4) {
