@@ -79,18 +79,11 @@ static a_scope_depth
 			   When non-zero, we are inside a class or
 			   reactivation of the scope of a class, and name
 			   lookup is more complicated. */
-static a_type_ptr
-		class_currently_inside_of;
-			/* Pointer to the type for a class to which we
-			   currently have member access, or NULL if there
-			   is no such type.  Non-NULL when inside a member
-			   function, class definition, or the like. */
-static a_class_list_entry_ptr
-		curr_class_befriending_classes,
-		curr_function_befriending_classes;
-			/* Pointers to lists of befriending classes for the
-			   current class or function (i.e., a class or function
-			   that we are inside of).  NULL if not applicable. */
+static a_scope_depth
+		depth_of_innermost_scope_that_affects_access_control;
+			/* If there are scopes on the scope stack that
+			   affect C++ access control, this is the depth of
+			   the innermost one.  Otherwise, NO_SCOPE_DEPTH. */
 
 
 /*
@@ -2165,25 +2158,54 @@ Return TRUE if we currently have member access privilege to the class
 indicated by class_type.
 */
 {
-  a_boolean have_member_privilege = FALSE;
+  a_boolean               have_member_privilege = FALSE;
+  a_scope_stack_entry_ptr ssep;
+  a_routine_ptr           scope_routine;
+  a_type_ptr              scope_class;
 
-  if (class_currently_inside_of != NULL &&
-      class_type == class_currently_inside_of) {
-    /* We are currently in the class of which the symbol is a member, so
-       we have member access privilege. */
-    have_member_privilege = TRUE;
-  } else if (curr_class_befriending_classes != NULL &&
-             on_befriending_list(curr_class_befriending_classes, class_type)) {
-    /* The symbol is a member of a class that has made the current class
-       a friend, so we have member access privilege. */
-    have_member_privilege = TRUE;
-  } else if (curr_function_befriending_classes != NULL &&
-             on_befriending_list(curr_function_befriending_classes,
-                                 class_type)) {
-    /* The symbol is a member of a class that has made the current function
-       a friend, so we have member access privilege. */
-    have_member_privilege = TRUE;
+  if (depth_of_innermost_scope_that_affects_access_control != NO_SCOPE_DEPTH) {
+    /* There are scopes on the scope stack that affect access control.
+       Look at each one and see if it confers member access to class_type. */
+    for (ssep = &scope_stack[
+                         depth_of_innermost_scope_that_affects_access_control];
+         /* This will stop, because the file scope does not affect access. */;
+         ssep--) {
+      switch (ssep->kind) {
+        case sck_function:
+          /* A function -- see if class_type is on its befriending list. */
+          scope_routine = ssep->il_scope->variant.routine.ptr;
+          if (on_befriending_list(scope_routine->befriending_classes,
+                                  class_type)) {
+            /* We are inside a function that is a friend of class_type. */
+            have_member_privilege = TRUE;
+            goto done;
+          }  /* if */
+          break;
+        case sck_class_struct_union:
+        case sck_class_reactivation:
+          /* A class -- see if class_type is the class or on its befriending
+             list. */
+          scope_class = ssep->assoc_type;
+          if (scope_class == class_type) {
+            /* We are inside class_type. */
+            have_member_privilege = TRUE;
+            goto done;
+          } else if (on_befriending_list(scope_class->variant.
+                                                class_struct_union.extra_info->
+                                                           befriending_classes,
+                                         class_type)) {
+            /* We are inside a class that is a friend of class_type. */
+            have_member_privilege = TRUE;
+            goto done;
+          }  /* if */
+          break;
+        default:
+          /* A scope that does not affect access control.  Exit the loop. */
+          goto done;
+      }  /* switch */
+    }  /* for */
   }  /* if */
+done:;
   return have_member_privilege;
 }  /* have_member_access_privilege */
 
@@ -2241,7 +2263,7 @@ any class on the list of befriending classes given by befriending_list.
 We know that we have member access to the classes on befriending_list but we
 do not know if class_type is a base class of any of those classes or if the
 derivations between the class_type and one of those classes will allow access
-to a protected member.  This routine is used is determining access to
+to a protected member.  This routine is used in determining access to
 protected members and derivations.
 */
 {
@@ -2267,28 +2289,62 @@ in the presence of a protected derivation.  See p. 214 of "The C++
 Programming Language", 2nd Edition, and 11.5 in the ARM.
 */
 {
-  a_boolean have_protected_access = FALSE;
+  a_boolean               have_protected_access = FALSE;
+  a_scope_stack_entry_ptr ssep;
+  a_routine_ptr           scope_routine;
+  a_type_ptr              scope_class;
 
   /* This routine looks a lot like have_member_access_privilege. */
-  if (class_currently_inside_of != NULL &&
-      have_protected_access_from_derived_class(class_type,
-                                               class_currently_inside_of)) {
-    /* We are currently in a class that is an appropriate derived class
-       of class_type, so we have access to protected members of class_type. */
-    have_protected_access = TRUE;
-  } else if (curr_class_befriending_classes != NULL &&
-             have_protected_access_from_befriending_list(
-                                 curr_class_befriending_classes, class_type)) {
-    /* We are in a class that is a friend of an appropriate derived class
-       of class_type, so we have access to protected members of class_type. */
-    have_protected_access = TRUE;
-  } else if (curr_function_befriending_classes != NULL &&
-             have_protected_access_from_befriending_list(
-                              curr_function_befriending_classes, class_type)) {
-    /* We are in a function that is a friend of an appropriate derived class
-       of class_type, so we have access to protected members of class_type. */
-    have_protected_access = TRUE;
+  if (depth_of_innermost_scope_that_affects_access_control != NO_SCOPE_DEPTH) {
+    /* There are scopes on the scope stack that affect access control.
+       Look at each one and see if it confers protected member access to
+       class_type. */
+    for (ssep = &scope_stack[
+                         depth_of_innermost_scope_that_affects_access_control];
+         /* This will stop, because the file scope does not affect access. */;
+         ssep--) {
+      switch (ssep->kind) {
+        case sck_function:
+          /* A function. */
+          scope_routine = ssep->il_scope->variant.routine.ptr;
+          if (have_protected_access_from_befriending_list(scope_routine->
+                                                           befriending_classes,
+                                                          class_type)) {
+            /* We are in a function that is a friend of an appropriate
+               derived class of class_type, so we have access to protected
+               members of class_type. */
+            have_protected_access = TRUE;
+            goto done;
+          }  /* if */
+          break;
+        case sck_class_struct_union:
+        case sck_class_reactivation:
+          /* A class. */
+          scope_class = ssep->assoc_type;
+          if (have_protected_access_from_derived_class(class_type,
+                                                       scope_class)) {
+            /* We are in a class that is an appropriate derived class of
+               class_type, so we have access to protected members of
+               class_type. */
+            have_protected_access = TRUE;
+            goto done;
+          } else if (have_protected_access_from_befriending_list(scope_class->
+                    variant.class_struct_union.extra_info->befriending_classes,
+                                                                 class_type)) {
+            /* We are in a class that is a friend of an appropriate derived
+               class of class_type, so we have access to protected members of
+               class_type. */
+            have_protected_access = TRUE;
+            goto done;
+          }  /* if */
+          break;
+        default:
+          /* A scope that does not affect access control.  Exit the loop. */
+          goto done;
+      }  /* switch */
+    }  /* for */
   }  /* if */
+done:;
   return have_protected_access;
 }  /* have_protected_member_access_privilege */
 
@@ -3364,67 +3420,9 @@ that has an effect on access control (a class, class reactivation, or
 function).  Access control only exists in C++.
 */
 #define is_scope_kind_that_affects_access_control(kind)               \
-  (C_dialect == C_dialect_cplusplus &&                                \
    ((kind) == (a_scope_kind)sck_class_struct_union ||                 \
     (kind) == (a_scope_kind)sck_class_reactivation ||                 \
-    (kind) == (a_scope_kind)sck_function))
-
-
-static void clear_access_control_scope(void)
-/*
-Clear the access control variables class_currently_inside_of,
-curr_class_befriending_classes, and curr_function_befriending_classes.
-*/
-{
-  class_currently_inside_of = NULL;
-  curr_class_befriending_classes = NULL;
-  curr_function_befriending_classes = NULL;
-}  /* clear_access_control_scope */
-
-
-static void set_access_control_scope(a_scope_stack_entry_ptr ssep)
-/*
-Set the access control variables class_currently_inside_of,
-curr_class_befriending_classes, and curr_function_befriending_classes
-for the scope stack entry pointed to by ssep.
-is_scope_kind_that_affects_access_control(ssep->kind) must be TRUE.
-*/
-{
-  a_scope_stack_entry_ptr prev_ssep;
-
-  clear_access_control_scope();
-  if (ssep->kind == (a_scope_kind)sck_function) {
-    /* The scope entry is for a function.  Remember the classes that have
-       befriended it, if any. */
-    curr_function_befriending_classes =
-                      ssep->il_scope->variant.routine.ptr->befriending_classes;
-    /* If there is a preceding class reactivation entry on the scope stack
-       (because this is a member function) or a class entry (because this is
-       an inline function definition), save the class as the active
-       one.  Note that it is guaranteed that there is an entry below the
-       function entry. */
-    prev_ssep = ssep-1;
-    if (prev_ssep->kind == (a_scope_kind)sck_class_struct_union ||
-        prev_ssep->kind == (a_scope_kind)sck_class_reactivation) {
-      class_currently_inside_of = prev_ssep->assoc_type;
-    }  /* if */
-  } else {
-#if CHECKING
-    if (ssep->kind != (a_scope_kind)sck_class_struct_union &&
-        ssep->kind != (a_scope_kind)sck_class_reactivation) {
-      internal_error("set_access_control_scope: bad scope kind");
-    }  /* if */
-#endif /* CHECKING */
-    /* Class scope or class reactivation scope. */
-    class_currently_inside_of = ssep->assoc_type;
-  }  /* if */
-  /* If we are currently inside a class (as determined above), remember
-     also the classes that have befriended the active class. */
-  if (class_currently_inside_of != NULL) {
-    curr_class_befriending_classes = class_currently_inside_of->variant.
-                            class_struct_union.extra_info->befriending_classes;
-  }  /* if */
-}  /* set_access_control_scope */
+    (kind) == (a_scope_kind)sck_function)
 
 
 a_scope_ptr push_scope(a_scope_kind   kind,
@@ -3564,8 +3562,9 @@ for the function scope case; it must be NULL in other cases.
   }  /* if */
   /* Maintain the depth of the innermost stack entry that affects access
      control. */
-  if (is_scope_kind_that_affects_access_control(kind)) {
-    set_access_control_scope(ssep);
+  if (C_dialect == C_dialect_cplusplus &&
+      is_scope_kind_that_affects_access_control(kind)) {
+    depth_of_innermost_scope_that_affects_access_control = depth_scope_stack;
   }  /* if */
   db_exit();
   return sp;
@@ -4021,20 +4020,16 @@ End a name scope by popping an entry off the scope stack.
   }  /* if */
   /* Maintain the depth of the innermost stack entry that affects access
      control. */
-  if (is_scope_kind_that_affects_access_control(kind)) {
-    a_scope_stack_entry_ptr access_control_ssep;
-    for (access_control_ssep = ssep-1;
-         access_control_ssep != &scope_stack[DEPTH_OF_FILE_SCOPE];
-         access_control_ssep--) {
+  if (C_dialect == C_dialect_cplusplus &&
+      is_scope_kind_that_affects_access_control(kind)) {
+    depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
+    for (scope_depth = depth_scope_stack-1; scope_depth >= 0; scope_depth--) {
       if (is_scope_kind_that_affects_access_control(
-                                                  access_control_ssep->kind)) {
-        set_access_control_scope(access_control_ssep);
-        goto done_with_access_control_setting;
+                                              scope_stack[scope_depth].kind)) {
+        depth_of_innermost_scope_that_affects_access_control = scope_depth;
+        break;
       }  /* if */
     }  /* for */
-    /* No entry remaining on the stack affects access control. */
-    clear_access_control_scope();
-done_with_access_control_setting:;
   }  /* if */
   /* Determine the memory region to restore for the outer scope. */
   new_memory_region_number = ssep->prev_il_memory_region;
@@ -4491,9 +4486,7 @@ to avoid an 8-character external name clash with symbol_table.)
   error_symbol_header = NULL;
   unnamed_class_symbol_header = NULL;
   num_classes_on_scope_stack = 0;
-  class_currently_inside_of = NULL;
-  curr_class_befriending_classes = NULL;
-  curr_function_befriending_classes = NULL;
+  depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
   /* Initialize the conversion header list. */
   conversion_header_list = NULL;
 #if DEBUG
