@@ -2795,7 +2795,9 @@ position of the identifier.
            "A function declaration without a linkage specification may not
            precede the first linkage specification for that function." */
         if (def_external_linkage.is_explicit) {
-          err = (!sym->explicit_linkage_specifier &&
+          err = (scp->name_linkage !=
+                        (a_name_linkage_kind)nlk_cplusplus_external &&
+                 !sym->explicit_linkage_specifier &&
                  !ext_sym->explicit_linkage_specifier);
           /* Mark the symbols as having an explicit linkage specifier to
              keep this error from occurring again later. */
