@@ -1,5 +1,16 @@
 Version 3.3
 
+6/19/03  Abort on overridden construction in C++ designated initializer
+
+IL lowering aborted in il.c/gather_initializer_expressions while
+processing a designated initializer in C++ mode where an initialization
+via a constructor call was overridden by a later initialization.
+(The constructor call is done for side effects and the result is
+discarded.)  Now fixed.
+
+  struct A { A(); ~A(); };
+  A a[2] = { A(), [0] = A() };
+
 6/19/03  C++-generating back end: default-initialized members of arrays
 
 The C++-generating back end formerly put out initializations for

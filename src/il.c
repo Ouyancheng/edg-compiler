@@ -3514,11 +3514,17 @@ expressions aren't copied; they're just linked together into one tree.
 
   if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
     a_dynamic_init_ptr dip = con->variant.dynamic_init;
-    /* Note that if designators are accepted in C++ other initialization
-       kinds may show up here (dik_constructor in particular). */
-    check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression);
-    expr = dip->variant.expression;
-    if (!node_has_side_effects(expr, (a_boolean *)NULL)) expr = NULL;
+    a_boolean          suppress_warning;
+    if (dynamic_init_has_side_effects(dip, &suppress_warning)) {
+      if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+        expr = dip->variant.expression;
+      } else {
+        /* For other cases, e.g., dik_constructor, make an enk_temp_init. */
+        expr = alloc_expr_node((an_expr_node_kind)enk_temp_init);
+        expr->variant.init.dynamic_init = dip;
+        expr->type = rvalue_type(con->type);
+      }  /* if */
+    }  /* if */
   } else if (con->kind == (a_constant_repr_kind)ck_aggregate) {
     /* Visit the members of an aggregate. */
     a_constant_ptr mcon;
@@ -3545,7 +3551,7 @@ expressions aren't copied; they're just linked together into one tree.
 static an_expr_node_ptr *find_expression_in_initializer(a_constant_ptr con)
 /*
 Find an expression in the initializer constant con, and return a pointer
-to the pointer to it.  If no expression is found, change a constant to a
+to the pointer to it.  If no expression is found, change the constant to a
 ck_dynamic_init with the constant as an expression under it, and return
 that expression.
 */
@@ -3554,14 +3560,22 @@ that expression.
 
   if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
     a_dynamic_init_ptr dip = con->variant.dynamic_init;
-    /* Note that if designators are accepted in C++ other initialization
-       kinds may show up here (dik_constructor in particular). */
-    check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression);
+    if (dip->kind != (a_dynamic_init_kind)dik_expression) {
+      /* Dynamic init other than dik_expression (e.g., dik_constructor).
+         Turn the initialization into a dik_expression with the
+         original initialization as an enk_temp_init under it. */
+      an_expr_node_ptr expr;
+      expr = alloc_expr_node((an_expr_node_kind)enk_temp_init);
+      expr->variant.init.dynamic_init = dip;
+      expr->type = rvalue_type(con->type);
+      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+      dip->variant.expression = expr;
+      con->variant.dynamic_init = dip;
+    }  /* if */
     expr_ptr = &dip->variant.expression;
-  } else if (con->kind == (a_constant_repr_kind)ck_aggregate) {
-    /* Use the first member of an aggregate. */
-    /* In C, {} is not allowed.  This would have to be changed if
-       designated initializers were allowed in C++. */
+  } else if (con->kind == (a_constant_repr_kind)ck_aggregate &&
+             con->variant.aggregate.first_constant != NULL) {
+    /* Use the first member of a non-empty aggregate. */
     a_constant_ptr member_con = con->variant.aggregate.first_constant;
     check_assertion(member_con != NULL);
     if (member_con->kind == (a_constant_repr_kind)ck_designator) {
