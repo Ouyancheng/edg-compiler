@@ -8837,7 +8837,7 @@ describing any incompatibilities.
            than that of the associated class template. */
         err = !equiv_nontype_template_param_names(
                  old_tpp->variant.constant.ptr, new_tpp->variant.constant.ptr);
-        if (!err) {
+        if (!err && !any_errors) {
           /* An incompatible redeclaration of the parameter that is accepted
              in Microsoft bugs mode.  Issue a warning. */
           pos_sy_warning(ec_not_compatible_with_previous_decl,

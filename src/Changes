@@ -1,5 +1,14 @@
 Version 3.1
 
+9/11/02  Microsoft compatibility: spurious warning on overloaded template
+
+In Microsoft bugs mode, a spurious "incompatible template parameter
+declaration" warning could be issued on the declaration of an overloaded
+function template.  This has been fixed.
+
+  template<class T, int i> void f();
+  template<int i, unsigned int ui> void f();
+
 9/11/02  Microsoft compatibility: explicit instantiation of specialized class
 
 In Microsoft bugs mode, an explicit instantiation of a specialized class is
