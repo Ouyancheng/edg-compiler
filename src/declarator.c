@@ -3542,12 +3542,11 @@ to FALSE if the entity being declared is not initializable.
             (ssep->kind == (a_scope_kind)sck_file &&
              qualifier_namespace_ptr(locator_for_curr_id) == NULL)) {
           an_error_severity  severity = es_discretionary_error;
-          an_error_code      err_code = ec_qualifier_in_namespace_member_decl;
+          an_error_code      err_code;
           /* The declarator name is qualified by the current namespace. */
           if (is_template_decl && !do_dependent_name_processing) {
             severity = es_error;
-          } else if (is_specialization_or_instantiation &&
-                     !strict_ansi_mode) {
+          } else if (is_specialization_or_instantiation && !strict_ansi_mode) {
             severity = es_remark;
           } else if (gpp_mode || 
                      (microsoft_mode &&
@@ -3560,9 +3559,7 @@ to FALSE if the entity being declared is not initializable.
                (unless dependent name processing has been enabled, which is
                the default for gnu_version >= 30400). */
             severity = es_warning;
-            err_code = ec_nonstd_qualifier_in_namespace_member_decl;
           }  /* if */
-          pos_diagnostic(severity, err_code, &pos_curr_token);
           /* Reset the fields in the locator to make it appear as if the
              qualifier were not present. */
           clear_qualifier_from_locator(&locator_for_curr_id);
@@ -3580,6 +3577,14 @@ to FALSE if the entity being declared is not initializable.
             */
             set_to_named_error_locator(locator_for_curr_id);
           }  /* if */
+          if (ssep->kind == (a_scope_kind)sck_file) {
+            err_code = ec_nonstd_qualifier_in_global_scope_decl;
+          } else if ((int)severity <= (int)es_warning) {
+            err_code = ec_nonstd_qualifier_in_namespace_member_decl;
+          } else {
+            err_code = ec_qualifier_in_namespace_member_decl;
+          }  /* if */
+          pos_diagnostic(severity, err_code, &pos_curr_token);
         } else if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
           /* Error has already been issued on the template declaration.
              Just skip over it here on the instantiation. */
