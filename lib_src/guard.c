@@ -49,7 +49,7 @@ initialized and return 1.
 }  /* __cxa_guard_acquire */
 
 
-EXTERN_C void ABI_NAMESPACE::__cxa_guard_release(a_guard_ptr guard)
+EXTERN_C void ABI_NAMESPACE::__cxa_guard_release(a_guard_ptr)
 /*
 Called when the initialization of the guarded object is complete.
 */

@@ -244,9 +244,9 @@ prefix_size.
 /*ARGSUSED*/ /* <-- "number_of_elements" is only used when
                     USE_PREFIX_FOR_ARRAY_ALLOC_INFO is TRUE. */
 #else /* USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
-#ifndef __EDG_IA64_ABI
+#ifdef __EDG_IA64_ABI
 /*ARGSUSED*/ /* <-- "size" is not used in that case. */
-#endif /* ifndef __EDG_IA64_ABI */
+#endif /* ifdef __EDG_IA64_ABI */
 #endif /* USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
 
 static inline a_boolean record_array_alloc_info(void*	array_ptr,

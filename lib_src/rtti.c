@@ -123,10 +123,10 @@ FALSE.
 
 #endif /* ifdef __EDG_IA64_ABI */
 
-#ifndef __EDG_IA64_ABI
+#ifdef __EDG_IA64_ABI
 /*ARGSUSED*/ /* <-- access_flags and use_access_flags are unused in that
                     case. */
-#endif /* ifndef __EDG_IA64_ABI */
+#endif /* ifdef __EDG_IA64_ABI */
 EXTERN_C
 a_boolean __derived_to_base_conversion(void**		     p_ptr,
 		  		       void**                p_new_ptr,
