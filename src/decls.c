@@ -1125,27 +1125,6 @@ current scope.
 }  /* make_anonymous_union_variable */
 
 
-a_variable_ptr make_param_variable(a_type_ptr       type_ptr,
-                                   a_storage_class  storage_class)
-/*
-Allocate a variable entry with type type_ptr.  If type_ptr is NULL (as it
-will be in trying to creating an implicit this parameter for static member
-functions) simply return NULL.
-*/
-{
-  a_variable_ptr vp;
-
-  check_assertion(type_ptr != NULL);
-  vp = alloc_variable(storage_class);
-  vp->type = type_ptr;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  vp->declared_type = type_ptr;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  vp->is_parameter = TRUE;
-  return(vp);
-}  /* make_param_variable */
-
-
 a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
                                 a_symbol_locator *locator,
                                 a_scope_depth    scope_level,
