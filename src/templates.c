@@ -3954,7 +3954,7 @@ on the ck_template_param constant pointed to by the expression.
         !is_void_type(tp) && !is_reference_type(tp)) {
       /* Create a new array type. */
       new_array_type = alloc_type((a_type_kind)tk_array);
-      *new_array_type = *type;
+      copy_type(type, new_array_type);
       new_array_type->variant.array.element_type = tp;
       if (orig_cp != new_cp) {
         if (new_cp->kind != (a_constant_repr_kind)ck_template_param) {
