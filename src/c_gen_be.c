@@ -6048,7 +6048,7 @@ if this routine has a body (dump nothing if it has no body).
   a_storage_class storage_class = rout->storage_class;
 
 #if ONE_INSTANTIATION_PER_OBJECT
-  if (has_defn && needed_flag_bit_number != 0) {
+  if (has_defn && needed_flag_bit_number != 0 && !rout->is_inline) {
     /* We're generating separate files for each instantiation, so do not
        put instantiation definitions into the primary output file, or
        primary-file routine definitions into the instantiation files. */

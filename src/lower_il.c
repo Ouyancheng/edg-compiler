@@ -5086,7 +5086,8 @@ not include the function scope memory region, if any.
     } /* if */
 #endif /* LOWER_EXTERN_INLINE */
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-    if (routine->source_corresp.static_used_by_instantiation) {
+    if (routine->source_corresp.static_used_by_instantiation &&
+        !routine->is_inline) {
       /* This is a static routine referenced from an instantiation, so
          it has to made external. */
       externalize_source_correspondence(&routine->source_corresp,
