@@ -1,5 +1,37 @@
 Version 2.27
 
+12/20/94 Change in -p option
+
+The -p option is now used to indicate that profiling code is
+to be generated.  This option is passed to the underlying
+C compiler and causes _p to be appended to library names specified
+by the -l option.
+
+Formerly, this option indicated that the file should be compiled in
+C++ mode.  This may now be specified using the --c++ option.
+
+12/20/94 EDG_LIBRARY_OPTION
+
+The EDG_LIBRARY_OPTION may be used to specify the string used as the
+library directory option name.  The default value is -L.
+
+12/20/94 Change in EDG_STD_LIBS
+
+Formerly, EDG_STD_LIBS contained a string to be passed to the linker
+such as "-lstd -lxyz".  It has been changed to a colon separated list of
+library names (e.g., "std:xyz").
+
+12/20/94 -ofile_name now supported
+
+It is now possible to specify an output file name without a space
+between the "-o" and the file name.
+
+12/20/94 EDG_DEFAULT_INCLUDE_DIRS
+
+This new environment variable has been added.  It may be set to
+a colon separated list of include file paths.  An empty path is
+translated to "-I.".
+
 11/30/94 Fix eccp problem when using -l option and templates
 
 eccp would incorrectly use -tused when a command line like

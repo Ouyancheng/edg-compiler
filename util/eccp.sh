@@ -17,6 +17,13 @@ INCLDIR=$EDG_BASE/include
 #
 CINCLDIR=$EDG_CBASE/usr/include
 #
+# Default include directories.  The default directories are specified by
+# EDG_DEFAULT_INCLUDE_DIRS.  If this variable is not set, then we
+# select either INCLDIR or CINCLDIR depending on the language being
+# compiled.  This is done after command line processing when we know
+# the langauge being compiled.
+
+#
 # Directory where libC.a is to be found.
 #
 LIBDIR=${ECCP_LIBDIR-$EDG_BASE/lib}
@@ -45,10 +52,14 @@ EDG_MUNCH_NM_OPTIONS=${EDG_MUNCH_NM_OPTIONS-""}
 #
 EDG_PRELINK=${EDG_PRELINK_PATH-$EDG_BASE/lib/edg_prelink}
 #
+# The option to be used to specify a library name
+#
+library_option=${EDG_LIBRARY_OPTION-"-L"}
+#
 # Default library paths of C to object compiler.  Used by the prelinker
 # to find libraries specified with the -l option.
 #
-EDG_DEFAULT_LIB_PATHS=${EDG_DEFAULT_LIB_PATHS-"-L/lib -L/usr/lib"}
+EDG_DEFAULT_LIB_PATHS=${EDG_DEFAULT_LIB_PATHS-"${library_option}/lib ${library_option}/usr/lib"}
 #
 # Default options to the prelink command (no default value - use environment
 # variable if set)
@@ -75,9 +86,11 @@ TMPDIR=${TMPDIR-/tmp}
 #
 EDG_LIB_SUFFIX=${EDG_LIB_SUFFIX-""}
 #
-# Library names to be used on the link command
+# Library names to be used on the link command.  This should be a colon
+# separated list of library names of a form suitable for use with the
+# -l options (e.g., std:xyz for -lstd and -lxyz).
 #
-EDG_STD_LIBS=${EDG_STD_LIBS-"-lstd"}
+EDG_STD_LIBS=${EDG_STD_LIBS-"std"}
 #
 # C compiler to use to compile the output and any options to be used with
 # this compiler by default.
@@ -97,7 +110,6 @@ gen_c_in_curr_dir=${EDG_GEN_C_IN_CURR_DIR-0}
 #
 if [ $automatic_instantiation -eq 1 ] ; then
   compile_command=$0
-  instantiation_libraries="$LIBDIR/libC$EDG_LIB_SUFFIX.a"
 fi
 #
 # Flag that indicates that the old instantiation information file
@@ -113,6 +125,8 @@ gen_o_suffix=`expr $gen_c_suffix : '\(.*\)\.'`.o
 # Default options to be passed to edgcpfe
 #
 EDG_CPFE_DEFAULT_OPTIONS=${EDG_CPFE_DEFAULT_OPTIONS-""}
+#
+# Set to TRUE if an eccp error (e.g., command line error) occurs.
 #
 error=0
 #
@@ -197,7 +211,7 @@ link_using_quantify=0
 #
 # Flag indicating that C is being compiled instead of C++
 #
-cmode=0
+c_mode=0
 #
 # Flag indicating that the standard include directory should be added.
 #
@@ -290,18 +304,23 @@ do
       executable=$1;
       add_to_instantiation_command=0
       ;;
+    -o*)
+#     Explicitly name the executable.
+      executable=`expr $1 : '-o\(.*\)'`    # Get the string after the -o
+      add_to_instantiation_command=0
+      ;;
     --output=*)
 #     Explicitly name the executable.
       executable=`expr $1 : '.*=\(.*\)'`    # Get the string after the =
       add_to_instantiation_command=0
       ;;
-    -L | --library_directory)
+    $library_option | --library_directory)
 #     Collect a list of -L options to pass to the linker.
       shift;
       Loptions=$Loptions" -L"$1;
       used_two_params=1
       ;;
-    -L*)
+    ${library_option}*)
 #     Collect a list of -L options to pass to the linker.
       Loptions=$Loptions" "$1
       ;;
@@ -347,6 +366,11 @@ do
     -pic | --pic)
 #     Generate position independent code
       c_to_obj_options="$c_to_obj_options -pic"
+      ;;
+    -p | -pg)
+#     Generate profiling code and use profiling version of libraries
+      c_to_obj_options="$c_to_obj_options $1"
+      EDG_LIB_SUFFIX="_p"
       ;;
     -target)
 #     SunOS 4.n option, as in "-target sun4" -- ignored.
@@ -427,7 +451,6 @@ do
          --cfront_3.0 | \
     -j | --no_use_before_set_warnings | \
     -m | --c | \
-    -p | --c++ | \
     -r | --remarks | \
     -s | --signed_chars | \
     -u | --unsigned_chars | \
@@ -446,6 +469,7 @@ do
          --anachronisms | \
          --no_anachronisms | \
     -# | --timing | \
+         --c++ | \
          --display_error_number | \
 	 --old_line_commands | \
 	 --microsoft | \
@@ -457,10 +481,10 @@ do
 #     Check for C or C++ mode
       case $curr_param in
         -m | --c | -K | --old_c)
-         cmode=1
+         c_mode=1
          ;;
         -p | --c++)
-         cmode=0
+         c_mode=0
          ;;
       esac
       ;;
@@ -598,7 +622,7 @@ fi
 
 # If we are in C mode then disable automatic instantiation just for
 # efficiency.
-if [ $cmode -eq 1 ] ; then
+if [ $c_mode -eq 1 ] ; then
   automatic_instantiation=0
 fi
 
@@ -608,32 +632,56 @@ fi
 # sets some environment variables before invoking this script.
 if [ $automatic_instantiation -eq 1 ] ; then
   instantiation_command_line="$compile_command -c"$instantiation_command_line
+  instantiation_libraries="$LIBDIR/libC$EDG_LIB_SUFFIX.a"
 fi
 
 if [ $error -eq 1 ]
 then
   exit 1
 fi
+
+#
+# Set the default include directories.
+#
+if [ $c_mode -eq 1 ] ; then
+  default_include_dirs=$CINCLDIR
+else
+  default_include_dirs=$INCLDIR
+fi
+default_include_dirs=${EDG_DEFAULT_INCLUDE_DIRS-$default_include_dirs}
+#
+# Add the -I before each element of a colon separated list.  Note that
+# an empty list element is converted to a ".".
+#
+if [ "$default_include_dirs" != "" ] ; then
+  default_include_dirs=`echo $default_include_dirs | \
+                        sed -e "s/::/:.:/g" \
+                            -e "s/::/:.:/g" \
+                            -e 's/:$//' -e s"/^:/.:/" \
+                            -e "s/^/:/" -e "s/:/ -I/g"`
+fi
 #
 # Add the proper include directory.
 #
 if [ $std_incl -eq 1 ]
 then
-  if [ $cmode -eq 1 ]
-  then
-#   Compiling C code.
-    feoptions=$feoptions" -I"$CINCLDIR;
-  else
-#   Compiling C++ code.
-    feoptions=$feoptions" -I"$INCLDIR;
-  fi
+    feoptions=$feoptions" "$default_include_dirs
 fi
+#
+# Convert the default libraries into the appropriate form.  In
+# other words, convert std:xyz to -lstd -lxyz.  Add an optional
+# suffix.
+#
+EDG_STD_LIBS=`echo $EDG_STD_LIBS | \
+             sed -e 's/:$//' -e 's/::/:/g' \
+                 -e 's/^:*//' -e "s/:/$EDG_LIB_SUFFIX -l/g"  \
+		 -e 's/^/-l/' -e "s/$/$EDG_LIB_SUFFIX/"`
 #
 # If only one source file was specified, and we are compiling and
 # linking (i.e., we know everything for this compilation is in a single
 # file) then use the "instantiate used" option.
 #
-if [ $cmode -eq 0 -a $more_than_one_c_file -eq 0 -a $cc_only -eq 0 -a	\
+if [ $c_mode -eq 0 -a $more_than_one_c_file -eq 0 -a $cc_only -eq 0 -a	\
      $fe_only -eq 0 -a $any_l_or_o_files -eq 0 -a \
      $instantiation_mode_specified -eq 0 ] ; then
   feoptions=$feoptions" -tused"
@@ -854,7 +902,7 @@ then
       if [ $automatic_instantiation -ne 0 ] ; then
         command="$EDG_PRELINK $EDG_PRELINK_DEFAULT_OPTIONS \
                      $prelink_options \
-		     $Loptions -L$LIBDIR \
+		     $Loptions ${library_option}$LIBDIR \
                      $EDG_DEFAULT_LIB_PATHS \
 		     $loptions $ofiles $lfiles \
                      $instantiation_libraries"
@@ -884,7 +932,8 @@ then
 #     "munch" step below.
 #     Note:  -lC is missing from this command and is supplied later using
 #     the variable link_command_suffix.
-      link_command="$cc_command $c_to_obj_options $Loptions -L$LIBDIR \
+      link_command="$cc_command $c_to_obj_options $Loptions \
+		       ${library_option}$LIBDIR \
                        $ldoptions -o $executable \
                        $ofiles $lfiles $loptions $EDG_STD_LIBS \
 		       $EDG_C_TO_OBJ_LIBRARIES"
@@ -906,7 +955,7 @@ then
       $link_command $link_command_suffix >$link_error_file 2>&1
       status=$?
       $EDG_DECODE <$link_error_file 1>&2
-      if [ $status = 0 -a $cmode -eq 0 ]
+      if [ $status = 0 -a $c_mode -eq 0 ]
       then
 #       Do processing to handle calling static constructors and destructors.
         if [ $patch_mode = 1 ] ; then
