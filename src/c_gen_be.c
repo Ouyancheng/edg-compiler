@@ -3234,10 +3234,12 @@ by parentheses.
   an_expr_node_ptr first_op, second_op, other_op, temp_node, parent_node;
   a_constant_ptr   con;
 
+#if KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED
   /* Ignore an enk_object_lifetime node if present -- look under it. */
   if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
     node = node->variant.object_lifetime.expr;
   }  /* if */
+#endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
   /* If there is a "!= 0" at the top of the expression, remove it.
      This is not just an optimization -- the Sun 4.1 compiler has
      a bug in handling a "!= 0" on top of a comma operator, as in
