@@ -47,12 +47,13 @@ be generated (in C-mode only) for cases like the following:
 
 9/15/95  Function template specializations in friend declarations
 
-This sort of case is now handled properly:
+This sort of case (for which no error was issued in version 2.29 and which
+produced an internal error prior to 2.29) is now handled properly:
 
   template <class T> void f(T) { }
   class A {
     friend void f(long) { }
-    friend void f(long) { }
+    friend void f(long) { }     // Already-defined error is now issued
   };
 
 9/13/95  IL CHANGE: flag to mark implicit declaration
