@@ -11885,6 +11885,7 @@ Display a class list for debugging purposes.
     a_boolean              secondary = in_secondary_trans_unit(list);
     a_class_list_entry_ptr entry;
     for (entry = list; entry != NULL; entry = entry->next) {
+      fprintf(f_debug, "  ");
       if (secondary != in_secondary_trans_unit(entry)) {
         (void)fprintf(f_debug, "***switch between translation units***\n");
         secondary = !secondary;
