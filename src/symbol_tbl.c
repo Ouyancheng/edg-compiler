@@ -2309,9 +2309,10 @@ a_symbol_ptr make_projection_symbol(a_symbol_ptr      progenitor_sym,
 Create a new projection symbol entry and return a pointer to it.  The symbol
 is a projection of progenitor_sym into the current scope.  The symbol is not
 added to the scope symbols list and is not linked into the symbol table.
-fundament_bcp is a pointer to the base class of class_ptr in which the
-fundamental symbol resides; if it is NULL, it must be computed, used *path
-if ambiguous is TRUE.
+fundamental_bcp is a pointer to the base class of class_ptr in which the
+fundamental symbol resides; if it is NULL, it must be computed, using *path
+(which describes the derivation of *class_ptr from the class of which
+progenitor_sym is a member) if ambiguous is TRUE.
 */
 {
   register a_symbol_ptr        sym;
