@@ -2144,12 +2144,11 @@ static void recover_from_irreconcilable_external_symbol_types(
 /*
 Decide the type of an IL entity and the mode with which to proceed when the
 latest declaration of that entity conflicts with the previous (possibly
-implicit) declaration.
-In: latest_type is the type implied by the latest declaration; esdp points
-to the relevant part of the IL entity (associated with an sk_extern_routine
-or sk_extern_variable).
-Out: esdp->type is updated with the type with which to proceed, and *okay is
-set to FALSE if the subsequent processing should proceed in error mode.
+implicit) declaration.  latest_type is the type implied by the latest
+declaration and esdp points to the relevant part of the IL entity (associated
+with an sk_extern_routine or sk_extern_variable).  esdp->type is updated with
+the type with which to proceed, and *okay is set to FALSE if the subsequent
+processing should proceed in error mode.
 */
 {
   if (!is_function_type(latest_type)) {
@@ -3242,6 +3241,38 @@ the routine-name-linkages of the two declarations are compatible.
 }  /* routine_name_linkages_are_compatible */
 
 
+static void check_constituent_types_have_linkage(a_symbol_ptr      sym,
+                                                 a_source_position *error_pos)
+/*
+If a variable or routine is to have linkage, its type (and any types that
+that type is made up of) should have linkage as well. This excludes local
+types and certain typedef types.  sym is a pointer to a routine or variable
+symbol whose type is to be verified.  error_pos determines where any error
+should be reported.
+*/
+{
+  a_boolean  is_function = (sym->kind == sk_routine);
+  a_type_ptr type = is_function? sym->variant.routine.ptr->type :
+                                 sym->variant.variable.ptr->type;
+  if (is_or_contains_local_type(type)) {
+    /* A block extern declaration that involves a local type.  Issue an
+       error (except in cfront or Microsoft compatibility mode). */
+    pos_diagnostic((any_cfront_mode() || microsoft_mode) ? es_warning :
+                                                           es_error,
+                   is_function ? ec_local_type_in_function :
+                                 ec_local_type_in_nonlocal_var,
+                   error_pos);
+  } else if (contains_type_with_no_name_linkage(type)) {
+    /* Catch the use of typedefs that do not have linkage.
+       E.g., typedef enum { e1 } *pE; void f(pE); */
+    pos_diagnostic(strict_ansi_mode? es_error: es_warning,
+                   is_function ? ec_type_with_no_linkage_in_function :
+                                 ec_type_with_no_linkage_in_var_with_linkage,
+                   error_pos);
+  }  /* if */
+}  /* check_constituent_types_have_linkage */
+
+
 static void set_name_linkage(an_id_linkage_block     *idlbp,
                              a_symbol_ptr            sym,
                              a_source_correspondence *scp,
@@ -3261,7 +3292,6 @@ associated sk_external_variable or sk_external_routine symbol, if any.
                                    (sym->kind == (a_symbol_kind)sk_routine);
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
   a_boolean                err;
-  a_type_ptr               tp;
 
   if (idlbp->linkage != idl_none) {
     if (scp->name_linkage == (a_name_linkage_kind)nlk_none) {
@@ -3280,7 +3310,7 @@ associated sk_external_variable or sk_external_routine symbol, if any.
           err = (scp->name_linkage !=
                           (a_name_linkage_kind)nlk_cplusplus_external &&
                  !sym->explicit_linkage_specifier &&
-                 !ext_sym->explicit_linkage_specifier);
+                 !(ext_sym != NULL && ext_sym->explicit_linkage_specifier));
           /* Mark the symbols as having an explicit linkage specifier to
              keep this error from occurring again later. */
           sym->explicit_linkage_specifier = TRUE;
@@ -3319,22 +3349,8 @@ associated sk_external_variable or sk_external_routine symbol, if any.
     }  /* if */
     if (C_dialect == C_dialect_cplusplus) {
       /* A variable or routine with linkage should not be declared in terms of
-         a local type. */
-      if (idlbp->is_block_extern_decl) {
-        /* We're inside a function body and the entity has linkage -- must be
-           a block extern declaration. */
-        tp = is_function ? sym->variant.routine.ptr->type :
-                           sym->variant.variable.ptr->type;
-        if (is_or_contains_local_type(tp)) {
-          /* A block extern declaration that involves a local type.  Issue an
-             error (except in cfront or Microsoft compatibility mode). */
-          pos_diagnostic((any_cfront_mode() || microsoft_mode) ? es_warning :
-                                                                 es_error,
-                         is_function ? ec_local_type_in_function :
-                                       ec_local_type_in_nonlocal_var,
-                         error_pos);
-        }  /* if */
-      }  /* if */
+         types with no linkage. */
+      check_constituent_types_have_linkage(sym, error_pos);
     }  /* if */
   }  /* if */
 }  /* set_name_linkage */

@@ -1,5 +1,14 @@
 Version 2.42
 
+6/18/99  Warn on use of types without name linkage in entities with linkage
+
+Warnings are now issued when an entity with linkage is declared using
+a type with no name linkage. For example,
+
+  typedef struct {} *ptr_to_nameless; // typedef type has no linkage
+  void f(ptr_to_nameless); // warning: f has linkage, but its parameter
+                           // type does not (used to be silent)
+
 6/17/99  Support for oversized bit fields
 
 In C++ a bit field may now be declared with a bit count that exceeds the

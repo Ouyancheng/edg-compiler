@@ -5383,6 +5383,41 @@ they are in name mangling; it is the underlying type, not the typedef name
 }  /* ttt_is_unnamed_or_local_type */
 
 
+/* Static variables used to pass information back to the routine
+   is_or_contains_unnamed_or_local_type. */
+static a_boolean ttt_is_type_with_no_name_linkage(
+                                           a_type_ptr  type_ptr,
+                                           a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It returns TRUE if type_ptr is a typedef to a
+type composed from a struct/class/union or enum without a name. Such a
+typedef-name has no linkage. Note that typerefs should not be skipped
+during the traversal. '*force_end_of_traversal' can be set to true if the
+result of the traversal is decided (in this case, when a typedef with no
+name linkage is encountered).
+*/
+{
+  a_boolean     result = FALSE;
+
+  if (type_ptr->kind == (a_type_kind)tk_typeref &&
+      typeref_is_typedef(type_ptr)) {
+    /* First check if this typedef is ultimately built on top of an enum
+       or class type. If so, and if that underlying user-defined type has
+       no name, then the type name denoted by the typedef has no linkage.
+       Note that in 'typedef struct {} X;' the typedef name 'X' is also
+       imbued upon the underlying struct (for linkage purposes) and this
+       code will not return TRUE (which is desired behavior). */
+    a_type_ptr bottom_type = find_bottom_of_type(type_ptr);
+    if ((is_class_struct_union(bottom_type) || is_enum(bottom_type)) &&
+        has_name(bottom_type)) {
+      *force_end_of_traversal = result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* ttt_is_type_with_no_name_linkage */
+
+
 /* A pointer to the specific template parameter type to be found by
    ttt_is_or_contains_template_param. */
 static a_type_ptr
@@ -5999,6 +6034,22 @@ which of the conditions is true.
   *is_local = is_local_type;
   return result;
 }  /* is_or_contains_unnamed_or_local_type */
+
+
+a_boolean contains_type_with_no_name_linkage(a_type_ptr  type_ptr)
+/*
+Return TRUE if the type pointed to by type_ptr contains a class, struct,
+union or enum type with no name linkage.
+*/
+{
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_THIS_PARAM_TYPE |
+                                               TTT_PARAM_TYPES |
+                                               TTT_EXCEPTION_SPECS);
+  /* Note that TTT_SKIP_TYPEREFS is not set. */
+  return (traverse_type_tree(type_ptr, ttt_is_type_with_no_name_linkage,
+                             ttt_flags));
+}  /* contains_type_with_no_name_linkage */
 
 
 a_boolean is_or_contains_error_type(a_type_ptr  type_ptr)
