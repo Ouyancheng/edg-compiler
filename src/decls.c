@@ -3661,9 +3661,10 @@ syntax is:
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
   } else {
-    complete_type = pointer_declarator(*type_ptr, &bottom_derived_type,
-                                       /*reference_allowed=*/FALSE);
-
+    complete_type = pointer_declarator(*type_ptr,
+                                       /*reference_allowed=*/FALSE,
+                                       /*unbound_qualifiers_allowed=*/FALSE,
+				       (a_type_qualifier_set*)NULL);
     derived_type = NULL;
     bottom_derived_type = NULL;
     add_stop_token(tok_lbracket);
@@ -3715,7 +3716,6 @@ scanning type name in a type conversion operator.
   a_decl_flag_set           dso_flags;
   a_type_qualifier_set      qualifiers;
   a_type_ptr                specifiers_type, complete_type;
-  a_type_ptr                bottom_derived_type = NULL;
   a_source_position         type_pos;
   a_boolean                 is_conversion_operator;
   a_boolean		    class_reactivated = FALSE;
@@ -3757,8 +3757,10 @@ scanning type name in a type conversion operator.
       /* Missing type specifier. */
       warning(ec_missing_type_specifier);
     }  /* if */
-    complete_type = pointer_declarator(specifiers_type, &bottom_derived_type,
-                                       /*reference_allowed=*/TRUE);
+    complete_type = pointer_declarator(specifiers_type,
+                                       /*reference_allowed=*/TRUE,
+                                       /*unbound_qualifiers_allowed=*/FALSE,
+                                       (a_type_qualifier_set*)NULL);
     unget_token();
     curr_token = tok_identifier;
     pos_curr_token = error_position = *id_pos;

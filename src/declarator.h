@@ -159,9 +159,11 @@ extern void declarator(a_decl_flag_set   input_flags,
                                          *declarator_ssep,
                        a_func_info_block *func_info);
 
-extern a_type_ptr pointer_declarator(a_type_ptr  specifiers_type,
-			             a_type_ptr  *bottom_pointer_derived_type,
-                                     a_boolean   reference_allowed);
+extern
+a_type_ptr pointer_declarator(a_type_ptr  specifiers_type,
+                              a_boolean   reference_allowed,
+                              a_boolean	  unbound_qualifiers_allowed,
+                              a_type_qualifier_set *p_unbound_qualifiers);
 
 extern void array_declarator(a_type_ptr *new_type_ptr,
                              a_boolean  nonconstant_dimension_allowed,

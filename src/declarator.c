@@ -238,22 +238,46 @@ full type is assembled by add_to_derived_type_list, the underlying
 type ends up being an array type, the type will be adjusted to make
 sure the qualifiers appear in the right place (i.e., over the
 element type and not over the array type).
+
+If the complete_type is already an array type, we check to see if it
+has an underlying type.  If so, we just add the qualifier in the
+usual way.  If not, we add the qualifier under the array type.  The
+element type will later be added under the new qualifier.
 */
 {
   a_type_ptr	tp;
   a_type_ptr	new_tp;
+  a_boolean	is_array = FALSE;
+  a_type_ptr	array_type;
 
   tp = skip_typerefs_allow_null_referenced_type(complete_type);
+  if (tp != NULL && is_array_type(tp)) {
+    is_array = TRUE;
+    array_type = tp;
+    tp = underlying_array_element_type(tp);
+    if (tp != NULL) {
+      tp = skip_typerefs_allow_null_referenced_type(tp);
+    }  /* if */
+  }  /* if */
   if (tp != NULL) {
     /* There is an underlying type.  Just call the normal routine to
        make a qualified type. */
     new_tp = make_qualified_type(complete_type, qualifiers);
   } else {
-    /* There is no underlying type.  Add a typeref to the front of the
-       type. */
+    /* There is no underlying type. */
     new_tp = alloc_type((a_type_kind)tk_typeref);
-    new_tp->variant.typeref.type = complete_type;
     new_tp->variant.typeref.qualifiers = qualifiers;
+    if (is_array) {
+      /* The type is an array, add the qualifier under the array type.  Link
+         the existing element type to the bottom of the new qualifier
+         just in case the array already has a qualifier underneath. */
+      new_tp->variant.typeref.type = array_type->variant.array.element_type;
+      array_type->variant.array.element_type = new_tp;
+      new_tp = complete_type;
+    } else {
+      /* Nonarray.  Just add the qualifier above the existing type. */
+      new_tp->variant.typeref.type = complete_type;
+    }  /* if */
   }  /* if */
   return new_tp;
 }  /* add_microsoft_qualifier_to_type */
@@ -356,7 +380,7 @@ type is legal.
   if (debug_level >= 4) {
     fprintf(f_debug, "At start of add_to_derived_type_list:\n");
     fprintf(f_debug, "  new_type_ptr = ");
-    db_type(new_type_ptr);
+    if (new_type_ptr != NULL) db_type(new_type_ptr);
     fprintf(f_debug, "\n");
     fprintf(f_debug, "  derived_type = ");
     if (*derived_type != NULL) db_type(*derived_type);
@@ -385,7 +409,7 @@ type is legal.
   if (debug_level >= 4) {
     fprintf(f_debug, "After microsoft qualifier processing:\n");
     fprintf(f_debug, "  new_type_ptr = ");
-    db_type(new_type_ptr);
+    if (new_type_ptr != NULL) db_type(new_type_ptr);
     fprintf(f_debug, "\n");
     fprintf(f_debug, "  derived_type = ");
     if (*derived_type != NULL) db_type(*derived_type);
@@ -651,18 +675,13 @@ type is legal.
   }  /* if */
   /* Make sure that the new bottom derived type is really the bottom
      and not a node above some other kind of type. */
-  for (;;) {
-    a_type_ptr	new_bottom;
-    new_bottom = underlying_type_of_derived_type(*bottom_derived_type);
-    if (new_bottom == NULL) break;
-    *bottom_derived_type = new_bottom;
-  }  /* for */
+  *bottom_derived_type = find_bottom_of_type(*bottom_derived_type);
 
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, "At end of add_to_derived_type_list:\n");
     fprintf(f_debug, "  new_type_ptr = ");
-    db_type(new_type_ptr);
+    if (new_type_ptr != NULL) db_type(new_type_ptr);
     fprintf(f_debug, "\n");
     fprintf(f_debug, "  derived_type = ");
     if (*derived_type != NULL) db_type(*derived_type);
@@ -1707,12 +1726,74 @@ found is returned in "qualifiers".
     (void)get_token();
   }  /* while */
 }  /* scan_microsoft_qualifiers */
+
+
+static void add_unbound_qualifiers_to_derived_type
+                                 (a_type_ptr	        *derived_type,
+				  a_type_ptr		*bottom_derived_type,
+	                          a_type_qualifier_set  *qualifiers)
+/*
+Create a tk_typeref entry for the specified set of qualifiers and add it
+to the bottom of the derived type.  Clear the qualifiers field
+passed by the caller.
+*/
+{
+  a_type_ptr	new_type;
+
+  new_type = alloc_type((a_type_kind)tk_typeref);
+  new_type->variant.typeref.type = NULL;
+  new_type->variant.typeref.qualifiers = *qualifiers;
+  add_to_derived_type_list(new_type, derived_type, bottom_derived_type);
+  *qualifiers = TQ_NONE;
+}  /* add_unbound_qualifiers_to_derived_type */
+
+
+static void f_add_unbound_qualifiers(a_type_ptr	           *type,
+	                             a_type_qualifier_set  *qualifiers)
+/*
+Create a tk_typeref entry for the specified set of qualifiers and add it
+to the top of the type specified by type.  Clear the qualifiers field
+passed by the caller.
+*/
+{
+  a_type_ptr	new_type;
+  a_type_ptr	bottom_derived_type;
+
+  new_type = alloc_type((a_type_kind)tk_typeref);
+  bottom_derived_type = new_type;
+  new_type->variant.typeref.type = *type;
+  new_type->variant.typeref.qualifiers = *qualifiers;
+  add_to_derived_type_list(*type, &new_type, &bottom_derived_type);
+  *qualifiers = TQ_NONE;
+  *type = new_type;
+}  /* f_add_unbound_qualifiers */
+
+/*
+Macro to avoid the call in the case where there are no qualifiers.
+*/
+#define add_unbound_qualifiers(type, qualifiers)			\
+  {									\
+    if (*qualifiers != TQ_NONE) f_add_unbound_qualifiers(type, qualifiers);  \
+  }
+
+#else /* MICROSOFT_KEYWORDS_ALLOWED */
+#define add_unbound_qualifiers(type, qualifiers)			\
+  {									\
+    check_assertion(*qualifiers == TQ_NONE)				\
+  }
+
+#define add_unbound_qualifiers_to_derived_type(type, type2, qualifiers) \
+  {									\
+    check_assertion(*qualifiers == TQ_NONE)				\
+  }
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
 
-a_type_ptr pointer_declarator(a_type_ptr  specifiers_type,
-                              a_type_ptr  *bottom_pointer_derived_type,
-                              a_boolean   reference_allowed)
+a_type_ptr pointer_declarator(a_type_ptr          specifiers_type,
+                              a_boolean   	  reference_allowed,
+			      a_boolean		  unbound_qualifiers_allowed,
+			      a_type_qualifier_set
+                                                  *p_unbound_qualifiers)
 /*
 Scan the pointer component of a declarator.  Syntax for C++ (ARM 8.0):
 
@@ -1732,12 +1813,35 @@ parameter controls the restrictions imposed by the context.
 Note that this routine actually scans a sequence of pointer declarators.
 
 In Microsoft mode, the Microsoft __cdecl, __stdcall, and __fastcall are
-recognized as cv-qualifiers.
+recognized as cv-qualifiers.  Microsoft qualifiers are different than
+ordinary qualifiers in that they bind to the thing that that precede.
+If they precede something that is not a pointer declarator, they can't
+be bound within pointer_declarator.  These unbound qualifiers are returned
+to the caller in p_unbound_qualifiers.
+
+For example in the declaration
+
+	int __cdecl f();
+
+specifiers_type is passed in as int, __cdecl is returned as an unbound
+qualifier.
+
+In the declaration
+
+	int (__cdecl *fp)();
+
+declarator is called recursively to scan the nested declarator.  In
+the nested declarator, specifiers_type is NULL, the type returned by
+pointer_declarator is "pointer to __cdecl", and unbound qualifiers
+is empty.
 */
 {
-  a_type_ptr     complete_type = specifiers_type;
-  a_boolean      err;
-  a_type_ptr     class_type, rout_type;
+  a_type_ptr     		complete_type = specifiers_type;
+  a_boolean      		err;
+  a_type_ptr     		class_type;
+  a_type_ptr     		rout_type;
+  a_type_qualifier_set		unbound_qualifiers = TQ_NONE;
+  a_source_position		unbound_qualifier_pos;
 
   db_enter(3, "pointer_declarator");
   for (;;) {
@@ -1772,6 +1876,7 @@ recognized as cv-qualifiers.
               error(ec_pointer_to_reference);
               err = TRUE;
             }  /* if */
+            add_unbound_qualifiers(&complete_type, &unbound_qualifiers);
             complete_type = make_pointer_type(err ? error_type() :
                                                     complete_type);
           }  /* if */
@@ -1785,6 +1890,7 @@ recognized as cv-qualifiers.
             error(ec_reference_to_void);
             err = TRUE;
           }  /* if */
+          add_unbound_qualifiers(&complete_type, &unbound_qualifiers);
           complete_type = err ? error_type() :
                                 make_reference_type(complete_type);
         }  /* if */
@@ -1796,6 +1902,7 @@ recognized as cv-qualifiers.
            once the type pointed to is known, in case pointers to different
            types have different sizes. */
         a_type_ptr new_type_ptr = alloc_type((a_type_kind)tk_pointer);
+        add_unbound_qualifiers(&complete_type, &unbound_qualifiers);
         new_type_ptr->variant.pointer.type = complete_type;
         if (curr_token == tok_ampersand) {
           new_type_ptr->variant.pointer.is_reference = TRUE;
@@ -1829,10 +1936,8 @@ recognized as cv-qualifiers.
          as "int (_cdecl * fp)()". */
       a_type_qualifier_set	qualifiers;
       scan_microsoft_qualifiers(&qualifiers);
-      /* Add the new qualifiers to the complete type that has been built so
-         far (which may be NULL at this point). */
-      complete_type = add_microsoft_qualifier_to_type(complete_type,
-                                                      qualifiers);
+      unbound_qualifiers |= qualifiers;
+      unbound_qualifier_pos = pos_curr_token;
       /* Suppress then get_token() that is normally done before scanning
          the qualifiers below, as this will have been done when scanning
          the Microsoft qualifiers. */
@@ -1842,9 +1947,6 @@ recognized as cv-qualifiers.
       /* Not a pointer, reference, or pointer-to-member declarator. */
       break;
     }  /* if */
-    if (err || *bottom_pointer_derived_type == NULL) {
-      *bottom_pointer_derived_type = complete_type;
-    }  /* if */
     /* Take a type qualifier list (const, volatile, or both) if one appears. */
     if (get_token_needed) (void)get_token();
     if (is_type_qualifier()) {
@@ -1852,6 +1954,15 @@ recognized as cv-qualifiers.
 
       set_err_pos_to_curr_token();
       qualifiers = collect_type_qualifiers();
+#if MICROSOFT_KEYWORDS_ALLOWED
+      if (microsoft_mode && complete_type == NULL) {
+        /* A misplaced qualifier such as
+             int (__cdecl volatile * x);
+           This is accepted by the Microsoft compiler, but is is unclear
+           what, if anything, this should mean.  They are discarded. */
+        continue;
+      }  /* if */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #if RESTRICT_ALLOWED
       /* Check for invalid use of the restrict qualifier. */
       if (qualifiers & TQ_RESTRICT &&
@@ -1879,14 +1990,7 @@ recognized as cv-qualifiers.
       }  /* if */
 #endif /* RESTRICT_ALLOWED */
       if (qualifiers != TQ_NONE) {
-#if MICROSOFT_KEYWORDS_ALLOWED
-        /* Use the special version to add the qualifer because there may
-           be no underlying type. */
-        complete_type = add_microsoft_qualifier_to_type(complete_type,
-                                                        qualifiers);
-#else /* !MICROSOFT_KEYWORDS_ALLOWED */
         complete_type = make_qualified_type(complete_type, qualifiers);
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
       }  /* if */
     }  /* if */
   }  /* while */
@@ -1900,6 +2004,14 @@ recognized as cv-qualifiers.
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
+  /* Check for an unbound qualifier used where none is allowed. */
+  if (unbound_qualifiers != TQ_NONE && !unbound_qualifiers_allowed) {
+    pos_diagnostic(es_discretionary_error, ec_calling_convention_not_allowed,
+                   &unbound_qualifier_pos);
+    unbound_qualifiers = TQ_NONE;
+  }  /* if */
+  /* Return any unbound qualifiers to the caller. */
+  if (p_unbound_qualifiers != NULL) *p_unbound_qualifiers = unbound_qualifiers;
   db_exit();
   return complete_type;
 }  /* pointer_declarator */
@@ -1974,7 +2086,6 @@ otherwise it is NULL.  The syntax is:
   a_type_ptr      derived_type;
   a_type_ptr      bottom_derived_type;
   a_type_ptr      new_type_ptr;
-  a_type_ptr      bottom_pointer_derived_type;
   a_source_position
                   declarator_pos;
   a_boolean       real_declarator_allowed;
@@ -1987,6 +2098,8 @@ otherwise it is NULL.  The syntax is:
   a_boolean       parenthesized_initializer_allowed;
   a_boolean       is_friend_decl = FALSE;
   a_boolean       class_scope_deactivation_required = FALSE;
+  a_type_qualifier_set
+		  unbound_qualifiers;
 
   db_enter(3, "declarator");
   set_err_pos_to_curr_token();
@@ -2011,11 +2124,11 @@ otherwise it is NULL.  The syntax is:
   /* Set the locator to indicate there is no identifier. */
   if (locator != NULL) set_to_error_locator(*locator);
   /* Look for any initial "*" list indicating pointer types. */
-  bottom_pointer_derived_type = NULL;
   complete_type = pointer_declarator(specifiers_type,
-                                     &bottom_pointer_derived_type,
                                      /*reference_allowed=*/
-                                       C_dialect == C_dialect_cplusplus);
+                                       C_dialect == C_dialect_cplusplus,
+                                     /*unbound_qualifiers_allowed=*/TRUE,
+                                     &unbound_qualifiers);
   derived_type = NULL;
   bottom_derived_type = NULL;
   /* The next thing is an identifier, or a parenthesis that begins a
@@ -2373,6 +2486,12 @@ otherwise it is NULL.  The syntax is:
       }  /* if */
     }  /* if */
   }  /* if */
+  if (unbound_qualifiers != TQ_NONE) {
+    /* Add any unbound Microsoft qualifiers to the bottom of the 
+       derived type constructed so far. */
+    add_unbound_qualifiers_to_derived_type(&derived_type, &bottom_derived_type,
+                                           &unbound_qualifiers);
+  }  /* if */
   /* The declarator can end at this point, or an array or function
      specification (or a series of them) can follow.  The additional
      specifications, if they appear, are parsed in their order of 
@@ -2579,14 +2698,16 @@ function_lparen:
   if (derived_type != NULL && complete_type != NULL) {
     add_to_derived_type_list(complete_type,
                              &derived_type, &bottom_derived_type);
+    complete_type = derived_type;
   } else {
-    /* If there were pointer types scanned at the beginning of this routine,
-       the bottom-most derived type is the bottom-most pointer type. */
-    if (bottom_pointer_derived_type != NULL && !is_error_type(complete_type)) {
-      bottom_derived_type = bottom_pointer_derived_type;
+    if (derived_type != NULL) complete_type = derived_type;
+    /* Find the bottom of the type to be returned. */
+    if (complete_type != NULL && !is_error_type(complete_type)) {
+      bottom_derived_type = find_bottom_of_type(complete_type);
+    } else {
+      bottom_derived_type = NULL;
     }  /* if */
   }  /* if */
-  if (derived_type != NULL) complete_type = derived_type;
   if (specifiers_type != NULL) {
     /* This is a top-level call to declarator. */
     if (locator != NULL &&
