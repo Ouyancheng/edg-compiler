@@ -8306,6 +8306,14 @@ the C output files for all instantiations.
     if (rout->instantiation_needed_bit_number != 0 &&
         /* Ignore generated startup initialization routines. */
         !routine_is_init_routine(rout) &&
+#if IA64_ABI
+        /* Ignore all but the primary entry points for constructors and
+           destructors.  The others are put in the same slice as the
+           main routine. */
+        ((rout->special_kind != (a_special_function_kind)sfk_constructor &&
+          rout->special_kind != (a_special_function_kind)sfk_destructor) ||
+         rout->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete) &&
+#endif /* IA64_ABI */
         !rout->suppress_inline_body) {
       generate_one_instantiation_C_output_file(&rout->source_corresp,
                                         rout->instantiation_needed_bit_number);

@@ -2862,7 +2862,12 @@ destructors in the IA-64 ABI.
     new_routine->source_corresp.is_class_member = TRUE;
     new_routine->source_corresp.parent.class_type =
                                      routine->source_corresp.parent.class_type;
+    set_routine_special_kind(new_routine, routine->special_kind);
     new_routine->ctor_dtor_kind = kind;
+#if ONE_INSTANTIATION_PER_OBJECT
+    new_routine->instantiation_needed_bit_number =
+                                      routine->instantiation_needed_bit_number;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
     new_rtsp = new_routine->type->variant.routine.extra_info;
     new_rtsp->this_class = rtsp->this_class;
     /* Make the new routine virtual if the old one is so that virtual

@@ -3571,6 +3571,20 @@ in one-instantiation-per-object mode.
     if (routine->instantiation_needed_bit_number == 0) {
       routine->instantiation_needed_bit_number =
                                       assign_instantiation_needed_bit_number();
+#if IA64_ABI
+      /* Alternate entry points of constructors and destructors get
+         the same needed bit number as the primary routine. */
+      if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+          routine->special_kind == (a_special_function_kind)sfk_destructor) {
+        a_routine_list_entry_ptr rlep;
+        for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
+             rlep != NULL;
+             rlep = rlep->next) {
+          rlep->routine->instantiation_needed_bit_number = 
+                                      routine->instantiation_needed_bit_number;
+        }  /* for */
+      }
+#endif /* IA64_ABI */
     }  /* if */
   }  /* if */
 }  /* set_routine_instantiation_needed_bit_number */

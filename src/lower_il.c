@@ -7550,13 +7550,6 @@ not include the function scope memory region, if any.
           if (arout == NULL) break;
         }  /* for */
       }  /* for */
-      /* Give the main routine internal linkage so that we can detect
-         accidental references to the main routine.  It should be safe to
-         remove this code. */
-      if (routine->storage_class == (a_storage_class)sc_unspecified) {
-        routine->storage_class = (a_storage_class)sc_static;
-        routine->use_comdat = FALSE;
-      }  /* if */
     }  /* if */
 #endif /* IA64_ABI */
   }  /* if */
