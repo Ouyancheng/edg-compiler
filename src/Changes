@@ -1,5 +1,14 @@
 Version 2.29
 
+5/24/95  Exception specification on redeclared function
+
+In certain cases a spurious error was issued when a function with
+exception specifications was redeclared -- for instance:
+
+  void f(int = 0) throw(int);
+  void f(int) throw(int) { }    // Spurious error (inconsistent exception
+                                //   specifications) has been eliminated
+
 5/23/95  New-style casts
 
 The new-style casts are now implemented:
