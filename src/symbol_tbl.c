@@ -4955,7 +4955,11 @@ symbol.  Otherwise, return NULL.
     (void)current_class_symbol_if_class_template(&assoc_symbol);
   }  /* if */
   if (assoc_symbol != NULL) {
-    if (assoc_symbol->kind != tag_kind) {
+    if (assoc_symbol->kind == (a_symbol_kind)sk_type) {
+      /* This must be a symbol for a template parameter, and we must be in
+         the midst of a prototype instantiation.  Return the symbol that
+         was found. */
+    } else if (assoc_symbol->kind != tag_kind) {
       /* A tag, but the wrong kind of tag (e.g., struct when union is
          required). */
       assoc_symbol = NULL;
