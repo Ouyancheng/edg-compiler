@@ -2781,7 +2781,8 @@ See also 3.6.4.1.
   /* Scan "else" and another statement if they appear. */
   if (curr_token == tok_else) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    sp->variant.if_stmt.else_position = pos_curr_token;
+    set_stmt_source_position(sp->variant.if_stmt.else_position,
+                             pos_curr_token);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
     /* Getting the address of the struct_stmt_stack entry is done late
