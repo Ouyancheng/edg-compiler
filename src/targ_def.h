@@ -122,6 +122,16 @@ document.  The test code is also altered somewhat.
 #endif /* ifndef IA64_ABI_USE_INT_STATIC_INIT_GUARD */
 
 /*
+The name of the macro to be defined when IA-64 guard variables are
+"int"-sized instead of "long long"-sized.  Used only when
+IA64_ABI_USE_INT_STATIC_INIT_GUARD is TRUE.
+*/
+#ifndef MACRO_DEFINED_WHEN_IA64_USE_INT_STATIC_INIT_GUARD
+#define MACRO_DEFINED_WHEN_IA64_USE_INT_STATIC_INIT_GUARD \
+			"__EDG_IA64_ABI_USE_INT_STATIC_INIT_GUARD"
+#endif /* ifndef MACRO_DEFINED_WHEN_IA64_USE_INT_STATIC_INIT_GUARD */
+
+/*
 TRUE to use the variant representation of pointers to member
 functions with the IA-64 ABI.  The normal representation
 requires an architecture where the address of a function can
