@@ -3195,6 +3195,13 @@ put out for them).
       /* Skip an argument. */
       skipped_argument = TRUE;
       skip_num--;
+    } else if (arg->generated_default_arg) {
+      /* This expression came from a default argument, so don't put it out
+         (this isn't just an optimization -- the default argument expression
+         may refer to things that aren't accessible to the caller).  All
+         following expressions would also be default arguments, so
+         exit the loop. */
+      break;
     } else if (param != NULL && param->passed_via_copy_constructor) {
       /* For an argument passed using a copy constructor, optimize out
          the copy constructor reference. */
