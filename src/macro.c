@@ -1078,7 +1078,7 @@ with \.  Return the macro argument created.
     for (; src < end_of_string;) {
       /* If this is a \" or \\, ignore the initial character. */
       if (*src == '\\') {
-        char	next = *src+1;
+        char	next = *(src+1);
         if (next == '"' || next == '\\') ++src;
       }  /* if */
       *dest++ = *src++;

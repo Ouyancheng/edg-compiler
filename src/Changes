@@ -1,5 +1,12 @@
 Version 3.1
 
+12/18/02 Incorrect handling of escapes in C99 _Pragma operator
+
+Escapes in the string used to specify a C99 _Pragma were not handled
+properly, resulting in spurious errors.  This has been fixed.
+
+  _Pragma("some_pragma=\"abc\"")
+
 12/18/02 Preprocessing pragmas in C99 _Pragma operators
 
 The preprocessing pragmas recognized by the front end (hdrstop, no_pch,
