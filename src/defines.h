@@ -71,6 +71,11 @@ Flags to be set when using the KAI inliner.
 #ifdef SOLARIS
 #define _POSIX_C_SOURCE 0
 #define _XOPEN_VERSION 0
+#define _XOPEN_SOURCE_EXTENDED 0
+#define _LARGEFILE64_SOURCE 0
+#define _XOPEN_SOURCE 0
+#define _XOPEN_SOURCE_EXTENDED 0
+#define __cplusplus 0
 #endif /* SOLARIS */
 #endif /* SELFCOMP_VERSION */
 #ifndef MAINTAIN_NEEDED_FLAGS
