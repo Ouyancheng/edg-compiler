@@ -14477,15 +14477,8 @@ been annotated in the source with the GNU keyword __extension__.
       if (expr == NULL &&
           curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
         /* Create a constant expression to record the extension flag. */
-        a_memory_region_number  region_to_switch_back_to;
-        a_constant_ptr  con = fs_constant(op->variant.constant.kind);
-        copy_constant(&op->variant.constant, con);
-        switch_to_file_scope_region(&region_to_switch_back_to);
-        expr = alloc_expr_node((an_expr_node_kind)enk_constant);
-        expr->type = con->type;
-        expr->variant.constant = con;
+        expr = alloc_node_for_constant(&op->variant.constant);
         op->variant.constant.expr = expr;
-        switch_back_to_original_region(region_to_switch_back_to);
       }  /* if */
       if (expr != NULL) {
         expr->marked_as_gnu_extension = TRUE;

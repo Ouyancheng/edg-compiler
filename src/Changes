@@ -1,5 +1,20 @@
 Version 3.4
 
+4/17/04  IL problem with GNU __extension__ on constant and
+         RECORD_CONSTANT_EXPRESSIONS_IN_IL
+
+The IL created for a constant marked with the GNU __extension__
+keyword was incorrect when RECORD_CONSTANT_EXPRESSIONS_IN_IL is
+TRUE.  One possible consequence was an IL write-read error
+("not all expected entries were read").  Now fixed.
+
+  extern int printf(const char *, ...);
+  int main() {
+    double huge_val;
+    huge_val = (__extension__ 0x1.0p2047);  // Aborted in gcc mode
+    return 0;
+ }
+
 4/16/04  Warning on too-large shift count
 
 In Microsoft and GNU modes a too-large shift count now causes a
