@@ -51,10 +51,10 @@ extern void f_update_source_sequence_list(char                    *entity_ptr,
                                           an_il_entry_kind        kind,
                                           a_source_sequence_entry *old_ssep);
 
-/* Macro interface to f_update_source_sequence_list when there may be an
-   empty source-sequence entry on the list that needs to be filled in. */
+/* Macro interface to f_update_source_sequence_list that enforces the
+   precondition that source sequence entries be allowed. */
 #define update_source_sequence_list(entity_ptr, kind, old_ssep)          \
-{ if ((old_ssep) != NULL || !source_sequence_entries_disallowed) {       \
+{ if (!source_sequence_entries_disallowed) {                             \
     f_update_source_sequence_list((entity_ptr), (kind), (old_ssep));     \
   }  /* if */                                                            \
 }  /* update_source_sequence_list */
