@@ -102,8 +102,7 @@ member declarator (class-name :: *).
   a_type_ptr     class_type;
   a_boolean      is_file_scope_qualifier, has_global_qualifier, err;
 
-  if (curr_token == tok_identifier &&
-      get_class_qualifier(&token_cache, &class_type, &is_file_scope_qualifier,
+  if (get_class_qualifier(&token_cache, &class_type, &is_file_scope_qualifier,
                           &has_global_qualifier, &err)) {
     /* A class qualifier is present.  Note that file scope qualifiers are not
        permitted.  This is a pointer-to-member declarator if the current token
@@ -164,6 +163,9 @@ is not done.
   if (curr_token == tok_colon_colon && is_global_new_or_delete()) {
     /* "::new" and "::delete" are not type names. */
     assoc_symbol = NULL;
+  } else if (is_ptr_to_member_declarator_start()) {
+    /* "class-name::*" is a pointer-to-member declarator, not a type name. */
+    assoc_symbol = NULL;
   } else {
     /* Look up the current token identifier, which may be a qualified name.
        Since curr_type_symbol is often called as part of a test of the
@@ -173,8 +175,7 @@ is not done.
        the creation of such gratuitous projections here than to try to ignore
        them in symbol entry later. */
     assoc_symbol = get_normal_id_or_qualified_name(
-                                 IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME |
-                                 IDL_PTR_TO_MEMBER_ALLOWED);
+                                 IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME);
     if (assoc_symbol != NULL && !is_type_symbol(assoc_symbol)) {
       /* Symbol was found, but it is not a type name symbol.  Return NULL. */
       assoc_symbol = NULL;
@@ -3214,7 +3215,7 @@ a pointer to it in *symbol_ptr.
     /* No symbol by this name.  See if this is a tagless class, struct,
        union, or enum type.  If so, the present name will serve as the
        tag (ARM 7.1.3). */
-    if (!is_error_type(type_ptr) &&
+    if (!is_error_type(type_ptr) && !is_error_locator(*locator) &&
         (type_ptr->source_corresp.assoc_info == NULL ||
           is_unnamed_class_symbol((a_symbol_ptr)type_ptr->
                                              source_corresp.assoc_info))) {
