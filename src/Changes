@@ -20,8 +20,8 @@ declaration of "p" using the unqualified name "N".  This is now fixed.
 
 6/23/00  Microsoft compatibility: allow duplicate inline specifier
 
-In Microsoft mode, the duplicate appearance of the "inline" specifier on a
-function declaration only elicits a warning; not a fatal error.
+In Microsoft mode, a duplicate "inline" specifier in a function
+declaration now elicits only a warning, not a fatal error.
 
   inline inline void f();  // Warning in Microsoft mode; error otherwise
 
@@ -255,8 +255,8 @@ the problem.
 
 6/13/00  Microsoft compatibility: allow duplicate virtual specifier
 
-In Microsoft mode, the duplicate appearance of the "virtual" specifier in a
-member declaration only elicits a warning; not a fatal error.
+In Microsoft mode, a duplicate "virtual" specifier in a member
+declaration now elicits only a warning, not a fatal error.
 
   struct S {
     virtual virtual void f();  // Warning in Microsoft mode; error otherwise
