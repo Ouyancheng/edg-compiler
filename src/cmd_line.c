@@ -1904,7 +1904,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
 	long_preserving_rules = FALSE;
     }  /* if */
   }  /* if */
-  if (!(option_kind_used[(int)optk_restrict])) {
+  if (!c99_mode && !(option_kind_used[(int)optk_restrict])) {
     /* Support for restricted pointers is turned off by default in strict
        mode. */
     restrict_enabled = FALSE;
