@@ -911,7 +911,8 @@ routine recursively for each nested class.
         }  /* if */
         if ((is_real_template_instantiation &&
              !is_friend && !rfp->is_specialization) ||
-            (is_nonreal_template_instantiation && is_friend)) {
+            (is_nonreal_template_instantiation &&
+             (is_friend || rfp->is_specialization))) {
           /* Discard the token cache for member functions of template
              classes -- instantiate_function_template does its thing based
              on the tokens saved during prototype instantiation.  Also,
@@ -919,7 +920,8 @@ routine recursively for each nested class.
              during prototype instantiation. */
           discard_token_cache(&rfp->function_body_token_cache);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-          if (!is_friend && rfp->func_info.param_id_list != NULL) {
+          if (!is_friend && !rfp->is_specialization &&
+               rfp->func_info.param_id_list != NULL) {
             /* Be sure any source sequence entries created while scanning
                the declaration of this function have been removed. */
             a_param_id_ptr         pid = rfp->func_info.param_id_list;

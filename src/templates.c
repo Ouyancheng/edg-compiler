@@ -2678,6 +2678,28 @@ included in the search.
 }  /* find_template_class */
 
 
+static a_template_nesting_depth nesting_depth_of_template_param
+                                                   (a_template_param_ptr tpp)
+/*
+Return the template nesting depth of the specified template parameter.
+*/
+{
+  a_template_nesting_depth	depth;
+
+  if (tpp == NULL) {
+    /* This is an error case -- use a depth of zero. */
+    depth = 0;
+  } else if (tpp->param_symbol->kind == (a_symbol_kind)sk_type) {
+    depth = tpp->variant.type->
+                         variant.template_param.extra_info->coordinates.depth;
+  } else {
+    depth = tpp->variant.constant.ptr->
+                 variant.template_param.variant.coordinates.depth;
+  }  /* if */
+  return depth;
+}  /* nesting_depth_of_template_param */
+
+
 static a_template_arg_ptr get_template_arg_by_list_pos(
                                     a_template_param_ptr      templ_param_list,
                                     a_template_arg_ptr        *templ_arg_list,
@@ -2774,7 +2796,15 @@ list of a template function.  Returns TRUE if a match is found.
 {
   a_boolean	match = FALSE;
  
-  if (templ_constant->kind == (a_constant_repr_kind)ck_template_param) {
+  /* Get the template nesting depth as indicated by the first template
+     parameter.  If templ_constant is a template parameter constant, it
+     must be at the same level to participate in deduction.  A template
+     parameters from a different nesting depth can be present when
+     templ_constant is used in the parent class of a type that is passed
+     to matches_template_type. */
+  if (templ_constant->kind == (a_constant_repr_kind)ck_template_param &&
+      nesting_depth_of_template_param(templ_param_list) ==
+            templ_constant->variant.template_param.variant.coordinates.depth) {
     if (is_deducible_constant_param(templ_constant)) {
       a_template_arg_ptr        tap;
       /* This is a template parameter from the original source program
@@ -3098,34 +3128,47 @@ template parameter list.
       /* The qualifier on templ_type did not also appear on type, so there is
          no match. */
     } else {
+      a_template_nesting_depth	depth_of_template;
+      /* Get the template nesting depth as indicated by the first template
+         parameter.  Any template parameters found in templ_type must be at
+         the same level to participate in deduction. */
+      depth_of_template = nesting_depth_of_template_param(templ_param_list);
       if (templ_type->variant.template_param.kind ==
                              (a_template_param_type_kind)tptk_param) {
-        a_template_param_list_pos list_pos;
-        /* This is a template parameter from the original source program
-           and not a synthesized template parameter. */
-        /* A real type "matches" a template parameter type if it is identical
-           to the real type, if any, that was previously associated with that
-           template type. */
-        list_pos = templ_type->
-                      variant.template_param.extra_info->coordinates.position;
-        tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
-                                           list_pos);
-        /* Now we have the nth template argument, which should correspond to
-           the nth template parameter, whose type is templ_type. */
-        if (tap->variant.type == NULL) {
-          /* No type has been bound to this template argument yet, so just use
-             "type".  This counts as a match. */
-          tap->variant.type = type;
-          match = TRUE;
+        if (depth_of_template !=
+            templ_type->variant.template_param.extra_info->coordinates.depth) {
+          /* Template parameters from a different nesting depth.  This should
+             only happen if templ_type is a type from a prototype instantiation
+             that includes a template parameter type in the parent class. */
+          match = identical_types(type, templ_type);
         } else {
-          /* A type was already bound to this template argument.  We have a
-             match if and only if the new type is the same as the one
-             already there. */
-          if (identical_types(type, tap->variant.type)) {
-            /* Okay. */
+          a_template_param_list_pos list_pos;
+          /* This is a template parameter from the original source program
+             and not a synthesized template parameter. */
+          /* A real type "matches" a template parameter type if it is identical
+             to the real type, if any, that was previously associated with that
+             template type. */
+          list_pos = templ_type->
+                      variant.template_param.extra_info->coordinates.position;
+          tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
+                                             list_pos);
+          /* Now we have the nth template argument, which should correspond to
+             the nth template parameter, whose type is templ_type. */
+          if (tap->variant.type == NULL) {
+            /* No type has been bound to this template argument yet, so just
+               use "type".  This counts as a match. */
+            tap->variant.type = type;
             match = TRUE;
           } else {
-            /* Not a match.  Return FALSE. */
+            /* A type was already bound to this template argument.  We have a
+               match if and only if the new type is the same as the one
+               already there. */
+            if (identical_types(type, tap->variant.type)) {
+              /* Okay. */
+              match = TRUE;
+            } else {
+              /* Not a match.  Return FALSE. */
+            }  /* if */
           }  /* if */
         }  /* if */
       } else {
@@ -4990,28 +5033,6 @@ structure.
   db_exit();
   return sym;
 }  /* find_template_function */
-
-
-static a_template_nesting_depth nesting_depth_of_template_param
-                                                   (a_template_param_ptr tpp)
-/*
-Return the template nesting depth of the specified template parameter.
-*/
-{
-  a_template_nesting_depth	depth;
-
-  if (tpp == NULL) {
-    /* This is an error case -- use a depth of zero. */
-    depth = 0;
-  } else if (tpp->param_symbol->kind == (a_symbol_kind)sk_type) {
-    depth = tpp->variant.type->
-                         variant.template_param.extra_info->coordinates.depth;
-  } else {
-    depth = tpp->variant.constant.ptr->
-                 variant.template_param.variant.coordinates.depth;
-  }  /* if */
-  return depth;
-}  /* nesting_depth_of_template_param */
 
 
 static
@@ -8813,14 +8834,7 @@ that follows.
         reduce_projection_symbol_to_fundamental_symbol(sym);
       }  /* if */
       if (is_function_type(type) && is_function_or_template_symbol(sym)) {
-        if (decl_state->in_prototype_instantiation) {
-          /* A specialization in a prototype instantiation.  This can only
-             occur when a specialization appears within a class in Microsoft
-             mode.  Don't try to process the specialization. */
-          sym = NULL;
-        } else {
-          sym = find_matching_template_instance(sym, type);
-        }  /* if */
+        sym = find_matching_template_instance(sym, type);
         if (sym == NULL) {
           /* No match was found and an error was issued. */
         } else if (sym->variant.routine.instance_ptr == NULL) {
