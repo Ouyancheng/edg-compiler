@@ -507,7 +507,6 @@ variables.
         case eok_ieq: case eok_ine: case eok_igt:
         case eok_ilt: case eok_ige: case eok_ile:
         case eok_peq: case eok_pne:
-        case eok_pmeq: case eok_pmne:
         case eok_iadd:
         case eok_isubtract:
         case eok_imultiply:
@@ -518,25 +517,47 @@ variables.
         case eok_xor:
         case eok_shiftl:
         case eok_shiftr:
-          /* Setting evaluated_context to FALSE suppresses warnings on
-             errors like division by zero.  Instead, did_not_fold is
-             returned TRUE. */
-          binary_operation(op, con, con2, expr->type, &constant,
-                           /*constant_context=*/FALSE,
-                           /*evaluated_context=*/FALSE,
-                           &did_not_fold,
-                           &template_constant,
-                           &code_pos_for_lowering);
+          /* Avoid folding operations on pointers to data members that haven't
+             been lowered into integers yet (because the constant is in the
+             file scope).  Test is done for integer/pointer to be conservative
+             in case other kinds of constants in the future are changed by
+             lowering. */
+          if ((con->kind != (a_constant_repr_kind)ck_integer &&
+               con->kind != (a_constant_repr_kind)ck_address) ||
+              (con2->kind != (a_constant_repr_kind)ck_integer &&
+               con2->kind != (a_constant_repr_kind)ck_address)) {
+            /* Do not fold. */
+          } else {
+            /* Setting evaluated_context to FALSE suppresses warnings on
+               errors like division by zero.  Instead, did_not_fold is
+               returned TRUE. */
+            binary_operation(op, con, con2, expr->type, &constant,
+                             /*constant_context=*/FALSE,
+                             /*evaluated_context=*/FALSE,
+                             &did_not_fold,
+                             &template_constant,
+                             &code_pos_for_lowering);
+          }  /* if */
           break;
         case eok_inegate:
         case eok_complement:
         case eok_not:
-          unary_operation(op, con, expr->type, &constant,
-                          /*constant_context=*/FALSE,
-                          /*evaluated_context=*/FALSE,
-                          &did_not_fold,
-                          &template_constant,
-                          &code_pos_for_lowering);
+          /* See comment above; avoid pointers to data members.  This is
+             probably unnecessary. */
+          if (con->kind != (a_constant_repr_kind)ck_integer &&
+              con->kind != (a_constant_repr_kind)ck_address) {
+            /* Do not fold. */
+          } else {
+            /* Setting evaluated_context to FALSE suppresses warnings on
+               errors like division by zero.  Instead, did_not_fold is
+               returned TRUE. */
+            unary_operation(op, con, expr->type, &constant,
+                            /*constant_context=*/FALSE,
+                            /*evaluated_context=*/FALSE,
+                            &did_not_fold,
+                            &template_constant,
+                            &code_pos_for_lowering);
+          }  /* if */
           break;
         default:
           /* Others cannot be folded. */
