@@ -1,5 +1,16 @@
 Version 2.31
 
+1/16/96   ANSI preprocessing operators accepted in PCC preprocessing mode
+
+The ANSI preprocessing operators for stringizing and token pasting are
+now accepted in PCC preprocessing mode.
+
+1/16/96   Warning issued when pointer to integer conversion causes truncation
+
+A warning is now issued in C mode when a pointer is converted to an
+integer whose type is too small to hold all possible pointer values.
+This conversion is not permitted in C++.
+
 1/15/96   Nonstandard initialization of char array
 
 Initialization of a character array by a parenthesized string constant
