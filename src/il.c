@@ -7243,7 +7243,7 @@ about it).
   if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
     db_scope((a_scope_ptr)olp->entity.ptr);
   } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_none) {
-    fputs("<unbound lifetime>", f_debug);
+    fputs("<unbound>", f_debug);
   } else {
     fputs(il_entry_kind_names[(int)olp->entity.kind], f_debug);
     if (olp->entity.kind == (a_byte_il_entry_kind)iek_label) {
@@ -7383,6 +7383,27 @@ stopping when the object lifetime indicated by stop_at is reached.
     }  /* for */
   }  /* if */
 }  /* db_pending_destructions */
+
+
+static void db_object_lifetime_with_indentation(an_object_lifetime_ptr  olp,
+                                                char                    *str)
+/*
+Display an object lifetime in a special format, for use when dump_lifetimes
+has been enabled at the command line.  The display line includes the current
+sequence number, indentation corresponding to the depth of object lifetime
+stack, a string supplied by the caller, and the object lifetime "name".
+*/
+{
+  an_object_lifetime_ptr  parent = olp->parent_lifetime;
+
+  fprintf(f_debug, "OL-%.4d..", (int)pos_curr_token.seq);
+  for (; parent != NULL; parent = parent->parent_lifetime) {
+    fputs("..", f_debug);
+  }  /* for */
+  if (str != NULL) fputs(str, f_debug);
+  db_object_lifetime_name(olp);
+  fputc('\n', f_debug);
+}  /* db_object_lifetime_with_indentation */
 
 #endif /* DEBUG */
 
@@ -7547,6 +7568,11 @@ back to it.
   lifetime_addr = addr_of_lifetime_ptr(entity_kind, entity_ptr, olp->kind);
   check_assertion(*lifetime_addr == NULL);
   *lifetime_addr = olp;
+#if DEBUG
+  if (db_flag_is_set("dump_lifetimes")) {
+    db_object_lifetime_with_indentation(olp, "Binding: ");
+  }  /* if */
+#endif /* DEBUG */
 }  /* bind_object_lifetime */
 
 
@@ -7616,6 +7642,13 @@ entry is needed.)
   /* Bind the object lifetime and the entity with which it is associated. */
   if (entity_ptr != NULL) {
     bind_object_lifetime(olp, entity_kind, entity_ptr);
+#if DEBUG
+  } else if (db_flag_is_set("dump_lifetimes")) {
+    if (kind != (an_object_lifetime_kind)olk_expr_temporary ||
+        long_lifetime_temps) {
+      db_object_lifetime_with_indentation(olp, "Adding: ");
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
   /* Now set the new entry to be the current object lifetime. */
   curr_object_lifetime = olp;
@@ -7818,28 +7851,35 @@ return it to the appropriate available list.
     }  /* if */
     /* Return the entry to its available list. */
     (void)free_object_lifetime(olp);
-  } else if (olp->kind == (an_object_lifetime_kind)olk_constructor_init) {
-    /* A constructor init lifetime remains unbound while it is on the
-       object lifetime stack; it's only bound when the constructor init
-       processing is complete (and only if it is not "useless"). */
-    bind_object_lifetime(olp, (an_il_entry_kind)iek_scope,
-                         (char *)scope_stack[depth_scope_stack].il_scope);
+  } else {
+    if (olp->kind == (an_object_lifetime_kind)olk_constructor_init) {
+      /* A constructor init lifetime remains unbound while it is on the
+         object lifetime stack; it's only bound when the constructor init
+         processing is complete (and only if it is not "useless"). */
+      bind_object_lifetime(olp, (an_il_entry_kind)iek_scope,
+                           (char *)scope_stack[depth_scope_stack].il_scope);
 #if DEBUG
-    if (debug_level >= 3) {
-      fputs("binding constructor init lifetime to: ", f_debug);
-      db_object_lifetime(curr_object_lifetime);
+      if (debug_level >= 3) {
+        fputs("binding constructor init lifetime to: ", f_debug);
+        db_object_lifetime(curr_object_lifetime);
+      }  /* if */
+#endif /* DEBUG */
+    } else {
+      /* Be sure an object lifetime that is being left in the IL has been
+         bound to some other IL entity. */
+      check_assertion(olp->entity.ptr != NULL);
+      if (is_implicit_child) {
+        /* This is an object lifetime for a function scope that will remain
+           in the IL.  Set the global variable to assure that the file scope
+           lifetime entry will be preserved. */
+        any_function_scope_lifetime_entries = TRUE;
+      }  /* if */
+    }  /* if */
+#if DEBUG
+    if (db_flag_is_set("dump_lifetimes")) {
+      db_object_lifetime_with_indentation(olp, "Keeping: ");
     }  /* if */
 #endif /* DEBUG */
-  } else {
-    /* Be sure an object lifetime that is being left in the IL has been
-       bound to some other IL entity. */
-    check_assertion(olp->entity.ptr != NULL);
-    if (is_implicit_child) {
-      /* This is an object lifetime for a function scope that will remain
-         in the IL.  Set the global variable to assure the file scope lifetime
-         entry will be preserved. */
-      any_function_scope_lifetime_entries = TRUE;
-    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) db_object_lifetime_stack();
