@@ -1,5 +1,18 @@
 Version 2.20
 
+9/26/93  Dropping type qualifiers in C mode
+
+A bug introduced a few releases back has been fixed.  Because of it,
+some rvalues were allowed to keep qualified types.  An example is the
+following, which got an error in C mode:
+
+  typedef struct Bar { int a; } Bar;
+  typedef struct Foo {Bar a;} Foo  ;
+  extern void bar(const Bar);
+  void foo(const Foo f) {
+        bar(f.a);  /* Was error here. */
+  }
+
 9/21/93  Cross-reference output separator
 
 The separator character between fields in the cross-reference output

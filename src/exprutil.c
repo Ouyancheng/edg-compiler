@@ -3995,6 +3995,7 @@ not an lvalue, it is left alone.
           } else {
             /* The value of the expression is not a constant. */
             operand->variant.expression = node;
+            operand->type = node->type;
             operand->state = (an_operand_state)os_rvalue;
           }  /* if */
           /* The subroutine handles dropping type qualifiers. */
