@@ -1917,13 +1917,13 @@ returned.
       }  /* if */
       if (temp_file_name == file_name) {
         if (strlen(file_name) < BUFFER_SIZE - 1) {
-          /* Copy file_name into the buffer.  It's suffix will be replaced
+          /* Copy file_name into the buffer.  Its suffix will be replaced
              in the inner loop. */
           (void)strcpy(buffer, file_name);
           temp_file_name = buffer;
         } else {
           /* Since we're going to try to modify the file name in place, by
-             replacing it's current suffix with another, allocate storage
+             replacing its current suffix with another, allocate storage
              for it. */
           temp_file_name = alloc_il((sizeof_t)(strlen(file_name)+1));
           (void)strcpy(temp_file_name, file_name);
