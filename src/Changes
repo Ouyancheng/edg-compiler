@@ -1,9 +1,27 @@
 Version 2.29
 
+4/25/95  Typeinfo base class lists
+
+The base class lists on typeinfo information (used for exception handling
+and RTTI) now include ambiguous base classes even if they are not
+direct base classes, and include information on access to the base
+classes.
+
+4/25/95  Diagnostic/reference positions on new and operator() calls
+
+The position of diagnostics and symbol references has been changed in
+two cases:
+
+(1)  On uses of operator new, diagnostics/references that came out on the
+     placement term now come out on the keyword "new".
+(2)  On uses of operator(), the call position is now considered to be the
+     left parenthesis instead of the position of the class operand preceding
+     the left parenthesis.
+
 4/24/95  Diagnostics on exception specifications with --no_exceptions
 
 When exception support is disabled (either as the default or by the command
-line option) exception specifications are ignored (that is, no diagnostic
+line option) exception specifications are now ignored (that is, no diagnostic
 is issued) when the function is an inline function or the declaration does
 not entail a definition.  This allows the same header to be processed either
 with or without exception support enabled.
@@ -117,10 +135,9 @@ marked as "superseded".
 
 The typeinfo structure has been enhanced for use with RTTI.
 It now contains the user-visible type_info part and a pointer to
-a name string, and the base class specifications indicate whether
-a base class is public.  The old form is still available by
-setting ABI_CHANGES_FOR_RTTI to FALSE (but that will disable
-RTTI features too).
+a name string, and the base class specifications have several
+additional flags.  The old form is still available by setting
+ABI_CHANGES_FOR_RTTI to FALSE (but that will disable RTTI features too).
 
 4/12/95  C-generating back end: address of redeclared function
 
