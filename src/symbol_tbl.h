@@ -53,6 +53,9 @@ typedef int an_id_lookup_options_set;
 #define IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL 0x4
 				/* Suppress the check for ambiguity and
 				   the access control check. */
+#define IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR 0x8
+				/* Suppress the error on a qualified name
+				   not being found on lookup. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 
@@ -78,6 +81,9 @@ typedef struct a_symbol_locator {
   unsigned int	ambiguity_and_access_control_check_needed:1;
 			/* TRUE if the ambiguity and access control check
 			   for specific_symbol has not yet been done. */
+  unsigned int	is_global_qualified_name:1;
+			/* TRUE if the "identifier" is a C++ qualified-name
+			   that begins with a unary "::". */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,
@@ -94,6 +100,7 @@ Clear a symbol locator.
   (locator)->source_position = *position;                             \
   (locator)->is_qualified_name = FALSE;                               \
   (locator)->ambiguity_and_access_control_check_needed = FALSE;       \
+  (locator)->is_global_qualified_name = FALSE;                        \
   (locator)->specific_symbol = NULL;                                  \
 }  /* clear_locator */
 
