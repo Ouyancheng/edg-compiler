@@ -604,7 +604,7 @@ otherwise return FALSE.
 #if EXPENSIVE_CHECKING
   if (list_start == NULL) {
     list_start = alloc_pending_pragma
-                     (pragma_description_for_pragma_kind[pk_checking_pragma]);
+                 (pragma_description_for_pragma_kind[(int)pk_checking_pragma]);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     list_start->source_sequence_entry = add_empty_source_sequence_entry();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
