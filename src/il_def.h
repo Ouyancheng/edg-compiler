@@ -2029,6 +2029,7 @@ typedef struct a_routine_type_supplement {
 			   to which FT points is nlk_external, but those for
 			   functions f and g are nlk_cplusplus_external and
 			   nlk_internal, respectively.) */
+  bitfield_to_avoid_codecenter_warnings()
   a_lint_varargs_count
 	         lint_varargs_count;
                         /* If not equal to NOT_LINT_VARARGS (-1), this

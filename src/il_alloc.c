@@ -880,6 +880,9 @@ to default values.
       rtsp->assoc_routine_is_dtor    = FALSE;
       rtsp->suppress_diagnostic_on_incomplete_return_type = FALSE;
       rtsp->routine_name_linkage     = default_routine_name_linkage;
+#if CHECKING
+      rtsp->avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (a_pragma_kind)pk_none;
 #if MICROSOFT_EXTENSIONS_ALLOWED
