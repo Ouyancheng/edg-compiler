@@ -2121,6 +2121,9 @@ extern a_symbol_ptr extract_default_operator_new_sym(a_symbol_ptr sym);
 
 extern void make_global_operator_new_or_delete_symbol(an_opname_kind  opname);
 
+extern a_symbol_ptr find_default_constructor(a_type_ptr  class_type,
+                                             a_boolean   *ambiguous);
+
 extern a_routine_ptr select_default_constructor
 					(a_type_ptr        class_type,
                                          a_source_position *err_pos,
