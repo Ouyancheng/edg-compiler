@@ -3802,6 +3802,31 @@ it returns TRUE if type_ptr is the specified template parameter type.
 }  /* ttt_is_or_contains_template_param */
 
 
+static a_boolean ttt_set_force_external_linkage_flag(
+                                       a_type_ptr  type_ptr,
+                                       a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It always returns FALSE and always sets
+*force_end_of_traversal to FALSE.  If type_ptr is a class type with
+internal linkage it sets the force_external_linkage flag in its class symbol
+supplement (or in that of its top-level parent class).
+*/
+{
+  if (is_immediate_class_type(type_ptr)) {
+    if (type_ptr->source_corresp.name_linkage ==
+                                        (a_name_linkage_kind)nlk_internal) {
+      while (type_ptr->source_corresp.class_of_which_a_member != NULL) {
+        type_ptr = type_ptr->source_corresp.class_of_which_a_member;
+      }  /* while */
+      symbol_supplement_for_class(type_ptr)->force_external_linkage = TRUE;
+    }  /* if */
+  }  /* if */
+  *force_end_of_traversal = FALSE;
+  return FALSE;
+}  /* ttt_set_force_external_linkage_flag */
+
+
 static a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
                                     a_type_predicate_function_ptr  func,
                                     a_type_tree_traversal_flag_set flags)
@@ -4020,6 +4045,27 @@ in the type tree represented by tp.
                              ttt_flags));
 }  /* type_contains_specific_template_param_constant */
 #endif /* if 0 */
+
+
+void set_used_in_exception_flag(a_type_ptr  type_ptr)
+/*
+Set the used_in_exception flag in type_ptr and traverse its type tree to
+set the force_external_linkage flag for each class type in the tree.
+*/
+{
+  if (type_ptr->used_in_exception) {
+    /* Already set.  No further action is required. */
+  } else {
+    a_type_tree_traversal_flag_set  ttt_flags = (TTT_SKIP_TYPEDEFS |
+                                                 TTT_RETURN_TYPE |
+                                                 TTT_PARAM_TYPES |
+                                                 TTT_THIS_PARAM_TYPE);
+
+    type_ptr->used_in_exception = TRUE;
+    (void)traverse_type_tree(type_ptr, ttt_set_force_external_linkage_flag,
+                             ttt_flags);
+  }  /* if */
+}  /* set_used_in_exception_flag */
 
 /******************************************************************************
 *                                                             \  ___  /       *
