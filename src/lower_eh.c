@@ -998,9 +998,9 @@ set to allow the caller to do insertion after the code inserted.  The
 current context must be the function context.
 */
 {
-  a_variable_ptr     local_frame;
-  a_statement_ptr    block;
-  an_expr_node_ptr   local_frame_next, local_frame_kind;
+  a_variable_ptr   local_frame;
+  a_statement_ptr  block;
+  an_expr_node_ptr local_frame_next, local_frame_kind;
 
   /* Create the local variable for the stack frame. */
   *stack_frame_var = local_frame =
@@ -1034,6 +1034,29 @@ current context must be the function context.
                                             (an_integer_kind)ik_unsigned_char),
                               insert_location);
 }  /* push_eh_stack_frame */
+
+
+static void pop_eh_stack_frame(a_variable_ptr     stack_frame_var,
+                               an_insert_location *insert_location)
+/*
+Generate code to pop an exception handling stack frame on the stack.
+*stack_frame_var points to a local temporary variable that holds the
+stack frame.  The code is inserted at *insert_location.
+*/
+{
+  an_expr_node_ptr local_frame_next;
+
+  /* Add code as follows:
+       __curr_eh_stack_entry = local_frame.next;
+  */
+  local_frame_next = field_lvalue_selection_expr(
+                                              var_lvalue_expr(stack_frame_var),
+                                              ehse_next_field);
+  insert_var_assignment_statement(curr_eh_stack_entry_var,
+                                  (an_expr_operator_kind)eok_passign,
+                                  local_frame_next,
+                                  insert_location);
+}  /* pop_eh_stack_frame */
 
 
 static a_variable_ptr exception_type_spec_array_from_throw_spec(
@@ -1088,6 +1111,8 @@ is given by "scope".
   a_variable_ptr            local_frame, spec_array_var;
   an_expr_node_ptr          spec_array_node, local_frame_variant_throw_spec;
   an_insert_location        insert_location;
+  a_boolean                 need_throw_epilogue = FALSE;
+  a_return_memo_ptr         rmp;
 
   /* Only add the code if exceptions are enabled. */
   if (exceptions_enabled) {
@@ -1101,6 +1126,7 @@ is given by "scope".
          the function can throw anything.) */
       /* Generate code to push an entry on the EH stack. */
       push_eh_stack_frame(ehsek_throw_spec, &local_frame, &insert_location);
+      need_throw_epilogue = TRUE;
       /* Build an array of the throw types. */
       spec_array_var = exception_type_spec_array_from_throw_spec(throw_spec);
       /* Generate code to set the throw_spec field of the stack entry to
@@ -1129,6 +1155,18 @@ is given by "scope".
                                   (an_expr_operator_kind)eok_passign,
                                   spec_array_node,
                                   &insert_location);
+    }  /* if */
+    if (need_throw_epilogue) {
+      /* Need to add epilogue code at each return in the routine. */
+      for (rmp = return_memo_list; rmp != NULL; rmp = rmp->next) {
+        /* Turn the return into a block. */
+        turn_branch_into_block(rmp->stmt, &insert_location, &rmp->stmt);
+        if (need_throw_epilogue) {
+          /* Insert code to pop the prologue pushed for the throw
+             specification. */
+          pop_eh_stack_frame(local_frame, &insert_location);
+        }  /* if */
+      }  /* for */
     }  /* if */
   }  /* if */
 }  /* add_eh_function_prologue */
