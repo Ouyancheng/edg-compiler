@@ -1,5 +1,25 @@
 Version 2.26
 
+10/1/94  IL lowering: constructing array when default constructor has default
+         argument
+
+Some minor problems were corrected in IL lowering, specifically in
+default_version_of_routine, which is used to do constructor initialization
+on an array when the default constructor has default arguments.  The
+following no longer aborts:
+
+  struct D { D(const D&); D(); } d;
+  struct V { int i; };
+  struct A : public virtual V {
+    A(const A &, D = d);
+  };
+  struct B {
+    A aa[100];
+    B();
+  };
+  B b1;
+  B b2 = b1;
+
 10/1/94  IL walk of source sequence lists, prototype scope types in C
 
 The IL walk routines have been changed so that when they are walking

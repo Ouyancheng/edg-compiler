@@ -647,7 +647,8 @@ extern void lower_expr(an_expr_node_ptr expr,
 extern a_param_type_ptr unlowered_param_type_list(a_type_ptr routine_type);
 
 extern void lower_arg_expr_list(an_expr_node_ptr expr_list,
-                                a_type_ptr       called_rout_type);
+                                a_type_ptr       called_rout_type,
+                                a_param_type_ptr param);
 
 extern an_expr_operator_kind lowered_assignment_operator(a_type_ptr type);
 

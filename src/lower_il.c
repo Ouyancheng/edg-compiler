@@ -4332,7 +4332,7 @@ lowered, return the list after any implicit parameters added by lowering.
       param = param->next;
     }  /* if */
     /* If the routine returns its value via a copy constructor, an extra
-       parameter is used to passed the address for the return value. */
+       parameter is used to pass the address for the return value. */
     if (rtsp->value_returned_by_cctor) param = param->next;
   }  /* if */
   return param;
@@ -4340,30 +4340,36 @@ lowered, return the list after any implicit parameters added by lowering.
 
 
 void lower_arg_expr_list(an_expr_node_ptr expr_list,
-                         a_type_ptr       called_rout_type)
+                         a_type_ptr       called_rout_type,
+                         a_param_type_ptr param)
 /*
 Do IL lowering of the indicated list of expressions and everything under it.
 The expressions are the argument list for a call.  The type of the routine
 being called is called_rout_type (the type may be lowered or not).  Note
 that if the routine requires control arguments like a "this" pointer, such
-arguments are *not* in expr_list.
+arguments are *not* in expr_list.  If param is non-NULL, start at that
+parameter (this is used when the called routine is a copy constructor,
+to skip the input parameter).
 */
 {
   an_expr_node_ptr              expr;
   a_routine_type_supplement_ptr rtsp;
-  a_param_type_ptr              param;
 
   called_rout_type = skip_typerefs(called_rout_type);
   rtsp = called_rout_type->variant.routine.extra_info;
-  /* Track the current parameter type as we go through the list. */
-  /* Note that we do not test rtsp->prototyped because it may have been
-     cleared by lowering when MAKE_ALL_FUNCTIONS_UNPROTOTYPED is TRUE. */
-  if (rtsp->old_style_params_scanned) {
+  /* Get the first parameter type. */
+  if (param != NULL) {
+    /* The caller is telling us where to start in the list. */
+  } else if (rtsp->old_style_params_scanned) {
     /* Old-style parameter list, so no parameter information. */
+    /* Note that we do not test rtsp->prototyped because it may have been
+       cleared by lowering when MAKE_ALL_FUNCTIONS_UNPROTOTYPED is TRUE. */
     param = NULL;
   } else {
+    /* Start with the first parameter. */
     param = unlowered_param_type_list(called_rout_type);
   }  /* if */
+  /* Track the current parameter type as we go through the list. */
   for (expr = expr_list; expr != NULL; expr = expr->next) {
     lower_expr(expr, FALSE);
     if (param != NULL) {
@@ -5415,7 +5421,7 @@ call should return its value.
     expr->type = void_type();
   }  /* if */
   /* Lower the rest of the arguments. */
-  lower_arg_expr_list(arg_node, rout_type);
+  lower_arg_expr_list(arg_node, rout_type, (a_param_type_ptr)NULL);
   if (op == (an_expr_operator_kind)eok_virtual_call) {
     /* Virtual function call. */
     /* If the call is of a destructor, add the implied argument. */

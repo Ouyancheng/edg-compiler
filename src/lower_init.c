@@ -1514,7 +1514,9 @@ static a_routine_ptr default_version_of_routine(
 Return a pointer to a routine that does the same thing as "routine" but
 in which the parameters that have default argument expressions have been
 removed.  The values to be used for those default arguments are given
-by default_arg_list (the expressions are already lowered).  Implicitly-
+by default_arg_list (the expressions are NOT already lowered; this is
+important, since they have to be copied, and you can't successfully copy
+a lowered expression, since it might have temporaries in it).  Implicitly-
 generated parameters of constructors and destructors are also removed.
 This is used to generate a version of a constructor or destructor that
 can be called with just a "this" parameter, or of a copy constructor
@@ -1540,6 +1542,7 @@ The routine must have a "this" parameter.
   a_variable_ptr   this_param_var, param_var, last_param_var;
   an_expr_node_ptr this_arg, pass_through_arg;
   a_statement_ptr  call_stmt, return_stmt;
+  a_context        context;
 
   /* Determine any implicit arguments required for a constructor or
      destructor. */
@@ -1585,6 +1588,7 @@ The routine must have a "this" parameter.
                                                 /*make_return=*/FALSE,
                                                 &new_routine_il_region);
     switch_il_region(new_routine_il_region);
+    push_context(&context, new_routine_scope, /*subscope_region=*/FALSE);
     /* Make a parameter variable for the "this" parameter (again, in lowered
        form as a normal parameter). */
     new_routine_scope->variant.routine.parameters = this_param_var =
@@ -1633,14 +1637,15 @@ The routine must have a "this" parameter.
       last_param_type = param_type;
       last_param_var = param_var;
     }  /* for */
-    set_block_start_insert_location(new_routine_scope->assoc_block,
-                                    &insert_location);
-    /* Make a call statement that calls the original routine with all
-       the implicit arguments, i.e., that passes all the extra arguments
-       to the original routine. */
-    /* Copy the default argument expressions into the function memory
-       region. */
-    default_arg_list = copy_list_of_expr_trees(default_arg_list);
+    if (default_arg_list != NULL) {
+      /* Copy the default argument expressions into the function memory
+         region. */
+      default_arg_list = copy_list_of_expr_trees(default_arg_list);
+      /* Lower the default argument expressions.  Note that this must be done
+         after the copy because you can't copy an expression once it has been
+         lowered -- temporaries might have been added. */
+      lower_arg_expr_list(default_arg_list, routine_type, src_param_type);
+    }  /* if */
     if (implied_arg_list != NULL) {
       /* Add the implicit arguments to the front of the default argument
          list. */
@@ -1650,7 +1655,12 @@ The routine must have a "this" parameter.
     /* Add the "this" parameter at the front of the argument list. */
     this_arg = var_rvalue_expr(this_param_var);
     this_arg->next = default_arg_list;
+    /* Make a call statement that calls the original routine with all
+       the implicit arguments, i.e., that passes all the extra arguments
+       to the original routine. */
     call_node = make_call_node(routine, this_arg, /*honor_virtual=*/FALSE);
+    set_block_start_insert_location(new_routine_scope->assoc_block,
+                                    &insert_location);
     /* If the routine has a void type, insert a statement for the call
        followed by a return statement.  Otherwise, attach the call directly
        to the return. */
@@ -1663,6 +1673,7 @@ The routine must have a "this" parameter.
     return_stmt = alloc_statement((a_statement_kind)stmk_return);
     return_stmt->expr = call_node;
     insert_statement(return_stmt, &insert_location);
+    pop_context();
     done_with_memory_region(new_routine_il_region);
     switch_il_region(region_to_switch_back_to);
     routine = new_routine;
@@ -1684,7 +1695,8 @@ address of the array; source_node (if non-NULL) gives the address of
 the source for a copy constructor call; and array_element_count gives the
 number of elements in the array.  Insert the statements at *insert_location
 and update *insert_location.  The additional-arguments list given by
-dip->variant.constructor.args has already been lowered.
+dip->variant.constructor.args must NOT already be lowered (see comment
+in default_version_of_routine).
 */
 {
   a_routine_ptr    ctor_routine;
@@ -2714,9 +2726,6 @@ do_assignment:;
     case dik_call_returning_class_via_cctor:
       /* Initialize the entry by calling a routine that returns its result
          via a copy constructor. */
-      /* The address of the temporary being initialized is added as an
-         implicit argument of the call. */
-      lower_call(dip->variant.expression, ipdp);
       if (processing_file_scope_init_routine ||
           conditional_flag_var != NULL) {
         /* When generating the file-scope initialization routine we have
@@ -2724,9 +2733,13 @@ do_assignment:;
            scope of the initialization routine, so copy it.  Otherwise
            we have a difficult job keeping track of the nodes that are in
            the file scope and those that are in the function scope.
-           Similar reasoning applies to local static variables. */
+           Similar reasoning applies to local static variables
+           (conditional_flag_var != NULL). */
         dip->variant.expression = copy_expr_tree(dip->variant.expression);
       }  /* if */
+      /* The address of the temporary being initialized is added as an
+         implicit argument of the call. */
+      lower_call(dip->variant.expression, ipdp);
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
       /* If this is a static data member in a template, add guard code around
          the initialization. */
@@ -2742,8 +2755,6 @@ do_assignment:;
     case dik_constructor:
       /* Initialize the entity by calling a constructor. */
       /* The routine does not need to be lowered from here. */
-      lower_arg_expr_list(dip->variant.constructor.args,
-                          dip->variant.constructor.ptr->type);
       if (processing_file_scope_init_routine ||
           conditional_flag_var != NULL) {
         /* When generating the file-scope initialization routine we have
@@ -2751,7 +2762,8 @@ do_assignment:;
            scope of the initialization routine, so copy them.  Otherwise
            we have a difficult job keeping track of the nodes that are in
            the file scope and those that are in the function scope.
-           Similar reasoning applies to local static variables. */
+           Similar reasoning applies to local static variables
+           (conditional_flag_var != NULL). */
         dip->variant.constructor.args =
                         copy_list_of_expr_trees(dip->variant.constructor.args);
       }  /* if */
@@ -2780,11 +2792,27 @@ do_assignment:;
           internal_error("lower_dynamic_init: implied arg list for array");
         }  /* if */
 #endif /* CHECKING */
+        /* Note that dip->variant.constructor.args has not been lowered,
+           which is what the subroutine requires. */
         add_array_constructor_call(dip, entity_node, source_node,
                                    ipdp->array_element_count,
                                    insert_location);
       } else {
         /* Construct a simple entity (not an array). */
+        a_type_ptr       ctor_routine_type= dip->variant.constructor.ptr->type;
+        an_expr_node_ptr ctor_args = dip->variant.constructor.args;
+        /* Lower any added arguments. */
+        if (ctor_args != NULL) {
+          a_param_type_ptr param = NULL;
+          if (dip->variant.constructor.
+                                is_copy_constructor_with_implied_source) {
+            /* With a copy constructor, start after the source parameter. */
+            param = unlowered_param_type_list(ctor_routine_type);
+            param = param->next;
+          }  /* if */
+          lower_arg_expr_list(ctor_args, ctor_routine_type, param);
+        }  /* if */
+        /* Generate the constructor call. */
         add_constructor_call(dip, entity_node, source_node,
                              implied_arg_list, end_implied_arg_list,
                              insert_location);
@@ -3145,7 +3173,8 @@ arrays with class elements.
        may contain the assignment to a temporary needed to make a reusable
        copy of the size expression.  */
     /* Make the "new" call. */
-    lower_arg_expr_list(ndsp->arg, ndsp->routine->type);
+    lower_arg_expr_list(ndsp->arg, ndsp->routine->type,
+                        (a_param_type_ptr)NULL);
     new_node = make_call_node(ndsp->routine, ndsp->arg,
                               /*honor_virtual=*/FALSE);
     /* Make "temp = (type *)new-call(...)". */
@@ -3263,8 +3292,8 @@ arrays with class elements.
     ctor_routine = elem_dip->variant.constructor.ptr;
     /* If the constructor has default arguments, make a routine that
        calls the constructor with the necessary default arguments. */
-    lower_arg_expr_list(elem_dip->variant.constructor.args,
-                        ctor_routine->type);
+    /* Note that elem_dip->variant.constructor.args must not be lowered
+       before passing it to default_version_of_routine. */
     ctor_routine = default_version_of_routine(ctor_routine,
                                            elem_dip->variant.constructor.args);
     /* If exceptions are enabled, a destructor will be specified if
@@ -3375,7 +3404,7 @@ The subtree of the node has not yet been lowered.
     /* Preserve any additional parameters from the constructor call. */
     if (dip->variant.constructor.args != NULL) {
       lower_arg_expr_list(dip->variant.constructor.args,
-                          ctor_routine->type);
+                          ctor_routine->type, (a_param_type_ptr)NULL);
       end_implied_arg_list->next = dip->variant.constructor.args;
     }  /* if */
     /* Make the constructor call. */
@@ -3390,7 +3419,8 @@ The subtree of the node has not yet been lowered.
   } else {
     /* Non-array case, or array case that does not require special handling. */
     /* Create a call of the "new" routine. */
-    lower_arg_expr_list(ndsp->arg, ndsp->routine->type);
+    lower_arg_expr_list(ndsp->arg, ndsp->routine->type,
+                        (a_param_type_ptr)NULL);
     call_node = make_call_node(ndsp->routine, ndsp->arg,
                                /*honor_virtual=*/FALSE);
     /* Note that the type of the "new" call might be unrelated to the type
@@ -3574,7 +3604,7 @@ The subtree of the node has not yet been lowered.
     /* Non-array case, or array case that does not require special handling. */
     /* Lower "arg"; do it as a list in case the delete routine is the
        two-argument version. */
-    lower_arg_expr_list(ptr_node, ndsp->routine->type);
+    lower_arg_expr_list(ptr_node, ndsp->routine->type, (a_param_type_ptr)NULL);
     /* Break off the second argument if there is one; it will be reattached
        later after ptr_node has been messed with. */
     second_arg_node = ptr_node->next;
