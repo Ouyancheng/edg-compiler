@@ -7709,6 +7709,10 @@ return a pointer to it.
       kind = iek_template;
       entity = (char *)sym->variant.template_info->il_template_entry;
       break;
+#else /* !RECORD_TEMPLATES_IN_IL */
+      /* When these symbol kinds are encountered and RECORD_TEMPLATES_IN_IL
+         is FALSE, fall through to the internal error -- the routine should
+         not have been called. */
 #endif /* RECORD_TEMPLATES_IN_IL */
 #if CHECKING
     default:
