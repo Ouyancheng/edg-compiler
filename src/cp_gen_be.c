@@ -1948,6 +1948,25 @@ Return a string that describes the tag kind for the indicated type (i.e.,
 }  /* tag_keyword */
 
 
+static a_boolean force_qualifier_for_msvc(a_source_correspondence *scp,
+                                          an_il_entry_kind        entry_kind,
+                                          a_gen_name_options_set  options)
+/*
+Return TRUE if a qualifier should be forced on a reference to the
+indicated entity to deal with a bug in Microsoft's compiler.
+MSVC++ 7.0 does not always correctly parse "class S<x>::N {...};",
+but the problem goes away with a leading qualifier.
+*/
+{
+  a_boolean force_qualifier = 
+                (msvc_target_version_number == 1300 &&
+                 (options & GN_QUALIFIER) && !(options & GN_DEPENDENT) &&
+                 template_arguments_for_name(scp, entry_kind,
+                                             (a_boolean*)NULL) != NULL);
+  return force_qualifier;
+}  /* force_qualifier_for_msvc */
+
+
 static void gen_name(a_source_correspondence *scp,
                      an_il_entry_kind        entry_kind,
                      a_gen_name_options_set  options,
@@ -2041,7 +2060,11 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       if (!force_qualified_name &&
           (!scp->qualification_needed || (options & GN_DECLARATION)) &&
           (scp->visible_as_unqualified_name ||
-           scope_is_in_name_context_stack(nsp->variant.assoc_scope))) {
+           scope_is_in_name_context_stack(nsp->variant.assoc_scope)) &&
+           /* MSVC++ 7.0 does not always correctly parse "class S<x>::N {}",
+              but the problem goes away with a leading namespace qualifier. */
+           !(msvc_is_generated_code_target &&
+             force_qualifier_for_msvc(scp, entry_kind, options))) {
         /* A qualified name is not needed, because we're inside a name context
            for the namespace and either the name is not hidden or we are
            generating the declaration of that name. */
@@ -2057,13 +2080,10 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                                 need_closing_paren);
       }  /* if */
     } else if (scp->qualification_needed ||
-               /* MSVC++ 7.0 does not always correctly parse "class S<x>::N {",
+               /* MSVC++ 7.0 does not always correctly parse "class S<x>::N{}",
                   but the problem goes away with a leading global qualifier. */
                (msvc_is_generated_code_target &&
-                msvc_target_version_number >= 1300 &&
-                (options & GN_QUALIFIER) && !(options & GN_DEPENDENT) &&
-                template_arguments_for_name(scp, entry_kind,
-                                            (a_boolean*)NULL) != NULL)) {
+                force_qualifier_for_msvc(scp, entry_kind, options))) {
       /* This is a reference to a file-scope entity from within a class
          or function, so add a leading "::". */
       if (options & GN_DECLARATION) {

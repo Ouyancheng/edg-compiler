@@ -1,5 +1,11 @@
 Version 3.4
 
+9/10/03  C++-generating back end: addition to MSVC++ 7.0 workaround
+
+The MSVC++ 7.0 workaround described in the entry of 10/17/02 turns
+out to also be needed for namespace qualifiers (the original fix
+dealt with leading "::" qualifiers).
+
 9/10/03  C++-generating back end: output of dependent constants in enum
          definition in prototype instantiation
 
