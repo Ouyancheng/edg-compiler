@@ -1816,6 +1816,53 @@ Change a pointer to its canonical value.
 { if ((ptr) != NULL) (ptr) = (ptr_type)canonical_il_entry_of(ptr); }
 
 
+static void update_namespace_pointers_block(a_scope_ptr scope)
+/*
+scope is the secondary translation unit scope for a namespace that has
+been copied to the primary IL rather than merged.  Update its
+pointers block so that its last-pointers point to the copied
+entries in the primary IL.
+*/
+{
+  a_scope_ptr            primary_scope =
+                                     (a_scope_ptr)canonical_il_entry_of(scope);
+  a_scope_pointers_block *pointers_block =
+                                   get_pointers_block_for_scope(primary_scope);
+  a_namespace_ptr        sub_nsp;
+
+  change_pointer_to_canonical(pointers_block->last_constant,
+                              a_constant_ptr);
+  change_pointer_to_canonical(pointers_block->last_type,
+                              a_type_ptr);
+  change_pointer_to_canonical(pointers_block->last_variable,
+                              a_variable_ptr);
+  change_pointer_to_canonical(pointers_block->last_routine,
+                              a_routine_ptr);
+  change_pointer_to_canonical(pointers_block->last_asm_entry,
+                              an_asm_entry_ptr);
+  change_pointer_to_canonical(pointers_block->last_dynamic_init,
+                              a_dynamic_init_ptr);
+  change_pointer_to_canonical(pointers_block->last_namespace,
+                              a_namespace_ptr);
+  change_pointer_to_canonical(pointers_block->last_using_decl,
+                              a_using_decl_ptr);
+  change_pointer_to_canonical(pointers_block->last_template,
+                              a_template_ptr);
+  change_pointer_to_canonical(pointers_block->last_pragma,
+                              a_pragma_ptr);
+  change_pointer_to_canonical(pointers_block->last_template,
+                              a_template_ptr);
+  /* Process any namespaces under this one. */
+  for (sub_nsp = scope->namespaces;
+       sub_nsp != NULL;
+       sub_nsp = sub_nsp->next) {
+    if (!sub_nsp->is_namespace_alias) {
+      update_namespace_pointers_block(sub_nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+}  /* update_namespace_pointers_block */
+
+
 static void finish_trans_unit_copy(a_scope_ptr scope)
 /*
 scope is a file, namespace, or class scope from the secondary file IL.  Do
@@ -2229,30 +2276,7 @@ end_of_routine_list_add:;
     /* For a namespace scope, update the end-of-list pointers in the
        pointers block to match to addresses of the copies. */
     if (scope->kind == (a_scope_kind)sck_namespace) {
-      primary_scope = (a_scope_ptr)canonical_il_entry_of(scope);
-      pointers_block = get_pointers_block_for_scope(primary_scope);
-      change_pointer_to_canonical(pointers_block->last_constant,
-                                  a_constant_ptr);
-      change_pointer_to_canonical(pointers_block->last_type,
-                                  a_type_ptr);
-      change_pointer_to_canonical(pointers_block->last_variable,
-                                  a_variable_ptr);
-      change_pointer_to_canonical(pointers_block->last_routine,
-                                  a_routine_ptr);
-      change_pointer_to_canonical(pointers_block->last_asm_entry,
-                                  an_asm_entry_ptr);
-      change_pointer_to_canonical(pointers_block->last_dynamic_init,
-                                  a_dynamic_init_ptr);
-      change_pointer_to_canonical(pointers_block->last_namespace,
-                                  a_namespace_ptr);
-      change_pointer_to_canonical(pointers_block->last_using_decl,
-                                  a_using_decl_ptr);
-      change_pointer_to_canonical(pointers_block->last_template,
-                                  a_template_ptr);
-      change_pointer_to_canonical(pointers_block->last_pragma,
-                                  a_pragma_ptr);
-      change_pointer_to_canonical(pointers_block->last_template,
-                                  a_template_ptr);
+      update_namespace_pointers_block(scope);
     }  /* if */
   }  /* if */
 }  /* finish_trans_unit_copy */
