@@ -1571,7 +1571,8 @@ should be set to TRUE.
        statement is a block), that block is used.
        A similar approach is also needed if more than one statement is
        being appended. */
-    if ((*head_ptr)->kind == (a_statement_kind)stmk_block &&
+    if (*head_ptr != NULL &&
+        (*head_ptr)->kind == (a_statement_kind)stmk_block &&
         ((*head_ptr)->variant.block.extra_info->assoc_scope == NULL
 #if MICROSOFT_EXTENSIONS_ALLOWED
          /* Avoid adding a new block for the continue label of a Microsoft
