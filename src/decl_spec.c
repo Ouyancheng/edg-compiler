@@ -728,15 +728,14 @@ class_definition is TRUE if the modifiers appeared on a class definition
 used for diagnostics.
 */
 {
-  if (!C_mode()) {
-    a_class_type_supplement_ptr
+  a_class_type_supplement_ptr
                      ctsp = class_type->variant.class_struct_union.extra_info;
-    /* If there were any class-wide modifiers or memory attributes
-       specified, record them in the class type supplement. */
+  if (ctsp != NULL) {
+    /* Record any C++-only declaration modifiers in the class type supplement.
+       (See also scan_extended_decl_modifiers and scan_declspec_attributes
+       which reject C++-only modifiers in C mode.) */
 #if NEAR_AND_FAR_ALLOWED
-    if (ctsp != NULL) {
-      ctsp->qualifiers = extended_decl_info->qualifiers;
-    }  /* if */
+    ctsp->qualifiers = extended_decl_info->qualifiers;
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if DECL_MODIFIERS_IN_USE
     if (extended_decl_info->decl_modifiers.flags != DM_NONE) {
