@@ -1,5 +1,12 @@
 Version 3.0
 
+3/5/01   Qualified void return types in strict C mode
+
+In strict C mode, the front end now issues an error on declarations of
+functions with a cv-qualified return type.
+
+  void const f();  /* Error: void return type cannot be qualified. */
+
 3/4/01   Sun compatibility: default arg. in member of class template
 
 The Sun compiler allows a default argument to be specified on the

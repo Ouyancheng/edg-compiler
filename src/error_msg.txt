@@ -1205,6 +1205,7 @@ ec_alias_cannot_have_definition;;"entity declared as alias cannot have definitio
 ec_vla_size_ignored;;"variable-length array field type will be treated as zero-length array field type"
 ec_gcc_lvalue_cast_ignored;;"nonstandard cast on lvalue ignored"
 ec_cl_invalid_flag_name;;"unrecognized flag name "
+ec_qualified_void_return_type;;"void return type cannot be qualified"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

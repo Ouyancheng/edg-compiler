@@ -4726,30 +4726,43 @@ declaration.
                                    locator);
     report_bad_new_or_delete(locator, storage_class,
                              &invalid_scope_for_new_or_delete);
-  } else if (c99_mode) {
-    /* In C99 mode, if a function is declared "inline" every time it is
-       declared in a given translation unit and is never declared with an
-       explicitly specified storage class, then its definition is regarded
-       as an "inline definition" instead of an "external definition" (see
-       6.9, 6.7.4).  An inline function with an "inline definition", even
-       though it has external linkage, is not visible outside the current
-       translation unit. */
-    if (func_info->is_inline &&
-        storage_class == (a_storage_class)sc_unspecified) {
-      /* "inline" was present in the declaration, but no storage class was
-         specified. */
-      suppress_inline_body = TRUE;
+  } else {
+    /* C mode. */
+    if (strict_ansi_mode) {
+      /* CV-qualified void return types aren't permitted in C mode. */
+      a_type_ptr  return_type =
+                          skip_typerefs(type_ptr)->variant.routine.return_type;
+      if (return_type->kind == (a_type_kind)tk_typeref &&
+          is_qualified_type(return_type) &&
+          is_void_type(return_type)) {
+        pos_error(ec_qualified_void_return_type, &locator->source_position);
+      }  /* if */
     }  /* if */
+    if (c99_mode) {
+      /* In C99 mode, if a function is declared "inline" every time it is
+         declared in a given translation unit and is never declared with an
+         explicitly specified storage class, then its definition is regarded
+         as an "inline definition" instead of an "external definition" (see
+         6.9, 6.7.4).  An inline function with an "inline definition", even
+         though it has external linkage, is not visible outside the current
+         translation unit. */
+      if (func_info->is_inline &&
+          storage_class == (a_storage_class)sc_unspecified) {
+        /* "inline" was present in the declaration, but no storage class was
+           specified. */
+        suppress_inline_body = TRUE;
+      }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (gcc_mode && 
-             storage_class == (a_storage_class)sc_extern &&
-             func_info->is_inline && func_info->is_definition) {
-    /* In GCC mode, if a function definition uses both the "extern"
-       and "inline" keywords then no definition of the function
-       should be emitted, even though it has external linkage.  This
-       treatment is analogous to the C99 "inline definition" concept. */
-    suppress_inline_body = TRUE;
+    } else if (gcc_mode && 
+               storage_class == (a_storage_class)sc_extern &&
+               func_info->is_inline && func_info->is_definition) {
+      /* In GCC mode, if a function definition uses both the "extern"
+         and "inline" keywords then no definition of the function
+         should be emitted, even though it has external linkage.  This
+         treatment is analogous to the C99 "inline definition" concept. */
+      suppress_inline_body = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    }  /* if */
   }  /* if */
   clear_id_linkage_block(&idlb);
   idlb.locator = locator;
