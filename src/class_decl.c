@@ -9204,7 +9204,7 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
       /* When exceptions are enabled, be sure each placement operator new
          has a corresponding operator delete. */
       if (new_sym != NULL) {
-        a_symbol_ptr  sym = new_sym;
+        a_symbol_ptr  sym = new_sym, ovl_sym, fund_sym;
         if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
           is_overloaded = TRUE;
           sym = sym->variant.overloaded_function.symbols;
@@ -9213,11 +9213,14 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
         }  /* if */
         /* Loop through the entire overload set of operator new symbols. */
         for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
-          a_symbol_ptr  ovl_sym;
-          if (find_corresponding_operator_delete_sym(
-                                fundamental_symbol_of(sym),
-                                class_type, &ambiguous, &ovl_sym) == NULL &&
-              !ambiguous) {
+          fund_sym = fundamental_symbol_of(sym);
+          /* Ignore function templates. */
+          if (fund_sym->kind == (a_symbol_kind)sk_function_template) continue;
+          del_sym = find_corresponding_operator_delete_sym(
+                                                     fund_sym, class_type,
+                                                     /*template_okay=*/TRUE,
+                                                     &ambiguous, &ovl_sym);
+          if (del_sym == NULL && !ambiguous) {
             /* There is no operator delete that "corresponds" to this
                operator new (i.e., whose parameter types after the first
                match). */

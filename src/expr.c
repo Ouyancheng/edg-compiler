@@ -4283,6 +4283,7 @@ the position to be used for errors.
   }  /* if */
   delete_sym = find_corresponding_operator_delete_sym(new_sym,
                                                       class_type,
+                                                      /*template_okay=*/FALSE,
                                                       &ambiguous,
                                                       &overload_delete_sym);
   if (ambiguous) {
@@ -4294,9 +4295,7 @@ the position to be used for errors.
   } else {
     /* There is an appropriate operator delete. */
     a_symbol_ptr fund_delete_sym = fundamental_symbol_of(delete_sym);
-    if (fund_delete_sym->kind == (a_symbol_kind)sk_function_template) {
-      internal_error("template operator delete not implemented");
-    }  /* if */
+
     check_assertion(fund_delete_sym->kind == (a_symbol_kind)sk_routine ||
                     fund_delete_sym->kind ==
                                             (a_symbol_kind)sk_member_function);
