@@ -1,5 +1,21 @@
 Version 2.29
 
+5/18/95  Problem with no-exception-lowering in IL lowering
+
+When IL lowering is configured to do no lowering of exception handling
+features, and a non-placement "new" operation is lowered, the code
+generated sets a conditional flag to request the freeing of the storage
+if an exception is thrown before the initialization is finished.
+The code did not, however, reset the flag once the initialization is
+finished.
+
+  struct A {
+    void *operator new(unsigned int);
+    A();
+  };
+  A * p = ::new A;
+  int *p = new int(7);
+
 5/18/95  Redeclaring template parameters in nested scopes
 
 An error is now issued in strict mode when a template parameter is
