@@ -1,5 +1,14 @@
 Version 2.12
 
+11/18/92 Folding of 64-bit integers
+
+const_ints.c has been fleshed out with a full set of routines for
+doing integer constant folding when the target integers can be larger
+than the host integers (e.g., 64-bit long long on a 32-bit host).
+The routines also handle the usual case where a host integer can be
+used to hold all target integers.  folding.c has been extensively
+modified to use these routines.
+
 11/16/92 Fixed bug in name lookup in ctor-initializer
 
 When lookup up the member or base class name in a constructor
