@@ -565,7 +565,7 @@ used to match the type "char".
 */
 #define set_basic_char_centity_attributes()                           \
 { unsigned long sign_bit = (unsigned long)1 << (TARG_CHAR_BIT-1);     \
-  centity_mask = sign_bit | (sign_bit - 1);                           \ 
+  centity_mask = sign_bit | (sign_bit - 1);                           \
 }  /* set_basic_char_centity_attributes */
 #define set_char_centity_attributes()                                 \
 { set_basic_char_centity_attributes();                                \
