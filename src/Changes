@@ -1,5 +1,15 @@
 Version 2.11
 
+9/30/92  Reference initialization of pointers in cfront mode
+
+In cfront compatibility mode, a reference to a pointer type may now
+be initialized from a pointer value without use of a temporary even
+when the reference pointer type has additional type qualifiers above
+those present in the pointer value.  For example,
+
+  int *p;
+  const int *&r = p;  // No temporary used
+
 9/30/92  Extension for compatibility of prototyped/old-style functions
 
 The configuration switch PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED
