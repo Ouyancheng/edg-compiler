@@ -4771,9 +4771,7 @@ declaration.
   an_id_linkage_block      idlb;
   a_boolean                suppress_inline_body = FALSE;
   a_boolean                notify_correspondence_processing = FALSE;
-#if !INSTANTIATE_EXTERN_INLINE
   a_storage_class          declared_storage_class = storage_class;
-#endif /* !INSTANTIATE_EXTERN_INLINE */
 
   db_enter(3, "decl_routine");
   *old_type = NULL;
@@ -4829,7 +4827,6 @@ declaration.
                                    locator);
     report_bad_new_or_delete(locator, storage_class,
                              &invalid_scope_for_new_or_delete);
-#if !INSTANTIATE_EXTERN_INLINE
     if (microsoft_mode && func_info->is_inline) {
       /* In Microsoft mode "extern inline" is a request for the inline
          function body to be spilled.  Without "extern", it is still a
@@ -4838,7 +4835,6 @@ declaration.
       suppress_inline_body =
                        (declared_storage_class != (a_storage_class)sc_extern);
     }  /* if */
-#endif /* !INSTANTIATE_EXTERN_INLINE */
   } else {
     /* C mode. */
     if (strict_ansi_mode) {
@@ -5719,36 +5715,38 @@ skip_overloading:;
     }  /* if */
   }  /* if */
   if (func_info->is_inline) routine_ptr->is_inline = TRUE;
-  if ((c99_mode && !gcc_mode) || microsoft_mode) {
-    /* In C99 mode the suppress_inline_body flag is set only if that is
-       justified by every declaration of a given inline function.
-       In Microsoft mode (for configurations where INSTANTIATE_EXTERN_INLINE
-       is FALSE), suppress_inline_body is cleared if the function was
-       declared (or defined) with the extern keyword. */
-    if (redeclaration) {
+  if (routine_ptr->is_inline) {
+    if ((c99_mode && !gcc_mode) ||
+        (microsoft_mode && !C_mode())) {
+      /* In C99 mode the suppress_inline_body flag is set only if that is
+         justified by every declaration of a given inline function.
+         In Microsoft C++ mode, suppress_inline_body is cleared if the
+         function was declared (or defined) with the extern keyword. */
+      if (redeclaration) {
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
-      if ((!suppress_inline_body || !routine_ptr->suppress_inline_body) &&
-          routine_ptr->storage_class == (a_storage_class)sc_unspecified) {
-        /* The definition should not be discarded if it was preceded or
-           followed by an extern declaration.  (If the current definition
-           has an inline specifier and routine->suppress_inline_body is FALSE,
-           the previous declaration did not have an "inline" specifier.
-           If the previous declaration was an inline definition and the
-           current declaration has no inline specifier, then
-           suppress_inline_body will be FALSE.) */
-        mark_as_needed((char *)routine_ptr, (an_il_entry_kind)iek_routine);
-      }  /* if */
+        if ((!suppress_inline_body || !routine_ptr->suppress_inline_body) &&
+            routine_ptr->storage_class == (a_storage_class)sc_unspecified) {
+          /* The definition should not be discarded if it was preceded or
+             followed by an extern declaration.  (If the current definition
+             has an inline specifier and routine->suppress_inline_body is
+             FALSE, the previous declaration did not have an "inline"
+             specifier.  If the previous declaration was an inline definition
+             and the current declaration has no inline specifier, then
+             suppress_inline_body will be FALSE.) */
+          mark_as_needed((char *)routine_ptr, (an_il_entry_kind)iek_routine);
+        }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
-      routine_ptr->suppress_inline_body &= suppress_inline_body;
-    } else {
-      routine_ptr->suppress_inline_body = suppress_inline_body;
-    }  /* if */
+        routine_ptr->suppress_inline_body &= suppress_inline_body;
+      } else {
+        routine_ptr->suppress_inline_body = suppress_inline_body;
+      }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (gcc_mode && suppress_inline_body) {
-    /* In GNU C mode only the keywords present at the point of
-       definition matter. */
-    routine_ptr->suppress_inline_body = TRUE;
+    } else if (gcc_mode && suppress_inline_body) {
+      /* In GNU C mode only the keywords present at the point of
+         definition matter. */
+      routine_ptr->suppress_inline_body = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    }  /* if */
   }  /* if */
   source_corresp_ptr = &routine_ptr->source_corresp;
   update_routine_decl_modifiers(routine_ptr, decl_modifiers,

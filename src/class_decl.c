@@ -6436,7 +6436,7 @@ declared member functions.
   if (func_info->is_inline) {
     /* Inline member function (either because "inline" was specified or
        a function definition is present). */
-    rtn->is_inline = TRUE;
+    mark_routine_initially_inline(rtn);
   }  /* if */
   if (locator->is_operator_name) {
     /* Overloaded operator function. */
