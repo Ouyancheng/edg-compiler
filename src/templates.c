@@ -17267,9 +17267,7 @@ instance, a reference that forced instantiation was followed by a
 specific definition that made it unnecessary.
 */
 {
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_template_instance_ptr           tip;
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
   db_enter(3, "instantiation_wrapup");
   /* Now that all input has been processed including any instantiations that
@@ -17314,6 +17312,16 @@ specific definition that made it unnecessary.
      instantiations that are needed or were assigned to this file by
      the automatic instantiation mechanism. */
   do_any_needed_instantiations();
+  if (more_than_one_non_export_translation_unit) {
+    /* When compiling multiple translation units, check (possibly again)
+       whether an exported definition is available.  The earlier checks
+       may have been done before the translation unit containing the
+       exported definition was loaded. */
+    for (tip = instantiations_required; tip != NULL;
+         tip = tip->next_in_instantiation_list) {
+      (void)exported_definition_is_available(tip);
+    }  /* for */
+  }  /* if */
   /* If any friend state changed between the initial prescan and the later one,
      an error should have been issued somewhere. */
   check_assertion_str2(!any_friend_state_changed || total_errors != 0,
