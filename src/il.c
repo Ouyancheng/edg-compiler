@@ -2298,8 +2298,10 @@ only be used for inlining (i.e., the suppress_inline_body flag should be set).
   rp->is_inline = flag;
   if (!flag) {
     rp->suppress_inline_body = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode && (rp->decl_modifiers & DM_DLLIMPORT)) {
     rp->suppress_inline_body = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* set_inline_flag */
 
