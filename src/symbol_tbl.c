@@ -3798,6 +3798,54 @@ cleared.
 }  /* make_global_operator_new_or_delete_symbol */
 
 
+a_symbol_ptr find_default_constructor(a_type_ptr  class_type,
+                                      a_boolean   *ambiguous)
+/*
+Find and return a pointer to a symbol representing a default constructor for
+the class indicated by class_type.  (A default constructor is a constructor
+that requires no arguments.)  If more than one acceptable constructor is
+found, set *ambiguous to TRUE and return one of the symbols.  Return NULL
+if no default constructor is found.  This routine is only used in C++ mode.
+*/
+{
+  a_symbol_ptr  sym, ctor_sym = NULL;
+  a_boolean     is_overloaded_function;
+
+  *ambiguous = FALSE;
+  sym = (symbol_supplement_for_class(class_type))->constructor;
+  if (sym != NULL) {
+    /* If sym is an overloaded function symbol we need to go through the whole
+       list. */
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      is_overloaded_function = TRUE;
+      sym = sym->variant.overloaded_function.symbols;
+    } else {
+      is_overloaded_function = FALSE;
+    }  /* if */
+    /* Examine each constructor for this class to find a default constructor.
+       There may be more than one.  For instance, there may be a constructor
+       with no arguments and one with one argument with a default value. */
+    for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
+      if (is_default_constructor(sym->variant.routine.ptr,
+                                 /*is_declarative_context=*/FALSE)) {
+        /* sym is a default constructor. */
+        if (ctor_sym != NULL) {
+          /* A default constructor had already been found, so there's
+             more than one.  We have an ambiguous reference. */
+          *ambiguous = TRUE;
+          break;
+        } else {
+          /* We've found one.  Record it, but keep looking.  If there's an
+             ambiguity we need to report it. */
+          ctor_sym = sym;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return ctor_sym;
+}  /* find_default_constructor */
+
+
 a_routine_ptr select_default_constructor(a_type_ptr        class_type,
                                          a_source_position *err_pos,
 					 a_type_ptr        object_class_type,
@@ -3814,46 +3862,13 @@ This is needed for protected member access checking.  If evaluated is
 FALSE, the reference is within an unevaluated expression.
 */
 {
-  a_symbol_ptr  sym, ctor_sym = NULL;
-  a_boolean     is_overloaded_function, ambiguous = FALSE;
-  a_routine_ptr ctor_routine;
+  a_routine_ptr ctor_routine = NULL;
+  a_symbol_ptr  ctor_sym;
+  a_boolean     ambiguous;
 
   /* This routine is similar to select_overloaded_function. */
   class_type = skip_typerefs(class_type);
-  sym = (symbol_supplement_for_class(class_type))->constructor;
-#if CHECKING
-  if (sym == NULL) {
-    internal_error("select_default_constructor: NULL constructor");
-  }  /* if */
-#endif /* CHECKING */
-  /* If sym is an overloaded function symbol we need to go through the whole
-     list. */
-  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    is_overloaded_function = TRUE;
-    sym = sym->variant.overloaded_function.symbols;
-  } else {
-    is_overloaded_function = FALSE;
-  }  /* if */
-  /* Examine each constructor for this class to find a default constructor.
-     There may be more than one.  For instance, there may be a constructor
-     with no arguments and one with one argument with a default value. */
-  for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-    if (is_default_constructor(sym->variant.routine.ptr,
-                               /*is_declarative_context=*/FALSE)) {
-      /* sym is a default constructor. */
-      if (ctor_sym != NULL) {
-        /* A default constructor had already been found, so there's
-           more than one.  We have an ambiguous reference. */
-        ambiguous = TRUE;
-        break;
-      } else {
-        /* We've found one.  Record it, but keep looking.  If there's an
-           ambiguity we need to report it. */
-        ctor_sym = sym;
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  ctor_routine = NULL;
+  ctor_sym = find_default_constructor(class_type, &ambiguous);
   if (ctor_sym == NULL) {
     /* No default constructor. */
     pos_ty_error(ec_no_default_constructor, err_pos, class_type);
@@ -3922,9 +3937,9 @@ the class indicated by class_type and accepting a first parameter whose type
 is qualified as specified by required_qualifiers.  If no acceptable copy
 constructor is found, return NULL.  If more than one acceptable copy
 constructor is found and only one of them is an exact match on qualifiers,
-return that one; otherwise set *ambiguous to TRUE and return NULL.  If a
-bitwise copy is allowed, return NULL and *class_bitwise_copy TRUE.  This
-routine is only used in C++ mode.
+return that one; otherwise set *ambiguous to TRUE and return one of the
+matching constructors.  If a bitwise copy is allowed, return NULL and
+*class_bitwise_copy TRUE.  This routine is only used in C++ mode.
 */
 {
   a_symbol_ptr                   sym, cctor_sym = NULL;
@@ -4003,8 +4018,6 @@ routine is only used in C++ mode.
       }  /* if */
     }  /* for */
   }  /* if */
-  /* Return NULL if the copy constructor is ambiguous. */
-  if (*ambiguous) cctor_sym = NULL;
   return cctor_sym;
 }  /* find_copy_constructor */
 
@@ -4033,27 +4046,24 @@ If suppress_access_check is TRUE, no access checking is done.
 */
 {
   a_symbol_ptr  cctor_sym;
-  a_routine_ptr cctor_routine;
+  a_routine_ptr cctor_routine = NULL;
   a_boolean     ambiguous;
 
   cctor_sym = find_copy_constructor(class_type, qualifiers_required,
                                     &ambiguous, class_bitwise_copy);
-  cctor_routine = NULL;
   if (*class_bitwise_copy) {
     /* A bitwise copy is allowed. */
+  } else if (ambiguous) {
+    /* More than one applicable copy constructor. */
+    pos_ty_error(ec_ambiguous_copy_constructor, err_pos, class_type);
   } else if (cctor_sym == NULL) {
-    if (!ambiguous) {
-      /* No applicable copy constructor. */
-      if (qualifiers_required == TQ_CONST) {
-        /* The common case:  missing const copy constructor. */
-        pos_ty_error(ec_missing_const_copy_constructor, err_pos, class_type);
-      } else {
-        /* Unusual case: volatile or const-volatile expected. */
-        pos_ty_error(ec_no_suitable_copy_constructor, err_pos, class_type);
-      }  /* if */
+    /* No applicable copy constructor. */
+    if (qualifiers_required == TQ_CONST) {
+      /* The common case:  missing const copy constructor. */
+      pos_ty_error(ec_missing_const_copy_constructor, err_pos, class_type);
     } else {
-      /* More than one applicable copy constructor. */
-      pos_ty_error(ec_ambiguous_copy_constructor, err_pos, class_type);
+      /* Unusual case: volatile or const-volatile expected. */
+      pos_ty_error(ec_no_suitable_copy_constructor, err_pos, class_type);
     }  /* if */
   } else {
     /* Exactly one copy constructor is best. */
