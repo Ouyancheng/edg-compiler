@@ -1,5 +1,25 @@
 Version 3.0
 
+4/10/02  Loop in overload resolution on classes that convert to each other
+
+Faced with a case involving classes that can convert to each other
+and have no normal copy constructors, the front end looped and
+then crashed in overload resolution.  Now fixed (an error is issued).
+
+  struct A;
+  struct B {
+    B(A);
+    B() {}
+  };
+  struct A {
+    A(A&){}
+    A(){}
+    A(B) {}
+  };
+  A source() {
+    return A();
+  }
+
 4/10/02  C99 hex float constants when double and long double are the same
 
 The routines that handle C99 hex floating point constants did not support

@@ -3118,6 +3118,7 @@ an lvalue, it is converted to an rvalue before doing the promotions.
        copy constructor in this case. */
     if (!C_mode()) {
       prep_arg_passed_via_copy_constructor(argument_operand, arg_type,
+                                           /*processed_arg=*/FALSE,
                                            (a_conv_descr *)NULL,
                                            ec_no_suitable_copy_constructor);
     }  /* if */
