@@ -38,7 +38,16 @@ typedef struct an_il_to_str_output_control_block
    clear_il_to_str_output_control_block. */
 typedef struct an_il_to_str_output_control_block {
   an_output_str_function_ptr
-	output_str;	/* Function to output a null-terminated string. */
+	output_str;	/* Function to output a null-terminated string, where
+			   the string consists of one of more complete
+			   tokens. */
+  an_output_str_function_ptr
+	output_partial_token_str;
+			/* Function to output a null-terminated string, where
+			   the string may be only part of a token.  If NULL,
+			   the output_str routine is used (implying that
+			   for the kind of output being done token boundaries
+			   don't matter). */
   an_output_name_function_ptr
 	output_name;
 			/* Function to output the name of an entity.  NULL
@@ -48,12 +57,6 @@ typedef struct an_il_to_str_output_control_block {
 			/* Function to output a default argument of a
 			   function given a_param_type.  NULL if default
 			   arguments should not be put out. */
-  a_byte_boolean
-	output_is_complete_tokens;
-			/* If TRUE, each call to output_str will be
-			   outputting one or more complete tokens;
-			   FALSE indicates that the strings being output
-			   may be partial tokens. */
   a_byte_boolean
 	gen_compilable_code;
 			/* TRUE if the generated string is intended to be

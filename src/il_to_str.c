@@ -31,9 +31,9 @@ Clear an output control block to default values.
 */
 {
   octl->output_str                = NULL;
+  octl->output_partial_token_str  = NULL;
   octl->output_name               = NULL;
   octl->output_default_arg        = NULL;
-  octl->output_is_complete_tokens = TRUE;
   octl->gen_compilable_code       = FALSE;
   octl->gen_pcc_code              = FALSE;
 #if DEBUG
@@ -42,20 +42,22 @@ Clear an output control block to default values.
 }  /* clear_il_to_str_output_control_block */
 
 
+static void output_partial_token_str(
+                                    char                                  *str,
+                                    an_il_to_str_output_control_block_ptr octl)
 /*
-Set the indicated output stream token mode to indicate that output_str calls
-will be outputting one or more complete tokens.
+Output a the null-terminated string str in the way indicated by octl.
+The string may be only part of a token.
 */
-#define set_complete_token_output_mode(octl) \
-  (octl->output_is_complete_tokens = TRUE)
+{
+  an_output_str_function_ptr rout;
 
-
-/*
-Set the indicated output stream token mode to indicate that output_str calls
-may be outputting partial tokens.
-*/
-#define set_partial_token_output_mode(octl) \
-  (octl->output_is_complete_tokens = FALSE)
+  /* See if there's a special routine for partial token output.  If so, use
+     it.  If not, use the output_str routine. */
+  rout = octl->output_partial_token_str;
+  if (rout == NULL) rout = octl->output_str;
+  rout(str);
+}  /* output_partial_token_str */
 
 
 static void form_num(long                                  num,
@@ -923,28 +925,26 @@ If suppress_cast is TRUE, suppress any cast of the constant to another type.
     }  /* if */
   }  /* if */
   /* Write the literal form of the constant. */
-  set_partial_token_output_mode(octl);
-  octl->output_str(str_for_integer_constant(eff_constant));
+  output_partial_token_str(str_for_integer_constant(eff_constant), octl);
   /* Put out a suffix if needed. */
   /* Unsigned suffix is only valid in ANSI C.  When generating K&R C,
      a prefix cast is used (see above). */
   if (!signed_constant && !octl->gen_pcc_code) {
     /* Unsigned constant. */
-    octl->output_str("U");
+    output_partial_token_str("U", octl);
   }  /* if */
   if (integer_type_constant) {
     /* Add length suffixes if appropriate. */
     if (ikind == (an_integer_kind)ik_long           ||
         ikind == (an_integer_kind)ik_unsigned_long) {
-      octl->output_str("L");
+      output_partial_token_str("L", octl);
 #if LONG_LONG_ALLOWED
    } else if (ikind == (an_integer_kind)ik_long_long ||
               ikind == (an_integer_kind)ik_unsigned_long_long) {
-      octl->output_str("LL");
+      output_partial_token_str("LL", octl);
 #endif /* LONG_LONG_ALLOWED */
     }  /* if */
   }  /* if */
-  set_complete_token_output_mode(octl);
   if (negative) {
     if (minus_1_trick) octl->output_str("-1");
     octl->output_str(")");
@@ -958,8 +958,7 @@ static void form_char(char                                  ch,
 /*
 Output the indicated character as part of a string literal or character
 constant.  Handle unprintable characters and necessary escapes.  Do the
-output in the way described by octl.  This routine is called with the
-token mode of output set off.
+output in the way described by octl.
 */
 {
   char buffer[10];
@@ -1004,7 +1003,7 @@ token mode of output set off.
     }  /* if */
   }  /* if */
   /* Output the character. */
-  octl->output_str(buffer);
+  output_partial_token_str(buffer, octl);
 }  /* form_char */
 
 
@@ -1368,11 +1367,9 @@ Output the indicated constant.  Do the output in the way described by octl.
           form_cast(orig_type, octl);
           cast_used = TRUE;
         }  /* if */
-        set_partial_token_output_mode(octl);
-        octl->output_str("'");
+        output_partial_token_str("'", octl);
         form_char((char)value_of_integer_constant(constant, &ovflo), octl);
-        octl->output_str("'");
-        set_complete_token_output_mode(octl);
+        output_partial_token_str("'", octl);
         if (cast_used) octl->output_str(")");
       } else {
         /* A normal integer constant. */
@@ -1386,20 +1383,19 @@ Output the indicated constant.  Do the output in the way described by octl.
         char          *str = constant->variant.string.value;
         a_targ_size_t len = constant->variant.string.length;
 
-        set_partial_token_output_mode(octl);
         if (is_wide_string_constant(constant)) {
           /* Wide string literal, e.g., L"abc". */
           /* The processing here must invert the processing done in
              conv_single_wide_char.  Do something that's right for the default
              (simple-minded) implementation, which maps one input character
              to one wide character. */
-          octl->output_str("L\"");
+          output_partial_token_str("L\"", octl);
           for (a = 0; a < len; a += targ_sizeof_wchar_t) {
             /* When generating output for humans to read, abbreviate
                long strings. */
             if (!octl->gen_compilable_code && a > 20*targ_sizeof_wchar_t &&
                 len > 25*targ_sizeof_wchar_t) {
-              octl->output_str("...");
+              output_partial_token_str("...", octl);
               break;
             }  /* if */
             if (targ_little_endian) {
@@ -1412,15 +1408,15 @@ Output the indicated constant.  Do the output in the way described by octl.
               form_char(ch, octl);
             }  /* if */
           }  /* for */
-          octl->output_str("\"");
+          output_partial_token_str("\"", octl);
         } else {
           /* Normal (non-wide) string. */
-          octl->output_str("\"");
+          output_partial_token_str("\"", octl);
           for (a = 0; a < len; a++) {
             /* When generating output for humans to read, abbreviate
                long strings. */
             if (!octl->gen_compilable_code && a > 20 && len > 25) {
-              octl->output_str("...");
+              output_partial_token_str("...", octl);
               break;
             }  /* if */
             ch = str[a];
@@ -1429,9 +1425,8 @@ Output the indicated constant.  Do the output in the way described by octl.
               form_char(ch, octl);
             }  /* if */
           }  /* for */
-          octl->output_str("\"");
+          output_partial_token_str("\"", octl);
         }  /* if */
-        set_complete_token_output_mode(octl);
       }
       break;
     case ck_float:
@@ -1439,24 +1434,26 @@ Output the indicated constant.  Do the output in the way described by octl.
       /* Put parentheses around the constant in case it's negative. */
       octl->output_str("(");
       fkind = con_type->variant.float_kind;
-      set_partial_token_output_mode(octl);
       if (!octl->gen_pcc_code) {
         /* Output the floating-point constant. */
-        octl->output_str(fp_to_string(fkind, &constant->variant.float_value));
+        output_partial_token_str(
+                    fp_to_string(fkind, &constant->variant.float_value), octl);
         /* Add a suffix if necessary. */
         if (fkind == (a_float_kind)fk_float) {
-          octl->output_str("F");
+          output_partial_token_str("F", octl);
         } else if (fkind == (a_float_kind)fk_long_double) {
-          octl->output_str("L");
+          output_partial_token_str("L", octl);
         }  /* if */
       } else {
         /* Generating K&R C.  Suffixes are not allowed. */
         /* Cast to float if type is float (by default it would be double). */
-        if (fkind == (a_float_kind)fk_float) octl->output_str("(float)");
+        if (fkind == (a_float_kind)fk_float) {
+          output_partial_token_str("(float)", octl);
+        }  /* if */
         /* Output the floating-point constant. */
-        octl->output_str(fp_to_string(fkind, &constant->variant.float_value));
+        output_partial_token_str(
+                    fp_to_string(fkind, &constant->variant.float_value), octl);
       }  /* if */
-      set_complete_token_output_mode(octl);
       octl->output_str(")");
       break;
 #ifdef FFE
