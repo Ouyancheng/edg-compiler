@@ -1,5 +1,11 @@
 Version 2.30
 
+10/5/95  Pragma on dependent statement of loop with condition
+
+A bug has been fixed that related to IL lowering of a pragma bound
+to the dependent statement of a while or for loop that has a condition
+declaration.
+
 10/3/95  C++-generating back end: Non-member anonymous union member names
 
 The C++-generating back end now puts out the names for members of 
