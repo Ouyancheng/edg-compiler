@@ -1487,10 +1487,13 @@ Display the indicated variable.
   }  /* if */
   disp_name("storage_class");
   disp_storage_class_name(ptr->storage_class);
-  disp_boolean("address_taken", (a_boolean)ptr->address_taken);
+  if (ptr->address_taken) {
+    disp_boolean("address_taken", (a_boolean)ptr->address_taken);
+  }  /* if */
   if (ptr->is_parameter) {
     disp_boolean("is_parameter", TRUE);
-  } else if (ptr->is_handler_param) {
+  }  /* if */
+  if (ptr->is_handler_param) {
     disp_boolean("is_handler_param", TRUE);
   }  /* if */
 #ifdef FFE
@@ -1797,6 +1800,9 @@ Display the indicated routine.
     disp_name("opname_kind");
     disp_opname_kind_name(ptr->opname_kind);
     (void)printf("\n");
+  }  /* if */
+  if (ptr->address_taken) {
+    disp_boolean("address_taken", (a_boolean)ptr->address_taken);
   }  /* if */
   if (ptr->is_virtual) {
     disp_boolean("is_virtual", (a_boolean)ptr->is_virtual);

@@ -4981,6 +4981,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->storage_class           = (a_storage_class)sc_unspecified;
   rp->special_kind            = (a_special_function_kind)sfk_none;
   rp->opname_kind             = (an_opname_kind)onk_none;
+  rp->address_taken           = FALSE;
   rp->is_virtual              = FALSE;
   rp->pure_virtual            = FALSE;
   rp->is_inline               = FALSE;

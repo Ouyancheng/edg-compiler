@@ -2787,6 +2787,9 @@ typedef struct a_routine {
 			/* An enumerator indication the kind of operator when
 			   the special function kind is sfk_operator; onk_none
 			   otherwise. */
+  unsigned int	address_taken:1;
+			/* TRUE if the address of this routine has been
+			   taken somewhere. */
   unsigned int	is_virtual:1;
 			/* TRUE for class member functions declared with a
 			   "virtual" specifier (C++ only). */
