@@ -3955,10 +3955,7 @@ typedef struct a_base_class {
   a_base_class_sequence_number
 		direct_base_number;
 			/* The sequence number of this base class entry.
-			   This is used to match the base class entries of
-			   an instantiation with the base class entries of
-			   the prototype instantiation.  The first base class
-			   is number 1. */
+                           The first base class is number 1. */
   a_targ_size_t	offset;
 			/* The byte offset from the start of the current
 			   derived class to the data section of this base
