@@ -5050,9 +5050,8 @@ calling a copy constructor.
     /* The type is a class.  If it has a destructor, indicate it in
        the dynamic initialization. */
     if (!in_return_by_cctor_expression) {
-      error_position = *position;
-      dip->destructor = select_destructor(type, type, /*honor_virtual=*/FALSE,
-                                          evaluated);
+      dip->destructor = select_destructor(type, type, position,
+                                          /*honor_virtual=*/FALSE, evaluated);
     } else {
       /* In a cctor return expression.  Put the destructor in the entry,
          but do not do the access checking etc. at this time.  Build a fixup

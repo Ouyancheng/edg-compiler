@@ -1637,10 +1637,11 @@ extern a_routine_ptr select_default_constructor
 					 a_type_ptr	   object_class_type,
                                          a_boolean         evaluated);
 
-extern a_routine_ptr select_destructor(a_type_ptr class_type,
-				       a_type_ptr object_class_type,
-                                       a_boolean  honor_virtual,
-                                       a_boolean  evaluated);
+extern a_routine_ptr select_destructor(a_type_ptr        class_type,
+				       a_type_ptr        object_class_type,
+                                       a_source_position *position,
+                                       a_boolean         honor_virtual,
+                                       a_boolean         evaluated);
 
 extern a_symbol_ptr find_copy_constructor(a_type_ptr class_type,
                                           a_boolean  const_object_required,

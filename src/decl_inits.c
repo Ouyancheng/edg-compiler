@@ -253,6 +253,7 @@ member remains uninitialized.  This routine is called in C++ mode only.
         }  /* if */
         /* Register the destructor if there's one there. */
         dip->destructor = select_destructor(element_type, element_type,
+                                            &pos_curr_token,
                                             /*honor_virtual=*/FALSE,
                                             /*evaluated=*/TRUE);
         /* Now create the constant entry that will point to the new dynamic
@@ -1334,7 +1335,7 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
          defined a destructor but the object can be initialized without a
          constructor. */
       if (cssp != NULL) {
-        a_routine_ptr rp = select_destructor(vp_type, vp_type,
+        a_routine_ptr rp = select_destructor(vp_type, vp_type, source_pos,
                                              /*honor_virtual=*/FALSE,
                                              /*evaluated=*/TRUE);
         if (rp != NULL) {
@@ -1475,7 +1476,7 @@ the default constructor (if one exists) is called.
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
           local_di.variant.constructor.args = copy_default_arg_expr_list(ptp);
-          local_di.destructor = select_destructor(tp, tp,
+          local_di.destructor = select_destructor(tp, tp, err_pos,
                                                   /*honor_virtual=*/FALSE,
                                                   /*evaluated=*/TRUE);
           if (var_type != tp) {
@@ -1530,7 +1531,7 @@ the default constructor (if one exists) is called.
              enforce such a restriction, however. */
           def_init_performed = TRUE;
         }  /* if */
-        rp = select_destructor(tp, tp,
+        rp = select_destructor(tp, tp, err_pos,
                                /*honor_virtual=*/FALSE,
                                /*evaluated=*/TRUE);
         if (rp != NULL) {
@@ -2317,8 +2318,10 @@ though neither constructors nor initialization is involved here.)
   a_base_class_ptr              bcp;
   a_dynamic_init_ptr            dip;
   a_class_type_supplement_ptr   ctsp;
+  a_source_position             source_pos;
 
   db_enter(3, "dtor_initializer");
+  source_pos = dtor_rout->source_corresp.decl_position;
   class_type = ((a_symbol_ptr)dtor_rout->source_corresp.assoc_info)->
                                                    class_of_which_a_member;
 #if CHECKING
@@ -2339,8 +2342,8 @@ though neither constructors nor initialization is involved here.)
       /* If the virtual base class or direct base class has a destructor, a
          dynamic init entry will be required.  Create the constructor init
          entry now; the dynamic init will be added later. */
-      rp = select_destructor(bcp->type, class_type, /*honor_virtual=*/FALSE,
-                             /*evaluated=*/TRUE);
+      rp = select_destructor(bcp->type, class_type, &source_pos,
+                             /*honor_virtual=*/FALSE, /*evaluated=*/TRUE);
       if (rp != NULL) {
         cip = alloc_ctor_init(bcp->is_virtual ?
                               (a_constructor_init_kind)cik_virtual_base_class :
@@ -2393,7 +2396,7 @@ though neither constructors nor initialization is involved here.)
         tp = skip_typerefs(underlying_array_element_type(tp));
       }  /* if */
       if (is_class_struct_union_type(tp)) {
-        rp = select_destructor(tp, tp,
+        rp = select_destructor(tp, tp, &source_pos,
                                /*honor_virtual=*/FALSE,
                                /*evaluated=*/TRUE);
         if (rp != NULL) {
@@ -2437,8 +2440,7 @@ though neither constructors nor initialization is involved here.)
     set_class_assoc_operator_delete_routine(class_type);
     delete_routine = ctsp->assoc_operator_delete_routine;
     if (delete_routine != NULL) {
-      mark_routine_referenced(delete_routine,
-                              &dtor_rout->source_corresp.decl_position);
+      mark_routine_referenced(delete_routine, &source_pos);
       delete_routine->called = TRUE;
     }  /* if */
   }

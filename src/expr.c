@@ -3965,9 +3965,10 @@ As an anachronism, allow an expression inside the [ ].
           /* Deleting a pointer to an incomplete class.  Give a warning,
              because we may not know how to do the right thing (like call
              a destructor). */
-          pos_warning(ec_delete_of_incomplete_class, &delete_position);
+          pos_warning(ec_delete_of_incomplete_class, &operand.position);
         }  /* if */
         dtor_routine = select_destructor(base_delete_type, base_delete_type,
+                                         &operand.position,
                                          /*honor_virtual=*/TRUE,
                                          curr_expr_is_evaluated());
         if (dtor_routine != NULL) {
