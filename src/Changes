@@ -10,7 +10,7 @@ Now fixed.
   namespace Outer {
      namespace Inner {
        int Int;
-     };
+     }
      using namespace Inner;
      ::Int i;  // Formerly generated as (unqualified) "Int", now "::Int"
   }
