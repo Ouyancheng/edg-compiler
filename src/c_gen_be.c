@@ -3900,7 +3900,7 @@ parameters.
           write_tok_str("__declspec(dllexport) ");
         }  /* if */
       }  /* if */
-      if(variable->decl_modifiers & DM_THREAD) {
+      if (variable->decl_modifiers & DM_THREAD) {
         write_tok_str("__declspec(thread) ");
       }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
