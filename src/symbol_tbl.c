@@ -6331,6 +6331,7 @@ class_type that is a ck_template_param.
     a_type_ptr	type = alloc_type((a_type_kind)tk_template_param);
     type->variant.template_param.kind =
                                     (a_template_param_type_kind)tptk_member;
+    set_type_size(type);
     sym->variant.type = type;
     scp = &type->source_corresp;
   } else {
