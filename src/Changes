@@ -1,5 +1,10 @@
 Version 2.39
 
+6/24/98   bool_is_keyword was TRUE in Microsoft C mode
+
+bool_is_keyword, which should be FALSE in C mode, was inadvertently
+set to TRUE in Microsoft C mode.  Fixed.
+
 6/23/98   Improved management of the declared_type fields
 
 The declared_type field in routine entries (see also entry for 6/16/98)
