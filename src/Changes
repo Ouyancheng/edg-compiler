@@ -1,5 +1,20 @@
 Version 3.1
 
+11/21/02  Spurious error of template friend declaration
+
+A spurious error could result when a friend declaration referred to
+a member template of a non-template class.  This has been fixed.
+
+  struct B {
+     template <class T> static void f(T*);
+  };
+  template<class T> struct A {
+    template<class T1> friend void B::f(T1*);
+  };
+
+A<int> a;
+
+
 11/20/02  GNU compatibility: Typeof syntax ambiguities
 
 In GNU mode, expression-vs-declaration ambiguities used to lead to syntax

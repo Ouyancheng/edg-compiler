@@ -6189,10 +6189,9 @@ is a template specialization declaration.
       pos_error(ec_inherited_member_not_allowed, &locator->source_position);
       sym = NULL;
       set_to_error_locator(*locator);
-    } else if (is_nontype_template_param_symbol(sym)) {
-      /* A name like "A<T>::x" that is a nontype member of a proxy class.
-         This should only happen in friend templates. */
-      check_assertion(locator->is_class_member);
+    } else if (in_prototype_instantiation) {
+      /* Don't attempt to match a friend declaration while processing
+         a prototype instantiation. */
       if (!idlb.is_friend_decl) {
         pos_stsy_error(ec_not_a_member, &locator->source_position,
                        sym->header->identifier, parent_class_sym);
