@@ -2673,9 +2673,12 @@ region corresponding to scope_level.
   a_type_ptr tp;
 
   db_enter(5, "alloc_local_scope_type");
-  if (scope_stack[scope_level].kind == (a_scope_kind)sck_func_prototype) {
+  if (scope_stack[scope_level].kind == (a_scope_kind)sck_func_prototype ||
+      in_old_style_param_decl_list) {
     /* Types entered in the function prototype must be at file scope, since
-       the scope entry itself will always be allocated at file scope. */
+       the scope entry itself will always be allocated at file scope.
+       Types in old-style parameter lists are also put on the function
+       prototype scope list. */
     tp = (a_type_ptr)alloc_il(sizeof(a_type));
   } else {
     tp = (a_type_ptr)alloc_cil(sizeof(a_type));
