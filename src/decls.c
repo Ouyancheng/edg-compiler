@@ -761,6 +761,26 @@ operator kinds.  Issue a diagnostic if an error is found.
           error_code = ec_bad_arg_type_for_operator_new;
         }  /* if */
       }  /* if */
+    } else if (opname == (an_opname_kind)onk_delete) {
+      ptp = rout->type->variant.routine.extra_info->param_type_list;
+      if (param_count == 0) {
+	error_code = ec_too_few_args_for_operator;
+      } else {
+        tp = ptp->type;
+        if (!is_pointer_type(tp) || !is_void_type(type_pointed_to(tp))) {
+          pos_error(ec_bad_first_arg_type_for_operator_delete, pos);
+        }  /* if */
+        ptp = ptp->next;
+        if (ptp != NULL) {
+          tp = ptp->type;
+          if (!is_integral_type(tp) ||
+              skip_typerefs(tp)->variant.integer.int_kind !=
+                                (an_integer_kind)TARG_SIZE_T_INT_KIND) {
+            pos_error(ec_bad_second_arg_type_for_operator_delete, pos);
+          }  /* if */
+          if (ptp->next != NULL) error_code = ec_too_many_args_for_operator;
+        }  /* if */
+      }  /* if */
     } else {
       /* Binary operator must have exactly two arguments. */
       if (param_count > 2) {
@@ -770,13 +790,25 @@ operator kinds.  Issue a diagnostic if an error is found.
       }  /* if */
     }  /* if */
     if (error_code != ec_no_error) pos_error(error_code, pos);
-    /* If operator function is not a nonstatic member and does not have
-       operands of class type or reference-to-class type, issue an error.
-       This restriction does not apply to new and delete, however. */
-    if (!is_nonstatic_member_function && !any_class_type_params &&
-	opname != (an_opname_kind)onk_new &&
-        opname != (an_opname_kind)onk_delete) {
-      pos_error(ec_no_args_with_class_type, pos);
+    if (opname == (an_opname_kind)onk_new ||
+        opname == (an_opname_kind)onk_delete) {
+      tp = rout->type->variant.routine.return_type;
+      if (opname == (an_opname_kind)onk_new) {
+        if (!is_pointer_type(tp) || !is_void_type(type_pointed_to(tp))) {
+          pos_error(ec_bad_return_type_for_operator_new, pos);
+        }  /* if */
+      } else {
+        if (!is_void_type(tp)) {
+          pos_error(ec_bad_return_type_for_operator_delete, pos);
+        }  /* if */
+      }  /* if */
+    } else {
+      /* If operator function is not a nonstatic member and does not have
+         operands of class type or reference-to-class type, issue an error.
+         This restriction does not apply to new and delete, however. */
+      if (!is_nonstatic_member_function && !any_class_type_params) {
+        pos_error(ec_no_args_with_class_type, pos);
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
@@ -3580,9 +3612,19 @@ function_lparen:
                             /*is_nonstatic_member_function=*/FALSE,
                             /*is_constructor_or_destructor=*/FALSE);
       } else {
-        function_declarator(&new_type_ptr, func_info,
-                            locator, member_parent_type,
-                            (input_flags & DI_NONSTATIC_MEMBER),
+        a_boolean  is_nonstatic_member_function = FALSE;
+        if (input_flags & DI_NONSTATIC_MEMBER) {
+          if (locator->is_operator_name &&
+              (locator->variant.opname == (an_opname_kind)onk_new ||
+               locator->variant.opname == (an_opname_kind)onk_delete)) {
+            /* operator new and operator delete are always nonstatic, even
+               if "static" was not specified in the declaration. */
+          } else {
+            is_nonstatic_member_function = TRUE;
+          }  /* if */
+        }  /* if */
+        function_declarator(&new_type_ptr, func_info, locator,
+                            member_parent_type, is_nonstatic_member_function,
                             is_constructor_or_destructor);
       }  /* if */
       if (is_member_function_def) {
