@@ -88,6 +88,11 @@ EXTERN a_boolean
 		walking_file_scope;
 			/* TRUE if walking the file-scope IL, FALSE if
 			   walking the IL for a function scope. */
+EXTERN a_boolean
+		walking_secondary_trans_unit;
+			/* TRUE if we are walking an IL tree in a secondary
+			   translation unit, FALSE if we are walking the
+			   IL in a primary translation unit. */
 EXTERN unsigned int
 		flag_value_meaning_visited;
 			/* Value to be placed in the il_walk_flag field

@@ -451,10 +451,8 @@ the file scope, do not process it (but record an orphan in the latter case).
       goto end_of_routine;
     }  /* if */
     /* If walking the IL for a secondary translation unit, do not go into
-       the primary IL.  This is especially important for the needed flag
-       walk -- we don't want to pollute the needed flags in the primary
-       IL. */
-    if (!is_primary_translation_unit &&
+       the primary IL. */
+    if (walking_secondary_trans_unit &&
         !in_secondary_trans_unit(entry_ptr)) {
       goto end_of_routine;
     }  /* if */

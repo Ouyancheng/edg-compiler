@@ -68,6 +68,7 @@ typedef struct an_il_walk_state {
   a_remap_function_ptr
 		walk_remap_func;
   a_boolean	walking_file_scope;
+  a_boolean	walking_secondary_trans_unit;
   int		flag_value_meaning_visited;
   a_boolean	clear_fe_pointers_during_walk;
 } an_il_walk_state;
@@ -83,6 +84,7 @@ the variable saved_state for later restoration.
   (saved_state).walk_termination_test_func = walk_termination_test_func; \
   (saved_state).walk_remap_func            = walk_remap_func;         \
   (saved_state).walking_file_scope         = walking_file_scope;      \
+  (saved_state).walking_secondary_trans_unit = walking_secondary_trans_unit;\
   (saved_state).flag_value_meaning_visited = flag_value_meaning_visited; \
   (saved_state).clear_fe_pointers_during_walk = \
                                        clear_fe_pointers_during_walk; \
@@ -98,6 +100,7 @@ from the saved values in the variable saved_state.
   walk_termination_test_func = (saved_state).walk_termination_test_func; \
   walk_remap_func            = (saved_state).walk_remap_func;         \
   walking_file_scope         = (saved_state).walking_file_scope;      \
+  walking_secondary_trans_unit = (saved_state).walking_secondary_trans_unit;\
   flag_value_meaning_visited = (saved_state).flag_value_meaning_visited; \
   clear_fe_pointers_during_walk = \
                          (saved_state).clear_fe_pointers_during_walk; \
@@ -191,6 +194,7 @@ That is what the remap function does.
 */
 {
   an_il_walk_state saved_state;
+  a_scope_ptr      scope;
 
   db_enter(4, "walk_file_scope_il");
   /* Save the state of global variables for later restoration. */
@@ -211,10 +215,11 @@ That is what the remap function does.
   /* Remap and walk the first pointer in two steps, so that we can find
      out what the proper il_walk_flag setting is. */
   remap_ptr(il_header.primary_scope, a_scope_ptr, iek_scope);
-  flag_value_meaning_visited =
-                     !il_entry_prefix_of(il_header.primary_scope).il_walk_flag;
+  scope = il_header.primary_scope;
+  flag_value_meaning_visited = !il_entry_prefix_of(scope).il_walk_flag;
+  walking_secondary_trans_unit = in_secondary_trans_unit(scope);
   /* Walk the main body of the IL. */
-  walk_entry_and_subtree((char *)il_header.primary_scope, iek_scope);
+  walk_entry_and_subtree((char *)scope, iek_scope);
   walk_list(il_header.primary_source_file, a_source_file_ptr, iek_source_file);
   remap_ptr(il_header.main_routine, a_routine_ptr, iek_routine);
   walk_string_ptr(il_header.compiler_version, iek_other_text, 0);
@@ -262,7 +267,9 @@ into the tree) by calling termination_test_function.  entry_process_function,
 string_entry_process_function, remap_function, or termination_test_function
 can be NULL to indicate that the corresponding function is unnecessary.
 If clear_fe_pointers is TRUE, pointers to front end data structures
-are cleared as the traversal is done.
+are cleared as the traversal is done.  Note that if pointer remapping
+is being done il_header.region_scope_entry[region_number] is assumed
+to have already been remapped.
 */
 {
   a_scope_ptr      scope;
@@ -282,6 +289,7 @@ are cleared as the traversal is done.
   walking_file_scope = FALSE;
   scope = il_header.region_scope_entry[region_number];
   flag_value_meaning_visited = !il_entry_prefix_of(scope).il_walk_flag;
+  walking_secondary_trans_unit = in_secondary_trans_unit(scope);
 #ifdef FFE
   array_bound_walk_index = 0;
 #endif /* ifdef FFE */
@@ -636,7 +644,12 @@ as needed.
   scp = source_corresp_for_il_entry(entry_ptr, entry_kind);
   if (scp != NULL) {
     /* The entry does have a "needed" flag. */
-    if (needed_flag_is_set(scp)) {
+    /* If walking the IL for a secondary translation unit, do not go into
+       the primary IL. */
+    if (walking_secondary_trans_unit &&
+        !in_secondary_trans_unit(entry_ptr)) {
+      prune = TRUE;
+    } else if (needed_flag_is_set(scp)) {
       /* The flag is set already, so prune the walk at this entry.  */
       prune = TRUE;
     } else {
@@ -738,6 +751,7 @@ references.
   walk_remap_func = NULL;
   clear_fe_pointers_during_walk = FALSE;
   /* walking_file_scope need not be set. */
+  walking_secondary_trans_unit = in_secondary_trans_unit(entry_ptr);
 
   /* Walk the IL tree. */
   walk_tree_and_set_needed(entry_ptr, entry_kind);
@@ -1154,7 +1168,12 @@ to be kept.
   a_boolean prune = FALSE, is_class = FALSE, is_function_local_class = FALSE;
 
   /* Note that this routine is very similar to prune_needed_flag_il_walk. */
-  if (il_entry_prefix_of(entry_ptr).keep_in_il) {
+  /* If walking the IL for a secondary translation unit, do not go into
+     the primary IL. */
+  if (walking_secondary_trans_unit &&
+      !in_secondary_trans_unit(entry_ptr)) {
+    prune = TRUE;
+  } else if (il_entry_prefix_of(entry_ptr).keep_in_il) {
     /* The flag is set already, so prune the walk at this entry.  */
     prune = TRUE;
   } else {
@@ -1251,6 +1270,7 @@ only the entries marked as "needed" are marked to keep in the IL.
   walk_remap_func = NULL;
   clear_fe_pointers_during_walk = FALSE;
   /* walking_file_scope need not be set. */
+  walking_secondary_trans_unit = in_secondary_trans_unit(entry_ptr);
   if (entry_kind == iek_scope &&
       ((a_scope_ptr)entry_ptr)->kind == (a_scope_kind)sck_file) {
     file_scope_walk = TRUE;
@@ -1783,6 +1803,7 @@ of the front end.
   /* Variables in il_walk.h: */
   walk_remap_func = NULL;
   walking_file_scope = FALSE;
+  walking_secondary_trans_unit = FALSE;
   flag_value_meaning_visited = 0;
   clear_fe_pointers_during_walk = FALSE;
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
