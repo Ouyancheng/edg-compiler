@@ -1740,7 +1740,7 @@ return NULL.
 }  /* type_from_src_seq_declaration */
 
 #if !STANDALONE_UTILITY_PROGRAM
-#if MAINTAIN_NEEDED_FLAGS
+#if MAINTAIN_NEEDED_FLAGS || MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_source_sequence_entry_ptr find_src_seq_secondary_decl_entry(
                                      a_source_sequence_entry_ptr  ssep,
@@ -1980,7 +1980,8 @@ entries up to and including the corresponding end-of-construct entry.  Return
 the source sequence entry that follows the entry or entries removed.
 */
 {
-  a_source_sequence_entry_ptr  last_ssep, next_ssep;
+  a_source_sequence_entry_ptr  next_ssep;
+  a_scope_ptr                  file_scope;
 
   db_enter(5, "drop_from_fs_src_seq_list");
   if (ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
@@ -1991,87 +1992,30 @@ the source sequence entry that follows the entry or entries removed.
     next_ssep = drop_tag_def_from_src_seq_list(ssep, /*retain_first=*/FALSE);
   } else {
     /* Link around ssep and return its successor in the list. */
-    last_ssep = ssep;
-    if (ssep->prev == NULL) {
-      scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->
-                                 source_sequence_list = last_ssep->next;
+    file_scope = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
+    next_ssep = ssep->next;
+    if (file_scope->source_sequence_list == NULL) {
+      f_remove_from_source_sequence_list(
+                              ssep,
+                              &scope_stack[depth_innermost_namespace_scope]);
     } else {
-      ssep->prev->next = last_ssep->next;
+      if (ssep->prev == NULL) {
+        file_scope->source_sequence_list = ssep->next;
+      } else {
+        ssep->prev->next = ssep->next;
+      }  /* if */
+      if (ssep->next != NULL) {
+        ssep->next->prev = ssep->prev;
+      }  /* if */
+      check_assertion(in_file_scope(ssep));
+      ssep->next = scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_avail_list;
+      scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_avail_list = ssep;
+      ssep->prev = NULL;
     }  /* if */
-    if (last_ssep->next != NULL) {
-      last_ssep->next->prev = ssep->prev;
-    }  /* if */
-    next_ssep = last_ssep->next;
-    ssep->prev = last_ssep->next = NULL;
   }  /* if */
   db_exit();
   return next_ssep;
 }  /* drop_from_fs_src_seq_list */
-
-
-void eliminate_class_body_source_sequence_entries(a_type_ptr  class_type)
-/*
-Remove the source sequence entries that represent the body of the indicated
-class type.
-*/
-{
-  a_source_sequence_entry_ptr   ssep;
-  a_src_seq_secondary_decl_ptr  sssdp;
-
-  /* The source sequence entry pointing to the class_type should be changed to
-     a secondary source sequence entry, since only definitions have primary
-     source sequence entries. */
-  ssep = class_type->source_corresp.source_sequence_entry;
-  if (ssep != NULL) {
-    if (class_type->variant.class_struct_union.
-                         nested_class_defined_outside_of_parent &&
-        !class_type->variant.class_struct_union.is_template_class) {
-      /* This is a nested class defined outside the definition of its parent
-         class.  Remove from the file-scope source-sequence list the entries
-         representing the definition. */
-#if CHECKING
-      /* This won't work for local classes. */
-      check_assertion_str2(!class_type->source_corresp.is_local_to_function,
-                           "turn_class_definition_into_declaration:",
-                           "local classes not supported");
-#endif /* CHECKING */
-      (void)drop_tag_def_from_src_seq_list(ssep, /*retain_first=*/FALSE);
-      /* Now reset the source-sequence entry in class_type to refer to the
-         non-defining declaration inside the definition of its parent.  Start
-         at the point in the source sequence list corresponding to the
-         beginning of the class definition, and loop through the list till a
-         secondary declaration pointing to class_type is found. */
-      ssep = class_type->source_corresp.parent.class_type->
-                                     source_corresp.source_sequence_entry;
-      ssep = find_src_seq_secondary_decl_entry(ssep, (char *)class_type);
-      check_assertion_str2(ssep != NULL,
-                           "turn_class_definition_into_declaration:",
-                           "source sequence secondary decl not found");
-      /* Reset the source sequence entry pointer in the type entry. */
-      class_type->source_corresp.source_sequence_entry = ssep;
-    } else {
-      check_assertion(ss_entry_ptr(ssep, a_type_ptr) == class_type);
-      /* This is either a non-nested class or a nested class defined within
-         the definition of its parent class.  This time, remove the entries
-         representing the definition *except* the first, which will be
-         transformed to represent a secondary declaration now that the
-         definition has been eliminated. */
-      (void)drop_tag_def_from_src_seq_list(ssep, /*retain_first=*/TRUE);
-      /* Turn what was originally a definition into a secondary declaration
-         (a nondefining class declaration) as far as the source-sequence
-         representation is concerned. */
-      sssdp = alloc_src_seq_secondary_decl();
-      sssdp->entity = ssep->entity;
-      ssep->entity.ptr = (char *)sssdp;
-      ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
-      sssdp->decl_position = class_type->source_corresp.decl_position;
-      sssdp->declared_type = class_type;
-      sssdp->autonomous_tag_decl = TRUE;
-      sssdp->first_declaration =
-          symbol_supplement_for_class(class_type)->definition_is_first_decl;
-    }  /* if */
-  }  /* if */
-}  /* eliminate_class_body_source_sequence_entries */
 
 
 void eliminate_function_body_source_sequence_entries(a_scope_ptr  sp)
@@ -2140,6 +2084,7 @@ associate with the indicated sck_function scope.
       sssdp->declared_type = rp->declared_type;
       rp->declared_type = NULL;
       sssdp->friend_decl = rp->defined_in_friend_decl;
+      rp->defined_in_friend_decl = FALSE;
       if (!C_mode() && sp->src_seq_sublist_list != NULL) {
         /* If any tags were introduced in the parameter declarations for
            this function, the associated source-sequence entries need to
@@ -2213,6 +2158,73 @@ done_with_func_prototype_decls:;
   }  /* if */
   rp->defined_outside_of_parent = FALSE;
 }  /* eliminate_function_body_source_sequence_entries */
+
+#endif /* MAINTAIN_NEEDED_FLAGS || MICROSOFT_EXTENSIONS_ALLOWED */
+#if MAINTAIN_NEEDED_FLAGS
+
+void eliminate_class_body_source_sequence_entries(a_type_ptr  class_type)
+/*
+Remove the source sequence entries that represent the body of the indicated
+class type.
+*/
+{
+  a_source_sequence_entry_ptr   ssep;
+  a_src_seq_secondary_decl_ptr  sssdp;
+
+  /* The source sequence entry pointing to the class_type should be changed to
+     a secondary source sequence entry, since only definitions have primary
+     source sequence entries. */
+  ssep = class_type->source_corresp.source_sequence_entry;
+  if (ssep != NULL) {
+    if (class_type->variant.class_struct_union.
+                         nested_class_defined_outside_of_parent &&
+        !class_type->variant.class_struct_union.is_template_class) {
+      /* This is a nested class defined outside the definition of its parent
+         class.  Remove from the file-scope source-sequence list the entries
+         representing the definition. */
+#if CHECKING
+      /* This won't work for local classes. */
+      check_assertion_str2(!class_type->source_corresp.is_local_to_function,
+                           "turn_class_definition_into_declaration:",
+                           "local classes not supported");
+#endif /* CHECKING */
+      (void)drop_tag_def_from_src_seq_list(ssep, /*retain_first=*/FALSE);
+      /* Now reset the source-sequence entry in class_type to refer to the
+         non-defining declaration inside the definition of its parent.  Start
+         at the point in the source sequence list corresponding to the
+         beginning of the class definition, and loop through the list till a
+         secondary declaration pointing to class_type is found. */
+      ssep = class_type->source_corresp.parent.class_type->
+                                     source_corresp.source_sequence_entry;
+      ssep = find_src_seq_secondary_decl_entry(ssep, (char *)class_type);
+      check_assertion_str2(ssep != NULL,
+                           "turn_class_definition_into_declaration:",
+                           "source sequence secondary decl not found");
+      /* Reset the source sequence entry pointer in the type entry. */
+      class_type->source_corresp.source_sequence_entry = ssep;
+    } else {
+      check_assertion(ss_entry_ptr(ssep, a_type_ptr) == class_type);
+      /* This is either a non-nested class or a nested class defined within
+         the definition of its parent class.  This time, remove the entries
+         representing the definition *except* the first, which will be
+         transformed to represent a secondary declaration now that the
+         definition has been eliminated. */
+      (void)drop_tag_def_from_src_seq_list(ssep, /*retain_first=*/TRUE);
+      /* Turn what was originally a definition into a secondary declaration
+         (a nondefining class declaration) as far as the source-sequence
+         representation is concerned. */
+      sssdp = alloc_src_seq_secondary_decl();
+      sssdp->entity = ssep->entity;
+      ssep->entity.ptr = (char *)sssdp;
+      ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+      sssdp->decl_position = class_type->source_corresp.decl_position;
+      sssdp->declared_type = class_type;
+      sssdp->autonomous_tag_decl = TRUE;
+      sssdp->first_declaration =
+          symbol_supplement_for_class(class_type)->definition_is_first_decl;
+    }  /* if */
+  }  /* if */
+}  /* eliminate_class_body_source_sequence_entries */
 
 
 static void mark_func_prototype_decl_tags_autonomous(

@@ -5866,7 +5866,21 @@ declared member functions.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     update_decl_pos_info(&rtn->source_corresp, &decl_info->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (!is_error_locator(*locator)) {
+    /* If decl-modifiers were declared for the class and/or for the
+       member, check for consistency and use the union of the two. */
+    merge_decl_modifiers(class_type, decl_info,
+                         (a_boolean)func_info->is_definition);
+    update_routine_decl_modifiers(rtn, &decl_info->decl_modifiers,
+                                  &locator->source_position,
+                                  /*is_redecl=*/FALSE,
+                                  (a_boolean)func_info->is_definition);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (!compiler_generated) {
     if (func_info->is_definition) {
       /* For a definition enter the function type as the "declared_type" in
          the routine entry itself. Avoid adding a redundant type to the IL
@@ -6138,16 +6152,6 @@ declared member functions.
          supplement. */
       cssp->destructor = sym;
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* If decl-modifiers were declared for the class and/or for the
-       member, check for consistency and use the union of the two. */
-    merge_decl_modifiers(class_type, decl_info,
-                         (a_boolean)func_info->is_definition);
-    update_routine_decl_modifiers(rtn, &decl_info->decl_modifiers,
-                                  &locator->source_position,
-                                  /*is_redecl=*/FALSE,
-                                  (a_boolean)func_info->is_definition);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) db_symbol(sym, "", 4);

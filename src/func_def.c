@@ -1256,6 +1256,9 @@ and for the instantiation of template functions.
      "inline"), but its body is ignored by the compiler.  Remove any trace
       of the function definition from the IL. */
   if (microsoft_mode && rout_ptr->decl_modifiers & DM_DLLIMPORT) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    eliminate_function_body_source_sequence_entries(scope_ptr);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     clear_function_body(rout_ptr);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
