@@ -1,5 +1,25 @@
 Version 3.3
 
+6/3/03   Correspondence between functions referred to by friend declarations
+
+Identically named inline functions in different translation units are now
+made to correspond if they are referred to by matching friend declarations
+of corresponding classes, even in modes without support for "extern inline"
+functions (e.g., Sun mode).  For example:
+
+  // Translation unit 1:
+  inline void f() {} // (1) Internal linkage in Sun mode.
+  struct X {
+    friend void f();
+  };
+  // Translation unit 2:
+  inline void f() {} // Corresponds to (1) even in Sun mode.
+  struct X {
+    friend void f();
+  };
+
+See also the Changes entry of 5/6/03.
+
 6/3/03   GNU mode: Diagnostic on invalid type attributes
 
 The front end used to issue a hard error when encountering attributes on
@@ -431,7 +451,7 @@ For example:
 
   // Translation unit 1:
   struct X {
-    friend void f() {}  // (1) Internal linkage in Sun mode
+    friend void f() {}  // (1) Internal linkage in Sun mode.
   };
   // Translation unit 2:
   struct X {

@@ -3515,10 +3515,9 @@ are not checked.
                trans_unit_corresp_of(corresp_routine) == NULL) &&
               ((may_have_correspondence(friend_sym) &&
                 may_have_correspondence(corresp_friend_sym)) ||
-               /* Allow correspondences on friend definitions even if they
+               /* Allow correspondences on friend declarations even if they
                   have internal linkage as a consequence of being inline. */
-               (routine->defined_in_friend_decl &&
-                corresp_routine->defined_in_friend_decl)) &&
+               (routine->is_inline && corresp_routine->is_inline)) &&
               same_parents(friend_sym, corresp_friend_sym) &&
               (param_types_are_compatible(
                                        routine->type, corresp_routine->type,
