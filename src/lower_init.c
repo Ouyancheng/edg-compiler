@@ -1498,23 +1498,6 @@ function pointer type.
 }  /* expr_for_pointer_to_routine */
 
 
-static a_boolean is_two_argument_delete(a_routine_ptr delete_routine)
-/*
-Return TRUE if the indicated delete routine is of the two-argument form.
-*/
-{
-  a_boolean                     is_two_arg;
-  a_routine_type_supplement_ptr delete_routine_rtsp =
-                                        f_skip_typerefs(delete_routine->type)->
-                                                    variant.routine.extra_info;
-  a_param_type_ptr              param1 = delete_routine_rtsp->param_type_list;
-
-  check_assertion(param1 != NULL);
-  is_two_arg = (param1->next != NULL);
-  return is_two_arg;
-}  /* is_two_argument_delete */
-
-
 static an_expr_node_ptr make_vec_new_call(an_expr_node_ptr entity_node,
                                           a_type_ptr       entity_type,
                                           an_expr_node_ptr num_elem_node,

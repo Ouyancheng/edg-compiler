@@ -1,5 +1,24 @@
 Version 2.43
 
+11/5/99  Array new/delete for class with two-argument operator delete
+
+An array delete operation for a class that has no constructor or
+destructor but does declare a two-argument operator delete did not
+work correctly (the value passed to the second argument was the size
+of one element of the array, not the whole array).
+
+  struct S {
+    void operator delete[] (void*, size_t s);
+  };
+  int main () {
+    S* p = new S[7];
+    delete[] p;
+  }
+
+This has been fixed, by using the runtime array allocation/deallocation
+routines, rather than the simpler non-array routines, for news/deletes
+of such classes.
+
 11/3/99  Lookup of names in member templates of nontemplate classes
 
 When looking up a function name in a member function template of a

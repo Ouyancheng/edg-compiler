@@ -4672,6 +4672,23 @@ the entire array.
 }  /* add_array_nonconstant_aggregate_init */
 
 
+a_boolean is_two_argument_delete(a_routine_ptr delete_routine)
+/*
+Return TRUE if the indicated delete routine is of the two-argument form.
+*/
+{
+  a_boolean                     is_two_arg;
+  a_routine_type_supplement_ptr delete_routine_rtsp =
+                                        f_skip_typerefs(delete_routine->type)->
+                                                    variant.routine.extra_info;
+  a_param_type_ptr              param1 = delete_routine_rtsp->param_type_list;
+
+  check_assertion(param1 != NULL);
+  is_two_arg = (param1->next != NULL);
+  return is_two_arg;
+}  /* is_two_argument_delete */
+
+
 a_boolean new_or_delete_type_requires_array_handling(a_type_ptr type)
 /*
 type is the base type underlying an array type involved in a new or delete.
@@ -4682,14 +4699,37 @@ that the size of the array is recorded for use at the time of the delete
 of the array pointer.
 */
 {
-  a_boolean                     special = FALSE;
-  a_class_symbol_supplement_ptr cssp;
+  a_boolean special = FALSE;
 
-  /* Only types with a constructor or destructor require special handling. */
   if (is_class_struct_union_type(type)) {
-    cssp = symbol_supplement_for_class(type);
+    /* Classes with a constructor or destructor require special handling. */
+    a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
     if (cssp->constructor != NULL || cssp->destructor != NULL) {
       special = TRUE;
+    } else {
+      /* Classes with a two-argument array operator delete require special
+         handling because the array size must be recorded at the time of the
+         new so it can be passed to the delete routine. */
+      a_symbol_ptr operator_delete_set =
+                opname_member_function_symbol((an_opname_kind)onk_array_delete,
+                                              type);
+      if (operator_delete_set != NULL) {
+        a_boolean    ambiguous;
+        a_symbol_ptr operator_delete_symbol =
+                         find_default_operator_delete_sym(operator_delete_set,
+                                                          &ambiguous);
+        if (!ambiguous && operator_delete_symbol != NULL) {
+          a_routine_ptr delete_routine;
+          a_symbol_ptr  fund_operator_delete =
+                                 fundamental_symbol_of(operator_delete_symbol);
+          check_assertion(fund_operator_delete->kind ==
+                                            (a_symbol_kind)sk_member_function);
+          delete_routine = fund_operator_delete->variant.routine.ptr;
+          if (is_two_argument_delete(delete_routine)) {
+            special = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   return special;
