@@ -56,15 +56,11 @@ TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
     size = targ_sizeof_pointer;
     *alignment = targ_alignof_pointer;
 #else /* !TARG_ALL_POINTERS_SAME_SIZE */
-    /* This obviously needs to be customized to reflect the requirements of
-       the target environment. */
-    tp = skip_typerefs(tp);
-    switch (tp->kind) {
-      /* Fill in details here. */
-      default:
-        size = targ_sizeof_long;
-        *alignment = targ_alignof_long;
-    }  /* switch */
+ #error -- code must be added here to determine the size of pointers.
+/* If you set TARG_ALL_POINTERS_SAME_SIZE FALSE only because you want 
+   to support near/far, see the comments on TARG_ALL_POINTERS_SAME_SIZE
+   in targ_def.h and the internal documentation; it's probably not what
+   you want. */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   }  /* if */
