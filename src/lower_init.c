@@ -3442,18 +3442,23 @@ in this routine must be FALSE in that case.
        want to use them in the function scope, so copy them.  Note that
        (a) this must be done before they are lowered (so the temporaries
        have not yet been made into variables), and (b) this copies the
-       object lifetimes too. */
+       object lifetimes too.  Also note that these entries will have been
+       copied already if they're inside a higher-level initialization
+       that has already been copied. */
     if (dip->kind == (a_dynamic_init_kind)dik_expression ||
         dip->kind == (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
-      an_expr_node_ptr expr =
-                  copy_expr_to_function_memory_region(dip->variant.expression);
-      dip->variant.expression = expr;
+      an_expr_node_ptr expr = dip->variant.expression;
+      if (in_file_scope(expr)) {
+        dip->variant.expression = copy_expr_to_function_memory_region(expr);
+      }  /* if */
     } else if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
       /* Don't copy for the constructor array case; a copy will be done later
          for that, so a copy here would be redundant. */
       if (!constructor_array_init) {
-        dip->variant.constructor.args =
-                        copy_list_of_expr_trees(dip->variant.constructor.args);
+        an_expr_node_ptr expr_list = dip->variant.constructor.args;
+        if (expr_list != NULL && in_file_scope(expr_list)) {
+          dip->variant.constructor.args = copy_list_of_expr_trees(expr_list);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
