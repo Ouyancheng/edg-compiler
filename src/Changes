@@ -8,6 +8,14 @@ internal error is no longer produced.  Instead, inline member functions
 now force the class to have external linkage (just as non-inline member
 functions have done all along).
 
+10/22/96 Support for placement-delete
+
+Support for placement operator delete has been added.  A warning is now
+issued when exceptions are enabled and a class has a placement-new
+declaration but no corresponding placement-delete; when exceptions are
+not enabled, a remark is issued that the placement-delete declaration is
+useless.
+
 10/17/96 Spurious warning on multi-line template static data member definition
 
 A template static data member whose initializer is spread over several lines
