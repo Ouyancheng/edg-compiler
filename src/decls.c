@@ -4103,15 +4103,29 @@ a new symbol is created and entered in the symbol table.
 {
   a_symbol_ptr   sym;
   a_variable_ptr vp;
+  a_type_ptr     tp;
 
   db_enter(3, "decl_parameter");
-  check_for_uninstantiated_template_class(ptp->type);
-  if (is_incomplete_type(ptp->type)) {
+  /* Choose the type to use, the one in the param-type entry or the one in
+     the param-id entry.  Usually, they will be the same.  However, for
+     template functions being instantiated the type pointed to by the param-id
+     may include a template parameter, so use the type in param-type entry,
+     which will be the result of the template arg substitution.  Otherwise,
+     use the param-id type, since it will be the one actually used in the
+     function definition, whereas the type in the param-type entry may be a
+     composite type, as in the following example:
+       void f(int a[3]);
+       void f(a) int a[]; { ... }
+     In the second declaration the param-id type is int[], but the composite
+     type produced for the routine's interface is int[3]. */
+  tp = function_instantiation ? ptp->type : param_id->type;
+  check_for_uninstantiated_template_class(tp);
+  if (is_incomplete_type(tp)) {
     /* Incomplete type is not allowed. */
     pos_error(ec_incomplete_type_not_allowed, &param_id->type_pos);
-    ptp->type = error_type();
+    tp = ptp->type = error_type();
   }  /* if */
-  vp = make_param_variable(ptp->type, param_id->storage_class);
+  vp = make_param_variable(tp, param_id->storage_class);
   add_to_parameters_list(vp);
   sym = param_id->symbol;
   if (sym == NULL) {
