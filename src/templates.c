@@ -6193,7 +6193,11 @@ set *copy_error to TRUE.
         /* If the constant does not have the required type, see if it can
            be converted. */
         a_type_ptr	type_from_constant = new_tap->variant.constant->type;
-        if (!f_identical_types(skip_typerefs(new_const_type),
+        if (is_error_type(new_const_type)) {
+          /* The substitution resulted in an error type.  Don't attempt a
+             conversion. */
+          *copy_error = TRUE;
+        } else if (!f_identical_types(skip_typerefs(new_const_type),
                                skip_typerefs(type_from_constant),
                                ITF_NO_FLAGS)) {
           /* Attempt to convert the constant. */
