@@ -670,6 +670,7 @@ only the entries marked as "needed" are marked to keep in the IL.
 */
 {
   an_il_walk_state saved_state;
+  a_boolean        marking_file_scope = FALSE;
 
   /* Save the state of global variables for later restoration. */
   save_il_walk_state(saved_state);
@@ -687,16 +688,21 @@ only the entries marked as "needed" are marked to keep in the IL.
   if (entry_kind == iek_scope) {
     a_scope_ptr scope = (a_scope_ptr)entry_ptr;
     if (scope->kind == (a_scope_kind)sck_file) {
+      marking_file_scope = TRUE;
       walk_orphaned_file_scope_il_entries();
+      /* Clear the keep_in_il flag on the file scope so that we will be sure
+         the subtree will be walked. */
+      il_entry_prefix_of(scope).keep_in_il = FALSE;
     } /* if */
   }  /* if */
 
   /* Walk the IL tree. */
   walk_entry_and_subtree(entry_ptr, entry_kind);
 
-  /* Walk the orphaned list for routines, marking only those entries that
-     correspond to needed routines. */
-  { a_scope_orphaned_list_header_ptr *ptr_ptr =
+  if (marking_file_scope) {
+    /* Walk the orphaned list for routines, marking only those entries that
+       correspond to needed routines. */
+    a_scope_orphaned_list_header_ptr *ptr_ptr =
                                         &il_header.scope_orphaned_list_headers;
     for (; *ptr_ptr != NULL; ptr_ptr = &(*ptr_ptr)->next) {
       if ((*ptr_ptr)->assoc_routine->source_corresp.needed) {
@@ -704,7 +710,7 @@ only the entries marked as "needed" are marked to keep in the IL.
                  iek_scope_orphaned_list_header);
       }  /* if */
     }  /* for */
-  }
+  }  /* if */
 
   /* Restore the state of global variables. */
   restore_il_walk_state(saved_state);
