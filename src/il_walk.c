@@ -276,6 +276,9 @@ Process the indicated type entry.
       break;
     case tk_typeref:
       walk_ptr(ptr->variant.typeref.type, a_type_ptr, iek_type);
+#if DO_IL_LOWERING
+      walk_ptr(ptr->variant.typeref.orig_member_type, a_type_ptr, iek_type);
+#endif /* DO_IL_LOWERING */
       break;
     case tk_ptr_to_member:
       remap_ptr(ptr->variant.ptr_to_member.class_of_which_a_member,
