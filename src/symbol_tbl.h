@@ -910,13 +910,13 @@ Extract the fundamental symbol from a locator.
 extern a_symbol_ptr project_into_class(a_symbol_ptr basis_sym,
                                        a_type_ptr   class_type);
 
-extern a_symbol_ptr scope_qualified_id_lookup(
+extern a_symbol_ptr class_qualified_id_lookup(
                                          a_symbol_locator         *locator,
-                                         a_scope_number           scope_number,
+                                         a_type_ptr               class_type,
                                          an_id_lookup_options_set options);
 
-extern a_scope_number class_type_scope_number(a_type_ptr class_type);
-
+extern a_symbol_ptr file_scope_id_lookup(a_symbol_locator         *locator,
+                                         an_id_lookup_options_set options);
 /* Begin a name scope. */
 extern a_scope_ptr push_scope(a_scope_kind   kind,
 			      a_scope_number scope_number_for_function,

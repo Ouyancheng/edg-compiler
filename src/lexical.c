@@ -454,9 +454,6 @@ the stop tokens array.  Return immediately if end of source is reached.
 away it adds them to the specified token cache.)
 */
 {
-  a_token_kind  closing_token;
-  int           paren_count = 0, bracket_count = 0, brace_count = 0;
-
   db_enter(4, "cache_token_stream");
   /* Loop through the tokens, beginning with the current token and stopping
      when a token in the stop token array is found.  Whenever a '(', '[', or
@@ -4212,40 +4209,45 @@ so efficiency is not a prime concern.
 }  /* unget_token */
 
 
-a_boolean get_class_qualifier(a_scope_number *scope_number,
-                              a_boolean      *is_global_qualifier,
-                              a_boolean      *err)
+a_boolean get_class_qualifier(a_type_ptr *class_type,
+                              a_boolean  *is_file_scope_qualifier,
+                              a_boolean  *has_global_qualifier,
+                              a_boolean  *err)
 /*
 Scan an optional class qualifier, e.g., "A::B::" (note that the final
 identifier of a qualified name is not scanned here; see get_qualified_name).
-Also recognize the unary "::", e.g., "::A::B::" or just "::" (For that case,
-return *is_global_qualifier TRUE).  Return TRUE if there was a qualifier,
-FALSE if not.  If there was a qualifier, set *scope_number to the scope
-number for the class indicated by the qualifier.  On return (if there was
-a qualifier) the current token will be the token following the last "::".
-Return *err TRUE and *scope_number set appropriately if there was an error.
-This routine may only be called in C++ mode.
+Also recognize the unary "::", e.g., "::A::B::" or just "::".
+Return TRUE if there was a qualifier, FALSE if not.  If there was a
+qualifier, set *class_type to the class type, or, if the qualification
+indicates the file scope, set *class_type to NULL and
+*is_file_scope_qualifier to TRUE.  For any case that begins with a unary
+"::", return *has_global_qualifier TRUE.  Return *err TRUE if there was
+an error.  On return: if there was a qualifier, the current token will be
+the token following the last "::"; if there was no qualifier, the current
+token is the same as on entry.  This routine may only be called in C++
+mode.
 */
 {
   a_boolean         is_qualifier = FALSE;
-  a_scope_number    class_scope;
   a_symbol_ptr      class_symbol;
   a_source_position start_position;
 
   *err = FALSE;
+  *class_type = NULL;
+  *is_file_scope_qualifier = FALSE;
   start_position = pos_curr_token;
   /* Look for a leading unary "::". */
-  *is_global_qualifier = (curr_token == tok_colon_colon);
-  if (*is_global_qualifier) {
+  *has_global_qualifier = (curr_token == tok_colon_colon);
+  if (*has_global_qualifier) {
     is_qualifier = TRUE;
-    /* Set *scope_number to the scope number of the file scope. */
-    *scope_number = scope_stack[DEPTH_OF_FILE_SCOPE].number;
+    *is_file_scope_qualifier = TRUE;
     (void)get_token();
   }  /* if */
   /* See if we have an identifier followed by "::". */
   if (curr_token == tok_identifier && next_token() == tok_colon_colon) {
     /* This is a qualifier. */
     is_qualifier = TRUE;
+    *is_file_scope_qualifier = FALSE;
     /* Look up the identifier to see if it could be a class name.  Note that
        we don't consider the normal eclipsing rules.  A class can be found
        even when hidden by something else:
@@ -4255,33 +4257,31 @@ This routine may only be called in C++ mode.
            A::i = 1;   // The class A is found.
          }
     */
-    /* If there was a leading unary "::", look up the name in the file
-       scope. */
-    if (*is_global_qualifier) {
-      class_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
-                                               *scope_number,
-                                               IDL_MUST_BE_CLASS);
+    if (*has_global_qualifier) {
+      /* There was a leading unary "::", so look up the name in the file
+         scope. */
+      class_symbol = file_scope_id_lookup(&locator_for_curr_id,
+                                          IDL_MUST_BE_CLASS);
     } else {
       /* Usual case (no leading "::"). */
       class_symbol = normal_id_lookup(&locator_for_curr_id, IDL_MUST_BE_CLASS);
     }  /* if */
     for (;;) {
-      /* Keep looping while there are more levels of class qualification. */
+      /* Keep looping while there are more levels of class qualification.
+         Exit from loop is in the middle. */
       if (class_symbol == NULL) {
         /* The identifier is followed by a "::" but is not a class symbol. */
         if (!*err) {
           error(ec_id_must_be_class_name);
           *err = TRUE;
         }  /* if */
-        class_scope = NO_SCOPE_NUMBER;
+        *class_type = NULL;
       } else {
         /* Do ambiguity and access control checking on the class symbol. */
         check_ambiguity_and_verify_access(&locator_for_curr_id);
         /* Record the reference on the symbol. */
         mark_referenced(class_symbol, &pos_curr_token);
-        /* Determine the scope number for the class. */
-        class_scope = class_type_scope_number(
-                                class_symbol->variant.class_struct_union.type);
+        *class_type = class_symbol->variant.class_struct_union.type;
       }  /* if */
       /* Skip over the class-name, and the "::". */
       (void)get_token();
@@ -4291,10 +4291,12 @@ This routine may only be called in C++ mode.
       }  /* if */
       /* There is another level of qualification.  Search for the identifier
          in the given scope. */
-      class_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
-                                               class_scope, IDL_MUST_BE_CLASS);
+      if (!*err) {
+        class_symbol = class_qualified_id_lookup(&locator_for_curr_id,
+                                                 *class_type,
+                                                 IDL_MUST_BE_CLASS);
+      }  /* if */
     }  /* for */
-    *scope_number = class_scope;
   }  /* if */
   if (is_qualifier) error_position = start_position;
   return is_qualifier;
@@ -4316,7 +4318,7 @@ If a qualified name is next, scan it and look up the qualified name,
 set specific_symbol in locator_for_curr_id to point to the symbol
 for the qualified identifier, and return TRUE.  This is recognized only
 in C++ mode.  If a qualified name is not next, leave specific_symbol
-set to NULL and return FALSE.  options is a set of special options,
+as it is and return FALSE.  options is a set of special options,
 as a bit set; they control the lookup of (only) the final identifier in the
 qualified name.  They may not include constraints (such as IDL_MUST_BE_CLASS).
 The flag IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR, if present, suppresses
@@ -4324,9 +4326,11 @@ the error on the final identifier not being found on lookup.
 */
 {
   a_boolean         is_qualified_name = FALSE, qualifier_err, okay;
-  a_boolean         is_destructor, is_global_qualifier;
-  a_scope_number    class_scope;
+  a_boolean         is_destructor;
+  a_boolean         is_file_scope_qualifier, has_global_qualifier;
+  a_type_ptr        class_type;
   a_source_position start_position;
+  an_error_code     err_code;
 
 #if CHECKING
   if (options & IDL_CONSTRAINTS) {
@@ -4341,19 +4345,22 @@ the error on the final identifier not being found on lookup.
         is_qualified_name = locator_for_curr_id.is_qualified_name;
       } else {
         /* See if there is a class qualifier (the "A::" part of "A::x"), and
-           if so, get it and determine the scope number it represents. */
-        if (get_class_qualifier(&class_scope, &is_global_qualifier,
-                                &qualifier_err)) {
+           if so, get it and determine the class it represents. */
+        if (get_class_qualifier(&class_type, &is_file_scope_qualifier,
+                                &has_global_qualifier, &qualifier_err)) {
           /* This is a qualified name. */
           /* Save the start position of the qualified name (get_class_qualifier
              puts it in error_position). */
           start_position = error_position;
           set_err_pos_to_curr_token();
           okay = FALSE;
-          /* There can be a "~" next when the name is for a destructor, as
-             in "A::~A". */
-          is_destructor = (curr_token == tok_compl);
-          if (is_destructor) (void)get_token();
+          is_destructor = FALSE;
+          if (!is_file_scope_qualifier) {
+            /* There can be a "~" next when the name is for a destructor, as
+               in "A::~A". */
+            is_destructor = (curr_token == tok_compl);
+            if (is_destructor) (void)get_token();
+          }  /* if */
           /* The current token must now be the final identifier of the
              qualified name, e.g., "x" in "A::B::x". */
           if (curr_token != tok_identifier) {
@@ -4365,25 +4372,29 @@ the error on the final identifier not being found on lookup.
             /* syntax_error is deliberately not called. */
             error(ec_exp_identifier);
           } else {
-            /* The final identifier is present.  Look it up in the class
-               scope. */
-            /* For a destructor, add the "~" to the name in the locator. */
-            if (is_destructor) tildize_locator(&locator_for_curr_id);
-            if (scope_qualified_id_lookup(&locator_for_curr_id, class_scope,
-                                          options) != NULL) {
-              /* The name was found.  locator_for_curr_id.specific_symbol
-                 is already set. */
-              okay = TRUE;
-              /* Ambiguity and access control checking is not done because
-                 we don't know yet what kind of reference this is. */
-            } else {
-              /* The identifier could not be found in the scope. */
-              if (!qualifier_err &&
-                  !(options & IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR)) {
-                /* Use a different message for "not found in a class" versus
-                   "not found in the file scope". */
-                error(is_global_qualifier ? ec_name_not_found_in_file_scope :
-                                            ec_not_a_member);
+            /* The final identifier is present. */
+            if (!qualifier_err) {
+              if (is_file_scope_qualifier) {
+                /* Look up the id in the file scope. */
+                okay = (file_scope_id_lookup(&locator_for_curr_id, options) !=
+                                                                         NULL);
+                err_code = ec_name_not_found_in_file_scope;
+              } else {
+                /* Look up the id in the class scope. */
+                /* For a destructor, add the "~" to the name in the locator. */
+                if (is_destructor) tildize_locator(&locator_for_curr_id);
+                okay = (class_qualified_id_lookup(&locator_for_curr_id,
+                                                  class_type,
+                                                  options) != NULL);
+                err_code = ec_not_a_member;
+                /* Ambiguity and access control checking is not done because
+                   we don't know yet what kind of reference this is. */
+              }  /* if */
+              if (!okay) {
+                /* The identifier could not be found in the scope. */
+                if (!(options & IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR)) {
+                  error(err_code);
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
@@ -4394,7 +4405,7 @@ the error on the final identifier not being found on lookup.
             make_specific_symbol_error_locator(&locator_for_curr_id);
           }  /* if */
           locator_for_curr_id.is_qualified_name = is_qualified_name = TRUE;
-          locator_for_curr_id.is_global_qualified_name = is_global_qualifier;
+          locator_for_curr_id.is_global_qualified_name = has_global_qualifier;
           error_position = start_position;
           /* Since we're returning a pseudo-token, set pos_curr_token. */
           pos_curr_token = start_position;
