@@ -4327,6 +4327,20 @@ Generate code for the indicated statement.
       /* "try" block. */
       gen_try_block_statement(statement);
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case stmk_microsoft_try:
+      write_tok_str("__try ");
+      gen_statement(statement->variant.microsoft_try->guarded_statement);
+      if (statement->variant.microsoft_try->except_expr != NULL) {
+        write_tok_str("__except (");
+        gen_full_expression(statement->variant.microsoft_try->except_expr);
+        write_tok_str(") ");
+      } else {
+        write_tok_str("__finally ");
+      }  /* if */
+      gen_statement(statement->variant.microsoft_try->cleanup_statement);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case stmk_init:
       /* Initialization for declaration.  Ignored at this level (the
          initialization was processed earlier when the stmk_decl was
