@@ -3569,7 +3569,11 @@ points to the template parameter list.
   a_template_arg_ptr             tap;
   a_symbol_ptr                   sym, templ_sym;
   an_mtt_flag_set		 new_flags;
+#if DEBUG
+  a_type_ptr			 orig_type = type;
+  a_type_ptr			 orig_templ_type = templ_type;
 
+#endif /* DEBUG */
   db_enter(5, "matches_template_type");
   /* When this routine calls itself recursively, the recursive calls
      should not allow conversions or the special unknown implicit
@@ -3928,6 +3932,15 @@ points to the template parameter list.
       }  /* if */
     }  /* if */
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("mtt")) {
+    fprintf(f_debug, "matches_template_type type: ");
+    db_type(orig_type);
+    fprintf(f_debug, ", templ_type; ");
+    db_type(orig_templ_type);
+    fprintf(f_debug, ", match=%s\n", match ? "TRUE" : "FALSE");
+  }  /* if */
+#endif /* DEBUG */
   db_exit();
   return match;
 }  /* matches_template_type */
