@@ -572,8 +572,8 @@ overflow error.
   a_boolean     overflow = FALSE;
 
   db_enter(4, "increment_field_offsets");
-  if (byte_incr >= targ_size_t_max ||
-      *byte_offset > (targ_size_t_max - byte_incr)) {
+  if (byte_incr >= targ_max_class_object_size ||
+      *byte_offset > (targ_max_class_object_size - byte_incr)) {
     overflow = TRUE;
   } else {
     *byte_offset += byte_incr;
@@ -588,7 +588,7 @@ overflow error.
        bit offset over to the byte offset. */
     if (*bit_offset >= targ_char_bit) {
       extra_byte_offset = *bit_offset / targ_char_bit;
-      if (*byte_offset > (targ_size_t_max - extra_byte_offset)) {
+      if (*byte_offset > (targ_max_class_object_size - extra_byte_offset)) {
         overflow = TRUE;
       } else {
         *byte_offset += extra_byte_offset;
@@ -2152,6 +2152,7 @@ void layout_one_time_init(void)
 
 void layout_init(void)
 /*
+Do layout initialization.
 */
 {
 #if USER_CONTROL_OF_STRUCT_PACKING
