@@ -378,7 +378,7 @@ corresponding to the .h file in which the entity is declared were
 included.  FALSE means no such assumption is made.
 */
 #ifndef AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION
-#define AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION TRUE
+#define AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION FALSE
 #endif /* ifndef AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 /*
@@ -430,6 +430,16 @@ file dependencies for a makefile.
 #ifndef OBJECT_FILE_SUFFIX
 #define OBJECT_FILE_SUFFIX ".o"
 #endif /* ifndef OBJECT_FILE_SUFFIX */
+
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+/*
+Instantiation file suffix.  This is added to the base name of the primary
+input file to get the instantiation list file name.
+*/
+#ifndef INSTANTIATION_FILE_SUFFIX
+#define INSTANTIATION_FILE_SUFFIX ".ii"
+#endif /* ifndef INSTANTIATION_FILE_SUFFIX */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 /*
 Flag that is TRUE to generate the trailing include file push/pop codes
