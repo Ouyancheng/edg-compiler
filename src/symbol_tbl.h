@@ -588,10 +588,6 @@ typedef struct a_class_symbol_supplement {
   unsigned int	any_nonreal_base_classes:1;
 			/* For a prototype instantiation this is TRUE
 			   if any of its base classes are nonreal classes. */
-  unsigned int	referenced_by_placeholder_typeref:1;
-			/* TRUE if the class is pointed to by a placeholder
-			   typeref type on a class scope's types list and for
-			   which is_placeholder_for_file_scope_type is TRUE. */
 } a_class_symbol_supplement;
 
 
