@@ -170,15 +170,56 @@ Integer types:
 #endif /* LONG_LONG_ALLOWED */
 
 /* Specify the size of the largest integer.  Note that this will constrain
-   how targ_sizeof_long or targ_sizeof_long_long is configured at runtime.
-   By default, a minimum largest value is supplied. */
+   how targ_sizeof_long and targ_sizeof_long_long are configured at runtime,
+   because TARG_SIZEOF_LARGEST_INTEGER is required to be a compiler time
+   constant and so cannot be adjusted at run time the way some other target
+   configuration constants are.  Therefore, it should be set to the largest
+   value a "long int" (or a "long long int") is allowed to have. */
+#ifndef TARG_SIZEOF_LARGEST_INTEGER
+/* By default, a minimum largest value is supplied, and it is expected to be
+   one of 1, 4, 8, or 16.  This can be changed either here or in defines.h,
+   if required.  However, it is necessary to use a literal instead of the
+   more obvious named value, since TARG_SIZEOF_LARGEST_INTEGER is used later
+   in defining other macros, but TARG_SIZEOF_LONG, etc., do not persist once
+   the variables they correspond to have been defined. */
 #if LONG_LONG_ALLOWED
-#define TARG_SIZEOF_LARGEST_INTEGER TARG_SIZE_OF_LONG_LONG
+/* A "long long int" is the largest integer. */
+#define TARG_SIZEOF_LARGEST_INTEGER TARG_SIZEOF_LONG_LONG
+#else /* !LONG_LONG_ALLOWED */
+/* A "long int" is the largest integer. */
+#define TARG_SIZEOF_LARGEST_INTEGER TARG_SIZEOF_LONG
+#endif /* !LONG_LONG_ALLOWED */
+#if TARG_SIZEOF_LARGEST_INTEGER == 4
+#undef TARG_SIZEOF_LARGEST_INTEGER
+#define TARG_SIZEOF_LARGEST_INTEGER 4
+#else /* TARG_SIZEOF_LARGEST_INTEGER != 4 */
+#if TARG_SIZEOF_LARGEST_INTEGER == 8
+#undef TARG_SIZEOF_LARGEST_INTEGER
+#define TARG_SIZEOF_LARGEST_INTEGER 8
+#else /* TARG_SIZEOF_LARGEST_INTEGER != 8 */
+#if TARG_SIZEOF_LARGEST_INTEGER == 16
+#undef TARG_SIZEOF_LARGEST_INTEGER
+#define TARG_SIZEOF_LARGEST_INTEGER 16
+#else /* TARG_SIZEOF_LARGEST_INTEGER != 16 */
+#if TARG_SIZEOF_LARGEST_INTEGER == 1
+#undef TARG_SIZEOF_LARGEST_INTEGER
+#define TARG_SIZEOF_LARGEST_INTEGER 1
+#else /* TARG_SIZEOF_LARGEST_INTEGER != 1 */
+ #error -- do not know how to set TARG_SIZEOF_LARGEST_INTEGER
+#endif /* TARG_SIZEOF_LARGEST_INTEGER == 1 */
+#endif /* TARG_SIZEOF_LARGEST_INTEGER == 16 */
+#endif /* TARG_SIZEOF_LARGEST_INTEGER == 8 */
+#endif /* TARG_SIZEOF_LARGEST_INTEGER == 4 */
+#endif /* !defined(TARG_SIZEOF_LARGEST_INTEGER) */
+/* Check the value.  It must be large enough to accommodate the largest
+   integer we know about at this point.  An additional check is made after
+   command line processing in case the variables corresponding to
+   targ_sizeof_long and targ_sizeof_long_long get different values. */
+#if LONG_LONG_ALLOWED
 #if TARG_SIZEOF_LARGEST_INTEGER < TARG_SIZEOF_LONG_LONG
  #error -- TARG_SIZEOF_LARGEST_INTEGER too small for TARG_SIZEOF_LONG_LONG
 #endif /* TARG_SIZEOF_LARGEST_INTEGER < TARG_SIZEOF_LONG_LONG */
 #else /* !LONG_LONG_ALLOWED */
-#define TARG_SIZEOF_LARGEST_INTEGER TARG_SIZEOF_LONG
 #if TARG_SIZEOF_LARGEST_INTEGER < TARG_SIZEOF_LONG
  #error -- TARG_SIZEOF_LARGEST_INTEGER too small for TARG_SIZEOF_LONG
 #endif /* TARG_SIZEOF_LARGEST_INTEGER < TARG_SIZEOF_LONG */
