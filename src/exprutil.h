@@ -128,6 +128,12 @@ typedef struct an_operand {
 			/* TRUE if the operand is a bound function, i.e.,
 			   another operand is required to give the object
 			   relative to which this function is selected. */
+  a_byte_boolean
+		virtual_function;
+			/* TRUE if the operand is a virtual function.
+			   If the function is overloaded, TRUE indicates that
+			   the function might be virtual.  Set FALSE by
+			   use of a qualified name for the function. */
   a_source_position
 		position;
 			/* The source position for the operand. */
