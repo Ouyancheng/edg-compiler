@@ -5,9 +5,10 @@ Version 2.44
 The name demangler can now demangle the encoding for the Microsoft-specific
 integer types __int8, __int16, __int32 and __int64 (and their unsigned
 variants).  These are distinct built-in types when emulating Microsoft Visual
-C++ 6.0 and higher (earlier version treat these types as typedefs for standard
+C++ 6.0 and higher (earlier versions treat these types as typedefs for standard
 integer types).
 
+-------------------------------------------------------------------------------
 Version 2.43, December 8, 1999
 
 12/1/99  Mangling for template template parameters
