@@ -1426,7 +1426,7 @@ operand (op_1 = op_1 / op_2).  err is TRUE if an overflow occurred.
           value_1 == MIN_INTEGER_VALUE && value_2 == -1) { /*lint !e506*/
         /* Smallest integer / -1 -- Overflow on 2's complement machines. */
         overflow = TRUE;
-        result = 0;
+        result = value_1;
       } else {
         /* No overflow. */
         result = value_1 / value_2;

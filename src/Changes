@@ -1,5 +1,17 @@
 Version 2.41
 
+2/22/99   Folding of min_int/(-1) when integer value is represented as
+          host integer
+
+When integer values are represented as host integers
+(INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is TRUE) on a two's complement
+host computer, folding of the division of the smallest-valued integer
+(e.g., -2147483648 when 32-bit long is the largest integral type
+supported) by -1 was not done correctly.  Or rather, the folding
+code noted correctly that the division overflows, but it returned
+zero as the result of the division.  A better choice (and what's done
+now) is the smallest integer value, i.e., the left operand value.
+
 2/21/99   Upper limit on mangled name length
 
 By setting DEFAULT_MAX_MANGLED_NAME_LENGTH, or the variable
