@@ -2038,20 +2038,21 @@ on command-line options --[no_]vla, which control global variable vla_enabled.
 When VLAs are allowed, they are enabled by default in C99 mode.
 */
 #ifndef VLA_ALLOWED
-#define VLA_ALLOWED FALSE
-#endif /* VLA_ALLOWED */
-
-/*
-Flag that is used as the default setting for global variable vla_enabled.
-The variable can also been controlled from the command line by --[no_]vla.
-(Whatever the default, vla_enabled is always turned off in C++ mode.)
-*/
-#ifndef DEFAULT_VLA_ENABLED
 #if C99_IL_EXTENSIONS_SUPPORTED
 #define VLA_ALLOWED TRUE
 #else /* !C99_IL_EXTENSIONS_SUPPORTED */
 #define VLA_ALLOWED FALSE
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* VLA_ALLOWED */
+
+/*
+Flag that is used as the default setting for global variable vla_enabled.
+The variable can also been controlled from the command line by --[no_]vla.
+(Whatever the default, vla_enabled is always turned off in C++ mode, and
+on in C99 mode, so the default here applies only in only other modes.)
+*/
+#ifndef DEFAULT_VLA_ENABLED
+#define DEFAULT_VLA_ENABLED FALSE
 #endif /* ifndef DEFAULT_VLA_ENABLED */
 #if DEFAULT_VLA_ENABLED && !VLA_ALLOWED
   #error -- DEFAULT_VLA_ENABLED cannot be true unless VLA_ALLOWED is true
