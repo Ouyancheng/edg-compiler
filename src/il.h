@@ -303,10 +303,6 @@ extern a_dynamic_init_ptr alloc_dynamic_init(a_dynamic_init_kind kind);
 
 extern void add_to_dynamic_inits_list(a_dynamic_init_ptr dip);
 
-extern void record_end_of_lifetime_destruction(
-                                         a_dynamic_init_ptr  dip,
-                                         a_boolean           static_lifetime);
-
 extern a_local_static_variable_init_ptr alloc_local_static_variable_init(
                                                   a_variable_ptr     var,
                                                   a_scope_ptr        var_scope,
@@ -511,6 +507,11 @@ EXTERN an_object_lifetime_ptr
 		curr_object_lifetime;
 			/* The top of the currently active object lifetime
 			   stack. */
+
+extern void record_end_of_lifetime_destruction(
+                                        a_dynamic_init_ptr  dip,
+                                        a_boolean           static_lifetime,
+                                        a_boolean           scope_lifetime);
 
 extern void bind_object_lifetime(an_object_lifetime_ptr  olp,
                                  an_il_entry_kind        entity_kind,

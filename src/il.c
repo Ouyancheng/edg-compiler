@@ -6435,7 +6435,8 @@ Only used in C++.
   if (evaluated) {
     /* Put the destruction (if any) on the list for the current object
        lifetime. */
-    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE);
+    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                       /*scope_lifetime=*/FALSE);
   }  /* if */
   /* Make an enk_temp_init node that points at the dynamic init entry. */
   temp_init_node = alloc_temp_init_node(temp_type, result_is_addr);
@@ -7209,46 +7210,55 @@ to it.
 }  /* alloc_object_lifetime */
 
 
-void record_end_of_lifetime_destruction(a_dynamic_init_ptr dip,
-                                        a_boolean          is_local_static_var)
+void record_end_of_lifetime_destruction(a_dynamic_init_ptr  dip,
+                                        a_boolean           static_lifetime,
+                                        a_boolean           scope_lifetime)
 /*
 If the dynamic init entry pointed to by dip has a destructor associated with
-it, add the entry to the destructors list for curr_object_liftime (or, if
-the entry represents a function-local static variable, for the appropriate
-lifetime entry in the function scope).
+it, add the entry to the destructors list for the appropriate object lifetime.
+If static_lifetime is TRUE, the object in question has static storage duration
+-- it persists till the end of program execution (i.e., the till the final
+object clean up).  If scope_lifetime is TRUE is an object whose lifetime is
+tied to a scope.  If both flags are FALSE, the current object lifetime (the
+top of the object lifetime stack) is used.
 */
 {
   an_object_lifetime_ptr  olp;
-  a_boolean               has_dtor = FALSE;
-  a_type_ptr              tp;
   a_scope_ptr             sp;
 
   db_enter(4, "record_end_of_lifetime_destruction");
   if (dip->destructor != NULL) {
-    has_dtor = TRUE;
-  } else if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-    check_assertion(dip->variable != NULL);
-    tp = skip_typerefs(dip->variable->type);
-    check_assertion(is_array_type(tp));
-    tp = skip_typerefs(underlying_array_element_type(tp));
-    if (is_immediate_class_type(tp) &&
-        (symbol_supplement_for_class(tp))->destructor != NULL) {
-      has_dtor = TRUE;
-    }  /* if */
-  }  /* if */
-  if (has_dtor) {
     /* This is a destructable entity. */
-    if (is_local_static_var) {
-      sp = scope_stack[depth_innermost_function_scope].il_scope;
-      olp = sp->variant.routine.lifetime_of_local_static_vars;
-      if (olp == NULL) {
-        olp = alloc_object_lifetime(
+    if (static_lifetime) {
+      if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+        /* The object is a local static variable.  Use the list on the
+           scope entry for the function. */
+        sp = scope_stack[depth_innermost_function_scope].il_scope;
+        olp = sp->variant.routine.lifetime_of_local_static_vars;
+        if (olp == NULL) {
+          olp = alloc_object_lifetime(
                              (an_object_lifetime_kind)olk_function_static);
-        bind_object_lifetime(olp, (an_il_entry_kind)iek_scope, (char *)sp);
+          bind_object_lifetime(olp, (an_il_entry_kind)iek_scope, (char *)sp);
+        }  /* if */
+      } else {
+        /* The object is a static object outside a function context -- it
+           belongs to the lifetime of the the file scope itself. */
+        olp = scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
       }  /* if */
+    } else if (scope_lifetime) {
+      /* A non-static entity, probably a variable, that is associated with
+         a scope lifetime.  If the current object lifetime is not that of
+         a scope, find the innermost object lifetime that is. */
+      olp = curr_object_lifetime;
+      while (olp->entity.kind != (a_byte_il_entry_kind)iek_scope) {
+        olp = olp->parent_lifetime;
+      }  /* while */
     } else {
+      /* The default case is to use whatever is on top of the object lifetime
+         stack. */
       olp = curr_object_lifetime;
     }  /* if */
+    check_assertion(in_file_scope(olp) == in_file_scope(dip));
     /* Update the lifetime pointer in the dynamic init entry. */
     dip->lifetime = olp;
     /* Add the dynamic init entry to the front of the destructions list for
@@ -7584,24 +7594,12 @@ Undo the binding between an object lifetime entry and the IL entry to which
 it points.
 */
 {
-  a_boolean               ctor_init = FALSE;
-  a_scope_ptr             scope;
   an_object_lifetime_ptr  *lifetime_addr;
 
-  if (olp->entity.kind == (an_il_entry_kind)iek_scope) {
-    /* Scope entries have two object lifetime pointers.  Figure out for which
-       one the binding should be undone. */
-    scope = (a_scope_ptr)olp->entity.ptr;
-    if (scope->kind == (a_scope_kind)sck_function &&
-        scope->variant.routine.lifetime_of_constructor_inits == olp) {
-      ctor_init = TRUE;
-    }  /* if */
-  }  /* if */
   /* Get the address of the appropriate field of the IL entry so that the
      lifetime pointer can be cleared. */
   lifetime_addr = addr_of_lifetime_ptr((an_il_entry_kind)olp->entity.kind,
                                        olp->entity.ptr, olp->kind);
-  check_assertion(*lifetime_addr == olp);
   *lifetime_addr = NULL;
   /* Clear the fields in the object lifetime, too. */
   olp->entity.kind = (a_byte_il_entry_kind)iek_none;
