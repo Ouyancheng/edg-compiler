@@ -6274,7 +6274,7 @@ The routine body is not generated until it is known to be needed.
        operator was declared by the program -- it's needed, even though it
        won't actually be called, to complete the overload set. */
     if (!cssp->assignment_by_bitwise_copy_allowed ||
-        cssp->assignment_operator != NULL) {
+        (cssp->assignment_operator != NULL && !any_cfront_mode())) {
       const_okay = default_assignment_of_const_object_okay(class_type);
       qualifiers = const_okay ? TQ_CONST : TQ_NONE;
       ptp = alloc_param_type(make_reference_type(
