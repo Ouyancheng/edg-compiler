@@ -4814,7 +4814,7 @@ scope depth.
 
   /* Get pointer to current or file scope entry. */
   if (at_file_scope) {
-    ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+    ssep = &scope_stack[depth_innermost_namespace_scope];
     sp = ssep->il_scope;
 #if CHECKING
     if (sp == NULL) internal_error("add_to_variables_list: NULL IL scope");
