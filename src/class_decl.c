@@ -9015,8 +9015,9 @@ the new declaration.
 */
 {
   a_symbol_ptr       fund_sym = fundamental_symbol_of(sym);
-  a_source_position  decl_pos = locator_for_curr_id.source_position;
+  a_source_position  decl_pos;
 
+  decl_pos = locator_for_curr_id.source_position;
   if (!have_access_to_symbol(sym)) {
     /* The specified symbol (either the explicitly declared symbol or
        a member of the overload set the symbol refers to) is inaccessible.
