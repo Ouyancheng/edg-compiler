@@ -1,19 +1,28 @@
 Version 3.4
 
-8/4/03  Microsoft compatibility: long long bit fields promote to long long
+8/4/03   GNU C++ mode: Exception specifications in system headers
+
+In GNU C++ mode, the front end now issues a warning (instead of an error,
+as it did previously) when a declaration's exception specification conflicts
+with a previous declaration from a system header.  Note that since warnings
+are not issued on declarations in system headers, no diagnostic will be
+issued at all if both the original and the conflicting declarations appear
+in system headers.
+
+8/4/03   Microsoft compatibility: long long bit fields promote to long long
 
 In Microsoft C and C++ modes, long long bit fields with lengths equal
 to or smaller than long now promote to long long (or unsigned long
 long), as in MSVC++.
 
-8/4/03  C-generating back end aborts due to Microsoft property fields
+8/4/03   C-generating back end aborts due to Microsoft property fields
 
 IL lowering did not always correctly remove Microsoft property fields from
 class types.  The C-generating back, which does not expect property fields in
 the IL, would then either abort or incorrectly generate the property field as
 a normal field.  This is now fixed.
 
-8/4/03  System header flag in GNU preprocessor line directives
+8/4/03   System header flag in GNU preprocessor line directives
 
 The preprocessor line directives emitted by the GNU preprocessor can include
 a flag that indicates that code originated in a system header file.  Formerly,
@@ -22,7 +31,7 @@ and the associated code is treated as if found in a file specified by the
 --sys_include option.  The flag is recognized in all modes (not just in
 GNU modes).
 
-8/4/03  GNU C++ mode: Undefined extern inline functions
+8/4/03   GNU C++ mode: Undefined extern inline functions
 
 The EDG normally issues an error when an extern inline function is referenced
 but not defined.  In GNU C++ mode we now issue a warning instead for such

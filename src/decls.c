@@ -988,6 +988,20 @@ consistent with that of the previous declaration.
   }  /* if */
   if (exceptions_enabled && prev_type->kind != (a_type_kind)tk_typeref) {
     an_error_severity  severity = es_error;
+    if (gpp_mode) {
+      /* In GNU C++ mode, conflicts with declarations in system headers are
+         downgraded to warnings. */
+      a_source_file_ptr	sfp;
+      a_boolean		at_end_of_source;
+      a_line_number	line_number;
+      unsigned long	nesting_depth;
+      sfp = source_file_for_seq(prev_decl->decl_position.seq, &line_number,
+                                &at_end_of_source, &nesting_depth,
+                               /*physical_line=*/FALSE);
+      if (sfp != NULL && sfp->from_system_include_dir) {
+        severity = es_warning;
+      }  /* if */
+    }  /* if */
     if (microsoft_mode && microsoft_version >= 1300) {
       /* Recent Microsoft compilers do not require exception specifications
          on multiple declarations to match.  We issue a warning in case of
