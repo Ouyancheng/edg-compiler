@@ -249,7 +249,7 @@ Display an unsigned long value along with a name.
 
 
 static void disp_host_large_integer(char			*name,
-                                     a_host_large_integer	value)
+                                    a_host_large_integer	value)
 /*
 Display a host large unsigned value along with a name.
 */
