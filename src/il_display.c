@@ -416,14 +416,44 @@ Display the indicated source position, preceding it with the specified
 string.  Note that nothing is printed out when *pos is null_source_position.
 */
 {
+  char buffer[40];
+
   check_assertion(str != NULL);
   if (pos->seq != 0 || pos->column != 0) {
-    (void)printf("%s.", str);
-    disp_unsigned_long("seq", (unsigned long)pos->seq);
-    (void)printf("%s.", str);
-    disp_unsigned_long("column", (unsigned long)pos->column);
+    (void)sprintf(buffer, "%s.seq", str);
+    disp_unsigned_long(buffer, (unsigned long)pos->seq);
+    (void)sprintf(buffer, "%s.column", str);
+    disp_unsigned_long(buffer, (unsigned long)pos->column);
   }  /* if */
 }  /* disp_source_position */
+
+
+static void disp_source_range(char            *str,
+                              a_source_range  *range)
+/*
+Display the indicated source position range, preceding it with the specified
+string.
+*/
+{
+  char       buffer[12], *pbuf;
+
+  check_assertion(str != NULL);
+  /* Don't put out "null" source-range information. */
+  if (range->start.seq != 0 || range->end.seq != 0) {
+    (void)printf("%s\n", str);
+    /* Default indentation is 2, but add any indentation implied by the
+       string that is passed in. */
+    buffer[0] = ' ';
+    buffer[1] = ' ';
+    pbuf = &buffer[2];
+    for (; *str == ' '; ++str) *(pbuf++) = ' ';
+    /* Put out start and end positions separately. */
+    (void)sprintf(pbuf, "start");
+    disp_source_position(buffer, &range->start);
+    (void)sprintf(pbuf, "end");
+    disp_source_position(buffer, &range->end);
+  }  /* if */
+}  /* disp_source_range */
 
 
 static void disp_source_corresp(a_source_correspondence *scp)
@@ -444,14 +474,8 @@ Display the indicated source correspondence entry.
   disp_source_position("  decl_position", &scp->decl_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("  decl_end_position", &scp->decl_end_position);
-  disp_source_position("  specifiers_range.start",
-                       &scp->specifiers_range.start);
-  disp_source_position("  specifiers_range.end",
-                       &scp->specifiers_range.end);
-  disp_source_position("  declarator_range.start",
-                       &scp->declarator_range.start);
-  disp_source_position("  declarator_range.end",
-                       &scp->declarator_range.end);
+  disp_source_range("  specifiers_range", &scp->specifiers_range);
+  disp_source_range("  declarator_range", &scp->declarator_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #ifdef CFE
   if (scp->is_class_member) {
@@ -1275,10 +1299,7 @@ Display the indicated variable.
   }  /* if */
   disp_initializer(ptr->init_kind, &ptr->initializer);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  disp_source_position("initializer_range.start",
-                       &ptr->initializer_range.start);
-  disp_source_position("initializer_range.end",
-                       &ptr->initializer_range.end);
+  disp_source_range("initializer_range", &ptr->initializer_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #ifdef FFE
   disp_boolean("by_address", (a_boolean)ptr->by_address);
@@ -2310,8 +2331,7 @@ cleanup_state_common:
       (void)printf("**BAD EXPR NODE KIND**\n");
   }  /* switch */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  disp_source_position("expr_range.start", &ptr->expr_range.start);
-  disp_source_position("expr_range.end", &ptr->expr_range.end);
+  disp_source_range("expr_range", &ptr->expr_range);
   disp_source_position("operator_position", &ptr->operator_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_expr_node */
@@ -3580,8 +3600,7 @@ do_base_class:
   }  /* switch */
   disp_ptr("initializer", (char *)ptr->initializer, iek_dynamic_init);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  disp_source_position("ctor_range.start", &ptr->ctor_range.start);
-  disp_source_position("ctor_range.end", &ptr->ctor_range.end);
+  disp_source_range("ctor_range", &ptr->ctor_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_constructor_init */
 
