@@ -1,5 +1,15 @@
 Version 2.45
 
+10/5/00  Spurious error on function try block on template constructor
+
+A spurious error was issued when a class template constructor was
+defined outside of the class template.  This has been fixed.
+
+  template<class T> struct X {
+    X();
+  };
+  template<class T> X<T>::X() try {} catch (...) {}
+
 10/2/00  Spurious error on "\u" in skipped #include
 
 A \u in an header file name was incorrectly diagnosed as an invalid
