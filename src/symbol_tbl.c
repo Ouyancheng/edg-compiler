@@ -596,7 +596,7 @@ and indentation is the indentation desired.
         if (temp_type->variant.class_struct_union.is_template_class) {
           put_string("is instance");
         }  /* if */
-        if (cssp->is_nonreal_class) {
+        if (temp_type->variant.class_struct_union.is_nonreal_class) {
           put_string("nonreal");
         }  /* if */
         if (cssp->is_prototype_instantiation) {
@@ -1804,7 +1804,7 @@ Otherwise, return NULL.
   cssp = sym->variant.class_struct_union.extra_info;
   class_type = sym->variant.class_struct_union.type;
   if (class_type->variant.class_struct_union.is_template_class &&
-      !cssp->is_nonreal_class) {
+      !class_type->variant.class_struct_union.is_nonreal_class) {
     if (!class_type->variant.class_struct_union.is_specialized) {
       result_sym = cssp->corresp_prototype_sym;
       check_assertion_str2(result_sym != NULL,
@@ -2276,7 +2276,6 @@ state.
         cssp->has_operator_array_new = FALSE;
         cssp->has_operator_delete = FALSE;
         cssp->has_operator_array_delete = FALSE;
-        cssp->is_nonreal_class = FALSE;
         cssp->is_prototype_instantiation = FALSE;
         cssp->any_nonstatic_data_members = FALSE;
         cssp->any_nonreal_base_classes = FALSE;
@@ -4372,8 +4371,8 @@ and attach them to rout_sym, and return the function template symbol.
   a_template_instance_ptr  tip;
 
 #if CHECKING
-  if (!(symbol_supplement_for_class(rout_sym->parent.class_type))->
-                                                            is_nonreal_class) {
+  if (!rout_sym->parent.class_type->
+                                 variant.class_struct_union.is_nonreal_class) {
     internal_error("make_member_function_template_symbol: real class member");
   }  /* if */
 #endif /* CHECKING */
@@ -8439,9 +8438,7 @@ entry that points to the class in which the nonreal member is created.
      nonreal base is used. */
   for (; bcp != NULL; bcp = bcp->next) {
     a_type_ptr		base_type = bcp->type;
-    a_class_symbol_supplement_ptr	cssp;
-    cssp = symbol_supplement_for_class(base_type);
-    if (cssp->is_nonreal_class) {
+    if (base_type->variant.class_struct_union.is_nonreal_class) {
       if (bcp->direct) {
         nonreal_bcp = bcp;
         break;

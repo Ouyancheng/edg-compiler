@@ -497,7 +497,7 @@ as the class type, and use as a base class.
     cssp = symbol_supplement_for_class(type);
     cssp->member_decl_scope = take_next_scope_number();
     cssp->template_param_for_proxy_class = templ_param_type;
-    cssp->is_nonreal_class = TRUE;
+    type->variant.class_struct_union.is_nonreal_class = TRUE;
   }  /* if */
   return tptsp->class_type;
 }  /* proxy_class_for_template_param */
@@ -2928,8 +2928,9 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
        instantiation from being considered nonreal for lookup
        purposes. */
     cssp = symbol_supplement_for_class(class_type);
-    if (cssp->is_nonreal_class && class_type->variant.class_struct_union.
-                                             extra_info->assoc_scope == NULL) {
+    if (class_type->variant.class_struct_union.is_nonreal_class &&
+        class_type->
+                  variant.class_struct_union.extra_info->assoc_scope == NULL) {
       is_proxy_or_nonreal_class_lookup = TRUE;
     }  /* if */
     any_nonreal_base_classes = cssp->any_nonreal_base_classes;

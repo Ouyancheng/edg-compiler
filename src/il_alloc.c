@@ -971,6 +971,7 @@ to default values.
                  nested_class_defined_outside_of_parent = FALSE;
       pte->variant.class_struct_union.originally_unnamed = FALSE;
       pte->variant.class_struct_union.is_template_class = FALSE;
+      pte->variant.class_struct_union.is_nonreal_class = FALSE;
       pte->variant.class_struct_union.is_specialized = FALSE;
       pte->variant.class_struct_union.specialized_with_old_syntax = FALSE;
 #if MAINTAIN_NEEDED_FLAGS

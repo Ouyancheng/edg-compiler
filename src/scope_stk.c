@@ -3254,8 +3254,8 @@ NULL.
       for (; template_class_sym != NULL;
              template_class_sym = next_instance_sym(template_class_sym)) {
 
-        if (template_class_sym->
-                    variant.class_struct_union.extra_info->is_nonreal_class) {
+        if (template_class_sym->variant.class_struct_union.type->
+                                variant.class_struct_union.is_nonreal_class) {
           /* Skip the recursive check for prototype instantiation of a class
              template. */
         } else {
@@ -3656,8 +3656,8 @@ unit.
       curr_routine = scope_ptr->variant.routine.ptr;
     }  /* if */
     if (kind == (a_scope_kind)sck_class_struct_union && !C_mode() &&
-        (symbol_supplement_for_class(scope_ptr->variant.assoc_type))->
-                                                            is_nonreal_class) {
+        scope_ptr->variant.assoc_type->
+                                 variant.class_struct_union.is_nonreal_class) {
       is_prototype_instantiation = TRUE;
     }  /* if */
     /* Remove the symbols declared in this scope from the symbol table.

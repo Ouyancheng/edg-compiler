@@ -2147,7 +2147,7 @@ empty statement block.
 
   db_enter(4, "define_special_member_function");
   class_type = rout_ptr->source_corresp.parent.class_type;
-  if (symbol_supplement_for_class(class_type)->is_nonreal_class) {
+  if (class_type->variant.class_struct_union.is_nonreal_class) {
     /* Don't bother generating the definition for a member of an unreal
        instantiation of a template class. */
   } else {

@@ -2153,7 +2153,8 @@ checking instead of equivalence checking).
              class template, or equivalent nonreal templates.  Check further
              if (a) they are both nonreal template classes, or (b) error
              arguments are to be considered equivalent to anything. */
-          if ((cssp_1->is_nonreal_class && cssp_2->is_nonreal_class) ||
+          if ((type_1->variant.class_struct_union.is_nonreal_class &&
+               type_2->variant.class_struct_union.is_nonreal_class) ||
               error_matches_anything) {
             an_equiv_templ_arg_options_set    eta_options = ETA_NO_OPTIONS;
             if (error_matches_anything) {

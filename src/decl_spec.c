@@ -1830,7 +1830,7 @@ the template.
                 set_to_named_error_locator(locator);
                 err = TRUE;
               }  /* if */
-              if (cssp->is_nonreal_class) {
+              if (class_type->variant.class_struct_union.is_nonreal_class) {
                 /* A specialization of a nonreal class.  This is usually the
                    result of a specialization in an invalid scope, in which
                    case an error will have already been issued.  This can

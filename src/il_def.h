@@ -4001,6 +4001,19 @@ typedef struct a_type {
 			   value is TRUE even if the instance has been
 			   explicitly specialized. */
       a_bit_field
+		is_nonreal_class:1;
+			/* TRUE if the class is an instantiation of a class
+			   template based on template arguments that include
+			   one or more template parameters.  For instance,
+			   for the class template declared by
+			      template <class T, int I> class vec;
+			   the prototype instantiation vec<T,I> is a "nonreal"
+			   class, but so is vec<T,3>, where T represents a
+			   template parameter, e.g., in the declaration:
+			      template <class T> void f(vec<T,3> *vp) { ... }
+                           In addition, classes that are nested within
+			   nonreal classes are marked as nonreal. */
+      a_bit_field
 		is_specialized:1;
 			/* TRUE for class template instances for which the
 			   definition is supplied independently of the class

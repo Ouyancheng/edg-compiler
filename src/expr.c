@@ -1999,8 +1999,8 @@ qualified_name_check:
           } else {
             projection_member_sym = locator_for_curr_id.specific_symbol;
             member_sym = fundamental_symbol_of(projection_member_sym);
-            if (symbol_supplement_for_class(class_struct_union_type)->
-                                                            is_nonreal_class) {
+            if (class_struct_union_type->
+                                 variant.class_struct_union.is_nonreal_class) {
               /* Skip the check for a nonreal class in a prototype
                  instantiation. */
             } else {

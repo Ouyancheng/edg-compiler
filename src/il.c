@@ -4455,7 +4455,7 @@ instantiations) below that on the scope stack.
   for (--scope_depth; scope_depth > DEPTH_OF_FILE_SCOPE; --scope_depth) {
     --ssep;
     if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
-        !symbol_supplement_for_class(ssep->assoc_type)->is_nonreal_class) {
+        !ssep->assoc_type->variant.class_struct_union.is_nonreal_class) {
       /* Found a class scope. */
       break;
     }  /* if */
@@ -5209,7 +5209,7 @@ is already an entry of the indicated kind on the list.
   if (btlmp->kind == (a_based_type_kind)btk_ptr_to_member) {
     a_type_ptr tp = based_type->variant.ptr_to_member.class_of_which_a_member;
     if (!is_class_struct_union_type(tp) ||
-        symbol_supplement_for_class(tp)->is_nonreal_class) {
+        tp->variant.class_struct_union.is_nonreal_class) {
       /* Either the class specified in this ptr-to-member type is a template
          param type or a nonreal instantiation -- update the fixup list so
          this type doesn't leak into the back end. */

@@ -854,7 +854,7 @@ Process the default argument expressions for the indicated class.
       fputs("\"\n", f_debug);
     }  /* if */
 #endif /* DEBUG */
-    if (cssp->is_nonreal_class) {
+    if (class_type->variant.class_struct_union.is_nonreal_class) {
       is_nonreal_template_instantiation = TRUE;
     } else if (is_template_based) {
       is_real_template_instantiation = TRUE;
@@ -1282,7 +1282,7 @@ nested class.
       fputs("\"\n", f_debug);
     }  /* if */
 #endif /* DEBUG */
-    if (cssp->is_nonreal_class) {
+    if (class_type->variant.class_struct_union.is_nonreal_class) {
       is_nonreal_template_instantiation = TRUE;
     } else if (is_template_based) {
       is_real_template_instantiation = TRUE;
@@ -1743,7 +1743,7 @@ ambiguity.
 
   db_enter(4, "report_virtual_function_ambiguities");
   is_nonreal_instantiation =
-                    symbol_supplement_for_class(class_type)->is_nonreal_class;
+                       class_type->variant.class_struct_union.is_nonreal_class;
   /* Make a pass over all the base classes (direct and indirect both) of
      the class indicated by class_type. */
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
@@ -1817,7 +1817,7 @@ current class -- see ARM 10.3).  If it is, mark the class accordingly.
   if (class_type->variant.class_struct_union.abstract) {
     /* The class is already marked "abstract", presumably as a result of
        having one or more pure virtual member functions. */
-  } else if (symbol_supplement_for_class(class_type)->is_nonreal_class) {
+  } else if (class_type->variant.class_struct_union.is_nonreal_class) {
     /* If the class is nonreal and not marked abstract, it could only be
        abstract because it doesn't override an inherited pure virtual.
        However, if that pure virtual member function comes from a dependent
@@ -2637,7 +2637,7 @@ that tracks the highest number assigned thus far.
 {
   if (*number_ptr == MAX_VIRTUAL_FUNCTIONS_PER_CLASS) {
     a_type_ptr  parent_class = rp->source_corresp.parent.class_type;
-    if (symbol_supplement_for_class(parent_class)->is_nonreal_class) {
+    if (parent_class->variant.class_struct_union.is_nonreal_class) {
       /* Don't issue an error, since the number may not be maintained
          accurately for nonreal class instantiations. */
     } else {
@@ -4348,7 +4348,8 @@ or struct definition.  The syntax is
             goto skip_base_class;
           }  /* if */
         }  /* if */
-        if (bcp_cssp->is_nonreal_class && !cssp->is_nonreal_class) {
+        if (base_class_type->variant.class_struct_union.is_nonreal_class &&
+            !type_ptr->variant.class_struct_union.is_nonreal_class) {
           /* A nonreal base class of a real derived class, which cannot happen
              in a well-formed program.  Here's how it might happen:
                template <class T> class X;
@@ -4439,7 +4440,8 @@ or struct definition.  The syntax is
       if (bcp_cssp->any_nonstatic_data_members) {
         cssp->any_nonstatic_data_members = TRUE;
       }  /* if */
-      if (bcp_cssp->any_nonreal_base_classes || bcp_cssp->is_nonreal_class) {
+      if (bcp_cssp->any_nonreal_base_classes ||
+          base_class_type->variant.class_struct_union.is_nonreal_class) {
         cssp->any_nonreal_base_classes = TRUE;
       }  /* if */
       /* Update the flag indicating whether there are any virtual base
@@ -4774,7 +4776,7 @@ the current class (class_type).
 
   if (is_error_type(friend_class_type)) {
     /* Ignore it. */
-  } else if ((symbol_supplement_for_class(class_type))->is_nonreal_class) {
+  } else if (class_type->variant.class_struct_union.is_nonreal_class) {
     /* friend declarations are not processed during prototype instantiation
        -- they're meaningless until a real instantiation is done. */
   } else {
@@ -5081,7 +5083,7 @@ of the function, and again overloading is a possibility.
 
   db_enter(3, "decl_friend_function");
   if (!is_error_locator(*locator)) {
-    if (symbol_supplement_for_class(class_type)->is_nonreal_class) {
+    if (class_type->variant.class_struct_union.is_nonreal_class) {
       /* Scan past friend functions during prototype instantiation. */
       set_to_named_error_locator(*locator);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -6364,7 +6366,7 @@ declared member functions.
                                          &locator->source_position);
     set_mixed_static_nonstatic_flag(overload_sym);
   }  /* if */
-  if (cssp->is_nonreal_class) {
+  if (class_type->variant.class_struct_union.is_nonreal_class) {
     /* This symbol represents a member function of a prototype instantiation
        of a class template.  As such it is a quasi function template itself.
        Set it up to look like that. */
@@ -7206,7 +7208,7 @@ FALSE .
   if (is_array_type(tp)) tp=f_skip_typerefs(underlying_array_element_type(tp));
   if (is_class_struct_union_type(tp)) {
     cssp = symbol_supplement_for_class(tp);
-    if (cssp->is_nonreal_class) {
+    if (tp->variant.class_struct_union.is_nonreal_class) {
       /* Suppress these checks for union members that are nonreal.  The test
          will be repeated when a real instantiation of the enclosing
          union is performed. */
@@ -9655,7 +9657,7 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
   a_type_ptr                     tp;
 
   db_enter(3, "find_corresp_prototype_tag_sym");
-  if (curr_sym->variant.class_struct_union.extra_info->is_nonreal_class) {
+  if (is_nonreal_instance_class_symbol(curr_sym)) {
     /* Return NULL. */
   } else if (curr_sym->is_class_member) {
     /* curr_sym represents a nested class.  Get the corresponding prototype
@@ -11437,7 +11439,8 @@ nested classes when their definition appears outside of the class template.
          "nonreal" (i.e., based on template arguments that include the dummy
          types and constants of template parameters rather than real types and
          constants). Note that for nested classes the flag is set later. */
-      class_state.is_nonreal_instantiation = cssp->is_nonreal_class = TRUE;
+      class_state.is_nonreal_instantiation = TRUE;
+      class_type->variant.class_struct_union.is_nonreal_class = TRUE;
       if (tag_sym->is_class_member &&
           (curr_token == tok_lbrace || curr_token == tok_colon)) {
         /* This is a definition of a nested class.  See if the enclosing class
@@ -11448,11 +11451,12 @@ nested classes when their definition appears outside of the class template.
     } else if (is_template_instantiation && tag_sym->is_class_member) {
       /* An instance of a member template.  Mark it as nonreal if the
          instantiation is being triggered inside a prototype instantiation. */
-      if (symbol_supplement_for_class(tag_sym->parent.class_type)->
-                                                        is_nonreal_class) {
-        class_state.is_nonreal_instantiation = cssp->is_nonreal_class = TRUE;
+      if (tag_sym->parent.class_type->
+                                 variant.class_struct_union.is_nonreal_class) {
+        class_state.is_nonreal_instantiation = TRUE;
+        class_type->variant.class_struct_union.is_nonreal_class = TRUE;
       }  /* if */
-    } else if (cssp->is_nonreal_class) {
+    } else if (class_type->variant.class_struct_union.is_nonreal_class) {
       /* A definition of a nonreal class that is not a template instantiation.
          This should only occur when defining a specialization of a class
          in a class scope. */

@@ -1825,7 +1825,7 @@ might not be able to if the template itself has not yet been defined.
   template_sym = template_symbol_for_class_symbol(instance_sym);
   if (template_sym == NULL) {
     /* Not a class based on a class template. */
-  } else if (cssp->is_nonreal_class) {
+  } else if (class_type->variant.class_struct_union.is_nonreal_class) {
     /* Don't try to instantiate a template class without real template
        arguments. */
   } else if (class_type->variant.class_struct_union.is_specialized) {
@@ -3632,16 +3632,14 @@ prototype instantiation is considered as a potential match.
       /* Instantiations of a nonreal member template (for example,
          T::A<int>) are created as nonreal instantiations.  Likewise,
          instantiations of template template parameters are nonreal. */
-      sym->variant.class_struct_union.extra_info->is_nonreal_class = TRUE;
+      class_type->variant.class_struct_union.is_nonreal_class = TRUE;
     } else if (sym->is_class_member) {
       /* If the enclosing class is nonreal, then any instances of member
          classes must also be nonreal. */
       a_type_ptr			parent_class;
-      a_class_symbol_supplement_ptr	parent_cssp;
       parent_class = sym->parent.class_type;
-      parent_cssp = symbol_supplement_for_class(parent_class);
-      if (parent_cssp->is_nonreal_class) {
-        sym->variant.class_struct_union.extra_info->is_nonreal_class = TRUE;
+      if (parent_class->variant.class_struct_union.is_nonreal_class) {
+        class_type->variant.class_struct_union.is_nonreal_class = TRUE;
       }  /* if */
     }  /* if */
     /* If this is a "real instantiation" leave the type incomplete; it will
@@ -3650,9 +3648,9 @@ prototype instantiation is considered as a potential match.
        it a size and alignment to permit it to pass through subsequent
          processing without causing spurious errors. */
     for (tap = *new_list; tap != NULL; tap = tap->next) {
-      if (!sym->variant.class_struct_union.extra_info->is_nonreal_class) {
+      if (!class_type->variant.class_struct_union.is_nonreal_class) {
         if (template_arg_involves_template_param(tap)) {
-          sym->variant.class_struct_union.extra_info->is_nonreal_class = TRUE;
+          class_type->variant.class_struct_union.is_nonreal_class = TRUE;
         }  /* if */
       }  /* if */
       if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
@@ -3722,7 +3720,7 @@ prototype instantiation is considered as a potential match.
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
-    if (sym->variant.class_struct_union.extra_info->is_nonreal_class) {
+    if (class_type->variant.class_struct_union.is_nonreal_class) {
       class_type->size = 1;
       class_type->alignment = 1;
     } else if (sym != prototype_sym) {
@@ -4395,7 +4393,7 @@ matches a class type from the parameter list of a template function.
   templ_primary_template = primary_template_of(templ_cssp->class_template);
   if (templ_cssp->class_template != NULL &&
       primary_template == templ_primary_template &&
-      templ_cssp->is_nonreal_class) {
+      templ_type->variant.class_struct_union.is_nonreal_class) {
     /* The two classes refer to the same template, but templ_type
        is a nonreal instantiation -- i.e., one based on template
        parameter types instead of real types. */
@@ -5605,7 +5603,7 @@ make_new_type:
       case tk_struct:
       case tk_union:
         cssp = symbol_supplement_for_class(type);
-        if (!cssp->is_nonreal_class) {
+        if (!type->variant.class_struct_union.is_nonreal_class) {
           /* Reuse the current type. */
           new_type = type;
         } else if (cssp->template_param_for_proxy_class != NULL) {
@@ -7970,6 +7968,7 @@ and create the template symbol supplement for the class.
   a_class_symbol_supplement_ptr		parent_cssp;
   a_template_symbol_supplement_ptr	parent_tssp = NULL;
   a_class_symbol_supplement_ptr		cssp;
+  a_type_ptr				class_type;
 
   check_assertion(is_class_struct_union_symbol(sym));
   check_assertion(sym->is_class_member);
@@ -7980,6 +7979,7 @@ and create the template symbol supplement for the class.
      nested class can be defined. */
   parent_cssp = symbol_supplement_for_class(parent_type);
   parent_tssp = parent_cssp->template_info;
+  class_type = sym->variant.class_struct_union.type;
   cssp = sym->variant.class_struct_union.extra_info;
   if (!parent_cssp->is_prototype_instantiation) {
     /* Under certain error cases, it is possible to have a real class
@@ -7987,7 +7987,8 @@ and create the template symbol supplement for the class.
        as prototype instantiations. */
   } else {
     cssp->is_prototype_instantiation = TRUE;
-    cssp->is_nonreal_class = parent_cssp->is_nonreal_class;
+    class_type->variant.class_struct_union.is_nonreal_class =
+                      parent_type->variant.class_struct_union.is_nonreal_class;
     /* During the prototype instantiation save the token sequence number
        associated with this position in the class symbol supplement
        this will be used during real instantiations to determine which
@@ -8367,7 +8368,7 @@ initially used when processing the declaration of a partial specialization.
   tssp->variant.class_template.prototype_instantiation = prototype_sym;
   prototype_cssp = prototype_sym->variant.class_struct_union.extra_info;
   prototype_cssp->is_prototype_instantiation = TRUE;
-  prototype_cssp->is_nonreal_class = TRUE;
+  prototype_type->variant.class_struct_union.is_nonreal_class = TRUE;
   prototype_cssp->template_info = tssp;
 }  /* create_prototype_type */
 
@@ -8524,12 +8525,10 @@ subordinate templates.
   primary_tssp = primary_sym->variant.template_info;
   for (sym = primary_tssp->variant.class_template.instantiations;
        sym != NULL; sym = next_instance_sym(sym)) {
-    a_class_symbol_supplement_ptr	cssp;
     a_type_ptr				instance_type;
-    cssp = sym->variant.class_struct_union.extra_info;
     instance_type = sym->variant.class_struct_union.type;
     /* Skip nonreal classes.  This includes prototype instantiations. */
-    if (cssp->is_nonreal_class) continue;
+    if (instance_type->variant.class_struct_union.is_nonreal_class) continue;
     /* Skip specialized classes. */
     if (instance_type->variant.class_struct_union.is_specialized) continue;
     /* Skip the instance if a full instantiation has not yet been done. */
@@ -10628,8 +10627,8 @@ set, and its source sequence entry, if any, has been put out.)
       if (!err) {
         /* Set parent information in the IL entry. */
         if (sym->is_class_member) {
-          if (!(symbol_supplement_for_class(sym->parent.class_type))->
-                                                         is_nonreal_class) {
+          if (!sym->parent.class_type->
+                                 variant.class_struct_union.is_nonreal_class) {
             set_class_membership((a_symbol_ptr)NULL,
                                  &il_template_entry->source_corresp,
                                  sym->parent.class_type);

@@ -781,18 +781,6 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if a member operator delete[]() has been
 			   declared for this class or a class from which it
 			   is derived. */
-  a_bit_field	is_nonreal_class:1;
-			/* TRUE if the class is an instantiation of a class
-			   template based on template arguments that include
-			   one or more template parameters.  For instance,
-			   for the class template declared by
-			      template <class T, int I> class vec;
-			   the prototype instantiation vec<T,I> is a "nonreal"
-			   class, but so is vec<T,3>, where T represents a
-			   template parameter, e.g., in the declaration:
-			      template <class T> void f(vec<T,3> *vp) { ... }
-                           In addition, classes that are nested within
-			   nonreal classes are marked as nonreal. */
   a_bit_field	is_prototype_instantiation:1;
 			/* TRUE when this class is a nonreal class that
 		 	   is the prototype instantiation.  Also TRUE for
@@ -3281,7 +3269,8 @@ extern a_boolean overload_set_contains_template(a_symbol_ptr sym);
 #define is_real_class_symbol(sym)				      \
   (((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||           \
     (sym)->kind == (a_symbol_kind)sk_union_tag) &&		      \
-    !(sym)->variant.class_struct_union.extra_info->is_nonreal_class)
+    !((sym)->variant.class_struct_union.type->			      \
+                   variant.class_struct_union.is_nonreal_class))
 
 /* Return TRUE if the symbol is a template class symbol for a class template
    instance or a class nested within a class template. */
@@ -3309,7 +3298,8 @@ extern a_boolean overload_set_contains_template(a_symbol_ptr sym);
     (sym)->kind == (a_symbol_kind)sk_union_tag) &&		      \
    (sym)->variant.class_struct_union.type->			      \
                    variant.class_struct_union.is_template_class &&    \
-   (sym)->variant.class_struct_union.extra_info->is_nonreal_class)
+   (sym)->variant.class_struct_union.type->			      \
+                   variant.class_struct_union.is_nonreal_class)
 
 /* Return TRUE if the symbol is a specific definition of a class template
    instance or a class nested within a class template. */

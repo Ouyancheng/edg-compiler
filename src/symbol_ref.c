@@ -298,7 +298,7 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
                                   variant.class_template.instantiations;
              sym != NULL;
              sym = next_instance_sym(sym)) {
-          if (!sym->variant.class_struct_union.extra_info->is_nonreal_class) {
+          if (!is_nonreal_instance_class_symbol(sym)) {
             record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
                                           hidden_class_or_namespace_member, sp,
                                           hidden_by);
