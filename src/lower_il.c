@@ -4426,8 +4426,7 @@ constructor.  Change it to add an indirection to the type.
 #if !NEW_CAN_BE_FOLDED_INTO_CTOR && !ASSIGNMENT_TO_THIS_ALLOWED
 /*ARGSUSED*/  /* <-- routine is not used in those cases. */
 #endif /* !NEW_CAN_BE_FOLDED_INTO_CTOR && !ASSIGNMENT_TO_THIS_ALLOWED */
-static a_boolean should_drop_const_on_this_param_variable(
-                                                         a_routine_ptr routine)
+a_boolean should_drop_const_on_this_param_variable(a_routine_ptr routine)
 /*
 Return TRUE if the top-level "const" on the "this" parameter variable of the
 indicated routine should be dropped.
@@ -4576,6 +4575,10 @@ Do IL lowering of the indicated type and everything under it.
             /* The "this" parameter variable is const even though the
                const doesn't appear on the interface (see
                make_implicit_this_param_variable). */
+            /* Note that for a wrapper routine for a covariant virtual
+               function, assoc_routine is NULL at this point and the proper
+               answer cannot be determined, so the test is done again in
+               add_body_for_covariant_return_type_entry_routine. */
             if (rtsp->assoc_routine == NULL ||
                 !should_drop_const_on_this_param_variable(
                                                         rtsp->assoc_routine)) {

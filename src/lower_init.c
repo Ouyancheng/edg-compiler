@@ -6413,7 +6413,7 @@ cast to the proper base class.
                          grcontext;
   a_statement_ptr        return_stmt;
   an_expr_node_ptr       expr;
-  a_param_type_ptr       ptp;
+  a_param_type_ptr       first_ptp, ptp;
   a_variable_ptr         param_var, last_param_var;
   a_type_ptr             routine_type = skip_typerefs(routine->type);
   a_routine_ptr          overriding_function, overridden_function;
@@ -6429,10 +6429,17 @@ cast to the proper base class.
   push_generated_routine_context(scope, region_number, &grcontext);
   /* Add parameter variables. */
   last_param_var = NULL;
-  for (ptp = skip_typerefs(routine->type)->
+  first_ptp = skip_typerefs(routine->type)->
                                    variant.routine.extra_info->param_type_list;
-       ptp != NULL;
-       ptp = ptp->next) {
+  for (ptp = first_ptp; ptp != NULL; ptp = ptp->next) {
+    if (ptp == first_ptp &&
+        !should_drop_const_on_this_param_variable(routine)) {
+      /* On the "this" parameter, set the interface type to "const".
+         This is normally done in lower_type, when the routine type is
+         lowered, but the assoc_routine pointer is not set at that point
+         for this routine so it gets the wrong result. */
+      ptp->qualifiers = TQ_CONST;
+    }  /* if */
     param_var = make_lowered_param_variable(ptp->type);
     if (last_param_var == NULL) {
       scope->variant.routine.parameters = param_var;
