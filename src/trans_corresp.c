@@ -969,6 +969,8 @@ type is in fact valid.
         /* The error should be issued on the enum type since there is not
            much in common between the enumerators if even their names don't
            match. */
+        match = FALSE;
+        report_error = TRUE;
         break;
       } else if (!verify_constant_correspondence(enumerator)) {
         match = FALSE;
