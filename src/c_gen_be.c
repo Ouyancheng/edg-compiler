@@ -8030,12 +8030,13 @@ if this routine has a body (dump nothing if it has no body).
   }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (has_defn && needed_flag_bit_number != 0 &&
-      rout->storage_class != (a_storage_class)sc_static) {
+      (rout->storage_class != (a_storage_class)sc_static &&
+       rout->storage_class != (a_storage_class)sc_asm)) {
     /* We're generating separate files for each instantiation, so do not
        put instantiation definitions into the primary output file, or
        primary-file routine definitions into the instantiation files.
        (Exceptions are extern inline functions lowered to static and
-       certain static routines that are explicitly marked to be put
+       certain static and asm routines that are explicitly marked to be put
        into every slice that references them.) */
     if (rout->instantiation_needed_bit_number != 0) {
       /* This routine is an instantiation and goes out only it its own

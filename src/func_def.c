@@ -967,6 +967,15 @@ and for the instantiation of template functions.
 #if ASM_FUNCTION_ALLOWED
   if (rout_ptr->storage_class == (a_storage_class)sc_asm) {
     scope_ptr->assoc_block = scan_asm_function_body();
+#if ONE_INSTANTIATION_PER_OBJECT
+#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
+    if (one_instantiation_per_object) {
+      /* In one-instantiation-per-object mode, asm functions should be
+         duplicated in each slice. */
+      rout_ptr->source_corresp.duplicate_static_in_instantiation_slices = TRUE;
+    }  /* if */
+#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   } else
 #endif /* ASM_FUNCTION_ALLOWED */
   /* Do not insert code here. */
