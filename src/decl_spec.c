@@ -748,7 +748,6 @@ the template.
   a_boolean               namespace_extension_pushed = FALSE;
   a_boolean               is_redeclaration;
   a_boolean               is_template_specific_decl = FALSE;
-  a_boolean               is_template_decl_scope;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_decl_modifier         decl_modifiers = DM_NONE;
   a_type_qualifier_set    class_qualifiers = TQ_NONE;
@@ -940,9 +939,7 @@ the template.
   is_class_definition = curr_token == tok_lbrace ||
                         (C_dialect == C_dialect_cplusplus &&
                          curr_token == tok_colon && !is_ref_within_new_expr);
-  is_template_decl_scope = (scope_stack[effective_decl_level].kind ==
-                                    (a_scope_kind)sck_template_declaration);
-  if (is_class_definition && (is_friend_decl || is_template_decl_scope)) {
+  if (is_class_definition && is_friend_decl) {
     /* This is an error.  Defer the diagnostic until we have a tag_sym
        to use for the fill-in.  If tag_sym is already non-NULL, we'll create
        another one. */
@@ -1143,7 +1140,7 @@ the template.
     }  /* if */
     tag_sym->variant.class_struct_union.type = class_type;
     if (C_dialect == C_dialect_cplusplus) {
-      if (is_class_definition && (is_friend_decl || is_template_decl_scope)) {
+      if (is_class_definition && is_friend_decl) {
         /* Issuing the diagnostic was deferred till now. */
         pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
         err = TRUE;
@@ -1355,7 +1352,6 @@ to indicate whether an enumeration is actually defined.
   a_scope_depth            effective_decl_level = decl_scope_level;
   a_boolean                is_redeclaration;
   a_boolean                namespace_extension_pushed = FALSE;
-  a_boolean                is_template_decl_scope = FALSE;
   a_source_position        tag_position;
 
   db_enter(3, "enum_specifier");
@@ -1442,16 +1438,6 @@ to indicate whether an enumeration is actually defined.
       *declares_something = TRUE;
     }  /* if */
   }  /* if */
-  if (!C_mode()) {
-    is_template_decl_scope = (scope_stack[effective_decl_level].kind ==
-                                    (a_scope_kind)sck_template_declaration);
-    if (curr_token == tok_lbrace && is_template_decl_scope) {
-      /* This is an error.  Defer the diagnostic until we have a tag_sym
-         to use for the fill-in. */
-      set_to_named_error_locator(locator);
-      tag_sym = NULL;
-    }  /* if */
-  }  /* if */
   if (tag_sym == NULL) {
     /* Create a new enumerated type.  All enumeration type entries are
        allocated in the file scope memory region. */
@@ -1503,10 +1489,7 @@ to indicate whether an enumeration is actually defined.
       enum_type->source_corresp.decl_position = locator.source_position;
     }  /* if */
     if (!C_mode()) {
-      if (curr_token == tok_lbrace && is_template_decl_scope) {
-        /* Issuing the diagnostic was deferred till now. */
-        pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
-      } else if (class_of_which_a_member != NULL) {
+      if (class_of_which_a_member != NULL) {
         /* Add a pointer to the parent class in the symbol and the type. */
         set_class_membership(tag_sym, &enum_type->source_corresp,
                              class_of_which_a_member);
