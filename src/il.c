@@ -1572,6 +1572,7 @@ a pointer to it.
   ctsp->access_adjustments            = NULL;
   ctsp->befriending_classes           = NULL;
   ctsp->types                         = NULL;
+  return ctsp;
 }  /* alloc_class_type_supplement */
 
 
@@ -2256,8 +2257,13 @@ Add the given label to the labels list for the function (not current) scope.
 		 ssep;
   a_scope_ptr    sp;
 
-  /* Get pointer to current scope entry. */
-  ssep = &scope_stack[DEPTH_OF_FUNCTION_SCOPE];
+  /* Get pointer to the current function scope entry. */
+#if DEBUG
+  if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+    internal_error("add_to_labels_list: not inside function");
+  }  /* if */
+#endif /* DEBUG */
+  ssep = &scope_stack[depth_innermost_function_scope];
   sp = ssep->il_scope;
 #if CHECKING
   if (sp == NULL) internal_error("add_to_labels_list: NULL IL scope");
