@@ -1211,7 +1211,7 @@ class specified, remove it.
           symbol_supplement_for_class(class_type)->
                                          definition_is_first_decl = TRUE;
         }  /* if */
-        remove_from_src_seq_list(ssep);
+        remove_src_seq_entry(ssep);
       }  /* if */
     }  /* if */
   }  /* if */
