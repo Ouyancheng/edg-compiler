@@ -9419,7 +9419,8 @@ or implicit) controlling the declaration.
       sym = locator_for_curr_id.specific_symbol;
       if (sym != NULL && sym->is_class_member &&
           is_or_contains_template_param(sym->parent.class_type)) {
-        check_assertion(is_type_template_param_symbol(sym));
+        check_assertion(is_type_template_param_symbol(sym) ||
+                        is_nonreal_instance_class_symbol(sym));
       }  /* if */
 #endif /* CHECKING */
     }  /* if */
