@@ -4373,7 +4373,9 @@ return a pointer to it.
   an_expr_node_ptr node;
 
   node = alloc_expr_node((an_expr_node_kind)enk_variable);
-  node->type = var->type;
+  /* Drop any type qualifiers on the variable type because rvalues so not have
+     type qualifiers. */
+  node->type = make_unqualified_type(var->type);
   node->variant.variable = var;
   return node;
 }  /* var_rvalue_expr */
