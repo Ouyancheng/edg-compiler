@@ -1017,7 +1017,7 @@ the label are promoted to the lifetime of the function scope.
       if (pop_object_lifetime()) {
         /* Popping the object lifetime did not result in its being removed
            from the IL, so labels and gotos that reference it don't need to
-           ha[-1zve their pointers updated.  This means the block lifetime will
+           have their pointers updated.  This means the block lifetime will
            be retained. */
         keep_block_object_lifetime = TRUE;
       } else if (block_cfdp->variant.block.goto_count != 0 ||
