@@ -8649,6 +8649,33 @@ position, and is updated after the insertion.
 }  /* promote_types */
 
 
+static void promote_pragmas(a_scope_ptr scope)
+/*
+Promote any pragma entries on the pragmas list of the indicated scope into
+the file scope.
+*/
+{
+  a_pragma_ptr pragmas = scope->pragmas, last_fs_pragma;
+
+  if (pragmas != NULL) {
+    /* Put the pragma list on the end of the file-scope pragma list. */
+    last_fs_pragma=scope_stack[DEPTH_OF_FILE_SCOPE].pointers_block.last_pragma;
+    if (last_fs_pragma == NULL) {
+      il_header.primary_scope->pragmas = pragmas;
+    } else {
+      last_fs_pragma->next = pragmas;
+    }  /* if */
+    /* Find the end of the pragma list and record that as the end of the
+       file scope pragmas list. */
+    for (last_fs_pragma = pragmas;
+         last_fs_pragma->next != NULL;
+         last_fs_pragma = last_fs_pragma->next) {}
+    scope_stack[DEPTH_OF_FILE_SCOPE].pointers_block.last_pragma=last_fs_pragma;
+    scope->pragmas = NULL;
+  }  /* if */
+}  /* promote_pragmas */
+
+
 static void promote_class_members(a_type_ptr  class_type,
                                   a_scope_ptr promotion_scope,
                                   a_type_ptr  *insert_pointer)
@@ -8682,25 +8709,8 @@ promotion_scope, at the position indicated by *insert_pointer, and
       promote_routines(scope);
       /* Types are promoted to promotion_scope. */
       promote_types(scope, promotion_scope, insert_pointer);
-      if (scope->pragmas != NULL) {
-        /* There are pragmas in the class, so promote them to the file
-           scope too. */
-        a_pragma_ptr class_pragmas = scope->pragmas;
-        a_pragma_ptr pp, last_fs_pragma;
-        /* Find the end of the class pragma list. */
-        for (pp = class_pragmas; pp->next != NULL; pp = pp->next) {}
-        /* Put the class pragma list on the end of the file-scope pragma
-           list. */
-        last_fs_pragma =
-                  scope_stack[DEPTH_OF_FILE_SCOPE].pointers_block.last_pragma;
-        if (last_fs_pragma == NULL) {
-          il_header.primary_scope->pragmas = class_pragmas;
-        } else {
-          last_fs_pragma->next = class_pragmas;
-        }  /* if */
-        scope_stack[DEPTH_OF_FILE_SCOPE].pointers_block.last_pragma = pp;
-        scope->pragmas = NULL;
-      }  /* if */
+      promote_pragmas(scope);
+      /* There are no asm declarations in class scopes. */
     }  /* if */
   }  /* if */
 }  /* promote_class_members */
@@ -9187,6 +9197,8 @@ were promoted previously (see do_all_namespace_member_promotion).
   promote_routines(scope);
   /* Promote the asm declarations out of the namespace. */
   promote_asm_entries(scope);
+  /* Promote the pragmas out of the namespace. */
+  promote_pragmas(scope);
 }  /* do_namespace_member_promotion */
 
 
