@@ -1404,7 +1404,7 @@ Return a pointer to it.
 have_ssep:
   /* Add the temporary to the scope list (at the front).  We cannot use
      add_to_variables_list because we might be working on an internally-
-     generated routine, like a constructor, for which a push_scope is
+     generated routine, like a constructor, for which a push_scope was
      not done. */
   if (storage_class == (a_storage_class)sc_static) {
     temp->next = scope->variables;
@@ -1430,6 +1430,31 @@ indicated type and returns a pointer to the variable.
 */
 #define make_temporary(temp_type)                                     \
   make_temporary_in_scope((temp_type), nearest_scope)
+
+
+static a_variable_ptr make_temporary_possibly_at_file_scope(
+                                                      a_type_ptr temp_type,
+                                                      a_boolean  at_file_scope)
+/*
+Make a variable for a temporary of type temp_type and return a pointer to
+it.  If at_file_scope is TRUE, make the temporary in the file scope;
+otherwise, allocate it in the current scope.
+*/
+{
+  a_variable_ptr temp_var;
+
+  if (!at_file_scope) {
+    /* Normal case. */
+    temp_var = make_temporary(temp_type);
+  } else {
+    /* Make the temporary in the file scope. */
+    a_memory_region_number region_to_switch_back_to;
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    temp_var = make_temporary_in_scope(temp_type, il_header.primary_scope);
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
+  return temp_var;
+}  /* make_temporary_possibly_at_file_scope */
 
 
 static a_variable_ptr make_variable(char            *var_name,
@@ -4673,10 +4698,8 @@ will rewrite the reference to use the temporary variable instead of
 the constant.
 */
 {
-  a_boolean              troublesome = FALSE;
-  a_variable_ptr         assoc_var = NULL;
-  a_memory_region_number region_to_switch_back_to = NULL_region_number;
-  a_scope_ptr            scope;
+  a_boolean      troublesome = FALSE;
+  a_variable_ptr assoc_var = NULL;
 
   /* Note that the variable is allocated even if the constant is in
      a different memory region and will not at this time be turned into
@@ -4691,24 +4714,15 @@ the constant.
     assoc_var = (a_variable_ptr)constant->source_corresp.assoc_info;
     if (assoc_var == NULL) {
       /* The variable must be allocated. */
-      if (!lowering_file_scope && in_file_scope((char *)constant)) {
-        /* The constant is in the file scope, so the variable must be also.
-           However, we are currently in a function memory region, so we
-           must switch to the file scope region and later switch back. */
-        switch_to_file_scope_region(&region_to_switch_back_to);
-        scope = il_header.primary_scope;
-      } else {
-        /* Put the temporary in the nearest enclosing scope. */
-        scope = nearest_scope;
-      }  /* if */
-      assoc_var = make_temporary_in_scope(make_mptr_type(), scope);
+      assoc_var = make_temporary_possibly_at_file_scope(
+                      make_mptr_type(),
+                      !lowering_file_scope && in_file_scope((char *)constant));
       /* Save the pointer in the assoc_info field so the variable can be
          reused. */
       constant->source_corresp.assoc_info = (char *)assoc_var;
       /* Make the ck_aggregate constant the initial value of the variable. */
       assoc_var->init_kind = (an_init_kind)initk_static;
       assoc_var->initializer.constant = constant;
-      switch_back_to_original_region(region_to_switch_back_to);
     }  /* if */
   }  /* if */
   *temp_var = assoc_var;
@@ -10050,7 +10064,9 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         temp_type = type_pointed_to(temp_type);
       }  /* if */
       /* Create a temporary variable. */
-      dip->variable = make_temporary(temp_type);
+      dip->variable = make_temporary_possibly_at_file_scope(
+                                           temp_type,
+                                           processing_file_scope_init_routine);
       /* Change the enk_temp_init to a reference to the value or address
          of the temporary. */
       if (expr->variant.init.result_is_addr) {
