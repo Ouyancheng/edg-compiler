@@ -32,6 +32,10 @@ Placed in a separate file so they can be expanded several ways:
     in the data structure where no entry in the cycle has a "needed"
     flag, since such cycles would cause recursion loops in this walk.
 
+3)  With DO_SUBTREE_WALK and KEEP_IN_IL_WALK TRUE, the routines walk
+    the subtree and do so in the special way required for setting the
+    keep_in_il flag.
+
 3)  With DO_SUBTREE_WALK FALSE, the routines walk just the entry itself.
     This is used for remapping of pointers.
   
@@ -40,7 +44,9 @@ Placed in a separate file so they can be expanded several ways:
 /*
 Macro to remap a pointer from an "old" value to a "new" value.  ptr is
 the pointer, ptr_type the type of ptr, and entry_kind is the kind of entry
-pointed to.  For the NEEDED_FLAG_WALK case, just walks the pointer.
+pointed to.  For the NEEDED_FLAG_WALK and KEEP_IN_IL_WALK cases, just
+walks the pointer.
+
 This macro is used for secondary references to IL entities, e.g., a
 reference from executable code to a declarative entry, where it is known
 that the declarative entry will be reached from a primary pointer while
@@ -49,18 +55,18 @@ choice; it may be unnecessarily slow, but it will work correctly even if
 the entry is not reached from elsewhere.
 */
 #undef remap_ptr
-#if NEEDED_FLAG_WALK
-/* When doing the IL walk to set the "needed" flag, all references are
-   primary references and must be followed. */
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+/* When doing the IL walk to set the "needed" or "keep_in_il" flags, all
+   references are significant and must be followed. */
 #define remap_ptr(ptr, ptr_type, entry_kind) \
-{ walk_ptr(ptr, ptr_type, entry_kind) }
-#else /* !NEEDED_FLAG_WALK */
+  walk_ptr(ptr, ptr_type, entry_kind)
+#else /* !(NEEDED_FLAG_WALK && ...) */
 #define remap_ptr(ptr, ptr_type, entry_kind) \
 { if (walk_remap_func != NULL) { \
     (ptr) = (ptr_type)walk_remap_func((char *)(ptr), (entry_kind)); \
   }  /* if */ \
 }  /* remap_ptr */
-#endif /* NEEDED_FLAG_WALK */
+#endif /* NEEDED_FLAG_WALK && ... */
 
 /*
 Like remap_ptr, but used for "next" pointers in entries.  These are
@@ -94,13 +100,23 @@ ptr_type is the type of ptr, and entry_kind is the kind of entry pointed to.
 #undef walk_ptr
 #if DO_SUBTREE_WALK
 #if NEEDED_FLAG_WALK
+/* Walking to set the "needed" flag. */
 #define walk_ptr(ptr, ptr_type, entry_kind) \
 { if ((ptr) != NULL) walk_tree_and_set_needed((char *)(ptr), (entry_kind)); }
 #else /* !NEEDED_FLAG_WALK */
+#if KEEP_IN_IL_WALK
+/* Walking to set the "keep_in_il" flag. */
+#define walk_ptr(ptr, ptr_type, entry_kind) \
+{ if ((ptr) != NULL) { \
+    walk_tree_and_set_keep_in_il((char *)(ptr), (entry_kind)); \
+  }  /* if */ \
+}
+#else /* !KEEP_IN_IL_WALK */
 #define walk_ptr(ptr, ptr_type, entry_kind) \
 { remap_ptr((ptr), ptr_type, (entry_kind)); \
   if ((ptr) != NULL) walk_entry_and_subtree((char *)(ptr), (entry_kind)); \
 }  /* walk_ptr */
+#endif /* KEEP_IN_IL_WALK */
 #endif /* NEEDED_FLAG_WALK */
 #else /* !DO_SUBTREE_WALK */
 #define walk_ptr(ptr, ptr_type, entry_kind) \
@@ -125,15 +141,14 @@ the string length for iek_string_text entries, unused otherwise.
 */
 #undef walk_string_ptr
 #if DO_SUBTREE_WALK
-#if NEEDED_FLAG_WALK
-#define walk_string_ptr(ptr, entry_kind, entry_length) \
-{ walk_string_entry((char *)(ptr), (entry_kind), (sizeof_t)(entry_length)); }
-#else /* !NEEDED_FLAG_WALK */
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+#define walk_string_ptr(ptr, entry_kind, entry_length) /* Nothing. */
+#else /* !(NEEDED_FLAG_WALK && ...) */
 #define walk_string_ptr(ptr, entry_kind, entry_length) \
 { remap_ptr((ptr), a_char_ptr, (entry_kind)); \
   walk_string_entry((char *)(ptr), (entry_kind), (sizeof_t)(entry_length)); \
 }  /* walk_string_ptr */
-#endif /* NEEDED_FLAG_WALK */
+#endif /* NEEDED_FLAG_WALK && ... */
 #else /* !DO_SUBTREE_WALK */
 #define walk_string_ptr(ptr, entry_kind, entry_length) \
   remap_ptr((ptr), a_char_ptr, (entry_kind))
@@ -175,24 +190,20 @@ Similar to walk_list, but expands to nothing in the NEEDED_FLAG_WALK mode.
 #endif /* NEEDED_FLAG_WALK */
 
 /*
-Similar to walk_list, but used to walk lists attached to a scope.  If the
-local variable do_only_needed_entries_on_lists is TRUE, walk the list but
-call walk_ptr only on those entries with the "needed" flag TRUE (and on
-those, clear the keep_in_il flag before doing the walk, to deal with
+Similar to walk_list, but used to walk lists attached to a scope.
+When KEEP_IN_IL_WALK is TRUE, expands to code that acts differently when
+local variable do_only_needed_entries_on_lists is TRUE: it walks the list but
+calls walk_ptr only on those entries with the "needed" flag TRUE (and on
+those, it clears the keep_in_il flag before doing the walk, to deal with
 entities that can be redeclared and whose subtrees can therefore change).
-In NEEDED_FLAG_WALK mode, expands to nothing.  When MAINTAIN_NEEDED_FLAGS
-is FALSE, expands to a simple walk_list.
+In NEEDED_FLAG_WALK mode, expands to nothing.  Otherwise, expands to a
+simple walk_list.
 */
 #undef walk_needed_on_list
-#if !MAINTAIN_NEEDED_FLAGS
-#define walk_needed_on_list(ptr, ptr_type, entry_kind) \
-  walk_list(ptr, ptr_type, entry_kind)
-#else /* MAINTAIN_NEEDED_FLAGS */
 #if NEEDED_FLAG_WALK
 #define walk_needed_on_list(ptr, ptr_type, entry_kind) /* Nothing */
 #else /* !NEEDED_FLAG_WALK */
-/* The code here assumes that if do_only_needed_entries_on_lists is TRUE,
-   the type of walk we are doing is one to set keep_in_il. */
+#if KEEP_IN_IL_WALK
 #define walk_needed_on_list(ptr, ptr_type, entry_kind) \
 { if (do_only_needed_entries_on_lists) { \
     ptr_type *ptr_ptr = &(ptr); \
@@ -207,8 +218,11 @@ is FALSE, expands to a simple walk_list.
     walk_list(ptr, ptr_type, entry_kind); \
   }  /* if */ \
 }  /* walk_needed_on_list */
+#else /* !KEEP_IN_IL_WALK */
+#define walk_needed_on_list(ptr, ptr_type, entry_kind) \
+  walk_list(ptr, ptr_type, entry_kind)
+#endif /* KEEP_IN_IL_WALK */
 #endif /* NEEDED_FLAG_WALK */
-#endif /* !MAINTAIN_NEEDED_FLAGS */
 
 /*
 Process the source correspondence field pointed to by ptr.
@@ -436,13 +450,9 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* ifdef FFE */
           case ck_template_param:
             /* Front end only. */
-#if MAINTAIN_NEEDED_FLAGS
-#if !NEEDED_FLAG_WALK
-            check_assertion_str(walking_to_set_keep_in_il,
-                      "walk_entry_and_subtree: ck_template_param encountered");
-#endif /* !NEEDED_FLAG_WALK */
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             break;
-#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
           default:
             unexpected_condition_str(
                                   "walk_entry_and_subtree: bad constant kind");
@@ -609,13 +619,9 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* ifdef FFE */
           case tk_template_param:
             /* Front end only. */
-#if MAINTAIN_NEEDED_FLAGS
-#if !NEEDED_FLAG_WALK
-            check_assertion_str(walking_to_set_keep_in_il,
-                      "walk_entry_and_subtree: tk_template_param encountered");
-#endif /* !NEEDED_FLAG_WALK */
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             break;
-#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
           default:
             unexpected_condition_str("walk_entry_and_subtree: bad type kind");
         }  /* switch */
@@ -1120,15 +1126,14 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         a_scope_ptr  ptr = (a_scope_ptr)entry_ptr;
         a_scope_kind kind = ptr->kind;
-#if MAINTAIN_NEEDED_FLAGS && !NEEDED_FLAG_WALK
+#if KEEP_IN_IL_WALK
         /* Certain lists have their entries processed only if the "needed"
            flag is set, when walking the file scope or a namespace scope
            to set the "keep_in_il" flag. */
         a_boolean    do_only_needed_entries_on_lists =
-                                       (walking_to_set_keep_in_il &&
-                                        (kind == (a_scope_kind)sck_file ||
-                                         kind == (a_scope_kind)sck_namespace));
-#endif /* MAINTAIN_NEEDED_FLAGS && !NEEDED_FLAG_WALK */
+                                         (kind == (a_scope_kind)sck_file ||
+                                          kind == (a_scope_kind)sck_namespace);
+#endif /* KEEP_IN_IL_WALK */
         remap_next_ptr(ptr->next, a_scope_ptr, iek_scope);
         switch (kind) {
           case sck_file:
@@ -1183,13 +1188,9 @@ the file scope, do not process it (but record an orphan in the latter case).
           case sck_template_declaration:
           case sck_template_instantiation:
             /* Front end only. */
-#if MAINTAIN_NEEDED_FLAGS
-#if !NEEDED_FLAG_WALK
-            check_assertion_str(walking_to_set_keep_in_il,
-                       "walk_entry_and_subtree: sck_template_... encountered");
-#endif /* !NEEDED_FLAG_WALK */
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             break;
-#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
           default:
             unexpected_condition_str("walk_entry_and_subtree: bad scope kind");
         }  /* switch */
@@ -1274,14 +1275,12 @@ the file scope, do not process it (but record an orphan in the latter case).
            processing. */
         remap_ptr_not_needed(ptr->src_seq_sublist_list, a_src_seq_sublist_ptr,
                              iek_src_seq_sublist);
-#if MAINTAIN_NEEDED_FLAGS && !NEEDED_FLAG_WALK
+#if KEEP_IN_IL_WALK
         /* When setting the keep_in_il flag, source sequence entries are
            kept if and only if the associated IL entry is kept.  Note that
            this is done last so all the keep_in_il flags are set already. */
-        if (walking_to_set_keep_in_il) {
-          set_keep_in_il_on_source_sequence_entries(ptr);
-        }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS && !NEEDED_FLAG_WALK */
+        set_keep_in_il_on_source_sequence_entries(ptr);
+#endif /* KEEP_IN_IL_WALK */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
       break;
@@ -1866,6 +1865,155 @@ end_of_routine:;
 #undef remap_parent
 #undef walk_source_corresp
 
+#ifdef WALK_ORPHANED_FILE_SCOPE_ENTRY_ROUTINE_NAME
+
+/*
+Process a list of identical type orphaned file scope IL entries linked
+together by the orphaned pointer preceding the IL entry structure.  Each
+IL entry will be processed as an individual IL entry.  walk_ptr will be used
+to process each entry in the list.  ptr is the pointer to the first IL entry,
+ptr_type is the type of the pointer and entry_kind is the kind of entries.
+*/
+#undef walk_orphan_entry_list
+#define walk_orphan_entry_list(ptr, ptr_type, entry_kind) \
+{ ptr_type *orph_ptr = (ptr_type *)&(ptr); \
+  for (; *orph_ptr != NULL; \
+       orph_ptr = (ptr_type *)&fs_orphan_pointer_of(*orph_ptr)) { \
+    walk_ptr(*orph_ptr, ptr_type, entry_kind) \
+  }  /* for */ \
+}  /* walk_orphan_entry_list */
+
+/*
+Local macro to ease stepping through the orphaned_file_scopes_il_entries
+array and process the lists of IL entries of each type pointed to by the
+"first_entry" of each array element.
+*/
+#undef walk_orphan_entry_list_for_entry_kind
+#define walk_orphan_entry_list_for_entry_kind(ptr_type, entry_kind) \
+  walk_orphan_entry_list( \
+               orphaned_file_scope_il_entries[(int)entry_kind].first_entry, \
+               ptr_type, entry_kind)
+
+
+/* The routine name is a macro so it can be expanded different ways, e.g.,
+   as walk_orphaned_file_scope_il_entries. */
+static void WALK_ORPHANED_FILE_SCOPE_ENTRY_ROUTINE_NAME(void)
+/*
+For each IL entry kind, process any orphaned file scope IL entries chained
+to the orphaned_file_scope_il_entries table.  As function scopes were walked,
+any file scope IL entries referenced were added onto the list of orphaned
+IL entries.  These IL entries may not be and probably are not referenced
+from the file scope IL tree.  Walk through the lists of orphaned IL entries
+of each kind.  
+*/
+{
+
+  /* Process the list of individual IL entries of each IL type. */
+  walk_orphan_entry_list_for_entry_kind(a_source_file_ptr, iek_source_file);
+  walk_orphan_entry_list_for_entry_kind(a_constant_ptr, iek_constant);
+  walk_orphan_entry_list_for_entry_kind(a_param_type_ptr, iek_param_type);
+  walk_orphan_entry_list_for_entry_kind(a_routine_type_supplement_ptr,
+                                        iek_routine_type_supplement);
+  walk_orphan_entry_list_for_entry_kind(a_based_type_list_member_ptr,
+                                        iek_based_type_list_member);
+  walk_orphan_entry_list_for_entry_kind(a_type_ptr, iek_type);
+  walk_orphan_entry_list_for_entry_kind(a_variable_ptr, iek_variable);
+#ifdef CFE
+  walk_orphan_entry_list_for_entry_kind(a_field_ptr, iek_field);
+  walk_orphan_entry_list_for_entry_kind(an_exception_specification_ptr,
+                                        iek_exception_specification);
+  walk_orphan_entry_list_for_entry_kind(an_exception_specification_type_ptr,
+                                        iek_exception_specification_type);
+#endif /* ifdef CFE */
+  walk_orphan_entry_list_for_entry_kind(a_routine_ptr, iek_routine);
+  walk_orphan_entry_list_for_entry_kind(a_label_ptr, iek_label);
+  walk_orphan_entry_list_for_entry_kind(an_expr_node_ptr, iek_expr_node);
+#ifdef CFE
+  walk_orphan_entry_list_for_entry_kind(a_for_loop_ptr, iek_for_loop);
+  walk_orphan_entry_list_for_entry_kind(a_switch_clause_ptr,
+                                        iek_switch_clause);
+  walk_orphan_entry_list_for_entry_kind(a_handler_ptr, iek_handler);
+  walk_orphan_entry_list_for_entry_kind(a_try_supplement_ptr,
+                                        iek_try_supplement);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  walk_orphan_entry_list_for_entry_kind(a_microsoft_try_supplement_ptr,
+                                        iek_microsoft_try_supplement);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ifdef CFE */
+  walk_orphan_entry_list_for_entry_kind(a_block_ptr, iek_block);
+  walk_orphan_entry_list_for_entry_kind(a_statement_ptr, iek_statement);
+  walk_orphan_entry_list_for_entry_kind(an_object_lifetime_ptr,
+                                        iek_object_lifetime);
+  walk_orphan_entry_list_for_entry_kind(a_scope_ptr, iek_scope);
+  /* The string types iek_id_name, iek_string_text, and iek_other_text
+     are not maintained on an orphan list.  String types at the file
+     scope that are referenced from a function scope are written in that
+     function scope region. */
+#ifdef FFE
+  walk_orphan_entry_list_for_entry_kind(an_internal_complex_value_ptr,
+                                        iek_internal_complex_value);
+  walk_orphan_entry_list_for_entry_kind(a_bound_info_entry_ptr,
+                                        iek_bound_info_entry);
+  walk_orphan_entry_list_for_entry_kind(a_do_loop_ptr, iek_do_loop);
+  walk_orphan_entry_list_for_entry_kind(a_label_list_entry_ptr,
+                                        iek_label_list_entry);
+  walk_orphan_entry_list_for_entry_kind(an_io_specifier_ptr, iek_io_specifier);
+  walk_orphan_entry_list_for_entry_kind(an_io_list_item_ptr, iek_io_list_item);
+  walk_orphan_entry_list_for_entry_kind(a_namelist_group_member_ptr,
+                                        iek_namelist_group_member);
+  walk_orphan_entry_list_for_entry_kind(a_namelist_group_ptr,
+                                        iek_namelist_group);
+  walk_orphan_entry_list_for_entry_kind(an_input_output_description_ptr,
+                                        iek_input_output_description);
+  walk_orphan_entry_list_for_entry_kind(an_entry_param_ptr, iek_entry_param);
+  walk_orphan_entry_list_for_entry_kind(an_entry_description_ptr,
+                                        iek_entry_description);
+#endif /* ifdef FFE */
+#ifdef CFE
+  walk_orphan_entry_list_for_entry_kind(a_namespace_ptr, iek_namespace);
+  walk_orphan_entry_list_for_entry_kind(a_using_directive_ptr,
+                                        iek_using_directive);
+  walk_orphan_entry_list_for_entry_kind(a_dynamic_init_ptr, iek_dynamic_init);
+  walk_orphan_entry_list_for_entry_kind(a_class_member_using_decl_ptr,
+                                        iek_class_member_using_decl);
+  walk_orphan_entry_list_for_entry_kind(an_overriding_virtual_function_ptr,
+                                        iek_overriding_virtual_function);
+  walk_orphan_entry_list_for_entry_kind(a_derivation_step_ptr,
+                                        iek_derivation_step);
+  walk_orphan_entry_list_for_entry_kind(a_base_class_derivation_ptr,
+                                        iek_base_class_derivation);
+  walk_orphan_entry_list_for_entry_kind(a_base_class_ptr, iek_base_class);
+  walk_orphan_entry_list_for_entry_kind(a_class_list_entry_ptr,
+                                        iek_class_list_entry);
+  walk_orphan_entry_list_for_entry_kind(a_routine_list_entry_ptr,
+                                        iek_routine_list_entry);
+  walk_orphan_entry_list_for_entry_kind(a_class_type_supplement_ptr,
+                                        iek_class_type_supplement);
+  walk_orphan_entry_list_for_entry_kind(a_constructor_init_ptr,
+                                        iek_constructor_init);
+  walk_orphan_entry_list_for_entry_kind(an_asm_entry_ptr, iek_asm_entry);
+  walk_orphan_entry_list_for_entry_kind(a_template_arg_ptr, iek_template_arg);
+  walk_orphan_entry_list_for_entry_kind(a_new_delete_supplement_ptr,
+                                        iek_new_delete_supplement);
+  walk_orphan_entry_list_for_entry_kind(a_throw_supplement_ptr,
+                                        iek_throw_supplement);
+#if !ABI_CHANGES_FOR_RTTI
+  walk_orphan_entry_list_for_entry_kind(an_accessible_base_class_ptr,
+                                        iek_accessible_base_class);
+#endif /* !ABI_CHANGES_FOR_RTTI */
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+  walk_orphan_entry_list_for_entry_kind(an_eh_prologue_supplement_ptr,
+                                        iek_eh_prologue_supplement);
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* ifdef CFE */
+  /* Note that no orphan list walking is needed for iek_source_sequence_entry
+     nor for its subordinate entries like iek_src_seq_secondary_decl,
+     iek_src_seq_end_of_construct, and iek_comment, since such entries will
+     never appear on an orphan list.  Ditto for iek_src_seq_sublist. */
+}  /* walk_orphaned_file_scope_il_entries */
+
+#endif /* ifdef WALK_ORPHANED_FILE_SCOPE_ENTRY_ROUTINE_NAME */
+
 #if !DO_SUBTREE_WALK
 #if REMAP_ONLY_ROUTINES_NEEDED
 
@@ -1911,6 +2059,8 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef walk_source_corresp
 #undef report_bad_init_kind
 #undef walk_initializer
+#undef walk_orphan_entry_list
+#undef walk_orphan_entry_list_for_entry_kind
 #endif /* ifdef UNDEF_WALK_ENTRY_MACROS_AT_END */
 
 
