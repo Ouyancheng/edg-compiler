@@ -567,8 +567,12 @@ information.
     pch_event_list_tail = last_event_to_use;
     header_stop_source_position = last_event_to_use->position;
   } else {
-    header_stop_source_position = pos_curr_token;
-    header_stop_is_end_of_source = (curr_token == tok_end_of_source);
+    if (pch_event_list_head != NULL) {
+      /* Only set the header stop position if there were some events
+         that preceded the first token. */
+      header_stop_source_position = pos_curr_token;
+      header_stop_is_end_of_source = (curr_token == tok_end_of_source);
+    }  /* if */
   }  /* if */
   /* Reset the state information maintained by the lexical routines. */
   lexical_reset();
@@ -1754,7 +1758,11 @@ be used as part of the applicability check in subsequent compilations.
     restore_precompiled_header_information();
   } else {
     /* We can't use a PCH, see if we can create one. */
-    header_stop_position_pending = TRUE;
+    if (cmp_source_positions(header_stop_source_position,
+                             null_source_position) != 0) {
+      /* Only generate one if a header stop position was found. */
+      header_stop_position_pending = TRUE;
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* precompiled_header_processing */
