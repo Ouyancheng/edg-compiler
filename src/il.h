@@ -106,9 +106,13 @@ extern void set_variable_address_constant(a_variable_ptr variable,
 extern void set_constant_address_constant(a_constant_ptr constant,
                                           a_constant    *con);
 
-extern void set_arg_transfer_method_flag(a_param_type_ptr ptp);
+extern void set_arg_transfer_method_flag(a_param_type_ptr   ptp,
+                                         a_source_position  *err_pos);
 
 extern a_param_type_ptr alloc_param_type(a_type_ptr type);
+
+extern a_param_type_ptr make_param_type(a_type_ptr         tp,
+                                        a_source_position  *decl_pos);
 
 extern an_access_adjustment_ptr alloc_access_adjustment(
                                               an_access_adjustment_kind  kind);
@@ -190,7 +194,8 @@ extern a_type_ptr make_unqualified_type(a_type_ptr old_type);
 extern void skip_common_type_qualifiers(a_type_ptr  *type1,
                                         a_type_ptr  *type2);
 
-extern void set_routine_calling_method_flag(a_type_ptr routine_type);
+extern void set_routine_calling_method_flag(a_type_ptr         routine_type,
+                                            a_source_position  *err_pos);
 
 extern void copy_type(a_type_ptr from,
                       a_type_ptr to);

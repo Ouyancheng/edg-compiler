@@ -3336,7 +3336,8 @@ macros need to be there.
 }  /* alloc_text_of_string_literal */
 
 
-void set_arg_transfer_method_flag(a_param_type_ptr ptp)
+void set_arg_transfer_method_flag(a_param_type_ptr   ptp,
+                                  a_source_position  *err_pos)
 /*
 Set the flag in the indicated parameter type entry to indicate whether
 or not the parameter should be passed using a copy constructor.
@@ -3355,11 +3356,17 @@ or not the parameter should be passed using a copy constructor.
       if (is_incomplete_type(param_type)) {
         /* Delay setting the flag till the class is defined -- add it to the
            fixup list. */
-        add_to_dependent_type_fixup_list(param_type, (a_type_ptr)NULL, ptp);
+        add_to_dependent_type_fixup_list(param_type, (a_type_ptr)NULL, ptp,
+                                         err_pos);
       } else if (!symbol_supplement_for_class(param_type)->
                                         construction_by_bitwise_copy_allowed) {
         /* Yes. */
         ptp->passed_via_copy_constructor = TRUE;
+        if (param_type->variant.class_struct_union.abstract) {
+          if (err_pos->seq != 0) {
+            pos_error(ec_abstract_class_object_not_allowed, err_pos);
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3390,11 +3397,22 @@ at file scope.
   ptp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
   ptp->default_arg_expr = NULL;
-  set_arg_transfer_method_flag(ptp);
+  ptp->passed_via_copy_constructor = FALSE;
 
   db_exit();
   return ptp;
 }  /* alloc_param_type */
+
+
+a_param_type_ptr make_param_type(a_type_ptr         tp,
+                                 a_source_position  *decl_pos)
+{
+  a_param_type_ptr  ptp;
+
+  ptp = alloc_param_type(tp);
+  set_arg_transfer_method_flag(ptp, decl_pos);
+  return ptp;
+}  /* make_param_type */
 
 
 a_derivation_step_ptr alloc_derivation_step(void)
@@ -4642,7 +4660,13 @@ Copy the type entry "from" to "to".
          type is an incomplete class type (allowed by extension), and a
          routine type is placed on the list if its return type is an
          incomplete class type. */
-      add_to_dependent_type_fixup_list(tp, to, (a_param_type *)NULL);
+      /* err_pos is set to a NULL source position since no errors should be
+         issued about this type. */
+      a_source_position  err_pos;
+
+      err_pos.seq = 0;
+      err_pos.column = SP_COL_UNKNOWN;
+      add_to_dependent_type_fixup_list(tp, to, (a_param_type *)NULL, &err_pos);
     }  /* if */
   }  /* if */
 }  /* copy_type */
@@ -4658,12 +4682,18 @@ type in a function definition is based on a typedef).
 */
 {
   a_param_type_ptr  old_ptp, new_ptp, prev_new_ptp;
+  a_source_position dummy_decl_pos;
 
   copy_type(from_type, to_type);
   old_ptp = from_type->variant.routine.extra_info->param_type_list;
   prev_new_ptp = NULL;
+  /* Pass a NULL source position to make_param_type to avoid inapproriate
+     diagnostics on a type that doesn't correspond directly to a source
+     construct. */
+  dummy_decl_pos.seq = 0;
+  dummy_decl_pos.column = SP_COL_UNKNOWN;
   for (; old_ptp != NULL; old_ptp = old_ptp->next) {
-    new_ptp = alloc_param_type(old_ptp->type);
+    new_ptp = make_param_type(old_ptp->type, &dummy_decl_pos);
     /* Do a struct copy from the old param type to the new. */
     *new_ptp = *old_ptp;
     /* Expressions may not be shared -- that is, they may not be pointed to
@@ -6029,7 +6059,8 @@ Only used in C++.
 }  /* create_expr_temporary */
 
 
-void set_routine_calling_method_flag(a_type_ptr routine_type)
+void set_routine_calling_method_flag(a_type_ptr         routine_type,
+                                     a_source_position  *err_pos)
 /*
 Set the calling-method flag in the indicated routine type; that flag
 is used when the function result is returned to a temporary provided by
@@ -6063,10 +6094,15 @@ at the point of definition.
              routine type on a fixup list and check again when the return
              type has been defined. */
           add_to_dependent_type_fixup_list(return_type, routine_type,
-                                           (a_param_type *)NULL);
+                                           (a_param_type *)NULL, err_pos);
         } else if (!symbol_supplement_for_class(return_type)->
                                         construction_by_bitwise_copy_allowed) {
           rtsp->value_returned_by_cctor = TRUE;
+          if (return_type->variant.class_struct_union.abstract) {
+            if (err_pos->seq != 0) {
+              pos_error(ec_function_returning_abstract_class, err_pos);
+            }  /* if */
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
