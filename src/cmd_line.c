@@ -1362,9 +1362,11 @@ Process the arguments on the command line that invoked the compiler.
     if (option_kind_used[(int)optk_exception_handling]) {
       command_line_error(ec_cl_exceptions_option_only_in_cplusplus);
     }  /* if */
+#if ABI_CHANGES_FOR_RTTI
     if (option_kind_used[(int)optk_rtti]) {
       command_line_error(ec_cl_rtti_option_only_in_cplusplus);
     }  /* if */
+#endif /* ABI_CHANGES_FOR_RTTI */
     if (option_kind_used[(int)optk_wchar_t_is_keyword]) {
       command_line_error(ec_cl_wchar_t_option_only_in_cplusplus);
     }  /* if */
