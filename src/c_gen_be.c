@@ -2529,74 +2529,6 @@ Return the byte offset following the end of the indicated field.
   return offset_after;
 }  /* offset_after_field */
 
-
-static a_targ_size_t field_padding(a_field_ptr      field,
-                                   a_targ_size_t    next_offset,
-                                   a_targ_alignment next_alignment)
-/*
-Return the amount of padding after the indicated field.  The next field
-begins at next_offset and has alignment next_alignment.  "field" may be
-NULL, in which case the padding starts at offset zero.
-*/
-{
-  a_targ_size_t after_field;
-  a_targ_size_t excess_bytes;
-  a_targ_size_t rounded_after_field;
-
-  /* The offset after the field, rounded up for the alignment of the
-     following field, should give the offset of the following field. */
-  after_field = (field != NULL) ? offset_after_field(field) : 0;
-  excess_bytes = after_field % next_alignment;
-  rounded_after_field = after_field;
-  if (excess_bytes != 0) {
-    rounded_after_field += next_alignment - excess_bytes;
-  }  /* if */
-#if CHECKING
-  if (next_offset < rounded_after_field) {
-#if DEBUG
-    if (field != NULL) {
-      fprintf(f_debug, "curr field     %s\n", field->source_corresp.name);
-      fprintf(f_debug, "curr offset    %lu\n", (unsigned long)field->offset);
-      fprintf(f_debug, "after_field    %lu\n", (unsigned long)after_field);
-    }  /* if */
-    fprintf(f_debug, "next_offset    %lu\n", (unsigned long)next_offset);
-    fprintf(f_debug, "next_alignment %lu\n", (unsigned long)next_alignment);
-#endif /* DEBUG */
-    internal_error("dump_field_padding: negative padding required");
-  }  /* if */
-#endif /* CHECKING */
-  return next_offset - rounded_after_field;
-}  /* field_padding */
-
-
-static void dump_field_padding(a_field_ptr      field,
-                               a_targ_size_t    next_offset,
-                               a_targ_alignment next_alignment)
-/*
-Dump out any padding required after the field "field".  The next field
-begins at next_offset and has alignment next_alignment.  "field" may be
-NULL, in which case the padding starts at offset zero.
-*/
-{
-  a_targ_size_t  padding = field_padding(field, next_offset, next_alignment);
-
-  if (padding > 0) {
-    /* Some padding is required. */  
-    a_targ_size_t  after_field = (field != NULL) ? offset_after_field(field)
-                                                 : 0;
-    disable_line_wrapping();
-    write_tok_str("char __dummy");
-    write_unsigned_num((a_host_large_unsigned)after_field);
-    enable_line_wrapping();
-    if (padding > 1) {
-      write_tok_ch('[');
-      write_unsigned_num((a_host_large_unsigned)padding);
-      write_tok_ch(']');
-    }  /* if */
-    write_tok_ch(';');
-  }  /* if */
-}  /* dump_field_padding */
-
 #if USER_CONTROL_OF_STRUCT_PACKING
 
 static a_targ_alignment get_pack_alignment(a_type_ptr  type)
@@ -2618,6 +2550,96 @@ Return the pack alignment, or 0 if it is the default maximum member alignment.
 
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
+static a_targ_size_t field_padding(a_field_ptr  prev_field,
+                                   a_field_ptr  field,
+                                   a_type_ptr   type)   
+/*
+Return the amount of padding needed between "prev_field" and "field".
+These two fields are normally consecutive members of the given "type", but
+"prev_field" may be NULL, in which case the padding starts at offset zero.
+*/
+{
+  a_targ_size_t  padding = 0;
+
+  if (!C_mode() && type->kind != (a_type_kind)tk_union &&
+     !field->is_bit_field) {
+    /* Compute any required padding before the field.  This only comes up
+       for empty base class layout, so check this only when the field has
+       a class type (hence also the bit_field_test).  Note that one reason
+       to avoid the check for fields of builtin types is that when the GNU
+       dual-alignment option is in effect the alignment of the field's type
+       is not necessarily the alignment that was used to place the field. */
+    a_type_ptr  field_type = field->type;
+    if (is_array_type(field_type)) {
+      /* Arrays of class type have to be checked as well. */
+      field_type = underlying_array_element_type(field_type);
+    }  /* if */
+    field_type = skip_typerefs(field_type);
+    if (is_immediate_class_type(field_type)) {
+      a_targ_size_t     after_field, excess_bytes, rounded_after_field;
+      a_targ_alignment  alignment = f_skip_typerefs(field->type)->alignment;
+#if USER_CONTROL_OF_STRUCT_PACKING
+      a_targ_alignment  pack_alignment = get_pack_alignment(type);
+      if (pack_alignment != 0 && pack_alignment < alignment) {
+        alignment = pack_alignment;
+      }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      /* The offset after the field, rounded up for the alignment of the
+         following field, should give the offset of the following field. */
+      after_field = (prev_field != NULL) ? offset_after_field(prev_field) : 0;
+      excess_bytes = after_field % alignment;
+      rounded_after_field = after_field;
+      if (excess_bytes != 0) {
+        rounded_after_field += alignment - excess_bytes;
+      }  /* if */
+#if CHECKING
+      if (field->offset < rounded_after_field) {
+#if DEBUG
+        if (prev_field != NULL) {
+          fprintf(f_debug, "curr field     %s\n",
+                  prev_field->source_corresp.name);
+          fprintf(f_debug, "curr offset    %lu\n",
+                  (unsigned long)prev_field->offset);
+          fprintf(f_debug, "after_field    %lu\n", (unsigned long)after_field);
+        }  /* if */
+        fprintf(f_debug, "next offset    %lu\n", (unsigned long)field->offset);
+        fprintf(f_debug, "next alignment %lu\n", (unsigned long)alignment);
+#endif /* DEBUG */
+        internal_error("dump_field_padding: negative padding required");
+      }  /* if */
+#endif /* CHECKING */
+      padding = field->offset - rounded_after_field;
+    }  /* if */
+  }  /* if */
+  return padding;
+}  /* field_padding */
+
+
+static void dump_field_padding(a_field_ptr    field,
+                               a_targ_size_t  padding)
+/*
+Dump out "padding" bytes required after the given "field".  "field" may be
+NULL, in which case the padding starts at offset zero.
+*/
+{
+  if (padding > 0) {
+    /* Some padding is required. */  
+    a_targ_size_t  after_field = (field != NULL) ? offset_after_field(field)
+                                                 : 0;
+    disable_line_wrapping();
+    write_tok_str("char __dummy");
+    write_unsigned_num((a_host_large_unsigned)after_field);
+    enable_line_wrapping();
+    if (padding > 1) {
+      write_tok_ch('[');
+      write_unsigned_num((a_host_large_unsigned)padding);
+      write_tok_ch(']');
+    }  /* if */
+    write_tok_ch(';');
+  }  /* if */
+}  /* dump_field_padding */
+
+
 static a_boolean has_leading_padding(a_type_ptr  type)
 /*
 Return TRUE if and only if this class type has a first field that is
@@ -2628,18 +2650,9 @@ base class optimization.
   a_boolean    result = FALSE;
   a_field_ptr  first_field = type->variant.class_struct_union.field_list;
 
-  if (first_field != NULL) {
-    a_targ_alignment  alignment =
-                                f_skip_typerefs(first_field->type)->alignment;
-#if USER_CONTROL_OF_STRUCT_PACKING
-    a_targ_alignment  pack_alignment = get_pack_alignment(type);
-    if (pack_alignment != 0 && pack_alignment < alignment) {
-      alignment = pack_alignment;
-    }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-    if (field_padding((a_field_ptr)NULL, first_field->offset, alignment) > 0) {
-      result = TRUE;
-    }  /* if */
+  if (first_field != NULL &&
+      field_padding((a_field_ptr)NULL, first_field, type) > 0) {
+    result = TRUE;
   }  /* if */
   return result;
 }  /* has_leading_padding */
@@ -2721,30 +2734,10 @@ final semicolon if output_final_semi is TRUE.
     for (field = type->variant.class_struct_union.field_list;
          field != NULL;
          field = field->next) {
-      if (!C_mode() && type->kind != (a_type_kind)tk_union &&
-          (prev_field == NULL || !field->is_bit_field)) {
-        /* Add any required padding before the field.  This only comes
-           up for empty base class layout, so check this only when the
-           field has a class type.  Note that one reason to avoid the
-           check for fields of builtin types is that when the GNU dual-
-           alignment option is in effect the alignment of the field's
-           type is not necessarily the alignment that was used to place
-           the field. */
-        a_type_ptr field_type = field->type;
-        if (is_array_type(field_type)) {
-          /* Arrays of class type have to be checked as well. */
-          field_type = underlying_array_element_type(field_type);
-        }  /* if */
-        field_type = skip_typerefs(field_type);
-        if (is_immediate_class_type(field_type)) {
-          a_targ_alignment alignment = f_skip_typerefs(field->type)->alignment;
-#if USER_CONTROL_OF_STRUCT_PACKING
-          if (pack_alignment != 0 && pack_alignment < alignment) {
-            alignment = pack_alignment;
-          }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-          dump_field_padding(prev_field, field->offset, alignment);
-        }  /* if */
+      /* Add any required padding before the field. */
+      a_targ_size_t  padding = field_padding(prev_field, field, type);
+      if (padding > 0) {
+        dump_field_padding(prev_field, padding);
       }  /* if */
       set_output_position(&field->source_corresp.decl_position);
       dump_decl_associated_pragmas(&field->source_corresp);
