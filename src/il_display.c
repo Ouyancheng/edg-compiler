@@ -2877,9 +2877,9 @@ Display the indicated derivation step list.
 */
 {
   if (ptr == NULL) {
-    disp_ptr("derivation", (char *)ptr, iek_derivation_step);
+    disp_ptr("path", (char *)NULL, iek_derivation_step);
   } else {
-    disp_name("derivation");
+    disp_name("path");
     (void)printf("\n");
     for (; ptr != NULL; ptr = ptr->next) {
       disp_ptr("  base_class", (char *)ptr->base_class, iek_base_class);
@@ -2888,17 +2888,16 @@ Display the indicated derivation step list.
 }  /* disp_derivation_step_list */
 
 
-static void disp_virtual_derivation(a_virtual_derivation_ptr ptr)
+static void disp_base_class_derivation(a_base_class_derivation_ptr ptr)
 /*
-Display the indicated virtual derivation entry.
+Display the indicated base class derivation entry.
 */
 {
   disp_ptr("next", (char *)ptr->next, iek_virtual_derivation);
   if (ptr->direct) disp_boolean("direct", TRUE);
   if (ptr->preferred) disp_boolean("preferred", TRUE);
-  if (ptr->first) disp_boolean("first", TRUE);
-  disp_derivation_step_list(ptr->derivation);
-}  /* disp_virtual_derivation */
+  disp_derivation_step_list("path", ptr->derivation);
+}  /* disp_base_class_derivation */
 
 
 static void disp_base_class(a_base_class_ptr ptr)
@@ -2912,7 +2911,6 @@ Display the indicated base class entry.
   disp_boolean("direct", (a_boolean)ptr->direct);
   disp_boolean("is_virtual", (a_boolean)ptr->is_virtual);
   disp_boolean("ambiguous", (a_boolean)ptr->ambiguous);
-  disp_access("access", ptr->access);
   disp_unsigned_long("offset", (unsigned long)ptr->offset);
   if (ptr->is_virtual) {
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
@@ -2924,11 +2922,7 @@ Display the indicated base class entry.
     disp_ptr("pointer_base_class", (char *)ptr->pointer_base_class,
              iek_base_class);
   }  /* if */
-  disp_derivation_step_list(ptr->derivation);
-  if (ptr->is_virtual) {
-    disp_ptr("paths_to_virtual_base_class",
-             (char *)ptr->paths_to_virtual_base_class, iek_virtual_derivation);
-  }  /* if */
+  disp_ptr("derivation", (char *)ptr->derivation, iek_base_class_derivation);
   disp_ptr("overriding_virtual_functions",
            (char *)ptr->overriding_virtual_functions,
            iek_overriding_virtual_function );
