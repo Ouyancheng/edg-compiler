@@ -1,5 +1,31 @@
 Version 2.18
 
+6/1/93 Cfront compatibility changes
+
+(1) A function qualifier is now accepted (and ignored) on a constructor
+    or destructor in cfront compatibility mode, e.g.,
+
+      class A { A() const; };              // Warning in cfront mode
+
+    (This is permitted by cfront 2.1 but is an error in cfront 3.0.)
+
+(2) A non-member operator= is allowed (as an anachronism), e.g.,
+
+      class A { };
+      A operator=(A&, A&);                 // Warning in cfront mode
+
+    (This is flagged as an anachronism by cfront 2.1 but is an error in
+    cfront 3.0.)
+
+(3) A parameter of type "const void *" is allowed (but treated as "void *")
+    on operator delete() in cfront compatibility mode, e.g.,
+
+      void operator delete(void *);
+      void operator delete(const void *);  // Treated as a redeclaration
+                                           // in cfront mode
+
+    (This is permitted by cfront 2.1 but is an error in cfront 3.0.)
+
 6/1/93 Diagnostics on compiler-generated assignment operators
 
 The user may not rely on the compiler to generate a default assignment
