@@ -10969,7 +10969,7 @@ typedef struct an_il_header {
   long		microsoft_version;
 			/* When microsoft_mode is TRUE, the version of the
 			   Microsoft compiler with which compatibility is
-			   desired; corresponds to global variable
+			   desired; corresponds to the global variable
 			   microsoft_version. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
@@ -10989,6 +10989,11 @@ typedef struct an_il_header {
 		gpp_mode;
 			/* TRUE if the source program was compiled in
 			   GNU C++ mode. */
+  long		gnu_version;
+			/* When gcc_mode or gpp_mode is TRUE, the version of
+			   the GNU compiler with which compatibility is
+			   desired; corresponds to the global variable
+			   microsoft_version. */
   a_byte_boolean
 		short_enums;
 			/* TRUE if all enumeration types should be considered

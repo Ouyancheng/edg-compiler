@@ -5876,6 +5876,7 @@ Display the IL for the file scope in human-readable form.
 #if GNU_EXTENSIONS_ALLOWED
   disp_boolean("gcc_mode", (a_boolean)il_header.gcc_mode);
   disp_boolean("gpp_mode", (a_boolean)il_header.gpp_mode);
+  disp_long("gnu_version", (a_boolean)il_header.gnu_version);
   disp_boolean("short_enums", (a_boolean)il_header.short_enums);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED

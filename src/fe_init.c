@@ -956,6 +956,7 @@ source file's compilation.
 #if GNU_EXTENSIONS_ALLOWED
   il_header.gcc_mode = gcc_mode;
   il_header.gpp_mode = gpp_mode;
+  il_header.gnu_version = gnu_version;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   il_header.num_seq_number_lookup_entries = 0;
   il_header.seq_number_lookup_entries = NULL;
