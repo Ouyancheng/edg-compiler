@@ -19,9 +19,13 @@ means, for example, that each variable and label declared within a
 function is assigned a unique number, beginning at 1 and incremented with
 each new declaration.  The number is stored in a new field in a_symbol.
 The declaration sequence numbers of two symbols can be compared to
-determine which appeared first in the program.  For the time being this
-capability is used only in the algorithm that determines whether a
-used-before-set warning should be issued.
+determine which appeared first in the program.
+
+For the time being this capability is only incompletely implemented --
+except for labels, defined variables, and named types, symbols should not
+be assumed to have valid declaration sequence numbers.  (However, the
+status quo is sufficient for the algorithm that determines whether a
+used-before-set warning should be issued.)
 
 9/9/93   Diagnostic on variable used before set
 

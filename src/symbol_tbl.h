@@ -1029,6 +1029,14 @@ typedef struct a_symbol {
 			   this symbol.  The numbers are assigned sequentially,
 			   so that a symbol with a higher decl_seq value was
 			   declared after one with a lower number. */
+#if 0
+#else
+			/* For version 2.20 the assignment of declaration
+			   sequence numbers to symbols is only incompletely
+			   implemented: except for labels, defined variables,
+			   and named types, symbols should not be assumed to
+			   have valid values in the decl_seq field. */
+#endif /* if 0 */
   a_source_position
 		decl_position;
 			/* Source position of the declaration of this
