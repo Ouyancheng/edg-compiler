@@ -5253,6 +5253,14 @@ and "class_type" indicates the class in which the declaration occurs.
   a_type_ptr		       local_class_of_which_a_member;
 
   db_enter(4, "access_adjustment_decl");
+  if (symbol_supplement_for_class(class_type)->any_nonreal_base_classes) {
+    /* We must be in the midst of a prototype instantiation.  The entity
+       specified for access adjustment may be a member of a nonreal base
+       class (or of a base class of a nonreal base class).  We can't be sure
+       about specializations of nonreal base classes at this point, nor is
+       there any point in recording the access adjustment, so just bail out. */
+    goto done;
+  }  /* if */
   /* Get the class of which a member.  Normally the pointer from the
      specific symbol in the locator is used, but in the case of an
      undefined symbol from an error locator, we use the qualifier class type
