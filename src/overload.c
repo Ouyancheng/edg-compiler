@@ -4922,7 +4922,12 @@ used only in C++ mode.
   dest_type = skip_typerefs(dest_type);
   cssp = symbol_supplement_for_class(dest_type);
   source_type = skip_typerefs(source_type);
-  if (is_class_struct_union_type(source_type)) {
+  /* Watch out for the case where the source type's definition has been
+     partially processed -- we know that the destination type is a base
+     class, but the source class is still incomplete, and one can't
+     make an rvalue of an incomplete type. */
+  if (is_class_struct_union_type(source_type) &&
+      !is_incomplete_type(source_type)) {
     if (is_initialization ? cssp->construction_by_bitwise_copy_allowed :
                             cssp->assignment_by_bitwise_copy_allowed) {
       /* The destination class can be set by a bitwise copy from something
