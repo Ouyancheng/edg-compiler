@@ -4729,13 +4729,16 @@ parameters.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   a_storage_class
                  storage_class = variable->storage_class;
+  a_boolean      forced_referenced;
+#if ONE_INSTANTIATION_PER_OBJECT
+  a_boolean      part_of_current_output_file = TRUE;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
   /* Determine whether or not the variable has a constant initializer.
      Non-constant initializers are handled by dump_dynamic_init. */
   init_con = constant_initializer(variable, &init_kind);
 #if ONE_INSTANTIATION_PER_OBJECT
-  if (storage_class == (a_storage_class)sc_unspecified &&
-      needed_flag_bit_number != 0) {
+  if (needed_flag_bit_number != 0) {
     /* We're generating separate files for each instantiation, so do not
        put instantiation definitions into the primary output file, or
        primary-file variable definitions into the instantiation files. */
@@ -4743,9 +4746,12 @@ parameters.
                             (needed_flag_bit_number !=
                                    variable->instantiation_needed_bit_number) :
                             (needed_flag_bit_number != 1)) {
-      init_con = NULL;
-      init_kind = (an_init_kind)initk_none;
-      storage_class = (a_storage_class)sc_extern;
+      part_of_current_output_file = FALSE;
+      if (storage_class == (a_storage_class)sc_unspecified) {
+        init_con = NULL;
+        init_kind = (an_init_kind)initk_none;
+        storage_class = (a_storage_class)sc_extern;
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -4778,7 +4784,11 @@ parameters.
     /* See if the variable is unreferenced, but always put out magic
        variables anyway.  Putting __link out if unreferenced is necessary
        when this front end is used to compile its own output. */
-    if (has_magic_name ||
+    forced_referenced = has_magic_name;
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+    if (!part_of_current_output_file) forced_referenced = FALSE;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+    if (forced_referenced ||
         start_unreferenced_bracket(&variable->source_corresp)) {
       /* If the variable has an initializer, see if any wide string constants
          therein need to be preprocessed. */
@@ -4894,7 +4904,9 @@ parameters.
         dump_initializer(variable, init_con, /*is_dynamic_init=*/FALSE);
       }  /* if */
       write_tok_ch(';');
-      if (!has_magic_name) end_unreferenced_bracket(&variable->source_corresp);
+      if (!forced_referenced) {
+        end_unreferenced_bracket(&variable->source_corresp);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* dump_variable_decl */
@@ -6522,7 +6534,9 @@ the C output files for all instantiations.
   for (rout = il_header.primary_scope->routines;
        rout != NULL;
        rout = rout->next) {
-    if (rout->instantiation_needed_bit_number != 0) {
+    if (rout->instantiation_needed_bit_number != 0 &&
+        /* Ignore generated startup initialization routines. */
+        rout->is_template_function) {
       generate_one_instantiation_C_output_file(&rout->source_corresp,
                                         rout->instantiation_needed_bit_number);
     }  /* if */
@@ -6532,7 +6546,9 @@ the C output files for all instantiations.
   for (var = il_header.primary_scope->variables;
        var != NULL;
        var = var->next) {
-    if (var->instantiation_needed_bit_number != 0) {
+    if (var->instantiation_needed_bit_number != 0 &&
+        /* Ignore generated __link variables. */
+        var->is_template_static_data_member) {
       generate_one_instantiation_C_output_file(&var->source_corresp,
                                          var->instantiation_needed_bit_number);
     }  /* if */

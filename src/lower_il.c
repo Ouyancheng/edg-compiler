@@ -11133,7 +11133,6 @@ C++ to C, so that a C back end can handle it without change.
          the corresponding destructions.  This is done after scope class
          member promotions so that the initialization routine is last. */
       lower_file_scope_dynamic_inits();
-      make_code_to_invoke_file_scope_init_routine();
 #if MINIMAL_INLINING
       if (inlining_enabled) {
         /* For any inline routines for which all calls were expanded inline,

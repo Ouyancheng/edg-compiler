@@ -38,12 +38,6 @@ lower_init.c -- IL lowering: initializations and new/delete.
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
 
-static a_routine_ptr
-		file_scope_init_routine;
-			/* Pointer to the file-scope initialization routine
-			   once created.  NULL until then. */
-
-
 /* Declarations needed because of forward references: */
 static void lower_destructor_dynamic_init(
                                    a_dynamic_init_ptr     dip,
@@ -2577,120 +2571,167 @@ aggregate, set *keep_constant to TRUE.
   }  /* for */
 }  /* lower_dynamic_init_aggregate_constant */
 
+#if !USE_INIT_SECTION_IN_GENERATED_C
 
-void make_code_to_invoke_file_scope_init_routine(void)
 /*
-Make the code that will ensure that the file-scope initialization routine
-(if any) is invoked at program startup.
+Pointer to the struct type for the __linkl structure.  NULL until created.
+*/
+static a_type_ptr linkl_type;
+
+
+static a_type_ptr make_linkl_type(void)
+/*
+Make the __linkl structure used in specifying initialization routines
+to be executed at program startup.  It has the following structure:
+
+  struct __linkl {
+    struct __linkl *next;
+    void           (*ctor)();
+    void           (*dtor)();
+  };
+
+This is compatible with the structure used by cfront.
+Note that the cfront approach uses "char" for "void" in all the above.
 */
 {
-/* If a .init section will be used for initialization, skip this stuff. */
-#if !USE_INIT_SECTION_IN_GENERATED_C
-  a_type_ptr       func_type, struct_type, ptr_struct_type;
+  a_type_ptr  ptr_func_type, ptr_linkl_type;
+  a_field_ptr last_field;
+
+  if (linkl_type == NULL) {
+    /* The type made doesn't actually have a name. */
+    linkl_type = alloc_type((a_type_kind)tk_struct);
+    last_field = NULL;
+    /* field: struct __linkl *next; */
+    ptr_linkl_type = make_pointer_type(linkl_type);
+    make_lowered_field("next", ptr_linkl_type, linkl_type, &last_field);
+    /* field: void (*ctor)(); */
+    ptr_func_type = make_vptp_type();
+    make_lowered_field("ctor", ptr_func_type, linkl_type, &last_field);
+    /* field: void (*dtor)(); */
+    make_lowered_field("dtor", ptr_func_type, linkl_type, &last_field);
+    finish_class_type(linkl_type);
+    add_to_front_of_file_scope_types_list(linkl_type);
+  }  /* if */
+  return linkl_type;
+}  /* make_linkl_type */
+
+
+static void make_code_to_invoke_file_scope_init_routine(
+                                         a_routine_ptr file_scope_init_routine)
+/*
+Make the code that will ensure that the indicated file-scope initialization
+routine is invoked at program startup.
+*/
+{
   a_type_ptr       ptr_func_type;
-  a_field_ptr      last_field;
   a_variable_ptr   link_var;
   a_constant_ptr   aggr_con, init_con1, init_con2, init_con3;
   a_memory_region_number
                    region_to_switch_back_to;
 
-  /* Only generate the code if there is a startup routine. */
-  if (file_scope_init_routine != NULL) {
-    /* Create a __link variable pointing to a struct that points to the
-       initialization routine, using the same form as cfront:
-         void __sti__module_id() {...}
-         void __std__module_id() {...}
-         struct __linkl {
-           struct __linkl *next;
-           void           (*ctor)();
-           void           (*dtor)();
-         };
-         static struct __linkl __link = {NULL, __sti__module_id, NULL};
-       Note that the mechanism provides for a termination routine as well
-       as a startup routine, but we don't make use of that part of it;
-       the destructions for variables are put on a list of destructions
-       to be done at program termination, by calling a runtime routine.
-       The AT&T patch step will find the __link static variable
-       and link it with other initialization code to be invoked by _main.
-       Alternatively, the munch step will find the routines with names
-       beginning "__sti__" and "__std__".
-       Note that the AT&T approach uses "char" for "void" in all the
-       above.
-    */
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    /* Make the __linkl struct type.  It doesn't actually have a name. */
-    struct_type = alloc_type((a_type_kind)tk_struct);
-    last_field = NULL;
-    /* field: struct __linkl *next; */
-    ptr_struct_type = make_pointer_type(struct_type);
-    make_lowered_field("next", ptr_struct_type, struct_type, &last_field);
-    /* field: void (*ctor)(); */
-    func_type = make_function_type(void_type(), (a_type_ptr)NULL);
-    ptr_func_type = make_pointer_type(func_type);
-    make_lowered_field("ctor", ptr_func_type, struct_type, &last_field);
-    /* field: void (*dtor)(); */
-    make_lowered_field("dtor", ptr_func_type, struct_type, &last_field);
-    finish_class_type(struct_type);
-    add_to_front_of_file_scope_types_list(struct_type);
-    /* Make the __link variable. */
-    link_var = make_lowered_variable("__link", /*already_il_name=*/FALSE,
-                                     struct_type, (a_storage_class)sc_static);
-    /* Give the __link variable the initial value
-         {NULL, __sti__module_id, NULL}
-       If the initialization routine does not exist, use a NULL instead. */
-    aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-    aggr_con->type = link_var->type;
-    link_var->init_kind = (an_init_kind)initk_static;
-    link_var->initializer.constant = aggr_con;
-    /* NULL for "next" field. */
-    init_con1 = alloc_constant((a_constant_repr_kind)ck_address);
-    make_zero_of_proper_type(ptr_struct_type, init_con1);
-    /* Address of __sti__module_id for "ctor" field. */
-    init_con2 = alloc_constant((a_constant_repr_kind)ck_address);
-    set_routine_address_constant(file_scope_init_routine, init_con2,
-                                 /*set_address_taken_flag=*/TRUE);
-    implicit_cast(init_con2, ptr_func_type);
-    /* NULL for "dtor" field. */
-    init_con3 = alloc_constant((a_constant_repr_kind)ck_address);
-    make_zero_of_proper_type(ptr_func_type, init_con3);
-    /* Link the constants together under the ck_aggregate constant. */
-    aggr_con->variant.aggregate.first_constant = init_con1;
-    init_con1->next = init_con2;
-    init_con2->next = init_con3;
-    aggr_con->variant.aggregate.last_constant  = init_con3;
+  /* Create a __link variable pointing to a struct that points to the
+     initialization routine, using the same form as cfront:
+       void __sti__module_id() {...}
+       void __std__module_id() {...}
+       struct __linkl {
+         struct __linkl *next;
+         void           (*ctor)();
+         void           (*dtor)();
+       };
+       static struct __linkl __link = {NULL, __sti__module_id, NULL};
+     Note that the mechanism provides for a termination routine as well
+     as a startup routine, but we don't make use of that part of it;
+     the destructions for variables are put on a list of destructions
+     to be done at program termination, by calling a runtime routine.
+     The AT&T patch step will find the __link static variable
+     and link it with other initialization code to be invoked by _main.
+     Alternatively, the munch step will find the routines with names
+     beginning "__sti__" and "__std__".
+  */
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  /* Make the __linkl struct type. */
+  (void)make_linkl_type();
+  /* Make the __link variable. */
+  link_var = make_lowered_variable("__link", /*already_il_name=*/FALSE,
+                                   linkl_type, (a_storage_class)sc_static);
+  /* Give the __link variable the initial value
+       {NULL, __sti__module_id, NULL}
+  */
+  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  aggr_con->type = link_var->type;
+  link_var->init_kind = (an_init_kind)initk_static;
+  link_var->initializer.constant = aggr_con;
+  /* NULL for "next" field. */
+  init_con1 = alloc_constant((a_constant_repr_kind)ck_address);
+  make_zero_of_proper_type(make_pointer_type(linkl_type), init_con1);
+  /* Address of __sti__module_id for "ctor" field. */
+  init_con2 = alloc_constant((a_constant_repr_kind)ck_address);
+  set_routine_address_constant(file_scope_init_routine, init_con2,
+                               /*set_address_taken_flag=*/TRUE);
+  ptr_func_type = make_vptp_type();
+  implicit_cast(init_con2, ptr_func_type);
+  /* NULL for "dtor" field. */
+  init_con3 = alloc_constant((a_constant_repr_kind)ck_address);
+  make_zero_of_proper_type(ptr_func_type, init_con3);
+  /* Link the constants together under the ck_aggregate constant. */
+  aggr_con->variant.aggregate.first_constant = init_con1;
+  init_con1->next = init_con2;
+  init_con2->next = init_con3;
+  aggr_con->variant.aggregate.last_constant  = init_con3;
 #if MAINTAIN_NEEDED_FLAGS
-    /* This is a funny variable that is "needed" by munch even though it
-       is not externally visible. */
-    mark_as_needed((char *)link_var, iek_variable);
-#endif /* MAINTAIN_NEEDED_FLAGS */
-    switch_back_to_original_region(region_to_switch_back_to);
+  /* This is a funny variable that is "needed" by munch even though it
+     is not externally visible. */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  if (one_instantiation_per_object) {
+    link_var->instantiation_needed_bit_number =
+                      file_scope_init_routine->instantiation_needed_bit_number;
+    set_per_instantiation_needed_flag((char *)link_var, iek_variable,
+                                    link_var->instantiation_needed_bit_number);
   }  /* if */
-#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+  mark_as_needed((char *)link_var, iek_variable);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+  switch_back_to_original_region(region_to_switch_back_to);
 }  /* make_code_to_invoke_file_scope_init_routine */
 
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
 
-static a_routine_ptr make_file_scope_init_or_term_routine(
-                                  char                        *prefix,
-                                  an_insert_location_ptr      insert_location,
-                                  a_scope_ptr                 *init_rout_scope,
-                                  a_memory_region_number      *il_region,
-                                  a_generated_routine_context *grcontext)
+#if !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+/*ARGSUSED*/ /* needed_bit_number is not used in that case. */
+#endif /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+static a_scope_ptr make_file_scope_init_or_term_routine(
+                                 unsigned long               needed_bit_number,
+                                 char                        *prefix,
+                                 an_insert_location_ptr      insert_location,
+                                 a_memory_region_number      *il_region,
+                                 a_generated_routine_context *grcontext)
 /*
 Make a routine to do file-scope initialization or termination.  prefix is
 the prefix for the name of the routine, or is NULL if the routine should
-be unnamed.  Set *insert_location for insertion at
-the start of the block statement that is the body of the routine, set
-*init_rout_scope to point to the scope entry for the routine, set
-*il_region to the IL memory region number for the routine, and return a
-pointer to the routine.  The routine is external if named, and static
-if unnamed.  A generated routine context is pushed, with *grcontext used
-to save the old state for later restoration.
+be unnamed.  Set *insert_location for insertion at the start of the block
+statement that is the body of the routine, set *il_region to the IL memory
+region number for the routine, and return a pointer to the scope for the
+routine.  The routine is external if named, and static if unnamed.
+A generated routine context is pushed, with *grcontext used to save the
+old state for later restoration.
 */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+/*
+needed_bit_number, if non-zero, indicates a per-instantiation "needed"
+bit number; each instantiation is being put in a separate file, and this
+initialization routine is being generated for the instantiation associated
+with the indicated bit number.
+*/
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 {
   a_routine_ptr   init_rout;
+  a_scope_ptr     scope;
   char            *name;
   sizeof_t        prefix_len, alloc_length;
   a_statement_ptr return_stmt;
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  char            buffer[50];
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 
   if (prefix == NULL) {
     /* Make an unnamed routine. */
@@ -2702,9 +2743,22 @@ to save the old state for later restoration.
     module_id = make_module_id();
     prefix_len = strlen(prefix);
     alloc_length = prefix_len + strlen(module_id) + 1;
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+    if (needed_bit_number != 0) {
+      (void)sprintf(buffer, "_%lu", needed_bit_number);
+      alloc_length += strlen(buffer);
+    }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
     name = alloc_lowered_name_string(alloc_length);
     (void)memcpy(name, prefix, size_t_arg(prefix_len));
     (void)strcpy(name+prefix_len, module_id);
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+    if (needed_bit_number != 0) {
+      /* Add a suffix to distinguish initialization routines for
+         specific instantiations. */
+      (void)strcpy(name+prefix_len+strlen(module_id), buffer);
+    }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
   }  /* if */
   /* Make a type and routine entry for the routine. */
   init_rout = make_rout_entry(name,
@@ -2713,44 +2767,49 @@ to save the old state for later restoration.
                               void_type(),
                               (a_type_ptr)NULL);
   /* Make a memory region, scope, and block for the routine definition. */
-  *init_rout_scope = make_routine_definition(init_rout, /*make_return=*/TRUE,
-                                             il_region);
+  scope = make_routine_definition(init_rout, /*make_return=*/TRUE, il_region);
   /* Save the current state and push a new context for the generated
      routine. */
-  push_generated_routine_context(*init_rout_scope, *il_region, grcontext);
+  push_generated_routine_context(scope, *il_region, grcontext);
   /* Add the return statement at the end of the routine to the return memo
      list. */
-  return_stmt = (*init_rout_scope)->assoc_block->variant.block.statements;
+  return_stmt = scope->assoc_block->variant.block.statements;
   check_assertion(return_stmt != NULL &&
                   return_stmt->kind == (a_statement_kind)stmk_return);
   add_to_return_memo_list(return_stmt);
   /* Set the insert location to the start of the top-level block. */
-  set_block_start_insert_location((*init_rout_scope)->assoc_block,
+  set_block_start_insert_location(scope->assoc_block,
                                   insert_location);
-  return init_rout;
+  return scope;
 }  /* make_file_scope_init_or_term_routine */
 
 
 static a_scope_ptr file_scope_init_insert_location(
-                                   an_insert_location_ptr      insert_location,
-                                   a_memory_region_number      *region_number,
-                                   a_generated_routine_context *grcontext)
+                                 unsigned long               needed_bit_number,
+                                 an_insert_location_ptr      insert_location,
+                                 a_memory_region_number      *region_number,
+                                 a_generated_routine_context *grcontext)
 /*
 Create the file-scope initialization routine.  Set *insert location so it
 can be used to insert code in that routine, and set *region_number to
 the memory region number for the routine.  Return the scope for the routine.
 A generated routine context is pushed, with *grcontext used to save the
-old state for later restoration.
+old state for later restoration.  If needed_bit_number is non-zero, it
+is the per-instantiation "needed" bit number associated with an instantiation,
+and the routine being generated is the initialization routine for that
+instantiation.
 */
 {
-  a_scope_ptr scope;
-
-  file_scope_init_routine = make_file_scope_init_or_term_routine(
-                                      IL_LOWERING_INIT_ROUTINE_PREFIX,
-                                      insert_location,
-                                      &scope,
-                                      region_number,
-                                      grcontext);
+  a_scope_ptr scope = make_file_scope_init_or_term_routine(
+                                       needed_bit_number,
+                                       IL_LOWERING_INIT_ROUTINE_PREFIX,
+                                       insert_location,
+                                       region_number,
+                                       grcontext);
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  scope->variant.routine.ptr->instantiation_needed_bit_number =
+                                                             needed_bit_number;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
   return scope;
 }  /* file_scope_init_insert_location */
 
@@ -2770,13 +2829,12 @@ A generated routine context is pushed, with *grcontext used to save the
 old state for later restoration.
 */
 {
-  a_scope_ptr scope;
-
-  (void)make_file_scope_init_or_term_routine((char *)NULL,  /* Unnamed. */
-                                             insert_location,
-                                             &scope,
-                                             region_number,
-                                             grcontext);
+  a_scope_ptr scope = make_file_scope_init_or_term_routine(
+                                       (unsigned long)0,
+                                       (char *)NULL,  /* Unnamed. */
+                                       insert_location,
+                                       region_number,
+                                       grcontext);
   return scope;
 }  /* file_scope_term_insert_location */
 
@@ -6491,9 +6549,16 @@ destructor scope, and also lower the user code.
 }  /* lower_destructor_code */
 
 
-void lower_file_scope_dynamic_inits(void)
+#if !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+/*ARGSUSED*/ /* needed_bit_number is not used in that case. */
+#endif /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+void b_lower_file_scope_dynamic_inits(unsigned long needed_bit_number)
 /*
-Do lowering on the file-scope dynamic initializations list.
+Do lowering on the file-scope dynamic initializations list.  Generate
+an initialization routine and make sure it will get called at program
+startup.  If needed_bit_number is non-zero, it is the needed flag bit number
+for an instantiation, and only initializations for that bit number should
+be included in the initialization routine.
 */
 {
   a_dynamic_init_ptr dip, dip_next;
@@ -6504,14 +6569,36 @@ Do lowering on the file-scope dynamic initializations list.
                      grcontext;
   a_memory_region_number
                      region_number;
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  unsigned long      eff_needed_bit_number = needed_bit_number;
+  a_dynamic_init_ptr dip_prev = NULL;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#if !USE_INIT_SECTION_IN_GENERATED_C
+  a_routine_ptr      init_rout;
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
 
   dip = file_scope->dynamic_inits;
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  if (needed_bit_number == 1) eff_needed_bit_number = 0;
+  if (needed_bit_number != 0) {
+    /* Find the first initialization with the appropriate bit number,
+       if any. */
+    for (; dip != NULL &&
+           dip->variable->instantiation_needed_bit_number !=
+                                                         eff_needed_bit_number;
+         dip_prev = dip, dip = dip->next) {}
+  }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
   if (dip != NULL) {
     /* There are some file-scope dynamic initializations.  Generate a routine
        containing them. */
-    scope = file_scope_init_insert_location(&insert_location, &region_number,
+    scope = file_scope_init_insert_location(eff_needed_bit_number,
+                                            &insert_location, &region_number,
                                             &grcontext);
     processing_file_scope_init_routine = TRUE;
+#if !USE_INIT_SECTION_IN_GENERATED_C
+    init_rout = scope->variant.routine.ptr;
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
     if (file_scope->lifetime != NULL) {
       begin_object_lifetime(file_scope->lifetime, &insert_location);
     }  /* if */
@@ -6545,6 +6632,25 @@ Do lowering on the file-scope dynamic initializations list.
                          (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
                          /*others_follow_in_aggr=*/FALSE,
                          eff_insert_location, (a_boolean *)NULL);
+
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+      if (needed_bit_number != 0) {
+        /* Remove the entry from the list. */
+        if (dip_prev == NULL) {
+          file_scope->dynamic_inits = dip_next;
+        } else {
+          dip_prev->next = dip_next;
+        }  /* if */
+        /* Ignore variables that are not in the instantiation object file
+           currently being considered. */
+        while (dip_next != NULL &&
+               dip_next->variable->instantiation_needed_bit_number !=
+                                                       eff_needed_bit_number) {
+          dip_prev = dip_next;
+          dip_next = dip_next->next;
+        }  /* while */
+      }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
     }  /* for */
     if (exceptions_enabled) {
       /* Add prologue/epilogue code for exceptions if needed. */
@@ -6552,8 +6658,45 @@ Do lowering on the file-scope dynamic initializations list.
     }  /* if */
     processing_file_scope_init_routine = FALSE;
     pop_generated_routine_context(scope, region_number, &grcontext);
-    file_scope->dynamic_inits = NULL;
+    /* Generate code to ensure that the initialization routine is called
+       at program startup.  If a .init section will be used for
+       initialization, skip this stuff. */
+#if !USE_INIT_SECTION_IN_GENERATED_C
+    make_code_to_invoke_file_scope_init_routine(init_rout);
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
   }  /* if */
+}  /* b_lower_file_scope_dynamic_inits */
+
+
+void lower_file_scope_dynamic_inits(void)
+/*
+Do lowering on the file-scope dynamic initializations list.  Also insert
+code to cause the generated initialization routine to be called at startup.
+*/
+{
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  if (one_instantiation_per_object) {
+    /* When generating one instantiation per object, each instantiation gets
+       its own initialization file. */
+    /* Each instantiation has an associated bit number.  The bit numbers
+       are assigned in increments of 2, to leave room for a class
+       definition needed bit associated with each instantiation. */
+    unsigned long needed_bit_number;
+    for (needed_bit_number = 1;
+         needed_bit_number <
+                 (il_header.number_of_external_nonclass_template_entities+1)*2;
+         needed_bit_number += 2) {
+      b_lower_file_scope_dynamic_inits(needed_bit_number);
+    }  /* for */
+    check_assertion_str(il_header.primary_scope->dynamic_inits == NULL,
+                    "lower_file_scope_dynamic_inits: not all entries lowered");
+  } else
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+  /* Do not insert code here; this is the "else" of an "if". */
+  {
+    b_lower_file_scope_dynamic_inits((unsigned long)0);
+    il_header.primary_scope->dynamic_inits = NULL;
+  }
 }  /* lower_file_scope_dynamic_inits */
 
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
@@ -6883,7 +7026,6 @@ are handled in il_lower_init.)
      headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(file_scope_init_routine),
       pch_saved_var_array_elem(vec_cctor_routine),
       pch_saved_var_array_elem(vec_cctor_eh_routine),
       pch_saved_var_array_elem(record_needed_destruction_routine),
@@ -6902,6 +7044,9 @@ are handled in il_lower_init.)
       pch_saved_var_array_elem(guid_array_type),
       pch_saved_var_array_elem(null_guid_variable),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if !USE_INIT_SECTION_IN_GENERATED_C
+      pch_saved_var_array_elem(linkl_type),
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -6926,9 +7071,11 @@ of the front end.
   memzero_routine = NULL;
   record_needed_destruction_routine = NULL;
   needed_destruction_type = NULL;
-  file_scope_init_routine = NULL;
   array_new_prefix_size_var = NULL;
   placement_array_new_routine = NULL;
+#if !USE_INIT_SECTION_IN_GENERATED_C
+  linkl_type = NULL;
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
 }  /* init_lower_init */
 
 #endif /* DO_IL_LOWERING */
