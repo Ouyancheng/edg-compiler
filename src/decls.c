@@ -1997,8 +1997,9 @@ scope is that of a class definition.
         /* Scan a parameter-declaration. */
         (void)decl_specifiers((DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
                                DSI_TYPE_SPECIFIER_ALLOWED |
-                               DSI_IS_PARAMETER),
-			      &dso_flags, &param_storage_class,
+                               DSI_IS_PARAMETER |
+                               DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER),
+                              &dso_flags, &param_storage_class,
                               &param_type_ptr);
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         defines_something = dso_flags & DSO_DEFINES_SOMETHING;
@@ -5195,7 +5196,6 @@ parameter controls the restrictions imposed by the context.
       set_err_pos_to_curr_token();
       (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
                             &dummy_storage_class, &dummy_type_ptr);
-      /* Note -- the check for dangling_type_specifier is not relevant here. */
       if (is_reference_type(complete_type)) {
         warning(ec_qualified_reference_type);
       }  /* if */
@@ -6660,7 +6660,10 @@ qualifiers, since in that case no type is built).  For C++ specifically,
 DSO_VIRTUAL, DSO_INLINE, and DSO_FRIEND are set to report that a
 "virtual", "inline", or "friend" keyword was scanned.  It also returns
 a name linkage specifier to signal when, for instance, ``extern "C"''
-was encountered (C++ only).
+was encountered (C++ only).  If DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER is
+true, then DSO_DANGLING_TYPE_SPECIFIER may be set for cases that are
+recognized as an omitted semi-colon or comma after a class or enum
+definition (e.g., "typedef int T; struct A { ... } T x;").
 
 Returns TRUE if there is an error in the specifiers.
 */
@@ -7567,7 +7570,8 @@ no_get_token:
       /* We are only interested in scanning type qualifiers (e.g., in a
          pointer declarator). */
       if (!is_type_qualifier()) goto exit_loop;
-    } else if (defines_something) {
+    } else if (defines_something &&
+               input_flags & DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER) {
       /* The basic type is a class, struct, union, or enum that actually
          defines a type.  We are especially interested in cases like this:
            class A {...}          <== Note the missing semicolon.
@@ -9189,14 +9193,17 @@ of local variables (and types, etc.) of functions and in blocks.
   if (!extern_implied) dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
   if (is_old_style_param_decl) {
     dsi_flags |= DSI_IS_PARAMETER;
-  } else if (function_definition_allowed) {
-    dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
-    /* "inline" is allowed only on function declarations at file scope. */
-    if (!extern_implied) dsi_flags |= DSI_INLINE_ALLOWED;
   } else {
-    /* A "vacuous declaration" of a class, struct, or union only makes sense
-       when we are not at file scope. */
-    dsi_flags |= DSI_VACUOUS_TAG_DECL_ALLOWED;
+    dsi_flags |= DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
+    if (function_definition_allowed) {
+      dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
+      /* "inline" is allowed only on function declarations at file scope. */
+      if (!extern_implied) dsi_flags |= DSI_INLINE_ALLOWED;
+    } else {
+      /* A "vacuous declaration" of a class, struct, or union only makes sense
+         when we are not at file scope. */
+      dsi_flags |= DSI_VACUOUS_TAG_DECL_ALLOWED;
+    }  /* if */
   }  /* if */
   /* Scan the initial declaration specifiers (including storage class,
      type specifiers, and type qualifiers).  For a function definition,

@@ -316,6 +316,12 @@ typedef int a_decl_flag_set;
 			   context of a pointer declarator.  What a token
 			   other than a type qualifier is seen, return
 			   immediately, without issuing any diagnostics. */
+#define DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER 0x1000
+			/* If this bit is set decl_specifiers will do special
+			   checking for a "dangling type specifier" -- an
+			   identifier that what may belong to a type specifier
+			   of a subsequent declaration because a ";" is
+			   missing. */
 /* Constants defining bits in the output bit vector returned from
    decl_specifiers. */
 #define DSO_NO_OUTPUT_FLAGS 0x0

@@ -5706,9 +5706,10 @@ Scan the body of a class definition, including the base classes list.
       }  /* if */
       scope_stack[decl_scope_level].current_access = access;
       /* Set the flags to control the calls to decl_specifiers. */
-      dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED;
+      dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
+                  DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
       if (C_dialect == C_dialect_cplusplus) {
-	dsi_flags |= (DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
+        dsi_flags |= (DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
                       DSI_IS_MEMBER_DECLARATION | DSI_INLINE_ALLOWED |
                       DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                       DSI_VACUOUS_TAG_DECL_ALLOWED);
