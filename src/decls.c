@@ -9281,6 +9281,7 @@ instruction's operands.
   } else {
     /* Skip past the "asm". */
     (void)get_token();
+#if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode && is_type_qualifier_token(curr_token)) {
       /* Scan a volatile and/or const qualifier.  The const qualifier is
          ignored with a warning.  Type qualifiers other than volatile and
@@ -9303,6 +9304,7 @@ instruction's operands.
         is_volatile = TRUE;
       }  /* if */
     }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Check for and skip the opening parenthesis. */
     (void)required_token(tok_lparen, ec_exp_lparen);
     add_stop_token(tok_rparen);
