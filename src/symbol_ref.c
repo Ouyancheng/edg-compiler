@@ -323,15 +323,15 @@ created for this entity; otherwise, it is NULL.
     a_symbol_ptr    old_sym_ptr;
 
     if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
-        sym_ptr->class_of_which_a_member != NULL) {
+        sym_ptr->is_class_member) {
       /* Ignore member definitions outside the class definition. */
     } else if (sym_ptr->kind == (a_symbol_kind)sk_parameter) {
       /* Ignore parameter symbols.  The only parameters that are interesting
          are the ones that have been turned into variables. */
     } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH ||
                depth_template_declaration_scope != NO_SCOPE_DEPTH ||
-               (sym_ptr->class_of_which_a_member != NULL &&
-                is_template_class_type(sym_ptr->class_of_which_a_member))) {
+               (sym_ptr->is_class_member &&
+                is_template_class_type(sym_ptr->parent.class_type))) {
       /* We don't deal with templates yet. */
     } else {
       scope_depth = scope_depth_of(sym_ptr, &is_local_to_function);
@@ -364,10 +364,9 @@ created for this entity; otherwise, it is NULL.
         for (old_sym_ptr = sym_ptr->header->inactive_symbols;
              old_sym_ptr != NULL;
              old_sym_ptr = old_sym_ptr->next) {
-          class_type = old_sym_ptr->class_of_which_a_member;
-          if (class_type != NULL) {
-            sp = class_type->
-                    variant.class_struct_union.extra_info->assoc_scope;
+          if (old_sym_ptr->is_class_member) {
+            sp = old_sym_ptr->parent.class_type->
+                          variant.class_struct_union.extra_info->assoc_scope;
             if (sp == NULL) {
               /* This can happen if a name is a member of class that is
                  a template parameter -- e.g.,
@@ -450,8 +449,7 @@ symbol "used" or "set", if appropriate.
       }  /* if */
     } else if (is_class_symbol(sym_ptr)) {
       tp = type_symbol_type(sym_ptr);
-      if (is_immediate_class_type(tp) &&
-          sym_ptr->class_of_which_a_member == NULL) {
+      if (is_immediate_class_type(tp) && !sym_ptr->is_class_member) {
         a_class_symbol_supplement_ptr  cssp;
         cssp = sym_ptr->variant.class_struct_union.extra_info;
         if (cssp->is_prototype_instantiation) {
@@ -702,7 +700,7 @@ the condition in which the access error should be suppressed.
 {
   a_boolean  result = FALSE;
   if (rp->special_kind == (a_special_function_kind)sfk_destructor &&
-      sym->class_of_which_a_member != class_of_object &&
+      sym->parent.class_type != class_of_object &&
       class_of_object != NULL) {
     result = TRUE;
   }  /* if */

@@ -1124,7 +1124,7 @@ unreachable code).
     check_assertion(ssep->kind == (a_scope_kind)sck_function ||
                     ssep->kind == (a_scope_kind)sck_block ||
                     ssep->kind == (a_scope_kind)sck_condition);
-    check_assertion(vp->source_corresp.class_of_which_a_member == NULL);
+    check_assertion(!vp->source_corresp.is_class_member);
     /* We are in executable code (i.e., inside a function or block rather
        than at file scope). */
     if (dip->kind != (a_dynamic_init_kind)dik_none) {
@@ -1372,7 +1372,7 @@ returned set to TRUE.
                     vp->storage_class == (a_storage_class)sc_static);
     /* The initializer of a static data member is scanned with the original
        class reactivated. */
-    push_class_reactivation_scope(symbol_ptr->class_of_which_a_member);
+    push_class_reactivation_scope(symbol_ptr->parent.class_type);
   } else if (static_lifetime && long_lifetime_temps &&
              depth_innermost_function_scope != NO_SCOPE_DEPTH) {
     /* This is the initialization of a local static variable, and the user
@@ -1709,7 +1709,7 @@ the default constructor (if one exists) is called.
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
         /* Perform the default initialization of a static data member with
            its parent class reactivated. */
-        push_class_reactivation_scope(sym->class_of_which_a_member);
+        push_class_reactivation_scope(sym->parent.class_type);
       }  /* if */
       cssp = symbol_supplement_for_class(tp);
       if (cssp->constructor != NULL) {
@@ -1944,8 +1944,7 @@ initialized.  These are addressed in the course of the processing.
   a_constructor_init_ptr        uninit_list = NULL, end_of_uninit_list = NULL;
 
   db_enter(3, "ctor_initializer");
-  class_type = ((a_symbol_ptr)ctor_rout->source_corresp.assoc_info)->
-                                                   class_of_which_a_member;
+  class_type = ctor_rout->source_corresp.parent.class_type;
   check_assertion(class_type != NULL);
   ctsp = class_type->variant.class_struct_union.extra_info;
   is_generated_cctor = !user_defined &&
@@ -2134,7 +2133,7 @@ initialized.  These are addressed in the course of the processing.
                                 member_or_base_sym, &error_position,
                                 /*update_il_entry=*/FALSE);
         if (member_or_base_sym->kind == (a_symbol_kind)sk_field &&
-            member_or_base_sym->class_of_which_a_member == class_type) {
+            member_or_base_sym->parent.class_type == class_type) {
           /* This is a field of the current class and may be mentioned in the
              constructor's initializer list.  But it's an error to refer to
              it by a qualified name. */
@@ -2767,8 +2766,7 @@ though neither constructors nor initialization is involved here.)
 
   db_enter(3, "dtor_initializer");
   source_pos = dtor_rout->source_corresp.decl_position;
-  class_type = ((a_symbol_ptr)dtor_rout->source_corresp.assoc_info)->
-                                                   class_of_which_a_member;
+  class_type = dtor_rout->source_corresp.parent.class_type;
   check_assertion(class_type != NULL);
   ctsp = class_type->variant.class_struct_union.extra_info;
   /* The order of destructor calls is exactly the reverse of the order of

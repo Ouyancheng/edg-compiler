@@ -887,7 +887,7 @@ there's no overflow TRUE is returned.
   db_enter(4, "set_field_size_and_offset");
   /* Set the size and alignment for the field's type, if necessary. */
   field_type = skip_typerefs(field->type);
-  class_type = field->source_corresp.class_of_which_a_member;
+  class_type = field->source_corresp.parent.class_type;
   set_type_size(field_type);
   if (is_error_type(field_type)) {
     overflow = FALSE;

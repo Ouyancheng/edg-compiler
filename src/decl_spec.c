@@ -477,7 +477,7 @@ to indicate whether the class/struct/union is actually defined.
   a_type_kind             type_kind;
   a_symbol_locator        locator;
   a_symbol_ptr            tag_sym, error_tag_sym = NULL;
-  a_symbol_ptr            parent;
+  a_symbol_ptr            parent_sym;
   a_boolean               tag_id_present;
   a_type_ptr              class_type;
   a_boolean               is_local_class = FALSE;
@@ -679,10 +679,10 @@ skip_tag_scan:
           }  /* if */
         }  /* if */
       }  /* if */
-      if (tag_sym != NULL && tag_sym->class_of_which_a_member != NULL) {
+      if (tag_sym != NULL && tag_sym->is_class_member) {
         /* Nested class. */
         if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
-            tag_sym->class_of_which_a_member == ssep->assoc_type) {
+            tag_sym->parent.class_type == ssep->assoc_type) {
           /* Redeclaration of nested class name inside the body of the class
              of which it is a member.  Be sure the access is consistent. */
           if (ssep->current_access !=
@@ -692,14 +692,14 @@ skip_tag_scan:
         } else if (is_class_definition) {
           /* A definition of a nested class that appears in the scope other
              than that of its parent class. */
-          parent = (a_symbol_ptr)tag_sym->class_of_which_a_member->
-                                                 source_corresp.assoc_info;
-          /* Find the outermost enclosing class. */
-          while (parent->class_of_which_a_member != NULL) {
-            parent = (a_symbol_ptr)parent->class_of_which_a_member->
+          parent_sym = (a_symbol_ptr)tag_sym->parent.class_type->
                                                   source_corresp.assoc_info;
+          /* Find the outermost enclosing class. */
+          while (parent_sym->is_class_member) {
+            parent_sym = (a_symbol_ptr)parent_sym->parent.class_type->
+                                                    source_corresp.assoc_info;
           }  /* while */
-          if (parent->decl_scope == ssep->number) {
+          if (parent_sym->decl_scope == ssep->number) {
             /* Okay to define the nested class in this scope -- it is the
                scope in which the parent was defined. */
             delayed_nested_class_def = TRUE;
@@ -779,9 +779,8 @@ skip_tag_scan:
             (vacuous_decl_allowed && curr_token == tok_semicolon)) {
           /* Either a definition or a vacuous declaration -- the latter
              introduces a name into the current scope. */
-          class_type->source_corresp.class_of_which_a_member =
-            tag_sym->class_of_which_a_member =
-                              scope_stack[decl_scope_level].assoc_type;
+          set_class_membership(tag_sym, &class_type->source_corresp,
+                               scope_stack[decl_scope_level].assoc_type);
           class_type->source_corresp.access = ssep->current_access;
         }  /* if */
       }  /* if */
@@ -973,8 +972,8 @@ to indicate whether an enumeration is actually defined.
     } else if (tag_sym != NULL && curr_token == tok_lbrace) {
       /* This is a definition of an enumeration that has previously been
          declared. */
-      if (tag_sym->class_of_which_a_member != NULL &&
-          tag_sym->class_of_which_a_member != class_of_which_a_member) {
+      if (tag_sym->is_class_member &&
+          tag_sym->parent.class_type != class_of_which_a_member) {
         /* This is an attempt to define a member enum outside the class of
            which it is a member. */
         pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
@@ -1020,7 +1019,6 @@ to indicate whether an enumeration is actually defined.
                                    /*suppress_redecl_error=*/FALSE);
       *declares_something = TRUE;
       set_source_corresp(&(enum_type->source_corresp), tag_sym);
-      tag_sym->class_of_which_a_member = class_of_which_a_member;
       tag_sym->variant.type = enum_type;
       if (curr_token == tok_lbrace) {
         mark_defined(tag_sym, &locator.source_position);
@@ -1033,7 +1031,6 @@ to indicate whether an enumeration is actually defined.
                                         &pos_curr_token);
       set_source_corresp(&(enum_type->source_corresp), tag_sym);
       enum_type->source_corresp.name = NULL;
-      tag_sym->class_of_which_a_member = class_of_which_a_member;
       tag_sym->variant.type = enum_type;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (curr_token == tok_lbrace) {
@@ -1050,12 +1047,12 @@ to indicate whether an enumeration is actually defined.
       enum_type->source_corresp.referenced = FALSE;
       enum_type->source_corresp.decl_position = locator.source_position;
     }  /* if */
+    set_class_membership(tag_sym, &enum_type->source_corresp,
+                         class_of_which_a_member);
     /* When an enumeration is defined within a class definition, its access
        should be set based on the access recorded in the current scope stack
        entry and its parent class should be recorded. */
     enum_type->source_corresp.access = access;
-    enum_type->source_corresp.class_of_which_a_member =
-                                                class_of_which_a_member;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
       /* In Microsoft compatibility mode enum types can be declared without
@@ -1074,7 +1071,7 @@ to indicate whether an enumeration is actually defined.
     /* Record cross-reference information. */
     if (curr_token == tok_lbrace) {
       mark_defined(tag_sym, &locator.source_position);
-      if (!C_mode() && tag_sym->class_of_which_a_member != NULL) {
+      if (!C_mode() && tag_sym->is_class_member) {
         /* enum_type is a class member and is being defined having been
            forward-declared. */
         if (enum_type->source_corresp.access != access) {
@@ -1248,8 +1245,8 @@ to indicate whether an enumeration is actually defined.
         enum_sym->variant.constant = enum_con;
         enum_con->type = enum_con_type;
         /* Specify membership and access. */
-        enum_con->source_corresp.class_of_which_a_member =
-                enum_sym->class_of_which_a_member = class_of_which_a_member;
+        set_class_membership(enum_sym, &enum_con->source_corresp,
+                             class_of_which_a_member);
         enum_con->source_corresp.access = access;
         mark_defined(enum_sym, &locator.source_position);
         /* Add the enumeration constant to the list under the enumerated
@@ -1415,7 +1412,7 @@ is a that of a constructor.
            carefully. */
         if (locator_for_curr_id.specific_symbol != NULL &&
             class_type ==
-               locator_for_curr_id.specific_symbol->class_of_which_a_member) {
+               locator_for_curr_id.specific_symbol->parent.class_type) {
           if (locator_for_curr_id.specific_symbol->kind !=
                                     (a_symbol_kind)sk_projection) {
             /* This can only mean that another member has been

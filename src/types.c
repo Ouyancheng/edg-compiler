@@ -1569,7 +1569,7 @@ base class casts and virtual function calls.
                that the "this" parameter points to a complete object, at
                least for purposes of resolving virtual calls (ARM 12.7). */
             complete_object_type =
-                          curr_routine->source_corresp.class_of_which_a_member;
+                          curr_routine->source_corresp.parent.class_type;
           }  /* if */
         } /* if */
       }  /* if */
@@ -1947,9 +1947,9 @@ funcs_not_identical:;
                   if (sym_1->header == sym_2->header) {
                     /* The names are the same. */
                     identical = (identical_types(type_1->source_corresp.
-                                                    class_of_which_a_member,
+                                                          parent.class_type,
                                                  type_2->source_corresp.
-                                                    class_of_which_a_member));
+                                                          parent.class_type));
                   }  /* if */
                   break;
                 case tptk_type_of_member_constant:
@@ -4632,8 +4632,8 @@ static a_boolean ttt_contains_template_param_constant(
   } else if (is_class_struct_union(type_ptr)) {
     /* For nested classes only the outermost class can have template
        arguments.  Find the outermost class before doing the check. */
-    while (type_ptr->source_corresp.class_of_which_a_member != NULL) {
-      type_ptr = type_ptr->source_corresp.class_of_which_a_member;
+    while (type_ptr->source_corresp.is_class_member) {
+      type_ptr = type_ptr->source_corresp.parent.class_type;
     }  /* while */
     /* Examing each template argument, if any. */
     for (tap = type_ptr->variant.class_struct_union.extra_info->
@@ -4721,8 +4721,8 @@ in that of its top-level parent class).
   if (is_immediate_class_type(type_ptr) || is_immediate_enum_type(type_ptr)) {
     if (type_ptr->source_corresp.name_linkage ==
                                         (a_name_linkage_kind)nlk_internal) {
-      while (type_ptr->source_corresp.class_of_which_a_member != NULL) {
-        type_ptr = type_ptr->source_corresp.class_of_which_a_member;
+      while (type_ptr->source_corresp.is_class_member) {
+        type_ptr = type_ptr->source_corresp.parent.class_type;
       }  /* while */
       sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
       sym->force_external_linkage = TRUE;
@@ -4808,7 +4808,7 @@ its parameters?).
 	/* Integer type -- if this is an enumeration we need to check
 	   enclosing classes. */
         if (type_ptr->variant.integer.enum_type &&
-	    type_ptr->source_corresp.class_of_which_a_member != NULL) {
+	    type_ptr->source_corresp.is_class_member) {
 	  goto check_enclosing_classes;
         }  /* if */
 	break;
@@ -4871,20 +4871,21 @@ its parameters?).
       case tk_template_param:
         /* "Member" template params (e.g., T::X) should have a pointer to a
            parent class. */
-        tp = type_ptr->source_corresp.class_of_which_a_member;
-        check_assertion((tp != NULL) ==
+        check_assertion((type_ptr->source_corresp.is_class_member) ==
                         (type_ptr->variant.template_param.kind ==
                                      (a_template_param_type_kind)tptk_member));
-        if (tp != NULL) {
+        if (type_ptr->source_corresp.is_class_member) {
+          tp = type_ptr->source_corresp.parent.class_type;
           tp = symbol_supplement_for_class(tp)->template_param_for_proxy_class;
           if (tp != NULL) {
-            status = traverse_type_tree(tp, func, flags);
+            if (traverse_type_tree(tp, func, flags)) {
+              status = TRUE;
+              break;
+            }  /* if */
           }  /* if */
-        }  /* if */
-        /* For cases where the template parameter is a member of another
-           class, check the enclosing classes too.  This is used for
-           cases like "template <class T> void f(A<T>::N)". */
-        if (type_ptr->source_corresp.class_of_which_a_member != NULL) {
+          /* For cases where the template parameter is a member of another
+             class, check the enclosing classes too.  This is used for
+             cases like "template <class T> void f(A<T>::N)". */
           goto check_enclosing_classes;
         }  /* if */
         break;
@@ -4901,8 +4902,8 @@ check_enclosing_classes:
 	  /* For nested classes only the outermost class can have
 	     template arguments.  Find the outermost class before doing
 	     the check. */
-          while (type_ptr->source_corresp.class_of_which_a_member != NULL) {
-            type_ptr = type_ptr->source_corresp.class_of_which_a_member;
+          while (type_ptr->source_corresp.is_class_member) {
+            type_ptr = type_ptr->source_corresp.parent.class_type;
           }  /* while */
           for (tap = type_ptr->variant.class_struct_union.extra_info->
                                                           template_arg_list;
@@ -5341,10 +5342,10 @@ to the caller.  If no modification is done return the original type.
     is_local = type->source_corresp.is_local_to_function;
     if (!is_local) {
       /* See if the type was defined in a prototype instantiation. */
-      cowam = type->source_corresp.class_of_which_a_member;
-      if (cowam != NULL) {
+      if (type->source_corresp.is_class_member) {
         a_symbol_ptr cowam_sym;
-        cowam_sym = (a_symbol_ptr)cowam->source_corresp.assoc_info;
+        cowam_sym = (a_symbol_ptr)type->source_corresp.parent.class_type->
+                                                  source_corresp.assoc_info;
         if (cowam_sym != NULL) {
           is_nonreal = !is_real_class_symbol(cowam_sym);
         }  /* if */
