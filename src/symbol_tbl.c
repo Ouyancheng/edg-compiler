@@ -7971,10 +7971,11 @@ Set the "value_has_been_set" flag of the variable symbol pointed to by sym.
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
-static void sym_update_source_sequence_list(a_symbol_ptr       sym,
-                                            a_source_position  *pos,
-                                            a_boolean          is_primary_decl,
-                                            a_source_sequence_entry_ptr old_ssep)
+static void sym_update_source_sequence_list(
+                                  a_symbol_ptr                 sym,
+                                  a_source_position            *pos,
+                                  a_boolean                    is_primary_decl,
+                                  a_source_sequence_entry_ptr  old_ssep)
 /*
 Allocate a source sequence entry for the IL entry to which sym refers and
 add it to the list for the appropriate scope.  If is_primary_decl is TRUE
@@ -8455,6 +8456,7 @@ locator_for_curr_id.
   pip->storage_class = (a_storage_class)sc_unspecified;
   pip->implicitly_declared = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  pip->has_default_arg = FALSE;
   pip->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
