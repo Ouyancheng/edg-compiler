@@ -779,7 +779,7 @@ top of the throw stack.
 #if DEBUG
   if (__debug_level >= 6) {
     db_throw_stack("at start of destroy_thrown_object");
-    fprintf(__f_debug, "Possibly destorying object associated with tsep %p\n",
+    fprintf(__f_debug, "Possibly destroying object associated with tsep %p\n",
             tsep);
   }  /* if */
 #endif /* DEBUG */
