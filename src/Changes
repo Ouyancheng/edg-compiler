@@ -1,5 +1,13 @@
 Version 3.5
 
+10/1/04  Warning instead of error on fixed-point folding overflow
+
+Overflow during folding of constant fixed-point operations is now
+diagnosed with a warning rather than an error, except in strict
+errors mode.
+
+  _Sat _Fract f1 = 0.6r + 0.6r;
+
 9/30/04  Internal error on type declared in parameter of class template member
 
 Under some circumstances, an IL write-read error was triggered when a class

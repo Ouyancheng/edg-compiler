@@ -37,6 +37,15 @@ operation overflows.
 #endif /* TARG_NO_ERROR_ON_INTEGER_OVERFLOW */
 #endif /* ifndef ES_INT_OVERFLOW */
 
+/*
+Determine the severity (error or warning) to be used for fixed-point
+operation overflows.
+*/
+#ifndef ES_FIXED_POINT_OVERFLOW
+#define ES_FIXED_POINT_OVERFLOW                                       \
+  (strict_ansi_mode ? strict_ansi_error_severity : es_warning)
+#endif /* ifndef ES_FIXED_POINT_OVERFLOW */
+
 
 a_boolean constant_bool_value_known_at_compile_time(a_constant_ptr con)
 /*
@@ -2095,7 +2104,7 @@ Do the negate operation on all types of fixed-point values.
              &err);
   if (err) {
     *err_code = ec_bad_fixed_operation_result;
-    *err_severity = es_error;
+    *err_severity = ES_FIXED_POINT_OVERFLOW;
   }  /* if */
 
 #if DEBUG
@@ -3261,7 +3270,7 @@ combinations of fixed-point and integer values.
   fxp_add(constant_1, constant_2, result, did_not_fold, &err);
   if (err) {
     *err_code = ec_bad_fixed_operation_result;
-    *err_severity = es_error;
+    *err_severity = ES_FIXED_POINT_OVERFLOW;
   }  /* if */
 
 #if DEBUG
@@ -3290,7 +3299,7 @@ combinations of fixed-point and integer values.
   fxp_subtract(constant_1, constant_2, result, did_not_fold, &err);
   if (err) {
     *err_code = ec_bad_fixed_operation_result;
-    *err_severity = es_error;
+    *err_severity = ES_FIXED_POINT_OVERFLOW;
   }  /* if */
 
 #if DEBUG
@@ -3319,7 +3328,7 @@ combinations of fixed-point and integer values.
   fxp_multiply(constant_1, constant_2, result, did_not_fold, &err);
   if (err) {
     *err_code = ec_bad_fixed_operation_result;
-    *err_severity = es_error;
+    *err_severity = ES_FIXED_POINT_OVERFLOW;
   }  /* if */
 
 #if DEBUG
@@ -3353,7 +3362,7 @@ combinations of fixed-point and integer values.
     fxp_divide(constant_1, constant_2, result, did_not_fold, &err);
     if (err) {
       *err_code = ec_bad_fixed_operation_result;
-      *err_severity = es_error;
+      *err_severity = ES_FIXED_POINT_OVERFLOW;
     }  /* if */
   }  /* if */
 
