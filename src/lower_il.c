@@ -6844,18 +6844,6 @@ Do IL lowering of the indicated scope and everything under it.
         param_var->type = make_pointer_type(param_var->type);
       }  /* if */
     }  /* for */
-    /* If the routine is the main program, insert a call of _main at its
-       start. */
-    if (routine == il_header.main_routine) {
-      a_routine_ptr      underscore_main = NULL;
-      a_statement_ptr    call_stmt;
-      an_insert_location insert_location;
-      (void)make_runtime_routine("_main", &underscore_main, void_type());
-      call_stmt = make_call_statement(underscore_main,
-                                      (an_expr_node_ptr)NULL);
-      set_block_start_insert_location(scope->assoc_block, &insert_location);
-      insert_statement(call_stmt, &insert_location);
-    }  /* if */
   }  /* if */
   lower_constant_list(scope->constants);
   if (lowering_file_scope) {
@@ -6940,6 +6928,19 @@ Do IL lowering of the indicated scope and everything under it.
     }  /* if */
     /* Add prologue code for exceptions. */
     if (exceptions_enabled) add_eh_function_prologue(scope);
+    /* If the routine is the main program, insert a call of _main at its
+       start.  This is done after inserting the exception handling function
+       prologue, if any, so that the call to _main is always first. */
+    if (routine == il_header.main_routine) {
+      a_routine_ptr      underscore_main = NULL;
+      a_statement_ptr    call_stmt;
+      an_insert_location insert_location;
+      (void)make_runtime_routine("_main", &underscore_main, void_type());
+      call_stmt = make_call_statement(underscore_main,
+                                      (an_expr_node_ptr)NULL);
+      set_block_start_insert_location(scope->assoc_block, &insert_location);
+      insert_statement(call_stmt, &insert_location);
+    }  /* if */
     /* Free any return memos that were not used. */
     free_return_memo_list(return_memo_list);
   }  /* if */
