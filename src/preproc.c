@@ -16,7 +16,6 @@ preproc.c -- Preprocessing directives.
 
 /* Header files common to all files. */
 #include "fe_common.h"
-#include "symbol_tbl.h"
 
 #if HDRSTOP_RECOGNIZED
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -25,12 +24,13 @@ preproc.c -- Preprocessing directives.
 #endif /* HDRSTOP_RECOGNIZED */
 
 /* Additional header files. */
-#include "preproc.h"
 #include "decls.h"
 #include "expr.h"
-#include "symbol_ref.h"
 #include "macro.h"
 #include "pch.h"
+#include "pragma.h"
+#include "preproc.h"
+#include "symbol_ref.h"
 
 typedef struct a_pp_if_stack_entry *a_pp_if_stack_entry_ptr;
 typedef struct a_pp_if_stack_entry {

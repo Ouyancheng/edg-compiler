@@ -15,7 +15,6 @@ symbol_ref.c - Routines to manage references to symbols.
 
 /* Header files common to all files. */
 #include "fe_common.h"
-#include "symbol_tbl.h"
 
 #if HDRSTOP_RECOGNIZED
 /* Mark the end of the sequence of headers subject to precompiled header

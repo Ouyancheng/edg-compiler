@@ -24,9 +24,6 @@ error.c -- Error reporting routines.
 
 #include "err_data.h"
 #if !STANDALONE_UTILITY_PROGRAM
-#include "symbol_tbl.h"
-#include "lexical.h"
-#include "types.h"
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_write.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */

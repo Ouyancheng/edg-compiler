@@ -15,10 +15,6 @@ cmd_line.c -- Command-line parsing.
 
 /* Header files common to all files. */
 #include "fe_common.h"
-/* It's really lexical.h that needs to be included, but since symbol_tbl.h
-   and lexical.h include each other, this is equivalent.  And it is preferred
-   if a precompiled header file is being generated. */
-#include "symbol_tbl.h"
 
 #if HDRSTOP_RECOGNIZED
 /* Mark the end of the sequence of headers subject to precompiled header
