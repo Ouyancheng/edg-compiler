@@ -800,7 +800,8 @@ static a_base_class_ptr corresponding_base_class(a_base_class_ptr base_class,
 Find the base class under new_class that is the same as the base class
 indicated by base_class under old_class, and return a pointer to it.  The
 base class must be found.  If base_class is NULL, find the base class for
-old_class under new_class.
+old_class under new_class.  If old_class is NULL it means we don't know
+(or don't case) what it is; in such a case, base_class may not be NULL.
 */
 {
   a_base_class_ptr new_base_class, bcp;
@@ -810,6 +811,11 @@ old_class under new_class.
        bcp != NULL;
        bcp = bcp->next) {
     if (base_class == NULL) {
+#if CHECKING
+      if (old_class == NULL) {
+        internal_error("corresponding_base_class: base_class=old_class=NULL");
+      }  /* if */
+#endif /* CHECKING */
       if (bcp->type == old_class) {
         /* Found old_class as a base class of new_class. */
         new_base_class = bcp;
@@ -817,9 +823,6 @@ old_class under new_class.
       }  /* if */
     } else if (bcp->type == base_class->type) {
       /* The types match. */
-#if 0
-/* Also check whether bcp->is_virtual == base_class->is_virtual ?? */
-#endif /* if 0 */
       if (!bcp->ambiguous && !base_class->ambiguous) {
         new_base_class = bcp;
         goto done;
@@ -851,7 +854,11 @@ old_class under new_class.
       db_base_class(base_class, FALSE);
     }  /* if */
     fputs("old_class = ", f_debug);
-    db_name(&old_class->source_corresp);
+    if (old_class == NULL) {
+      fputs("NULL", f_debug);
+    } else {
+      db_name(&old_class->source_corresp);
+    }  /* if */
     fputs("; new_class = ", f_debug);
     db_name(&new_class->source_corresp);
     fputs(" with base classes:\n", f_debug);
@@ -865,6 +872,13 @@ old_class under new_class.
   new_base_class = NULL;
 #endif /* CHECKING */
 done:
+#if CHECKING
+  if (new_base_class != NULL &&
+      new_base_class->is_virtual != base_class->is_virtual) {
+    /* Virtual and nonvirtual shouldn't base classes shouldn't match. */
+    internal_error("corresponding_base_class: virtual-nonvirtual mismatch");
+  }  /* if */
+#endif /* CHECKING */
   db_exit();
 #if DEBUG
   if (debug_level >= 4) {
@@ -1930,7 +1944,7 @@ for ambiguity and duplicate paths.  The copy will be a base class of new_class.
     /* According to cfront all virtual base classes are complete subobjects. */
     new_bcp->complete_subobject = TRUE;
   } else {
-    new_bcp->complete_subobject = directly_derived_bcp->complete_subobject;
+    new_bcp->complete_subobject = base_class_to_copy->complete_subobject;
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
   }  /* if */
   new_bcp->any_virtual_steps_in_derivation =
@@ -4354,6 +4368,124 @@ virtual base class pointer is shared with some other base class.
 }  /* fixup_shared_virtual_base_class_offsets */
 
 
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+static void set_offsets_for_corresponding_virtual_base_classes(
+                                              a_base_class_ptr  base_class,
+                                              a_boolean         use_decl_order,
+                                              a_type_ptr        class_type,
+                                              a_targ_size_t     *p_byte_offset,
+                                              int               *p_bit_offset,
+                                              a_targ_alignment  *p_alignment,
+                                              a_boolean         *any_overflow)
+/*
+*/
+{
+  a_targ_size_t     size;
+  a_targ_alignment  alignment;
+  a_base_class_ptr  bcp;
+
+  db_enter(4, "set_offsets_for_corresponding_virtual_base_classes");
+  for (; base_class != NULL; base_class = base_class->next) {
+    if (base_class->is_virtual && base_class->direct &&
+        base_class->data_section_base_class == NULL) {
+      if (!use_decl_order) {
+        set_offsets_for_corresponding_virtual_base_classes(
+                                 base_class->next, use_decl_order, class_type,
+                                 p_byte_offset, p_bit_offset, p_alignment,
+                                 any_overflow);
+      }  /* if */
+      bcp = corresponding_base_class(base_class, /*old_type=*/(a_type_ptr)NULL,
+                                     class_type);
+      if (bcp->data_section_base_class == NULL && !*any_overflow) {
+        if (bcp->complete_subobject) {
+          alignment = bcp->type->alignment;
+          size = bcp->type->size;
+        } else {
+          alignment = bcp->type->variant.class_struct_union.extra_info->
+                                        alignment_without_virtual_base_classes;
+          size = bcp->type->variant.class_struct_union.extra_info->
+                                        size_without_virtual_base_classes;
+        }  /* if */
+        if (!do_alignment(p_byte_offset, p_bit_offset, alignment)) {
+          error(ec_struct_too_large);
+          *any_overflow = TRUE;
+          break;
+        } else {
+          /* Record the current offset in the data_section_offset of the
+             virtual base class entry.  This allows for direct access of
+             its fields (rather than through a pointer) as an optimization
+             under certain circumstances. */
+          bcp->offset = *p_byte_offset;
+          if (*p_alignment < alignment) {
+            *p_alignment = alignment;
+          }  /* if */
+          if (!increment_field_offsets(p_byte_offset, p_bit_offset,
+                                       size, 0)) {
+            error(ec_struct_too_large);
+            *any_overflow = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (!use_decl_order) break;
+    }  /* if */
+  }  /* for */
+  db_exit();
+}  /* set_offsets_for_corresponding_virtual_base_classes */
+
+
+static void set_offsets_for_indirect_virtual_base_classes(
+                                              a_base_class_ptr  base_class,
+                                              a_boolean         use_decl_order,
+                                              a_type_ptr        class_type,
+                                              a_targ_size_t     *p_byte_offset,
+                                              int               *p_bit_offset,
+                                              a_targ_alignment  *p_alignment,
+                                              a_boolean         *any_overflow)
+/*
+base_class is a direct or indirect base class of class_type for which
+the complete_subobject flag is FALSE and whose virtual base classes, therefore,
+may space reserved in the compete derived class.  Examine the direct
+virtual base classes of base_class, find the corresponding indirect virtual
+base class of class_type, and allocate space for the latter.
+*/
+{
+  a_base_class_ptr  base_class_list, bcp;
+
+  db_enter(4, "set_offsets_for_indirect_virtual_base_classes");
+  if (base_class == NULL) {
+    base_class_list = class_type->
+                           variant.class_struct_union.extra_info->base_classes;
+  } else {
+    base_class_list = base_class->type->
+                           variant.class_struct_union.extra_info->base_classes;
+  }  /* if */
+  if (use_decl_order) {
+    set_offsets_for_corresponding_virtual_base_classes(
+                                 base_class_list, use_decl_order, class_type,
+                                 p_byte_offset, p_bit_offset, p_alignment,
+                                 any_overflow);
+  }  /* if */
+  for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct && !bcp->complete_subobject) {
+      set_offsets_for_indirect_virtual_base_classes(bcp, !use_decl_order,
+                                                    class_type, p_byte_offset,
+                                                    p_bit_offset, p_alignment,
+                                                    any_overflow);
+      break;
+    }  /* if */
+  }  /* for */
+  if (!use_decl_order) {
+    set_offsets_for_corresponding_virtual_base_classes(
+                                 base_class_list, use_decl_order, class_type,
+                                 p_byte_offset, p_bit_offset, p_alignment,
+                                 any_overflow);
+  }  /* if */
+  db_exit();
+}  /* set_offsets_for_indirect_virtual_base_classes */
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+
+
 static void set_offsets_for_virtual_base_classes(a_type_ptr     class_type,
                                                  a_targ_size_t  *p_byte_offset,
                                                  int            *p_bit_offset,
@@ -4370,8 +4502,6 @@ virtual subobjects exceeds the current maximum.  *any_overflow is TRUE if
 the object has already been reported to be too large.
 */
 {
-  a_targ_size_t         	size;
-  a_targ_alignment		alignment;
   a_class_type_supplement_ptr	ctsp;
   a_base_class_ptr              bcp;
   
@@ -4400,29 +4530,26 @@ the object has already been reported to be too large.
   ctsp->alignment_without_virtual_base_classes = *p_alignment;
   if (class_type->variant.class_struct_union.any_virtual_base_classes &&
       !*any_overflow) {
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+    set_offsets_for_indirect_virtual_base_classes((a_base_class_ptr)NULL,
+                                                  /*use_decl_order=*/FALSE,
+                                                  class_type, p_byte_offset,
+                                                  p_bit_offset, p_alignment,
+                                                  any_overflow);
+#else
     bcp = ctsp->base_classes;
     if (bcp != NULL) {
       /* Now add the virtual base classes to the storage.  This is done
          almost exactly as for nonvirtual base classes. */
       for (; bcp != NULL; bcp = bcp->next) {
         if (bcp->is_virtual) {
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-            /* If the data section for the virtual base class is shared with
-               another base class, it should not have space allocated for it
-               again. */
-          if (bcp->data_section_base_class != NULL) continue;
-          if (bcp->complete_subobject) {
-            alignment = bcp->type->alignment;
-            size = bcp->type->size;
-          } else {
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-            alignment = bcp->type->variant.class_struct_union.extra_info->
+          a_targ_size_t     size;
+          a_targ_alignment  alignment;
+
+          alignment = bcp->type->variant.class_struct_union.extra_info->
                                         alignment_without_virtual_base_classes;
-            size = bcp->type->variant.class_struct_union.extra_info->
+          size = bcp->type->variant.class_struct_union.extra_info->
                                         size_without_virtual_base_classes;
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-          }  /* if */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
           if (!do_alignment(p_byte_offset, p_bit_offset, alignment)) {
             error(ec_struct_too_large);
             *any_overflow = TRUE;
@@ -4446,6 +4573,7 @@ the object has already been reported to be too large.
         }  /* if */
       }  /* for */
     }  /* if */
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
   }  /* if */
   db_exit();
 }  /* set_offsets_for_virtual_base_classes */
