@@ -239,10 +239,6 @@ a_symbol_ptr create_proxy_or_nonreal_class_member
 					 an_id_lookup_options_set options,
 					 a_symbol_locator         *locator);
 
-extern a_symbol_ptr create_alternate_nontype_nonreal_member(
-					a_symbol_ptr	orig_sym,
-					a_symbol_kind	kind);
-
 extern
 a_type_ptr proxy_class_for_template_param(a_type_ptr   templ_param_type);
 

@@ -32,6 +32,7 @@ typedef struct a_template_param *a_template_param_ptr;
 typedef struct an_access_error_descr *an_access_error_descr_ptr;
 typedef struct a_template_cache_segment *a_template_cache_segment_ptr;
 typedef struct a_template_decl_info *a_template_decl_info_ptr;
+typedef struct a_nondependent_call_info *a_nondependent_call_info_ptr;
 typedef struct a_template_cache *a_template_cache_ptr;
 typedef struct a_control_flow_descr a_control_flow_descr_dummy_typedef;
 typedef struct an_exception_spec_error_descr
@@ -1048,7 +1049,42 @@ typedef struct a_template_decl_info {
 			   the template declaration.  Used during lookup
 			   to exclude names not visible at the point of
 			   template definition. */
+  a_nondependent_call_info_ptr
+		nondependent_calls;
+			/* A list of entries that describe the nondependent
+			   calls within this template.  NULL is no such list
+			   exists. */
+  a_nondependent_call_info_ptr
+		last_nondependent_call;
+			/* Pointer to the end of the list of nondependent
+			   calls. */
 } a_template_decl_info;
+
+
+/*
+Structure used to record information about nondependent calls.
+An entry is created during the prototype instantiation of a call.
+The list is traversed during a real instantiation, and a matching
+entry is returned if a given call is nondependent.  Entries are
+matched using a token sequence number.  The list is maintained in
+token sequence number order.
+*/
+typedef struct a_nondependent_call_info {
+  a_nondependent_call_info_ptr
+		next;
+			/* The next entry in the list.  NULL for the last
+			   entry. */
+  a_token_sequence_number
+		token_sequence_number;
+			/* Token sequence number that identifies the location
+			   of the call.  For normal calls, this is the
+			   number associated with the "(" of the argument
+			   list.  For calls made via operators, this is the
+			   position of the operator. */
+  a_symbol_ptr	symbol;
+			/* Pointer to the symbol of the function to be
+			   called. */
+} a_nondependent_call_info;
 
 
 /*
@@ -2528,6 +2564,13 @@ a_template_cache_segment_ptr alloc_template_cache_segment(
 extern void free_template_cache_segment(a_template_cache_segment_ptr tcsp);
 
 extern a_template_decl_info_ptr alloc_template_decl_info(void);
+
+extern a_symbol_ptr get_symbol_if_nondependent_call(
+				a_token_sequence_number		tsn,
+				a_nondependent_call_info_ptr	*list_ptr);
+
+extern void record_nondependent_call(a_symbol_ptr		symbol,
+				     a_token_sequence_number	tsn);
 
 extern a_templ_friend_info_ptr alloc_templ_friend_info(void);
 

@@ -503,6 +503,62 @@ as the class type, and use as a base class.
 }  /* proxy_class_for_template_param */
 
 
+a_symbol_ptr create_unknown_function_symbol(a_symbol_locator	*locator)
+/*
+Create a ck_constant entry of kind tpck_unknown_function, and an sk_constant
+symbol that points to the constant.  These constants are used during
+prototype instantiations to represent functions in dependent calls.
+*/
+{
+  /* Create a ck_template_param constant.  We don't know the type of the
+     constant so we use a special template parameter type that represents
+     the type of an unknown constant. */
+  a_constant_ptr		constant;
+  a_scope_depth			depth = NO_SCOPE_DEPTH;
+  a_symbol_ptr			sym;
+  a_source_correspondence	*scp;
+  a_type_ptr			parent_class;
+  a_namespace_ptr		parent_namespace;
+
+  parent_class = qualifier_class_type(*locator);
+  parent_namespace = qualifier_namespace_ptr(*locator);
+#if RECORD_SCOPE_DEPTH_IN_IL
+  {
+    a_source_correspondence	*parent_scp = NULL;
+    /* Get the source correspondence entry associated with the parent class
+       or namespace, if any. */
+    if (parent_class != NULL) {
+      parent_scp = &parent_class->source_corresp;
+    } else {
+      if (parent_namespace != NULL) {
+        parent_scp = &parent_namespace->source_corresp;
+      }  /* if */
+    }  /* if */
+    if (parent_scp != NULL) {
+      depth = parent_scp->scope_depth;
+    }  /* if */
+  }
+#endif /* RECORD_SCOPE_DEPTH_IN_IL */
+  /* Create a symbol for the member.  mark_declared is not called
+     because this symbol is not visible to the user. */
+  sym = alloc_symbol((a_symbol_kind)sk_constant, locator->symbol_header,
+                     &locator->source_position);
+  constant = fs_constant((a_constant_repr_kind)ck_template_param);
+  set_template_param_constant_kind(
+              constant, (a_template_param_constant_kind)tpck_unknown_function);
+  sym->variant.constant = constant;
+  constant->type = type_of_unknown_templ_param_nontype;
+  scp = &constant->source_corresp;
+  if (scp != NULL) set_source_corresp_with_scope_depth(scp, sym, depth);
+  if (parent_class != NULL) {
+    set_class_membership(sym, scp, parent_class);
+  } else if (parent_namespace != NULL) {
+    set_namespace_membership(sym, scp, parent_namespace);
+  }  /* if */
+  return sym;
+}  /* create_unknown_function_symbol */
+
+
 /*
 Macro that returns the symbol kind for a nonreal member created for the
 current lookup options.  The symbol is created as a class template
@@ -637,35 +693,6 @@ routine.
   db_exit();
   return sym;
 }  /* create_proxy_or_nonreal_class_member_of_kind */
-
-
-a_symbol_ptr create_alternate_nontype_nonreal_member(
-					a_symbol_ptr	orig_sym,
-					a_symbol_kind	kind)
-/*
-orig_sym is a symbol that is a member of a proxy or nonreal class.
-Create an alternate nontype symbol of the specified kind if one does
-not already exist.  When a new symbol is created, it is linked using
-the next_in_scope pointer of the symbol.  A previously created symbol
-is found by searching this list.
-*/
-{
-  a_symbol_ptr	sym;
-
-  /* Look for a previously created symbol of the desired kind. */
-  for (sym = orig_sym->next_in_scope; sym != NULL; sym = sym->next_in_scope) {
-    if (sym->kind == kind) break;
-  }  /* for */
-  if (sym == NULL) {
-    /* No symbol was found.  Create a new one and link it into the list. */
-    sym = create_proxy_or_nonreal_class_member_of_kind(
-                       orig_sym->parent.class_type, &orig_sym->decl_position,
-                       kind, orig_sym->header);
-    sym->next_in_scope = orig_sym->next_in_scope;
-    orig_sym->next_in_scope = sym;
-  }  /* if */
-  return sym;
-}  /* create_alternate_nontype_nonreal_member */
 
 
 a_symbol_ptr create_proxy_or_nonreal_class_member

@@ -1556,6 +1556,11 @@ enum a_template_param_constant_kind_tag {
 			   assumed to be a member of T and a constant).
 			   Can also be used for the address of a member
 			   (a flag indicates address versus value). */
+  tpck_unknown_function,
+			/* Represents a function call in a template context
+			   where overload resolution cannot be done (e.g.,
+			   because the argument types involve template
+			   parameters). */
   tpck_cast,		/* The template param constant represents some constant
 			   (ck_template_param or other) cast to a type that
 			   contains a template parameter type. */

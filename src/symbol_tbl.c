@@ -88,6 +88,7 @@ static unsigned long
 		num_substituted_type_list_entries_allocated,
 		num_template_cache_segments_allocated,
 		num_template_decl_info_allocated,
+		num_nondependent_call_info_allocated,
 		num_templ_friend_info_allocated,
 		num_namespace_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
@@ -1926,6 +1927,8 @@ fields, and return a pointer to it.
   tdip->enclosing_template_decl = NULL;
   tdip->name_linkage = (a_name_linkage_kind)nlk_none;
   tdip->decl_seq = 0;
+  tdip->nondependent_calls = NULL;
+  tdip->last_nondependent_call = NULL;
 #if DEBUG
   num_template_decl_info_allocated++;
 #endif /* DEBUG */
@@ -1933,6 +1936,101 @@ fields, and return a pointer to it.
   return tdip;
 }  /* alloc_template_decl_info */
 
+
+static a_nondependent_call_info_ptr alloc_nondependent_call_info(void)
+/*
+Allocate a new nondependent call information entry, initialize its
+fields, and return a pointer to it.
+*/
+{
+  a_nondependent_call_info_ptr  ndcip;
+
+  /* Allocate the entry. */
+  ndcip = (a_nondependent_call_info_ptr)
+                                   alloc_fe(sizeof(a_nondependent_call_info));
+  ndcip->next = NULL;
+  ndcip->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+  ndcip->symbol = NULL;
+#if DEBUG
+  num_nondependent_call_info_allocated++;
+#endif /* DEBUG */
+  return ndcip;
+}  /* alloc_nondependent_call_info */
+
+
+a_symbol_ptr get_symbol_if_nondependent_call(
+				a_token_sequence_number		tsn,
+				a_nondependent_call_info_ptr	*list_ptr)
+/*
+If "tsn" is the token sequence number of a nondependent call in the
+nondependent call list pointed to by "list_ptr", return the associated
+symbol, otherwise return NULL.  The list is maintained in token sequence
+number order, and "list_ptr" points to the next unused entry on the list.
+When a list entry is found, "list_ptr" is updated to point to the next
+unused entry.
+*/
+{
+  a_symbol_ptr	result = NULL;
+
+  /* Find the next entry on the list whose token sequence number is not
+     before the one that we are looking for.  Entries should only
+     be skipped in error recovery cases. */
+  while (*list_ptr != NULL && tsn > (*list_ptr)->token_sequence_number) {
+    *list_ptr = (*list_ptr)->next;
+  }  /* while */
+  if (*list_ptr != NULL) {
+    if (tsn == (*list_ptr)->token_sequence_number) {
+      /* The token sequence number matches the next entry on the list.
+         Return the symbol and move to the next entry on the list. */
+      result = (*list_ptr)->symbol;
+      *list_ptr = (*list_ptr)->next;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* get_symbol_if_nondependent_call */
+
+
+void record_nondependent_call(a_symbol_ptr		symbol,
+			      a_token_sequence_number	tsn)
+/*
+This routine is called within the scope of a template (either a
+template declaration scope or a prototype instantiation) to record
+the result of overload resolution for a nondependent call.  "symbol"
+is the function symbol for the function to be called.  "tsn" is a
+token sequence number used to represent this call so that the
+entry can be found during a real instantiation.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_scope_depth			depth_to_use;
+  a_template_decl_info_ptr	tdip;
+  a_nondependent_call_info_ptr	ndcip;
+
+  /* Find the innermost template declaration or template instantiation
+     scope. */
+  depth_to_use = depth_innermost_instantiation_scope;
+  if (depth_to_use < depth_template_declaration_scope) {
+    depth_to_use = depth_template_declaration_scope;
+  } else {
+    /* A template instantiation scope must be for a prototype instantiation. */
+    check_assertion(depth_to_use != NO_SCOPE_DEPTH);
+    check_assertion(scope_stack[depth_to_use].in_prototype_instantiation);
+  }  /* if */
+  check_assertion(depth_to_use != NO_SCOPE_DEPTH);
+  ssep = &scope_stack[depth_to_use];
+  tdip = ssep->template_decl_info;
+  check_assertion(tdip != NULL);
+  /* Create a nondependent call entry and add it to the end of the list. */
+  ndcip = alloc_nondependent_call_info();
+  ndcip->symbol = symbol;
+  ndcip->token_sequence_number = tsn;
+  if (tdip->nondependent_calls == NULL) tdip->nondependent_calls = ndcip;
+  if (tdip->last_nondependent_call != NULL) {
+    tdip->last_nondependent_call->next = ndcip;
+  }  /* if */
+  tdip->last_nondependent_call = ndcip;
+}  /* record_nondependent_call */
+				
 
 a_templ_friend_info_ptr alloc_templ_friend_info(void)
 /*
@@ -9643,6 +9741,8 @@ for space tracking purposes.
                      a_template_cache_segment);
   db_space_used("template decl info", num_template_decl_info_allocated,
                 a_template_decl_info);
+  db_space_used("nodependent call info", num_nondependent_call_info_allocated,
+                a_nondependent_call_info);
   db_space_used("templ friend def arg", num_templ_friend_info_allocated,
                 a_templ_friend_info);
   db_space_used("namespace list entry", num_namespace_list_entries_allocated,
@@ -9974,6 +10074,7 @@ of the front end.
   num_substituted_type_list_entries_allocated  = 0;
   num_template_cache_segments_allocated        = 0;
   num_template_decl_info_allocated             = 0;
+  num_nondependent_call_info_allocated         = 0;
   num_templ_friend_info_allocated              = 0;
   num_namespace_list_entries_allocated         = 0;
   num_extern_symbol_descrs_allocated           = 0;

@@ -2759,6 +2759,10 @@ enable_microsoft_mode:
   /* FIXME -- temporarily disable nonclass prototype instantiations. */
   nonclass_prototype_instantiations = FALSE;
 #endif
+  /* Do argument dependent lookup when doing dependent name processing. */
+  if (do_dependent_name_processing) {
+    arg_dependent_lookup_enabled = TRUE;
+  }  /* if */
   /* If no directory was specified for #import, use the current directory. */
   if (import_dir_name == NULL) {
     import_dir_name = ".";
