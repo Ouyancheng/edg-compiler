@@ -1,5 +1,19 @@
 Version 2.21
 
+12/16/93  Determining the signedness of bit fields
+
+It had been that when TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED was TRUE a
+plain "int" on a bit field declaration was turned into an unsigned int.
+This behavior has been extended to other integral types, "char", "short",
+"long", and "long long".
+
+12/16/93  Function template for operator new()
+
+We now issue an error on declaring a function template for the
+one-parameter version of operator new().  This is because it cannot be
+overloaded.  The same restriction had already been in place for operator
+delete().
+
 12/15/93  Allocation-cleanup for exception handling
 
 When a "new" allocation is done outside of a constructor, the address
@@ -31,17 +45,17 @@ while trying to generate virtual function tables if the most-derived
 class contained no virtual function declarations but still had an
 effect on the virtual function tables for its base classes:
 
-	struct W {
-		virtual int f() = 0;
-		virtual int g() = 0;
-	};
-	struct A : public virtual W {
-		int f();
-	};
-	struct B : public virtual W {
-		int g();
-	};
-	class C : public A, public B { };
+  struct W {
+    virtual int f() = 0;
+    virtual int g() = 0;
+  };
+  struct A : public virtual W {
+    int f();
+  };
+  struct B : public virtual W {
+    int g();
+  };
+  class C : public A, public B { };
 
 12/15/93  IL change: shares_virtual_function_info added to a_base_class
 
