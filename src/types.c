@@ -2007,11 +2007,15 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         okay = TRUE;
         *warning_suggested = default_warning_code;
       } else if (!suppress_extensions &&
-                 interchangeable_types(unqual_dest_type_pointed_to,
-                                       unqual_source_type_pointed_to)) {
+                 (interchangeable_types(unqual_dest_type_pointed_to,
+                                        unqual_source_type_pointed_to) ||
+                  (is_function(unqual_dest_type_pointed_to) &&
+                   is_function(unqual_source_type_pointed_to)))) {
         /* In ANSI C and C++ mode, allow conversion between pointers to
            interchangeable types, as an extension, with a warning.
            This covers cases like unsigned char * --> char *. */
+        /* Also, allow conversion between incompatible pointers to functions,
+           with a warning. */
         okay = TRUE;
         *warning_suggested = default_warning_code;
       }  /* if */

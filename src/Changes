@@ -1,5 +1,16 @@
 Version 2.13
 
+12/8/92  Relaxation of pointer-to-function type checking
+
+The comparison and assignment in the following are now allowed,
+with a warning (this turns out to be needed for the OSF source):
+
+  int (*fn1)();
+  void (*fn2)();
+  main() {
+    if (fn1 == fn2) fn2 = fn1;
+  }
+
 12/7/92  Error on odd pointer "-" case
 
 An error is now issued for the following case.  It'd odd in that in C
