@@ -325,15 +325,17 @@ extern void make_expression_operand(an_expr_node_ptr node,
                                     a_type_ptr       type,
 			            an_operand       *operand);
 
-extern void add_cast_to_node(an_expr_node_ptr *p_node,
-                             a_type_ptr       new_type);
-
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 
 extern void cast_operand(a_type_ptr         new_type,
 		         an_operand         *operand,
                          an_expression_kind expression_kind,
 		         a_boolean          issue_type_chg_warning);
+
+extern void base_class_cast_operand(an_operand         *operand_1,
+                                    a_boolean          is_arrow_operator,
+                                    a_base_class_ptr   base_class,
+                                    an_expression_kind expression_kind);
 
 extern void make_error_operand(an_operand *operand);
 
