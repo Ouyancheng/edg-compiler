@@ -615,7 +615,9 @@ that do take arguments.
             break;
           }  /* if */
         }  /* for */
-        if (i == (int)fak_last) goto error;
+        if (i == (int)fak_last) {
+          pos_st_warning(ec_unrecognized_format_function_type, &pos, name);
+        }  /* if */
         attribute->variant.format.kind = (a_format_attribute_kind)i;
         /* Read the arguments that indicate the format string argument
            and the start of the variable arguments. */
@@ -1486,6 +1488,10 @@ messages about any invalid attributes.
               /* The EDG support does not support strftime format
                  checking, so this form of the attribute is silently
                  ignored. */
+              break;
+            case fak_last:
+              /* An unrecognized format function type.  A warning was
+                 already issued. */
               break;
             default:
               unexpected_condition();
