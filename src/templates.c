@@ -1853,9 +1853,11 @@ Rescan the default arguments of a function template.
   a_def_arg_expr_fixup_ptr	daefp;
   a_param_type_ptr		templ_ptp;
   a_param_type_ptr		ptp;
-  a_type_ptr			templ_rout_type = templ_rout->type;
-  a_type_ptr			rout_type = rout_ptr->type;
+  a_type_ptr			templ_rout_type;
+  a_type_ptr			rout_type;
 
+  templ_rout_type = skip_typerefs(templ_rout->type);
+  rout_type = skip_typerefs(rout_ptr->type);
   daefp = tssp->variant.function.def_arg_expr_list;
   if (daefp != NULL) {
     templ_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
@@ -2177,6 +2179,7 @@ return FALSE.
   a_param_type_ptr                  ptp, other_ptp;
 
   db_enter(3, "is_match_for_function_template");
+  curr_type = skip_typerefs(curr_type);
 #if CHECKING
   if (!is_function_type(curr_type)) {
     internal_error("is_match_for_function_template: expected routine type");
@@ -2192,7 +2195,7 @@ return FALSE.
     tssp = templ_sym->variant.template_info;
   }  /* if */
   tssp = templ_sym->variant.template_info;
-  templ_rout_type = tssp->variant.function.routine->type;
+  templ_rout_type = skip_typerefs(tssp->variant.function.routine->type);
   /* First be sure the number of parameters in the template function is
      equal to the number in param_type_list. */
   ptp = curr_type->variant.routine.extra_info->param_type_list;
@@ -2224,7 +2227,7 @@ return FALSE.
        This is no longer done because these entries must be examined this
        routine is called during instantiation pragma processing. */
     sym = tip->instance_sym;
-    rout_type = sym->variant.routine.ptr->type;
+    rout_type = skip_typerefs(sym->variant.routine.ptr->type);
     /* Return type must match exactly. */
     if (!identical_types(curr_type->variant.routine.return_type,
                          rout_type->variant.routine.return_type)) {
@@ -4014,6 +4017,7 @@ as the current token; otherwise, it is consumed.
       } else {
         /* Go back through the template params and be sure there are only
            type args.  The other kind is allowed only for class templates. */
+        a_type_ptr	rout_type = skip_typerefs(type);
         for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
           param_sym = tpp->param_symbol;
           if (param_sym->kind != (a_symbol_kind)sk_type) {
@@ -4027,7 +4031,7 @@ as the current token; otherwise, it is consumed.
 	    a_boolean	only_in_default_args;
 	    a_boolean	param_used;
 	    param_used = template_param_appears_in_param_list
-                      (param_sym->variant.type, type, &only_in_default_args);
+                   (param_sym->variant.type, rout_type, &only_in_default_args);
 	    if (!param_used) {
               pos_sy2_error(ec_not_used_in_template_function_params,
                             &param_sym->decl_position, param_sym, sym);
