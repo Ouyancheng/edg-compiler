@@ -5143,6 +5143,8 @@ caution when modifying this routine.
   } else if (tag_sym != NULL) {
     /* Tag symbol is a template class reference. */
     *tag_resolution = FALSE;
+    /* Return a copy of the locator to the caller. */
+    *locator = locator_for_curr_id;
   } else {
     /* Look for a tag symbol in the current scope.  If the tag kind does
        not match the tag being processed, set the symbol to NULL and reset
