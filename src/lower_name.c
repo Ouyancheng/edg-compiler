@@ -1038,6 +1038,19 @@ Add to the mangled name the encoding for the cv-qualifiers (if any)
 in the set "qualifiers".
 */
 {
+#if IA64_ABI
+  /* Note that the order matters: restrict, volatile, const must be in
+     that order. */
+  if (qualifiers & TQ_RESTRICT) {
+    add_to_mangled_name(MANGLING_CODE_FOR_RESTRICT, mctl);
+  }  /* if */
+  if (qualifiers & TQ_VOLATILE) {
+    add_to_mangled_name(MANGLING_CODE_FOR_VOLATILE, mctl);
+  }  /* if */
+  if (qualifiers & TQ_CONST) {
+    add_to_mangled_name(MANGLING_CODE_FOR_CONST, mctl);
+  }  /* if */
+#else /* !IA64_ABI */
   if (qualifiers & TQ_CONST) {
     add_to_mangled_name(MANGLING_CODE_FOR_CONST, mctl);
   }  /* if */
@@ -1049,6 +1062,7 @@ in the set "qualifiers".
     add_to_mangled_name(MANGLING_CODE_FOR_RESTRICT, mctl);
   }  /* if */
 #endif /* ifdef MANGLING_CODE_FOR_RESTRICT */
+#endif /* IA64_ABI */
 }  /* mangled_encoding_for_type_qualifiers */
 
 
