@@ -1,5 +1,17 @@
 Version 3.1
 
+11/27/02  Spurious error on return statement in Microsoft mode templates
+
+In Microsoft C++ mode with prototype instantiations of function templates
+enabed (option --parse_templates), return statements of functions with
+dependent return types elicited spurious errors.  For example:
+
+  template<typename T> T f() {
+    return 1;  // Used to trigger an error
+  }            // (with --microsoft --parse_templates).
+
+This is now fixed.
+
 11/26/02  Small optimization in IL lowering of temp-initialization
 
 The case of an indirection over a cast over an enk_temp_init, where
