@@ -1,5 +1,21 @@
 Version 3.4
 
+9/18/03  Partial ordering failure on dependent qualified name in return type
+
+In certain cases, the partial ordering implementation would fail to prefer
+one template over another if the return type of the template involved a
+dependent qualified name.  Now fixed.
+
+  struct A {
+    typedef void result_type;
+  };
+  template <class T> typename T::result_type f(T&){}
+  template <class T> typename T::result_type f(const T&){}
+  int main() {
+    const A a = {};
+    f(a);  // spurious ambiguity reported on this call
+  }
+
 9/17/03  Microsoft mode: Static data members and derived class qualifiers
 
 In Microsoft mode, the front end accepts static data member definitions

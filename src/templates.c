@@ -6651,8 +6651,10 @@ entity is known to be a type.
        i.e., the parent class is not a template reference.  Just return the
        original symbol. */
     new_sym = sym;
-  } else if (!is_class_struct_union_type(parent_type)) {
-    /* The new type is not a class type, and so cannot be a parent. */
+  } else if (!is_class_struct_union_type(parent_type) &&
+             !is_template_param_type(parent_type)) {
+    /* The new type is not a class type or a template parameter type, and so
+       cannot be a parent. */
     *copy_error = TRUE;
     goto done;
   } else {
