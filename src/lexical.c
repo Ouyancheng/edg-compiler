@@ -76,6 +76,12 @@ at the beginning of get_token need to be done.
   (((options & GID_ERROR_FLAGS) != 0) ?					\
 	f_check_for_generalized_identifier_errors(options, pos) : FALSE)
 
+/* Macro to call the routine to check for template declarator errors, but
+   only when the appropriate option has been specified. */
+#define check_for_template_declarator_errors(options, pos)		\
+  (((options & GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION) != 0) ?	\
+	f_check_for_template_declarator_errors(pos) : FALSE)
+
 
 /*
 Variables pertaining to the input stack (for include files and the
@@ -6604,6 +6610,77 @@ skip_processing:
 }  /* coalesce_template_class_reference */
 
 
+static
+a_boolean f_check_for_template_declarator_errors(a_source_position *error_pos)
+/*
+*/
+{
+  a_boolean		any_errors = FALSE;
+  a_symbol_ptr		sym = locator_for_curr_id.specific_symbol;
+
+  if (is_error_locator(locator_for_curr_id) || sym == NULL) {
+    /* An error has already been issued. */
+  } else if (!locator_for_curr_id.is_qualified_name) {
+    /* No error tests are done on unqualified names. */
+  } else if (sym->kind == (a_symbol_kind)sk_class_template ||
+             sym->kind == (a_symbol_kind)sk_function_template) {
+    /* Okay -- the symbol found refers to a template. */
+  } else {
+    /* The remaining valid cases are members of class templates or classes
+       nested within class templates. */
+    if (!sym->is_class_member) {
+      /* The locator is for a namespace member.  This is an error. */
+      a_namespace_ptr	nsp;
+      a_symbol_ptr	ns_sym;
+      nsp = sym->parent.namespace_ptr;
+      ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
+      pos_sy_error(ec_sym_not_a_class_template, error_pos, ns_sym);
+      any_errors = TRUE;
+    } else {
+      /* The qualifier class type must point to a prototype instantiation. */
+      a_type_ptr	tp;
+      a_symbol_ptr	type_sym;
+      a_boolean		is_template_class;
+      a_boolean		is_prototype_instantiation;
+
+      tp = sym->parent.class_type;
+      type_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+      is_template_class = is_template_class_symbol(type_sym);
+      is_prototype_instantiation = is_prototype_instantiation_symbol(type_sym);
+      if (!is_template_class && !is_prototype_instantiation) {
+        /* The class is not a template class. */
+        pos_ty_error(ec_not_a_class_template, error_pos, tp);
+        any_errors = TRUE;
+      } else if (!is_prototype_instantiation) {
+        /* The class is a template class but not the prototype
+           instantiation.  Decide which of two errors should be issued
+           for this case.  The usual cause of this error is using an
+           incorrect template argument list (one that does not match the
+           template parameter list, but this may also be caused if the
+           class template definition is currently incomplete (so there is
+           no prototype instantiation yet). */
+        a_symbol_ptr	template_sym;
+        template_sym =
+              type_sym->variant.class_struct_union.extra_info->class_template;
+        if (template_sym->variant.template_info->
+                    variant.class_template.prototype_instantiation == NULL) {
+          /* There is no prototype yet.  This is probably caused by the
+             class template being incomplete at this point. */
+          pos_error(ec_incomplete_type_not_allowed, error_pos);
+          any_errors = TRUE;
+        } else {
+          /* The class is a template class but not the prototype
+             instantiation. */
+          pos_error(ec_must_be_prototype_instantiation, error_pos);
+          any_errors = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return any_errors;
+}  /* check_for_template_declarator_errors */
+
+
 static a_boolean f_check_for_generalized_identifier_errors
 		(an_identifier_options_set options,
                  a_source_position         *pos)
@@ -6642,50 +6719,6 @@ by the options.  Returns TRUE if any errors were diagnosed.
   } else if (global_qualifier_error) {
     pos_error(ec_global_qualifier_not_allowed, pos);
     any_errors = TRUE;
-  }  /* if */
-  if (!any_errors) {
-    /* If GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION is specified we are
-       scanning a template definition of a member function or static
-       data member.  The class portion must specify the prototype
-       instantiation (i.e., the argument list must match the
-       template parameter list). */
-    a_type_ptr	type = qualifier_class_type(locator_for_curr_id);
-    if (locator_for_curr_id.is_qualified_name && type != NULL &&
-        options & GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION) {
-      a_symbol_ptr  type_sym;
-      while (type->source_corresp.is_class_member) {
-        type = type->source_corresp.parent.class_type;
-      }  /* while */
-      type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-      if (!is_template_class_symbol(type_sym)) {
-        /* The class is not a template class. */
-        pos_ty_error(ec_not_a_class_template, &pos_curr_token, type);
-        any_errors = TRUE;
-      } else if (!is_prototype_instantiation_symbol(type_sym)) {
-        /* The class is a template class but not the prototype
-           instantiation.  Decide which of two errors should be issued
-           for this case.  The usual cause of this error is using an
-           incorrect template argument list (one that does not match the
-           template parameter list, but this may also be caused if the
-           class template definition is currently incomplete (so there is
-           no prototype instantiation yet). */
-        a_symbol_ptr	template_sym;
-        template_sym =
-              type_sym->variant.class_struct_union.extra_info->class_template;
-        if (template_sym->variant.template_info->
-                    variant.class_template.prototype_instantiation == NULL) {
-          /* There is no prototype yet.  This is probably caused by the
-             class template being incomplete at this point. */
-          pos_error(ec_incomplete_type_not_allowed, &pos_curr_token);
-          any_errors = TRUE;
-        } else {
-          /* The class is a template class but not the prototype
-             instantiation. */
-          pos_error(ec_must_be_prototype_instantiation, &pos_curr_token);
-          any_errors = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
   }  /* if */
 #if CHECKING
   if ((locator_for_curr_id.is_operator_name ||
@@ -7779,6 +7812,12 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
             }  /* if */
           }  /* if*/
         }  /* if */ 
+      }  /* if */
+      /* A qualified declarator name in a template declaration must name
+         a template or a member of a class template. */
+      if (check_for_template_declarator_errors(options, &error_position)) {
+        *err = TRUE;
+        okay = FALSE;
       }  /* if */
     } else {
       /* Not a qualified name -- possibly not an identifier.  If an
