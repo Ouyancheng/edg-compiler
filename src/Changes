@@ -1,5 +1,11 @@
 Version 3.5
 
+6/18/04  Predefined __cplusplus macro can be redefined
+
+The __cplusplus macro can now be redefined.  This is desirable in
+environments where header files expect a different value for the macro
+than the one supplied by the front end.
+
 6/18/04  VLA-related flag not set in parameter variable entries
 
 The flag has_variably_modified_type in a_variable entries associated with
