@@ -3228,8 +3228,7 @@ is just a matter of changing where and how diagnostics are issued.)
          routine_type_is_nonstatic_member_function(member_type))) {
     /* The two declarations differ with respect to access specifier, virtual
        vs. nonvirtual, and/or static vs. nonstatic.  Rather than trying to
-       resolve such differences, we just through the second declaration
-       away. */
+       resolve such differences, just throw the second declaration away. */
   } else {
     /* In the interests of better error recovery, merge the declarations. */
     /* If the new declaration specifies "inline", keep it, even if the
@@ -3329,13 +3328,6 @@ special function kind (e.g., constructor, destructor), if any.
   /* Look for a prior declaration or function overloading. */
   sym = symbol_for_member_function(locator, member_type, &overload_sym);
   rtn = sym->variant.routine.ptr;
-#if 0
-#else
-    /* What about redeclaration when a function template is involved?  Is that
-       important to worry about in a prototype instantiation?  For now we'll
-       ignore redeclarations. */
-  if (cssp->is_nonreal_class) rtn = NULL;
-#endif /* if 0 */
   if (rtn != NULL) {
     /* symbol_for_member_function has returned a symbol that has already been
        declared.  It is an error to redeclare a member function, but we try
