@@ -101,6 +101,7 @@ finish_array_var).
   return array_type;
 }  /* array_of */
 
+#if GENERATE_EH_TABLES
 
 static a_variable_ptr make_unnamed_local_static_array_var(
                                                   a_type_ptr elem_type,
@@ -209,6 +210,7 @@ is uninitialized.
   if (aggr_con != NULL) aggr_con->type = var->type;
 }  /* finish_array_var */
 
+#endif /* GENERATE_EH_TABLES */
 
 /*
 Following is code needed to define typeinfo implementation variables.
@@ -2041,11 +2043,27 @@ pointers-to-members).
           if (!is_or_contains_local_type(type)) {
             use_comdat = TRUE;
           } else {
-            check_assertion(innermost_function_scope != NULL);
-            if (routine_might_exist_in_multiple_copies(
-                              innermost_function_scope->variant.routine.ptr)) {
-              use_comdat = TRUE;
-            }  /* if */
+            if (type->source_corresp.is_local_to_function) {
+              a_routine_ptr enclosing_routine = NULL;
+              /* For an enum or class, see what function the type is
+                 declared in. */
+              if (is_enum_type(type)) {
+                a_symbol_ptr enum_sym =
+                                 (a_symbol_ptr)type->source_corresp.assoc_info;
+                check_assertion(enum_sym != NULL);
+                enclosing_routine = enum_sym->variant.enumeration.extra_info
+                                                           ->enclosing_routine;
+                check_assertion(enclosing_routine != NULL);
+              } else if (is_immediate_class_type(type)) {
+                enclosing_routine =
+                          symbol_supplement_for_class(type)->enclosing_routine;
+                check_assertion(enclosing_routine != NULL);
+              }  /* if */
+              if (enclosing_routine != NULL &&
+                  routine_might_exist_in_multiple_copies(enclosing_routine)) {
+                use_comdat = TRUE;
+              }  /* if */
+            } /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -2253,6 +2271,7 @@ Bit set values for the flags byte of exception_type_spec.  These must
 match the runtime's definition.
 */
 typedef unsigned long an_eh_type_flags_set;
+#if GENERATE_EH_TABLES
 #define ETS_IS_POINTER		0x01
 			/* A pointer to an object of the type specified
 			   by typeinfo. */
@@ -2270,7 +2289,9 @@ typedef unsigned long an_eh_type_flags_set;
 #define ETS_LAST		0x20
 			/* TRUE if this is the last type specification in
 			   the array. */
+#endif /* GENERATE_EH_TABLES */
 
+#if GENERATE_EH_TABLES
 #if ABI_COMPATIBILITY_VERSION >= 241
 
 static a_variable_ptr ptr_flags_var_for_type(a_type_ptr type)
@@ -2320,6 +2341,7 @@ Return a pointer to the variable.
 }  /* ptr_flags_var_for_type */
 
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
+#endif /* GENERATE_EH_TABLES */
 
 static a_type_ptr eff_type_for_typeinfo(a_type_ptr           type,
                                         an_eh_type_flags_set *flags_value,
@@ -2337,14 +2359,17 @@ flag sets that describes the cv-qualifiers at each level of the
 multi-level pointer.  For cases other than multi-level pointers, it
 is returned NULL.  If ptr_flags_var is NULL, the array is not built
 because the caller does not need it.
+
+In modes with GENERATE_EH_TABLES set to FALSE, this routine just strips
+the cv-qualifiers and passes the type through.
 */
 {
   a_type_ptr            eff_type;
-  a_type_qualifier_set  qualifiers;
 
   eff_type = type;
   *flags_value = 0;
   if (ptr_flags_var != NULL) *ptr_flags_var = NULL;
+#if GENERATE_EH_TABLES
   /* For a pointer or reference to a type, use the typeinfo for the
      underlying type and a flag to indicate the reference or pointer.
      Both flags are on for a reference to a pointer. */
@@ -2367,6 +2392,7 @@ because the caller does not need it.
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
     /* Do not insert code here. */
     {
+      a_type_qualifier_set qualifiers;
       eff_type = under_ptr;
       *flags_value |= ETS_IS_POINTER;
       /* Remember the type qualifiers on the type pointed to. */
@@ -2379,6 +2405,7 @@ because the caller does not need it.
       }  /* if */
     }  /* if */
   }  /* if */
+#endif /* GENERATE_EH_TABLES */
   /* Strip typerefs but watch out for rewritten pointers-to-members. */
   eff_type = underlying_type(eff_type);
   return eff_type;

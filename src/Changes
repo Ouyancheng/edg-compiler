@@ -1,5 +1,17 @@
 Version 3.2
 
+2/25/03  IL lowering typeinfo variable handling with GENERATE_EH_TABLES
+         set to FALSE
+
+The no-EH-lowering mode indicated by GENERATE_EH_TABLES set to FALSE
+did not work quite right with regard to typeinfo variables.  Specifically,
+eff_type_for_typeinfo should do nothing in that mode, not drop pointer
+and reference types (that's appropriate for the EDG EH implementation,
+but not in general).  Also, the code that determines whether a local
+type typeinfo should be put into a COMDAT in the IA-64 ABI was
+incorrect and could cause an assertion failure in make_typeinfo_var
+(on a line that tests innermost_function_scope != NULL).  Both fixed.
+
 2/25/03  IA-64 ABI: missing typeinfo for class used only in pointer to member
 
 A class used only in a pointer-to-member type in an exception
