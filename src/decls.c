@@ -4936,20 +4936,21 @@ is no parent.
      don't know what kind of operator we are scanning until we call
      is_type_start, and the class needs to be reactivated before
      is_type_start is called. */
-  if (is_class_member && parent.class_type != NULL &&
-      !is_incomplete_type(parent.class_type)) {
-    a_symbol_ptr	sym;
-    sym = (a_symbol_ptr)parent.class_type->source_corresp.assoc_info;
-    /* In valid usage, the class type will always be either a complete
-       real class type or a prototype instantiation.  In other cases,
-       suppress the reactivation because incomplete and nonreal classes
-       cannot be reactivated.  An error will be issued elsewhere for these
-       cases. */
-    if (sym != NULL && 
-        (is_real_class_symbol(sym) ||
-         is_prototype_instantiation_symbol(sym))) {
-      push_class_reactivation_scope(parent.class_type);
-      class_reactivated = TRUE;
+  if (is_class_member) {
+    if (parent.class_type != NULL && !is_incomplete_type(parent.class_type)) {
+      a_symbol_ptr	sym;
+      sym = (a_symbol_ptr)parent.class_type->source_corresp.assoc_info;
+      /* In valid usage, the class type will always be either a complete
+         real class type or a prototype instantiation.  In other cases,
+         suppress the reactivation because incomplete and nonreal classes
+         cannot be reactivated.  An error will be issued elsewhere for these
+         cases. */
+      if (sym != NULL && 
+          (is_real_class_symbol(sym) ||
+           is_prototype_instantiation_symbol(sym))) {
+        push_class_reactivation_scope(parent.class_type);
+        class_reactivated = TRUE;
+      }  /* if */
     }  /* if */
   } else if (parent.namespace_ptr != NULL) {
     push_namespace_reactivation_scope(parent.namespace_ptr);
