@@ -1,5 +1,10 @@
 Version 2.31
 
+1/11/96   Class definitions incorrectly allowed in template friend declarations
+
+Class definitions were erroneously accepted in template friend declarations.
+This has been fixed.
+
 1/11/96   Source-sequence entry for enum constant
 
 An obscure bug in the generation of source-sequence entries for enum

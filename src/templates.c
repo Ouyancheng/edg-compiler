@@ -3998,9 +3998,16 @@ instantiation.
     locator = locator_for_curr_id;
     (void)get_token();
   }  /* if */
+  is_definition = (curr_token == tok_colon || curr_token == tok_lbrace);
   /* Make sure this declaration is valid in this scope. */
   if (is_template_friend && is_member_decl) {
-    /* A friend declaration in a class scope -- okay. */
+    /* A friend declaration in a class scope -- okay (provided it is not
+       a definition). */
+    if (is_template_friend && is_definition) {
+      /* Classes cannot be defined in friend declarations. */
+      pos_error(ec_template_friend_definition_not_allowed,
+                   &locator.source_position);
+    }  /* if */
   } else {
     if (is_template_friend) {
       /* A friend declaration in a nonclass scope. */
@@ -4020,7 +4027,6 @@ instantiation.
     set_to_named_error_locator(locator);
     sym = NULL;
   }  /* if */
-  is_definition = (curr_token == tok_colon || curr_token == tok_lbrace);
   /* Determine whether this is a definition of a class nested within
      a class template. */
   if (sym != NULL) {
