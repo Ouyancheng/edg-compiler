@@ -982,6 +982,36 @@ Allocate and return "size" bytes of storage in the current IL memory region.
 }  /* alloc_cil */
 
 
+static char *alloc_same_region_il(sizeof_t size,
+                                  char     *existing_ptr)
+/*
+Allocate and return "size" bytes of storage in the same memory region that
+existing_ptr is in.
+*/
+{
+  char                   *ptr;
+  a_memory_region_number region_number;
+
+  if (in_file_scope((char *)existing_ptr)) {
+    region_number = FILE_SCOPE_REGION_NUMBER;
+  } else {
+    /* Since the pointer is not in the file scope, assume it is in the
+       current function scope memory region.  Note that the
+       curr_il_region_number is not necessarily currently set to that
+       function scope memory region; it might be set to the file scope
+       temporarily. */
+    region_number = scope_stack[depth_scope_stack].il_memory_region;
+#if CHECKING
+    if (region_number == FILE_SCOPE_REGION_NUMBER) {
+      internal_error("alloc_same_region_il: cannot find region");
+    }  /* if */
+#endif /* CHECKING */
+  }  /* if */
+  do_alloc(ptr, region_number, size);
+  return ptr;
+}  /* alloc_same_region_il */
+
+
 void switch_il_region(a_memory_region_number region_number)
 /*
 Change the current IL memory region to "region_number".
@@ -2409,8 +2439,11 @@ type if necessary.
 #endif /* DEBUG */
   btap = base_type->based_type_array;
   if (btap == NULL) {
-    /* No based type array yet; allocate it. */
-    btap = (a_based_type_array_ptr)alloc_il(sizeof(a_based_type_array));
+    /* No based type array yet; allocate it, in the same memory region as the
+       type it is to be attached to. */
+    btap = (a_based_type_array_ptr)alloc_same_region_il(
+                                                    sizeof(a_based_type_array),
+                                                    (char *)base_type);
     /* Depending on NULL represented as zero bits here. */
     memzero((char *)btap, sizeof(a_based_type_array));
     base_type->based_type_array = btap;
@@ -3408,8 +3441,7 @@ of the front end.
 {
   /* Variable in il.h: */
   curr_il_region_number = NULL_region_number;
-
-  /* Static variables in il.c: */
+  /* Variable in il_def.h: */
 #if CHECKING && DEBUG
   /* Check that the table of storage class names is correctly initialized.
      This guards against someone changing the enumeration and forgetting to
@@ -3418,9 +3450,11 @@ of the front end.
   if (db_storage_class_names[(int)sc_last] == NULL ||
       strcmp(db_storage_class_names[(int)sc_last], "last") != 0) {
     internal_error(
-              "il_init: incorrect initialization of db_storage_class_names");
+                "il_init: incorrect initialization of db_storage_class_names");
   }  /* if */
 #endif /* CHECKING && DEBUG */
+
+  /* Static variables in il.c: */
   /* Depending on NULL represented as zero bits here. */
   memzero((char *)int_types, sizeof(int_types));
   memzero((char *)float_types, sizeof(float_types));
