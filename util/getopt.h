@@ -21,7 +21,6 @@ getopt.h -- command line option processing.
 #else /* !defined(__USLC__) */
 int getopt(int argc, char * argv[], char *optstring);
 #endif /* defined(__USLC__) */
-int getopt(int argc, char * argv[], char *optstring);
 extern char *optarg;
 extern int optind, opterr;
 
