@@ -1,5 +1,18 @@
 Version 2.33
 
+9/29/96  IL lowering of exception handling: freeing storage on new
+
+When an exception is thrown before a "new" has completed, the storage
+allocated is supposed to be freed.  This is indicated by a special
+dynamic initialization entry that indicates the delete call.
+When the allocation was not folded into a constructor, the freeing
+operation was left on the cleanup list longer than necessary in some
+cases, which was not generally harmful in the fully-lowered EH case
+(because the cleanup entry has an associated guard variable, which
+is cleared when the cleanup no longer needs to be done).  However,
+in the partially-lowered EH case this gave incomplete information
+about the cleanup state.
+
 9/27/96  Conversion costs on built-in operator [] in overload resolution
 
 The standards committee, at the 7/96 Stockholm meeting, revisited the
