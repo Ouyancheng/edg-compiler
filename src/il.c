@@ -1445,7 +1445,7 @@ Dump a string identifying a dynamic-init kind, for debug purposes.
   }  /* switch */
   fputs(s, f_debug);
 }  /* db_dynamic_init_kind */
-#endif /* if 0 */
+#endif /* 0 */
 
 static void db_constant_repr_kind(a_constant_repr_kind  kind)
 /*
@@ -9954,7 +9954,7 @@ memory region.
 #if CHECKING
     internal_error("insert_in_source_sequence_list_after: region mismatch");
 #endif /* CHECKING */
-#endif /* if 0 */
+#endif /* 0 */
   }  /* if */
 }  /* insert_in_source_sequence_list_after */
 
@@ -10001,11 +10001,11 @@ memory region.
 #if CHECKING
     internal_error("insert_in_source_sequence_list_before: region mismatch");
 #endif /* CHECKING */
-#endif /* if 0 */
+#endif /* 0 */
   }  /* if */
 }  /* insert_in_source_sequence_list_after */
 
-#endif /* if 0 */
+#endif /* 0 */
 
 a_source_sequence_entry_ptr add_empty_source_sequence_entry(void)
 /*
@@ -10969,7 +10969,7 @@ cleared.
         fputs(" is already eliminated", f_debug);
         fputc('\n', f_debug);
       }  /* if */
-#endif /* if DEBUG */
+#endif /* DEBUG */
     } else {
       /* Go through the list of classes that have specified friend_class
          as a friend, find the entry that matches class_type, and link
@@ -10987,7 +10987,7 @@ cleared.
             db_type_name(class_type);
             fputc('\n', f_debug);
           }  /* if */
-#endif /* if DEBUG */
+#endif /* DEBUG */
           /* A match -- link around it. */
           if (prev_clep == NULL) {
             friend_ctsp->befriending_classes = next_clep;
@@ -11038,7 +11038,7 @@ cleared.
             db_type_name(class_type);
             fputc('\n', f_debug);
           }  /* if */
-#endif /* if DEBUG */
+#endif /* DEBUG */
         if (prev_clep == NULL) {
           friend_rout->befriending_classes = next_clep;
         } else {
@@ -11164,7 +11164,7 @@ entry into one representing a nondefining declaration.
     db_abbreviated_type(class_type);
     fputc('\n', f_debug);
   }  /* if */
-#endif /* if DEBUG */
+#endif /* DEBUG */
 #if CHECKING
   if (class_definition_needed_flag_is_set(class_type)) {
 #if DEBUG
@@ -12178,6 +12178,7 @@ eliminated, if appropriate.
 }  /* eliminate_unneeded_il_entries */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if ONE_INSTANTIATION_PER_OBJECT
 
 void clear_instantiation_needed_flags_scan_state(
@@ -12372,6 +12373,7 @@ needed_flag_bit_number plus bit_offset.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_namespace_ptr f_skip_namespace_aliases(a_namespace_ptr nsp)
 /*
@@ -12604,7 +12606,7 @@ in il_init.)
       pch_saved_var_array_elem(num_shareable_constants),
       pch_saved_var_array_elem(num_used_shareable_constant_buckets),
       pch_saved_var_array_elem(num_based_type_fixups_allocated),
-#endif /* if DEBUG */
+#endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
