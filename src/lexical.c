@@ -195,7 +195,7 @@ static a_boolean
 			/* TRUE if raw_listing_buffer contains a line or lines
 			   modified in nontrivial ways (comments are considered
 			   trivial modifications).  If so, it must be
-                           displayed.*/
+			   displayed. */
 
 
 /*
@@ -2971,6 +2971,9 @@ Push the indicated file onto the input stack.
   /* If generating a list of include files (-H option), put out the
      file name.  Do not put out the name of the primary source file. */
   if (list_included_files && depth_input_stack != 0) {
+    /* Indent the output by the input stack depth. */
+    unsigned long indent = depth_input_stack-1;
+    for (; indent > 0; indent--) fputc(' ', f_pp_output);
     fprintf(f_pp_output, "%s\n", curr_ise->file_name);
   }  /* if */
   if (curr_ise->assoc_actual_il_file != il_header.primary_source_file) {

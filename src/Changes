@@ -1,5 +1,10 @@
 Version 2.33
 
+8/14/96 Indentation on -H output
+
+The -H output (showing files included) is now indented to show the
+inclusion depth.
+
 8/14/96 C-generating back end: __cgi initialization routine not emitted if
         not needed
 
