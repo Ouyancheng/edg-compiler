@@ -4439,6 +4439,17 @@ is the one associated with the definition of the class.
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   /* Advance past the source sequence entry for the class itself. */
   check_and_take_source_seq_entry_for_type(type);
+  if (msvc_is_generated_code_target &&
+      has_name(type) &&
+      strcmp(type->source_corresp.name, "_GUID") == 0) {
+    /* When _GUID is defined, put out a #define for GUID_DEFINED.  This
+       is needed because some attributes check for GUID_DEFINED as
+       a way of knowing whether a definition of _GUID needs to be
+       injected, and the attributes are still in the generated code
+       here. */
+    begin_pp_directive("#define GUID_DEFINED");
+    end_pp_directive();
+  }  /* if */
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
   /* Put out the tag kind, e.g., "class". */
