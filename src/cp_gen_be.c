@@ -645,10 +645,14 @@ static a_boolean curr_src_seq_entry_is_decl(void)
 Return TRUE if the current source sequence entry is for a declaration.
 */
 {
-  a_boolean is_decl = FALSE;
+  a_boolean                   is_decl = FALSE;
+  a_source_sequence_entry_ptr ssep = curr_source_sequence_entry;
 
-  if (curr_source_sequence_entry != NULL) {
-    switch (ss_entry_kind(curr_source_sequence_entry)) {
+  /* Look past any pragmas (they can apply to either declarations or
+     statements). */
+  while (ssep != NULL && ss_entry_kind(ssep) == iek_pragma) ssep = ssep->next;
+  if (ssep != NULL) {
+    switch (ss_entry_kind(ssep)) {
       case iek_constant:
       case iek_type:
       case iek_variable:
@@ -656,7 +660,6 @@ Return TRUE if the current source sequence entry is for a declaration.
       case iek_routine:
       case iek_asm_entry:
       case iek_src_seq_secondary_decl:
-      case iek_pragma:
       case iek_template:
       case iek_namespace:
       case iek_using_directive:
