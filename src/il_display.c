@@ -1636,6 +1636,9 @@ Display the indicated routine.
   if (ptr->defined_in_friend_decl) {
     disp_boolean("defined_in_friend_decl", TRUE);
   }  /* if */
+  if (ptr->expl_template_arg_list_used) {
+    disp_boolean("expl_template_arg_list_used", TRUE);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ptr->defined_outside_of_parent) {
     disp_boolean("defined_outside_of_parent", TRUE);
