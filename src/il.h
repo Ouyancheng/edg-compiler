@@ -432,10 +432,15 @@ extern unsigned long show_il_space_used(void);
 #endif /* DEBUG */
 #if ORPHAN_PROCESSING_NEEDED
 
-#define next_orphaned_il_entry(ptr) (char *)((char *)(ptr) - sizeof(char *))
+/*
+Fetch and return the orphaned-list pointer that precedes the file-scope
+IL entry at ptr.
+*/
+#define next_orphaned_il_entry(ptr)                                   \
+  (*(char **)((char *)(ptr) - sizeof(char *)))
 
-extern void add_orphaned_file_scope_il_entry (char             *entry_ptr,
-                                              an_il_entry_kind entry_kind);
+extern void add_orphaned_file_scope_il_entry(char             *entry_ptr,
+                                             an_il_entry_kind entry_kind);
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
 extern void il_init(void);
