@@ -4855,6 +4855,12 @@ a pointer over a reference type or creating an array of references.
                                         this_class, templ_arg_list,
                                         depth, source_pos, options,
                                         copy_error);
+          /* Drop any typedefs on the class, but not any qualifiers. */
+          new_this_class = skip_typedefs(new_this_class);
+          if (!is_immediate_class_type(new_this_class)) {
+            /* The this class type must be a class type. */
+            *copy_error = TRUE;
+          }  /* if */
         }  /* if */
         if (new_return_type != type->variant.routine.return_type ||
             new_this_class != this_class) {
