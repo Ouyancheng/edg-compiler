@@ -1,5 +1,12 @@
 Version 2.33
 
+7/26/96 Error recovery on linkage specification
+
+A null-pointer failure no longer results when a translation unit is
+terminated by an ill-formed linkage specification such as the following:
+
+  extern "C int printf(char *, ...);
+
 7/26/96 Integral promotion on enums when enums smaller than int
 
 Version 2.32 introduced a bug in the processing of integral promotion
