@@ -7651,7 +7651,8 @@ an_expr_node_ptr field_lvalue_selection_expr(an_expr_node_ptr node,
 /*
 Make an expression for an lvalue reference to field "field" of "node" and
 return a pointer to it.  Note that this does NOT add extra intermediate
-selections for anonymous unions.
+selections for anonymous unions (either standard or nonstandard).  Within
+the front end proper, use fe_field_lvalue_selection_expr instead.
 */
 {
   an_expr_operator_kind op;
@@ -7684,7 +7685,8 @@ an_expr_node_ptr field_rvalue_selection_expr(an_expr_node_ptr node,
 /*
 Make an expression for an rvalue reference to field "field" of "node" and
 return a pointer to it.  Note that this does NOT add extra intermediate
-selections for anonymous unions.
+selections for anonymous unions (either standard or nonstandard).  Within
+the front end proper, use fe_field_rvalue_selection_expr instead.
 */
 {
   /* Make the expression node for an lvalue reference. */
@@ -7763,6 +7765,98 @@ rest.
 }  /* adjust_anonymous_union_field_selection */
 
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS || DO_IL_LOWERING */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+
+void adjust_nonstandard_anonymous_object_field_references(
+                                                        an_expr_node_ptr node,
+                                                        a_field_ptr      field)
+/*
+node points to an expression for a field selection of the field "field".
+field is a member of some kind of anonymous parent object.  If it's
+a member of a nonstandard anonymous parent (rather than a standard
+C++ anonymous union), insert the elided field selections.  The insertions,
+if any, are done in place; the expression address does not change.
+This routine can be called only when IL entries still point back to
+the associated symbols.
+*/
+{
+  a_symbol_ptr anon_parent_sym= (a_symbol_ptr)field->source_corresp.assoc_info;
+
+  /* Loop for multiple levels of anonymous parent objects. */
+  for (;;) {
+    check_assertion(anon_parent_sym->kind == (a_symbol_kind)sk_field);
+    field = anon_parent_sym->variant.field.ptr;
+    anon_parent_sym = anon_parent_sym->variant.field.anonymous_parent_object;
+    /* Stop if there's no anonymous parent, meaning we've handled all
+       the levels of anonymous parents. */
+    if (anon_parent_sym == NULL) break;
+    /* Stop if we've worked up to a top-level (variable) anonymous union. */
+    if (anon_parent_sym->kind == (a_symbol_kind)sk_variable) break;
+    check_assertion(anon_parent_sym->kind == (a_symbol_kind)sk_field);
+    /* In C++, skip a standard anonymous union, because those don't get
+       handled here.  But keep looping because there might be more
+       nonstandard cases further out. */
+    if (!C_mode()) {
+      /* C++.  See if this is an anonymous union case. */
+      a_type_ptr field_class = field->source_corresp.parent.class_type;
+      a_class_type_supplement_ptr
+                 ctsp = field_class->variant.class_struct_union.extra_info;
+      /* Skip this level if the field is from a standard anonymous union. */
+      if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
+        continue;
+      }  /* if */
+    }  /* if */
+    /* Rewrite the field selection to add an implied selection. */
+    adjust_anonymous_union_field_selection(node,
+                                           anon_parent_sym->variant.field.ptr);
+    /* Loop to see if the rewritten first operand still refers to an
+       anonymous union field (because there are several nested anonymous
+       unions), and if so, rewrite it. */
+    node = node->variant.operation.operands;
+  }  /* for */
+}  /* adjust_nonstandard_anonymous_object_field_references */
+
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+
+an_expr_node_ptr fe_field_lvalue_selection_expr(an_expr_node_ptr node,
+                                                a_field_ptr      field)
+/*
+Make an expression for an lvalue reference to field "field" of "node" and
+return a pointer to it.  This is intended for use in the front end
+proper.  It inserts extra field selections for nonstandard anonymous
+unions, but not for standard anonymous unions (those are added by
+IL lowering).
+*/
+{
+  node = field_lvalue_selection_expr(node, field);
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  { a_symbol_ptr field_sym = (a_symbol_ptr)field->source_corresp.assoc_info;
+    if (field_sym->variant.field.anonymous_parent_object != NULL) {
+      adjust_nonstandard_anonymous_object_field_references(node, field);
+    }  /* if */
+  }
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+  return node;
+}  /* fe_field_lvalue_selection_expr */
+
+
+an_expr_node_ptr fe_field_rvalue_selection_expr(an_expr_node_ptr node,
+                                                a_field_ptr      field)
+/*
+Make an expression for an rvalue reference to field "field" of "node" and
+return a pointer to it.  This is intended for use in the front end
+proper.  It inserts extra field selections for nonstandard anonymous
+unions, but not for standard anonymous unions (those are added by
+IL lowering).
+*/
+{
+  node = fe_field_lvalue_selection_expr(node, field);
+  /* Add an indirection to turn the lvalue into an rvalue.  That also
+     drops any type qualifiers, as appropriate. */
+  node = add_indirection_to_node(node);
+  return node;
+}  /* fe_field_rvalue_selection_expr */
+
 
 an_expr_node_ptr base_class_selection_expr(an_expr_node_ptr node,
                                            a_base_class_ptr bcp)

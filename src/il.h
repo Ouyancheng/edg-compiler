@@ -617,6 +617,17 @@ extern an_expr_node_ptr field_rvalue_selection_expr(an_expr_node_ptr node,
 extern void adjust_anonymous_union_field_selection(an_expr_node_ptr node,
                                                    a_field_ptr      au_field);
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS || DO_IL_LOWERING */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+extern void adjust_nonstandard_anonymous_object_field_references(
+                                                       an_expr_node_ptr node,
+                                                       a_field_ptr      field);
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+
+extern an_expr_node_ptr fe_field_lvalue_selection_expr(an_expr_node_ptr node,
+                                                       a_field_ptr      field);
+
+extern an_expr_node_ptr fe_field_rvalue_selection_expr(an_expr_node_ptr node,
+                                                       a_field_ptr      field);
 
 extern an_expr_node_ptr base_class_selection_expr(an_expr_node_ptr node,
                                                   a_base_class_ptr bcp);

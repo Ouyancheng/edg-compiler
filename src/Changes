@@ -1,5 +1,24 @@
 Version 2.39
 
+5/27/98   Microsoft anonymous structs and generated copy assignment function
+
+The code generated for default copy assignment of a class that contains
+a Microsoft anonymous struct member was incorrect: it was missing the
+field selection for the anonymous struct.  Now fixed.
+
+  struct A {};
+  struct B : virtual A {
+    union {
+      struct {
+        unsigned long m : 16;
+      };
+    };
+  };
+  B *a, *b;
+  void f() {
+    *a = *b;
+  }
+
 5/25/98   Friend functions definitions removed from template strings when
           function instantiations are generated as specializations
 

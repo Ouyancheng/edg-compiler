@@ -2091,7 +2091,8 @@ operator routine or do bitwise assignment.
         }  /* if */
         /* The destination is the appropriate field (lvalue) of the "this"
            parameter. */
-        dest_expr = field_lvalue_selection_expr(this_param_value_expr(), fp);
+        dest_expr = fe_field_lvalue_selection_expr(this_param_value_expr(),
+                                                   fp);
         /* The source will be the appropriate field of the first argument,
            but we don't know yet whether it's an lvalue or an rvalue. */
         source_expr = var_rvalue_expr(source_var);
@@ -2115,7 +2116,7 @@ operator routine or do bitwise assignment.
               /* Error has already been issued in the subroutine. */
               continue;
             }  /* if */
-            source_expr = field_lvalue_selection_expr(source_expr, fp);
+            source_expr = fe_field_lvalue_selection_expr(source_expr, fp);
             if (array_type != NULL) {
               /* Copying an array of classes.  Generate a loop around the
                  call of the assignment routine, like
@@ -2193,14 +2194,14 @@ operator routine or do bitwise assignment.
           if (array_type != NULL) {
             /* Array type.  Do a special assignment (source operand is an
                address). */
-            source_expr = field_lvalue_selection_expr(source_expr, fp);
+            source_expr = fe_field_lvalue_selection_expr(source_expr, fp);
             sp = sp->next =
                        make_array_assignment_statement(dest_expr, source_expr);
         
           } else {
             /* Not an array.  The appropriate IL operator will be selected
                by make_assignment_statement. */
-            source_expr = field_rvalue_selection_expr(source_expr, fp);
+            source_expr = fe_field_rvalue_selection_expr(source_expr, fp);
             sp = sp->next = make_assignment_statement(dest_expr, source_expr);
           }  /* if */
         }  /* if */
