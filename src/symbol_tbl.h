@@ -843,6 +843,15 @@ typedef struct a_param_id {
 			/* A dummy variable created for scanning a VLA
 			   expression that refers to the parameter before
 			   its "real" variable entry is allocated. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_range
+		specifiers_range,
+		declarator_range,
+		identifier_range;
+			/* Source position information recorded at the point
+			   of declaration, to be transferred to the associated
+			   parameter variable entry if one is created. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_param_id;
 
 
