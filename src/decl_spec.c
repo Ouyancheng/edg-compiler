@@ -1706,9 +1706,8 @@ the template.
       /* Check for tag mismatch.  This can only happen when an instance of a
          class template is being referenced in an elaborated type specifier. */
       if (tag_sym->kind == (a_symbol_kind)sk_type) {
-#if CHECKING
         if (tag_sym->variant.type.ptr->kind ==
-                                   (a_type_kind)tk_template_param) {
+                                             (a_type_kind)tk_template_param) {
           /* Template param used in with a class-key -- for instance:
                template <class T> class A {
                  class T x;
@@ -1716,6 +1715,12 @@ the template.
              During prototype instantiation we have to assume that T can be a
              valid class name.  Therefore "class T x" is treated as synonymous
              with "T x".  In addition, "friend class T" is also supported. */
+          a_type_ptr  proxy_type = proxy_class_for_template_param(
+                                                   tag_sym->variant.type.ptr);
+          proxy_type->kind = type_kind;
+          tag_sym = (a_symbol_ptr)proxy_type->source_corresp.assoc_info;
+          tag_sym->kind = tag_kind;
+#if CHECKING
         } else if (any_cfront_mode()) {
           /* Cfront bug that allows this:
                typedef class A B;
@@ -1727,8 +1732,8 @@ the template.
                                                        variant.type.ptr));
         } else {
           internal_error("class_specifier: invalid sk_type tag_sym");
-        }  /* if */
 #endif /* CHECKING */
+        }  /* if */
       } else if (tag_sym->kind != tag_kind) {
         if (is_template_class_symbol(tag_sym)) {
           /* Error -- tag-kind mismatch in a specialization. */
@@ -1800,7 +1805,8 @@ the template.
   if (tag_sym != NULL && C_dialect == C_dialect_cplusplus) {
     a_class_symbol_supplement_ptr	cssp;
 
-    cssp = tag_sym->variant.class_struct_union.extra_info;
+    cssp = (tag_sym->kind == (a_symbol_kind)sk_type) ?
+                        NULL : tag_sym->variant.class_struct_union.extra_info;
     class_type = type_symbol_type(tag_sym);
     if (tag_sym->kind == (a_symbol_kind)sk_type) {
       if (is_class_definition) {

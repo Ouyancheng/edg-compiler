@@ -1713,6 +1713,25 @@ the meaning of need_closing_paren.
     write_tok_str("::");
   }  /* if */
 }  /* gen_namespace_qualifier */
+
+
+static char *tag_kind(a_type_kind kind)
+/*
+Return a string that describes the tag kind for the indicated type, i.e.,
+"class" or "enum".
+*/
+{
+  char *str;
+
+  switch (kind) {
+    case tk_enum:   str = "enum";   break;
+    case tk_class:  str = "class";  break;
+    case tk_struct: str = "struct"; break;
+    case tk_union:  str = "union";  break;
+    default:        unexpected_condition_str("tag_kind: bad type kind");
+  }  /* switch */
+  return str;
+}  /* tag_kind */
   
 
 static void gen_name(a_source_correspondence *scp,
@@ -1763,9 +1782,16 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
         if (entry_kind == iek_type &&
             !(options & GN_QUALIFIER) && (options & GN_DEPENDENT)) {
-          /* Emit a "typename" preceding a dependent qualified name (but not
-             preceding every qualifier). */
-          write_tok_str("typename ");
+          /* Emit a "class", "struct", "union" or "typename" preceding a
+             dependent qualified name (but not preceding every qualifier).
+             (Prefer the former variants to select the right namespace.) */
+          a_type_ptr  type = (a_type_ptr)scp;
+          if (is_immediate_class_type(type) || is_immediate_enum_type(type)) {
+            write_tok_str(tag_kind(type->kind));
+            write_space();
+          } else {
+            write_tok_str("typename ");
+          }  /* if */
         }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         gen_class_qualifier(class_type,
@@ -2219,25 +2245,6 @@ omit the space.
   write_space();
 done:;
 }  /* gen_storage_class */
-
-
-static char *tag_kind(a_type_kind kind)
-/*
-Return a string that describes the tag kind for the indicated type, i.e.,
-"class" or "enum".
-*/
-{
-  char *str;
-
-  switch (kind) {
-    case tk_enum:   str = "enum";   break;
-    case tk_class:  str = "class";  break;
-    case tk_struct: str = "struct"; break;
-    case tk_union:  str = "union";  break;
-    default:        unexpected_condition_str("tag_kind: bad type kind");
-  }  /* switch */
-  return str;
-}  /* tag_kind */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
@@ -6288,7 +6295,7 @@ recorded with this particular header.
                               ->variant.template_param.extra_info
                               ->coordinates,
                            &param->source_corresp);
-      write_tok_str("class ");
+      write_tok_str("typename ");
       /* Set the source position for the name. */
       set_output_position(&param->source_corresp.decl_position);
       write_tok_str_if_nonnull(param->source_corresp.name);

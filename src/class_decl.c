@@ -4772,7 +4772,8 @@ the current class (class_type).
 
   if (is_error_type(friend_class_type)) {
     /* Ignore it. */
-  } else if (class_type->variant.class_struct_union.is_nonreal_class) {
+  } else if (!prototype_instantiations_in_il &&
+             class_type->variant.class_struct_union.is_nonreal_class) {
     /* friend declarations are not processed during prototype instantiation
        -- they're meaningless until a real instantiation is done. */
   } else {
