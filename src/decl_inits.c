@@ -1122,6 +1122,13 @@ The syntax is:
 void repeat_constructor_init(a_dynamic_init_ptr  ctor_dip,
                              a_dynamic_init_ptr  new_dip,
                              int                 count)
+/*
+Define a dynamic init entry for a nonconstant aggregate, which will always be
+for an array whose elements are to be initialized by a series of constructor
+calls.  The dynamic entry to be defined (new_dip) has already been allocated;
+the dynamic init entry that represents the constuctor is ctor_dip.  count is
+the number of elements in the array to be initialized.
+*/
 {
   a_constant_ptr           aggr_con, repeat_con, dynamic_init_con;
 
@@ -1148,6 +1155,11 @@ void repeat_constructor_init(a_dynamic_init_ptr  ctor_dip,
 
 a_boolean def_initializer(a_symbol_ptr       sym,
                           a_source_position  *err_pos)
+/*
+Perform default initialization for variables and static data members of class
+type.  Such initialization is required whenever the class has a constructor;
+the default constructor (if one exists) is called.
+*/
 {
   a_boolean                      def_init_performed = FALSE;
   a_variable_ptr                 var;
@@ -1235,13 +1247,16 @@ a_boolean def_initializer(a_symbol_ptr       sym,
 }  /* def_initializer */
 
 
-a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout)
+a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout,
+                                        a_boolean      user_defined)
 /*
 Process the explicit and implicit constructor initializations for constructor
-routine ctor_rout.
+routine ctor_rout.  If user_defined is TRUE, the context is that of an
+explicit definition in the source code; otherwise, this routine is called
+as part of the implicit definition of a compiler generated constructor.
 
-The explicit initialization are scanned from the source, based on the
-following syntax:
+When user_defined is TRUE, the explicit initializations are scanned from the
+source, based on the following syntax:
 
     ctor-initializer
               ":" mem-initializer-list
@@ -1263,12 +1278,17 @@ data members for which no explicit initializers were specified and for which
 constructor initialization is required; in such cases default constructors
 are invoked.
 
+In addition, when ctor_rout refers to a copy constructor, all nonstatic data
+members are initialized (for bitwise copy at least) and all implicitly
+invoked constructors for member and base class subobjects must also be copy
+constructors.
+
 There are rules governing order of initialization, virtual base classes, and
 which subobjects require initialization and therefore must be implicitly
 initialized.  These are addressed in the course of the processing.
 */
 {
-  a_boolean                     err;
+  a_boolean                     err, is_cctor, const_required;
   a_type_ptr                    class_type, init_type, tp, array_type;
   a_symbol_ptr                  sym, class_sym, member_or_base_sym;
   a_constructor_init_ptr        cip, new_cip, prev_cip;
@@ -1286,6 +1306,7 @@ initialized.  These are addressed in the course of the processing.
 #if CHECKING
   if (class_type == NULL) internal_error("ctor_initializer: NULL class type");
 #endif /* if CHECKING */
+  is_cctor = is_copy_constructor(ctor_rout, class_type, &const_required);
   /* The first step is to construct three lists of constructor initializer
      entries, one for virtual base classes that have constructors, one for
      nonvirtual direct base classes that have constructors, and one for
@@ -1309,7 +1330,7 @@ initialized.  These are addressed in the course of the processing.
       /* If the virtual base class or direct base class has a constructor, a
          dynamic init entry will be required.  Create the constructor init
          entry now; the dynamic init will be added later. */
-      if (cssp->constructor != NULL) {
+      if (cssp->constructor == NULL || is_cctor) {
         cip = alloc_ctor_init(bcp->is_virtual ?
                               (a_constructor_init_kind)cik_virtual_base_class :
                               (a_constructor_init_kind)cik_direct_base_class);
@@ -1350,30 +1371,38 @@ initialized.  These are addressed in the course of the processing.
     if (sym->kind == (a_symbol_kind)sk_field) {
       /* sym represents a field.  Determine whether constructor initialization
          is required. */
-      tp = sym->variant.field->type;
-      while (is_array_type(tp)) {
-        tp = skip_typerefs(tp->variant.array.element_type);
-      }  /* while */
-      if (is_class_struct_union_type(tp)) {
-        cssp = symbol_supplement_for_class(tp);
-        if (cssp->constructor != NULL) {
-          cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
-          cip->variant.field = sym->variant.field;
-          if (cip_list == NULL) {
-            cip_list = cip;
-          } else {
-            end_of_cip_list->next = cip;
-          }  /* if */
-          end_of_cip_list = cip;
+      if (is_cctor) {
+        /* All fields are explicitly listed for a copy constructor, since even
+           if there is no constructor at least a bitwise copy is required. */
+      } else {
+        /* This is not a copy constructor.  See if this is a field that
+           requires constructor initialization. */
+        tp = sym->variant.field->type;
+        while (is_array_type(tp)) {
+          tp = skip_typerefs(tp->variant.array.element_type);
+        }  /* while */
+        if (!is_class_struct_union_type(tp) ||
+            symbol_supplement_for_class(tp)->constructor == NULL) {
+          /* No constructor -- don't create a constructor init entry. */
+          continue;
         }  /* if */
       }  /* if */
+      /* A constructor init entry is required for this field. */
+      cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
+      cip->variant.field = sym->variant.field;
+      if (cip_list == NULL) {
+        cip_list = cip;
+      } else {
+        end_of_cip_list->next = cip;
+      }  /* if */
+      end_of_cip_list = cip;
     }  /* if */
   }  /* for */
   /* Three lists that have been created thus far were made to cover the
      default initialization required because base classes and fields need
      it.  It remains to scan the user specified initializers, if any, and
      to integrate them into the lists. */
-  if (curr_token == tok_colon) {
+  if (user_defined && curr_token == tok_colon) {
     /* User-specified initializers are present.  Bypass the colon. */
     (void)get_token();
     add_stop_token(tok_lbrace);
@@ -1649,13 +1678,60 @@ scan_paren:
         /* Get the type of the base class. */
         tp = skip_typerefs(cip->variant.base_class->type);
       }  /* if */
+      if (is_class_struct_union_type(tp)) {
+        cssp = symbol_supplement_for_class(tp);
 #if CHECKING
-      if (!is_class_struct_union_type(tp)) {
-        internal_error("ctor_initializer: unexpected type");
-      }  /* if */
+      } else if (!is_cctor) {
+        internal_error("ctor_initializer: unexpected type on noncopy ctor");
 #endif /* CHECKING */
-      cssp = symbol_supplement_for_class(tp);
-      if (cssp->default_constructor == NULL) {
+      } else {
+        cssp = NULL;
+      }  /* if */
+      if (is_cctor) {
+        /* The constructor for the object as a whole is a copy constructor.
+           Any subobject constructors must also be copy constructors, and
+           fields and base classes that have no constructor must be
+           accounted for, too. */
+        if (cssp == NULL || cssp->constructor == NULL) {
+          /* No constructor for field or base class.  Record the necessity
+             for a bitwise copy. */
+          if (cip->kind == (a_constructor_init_kind)cik_field) {
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_member_copy);
+          } else {
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_base_class_copy);
+          }  /* if */
+#if CHECKING
+        } else if (!cssp->has_copy_constructor) {
+            internal_error("ctor_initializer: missing copy constructor");
+#endif /* CHECKING */
+        } else {
+          /* Constructor initialization is required (not a bitwise copy), so
+             find the copy constructor for this field or base class. */
+          a_symbol_ptr  cctor_sym;
+          a_boolean     cctor_err;
+          cctor_sym = get_copy_constructor(tp, const_required, &error_position,
+                                           &cctor_err);
+          if (cctor_err) {
+            /* The copy constructor was invalid in some way or other. */
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+          } else {
+            /* A valid copy constructor does exist.  Generate the dynamic init
+               entry and mark the constructor routine referenced. */
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+            dip->variant.constructor.routine = cctor_sym->variant.routine;
+            /* No expression node is created to represent the subobject.  The
+               back end will compute the subobject's address based on the
+               base class or field just as it will compute the address of the
+               implicit "this" parameter, which is the address of the subobject
+               to be initialized by the copy. */
+            dip->variant.constructor.args = NULL;
+            dip->variant.constructor.is_copy_constructor_for_subobject = TRUE;
+            /* Check that the constructor is accessible and mark it
+               referenced. */
+            reference_to_special_member_function(cctor_sym);
+          }  /* if */
+        }  /* if */
+      } else if (cssp->default_constructor == NULL) {
         /* This object has no default constructor.  If it has any constructor
            at all this is an error, since nothing has been provided for
            implicit initialization.  (It may have no constructors but a
@@ -1675,7 +1751,8 @@ scan_paren:
         /* Check that the constructor is accessible and mark it referenced. */
         reference_to_special_member_function(cssp->default_constructor);
       }  /* if */
-      if (array_type != NULL) {
+      if (array_type != NULL &&
+          dip->kind == (a_dynamic_init_kind)dik_constructor) {
         /* We have an array of objects with constructors.  Create a dynamic
            init entry to handle the aggregate. */
         ctor_dip = dip;
