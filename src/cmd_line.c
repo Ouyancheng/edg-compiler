@@ -2277,9 +2277,11 @@ enable_microsoft_mode:
          ec_cl_one_instantiation_per_object_incompatible_with_multiple_inputs);
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (ii_file_name != NULL) {
       command_line_error(ec_cl_ii_file_name_incompatible_with_multiple_inputs);
     }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
 #else /* !COMPILE_MULTIPLE_SOURCE_FILES */
   /* Multiple source files cannot be compiled. */
