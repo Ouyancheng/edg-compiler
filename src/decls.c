@@ -4483,6 +4483,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
         }  /* if */
         dip->variable = handler->parameter;
         dip->destructor = dtor;
+        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE);
         handler->dynamic_init = dip;
       }  /* if */
     }  /* if */
