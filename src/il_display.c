@@ -734,7 +734,8 @@ gives the name to be used for the display, or is NULL if no name should
 be written.
 */
 {
-  char *name;
+  char        *name;
+  a_type_ptr  tp;
 
   disp_name(ptr_name);
   disp_ptr_value(entry_ptr, entry_kind);
@@ -755,6 +756,12 @@ be written.
         /* Entry has a source correspondence field. */
         name = ((a_constant_ptr)entry_ptr)->source_corresp.name;
         break;
+      case iek_base_class:
+        tp = ((a_base_class_ptr)entry_ptr)->type;
+        if (tp != NULL) {
+          name = tp->source_corresp.name;
+          break;
+        }  /* if */
       default:
         name = NULL;
     }  /* switch */
@@ -781,6 +788,12 @@ be written.
 #endif /* ifdef CFE */
       }  /* if */
       (void)printf("%s", name);
+      if (entry_kind == iek_base_class) {
+        tp = ((a_base_class_ptr)entry_ptr)->derived_class;
+        if (tp != NULL && tp->source_corresp.name != NULL) {
+          (void)printf(" (in %s)", tp->source_corresp.name);
+        }  /* if */
+      }  /* if */
     } else {
       /* Entry is unnamed.  Give short description for some entries. */
       if (entry_kind == iek_constant) {
