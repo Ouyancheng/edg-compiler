@@ -647,17 +647,18 @@ and indentation is the indentation desired.
       break;
     case sk_class_template:
     case sk_function_template:
+    case sk_variable_template:
       {
         a_template_symbol_supplement_ptr  tssp;
         a_template_param_ptr              tplep;
         a_symbol_ptr                      inst_sym, mft_sym;
 
-        tssp = sym->variant.template.extra_info;
-        if (tssp->body_token_cache.first_token != NULL) {
+        tssp = sym->variant.templ.extra_info;
+        if (tssp->token_cache.first_token != NULL) {
           put_string("template body cached");
         }  /* if */
         if (sym->kind == (a_symbol_kind)sk_class_template) {
-          switch (tssp->variant.class.type_kind) {
+          switch (tssp->variant.class_template.type_kind) {
             case tk_class:  put_string("class");           break;
             case tk_struct: put_string("struct");          break;
             case tk_union:  put_string("union");           break;
@@ -694,14 +695,14 @@ and indentation is the indentation desired.
           col = 0;
         }  /* for */
         if (sym->kind == (a_symbol_kind)sk_class_template) {
-          inst_sym = tssp->variant.class.instantiations;
+          inst_sym = tssp->variant.class_template.instantiations;
           while (inst_sym != NULL) {
             fprintf(f_debug, "%*sinstantiation:\n", indentation, "");
             fprintf(f_debug, "%*s", indentation + 2, "");
             db_symbol(inst_sym, "", indentation + 4);
             inst_sym = inst_sym->next;
           }  /* while */
-          mft_sym = tssp->variant.class.member_function_templates;
+          mft_sym = tssp->variant.class_template.member_function_templates;
           while (mft_sym != NULL) {
             fprintf(f_debug, "%*smember function template:\n",
                     indentation, "");
@@ -709,7 +710,7 @@ and indentation is the indentation desired.
             db_symbol(mft_sym, "", indentation + 4);
             mft_sym = mft_sym->next;
           }  /* while */
-        } else {
+        } else if (sym->kind == (a_symbol_kind)sk_function_template) {
           a_routine_ptr  routine = tssp->variant.function.routine;
           a_function_instantiation_entry_ptr fiep;
           fprintf(f_debug, "%*sroutine type: ", indentation, "");
@@ -744,6 +745,8 @@ and indentation is the indentation desired.
             db_symbol(fiep->routine_sym, "", indentation + 4);
             fiep = fiep->next;
           }  /* while */
+        } else {
+          /* sk_variable_template -- not yet implemented. */
         }  /* if */
         col = 0;
         suppress_newline = TRUE;
@@ -852,6 +855,7 @@ Dump the entire scope stack (for debugging).
           switch (ssep->template_sym->kind) {
             case sk_class_template:    s = "<class-template>";    break;
             case sk_function_template: s = "<function-template>"; break;
+            case sk_variable_template: s = "<variable-template>"; break;
             default:                   s = "<BAD SYMBOL KIND>";   break;
           }  /* switch */
           fprintf(f_debug, "%s %s", s, ssep->template_sym->header->identifier);
@@ -891,7 +895,7 @@ is not a routine symbol, return FALSE.
       match = is_special_function_symbol(sym, kind);
       break;
     case sk_function_template:
-      match = (sym->variant.template.extra_info->
+      match = (sym->variant.templ.extra_info->
                         variant.function.routine->special_kind == kind);
       break;
     default:
@@ -1216,6 +1220,7 @@ state.
       break;
     case sk_class_template:
     case sk_function_template:
+    case sk_variable_template:
       {
         a_template_symbol_supplement_ptr  tssp;
         /* Allocate a template symbol supplement. */
@@ -1224,22 +1229,27 @@ state.
 #if DEBUG
         num_template_symbol_supplements_allocated++;
 #endif /* DEBUG */
-        sym_ptr->variant.template.extra_info = tssp;
+        sym_ptr->variant.templ.extra_info = tssp;
         /* Initialize fields in the template symbol supplement. */
         tssp->parameters = NULL;
         tssp->innermost_instantiation_scope = NO_SCOPE_DEPTH;
         tssp->declaration_scope = NO_SCOPE_NUMBER;
-        if (sym_kind == (a_symbol_kind)sk_class_template) {
-          tssp->variant.class.instantiations = NULL;
-          tssp->variant.class.type_kind      = (a_type_kind)tk_error;
-          tssp->variant.class.member_function_templates = NULL;
-	  tssp->variant.class.pending_instantiations = 0;
-        } else {
-          tssp->variant.function.instantiations = NULL;
-          clear_token_cache(&tssp->variant.function.decl_token_cache);
-          tssp->variant.function.routine = NULL;
-        }  /* if */
-        clear_token_cache(&tssp->body_token_cache);
+        clear_token_cache(&tssp->token_cache);
+        switch (sym_ptr->kind) {
+          case sk_class_template:
+            tssp->variant.class_template.instantiations = NULL;
+            tssp->variant.class_template.type_kind = (a_type_kind)tk_error;
+            tssp->variant.class_template.member_function_templates = NULL;
+            tssp->variant.class_template.pending_instantiations = 0;
+            break;
+          case sk_function_template:
+            tssp->variant.function.instantiations = NULL;
+            tssp->variant.function.routine = NULL;
+            break;
+          case sk_variable_template:
+            tssp->variant.function.instantiations = NULL;
+            break;
+        }  /* switch */
       }
       break;
 #if CHECKING
@@ -2093,7 +2103,7 @@ ct_symbol is the symbol of the class template.
   /* Determine kind of symbol to be entered.  It can be either a
      class_or_struct or a union depending on the type of the class
      template. */
-  switch (ct_symbol->variant.template.extra_info->variant.class.type_kind) {
+  switch (ct_symbol->variant.templ.extra_info->variant.class_template.type_kind) {
     case tk_class:
     case tk_struct:  kind = (a_symbol_kind)sk_class_or_struct_tag;  break;
     case tk_union:   kind = (a_symbol_kind)sk_union_tag;            break;
@@ -4881,7 +4891,7 @@ values needed for the previous call.
 
   db_enter(4, "update_template_param_symbols");
   /* Get a pointer to the first template parameter. */
-  tpp = template_sym->variant.template.extra_info->parameters;
+  tpp = template_sym->variant.templ.extra_info->parameters;
   /* Loop through the parameters and arguments.  There must be a
      one-to-one correspondence and the kinds must match.  This was
      verified when the argument list was scanned.  Update the parameter
@@ -4912,7 +4922,7 @@ declaration is scanned and are used as placeholders between instantiations.
 
   db_enter(4, "restore_default_template_params");
   /* Get a pointer to the first template parameter. */
-  tpp = template_sym->variant.template.extra_info->parameters;
+  tpp = template_sym->variant.templ.extra_info->parameters;
   /* Loop through the parameters and and set them to either the original
      template type or the original template constant (as specified by the
      param_type or param_constant field). */
@@ -5158,7 +5168,7 @@ the function instantiation entry associated with the function.
          class template in the scope stack.  This is used by pop_scope to
          restore the parameter values in the case of a recursive
          instantiation. */
-      tssp = template_sym->variant.template.extra_info;
+      tssp = template_sym->variant.templ.extra_info;
       ssep->depth_of_previous_instantiation =
           tssp->innermost_instantiation_scope;
       tssp->innermost_instantiation_scope = depth_scope_stack;
@@ -5608,8 +5618,8 @@ NULL.
       {
       a_template_symbol_supplement_ptr  tssp;
       a_symbol_ptr                      template_class_sym;
-      tssp = sym->variant.template.extra_info;
-      template_class_sym = tssp->variant.class.instantiations;
+      tssp = sym->variant.templ.extra_info;
+      template_class_sym = tssp->variant.class_template.instantiations;
       for (; template_class_sym != NULL;
              template_class_sym = template_class_sym->next) {
         end_of_scope_symbol_check(template_class_sym, curr_routine);
@@ -5619,7 +5629,7 @@ NULL.
     case sk_function_template:
       {
       a_function_instantiation_entry_ptr fiep;
-      fiep = sym->variant.template.extra_info->variant.function.instantiations;
+      fiep = sym->variant.templ.extra_info->variant.function.instantiations;
       for (; fiep != NULL; fiep = fiep->next) {
         if (fiep->specific_decl) {
           /* A user declaration was provided, so the associated symbol should
@@ -5868,7 +5878,7 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
     /* Update the depth of the innermost instantiation in the template
        symbol supplement. */
-    tssp = template_sym->variant.template.extra_info; 
+    tssp = template_sym->variant.templ.extra_info; 
     tssp->innermost_instantiation_scope = prev_depth;
   }  /* if */
   /* Determine the memory region to restore for the outer scope. */
@@ -6585,10 +6595,9 @@ which instantiations are required.
     a_boolean	do_all;
     do_all = (instantiation_mode == tim_all);
     while (fiep != NULL) {
-      a_boolean	has_body;
-      has_body = fiep->template_sym->variant.template.extra_info->
-                                         body_token_cache.first_token != NULL;
-      if (has_body) {
+      if (fiep->template_sym->variant.templ.extra_info->
+                                           token_cache.first_token != NULL) {
+        /* There is a body. */
         if (do_all || fiep->instantiation_required) {
 #if DEBUG
           if (debug_level >= 4) {

@@ -250,6 +250,7 @@ enum a_symbol_kind_tag {
   sk_parameter,         /* Parameter name in a function prototype. */
   sk_class_template,    /* Definition of a class template. */
   sk_function_template, /* Definition of a function template. */
+  sk_variable_template, /* Static data member of a class template. */
   sk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -267,7 +268,7 @@ EXTERN char	*db_sym_names[(int)sk_last + 1]
    "enum", "variable", "field", "static-data-member", "member-function",
    "routine", "label", "undefined", "extern-variable", "extern-routine",
    "projection", "overloaded-function", "parameter", "class-template",
-   "function-template",
+   "function-template", "variable-template",
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -677,6 +678,18 @@ typedef struct a_function_instantiation_entry {
 } a_function_instantiation_entry;
 
 
+typedef struct a_variable_instantiation_entry
+                   *a_variable_instantiation_entry_ptr;
+
+typedef struct a_variable_instantiation_entry {
+  /* Information describing an instantiation of a variable template. */
+  a_variable_instantiation_entry_ptr
+                next;
+                        /* Pointer to the next instance of a given
+                           variable template. */
+} a_variable_instantiation_entry;
+
+
 /* Used to track the number of pending instantiations of a given class. */
 typedef short a_pending_instantiation_count;
 
@@ -689,13 +702,15 @@ typedef struct a_template_symbol_supplement {
                 parameters;
 			/* Symbol entries for formal parameters of the
                            template. */
-  a_token_cache body_token_cache;
-                        /* The body of the template is stored as a token
-                           cache which can be rescanned later during
+  a_token_cache token_cache;
+                        /* The tokens comprising the template are cached
+                           in order to be rescanned later during
                            instantiation.  Typically begins with the left
 			   brace that begins the class or function body and
                            extends to the right brace; for constructors it
-			   may begin at a colon. */
+			   may begin at a colon.  For templates for static
+			   data members it embraces the initializer
+			   expression, if any. */
   a_scope_depth
                 innermost_instantiation_scope;
                         /* Contains the scope number of the most recent
@@ -709,7 +724,7 @@ typedef struct a_template_symbol_supplement {
                            to be used at instantiation for symbol lookup
                            to work properly. */
   union {
-    /* When kind = sk_class_template. */
+    /* When symbol kind = sk_class_template: */
     struct {
       a_symbol_ptr
                 instantiations;
@@ -732,19 +747,14 @@ typedef struct a_template_symbol_supplement {
 			/* The number of instantiations of this template
 			   that are in the process of being instantiated.
 			   Used to detect runaway recursive instantiations. */
-    } class;
-    /* When kind = sk_function_template. */
+    } class_template;
+    /* When symbol kind = sk_function_template: */
     struct {
       a_function_instantiation_entry_ptr
                 instantiations;
                         /* Pointer to a list of entries describing template
                            functions that have been instantiated from this
                            function template. */
-      a_token_cache
-                decl_token_cache;
-                        /* The cached tokens for the function declaration. 
-                           Contains the tokens that precede the left brace
-                           of the function body. */
       a_routine_ptr
                 routine;
                         /* Points to a routine entry for the function
@@ -756,6 +766,13 @@ typedef struct a_template_symbol_supplement {
 			   in a function template declaration (the function
 			   parameters not the template parameters). */
     } function;
+    /* When symbol kind = sk_static_data_member: */
+    struct {
+      a_variable_instantiation_entry_ptr
+		instantiations;
+			/* Pointer to a list of entries describing static
+			   data members of instantiated template classes. */
+    } variable;
   } variant;
 } a_template_symbol_supplement;
 
@@ -953,13 +970,14 @@ typedef struct a_symbol {
 			   declared "static"; applies to sk_member_function
 			   overloading only. */
     } overloaded_function;
-    /* When kind = sk_class_template or sk_function_template. */
+    /* When kind = sk_class_template, sk_function_template, or
+       sk_variable_template: */
     struct {
       a_template_symbol_supplement_ptr
                 extra_info;
 			/* Pointer to an entry providing additional info about
 			   a C++ class template or function template. */
-    } template;
+    } templ;
   } variant;
 } a_symbol;
 
