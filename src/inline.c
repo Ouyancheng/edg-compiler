@@ -935,7 +935,7 @@ If not, *failed is set.
           }  /* if */
         }  /* if */
         if (is_expr_insert_location(insert_location)) {
-          an_expr_node_ptr expr, then_expr, else_expr;
+          an_expr_node_ptr then_expr, else_expr;
           /* Expression insert location.  Turn an "if" into a "?" operator. */
           if (!result_is_else) {
             /* Copy the "then" statement. */
