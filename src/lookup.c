@@ -1532,9 +1532,9 @@ scope lookup.  options specifies the options being used for the lookup.
                                             &err);
       } else {
         /* An ambiguous symbol. */
-        if (microsoft_bugs) {
+        if (microsoft_bugs && microsoft_version < 1300) {
           /* Check for cases where the Microsoft compiler prefers a given
-             symbol. */
+             symbol.  This was fixed in the 7.0 compiler. */
           if (check_for_microsoft_qualifier_using_directive_bug(
                                  &curr_sym, fund_curr_sym, new_sym, options)) {
             /* curr_sym is set by the call above. */

@@ -1,5 +1,11 @@
 Version 3.5
 
+7/7/04   Microsoft compatibility: ambiguous class reference no longer allowed
+
+The Microsoft compatibility issue described in the Changes entry
+of 10/28/99 is fixed in MSVC++ 7.0.  Therefore, we no longer
+emulate it when microsoft_version >= 1300.
+
 7/7/04   Sun compatibility: Out-of-class static member initializer ignored
 
 In Sun mode the front now mostly ignores out-of-class initializers for member
