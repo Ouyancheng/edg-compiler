@@ -1722,7 +1722,8 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
 
 static a_boolean gnu_conflict_found(a_type_ptr        subobject_type,
                                     a_base_class_ptr  ebcp,
-                                    a_boolean         in_field)
+                                    a_boolean         in_field,
+                                    a_boolean         consider_virtual_bases)
 /*
 This is a helper routine to identify certain spurious GNU empty base
 conflicts (see e.g.  gnu_first_field_conflict, gnu_base_conflict, and
@@ -1737,6 +1738,11 @@ bases.  Yet another similar issue occurs for nearly empty virtual bases
 that should normally be allocated at offset zero; in that case, in_field is
 TRUE indicating that conflicts must involve a field subobject (not just a
 base class of the complete object).
+
+GNU compilers seem to consider virtual bases only during certain stages of
+layout.  The flag consider_virtual_bases must be TRUE to enable consideration
+of virtual bases (but the flag is always set to TRUE when considering field
+types).
 */
 {
   a_boolean  result = FALSE;
@@ -1773,7 +1779,9 @@ base class of the complete object).
           (defined(sparc) || defined(__sparc)) */
     if (field->offset < offset_limit && is_immediate_class_type(field_type)) {
       if (identical_types(field_type, eb_type) ||
-          gnu_conflict_found(field_type, ebcp, /*in_field*/FALSE)) {
+          gnu_conflict_found(field_type, ebcp,
+                             /*in_field*/FALSE,
+                             /*consider_virtual_bases=*/TRUE)) {
         result = TRUE;
         break;
       }  /* if */
@@ -1784,15 +1792,14 @@ base class of the complete object).
     a_base_class_ptr  bcp = base_classes_of(subobject_type);
     for (; bcp != NULL; bcp = bcp->next) {
       if (bcp->offset == 0 && bcp->offset_is_set &&
-          ((bcp->direct && ebcp->is_virtual) ||
-           !is_base_of_virtual_base(bcp))) {
+          (consider_virtual_bases ||
+           !(bcp->is_virtual || is_base_of_virtual_base(bcp)))) {
         /* Unlike field subobjects, only base class subobjects at offset
            zero are considered for this kind of conflicts.  Virtual bases and
-           bases of virtual bases aren't considered (since their offset
-           changes from type to type), unless we're considering a direct
-           base's conflict with an empty virtual base. */
+           bases of virtual bases aren't always considered. */
         if ((!in_field && identical_types(bcp->type, eb_type)) ||
-            gnu_conflict_found(bcp->type, ebcp, in_field)) {
+            gnu_conflict_found(bcp->type, ebcp,
+                               in_field, consider_virtual_bases)) {
           result = TRUE;
           break;
         }  /* if */
@@ -1850,8 +1857,9 @@ offset is zero.
       if (bcp->offset == offset &&
           bcp->type->variant.class_struct_union.is_empty_class &&
           base_classes_of(bcp->type) == NULL &&
-          gnu_conflict_found(type_for_gnu_conflicts(field->type),
-                             bcp, /*in_field=*/FALSE)) {
+          gnu_conflict_found(type_for_gnu_conflicts(field->type), bcp,
+                             /*in_field=*/FALSE,
+                             /*consider_virtual_bases=*/TRUE)) {
         result = TRUE;
         break;
       }  /* if */
@@ -1886,10 +1894,12 @@ base if it has a subobject of the same type as the previous base.
         continue;
       }  /* if */
       sub_ebcp = base_classes_of(ebcp->type);
-      /* Only examine conflicts with bottom-most base classes. */
+      /* Only examine conflicts with bottom-most base classes and ignore
+         virtual bases if bcp is not virtual (i.e., if we are not yet in the
+         stage of laying out virtual bases). */
       if (sub_ebcp == NULL) {
         if (gnu_conflict_found(skip_typerefs(bcp->type), ebcp,
-                               /*in_field=*/FALSE)) {
+                               /*in_field=*/FALSE, bcp->is_virtual)) {
           result = TRUE;
           goto done;
         }  /* if */
@@ -1897,7 +1907,7 @@ base if it has a subobject of the same type as the previous base.
         for (; sub_ebcp != NULL; sub_ebcp = sub_ebcp->next) {
           if (base_classes_of(sub_ebcp->type) == NULL &&
               gnu_conflict_found(skip_typerefs(bcp->type), sub_ebcp,
-                                 /*in_field=*/FALSE)) {
+                                 /*in_field=*/FALSE, bcp->is_virtual)) {
             result = TRUE;
             goto done;
           }  /* if */
@@ -1926,17 +1936,19 @@ allocated at that offset.  This function returns TRUE in that case.
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->offset_is_set && bcp->direct && bcp->offset == 0) {
       a_base_class_ptr  sub_ebcp = base_classes_of(ebcp->type);
-      /* Only examine conflicts with bottom-most base classes. */
+      /* Only examine conflicts with bottom-most base classes and ignore
+         virtual bases if bcp is not virtual (i.e., if we are not yet in the
+         stage of laying out virtual bases). */
       if (sub_ebcp == NULL &&
           gnu_conflict_found(skip_typerefs(bcp->type), ebcp,
-                             /*in_field=*/TRUE)) {
+                             /*in_field=*/TRUE, ebcp->is_virtual)) {
         result = TRUE;
         break;
       } else {
         for (; sub_ebcp != NULL; sub_ebcp = sub_ebcp->next) {
           if (base_classes_of(sub_ebcp->type) == NULL &&
               gnu_conflict_found(skip_typerefs(bcp->type), sub_ebcp,
-                                 /*in_field=*/TRUE)) {
+                                 /*in_field=*/TRUE, ebcp->is_virtual)) {
             result = TRUE;
             break;
           }  /* if */
