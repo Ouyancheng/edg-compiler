@@ -2602,7 +2602,7 @@ Process the arguments on the command line that invoked the compiler.
       case optk_include_directory:
       case optk_system_include_dir:
         /* Include file directory, add to list. */
-        if (*opt_arg == '-') {
+        if (strcmp(opt_arg, "-") == 0) {
           /* -I- marks the dividing line between directories for "..."
              includes and those for <...> includes.  It also suppresses
              pushing the directory of each source file onto the search

@@ -1,5 +1,10 @@
 Version 2.46
 
+6/15/01  Problem with -I option and directory names that begin with "-"
+
+Directory names beginning with a "-" were not handled properly when used
+as an argument to the -I command-line option.  This has been fixed.
+
 6/14/01  C++-generating back end, prototype instantiations: elimination
          of unnecessary qualifiers on name references
 
