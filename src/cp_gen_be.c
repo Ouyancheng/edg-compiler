@@ -6385,7 +6385,7 @@ declaration following this one is such a continuation.
       if (is_definition) {
         write_tok_str("{ ");
         /* We still need the storage class, for cases like
-             extern "C" { const int x = 1; } 
+             extern "C" const int x = 1; 
            which has to produce
              extern "C" { extern const int x = 1; } 
         */
