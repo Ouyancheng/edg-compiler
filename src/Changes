@@ -1,5 +1,70 @@
 Version 3.1
 
+1/22/03  Implementation of IA-64 ABI
+
+The front end has until now supported only a runtime model that
+is an enhanced version of the one provided by Cfront.  The runtime
+model, or ABI, dictates class layout, virtual function table
+and pointer to member layout, name mangling, etc.
+
+Now, we have added support for the IA-64 ABI (see
+www.codesourcery.com/cxx-abi/).  This is the ABI designed for
+IA-64 (a.k.a. Itanium), but it is a nice modern ABI and is being
+used on many other architectures as well.  In particular,
+g++ uses the IA-64 ABI as its default ABI when no other native
+ABI is dominant.
+
+The new ABI is enabled by setting IA64_ABI to TRUE (and not setting
+
+  CFRONT_OBJECT_CODE_COMPATIBILITY,
+  CFRONT_2_1_OBJECT_CODE_COMPATIBILITY, or
+  CFRONT_3_0_OBJECT_CODE_COMPATIBILITY
+
+to TRUE).  It requires an object format and linker that supports
+COMDAT sections, i.e., multiple identical definitions of routines
+and variables, from which the linker retains only one instance.
+
+The usual implementation of the IA-64 ABI (e.g., in g++) uses
+an instantiation model without a prelinker.  All templates are
+instantiated wherever they are used, and the linker throws
+away duplicates.  We support this mode, when
+INSTANTIATE_TEMPLATES_EVERYWHERE_USED is TRUE, but our default
+is to use the prelinker, because we think that that produces better
+results.  In particular, note that exported templates and the
+one-instantiation-per-object mode require the use of the prelinker.
+
+The C-generating back end does work with the IA-64 ABI except
+that it isn't capable of dealing with fields allocated in the
+tail padding of base classes (see TARG_REUSE_TAIL_PADDING).
+Therefore a C-generating version is not 100% compatible with
+the ABI spec.
+
+Similarly, the fully-lowered and partially-lowered implementations
+of exception handling work with the IA-64 ABI, but they do not
+conform to the ABI spec.  Therefore if you wish to be 100%
+conformant to the spec you must either write your own implementation
+of EH or disable EH.
+
+The pointer-to-member-function representation mandated by the ABI
+spec can be implemented only on architectures in which the
+low-order bit of the address of a function is always zero.
+On architectures where that is not true, e.g., ARM, you should
+set IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR to TRUE
+to use an alternate representation.  (That representation matches
+what g++ uses on ARM.)
+
+The name demangler has been updated to support the IA-64 ABI
+form of name mangling, and it addition it can be compiled into
+the runtime library to provide a user-callable demangler
+(via the ABI-mandated __cxa_demangle interface).
+
+g++ 3.2 implements the IA-64 ABI, but it has a fair number of
+bugs.  We have added code to do a fairly thorough emulation of
+those bugs, which is enabled by DEFAULT_EMULATE_GNU_ABI_BUGS.
+We believe that by default g++ 3.3 will continue to have these
+bugs except when invoked with -fabi-version=0, so the emulation
+may be necessary for some time on some platforms.
+
 1/22/03  Overload resolution, nonstatic member function and no selector
 
 In accordance with core issue 364, overload resolution now does not

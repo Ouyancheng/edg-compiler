@@ -1,5 +1,11 @@
 Version 3.1
 
+1/22/03  Support for IA-64 ABI
+
+We have added support for the IA-64 ABI.  In particular, we added
+the required cxxabi.h header.  See the front end Changes file
+for details.
+
 5/13/02  Missing exception specification on set_new_handler, et al
 
 A throw specification was missing on the declarations of set_new_handler,
