@@ -1,5 +1,15 @@
 Version 2.30
 
+8/22/95  %np diagnostic fill-in code
+
+The diagnostic output routines now support an additional fill-in kind,
+"%np".  The "p" modifies the basic "%n" ("name") specifier by forcing display
+of function parameter types even if the function is not overloaded.
+This is used in displaying functions in an ambiguous function call
+(in the world of namespaces, some functions that are not overloaded
+in their original declaration can be brought into an overload set
+via "using" declarations).
+
 8/21/95  C-generating back end: wide string literal constants
 
 The C-generating back end rewrites references to the addresses of wide

@@ -190,6 +190,10 @@ typedef struct a_msg_segment {
       a_byte_boolean
 		name_only;	/* True if only the symbol name is needed. */
       a_byte_boolean
+		force_function_params;
+				/* True if parameters of a function should be
+				   listed even if it is not overloaded. */
+      a_byte_boolean
 		decl_pos;	/* True if the declaration position is
 				   to be generated. */
       a_byte_boolean
@@ -649,7 +653,7 @@ declaration position to eliminate redundant file names in a diagnostic.
 				   argument sym if it exists.  Otherwise,
 				   the value will be that of sym. */
   char		*entity_kind;
-  a_boolean	is_overloaded = FALSE, return_type_needed = TRUE;
+  a_boolean	force_function_params = FALSE, return_type_needed = TRUE;
   a_boolean	is_declaration_like = FALSE;
 
   curr_output_msg_segment = seg_ptr;
@@ -781,9 +785,13 @@ symbol_name:
              conversion functions. */
           return_type_needed = FALSE;
         }  /* if */
-        is_overloaded = !C_mode() &&
-                        (is_overloaded_function(fund_sym) ||
-                         (fund_sym != sym && is_overloaded_function(sym)));
+        /* Function parameters are displayed for overloaded functions or
+           if forced by "%np". */
+        force_function_params =
+                        seg_ptr->variant.symbol.force_function_params ||
+                        (!C_mode() &&
+                         (is_overloaded_function(fund_sym) ||
+                          (fund_sym != sym && is_overloaded_function(sym))));
       }  /* if */
       /* Put out the first part of the type if needed, but not for
          constructors, destructors, and conversion functions (the return type
@@ -804,10 +812,10 @@ symbol_name:
       }
       /* Put out the second part of the type if needed.  Don't put it
          out in name-only mode.  Do put it out in full-type mode, or
-         for an overloaded function. */
+         if function parameters should be listed. */
       if (type != NULL &&
           !seg_ptr->variant.symbol.name_only &&
-          (seg_ptr->variant.symbol.full_type || is_overloaded) ) {
+          (seg_ptr->variant.symbol.full_type || force_function_params) ) {
         if (routine != NULL && !return_type_needed) {
           /* For constructors, destructors, and conversion functions,
              put out the function type but not the return type. */
@@ -935,6 +943,7 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
           curr_segment->kind = (a_message_segment_kind)msk_symbol;
           curr_segment->variant.symbol.full_type = FALSE;
           curr_segment->variant.symbol.name_only = FALSE;
+          curr_segment->variant.symbol.force_function_params = FALSE;
           curr_segment->variant.symbol.decl_pos = FALSE;
           curr_segment->variant.symbol.template_args = FALSE;
           msg_ptr++;
@@ -946,6 +955,10 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
           } else if (*msg_ptr == 'o') {
             /* Display only the entity name. */
             curr_segment->variant.symbol.name_only = TRUE;
+            msg_ptr++;
+          } else if (*msg_ptr == 'p') {
+            /* Display function parameters with the name. */
+            curr_segment->variant.symbol.force_function_params = TRUE;
             msg_ptr++;
           } else if (*msg_ptr == 'a') {
             /* Display the entity name along with associated template
