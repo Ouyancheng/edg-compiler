@@ -6215,6 +6215,7 @@ parameters.
            provides a sufficient approximation. */
         write_tok_str(" __attribute__((__weak__))");
 #endif /* GCC_IS_GENERATED_CODE_TARGET */
+        write_space();
         start_comment();
         write_tok_str(" COMDAT group: ");
         write_tok_str(variable->comdat_group);
@@ -7994,6 +7995,7 @@ if this routine has a body (dump nothing if it has no body).
          a sufficient approximation. */
       write_tok_str(" __attribute__((__weak__))");
 #endif /* GCC_IS_GENERATED_CODE_TARGET */
+      write_space();
       start_comment();
       write_tok_str(" COMDAT group: ");
       write_tok_str(rout->source_corresp.name);
