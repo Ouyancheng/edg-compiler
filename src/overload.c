@@ -236,6 +236,59 @@ source_pos is the source position of the reference.  See ARM 13.3,
 }  /* find_addr_of_overloaded_function_match */
 
 
+static a_boolean indefinite_function_can_be_template_arg(an_operand *operand,
+                                                         a_type_ptr param_type,
+                                                         a_type_ptr *arg_type)
+/*
+operand is an indefinite function operand.  See if it can be matched against
+a parameter of type param_type from a function template.  If so, return
+TRUE and set *arg_type to the argument type to use.  *arg_type is not
+changed if this function returns FALSE.
+*/
+{
+  a_boolean    can_be_arg = FALSE;
+  a_symbol_ptr sym = operand->variant.symbol;
+  a_type_ptr   matching_arg_type = NULL;
+
+  reduce_projection_symbol_to_fundamental_symbol(sym);
+  if (sym->kind == (a_symbol_kind)sk_function_template) {
+    /* There's no way to match up a function template as an argument to a
+       function template. */
+    /* can_be_arg = FALSE;  -- already set. */
+  } else {
+    check_assertion(sym->kind == (a_symbol_kind)sk_overloaded_function);
+    for (sym = sym->variant.overloaded_function.symbols;
+         sym != NULL;
+         sym = sym->next) {
+      a_type_ptr routine_type = routine_symbol_type(sym), ptr_routine_type;
+      if (sym->class_of_which_a_member == NULL) {
+        ptr_routine_type = make_pointer_type(routine_type);
+      } else {
+        ptr_routine_type = ptr_to_member_type(routine_type,
+                                              sym->class_of_which_a_member);
+      }  /* if */
+      if (member_of_overload_set_matches_template_type(ptr_routine_type,
+                                                       param_type)) {
+        /* This function matches.  Only one is allowed to match, so if
+           a previous one matched, the overall match fails. */ 
+        if (can_be_arg) {
+          can_be_arg = FALSE;
+          break;
+        } else {
+          can_be_arg = TRUE;
+          /* For the argument type, use a pointer or the function type itself
+             according to what the original operand is. */
+          matching_arg_type = is_a_function_designator(operand) ?
+                                         routine_type : ptr_routine_type;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (can_be_arg) *arg_type = matching_arg_type;
+  return can_be_arg;
+}  /* indefinite_function_can_be_template_arg */
+
+
 static void clear_arg_match_summary(an_arg_match_summary_ptr amsp)
 /*
 Clear the fields of the indicated argument match summary entry to default
@@ -1836,17 +1889,25 @@ evaluated (but not checked to see if the match is good enough).
     } else {
       /* A parameter involving a template parameter type. */
       /* The ARM says the match must be exact, without even trivial
-         conversions, but we allow some trivial conversions anyway (involving
-         references, array and function type decay, and type qualifiers).
-         It seems to be necessary, and cfront seems to allow those. */
+         conversions, but the rules have since been broadened to allow
+         some trivial conversions (involving references, array and
+         function type decay, and type qualifiers). */
       /* The code here must match determine_arg_match_level and
          overload_distinguishable. */
-      /* An indefinite function cannot be made to match anything. */
-      if (is_indefinite_function_operand(&arg_operand->operand)) goto done;
       /* arg_match->param_type is left NULL because subsequence checking does
          not apply for template cases. */
       param_type = ptp->type;
+      param_is_reference = is_reference_type(param_type);
       arg_type = arg_operand->operand.type;
+      type_qualifiers_added = FALSE;
+      pointer_case = FALSE;
+      if (is_indefinite_function_operand(&arg_operand->operand)) {
+        /* For an overloaded function, each possibility must be tried.
+           Only one is allowed to match. */
+        if (!indefinite_function_can_be_template_arg(&arg_operand->operand,
+                                                     param_type,
+                                                     &arg_type)) goto done;
+      }  /* if */
       /* An incomplete type operand cannot be made to match anything.
          This comes up for something like
            struct A *p;
@@ -1854,9 +1915,6 @@ evaluated (but not checked to see if the match is good enough).
            void m() { f(*p); }
       */
       if (is_incomplete_type(arg_type)) goto done;
-      type_qualifiers_added = FALSE;
-      pointer_case = FALSE;
-      param_is_reference = is_reference_type(param_type);
       /* See if any implicit transformations (e.g., array --> pointer) should
          be done. */
       if (is_array_type(arg_type) &&
