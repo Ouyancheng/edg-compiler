@@ -404,7 +404,7 @@ Process the arguments on the command line that invoked the compiler.
                           open_source_file(instantiation_list_filename,
                                            &not_found, &bad_format, &bad_name);
           if (f_instantiation_information == NULL) {
-            str_command_line_error("cannot open instantiation list file: ",
+            str_command_line_error("cannot open instantiation list file ",
 				   instantiation_list_filename);
           }  /* if */
         }
