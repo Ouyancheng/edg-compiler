@@ -1,5 +1,21 @@
 Version 2.44
 
+7/17/00  Microsoft C mode: void * operands in "?" operation
+
+In Microsoft C mode (and also pcc and SVR4 modes), a "?" operator
+with the second operand of type void * was treated as having a result
+type of void * rather than the first operand type.  Now fixed.
+
+  struct A {
+    int dummy;
+  };
+  void g(int x)
+  {
+    struct A a;
+    void *p=&a;
+    (x?&a:p)->dummy = 0;
+  }
+
 7/15/00  Sun compatibility: extern "C" functions with internal linkage
 
 In Sun mode functions with internal linkage that appear in extern "C" blocks

@@ -3347,10 +3347,26 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
   a_boolean        operand_1_is_pointer = is_pointer_type(operand_1_type);
   a_boolean        operand_2_is_pointer = is_pointer_type(operand_2_type);
   a_boolean        suppress_extensions;
-  a_boolean        operand_1_is_void_star_0 = FALSE;
-  a_boolean        operand_2_is_void_star_0 = FALSE;
+  a_boolean        operand_1_is_void_star = FALSE;
+  a_boolean        operand_2_is_void_star = FALSE;
   a_std_conv_descr std_conv;
+  a_boolean        allow_qualifier_or_eh_mismatch = TRUE;
 
+  /* In C mode, don't look for a conversion from a void * operand to the
+     other operand, because the conversion will be allowed in the other
+     direction, and we want to prefer that. */
+  if (C_mode()) {
+    operand_1_is_void_star = (operand_1_is_pointer &&
+                              is_void_type(type_pointed_to(operand_1_type)));
+    operand_2_is_void_star = (operand_2_is_pointer &&
+                              is_void_type(type_pointed_to(operand_2_type)));
+    if (operand_1_is_void_star && operand_2_is_void_star) {
+      /* Both are void *, or some cv-qualified version thereof, such as
+         const void *.  Try to convert each to the other type, without
+         ignoring cv-qualifiers. */
+      allow_qualifier_or_eh_mismatch = FALSE;
+    }  /* if */
+  }  /* if */
   /* The loop here tries the conversions once without extensions
      allowed, and (if that fails) again with extensions allowed,
      so we won't pick a conversion direction that requires an
@@ -3370,24 +3386,19 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* See if the second operand can be converted to the type of the
-         first operand.  In C mode, suppress the attempt to find an
-         implicit conversion to the type of a null pointer constant
-         of (void *)0, because we want to favor the conversion in the
-         other direction. */
-      operand_1_is_void_star_0 =
-                      (C_mode() &&
-                       is_constant_operand(operand_1) &&
-                       is_null_pointer_constant(&operand_1->variant.constant));
-      if (operand_1_is_void_star_0 && operand_2_is_pointer) {
-        /* Don't try the conversion in this direction -- leave it to be done
-           in the other direction below. */
+         first operand. */
+      if (operand_1_is_void_star &&
+          (operand_2_is_pointer && !operand_2_is_void_star)) {
+        /* Don't try to convert the second operand to the void * type of the
+           first, because the conversion in the other direction should
+           be preferred. */
       } else if (impl_pointer_conversion(operand_2_type,
                                          operand_2_is_constant,
                                          (a_boolean)operand_2->
                                                       is_simple_string_literal,
                                          operand_2_constant,
                                          operand_1_type,
-                                       /*allow_qualifier_or_eh_mismatch=*/TRUE,
+                                         allow_qualifier_or_eh_mismatch,
                                          suppress_extensions,
                                          ec_incompatible_operands,
                                          &std_conv)) {
@@ -3408,25 +3419,18 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
                                                         &operand_1_constant);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* See if the first operand can be converted to the type of the
-         second operand.  In C mode, suppress conversion toward a null
-         pointer constant (see comment above), but try the conversion if
-         we suppressed it in the other direction in order to get
-         cases like "(void *)0 == (void *)0". */
-      operand_2_is_void_star_0 =
-                      (C_mode() &&
-                       is_constant_operand(operand_2) &&
-                       is_null_pointer_constant(&operand_2->variant.constant));
-      if (operand_2_is_void_star_0 && operand_1_is_pointer &&
-          !operand_1_is_void_star_0) {
-        /* Don't try the conversion in this direction. */
+      if (operand_2_is_void_star &&
+          (operand_1_is_pointer && !operand_1_is_void_star)) {
+        /* Don't try to convert the first operand to the void * type of the
+           second, because the conversion in the other direction should
+           be preferred. */
       } else if (impl_pointer_conversion(operand_1_type,
                                          operand_1_is_constant,
                                          (a_boolean)operand_1->
                                                       is_simple_string_literal,
                                          operand_1_constant,
                                          operand_2_type,
-                                       /*allow_qualifier_or_eh_mismatch=*/TRUE,
+                                         allow_qualifier_or_eh_mismatch,
                                          suppress_extensions,
                                          ec_incompatible_operands,
                                          &std_conv)) {

@@ -3702,7 +3702,6 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       } else {
         conversion_from_void_star_in_C =
                        (C_dialect != C_dialect_cplusplus &&
-                        !allow_qualifier_or_eh_mismatch &&
                         is_void(unqual_source_type_pointed_to));
         if (conversion_from_void_star_in_C &&
             (is_object(unqual_dest_type_pointed_to) ||
@@ -3786,7 +3785,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
              functions, as an extension, with a warning. */
           okay = TRUE;
           std_conv->warning_suggested = default_warning_code;
-        } else if (C_mode() &&
+        } else if (C_mode() && !suppress_extensions &&
                    (C_dialect == C_dialect_pcc || SVR4_C_mode ||
                     microsoft_mode)) {
           /* In pcc mode, SVR4 C, and Microsoft C modes, allow conversion
