@@ -1,3 +1,8 @@
+6/24/92  New runtime routine _vec_cctor()
+
+A new C++ runtime routine _vec_cctor() to execute a copy constructor for
+each element of an array.
+ 
 ------------------------------------------------------------------------------
 Version 2.05, April 30, 1992
 
