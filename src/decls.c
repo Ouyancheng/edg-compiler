@@ -2140,7 +2140,9 @@ static void function_declarator(a_type_ptr        *new_type_ptr,
                                 a_type_ptr        member_function_parent_type,
                                 a_boolean         is_nonstatic_member_function,
                                 a_boolean         is_constructor,
-                                a_boolean         is_destructor)
+                                a_boolean         is_destructor,
+                                a_source_sequence_entry_ptr
+                                                   routine_declarator_ssep)
 /*
 Scan a function declarator (3.5.4.3), or an array declarator in an
 abstract declarator (3.5.5).  Allocate and return in *new_type_ptr an
@@ -2499,7 +2501,7 @@ scope is that of a class definition.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (ptp->has_default_arg && func_info != &local_func_info_block) {
             ptp->rout_src_seq_entry_for_default_arg_decl =
-                                                 func_info->declarator_ssep;
+                                                     routine_declarator_ssep;
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
@@ -6239,7 +6241,7 @@ function_lparen:
       }  /* if */
       function_declarator(&new_type_ptr, func_info, locator,
                           member_parent_type, is_nonstatic_member_function,
-                          is_constructor, is_destructor);
+                          is_constructor, is_destructor, *declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (func_info != NULL) {
         /* Record the source sequence entry in func_info even if there was
