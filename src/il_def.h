@@ -1916,6 +1916,16 @@ enum an_expr_operator_kind_tag {
 			/* C++ cast of a pointer to a class to a pointer to
 			   a direct derived class.  The type of the expression
  			   indicates the type to cast to. */
+  eok_pm_base_class_cast,
+			/* C++ cast of a pointer to a member of a class to
+			   a pointer to a member of a direct base class.
+			   The type of the expression indicates the type to
+			   cast to. */
+  eok_pm_derived_class_cast,
+			/* C++ cast of a pointer to a member of a class to
+			   a pointer to a member of a direct derived class.
+			   The type of the expression indicates the type to
+			   cast to. */
   eok_lvalue_cast,	/* Like eok_cast, but used to cast an lvalue in
 			   pcc mode.  An lvalue cast to a like-sized type
 			   can remain an lvalue. */
@@ -1955,7 +1965,7 @@ enum an_expr_operator_kind_tag {
   eok_imultiply,        /* Integer multiplication. */
   eok_idivide,          /* Integer division. */
   eok_ieq,              /* Integer equality. */
-  eok_ine,              /* Integer non-equality. */
+  eok_ine,              /* Integer inequality. */
   eok_igt,              /* Integer greater than. */
   eok_ilt,              /* Integer less than. */
   eok_ige,              /* Integer greater than or equal. */
@@ -1966,7 +1976,7 @@ enum an_expr_operator_kind_tag {
   eok_fmultiply,        /* Floating multiplication. */
   eok_fdivide,          /* Floating division. */
   eok_feq,              /* Floating equality. */
-  eok_fne,              /* Floating non-equality. */
+  eok_fne,              /* Floating inequality. */
   eok_fgt,              /* Floating greater than. */
   eok_flt,              /* Floating less than. */
   eok_fge,              /* Floating greater than or equal. */
@@ -1987,13 +1997,13 @@ enum an_expr_operator_kind_tag {
   eok_xmultiply,        /* Complex multiplication. */
   eok_xdivide,          /* Complex division. */
   eok_xeq,              /* Complex equality. */
-  eok_xne,              /* Complex non-equality. */
+  eok_xne,              /* Complex inequality. */
   eok_xassign,          /* Complex assignment. */
   eok_complex,          /* Join two real operands, produce a complex as the
                            result.  The first operand is the real part, the
                            second the imaginary part. */
   eok_ceq,              /* Fortran character string equality. */
-  eok_cne,              /* Fortran character string non-equality. */
+  eok_cne,              /* Fortran character string inequality. */
   eok_cgt,              /* Fortran character string greater than. */
   eok_clt,              /* Fortran character string less than. */
   eok_cge,              /* Fortran character string greater than or equal. */
@@ -2016,16 +2026,19 @@ enum an_expr_operator_kind_tag {
   eok_pdiff,            /* Pointer difference.  Difference between two
                            pointers, returns an integer (ptrdiff_t). */
   eok_peq,              /* Pointer equality. */
-  eok_pne,              /* Pointer non-equality. */
+  eok_pne,              /* Pointer inequality. */
   eok_pgt,              /* Pointer greater than. */
   eok_plt,              /* Pointer less than. */
   eok_pge,              /* Pointer greater than or equal. */
   eok_ple,              /* Pointer less than or equal. */
+  eok_pmeq,		/* Pointer-to-member equality. */
+  eok_pmne,		/* Pointer-to-member inequality. */
   eok_sassign,          /* Structure assignment. */
   eok_bassign,		/* Block assignment.  Only used in C++ after IL
 			   lowering, for copy constructors etc.  Both the
 			   source and destination are lvalues; does a memcpy
 			   equivalent. */
+  eok_pmassign,		/* Pointer-to-member assignment.  Only used in C++. */
   eok_iadd_assign,      /* Integer add assign operator. */
   eok_isubtract_assign, /* Integer subtract assign operator. */
   eok_imultiply_assign, /* Integer multiply assign operator. */
@@ -2073,6 +2086,12 @@ enum an_expr_operator_kind_tag {
                            member (field).  The result is the value of the
                            field.  Integral widening to the type indicated
                            in the eok_extract_bit_field node is implied. */
+  eok_pm_field,		/* C++: Select a field identified by a pointer
+			   to (data) member.  The first operand is the
+			   class object pointer; the second operand is
+			   the pointer-to-member.  The result is the address
+			   of the field.  This is the C++ "->*" operator (for
+			   pointers to DATA members). */
   eok_shiftl,           /* Left shift ("<<" operator). */
   eok_shiftr,           /* Right shift (">>" operator). */
   eok_and,              /* Bitwise and ("&" operator). */
@@ -2080,14 +2099,12 @@ enum an_expr_operator_kind_tag {
   eok_xor,              /* Exclusive or ("^" operator). */
   eok_comma,            /* The comma operator. */
   eok_bound_function_ptr,
-			/* C++ non-virtual bound function pointer.  First
-			   operand is the object pointer; the second is the
-			   function pointer.  Used only in the front end,
-			   to carry the bound object pointer along with
-			   the function pointer.  Means effectively the same
-			   as a comma operator, i.e., evaluate the object
-			   pointer, discard it, and return the function
-			   pointer. */
+			/* Produce a normal function pointer for a C++ bound
+			   function.  This is (only) used to implement a C++
+			   anachronism.  The first operand is a pointer to
+			   member (function); the second is a pointer to
+			   a class object.  The result is a bound function
+			   pointer to the selected function. */
 #endif /* ifdef CIL */
   eok_land,             /* Logical intersection, with the operand standardized
                            to integer/logical. */
@@ -2141,6 +2158,10 @@ enum an_expr_operator_kind_tag {
 			   and the rest are the other arguments.  A temporary
 			   address may also be added after the object address
 			   argument, if required. */
+  eok_pm_call,		/* A C++ call of a function identified by a pointer
+			   to member.  The first operand is the pointer to
+			   member (function); the second is the "this" pointer;
+			   any "real" arguments follow. */
 #endif /* ifdef CIL */
 #ifdef FIL
   eok_fsubscript,       /* Fortran subscripting operation.  The first operand
@@ -2672,7 +2693,7 @@ typedef struct a_statement {
                            statement if there are several dependent
                            statements. */
     } if_stmt;
-    /* When kind == stmk_while */
+    /* When kind == stmk_while: */
 #ifdef CIL
     /* When kind == stmk_end_test_while: */
 #endif /* ifdef CIL */
@@ -3142,7 +3163,9 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
 = {"*", "i-", "f-", "!", "cast",
 #ifdef CIL
-   "base class cast", "derived class cast", "lvalue cast", "~",
+   "base class cast", "derived class cast",
+   "pm base class cast", "pm derived class cast",
+   "lvalue cast", "~",
    "i++", "i--", "++i", "--i",
    "f++", "f--", "++f", "--f",
    "p++", "p--", "++p", "--p",
@@ -3161,15 +3184,16 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #ifdef CIL
    "%",
    "ps", "pd", "p==", "p!=", "p>", "p<", "p>=", "p<=",
-   "s=", "b=",
+   "pm==", "pm!=",
+   "s=", "b=", "pm=",
    "i+=", "i-=", "i*=", "i/=", "%=",
    "f+=", "f-=", "f*=", "f/=",
    "p+=", "p-=",
    "<<=", ">>=", "&=", "|=", "^=",
-   "[]", "->", "v.", "b->", "bv.", "b.",
+   "[]", "->", "v.", "b->", "bv.", "b.", "->*",
    "<<", ">>",
-   "&", "|", "^",
-   ",", "<-bound->", 
+   "&", "|", "^", ",",
+   "bound func ptr",
 #endif /* ifdef CIL */
    "&&", "||",
 #ifdef FIL
@@ -3184,6 +3208,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "call",
 #ifdef CIL
    "virtcall",
+   "pmcall",
 #endif /* ifdef CIL */
 #ifdef FIL
    "()", "v()",
