@@ -361,7 +361,20 @@ caution when modifying this routine.
       check_assertion(type_of_type_info != NULL);
       type_info_sym = (a_symbol_ptr)type_of_type_info->
                                          source_corresp.assoc_info;
-      if (locator_for_curr_id.symbol_header == type_info_sym->header) {
+      /* Note that we need a match not only on the name but also on the
+         namespace.  This depends on whether the implicitly declared type_info
+         is expected to be in namespace "std" or in the global namespace. */
+      if (locator_for_curr_id.symbol_header == type_info_sym->header &&
+#if RUNTIME_USES_NAMESPACES
+          decl_scope_level == (DEPTH_OF_FILE_SCOPE + 1) &&
+          strcmp(scope_stack[decl_scope_level].il_scope->variant.
+                   assoc_namespace->source_corresp.name, "std") == 0
+
+#else /* !RUNTIME_USES_NAMESPACES */
+          (decl_scope_level == DEPTH_OF_FILE_SCOPE)
+
+#endif RUNTIME_USES_NAMESPACES
+                                                   ) {
         /* The identifier is indeed "type_info".  Check for the pragma that
            specifically identifies it as the type_info that is returned by
            typeid (typically, the type_info defined in typeinfo.h). */
@@ -373,11 +386,19 @@ caution when modifying this routine.
           /* This is the one. */
           tag_sym = type_info_sym;
           free_pending_pragma_list(ppp);
-#if BACK_END_IS_CP_GEN_BE
         } else {
+#if BACK_END_IS_CP_GEN_BE
           /* When the C++ generating back end is in use, the pragma is not
              required. */
           tag_sym = type_info_sym;
+#else /* !BACK_END_IS_CP_GEN_BE */
+#if ABI_CHANGES_FOR_RTTI
+          /* Run-time support for RTTI declares type_info, so consider the
+             name to be reserved. */
+          pos_error(ec_conflicts_with_implicitly_declared_type_info,
+                    &locator_for_curr_id.source_position);
+          tag_sym = type_info_sym;
+#endif /* ABI_CHANGES_FOR_RTTI */
 #endif /* BACK_END_IS_CP_GEN_BE */
         }  /* if */
         if (tag_sym == type_info_sym &&
