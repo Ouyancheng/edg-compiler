@@ -4497,7 +4497,9 @@ static void add_switch_clause(a_struct_stmt_stack_entry_ptr sssep,
 Begin a clause of the switch statement associated with the structured
 statement stack entry pointed to by sssep, for the case value indicated
 by *constant_ptr.  constant_ptr is NULL to indicate the default label.
-label_position indicates the source position of the label.
+label_position indicates the source position of the label.  keyword_position
+describes the position of the "case" or "default" keyword and colon_position
+locates the corresponding following colon.
 */
 {
   a_switch_clause_ptr scp;
