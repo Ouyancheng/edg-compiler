@@ -349,9 +349,6 @@ definition.  The locator must refer to a qualified name.
   a_boolean	result = FALSE;
   a_boolean	err;
 
-#if 0
-  /* This will need to be updated to support member templates. */
-#endif /* 0 */
   if (locator_for_curr_id.is_qualified_name) {
     if (locator_for_curr_id.is_destructor_name) {
       /* This is a destructor name. */
