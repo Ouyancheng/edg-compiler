@@ -597,6 +597,34 @@ done:
 }  /* scan_tag_name */
 
 
+static void set_name_linkage_for_type(a_type_ptr  tp)
+/*
+Set the name_linkage field of the class or enum type pointed to by tp.
+*/
+{
+  a_source_correspondence  *scp = &tp->source_corresp;
+
+  check_assertion(is_immediate_class_type(tp) || is_immediate_enum_type(tp));
+  if (scp->is_class_member) {
+    /* A nested class or enum has the same linkage as the class of which it
+       is a member. */
+    scp->name_linkage = scp->parent.class_type->source_corresp.name_linkage;
+  } else if (any_cfront_mode() &&
+             depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
+    /* In cfront mode -- unless this is a class or enum declared within a
+       namespace -- give it internal linkage by default.  It may be promoted
+       later, based on how it's used, etc. */
+    scp->name_linkage = (a_name_linkage_kind)nlk_internal;
+  } else if (is_member_of_unnamed_namespace(scp)) {
+    /* Declared inside an unnamed namespace -- no linkage. */
+    /* Should already be set to nlk_none. */
+  } else {
+    /* Ordinary default for classes and enums is C++ external linkage. */
+    scp->name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
+  }  /* if */
+}  /* set_name_linkage_for_type */
+
+
 static a_boolean namespace_scope_should_be_pushed(a_symbol_ptr       tag_sym,
                                                   a_symbol_locator   *loc,
                                                   a_source_position  *pos,
@@ -737,7 +765,7 @@ the template.
      class (one being declared within a function scope). */
   ssep = &scope_stack[depth_scope_stack];
   if (depth_innermost_function_scope != NO_SCOPE_NUMBER ||
-             inside_local_class) {
+      inside_local_class) {
     /* This declaration appears within a function or block scope, or else it
        is a nested class declaration within a local class.  In either case,
        it is a local class. */
@@ -1238,28 +1266,7 @@ the template.
          useful for dealing with member functions.) */
       if (!is_local_class) {
         /* Nonlocal class. */
-        if (class_type->source_corresp.is_class_member) {
-          /* A nested class has the same linkage as the class of which it is
-             a member. */
-          class_type->source_corresp.name_linkage =
-                             class_type->source_corresp.parent.class_type->
-                                                 source_corresp.name_linkage;
-        } else if (any_cfront_mode() &&
-                   depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
-          /* In cfront mode -- unless this is a class declared within a
-             namespace -- give the class internal linkage by default.  It
-             may be promoted later, based on how it's used, etc. */
-          class_type->source_corresp.name_linkage =
-                                (a_name_linkage_kind)nlk_internal;
-        } else if (is_member_of_unnamed_namespace(	
-                                           &class_type->source_corresp)) {
-          /* Declared inside an unnamed namespace -- no linkage. */
-          /* Should already be set to nlk_none. */
-        } else {
-          /* Ordinary default for classes is C++ external linkage. */
-          class_type->source_corresp.name_linkage =
-                                (a_name_linkage_kind)nlk_cplusplus_external;
-        }  /* if */
+        set_name_linkage_for_type(class_type);
       }  /* if */
     }  /* if */
     if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
@@ -1558,6 +1565,11 @@ to indicate whether an enumeration is actually defined.
       } else {
         set_namespace_membership(tag_sym, &enum_type->source_corresp,
                                  (a_namespace_ptr)NULL);
+      }  /* if */
+      if (depth_innermost_function_scope == NO_SCOPE_NUMBER &&
+          !inside_local_class) {
+        /* Nonlocal class. */
+        set_name_linkage_for_type(enum_type);
       }  /* if */
     }  /* if */
     /* When an enumeration is defined within a class definition, its access
