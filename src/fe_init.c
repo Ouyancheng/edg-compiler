@@ -549,7 +549,7 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_upc_blocksizeof, "upc_blocksizeof");
     enter_keyword((a_token_kind)tok_upc_localsizeof, "upc_localsizeof");
     enter_keyword((a_token_kind)tok_upc_elemsizeof,  "upc_elemsizeof");
-  }  /* upc_mode */
+  }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
   db_exit();
 }  /* keyword_init */

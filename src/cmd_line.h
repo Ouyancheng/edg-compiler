@@ -1482,6 +1482,14 @@ EXTERN a_boolean
 
 #if UPC_EXTENSIONS_ALLOWED
 
+EXTERN a_boolean
+		upc_mode
+#if VAR_INITIALIZERS
+			= DEFAULT_UPC_MODE
+#endif /* VAR_INITIALIZERS */
+			                  ;
+			/* TRUE if UPC extensions are to be accepted. */
+
 EXTERN a_host_large_integer
 		upc_num_threads
 #if VAR_INITIALIZERS

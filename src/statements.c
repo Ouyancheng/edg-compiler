@@ -104,12 +104,12 @@ static a_control_flow_descr_ptr
 
 #if UPC_EXTENSIONS_ALLOWED
 static a_statement_ptr
-	affinity_forall_loop;
+		affinity_forall_loop;
 			/* The enclosing UPC forall loop with an affinity.
-			   NULL if there is no such loop.  */
+			   NULL if there is no such loop. */
 
 static a_statement_ptr
-	innermost_forall_loop;
+		innermost_forall_loop;
 			/* The innermost enclosing UPC forall loop (with or
 			   without an affinity).  NULL if there is no such
 			   loop. */
@@ -4175,13 +4175,20 @@ Scan a "for" statement and add it to the current statement sequence.
 The syntax is:
 
 3.6.5  iteration-statement:
-		for ( expression    ; expression    ; expression    ) statement
-                                opt             opt             opt
+    for ( expr    ; expr    ; expr    ) statement
+              opt       opt       opt
 
 See also 3.6.5.3.
 
 In C++ the first expression is replaced by for-init-statement, which is
 either an expression statement or a declaration statement.
+
+In UPC mode, the "upc_forall" construct is also accepted.  It looks much
+like the standard "for" statement, except for the fourth expression.
+    for ( expr    ; expr    ; expr    ; affinity    ) statement
+              opt       opt       opt           opt
+
+The affinity can be an expression or the keyword "continue".
 */
 {
   a_statement_ptr   sp;
@@ -4241,7 +4248,7 @@ either an expression statement or a declaration statement.
       !(processing_upc_forall && curr_token == tok_semicolon)) {
     /* Be sure that no used-before-set warnings are issued in scanning
        the increment expression -- after all, a variable it references could
-       be set within the body of the loop.  */
+       be set within the body of the loop. */
     saved_flag = suppress_used_before_set_warnings;
     suppress_used_before_set_warnings = TRUE;
     sp->variant.for_loop.extra_info->increment =
@@ -4252,17 +4259,18 @@ either an expression statement or a declaration statement.
     suppress_used_before_set_warnings = saved_flag;
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
-  /* Process the affinity expression */
+  /* Process the affinity expression. */
   if (processing_upc_forall) {
-    /* Go past the required semicolon */
+    /* Go past the required semicolon. */
     (void)required_token(tok_semicolon, ec_exp_semicolon);
     remove_stop_token(tok_semicolon);
     if (curr_token == tok_rparen) {
-      /* Affinity expression was omitted */
+      /* Affinity expression was omitted. */
     } else if (curr_token == tok_continue) {
-      /* Skip the "continue" and treat as an omitted affinity expression */
+      /* Skip the "continue" and treat as an omitted affinity expression. */
       (void)get_token();
     } else {
+      /* Scan the affinity expression. */
       affinity_expr = scan_upc_forall_affinity();
     }  /* if */
   }  /* if */
@@ -4274,19 +4282,19 @@ either an expression statement or a declaration statement.
   if (processing_upc_forall) {
     if (affinity_forall_loop != NULL && affinity_expr != NULL) {
       /* Ignore the affinity expression since we are inside another forall
-         loop, and it will never be needed.  */
+         loop, and it will never be needed. */
       remark(ec_nested_upc_forall);
       affinity_expr = NULL;
     }  /* if */
     if (affinity_expr != NULL) {
-      /* Save the affinity expression for reference later. */
+      /* Save the affinity expression for later reference. */
       sp->variant.for_loop.extra_info->affinity = affinity_expr;
       affinity_forall_loop = sp;
     }  /* if */
     /* When scanning the dependent statement, save and restore the pointer to
        the innermost forall loop, replacing it with a pointer to the current
        statement so we can check for attempts to branch into or out of the
-       loop.  */
+       loop. */
     saved_innermost_forall_loop = innermost_forall_loop;
     innermost_forall_loop = sp;
   }  /* if */
@@ -4492,7 +4500,7 @@ diagnose the condition.
 #if UPC_EXTENSIONS_ALLOWED
   if (label_cfdp->enclosing_forall != goto_cfdp->enclosing_forall) {
     /* goto and label are either in different forall statements or
-       one is in a forall and the other is not.  */
+       one is in a forall and the other is not. */
     pos_error(ec_exit_forall, &goto_cfdp->source_pos);
   } else
 #endif /* UPC_EXTENSIONS_ALLOWED */
@@ -4687,7 +4695,7 @@ condition is not recognized till the label statement is reached.
     label_cfdp->source_pos = *pos;
 #if UPC_EXTENSIONS_ALLOWED
     /* Keep track of any enclosing forall loop to make sure no exits
-       or entries of forall loops are attempted.  */
+       or entries of forall loops are attempted. */
     label_cfdp->enclosing_forall = innermost_forall_loop;
 #endif /* UPC_EXTENSIONS_ALLOWED */
     add_to_control_flow_descr_list(label_cfdp);
@@ -4776,7 +4784,7 @@ GNU allows a syntax similar to Fortran's assigned goto:
   add_stop_token(tok_semicolon);
 #if GNU_EXTENSIONS_ALLOWED
   if (stmk == (a_statement_kind)stmk_assigned_goto) {
-    /* Discard the star.  */
+    /* Discard the star. */
 #if CHECKING
     if (curr_token != tok_star) internal_error("goto_statement: expected '*'");
 #endif /* CHECKING */
@@ -5266,7 +5274,7 @@ See also 3.6.6.4.
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
   if (innermost_forall_loop != NULL) {
-    /* Cannot issue return from inside a forall loop */
+    /* Cannot issue return from inside a forall loop. */
     error(ec_exit_forall);
     sp = NULL;
     return_type = error_type();
@@ -6042,7 +6050,7 @@ Each has the form
     /* Scan the notification condition expression */
     sp->expr = scan_integer_expression(/*is_switch_expr=*/FALSE);
   }  /* if */
-  /* Check for and ignore the final semicolon */
+  /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
 }  /* upc_barrier_style_statement */
@@ -6063,10 +6071,10 @@ Parse a statement of the form
   /* Do processing required for any pragmas that are bound to the current
      statement. */
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
-  /* Skip the "upc_fence" token */
+  /* Skip the "upc_fence" token. */
   check_assertion(curr_token == tok_upc_fence);
   (void)get_token();
-  /* Check for and ignore the final semicolon */
+  /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
 }  /* upc_fence_statement */
 
@@ -6887,6 +6895,10 @@ One-time initialization for statements.c static variables.
   register_trans_unit_variable(size_struct_stmt_stack_container);
   register_trans_unit_variable(curr_reachability);
   register_trans_unit_variable(goto_fixup_list);
+#if UPC_EXTENSIONS_ALLOWED
+  register_trans_unit_variable(affinity_forall_loop);
+  register_trans_unit_variable(innermost_forall_loop);
+#endif /* UPC_EXTENSIONS_ALLOWED */
 }  /* statements_one_time_init */
 
 

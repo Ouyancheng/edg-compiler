@@ -5291,7 +5291,7 @@ operand.
 
 static a_boolean is_upc_threads_operand(an_operand  *op)
 /*
-Return TRUE if the given operand correspond to THREADS or MYTHREAD.
+Return TRUE if the given operand corresponds to THREADS or MYTHREAD.
 */
 {
   return is_constant_operand(op) &&

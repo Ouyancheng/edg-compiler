@@ -1950,6 +1950,9 @@ typedef struct a_constant {
                         /* The kind of representation for the constant. */
   union {
     /* When kind == ck_error, no variant fields. */
+#if UPC_EXTENSIONS_ALLOWED
+    /* Likewise when kind == ck_upc_threads or ck_upc_mythread. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
     /* When kind == ck_integer: */
     an_integer_value
 	        integer_value;
@@ -3135,6 +3138,7 @@ typedef struct a_pragma {
 			   on, off, or reset to the default value. */
     } stdc;
 #if UPC_EXTENSIONS_ALLOWED
+    /* When kind == pk_upc: */
     struct {
       a_upc_access_method
 		access_method;
@@ -8409,6 +8413,10 @@ typedef struct a_statement {
 #if GNU_EXTENSIONS_ALLOWED
     /* Likewise for stmk_assigned_goto in C/C++ IL. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+    /* Likewise when kind == stmk_upc_notify, stmk_upc_wait, stmk_upc_barrier,
+       or stmk_upc_fence. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
     /* When kind == stmk_if: */
     struct {
       a_statement_ptr
@@ -8439,6 +8447,9 @@ typedef struct a_statement {
                            statements. */
 #ifdef CIL
     /* When kind == stmk_for: */
+#if UPC_EXTENSIONS_ALLOWED
+    /* When kind == stmk_upc_forall: */
+#endif /* UPC_EXTENSIONS_ALLOWED */
     struct {
 	a_statement_ptr
 		statement;

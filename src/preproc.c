@@ -1840,7 +1840,9 @@ Process a predefined UPC pragma.  These pragmas have the following form:
 
 This routine is called to process the pragmas when they are known to appear
 in a valid location.  It is called in compound_statement for block scope
-pragmas, and by upc_pragma for pragmas that appear in the file scope.
+pragmas (in which case assoc_statement is the compound statement), and by
+upc_pragma for pragmas that appear in the file scope (in which case
+assoc_statement should be NULL).
 */
 {
   a_upc_access_method  value = (a_upc_access_method)upc_access_unspecified;
@@ -1885,9 +1887,9 @@ pragmas, and by upc_pragma for pragmas that appear in the file scope.
 
 void check_for_upc_pragmas(a_statement_ptr sp)
 /*
-Checks for any pending UPC pragmas inside a block; if found there, it affects
-local settings only, so pass along the block statement to which it will be
-associated.
+If there are any current token pragmas that are UPC predefined pragmas,
+process them now.  sp should point to the block statement in which the
+pragma appears.
 */
 {
   a_pending_pragma_ptr  ppp;

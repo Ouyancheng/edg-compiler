@@ -308,7 +308,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__typeof__", "__extension__",
    "overload",
 #if UPC_EXTENSIONS_ALLOWED
-   "shared", "strict", "relaxed", "upc_forall", "upc_barrier", "upc_notify",
+   "strict", "relaxed", "shared", "upc_forall", "upc_barrier", "upc_notify",
    "upc_wait", "upc_fence", "THREADS", "MYTHREAD", "upc_blocksizeof",
    "upc_localsizeof", "upc_elemsizeof",
 #endif /* UPC_EXTENSIONS_ALLOWED */
@@ -700,9 +700,9 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_extension */
    (an_opname_kind)onk_none,          /* tok_overload */
 #if UPC_EXTENSIONS_ALLOWED
-   (an_opname_kind)onk_none,          /* tok_upc_shared */
    (an_opname_kind)onk_none,          /* tok_upc_strict */
    (an_opname_kind)onk_none,          /* tok_upc_relaxed */
+   (an_opname_kind)onk_none,          /* tok_upc_shared */
    (an_opname_kind)onk_none,          /* tok_upc_forall */
    (an_opname_kind)onk_none,          /* tok_upc_barrier */
    (an_opname_kind)onk_none,          /* tok_upc_notify */

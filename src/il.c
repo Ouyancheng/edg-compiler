@@ -14104,10 +14104,10 @@ Display and return the amount of space used for various IL tables.
 
 #if UPC_EXTENSIONS_ALLOWED
 
-a_boolean warn_if_block_size_too_large(a_upc_block_size  block_size)
+a_boolean upc_block_size_too_large(a_upc_block_size  block_size)
 /*
-Check that the block size fits in the phase field.  If there is
-an error, return TRUE; otherwise, FALSE.
+If the block size is too large, issue an error and return TRUE; otherwise,
+return FALSE.
 */
 {
   a_boolean  result = FALSE;
@@ -14119,7 +14119,7 @@ an error, return TRUE; otherwise, FALSE.
     result = TRUE;
   }  /* if */
   return result;
-} /* warn_if_block_size_too_large */
+} /* upc_block_size_too_large */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
@@ -14271,6 +14271,10 @@ in il_init.)
       pch_saved_var_array_elem(curr_fp_contract_state),
       pch_saved_var_array_elem(curr_fenv_access_state),
       pch_saved_var_array_elem(curr_cx_limited_range_state),
+#if UPC_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(curr_upc_access_method),
+      pch_saved_var_array_elem(max_upc_block_size),
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if DEBUG
       pch_saved_var_array_elem(num_searches_for_shareable_constants),
       pch_saved_var_array_elem(num_compares_for_shareable_constants),
@@ -14321,6 +14325,9 @@ in il_init.)
   register_trans_unit_variable(okay_to_eliminate_unneeded_il_entries);
   /* Not conditional because it's also used by trans_copy.c: */
   register_trans_unit_variable(initial_value_for_il_lowering_flag);
+#if UPC_EXTENSIONS_ALLOWED
+  register_trans_unit_variable(curr_upc_access_method);
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
   il_alloc_one_time_init();
 }  /* il_one_time_init */

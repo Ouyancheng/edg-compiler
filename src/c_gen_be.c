@@ -6673,7 +6673,8 @@ statement expression, i.e., ({...}).
         }  /* if */
       }  /* if */
       set_output_position_for_stmt(&statement->position);
-      write_tok_str(kind == (a_statement_kind)stmk_for ? "for (" : "upc_forall (");
+      write_tok_str(kind == (a_statement_kind)stmk_for ? "for ("
+                                                       : "upc_forall (");
       if (init_expr != NULL) {
 #if CHECKING
         check_result_not_used_flag(init_expr);

@@ -15294,10 +15294,11 @@ and scan_aggregate_initializer_expression.
       break;
     case ok_constant:
 #if UPC_EXTENSIONS_ALLOWED
-      if (result.variant.constant.kind ==
-                                       (a_constant_repr_kind)ck_upc_threads ||
-          result.variant.constant.kind ==
-                                       (a_constant_repr_kind)ck_upc_mythread) {
+      if (upc_mode &&
+          (result.variant.constant.kind ==
+                                      (a_constant_repr_kind)ck_upc_threads ||
+           result.variant.constant.kind ==
+                                      (a_constant_repr_kind)ck_upc_mythread)) {
         *expression = make_node_from_operand(&result);
         *expression = wrap_up_full_expression(*expression);
         *is_constant = FALSE;
@@ -15815,7 +15816,7 @@ class type that can be converted to those types.
 an_expr_node_ptr scan_upc_forall_affinity(void)
 /*
 Scan the affinity expression for a upc_forall statement.  Return an
-an integer expression for the thread number.
+integer expression for the thread number.
 */
 {
   an_operand          operand;

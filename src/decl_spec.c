@@ -4120,12 +4120,14 @@ from decl_specifiers only.
 
   if (*qualifiers != TQ_NONE) {
 #if UPC_EXTENSIONS_ALLOWED
-     a_type_qualifier_set  new_upc_access, old_upc_access;
-     if (upc_mode) {
-       new_upc_access = *qualifiers & (TQ_UPC_RELAXED | TQ_UPC_STRICT);
-       old_upc_access = f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE) &
+    a_type_qualifier_set  new_upc_access, old_upc_access;
+    if (upc_mode) {
+      /* Retrieve the UPC strict/relax qualifiers for possible later
+         checking. */
+      new_upc_access = *qualifiers & (TQ_UPC_RELAXED | TQ_UPC_STRICT);
+      old_upc_access = f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE) &
                                               (TQ_UPC_RELAXED | TQ_UPC_STRICT);
-     }  /* if */
+    }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
     if ((*type_ptr)->kind == (a_type_kind)tk_typeref) {
       if (C_dialect == C_dialect_cplusplus) {
@@ -4393,7 +4395,7 @@ type qualifier.  This routine also scans the enclosing brackets.  E.g.,
     /* A shared block specifier. */
     if (basic_type != bt_none) {
       /* Usually one would write "shared [N] int ...", but "int shared [N] ..."
-         is possible too.  In the latter case, the rbackets are still treated
+         is possible too.  In the latter case, the brackets are still treated
          as a block size; not an abstract array declarator. */
       remark(ec_ambiguous_block_size_spec);
     }  /* if */
@@ -4423,7 +4425,8 @@ type qualifier.  This routine also scans the enclosing brackets.  E.g.,
               if (block_size == 0) {
                 block_size = UPC_BLOCK_SIZE_INDEFINITE;
               } else {
-                *err = warn_if_block_size_too_large(block_size);
+                /* An error will be issued if the block size is too large. */
+                *err = upc_block_size_too_large(block_size);
               }  /* if */
             }  /* if */
           }  /* if */
@@ -5055,7 +5058,7 @@ Returns TRUE if there is an error in the specifiers.
         /* UPC strict type qualifier. */
         check_assertion(C_mode() && upc_mode);
         if (*qualifiers & (TQ_UPC_STRICT | TQ_UPC_RELAXED)) {
-          /* Duplicate qualifier are allowed in C99 mode (with a warning). */
+          /* Duplicate qualifiers are allowed in C99 mode (with a warning). */
           es = c99_mode ? es_warning : es_error;
           if (*qualifiers & TQ_UPC_RELAXED) {
             /* It is an error to have both strict and relaxed. */
@@ -6298,7 +6301,7 @@ exit_loop:
       }  /* if */
     } else if (!err) {
       /* The UPC strict and relaxed qualifiers can only appear combined with
-         the shared shared qualifier. */
+         the shared qualifier. */
       if (*qualifiers & (TQ_UPC_STRICT | TQ_UPC_RELAXED)) {
         error(ec_nonshared_strict_relaxed);
         err = TRUE;

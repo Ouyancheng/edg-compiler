@@ -1088,7 +1088,9 @@ Returns TRUE if the specified type is a shared void*.
 
 void fixup_upc_block_size(a_type_ptr  tp)
 /*
-Convert the specified type to pure block allocation.
+Fix up the UPC block size for a type for which pure block allocation was
+specified.  This could be the given type tp, or a type on which tp is
+based (through array and pointer constructs only).
 */
 {
   a_targ_size_t     num_elements;
@@ -1102,10 +1104,11 @@ Convert the specified type to pure block allocation.
     /* Find shared type at the bottom (if any).  If the shared type is
        an array type (with no underlying shared element type), use the
        underlying element type. */
-    while (tp && is_pointer_type(tp)) {
+    while (tp != NULL && is_pointer_type(tp)) {
       tp = type_pointed_to(skip_typerefs(tp));
     }  /* while */
-    if (tp && is_array_type(tp) && !is_underlying_shared_qualified_type(tp)) {
+    if (tp != NULL && is_array_type(tp) &&
+        !is_underlying_shared_qualified_type(tp)) {
       tp = underlying_array_element_type(tp);
     }  /* if */
   }  /* while */
@@ -1139,12 +1142,14 @@ Convert the specified type to pure block allocation.
              !typeref_is_shared_qualified(elem_type)) {
         elem_type = elem_type->variant.typeref.type;
       }  /* while */
-      bad_block_size = warn_if_block_size_too_large(num_elements);
+      /* upc_block_size_too_large issues an error is the given block size
+         is too large. */
+      bad_block_size = upc_block_size_too_large(num_elements);
       elem_type->variant.typeref.upc_block_size =
                                             bad_block_size ? 1 : num_elements;
     }  /* if */
   }  /* if */
-} /* fixup_upc_block_size */
+}  /* fixup_upc_block_size */
 
 
 a_boolean is_underlying_threads_dimensioned_array_type(a_type_ptr  tp)
@@ -1218,7 +1223,7 @@ anything else, returns the regular size.
     length = nelems * elem_size;
   }  /* if */
   return length;
-} /* upc_local_type_size */
+}  /* upc_local_type_size */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* UPC_EXTENSIONS_ALLOWED */

@@ -1084,16 +1084,6 @@ upc_mode, the value of which may be modified using command line options.
 #define DEFAULT_UPC_MODE FALSE
 #endif /* ifndef DEFAULT_UPC_MODE */
 
-#if UPC_EXTENSIONS_ALLOWED
-EXTERN a_boolean
-		upc_mode
-#if VAR_INITIALIZERS
-			= DEFAULT_UPC_MODE
-#endif /* VAR_INITIALIZERS */
-			                  ;
-			/* TRUE if UPC extensions are to be accepted. */
-#endif /* UPC_EXTENSIONS_ALLOWED */
-
 /*
 Flag that is TRUE if support for bool can be enabled.
 */

@@ -1489,7 +1489,6 @@ Do C99 lowering on the indicated statement.
       case stmk_upc_wait:
       case stmk_upc_barrier:
       case stmk_upc_fence:
-      case stmk_upc_forall:
 #endif /* UPC_EXTENSIONS_ALLOWED */
         /* Nothing to lower. */
         break; 
@@ -1504,6 +1503,9 @@ Do C99 lowering on the indicated statement.
         lower_c99_statement(statement->variant.loop_statement);
         break;
       case stmk_for:
+#if UPC_EXTENSIONS_ALLOWED
+      case stmk_upc_forall:
+#endif /* UPC_EXTENSIONS_ALLOWED */
         { a_for_loop_ptr flp = statement->variant.for_loop.extra_info;
           if (flp->initialization != NULL) {
             a_statement_ptr init_stmt = flp->initialization, init_stmt_next;
