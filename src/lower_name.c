@@ -2749,6 +2749,8 @@ IA-64 ABI to distinguish function-local entities with the same name.
                          ->discriminator;
     } else if (sym->kind == (a_symbol_kind)sk_enum_tag) {
       discriminator = sym->variant.enumeration.discriminator;
+    } else if (sym->kind == (a_symbol_kind)sk_type) {
+      discriminator = sym->variant.type.discriminator;
     }  /* if */
     if (discriminator > 0) {
       add_to_mangled_name('_', mctl);
