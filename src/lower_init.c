@@ -3035,9 +3035,6 @@ do_assignment:;
     cap = alloc_destruction_cleanup_action(dip, ipdp,
                                  applies_on_block_exit,
                                  /*applies_on_exception_cleanup=*/TRUE);
-    /* Clear the destructor field in the dynamic init entry to make it legal
-       C IL. */
-    dip->destructor = NULL;
     /* For local static variables and all initializations inside the
        file-scope initialization routine, generate code to record at runtime
        the need for a destruction later, and don't put the cleanup action
@@ -3156,6 +3153,14 @@ do_assignment:;
         variable->init_kind = (an_init_kind)initk_none;
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (!*keep_dynamic_init) {
+    /* Clear the initialization part of the dynamic init now that it has
+       been rewritten.  This is important because the dynamic init may
+       stay in the IL tree attached to an object lifetime destructions
+       list, and we don't want to walk the obsolete initializations when
+       we walk the tree. */
+    set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_none);
   }  /* if */
   error_position = saved_error_position;
   code_pos_for_lowering = saved_code_pos;
