@@ -543,14 +543,6 @@ EXTERN a_boolean
 			   pass out of scope and may be deallocated. */
 
 EXTERN a_boolean
-		lower_variable_length_arrays
-#if VAR_INITIALIZERS
-                                             = LOWER_VARIABLE_LENGTH_ARRAYS
-#endif /* VAR_INITIALIZERS */
-                                                                           ;
-			/* TRUE if VLA constructs should be lowered. */
-
-EXTERN a_boolean
 		operator_overloading_on_enums_enabled
 #if VAR_INITIALIZERS
                                        = DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS

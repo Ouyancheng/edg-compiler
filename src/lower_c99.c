@@ -1523,7 +1523,7 @@ second parameter.
       break;
     case enk_variable_address:
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-      if (lower_variable_length_arrays && expr->variant.variable->is_vla) {
+      if (expr->variant.variable->is_vla) {
         /* VLAs are lowered to pointers (to automatically managed storage).
            The pointer value should be used; not its address. */
         expr->kind = (an_expr_node_kind)enk_variable;
@@ -2053,23 +2053,17 @@ Do C99 lowering on the indicated statement.
         break;
       case stmk_set_vla_size:
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-        if (lower_variable_length_arrays) {
-          lower_set_vla_size(statement);
-        }  /* if */
+        lower_set_vla_size(statement);
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
         break;
       case stmk_vla_decl:
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-        if (lower_variable_length_arrays) {
-          lower_vla_decl(statement);
-        }  /* if */
+        lower_vla_decl(statement);
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
         break;
       case stmk_vla_dealloc:
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-        if (lower_variable_length_arrays) {
-          lower_vla_dealloc(statement);
-        }  /* if */
+        lower_vla_dealloc(statement);
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
         break;
       default:
@@ -2288,9 +2282,7 @@ Do C99 lowering for all entities in and under the given scope.
     /* Lower the function block statement. */
     lower_c99_statement(scope->assoc_block);
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-    if (lower_variable_length_arrays) {
-      lower_vla_types(scope);
-    }  /* if */
+    lower_vla_types(scope);
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 #if MINIMAL_INLINING
     if (inlining_enabled && scope->variant.routine.ptr->is_inline) {
@@ -2536,11 +2528,11 @@ Initialize static variables related to C99 IL lowering that must be
 initialized for each compilation.
 */
 {
-  if (lower_variable_length_arrays) {
-    /* The code to lower VLAs assumes that the deallocation points have been
-       marked using stmk_vla_dealloc statements. */
-    check_assertion(vla_dealloc_statements_in_il);
-  }  /* if */
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+  /* The code to lower VLAs assumes that the deallocation points have been
+     marked using stmk_vla_dealloc statements. */
+  check_assertion(vla_dealloc_statements_in_il);
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_init */
 
 #endif /* DO_C99_IL_LOWERING */

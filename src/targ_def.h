@@ -3327,8 +3327,7 @@ of times.
 /*
 This flag controls whether variable-length arrays (a C99 feature also
 available in other modes) are lowered to standard C.  The lowering relies
-on facilities in the run-time support library.  This flag is used to set
-the global variable lower_variable_length_arrays.
+on facilities in the run-time support library.
 */
 #ifndef LOWER_VARIABLE_LENGTH_ARRAYS
 #if VLA_ALLOWED && BACK_END_IS_C_GEN_BE
