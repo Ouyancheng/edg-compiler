@@ -5571,6 +5571,7 @@ an instance of the class template.
   a_symbol_ptr           new_sym = NULL;
   a_symbol_locator       orig_locator;
   a_boolean              any_errors = FALSE;
+  a_memory_region_number region_to_switch_back_to;
 
   db_enter(3, "get_template_class");
 
@@ -5580,6 +5581,8 @@ an instance of the class template.
     new_sym = template_symbol;
     goto skip_processing;
   }  /* if */
+  /* Always allocate template arguments at the file scope. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
   /* Save source position for error reporting. */
   copy_source_position(pos_curr_token, start_pos);
   /* Save the current locator. */
@@ -5666,7 +5669,8 @@ an instance of the class template.
      that is being returned by this routine. */
   locator_for_curr_id = orig_locator;
   locator_for_curr_id.specific_symbol = new_sym;
-  /* Set position. */
+  /* Set source position for error reporting. */
+  copy_source_position(start_pos, error_position);
 
 #if DEBUG
   if (debug_level >= 5) {
@@ -5677,6 +5681,7 @@ an instance of the class template.
   }  /* if */
 #endif /* DEBUG */
 
+  switch_back_to_original_region(region_to_switch_back_to);
   remove_stop_token(tok_gt);
 skip_processing:
   db_exit();
