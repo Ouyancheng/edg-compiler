@@ -220,14 +220,6 @@ static a_scope_ptr
 		curr_scope;
 			/* Points to the scope being processed currently
 			   (file, function, or block). */
-#if CHECKING
-static a_boolean
-		processing_declaration_of_defined_function;
-			/* TRUE while processing the declaration of a function
-			   that will be defined later.  This is used to check
-			   that processing of prototype scope types was done
-			   correctly. */
-#endif /* CHECKING */
 
 /*
 Static variables that control dump_initializer output:
@@ -5450,15 +5442,7 @@ if this routine has a body (dump nothing if it has no body).
 #endif /* GCC_IS_C_GEN_BE_TARGET */
     if (!is_definition) {
       /* A declaration of the routine. */
-#if CHECKING
-      /* If the routine has a definition, set a flag to allow checking that
-         all prototype scope types were dumped out ahead of time. */
-      if (has_defn) processing_declaration_of_defined_function = TRUE;
-#endif /* CHECKING */
       dump_declaration_using_type(rout->type, &rout->source_corresp);
-#if CHECKING
-      processing_declaration_of_defined_function = FALSE;
-#endif /* CHECKING */
       write_tok_ch(';');
     } else {
       /* The definition of the routine. */
@@ -5750,9 +5734,6 @@ Initialize for the C-generating back end.
   output_initializer_code_directly = FALSE;
   curr_function_scope = NULL;
   curr_scope = NULL;
-#if CHECKING
-  processing_declaration_of_defined_function = FALSE;
-#endif /* CHECKING */
 }  /* init_c_gen_be */
 
 
