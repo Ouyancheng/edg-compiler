@@ -4333,7 +4333,10 @@ and record it in the class's assoc_operator_delete_routine field.
                                                     (an_opname_kind)onk_delete,
                                                     &error_position,
                                                     /*make_default_new=*/TRUE);
+    } else {
+      reduce_projection_symbol_to_fundamental_symbol(delete_function_symbol);
     }  /* if */
+    
     ctsp->assoc_operator_delete_routine =
                                        delete_function_symbol->variant.routine;
   }  /* if */
