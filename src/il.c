@@ -10506,7 +10506,8 @@ eliminated, if appropriate.
         }  /* if */
         if (kind == (a_byte_il_entry_kind)iek_variable ||
             kind == (a_byte_il_entry_kind)iek_routine ||
-            kind == (a_byte_il_entry_kind)iek_type) {
+            kind == (a_byte_il_entry_kind)iek_type ||
+            kind == (a_byte_il_entry_kind)iek_instantiation_directive) {
 #if DEBUG
           if (debug_level >= 4) {
             fputs("dropping: ", f_debug);
