@@ -138,7 +138,8 @@ Place the tokens for a default argument expression into a token cache, to
 await actual processing at a later point.  Link the default argument
 entry onto the list provided by the caller.  src_cache points to
 a token cache containing the entire template declaration, of which
-this default argument is a part.
+this default argument is a part.  If list is NULL, scan the default argument
+expression but discard the token cache.
 */
 {
   a_def_arg_expr_fixup_ptr  new_daefp, daefp;
@@ -148,15 +149,15 @@ this default argument is a part.
   /* Scan the default argument expression. */
   prescan_default_arg_expr(&token_cache, /*is_template_param=*/FALSE,
                            src_cache);
-  /* Allocate a default arg expr fixup entry. */
-  new_daefp = alloc_def_arg_expr_fixup();
-  new_daefp->param_type = ptp;
-  new_daefp->cache.tokens = token_cache;
   if (list == NULL) {
     /* No list pointer was passed by the caller.  This indicates that the
        argument information should simply be discarded. */
     discard_token_cache(&token_cache);
   } else {
+    /* Allocate a default arg expr fixup entry. */
+    new_daefp = alloc_def_arg_expr_fixup();
+    new_daefp->param_type = ptp;
+    new_daefp->cache.tokens = token_cache;
     /* Add the entry to the end of the list of default arg expr fixup entries
        for the current routine fixup. */
     if (*list == NULL) {
