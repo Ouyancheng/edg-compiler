@@ -5452,19 +5452,33 @@ be copied elsewhere.
   char                     *buffer;
 
   start_mangling(&mctl);
-  /* Determine the mangled name.  It is
+  /* Determine the mangled name.  For the Cfront-like ABI, it is
        __vtbl__<mangled-base-class-name>__<mangled-class-name> or
        __vtbl__<mangled-class-name>
      The mangled-base-class-name is really a sort of pathname for the
      base class, giving the base class names from base to derived.
      For example, __vtbl__5X__X1__1B for base class X inside X1 inside
      a whole object of type B.
+
+     For the IA-64 ABI, the prefix is "_ZTV", and the rest is the
+     same as given above (modulo the different mangling of types).
+     In the simple case (bcp == NULL and ctor_bcp == NULL), the prefix
+     is followed by just a type name, as required by the ABI spec.
+     In other cases, the virtual function table is a construction
+     vtable, and the name is not dictated by the spec (so the form
+     with multiple names that falls out of the Cfront-like ABI case
+     is acceptable): the spec requires only that the VTT contain
+     pointers to the construction vtables, but it doesn't require
+     that the individual vtables pointed to have externally-known
+     names.
   */
 #if !IA64_ABI
   add_str_to_mangled_name("__vtbl__", &mctl);
 #else /* IA64_ABI */
   add_mangled_name_prefix(&mctl);
   add_str_to_mangled_name("TV", &mctl);
+  /* bcp should be non-NULL only for construction vtables. */
+  check_assertion(ctor_bcp != NULL || bcp == NULL);
 #endif /* IA64_ABI */
   if (bcp != NULL) {
     /* Add the base class name. */
