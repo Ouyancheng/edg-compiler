@@ -1338,7 +1338,11 @@ which do the initial test for exact pointer equality.
              involving template parameters (i.e., nonreal template classes).
              Two nonreal template classes are identical if they are based on
              the same class template and have identical template arguments. */
-          if (C_dialect == C_dialect_cplusplus) {
+          /* Watch out for types created by IL lowering, which do not have
+             the assoc_info pointer. */
+          if (C_dialect == C_dialect_cplusplus &&
+              type_1->source_corresp.assoc_info != NULL &&
+              type_2->source_corresp.assoc_info != NULL) {
             a_class_symbol_supplement_ptr cssp_1, cssp_2;
             cssp_1 = symbol_supplement_for_class(type_1);
             cssp_2 = symbol_supplement_for_class(type_2);
