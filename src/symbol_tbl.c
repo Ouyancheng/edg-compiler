@@ -676,6 +676,39 @@ Dump the entire scope stack (for debugging).
 #endif /* DEBUG */
 
 
+a_boolean is_special_function_symbol(a_symbol_ptr             sym,
+                                     a_special_function_kind  kind)
+/*
+If sym is a routine symbol of some sort, return TRUE if the special function
+kind recorded in its routine entry is "kind" and FALSE if it is not.  If sym
+is not a routine symbol, return FALSE.
+*/
+{
+  a_boolean  match;
+
+  switch (sym->kind) {
+    case sk_routine:
+    case sk_member_function:
+      match = (sym->variant.routine.ptr->special_kind == kind);
+      break;
+    case sk_overloaded_function:
+      /* All entries on a list of overloaded functions should have the same
+         special function kind, so looking at the first on the list is
+         sufficient. */
+      sym = sym->variant.overloaded_function.symbols;
+      match = is_special_function_symbol(sym, kind);
+      break;
+    case sk_function_template:
+      match = (sym->variant.template.extra_info->
+                        variant.function.routine->special_kind == kind);
+      break;
+    default:
+      match = FALSE;
+  }  /* switch */
+  return match;
+}  /* is_special_function_symbol */
+
+
 static a_symbol_header_ptr alloc_symbol_header(void)
 /*
 Allocate a new symbol header, and return a pointer to it.
