@@ -1996,12 +1996,14 @@ Cast operand (of class or pointer-to-class type) to its base class
 identified by bcp.  If *is_arrow_operator is TRUE, operand is being
 used as a pointer ("->"); otherwise, it is being used as an object (".").
 *is_arrow_operator will be set to TRUE on return to indicate that the
-operation was normalized into "->" form.  The cast is assumed to be
-implicit.  Do access control checking on the cast if check_cast_access
-is TRUE.  implicit_in_naming is TRUE for casts that are generated
-implicitly in referencing a member of a class (roughly, in getting
-from the name used in the source -- the projection symbol -- to the
-member actually used in the IL). This routine is only used in C++ mode.
+operation was normalized into "->" form.  ALternatively, if the caller
+passes is_arrow_operator == NULL, the operation is assumed to be in
+pointer form.  The cast is assumed to be implicit.  Do access control
+checking on the cast if check_cast_access is TRUE.  implicit_in_naming
+is TRUE for casts that are generated implicitly in referencing a member
+of a class (roughly, in getting from the name used in the source --
+the projection symbol -- to the member actually used in the IL).
+This routine is only used in C++ mode.
 */
 {
   a_boolean        did_not_fold;
@@ -2011,8 +2013,10 @@ member actually used in the IL). This routine is only used in C++ mode.
 
   /* Save the original operand position, etc. */
   orig_operand = *operand;
-  /* Convert to "->" form by getting an address for the operand. */
-  conv_selector_to_object_pointer(operand, is_arrow_operator);
+  if (is_arrow_operator != NULL) {
+    /* Convert to "->" form by getting an address for the operand. */
+    conv_selector_to_object_pointer(operand, is_arrow_operator);
+  }  /* if */
   if (is_error_operand(operand)) {
     /* Leave an error operand alone. */
   } else {
