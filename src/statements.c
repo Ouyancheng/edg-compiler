@@ -3428,6 +3428,11 @@ See also 3.6.4.1.
   if (is_condition_decl) finish_condition_block();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
+  /* If a label appeared in the context of the statement that was just
+     terminated, it may be appropriate to push a new object lifetime for
+     the scope being resumed. */
+  reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
+                                   (char *)sp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3532,7 +3537,7 @@ See also 3.6.4.2.
   if (is_condition_decl) finish_condition_block();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
-  /* If a label appeared in the context of the block that was just
+  /* If a label appeared in the context of the statement that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */
   reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
@@ -3597,7 +3602,7 @@ See also 3.6.5.1.
   if (is_condition_decl) finish_condition_block();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
-  /* If a label appeared in the context of the block that was just
+  /* If a label appeared in the context of the statement that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */
   reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
@@ -3670,7 +3675,7 @@ See also 3.6.5.2.
   remove_stop_token(tok_semicolon);
   /* Pop the structured statement stack. */
   pop_stmt_stack();
-  /* If a label appeared in the context of the block that was just
+  /* If a label appeared in the context of the statement that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */
   reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
@@ -4334,7 +4339,7 @@ The affinity can be an expression or the keyword "continue".
   }  /* if */
   /* Pop the structured statement stack. */
   pop_stmt_stack();
-  /* If a label appeared in the context of the block that was just
+  /* If a label appeared in the context of the statement that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */
   reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,

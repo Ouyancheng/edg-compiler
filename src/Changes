@@ -1,5 +1,25 @@
 Version 3.1
 
+9/17/02  Cleanup state on branch back to label inside "if" statement
+
+The cleanup state in the IL (used to generate destructions on
+exceptions and on transfers like gotos and returns) was incorrectly
+computed when a label appears inside an "if" statement and there
+is a "goto" to that label from later in the block surrounding
+the "if".  This caused at least a missed destruction, and possibly
+confusion in back ends.
+
+  struct C {
+    C();
+    ~C();
+  };
+  void foo(int i) {
+    if (i)
+      label1: return;
+    C c;
+    goto label1;  // Formerly failed to destroy c
+  }
+
 9/17/02  GNU C++ compatibility: Calling convention differences ignored on
          typedef redeclarations
 
