@@ -24,6 +24,7 @@ overload.c -- Expression processing overload resolution.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
+#include "trans_corresp.h"
 
 /* Forward declarations required because of out-of-order references. */
 static void prep_conversion_operand(an_operand        *source_operand,
