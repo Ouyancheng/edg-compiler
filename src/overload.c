@@ -2999,8 +2999,9 @@ a_boolean make_this_pointer_operand(a_symbol_ptr      member_sym,
 Make an operand for the "this" pointer of a C++ nonstatic member function.
 The operand made is an rvalue for the value of the pointer.  If we are not
 currently in a nonstatic member function, issue an error and return an
-error operand.  member_sym is the symbol for the member being referenced
-(it may be a projection symbol); the "this" pointer is cast (if necessary)
+error operand.  member_sym is the member, or is the overloaded function
+symbol that contains the member, or it can be a projection symbol
+for either of those.  The "this" pointer is cast (if necessary)
 to the base class in which that member is defined.  Access checking is
 done on that cast if check_cast_access is TRUE.  If the symbol is a
 member of an unrelated class, issue an error and return an error operand.
@@ -3129,7 +3130,7 @@ case).  call_position gives the source position of the call.
     /* The function needs a selector. */
     if (!*have_selector) {
       /* Try to generate a selector. */
-      if (make_this_pointer_operand(function_symbol,
+      if (make_this_pointer_operand(overloaded_function_symbol, /* sic */
                                     call_position,
                                     /*check_cast_access=*/
                                        !function_operand->
