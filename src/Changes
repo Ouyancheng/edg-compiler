@@ -1,5 +1,20 @@
 Version 2.35
 
+2/6/97  Abort during recursive instantiation of function template
+
+An abort has been fixed that could occur when recursive instantiation of a
+function template was triggered during the processing the default arguments
+of another instance of the same template.  Here's an example:
+
+  template <class T> struct B {
+    B(const T& t = T()) { }
+  };
+  template <class U> struct M  {
+    static int id;
+    virtual void f();
+  };
+  int  M<B<B<B<char> > > > ::id;
+
 2/5/97  A using-declaration may not name a conversion template instance
 
 The front end failed to produce a diagnostic when a using-declaration
