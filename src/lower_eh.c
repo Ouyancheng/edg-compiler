@@ -742,9 +742,6 @@ the runtime's definition.
 #define RDF_ARRAY		0x08
 			/* TRUE if the object is an array (or requires
 			   information normally provided only for arrays). */
-#define RDF_BASED_ON_THIS	0x10
-			/* TRUE if the object is part of the object pointed
-			   to by the "this" parameter. */
 
 
 static a_type_ptr make_region_descr_type(void)
