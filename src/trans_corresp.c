@@ -255,8 +255,32 @@ the primary translation unit is preferred.
           if (assoc_sym_defined(entity) &&
               (!assoc_sym_defined(canonical_il_entry_of(entity)) ||
                !in_secondary_trans_unit(entity))) {
+            /* Since the canonical template is changing, the associated
+               all_instantiations list must be moved too. */
+            a_template_ptr
+                 corresp_templ = (a_template_ptr)entity,
+                 templ = (a_template_ptr)canonical_il_entry_of(entity);
+            a_symbol_ptr
+                 templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info,
+                 corresp_sym =
+                       (a_symbol_ptr)corresp_templ->source_corresp.assoc_info;
+            a_template_symbol_supplement_ptr
+                 tssp = templ_sym->variant.template_info,
+                 corresp_tssp = corresp_sym->variant.template_info;
+            if (tssp->all_instantiations != NULL) {
+              /* The canonical entry is changing: the list of all
+                 instantiations should be reattached to the new canonical
+                 entry. */
+              check_assertion(corresp_tssp->all_instantiations == NULL);
+#if DEBUG
+              if (db_flag_is_set("trans_corresp")) {
+                fprintf(f_debug, "all_instantiations transferred because\n");
+              }  /* if */
+#endif /* DEBUG */
+              corresp_tssp->all_instantiations = tssp->all_instantiations;
+              tssp->all_instantiations = NULL;
+            }  /* if */
             do_update = TRUE;
-            /* Update all_instantiations (FIXME)? */
           }  /* if */
           break;
         case iek_type:
@@ -341,11 +365,11 @@ this routine will create such a correspondence entry.
     } else {
       *tcp2 = alloc_trans_unit_corresp();
       (*tcp2)->kind = kind;
-      change_canonical_entry(*tcp2, entity2);
 #if CHECKING
       ++(*tcp2)->count;
 #endif /* CHECKING */
     }  /* if */
+    change_canonical_entry(*tcp2, entity2);
   } else if (*tcp1 != NULL && *tcp1 != *tcp2) {
     /* Both entity1 and entity2 have correspondence sets already.  One of
        them must be a singleton and can therefore be freed. */
@@ -2693,9 +2717,12 @@ given type.
 void establish_function_instantiation_corresp(a_routine_ptr  routine)
 /*
 This routine is called when the definition of the given routine has been
-instantiated.  Such an event may cause rout to become the canonical entry.
+instantiated.  Such an event may cause routine to become the canonical entry.
 */
 {
+  if (trans_unit_corresp_of(routine) != NULL) {
+    update_canonical_entry(iek_routine, (char*)routine);
+  }  /* if */
 }  /* establish_function_instantiation_corresp */
 
 
