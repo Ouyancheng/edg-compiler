@@ -772,7 +772,7 @@ might not be able to if the template itself has not yet been defined.
       /* Push a template instantiation scope.  The real values of the
          the template arguments will be associated with the template
          parameter names. */
-      (void)push_template_instantiation_scope(body_cache,
+      (void)push_template_instantiation_scope(body_cache->decl_info,
 					      class_type,
 					      (a_routine_ptr)NULL,
 					      instance_sym, template_sym,
@@ -1155,7 +1155,7 @@ A pointer to the head of the list is returned in tcsp.
   cssp->referencing_namespace =
                  scope_stack[depth_innermost_namespace_scope].assoc_namespace;
   cssp->template_info = tssp;
-  (void)push_template_instantiation_scope(&tssp->cache,
+  (void)push_template_instantiation_scope(tssp->cache.decl_info,
 					  prototype_type,
 					  (a_routine_ptr)NULL, instance_sym,
 					  template_sym, template_arg_list);
@@ -1477,7 +1477,7 @@ Instantiate the body of the template function associated with tip.
   ++(tssp->pending_instantiations);
   /* Push the template instantiation scope. */
   tcp = cache_for_template(tssp);
-  (void)push_template_instantiation_scope(tcp,
+  (void)push_template_instantiation_scope(tcp->decl_info,
 					  (a_type_ptr)NULL, rout_ptr,
 					  rout_sym, template_sym,
 					  tip->arg_list);
@@ -1632,7 +1632,7 @@ and the class instantiation will detect the runaway case.
     /* But note that a template parameter T will be hidden by a member T --
        is this correct? */
 #endif /* if 0 */
-    (void)push_template_instantiation_scope(&tssp->cache,
+    (void)push_template_instantiation_scope(tssp->cache.decl_info,
 					    (a_type_ptr)NULL,
 					    (a_routine_ptr)NULL,
 					    static_data_member_sym,
@@ -2832,7 +2832,7 @@ It is FALSE if the instantiation scope was pushed by the caller.
 	check_assertion(daefp != NULL);
         if (push_instantiation_scope) {
           /* Push the template instantiation scope. */
-          (void)push_template_instantiation_scope(&daefp->cache,
+          (void)push_template_instantiation_scope(daefp->cache.decl_info,
                                                   (a_type_ptr)NULL, rout_ptr,
                                                   tip->instance_sym,
                                                   tip->template_sym,
@@ -3056,20 +3056,22 @@ type based on the template argument list and the template parameter list
        template arguments.  This is done even if a type already exists
        because additional error checking is done during the declaration
        processing. */
-    a_decl_flag_set	do_flags;
-    a_func_info_block	func_info;
-    a_storage_class     storage_class;
-    a_symbol_locator	locator;
-    a_decl_modifier	decl_modifiers;
-    a_source_position   saved_pos_curr_token;
-    a_source_position   saved_error_position;
+    a_decl_flag_set	 do_flags;
+    a_func_info_block	 func_info;
+    a_storage_class      storage_class;
+    a_symbol_locator	 locator;
+    a_decl_modifier	 decl_modifiers;
+    a_source_position    saved_pos_curr_token;
+    a_source_position    saved_error_position;
+    a_template_cache_ptr tcp;
 
     /* Push the template instantiation scope.  Note that the instance symbol
        passed to push_template_instantiation_scope is NULL.  This is done
        because the type associated with the symbol is not yet complete
        (it has no routine type).  Using a partially constructed symbol could
        cause problems if errors occur while rescanning the declaration. */
-    (void)push_template_instantiation_scope(&tssp->variant.function.decl_cache,
+    tcp = &tssp->variant.function.decl_cache;
+    (void)push_template_instantiation_scope(tcp->decl_info,
 					    (a_type_ptr)NULL,
 					    (a_routine_ptr)NULL,
 					    (a_symbol_ptr)NULL, templ_sym,
@@ -3081,7 +3083,7 @@ type based on the template argument list and the template parameter list
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
     begin_deferral_of_access_checks();
-    rescan_reusable_cache(&tssp->variant.function.decl_cache.tokens);
+    rescan_reusable_cache(&tcp->tokens);
     clear_func_info(&func_info);
     /* Note that is_member_decl is TRUE if the declaration was found in a
        class context, while parent_class contains a pointer to the class of
@@ -5223,7 +5225,7 @@ resulting constant is stored in the pointer pointed to by "constant".
        passed to push_scope is NULL because we don't yet know which instance
        is being instantiated.  Also note that a class type is not being
        passed for the same reason. */
-    (void)push_template_instantiation_scope(&param_ptr->cache,
+    (void)push_template_instantiation_scope(param_ptr->cache.decl_info,
   					    (a_type_ptr)NULL,
 					    (a_routine_ptr)NULL,
 					    (a_symbol_ptr)NULL,
@@ -5246,12 +5248,13 @@ resulting constant is stored in the pointer pointed to by "constant".
     if (constant_involves_template_param) {
       /* Push the template instantiation scope.  See note above regarding
          the instance symbol and class type. */
-      (void)push_template_instantiation_scope(&param_ptr->default_arg.cache,
+      a_template_cache_ptr	tcp = &param_ptr->default_arg.cache;
+      (void)push_template_instantiation_scope(tcp->decl_info,
     					      (a_type_ptr)NULL,
 					      (a_routine_ptr)NULL,
 					      (a_symbol_ptr)NULL,
 					      template_sym, arg_list);
-      rescan_reusable_cache(&param_ptr->default_arg.cache.tokens);
+      rescan_reusable_cache(&tcp->tokens);
       *constant = fs_constant((a_constant_repr_kind)ck_error);
       delayed_scan_of_template_default_arg_expr(constant_type, *constant);
       /* Pop the template instantiation scope. */
@@ -5289,14 +5292,15 @@ existing type is simply used.
        passed to push_scope is NULL because we don't yet know which instance
        is being instantiated.  Also note that a class type is not being
        passed for the same reason. */
-    (void)push_template_instantiation_scope(&param_ptr->default_arg.cache,
+    a_template_cache_ptr	tcp = &param_ptr->default_arg.cache;
+    (void)push_template_instantiation_scope(tcp->decl_info,
                                             (a_type_ptr)NULL,
 					    (a_routine_ptr)NULL,
 					    (a_symbol_ptr)NULL,
 					    template_sym, arg_list);
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
-    rescan_reusable_cache(&param_ptr->default_arg.cache.tokens);
+    rescan_reusable_cache(&tcp->tokens);
     tp = delayed_scan_of_template_default_type_arg();
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;

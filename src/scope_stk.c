@@ -1589,7 +1589,7 @@ so that names used in the template definition can be looked up properly.
          the prototype instantiation is already in process. */
       template_arg_list = class_type->variant.class_struct_union.extra_info->
                                                            template_arg_list;
-      (void)push_template_instantiation_scope(&tssp->cache,
+      (void)push_template_instantiation_scope(tssp->cache.decl_info,
 					      class_type,
 					      (a_routine_ptr)NULL,
 					      instance_sym, template_sym,
@@ -1621,12 +1621,12 @@ Pop any scopes pushed by a prior call of push_enclosing_instantiation_scope.
 
 
 a_scope_ptr push_template_instantiation_scope
-                           (a_template_cache_ptr cache,
-                            a_type_ptr           assoc_type,
-                            a_routine_ptr        assoc_routine,
-                            a_symbol_ptr         instance_sym,
-                            a_symbol_ptr         template_sym,
-                            a_template_arg_ptr   template_arg_list)
+                           (a_template_decl_info_ptr decl_info,
+                            a_type_ptr               assoc_type,
+                            a_routine_ptr            assoc_routine,
+                            a_symbol_ptr             instance_sym,
+                            a_symbol_ptr             template_sym,
+                            a_template_arg_ptr       template_arg_list)
 /*
 Interface to push_scope_full that is used for template instantiation
 scopes.
@@ -1654,7 +1654,7 @@ scopes.
   inside_local_class = FALSE;
   /* If the template was defined in a namespace, reactivate the namespace
      scope before pushing the instantiation scope. */
-  get_parent_information_for_template(cache->decl_info->enclosing_scope,
+  get_parent_information_for_template(decl_info->enclosing_scope,
                                       template_sym, instance_sym,
                                       &parent_nsp, &parent_class);
   if (parent_class != NULL) {
@@ -1740,10 +1740,10 @@ scopes.
 #endif /* CHECKING */
   }  /* if */
   scope = push_scope_full((a_scope_kind)sck_template_instantiation,
-                          cache->decl_info->declaration_scope, assoc_type,
+                          decl_info->declaration_scope, assoc_type,
                           assoc_routine, (a_namespace_ptr)NULL, instance_sym,
                           template_sym, template_arg_list,
-                          nested_instantiation, cache->decl_info);
+                          nested_instantiation, decl_info);
   if (!nested_instantiation) {
     ssep = &scope_stack[depth_scope_stack];
     ssep->previous_scope = instantiation_prev_scope;

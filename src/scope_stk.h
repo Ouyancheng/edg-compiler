@@ -690,12 +690,12 @@ extern a_scope_ptr push_namespace_scope(a_scope_kind    kind,
                                         a_namespace_ptr assoc_namespace);
 
 extern a_scope_ptr push_template_instantiation_scope
-                           (a_template_cache_ptr cache,
-			    a_type_ptr           assoc_type,
-			    a_routine_ptr        assoc_routine,
-			    a_symbol_ptr         instance_sym,
-			    a_symbol_ptr         template_sym,
-			    a_template_arg_ptr   template_arg_list);
+                           (a_template_decl_info_ptr decl_info,
+                            a_type_ptr               assoc_type,
+                            a_routine_ptr            assoc_routine,
+                            a_symbol_ptr             instance_sym,
+                            a_symbol_ptr             template_sym,
+                            a_template_arg_ptr       template_arg_list);
 
 extern void pop_template_instantiation_scope(void);
 
