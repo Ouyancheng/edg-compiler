@@ -338,6 +338,24 @@ are accepted.
 			     "aggregates", MSAT_CLASS | MSAT_STRUCT);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                           "clsid", /*is_unnamed=*/FALSE, NULL);
+  /* [appobject] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "appobject", MSAT_CLASS | MSAT_STRUCT);
+  /* [async_uuid] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "async_uuid", MSAT_INTERFACE);
+  set_initialization_style_arg_allowed();
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
+                          "uuid", /*is_unnamed=*/TRUE, NULL);
+  /* [bindable] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "bindable", MSAT_METHOD);
+  /* [call_as] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "call_as", MSAT_METHOD);
+  set_initialization_style_arg_allowed();
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "function", /*is_unnamed=*/TRUE, NULL);
   /* [coclass] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "coclass", MSAT_CLASS | MSAT_STRUCT);
@@ -419,9 +437,9 @@ are accepted.
   /* [in] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "in", MSAT_PARAMETER);
-  /* [includeidl] */
+  /* [includelib] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "includeidl", MSAT_ANY);
+			     "includelib", MSAT_ANY);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name.idl", /*is_unnamed=*/TRUE, NULL);
   /* [library_block] */
@@ -1657,6 +1675,9 @@ Display a Microsoft attribute entry, for debugging purposes.
         break;
       case msaak_enumeration:
         fprintf(f_debug, "%d", arg->variant.enum_value);
+        break;
+      default:
+        unexpected_condition();
         break;
     }  /* switch */
     fprintf(f_debug, "\n");
