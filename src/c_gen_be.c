@@ -3890,13 +3890,19 @@ parameters.
 #if MICROSOFT_KEYWORDS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
       /* Microsoft-specific keywords. */
-      if (variable->dllimport_used)   write_tok_str("__declspec(dllimport) ");
+      if (variable->decl_modifiers & DM_DLLIMPORT) {
+        write_tok_str("__declspec(dllimport) ");
+      }  /* if */
       /* Dump some qualifiers only on the last declaration of the variable,
          since that's the definition if there is one. */
       if (dump_initializers || init_con == NULL) {
-        if (variable->dllexport_used) write_tok_str("__declspec(dllexport) ");
+        if (variable->decl_modifiers & DM_DLLEXPORT) {
+          write_tok_str("__declspec(dllexport) ");
+        }  /* if */
       }  /* if */
-      if(variable->thread_used) write_tok_str("__declspec(thread) ");
+      if(variable->decl_modifiers & DM_THREAD) {
+        write_tok_str("__declspec(thread) ");
+      }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #if C_GEN_BE_GENERATES_ANSI_C
@@ -4823,11 +4829,19 @@ if this routine has a body (dump nothing if it has no body).
 #if MICROSOFT_KEYWORDS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
     /* Microsoft-specific keywords. */
-    if (rout->dllimport_used)   write_tok_str("__declspec(dllimport) ");
+    if (rout->decl_modifiers & DM_DLLIMPORT) {
+      write_tok_str("__declspec(dllimport) ");
+    }  /* if */
     if (is_definition) {
-      if (rout->dllexport_used) write_tok_str("__declspec(dllexport) ");
-      if (rout->naked_used)     write_tok_str("__declspec(naked) ");
-      if (rout->microsoft_inline_used) write_tok_str("__inline ");
+      if (rout->decl_modifiers & DM_DLLEXPORT) {
+        write_tok_str("__declspec(dllexport) ");
+      }  /* if */
+      if (rout->decl_modifiers & DM_NAKED) {
+        write_tok_str("__declspec(naked) ");
+      }  /* if */
+      if (rout->decl_modifiers & DM_MICROSOFT_INLINE) {
+        write_tok_str("__inline ");
+      }  /* if */
     }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */

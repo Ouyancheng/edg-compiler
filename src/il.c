@@ -5162,11 +5162,9 @@ to it.
 #if DO_IL_LOWERING
   vp->initialization_rewritten_as_assignment = FALSE;
 #endif /* DO_IL_LOWERING */
-#if MICROSOFT_KEYWORDS_ALLOWED
-  vp->dllimport_used              = FALSE;
-  vp->dllexport_used              = FALSE;
-  vp->thread_used                 = FALSE;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#if DECL_MODIFIERS_IN_USE
+  vp->decl_modifiers              = DM_NONE;
+#endif /* DECL_MODIFIERS_IN_USE */
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   vp->declared_type               = NULL;
@@ -5514,12 +5512,9 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   rp->specific_def            = FALSE;
   rp->contains_try_block      = FALSE;
-#if MICROSOFT_KEYWORDS_ALLOWED
-  rp->dllimport_used          = FALSE;
-  rp->dllexport_used          = FALSE;
-  rp->naked_used              = FALSE;
-  rp->microsoft_inline_used   = FALSE;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#if DECL_MODIFIERS_IN_USE
+  rp->decl_modifiers              = DM_NONE;
+#endif /* DECL_MODIFIERS_IN_USE */
 #if CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

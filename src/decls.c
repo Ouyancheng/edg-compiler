@@ -1791,6 +1791,142 @@ created; the caller must set it.
 }  /* create_external_symbol_for_linked_entity */
 
 
+#if DECL_MODIFIERS_IN_USE
+void update_routine_decl_modifiers(a_routine_ptr	routine,
+				   a_decl_modifier	new_modifiers,
+				   a_source_position	*position,
+                                   a_boolean		is_redecl,
+                                   a_boolean	        is_definition)
+/*
+Update the decl_modifiers field of the routine entry to reflect the
+modifiers specified in new_modifiers.  If this is a redeclaration or
+definition of a previously defined routine, make sure that the new
+modifiers are consistent with the previous declaration specified
+by routine.  position is used as the error position for any
+diagnostics.
+*/
+{
+  a_boolean		any_invalid_redecl = FALSE;
+  a_decl_modifier	old_modifiers;
+  int			bit_number;
+  a_decl_modifier	modifier_value = 1;
+
+  if (is_redecl) old_modifiers = routine->decl_modifiers;
+  /* Loop through the bits of the new_modifiers field and process
+     the modifiers associated with the bits that are set. */
+  for (bit_number = 0; bit_number < (int)dmt_last;
+       ++bit_number, modifier_value <<= 1) {
+    a_boolean		invalid_modifier = FALSE;
+    a_boolean		invalid_redecl = FALSE;
+    if ((new_modifiers & modifier_value) != 0) {
+      /* This bit is set. */
+      switch (bit_number) {
+        case dmt_dllimport:
+        case dmt_dllexport:
+          /* Any previous declaration must have been declared
+             with either dllimport or dllexport. */
+          if (is_redecl &&
+              (old_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT)) == 0) {
+            invalid_redecl = TRUE;
+          }  /* if */
+          break;
+        case dmt_naked:
+          if (!is_definition) invalid_modifier = TRUE;
+          break;
+        case dmt_microsoft_inline:
+          break;
+        default:
+          invalid_modifier = TRUE;
+          break;
+      }  /* switch */
+      /* If this modifier is invalid, reset the bit in the new modifiers. */
+      if (invalid_modifier || invalid_redecl) {
+        new_modifiers &= (~modifier_value);
+      }  /* if */
+      if (invalid_modifier) {
+        pos_st_diagnostic(es_discretionary_error,
+                          ec_decl_modifiers_invalid_for_this_decl,
+                          position, decl_modifier_names[bit_number]);
+      }  /* if */
+      any_invalid_redecl |= invalid_redecl;
+    }  /* if */
+  }  /* for */
+  if (any_invalid_redecl) {
+    pos_diagnostic(es_discretionary_error,
+                   ec_decl_modifiers_incompatible_with_previous_decl,
+                   position);
+  }  /* if */
+  /* Update the routine entry with any valid modifiers that were found. */
+  routine->decl_modifiers |= new_modifiers;
+}  /* update_routine_decl_modifiers */
+
+
+void update_variable_decl_modifiers(a_variable_ptr	variable,
+		  		    a_decl_modifier	new_modifiers,
+				    a_source_position	*position,
+                                    a_boolean		is_redecl)
+/*
+Update the decl_modifiers field of the variable entry to reflect the
+modifiers specified in new_modifiers.  If this is a redeclaration or
+definition of a previously defined variable, make sure that the new
+modifiers are consistent with the previous declaration specified
+by variable.  position is used as the error position for any
+diagnostics.
+*/
+{
+  a_boolean		any_invalid_redecl = FALSE;
+  a_decl_modifier	old_modifiers;
+  int			bit_number;
+  a_decl_modifier	modifier_value = 1;
+
+  if (is_redecl) old_modifiers = variable->decl_modifiers;
+  /* Loop through the bits of the new_modifiers field and process
+     the modifiers associated with the bits that are set. */
+  for (bit_number = 0; bit_number < (int)dmt_last;
+       ++bit_number, modifier_value <<= 1) {
+    a_boolean		invalid_modifier = FALSE;
+    a_boolean		invalid_redecl = FALSE;
+    if ((new_modifiers & modifier_value) != 0) {
+      /* This bit is set. */
+      switch (bit_number) {
+        case dmt_dllimport:
+        case dmt_dllexport:
+          /* Any previous declaration must have been declared
+             with either dllimport or dllexport. */
+          if (is_redecl &&
+              (old_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT)) == 0) {
+            invalid_redecl = TRUE;
+          }  /* if */
+          break;
+        case dmt_thread:
+          break;
+        default:
+          invalid_modifier = TRUE;
+          break;
+      }  /* switch */
+      /* If this modifier is invalid, reset the bit in the new modifiers. */
+      if (invalid_modifier || invalid_redecl) {
+        new_modifiers &= (~modifier_value);
+      }  /* if */
+      if (invalid_modifier) {
+        pos_st_diagnostic(es_discretionary_error,
+                          ec_decl_modifiers_invalid_for_this_decl,
+                          position, decl_modifier_names[bit_number]);
+      }  /* if */
+      any_invalid_redecl |= invalid_redecl;
+    }  /* if */
+  }  /* for */
+  if (any_invalid_redecl) {
+    pos_diagnostic(es_discretionary_error,
+                   ec_decl_modifiers_incompatible_with_previous_decl,
+                   position);
+  }  /* if */
+  /* Update the variable entry with any valid modifiers that were found. */
+  variable->decl_modifiers |= new_modifiers;
+}  /* update_variable_decl_modifiers */
+#endif /* DECL_MODIFIERS_IN_USE */
+
+
 static void check_for_linkage_conflict(a_storage_class    *old_storage_class,
                                        an_id_linkage_kind *linkage,
                                        a_storage_class    *storage_class,
@@ -2084,6 +2220,7 @@ void decl_var_or_routine(a_symbol_locator             *locator,
                          a_func_info_block_ptr        func_info,
                          a_source_sequence_entry_ptr  declarator_ssep,
                          a_symbol_reference_kind      srk_flags,
+                         a_decl_modifier	      decl_modifiers,
                          a_symbol_ptr                 *symbol_ptr,
                          an_id_linkage_kind           *linkage_ptr,
                          a_type_ptr                   *old_type,
@@ -2091,31 +2228,34 @@ void decl_var_or_routine(a_symbol_locator             *locator,
 /*
 Enter the declaration of an identifier for a variable or routine.
 *locator gives the symbol locator (and thus its name and its declaration
-position).  storage_class and type_ptr give the storage class and type.
-func_info will be non-NULL if and only if this is a function declaration.
-If it is non-NULL then: if func_info->implicit_declaration is TRUE, this
+position).  storage_class, type_ptr, and decl_modifiers give the storage
+class, type, and declaration modifier flags.  func_info will be
+non-NULL if and only if this is a function declaration.  If it is
+non-NULL then: if func_info->implicit_declaration is TRUE, this
 declaration is for an implicit function declaration, and *symbol_ptr
-already contains a pointer to the symbol entry, which is already in the
-symbol table; if func_info->is_definition is TRUE, the identifier being
-defined is part of a function definition (meaning there is a body in the
-definition), in which case it is guaranteed that type_ptr points to an
-unshared type entry, and that type entry will be preserved as the routine
-type.  Create and enter a symbol entry, and return a pointer to it in
-*symbol_ptr.  Also allocate any associated IL construct, and attach it to
-the symbol.  If the identifier has linkage and there is an existing symbol
-or IL entry, it will be re-used.  Return in *linkage_ptr the linkage of
-the identifier.  Return in *old_type any previously-known type for this
-identifier from a linked identifier in the same scope, or NULL if there
-was no previously-known type.  If the identifier has linkage, return in
-*ext_sym a pointer to the external symbol entry; otherwise, set *ext_sym
-to NULL.  declarator_ssep (non-NULL only if source sequence entries are
-being generated) is a pointer to the empty source sequence entry already
-created for the declarator and added to the appropriate list; its kind
-and entity pointer are updated.  srk_flags contain specific information
-about the kind of declaration (whether it's a definition, a tentative
-definition (C only), an implicit declaration (C only), a friend declaration
-(C++ only), and so forth); this information is passed on for use in
-generating cross-reference output describing this declaration.
+already contains a pointer to the symbol entry, which is already in
+the symbol table; if func_info->is_definition is TRUE, the identifier
+being defined is part of a function definition (meaning there is a
+body in the definition), in which case it is guaranteed that type_ptr
+points to an unshared type entry, and that type entry will be
+preserved as the routine type.  Create and enter a symbol entry, and
+return a pointer to it in *symbol_ptr.  Also allocate any associated
+IL construct, and attach it to the symbol.  If the identifier has
+linkage and there is an existing symbol or IL entry, it will be
+re-used.  Return in *linkage_ptr the linkage of the identifier.
+Return in *old_type any previously-known type for this identifier from
+a linked identifier in the same scope, or NULL if there was no
+previously-known type.  If the identifier has linkage, return in
+*ext_sym a pointer to the external symbol entry; otherwise, set
+*ext_sym to NULL.  declarator_ssep (non-NULL only if source sequence
+entries are being generated) is a pointer to the empty source sequence
+entry already created for the declarator and added to the appropriate
+list; its kind and entity pointer are updated.  srk_flags contain
+specific information about the kind of declaration (whether it's a
+definition, a tentative definition (C only), an implicit declaration
+(C only), a friend declaration (C++ only), and so forth); this
+information is passed on for use in generating cross-reference output
+describing this declaration.
 */
 {
   a_symbol_ptr             sym = NULL;
@@ -2590,6 +2730,9 @@ skip_overloading:;
         }  /* if */
       }  /* if */
     }  /* if */
+    update_variable_decl_modifiers(variable_ptr, decl_modifiers,
+                                   &locator->source_position,
+                                   redeclaration);
     /* Link the symbol to the IL variable entry. */
     sym->variant.variable.ptr = variable_ptr;
     if (*ext_sym != NULL) {
@@ -2692,6 +2835,9 @@ skip_overloading:;
     }  /* if */
     if (func_info->is_inline) routine_ptr->is_inline = TRUE;
     source_corresp_ptr = &routine_ptr->source_corresp;
+    update_routine_decl_modifiers(routine_ptr, decl_modifiers,
+                                  &locator->source_position, redeclaration,
+                                  is_function_def);
     /* Link the symbol to the IL routine entry. */
     sym->variant.routine.ptr = routine_ptr;
     if (*ext_sym != NULL) {
@@ -2892,7 +3038,8 @@ void decl_function_template(a_symbol_locator    *locator,
                             a_type_ptr          type_ptr,
                             a_func_info_block   *func_info,
                             a_symbol_ptr        *symbol_ptr,
-                            a_storage_class     storage_class)
+                            a_storage_class     storage_class,
+                            a_decl_modifier	decl_modifiers)
 /*
 Roughly speaking, this routine does for function templates what
 decl_var_or_routine does for ordinary functions.  Lookup and reuse or else
@@ -2913,6 +3060,7 @@ class template.
   a_routine_ptr                     rout_ptr;
   a_memory_region_number            region_to_switch_back_to;
   a_boolean                         changed_to_inline = FALSE;
+  a_boolean			    redeclaration = FALSE;
 
   db_enter(3, "decl_function_template");
   if (func_info->is_inline) {
@@ -3041,6 +3189,7 @@ class template.
   }  /* if */
   tssp = template_supplement_for_symbol(sym);
   rout_ptr = tssp->variant.function.routine;
+  redeclaration = rout_ptr != NULL;
   /* A routine entry is created for the function template, but it is not
      entered in the IL.  It is a convenient place to keep track of prototype
      information: type, storage class, etc.  These values may be reused
@@ -3076,6 +3225,9 @@ class template.
        on the previous declaration. */
     check_exception_specification(func_info, rout_ptr);
   }  /* if */
+  update_routine_decl_modifiers(rout_ptr, decl_modifiers,
+                                &locator->source_position, redeclaration,
+                                (a_boolean)func_info->is_definition);
   if (overload_symbol != NULL) {
     /* A new symbol was added to an overload list which may have included
        functions that were specific declarations of the current template.
@@ -3442,7 +3594,7 @@ symbol has already been entered as an undefined symbol.
   if (exceptions_enabled) func_info.throw_position = locator.source_position;
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
                       &func_info, (a_source_sequence_entry_ptr)NULL,
-                      (SRK_DECLARATION | SRK_IMPLICIT),
+                      (SRK_DECLARATION | SRK_IMPLICIT), DM_NONE,
                       &symbol_ptr, &linkage, &old_type, &ext_sym);
   done_with_func_info(func_info);
   /* Set the referenced flag on the routine entry.  The implicit declaration
@@ -3600,6 +3752,7 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
   a_storage_class              storage_class;
   a_decl_flag_set              dso_flags, do_flags;
   a_type_qualifier_set         qualifiers;
+  a_decl_modifier	       decl_modifiers;
   a_type_ptr                   bottom_derived_type;
   a_source_position            start_pos;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
@@ -3608,7 +3761,8 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
-			&storage_class, type_ptr, &qualifiers);
+			&storage_class, type_ptr, &qualifiers,
+                        &decl_modifiers);
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING)) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
@@ -3659,6 +3813,7 @@ syntax is:
   a_type_ptr            derived_type, bottom_derived_type = NULL;
   a_decl_flag_set       dso_flags, do_flags;
   a_type_qualifier_set  qualifiers;
+  a_decl_modifier	decl_modifiers;
   a_source_position     start_pos;
   a_storage_class       storage_class;
   a_source_sequence_entry_ptr
@@ -3673,7 +3828,8 @@ syntax is:
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME,
-                        &dso_flags, &storage_class, type_ptr, &qualifiers);
+                        &dso_flags, &storage_class, type_ptr, &qualifiers,
+                        &decl_modifiers);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
@@ -3765,6 +3921,7 @@ scanning type name in a type conversion operator.
   a_storage_class           storage_class;
   a_decl_flag_set           dso_flags;
   a_type_qualifier_set      qualifiers;
+  a_decl_modifier	    decl_modifiers;
   a_type_ptr                specifiers_type, complete_type;
   a_source_position         type_pos;
   a_boolean                 is_conversion_operator;
@@ -3798,7 +3955,8 @@ scanning type name in a type conversion operator.
     set_err_pos_to_curr_token();
     copy_source_position(pos_curr_token, type_pos);
     (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
-                          &storage_class, &specifiers_type, &qualifiers);
+                          &storage_class, &specifiers_type, &qualifiers,
+                          &decl_modifiers);
     if (C_dialect == C_dialect_cplusplus &&
         (dso_flags & DSO_DEFINES_SOMETHING)) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
@@ -4100,6 +4258,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
   a_storage_class              storage_class;
   a_decl_flag_set              dso_flags, do_flags;
   a_type_qualifier_set         qualifiers;
+  a_decl_modifier	       decl_modifiers;
   a_symbol_ptr                 sym;
   a_symbol_locator             locator;
   a_source_position            decl_pos;
@@ -4139,7 +4298,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
         (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                                DSI_EMPTY_DECL_SPECIFIERS_ALLOWED),
                               &dso_flags, &storage_class, &type_ptr,
-                              &qualifiers);
+                              &qualifiers, &decl_modifiers);
         if (dso_flags & DSO_DEFINES_SOMETHING) {
           /* Definition of a class, struct, union, or enum type is not
              allowed. */
@@ -4418,43 +4577,6 @@ error cases.
 }  /* remove_all_local_stop_tokens */
 
 
-#if MICROSOFT_KEYWORDS_ALLOWED
-void update_microsoft_variable_info(a_variable_ptr  var,
-                                    a_decl_flag_set flags)
-/*
-Update the variable information to reflect any Microsoft extended
-storage class information represented by bits in the DSO information
-in "flags".
-*/
-{
-  var->dllimport_used |= (flags & DSO_DLLIMPORT) != 0;
-  var->dllexport_used |= (flags & DSO_DLLEXPORT) != 0;
-  var->thread_used |= (flags & DSO_THREAD) != 0;
-#if 0
-  /* Add error tests for improper use of other storage classes. */
-#endif /* 0 */
-}  /* update_microsoft_variable_info */
-
-
-void update_microsoft_routine_info(a_routine_ptr   routine,
-                                   a_decl_flag_set flags)
-/*
-Update the routine information to reflect any Microsoft extended
-storage class information represented by bits in the DSO information
-in "flags".
-*/
-{
-  routine->dllimport_used |= (flags & DSO_DLLIMPORT) != 0;
-  routine->dllexport_used |= (flags & DSO_DLLEXPORT) != 0;
-  routine->naked_used |= (flags & DSO_NAKED) != 0;
-  routine->microsoft_inline_used |= (flags & DSO_MICROSOFT_INLINE) != 0;
-#if 0
-  /* Add error tests for improper use of other storage classes. */
-#endif /* 0 */
-}  /* update_microsoft_routineiable_info */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
-
-
 void declaration(a_boolean      function_definition_allowed,
                  a_boolean      extern_implied,
                  a_boolean      is_old_style_param_decl,
@@ -4500,6 +4622,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean	               defines_something;
   a_decl_flag_set              dso_flags, do_flags;
   a_type_qualifier_set         qualifiers;
+  a_decl_modifier	       decl_modifiers;
   a_decl_flag_set              dsi_flags, di_flags;
   a_symbol_ptr                 symbol_ptr, ext_sym;
   a_boolean	               decl_specifiers_omitted = FALSE;
@@ -4677,7 +4800,7 @@ of local variables (and types, etc.) of functions and in blocks.
 continue_with_declaration:
   /* Scan the specifiers. */
   err = decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
-                        &qualifiers);
+                        &qualifiers, &decl_modifiers);
   has_explicit_type_specifier = dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
   declares_something = dso_flags & DSO_DECLARES_SOMETHING;
   defines_something = dso_flags & DSO_DEFINES_SOMETHING;
@@ -5095,7 +5218,6 @@ continue_with_declaration:
           local_storage_class != (a_storage_class)sc_typedef &&
           curr_token != tok_semicolon && curr_token != tok_comma &&
           curr_token != tok_assign && curr_token != tok_end_of_source) {
-        a_symbol_ptr rout_sym;
         if (!has_explicit_type_specifier && !is_main_function) {
           /* Function with no explicitly specified return type.  Issue a
              remark (except in pcc mode and except for C++ constructors,
@@ -5116,23 +5238,14 @@ continue_with_declaration:
         /* Do processing required for a function definition, including
            scanning the function body.  Note that the closing '}' will not
            been consumed -- that will be done by the caller. */
-        rout_sym = function_definition(&locator, local_type_ptr, &func_info,
-                                       local_storage_class,
-                                       has_explicit_type_specifier);
+        (void)function_definition(&locator, local_type_ptr, &func_info,
+                                  local_storage_class,
+                                  has_explicit_type_specifier,
+                                  decl_modifiers);
         done_with_func_info(func_info);
         /* The presence of a final '}' will already have been checked for. */
         check_assertion(curr_token == tok_rbrace ||
                         curr_token == tok_end_of_source);
-#if MICROSOFT_KEYWORDS_ALLOWED        
-        {
-          a_routine_ptr	rp;
-          check_assertion_str(rout_sym != NULL,
-                              "declaration: routine symbol pointer NULL");
-          rp = rout_sym->variant.routine.ptr;
-          check_assertion_str(rp != NULL, "declaration: routine pointer NULL");
-          update_microsoft_routine_info(rp, dso_flags);
-        }
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
         goto advance_past_final_token;
       }  /* if */
       /* Not a function definition, must be a declaration. */
@@ -5344,14 +5457,15 @@ continue_with_declaration:
         /* All static data member declarations that that pass though this
            code are definitions. */
         is_variable_def = TRUE;
-        update_microsoft_variable_info(var_ptr, dso_flags);
+        update_variable_decl_modifiers(var_ptr, decl_modifiers,
+                                       &locator.source_position,
+                                       /*is_redecl=*/TRUE);
       } else if (is_function) {
         /* A function declaration with no body. */
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
                             &func_info, declarator_ssep, SRK_DECLARATION,
-                            &symbol_ptr, &linkage, &old_type, &ext_sym);
-        update_microsoft_routine_info(symbol_ptr->variant.routine.ptr,
-                                      dso_flags);
+                            decl_modifiers, &symbol_ptr, &linkage, &old_type,
+                            &ext_sym);
       } else {
         /* A variable declaration. */
         a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
@@ -5394,8 +5508,8 @@ continue_with_declaration:
         if (is_variable_def) srk_flags |= SRK_DEFINITION;
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
                             (a_func_info_block *)NULL, declarator_ssep,
-                            srk_flags, &symbol_ptr, &linkage, &old_type,
-                            &ext_sym);
+                            srk_flags, decl_modifiers, &symbol_ptr, &linkage,
+                            &old_type, &ext_sym);
         var_ptr = symbol_ptr->variant.variable.ptr;
         /* Fetch the type of the symbol again, since it might have been
            changed when reconciled with the original declaration. */
@@ -5405,7 +5519,6 @@ continue_with_declaration:
              suppress subsequent "declared and not referenced" warnings. */
           mark_symbol_to_suppress_warnings(symbol_ptr);
         }  /* if */
-        update_microsoft_variable_info(var_ptr, dso_flags);
       }  /* if */
       if (is_variable_def && C_dialect == C_dialect_cplusplus) {
         /* At the point at which an object of incomplete template class is

@@ -3057,7 +3057,8 @@ without it.
 static a_symbol_ptr decl_friend_function(a_symbol_locator      *locator,
                                          a_type_ptr            class_type,
                                          a_type_ptr            function_type,
-                                         a_func_info_block_ptr func_info)
+                                         a_func_info_block_ptr func_info,
+                                         a_decl_modifier       decl_modifiers)
 /*
 Do processing for declaring a function (identified by *locator and with
 a type of function_type) friend of the current class (class_type).  Getting
@@ -3131,8 +3132,8 @@ of the function, and again overloading is a possibility.
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
       decl_var_or_routine(locator, storage_class, function_type, func_info,
-                          declarator_ssep, srk_flags, &sym, &linkage,
-                          &old_type, &ext_sym);
+                          declarator_ssep, srk_flags, decl_modifiers, &sym,
+                          &linkage, &old_type, &ext_sym);
       /* WP 11.4 para 5 prohibits defining a nonmember function in a local
          class friend declaration. */
       if (func_info->is_definition &&
@@ -3524,7 +3525,8 @@ static a_symbol_ptr decl_member_function(
                              a_boolean                      is_virtual,
                              a_boolean                      compiler_generated,
                              a_special_function_kind        spec_kind,
-                             an_override_registry_entry_ptr *registry_ptr)
+                             an_override_registry_entry_ptr *registry_ptr,
+                             a_decl_modifier		    decl_modifiers)
 
 /*
 For a member function declaration:  create a symbol entry and a routine entry
@@ -3764,6 +3766,10 @@ special function kind (e.g., constructor, destructor), if any.
          supplement. */
       cssp->destructor = sym;
     }  /* if */
+    update_routine_decl_modifiers(rtn, decl_modifiers,
+                                  &locator->source_position,
+                                  /*is_redecl=*/FALSE,
+                                  (a_boolean)func_info->is_definition);
     /* Do checking associated with function overloading. */
     if (overload_sym != NULL && !cssp->is_nonreal_class) {
       a_symbol_ptr  other_sym = sym->next;
@@ -3915,7 +3921,7 @@ static void decl_static_data_member(a_symbol_locator *locator,
                                     a_boolean        is_nonreal_class,
                                     a_symbol_ptr     corresp_prototype_tag_sym,
                                     a_source_sequence_entry_ptr  ssep,
-                                    a_decl_flag_set  dso_flags)
+                                    a_decl_modifier  decl_modifiers)
 /*
 Do processing for a static data member, including entering it in the symbol
 table.
@@ -3981,7 +3987,9 @@ table.
       }  /* if */
     }  /* if */
   }  /* if */
-  update_microsoft_variable_info(var, dso_flags);
+  update_variable_decl_modifiers(var, decl_modifiers,
+                                 &locator->source_position,
+                                 /*is_redecl=*/FALSE);
   /* Check for the case in which the type is or contains a routine type for
      which default arguments have been specified. */
   if (curr_routine_fixup != NULL &&
@@ -4861,7 +4869,8 @@ routine body is generated at this time.
                              (an_access_specifier)as_public,
                              /*is_virtual=*/FALSE,
                              /*compiler_generated=*/TRUE, sfkind,
-                             (an_override_registry_entry_ptr *)NULL);
+                             (an_override_registry_entry_ptr *)NULL,
+                             DM_NONE);
   done_with_func_info(func_info);
   /* It can be that the head of symbols list for the scope has been
      modified (it may have been changed to an sk_overloaded_function, or
@@ -5742,6 +5751,7 @@ Scan the body of a class definition, including the base classes list.
         a_decl_flag_set      dso_flags;
         a_type_qualifier_set qualifiers;
         a_storage_class      member_storage_class;
+        a_decl_modifier      decl_modifiers;
         a_type_ptr           member_type;
         a_boolean            dangling_type_specifier;
         a_boolean            local_defines_something, local_declares_something;
@@ -5882,7 +5892,7 @@ Scan the body of a class definition, including the base classes list.
            be omitted, e.g., for a function member with implicit type. */
         add_stop_token(tok_colon);
         (void)decl_specifiers(dsi_flags, &dso_flags, &member_storage_class,
-                              &member_type, &qualifiers);
+                              &member_type, &qualifiers, &decl_modifiers);
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         local_defines_something = dso_flags & DSO_DEFINES_SOMETHING;
         local_declares_something = dso_flags & DSO_DECLARES_SOMETHING;
@@ -6374,7 +6384,8 @@ Scan the body of a class definition, including the base classes list.
             func_info.is_inline = inline_specified || function_def_present;
             if (friend_specified) {
               rout_sym = decl_friend_function(&locator, class_type,
-                                              local_type, &func_info);
+                                              local_type, &func_info,
+                                              decl_modifiers);
             } else {
               /* A class with a user-defined constructor or a virtual
                  function cannot be an "aggregate" (8.5.1). */
@@ -6395,7 +6406,7 @@ Scan the body of a class definition, including the base classes list.
                                  &locator, class_type, local_type,
                                  &func_info, access, virtual_specified,
                                  /*compiler_generated=*/FALSE, spec_kind,
-                                 &override_registry);
+                                 &override_registry, decl_modifiers);
               if (cssp->is_prototype_instantiation) {
                 /* During the prototype instantiation, save the token
                    sequence number associated with this declaration so that
@@ -6603,7 +6614,7 @@ Scan the body of a class definition, including the base classes list.
               decl_static_data_member(&locator, class_type, local_type,
                                       access, is_nonreal_instantiation,
                                       corresp_prototype_tag_sym,
-                                      declarator_ssep, dso_flags);
+                                      declarator_ssep, decl_modifiers);
             } else {
               /* Non-static data member (= field). */
               /* The type specified must be complete. */

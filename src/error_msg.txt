@@ -701,6 +701,8 @@ ec_calling_convention_ignored;;"calling convention specified here is ignored"
 ec_calling_convention_may_not_precede_nested_declarator;;"a calling convention may not be followed by a nested declarator"
 ec_calling_convention_ignored_for_type;;"calling convention is ignored for this type"
 ec_calling_convention_not_allowed_for_type;;"calling conventions may only be applied to function types"
+ec_decl_modifiers_incompatible_with_previous_decl;;"declaration modifiers are incompatible with previous declaration"
+ec_decl_modifiers_invalid_for_this_decl;;"the modifier %sq is not allowed on this declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

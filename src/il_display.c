@@ -1155,14 +1155,14 @@ Display the indicated variable.
     disp_boolean("is_anonymous_parent_object", TRUE);
   }  /* if */
 #if MICROSOFT_KEYWORDS_ALLOWED
-  if (ptr->dllimport_used) {
-    disp_boolean("dllimport_used", TRUE);
+  if (ptr->decl_modifiers & DM_DLLIMPORT) {
+    disp_boolean("dllimport", TRUE);
   }  /* if */
-  if (ptr->dllexport_used) {
-    disp_boolean("dllexport_used", TRUE);
+  if (ptr->decl_modifiers & DM_DLLEXPORT) {
+    disp_boolean("dllexport", TRUE);
   }  /* if */
-  if (ptr->thread_used) {
-    disp_boolean("thread_used", TRUE);
+  if (ptr->decl_modifiers & DM_THREAD) {
+    disp_boolean("thread", TRUE);
   }  /* if */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
   disp_initializer(ptr->init_kind, &ptr->initializer);
@@ -1476,17 +1476,17 @@ Display the indicated routine.
     disp_boolean("contains_try_block", TRUE);
   }  /* if */
 #if MICROSOFT_KEYWORDS_ALLOWED
-  if (ptr->dllimport_used) {
-    disp_boolean("dllimport_used", TRUE);
+  if (ptr->decl_modifiers & DM_DLLIMPORT) {
+    disp_boolean("dllimport", TRUE);
   }  /* if */
-  if (ptr->dllexport_used) {
-    disp_boolean("dllexport_used", TRUE);
+  if (ptr->decl_modifiers & DM_DLLEXPORT) {
+    disp_boolean("dllexport", TRUE);
   }  /* if */
-  if (ptr->naked_used) {
-    disp_boolean("naked_used", TRUE);
+  if (ptr->decl_modifiers & DM_NAKED) {
+    disp_boolean("naked", TRUE);
   }  /* if */
-  if (ptr->microsoft_inline_used) {
-    disp_boolean("microsoft_inline_used", TRUE);
+  if (ptr->decl_modifiers & DM_MICROSOFT_INLINE) {
+    disp_boolean("microsoft_inline", TRUE);
   }  /* if */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
   if (ptr->befriending_classes != NULL) {

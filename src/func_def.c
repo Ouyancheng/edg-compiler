@@ -469,6 +469,7 @@ static void define_member_function(a_symbol_locator   *locator,
                                    a_func_info_block  *func_info,
 				   a_symbol_ptr       *symbol_ptr,
                                    an_id_linkage_kind *linkage_ptr,
+                                   a_decl_modifier    decl_modifiers,
 				   a_type_ptr	      *old_type,
 				   a_symbol_ptr	      *ext_sym)
 /*
@@ -614,6 +615,9 @@ on a prior declaration.
       sym->variant.routine.ptr->specific_def = TRUE;
       sym->variant.routine.instance_ptr->instantiation_required = FALSE;
     }  /* if */
+    update_routine_decl_modifiers(rp, decl_modifiers,
+                                  &locator->source_position,
+                                  /*is_redecl=*/TRUE, /*is_definition=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                               &locator->source_position,
@@ -665,7 +669,8 @@ a_symbol_ptr function_definition(a_symbol_locator  *locator,
                                  a_type_ptr        rout_type,
                                  a_func_info_block *func_info,
                                  a_storage_class   storage_class,
-                                 a_boolean         has_explicit_type_specifier)
+                                 a_boolean         has_explicit_type_specifier,
+                                 a_decl_modifier   decl_modifiers)
 /*
 Scan a function definition.  The declarator has already been scanned; the
 old-style parameter declarations and the compound statement for the body
@@ -725,7 +730,7 @@ associated with the function is returned.
     check_assertion(prototyped);
     is_member_function_def = TRUE;
     define_member_function(locator, rout_type, func_info, &symbol_ptr,
-                           &linkage, &old_type, &ext_sym);
+                           &linkage, decl_modifiers, &old_type, &ext_sym);
   } else {
     if (!prototyped) {
       /* Old-style id list.  Before calling decl_var_or_routine scan the
@@ -825,7 +830,7 @@ associated with the function is returned.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     decl_var_or_routine(locator, storage_class, rout_type, func_info,
                         declarator_ssep, (SRK_DECLARATION | SRK_DEFINITION),
-                        &symbol_ptr, &linkage,
+                        decl_modifiers, &symbol_ptr, &linkage,
                         &old_type, &ext_sym);
   }  /* if */
   routine_ptr = symbol_ptr->variant.routine.ptr;

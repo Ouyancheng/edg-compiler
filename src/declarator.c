@@ -90,12 +90,13 @@ a bit vector describing what was found.
   a_decl_flag_set       dso_flags;
   a_storage_class       dummy_storage_class;
   a_type_ptr            dummy_type_ptr;
+  a_decl_modifier	dummy_decl_modifiers;
   a_type_qualifier_set  qualifiers;
 
   check_assertion(is_type_qualifier_token(curr_token));
   (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
                         &dummy_storage_class, &dummy_type_ptr,
-                        &qualifiers);
+                        &qualifiers, &dummy_decl_modifiers);
   check_assertion(qualifiers != TQ_NONE);
   return qualifiers;
 }  /* collect_type_qualifiers */
@@ -782,6 +783,7 @@ scope is that of a class definition.
   a_type_ptr              param_type_ptr;
   a_decl_flag_set         dso_flags;
   a_type_qualifier_set    qualifiers;
+  a_decl_modifier	  decl_modifiers;
   a_param_type_ptr        last_param_type;
   a_param_id_ptr          last_param_id;
   a_source_sequence_entry_ptr
@@ -917,7 +919,7 @@ scope is that of a class definition.
                                DSI_IS_PARAMETER |
                                DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER),
                               &dso_flags, &param_storage_class,
-                              &param_type_ptr, &qualifiers);
+                              &param_type_ptr, &qualifiers, &decl_modifiers);
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         defines_something = dso_flags & DSO_DEFINES_SOMETHING;
         if (last_param_type == NULL && curr_token == tok_rparen) {

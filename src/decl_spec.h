@@ -28,7 +28,8 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 				 a_decl_flag_set      *output_flags,
 				 a_storage_class      *storage_class,
 				 a_type_ptr           *type_ptr,
-                                 a_type_qualifier_set *qualifiers);
+                                 a_type_qualifier_set *qualifiers,
+                                 a_decl_modifier_ptr  decl_modifiers);
 
 /* Constants defining bits in the input bit vector used in calls to
    decl_specifiers. */
@@ -153,27 +154,8 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 #define DSO_CLASS_TEMPLATE 	(a_decl_flag_set)(0x1000)
 			/* If this bit is set the declaration appears to be
 			   that of a class template. */
-#if MICROSOFT_KEYWORDS_ALLOWED
-#define DSO_MICROSOFT_INLINE 	(a_decl_flag_set)(0x2000)
-			/* The Microsoft __inline keyword was present. */
-#define DSO_DLLIMPORT		(a_decl_flag_set)(0x4000)
-			/* The Microsoft __declspec(dllimport) construct was
-			   used. */
-#define DSO_DLLEXPORT		(a_decl_flag_set)(0x8000)
-			/* The Microsoft __declspec(dllexport) construct was
-			   used. */
-#define DSO_THREAD		(a_decl_flag_set)(0x10000)
-			/* The Microsoft __declspec(thread) construct was
-			   used. */
-#define DSO_NAKED		(a_decl_flag_set)(0x20000)
-			/* The Microsoft __declspec(naked) construct was
-			   used. */
-#define DSO_LAST DSO_NAKED
-			/* Last bit in the bit vector that is in use. */
-#else /* MICROSOFT_KEYWORDS_ALLOWED */
 #define DSO_LAST DSO_CLASS_TEMPLATE
 			/* Last bit in the bit vector that is in use. */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #endif /* DECL_SPEC_H */
 
 /******************************************************************************

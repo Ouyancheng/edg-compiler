@@ -1058,6 +1058,10 @@ and the class instantiation will detect the runaway case.
   var_ptr->source_corresp.referenced = TRUE;
   var_ptr->is_template_static_data_member = TRUE;
   tip->already_instantiated = TRUE;
+#if 0
+  /* Note that Microsoft decl_modifiers are not processed on static
+     data member definitions.  Microsoft does not allow this either. */
+#endif /* 0 */
   db_exit();
 }  /* define_template_static_data_member */
 
@@ -1912,7 +1916,8 @@ static void scan_template_declaration(a_boolean         is_initial_decl,
                                       a_symbol_locator  *locator,
                                       a_type_ptr        *type,
                                       a_func_info_block *func_info,
-                                      a_storage_class   *storage_class)
+                                      a_storage_class   *storage_class,
+                                      a_decl_modifier	*decl_modifiers)
 /*
 Calls decl_specifiers and declarator to scan a template declaration of
 a function or static data member.  is_initial_decl is TRUE if this
@@ -1926,7 +1931,6 @@ of a function template.
   a_type_ptr                   bottom_derived_type = NULL;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
   a_type_qualifier_set         qualifiers;
-
 
   dsi_flags = DSI_IS_TEMPLATE_DECLARATION |
               DSI_INLINE_ALLOWED |
@@ -1960,7 +1964,7 @@ of a function template.
     add_stop_token(tok_end_of_source);
   }  /* if */
   (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type,
-                        &qualifiers);
+                        &qualifiers, decl_modifiers);
   if (is_error_type(*type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(*locator);
@@ -2055,9 +2059,10 @@ type based on the template argument list and the template parameter list
        because additional error checking is done during the declaration
        processing. */
     a_decl_flag_set	do_flags;
-    a_symbol_locator    locator;
     a_func_info_block	func_info;
     a_storage_class     storage_class;
+    a_symbol_locator	locator;
+    a_decl_modifier	decl_modifiers;
     a_source_position   saved_pos_curr_token;
     a_source_position   saved_error_position;
     /* Push the template instantiation scope.  Note that the instance symbol
@@ -2080,25 +2085,27 @@ type based on the template argument list and the template parameter list
     scan_template_declaration(/*is_initial_decl=*/FALSE,
                               /*nonglobal_decl_err=*/FALSE,
                               &dso_flags, &do_flags, &locator,
-                              &rout_type, &func_info, &storage_class);
+                              &rout_type, &func_info, &storage_class,
+                              &decl_modifiers);
     done_with_func_info(func_info);
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;
+    /* Give the routine entry the type passed in, and set other fields in
+       accord with the settings in the template. */
+    rp->type = rout_type;
+    rp->storage_class = templ_rout->storage_class;
+    rp->special_kind = templ_rout->special_kind;
+    rp->opname_kind = templ_rout->opname_kind;
+    rp->is_inline = templ_rout->is_inline;
+    rp->is_template_function = TRUE;
+    set_source_corresp(&rp->source_corresp, sym);
+    rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
+    update_routine_decl_modifiers(rp, decl_modifiers,
+                                  &locator.source_position,
+                                  /*is_redecl=*/FALSE, /*is_definition=*/TRUE);
+    /* Add it to the file scope routines list. */
+    add_to_routines_list(rp, /*at_file_scope=*/TRUE);
   }
-  /* Give the routine entry the type passed in, and set other fields in
-     accord with the settings in the template. */
-  rp->type = rout_type;
-  rp->storage_class = templ_rout->storage_class;
-  rp->special_kind = templ_rout->special_kind;
-  rp->opname_kind = templ_rout->opname_kind;
-  rp->is_inline = templ_rout->is_inline;
-  rp->is_template_function = TRUE;
-  set_source_corresp(&rp->source_corresp, sym);
-  rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
-  /* Update the Microsoft attribute information. */
-  update_microsoft_routine_info(rp, dso_flags);
-  /* Add it to the file scope routines list. */
-  add_to_routines_list(rp, /*at_file_scope=*/TRUE);
   /* Create the associated function instantiation entry and link it
      onto the front of the instantiation list for the template. */
   tip = alloc_template_instance();
@@ -3432,6 +3439,7 @@ Scan the declaration of a single template nontype parameter.
   a_decl_flag_set              do_flags;
   a_decl_flag_set              dso_flags;
   a_type_qualifier_set         qualifiers;
+  a_decl_modifier              decl_modifiers;
   a_storage_class              param_storage_class;
   a_type_ptr                   bottom_derived_type;
   a_source_position            param_pos;
@@ -3443,7 +3451,7 @@ Scan the declaration of a single template nontype parameter.
   (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_IS_TEMPLATE_PARAMETER),
                          &dso_flags, &param_storage_class, param_type_ptr,
-                         &qualifiers);
+                         &qualifiers, &decl_modifiers);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     pos_error(ec_type_definition_not_allowed, &param_pos);
     *param_type_ptr = error_type();
@@ -3842,12 +3850,13 @@ as the current token; otherwise, it is consumed.
     a_boolean          has_parenthesized_initializer = FALSE;
     a_func_info_block  func_info;
     a_storage_class    storage_class;
+    a_decl_modifier    decl_modifiers;
 
     /* Scan the decl. specifiers and the declaration. */
     clear_func_info(&func_info);
     scan_template_declaration(/*is_initial_decl=*/TRUE, nonglobal_decl_err,
                               &dso_flags, &do_flags, &locator, &type,
-                              &func_info, &storage_class);
+                              &func_info, &storage_class, &decl_modifiers);
     has_parenthesized_initializer = 
                              (do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
     if (!is_function_type(type) && 
@@ -3939,7 +3948,8 @@ as the current token; otherwise, it is consumed.
          contains a template parameter. */
       set_type_involves_template_param_flags(type);
       /* Process a function template declaration. */
-      decl_function_template(&locator, type, &func_info, &sym, storage_class);
+      decl_function_template(&locator, type, &func_info, &sym, storage_class,
+                             decl_modifiers);
       if (is_error_locator(locator)) {
         err = TRUE;
       } else if (curr_token == tok_lbrace ||
@@ -5515,6 +5525,7 @@ assumed if the return type is omitted.
     a_symbol_locator             locator;
     a_decl_flag_set              do_flags, dso_flags;
     a_type_qualifier_set         qualifiers;
+    a_decl_modifier		 decl_modifiers;
     a_type_ptr                   bottom_derived_type = NULL;
     a_symbol_ptr                 orig_sym;
     a_symbol_ptr                 new_sym;
@@ -5524,7 +5535,8 @@ assumed if the return type is omitted.
     begin_deferral_of_access_checks();
     (void)decl_specifiers((DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
 			   DSI_TYPE_SPECIFIER_ALLOWED),
-                          &dso_flags, &storage_class, &type, &qualifiers);
+                          &dso_flags, &storage_class, &type, &qualifiers,
+                          &decl_modifiers);
     if (is_error_type(type) && !is_declarator_start()) {
       /* Error of some sort. */
       set_to_error_locator(locator);

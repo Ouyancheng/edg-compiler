@@ -1336,8 +1336,8 @@ is a that of a constructor.
 
 
 #if MICROSOFT_KEYWORDS_ALLOWED
-static void scan_microsoft_extended_decl_modifiers(a_decl_flag_set *flags,
-						   a_boolean       *err)
+static
+a_decl_modifier scan_microsoft_extended_decl_modifiers(a_boolean *err)
 /*
 Scan the Microsoft __declspec specifier, which has the form
 
@@ -1354,18 +1354,17 @@ Scan the Microsoft __declspec specifier, which has the form
 		dllimport
 		dllexport
 
-Update "flags" to reflect the modifiers that were found.  If an error
-occurs (e.g., an invalid modifier), set err to TRUE.  err is unchanged if
-there are no errors.
+Return the modifiers that were found. If an error occurs (e.g., an invalid
+modifier), set err to TRUE.  err is unchanged if there are no errors.
 
 When this routine is called, the current token must be the __declspec
 keyword.
 */
 {
+  a_decl_modifier	modifiers = DM_NONE;
   check_assertion_str2(curr_token == tok_declspec,
                        "scan_microsoft_extended_decl_modifiers:",
                        "curr_token not tok_declspec");
-  *flags = DSO_NO_OUTPUT_FLAGS;
   /* Bypass the __declspec token. */
   (void)get_token();
   if (required_token(tok_lparen, ec_exp_lparen)) {
@@ -1377,13 +1376,13 @@ keyword.
         char	*modifier;
         modifier = locator_for_curr_id.symbol_header->identifier;
         if (strcmp(modifier, "dllexport") == 0) {
-          *flags |= DSO_DLLEXPORT;
+          modifiers |= DM_DLLEXPORT;
         } else if (strcmp(modifier, "dllimport") == 0) {
-          *flags |= DSO_DLLIMPORT;
+          modifiers |= DM_DLLIMPORT;
         } else if (strcmp(modifier, "thread") == 0) {
-          *flags |= DSO_THREAD;
+          modifiers |= DM_THREAD;
         } else if (strcmp(modifier, "naked") == 0) {
-          *flags |= DSO_NAKED;
+          modifiers |= DM_NAKED;
         } else {
           str_error(ec_bad_declspec_modifier, modifier);
           *err = TRUE;
@@ -1393,6 +1392,7 @@ keyword.
     }  /* if */
     remove_stop_token(tok_rparen);
   }  /* if */
+  return modifiers;
 }  /* scan_microsoft_extended_decl_modifiers */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
@@ -1401,7 +1401,8 @@ a_boolean decl_specifiers(a_decl_flag_set       input_flags,
                           a_decl_flag_set       *output_flags,
                           a_storage_class       *storage_class,
                           a_type_ptr            *type_ptr,
-                          a_type_qualifier_set  *qualifiers)
+                          a_type_qualifier_set  *qualifiers,
+                          a_decl_modifier_ptr    decl_modifiers)
 /*
 Scan a list of declaration specifiers.  Specifically, scan a
 declaration-specifiers (3.5), a specifier_qualifier_list (3.5.2.1), or
@@ -1553,6 +1554,7 @@ Returns TRUE if there is an error in the specifiers.
   *storage_class = (a_storage_class)sc_unspecified;
   *type_ptr = NULL;
   *qualifiers = TQ_NONE;
+  *decl_modifiers = DM_NONE;
   void_first_specifier = (curr_token == tok_void);
   type_specifier_allowed = (input_flags & DSI_TYPE_SPECIFIER_ALLOWED);
   vacuous_decl_allowed = (input_flags & DSI_VACUOUS_TAG_DECL_ALLOWED) != 0;
@@ -1647,9 +1649,10 @@ Returns TRUE if there is an error in the specifiers.
       case tok_microsoft_inline:
       case tok_declspec:
         /* A Microsoft specific storage class.  Note that Microsoft
-           allows these in some nonstandard places such as n */
+           allows these in some nonstandard places such as on
+           linkage declarations (e.g., extern "C" declarations). */
         {
-          a_decl_flag_set	new_output_flags = DSO_NO_OUTPUT_FLAGS;
+          a_decl_modifier	new_modifiers;
           a_source_position	specifier_start_pos;
 
           specifier_start_pos = pos_curr_token;
@@ -1657,19 +1660,21 @@ Returns TRUE if there is an error in the specifiers.
              scan the list of declaration modifiers. */
           switch (curr_token) {
             case tok_declspec:
-              scan_microsoft_extended_decl_modifiers(&new_output_flags, &err);
+              new_modifiers = scan_microsoft_extended_decl_modifiers(&err);
               break;
             case tok_microsoft_inline:
-	      new_output_flags = DSO_MICROSOFT_INLINE;
+	      new_modifiers = DM_MICROSOFT_INLINE;
               break;
+            default:
+              unexpected_condition();
           }  /* switch */
           if (!(input_flags & DSI_STORAGE_CLASS_SPECIFIER_ALLOWED)) {
             pos_error(ec_storage_class_not_allowed, &specifier_start_pos);
             err = TRUE;
           } else {
-            /* There were no errors, update the output flags to reflect
+            /* There were no errors, update decl_modifiers to reflect
                this specifier. */
-            *output_flags |= new_output_flags;
+            *decl_modifiers |= new_modifiers;
             if (is_parameter) {
               /* For parameters, warn if a storage class modifier is used. */
               pos_warning(ec_bad_param_storage_class, &specifier_start_pos);

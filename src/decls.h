@@ -268,6 +268,7 @@ extern void decl_var_or_routine(a_symbol_locator             *locator,
                                 a_func_info_block_ptr        func_info,
                                 a_source_sequence_entry_ptr  declarator_ssep,
                                 a_symbol_reference_kind      srk_flags,
+                                a_decl_modifier	    	     decl_modifiers,
                                 a_symbol_ptr                 *symbol_ptr,
                                 an_id_linkage_kind           *linkage_ptr,
                                 a_type_ptr                   *old_type,
@@ -277,7 +278,8 @@ extern void decl_function_template(a_symbol_locator    *locator,
                                    a_type_ptr          type_ptr,
                                    a_func_info_block   *func_info,
                                    a_symbol_ptr        *symbol_ptr,
-                                   a_storage_class     storage_class);
+                                   a_storage_class     storage_class,
+                                   a_decl_modifier     decl_modifiers);
 
 extern void handler_declaration(a_statement_ptr     sp,
                                 a_source_position*  catch_pos);
@@ -289,18 +291,23 @@ extern an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed,
    declaration routines.  Each bit represents a flag. */
 typedef unsigned long a_decl_flag_set;
 
-#if MICROSOFT_KEYWORDS_ALLOWED
-extern void update_microsoft_variable_info(a_variable_ptr  var,
-                                           a_decl_flag_set flags);
+#if DECL_MODIFIERS_IN_USE
+extern
+void update_routine_decl_modifiers(a_routine_ptr	routine,
+				   a_decl_modifier	new_modifiers,
+				   a_source_position	*position,
+                                   a_boolean		is_redecl,
+                                   a_boolean	        is_definition);
 
-extern void update_microsoft_routine_info(a_routine_ptr   routine,
-                                          a_decl_flag_set flags);
-#else /* !MICROSOFT_KEYWORDS_ALLOWED */
-/* Supply macros that do nothing when Microsoft keywords are not
-   recognized. */
-#define update_microsoft_variable_info(x,y) /* nothing */
-#define update_microsoft_routine_info(x,y) /* nothing */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+void update_variable_decl_modifiers(a_variable_ptr	variable,
+		  		    a_decl_modifier	new_modifiers,
+				    a_source_position	*position,
+                                    a_boolean		is_redecl);
+#else /* !DECL_MODIFIERS_IN_USE */
+/* Define these as macros that expand to nothing. */
+#define update_routine_decl_modifiers(a,b,c,d,e) /* nothing */
+#define update_variable_decl_modifiers(a,b,c,d) /* nothing */
+#endif /* !DECL_MODIFIERS_IN_USE */
 
 #endif /* DECLS_H */
 

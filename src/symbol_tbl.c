@@ -3171,7 +3171,8 @@ the compiler-generated flag should be cleared.
      in the current translation unit. */
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
                       &func_info, (a_source_sequence_entry_ptr)NULL,
-                      SRK_DECLARATION, &sym, &linkage, &old_type, &ext_sym);
+                      SRK_DECLARATION, DM_NONE, &sym, &linkage, &old_type,
+                      &ext_sym);
   sym->variant.routine.ptr->compiler_generated = TRUE;
   db_exit();
 }  /* make_global_operator_new_or_delete_symbol */
