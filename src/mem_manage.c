@@ -596,8 +596,8 @@ alloc_general.
 void free_memory_region(a_memory_region_number region_number)
 /*
 Free the space for the entire memory region indicated by region_number.
-This is presumably being done because it has been written out to to IL
-file and is no longer needed.
+This is presumably being done because the associated information is no longer
+needed (e.g., it has been written out to the IL file).
 */
 {
   a_mem_block_header_ptr hdr, next_hdr;
@@ -635,8 +635,9 @@ any unused space.
 
 void done_with_memory_region(a_memory_region_number region_number)
 /*
-The indicated memory region is no longer needed in the front end.
-Save it if necessary, free the space if possible.
+We're done generating the indicated memory region in the front end.
+(The memory region may be used further in the back end, but we're
+done creating it.)  Save it if necessary, free the space if possible.
 */
 {
   db_enter(5, "done_with_memory_region");
