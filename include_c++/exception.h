@@ -20,9 +20,11 @@ namespace std {
     virtual const char* what() const throw();
   };
 
-  typedef void (*_PFV)();
-  extern _PFV set_terminate(_PFV);
-  extern _PFV set_unexpected(_PFV);
+  typedef void (*terminate_handler)();
+  extern terminate_handler set_terminate(terminate_handler);
+
+  typedef void (*unexpected_handler)();
+  extern unexpected_handler set_unexpected(unexpected_handler);
 
   /* unexpected and terminate are in the WP definition of exception.h.
      It is not clear why. */
