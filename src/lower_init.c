@@ -2994,12 +2994,13 @@ Do IL lowering of an enk_temp_init expression node.
   a_dynamic_init_ptr dip;
   a_type_ptr         temp_type;
   an_init_pos_descr  ipd;
-  a_boolean          keep_dynamic_init, result_is_addr;
+  a_boolean          keep_dynamic_init, result_is_addr, result_is_not_used;
   an_insert_location insert_location;
 
   dip = expr->variant.init.dynamic_init;
   /* Determine the type of the temporary. */
   temp_type = expr->type;
+  result_is_not_used = expr->result_is_not_used;
   result_is_addr = expr->variant.init.result_is_addr;
   if (result_is_addr) {
     /* The value of the enk_temp_init node is the address of the temporary,
@@ -3033,9 +3034,11 @@ Do IL lowering of an enk_temp_init expression node.
   /* Optimization -- if the initialization is done by a constructor,
      and the enk_temp_init returns the address of the temporary,
      use the pointer returned from the constructor as the value of
-     the expression. */
-  if (result_is_addr &&
-      dip->kind == (a_dynamic_init_kind)dik_constructor) {
+     the expression.  Likewise, if the result of the expression is not
+     used, the node for the temporary value or address is not needed. */
+  if ((result_is_addr &&
+      dip->kind == (a_dynamic_init_kind)dik_constructor) ||
+      result_is_not_used) {
     check_assertion(is_operation_node(expr) &&
                     expr->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_comma);
