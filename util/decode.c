@@ -652,12 +652,13 @@ original forms).
       end_ptr = ptr + nchars;
     } else {
       /* We have no count of characters, so the string ends on a null or
-         double underscore. */
+         double underscore (but not a double underscore at the start of
+         the string). */
       for (p = ptr; *p != '\0'; p++) {
         /* More than 2 underscores in a row does not terminate the string,
            so that something like the name for "void f_()" (i.e., "f___Fv")
            can be demangled successfully. */
-        if (p[0] == '_' && p[1] == '_' && p[2] != '_') {
+        if (p[0] == '_' && p[1] == '_' && p[2] != '_' && p != ptr) {
           if (start_of_id_is("__pt__", p)) {
             /* This is a template class. */
             is_template = TRUE;
@@ -1100,8 +1101,8 @@ a pointer to the character position following what was demangled.
   if (*p == '\0') {
     /* There is no mangled part of the name.  This happens for strange
        cases like
-         extern "C" operator +(A, A);
-       Just write out the name and stop. */
+         extern "C" int operator +(A, A);
+       which gets mangled as "__pl".  Just write out the name and stop. */
     end_ptr = demangle_name(origname, (unsigned long)0, (char *)NULL);
   } else {
     /* There's more.  There should be a "__" between the name and the
@@ -1128,10 +1129,7 @@ a pointer to the character position following what was demangled.
     if (mname[0] != 'F') {
       /* A class name must be next. */
       end_ptr = demangle_type_name(end_ptr, /*base_name_only=*/FALSE);
-      /* If the origname is null, don't put out the "::" following the
-         class name (this is a class name with no member name indicated,
-         e.g., "__Q2_1A1B"). */
-      if (origname != p) write_id_str("::");
+      write_id_str("::");
       /* If the name ends here, this is a simple member (e.g., a static
          data member). */
       if (*end_ptr == '\0') simple_member = TRUE;
@@ -1217,6 +1215,9 @@ is set to the size of buffer required to do the demangling.
   } else if (start_of_id_is("__T_", id)) {
     write_id_str("typeinfo for ");
     end_ptr = demangle_type(id+4);
+  } else if (start_of_id_is("__Q", id)) {
+    /* Nested class name. */
+    end_ptr = demangle_type_name(id+2, /*base_name_only=*/FALSE);
   } else {
     /* Normal case: function name, static data member name, or
        name of type or variable promoted out of function. */
