@@ -6758,8 +6758,12 @@ a routine to lookup the appropriate instance (or generate one if needed).
       pos_sy_error(ec_unexpected_template_arg_list, &start_position,
                    template_sym);
       add_stop_token(tok_gt);
+      add_stop_token(tok_lbrace);
+      add_stop_token(tok_semicolon);
       flush_to_end_of_arg_list();
       remove_stop_token(tok_gt);
+      remove_stop_token(tok_lbrace);
+      remove_stop_token(tok_semicolon);
       make_specific_symbol_error_locator(&locator_for_curr_id);
       new_sym = template_sym;
       any_errors = TRUE;
@@ -6812,6 +6816,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
   /* Always allocate template arguments at the file scope. */
   switch_to_file_scope_region(&region_to_switch_back_to);
   add_stop_token(tok_gt);
+  add_stop_token(tok_lbrace);
+  add_stop_token(tok_semicolon);
   /* Get the angle bracket token. */
   (void)get_token();
   /* Get token following opening angle bracket. */
@@ -6835,10 +6841,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
   if (curr_token != tok_gt) {
     if (!any_errors) syntax_error(ec_exp_gt);
     any_errors = TRUE;
-    /* Below we will set curr_token to tok_identifier.  Do an unget
-       of the token that stopped the flush so that it can be processed
-       later. */
-    unget_token();
   }  /* if */
   if (!any_errors) {
     /* Everything is OK -- find the instance that matches these arguments.
@@ -6897,11 +6899,20 @@ a routine to lookup the appropriate instance (or generate one if needed).
   }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
   remove_stop_token(tok_gt);
+  remove_stop_token(tok_lbrace);
+  remove_stop_token(tok_semicolon);
 
 normal_exit:
+  if (curr_token != tok_gt) {
+    /* Below we will set curr_token to tok_identifier.  Do an unget
+       of the token that stopped the flush so that it can be processed
+       later. */
+    unget_token();
+  }  /* if */
   /* When we return to the caller the current identifier should be an 
      identifier and the locator should point to the template class that we
-     have just looked up. */
+     have just looked up.  If the current token is an end of source marker,
+     unget that token so that we don't bypass it. */
   curr_token = tok_identifier;
   /* Update the locator to reflect the new symbol that is being returned
      and restore the source position of the beginning of the template
