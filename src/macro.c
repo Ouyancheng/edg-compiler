@@ -1337,7 +1337,7 @@ a_token_kind macro_invocation(a_symbol_ptr  macro_symbol,
 /*
 An identifier that is a macro has just been scanned.  Replace the macro call
 with its expansion, then return either with *rescan == TRUE to indicate
-that the replacement test should be re-tokenized, or with *rescan == FALSE
+that the replacement text should be re-tokenized, or with *rescan == FALSE
 and return value indicating a token value for the current token (the latter
 case is used when the result of an expansion is a known token; the other
 associated global variables will also have been set).
@@ -1840,7 +1840,7 @@ end_all_args_scan:;
                      macro_symbol->header->identifier);
   }  /* if */
 #endif /* DEBUG */
-  if (!got_proper_closing_token || pcc_mode_macro_recursion) {
+  if (!got_proper_closing_token) {
     /* Did not get proper closing token, so do not do the replacement.
        This happened because a macro invocation is incomplete at
        end of file, end of a preprocessing directive, or end of
@@ -1849,9 +1849,6 @@ end_all_args_scan:;
        replacement (problems that stem from the fact that the source
        modification technique really only allows replacements, not
        straight insertions). */
-    /* Also do this for pcc mode macro recursion.  If the macro identifier
-       were left in the line, it would likely generate another macro recursion
-       error when expand_top_level_pcc_macro is called eventually. */
     /* Delete any part of the macro invocation that is on this line. */
     if (delete_source_from_loc != NULL &&
         delete_source_from_loc < start_of_curr_token) {
@@ -1863,6 +1860,12 @@ end_all_args_scan:;
     *rescan = FALSE;
     ctoken = curr_token;
     goto return_point;
+  }  /* if */
+  if (pcc_mode_macro_recursion) {
+    /* For pcc mode macro recursion, use an empty string as the expansion
+       of the macro to avoid more resursion errors. */
+    special_repl_text = TRUE;
+    repl_text = "";
   }  /* if */
   /* Replace the identifier by the replacement text.  Start by determining
      the length of the replacement string. */
