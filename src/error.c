@@ -2214,6 +2214,7 @@ Add the name of the floating point type to the type string being formatted.
 
 
 static void form_type_qualifier(a_type_ptr        tp,
+                                a_boolean         postpositional,
                                 a_msg_segment_ptr seg_ptr)
 /*
 Add a type qualifier to the type string being formatted at the position
@@ -2233,8 +2234,15 @@ the length of the type qualifier added.
       break;
     }  /* if */
   }  /* for */
-  if (is_const) add_string_to_segment("const ", seg_ptr);
-  if (is_volatile) add_string_to_segment("volatile ", seg_ptr);
+  if (is_const || is_volatile) {
+    if (postpositional) add_string_to_segment(" ", seg_ptr);
+    if (is_const) {
+      add_string_to_segment("const", seg_ptr);
+      if (is_volatile) add_string_to_segment(" ", seg_ptr);
+    }  /* if */
+    if (is_volatile) add_string_to_segment("volatile", seg_ptr);
+    if (!postpositional) add_string_to_segment(" ", seg_ptr);
+  }  /* if */
 }  /* form_type_qualifier */
 
 
@@ -2587,7 +2595,9 @@ Add the first of possibly two parts of a type reference.
     /* Recursive call to print out any lower indirections. */
     form_type_first_part(local_type,
                          /*need_parens=*/
-                                  !is_pointer_or_reference_type(local_type),
+                            !is_pointer_or_reference_type(local_type) &&
+                            skip_typerefs(local_type)->kind !=
+                                       (a_type_kind)tk_ptr_to_member,
                          seg_ptr);
     /* Print out the star for this indirection. */
     if (unqualified_type->variant.pointer.is_reference) {
@@ -2596,7 +2606,7 @@ Add the first of possibly two parts of a type reference.
     } else {
       add_string_to_segment("*", seg_ptr);
     }  /* if */
-    form_type_qualifier(type, seg_ptr);
+    form_type_qualifier(type, /*postpositional=*/TRUE, seg_ptr);
     if (need_parens) add_string_to_segment("(", seg_ptr);
   } else if (type->kind == (a_type_kind)tk_array) {
     /* Array type. */
@@ -2609,13 +2619,13 @@ Add the first of possibly two parts of a type reference.
     if (need_parens) add_string_to_segment("(", seg_ptr);
   } else if (unqualified_type->kind == (a_type_kind)tk_ptr_to_member) {
     /* C++ pointer to member type. */
-    form_type_qualifier(type, seg_ptr);
     form_type_first_part(unqualified_type->variant.ptr_to_member.type,
                          /*needs_parens=*/TRUE, seg_ptr);
     form_class_qualifier(unqualified_type->
                             variant.ptr_to_member.class_of_which_a_member,
                          seg_ptr);
     add_string_to_segment("*", seg_ptr);
+    form_type_qualifier(type, /*postpositional=*/TRUE, seg_ptr);
     if (need_parens) add_string_to_segment("(", seg_ptr);
   } else if (type->kind == (a_type_kind)tk_routine) {
     /* Function type. */
@@ -2626,7 +2636,7 @@ Add the first of possibly two parts of a type reference.
                          seg_ptr);
     if (need_parens) add_string_to_segment("(", seg_ptr);
   } else {
-    form_type_qualifier(type, seg_ptr);
+    form_type_qualifier(type, /*postpositional=*/FALSE, seg_ptr);
     form_type_specifier(unqualified_type, seg_ptr);
     if (need_parens) add_string_to_segment(" ", seg_ptr);
   }  /* if */
