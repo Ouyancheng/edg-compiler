@@ -16,6 +16,22 @@ exception handling was enabled:
   };                 // No longer aborts when generating copy assignment
                      //   operator for class B
 
+12/5/96  Name lookup for local-class friend declarations
+
+In accord with a recent clarification to the Working Paper, the lookup of
+an unqualified name specified by a friend declaration in a local class now
+goes no further than the containing function or block scope.  For example:
+
+  class X;
+  void f() {
+    class Y {
+      friend class X;  // Lookup no longer finds ::X, so local class X
+    };                 //   is now introduced into scope of function f.
+  }
+
+Note: "name injection" (which has recently become obsolete) is still done
+when the friend lookup fails; this will be fixed in the future.
+
 12/5/96  extern "C" and implicit int
 
 The diagnostic message has been clarified for declarations like the
