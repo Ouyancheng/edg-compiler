@@ -2433,7 +2433,7 @@ scopes.
 static a_boolean is_nested_in_prototype_instantiation(
                             a_symbol_ptr		template_sym)
 /*
-See if this is an instantiation scope nested with a prototype
+See if this is an instantiation scope nested within a prototype
 instantiation.  This could be the prototype instantiation of a member
 template that is defined inside of the enclosing template.  It could
 also be a partial instantiation of a member function template in a
