@@ -4302,6 +4302,9 @@ class template.
                                  /*suppress_redecl_error=*/FALSE);
       }  /* if */
       /* Set namespace membership on this template function. */
+      if (is_friend_decl && ssep->in_prototype_instantiation) {
+        ssep = &scope_stack[depth_innermost_namespace_scope];
+      }  /* if */
       if (ssep->kind == (a_scope_kind)sck_namespace ||
           ssep->kind == (a_scope_kind)sck_namespace_extension) {
         set_namespace_membership(sym, (a_source_correspondence *)NULL,
