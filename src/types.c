@@ -3876,7 +3876,7 @@ pointers to members).
 
       std_conv->type_qualifiers_added = qualifiers_added;
       /* The types pointed to are the same.  Check the classes. */
-      if (source_class_type == dest_class_type) {
+      if (identical_types(source_class_type, dest_class_type)) {
         /* Same class, okay. */
         okay = TRUE;
         std_conv->nontrivial_conversion = FALSE;

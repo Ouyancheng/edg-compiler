@@ -1,5 +1,19 @@
 Version 2.42
 
+7/20/99  Problem with template-dependent pointer-to-member nontype
+         template parameters
+
+In certain cases, template-dependent nontype template parameters of
+pointer-to-member type were not compared properly.  This could result
+in spurious errors.  This has been fixed.
+
+  template<class T> struct A {
+    template<int T::*f> struct B { 
+      void g();
+    };
+  };
+  template<class T> template<int T::*f> void A<T>::B<f>::g() {}
+
 7/19/99  Operands with template type in template argument expressions
 
 Some problems with dealing with operands of template-based type in
