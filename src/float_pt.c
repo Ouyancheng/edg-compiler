@@ -44,11 +44,11 @@ EXTERN_C double strtod(char *, char **);
 #if EDG_WIN32
 /* Windows NT, 95, etc. */
 #include <float.h>
-#define is_NaN(x) (_isnan(x))
+#define is_NaN(x) (_isnan((double)(x)))
 /* Note that MSVC has long double the same size as double so _finite
    will work for long double also. */
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || DBL_MAX_EXP == LDBL_MAX_EXP
-#define is_finite(x) (_finite(x))
+#define is_finite(x) (_finite((double)(x)))
 #else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
 /* This must be a compiler other than MSVC++ on Windows, one that uses
    80-bit long doubles. */
@@ -59,7 +59,7 @@ EXTERN_C double strtod(char *, char **);
 #ifdef sun
 /* SunOS, Solaris, including Solaris on Intel X86. */
 extern int isnan(double);
-#define is_NaN(x) (isnan(x))
+#define is_NaN(x) (isnan((double)(x)))
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 /* The "finite" function takes a double argument, so it doesn't work
    for long double (the conversion to double could produce an Infinity
@@ -73,7 +73,11 @@ extern int finite(double);
 #else /* !defined(sun) */
 /* Not Windows, not Solaris, not SunOS. */
 #include <math.h>
+#ifdef isnan
 #define is_NaN(x) (isnan(x))
+#else /* !defined(isnan) */
+#define is_NaN(x) (isnan((double)(x)))
+#endif /* ifdef isnan */
 /* C99 has the "isfinite" macro.  Linux headers do too. */
 #ifdef isfinite
 #define is_finite(x) (isfinite(x))
@@ -135,7 +139,7 @@ available.
 
   /* As written, this routine supports only the size of exponent that
      comes up commonly in long doubles. */
-  check_assertion_str(LDBL_MAX_EXP == 16384,
+  check_assertion_str(LDBL_MAX_EXP == 16384, /*lint !e506*/
                       "long_double_is_finite: unsupported exponent size");
   if (host_little_endian) {
     p += sizeof(long double);
