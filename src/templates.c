@@ -1641,6 +1641,7 @@ templ_sym).
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
     rescan_reusable_cache(&tssp->variant.function.decl_token_cache);
+    clear_func_info(&func_info);
     scan_template_declaration(/*is_initial_decl=*/FALSE,
                               /*nonglobal_decl_err=*/FALSE,
                               &dso_flags, &do_flags, &locator,
