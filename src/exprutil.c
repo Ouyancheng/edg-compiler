@@ -1883,10 +1883,11 @@ conversions.
   a_constant local_constant;
   a_boolean  did_not_fold;
 
-  /* Drop any qualifiers on the destination type.  Qualifiers on an rvalue
-     have no meaning in C, and no meaning for non-class rvalues in C++,
-     which is all this routine handles. */
-  new_type = make_unqualified_type(new_type);
+  /* Drop any qualifiers on the destination type, as appropriate. */
+  new_type = rvalue_type(new_type);
+  /* Casting a node to a class type is not allowed. */
+  check_assertion_str(!is_class_struct_union_type(new_type),
+                      "cast_node: cast to class type");
   if (il_identical_types((*node)->type, new_type) &&
       /* Don't allow dropping a cast to the same type over a bit-field
          extraction node, because the node with the cast has different
@@ -1940,7 +1941,9 @@ detected on the type change, issue them only if is_implicit_cast is TRUE.
 The operand must be an rvalue or error operand.  The caller must have
 already determined that the conversion is allowed, except for casts to
 ambiguous or inaccessible base classes.  This routine does not handle
-user-defined conversions.
+user-defined conversions.  It does get called to cast an rvalue of a class
+type to the same class type with possible adjustment of cv-qualifiers,
+which is mostly a no-op.
 */
 {
   a_boolean         did_not_fold, access_error_reported, ambiguous;
@@ -1958,10 +1961,8 @@ user-defined conversions.
   }  /* if */
 #endif /* CHECKING */
 
-  /* Drop any qualifiers on the destination type.  Qualifiers on an rvalue
-     have no meaning in C, and no meaning for non-class rvalues in C++,
-     which is all this routine handles. */
-  new_type = make_unqualified_type(new_type);
+  /* Drop any qualifiers on the destination type, as appropriate. */
+  new_type = rvalue_type(new_type);
   /* If the cast doesn't change the type, do nothing.
      Can't test for il_identical_types at this point, since for an
      ok_expression the node type would have to be adjusted as well.
@@ -1991,9 +1992,17 @@ user-defined conversions.
              change its type in place.  Otherwise, add a cast expression
              node. */
           node = operand->variant.expression;
-          cast_node(&node, new_type, check_cast_access, is_implicit_cast,
-                    &operand->position);
-          make_expression_operand(node, new_type, operand);
+          if (is_class_struct_union_type(new_type)) {
+            /* An expression for an rvalue of class type can be cast to
+               class type here only to adjust the cv-qualifiers.  The IL
+               cannot represent that (nor does it need to), so just change the
+               type of the operand and leave the node alone. */
+            operand->type = new_type;
+          } else {
+            cast_node(&node, new_type, check_cast_access, is_implicit_cast,
+                      &operand->position);
+            make_expression_operand(node, new_type, operand);
+          }  /* if */
           break;
         case ok_constant:
           /* Cast the constant by changing its type.  In a nonconstant
