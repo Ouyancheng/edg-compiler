@@ -2210,7 +2210,13 @@ of bit-fields, where the size in bits is needed in addition to the base type.
       internal_error(
                  "node_type_after_integral_promotion: bit-field not integral");
     }  /* if */
-    if (field->bit_size > (unsigned int)(targ_sizeof_long*targ_char_bit)) {
+    if (field->bit_size > (unsigned int)(
+#if LONG_LONG_ALLOWED
+                                         targ_sizeof_long_long
+#else /* !LONG_LONG_ALLOWED */
+                                         targ_sizeof_long
+#endif /* LONG_LONG_ALLOWED */
+                                                         *targ_char_bit)) {
       /* This is supposedly prevented by the definition of
          targ_max_bit_field_size. */
       internal_error("node_type_after_integral_promotion: bit-field too big");
