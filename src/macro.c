@@ -66,9 +66,14 @@ static char	*after_end_of_aux_buffer_for_pcc_macros /* = NULL */;
 			   aux_buffer_for_pcc_macros. */
 
 /*
-Maximum depth of recursive calls of macros in pcc mode.
+Maximum nesting depth of calls of a single macro in pcc mode.  Used to
+catch recursion, but crudely, because a general recursion check is
+probably NP-complete.  The test will generate an error in some cases
+that involve deep nesting but no recursion, as for example in
+  #define x(a) a
+  x(x(x(x(x(x(x(x(x(x(x(x  ... etc ... (1))))))))))))
 */
-#define MAX_PCC_RECURSIVE_MACRO_DEPTH 150
+#define MAX_PCC_RECURSIVE_MACRO_DEPTH 300
 
 /*
 Data structure used to build a list of local variables that point into
