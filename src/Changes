@@ -1,4 +1,6 @@
-Version 2.31
+Version 2.31, January 19, 1996
+
+1/18/96   IL version number changed to 2.23
 
 1/18/96   cv-qualifier adjustment on cast of pointer to class to related class
 

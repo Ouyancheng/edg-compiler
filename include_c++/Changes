@@ -1,4 +1,4 @@
-Version 2.30, October 10, 1995
+Version 2.31, January 19, 1996
 
 1/10/96  Added iso646.h header file
 
@@ -12,6 +12,9 @@ The assert.h include file was changed to use stdio.h instead of iostream.h.
 This change was made to reduce the number of header files that are pulled
 in by assert.h.  Strictly speaking, assert.h should not include anything
 else.  A "real" library will need to do assert.h differently.
+
+-------------------------------------------------------------------------------
+Version 2.30, October 10, 1995
 
 9/1/95   Changes for namespaces
 

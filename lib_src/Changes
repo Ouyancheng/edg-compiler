@@ -1,4 +1,4 @@
-Version 2.31
+Version 2.31, January 19, 1996
 
 1/15/96  Exceptions thrown by routines called by vec_cctor handled incorrectly
 
