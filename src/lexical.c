@@ -2464,10 +2464,10 @@ returned.
           break;
         } else {
           /* Issue a catastrophic error if the file could not be opened
-             because of an error. */
-          if (bad_format) {
-            str_catastrophe(ec_source_file_has_bad_format, file_name);
-          } else if (bad_name) {
+             because of an error.  Bad format errors are simply ignored as
+             this is typically a result of finding a directory with
+             the specified name. */
+          if (bad_name) {
             str_catastrophe(ec_illegal_source_file_name, file_name);
           }  /* if */
         }  /* if */

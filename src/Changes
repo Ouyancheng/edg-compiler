@@ -1,5 +1,15 @@
 Version 2.30
 
+7/21/95  Include file names that are also directory names
+
+If, when searching for an include file, a directory was encountered
+with the same name as the include file being sought, the front end
+would issue an error that the file did not contain source text.  The
+front end has been changed so that directories are ignored when searching
+for an include file.  If only a directory is found (i.e., there is no
+regular file of the specified name in the include search path) the
+front end now issues a "could not open source file" error.
+
 7/21/95  Disambiguation of cast followed by field selection
 
 A field selection following a context that requires disambiguation to
