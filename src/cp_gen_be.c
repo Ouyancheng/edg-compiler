@@ -10268,17 +10268,13 @@ static void process_file_scope_entities(void)
 Process all the file scope entities, and everything under those.
 */
 {
+  a_boolean any_decl = FALSE;
+
   push_name_context(il_header.primary_scope);
   /* Use the source sequence list to visit all the right entries in the
      right order. */
   curr_source_sequence_entry = il_header.primary_scope->source_sequence_list;
   adv_to_signif_source_sequence_entry();
-  if (curr_source_sequence_entry == NULL && C_mode()) {
-    /* C does not allow a source file containing no declaration, so put
-       out a dummy declaration. */
-    write_tok_str("int __dummy_to_avoid_empty_file;");
-    end_output_line();
-  }  /* if */
   for (;;) {
     /* Process macros, pragmas, etc. */
     (void)process_preprocessing_directives();
@@ -10286,7 +10282,14 @@ Process all the file scope entities, and everything under those.
     if (curr_source_sequence_entry == NULL) break;
     /* Generate the declaration of a file-scope entity. */
     gen_declaration(/*for_init=*/FALSE);
+    any_decl = TRUE;
   }  /* for */
+  if (!any_decl && C_mode()) {
+    /* C does not allow a source file containing no declaration, so put
+       out a dummy declaration. */
+    write_tok_str("int __dummy_to_avoid_empty_file;");
+    end_output_line();
+  }  /* if */
 #if RECORD_MACROS_IN_IL
   /* Put out all macro definitions at the end so they won't affect the
      already macro-expanded code put out previously. */
