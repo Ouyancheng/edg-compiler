@@ -149,6 +149,51 @@ EXTERN char	*token_names[(int)tok_last+1]
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
+
+
+/* These declarations are placed here so that they will be defined before
+   symbol_tbl.h is included. */
+
+struct a_cached_token;
+
+typedef struct a_lint_and_pragma_state *a_lint_and_pragma_state_ptr;
+typedef struct a_lint_and_pragma_state {
+  /* Structure used to summarize a state of the lint and pragma flags,
+     i.e., flags that are set between tokens by preprocessing-level
+     operations. */
+  an_arg_pragma_kind
+		arg_pragma;
+			/* Argument pragma, used for printf/scanf argument
+			   lists. */
+  unsigned int	lint_argsused_flag:1;
+			/* Lint argsused comment. */
+  unsigned int	lint_notreached_flag:1;
+			/* Lint notreached comment. */
+  a_lint_varargs_count
+		lint_varargs_count;
+			/* Lint varargs comment argument count. */
+} a_lint_and_pragma_state;
+
+typedef struct a_token_cache *a_token_cache_ptr;
+typedef struct a_token_cache {
+  /* Data structure used to hold a token cache, i.e., some number of
+     tokens that are being saved for later rescanning. */
+  struct a_cached_token
+		*first_token,
+		*last_token;
+			/* First and last tokens on the list, or both NULL
+			   if the list is empty. */
+  a_lint_and_pragma_state
+		lint_and_pragma_state;
+			/* Lint and pragma state as of after the last token;
+			   used in determining whether or not a
+			   teik_lint_and_pragma entry is needed to record
+			   a change in the lint comment or pragma state. */
+} a_token_cache;
+
+
+/* These includes are placed here so that a_token_cache will be defined
+   for general use before including these files. */
 #ifndef SYMBOL_TBL_H
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
@@ -758,23 +803,6 @@ enum a_token_extra_info_kind_tag {
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_token_extra_info_kind;
-typedef struct a_lint_and_pragma_state *a_lint_and_pragma_state_ptr;
-typedef struct a_lint_and_pragma_state {
-  /* Structure used to summarize a state of the lint and pragma flags,
-     i.e., flags that are set between tokens by preprocessing-level
-     operations. */
-  an_arg_pragma_kind
-		arg_pragma;
-			/* Argument pragma, used for printf/scanf argument
-			   lists. */
-  unsigned int	lint_argsused_flag:1;
-			/* Lint argsused comment. */
-  unsigned int	lint_notreached_flag:1;
-			/* Lint notreached comment. */
-  a_lint_varargs_count
-		lint_varargs_count;
-			/* Lint varargs comment argument count. */
-} a_lint_and_pragma_state;
 typedef struct a_cached_token *a_cached_token_ptr;
 typedef struct a_cached_token {
   /* Information on a single token, saved for later rescanning of the
@@ -809,22 +837,6 @@ typedef struct a_cached_token {
 			/* New state for the lint and pragma flags. */
   } variant;
 } a_cached_token;
-typedef struct a_token_cache *a_token_cache_ptr;
-typedef struct a_token_cache {
-  /* Data structure used to hold a token cache, i.e., some number of
-     tokens that are being saved for later rescanning. */
-  a_cached_token_ptr
-		first_token,
-		last_token;
-			/* First and last tokens on the list, or both NULL
-			   if the list is empty. */
-  a_lint_and_pragma_state
-		lint_and_pragma_state;
-			/* Lint and pragma state as of after the last token;
-			   used in determining whether or not a
-			   teik_lint_and_pragma entry is needed to record
-			   a change in the lint comment or pragma state. */
-} a_token_cache;
 /* Initialize a token cache. */
 extern void clear_token_cache(a_token_cache *cache);
 /* Save the current token in a token cache. */
