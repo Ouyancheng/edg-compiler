@@ -9198,9 +9198,9 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
         /* Loop through the entire overload set of operator new symbols. */
         for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
           a_symbol_ptr  ovl_sym;
-          if (find_corresponding_operator_delete_sym(sym, class_type,
-                                                     &ambiguous, &ovl_sym)
-                                                                   == NULL &&
+          if (find_corresponding_operator_delete_sym(
+                                fundamental_symbol_of(sym),
+                                class_type, &ambiguous, &ovl_sym) == NULL &&
               !ambiguous) {
             /* There is no operator delete that "corresponds" to this
                operator new (i.e., whose parameter types after the first
