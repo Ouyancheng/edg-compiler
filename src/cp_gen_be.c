@@ -3222,7 +3222,7 @@ Write out attributes that apply to the indicated type.
     /* Output the "unused" attribute. */
     write_tok_str(" __attribute__((__unused__))");
   }  /* if */
-  if (type->source_corresp.is_deprecated) {
+  if (gcc_is_generated_code_target && type->source_corresp.is_deprecated) {
     /* Output the "deprecated" attribute. */
     write_tok_str(" __attribute__((__deprecated__))");
   }  /* if */
@@ -3399,7 +3399,7 @@ Write out attributes that apply to the indicated routine.
   if (rout->has_gnu_used_attribute) {
     write_tok_str(" __attribute__((__used__))");
   }  /* if */
-  if (rout->source_corresp.is_deprecated) {
+  if (gcc_is_generated_code_target && rout->source_corresp.is_deprecated) {
     write_tok_str(" __attribute__((__deprecated__))");
   }  /* if */
   if (rout->allocates_memory) {
