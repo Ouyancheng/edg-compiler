@@ -117,6 +117,9 @@ is prepared to accept all of the C99 IL extensions.
 #ifndef C99_IL_EXTENSIONS_SUPPORTED
 #define C99_IL_EXTENSIONS_SUPPORTED TRUE
 #endif /* ifndef C99_IL_EXTENSIONS_SUPPORTED */
+#if !C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING
+ #error -- C99 IL lowering cannot be done if C99 IL extensions not supported
+#endif /* !C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING */
 
 #if C99_IL_EXTENSIONS_SUPPORTED
 
