@@ -135,6 +135,8 @@ Flags to be set when using the KAI inliner.
 
 #define __ANSIC__ 1
 #define USING_ISO_C 1
+#define C_GEN_BE_GENERATES_ANSI_C 1
+#define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
 #define TARG_LITTLE_ENDIAN TRUE
 #define DEBUG 1
 #define CHECKING 1
