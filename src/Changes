@@ -4,9 +4,10 @@ Version 2.32
 
 We no longer issue an error when a base-class member function brought in
 to a derived class by a using-declaration has the same type as a member
-function declared directly in the derived class.  (We used to consider WP
-7.3.3 para 13 as applying only to virtual functions, but we now believe it
-is intended to apply to member functions in general.)  Here's an example:
+function declared directly in the derived class.  (It now appears that WP
+7.3.3 para 13 has a bug: as currently written it applies only to virtual
+functions, but it was intended to apply to member functions in general.)
+Here's an example:
 
   struct B {
     void f();
