@@ -1610,8 +1610,16 @@ Output the definition of the indicated struct or union type.
       } else {
         /* Put out a #pragma pack directive to indicate the special alignment
            requirements for this struct. */
-        set_unknown_output_position();
-        (void)fprintf(f_C_output, "#pragma pack(%d)\n", (int)pack_alignment);
+        unsigned long saved_indent = indent;
+        end_output_line_if_begun();
+        indent = 0;
+        disable_line_wrapping();
+        write_str("#pragma pack(");
+        write_unsigned_num(pack_alignment);
+        write_str(")");
+        enable_line_wrapping();
+        end_output_line();
+        indent = saved_indent;
       }  /* if */
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -1742,8 +1750,14 @@ Output the definition of the indicated struct or union type.
 #if USER_CONTROL_OF_STRUCT_PACKING
     if (pack_alignment > 0) {
       /* Restore the packing alignment to a default state. */
-      set_unknown_output_position();
-      (void)fprintf(f_C_output, "#pragma pack()\n");
+      unsigned long saved_indent = indent;
+      end_output_line_if_begun();
+      indent = 0;
+      disable_line_wrapping();
+      write_str("#pragma pack()");
+      enable_line_wrapping();
+      end_output_line();
+      indent = saved_indent;
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     end_unreferenced_bracket(&type->source_corresp);
