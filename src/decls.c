@@ -1079,12 +1079,12 @@ current scope.
 */
 {
   a_variable_ptr vp;
-  a_boolean      at_file_scope =
-                      (decl_scope_level == depth_innermost_namespace_scope);
+  a_boolean      at_global_scope;
   a_symbol_ptr   assoc_object_sym;
 
+  at_global_scope = (depth_scope_stack == depth_innermost_namespace_scope);
   /* Check the storage class.  At file scope, only static is allowed. */
-  if (at_file_scope) {
+  if (at_global_scope) {
     switch (storage_class) {
       case sc_static:
         /* Okay. */
@@ -1101,7 +1101,7 @@ current scope.
         storage_class = (a_storage_class)sc_static;
     }  /* switch */
   } else {
-    /* Not at file scope. */
+    /* Not at file scope or namespace scope. */
     switch (storage_class) {
       case sc_extern:
         /* Error, then default to automatic. */
@@ -1121,7 +1121,7 @@ current scope.
     }  /* switch */
   }  /* if */
   /* Allocate a variable to represent the anonymous union. */
-  vp = make_variable(anon_union_type, storage_class, at_file_scope);
+  vp = make_variable(anon_union_type, storage_class, at_global_scope);
   vp->is_anonymous_parent_object = TRUE;
   /* Promote the fields of the anonymous union to the current scope, and do
      some error checking on the anonymous union's members. */
@@ -1245,7 +1245,8 @@ will be involved in overloading.
 */
 {
   an_id_linkage_kind linkage;
-  a_boolean          is_object, is_function, file_scope, decls_at_same_scope;
+  a_boolean          is_object, is_function;
+  a_boolean          at_global_scope, decls_at_same_scope;
   a_boolean          is_list, is_friend_decl = FALSE;
   a_symbol_ptr       other_decl, sym, other_decl_saved;
   a_boolean          is_default_global_operator_new = FALSE;
@@ -1314,7 +1315,8 @@ will be involved in overloading.
         }  /* if */
       }  /* while */
     }  /* if */
-    file_scope = (*effective_decl_level == depth_innermost_namespace_scope);
+    at_global_scope =
+                (*effective_decl_level == depth_innermost_namespace_scope);
     if (is_error_locator(*locator)) {
       /* Symbol is compiler-generated as a result of an error, so there are
          no other declarations of the same symbol. */
@@ -1489,8 +1491,8 @@ determine_linkage:
       func_info->is_inline = templ_is_inline;
       local_storage_class = templ_storage_class;
     }  /* if */
-    if (!file_scope && 
-               local_storage_class != (a_storage_class)sc_extern) {
+    if (!at_global_scope &&
+        local_storage_class != (a_storage_class)sc_extern) {
       /* A non-file-scope object without extern storage class has no
          linkage.  In C++ a non-file-scope function may be declared --
          a friend function defined inline within a local class; it too
@@ -1499,7 +1501,7 @@ determine_linkage:
                       (is_friend_decl &&
                        local_storage_class == (a_storage_class)sc_static));
       linkage = idl_none;
-    } else if (file_scope &&
+    } else if (at_global_scope &&
                local_storage_class == (a_storage_class)sc_static) {
       /* An object or function at file scope with static storage class
          has internal linkage. */
@@ -1524,7 +1526,7 @@ determine_linkage:
         /* There is a declaration with file scope that is visible from
            here.  Set the flags to describe this identifier, and go
            retry the determination of the linkage. */
-        file_scope = TRUE;
+        at_global_scope = TRUE;
         switch (other_decl->kind) {
           case sk_routine:
             if (is_template_instance && func_info->is_definition) {
@@ -1559,7 +1561,7 @@ determine_linkage:
       }  /* if */
       /* No visible declaration found, so the linkage is external. */
       linkage = idl_external;
-    } else if (is_object && file_scope &&
+    } else if (is_object && at_global_scope &&
                local_storage_class == (a_storage_class)sc_unspecified) {
       /* An object at file scope with no storage class has external linkage. */
       linkage = idl_external;
@@ -1964,8 +1966,14 @@ created; the caller must set it.
   if (ext_sym == NULL) {
     /* There is no (compatible) external symbol entry for the identifier.
        Create one. */
-    ext_sym = enter_symbol(ext_sym_kind, &ext_locator, DEPTH_OF_FILE_SCOPE,
+    ext_sym = enter_symbol(ext_sym_kind, &ext_locator,
+                           depth_innermost_namespace_scope,
                            /*suppress_error=*/TRUE);
+    if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+      set_namespace_membership(ext_sym, (a_source_correspondence *)NULL,
+                               scope_stack[depth_innermost_namespace_scope].
+                                           il_scope->variant.assoc_namespace);
+    }  /* if */
     esdp = ext_sym->variant.extern_symbol_descr;
     esdp->type = type_ptr;
     if (ext_sym_kind == (a_symbol_kind)sk_extern_routine) {
