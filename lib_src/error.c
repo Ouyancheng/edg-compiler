@@ -58,6 +58,12 @@ Return the string associated with the specified error code.
     case ec_terminate_called_more_than_once:
       s = "terminate() called itself recursively";
       break;
+    case ec_nonpositive_vla_size:
+      s = "nonpositive VLA size";
+      break;
+    case ec_vla_allocation_failed:
+      s = "VLA allocation failed";
+      break;
     default:
       unexpected_condition();
       break;

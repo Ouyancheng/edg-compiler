@@ -28,6 +28,8 @@ typedef enum /* an_error_code */ {
   ec_bad_typeid,
   ec_array_not_from_vec_new,
   ec_terminate_called_more_than_once,
+  ec_nonpositive_vla_size,
+  ec_vla_allocation_failed,
   ec_last
 } an_error_code;
 

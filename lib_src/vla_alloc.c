@@ -99,6 +99,9 @@ to be changed if it is to deal safely with multiple threads.
   pool.capacity = 250;
   pool.allocations = (a_vla_allocation_ptr)malloc(
                                       pool.capacity*sizeof(a_vla_allocation));
+  if (pool.allocations == NULL) {
+    __abort_execution(ec_vla_allocation_failed);
+  }  /* if */
   pool.normal_block = NULL;
   pool.normal_offset = NORMAL_BLOCK_SIZE;
   pool.spare_block = NULL;
@@ -115,6 +118,9 @@ Double the number of allocation entries in the current pool.
   curr_vla_pool->allocations = (a_vla_allocation_ptr)
                     realloc(curr_vla_pool->allocations,
                             curr_vla_pool->capacity*sizeof(a_vla_allocation));
+  if (curr_vla_pool->allocations == NULL) {
+    __abort_execution(ec_vla_allocation_failed);
+  }  /* if */
 }  /* increase_curr_vla_pool_capacity */
 
 
@@ -187,6 +193,9 @@ point to that storage.
   ptrdiff_t             alloc_idx, padding;
   a_vla_allocation_ptr  allocation;
   
+  if (n_bytes <= 0) {
+    __abort_execution(ec_nonpositive_vla_size);
+  }  /* if */
   padding = MOST_STRICT_ALIGNMENT - n_bytes % MOST_STRICT_ALIGNMENT;
   if (padding != MOST_STRICT_ALIGNMENT) {
     /* We need to make sure all allocations can accommodate the type with the
@@ -225,6 +234,9 @@ point to that storage.
   if (n_bytes >= MIN_SPECIAL_BLOCK_SIZE) {
     /* Allocate a special block for this (relatively large) VLA. */
     a_byte  *special_block = (a_byte*)malloc(n_bytes);
+    if (special_block == NULL) {
+      __abort_execution(ec_vla_allocation_failed);
+    }  /* if */
     *(a_byte**)ptr = special_block;
     /* Special blocks are recognizable because they are pointed to by an
        allocation entry whose block pointer is NULL. */
@@ -240,6 +252,9 @@ point to that storage.
         curr_vla_pool->spare_block = NULL;
       } else {
         curr_vla_pool->normal_block = (a_byte*)malloc(NORMAL_BLOCK_SIZE);
+        if (curr_vla_pool->normal_block == NULL) {
+          __abort_execution(ec_vla_allocation_failed);
+        }  /* if */
       }  /* if */
       curr_vla_pool->normal_offset = 0;
     }  /* if */
@@ -297,6 +312,18 @@ ptr points to a pointer variable.  Deallocate the storage pointed to by *ptr.
   }  /* for */
   curr_vla_pool->last_allocation = alloc_idx - 1;
 }  /* __vla_dealloc */
+
+#if DEBUG
+
+long __vla_number_of_active_allocations(void)
+/*
+Return the number of active allocations (useful for complex tests).
+*/
+{
+  return curr_vla_pool->last_allocation+1;
+}  /* __vla_number_of_active_allocations */
+
+#endif /* DEBUG */
 
 
 /******************************************************************************
