@@ -1,5 +1,18 @@
 Version 3.4
 
+1/19/04 Demangling of vtable name with class beginning with "S"
+
+Some virtual function table names were not demangled correctly in
+the Cfront-like ABI.  Specifically, in a case like
+
+  __vtbl__43MailPieceDirectionController__SharedTop2000__7Top2000
+
+where a class name is used in a multi-level vtable name, and
+the class name begins with a capital "S", the name mangler
+failed to demangle the name.  ("__S" is the template
+specialization indication, and fooled the demangler).  Fixed.
+
+
 8/16/03 Demangling of GNU min/max operators
 
 The GNU min/max operators "<?" and ">?" were added in version 3.2, but

@@ -1350,16 +1350,23 @@ template parameters.
       if (ch == '_' && p != ptr &&
           get_char(p+1, dctl) == '_' &&
           get_char(p+2, dctl) != '_' &&
-          /* When stop_on_underscores is FALSE, stop only on "__tm", "__ps",
-             "__pt", or "__S".  Double underscores can appear in the middle
-             of some names, e.g., member names used as template arguments. */
+          /* When stop_on_underscores is FALSE, stop only on "__tm__",
+             "__ps__", "__pt__", or "__S".  Double underscores can appear
+             in the middle of some names, e.g., member names used as
+             template arguments. */
           (stop_on_underscores ||
            (get_char(p+2, dctl) == 't' &&
-            get_char(p+3, dctl) == 'm') ||
+            get_char(p+3, dctl) == 'm' &&
+            get_char(p+4, dctl) == '_' &&
+            get_char(p+5, dctl) == '_') ||
            (get_char(p+2, dctl) == 'p' &&
-            get_char(p+3, dctl) == 's') ||
+            get_char(p+3, dctl) == 's' &&
+            get_char(p+4, dctl) == '_' &&
+            get_char(p+5, dctl) == '_') ||
            (get_char(p+2, dctl) == 'p' &&
-            get_char(p+3, dctl) == 't') ||
+            get_char(p+3, dctl) == 't' &&
+            get_char(p+4, dctl) == '_' &&
+            get_char(p+5, dctl) == '_') ||
            get_char(p+2, dctl) == 'S')) {
         break;
       }  /* if */
@@ -1393,7 +1400,11 @@ template parameters.
   /* If there's a specialization indication ("__S"), ignore it. */
   if (get_char(end_ptr,   dctl) == '_' &&
       get_char(end_ptr+1, dctl) == '_' &&
-      get_char(end_ptr+2, dctl) == 'S') {
+      get_char(end_ptr+2, dctl) == 'S' &&
+      (!stop_on_underscores ||
+       get_char(end_ptr+3, dctl) == '\0' ||
+       (get_char(end_ptr+3, dctl) == '_' &&
+        get_char(end_ptr+4, dctl) == '_'))) {
     note_specialization(end_ptr, temp_par_info);
     end_ptr += 3;
   }  /* if */
@@ -1419,20 +1430,25 @@ template parameters.
     /* If there's a(nother) specialization indication ("__S"), ignore it. */
     if (get_char(end_ptr,   dctl) == '_' &&
         get_char(end_ptr+1, dctl) == '_' &&
-        get_char(end_ptr+2, dctl) == 'S') {
+        get_char(end_ptr+2, dctl) == 'S' &&
+        (!stop_on_underscores ||
+         get_char(end_ptr+3, dctl) == '\0' ||
+         (get_char(end_ptr+3, dctl) == '_' &&
+          get_char(end_ptr+4, dctl) == '_'))) {
       note_specialization(end_ptr, temp_par_info);
       end_ptr += 3;
     }  /* if */
   }  /* if */
   /* Check that we took exactly the characters we should have. */
-  if (((nchars != 0) ? (end_ptr-ptr == nchars) : (*end_ptr == '\0')) ||
-      (stop_on_underscores &&
-       get_char(end_ptr,   dctl) == '_' &&
-       get_char(end_ptr+1, dctl) == '_')) {
-    /* Okay. */
-  } else if (nchars_left != NULL) {
-    /* Return the count of characters not taken. */
+  if (nchars_left != NULL) {
+    /* Return the count of characters not taken.  We're not required to
+       end at the right place. */
     *nchars_left = nchars-(end_ptr-ptr);
+  } else if (((nchars != 0) ? (end_ptr-ptr == nchars) : (*end_ptr == '\0')) ||
+             (stop_on_underscores &&
+              get_char(end_ptr,   dctl) == '_' &&
+              get_char(end_ptr+1, dctl) == '_')) {
+    /* Okay. */
   } else {
     bad_mangled_name(dctl);
   }  /* if */
@@ -1506,28 +1522,31 @@ Demangle a type name that is preceded by a length, e.g., "3abc" for the type
 name "abc".  The name can include template parameters or a function-local
 indication but is not a nested type.  If nchars is non-zero on input, the
 length has already been scanned and nchars gives its value.  In that
-case, not all nchars characters of input need be taken, and *nchars_left
-is set to the number of characters not taken.  Return a pointer to the
-character position following what was demangled.  When temp_par_info != NULL,
-it points to a block that controls output of extra information on template
-parameters.  When base_name_only is TRUE, suppress any function-local
-information.
+case, not all nchars characters of input need be taken, scanning will
+stop on a "__", and *nchars_left is set to the number of characters not
+taken.  Return a pointer to the character position following what was
+demangled.  When temp_par_info != NULL, it points to a block that controls
+output of extra information on template parameters.  When base_name_only
+is TRUE, suppress any function-local information.
 */
 {
   char          *p = ptr, *orig_end, *prev_end;
   char          *p2;
   unsigned long nchars2;
   a_boolean     has_function_local_info = FALSE;
+  a_boolean     stop_on_underscores;
 
   if (nchars == 0) {
     /* Get the length. */
     p = get_length(p, &nchars, &prev_end, dctl);
     nchars_left = NULL;
+    stop_on_underscores = FALSE;
   } else {
     /* Length was gotten by the caller. */
     if (nchars_left != NULL) *nchars_left = 0;
     prev_end = dctl->end_of_name;
     dctl->end_of_name = orig_end = ptr+nchars;
+    stop_on_underscores = TRUE;
   }  /* if */
   if (nchars >= 8) {
     /* Look for a function-local indication, e.g., "__Ln__f" for block
@@ -1551,7 +1570,7 @@ information.
     }  /* for */
   }  /* if */
   /* Demangle the name. */
-  p = demangle_name(p, nchars, /*stop_on_underscores=*/FALSE,
+  p = demangle_name(p, nchars, stop_on_underscores,
                     nchars_left, (char *)NULL, temp_par_info, dctl);
   if (has_function_local_info) {
     p = p2;
