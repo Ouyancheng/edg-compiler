@@ -1615,6 +1615,7 @@ ambiguous symbol and return a pointer.  If no match is found, return NULL.
      lookup is ambiguous. */
   for (slep = conversion_templates; slep != NULL; slep = slep->next) {
     a_symbol_ptr			sym;
+    a_symbol_ptr			fund_sym;
     a_template_symbol_supplement_ptr	tssp;
     a_template_arg_ptr			templ_arg_list = NULL;
     a_routine_ptr			rout_ptr;
@@ -1622,9 +1623,9 @@ ambiguous symbol and return a pointer.  If no match is found, return NULL.
     a_type_ptr				return_type;
     a_template_param_ptr		param_list;
     sym = slep->symbol;
-    sym = fundamental_symbol_of(sym);
-    tssp = template_supplement_for_symbol(sym);
-    rout_ptr = sym->variant.template_info->variant.function.routine;
+    fund_sym = fundamental_symbol_of(sym);
+    tssp = template_supplement_for_symbol(fund_sym);
+    rout_ptr = fund_sym->variant.template_info->variant.function.routine;
     rout_type = skip_typerefs(rout_ptr->type);
     return_type = return_type_of(rout_type);
     param_list = tssp->variant.function.decl_cache.decl_info->parameters;
@@ -1641,7 +1642,7 @@ ambiguous symbol and return a pointer.  If no match is found, return NULL.
                               (a_base_class_ptr*)NULL)) {
       /* Do the wrapup processing to make sure that all of the parameters
          have been deduced. */
-      if (verify_template_nontype_args(templ_arg_list, sym,
+      if (verify_template_nontype_args(templ_arg_list, fund_sym,
                                        (a_template_param_ptr)NULL)) {
         /* We have a match.  Add the matching template to a list of matching
            candidates.  Any poorer matches will be removed by this process.
@@ -1669,7 +1670,7 @@ ambiguous symbol and return a pointer.  If no match is found, return NULL.
        Note that the template argument list is freed in the called function. */
     result_sym = find_template_function(matching_sym, &matching_arg_list,
                                         &locator->source_position);
-    if (ambiguous) {
+    if (ambiguous || matching_sym->ambiguous) {
       /* Create a copy of the result_sym and mark that copy as
          ambiguous. */
       a_symbol_ptr	new_sym;

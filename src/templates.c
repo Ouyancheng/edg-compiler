@@ -1087,18 +1087,25 @@ list associated with new_sym.
   a_partial_order_candidate_ptr	next_pscp;
   a_partial_order_candidate_ptr	pscp;
   a_boolean			do_not_add = FALSE;
+  a_symbol_ptr			fund_new_sym;
+  a_symbol_ptr			fund_curr_sym;
 
+  fund_new_sym = fundamental_symbol_of(new_sym);
   for (pscp = *psc_list; pscp != NULL;  pscp = next_pscp) {
     a_boolean	new_is_more_specialized;
     a_boolean	curr_is_more_specialized;
     next_pscp = pscp->next;
-    if (new_sym->kind == (a_symbol_kind)sk_class_template) {
-      new_is_more_specialized = is_more_specialized(new_sym, pscp->symbol);
-      curr_is_more_specialized = is_more_specialized(pscp->symbol, new_sym);
+    fund_curr_sym = fundamental_symbol_of(pscp->symbol);
+    if (fund_new_sym->kind == (a_symbol_kind)sk_class_template) {
+      new_is_more_specialized = is_more_specialized(fund_new_sym,
+                                                    fund_curr_sym);
+      curr_is_more_specialized = is_more_specialized(fund_curr_sym,
+                                                     fund_new_sym);
     } else {
       int	result;
-      check_assertion(new_sym->kind == (a_symbol_kind)sk_function_template);
-      result = compare_function_templates(new_sym, pscp->symbol);
+      check_assertion(fund_new_sym->kind ==
+                                         (a_symbol_kind)sk_function_template);
+      result = compare_function_templates(fund_new_sym, fund_curr_sym);
       new_is_more_specialized = result == 1;
       curr_is_more_specialized = result == -1;
     }  /* if */
@@ -4678,6 +4685,7 @@ structure.
   a_template_arg_ptr		    tap = *new_list;
 
   db_enter(3, "find_template_function");
+  templ_sym = fundamental_symbol_of(templ_sym);
   /* Make a pass over the entries representing instantiations of the function
      template. */
   if (templ_sym->kind == (a_symbol_kind)sk_member_function) {
