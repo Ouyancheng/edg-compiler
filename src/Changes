@@ -1,5 +1,11 @@
 Version 2.34
 
+10/10/96 Improved error recovery for "unrecognized" new[] and delete[]
+
+When array_new_and_delete_enabled is FALSE and new[] or delete[] is
+encountered, a clearer error message is issued and parsing proceeds as if
+array new and delete actually were supported.
+
 10/10/96 Error on more than one union member in ctor-initializer list
 
 An error is now issued if a ctor-initializer list specifies more than one

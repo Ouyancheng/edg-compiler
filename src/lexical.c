@@ -6655,12 +6655,16 @@ This routine is called only in C++ mode.
         /* Error case. */
         opname = (an_opname_kind)onk_none;
       }  /* if */
-    } else if (array_new_and_delete_enabled &&
-               (opname == (an_opname_kind)onk_new ||
-                opname == (an_opname_kind)onk_delete)) {
+    } else if (opname == (an_opname_kind)onk_new ||
+               opname == (an_opname_kind)onk_delete) {
       /* See if this is really new[] or delete[].  If so, adjust the opname. */
       if (next_two_tokens(tok_lbracket, &second_token) &&
           second_token == tok_rbracket) {
+        if (!array_new_and_delete_enabled) {
+          /* Issue an error if support for array new/delete is not enabled,
+             but continue parsing as though it were. */
+          error(ec_no_array_new_and_delete_support);
+        }  /* if */
         /* Advance past the two tokens. */
         (void)get_token();
         (void)get_token();
