@@ -2230,7 +2230,7 @@ for handling virtual bases and functions.
          of case is handled differently:
            struct S2 { char c; T t[]; };  // sizeof (S2) == 1
       */
-      class_type->size = sizeof(int);
+      class_type->size = targ_sizeof_int;
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     class_type->size = 1;

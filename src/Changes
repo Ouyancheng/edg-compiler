@@ -1,5 +1,12 @@
 Version 2.33
 
+7/3/96  Microsoft compatibility: size of struct containing just empty array
+
+In Microsoft C mode, the size of a struct containing only an empty array
+is set to sizeof(int); that's what the Microsoft compiler seems to do.
+However, we accidentally used the size of the host int, not the target int.
+Now fixed.
+
 7/2/96  Easier configuration for using host long long for integers
 
 The configuration process for using the host compiler long long as the
