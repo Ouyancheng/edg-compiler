@@ -1,5 +1,12 @@
 Version 2.42
 
+4/14/99  Linkage specification with "inline"
+
+An inline specifier is now permitted on a function declared with a linkage
+specification.
+
+  extern "C" inline void f() { ... }      // error is no longer issued
+
 4/14/99  Spurious errors on asm functions
 
 Version 2.41 introduced a bug whereby the storage class on asm functions
