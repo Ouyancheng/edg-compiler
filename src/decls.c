@@ -4937,6 +4937,35 @@ decl_pos_info supplement of the secondary-decl entry.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+static void record_pragma_state_in_routine(a_routine_ptr  routine_ptr)
+/*
+Record any pragma state that may affect the meaning of the IL in the definition
+of the given routine.
+*/
+{
+  if (c99_mode) {
+    /* In C99 mode, save the current settings of the predefined pragmas. */
+    routine_ptr->fp_contract = curr_fp_contract_state;
+    routine_ptr->fenv_access = curr_fenv_access_state;
+    routine_ptr->cx_limited_range = curr_cx_limited_range_state;
+  }  /* if */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  if (fixed_point_allowed) {
+    /* Save the state of the fixed-point pragmas. */
+    routine_ptr->fx_full_precision = curr_fx_full_precision_state;
+    routine_ptr->fx_fract_overflow = curr_fx_fract_overflow_state;
+    routine_ptr->fx_accum_overflow = curr_fx_accum_overflow_state;
+  }  /* if */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+  if (upc_mode) {
+    /* Record the current UPC access method for this routine.  This is the
+       method last specified by a UPC pragma in file scope. */
+    routine_ptr->upc_access_method = curr_upc_access_method;
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
+}  /* record_active_pragmas */
+
 #if !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED
 /* ARGSUSED */ /* decl_modifiers and/or attributes are not used in
                   some configurations. */
@@ -6301,19 +6330,7 @@ skip_overloading:;
          specifications on definitions are ignored.) */
       pos_error(ec_no_exception_support, &func_info->throw_position);
     }  /* if */
-    if (c99_mode) {
-      /* In C99 mode, save the current settings of the predefined pragmas. */
-      routine_ptr->fp_contract = curr_fp_contract_state;
-      routine_ptr->fenv_access = curr_fenv_access_state;
-      routine_ptr->cx_limited_range = curr_cx_limited_range_state;
-    }  /* if */
-#if UPC_EXTENSIONS_ALLOWED
-    if (upc_mode) {
-      /* Record the current UPC access method for this routine.  This is the
-         method last specified by a UPC pragma in file scope. */
-      routine_ptr->upc_access_method = curr_upc_access_method;
-    }  /* if */
-#endif /* UPC_EXTENSIONS_ALLOWED */
+    record_pragma_state_in_routine(routine_ptr);
   }  /* if */
   /* Do processing required for the rest of the pragmas, if any, that are
      bound to the current declaration.  Note that this has to be *after* the
@@ -12390,7 +12407,7 @@ In C++, however, the declaration list is optional (3.4):
     while (curr_token != tok_end_of_source) {
       /* A C99 predefined pragma in the file scope must appear between
          top-level declarations. */
-      if (c99_mode) check_for_stdc_pragmas();
+      if (c99_mode || fixed_point_allowed) check_for_stdc_pragmas();
       declaration(/*function_definition_allowed=*/TRUE,
                   /*is_old_style_param_decl=*/FALSE,
                   /*is_top_level_declaration=*/TRUE,

@@ -3149,14 +3149,24 @@ enum a_stdc_pragma_kind_tag {
   stdc_pk_none,
   stdc_pk_fp_contract,
   stdc_pk_fenv_access,
-  stdc_pk_cx_limited_range
+  stdc_pk_cx_limited_range,
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  stdc_pk_fx_full_precision,
+  stdc_pk_fx_fract_overflow,
+  stdc_pk_fx_accum_overflow,
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+  stdc_pk_last
 };
 
 /* Storage size to be used to hold a STDC pragma kind. */
 typedef a_byte a_stdc_pragma_kind;
 
 /* Number of bits required to hold a STDC pragma value. */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+#define NUM_BITS_FOR_STDC_PRAGMA_VALUE 3
+#else /* !FIXED_POINT_EXTENSIONS_ALLOWED */
 #define NUM_BITS_FOR_STDC_PRAGMA_VALUE 2
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
 /*
 For a "#pragma STDC ...", indicates the value specified by the pragma.
@@ -3165,6 +3175,9 @@ enum a_stdc_pragma_value_tag {
   stdc_pv_none,
   stdc_pv_off,
   stdc_pv_on,
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  stdc_pv_sat,
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   stdc_pv_default
 };
 
@@ -7139,15 +7152,26 @@ typedef struct a_routine {
   a_bit_field	on_inline_function_list:1;
 			/* TRUE if this routine has been added to the inline
 			   function list. */
-  a_bit_field	fp_contract:2;
+  a_bit_field	fp_contract:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* In C99 mode, the setting of the fp_contract mode
 			   at the point that this routine was defined. */
-  a_bit_field	fenv_access:2;
+  a_bit_field	fenv_access:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* In C99 mode, the setting of the fenv_access mode
 			   at the point that this routine was defined. */
-  a_bit_field	cx_limited_range:2;
+  a_bit_field	cx_limited_range:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* In C99 mode, the setting of the cx_limited_range
 			   mode at the point that this routine was defined. */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  a_bit_field	fx_full_precision:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+			/* The setting of the fx_full_precision state at the
+			   the point that this routine was defined. */
+  a_bit_field	fx_fract_overflow:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+			/* The setting of the fx_fract_overflow state at the
+			   the point that this routine was defined. */
+  a_bit_field	fx_accum_overflow:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+			/* The setting of the fx_accum_overflow state at the
+			   the point that this routine was defined. */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   a_bit_field	upc_access_method:2;
 			/* In UPC mode, the UPC access method set at the

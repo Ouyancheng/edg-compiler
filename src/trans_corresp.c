@@ -2241,7 +2241,13 @@ is in fact valid.
          (routine->defined && corresp_routine->defined &&
           (routine->fp_contract != corresp_routine->fp_contract ||
            routine->fenv_access != corresp_routine->fenv_access ||
-           routine->cx_limited_range != corresp_routine->cx_limited_range)) ||
+           routine->cx_limited_range != corresp_routine->cx_limited_range
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+           || routine->fx_full_precision != corresp_routine->fx_full_precision
+           || routine->fx_fract_overflow != corresp_routine->fx_fract_overflow
+           || routine->fx_accum_overflow != corresp_routine->fx_accum_overflow
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+                                                                         )) ||
          scp->access != corresp_scp->access ||
          (scp->name_linkage != corresp_scp->name_linkage &&
           !routine_name_linkage_can_differ(routine, corresp_routine)))) {

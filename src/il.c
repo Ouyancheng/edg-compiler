@@ -15782,6 +15782,11 @@ in il_init.)
       pch_saved_var_array_elem(curr_fp_contract_state),
       pch_saved_var_array_elem(curr_fenv_access_state),
       pch_saved_var_array_elem(curr_cx_limited_range_state),
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(curr_fx_full_precision_state),
+      pch_saved_var_array_elem(curr_fx_fract_overflow_state),
+      pch_saved_var_array_elem(curr_fx_accum_overflow_state),
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(curr_seq_number_lookup_entry),
       /* Don't save seq_number_lookup_table because it points to general
          memory. */
@@ -15839,6 +15844,11 @@ in il_init.)
   register_trans_unit_variable(curr_fp_contract_state);
   register_trans_unit_variable(curr_fenv_access_state);
   register_trans_unit_variable(curr_cx_limited_range_state);
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  register_trans_unit_variable(curr_fx_full_precision_state),
+  register_trans_unit_variable(curr_fx_fract_overflow_state),
+  register_trans_unit_variable(curr_fx_accum_overflow_state),
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   register_trans_unit_variable(curr_object_lifetime);
   register_trans_unit_variable(okay_to_eliminate_unneeded_il_entries);
   /* Not conditional because it's also used by trans_copy.c: */
@@ -15871,6 +15881,11 @@ need initialization for every (primary and secondary) translation unit.
   curr_fp_contract_state = (a_stdc_pragma_value)stdc_pv_default;
   curr_fenv_access_state = (a_stdc_pragma_value)stdc_pv_default;
   curr_cx_limited_range_state = (a_stdc_pragma_value)stdc_pv_default;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  curr_fx_full_precision_state = (a_stdc_pragma_value)stdc_pv_default;
+  curr_fx_fract_overflow_state = (a_stdc_pragma_value)stdc_pv_default;
+  curr_fx_accum_overflow_state = (a_stdc_pragma_value)stdc_pv_default;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   curr_upc_access_method = (a_upc_access_method)upc_access_unspecified;
 #endif /* UPC_EXTENSIONS_ALLOWED */

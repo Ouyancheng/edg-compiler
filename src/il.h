@@ -177,6 +177,28 @@ EXTERN a_stdc_pragma_value
 			   of the cx_limited_range state, which is set using
 			   the STDC CX_LIMITED_RANGE pragma. */
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+
+EXTERN a_stdc_pragma_value
+		curr_fx_full_precision_state;
+			/* Used to reflect the current setting of the
+			   fx_full_precision state, which is set using the
+			   STDC FX_FULL_PRECISION pragma. */
+
+EXTERN a_stdc_pragma_value
+		curr_fx_fract_overflow_state;
+			/* Used to reflect the current setting of the
+			   fx_fract_overflow state, which is set using the
+			   STDC FX_FRACT_OVERFLOW pragma. */
+
+EXTERN a_stdc_pragma_value
+		curr_fx_accum_overflow_state;
+			/* Used to reflect the current setting of the
+			   fx_accum_overflow state, which is set using the
+			   STDC FX_ACCUM_OVERFLOW pragma. */
+
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+
 #if UPC_EXTENSIONS_ALLOWED
 
 EXTERN a_upc_access_method

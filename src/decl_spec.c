@@ -4652,7 +4652,6 @@ modifier _Sat was specified.
             bad_combination = TRUE;
         }  /* switch */
         if (!bad_combination) {
-          /* FIXME: update saturating_fp for current default overflow mode. */
           *type_ptr = fixed_point_type(precision, (sign == sign_unsigned),
                                        (basic_type == bt_fract),
                                        saturating_fp);

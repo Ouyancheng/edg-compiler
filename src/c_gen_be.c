@@ -340,6 +340,26 @@ static a_stdc_pragma_value
 			   emitted in file scope (stdc_pv_default if none was
 			   emitted so far). */
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+static a_stdc_pragma_value
+		curr_default_fx_full_precision;
+			/* The value of the last STDC FX_FULL_PRECISION pragma
+			   emitted in file scope (stdc_pv_default if none was
+			   emitted so far). */
+
+static a_stdc_pragma_value
+		curr_default_fx_fract_overflow;
+			/* The value of the last STDC FX_FRACT_OVERFLOW pragma
+			   emitted in file scope (stdc_pv_default if none was
+			   emitted so far). */
+
+static a_stdc_pragma_value
+		curr_default_fx_accum_overflow;
+			/* The value of the last STDC FX_ACCUM_OVERFLOW pragma
+			   emitted in file scope (stdc_pv_default if none was
+			   emitted so far). */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+
 #if UPC_EXTENSIONS_ALLOWED
 static a_upc_access_method
 		curr_default_upc_access_method;
@@ -2216,12 +2236,35 @@ or "DEFAULT").
         curr_default_cx_limited_range = value;
       }  /* if */
       break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case stdc_pk_fx_full_precision:
+      write_str("FX_FULL_PRECISION ");
+      if (innermost_function_scope == NULL) {
+        curr_default_fx_full_precision = value;
+      }  /* if */
+      break;
+    case stdc_pk_fx_fract_overflow:
+      write_str("FX_FRACT_OVERFLOW ");
+      if (innermost_function_scope == NULL) {
+        curr_default_fx_fract_overflow = value;
+      }  /* if */
+      break;
+    case stdc_pk_fx_accum_overflow:
+      write_str("FX_ACCUM_OVERFLOW ");
+      if (innermost_function_scope == NULL) {
+        curr_default_fx_accum_overflow = value;
+      }  /* if */
+      break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str("dump_stdc_pragma: bad kind");
       break;
   }  /* switch */
   switch (value) {
     case stdc_pv_on: write_str("ON"); break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case stdc_pv_sat: write_str("SAT"); break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case stdc_pv_off: write_str("OFF"); break;
     case stdc_pv_default: write_str("DEFAULT"); break;
     default: unexpected_condition_str("dump_stdc_pragma: bad value"); break;
@@ -8237,6 +8280,24 @@ if this routine has a body (dump nothing if it has no body).
           dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_cx_limited_range,
                            rout->cx_limited_range);
         }  /* if */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        /* Generate any needed fixed-point pragma. */
+        if (rout->fx_full_precision != (a_stdc_pragma_value)stdc_pv_none &&
+            rout->fx_full_precision != curr_default_fx_full_precision) {
+          dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_fx_full_precision,
+                           rout->fx_full_precision);
+        }  /* if */
+        if (rout->fx_fract_overflow != (a_stdc_pragma_value)stdc_pv_none &&
+            rout->fx_fract_overflow != curr_default_fx_fract_overflow) {
+          dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_fx_fract_overflow,
+                           rout->fx_fract_overflow);
+        }  /* if */
+        if (rout->fx_accum_overflow != (a_stdc_pragma_value)stdc_pv_none &&
+            rout->fx_accum_overflow != curr_default_fx_accum_overflow) {
+          dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_fx_accum_overflow,
+                           rout->fx_accum_overflow);
+        }  /* if */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
         if (rout->upc_access_method !=
                                 (a_upc_access_method)upc_access_unspecified &&

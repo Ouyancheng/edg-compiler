@@ -8041,10 +8041,18 @@ Generate one of the predefined C99 pragmas.
     case stdc_pk_fp_contract: write_str("FP_CONTRACT "); break;
     case stdc_pk_fenv_access: write_str("FENV_ACCESS "); break;
     case stdc_pk_cx_limited_range: write_str("CX_LIMITED_RANGE "); break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case stdc_pk_fx_full_precision: write_str("FX_FULL_PRECISION "); break;
+    case stdc_pk_fx_fract_overflow: write_str("FX_FRACT_OVERFLOW "); break;
+    case stdc_pk_fx_accum_overflow: write_str("FX_ACCUM_OVERFLOW "); break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     default: unexpected_condition_str("gen_stdc_pragma: bad kind"); break;
   }  /* switch */
   switch (pp->variant.stdc.value) {
     case stdc_pv_on: write_str("ON"); break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case stdc_pv_sat: write_str("SAT"); break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case stdc_pv_off: write_str("OFF"); break;
     case stdc_pv_default: write_str("DEFAULT"); break;
     default: unexpected_condition_str("gen_stdc_pragma: bad value"); break;

@@ -2107,6 +2107,11 @@ to it.  The entry is allocated in the file scope memory region.
   rp->fp_contract                 = (a_stdc_pragma_value)stdc_pv_none;
   rp->fenv_access                 = (a_stdc_pragma_value)stdc_pv_none;
   rp->cx_limited_range            = (a_stdc_pragma_value)stdc_pv_none;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  rp->fx_full_precision           = (a_stdc_pragma_value)stdc_pv_none;
+  rp->fx_fract_overflow           = (a_stdc_pragma_value)stdc_pv_none;
+  rp->fx_accum_overflow           = (a_stdc_pragma_value)stdc_pv_none;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   rp->upc_access_method = (a_upc_access_method)upc_access_unspecified;
 #endif /* UPC_EXTENSIONS_ALLOWED */

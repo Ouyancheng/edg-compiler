@@ -1768,6 +1768,9 @@ Display a STDC pragma value along with a name.
     case stdc_pv_none:    s = "none"; break;
     case stdc_pv_off:     s = "off"; break;
     case stdc_pv_on:      s = "on"; break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case stdc_pv_sat:     s = "sat"; break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case stdc_pv_default: s = "default"; break;
     default: unexpected_condition(); break;
   }  /* switch */
@@ -2749,6 +2752,17 @@ Display the indicated routine.
       disp_stdc_pragma_value("cx_limited_range", ptr->cx_limited_range);
     }  /* if */
   }  /* if */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  if (ptr->fx_full_precision != (a_stdc_pragma_value)stdc_pv_default) {
+    disp_stdc_pragma_value("fx_full_precision", ptr->fx_full_precision);
+  }  /* if */
+  if (ptr->fx_fract_overflow != (a_stdc_pragma_value)stdc_pv_default) {
+    disp_stdc_pragma_value("fx_fract_overflow", ptr->fx_fract_overflow);
+  }  /* if */
+  if (ptr->fx_accum_overflow != (a_stdc_pragma_value)stdc_pv_default) {
+    disp_stdc_pragma_value("fx_accum_overflow", ptr->fx_accum_overflow);
+  }  /* if */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (ptr->contains_statement_expression) {
     disp_boolean("contains_statement_expression", TRUE);

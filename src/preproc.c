@@ -1754,6 +1754,15 @@ Process a predefined C99 STDC pragma.  These pragmas have the following form:
   #pragma STDC FENV_ACCESS [ ON | OFF | DEFAULT ]
   #pragma STDC CX_LIMITED_RANGE [ ON | OFF | DEFAULT ]
 
+In addition, this routine also handles pragmas controlling the behavior of
+certain fixed-point operations as defined by ISO TR 18037.  Since support
+for fixed-point types can be enabled in some non-C99 modes, this routine
+may be called in non-C99 mode.  The fixed-point pragmas have the form:
+
+  #pragma STDC FX_FULL_PRECISION [ ON | OFF | DEFAULT ]
+  #pragma STDC FX_FRACT_OVERFLOW [ SAT | DEFAULT ]
+  #pragma STDC FX_ACCUM_OVERFLOW [ SAT | DEFAULT ]
+
 This routine is called to process the pragmas when they are known to appear
 in a valid location.  It is called from compound_statement for block scope
 pragmas, and by translation_unit for pragmas that appear in the file scope.
@@ -1761,23 +1770,48 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
 {
   a_stdc_pragma_kind	kind = (a_stdc_pragma_kind)stdc_pk_none;
   a_stdc_pragma_value	value = (a_stdc_pragma_value)stdc_pv_none;
-  a_boolean		err = FALSE;
+  a_boolean		err = FALSE, accept_on_off = FALSE;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  a_boolean		accept_sat = FALSE;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   char			*str;
   a_stdc_pragma_value	*state_var_ptr;
 
   begin_rescan_of_pragma_tokens(ppp);
   if (curr_token == tok_identifier) {
     str = locator_for_curr_id.symbol_header->identifier;
-    if (strcmp(str, "FP_CONTRACT") == 0) {
-      kind = (a_stdc_pragma_kind)stdc_pk_fp_contract;
-      state_var_ptr = &curr_fp_contract_state;
-    } else if (strcmp(str, "FENV_ACCESS") == 0) {
-      kind = (a_stdc_pragma_kind)stdc_pk_fenv_access;
-      state_var_ptr = &curr_fenv_access_state;
-    } else if (strcmp(str, "CX_LIMITED_RANGE") == 0) {
-      kind = (a_stdc_pragma_kind)stdc_pk_cx_limited_range;
-      state_var_ptr = &curr_cx_limited_range_state;
+    if (c99_mode) {
+      if (strcmp(str, "FP_CONTRACT") == 0) {
+        kind = (a_stdc_pragma_kind)stdc_pk_fp_contract;
+        state_var_ptr = &curr_fp_contract_state;
+        accept_on_off = TRUE;
+      } else if (strcmp(str, "FENV_ACCESS") == 0) {
+        kind = (a_stdc_pragma_kind)stdc_pk_fenv_access;
+        state_var_ptr = &curr_fenv_access_state;
+        accept_on_off = TRUE;
+      } else if (strcmp(str, "CX_LIMITED_RANGE") == 0) {
+        kind = (a_stdc_pragma_kind)stdc_pk_cx_limited_range;
+        state_var_ptr = &curr_cx_limited_range_state;
+        accept_on_off = TRUE;
+      }  /* if */
     }  /* if */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    if (fixed_point_allowed) {
+      if (strcmp(str, "FX_FULL_PRECISION") == 0) {
+        kind = (a_stdc_pragma_kind)stdc_pk_fx_full_precision;
+        state_var_ptr = &curr_fx_full_precision_state;
+        accept_on_off = TRUE;
+      } else if (strcmp(str, "FX_FRACT_OVERFLOW") == 0) {
+        kind = (a_stdc_pragma_kind)stdc_pk_fx_fract_overflow;
+        state_var_ptr = &curr_fx_fract_overflow_state;
+        accept_sat = TRUE;
+      } else if (strcmp(str, "FX_ACCUM_OVERFLOW") == 0) {
+        kind = (a_stdc_pragma_kind)stdc_pk_fx_accum_overflow;
+        state_var_ptr = &curr_fx_accum_overflow_state;
+        accept_sat = TRUE;
+      }  /* if */
+    }  /* if */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (kind == (a_stdc_pragma_kind)(a_stdc_pragma_kind)stdc_pk_none) {
     diagnostic(strict_ansi_error_severity, ec_unrecognized_stdc_pragma);
@@ -1788,10 +1822,14 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
     (void)get_token();
     if (curr_token == tok_identifier) {
       str = locator_for_curr_id.symbol_header->identifier;
-      if (strcmp(str, "ON") == 0) {
+      if (accept_on_off && strcmp(str, "ON") == 0) {
         value = (a_stdc_pragma_value)stdc_pv_on;
-      } else if (strcmp(str, "OFF") == 0) {
+      } else if (accept_on_off && strcmp(str, "OFF") == 0) {
         value = (a_stdc_pragma_value)stdc_pv_off;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      } else if (accept_sat && strcmp(str, "SAT") == 0) {
+        value = (a_stdc_pragma_value)stdc_pv_sat;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
       } else if (strcmp(str, "DEFAULT") == 0) {
         value = (a_stdc_pragma_value)stdc_pv_default;
       }  /* if */
@@ -1835,8 +1873,8 @@ check_for_stdc_pragmas).  Pragmas that appear elsewhere result in diagnostics.
 
 void check_for_stdc_pragmas(void)
 /*
-If there are any current token pragmas that are C99 predefined
-pragmas, process them now.
+If there are any current token pragmas that are C99 predefined pragmas
+(or predefined fixed-point pragmas), process them now.
 */
 {
   a_pending_pragma_ptr	ppp;
