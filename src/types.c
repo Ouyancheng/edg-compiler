@@ -4995,10 +4995,10 @@ This is a service function designed to be called from traverse_type_tree
 (whence the ttt_ prefix).  It returns TRUE if type_ptr is an error type
 */
 {
-  a_boolean  is_error = FALSE;
+  a_boolean  result = FALSE;
 
-  *force_end_of_traversal = is_error = is_error_type(type_ptr);
-  return is_error;
+  *force_end_of_traversal = result = is_error(type_ptr);
+  return result;
 }  /* ttt_is_error_type */
 
 
