@@ -7973,7 +7973,7 @@ and for the instantiation of template functions.
        visible for processing the function definition. */
     push_class_reactivation_scope(class_type);
   }  /* if */
-  is_instantiation = rout_ptr->is_instantiation;
+  is_instantiation = (flags & SFB_IS_INSTANTIATION) != 0;
   scope_number = (func_info == NULL || is_instantiation) ?
                         NO_SCOPE_NUMBER : func_info->scope_number;
   /* Push the name scope for the routine body. */
