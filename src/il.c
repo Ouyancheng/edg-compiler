@@ -8646,7 +8646,7 @@ static void eliminate_unneeded_class_definitions(a_type_ptr  class_type)
   a_class_type_supplement_ptr  ctsp;
 
   ctsp = class_type->variant.class_struct_union.extra_info;
-  if (ctsp->assoc_scope != NULL) {
+  if (ctsp != NULL && ctsp->assoc_scope != NULL) {
     a_type_ptr  tp = ctsp->assoc_scope->types;
     for (; tp != NULL; tp = tp->next) {
       if (is_immediate_class_type(tp)) {
