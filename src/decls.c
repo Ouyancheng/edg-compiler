@@ -3085,9 +3085,7 @@ diagnostics.
                   routine->decl_modifiers &= ~DM_DLLIMPORT;
                 }  /* if */
               }  /* if */
-              if (is_inline &&
-                  (!invalid_redecl ||
-                   (routine->decl_modifiers & DM_DLLIMPORT))) {
+              if (is_inline) {
                 /* The combination of "inline" and "dllimport" indicates that
                    the body should only be used for inlining.  It should never
                    be spilled. */
