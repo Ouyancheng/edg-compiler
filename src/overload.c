@@ -3842,6 +3842,9 @@ of something based strictly on the function itself or the call context
       }  /* if */
       /* The chosen function is not any better than this other function. */
       match_is_better = FALSE;
+      /* Make sure the other function is listed in the ambiguity error
+         message. */
+      cfp->in_best_match_set_for_some_argument = TRUE;
       break;
     }  /* if */
 check_next_function:;
