@@ -7840,6 +7840,8 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
 	        if (ilm == ilm_tentative_type) {
 		  /* It is OK for a tentative type lookup to fail. */
 		  okay = TRUE;
+		} else if (is_error_locator(locator_for_curr_id)) {
+		  /* An error was previously issued. */
 		} else {
                   /* Issue an alternate version of the error if we are looking
 		     for a tag symbol. */

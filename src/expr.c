@@ -2305,6 +2305,8 @@ bound with the function in *bound_function_selector.
         if (!operand_1_is_complete_class) {
           /* An error will be produced below because the first operand is
              not (a pointer to) a class, so do not issue an error here. */
+        } else if (is_error_locator(locator_for_curr_id)) {
+          /* An error was previously issued. */
         } else {
           pos_stsy_error(C_mode() ? ec_not_a_field : ec_not_a_member,
                          &error_position,
@@ -2314,14 +2316,15 @@ bound with the function in *bound_function_selector.
         }  /* if */
         err = TRUE;
         /* Enter an undefined symbol and record a reference against it. */
-        { a_symbol_ptr undef_sym_ptr =
+        if (!is_error_locator(locator_for_curr_id)) {
+          a_symbol_ptr undef_sym_ptr =
                            enter_undefined_member_symbol(&locator_for_curr_id);
           record_symbol_reference((a_symbol_reference_kind)(SRK_REFERENCE |
                                                             SRK_ERROR),
                                   undef_sym_ptr,
                                   &error_position,
                                   /*update_il_entry=*/FALSE);
-        }
+        }  /* if */
       }  /* if */
     }  /* if */
   } else {
