@@ -1511,11 +1511,13 @@ if [ $old_ii_format -ne 0 ] ; then
 fi
 #
 # If we are using --multi_trans_unit mode, change cfiles so that it only
-# contains the first file name.  Set all_files to the complete list.
+# contains the first file name.  Change object_files so that it only contains
+# the first object file name.  Set all_files to the complete list.
 #
 if [ $multi_trans_unit -ne 0 ] ; then
   allfiles=$cfiles
   cfiles=`echo $cfiles | sed -e "s/ .*//"`
+  object_files=`echo $object_files | sed -e "s/ .*//"`
   more_than_one_c_file=0
 fi
 #
