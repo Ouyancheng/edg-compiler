@@ -24,7 +24,8 @@ defined and an abort occurred at run time.
 
 12/15/96 Enum types are not treated as integral
 
-In C++ mode enum types are no longer treated as integral types.
+In C++ mode (except in cfront-compatibility mode) enum types are no longer
+treated as integral types.
 
 Among other things, this means an enumerator with value zero is not
 considered to be a null-pointer-constant:
