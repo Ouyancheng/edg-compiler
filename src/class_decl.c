@@ -923,6 +923,9 @@ Process the default argument expressions for the indicated class.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     for (; rfp != NULL; rfp = rfp->next) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      a_boolean  do_declared_type_fixup;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       daefp = rfp->def_arg_expr_fixup_list;
       if (rfp->is_template) {
         /* A routine fixup for a template function declaration.  The default
@@ -934,8 +937,9 @@ Process the default argument expressions for the indicated class.
         if (!is_real_template_instantiation) {
           sym = rfp->symbol;
           if (daefp != NULL && nonclass_prototype_instantiations) {
-            default_arg_prototype_instantiation(sym, daefp,
-                                                rfp->prototype_scope_symbols);
+            default_arg_prototype_instantiation(
+                                     sym, daefp, rfp->prototype_scope_symbols,
+                                     /*update_declared_type=*/FALSE);
           }  /* if */
         }  /* if */
       } else if (daefp != NULL) {
@@ -975,8 +979,9 @@ Process the default argument expressions for the indicated class.
             }  /* while */
             if (nonclass_prototype_instantiations) {
               /* Do the prototype instantiations of the default arguments. */
-              default_arg_prototype_instantiation(sym, daefp,
-                                       rfp->func_info.prototype_scope_symbols);
+              default_arg_prototype_instantiation(
+                           sym, daefp, rfp->func_info.prototype_scope_symbols,
+                           /*update_declared_type=*/FALSE);
             }  /* if */
             /* Link the default argument list from the template supplement
                onto the end of the list of current default arguments.  The
@@ -1005,7 +1010,7 @@ Process the default argument expressions for the indicated class.
               discard_token_cache(&daefp->cache.tokens);
             }  /* for */
           }  /* if */
-          continue;
+          goto fixup_declared_type;
         }  /* if */
         if (curr_scope_class_type != rfp->class_type) {
           if (curr_scope_class_type != NULL) {
@@ -1018,8 +1023,7 @@ Process the default argument expressions for the indicated class.
           curr_scope_class_type = rfp->class_type;
         }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        {
-        a_boolean  do_declared_type_fixup = is_function_symbol(sym);
+        do_declared_type_fixup = is_function_symbol(sym);
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         if (instantiations_permitted_in_class_src_seq_list) {
           if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
@@ -1103,6 +1107,7 @@ Process the default argument expressions for the indicated class.
           /* Pop the reactivated function prototype scope off the stack. */
           pop_scope();
         }  /* if */
+fixup_declared_type: ;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* The default arguments on the routine type have been fixed up.
            If the declared type refers to a different type entry, copy the
@@ -1111,7 +1116,6 @@ Process the default argument expressions for the indicated class.
           copy_routine_type_default_args(routine_symbol_type(sym),
                                          rfp->func_info.declared_type);
         }  /* if */
-        }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
     }  /* for */
@@ -5068,41 +5072,69 @@ a friend declaration.  This is used for template instantiations.
 
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
 
-static void decl_proxy_member_friend(a_symbol_ptr           sym,
-                                     a_type_ptr             function_type,
-                                     a_func_info_block_ptr  func_info)
+static a_symbol_ptr decl_dependent_friend_function(
+                                         a_symbol_locator       *locator,
+                                         a_type_ptr             function_type,
+                                         a_func_info_block_ptr  func_info)
 /*
-The given symbol sym is a tpck_member constant created by the lookup of a
-qualified friend function declarator in a proxy class.  The type of the friend
-function is function_type and func_info provides additional information about
-the declaration.  If a source sequence entry is available for the declaration,
-then this function makes it refer to a new routine entry.  This routine entry
-is not put on any list.
+Create a routine and associated symbol for a template dependent friend
+declaration of type function_type.  The locator for the friend declarator
+and some extra declaration info are passed through locator and func_info.
+The routine symbol is returned (but not linked into the symbol table).
 */
 {
+  a_symbol_ptr  sym = NULL;
+
   if (func_info->declarator_ssep != NULL) {
+    a_symbol_kind                 sym_kind;
     a_routine_ptr                 rp;
     a_src_seq_secondary_decl_ptr  sssdp;
     a_source_sequence_entry_ptr   ssep = func_info->declarator_ssep;
     a_memory_region_number        region_to_switch_back_to;
 
     switch_to_file_scope_region(&region_to_switch_back_to);
+    /* First create a symbol for this function (though it will not be linked
+       into the symbol table. */
+    sym_kind = (a_symbol_kind)
+                 (locator->is_class_member ? sk_member_function : sk_routine);
+    sym = alloc_symbol(sym_kind, locator->symbol_header,
+                       &locator->source_position);
     /* Make a routine entry for this member: */
     rp = make_routine(function_type, (a_storage_class)sc_extern,
-                      NO_SCOPE_DEPTH);
+                      depth_innermost_namespace_scope);
+    sym->variant.routine.ptr = rp;
     set_source_corresp(&rp->source_corresp, sym);
-    set_class_membership((a_symbol_ptr)NULL, &rp->source_corresp,
-                         sym->parent.class_type);
-    /* Point to it from a secondary source sequence_entry: */
-    sssdp = make_source_sequence_secondary_decl((char*)rp, iek_routine,
-                                                func_info->declared_type);
-    sssdp->decl_position = sym->decl_position;
-    sssdp->friend_decl = TRUE;
-    ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
-    ssep->entity.ptr  = (char *)sssdp;
+    if (locator->is_class_member) {
+      set_class_membership(sym, &rp->source_corresp,
+                           locator->parent.class_type);
+    } else if (locator->parent.namespace_ptr != NULL) {
+      set_namespace_membership(sym, &rp->source_corresp,
+                               locator->parent.namespace_ptr);
+    }  /* if */
+    if (locator->template_arg_list != NULL) {
+      rp->template_arg_list = locator->template_arg_list;
+      rp->expl_template_arg_list_used = TRUE;
+    }  /* if */
+    if (func_info->is_definition) {
+      rp->defined = sym->defined = TRUE;
+      rp->defined_in_friend_decl = TRUE;
+      rp->is_inline = TRUE;
+      rp->declared_type = func_info->declared_type;
+      ssep->entity.kind = (a_byte_il_entry_kind)iek_routine;
+      ssep->entity.ptr  = (char *)rp;
+    } else {
+      /* Point to it from a secondary source sequence_entry: */
+      sssdp = make_source_sequence_secondary_decl((char*)rp, iek_routine,
+                                                  func_info->declared_type);
+      sssdp->decl_position = sym->decl_position;
+      sssdp->friend_decl = TRUE;
+      ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+      ssep->entity.ptr  = (char *)sssdp;
+    }  /* if */
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
-}  /* decl_proxy_member_friend */
+  return sym;
+}  /* decl_dependent_friend_function */
 
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
@@ -5150,6 +5182,18 @@ of the function, and again overloading is a possibility.
          found, look it up now. */
       sym = normal_id_lookup(locator, IDL_FRIEND_LOOKUP);
     }  /* if */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (is_template_dependent_context()) {
+      if (is_template_dependent_type(function_type) ||
+          template_arg_list_involves_template_param(
+                                                locator->template_arg_list) ||
+          is_proxy_member_symbol(sym)) {
+        sym = decl_dependent_friend_function(locator,
+                                             function_type, func_info);
+        goto done;
+      }  /* if */
+    }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     if (!(microsoft_mode || any_cfront_mode()) ||
         (sym != NULL && sym->ambiguous)) {
       check_ambiguity_and_verify_access(locator);
@@ -5170,15 +5214,6 @@ of the function, and again overloading is a possibility.
           /* A member function cannot be defined in a friend declaration. */
           pos_sy_error(ec_bad_scope_for_definition,
                        &locator->source_position, sym);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-        } else {
-          /* Create a routine entry for this friend, but don't place it on any
-             scope list.  Instead, it will be pointed to from a secondary
-             source sequence entry only. */
-          check_assertion(prototype_instantiations_in_il);
-          decl_proxy_member_friend(sym, function_type, func_info);
-          goto done;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         }  /* if */
       } else if (sym->kind == (a_symbol_kind)sk_projection) {
         /* A member of a base class. */
@@ -5361,6 +5396,9 @@ of the function, and again overloading is a possibility.
                                 (a_boolean)func_info->is_definition,
                                 /*move_to_front=*/FALSE);
   }  /* if */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+done:
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (func_info->is_definition) {
     /* Since this is a definition, record the current lint argsused and
        varargs-count state in the routine type. That will suppress any
@@ -5370,9 +5408,6 @@ of the function, and again overloading is a possibility.
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-done:
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   db_exit();
   return sym;
 }  /* decl_friend_function */

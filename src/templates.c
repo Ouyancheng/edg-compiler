@@ -2624,14 +2624,20 @@ user later during real instantiations.
 }  /* function_prototype_instantiation */
 
 
+#if !(PROTOTYPE_INSTANTIATIONS_IN_IL && GENERATE_SOURCE_SEQUENCE_LISTS)
+/*ARGSUSED*/ /* update_declared_type is not used in this case. */
+#endif /* !(PROTOTYPE_INSTANTIATIONS_IN_IL && GENERATE_...) */
 void default_arg_prototype_instantiation(
 	a_symbol_ptr				template_sym,
 	a_def_arg_expr_fixup_ptr		def_arg_list,
-	a_symbol_ptr				prototype_scope_symbols)
+	a_symbol_ptr				prototype_scope_symbols,
+        a_boolean                               update_declared_type)
 /*
 This routine is called to do a "prototype instantiation" of a default
 argument expression of a function template or a member function
-of a class template.
+of a class template.  If update_declared_type is TRUE, the default
+arguments will be recorded in the declared type (for default arguments
+instantiated during class fixups this is done elsewhere).
 
 This is done to detect those errors that can be diagnosed at template
 definition time and to record information about nondependent calls for
@@ -2689,7 +2695,7 @@ user later during real instantiations.
        reached the end of the token cache. */
   }  /* for */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL && GENERATE_SOURCE_SEQUENCE_LISTS
-  if (prototype_instantiations_in_il &&
+  if (update_declared_type && prototype_instantiations_in_il &&
       def_arg_list != NULL) {
     /* The IL representation for the default arguments should be added to
        the declared type too.  The declared type might be in a secondary
@@ -11654,8 +11660,10 @@ instantiation.
            This is done here because the value for the containing declaration
            has not been set yet. */
         decl_state->decl_info->decl_seq = ++decl_seq_counter;
-        default_arg_prototype_instantiation(template_sym, curr_default_args,
-                                          decl_state->prototype_scope_symbols);
+        default_arg_prototype_instantiation(
+                                          template_sym, curr_default_args,
+                                          decl_state->prototype_scope_symbols,
+                                          /*update_declared_type=*/TRUE);
       }  /* if */
     }  /* if */
   }  /* if */

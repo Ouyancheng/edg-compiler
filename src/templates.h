@@ -313,7 +313,8 @@ extern void instantiate_default_argument(a_symbol_ptr		rout_sym,
 extern void default_arg_prototype_instantiation(
 	a_symbol_ptr				template_sym,
 	a_def_arg_expr_fixup_ptr		def_arg_list,
-	a_symbol_ptr				prototype_scope_symbols);
+	a_symbol_ptr				prototype_scope_symbols,
+        a_boolean                               update_declared_type);
 
 extern a_template_arg_ptr create_prototype_arg_list(
 			a_template_param_ptr	templ_param_list);
