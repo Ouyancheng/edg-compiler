@@ -151,9 +151,12 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_void:
         type_specifier_seen = TRUE;
         break;
-      /* Type specifier - cv qualifier. */
+      /* Type qualifier. */
       case tok_const:
       case tok_volatile:
+#if RESTRICT_ALLOWED
+      case tok_restrict:
+#endif /* RESTRICT_ALLOWED */
         break;
       case tok_class:
       case tok_struct:
@@ -256,7 +259,7 @@ part of a function declarator is found, may_be_decl is set to FALSE.
   cache_curr_token(token_cache_ptr);
   (void)get_token_and_coalesce_if_identifier();
   /* Skip past any cv-qualifiers associated with this function declarator. */
-  while (curr_token == tok_const || curr_token == tok_volatile) {
+  while (is_type_qualifier_token(curr_token)) {
     cache_curr_token(token_cache_ptr);
     (void)get_token_and_coalesce_if_identifier();
   }  /* while */
@@ -316,7 +319,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
       cache_curr_token(token_cache_ptr);
       (void)get_token_and_coalesce_if_identifier();
       pointer_operator_seen = TRUE;
-    } else if (curr_token == tok_const || curr_token == tok_volatile) {
+    } else if (is_type_qualifier_token(curr_token)) {
       /* Cache and bypass any cv-qualifiers. */
       cache_curr_token(token_cache_ptr);
       (void)get_token_and_coalesce_if_identifier();
