@@ -370,7 +370,11 @@ typedef enum /*an_error_code*/ {
   ec_bad_data_member_initialization,
   ec_abstract_class_object_not_allowed,
   ec_function_returning_abstract_class,
-  ec_duplicate_friend_decl
+  ec_duplicate_friend_decl,
+  ec_inline_and_nonfunction,
+  ec_inline_not_allowed,
+  ec_inline_and_extern_not_allowed,
+  ec_bad_member_storage_class
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

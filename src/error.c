@@ -292,11 +292,10 @@ error code.
       m = "invalid combination of type specifiers";
       break;
     case ec_bad_param_storage_class:
-      m = "a parameter may not have a storage class other than register";
+      m = "invalid storage class for a parameter";
       break;
     case ec_bad_function_storage_class:
-      m = 
-        "a function may not have a storage class other than extern or static";
+      m = "invalid storage class for a function";
       break;
     case ec_type_specifier_not_allowed:
       m = "a type specifier may not be used here";
@@ -1047,6 +1046,18 @@ error code.
       break;
     case ec_duplicate_friend_decl:
       m = "duplicate friend declaration";
+      break;
+    case ec_inline_and_nonfunction:
+      m = "inline specifier allowed on function declarations only";
+      break;
+    case ec_inline_not_allowed:
+      m = "\"inline\" is not allowed";
+      break;
+    case ec_inline_and_extern_not_allowed:
+      m = "a function may not be both extern and inline";
+      break;
+    case ec_bad_member_storage_class:
+      m = "invalid storage class for a class member";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
