@@ -1,5 +1,22 @@
 Version 2.11
 
+10/21/92 Fixed bug in detection of "dangling type specifiers"
+
+A bug has been fixed in the code that tries recognize missing semicolon
+errors in cases like this (where we refer to the second "A" as a "dangling
+type specifier"):
+
+  class A { /* ... */ }
+  A x;
+
+The bug caused spurious errors to be issued in certain cases, e.g.:
+
+  typedef int T;
+  struct S {
+    enum { a,b,c } T;    // Spurious error no longer issued
+    enum { d,e,f } S;    // Spurious error no longer issued
+  };
+
 10/21/92 Error on static data member definition with no type specifier    
 
 We used to issue a warning when the decl specifiers were omitted in a
