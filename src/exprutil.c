@@ -1621,6 +1621,7 @@ position field as the error position.
   set_operand_kind(operand, (an_operand_kind)ok_error);
   operand->type = error_type();
   operand->state = (an_operand_state)os_none;
+  operand->is_simple_string_literal = FALSE;
   /* bound_function is not cleared on purpose. */
 }  /* conv_to_error_operand */
 
