@@ -1,5 +1,30 @@
 Version 2.35
 
+
+1/10/97 Pointer-to-member selection: cv-qualifiers of left operand, rvalue
+        result
+
+The pointer-to-member selection operators .* and ->* now add any
+cv-qualifiers of the left operand type to the result type (but not in
+Microsoft mode):
+
+  struct A {int i;};
+  const A ca = {0};
+  int main () {
+    int A::*pm = &A::i;
+    ca.*pm = 1;  // Error, lvalue has type const int
+  }
+
+Also, rvalue.*pm now produces an rvalue result (but not in cfront or
+Microsoft modes):
+
+  struct A {int i;};
+  A f();
+  int main () {
+    int A::*pm = &A::i;
+    (f()).*pm = 1;  // Error, can't assign to rvalue
+  }
+
 1/10/97 Microsoft compatibility: keywords with single-underscore prefix
 
 Support for single-underscore versions of Microsoft keywords has been

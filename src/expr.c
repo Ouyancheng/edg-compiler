@@ -2742,6 +2742,15 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
         make_error_operand(result);
       } else {
         /* The operands are compatible. */
+        if (any_cfront_mode() || microsoft_mode) {
+          /* ARM rules: the result is always an lvalue and that doesn't
+             depend on the lvalueness of the left operand. */
+          rvalue_selection = FALSE;
+        } else {
+          /* The result is an lvalue if the operator is "->*" or if the
+             first operand is an lvalue. */
+          rvalue_selection = (!is_arrow_operator && is_an_rvalue(operand_1));
+        }  /* if */
         /* Get an operand for the address of the object. */
         conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
         /* Cast the left operand to a base class if necessary.  This does the
@@ -2755,6 +2764,13 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
         /* The result type is the member type pointed to by the second
            operand. */
         result_type = pm_member_type(operand_2_type);
+        if (!microsoft_mode) {
+          /* ... plus cv-qualifiers from the first operand.  (This was not
+             in the ARM, but it's in the WP, and cfront does it.) */
+          result_type = type_plus_qualifiers_from_second_type(
+                                                          result_type,
+                                                          qual_operand_1_type);
+        }  /* if */
         if (is_function_type(result_type)) {
           /* Result is a bound function.  It can only be called or (as an
              anachronism) cast to a normal function pointer. */
@@ -2770,12 +2786,6 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
           /* Result is a data member.  Use an eok_pm_field node with the
              pointer to object and pointer-to-member as the operands. */
           object_node = make_node_from_operand(operand_1);
-          /* The result is an lvalue if the operator is "->*" or if the
-             first operand is an lvalue.  Note that this is not what the ARM
-             says (it says the result is an lvalue if the *second* operand is
-             an lvalue, but that doesn't make sense).  It *is* the same
-             rule used for "->" and ".". */
-          rvalue_selection = (!is_arrow_operator && is_an_rvalue(operand_1));
           pm_node = make_node_from_operand(&operand_2);
           object_node->next = pm_node;
           select_node = make_operator_node((an_expr_operator_kind)eok_pm_field,
@@ -2785,6 +2795,8 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
             /* If the result is not an lvalue, add an indirection to turn
                the data member address into the data member value. */
             select_node = add_indirection_to_node(select_node);
+            /* Drop cv-qualifiers if necessary. */
+            result_type = select_node->type;
           }  /* if */
           make_expression_operand(select_node, result_type, result);
           if (!rvalue_selection) {
