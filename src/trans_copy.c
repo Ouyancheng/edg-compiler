@@ -37,6 +37,12 @@ trans_copy.c -- Copy IL from secondary translation units to the
 
 
 /*
+Flag that is non-zero if an IL walk is being done in the trans_copy process.
+*/
+static unsigned long in_trans_copy_walk;
+
+
+/*
 Return TRUE if the given entry has the flag set that indicates that
 it needs to be copied.  The il_walk_flag is used for this purpose.
 */
@@ -56,6 +62,13 @@ Reset the flag that indicates that an entry needs to be copied.
   (il_entry_prefix_of(ptr).il_walk_flag = FALSE)
 
 
+static void copy_entry(char             *ptr,
+                       an_il_entry_kind kind);
+static void copy_string_entry(char             *ptr,
+                              an_il_entry_kind kind,
+                              sizeof_t         length);
+static a_boolean copy_termination_test(char             *ptr,
+                                       an_il_entry_kind kind);
 static void copy_address_setup(
                              char             *ptr,
                              an_il_entry_kind kind,
@@ -97,8 +110,8 @@ static char *primary_il_entry_of(char             *ptr,
 Return the address in the primary IL that the entry at "ptr" of kind "kind"
 corresponds to.  ptr must either be an address in the primary IL (in
 which case it is returned) or must be an address of an entry in a secondary
-translation unit that is a canonical entry.  In the latter case, the copy
-address of the canonical entry will be set if it is not already set.
+translation unit, in which case the copy address of the entry will be set
+if it is not already set.
 */
 {
   if (in_secondary_trans_unit(ptr) && in_file_scope(ptr)) {
@@ -175,12 +188,12 @@ in the current IL walk.
              to make sure it gets done. */
           /* Don't do this copy now if we're still in
              prepare_for_trans_unit_copy and not yet in the copy phase. */
-          if (walking_secondary_trans_unit) {
-            /* Clear the walk_remap_function around the call. */
-            a_remap_function_ptr saved_walk_remap_func = walk_remap_func;
-            walk_remap_func = NULL;
-            walk_entry_and_subtree(ptr, kind);
-            walk_remap_func = saved_walk_remap_func;
+          if (in_trans_copy_walk) {
+            walk_il_subtree(copy_entry, copy_string_entry,
+                            (a_remap_function_ptr)NULL,
+                            copy_termination_test,
+                            /*clear_fe_pointers=*/FALSE,
+                            ptr, kind);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -262,6 +275,10 @@ corresponding entry in the primary file IL.
   } else {
     /* If the pointer wasn't encountered previously, make sure its
        copy address pointer is set.  This happens for "next" pointers. */
+    /* When this routine is called for remap_ptr references in walk_entry.h,
+       we don't know that the entry will be seen on this walk.  The
+       entities pointed to by "next" pointers actually will appear in
+       this walk, but we don't have any way of identifying those. */
     copy_address_setup(ptr, kind, /*known_will_process_in_curr_walk=*/FALSE);
     /* Fetch the copy address assigned by copy_address_setup. */
     corresp = trans_unit_copy_address_of(ptr);
@@ -274,6 +291,7 @@ corresponding entry in the primary file IL.
       corresp = checked_trans_unit_copy_address_of(corresp);
       check_assertion(corresp != NULL);
     }  /* if */
+    check_assertion(!in_secondary_trans_unit(corresp));
   }  /* if */
   return corresp;
 }  /* remap_secondary_ptr_to_primary */
@@ -402,10 +420,12 @@ primary translation unit IL.
 */
 {
   db_enter(1, "copy_from_secondary_to_primary_il");
+  in_trans_copy_walk++;
   walk_file_scope_il(copy_entry, copy_string_entry,
                      (a_remap_function_ptr)NULL,
                      copy_termination_test,
                      /*clear_fe_pointers=*/FALSE);
+  in_trans_copy_walk--;
   db_exit();
 }  /* copy_from_secondary_to_primary_IL */
 
@@ -422,12 +442,14 @@ it and remapping pointers.
                   routine->assoc_scope != NULL_region_number);
   scope = il_header.region_scope_entry[routine->assoc_scope];
   check_assertion(scope != NULL);
+  in_trans_copy_walk++;
   walk_routine_scope_il(routine->assoc_scope,
                         copy_entry,
                         copy_string_entry,
                         (a_remap_function_ptr)NULL,
                         copy_termination_test,
                         /*clear_fe_pointers=*/FALSE);
+  in_trans_copy_walk--;
   scope->function_body_processing_finished = FALSE;
 }  /* move_routine_body_to_primary */
 
@@ -779,56 +801,6 @@ do any necessary processing, e.g., externalizing it if it is static.
   }  /* if */
 }  /* process_routine_if_unneeded_non_template */
 
-#if CHECKING
-
-static void f_check_parent_correspondences(char             *ptr,
-                                           an_il_entry_kind kind)
-/*
-ptr points to an entity of kind "kind" that has a source correspondence field.
-Check that if the member has a correspondence its parents do too.
-*/
-{
-  if (has_correspondence(ptr) &&
-      /* Ignore extern "C" functions because when they are in
-         namespaces the parent information is weird. */
-      (kind != (an_il_entry_kind)iek_routine || C_mode() ||
-       ((a_routine_ptr)ptr)->source_corresp.name_linkage !=
-                                          (a_name_linkage_kind)nlk_external)) {
-    a_source_correspondence *scp = (a_source_correspondence *)ptr;
-    for (;;) {
-      an_il_entry_kind parent_kind;
-      if (scp->is_class_member) {
-        scp = &scp->parent.class_type->source_corresp;
-        parent_kind = (an_il_entry_kind)iek_type;
-      } else if (scp->parent.namespace_ptr != NULL) {
-        scp = &scp->parent.namespace_ptr->source_corresp;
-        parent_kind = (an_il_entry_kind)iek_namespace;
-      } else {
-        break;
-      }  /* if */
-      if (!has_correspondence(scp)) {
-#if DEBUG
-        db_entity_info(ptr, kind);
-        db_entity_info((char *)scp, parent_kind);
-#endif /* DEBUG */
-        internal_error("entity has correspondence but parent does not");
-      }  /* if */
-    }  /* for */
-  }  /* if */
-}  /* f_check_parent_correspondences */
-
-#endif /* CHECKING */
-
-/*
-Interface macro for f_check_parent_correspondences.
-*/
-#if CHECKING
-#define check_parent_correspondences(ptr, kind) \
-  f_check_parent_correspondences((char *)(ptr), (kind))
-#else /* !CHECKING */
-#define check_parent_correspondences(ptr, kind) /* Nothing */
-#endif /* CHECKING */
-
 
 static void f_mark_to_merge(char             *ptr,
                             an_il_entry_kind kind)
@@ -994,7 +966,9 @@ to the secondary translation unit.
            correspond. */
         a_scope_ptr corresp_class_scope = corresp_class->variant.
                                     class_struct_union.extra_info->assoc_scope;
-        checked_trans_unit_copy_address_of(scope)= (char *)corresp_class_scope;
+        checked_trans_unit_copy_address_of(scope) =
+                       (char *)primary_il_entry_of((char *)corresp_class_scope,
+                                                   iek_scope);
       }  /* if */
       /* The class here needs to be kept only if some of its members need
          to be processed.  Assume there are none, and correct that assumption
@@ -1030,7 +1004,6 @@ to the secondary translation unit.
   /* Visit all types. */
   prev_type = NULL;
   for (type = scope->types; type != NULL; type = type->next) {
-    check_parent_correspondences(type, iek_type);
     keep_on_list = TRUE;
     if (is_immediate_class_type(type) &&
         type->variant.class_struct_union.extra_info != NULL &&
@@ -1096,7 +1069,6 @@ to the secondary translation unit.
   for (variable = scope->variables;
        variable != NULL;
        variable = variable->next) {
-    check_parent_correspondences(variable, iek_variable);
     keep_on_list = TRUE;
     /* If we're supposed to copy only generated templates, other variables
        are made external (if necessary) and their definitions are
@@ -1183,7 +1155,6 @@ to the secondary translation unit.
   for (routine = scope->routines;
        routine != NULL;
        routine = routine->next) {
-    check_parent_correspondences(routine, iek_routine);
     keep_on_list = TRUE;
     /* If we're supposed to copy only generated templates, other routines
        are made external (if necessary) and their definitions are
@@ -1288,7 +1259,6 @@ to the secondary translation unit.
   for (templ = scope->templates;
        templ != NULL;
        templ = templ->next) {
-    check_parent_correspondences(templ, iek_template);
     if (entry_should_be_copied(templ)) {
       /* The template doesn't exist in the primary IL, and just gets copied
          over. */
@@ -1326,7 +1296,6 @@ to the secondary translation unit.
   for (nsp = scope->namespaces;
        nsp != NULL;
        nsp = nsp->next) {
-    check_parent_correspondences(nsp, iek_namespace);
     if (!nsp->is_namespace_alias) {
       /* Do a recursive call to process the namespace. */
       keep_on_list = prepare_for_trans_unit_copy(nsp->variant.assoc_scope,
@@ -2469,6 +2438,7 @@ therefore will not be copied.
     check_assertion(okay);
   }
   check_assertion(initial_value_for_il_lowering_flag == FALSE);
+  in_trans_copy_walk = 0;
   /* Loop over each translation unit, preparing for the copy.  This
      decides which entities should be copied, which should be merged,
      and which are duplicates that can be dropped. */
@@ -2571,17 +2541,6 @@ therefore will not be copied.
     }  /* if */
 #endif /* DEBUG */
   }  /* for */
-  /* Free the secondary IL file-scope memory regions. */
-  { a_memory_region_number n;
-    for (n = FILE_SCOPE_REGION_NUMBER + 1;
-         n <= highest_used_region_number;
-         n++) {
-      if (mem_region_table[n] != NULL &&
-          il_header.region_scope_entry[n]->kind == (a_scope_kind)sck_file) {
-        free_memory_region(n);
-      }  /* if */
-    }  /* for */
-  }
   db_exit();
 }  /* copy_secondary_trans_unit_IL_to_primary */
 
@@ -2681,23 +2640,27 @@ primary IL.)
     /* Do two passes so that the il_walk_flag returns to its original value. */
     mark_secondary_first_pass = TRUE;
     for (;;) {
+      in_trans_copy_walk++;
       walk_file_scope_il((an_entry_process_function_ptr)NULL,
                          (a_string_entry_process_function_ptr)NULL,
                          (a_remap_function_ptr)NULL,
                          mark_secondary_termination_test,
                          /*clear_fe_pointers=*/FALSE);
+      in_trans_copy_walk--;
       /* Loop through the memory regions looking for functions in the
          primary IL, and process them too. */
       for (n = FILE_SCOPE_REGION_NUMBER + 1;
            n <= highest_used_region_number;
            ++n) {
         if (mem_region_is_primary_func_scope(n)) {
+          in_trans_copy_walk++;
           walk_routine_scope_il(n,
                                 (an_entry_process_function_ptr)NULL,
                                 (a_string_entry_process_function_ptr)NULL,
                                 (a_remap_function_ptr)NULL,
                                 mark_secondary_termination_test,
                                 /*clear_fe_pointers=*/FALSE);
+          in_trans_copy_walk--;
         }  /* if */
       }  /* for */
       if (!mark_secondary_first_pass) break;
@@ -2716,8 +2679,7 @@ Called as part of the IL walk for
 rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary to
 do the pointer remapping.  Remaps pointers to entities in secondary
 translation units to pointers to the corresponding entities in the
-primary IL.  The correspondences must exist, at least for entities
-with linkage.
+primary IL.
 */
 {
   char *new_ptr = old_ptr;
@@ -2727,48 +2689,62 @@ with linkage.
   } else if (in_secondary_trans_unit(old_ptr)) {
     check_assertion_str(in_file_scope(old_ptr),
                         "remap_secondary_pointer: not in file scope");
-    if (trans_unit_copy_address_of(old_ptr) == NULL) {
-      /* No copy address established.  This is okay for things
-         that don't go on lists.  For example, the type "pointer to int"
-         wouldn't necessarily have a correspondence here, but A<int>
+    if (trans_unit_corresp_of_unknown_entry(old_ptr) != NULL) {
+      /* The entry already has a copy address assigned. */
+      new_ptr = transitive_copy_address_of(old_ptr);
+    } else {
+      /* No copy address established.  For entities with linkage,
+         we can get an address from the associated canonical entry.
+         Other things we can copy.  However, we can't copy things
+         that go on lists, because we won't get a chance to link
+         them on the lists.  For example, the type "pointer to int"
+         wouldn't necessarily have a copy address here, but A<int>
          must. */
 #if CHECKING
       /* Check whether the entity is okay. */
-      { a_boolean err = FALSE;
-        switch (kind) {
-          case iek_constant:
-            { a_constant_ptr con = (a_constant_ptr)old_ptr;
-              if (has_name(con)) err = TRUE;
-            }
-            break;
-          case iek_type:
-            { a_type_ptr type = (a_type_ptr)old_ptr;
-              if (has_name(type) ||
-                  is_immediate_class_type(type) ||
-                  (type->kind == (a_type_kind)tk_enum &&
-                   type->variant.integer.enum_type)) err = TRUE;
-            }
-            break;
-          case iek_template_arg:
-            break;
-          default:
-            err = TRUE;
-        }  /* switch */
-        if (err) {
-          unexpected_condition_str(
+      { a_boolean                err = FALSE;
+        a_trans_unit_corresp_ptr tucp;
+        /* For entities with linkage, an address should have been
+           assigned to the correspondence set, but it might not
+           have been established in this entry.  This entry shouldn't
+           be the canonical entry -- if it were, its address should
+           have been assigned already. */
+        if (source_corresp_for_il_entry(old_ptr, kind) != NULL &&
+            (tucp = trans_unit_corresp_of_unknown_entry(old_ptr),
+             tucp != NULL)) {
+          check_assertion (tucp->canonical != old_ptr &&
+                           checked_trans_unit_copy_address_of(
+                                                     tucp->canonical) != NULL);
+        } else {
+          /* Entity does not have a linkage correspondence. */
+          switch (kind) {
+            case iek_constant:
+              { a_constant_ptr con = (a_constant_ptr)old_ptr;
+                if (has_name(con)) err = TRUE;
+              }
+              break;
+            case iek_type:
+              { a_type_ptr type = (a_type_ptr)old_ptr;
+                if (has_name(type) ||
+                    is_immediate_class_type(type) ||
+                    (type->kind == (a_type_kind)tk_enum &&
+                     type->variant.integer.enum_type)) err = TRUE;
+              }
+              break;
+            case iek_template_arg:
+              break;
+            default:
+              err = TRUE;
+          }  /* switch */
+          if (err) {
+            unexpected_condition_str(
                  "remap_secondary_pointer: missing primary IL correspondence");
+          }  /* if */
         }  /* if */
       }
 #endif /* CHECKING */
-      /* Make a copy of the entry in the primary IL. */
-      new_ptr = alloc_il(sizeof_il_entry[(int)kind]);
-      trans_unit_copy_address_of(old_ptr) = new_ptr;
-      copy_entry_basic(old_ptr, kind, remap_secondary_pointer);
-      /* Make sure the copy is processed. */
-      il_entry_prefix_of(new_ptr).il_walk_flag = !flag_value_meaning_visited;
-    } else {
-      new_ptr = transitive_copy_address_of(old_ptr);
     }  /* if */
+    new_ptr = primary_il_entry_of(old_ptr, kind);
   }  /* if */
   return new_ptr;
 }  /* remap_secondary_pointer */
@@ -2819,23 +2795,27 @@ before lowering and needed flag marking of the primary IL.
     for (;;) {
       a_remap_function_ptr remap_func = NULL;
       if (first_pass) remap_func = remap_secondary_pointer;
+      in_trans_copy_walk++;
       walk_file_scope_il((an_entry_process_function_ptr)NULL,
                          (a_string_entry_process_function_ptr)NULL,
                          remap_func,
                          rewrite_secondary_termination_test,
                          /*clear_fe_pointers=*/FALSE);
+      in_trans_copy_walk--;
       /* Loop through the memory regions looking for functions in the
          primary IL, and process them too. */
       for (n = FILE_SCOPE_REGION_NUMBER + 1;
            n <= highest_used_region_number;
            ++n) {
         if (mem_region_is_primary_func_scope(n)) {
+          in_trans_copy_walk++;
           walk_routine_scope_il(n,
                                 (an_entry_process_function_ptr)NULL,
                                 (a_string_entry_process_function_ptr)NULL,
                                 remap_func,
                                 rewrite_secondary_termination_test,
                                 /*clear_fe_pointers=*/FALSE);
+          in_trans_copy_walk--;
         }  /* if */
       }  /* for */
       if (!first_pass) break;

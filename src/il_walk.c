@@ -119,7 +119,7 @@ static void walk_string_entry(char             *entry_ptr,
 #define DO_SUBTREE_WALK TRUE
 #define NEEDED_FLAG_WALK FALSE
 #define KEEP_IN_IL_WALK FALSE
-#define WALK_ENTRY_ROUTINE_STATIC /* extern */
+#define WALK_ENTRY_ROUTINE_STATIC static
 #define WALK_ENTRY_ROUTINE_NAME walk_entry_and_subtree
 #define WALK_ORPHANED_ENTRY_ROUTINE_NAME walk_orphaned_file_scope_il_entries
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
@@ -309,6 +309,58 @@ to have already been remapped.
   restore_il_walk_state(saved_state);
   db_exit();
 }  /* walk_routine_scope_il */
+
+
+void walk_il_subtree(
+            an_entry_process_function_ptr        entry_process_function,
+            a_string_entry_process_function_ptr  string_entry_process_function,
+            a_remap_function_ptr                 remap_function,
+            a_walk_termination_test_function_ptr termination_test_function,
+            a_boolean                            clear_fe_pointers,
+            char                                 *ptr,
+            an_il_entry_kind                     kind)
+/*
+Walk the subtree of the intermediate language tree headed by ptr, whose
+kind is "kind".  Process each non-string entry by calling
+entry_process_function on that entry, and each string entry by calling
+string_entry_process_function on that entry.  Remap each pointer to a new
+value by calling remap_function.  Test for termination (not processing
+an entry and not continuing deeper into the tree) by calling
+termination_test_function.  entry_process_function,
+string_entry_process_function, remap_function, or termination_test_function
+can be NULL to indicate that the corresponding function is unnecessary.
+If clear_fe_pointers is TRUE, pointers to front end data structures
+are cleared as the traversal is done.  The caller must set
+flag_value_meaning_visited if it will be used by the termination test,
+*/
+{
+  an_il_walk_state saved_state;
+
+  db_enter(4, "walk_il_subtree");
+  /* Save the state of global variables for later restoration. */
+  save_il_walk_state(saved_state);
+  /* Save the function pointers so they don't have to be passed around. */
+  entry_process_func = entry_process_function;
+  string_entry_process_func = string_entry_process_function;
+  walk_termination_test_func = termination_test_function;
+  walk_remap_func = remap_function;
+  clear_fe_pointers_during_walk = clear_fe_pointers;
+#ifdef FFE
+  array_bound_walk_index = 0;
+#endif /* ifdef FFE */
+
+  remap_ptr(ptr, a_char_ptr, kind);
+  walking_file_scope = in_file_scope(ptr);
+  walking_secondary_trans_unit = in_secondary_trans_unit(ptr);
+  /* The default termination test cannot be used when walking a
+     secondary translation unit. */
+  check_assertion(termination_test_function != NULL ||
+                  !walking_secondary_trans_unit);
+  walk_entry_and_subtree(ptr, kind);
+  /* Restore the state of global variables. */
+  restore_il_walk_state(saved_state);
+  db_exit();
+}  /* walk_il_subtree */
 
 #endif /* IL_WALK_NEEDED */
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM

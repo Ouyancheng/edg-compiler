@@ -427,6 +427,20 @@ Complete the file scope of each of the translation units.
   switch_translation_unit(translation_units);
   /* Process the primary translation unit. */
   file_scope_il_wrapup_part_4();
+  /* Free the secondary IL file-scope memory regions.  This must be done after
+     rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary has
+     been called (in part 4 wrapup for the primary file scope). */
+  if (translation_units->next != NULL) {
+    a_memory_region_number n;
+    for (n = FILE_SCOPE_REGION_NUMBER + 1;
+         n <= highest_used_region_number;
+         n++) {
+      if (mem_region_table[n] != NULL &&
+          il_header.region_scope_entry[n]->kind == (a_scope_kind)sck_file) {
+          free_memory_region(n);
+      }  /* if */
+    }  /* for */
+  }
 }  /* wrap_up_file_scopes */
 
 

@@ -122,6 +122,16 @@ extern void walk_routine_scope_il(
             a_walk_termination_test_function_ptr termination_test_function,
             a_boolean                            clear_fe_pointers);
 
+/* Walk a subtree of the IL. */
+extern void walk_il_subtree(
+            an_entry_process_function_ptr        entry_process_function,
+            a_string_entry_process_function_ptr  string_entry_process_function,
+            a_remap_function_ptr                 remap_function,
+            a_walk_termination_test_function_ptr termination_test_function,
+            a_boolean                            clear_fe_pointers,
+            char                                 *ptr,
+            an_il_entry_kind                     kind);
+
 #endif /* IL_WALK_NEEDED */
 
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
@@ -159,9 +169,6 @@ EXTERN a_boolean
 			   that deals with walking the subtrees of variables
 			   and classes to set needed flags. */
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
-
-extern void walk_entry_and_subtree(char             *entry_ptr,
-                                   an_il_entry_kind entry_kind);
 
 extern void remap_pointers_in_il_entry(char             *entry_ptr,
                                        an_il_entry_kind entry_kind);
