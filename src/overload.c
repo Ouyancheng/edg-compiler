@@ -7795,34 +7795,44 @@ happen only in C++ mode.
 }  /* determine_dynamic_init_for_class_init */
 
 
-void prep_elision_initializer_operand(an_operand         *source_operand,
-                                      a_type_ptr         dest_type,
-                                      a_boolean          fill_in_dtor,
-                                      an_error_code      err_code,
-                                      a_dynamic_init_ptr *dip)
+void prep_elision_initializer_operand(
+                                  an_operand         *source_operand,
+                                  a_type_ptr         dest_type,
+                                  a_boolean          initializing_return_value,
+                                  a_boolean          fill_in_dtor,
+                                  an_error_code      err_code,
+                                  a_dynamic_init_ptr *dip)
 /*
 An entity of (class) type dest_type is being initialized from source_operand.
 Convert it if necessary (issuing an error if the conversion cannot be done),
 and build a dynamic initialization entry to describe the initialization.
-The dynamic initialization entry will also indicate a destructor if
-appropriate and if fill_in_dtor is TRUE.  Return a pointer to the dynamic
-initialization entry in *dip (or NULL for an error).  err_code is the error
-code to be used in case of error.  source_operand may be changed by this
-routine.  This routine is used in both C and C++ mode, but it exists to
-do copy constructor elision in C++ mode.  This is an initialization with
-the "=" semantics (copy-initialization).
+This initialization is the one in a return statement if
+initializing_return_value is TRUE.  The dynamic initialization entry will
+also indicate a destructor if appropriate and if fill_in_dtor is TRUE.
+Return a pointer to the dynamic initialization entry in *dip (or NULL
+for an error).  err_code is the error code to be used in case of error.
+source_operand may be changed by this routine.  This routine is used in
+both C and C++ mode, but it exists to do copy constructor elision in
+C++ mode.  This is an initialization with the "=" semantics
+(copy-initialization).
 */
 {
   a_conv_descr conversion;
   an_operand   orig_operand;
+  a_boolean    is_copy_initialization = TRUE;
 
   orig_operand = *source_operand;
   *dip = NULL;
+  /* Microsoft VC++ treats a return statement initialization as a
+     direct-initialization. */
+  if (initializing_return_value && microsoft_mode) {
+    is_copy_initialization = FALSE;
+  }  /* if */
   /* Look for a constructor to convert the expression to the required
      class type. */
   if (conversion_possible(source_operand, dest_type, dest_type,
                           /*need_lvalue_result=*/FALSE,
-                          /*is_copy_initialization=*/TRUE,
+                          is_copy_initialization,
                           /*is_reference_binding=*/FALSE,
                           err_code,
                           &source_operand->position,

@@ -454,11 +454,12 @@ extern void user_convert_operand(
                            a_boolean    force_temp_for_class_bitwise_copy);
 
 extern void prep_elision_initializer_operand(
-                                            an_operand         *source_operand,
-                                            a_type_ptr         dest_type,
-                                            a_boolean          fill_in_dtor,
-                                            an_error_code      err_code,
-                                            a_dynamic_init_ptr *dip);
+                                  an_operand         *source_operand,
+                                  a_type_ptr         dest_type,
+                                  a_boolean          initializing_return_value,
+                                  a_boolean          fill_in_dtor,
+                                  an_error_code      err_code,
+                                  a_dynamic_init_ptr *dip);
 
 extern void prep_initializer_operand(
                                   an_operand    *source_operand,

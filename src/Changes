@@ -1,5 +1,22 @@
 Version 2.39
 
+1/18/97   Microsoft compatibility: return initialization is
+          direct-initialization
+
+The Microsoft VC++ compiler 5.0 seems to treat the initialization in
+a return statement as direct-initialization (instead of the correct
+copy-initialization).  We now do the same in Microsoft mode.
+
+  struct A {
+    operator const char*() ;
+  };
+  struct B {
+    B(const char*) ;
+  };
+  B f(A a) {
+    return a;  // Accepted in Microsoft mode
+  }
+
 1/18/97   IL lowering temporaries allocated in innermost braces
 
 When IL lowering creates temporaries, it puts them in the innermost
