@@ -3369,15 +3369,23 @@ precedence confusion.
           a_type_ptr source_type = node->variant.operation.operands->type;
           if (is_pointer_type(source_type) &&
               is_class_struct_union_type(type_pointed_to(source_type))) {
-            a_type_ptr con_type = skip_typerefs(node->type);
-            a_type     type_copy;
-            check_assertion(con_type->kind == (a_type_kind)tk_pointer);
-            type_copy = *con_type;
-            type_copy.variant.pointer.is_reference = TRUE;
-            write_tok_ch('(');
-            gen_full_cast(&type_copy, operand_1, /*is_lvalue=*/TRUE, op);
-            write_tok_ch(')');
-            processed = TRUE;
+            a_type_ptr dest_type = node->type;
+            if (dest_type->kind == (a_type_kind)tk_typeref &&
+                typeref_is_typedef(dest_type)) {
+              /* The destination type is a typedef for a pointer type, so the
+                 cast must have been to that type rather than the reference
+                 type. */
+            } else {
+              a_type type_copy;
+              dest_type = skip_typerefs(dest_type);
+              check_assertion(dest_type->kind == (a_type_kind)tk_pointer);
+              type_copy = *dest_type;
+              type_copy.variant.pointer.is_reference = TRUE;
+              write_tok_ch('(');
+              gen_full_cast(&type_copy, operand_1, /*is_lvalue=*/TRUE, op);
+              write_tok_ch(')');
+              processed = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -3537,28 +3545,33 @@ when appropriate.
 
   if (op == (an_expr_operator_kind)eok_cast &&
       il_header.source_language == sl_Cplusplus) {
+    /* Look for casts involving related classes.  They are
+       reinterpret_casts. */
+    a_type_ptr underlying_source_type = NULL, underlying_dest_type = NULL;
     if (is_lvalue) {
-      a_type_ptr underlying_source_type = type_pointed_to(source_type);
-      a_type_ptr underlying_dest_type = type_pointed_to(dest_type);
+      underlying_source_type = type_pointed_to(source_type);
+      underlying_dest_type   = type_pointed_to(dest_type);
+    } else {
+      if (is_pointer_type(source_type) && is_pointer_type(dest_type)) {
+        underlying_source_type = type_pointed_to(source_type);
+        underlying_dest_type   = type_pointed_to(dest_type);
+      } else if (is_ptr_to_member_type(source_type) &&
+                 is_ptr_to_member_type(dest_type)) {
+        underlying_source_type = pm_class_type(source_type);
+        underlying_dest_type   = pm_class_type(dest_type);
+      }  /* if */
+    }  /* if */
+    if (underlying_source_type != NULL) {
+      /* A cast between pointers or pointers to members.  See if the
+         underlying types are related classes. */
       if (is_class_struct_union_type(underlying_source_type) &&
           is_class_struct_union_type(underlying_dest_type) &&
           /* Note that find_base_class_of is not used because it would
-             instantiate the source type. */
-          find_direct_base_class_of(underlying_source_type,
-                                    underlying_dest_type) != NULL) {
-        /* reinterpret_cast<Base &>(Derived_lvalue) */
-        is_reinterpret_cast = TRUE;
-      }  /* if */
-    } else {
-      a_boolean        baseward_cast;
-      a_base_class_ptr bcp;
-
-      if (related_class_pointers(source_type, dest_type,
-                                 &baseward_cast, &bcp) ||
-          related_member_pointers(source_type, dest_type,
-                                  &baseward_cast, &bcp)) {
-        /* A cast between pointers or pointers to members of related
-           classes. */
+             instantiate the derived type. */
+          (find_direct_base_class_of(underlying_source_type,
+                                     underlying_dest_type) != NULL ||
+           find_direct_base_class_of(underlying_dest_type,
+                                     underlying_source_type) != NULL)) {
         is_reinterpret_cast = TRUE;
       }  /* if */
     }  /* if */
