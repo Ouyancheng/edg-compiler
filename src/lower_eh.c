@@ -1227,7 +1227,7 @@ internal linkage.
   if (is_ptr_to_member_type(type)) {
     type = pm_class_type(type);
   }  /* if */
-  if (is_class_struct_union_type(type) && 
+  if (is_aggregate_or_union_type(type) && 
       is_incomplete_type(type)) {
     is_incomplete = TRUE;
   }  /* if */
