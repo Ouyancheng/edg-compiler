@@ -5446,8 +5446,8 @@ to indicate whether the class/struct/union is actually defined.
   if (is_class_definition) {
     /* A copy constructor need not be generated if construction by bitwise
        copy is equivalent.  When a class is being defined, set the flag to
-       to TRUE initially, and change it if a base class or member is
-       declared that precludes construction by bitwise copy. */
+       TRUE initially, and change it if a base class or member is declared
+       that precludes construction by bitwise copy. */
     cssp->construction_by_bitwise_copy_allowed = TRUE;
     /* Similarly, assignment by bitwise copy is allowed unless there are
        virtual base classes, virtual functions, or base classes or fields
