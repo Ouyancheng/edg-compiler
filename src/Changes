@@ -652,7 +652,7 @@ An internal error may result when an ambiguous namespace projection symbol
 refers to an undefined symbol entry that is created when an undefined
 name has been referenced.  This has been fixed.
 
-9/3/96  Default for for-init semantic in Microsoft mode
+9/3/96  Default for for-init semantics in Microsoft mode
 
 Because the Microsoft MSVC++ compiler does not yet support the new for-init
 scoping semantics, --old_for_init should be the default in Microsoft mode.
