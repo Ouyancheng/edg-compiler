@@ -6439,17 +6439,25 @@ See _expr.type.conv_ in the WP.
         make_integer_constant_operand(result, 0L);
         cast_operand_to_void(result, type_cast_to);
       } else if (is_class_struct_union_type(type_cast_to)) {
-        /* A class with no constructor, followed by (), e.g., "A()" --
-           initialization is to zero. */
+        /* A class with no constructor, followed by (), e.g., "A()". */
         an_expr_node_ptr temp_init_node =
                   create_expr_temporary(type_cast_to,
                                         /*result_is_addr=*/FALSE,
                                         &start_position);
         a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
-        set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);
+        if (reference_to_trivial_default_constructor(type_cast_to,
+                                                     &lparen_pos)) {
+          /* The class is a non-POD with an assumed trivial constructor.
+             The initialization conceptually calls the constructor, which is
+             a no-op. */
+          set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_none);
+        } else {
+          /* The class is a POD.  Initialization is to zero. */
+          set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);
+          /* Check for uninitialized const members within the class. */
+          check_for_missing_initializer((a_symbol_ptr)NULL, type_cast_to);
+        }  /* if */
         make_expression_operand(temp_init_node, temp_init_node->type, result);
-        /* Check for uninitialized reference members within the class. */
-        check_for_missing_initializer((a_symbol_ptr)NULL, type_cast_to);
       } else {
         /* A non-class type followed by (); generate the value a static
            object of that type would get by default (WP _expr.type.conv_),
