@@ -1,5 +1,20 @@
 Version 2.46
 
+11/14/01 Line synchronization problem with preprocessing output and
+         inert macro alone on line
+
+In cases where preprocessed output is being generated and the name
+of a function-like macro appears alone on an input line, with no
+opening parenthesis on the following line, the preprocessed output
+was incorrect in that line synchronization was thrown off.  Now
+fixed.
+
+  #define A()
+  line 2
+  A              // Output after this line was out of sync
+  line 4
+  line 5
+
 11/13/01 Final set of cleanup state in constructors and destructors
 
 The code to set the final cleanup state ("nothing left to clean up")

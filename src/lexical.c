@@ -2409,6 +2409,7 @@ is TRUE.
          gen_expanded_raw_listing_output_for_curr_line.  If you change
          this routine, change the other too. */
       set_up_for_walk_of_source_line(loc_in_line, slmp);
+      prev_pp_output_line_was_complete = FALSE;
       prev_ch = '\n';
       token_start = FALSE;
       for (;;) {
@@ -2474,7 +2475,6 @@ is TRUE.
                                           putc(' ', f_pp_output));
           /* Output the character. */
           putc(ch, f_pp_output);
-          prev_pp_output_line_was_complete = FALSE;
           loc_in_line++;
         }  /* if */
       }  /* for */
