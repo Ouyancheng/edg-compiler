@@ -98,7 +98,7 @@ one_instantiation_per_object=0
 # Default directory into which instantiations are placed when using
 # one_instantiation_per_object.
 #
-instantiation_dir=instantiation_objects
+instantiation_dir=Template.dir
 use_default_instantiation_dir=1
 #
 # Directory to be used for temporary files.
