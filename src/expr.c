@@ -14027,6 +14027,9 @@ see expr.h).
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
     expr_stack->fold_constant_addr_exprs = TRUE;
+    if (expr_stack->prev->is_template_arg_expression) {
+      expr_stack->is_template_arg_expression = TRUE;
+    }  /* if */
     check_assertion(!curr_expr_is_evaluated());
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
