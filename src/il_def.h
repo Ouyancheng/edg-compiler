@@ -620,7 +620,7 @@ by examining the tagged pointer.
 typedef struct a_src_seq_end_of_construct *a_src_seq_end_of_construct_ptr;
 typedef struct a_src_seq_end_of_construct {
   a_source_position
-		source_position;
+		position;
 			/* Normally, the source position of the tok_rbrace
 			   or tok_rparen that marks the end of the construct;
 			   for for-init declarations, the source position of
@@ -699,7 +699,7 @@ Entry describing a template instantiation directive.
 typedef struct an_instantiation_directive *an_instantiation_directive_ptr;
 typedef struct an_instantiation_directive {
   a_source_position
-		source_position;
+		position;
 			/* Source position of the start of the instantiation
 			   directive. */
   a_tagged_pointer

@@ -8671,7 +8671,7 @@ keyword, and ssep is the empty source sequence entry that should be used.
 
   if (!source_sequence_entries_disallowed) {
     idp = alloc_instantiation_directive();
-    idp->source_position = *pos;
+    idp->position = *pos;
     idp->entity.ptr = il_entry_for_symbol(sym, &kind);
     idp->entity.kind = (a_byte_il_entry_kind)kind;
     update_source_sequence_list((char *)idp,

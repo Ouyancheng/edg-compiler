@@ -7992,7 +7992,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
     } else if (kind == (an_il_entry_kind)iek_src_seq_end_of_construct) {
       a_src_seq_end_of_construct_ptr  sseocp;
       sseocp = (a_src_seq_end_of_construct_ptr)ssep->entity.ptr;
-      fprintf(f_debug, " (at %lu): ", sseocp->source_position.seq);
+      fprintf(f_debug, " (at %lu): ", sseocp->position.seq);
       switch (sseocp->entity.kind) {
         case iek_statement:
           sp = (a_statement_ptr)sseocp->entity.ptr;
@@ -8033,7 +8033,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
     } else if (kind == (an_il_entry_kind)iek_instantiation_directive) {
       an_instantiation_directive_ptr  idp;
       idp = (an_instantiation_directive_ptr)ssep->entity.ptr;
-      fprintf(f_debug, " (at %lu): \"", idp->source_position.seq);
+      fprintf(f_debug, " (at %lu): \"", idp->position.seq);
       if (idp->entity.kind == (a_byte_il_entry_kind)iek_type) {
         db_type_name((a_type_ptr)idp->entity.ptr);
       } else {
@@ -8804,7 +8804,7 @@ sequence list.
     }  /* if */
     /* Allocate and fill in the src-seq end of construct entry. */
     sseocp = alloc_src_seq_end_of_construct();
-    sseocp->source_position = pos_curr_token;
+    sseocp->position = pos_curr_token;
     sseocp->entity.kind = kind;
     sseocp->entity.ptr = ptr;
     /* Allocate and fill in the source sequence entry. */

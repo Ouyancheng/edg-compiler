@@ -2256,9 +2256,9 @@ return a pointer to it.
 #if DEBUG
   num_src_seq_end_of_constructs_allocated++;
 #endif /* DEBUG */
-  sseocp->source_position = null_source_position;
-  sseocp->entity.kind     = (a_byte_il_entry_kind)iek_none;
-  sseocp->entity.ptr      = NULL;
+  sseocp->position    = null_source_position;
+  sseocp->entity.kind = (a_byte_il_entry_kind)iek_none;
+  sseocp->entity.ptr  = NULL;
 
   return sseocp;
 }  /* alloc_src_seq_end_of_construct */
@@ -2317,9 +2317,9 @@ a pointer to it.
 #if DEBUG
   num_instantiation_directives_allocated++;
 #endif /* DEBUG */
-  idp->source_position = null_source_position;
-  idp->entity.kind     = (a_byte_il_entry_kind)iek_none;
-  idp->entity.ptr      = NULL;
+  idp->position    = null_source_position;
+  idp->entity.kind = (a_byte_il_entry_kind)iek_none;
+  idp->entity.ptr  = NULL;
 
   return idp;
 }  /* alloc_instantiation_directive */

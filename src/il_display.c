@@ -3355,10 +3355,8 @@ static void disp_src_seq_end_of_construct(a_src_seq_end_of_construct_ptr ptr)
 Display the indicated source sequence end-of-construct entry.
 */
 {
-  disp_unsigned_long("source_position.seq",
-                     (unsigned long)ptr->source_position.seq);
-  disp_unsigned_long("source_position.column",
-                     (unsigned long)ptr->source_position.column);
+  disp_unsigned_long("position.seq", (unsigned long)ptr->position.seq);
+  disp_unsigned_long("position.column", (unsigned long)ptr->position.column);
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
 }  /* disp_src_seq_end_of_construct */
@@ -3401,10 +3399,8 @@ static void disp_instantiation_directive(an_instantiation_directive_ptr  idp)
 Display the indicated instantiation-directive entry.
 */
 {
-  disp_unsigned_long("source_position.seq",
-                     (unsigned long)idp->source_position.seq);
-  disp_unsigned_long("source_position.column",
-                     (unsigned long)idp->source_position.column);
+  disp_unsigned_long("position.seq", (unsigned long)idp->position.seq);
+  disp_unsigned_long("position.column", (unsigned long)idp->position.column);
   disp_ptr("entity", (char *)idp->entity.ptr,
            (an_il_entry_kind)idp->entity.kind);
 }  /* disp_instantiation_directive */
