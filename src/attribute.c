@@ -1599,6 +1599,8 @@ Copy any GNU type attributes in type dst to type src.
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
         break;
       default:
+        /* No attributes to copy. */
+        break;
     }  /* switch */
   }  /* if */
   return dst;
