@@ -6039,7 +6039,7 @@ if this routine has a body (dump nothing if it has no body).
 #endif /* MAINTAIN_NEEDED_FLAGS */
                                                         );
   a_boolean       is_definition;
-  a_storage_class storage_class;
+  a_storage_class storage_class = rout->storage_class;
 
 #if ONE_INSTANTIATION_PER_OBJECT
   if (has_defn && needed_flag_bit_number != 0) {
@@ -6057,6 +6057,9 @@ if this routine has a body (dump nothing if it has no body).
          if the current output file is for an instantiation. */
       if (needed_flag_bit_number != 1) has_defn = FALSE;
     }  /* if */
+    if (!has_defn) {
+      storage_class = (a_storage_class)sc_extern;
+    }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   if (!has_defn && dump_defn) {
@@ -6069,7 +6072,7 @@ if this routine has a body (dump nothing if it has no body).
        or defined. */
 #endif /* SGIC */
 #if ASM_FUNCTION_ALLOWED
-  } else if (!dump_defn && rout->storage_class == (a_storage_class)sc_asm) {
+  } else if (!dump_defn && storage_class == (a_storage_class)sc_asm) {
     /* Suppress forward declaration of an asm function. */
 #endif /* ASM_FUNCTION_ALLOWED */
   } else if (rout->superseded_external) {
@@ -6102,8 +6105,6 @@ if this routine has a body (dump nothing if it has no body).
     }  /* if */
     /* Dump the routine interface. */
     set_output_position(&rout->source_corresp.decl_position);
-    /* Output the storage class. */
-    storage_class = rout->storage_class;
     /* Determine the proper storage class to display. */
     if (!is_definition) {
       /* The function is not defined (here), so use "extern". */
@@ -6111,6 +6112,7 @@ if this routine has a body (dump nothing if it has no body).
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
     }  /* if */
+    /* Output the storage class. */
     dump_storage_class(storage_class);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
