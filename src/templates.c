@@ -11016,7 +11016,7 @@ set, and its source sequence entry, if any, has been put out.)
   a_template_ptr  il_template_entry = decl_state->il_template_entry;
 
   if (il_template_entry != NULL) {
-    if (sym != NULL && !sym->is_error) {
+    if (sym != NULL) {
       /* Set the template kind. */
       switch (sym->kind) {
         case sk_class_template:
@@ -11087,7 +11087,7 @@ set, and its source sequence entry, if any, has been put out.)
           check_assertion(total_errors > 0);
           err = TRUE;
       }  /* switch */
-      if (!err) {
+      if (!err || sym->is_error) {
         /* Set parent information in the IL entry. */
         if (sym->is_class_member) {
           if (!sym->parent.class_type->
