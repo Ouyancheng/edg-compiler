@@ -646,6 +646,9 @@ to replace the initial portion of this compilation.
   host_envir_init();
   host_init();
   il_init();
+#if IL_WALK_NEEDED
+  il_walk_init();
+#endif /* IL_WALK_NEEDED */
   lexical_init();
   symbol_tbl_init();
   scope_stk_init();
