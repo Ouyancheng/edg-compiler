@@ -8036,7 +8036,7 @@ prep_elision_initializer_operand.
 {
   a_type_ptr base_dest_type, base_source_type;
   a_type_ptr unqual_dest_type, unqual_source_type;
-  a_boolean  type_is_correct_or_derived, err = FALSE;
+  a_boolean  type_is_correct_or_derived, err = FALSE, dropping_qualifiers;
   a_boolean  conversion_to_temp_done, ref_to_nonconst;
   an_operand orig_operand;
 
@@ -8069,9 +8069,9 @@ prep_elision_initializer_operand.
     }  /* if */
     ref_to_nonconst = !is_const_qualified_type(base_dest_type);
     /* The destination type must have no fewer type qualifiers than the source
-       type. */
-    if (type_is_correct_or_derived &&
-        fewer_qualifiers(base_dest_type, base_source_type)) {
+       type to be usable without conversion (ARM 8.4.3). */
+    dropping_qualifiers = fewer_qualifiers(base_dest_type, base_source_type);
+    if (dropping_qualifiers && type_is_correct_or_derived) {
       /* There are fewer qualifiers on the destination than on the source,
          so the initialization would involve dropping qualifiers. */
       /* cfront makes a field selected from a const structure compatible
@@ -8091,8 +8091,9 @@ prep_elision_initializer_operand.
           is_field_selection_lvalue_operand(source_operand)) {
         /* Okay.  Note that a temporary will not be used in these cases. */
         pos_warning(ec_cfront_nonconst_ref_init, &source_operand->position);
+        dropping_qualifiers = FALSE;
       } else {
-        /* Not okay -- qualifiers are being dropped. */
+        /* Qualifiers are being dropped. */
         type_is_correct_or_derived = FALSE;
       }  /* if */
     }  /* if */
@@ -8142,15 +8143,19 @@ prep_elision_initializer_operand.
         /* The temp has the same type as the operand, but without
            type qualifiers. */
         convert_operand_into_temp(source_operand,
-                                  skip_typerefs(base_dest_type),
+                                  unqual_dest_type,
                                   expression_kind, incompatible_err, &err);
         conversion_to_temp_done = TRUE;
       }  /* if */
       if (!err) {
+        if (dropping_qualifiers) {
+          /* Type qualifiers were dropped. */
+          error_in_operand(ec_qualifier_dropped_in_ref_init, source_operand);
+          err = TRUE;
+        } else if (ref_to_nonconst) {
         /* The reference must be to a const object (otherwise the user might
            change the temporary thinking he is changing the original
            object). */
-        if (ref_to_nonconst) {
           /* A reference to non-const; this is an error according to the ARM
              (8.4.3), but we allow it as an anachronism. */
           if (allow_anachronisms) {
@@ -8159,7 +8164,7 @@ prep_elision_initializer_operand.
                            &source_operand->position);
           } else {
             /* Anachronism is not allowed. */
-            error_in_operand(incompatible_err, source_operand);
+            error_in_operand(ec_bad_nonconst_ref_init, source_operand);
           }  /* if */
           err = TRUE;
         }  /* if */
