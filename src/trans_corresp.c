@@ -3802,11 +3802,13 @@ correspondences with other translation units.)
 {
   a_namespace_ptr  result = nsp;
 
-  if (nsp != NULL && in_secondary_trans_unit(nsp)) {
+  if (nsp != NULL) {
     /* If we're in the process of establishing correspondences, this particular
        entry may need to be processed now.  Otherwise, it should already have
        been done or no correspondence can be expected. */
-    determine_correspondence(&nsp->source_corresp, iek_namespace);
+    if (in_secondary_trans_unit(nsp)) {
+      determine_correspondence(&nsp->source_corresp, iek_namespace);
+    }  /* if */
     result = (a_namespace_ptr)canonical_il_entry_of(nsp);
   }  /* if */
   return result;
@@ -3822,11 +3824,13 @@ entry.
 {
   a_field_ptr  result = field;
 
-  if (field != NULL && in_secondary_trans_unit(field)) {
+  if (field != NULL) {
     /* If we're in the process of establishing correspondences, this particular
        entry may need to be processed now.  Otherwise, it should already have
        been done or no correspondence can be expected. */
-    determine_correspondence(&field->source_corresp, iek_field);
+    if (in_secondary_trans_unit(field)) {
+      determine_correspondence(&field->source_corresp, iek_field);
+    }  /* if */
     result = (a_field_ptr)canonical_il_entry_of(field);
   }  /* if */
   return result;
@@ -3842,8 +3846,10 @@ entry.
 {
   a_routine_ptr  result = routine;
 
-  if (routine != NULL && in_secondary_trans_unit(routine)) {
-    determine_correspondence(&routine->source_corresp, iek_routine);
+  if (routine != NULL) {
+    if (in_secondary_trans_unit(routine)) {
+      determine_correspondence(&routine->source_corresp, iek_routine);
+    }  /* if */
     result = (a_routine_ptr)canonical_il_entry_of(routine);
   }  /* if */
   return result;
@@ -3859,8 +3865,10 @@ entry.
 {
   a_variable_ptr              result = var;
 
-  if (var != NULL && in_secondary_trans_unit(var)) {
-    determine_correspondence(&var->source_corresp, iek_variable);
+  if (var != NULL) {
+    if (in_secondary_trans_unit(var)) {
+      determine_correspondence(&var->source_corresp, iek_variable);
+    }  /* if */
     result = (a_variable_ptr)canonical_il_entry_of(var);
   }  /* if */
   return result;
@@ -3876,7 +3884,7 @@ canonical entry.
 {
   a_type_ptr              result = type;
 
-  if (type != NULL && in_secondary_trans_unit(type) &&
+  if (type != NULL &&
       /* Do not attempt to find a match for a type instantiated from a
          template template parameter. */
       !(is_immediate_class_type(type) &&
@@ -3884,7 +3892,9 @@ canonical entry.
         assoc_template_of(type) != NULL &&
         assoc_template_of(type)->kind ==
                            (a_template_kind)templk_template_template_param)) {
-    determine_correspondence(&type->source_corresp, iek_type);
+    if (in_secondary_trans_unit(type)) {
+      determine_correspondence(&type->source_corresp, iek_type);
+    }  /* if */
     result = (a_type_ptr)canonical_il_entry_of(type);
   }  /* if */
   return result;
@@ -3900,8 +3910,10 @@ canonical entry.
 {
   a_template_ptr              result = templ;
 
-  if (templ != NULL && in_secondary_trans_unit(templ)) {
-    determine_correspondence(&templ->source_corresp, iek_template);
+  if (templ != NULL) {
+    if (in_secondary_trans_unit(templ)) {
+      determine_correspondence(&templ->source_corresp, iek_template);
+    }  /* if */
     result = (a_template_ptr)canonical_il_entry_of(templ);
   }  /* if */
   return result;
@@ -4055,7 +4067,14 @@ corresponding instance, or NULL if no corresponding instance is found.
   /* Get the correspondence entry associated with sym_to_find. */
   entry = il_entry_for_symbol(sym_to_find, &il_kind);
   corresp_ptr = trans_unit_corresp_of_unknown_entry(entry);
-  check_assertion(corresp_ptr != NULL);
+  if (corresp_ptr == NULL) {
+    /* Entities in the primary translation unit may not get a correspondence
+       entry.  Some error situations also leave entries without
+       correspondence entries.  Create one now. */
+    check_assertion(!in_secondary_trans_unit(entry) || total_errors != 0);
+    set_no_trans_unit_corresp(il_kind, entry);
+    corresp_ptr = trans_unit_corresp_of_unknown_entry(entry);
+  }  /* if */
   /* Get the corresponding template in the specified translation unit.
      Note that it is possible that there is no such corresponding template. */
   template_sym = template_symbol_for_class_symbol(sym_to_find);
@@ -4313,7 +4332,14 @@ NULL if none is found.
   /* Get the correspondence entry associated with sym_to_find. */
   il_entry = il_entry_for_symbol(sym_to_find, &il_kind);
   corresp_ptr = trans_unit_corresp_of_unknown_entry(il_entry);
-  check_assertion(corresp_ptr != NULL);
+  if (corresp_ptr == NULL) {
+    /* Entities in the primary translation unit may not get a correspondence
+       entry.  Some error situations also leave entries without
+       correspondence entries.  Create one now. */
+    check_assertion(!in_secondary_trans_unit(il_entry) || total_errors != 0);
+    set_no_trans_unit_corresp(il_kind, il_entry);
+    corresp_ptr = trans_unit_corresp_of_unknown_entry(il_entry);
+  }  /* if */
   if (symbol_list != NULL) {
     /* Find the symbol on a list of symbol list entries. */
     a_symbol_list_entry_ptr	slep;
