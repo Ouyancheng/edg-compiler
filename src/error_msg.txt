@@ -1216,6 +1216,7 @@ ec_bad_export_info_file;;"invalid export information file %sq1 at line number %s
 ec_statement_expression_in_function_only;;"statement expressions are only allowed in block scope"
 ec_from_trans_unit;INTERNAL;"from translation unit "
 ec_asm_name_on_auto_variable;;"an asm name is ignored on a non-register automatic variable"
+ec_ignoring_inline_definition_because_of_alias;;"inline function also declared as an alias; definition ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
