@@ -73,7 +73,67 @@ Enter a predefined type.
   sym_ptr->variant.type = type;
   set_source_corresp(&type->source_corresp, sym_ptr);
 }  /* enter_predefined_type */
-#endif /* 0 */  
+#endif /* 0 */
+
+
+void enter_system_specific_predeclared_symbols(void)
+/*
+Enter predeclared symbols as required by the implementation.
+*/
+{
+#if 0
+  /* The following is presented as a sort of template for entering
+     predeclared functions.  The example causes the symbol to be added to
+     the scope of predeclared namespace "std" -- remove the push_scope and
+     pop_scope calls to enter the symbols in the file scope. */
+
+  a_symbol_locator  loc;
+  a_type_ptr        return_type, param1_type, param2_type, param3_type;
+
+  /* This routine should not be called before make_symbol_for_namespace_std
+     is called to predeclare namespace "std" (see fe_init.c). */
+  check_assertion(symbol_for_namespace_std != NULL);
+  /* First push the scope for namespace std.  (This is done on the assumption
+     that the current scope is the file scope.) */
+  check_assertion(depth_scope_stack == DEPTH_OF_FILE_SCOPE);
+  (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
+                             symbol_for_namespace_std->
+                                           variant.namespace_info.ptr);
+
+  /* For each function to be entered, clear the locator, call find_symbol
+     to create the symbol header, create type entries for the return type
+     and the param types, and then call make_predeclared_function_symbol
+     to do the rest of the work.  The following creates a routine entry and
+     a symbol for std::memcpy, adds the routine to the routines list of
+     namespace std, and adds the symbol to the symbol table. */
+  /* Note: even though std::memcpy is added to the symbol table, it cannot
+     be called directly in user code with that name until namespace std is
+     explicitly declared, because the latter was predeclared without actually
+     being added to the symbol table (see enter_symbol_for_namespace_std). */
+
+  /* Create a symbol header with the required name. */
+  clear_locator(&loc, &null_source_position);
+  (void)find_symbol("memcpy", (sizeof_t)6, &loc);
+  /* Create the return type and parameter types. */
+  return_type = void_type();
+  param1_type = param2_type =
+                    make_pointer_type(integer_type((an_integer_kind)ik_char));
+  param3_type = integer_type((an_integer_kind)ik_int);
+  /* Create the routine entry and the symbol. */
+  (void)make_predeclared_function_symbol(&loc, return_type, param1_type,
+                                         param2_type, param3_type);
+  /* Repeat these steps for additional predeclared functions. */
+
+  /* After all the functions have been entered, pop the scope for namespace
+     std. */
+  (void)pop_scope();
+
+  /* An example of entering a predefined type: */
+  enter_predefined_type(integer_type((an_integer_kind)ik_long_long),
+                        "__long_long");
+#endif /* 0 */
+}  /* enter_system_specific_predeclared_symbols */
+
 
 void enter_system_specific_predefined_macros_and_assertions(void)
 /*
@@ -99,11 +159,6 @@ Define system-specific predefined macros and builtin #assert predicates
 #ifdef __linux__
   enter_linux_predefined_macros();
 #endif /* ifdef __linux__ */
-#if 0
-  /* An example of entering a predefined type: */
-  enter_predefined_type(integer_type((an_integer_kind)ik_long_long),
-                        "__long_long");
-#endif /* 0 */
 }  /* enter_system_specific_predefined_macros_and_assertions */
 
 
