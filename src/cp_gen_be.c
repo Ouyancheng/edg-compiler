@@ -1882,6 +1882,34 @@ Generate a cast to the indicated type.
 }  /* gen_cast */
 
 
+static void check_for_implicit_function_decl(a_routine_ptr rout)
+/*
+The indicated routine is being called in C mode.  Check to see if it is
+implicitly declared, by checking to see if the next source sequence entry
+is a declaration for the function.  If so, advance past the source sequence
+entry so it will not be put out as a declaration.
+*/
+{
+  if ((an_il_entry_kind)func_scope_source_sequence_entry->entity.kind ==
+                                                   iek_source_sequence_entry) {
+    a_source_sequence_entry_ptr ssep = (a_source_sequence_entry_ptr)
+                                  func_scope_source_sequence_entry->entity.ptr;
+    if ((an_il_entry_kind)ssep->entity.kind == iek_routine){
+      a_routine_ptr decl_rout = (a_routine_ptr)ssep->entity.ptr;
+      /* Make sure the routine being called is the one being declared. */
+      if (rout == decl_rout) {
+        /* Advance past the declaration on both the file scope and
+           the function scope source sequence lists. */
+        (void)next_func_scope_source_sequence_entry();
+        check_assertion_str(file_scope_source_sequence_entry == ssep,
+                   "check_for_implicit_function_decl: wrong file scope entry");
+        (void)next_file_scope_source_sequence_entry();
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_for_implicit_function_decl */
+
+
 static void gen_operation(an_expr_node_ptr expr)
 /*
 Generate an expression operation.
@@ -2140,6 +2168,12 @@ Generate an expression operation.
       goto done;
     case eok_call:
       /* N operand operator. */
+      if (il_header.source_language == sl_C) {
+        /* In C, check for an implicit declaration of the function. */
+        if (operand_1->kind == (an_expr_node_kind)enk_routine_address) {
+           check_for_implicit_function_decl(operand_1->variant.routine);
+        }  /* if */
+      }  /* if */
       /* Put out the function to call. */
       gen_lvalue(operand_1);
       write_str("(");
