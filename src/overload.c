@@ -7601,10 +7601,11 @@ the operator.
     if (is_error_operand(operand_1) || 
         (!unary_operator && is_error_operand(operand_2))) {
       /* One or both of the operands is an error operand. */
-      if (opname_symbol_table[kind] != NULL) {
+      if (opname_symbol_table[kind] != NULL || !has_predef_meaning) {
         /* There exists a function that overloads the operator.  Therefore,
            a match might have been possible.  However, we cannot tell.
            Assume there is a match and give up. */
+        /* Or there is no predefined meaning for this operator. */
         *processed = TRUE;
         make_error_operand(result);
       } else {
