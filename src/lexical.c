@@ -212,7 +212,7 @@ Used in strict ANSI mode to make sure that this diagnostic is only given
 once per compilation unit.
 */
 static a_boolean
-                dollar_in_id_diagnostic_issued;
+		dollar_in_id_diagnostic_issued;
 
 #if DEBUG
 /*
