@@ -5767,7 +5767,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
           /* No need to check for masking in this case. */
         } else if (prev_handler->parameter == NULL) {
           /* Anything following a default handler is masked by it. */
-          pos_error(ec_masked_by_default_handler, &decl_pos);
+          pos_warning(ec_masked_by_default_handler, &decl_pos);
           masked = TRUE;
         } else if (handler->parameter == NULL) {
           /* Current handler is a default handler -- it can only be masked by
@@ -5778,8 +5778,8 @@ clause is to be attached.  catch_pos is the source position of "catch".
                                                  type_ptr)) {
           /* The type of prev_handler assures that handler will never be
              called, because it masks current handler's type.  See ARM 15.4. */
-          pos_ty_error(ec_masked_by_handler, &decl_pos,
-                       prev_handler->parameter->type);
+          pos_ty_warning(ec_masked_by_handler, &decl_pos,
+                         prev_handler->parameter->type);
           masked = TRUE;
         }  /* if */
         if (prev_handler->next == NULL) break;
