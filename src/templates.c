@@ -3022,7 +3022,7 @@ type based on the template argument list and the template parameter list
 (reached through templ_sym).
 */
 {
-  a_symbol_ptr                      sym;
+  a_symbol_ptr                      sym = NULL;
   a_template_symbol_supplement_ptr  tssp;
   a_memory_region_number            region_to_switch_back_to;
   a_template_instance_ptr           tip;
@@ -3036,11 +3036,6 @@ type based on the template argument list and the template parameter list
 #if CHECKING
   check_function_template_arg_list(templ_arg_list, templ_sym);
 #endif /* CHECKING */
-  /* Allocate the template function symbol.  Note that it is not entered
-     into the symbol table -- it will appear on a function instantiation
-     list under the function template symbol and, optionally, in the overload
-     list if it is also explicitly declared by the user. */
-  sym = make_template_function_symbol(templ_sym, source_pos);
   if (templ_sym->kind == (a_symbol_kind)sk_member_function) {
 #if 0
     tssp = templ_sym->variant.routine.instance_ptr->template_info;
@@ -3054,7 +3049,7 @@ type based on the template argument list and the template parameter list
   /* All IL routines must be at the file scope level, so switch to that
      memory region if necessary to allocate the routine entry. */
   switch_to_file_scope_region(&region_to_switch_back_to);
-  sym->variant.routine.ptr = rp = alloc_routine();
+  rp = alloc_routine();
   {
     /* Create a routine type by rescanning the original declaration
        with the template parameters updated to refer to the appropriate
@@ -3107,6 +3102,12 @@ type based on the template argument list and the template parameter list
     done_with_func_info(func_info);
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;
+    /* Allocate the template function symbol.  Note that it is not entered
+       into the symbol table -- it will appear on a function instantiation
+       list under the function template symbol and, optionally, in the overload
+       list if it is also explicitly declared by the user. */
+    sym = make_template_function_symbol(templ_sym, source_pos, rout_type);
+    sym->variant.routine.ptr = rp;
     /* Give the routine entry the type passed in, and set other fields in
        accord with the settings in the template. */
     rp->type = rout_type;

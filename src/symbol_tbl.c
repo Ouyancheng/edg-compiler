@@ -3050,6 +3050,62 @@ progenitor_sym is a member) if ambiguous is TRUE.
 }  /* make_projection_symbol */
 
 
+static
+a_symbol_header_ptr symbol_header_for_conversion_function(a_type_ptr type)
+/*
+Look up the symbol header for a given conversion function.  If there
+is none, create a new one.
+*/
+{
+  a_conversion_header_ptr  conv_hdr;
+  a_conversion_header_ptr  prev_conv_hdr;
+  a_symbol_header_ptr      sym_hdr;
+  char                     *type_name;
+  sizeof_t                 type_name_length;
+#define OPERATOR_LEN 9 /* Length of "operator " */
+
+  /* Search the conversion header list for an entry of the required type.
+     If one is found, it is moved to the front of the list. */
+  prev_conv_hdr = NULL;
+  conv_hdr = conversion_header_list;
+  for (; conv_hdr != NULL; conv_hdr = conv_hdr->next) {
+    if (types_are_compatible(type, conv_hdr->type)) {
+      /* Found it.  Move it to the front of the list. */
+      if (prev_conv_hdr != NULL) {
+        prev_conv_hdr->next = conv_hdr->next;
+        conv_hdr->next = conversion_header_list;
+        conversion_header_list = conv_hdr;
+      }  /* if */
+      break;
+    }  /* if */
+    prev_conv_hdr = conv_hdr;
+  }  /* if */
+  /* conv_hdr is NULL if no entry already exists on the list for the
+     specified type. */
+  if (conv_hdr == NULL) {
+    /* Create a new conversion header entry and add it to the front of
+       the list. */
+    conv_hdr = alloc_conversion_header();
+    conv_hdr->next = conversion_header_list;
+    conversion_header_list = conv_hdr;
+    /* Set the type and symbol header. */
+    conv_hdr->type = type;
+    conv_hdr->symbol_header = sym_hdr = alloc_symbol_header();
+    /* Conversion symbols have the name "operator <type-name>". */
+    type_name = format_type_string(type, &type_name_length);
+    sym_hdr->identifier_length = (sizeof_t)OPERATOR_LEN + type_name_length;
+    sym_hdr->identifier = alloc_il(sym_hdr->identifier_length + 1);
+    (void)memcpy(sym_hdr->identifier, "operator ", OPERATOR_LEN);
+    (void)strcpy((sym_hdr->identifier + OPERATOR_LEN), type_name);
+#if DEBUG
+    symbol_name_string_space += sym_hdr->identifier_length;
+#endif /* DEBUG */
+  }  /* if */
+  return conv_hdr->symbol_header;
+#undef OPERATOR_LEN
+}  /* symbol_header_for_conversion_function */
+
+
 static a_symbol_ptr make_parameter_symbol(a_symbol_locator  *locator)
 /*
 Create but do not yet enter an sk_parameter symbol.  This routine is called
@@ -3115,15 +3171,25 @@ ct_symbol is the symbol of the class template.
 
 
 a_symbol_ptr make_template_function_symbol(a_symbol_ptr       templ_sym,
-                                           a_source_position  *pos)
+                                           a_source_position  *pos,
+                                           a_type_ptr         rout_type)
 /*
 Create a symbol for a template function.  Do not enter it into the symbol
 table, since it is accessed from the associated function instantiation entry.
 */
 {
-  a_symbol_ptr  sym;
+  a_symbol_ptr  	sym;
+  a_symbol_header_ptr	sym_hdr;
 
-  sym = alloc_symbol((a_symbol_kind)sk_routine, templ_sym->header, pos);
+  /* Determine which symbol header should be used for this symbol.  This
+     is usually the same symbol header as the template.  But for conversion
+     operators, a new name must be generated based on the type. */
+  if (is_special_function_symbol(templ_sym, sfk_conversion)) {
+    sym_hdr = symbol_header_for_conversion_function(rout_type);
+  } else {
+    sym_hdr = templ_sym->header;
+  }  /* if */
+  sym = alloc_symbol((a_symbol_kind)sk_routine, sym_hdr, pos);
   /* Template functions will be in the same scope as the template (which
      should always be the file scope. */
   sym->decl_scope = templ_sym->decl_scope;;
@@ -3693,62 +3759,17 @@ void make_type_conversion_locator(a_type_ptr         type,
                                   a_source_position  *pos)
 /*
 Create a locator to represent a type conversion function.  The destination
-type "type" is recorded in the locator.  The symbol header is looked up
-in the conversion header list; if there is none, a new one is created.
+type "type" is recorded in the locator.
 */
 {
-  a_conversion_header_ptr  conv_hdr, prev_conv_hdr;
-  a_symbol_header_ptr      sym_hdr;
-  char                     *type_name;
-  sizeof_t                 type_name_length;
-#define OPERATOR_LEN 9 /* Length of "operator " */
-
   if (is_error_type(type)) {
     set_to_error_locator(*locator);
   } else {
     clear_locator(locator, pos);
-    /* Search the conversion header list for an entry of the required type.
-       If one is found, it is moved to the front of the list. */
-    prev_conv_hdr = NULL;
-    conv_hdr = conversion_header_list;
-    for (; conv_hdr != NULL; conv_hdr = conv_hdr->next) {
-      if (types_are_compatible(type, conv_hdr->type)) {
-	/* Found it.  Move it to the front of the list. */
-	if (prev_conv_hdr != NULL) {
-          prev_conv_hdr->next = conv_hdr->next;
-          conv_hdr->next = conversion_header_list;
-          conversion_header_list = conv_hdr;
-	}  /* if */
-	break;
-      }  /* if */
-      prev_conv_hdr = conv_hdr;
-    }  /* if */
-    /* conv_hdr is NULL if no entry already exists on the list for the
-       specified type. */
-    if (conv_hdr == NULL) {
-      /* Create a new conversion header entry and add it to the front of
-         the list. */
-      conv_hdr = alloc_conversion_header();
-      conv_hdr->next = conversion_header_list;
-      conversion_header_list = conv_hdr;
-      /* Set the type and symbol header. */
-      conv_hdr->type = type;
-      conv_hdr->symbol_header = sym_hdr = alloc_symbol_header();
-      /* Conversion symbols have the name "operator <type-name>". */
-      type_name = format_type_string(type, &type_name_length);
-      sym_hdr->identifier_length = (sizeof_t)OPERATOR_LEN + type_name_length;
-      sym_hdr->identifier = alloc_il(sym_hdr->identifier_length + 1);
-      (void)memcpy(sym_hdr->identifier, "operator ", OPERATOR_LEN);
-      (void)strcpy((sym_hdr->identifier + OPERATOR_LEN), type_name);
-#if DEBUG
-      symbol_name_string_space += sym_hdr->identifier_length;
-#endif /* DEBUG */
-    }  /* if */
-    locator->symbol_header = conv_hdr->symbol_header;
+    locator->symbol_header = symbol_header_for_conversion_function(type);
   }  /* if */
   locator->is_conversion_name = TRUE;
   locator->variant.conversion_result_type = type;
-#undef OPERATOR_LEN
 }  /* make_type_conversion_locator */
 
 

@@ -2096,8 +2096,10 @@ extern a_symbol_ptr make_projection_symbol(a_symbol_ptr      progenitor_sym,
 
 extern a_symbol_ptr make_template_class_symbol(a_symbol_ptr  ct_symbol);
 
-extern a_symbol_ptr make_template_function_symbol(a_symbol_ptr       templ_sym,
-                                                  a_source_position  *pos);
+extern
+a_symbol_ptr make_template_function_symbol(a_symbol_ptr       templ_sym,
+                                           a_source_position  *pos,
+                                           a_type_ptr         rout_type);
 
 extern a_symbol_ptr get_member_function_template_symbol(a_symbol_ptr rout_sym);
 
