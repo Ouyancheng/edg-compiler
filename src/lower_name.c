@@ -1352,9 +1352,12 @@ to the type "type".
     add_to_mangled_name('1', mctl);
   }  /* if */
 #else /* IA64_ABI */
-  /* IA-64 encoding.  "cv" is the operator for a cast. */
-  add_str_to_mangled_name("cv", mctl);
-  mangled_encoding_for_type(type, mctl);
+  /* IA-64 encoding.  "cv" is the operator for a cast.  Implicit casts
+     are not rendered. */
+  if (con->explicit_cast_applied) {
+    add_str_to_mangled_name("cv", mctl);
+    mangled_encoding_for_type(type, mctl);
+  }  /* if */
 #endif /* IA64_ABI */
   /* Put out the operand. */
   mangled_encoding_for_constant(con, /*old_form=*/FALSE, mctl);
@@ -2105,6 +2108,10 @@ arguments, and as dimensions of arrays in template signatures.
              for it. */
                                                                             ||
           expr->variant.operation.kind == (an_expr_operator_kind)eok_unary_plus
+          /* Also drop implicit casts. */
+                                                                            ||
+          (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
+           expr->variant.operation.compiler_generated)
 #endif /* IA64_ABI */
                                                                            )) {
     expr = expr->variant.operation.operands;
