@@ -59,10 +59,6 @@ a "for"] would have to be rewritten.)
  #error -- The C++/C-generating back end requires RECORD_TEMPLATES_IN_IL.
 #endif /* !RECORD_TEMPLATES_IN_IL */
 
-#if !RECORD_MACROS_IN_IL
- #error -- The C++/C-generating back end requires RECORD_MACROS_IN_IL.
-#endif /* !RECORD_MACROS_IN_IL */
-
 #include "target.h"
 #include "cp_gen_be.h"
 #include "cmd_line.h"
