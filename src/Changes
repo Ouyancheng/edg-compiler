@@ -1,5 +1,13 @@
 Version 3.1
 
+1/17/03  Precompiled headers: internal error if memory cannot be mapped
+
+Before a precompiled header is loaded, the front end attempts to map the
+memory required to use the PCH file.  Later, when the PCH file is being read,
+if the memory can no longer be mapped, the front end issues a catastrophic
+error.  A bug caused an internal error to result from the attempt to
+issue the error.  This has been fixed.
+
 1/16/03  Incorrect handling of cv-qualified reference template parameter
 
 A cv-qualifier should be ignored when applied to a reference type.

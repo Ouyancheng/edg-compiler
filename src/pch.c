@@ -148,6 +148,7 @@ Called when a write operation on a PCH file fails.  Issue a catastrophic
 error.
 */
 {
+  error_position = null_source_position;
   str_catastrophe(ec_file_write_error, "PCH");
 }  /* pch_write_error */
 
@@ -1265,6 +1266,7 @@ the PCH file.
     if (addr == NULL) {
       /* We were unable to get the desired mapped memory.  This is
          something we can't recover from. */
+      error_position = null_source_position;
       catastrophe(ec_unable_to_get_mapped_memory);
     }  /* if */
     /* Create a memory allocation history entry for this block. */
