@@ -479,18 +479,16 @@ routine directly.
 }  /* f_is_qualified_type */
 
 
-a_boolean is_base_class_of(a_type_ptr       derived_class,
-                           a_type_ptr       base_class,
-                           a_base_class_ptr *p_base_class)
+a_base_class_ptr find_base_class_of(a_type_ptr derived_class,
+                                    a_type_ptr base_class)
 /*
 derived_class and base_class are both class types.  If base_class is a
-(direct or indirect) base class of derived_class, set *p_base_class to
-point to the appropriate base class entry, and return TRUE.  Otherwise,
-return FALSE.  Either class is allowed to be incomplete (in which case
-FALSE is returned).  In C mode, FALSE is always returned.
+(direct or indirect) base class of derived_class, return the appropriate
+base class entry.  Otherwise, return NULL.  Either class is allowed to
+be incomplete (in which case NULL is returned).  In C mode, NULL is always
+returned.
 */
 {
-  a_boolean        is_base_class = FALSE;
   a_base_class_ptr bcp = NULL;
 
   /* Check for C++ mode.  This is important because the class type supplement
@@ -511,15 +509,11 @@ FALSE is returned).  In C mode, FALSE is always returned.
                                                                   base_classes;
            bcp != NULL;
            bcp = bcp->next) {
-        if (bcp->type == base_class) {
-          is_base_class = TRUE;
-          break;
-        }  /* if */
+        if (bcp->type == base_class) break;
       }  /* for */
     }  /* if */
   }  /* if */
-  *p_base_class = bcp;
-  return is_base_class;
+  return bcp;
 }  /* is_base_class_of */
 
 
@@ -530,13 +524,12 @@ Return TRUE if the two classes given are the same class or if class_2 is
 a base class of class_1.  Only called in C++ mode.
 */
 {
-  a_boolean        is_same_or_base = FALSE;
-  a_base_class_ptr bcp;
+  a_boolean is_same_or_base = FALSE;
 
   /* Drop typedefs. */
   class_1 = skip_typerefs(class_1);
   class_2 = skip_typerefs(class_2);
-  if (class_1 == class_2 || is_base_class_of(class_1, class_2, &bcp)) {
+  if (class_1 == class_2 || find_base_class_of(class_1, class_2) != NULL) {
     is_same_or_base = TRUE;
   }  /* if */
   return is_same_or_base;
@@ -1420,10 +1413,9 @@ and 3.3.6 (pointer - pointer), 3.3.8 (relational operators), 3.3.9 (equality
 operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 */
 {
-  a_boolean        okay = FALSE;
-  a_type_ptr       dest_type_pointed_to, source_type_pointed_to;
-  a_type_ptr       unqual_dest_type_pointed_to, unqual_source_type_pointed_to;
-  a_base_class_ptr base_class;
+  a_boolean  okay = FALSE;
+  a_type_ptr dest_type_pointed_to, source_type_pointed_to;
+  a_type_ptr unqual_dest_type_pointed_to, unqual_source_type_pointed_to;
 
   db_enter(4, "impl_pointer_conversion");
 #if DEBUG
@@ -1503,9 +1495,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       } else if (C_dialect == C_dialect_cplusplus &&
                  is_class_or_struct(unqual_source_type_pointed_to) &&
                  is_class_or_struct(unqual_dest_type_pointed_to) &&
-                 is_base_class_of(unqual_source_type_pointed_to,
-                                  unqual_dest_type_pointed_to,
-                                  &base_class)) {
+                 find_base_class_of(unqual_source_type_pointed_to,
+                                    unqual_dest_type_pointed_to) != NULL) {
         /* In C++, a pointer to a class may be implicitly converted to a
            pointer to an accessible base class of that class provided the
            conversion is unambiguous (ARM 4.6).  We leave the ambiguity
@@ -1686,8 +1677,7 @@ explicit conversions allowed in casts (ARM 5.2.3 and 5.4; ANSI C 3.3.4)
 are allowed.
 */
 {
-  a_boolean        okay = FALSE, impl_okay, impl_warning_suggested = FALSE;
-  a_base_class_ptr base_class;
+  a_boolean okay = FALSE, impl_okay, impl_warning_suggested = FALSE;
 
   db_enter(4, "expl_conversion");
 #if DEBUG
@@ -1733,10 +1723,9 @@ are allowed.
          a virtual base class.  Note that a cast in the other direction
          (derived --> base) would have been let by above as an implicit
          cast. */
-      if (is_base_class_of(dest_type_pointed_to,
-                           source_type_pointed_to,
-                           &base_class)) {
-        /* We leave the ambiguity and accessibility check to be done when the
+      if (find_base_class_of(dest_type_pointed_to,
+                             source_type_pointed_to) != NULL) {
+        /* We leave the ambiguity and virtual-base check to be done when the
            cast is done. */
         okay = TRUE;
       } else {

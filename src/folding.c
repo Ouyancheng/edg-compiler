@@ -647,14 +647,15 @@ been cast to an integral type, and so does not have pointer type.
         is_class_struct_union_type(new_type_pointed_to)) {
       /* The source and destination types are both pointers to classes.
          See if the classes are related. */
-      if (is_base_class_of(old_type_pointed_to, new_type_pointed_to, &bcp)) {
+      if ((bcp = find_base_class_of(old_type_pointed_to,
+                                    new_type_pointed_to)) != NULL) {
         /* Derived --> base.  Valid unless the cast is ambiguous or
            the base class is inaccessible. */
         related_class_cast = TRUE;
         fold_base_class_cast(old_constant, bcp, new_constant,
                              is_implicit_cast, did_not_fold, err_pos);
-      } else if (is_base_class_of(new_type_pointed_to,
-                                  old_type_pointed_to, &bcp)) {
+      } else if ((bcp = find_base_class_of(new_type_pointed_to,
+                                           old_type_pointed_to)) != NULL) {
         /* Base --> derived.  Valid unless the cast is ambiguous or the base
            class is a virtual base of the derived class. */
         related_class_cast = TRUE;
