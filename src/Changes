@@ -1,5 +1,19 @@
 Version 3.4
 
+2/5/04  Partial ordering problem with pointer-to-member types
+
+Partial ordering would sometimes fail for function templates containing
+pointer-to-member types involving template parameters.  This would result
+in a spurious ambiguity for examples like the one below.  Now fixed.
+
+  template <class T1, class T2> void f(T2 (T1::*)(), T1*){}
+  template <class T1> void f(void (T1::*)(), T1*){}
+  struct A { void g(){} };
+  int main() {
+    A a;
+    f(&A::g, &a);
+  }
+
 2/5/04  Spurious error or internal error on virtual function in unnamed type
 
 The definitions of virtual functions declared in unnamed classes or nested

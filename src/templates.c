@@ -5704,6 +5704,17 @@ points to the template parameter list.
       templ_type = cssp->template_param_for_proxy_class;
     }  /* if */
   }  /* if */
+  if (is_immediate_class_type(type)) {
+    /* If the type is a proxy class for a template parameter,
+       substitute the underlying template parameter for the deduction
+       process.  This can occur during partial ordering comparison where
+       both type and templ_type can contain template parameter types. */
+    a_class_symbol_supplement_ptr	cssp;
+    cssp = symbol_supplement_for_class(type);
+    if (cssp->template_param_for_proxy_class != NULL) {
+      type = cssp->template_param_for_proxy_class;
+    }  /* if */
+  }  /* if */
   if (is_template_param_type(templ_type)) {
     if (is_qualified_type(templ_type)) {
       /* If the template parameter has any type qualifiers, the argument type
@@ -6916,6 +6927,11 @@ a pointer over a reference type or creating an array of references.
                                         copy_error);
           /* Drop any typedefs and qualifiers on the class type. */
           new_this_class = skip_typerefs(new_this_class);
+          if (new_this_class->kind == (a_type_kind)tk_template_param) {
+            /* If the substituted this class is still a template parameter,
+               use its proxy class. */
+            new_this_class = proxy_class_for_template_param(new_this_class);
+          }  /* if */
           if (!is_immediate_class_type(new_this_class)) {
             /* The this class type must be a class type. */
             *copy_error = TRUE;
