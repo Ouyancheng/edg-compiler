@@ -44,6 +44,9 @@ static void fix_up_dynamic_init_dtors(void);
 static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to,
                                      a_boolean  has_explicit_cv_qualifiers);
 static void process_boolean_controlling_expression(an_operand *result);
+static void scan_compound_literal(a_type_ptr        *p_literal_type,
+                                  a_source_position *type_position,
+                                  an_operand        *result);
 static void scan_expr_full(an_operand              *result,
                            an_operand              *bound_function_selector,
                            int                      prec_level,
@@ -3995,6 +3998,12 @@ Syntax:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)required_token(tok_rparen, ec_exp_rparen);
       remove_matching_stop_token(tok_rparen);
+      if (compound_literals_allowed && curr_token == tok_lbrace) {
+        /* Something like sizeof(int){37} -- the type is the beginning
+           of a compound literal. */
+        scan_compound_literal(&sizeof_type, &type_position, result);
+        sizeof_type = result->type;
+      }  /* if */
     } else {
       /* Unparenthesized type, e.g., "sizeof T" (Microsoft extension). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
