@@ -2133,13 +2133,14 @@ function to be called with the wrong pointer.
   struct C : public B {
     virtual void g() = 0;
   };
-  struct E : public B {
+  struct D { int i; };
+  struct E : public D, public B {
     void f() {}
   };
   class F;
   F *fptr = 0;
   struct F : public E, public C {
-    void f() { // Gets here with wrong "this" pointer.
+    void f() {} // Gets here with wrong "this" pointer.
     virtual void g() {}
   };
   int main() {
