@@ -1878,10 +1878,14 @@ appropriate.  The position of the current token will be used as the
 operand position.
 */
 {
-  clear_operand((an_operand_kind)ok_expression, operand);
-  operand->type = type;
-  operand->state = (an_operand_state)os_rvalue;
-  operand->variant.expression = node;
+  if (is_error_node(node)) {
+    make_error_operand(operand);
+  } else {
+    clear_operand((an_operand_kind)ok_expression, operand);
+    operand->type = type;
+    operand->state = (an_operand_state)os_rvalue;
+    operand->variant.expression = node;
+  }  /* if */
   set_operand_position_to_pos_curr_token(operand);
 }  /* make_expression_operand */
 

@@ -1,5 +1,29 @@
 Version 2.46
 
+3/9/01   Error recovery problem: abort in type_pointed_to after error
+         on cast to virtual base
+
+An error recovery problem has been corrected.  It caused an internal
+error in type_pointed_to after an error on an invalid cast to a
+virtual base class.
+
+  class bar {
+  public:
+    int j;
+    virtual void f();
+  };
+  class blah : public virtual bar {
+  public:
+    int k;
+  };
+  class foo : public blah, public virtual bar {
+  public:
+    int i;
+  };
+  void f(bar*x) {
+    ((foo*)x)->f();  // Formerly caused abort after error
+  }
+
 3/9/01   static_cast between enum types allowed
 
 The standards committee ruled in Core Issue 128 that static_cast
