@@ -644,26 +644,27 @@ skip_tag_scan:
     tag_sym = NULL;
   }  /* if */
   if (tag_sym != NULL && C_dialect == C_dialect_cplusplus) {
+    a_class_symbol_supplement_ptr  cssp;
+
     if (tag_sym->kind == (a_symbol_kind)sk_type) {
       if (is_class_definition) {
         /* Attempting to redefine a template parameter name.  Let enter_symbol
            issue an error. */
         tag_sym = NULL;
       }  /* if */
+    } else if (is_class_definition && tag_sym->defined) {
+      /* This class has already been defined. */
+      pos_sy_error(ec_already_defined, &tag_position, tag_sym);
+      error_tag_sym = tag_sym;
+      tag_sym = NULL;
+      set_to_named_error_locator(locator);
+      err = TRUE;
     } else {
-      a_class_symbol_supplement_ptr  cssp;
-
       cssp = tag_sym->variant.class_struct_union.extra_info;
       if (cssp->class_template != NULL) {
-        if (is_class_definition && tag_sym->defined) {
-          /* This template class has already been instantiated. */
-          pos_sy_error(ec_already_defined, &tag_position, tag_sym);
-          error_tag_sym = tag_sym;
-          tag_sym = NULL;
-          set_to_named_error_locator(locator);
-          err = TRUE;
-        } else if (is_class_definition ||
-                   (curr_token == tok_semicolon && !is_friend_decl)) {
+        /* A template class. */
+        if (is_class_definition ||
+            (curr_token == tok_semicolon && !is_friend_decl)) {
           /* We have a specific declaration of a template class. */
           if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
             /* Specific definitions of template classes may only occur at
@@ -677,28 +678,28 @@ skip_tag_scan:
             cssp->is_specific_template_def = TRUE;
           }  /* if */
         }  /* if */
-      } else if (is_class_definition) {
-        if (tag_sym->class_of_which_a_member != NULL &&
-            (ssep->kind != (a_scope_kind)sck_class_struct_union ||
-             tag_sym->class_of_which_a_member != ssep->assoc_type)) {
-          /* A definition of a nested class that appears in the scope other
-             than that of its parent class. */
-          parent = (a_symbol_ptr)tag_sym->class_of_which_a_member->
+      }  /* if */
+      if (is_class_definition &&
+          tag_sym->class_of_which_a_member != NULL &&
+          (ssep->kind != (a_scope_kind)sck_class_struct_union ||
+           tag_sym->class_of_which_a_member != ssep->assoc_type)) {
+        /* A definition of a nested class that appears in the scope other
+           than that of its parent class. */
+        parent = (a_symbol_ptr)tag_sym->class_of_which_a_member->
                                                source_corresp.assoc_info;
-          /* Find the outermost enclosing class. */
-          while (parent->class_of_which_a_member != NULL) {
-            parent = (a_symbol_ptr)parent->class_of_which_a_member->
+        /* Find the outermost enclosing class. */
+        while (parent->class_of_which_a_member != NULL) {
+          parent = (a_symbol_ptr)parent->class_of_which_a_member->
                                                 source_corresp.assoc_info;
-          }  /* while */
-          if (parent->decl_scope == ssep->number) {
-            /* Okay to define the nested class in this scope -- it is the
-               scope in which the parent was defined. */
-            delayed_nested_class_def = TRUE;
-          } else {
-            pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
-            tag_sym = NULL;
-            set_to_error_locator(locator);
-          }  /* if */
+        }  /* while */
+        if (parent->decl_scope == ssep->number) {
+          /* Okay to define the nested class in this scope -- it is the
+             scope in which the parent was defined. */
+          delayed_nested_class_def = TRUE;
+        } else {
+          pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
+          tag_sym = NULL;
+          set_to_error_locator(locator);
         }  /* if */
       }  /* if */
     }  /* if */
