@@ -510,11 +510,11 @@ class_struct_union:
         a_boolean         any_virtual_base_classes = FALSE;
         a_boolean         any_indirect_base_classes = FALSE;
 
-        if (ctsp != NULL) {
-          if (ctsp->abstract) fputs(" (abstract)", f_debug);
-          bcp = ctsp->base_classes;
+        if (tp->variant.class_struct_union.abstract) {
+          fputs(" (abstract)", f_debug);
         }  /* if */
         fputs(" {", f_debug);
+        if (ctsp != NULL) bcp = ctsp->base_classes;
         for (; bcp != NULL; bcp = bcp->next) {
           if (bcp->direct) {
             db_direct_base_class(bcp, 0);
@@ -2207,7 +2207,6 @@ a pointer to it.
   ctsp->size_without_virtual_base_classes      = 0;
   ctsp->alignment_without_virtual_base_classes = 1;
   ctsp->virtual_function_count                 = 0;
-  ctsp->abstract                               = FALSE;
   ctsp->virtual_function_info_offset           = 0;
   ctsp->access_adjustments                     = NULL;
   ctsp->befriending_classes                    = NULL;
@@ -2265,6 +2264,8 @@ to default values.
     case tk_union:
       pte->variant.class_struct_union.field_list       = NULL;
       pte->variant.class_struct_union.any_const_member = FALSE;
+      pte->variant.class_struct_union.any_virtual_base_classes = FALSE;
+      pte->variant.class_struct_union.abstract         = FALSE;
       /* The class type supplement is only allocated in C++ mode. */
       pte->variant.class_struct_union.extra_info       = 
                                            (C_dialect == C_dialect_cplusplus) ?

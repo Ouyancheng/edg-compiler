@@ -956,12 +956,6 @@ typedef struct a_class_type_supplement {
 		virtual_function_count;
 			/* The number of virtual member functions declared in
 			   in the current class. */
-  a_byte_boolean
-		abstract;
-			/* If TRUE, as a result of having one or more pure
-			   virtual member functions, this is an "abstract"
-			   class and is subject to certain restrictions
-			   (ARM 10.3). */
   a_targ_size_t	virtual_function_info_offset;
 			/* The offset within the class object to a field
 			   containing information about the virtual functions
@@ -1180,10 +1174,21 @@ typedef struct a_type {
                         /* Supplementary information, in a separate block
                            to keep down the size of a_type.  This pointer
                            is only used in C++, and will be NULL in C. */
-      a_byte_boolean
-                any_const_member;
+      unsigned int
+                any_const_member:1;
                         /* TRUE if any member of the class, struct, or union
                            is const-qualified. */
+      unsigned int
+                any_virtual_base_classes:1;
+                        /* TRUE if the class, struct, or union is derived from
+			   one or more virtual base classes, either directly
+			   or indirectly (C++ only). */
+      unsigned int
+		abstract:1;
+			/* If TRUE, as a result of having one or more pure
+			   virtual member functions, this is an "abstract"
+			   class and is subject to certain restrictions
+			   (C++ only, ARM 10.3). */
     } class_struct_union;
     /* When kind == tk_typeref: */
     struct {
