@@ -197,12 +197,13 @@ Return a pointer to the block header.
   /* Reuse a previously-allocated piece if possible.  Such a piece was
      the wasted space on the end of a previous block. */
   if (reusable_blocks_list != NULL) {
-    needed_size = adjusted_header_size + min_size;
+    needed_size = min_size + adjusted_header_size;
     for (prev_hdr = NULL, hdr = reusable_blocks_list;
          hdr != NULL;
          prev_hdr = hdr, hdr = hdr->next) {
       /* See if the area is big enough (it almost always will be). */
-      alloc_size = hdr->after_end_of_block - hdr->start_of_block;
+      alloc_size = hdr->after_end_of_block - hdr->start_of_block +
+                   adjusted_header_size;
       if (alloc_size >= needed_size) {
         /* The piece is big enough.  Take it out of the list and use it. */
         if (prev_hdr == NULL) {
@@ -350,7 +351,7 @@ Free any unallocated space remaining in the indicated memory block.
      Even very small blocks can be reused, at a minor cost in
      execution time if the file scope region gets too fragmented. */
   if (space_remaining_in_block >= sizeof(a_mem_block_header) +
-                                  5*sizeof(a_constant)) {
+                                  10*sizeof(a_constant)) {
     /* Remaining space is "big enough" that it's worth saving.  We know
        next_avail_in_block is properly aligned because of the way that
        alloc_in_region works.  Fabricate a header for the space, then 
@@ -371,9 +372,11 @@ Free any unallocated space remaining in the indicated memory block.
 }  /* trim_mem_block */
 
 
-void init_memory_region(a_memory_region_number region_number)
+void init_memory_region(a_memory_region_number region_number,
+                        sizeof_t               min_size)
 /*
-Initialize the indicated region number.  In general, new_memory_region
+Initialize the indicated region number.  Allocate at least min_size bytes
+as the initial allocation for the region.  In general, new_memory_region
 should be called instead.  init_memory_region is called directly for the
 special "front end" memory region.
 */
@@ -385,7 +388,7 @@ special "front end" memory region.
     /* Add enough entries to cover a pretty large compilation (each function
        compiled uses one entry). */
     old_size = size_of_mem_region_table;
-    size_of_mem_region_table  += 150;
+    size_of_mem_region_table  += 500;
     mem_region_table = (a_mem_block_header_ptr *)realloc_with_check(
                           (char *)mem_region_table,
                           (sizeof_t)(old_size*sizeof(a_mem_block_header_ptr)),
@@ -435,7 +438,7 @@ special "front end" memory region.
   index_for_il_file[region_number] = 0;
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Allocate the initial memory block. */
-  (void)alloc_mem_block(region_number, (sizeof_t)0);
+  (void)alloc_mem_block(region_number, min_size);
   /* Keep track of the highest memory region number used. */
   if (region_number > highest_used_region_number) {
     highest_used_region_number = region_number;
@@ -463,7 +466,7 @@ A new region is used for each function's executable code and data.
   }  /* if */
 #endif /* DEBUG */
 
-  init_memory_region(region_number);
+  init_memory_region(region_number, (sizeof_t)0);
 
   db_exit();
   return (region_number);
@@ -595,6 +598,16 @@ file and is no longer needed.
 }  /* free_memory_region */
 
 
+void trim_memory_region(a_memory_region_number region_number)
+/*
+Trim the current (last) block of the indicated memory region to free
+any unused space.
+*/
+{
+  trim_mem_block(mem_region_table[region_number]);
+}  /* trim_memory_region */
+
+
 void done_with_memory_region(a_memory_region_number region_number)
 /*
 The indicated memory region is no longer needed in the front end.
@@ -620,7 +633,7 @@ Save it if necessary, free the space if possible.
   /* Communication with the back end is via memory.  Trim the region to
      reclaim unused storage at the end of the last block.  Unused storage
      at the ends of blocks other than the last was previously reclaimed. */
-  trim_mem_block(mem_region_table[region_number]);
+  trim_memory_region(region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   db_exit();
 }  /* done_with_memory_region */
@@ -685,9 +698,9 @@ of the front end.
 #endif /* DEBUG */
 
   /* Initialize the memory region for general front end storage. */
-  init_memory_region(NULL_region_number);
+  init_memory_region(NULL_region_number, (sizeof_t)0);
   /* Initialize the memory region for file scope IL information. */
-  init_memory_region(FILE_SCOPE_REGION_NUMBER);
+  init_memory_region(FILE_SCOPE_REGION_NUMBER, (sizeof_t)0);
 #if ORPHAN_PROCESSING_NEEDED
   /* Initialize the orphaned_file_scope_il_entries array to NULL
      pointers. */

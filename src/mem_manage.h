@@ -115,11 +115,14 @@ extern char *alloc_in_region(a_memory_region_number number,
 /* Create a new memory region. */
 extern a_memory_region_number new_memory_region(void);
 /* Initialize a memory region. */
-extern void init_memory_region(a_memory_region_number region_number);
+extern void init_memory_region(a_memory_region_number region_number,
+                               sizeof_t               min_size);
 /* Indicate a memory region is no longer needed in the front end. */
 extern void done_with_memory_region(a_memory_region_number region_number);
 /* Free the space in a memory region. */
 extern void free_memory_region(a_memory_region_number region_number);
+/* Free the unused space in the final block of a memory region. */
+extern void trim_memory_region(a_memory_region_number region_number);
 #if DEBUG
 /* Display the amount of memory used, for debug purposes. */
 extern void show_mem_manage_space_used(unsigned long total_accounted_for);
