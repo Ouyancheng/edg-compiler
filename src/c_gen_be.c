@@ -1630,7 +1630,7 @@ Output the definition of the indicated struct or union type.
         indent = 0;
         disable_line_wrapping();
         write_str("#pragma pack(");
-        write_unsigned_num(pack_alignment);
+        write_unsigned_num((unsigned long)pack_alignment);
         write_str(")");
         enable_line_wrapping();
         end_output_line();

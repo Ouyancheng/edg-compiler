@@ -2133,7 +2133,7 @@ for handling virtual bases and functions.
 }  /* do_class_layout */
 
 
-void layout_one_time_init()
+void layout_one_time_init(void)
 /*
 */
 {
@@ -2150,7 +2150,7 @@ void layout_one_time_init()
 }  /* layout_one_time_init */
 
 
-void layout_init()
+void layout_init(void)
 /*
 */
 {

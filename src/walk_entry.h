@@ -860,7 +860,7 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         walk_string_ptr(ptr->pragma_text, iek_other_text, 0);
 #if IDENT_DIRECTIVE_AND_PRAGMA
-        if (ptr->kind == pk_ident) {
+        if (ptr->kind == (a_pragma_kind)pk_ident) {
           walk_ptr(ptr->variant.ident_string, a_constant_ptr, iek_constant);
         }  /* if */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
