@@ -2517,7 +2517,6 @@ of the chosen copy.
 #define LOWER_EXTERN_INLINE FALSE
 #else /* !INSTANTIATE_EXTERN_INLINE */
 #define LOWER_EXTERN_INLINE TRUE
-#endif /* !IA64_ABI */
 #endif /* INSTANTIATE_EXTERN_INLINE */
 #endif /* ifndef LOWER_EXTERN_INLINE */
 
