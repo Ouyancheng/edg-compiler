@@ -3718,7 +3718,7 @@ namespace std was encountered in the source.
 
   /* Be sure the symbol hasn't already been entered. */
   check_assertion(symbol_for_namespace_std->decl_position.seq == 0);
-  /* Upate the source position in the existing symbol. */
+  /* Update the source position in the existing symbol. */
   symbol_for_namespace_std->decl_position = locator->source_position;
   locator->specific_symbol = symbol_for_namespace_std;
   /* Add the symbol to the proper scope's symbol list. */
