@@ -2295,7 +2295,7 @@ The following fixups need to be performed:
 }  /* fixup_instantiation_scopes */
 
 
-void push_simple_instantiation_scope(
+static void push_simple_instantiation_scope(
                             a_template_decl_info_ptr	decl_info,
                             a_type_ptr			assoc_type,
                             a_routine_ptr		assoc_routine,
