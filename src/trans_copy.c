@@ -2479,8 +2479,6 @@ unit.
   a_routine_ptr   routine;
   a_namespace_ptr nsp;
   a_scope_ptr     sub_scope;
-  a_boolean       is_class_scope = (scope->kind ==
-                                         (a_scope_kind)sck_class_struct_union);
 
   check_assertion(in_secondary_trans_unit(scope));
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
@@ -2511,7 +2509,8 @@ unit.
         primary_variable = variable;
       }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
-      if (one_instantiation_per_object && is_class_scope) {
+      if (one_instantiation_per_object &&
+          scope->kind == (a_scope_kind)sck_class_struct_union) {
         /* Assign one-instantiation-per-object needed bit numbers to
            static data members. */
         set_variable_instantiation_needed_bit_number(primary_variable);
