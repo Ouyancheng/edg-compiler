@@ -49,8 +49,8 @@ accepted in g++ mode.
 
 11/19/02 GNU C++ compatibility: redeclaration of handler parameters
 
-In a catch clause, an entity may be declared with the same name as the
-handler parameter.
+In GNU C++ mode, within a catch clause an entity may be declared with
+the same name as the handler parameter.
 
   try {  }
   catch(int e) {
