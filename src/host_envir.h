@@ -1481,12 +1481,14 @@ headers fail to define the prototype.
 /* sys/types.h is needed, at least, on Unisys 2200 and Microsoft C 7.0. */
 #include <sys/types.h>
 #include <sys/stat.h>
-/* "stat" isn't in ANSI C, but we assume it is available.  If not, this
-   file must be changed.  By default, the first argument is assumed to
-   be const.  If this is not the case, the preprocessor macro
-   STAT_FIRST_PARAM_IS_CONST must be set to the value 0 (FALSE).
-   This function must be declared in a header file when compiling
-   using C++. */
+#ifdef STAT_DECLARATION_NEEDED
+/* "stat" isn't in ANSI C, but we assume it is available and is declared
+   in one of the headers that has been included.  If it is not declared
+   in one of these headers, STAT_DECLARATION_NEEDED should be defined
+   so that a declaration will be provided here.  It must be declared in
+   a header file when compiling using C++.  By default, the first argument
+   is assumed to be const.  If this is not the case, the preprocessor macro
+   STAT_FIRST_PARAM_IS_CONST must be set to the value 0 (FALSE). */
 #ifndef __cplusplus
 #ifndef STAT_FIRST_PARAM_IS_CONST
 /* If not set otherwise, the first parameter of stat is assumed to be
@@ -1504,6 +1506,7 @@ EXTERN_C int stat(const char *path, struct stat *buf);
 EXTERN_C int stat(char *path, struct stat *buf);
 #endif /* defined(STAT_FIRST_PARAM_IS_CONST) */
 #endif /* !__cplusplus */
+#endif /* ifdef STAT_DECLARATION_NEEDED */
 
 /* See if a file exists, if it does, return the modification time. */
 extern a_boolean get_file_modification_time(char   *file_name,
