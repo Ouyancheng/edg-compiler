@@ -945,7 +945,7 @@ Otherwise, do nothing.
     case eok_ipre_incr:
     case eok_ipost_decr:
     case eok_ipre_decr:
-      /* Increments/decrements of bool set the value to 1 or 0. */
+      /* Increments/decrements of bool. */
       if (is_bool_type(expr->type)) {
         lower_bool_incr_decr(expr);
       }  /* if */
