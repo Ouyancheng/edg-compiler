@@ -1999,7 +1999,9 @@ otherwise implicitly enabled Microsoft mode.
   if (microsoft_mode) {
     if (option_kind_used[(int)optk_microsoft_mode] ||
         option_kind_used[(int)optk_microsoft_version] ||
+#if NEAR_AND_FAR_ALLOWED
         option_kind_used[(int)optk_microsoft_16_mode] ||
+#endif /* NEAR_AND_FAR_ALLOWED */
         option_kind_used[(int)optk_microsoft_bugs]) {
       /* Microsoft mode was enabled by a command line option. */
       command_line_error(error_code);

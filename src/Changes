@@ -1,5 +1,11 @@
 Version 3.3
 
+5/22/03  Compilation error in cmd_line.c with NEAR_AND_FAR_ALLOWED FALSE
+
+cmd_line.c did not compile correctly in a configuration with
+MICROSOFT_EXTENSIONS_ALLOWED TRUE and NEAR_AND_FAR_ALLOWED FALSE.
+Now fixed.
+
 5/15/03  Microsoft C mode: Accept leading ", ..." parameter declaration
 
 In Microsoft C mode, the front end now accepts a leading parameter spelled
