@@ -797,14 +797,6 @@ EXTERN a_directory_name_entry_ptr
 			   they can be shared.  The name strings are in
 			   IL storage. */
 
-/* mk_errinfo includes host_envir.h, but err_codes.h does not exist yet. */
-#ifndef COMPILING_MK_ERRINFO
-/* Included because term_compilation needs "an_error_severity". */
-#ifndef ERROR_H
-#include "error.h"
-#endif /* ifndef ERROR_H */
-#endif /* !defined(COMPILING_MK_ERRINFO) */
-
 /* Add the default system include file search path. */
 extern void add_default_include_search_path(void);
 /* Add a directory to the end of the include file search path. */
@@ -1056,7 +1048,23 @@ extern DOES_NOT_RETURN normal_termination(void);
 /* Identify the source file being compiled. */
 extern void identify_source_file(void);
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+
 #ifndef COMPILING_MK_ERRINFO
+/*
+Internal coding used for error severities.
+*/
+typedef enum /*an_error_severity*/ {
+  es_default,	/* Must be zero. */
+  es_none,
+  es_remark,
+  es_warning,
+  es_discretionary_error,
+  es_error,
+  es_catastrophe,
+  es_command_line_error,
+  es_internal_error
+} an_error_severity;
+
 /* Terminate the compilation. */
 extern DOES_NOT_RETURN term_compilation(an_error_severity severity);
 /* Write a compilation signoff message if appropriate. */

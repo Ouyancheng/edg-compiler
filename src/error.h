@@ -20,23 +20,7 @@ error.h -- Declarations related to error reporting.
 #include "lang_feat.h"
 #endif /* LANG_FEAT_H */
 
-/*
-Internal coding used for error severities.
-*/
-typedef enum /*an_error_severity*/ {
-  es_default,	/* Must be zero. */
-  es_none,
-  es_remark,
-  es_warning,
-  es_discretionary_error,
-  es_error,
-  es_catastrophe,
-  es_command_line_error,
-  es_internal_error
-} an_error_severity;
-
-/* This is included after the definition of an_error_severity because
-   host_envir.h needs it. */
+/* Note that an_error_severity is defined in host_envir.h. */
 #ifndef HOST_ENVIR_H
 #include "host_envir.h"
 #endif /* ifndef HOST_ENVIR_H */
