@@ -2879,8 +2879,8 @@ they are not already present.
         ptr = alloc_type((a_type_kind)tk_typeref);
       }  /* if */
       ptr->variant.typeref.type        = base_type;
-      ptr->variant.typeref.is_const    = is_const;
-      ptr->variant.typeref.is_volatile = is_volatile;
+      ptr->variant.typeref.is_const    = (is_const != 0);
+      ptr->variant.typeref.is_volatile = (is_volatile != 0);
       /* Remember the existence of this typeref type by putting a pointer
          to it in the based_types list. */
       add_based_type_list_member(base_type, kind, ptr);
