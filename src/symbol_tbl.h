@@ -901,32 +901,33 @@ should be rescanned when creating an instantiation.
 typedef struct a_template_decl_info {
   a_template_param_ptr
 		parameters;
-		/* The formal template parameters that must be visible when
-		   then tokens are rescanned. */
+			/* The formal template parameters that must be
+			   visible when then tokens are rescanned. */
   a_scope_number
 		declaration_scope;
-		/* The scope number assigned when the template declaration
-		   containing these tokens was scanned.  This scope
-		   needs to be used when the tokens are scanned for the
-		   parameter symbols to be visible. */
+			/* The scope number assigned when the template
+			   declaration containing these tokens was scanned.
+			   This scope needs to be used when the tokens are
+			   scanned for the parameter symbols to be visible. */
   a_scope_ptr	enclosing_scope;
-		/* The scope containing the template declaration of which
-		   these tokens are a part. */
+			/* The scope containing the template declaration of
+			   which these tokens are a part. */
   a_template_decl_info_ptr
 		enclosing_template_decl;
-		/* If the template declaration appeared as part of a nested
-		   template declaration (i.e., a single declaration that
-		   includes more than one "template <...>" clause), this
-		   points to the template declaration information of
-		   the enclosing template declaration information structure
-                   (i.e., the "template <...>" to the left of the current
-		   one in the declaration).  Contains NULL for the leftmost
-		   "template <...>" clause in a declaration. */
+			/* If the template declaration appeared as part of a
+			   nested template declaration (i.e., a single
+			   declaration that includes more than one
+			   "template <...>" clause), this points to the
+			   template declaration information of the enclosing
+			   template declaration information structure (i.e.,
+			   the "template <...>" to the left of the current one
+			   in the declaration).  Contains NULL for the leftmost
+			   "template <...>" clause in a declaration. */
   a_name_linkage_kind
 		name_linkage;
-		/* The default name linkage at the point of the declaration.
-		   This is "reactivated" as the default when a template is
-		   instantiated. */
+			/* The default name linkage at the point of the
+			   declaration.  This is "reactivated" as the default
+			   when a template is instantiated. */
 } a_template_decl_info;
 
 
@@ -937,12 +938,12 @@ in which the tokens should be rescanned.
 */
 typedef struct a_template_cache {
   a_token_cache	tokens;
-		/* The token cache containing the tokens. */
+			/* The token cache containing the tokens. */
   a_template_decl_info_ptr
 		decl_info;
-		/* Pointer to the template declaration information associated
-	           with the template declaration that contained the tokens
-		   in the token cache above. */
+			/* Pointer to the template declaration information
+			   associated with the template declaration that
+			   contained the tokens in the token cache above. */
 } a_template_cache;
 
 
