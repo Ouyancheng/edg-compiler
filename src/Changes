@@ -33,7 +33,7 @@ for a few cases in Microsoft mode.
 
 When compiling multiple translation units containing a class template with a
 friend function definition, the front end sometimes aborted with an internal
-error in trans_copy.c.  For example:
+error ("primary entry should not be canonical") in trans_copy.c.  For example:
 
   // File 1:
   template<typename T> struct S {
