@@ -2481,6 +2481,8 @@ extern void enter_keyword(a_token_kind token,
 extern void make_symbol_for_predeclared_type(a_type_ptr  predeclared_type,
                                              char        *name);
 
+extern void enter_injected_class_name_symbol(a_symbol_ptr  tag_sym);
+
 EXTERN a_symbol_ptr
 		symbol_for_namespace_std;
 			/* Symbol for namespace "std", which is predeclared

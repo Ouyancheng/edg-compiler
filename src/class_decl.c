@@ -6427,7 +6427,7 @@ and it is legal for virtual member functions only.
        value of zero but rather for the literal "0", since "= 00" should
        elicit an error. */
     if (pure_specifier_allowed) {
-      /* Update the routine and class type enties. */
+      /* Update the routine and class type entities. */
       rout_sym->variant.routine.ptr->pure_virtual = TRUE;
       class_type->variant.class_struct_union.any_pure_virtual_functions = TRUE;
       class_type->variant.class_struct_union.abstract = TRUE;
@@ -10886,6 +10886,9 @@ nested classes when their definition appears outside of the class template.
         class_state.access = (an_access_specifier)as_public;
       }  /* if */
       scope_stack[decl_scope_level].current_access = class_state.access;
+      /* In C++ the name of the class is entered into the scope of the class;
+         enter an sk_type symbol. */
+      if (!C_mode()) enter_injected_class_name_symbol(tag_sym);
       do {
         add_stop_token(tok_semicolon);
         /* Move cached #pragma declarations (if any) to the current scope

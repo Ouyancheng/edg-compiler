@@ -498,6 +498,9 @@ and indentation is the indentation desired.
       db_constant(sym->variant.constant);
       break;
     case sk_type:
+      if (sym->variant.type.is_injected_class_name) {
+        put_string("injected class name");
+      }  /* if */
       type = sym->variant.type.ptr;
       break;
     case sk_enum_tag:
@@ -2786,6 +2789,8 @@ the symbol table, this routine is not called for them.
          classes correspond (also untrue for anonymous union promotions). */
     } else if (class_sym->header == unnamed_tag_symbol_header) {
       /* This must be a constructor for an unnamed class. */
+    } else if (member_sym->kind == (a_symbol_kind)sk_type &&
+               member_sym->variant.type.is_injected_class_name) {
     } else {
       /* Error: an identifier that is not a constructor and that has the
          same name as a class is being defined within the class. */
@@ -3935,6 +3940,30 @@ token that corresponds to it.
 			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
   sym_ptr->variant.keyword.token = token;
 }  /* enter_keyword */
+
+
+void enter_injected_class_name_symbol(a_symbol_ptr  tag_sym)
+/*
+Allocate a symbol to represent an injected class-name for the class
+specified by tag_sym, and enter it into the symbol table.
+*/
+{
+  a_symbol_locator  loc;
+  a_symbol_ptr      sym;
+  a_type_ptr        class_type = tag_sym->variant.class_struct_union.type;
+  a_boolean         suppress_error = FALSE;
+
+  if (!is_unnamed_tag_symbol(tag_sym)) {
+    sym = alloc_symbol((a_symbol_kind)sk_type, tag_sym->header,
+                       &tag_sym->decl_position);
+    sym->variant.type.ptr = class_type;
+    sym->variant.type.is_injected_class_name = TRUE;
+    sym->is_class_member = TRUE;
+    sym->parent.class_type = class_type;
+    add_symbol_to_scope_list(sym, depth_scope_stack, &suppress_error);
+    link_symbol_into_symbol_table(sym, depth_scope_stack, suppress_error);
+  }  /* if */
+}  /* enter_injected_class_name_symbol */
 
 
 void make_symbol_for_predeclared_type(a_type_ptr  predeclared_type,
