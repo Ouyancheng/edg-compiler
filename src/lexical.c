@@ -7380,6 +7380,9 @@ done using the disambiguation routines.
                                      DFS_SINGLE_TYPE_REQUIRED |
                                      DFS_IS_TEMPLATE_ARGUMENT);
     arg_ptr = alloc_template_arg(is_type_param);
+    /* When is_nonreal is FALSE, we are scanning an explicit function
+       template argument list. */
+    arg_ptr->explicitly_specified = !is_nonreal;
     if (is_type_param) {
       type_name(&argument_type);
       arg_ptr->variant.type = argument_type;

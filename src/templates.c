@@ -2957,6 +2957,7 @@ another template parameter.
       if (specified_tap != NULL) {
         /* An argument value was supplied.  Copy it to the newly created
            template argument. */
+        tap->explicitly_specified = specified_tap->explicitly_specified;
         if (is_type_param) {
           tap->variant.type = specified_tap->variant.type;
         } else {
@@ -5970,6 +5971,33 @@ structure.
     check_for_defeatable_name_hiding(sym);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   } else {
+    sym = tip->instance_sym;
+  }  /* if */
+  {
+    /* Update the explicitly_specified flags in the template argument
+       list associated with the routine.  If any reference to the template
+       explicitly specifies an argument, the flag in the argument associated
+       with the routine should be set. */
+    a_template_arg_ptr	rout_tap;
+    a_template_arg_ptr	new_tap;
+    a_routine_ptr	rout;
+    rout = sym->variant.routine.ptr;
+    rout_tap = rout->template_arg_list;
+    for (new_tap = *new_list; new_tap != NULL;
+         rout_tap = rout_tap->next, new_tap = new_tap->next) {
+      if (new_tap->explicitly_specified) {
+        rout_tap->explicitly_specified = TRUE;
+      }  /* if */
+    }  /* for */
+    if (rout->template_arg_list->explicitly_specified) {
+      /* If any of the templates arguments were explicitly specified, set
+         the flag in the routine entry.  We only need to check the first flag
+         because the explicit arguments are always specified starting with
+         the first argument. */
+       rout->expl_template_arg_list_used = TRUE;
+    }  /* if */
+  }
+  if (tip != NULL) {
     /* We are reusing a template function that already exists, so *new_list
        will not be used.  Return it to the available list for reuse. */
     free_template_arg_list(*new_list);
