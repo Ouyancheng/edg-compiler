@@ -5207,9 +5207,11 @@ being made.
   }  /* if */
   /* Add vcall offsets for bcp. */
   for (rout = ctsp->assoc_scope->routines; rout != NULL; rout = rout->next) {
-    /* Skip non-virtual functions and alternate entry points. */
-    if (!rout->is_virtual ||
-        rout->ctor_dtor_kind != (a_ctor_or_dtor_kind)cdk_none) continue;
+    /* Skip non-virtual functions. */
+    if (!rout->is_virtual) continue;
+    /* Alternate entry points of constructors and destructors are not
+       expected here. */
+    check_assertion(rout->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none);
     /* Find the routine and base class in which this function is overridden.
        If the function was not overridden, then we can use bcp as the
        overrider; start with that assumption. */
@@ -6418,9 +6420,8 @@ to process, or NULL if the complete object should be processed.
        rout = rout->next) {
     /* Skip non-virtual functions. */
     if (!rout->is_virtual) continue;
-    /* We don't expect that alternate entry points for virtual destructors
-       will have been added yet, since this processing happens at
-       prelowering time. */
+    /* Alternate entry points of constructors and destructors are not
+       expected here. */
     check_assertion(rout->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none);
     /* Look for an overrider.  Assume it will be the original function until
        shown otherwise. */
@@ -7518,6 +7519,7 @@ not include the function scope memory region, if any.
 #if IA64_ABI
     if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
         routine->special_kind == (a_special_function_kind)sfk_destructor) {
+      a_routine_list_entry_ptr rlep;
       /* Create the alternate entry points for the routine.  They are
          defined exactly when the original routine is defined. */
       (void)alternate_entry_point(routine, (a_ctor_or_dtor_kind)cdk_complete,
@@ -7532,6 +7534,20 @@ not include the function scope memory region, if any.
                                     (a_ctor_or_dtor_kind)cdk_deleting,
                                     /*define_now=*/TRUE);
       }  /* if */
+      for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
+           rlep != NULL;
+           rlep = rlep->next) {
+        a_routine_ptr arout = rlep->routine;
+        /* Lower alternate entry points, which are not linked into the
+           main IL tree yet, and any thunks for them.  The thunks follow
+           the alternate entry points on the "next" pointer. */
+        for (;;) {
+          a_routine_ptr arout_next = arout->next;
+          lower_routine(arout);
+          arout = arout_next;
+          if (arout == NULL) break;
+        }  /* for */
+      }  /* for */
       /* Give the main routine internal linkage so that we can detect
          accidental references to the main routine.  It should be safe to
          remove this code. */
@@ -13092,6 +13108,35 @@ or namespace scope) into the file scope.
     }  /* if */
 #endif /* DEBUG */
     add_to_routines_list(routine, DEPTH_OF_FILE_SCOPE);
+#if IA64_ABI
+    /* Alternate entry points of constructors and destructors get
+       promoted right after the primary routine. */
+    if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+        routine->special_kind == (a_special_function_kind)sfk_destructor) {
+      a_routine_list_entry_ptr rlep;
+      for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
+           rlep != NULL;
+           rlep = rlep->next) {
+        a_routine_ptr arout = rlep->routine;
+#if DEBUG
+        if (debug_level >= 4) {
+          (void)fprintf(f_debug, "Promoting alternate entry out of scope ");
+          db_scope(scope);
+          (void)fprintf(f_debug, ": ");
+          db_name(&arout->source_corresp);
+          (void)fprintf(f_debug, "\n");
+        }  /* if */
+#endif /* DEBUG */
+        for (;;) {
+          a_routine_ptr arout_next = arout->next;
+          add_to_routines_list(arout, DEPTH_OF_FILE_SCOPE);
+          /* Also copy any thunks for this alternate entry point. */
+          arout = arout_next;
+          if (arout == NULL) break;
+        }  /* for */
+      }  /* for */
+    }
+#endif /* IA64_ABI */
   }  /* for */
   /* Clear the list of promoted routines.  Since the scope is for a class
      or namespace, we know it cannot be on the scope stack now, and therefore

@@ -2842,6 +2842,11 @@ destructors in the IA-64 ABI.
        normal parameter). */
     this_param_type = implicit_this_param_type_of(routine_type);
     /* Additional parameter types, if any, are added below. */
+    /* The routine is not added to the routines list now; see
+       promote_routines.  Check that the routine has not already
+       been promoted out of its class, to make sure we will get
+       to promote_routines later. */
+    check_assertion(routine->source_corresp.is_class_member);
     new_routine = make_rout_entry_no_add(
                                   name, routine->storage_class,
                                   routine_type->variant.routine.return_type,
@@ -2899,17 +2904,6 @@ destructors in the IA-64 ABI.
     copy_and_lower_param_type_list(routine_type, last_param_type, 
                                    /*do_default_args=*/TRUE,
                                    /*do_lowering=*/FALSE);
-    /* Put the new routine right after the old routine. */
-    if (in_front_end && routine->next == NULL &&
-        curr_translation_unit->file_scope_pointers_block.last_routine ==
-                                                                     routine) {
-      /* Use the add routine to keep the "last" pointer for the file
-         scope up to date. */
-      add_to_routines_list(new_routine, DEPTH_OF_FILE_SCOPE);
-    } else {
-      new_routine->next = routine->next;
-      routine->next = new_routine;
-    }  /* if */
   }  /* if */
   /* Define the routine if appropriate. */
   if (routine->storage_class != (a_storage_class)sc_extern && 

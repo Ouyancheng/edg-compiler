@@ -1906,8 +1906,18 @@ the secondary translation unit IL).
 #if MAINTAIN_NEEDED_FLAGS
   a_boolean saved_definition_needed = primary_rout->definition_needed;
 #endif /* MAINTAIN_NEEDED_FLAGS */
+#if IA64_ABI
+  a_routine_list_entry_ptr saved_alternate_entry_points;
+#endif /* IA64_ABI */
   a_symbol_ptr sym = (a_symbol_ptr)(rout->source_corresp.assoc_info);
   do_saves_for_overwrite(primary_rout, a_routine_ptr);
+#if IA64_ABI
+  if (primary_rout->special_kind == (a_special_function_kind)sfk_constructor ||
+      primary_rout->special_kind == (a_special_function_kind)sfk_destructor) {
+    saved_alternate_entry_points =
+                        primary_rout->variant.ctor_dtor.alternate_entry_points;
+  }  /* if */
+#endif /* IA64_ABI */
   transfer_routine_flags(primary_rout, rout);
   *primary_rout = *rout;
   do_restores_for_overwrite(primary_rout, rout);
@@ -1920,6 +1930,13 @@ the secondary translation unit IL).
 #if MAINTAIN_NEEDED_FLAGS
   primary_rout->definition_needed = saved_definition_needed;
 #endif /* MAINTAIN_NEEDED_FLAGS */
+#if IA64_ABI
+  if (primary_rout->special_kind == (a_special_function_kind)sfk_constructor ||
+      primary_rout->special_kind == (a_special_function_kind)sfk_destructor) {
+    primary_rout->variant.ctor_dtor.alternate_entry_points =
+                                                  saved_alternate_entry_points;
+  }  /* if */
+#endif /* IA64_ABI */
   establish_as_canonical(&primary_rout->source_corresp);
   if (sym != NULL) {
     /* Make the symbol (in a secondary translation unit) point to the
