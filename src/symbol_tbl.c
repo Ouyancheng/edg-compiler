@@ -1757,6 +1757,9 @@ state.
         cssp->any_nonreal_base_classes = FALSE;
         cssp->instantiation_in_progress = FALSE;
         cssp->last_field_is_incomplete_array = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        cssp->definition_is_first_decl = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if CHECKING
         cssp->avoid_codecenter_warnings = FALSE;
 #endif /* CHECKING */

@@ -1306,7 +1306,12 @@ the template.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Set the first_declaration flag in the associated source-sequence
        secondary declaration entry. */
-    if (!is_class_definition) set_first_declaration_flag((char *)class_type);
+    if (!is_class_definition) {
+      set_first_declaration_flag((char *)class_type);
+    } else {
+      tag_sym->variant.class_struct_union.extra_info->
+                                       definition_is_first_decl = TRUE;
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
     if (tag_sym->variant.type->kind == (a_type_kind)tk_template_param) {

@@ -764,6 +764,11 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	last_field_is_incomplete_array:1;
 			/* TRUE if the last field of the class is an
 			   incomplete array (Microsoft mode only). */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_bit_field	definition_is_first_decl:1;
+			/* TRUE when the first declaration of this class in
+			   the translation unit is the definition. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   bitfield_to_avoid_codecenter_warnings()
 } a_class_symbol_supplement;
 
