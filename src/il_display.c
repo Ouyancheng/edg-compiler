@@ -1812,9 +1812,6 @@ Display the indicated variable.
   if (ptr->is_not_common) {
     disp_boolean("is_not_common", TRUE);
   }  /* if */
-  if (ptr->is_transparent) {
-    disp_boolean("is_transparent", TRUE);
-  }  /* if */
   if (ptr->asm_name_is_valid) {
     disp_boolean("asm_name_is_valid", TRUE);
   }  /* if */

@@ -897,11 +897,9 @@ invalid attributes.
              there is no point in complaining twice. */
         } else if (check_transparent_union(skip_typerefs(vp->type),
                                            &ap->position)) {
-          /* The assoc_param_type field is not yet filled in here so we
-             save the transparent bit in the variable.  When
-             fixup_parameter_types is called the bit will be copied
-             over to the param_type. */
-          vp->is_transparent = TRUE;
+          /* Record the attribute. */
+          check_assertion(vp->assoc_param_type != NULL);
+          vp->assoc_param_type->is_transparent = TRUE;
         }  /* if */
         break;
       default:

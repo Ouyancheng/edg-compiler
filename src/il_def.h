@@ -5095,9 +5095,6 @@ typedef struct a_variable {
 			/* TRUE if this variable should not be placed in
 			   COMMON (or an equivalent) even if it is
 			   zero-initialized. */
-  a_bit_field   is_transparent:1;
-			/* TRUE if this variable is a parameter that
-			   is a transparent union. */
   a_bit_field   asm_name_is_valid:1;
 			/* TRUE if the name field of asm_name_or_reg
 			   is valid; FALSE if the reg field is valid. */

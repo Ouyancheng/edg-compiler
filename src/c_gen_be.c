@@ -1454,7 +1454,7 @@ Write out attributes that apply to the indicated variable.
   if (var->is_not_common) {
     write_tok_str(" __attribute__((__nocommon__))");
   }  /* if */
-  if (var->is_transparent) {
+  if (var->assoc_param_type != NULL && var->assoc_param_type->is_transparent) {
     write_tok_str(" __attribute__((__transparent_union__))");
   }  /* if */
   if (var->section != NULL) {

@@ -1517,7 +1517,6 @@ to it.
   vp->alignment                   = 0;
   vp->is_weak                     = FALSE;
   vp->is_not_common               = FALSE;
-  vp->is_transparent              = FALSE;
   vp->asm_name_is_valid           = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   vp->address_taken               = FALSE;
