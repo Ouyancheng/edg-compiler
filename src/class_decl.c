@@ -217,15 +217,13 @@ at a later point.  The current token is either a left brace or, when a
 constructor initializer is present, a colon.
 */
 {
-  a_token_cache_ptr         token_cache;
+  a_token_cache             token_cache;
   a_stop_token_array        save_stop_token_array;
   a_boolean                 success = FALSE;
 
   db_enter(3, "prescan_function_definition");
 
-  /* Use the token cache in curr_routine_fixup.  It has already been
-     cleared. */
-  token_cache = &curr_routine_fixup->function_body_token_cache;
+  clear_token_cache(&token_cache);
   /* Save the current stop token state, and reinitialize it. */
   copy_stop_tokens(stop_token_array, save_stop_token_array);
   clear_stop_tokens();
@@ -237,27 +235,37 @@ constructor initializer is present, a colon.
        semicolon is seen. */
     add_stop_token(tok_semicolon);
     add_stop_token(tok_lbrace);
-    cache_token_stream(token_cache);
+    cache_token_stream(&token_cache);
     remove_stop_token(tok_lbrace);
     remove_stop_token(tok_semicolon);
   }  /* if */
   if (curr_token == tok_lbrace) {
     /* The left brace marks the start of the function body.  Cache all the
        tokens up to the right brace. */
-    cache_curr_token(token_cache);
+    cache_curr_token(&token_cache);
     (void)get_token();
-    cache_token_stream(token_cache);
+    cache_token_stream(&token_cache);
   }  /* if */
   remove_stop_token(tok_rbrace);
   if (curr_token == tok_rbrace) {
-    cache_curr_token(token_cache);
+    cache_curr_token(&token_cache);
     success = TRUE;
   }  /* if */
   /* Add an end-of-source token to the end of the token cache.  This assures
      that we won't scan past the end of the cache in the actual scan. */
-  terminate_token_cache(token_cache);
+  terminate_token_cache(&token_cache);
   /* Restore the original stop token state. */
   copy_stop_tokens(save_stop_token_array, stop_token_array);
+  if (curr_routine_fixup == NULL) {
+    /* We must be within a prototype instantiation for a class template.  Just
+       throw away the cached tokens.  (We do not scan the bodies of inline
+       member functions during prototype instantiation.). */
+    discard_token_cache(&token_cache);
+  } else {
+    /* Record the token cache info in the routine-fixup entry for the current
+       member function. */
+    curr_routine_fixup->function_body_token_cache = token_cache;
+  }  /* if */
   db_exit();
   return success;
 }  /* prescan_function_definition */
