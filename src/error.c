@@ -3671,6 +3671,7 @@ being processed.
   diag_message(error_code, (a_source_position *)NULL, es_none, dck_list);
 }  /* add_diag_info */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 void add_diag_info_with_pos_insert(an_error_code      error_code,
                                    a_source_position  *pos)
@@ -3685,7 +3686,6 @@ in the message text using the "%p" convention.
   diag_message(error_code, (a_source_position *)NULL, es_none, dck_list);
 }  /* add_diag_info_with_pos_insert */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 void pos_sy_start_diagnostic(an_error_severity  error_severity,
                              an_error_code      error_code,
