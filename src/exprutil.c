@@ -8967,6 +8967,7 @@ function.  See Core Issue 115.
                                     (a_boolean)orig_operand.is_qualified_name,
                                     orig_operand.ref_entries_list,
                                     operand);
+        restore_operand_details(operand, &orig_operand);
         if (is_an_rvalue(&orig_operand)) {
           conv_sym_for_member_operand_to_ptr_to_member(operand);
         }  /* if */
@@ -8978,6 +8979,7 @@ function.  See Core Issue 115.
                                          &orig_operand.position,
                                          orig_operand.ref_entries_list,
                                          operand);
+        restore_operand_details(operand, &orig_operand);
         if (is_an_rvalue(&orig_operand)) {
           conv_function_designator_to_ptr_to_function(operand,
                                                       /*allow_ctor=*/FALSE);
