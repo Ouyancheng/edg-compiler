@@ -1752,6 +1752,9 @@ list.
 #endif /* CHECKING */
   if (sym_ptr->is_error) {
     /* Error symbols are never added to a symbol list and cannot be removed. */
+  } else if (sym_ptr->kind == (a_symbol_kind)sk_extern_variable ||
+             sym_ptr->kind == (a_symbol_kind)sk_extern_routine) {
+    /* These symbols are not in the symbol table proper. */
   } else {
     hdr_ptr = sym_ptr->header;
     prev_ptr = hdr_ptr->symbol;
@@ -2491,6 +2494,7 @@ symbol lookup.
 {
   a_symbol_header_ptr  header = locator->symbol_header;
   a_symbol_ptr         sym;
+  a_boolean            err;
 
   db_enter(4, "enter_extern_symbol");
   sym = alloc_symbol(sym_kind, header, &locator->source_position);
@@ -2503,10 +2507,15 @@ symbol lookup.
                              scope_stack[depth_innermost_namespace_scope].
                                          il_scope->variant.assoc_namespace);
   }  /* if */
+  /* Add the symbol to the proper scope's symbol list, but do not add
+     sk_extern_variable and sk_extern_routine symbols to the symbol table
+     proper. */
+  add_symbol_to_scope_list(sym, depth_innermost_namespace_scope, &err);
 
   db_exit();
   return sym;
 }  /* enter_extern_symbol */
+
 
 void reenter_symbol(a_symbol_ptr     symbol_to_reenter,
 		    a_scope_depth    scope_depth,
