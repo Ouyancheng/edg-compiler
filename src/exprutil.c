@@ -4661,7 +4661,7 @@ void expr_one_time_init(void)
 /*
 Do one-time initialization of variables related to expression processing.
 (Variables that need to be reinitialized with each new translation unit
-are handled in exprutil_init.)
+are handled in expr_init.)
 */
 {
   /* Save variables from exprutil.h, exprutil.c, and overload.h that are
