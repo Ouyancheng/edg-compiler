@@ -1501,16 +1501,20 @@ issue an error if a default argument expression is encountered.
       this_param_type = member_function_parent_type;
     }  /* if */
     if (this_param_type != NULL) {
-      /* The implicit "this" param type will be either "const pointer to
+      /* The implicit "this" param type will be either "pointer to
          class-type" or, if there was a const qualifier on the function,
-         "const pointer to const class-type". */
+         "pointer to const class-type".  Note that a const qualifier is
+         not applied to the pointer, though it will be when the associated
+         variable is created; this is in keeping with the general policy
+         regarding top-level qualifiers on parameter types. */
       this_param_type = make_pointer_type(this_param_type);
-      qualifiers = TQ_CONST;
 #if RESTRICT_ALLOWED
       /* Apply the restrict qualifier to the this pointer itself. */
-      if (restrict_qualified) qualifiers |= TQ_RESTRICT;
+      if (restrict_qualified) {
+        qualifiers = TQ_RESTRICT;
+        this_param_type = make_qualified_type(this_param_type, qualifiers);
+      }  /* if */
 #endif /* RESTRICT_ALLOWED */
-      this_param_type = make_qualified_type(this_param_type, qualifiers);
       extra_info->implicit_this_param_type = this_param_type;
     }  /* if */
 #if 0
