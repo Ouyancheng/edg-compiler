@@ -5159,8 +5159,8 @@ typedef struct a_for_loop {
 			/* Pointer to the sck_block scope created for name(s)
 			   declared in the for-init statement.  NULL in C++
 			   mode if the for-init statement is not a declaration
-			   or if old_for_init_scope is TRUE; always NULL in C
-			   mode. */
+			   or if use_nonstandard_for_init_scope is TRUE;
+			   always NULL in C mode. */
 } a_for_loop;
 
 /* Information about a handler (or catch-clause) defined within a try block. */
@@ -6305,8 +6305,10 @@ typedef struct a_scope {
   a_statement_ptr
                 assoc_block;
 			/* Non-NULL if this scope has an associated block
-			   of statements.  NULL if none.  Used only when
-			   kind == sck_function or sck_block. */
+			   of statements.  NULL if none (including implicitly
+			   generated sck_block scopes containing for-init
+			   declarations).  Used only when kind == sck_function
+			   or sck_block. */
 #if ASM_FUNCTION_ALLOWED
 			/* Also used to point to the stmk_asm_func_body
 			   statement that represents the uninterpreted body
