@@ -129,7 +129,8 @@ on an argument (which wouldn't be viable at all in the standard language)
 is considered only if there are no viable functions that make use of
 no anachronism matches.  Formerly, the anachronism match was just
 considered worse on that particular argument, which could lead
-to ambiguities.
+to ambiguities.  Some pre-existing anachronisms have been reclassified
+as "tie-breaker anachronisms", which retain the old behavior.
 
 8/14/03  GNU C++ mode: Attributes on static data members
 
