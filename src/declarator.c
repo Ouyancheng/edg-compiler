@@ -904,7 +904,7 @@ scope is that of a class definition.
         }  /* if */
 #endif /* ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE */
 #if ASM_FUNCTION_ALLOWED
-      }
+      }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
     }  /* if */
     /* Advance past the ellipsis. */
