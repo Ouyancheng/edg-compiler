@@ -7163,7 +7163,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           disable_line_wrapping();
           if (gcc_builtin_varargs_in_generated_code) {
             /* Use the intrinsic GNU C/C++ "__builtin_va_copy". */
-            write_tok_str("__builtin_va_copy((");
+            write_tok_str("__builtin_va_copy(");
           } else {
             write_tok_str("va_copy(");
           }  /* if */
