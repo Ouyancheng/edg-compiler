@@ -1,5 +1,24 @@
 Version 3.3
 
+7/30/03 C++-generating back end: inaccessible typedefs from template arguments
+
+When the C++-generating back end emits a template argument list, it usually
+does so using the type that was first specified for a given class template
+instance.  In the example below where B<A::X> and B<char> refer to the same
+type, B<A::X> would be emitted.  Because this could result in access errors,
+non-public typedefs are now stripped in most cases when emitting template
+argument lists.
+
+  template <class T> struct B { };
+  struct A {
+  private:
+    typedef char X;
+    B<A::X> b;
+  };
+  void f() {
+    B<char> b;
+  }
+
 7/30/03  Abort in do_all_namespace_member_promotion, multiple translation
          units
 

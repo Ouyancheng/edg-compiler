@@ -193,9 +193,7 @@ Output the indicated template argument in the way described by octl.
     case tak_type:
       /* Type argument. */
       { a_type_ptr type = tap->variant.type;
-#if BACK_END_IS_CP_GEN_BE && \
-    (CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS || \
-     NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS)
+#if BACK_END_IS_CP_GEN_BE
         if (octl->gen_compilable_code) {
           /* Remove typedefs for non-public class members if the ultimate
              underlying type is not a class member, because the typedefs might
@@ -208,7 +206,7 @@ Output the indicated template argument in the way described by octl.
             if (!utype->source_corresp.is_class_member) type = utype;
           }  /* if */
         }  /* if */
-#endif /* BACK_END_IS_CP_GEN_BE && ... */
+#endif /* BACK_END_IS_CP_GEN_BE */
         form_type(type, octl);
       }
       break;
