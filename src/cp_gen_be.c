@@ -3727,7 +3727,9 @@ Generate code for the indicated statement.
       break;
     case stmk_asm:
       /* asm statement. */
-      unimplemented();
+      write_tok_str("asm(");
+      gen_constant(statement->variant.asm_entry->asm_string);
+      write_tok_ch(')');
       break;
     case stmk_decl:
       /* Statement that marks the location of declarations. */
@@ -4179,6 +4181,25 @@ declaration or definition.
 }  /* gen_routine_decl */
 
 
+static void gen_asm_decl(void)
+/*
+Generate an asm declaration.  The current source sequence entry is the
+one associated with the asm.
+*/
+{
+  an_asm_entry_ptr asm_entry = ss_entry_ptr(curr_source_sequence_entry,
+                                            an_asm_entry_ptr);
+  /* Advance past the source sequence entry for the variable. */
+  adv_curr_source_sequence_entry();
+  /* Position the output file to the declaration position. */
+  set_decl_position(&asm_entry->source_corresp,
+                    (a_src_seq_secondary_decl_ptr)NULL);
+  write_tok_str("asm(");
+  gen_constant(asm_entry->asm_string);
+  write_tok_ch(')');
+}  /* gen_asm_decl */
+
+
 static void gen_secondary_decl(void)
 /*
 Generate a secondary declaration of an entity, i.e., a declaration that
@@ -4223,7 +4244,7 @@ sequence entry.
       gen_routine_decl();
       break;
     case iek_asm_entry:
-      unimplemented();
+      gen_asm_decl();
       break;
     case iek_src_seq_secondary_decl:
       /* A secondary declaration, i.e., a declaration of something that
