@@ -954,12 +954,12 @@ should be used to satisfy the lookup.
   clear_func_info(&func_info);
   func_info.is_implicit_declaration = TRUE;
   if (exceptions_enabled) func_info.throw_position = locator->source_position;
-  decl_routine(locator, (a_storage_class)sc_extern, rout_type,
-                      &func_info, (a_source_sequence_entry_ptr)NULL,
-                      (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers,
-                      (an_ms_attribute_ptr*)NULL, (an_attribute_ptr)NULL,
-                      (char *)NULL, &sym, &linkage, &old_type, &ext_sym,
-                      (a_decl_pos_block_ptr)NULL);
+  decl_routine(locator, (a_storage_class)sc_extern, rout_type, &func_info,
+               (a_source_sequence_entry_ptr)NULL,
+               (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers,
+               (an_ms_attribute_ptr*)NULL, (an_attribute_ptr)NULL,
+               (char *)NULL, (a_source_position*)NULL, &sym, &linkage,
+               &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL);
   done_with_func_info(func_info);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */

@@ -6433,8 +6433,9 @@ how to form the function's signature.
   decl_routine(locator, (a_storage_class)sc_extern, rout_type, &func_info,
                (a_source_sequence_entry_ptr)NULL, SRK_DECLARATION,
                &decl_modifiers, (an_ms_attribute_ptr*)NULL,
-               (an_attribute_ptr)NULL, (char *)NULL, &sym, &linkage, &old_type,
-               &ext_sym, (a_decl_pos_block_ptr)NULL);
+               (an_attribute_ptr)NULL, (char *)NULL, (a_source_position*)NULL,
+               &sym, &linkage, &old_type, &ext_sym,
+               (a_decl_pos_block_ptr)NULL);
   sym->variant.routine.ptr->compiler_generated = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {

@@ -1686,7 +1686,8 @@ member declaration (allowed in Microsoft mode only).
     decl_routine(locator, storage_class, rout_type, func_info,
                  declarator_ssep, (SRK_DECLARATION | SRK_DEFINITION),
                  decl_modifiers, p_ms_attributes, attributes, (char *)NULL,
-                 &symbol_ptr, &linkage, &old_type, &ext_sym, decl_pos_block);
+                 (a_source_position*)NULL, &symbol_ptr, &linkage, &old_type,
+                 &ext_sym, decl_pos_block);
   }  /* if */
   /* Now scan the function body, except if we're dealing with the special
      Microsoft and GNU extension case that allows a nondefining out-of-class

@@ -4178,7 +4178,7 @@ static void record_asm_name_for_variable(a_variable_ptr         variable,
 /*
 Record the given asm name in the given variable entry.  is_register indicates
 that the asm name should be treated as a register name.  If a problem is
-detected, issue a diagnostic at the give position.
+detected, issue a diagnostic at the given position.
 */
 {
   if (is_register) {
@@ -4198,10 +4198,10 @@ detected, issue a diagnostic at the give position.
         pos_warning(ec_asm_name_conflict, diag_pos);
       }  /* if */
     } else {
-      /* Unknown register name: An error will has been issued already. */
+      /* Unknown register name: An error will have been issued already. */
     }  /* if */
   } else {
-    /* Otherwise, the assembly name is just a name.  */
+    /* Otherwise, the assembly name is just a name. */
     if (variable->asm_name_or_reg.name == NULL) {
       /* This is the first declaration of this variable with an "asm name"
          construct. */
@@ -4230,7 +4230,7 @@ void decl_variable(a_symbol_locator             *locator,
                    an_ms_attribute_ptr          *p_ms_attributes,
                    an_attribute_ptr             attributes,
                    char                         *asm_name,
-                   a_source_position_ptr	asm_name_pos,
+                   a_source_position_ptr        asm_name_pos,
                    a_symbol_ptr                 *symbol_ptr,
                    an_id_linkage_kind           *linkage_ptr,
                    a_type_ptr                   *old_type,
@@ -5042,6 +5042,7 @@ void decl_routine(a_symbol_locator             *locator,
                   an_ms_attribute_ptr          *p_ms_attributes,
                   an_attribute_ptr             attributes,
                   char                         *asm_name,
+                  a_source_position_ptr        asm_name_pos,
                   a_symbol_ptr                 *symbol_ptr,
                   an_id_linkage_kind           *linkage_ptr,
                   a_type_ptr                   *old_type,
@@ -5052,9 +5053,11 @@ Enter the declaration of an identifier for a nonmember routine.  *locator
 gives the symbol locator (and thus its name and its declaration position).
 storage_class, type_ptr, decl_modifiers, attributes, and asm_name give the
 storage class, type, declaration modifier flags, attributes, and assembly
-symbol name.  If func_info->implicit_declaration is TRUE, this declaration is
-for an implicit function declaration, and *symbol_ptr already contains a
-pointer to the symbol entry, which is already in the symbol table; if
+symbol name.  asm_name_pos describes the position of the string literal in
+the asm name construct (NULL if there is no such construct).  If
+func_info->implicit_declaration is TRUE, this declaration is for an implicit
+function declaration, and *symbol_ptr already contains a pointer to the
+symbol entry, which is already in the symbol table; if
 func_info->is_definition is TRUE, the identifier being defined is part of a
 function definition (meaning there is a body in the definition), in which case
 it is guaranteed that type_ptr points to an unshared type entry, and that type
@@ -6284,8 +6287,7 @@ skip_overloading:;
     }  /* if */
     /* Record the assembly name. */
     if (asm_name != NULL) {
-      record_asm_name_for_routine(routine_ptr, asm_name,
-                                  &locator->source_position);
+      record_asm_name_for_routine(routine_ptr, asm_name, asm_name_pos);
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -7929,8 +7931,8 @@ symbol has already been entered as an undefined symbol.
                (a_source_sequence_entry_ptr)NULL,
                (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers, 
                (an_ms_attribute_ptr*)NULL, (an_attribute_ptr)NULL,
-               (char *)NULL, &symbol_ptr, &linkage, &old_type, &ext_sym,
-               (a_decl_pos_block_ptr)NULL);
+               (char *)NULL, (a_source_position_ptr)NULL, &symbol_ptr,
+               &linkage, &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL);
   done_with_func_info(func_info);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
@@ -11989,8 +11991,8 @@ continue_with_declaration:
         decl_routine(&locator, local_storage_class, local_type_ptr,
                      &func_info, declarator_ssep, SRK_DECLARATION,
                      &local_decl_modifiers, &ms_attributes, attributes,
-                     asm_name, &symbol_ptr, &linkage, &old_type, &ext_sym,
-                     &decl_pos_block);
+                     asm_name, &asm_name_pos, &symbol_ptr, &linkage,
+                     &old_type, &ext_sym, &decl_pos_block);
       } else {
         /* A variable declaration. */
         a_symbol_reference_kind  srk_flags = SRK_DECLARATION;

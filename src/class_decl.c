@@ -5896,8 +5896,8 @@ declaration of the function, and again overloading is a possibility.
       decl_routine(locator, storage_class, function_type, func_info,
                    declarator_ssep, srk_flags, &decl_info->decl_modifiers,
                    (an_ms_attribute_ptr*)NULL, (an_attribute_ptr)NULL,
-                   (char *)NULL, &sym, &linkage, &old_type, &ext_sym,
-                   &decl_info->decl_pos_block);
+                   (char *)NULL, (a_source_position*)NULL, &sym, &linkage,
+                   &old_type, &ext_sym, &decl_info->decl_pos_block);
       /* WP 11.4 para 5 prohibits defining a nonmember function in a local
          class friend declaration. */
       if (func_info->is_definition &&
