@@ -4219,6 +4219,7 @@ typedef struct an_expr_node {
       unsigned int
 		static_temp:1;
 			/* If TRUE, the temporary must be static. */
+      bitfield_to_avoid_codecenter_warnings();
       a_dynamic_init_ptr
 		dynamic_init;
 			/* Dynamic initialization entry that does the
