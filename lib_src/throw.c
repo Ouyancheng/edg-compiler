@@ -74,6 +74,11 @@ typedef struct a_throw_stack_entry {
 			   because an entry higher on the stack has not
 			   yet been freed. */
   a_byte_boolean
+		dtor_called;
+			/* TRUE if the destructor for the object has already
+			   been called.  This is only used for entries created
+			   by throws that are not rethrows. */
+  a_byte_boolean
 		in_handler;
 			/* TRUE when the object has been passed to a
 			   handler.  It is at this point that the
@@ -488,6 +493,7 @@ static void db_throw_stack_entry(a_throw_stack_entry_ptr tsep)
   fprintf(__f_debug, "object_address=%p ", (void*)tsep->object_address);
   fprintf(__f_debug, "is_rethrow=%0d ", tsep->is_rethrow);
   fprintf(__f_debug, "discard_entry=%0d ", tsep->discard_entry);
+  fprintf(__f_debug, "dtor_called=%0d ", tsep->dtor_called);
   fprintf(__f_debug, "in_handler=%0d ", tsep->in_handler);
 }  /* db_throw_stack_entry */
 
@@ -499,7 +505,7 @@ static void db_throw_stack(char* str)
 
   fprintf(__f_debug, "Throw stack %s:\n", str);
   while (tsep != NULL) {
-    fprintf(__f_debug, "  Entry %0d: ", count++);
+    fprintf(__f_debug, "  Entry %0d at %p: ", count++, tsep);
     db_throw_stack_entry(tsep);
     fprintf(__f_debug, "\n");
     tsep = tsep->next;
@@ -721,16 +727,55 @@ indicate that the throw stack entry may be discarded when it reaches the
 top of the throw stack.
 */
 {
-  a_boolean	is_rethrow = tsep->is_rethrow;
-  void*		object_address = tsep->object_address;
+  void*				object_address = tsep->object_address;
+  a_throw_stack_entry_ptr	primary_tsep;
+  a_boolean			can_be_destroyed = TRUE;
+  a_boolean			entry_found = FALSE;
 
+#if DEBUG
+  if (__debug_level >= 6) {
+    db_throw_stack("at start of destroy_thrown_object");
+    fprintf(__f_debug, "Possibly destorying object associated with tsep %p\n",
+            tsep);
+  }  /* if */
+#endif /* DEBUG */
   tsep->discard_entry = TRUE;
-  /* Call the destructor for the object if needed. */
-  if (!is_rethrow && tsep->object_copy_complete && !is_pointer(tsep->flags)) {
-    a_destructor_ptr	dtor_ptr;
-    dtor_ptr = (a_destructor_ptr)tsep->type_info->destructor;
-    if (dtor_ptr != NULL) {
-      (dtor_ptr)(object_address, 2);
+  /* Go back through the throw stack and find the entry whose object is being
+     destroyed.  If tsep refers to an entry associated with a rethrow, keep
+     going until the primary entry is found.  Make sure that all of the
+     entries (the primary and any rethrows) all have the discard flag set.
+     If any of them don't have the discard flag set, then the object can't
+     be destroyed yet. */
+  for (primary_tsep = curr_throw_stack_entry;;
+       primary_tsep = primary_tsep->next) {
+    if (primary_tsep == tsep) entry_found = TRUE;
+    if (!primary_tsep->discard_entry) can_be_destroyed = FALSE;
+    /* If this entry is not a rethrow, then it is either the primary
+       entry (in which case entry_found will be TRUE) or it must mean that
+       the previous entries on the stack were associated with some other
+       primary entry (in which case the can_be_destroyed flag should be
+       reset). */
+    if (!primary_tsep->is_rethrow) {
+      if (entry_found) break;
+      can_be_destroyed = TRUE;
+    }  /* if */
+  }  /* for */
+  /* If the entry can be destroyed, and the destructor has not already been
+     called, then call it now. */
+  if (can_be_destroyed && !primary_tsep->dtor_called) {
+    /* Call the destructor for the object if needed. */
+    primary_tsep->dtor_called = TRUE;
+    if (tsep->object_copy_complete && !is_pointer(tsep->flags)) {
+#if DEBUG
+      if (__debug_level >= 4) {
+        fprintf(__f_debug, "Destroying object at %p\n", object_address);
+      }  /* if */
+#endif /* DEBUG */
+      a_destructor_ptr	dtor_ptr;
+      dtor_ptr = (a_destructor_ptr)tsep->type_info->destructor;
+      if (dtor_ptr != NULL) {
+        (dtor_ptr)(object_address, 2);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* destroy_thrown_object */
@@ -978,6 +1023,7 @@ Push an entry onto the throw stack and initialize its fields.
   tsep->object_address = object_address;
   tsep->pointer_buffer = NULL;
   tsep->is_rethrow = is_rethrow;
+  tsep->dtor_called = FALSE;
   tsep->discard_entry = FALSE;
   tsep->in_handler = FALSE;
   tsep->object_copy_complete = FALSE;
@@ -1071,6 +1117,11 @@ Free the space used to make the copy of the thrown object.  Called at
 the completion of a catch clause.
 */
 {
+#if DEBUG
+  if (__debug_level >= 6) {
+    db_throw_stack("at start of free_thrown_object");
+  }  /* if */
+#endif /* DEBUG */
   check_assertion(curr_throw_stack_entry != NULL);
   destroy_thrown_object(curr_throw_stack_entry);
   /* Free any entries with the discard_entry flag set.  This always frees
@@ -1081,6 +1132,9 @@ the completion of a catch clause.
     a_throw_stack_entry_ptr	tsep = curr_throw_stack_entry;
     a_boolean			is_rethrow = tsep->is_rethrow;
     void*			object_address = tsep->object_address;
+    /* If this is not a rethrow, the destructor should have already been
+       called. */
+    check_assertion(is_rethrow || tsep->dtor_called);
     /* Unlink this entry from the throw stack. */
     curr_throw_stack_entry = tsep->next;
     /* Free the space used for the throw stack entry.  Note that the stack
