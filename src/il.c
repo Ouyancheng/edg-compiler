@@ -52,8 +52,8 @@ static unsigned long
                 num_access_adjustments_allocated;
                 num_class_list_entries_allocated;
 		num_class_type_supplements_allocated,
+                num_derivation_steps_allocated,
                 num_base_classes_allocated,
-                num_virtual_base_classes_allocated,
 		num_types_allocated,
 		num_dynamic_inits_allocated,
 		num_variables_allocated,
@@ -299,10 +299,10 @@ Dump field *fp derived from base class *tp, for debug purposes.
 }  /* db_base_class_field */
 
 
-static void db_base_class(a_base_class *bcp,
-                          int          depth)
+static void db_direct_base_class(a_base_class *bcp,
+                                 int          depth)
 /*
-Dump a base class entry, for debug purposes.
+Dump a direct base class entry, for debug purposes.
 */
 {
   a_type     *tp = bcp->class;
@@ -322,7 +322,7 @@ Dump a base class entry, for debug purposes.
   if (!bcp->virtual) {
     bcp = tp->variant.class_struct_union.extra_info->base_classes;
     while (bcp != NULL) {
-      db_base_class(bcp, depth+1);
+      if (bcp->direct) db_direct_base_class(bcp, depth+1);
       bcp = bcp->next;
     }  /* while */
     fp = tp->variant.class_struct_union.field_list;
@@ -335,20 +335,19 @@ Dump a base class entry, for debug purposes.
 }  /* db_base_class */
 
 
-static void db_virtual_base_class(a_virtual_base_class *vbcp)
+static void db_virtual_base_class(a_base_class *bcp)
 /*
 Dump a virtual base class entry, for debug purposes.
 */
 {
-  a_type       *tp = vbcp->class;
+  a_type       *tp = bcp->class;
   a_field      *fp;
-  a_base_class *bcp;
   
   fprintf(f_debug, "  [( virtual base class %s (offset = %lu)",
-		   tp->source_corresp.name, vbcp->data_section_offset);
+		   tp->source_corresp.name, bcp->offset);
   bcp = tp->variant.class_struct_union.extra_info->base_classes;
   while (bcp != NULL) {
-    db_base_class(bcp, /*nesting_depth=*/1);
+    if (bcp->direct) db_direct_base_class(bcp, /*nesting_depth=*/1);
     bcp = bcp->next;
   }  /* while */
   fp = tp->variant.class_struct_union.field_list;
@@ -458,46 +457,51 @@ pointer_or_reference:
     case tk_class:
       fputs("class {", f_debug);
 class_struct_union:
-      ctsp = tp->variant.class_struct_union.extra_info;
-      if (ctsp != NULL && tp->kind != (a_type_kind)tk_union) {
-        a_base_class_ptr bcp = ctsp->base_classes;
-        for (; bcp != NULL; bcp = bcp->next) db_base_class(bcp, 0);
-      }  /* if */
-      fputc('\n', f_debug);
-      fp = tp->variant.class_struct_union.field_list;
-      for (; fp != NULL; fp = fp->next) db_field(fp);
-      if (ctsp != NULL) {
-        a_virtual_base_class_ptr vbcp = ctsp->virtual_base_classes;
-	a_variable_ptr	         vp = ctsp->assoc_scope->variables;
-        a_routine_ptr            rp = ctsp->assoc_scope->routines;
-        an_access_adjustment_ptr aap = ctsp->access_adjustments;
+      {
+        a_base_class_ptr  bcp = NULL;
+        a_boolean         any_virtual_base_classes = FALSE;
 
-        if (vbcp != NULL) {
-          fputs("  collected virtual base classes:\n", f_debug);
-          for (; vbcp != NULL; vbcp = vbcp->next) {
-            db_virtual_base_class(vbcp);
-          }  /* for */
+        ctsp = tp->variant.class_struct_union.extra_info;
+        if (ctsp != NULL) bcp = ctsp->base_classes;
+        for (; bcp != NULL; bcp = bcp->next) {
+          if (bcp->direct) db_direct_base_class(bcp, 0);
+          if (bcp->virtual) any_virtual_base_classes = TRUE;
+        } /* for */
+        fputc('\n', f_debug);
+        fp = tp->variant.class_struct_union.field_list;
+        for (; fp != NULL; fp = fp->next) db_field(fp);
+        if (ctsp != NULL) {
+          a_variable_ptr           vp = ctsp->assoc_scope->variables;
+          a_routine_ptr            rp = ctsp->assoc_scope->routines;
+          an_access_adjustment_ptr aap = ctsp->access_adjustments;
+
+          if (any_virtual_base_classes) {
+            fputs("  collected virtual base classes:\n", f_debug);
+            for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+              if (bcp->virtual) db_virtual_base_class(bcp);
+            }  /* for */
+          }  /* if */
+          if (vp != NULL) {
+            fputs("  static data members:\n", f_debug);
+            for (; vp != NULL; vp = vp->next) db_static_data_member(vp);
+          }  /* if */
+          if (rp != NULL) {
+            fputs("  member functions:\n", f_debug);
+            for (; rp != NULL; rp = rp->next) db_member_function(rp);
+          }  /* if */
+          if (aap != NULL) {
+            fputs("  access adjustments:\n", f_debug);
+            for (; aap != NULL; aap = aap->next) db_access_adjustment(aap);
+          }  /* if */
         }  /* if */
-        if (vp != NULL) {
-          fputs("  static data members:\n", f_debug);
-          for (; vp != NULL; vp = vp->next) db_static_data_member(vp);
+        fprintf(f_debug, "} : size = %lu, alignment = %d",
+                tp->size, tp->alignment);
+        if (any_virtual_base_classes) {
+          fprintf(f_debug, "; w/o virtuals: size = %lu, alignment = %d",
+                              ctsp->size_without_virtual_base_classes,
+                              ctsp->alignment_without_virtual_base_classes);
         }  /* if */
-        if (rp != NULL) {
-          fputs("  member functions:\n", f_debug);
-          for (; rp != NULL; rp = rp->next) db_member_function(rp);
-        }  /* if */
-        if (aap != NULL) {
-          fputs("  access adjustments:\n", f_debug);
-          for (; aap != NULL; aap = aap->next) db_access_adjustment(aap);
-        }  /* if */
-      }  /* if */
-      fprintf(f_debug, "} : size = %lu, alignment = %d",
-              tp->size, tp->alignment);
-      if (ctsp->virtual_base_classes != NULL) {
-        fprintf(f_debug, "; w/o virtuals: size = %lu, alignment = %d",
-                            ctsp->size_without_virtual_base_classes,
-                            ctsp->alignment_without_virtual_base_classes);
-      }  /* if */
+      }
       break;
     case tk_routine:
       fputs("routine ", f_debug);
@@ -1641,6 +1645,27 @@ at_file_scope == TRUE.
 }  /* alloc_param_type */
 
 
+a_derivation_step_ptr alloc_derivation_step(void)
+/*
+Allocate and initialize a derivation step entry and return a pointer to it.
+*/
+{
+  a_derivation_step_ptr  dsp;
+
+  db_enter(5, "alloc_derivation_step");
+
+  dsp = (a_derivation_step_ptr)alloc_fe(sizeof(a_derivation_step));
+#if DEBUG
+  num_derivation_steps_allocated++;
+#endif /* DEBUG */
+  dsp->next       = NULL;
+  dsp->base_class = NULL;
+
+  db_exit();
+  return dsp;
+}  /* alloc_derivation_step */
+
+
 a_base_class_ptr alloc_base_class(void)
 /*
 Allocate a base class entry, initialize its fields, and return a pointer
@@ -1654,35 +1679,19 @@ to it.
 #if DEBUG
   num_base_classes_allocated++;
 #endif
-  bcp->next         = NULL;
-  bcp->class        = NULL;
-  bcp->access       = (an_access_specifier)as_public;
-  bcp->virtual      = FALSE;
-  bcp->offset       = 0;
+  bcp->next           = NULL;
+  bcp->class          = NULL;
+  bcp->virtual        = FALSE;
+  bcp->direct	      = FALSE;
+  bcp->ambiguous      = FALSE;
+  bcp->is_accessible  = FALSE;
+  bcp->access         = (an_access_specifier)as_public;
+  bcp->offset         = 0;
+  bcp->pointer_offset = 0;
+  bcp->derivation     = NULL;
 
   return bcp;
 }  /* alloc_base_class */
-
-
-a_virtual_base_class_ptr alloc_virtual_base_class(void)
-/*
-Allocate a virtual base class entry, initialize its fields, and return a
-pointer to it.
-*/
-{
-  a_virtual_base_class_ptr vbcp;
-
-  vbcp = (a_virtual_base_class_ptr)alloc_cil(sizeof(a_virtual_base_class));
-
-#if DEBUG
-  num_virtual_base_classes_allocated++;
-#endif
-  vbcp->next                = NULL;
-  vbcp->class               = NULL;
-  vbcp->data_section_offset = 0;
-
-  return vbcp;
-}  /* alloc_virtual_base_class */
 
 
 an_access_adjustment_ptr alloc_access_adjustment(an_access_adjustment_kind kind)
@@ -1744,7 +1753,6 @@ a pointer to it.
   num_class_type_supplements_allocated++;
 #endif /* DEBUG */
   ctsp->base_classes                           = NULL;
-  ctsp->virtual_base_classes                   = NULL;
   ctsp->size_without_virtual_base_classes      = 0;
   ctsp->alignment_without_virtual_base_classes = 1;
   ctsp->access_adjustments                     = NULL;
@@ -2993,13 +3001,13 @@ Display and return the amount of space used for various IL tables.
                                        a_routine_type_supplement);
   write_one("class type supplement", num_class_type_supplements_allocated,
                                      a_class_type_supplement);
-  write_one("access_adjustment", num_access_adjustments_allocated,
+  write_one("access adjustment", num_access_adjustments_allocated,
                                  an_access_adjustment);
-  write_one("class_list_entry", num_class_list_entries_allocated,
+  write_one("class list entry", num_class_list_entries_allocated,
                                 a_class_list_entry);
+  write_one("derivation steps", num_derivation_steps_allocated,
+                                a_derivation_step);
   write_one("base class", num_base_classes_allocated, a_base_class);
-  write_one("virtual base class", num_virtual_base_classes_allocated,
-                                  a_virtual_base_class);
   write_one("type", num_types_allocated, a_type);
   write_one("dynamic init", num_dynamic_inits_allocated, a_dynamic_init);
   write_one("variable", num_variables_allocated, a_variable);
@@ -3090,8 +3098,8 @@ of the front end.
   num_access_adjustments_allocated       = 0;
   num_class_list_entries_allocated       = 0;
   num_class_type_supplements_allocated   = 0;
+  num_derivation_steps_allocated         = 0;
   num_base_classes_allocated             = 0;
-  num_virtual_base_classes_allocated     = 0;
   num_types_allocated                    = 0;
   num_dynamic_inits_allocated            = 0;
   num_variables_allocated                = 0;
