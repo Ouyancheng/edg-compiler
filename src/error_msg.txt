@@ -856,6 +856,10 @@ ec_bad_exception_specification_for_specialization;;"exception specification is i
 ec_omitted_exception_specification_on_specialization;;"omission of exception specification is incompatible with %nd"
 ec_unexpected_end_of_default_arg;;"the parse of this expression has changed between the point at which it appeared in the program and the point at which the expression was evaluated -- \"typename\" may be required to resolve the ambiguity"
 ec_default_init_of_reference;;"default-initialization of reference is not allowed"
+ec_uninitialized_field_with_const_member;;"uninitialized %n has a const member"
+ec_uninitialized_base_class_with_const_member;;"uninitialized base class %t has a const member"
+ec_missing_default_constructor_on_const;;"class %t requires an explicitly declared default constructor to initialize const %n"
+ec_missing_default_constructor_on_unnamed_const;;"class %t requires an explicitly declared default constructor to initialize const object"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
