@@ -7128,20 +7128,30 @@ Add the given variable to the variables list for the scope at the indicated
 scope depth.
 */
 {
-  a_scope_stack_entry_ptr     ssep;
+  a_scope_stack_entry_ptr     ssep = NULL;
   a_scope_ptr                 sp;
   a_scope_pointers_block_ptr  pointers_block;
   a_boolean                   at_file_or_namespace_scope;
 
-  assert_is_valid_scope_depth(scope_depth);
-  ssep = &scope_stack[scope_depth];
+  sp = get_scope_for_list(scope_depth, &var_ptr->source_corresp,
+                          &pointers_block);
+  check_assertion_str(sp != NULL, "add_to_variables_list: NULL IL scope");
+  /* If the specified scope depth is on the stack, get a pointer to the
+     scope stack entry.  The only case in which the specified depth is
+     permitted to exceed the current depth of the scope stack is when
+     the depth specifies the file scope (because in such cases, we can get
+     the necessary information elsewhere). */
+  if (scope_depth <= depth_scope_stack) {
+    assert_is_valid_scope_depth(scope_depth);
+    ssep = &scope_stack[scope_depth];
+  } else {
+    check_assertion(scope_depth == DEPTH_OF_FILE_SCOPE);
+  }  /* if */
   at_file_or_namespace_scope = (scope_depth == DEPTH_OF_FILE_SCOPE ||
                                scope_depth == depth_innermost_namespace_scope);
   /* Get pointer to current or file scope entry. */
   if (at_file_or_namespace_scope) {
-    sp = ssep->il_scope;
 #if CHECKING
-    if (sp == NULL) internal_error("add_to_variables_list: NULL IL scope");
     if (var_ptr->storage_class != (a_storage_class)sc_static &&
         var_ptr->storage_class != (a_storage_class)sc_extern &&
         var_ptr->storage_class != (a_storage_class)sc_unspecified) {
@@ -7174,7 +7184,6 @@ scope depth.
         internal_error("add_to_variables_list: var not in file scope region");
       }  /* if */
 #endif /* CHECKING */
-      pointers_block = assoc_pointers_block_of(ssep);
       if (sp->variables == NULL) {
         sp->variables = var_ptr;
       } else {
@@ -7182,6 +7191,7 @@ scope depth.
       }  /* if */
       pointers_block->last_variable = var_ptr;
     } else {
+      check_assertion(ssep != NULL);
 #if CHECKING
       /* Variables with nonstatic storage will be allocated in the file scope
          memory region only when the scope is a function prototype scope (i.e.,
