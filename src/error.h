@@ -367,7 +367,9 @@ typedef enum /*an_error_code*/ {
   ec_ambiguous_virtual_function_override,
   ec_pure_specifier_on_nonvirtual_function,
   ec_bad_pure_specifier,
-  ec_bad_data_member_initialization
+  ec_bad_data_member_initialization,
+  ec_abstract_class_not_allowed,
+  ec_function_returning_abstract_class
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
