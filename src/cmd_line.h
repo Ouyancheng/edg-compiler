@@ -1508,12 +1508,12 @@ EXTERN a_boolean
 			   TRUE. */
 
 EXTERN unsigned long
-		gnu_abi_bugs_version
+		gnu_abi_version
 #if VAR_INITIALIZERS
-			= DEFAULT_GNU_ABI_BUGS_VERSION
+			= DEFAULT_GNU_ABI_VERSION
 #endif /* VAR_INITIALIZERS */
-			                              ;
-			/* The version of GNU C++ whose ABI bugs are to be
+			                         ;
+			/* The version of GNU C++ whose ABI is to be
 			   emulated.  This value must be at least 30200
 			   (i.e., g++ version 3.2). */
 

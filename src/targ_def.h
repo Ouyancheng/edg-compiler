@@ -137,19 +137,33 @@ variable emulate_gnu_abi_bugs.
 #endif /* ifndef DEFAULT_EMULATE_GNU_ABI_BUGS */
 
 /*
-The GNU C++ version whose IA-64 ABI bugs should be emulated.  This is the
-initial value of the global variable gnu_abi_bugs_version.  The number is
-of the form MMmmss which corresponds to GNU C++ version MM.mm.ss. For example,
-GNU C++ version 3.3 is 30300 and version 3.2.2 is 30202.  The configured
-value should never be less than 30200.
+The GNU C++ version whose IA-64 ABI should be emulated.  This is the initial
+value of the global variable gnu_abi_version.  The number is of the form
+MMmmss which corresponds to GNU C++ version MM.mm.ss. For example, GNU C++
+version 3.3 is 30300 and version 3.2.2 is 30202.  The configured value should
+never be less than 30200.  This flag was formerly spelled
+DEFAULT_GNU_ABI_BUGS_VERSION: The name was changed because it also affects
+the behavior of alignment/packing directives in GNU modes (even when no ABI
+bugs are emulated).
 */
-#ifndef DEFAULT_GNU_ABI_BUGS_VERSION
-#define DEFAULT_GNU_ABI_BUGS_VERSION 30200
-#endif /* ifndef DEFAULT_GNU_ABI_BUGS_VERSION */
+#ifndef DEFAULT_GNU_ABI_VERSION
+#ifdef DEFAULT_GNU_ABI_BUGS_VERSION
+#define DEFAULT_GNU_ABI_VERSION DEFAULT_GNU_ABI_BUGS_VERSION
+#else /* !defined(DEFAULT_GNU_ABI_BUGS_VERSION) */
+#define DEFAULT_GNU_ABI_VERSION 30200
+#endif /* ifdef DEFAULT_GNU_ABI_BUGS_VERSION */
+#else /* defined(DEFAULT_GNU_ABI_VERSION) */
+#ifdef DEFAULT_GNU_ABI_BUGS_VERSION
+#if DEFAULT_GNU_ABI_BUGS_VERSION != DEFAULT_GNU_ABI_VERSION
+ #error -- DEFAULT_GNU_ABI_BUGS_VERSION != DEFAULT_GNU_ABI_VERSION \
+           DEFAULT_GNU_ABI_BUGS_VERSION is no longer used
+#endif /* DEFAULT_GNU_ABI_BUGS_VERSION != DEFAULT_GNU_ABI_VERSION */
+#endif /* DEFAULT_GNU_ABI_BUGS_VERSION */
+#endif /* ifndef DEFAULT_GNU_ABI_VERSION */
 
-#if DEFAULT_GNU_ABI_BUGS_VERSION < 30200
- #error -- DEFAULT_GNU_ABI_BUGS_VERSION must be at least 30200
-#endif /* DEFAULT_GNU_ABI_BUGS_VERSION < 30200 */
+#if DEFAULT_GNU_ABI_VERSION < 30200
+ #error -- DEFAULT_GNU_ABI_VERSION must be at least 30200
+#endif /* DEFAULT_GNU_ABI_VERSION < 30200 */
 
 /*
 Flag that is TRUE if support for exported templates can be enabled.

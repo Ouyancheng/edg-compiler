@@ -785,7 +785,7 @@ if necessary.
   a_targ_alignment  pack_alignment;
 
 #if IA64_ABI
-  if (emulate_gnu_abi_bugs && gnu_abi_bugs_version < 30300 &&
+  if (gnu_mode && gnu_abi_version < 30300 &&
       targ_bit_field_container_size < 0 && is_union_type(class_type)) {
     /* Some versions of GNU C that follow a Microsoft-like bit field allocation
        strategy (negative targ_bit_field_container_size) do not honor the
@@ -1177,22 +1177,24 @@ targ_microsoft_bit_field_allocation is FALSE.)
      directive.  (I.e., the bit field is aligned independently from the
      directive wrt. the origin of the containing object, but in absolute
      terms the field may end up being unaligned.)  For such environments, the
-     adjustment is made later on.  Also, the GNU IA-64 ABI does not apply
-     packing directives to zero-length bit fields. */
-  if (targ_user_control_of_struct_packing_affects_bit_fields
+     adjustment is made later on. */
 #if IA64_ABI
-      && !(emulate_gnu_abi_bugs && field->bit_size == 0)
+  if (gnu_mode && field->bit_size == 0) {
+    /* The GNU IA-64 ABI does not apply packing directives to zero-length
+       bit fields. */
+  } else
 #endif /* IA64_ABI */
-                                                        ) {
+  /* Do not insert code here. */
+  if (targ_user_control_of_struct_packing_affects_bit_fields) {
     adjust_alignment_for_packing(&container_alignment, lob->class_type);
   }  /* if */
 #if IA64_ABI
   /* In GNU compilers, when #pragma pack(n) is in effect (with a nonzero n) a
      bit field is not aligned, but the overall alignment of the enclosing class
      is updated if needed. */ 
-  if (emulate_gnu_abi_bugs && !targ_microsoft_bit_field_allocation &&
+  if (gnu_mode && !targ_microsoft_bit_field_allocation &&
       curr_max_member_alignment > 0 && field->bit_size != 0 &&
-      !(gnu_abi_bugs_version < 30300 && is_union_type(lob->class_type))) {
+      !(gnu_abi_version < 30300 && is_union_type(lob->class_type))) {
     a_targ_alignment declared_alignment = field_alignment_for(field->type);
     if (container_alignment <= declared_alignment) {
       /* Determine the effect of the container alignment on the alignment of
@@ -2672,7 +2674,7 @@ Allocate bcp (an empty base class).
        as created so far. */
     a_targ_size_t  end_of_object = lob->byte_offset;
     if (emulate_gnu_abi_bugs && bcp->is_virtual &&
-        gnu_abi_bugs_version >= 30300 && gnu_abi_bugs_version < 30400) {
+        gnu_abi_version >= 30300 && gnu_abi_version < 30400) {
       /* Emulate a strange GNU 3.3 ABI bug that causes some empty virtual
          bases to be allocated in bit-field padding. */
       gnu_trim_trailing_base_bits(&end_of_object, lob);
@@ -2977,7 +2979,7 @@ layout block used to track the layout of the current class.
   }  /* for */
 #if IA64_ABI
   if (emulate_gnu_abi_bugs) {
-    if (gnu_abi_bugs_version >= 30300 && gnu_abi_bugs_version < 30400) {
+    if (gnu_abi_version >= 30300 && gnu_abi_version < 30400) {
       /* GNU C++ version 3.3 sometimes "overpads" a class whose last base
          ends with a bit field. */
       emulate_gnu_bit_field_overpadding(lob, /*virtual_base=*/FALSE);
@@ -4248,7 +4250,7 @@ Reserve space at the end of the class object for virtual base classes.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #if IA64_ABI
     if (emulate_gnu_abi_bugs) {
-      if (gnu_abi_bugs_version >= 30300 && gnu_abi_bugs_version < 30400) {
+      if (gnu_abi_version >= 30300 && gnu_abi_version < 30400) {
         /* GNU C++ version 3.3 sometimes "overpads" a class whose last base
            ends with a bit field. */
         emulate_gnu_bit_field_overpadding(lob, /*virtual_base=*/TRUE);
