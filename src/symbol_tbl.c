@@ -2543,6 +2543,9 @@ state.
       sym_ptr->variant.variable.ptr = NULL;
       sym_ptr->variant.variable.value_has_been_set = FALSE;
       sym_ptr->variant.variable.used = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      sym_ptr->variant.variable.declared_in_for_init = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case sk_static_data_member:
       sym_ptr->variant.static_data_member.variable = NULL;
@@ -2977,6 +2980,24 @@ this is not allowed, an error will be issued by the caller.
     if (is_namespace_symbol(new_sym) || is_namespace_symbol(old_sym)) {
       /* A namespace name must be unique in its scope. */
       /* err = TRUE; */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode && microsoft_version >= 1300 &&
+               use_nonstandard_for_init_scope &&
+               old_sym->kind == (a_symbol_kind)sk_variable &&
+               new_sym->kind == (a_symbol_kind)sk_variable &&
+               old_sym->variant.variable.declared_in_for_init) {
+      /* Microsoft Visual C++ 7.0 (and later) supports a nonstandard for-init
+         declaration mode that makes the declared variable visible outside the
+         for-statement, but it does not conflict with the declaration of other
+         variables in that scope.  This handles the case where the for-init
+         declaration comes first; decl_variable handles the other case. */
+      pos_start_diagnostic(es_warning, ec_for_init_hides_declaration,
+                           &old_sym->decl_position);
+      add_diag_info_with_pos_insert(ec_for_init_hidden_declaration,
+                                    &new_sym->decl_position);
+      end_error();
+      err = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (scope_stack[scope_depth].in_prototype_instantiation &&
                scope_stack[scope_depth].kind ==
                                  (a_scope_kind)sck_template_instantiation) {

@@ -1,5 +1,23 @@
 Version 3.1
 
+9/11/02  Microsoft compatibility: Declaration in for-initializer can be
+         hidden by declaration in surrounding scope
+
+Microsoft Visual C++ version 7 allows a variable to be declared in a 
+scope in a for-initializer variable with the same name was already
+declared.  The earlier declaration is then hidden.  For example:
+
+  int main() {
+    for (int k = 0; k<10; ++k);  // Declaration #1
+    int k = 1;                   // Declaration #2 hides declaration #1
+    k = k+1;                     // k becomes 2
+  }
+
+This behavior is now emulated (with a warning) in Microsoft C++ mode with
+--microsoft_version=1300 or higher.  (See Changes entry of 7/2/02 for the
+complementary case of a declaration in a for-initializer that follows an 
+ordinary declaration.)
+
 9/11/02  Microsoft compatibility: qualifiers on in-class specializations
 
 Qualifiers were not accepted in Microsoft in-class specializations.  This

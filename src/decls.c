@@ -3953,32 +3953,36 @@ be a using-declaration.
 }  /* move_variable_to_end_of_list */
 
 
-static a_boolean microsoft_for_init_hiding(a_symbol_locator  *loc)
+static a_boolean microsoft_for_init_hiding(a_symbol_locator  *loc,
+                                           a_boolean         *in_for_init)
 /*
 Starting with version 7, Microsoft Visual C++ allows for-initializers to
 declare variables that conflict with a declaration in the surrounding scope.
 The earlier declaration is hidden by the new one.  The given locator is for
 a new variable declaration in the current scope.  Return TRUE if we must
-emulate the Microsoft behavior for that declaration.
+emulate the Microsoft behavior for that declaration.  *in_for_init is set
+to TRUE if we are in Microsoft mode and in a for-init block.
 */
 {
   a_boolean  hiding = FALSE;
 
   check_assertion(microsoft_mode);
-  if (microsoft_mode && microsoft_version >= 1300 && !C_mode() &&
+  if (microsoft_mode && !C_mode() &&
       struct_stmt_stack != NULL && depth_stmt_stack >= 0 &&
-      struct_stmt_stack[depth_stmt_stack].for_init &&
-      use_nonstandard_for_init_scope) {
-    a_symbol_ptr  prev_decl = curr_scope_id_lookup(loc, IDL_NO_OPTIONS);
-    if (prev_decl != NULL &&
-        prev_decl->decl_scope == scope_stack[depth_scope_stack].number) {
-      pos_start_diagnostic(es_warning, ec_for_init_hides_declaration,
-                           &loc->source_position);
-      add_diag_info_with_pos_insert(ec_for_init_hidden_declaration,
-                                    &prev_decl->decl_position);
-      end_error();
-      hiding = TRUE;
-    }  /* if */
+      struct_stmt_stack[depth_stmt_stack].for_init) {
+    *in_for_init = TRUE;
+    if (microsoft_version >= 1300 && use_nonstandard_for_init_scope) {
+      a_symbol_ptr  prev_decl = curr_scope_id_lookup(loc, IDL_NO_OPTIONS);
+      if (prev_decl != NULL &&
+          prev_decl->decl_scope == scope_stack[depth_scope_stack].number) {
+        pos_start_diagnostic(es_warning, ec_for_init_hides_declaration,
+                             &loc->source_position);
+        add_diag_info_with_pos_insert(ec_for_init_hidden_declaration,
+                                      &prev_decl->decl_position);
+        end_error();
+        hiding = TRUE;
+      }  /*if */
+    }  /*if */
   }  /* if */
   return hiding;
 }  /* microsoft_for_init_hiding */
@@ -4219,12 +4223,17 @@ declaration.
     redeclaration = FALSE;
   }  /* if */
   if (sym == NULL) {
-    a_boolean  inhibit_redecl_error = microsoft_mode &&
-                                      microsoft_for_init_hiding(locator);
+    a_boolean  in_microsoft_for_init = FALSE;
+    a_boolean  inhibit_redecl_error =
+                    microsoft_mode &&
+                    microsoft_for_init_hiding(locator, &in_microsoft_for_init);
     /* There is no (compatible) symbol, so enter one now. */
     sym = enter_symbol((a_symbol_kind)sk_variable, locator,
                        effective_decl_level,
                        inhibit_redecl_error || redecl_error_already_issued);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    sym->variant.variable.declared_in_for_init = in_microsoft_for_init;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if RECORD_HIDDEN_NAMES_IN_IL
     /* Block extern declarations have associated hidden name entries; so we
        must make sure there is an IL scope to attach those entries to. */
