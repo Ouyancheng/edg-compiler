@@ -3859,6 +3859,49 @@ typedef long a_decl_specifiers_set;
 			/* "void" was scanned as the very first specifier. */
 
 
+static void report_bad_type_name()
+/*
+locator_for_curr_id describes a source name that was expecteed to name a valid
+type, but it does not.  Report different errors depending on whether the name
+can be found at all (in which case it presumably does not name a type).
+*/
+{
+  if (!is_error_locator(locator_for_curr_id)) {
+    a_boolean  name_found = FALSE;
+    if (!locator_for_curr_id.is_qualified_name) {
+      name_found =
+               normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS) != NULL;
+    } else if (locator_for_curr_id.is_class_member &&
+               locator_for_curr_id.parent.class_type != NULL) {
+      name_found = class_qualified_id_lookup(
+                                        &locator_for_curr_id,
+                                        locator_for_curr_id.parent.class_type,
+                                        IDL_NO_OPTIONS) != NULL;
+    } else if (!locator_for_curr_id.is_class_member &&
+               locator_for_curr_id.parent.namespace_ptr != NULL) {
+      name_found = namespace_qualified_id_lookup(
+                                     &locator_for_curr_id,
+                                     locator_for_curr_id.parent.namespace_ptr,
+                                     IDL_NO_OPTIONS) != NULL;
+    }  /* if */
+    if (name_found) {
+      /* The name refers to something, but not a type. */
+      error(ec_exp_type_specifier);
+    } else {
+      if (!locator_for_curr_id.is_qualified_name) {
+        /* Issue a precise error for an undeclared unqualified name;
+           i.e., an identifier. */
+        str_error(ec_undefined_identifier,
+                  locator_for_curr_id.symbol_header->identifier);
+      } else {
+        error(ec_name_undeclared);
+      }  /* if */
+    }  /* if */
+    reference_to_invalid_name(&locator_for_curr_id);
+  }  /* if */
+}  /* report_bad_type_name */
+
+
 a_boolean decl_specifiers(a_decl_flag_set            input_flags,
                           a_decl_flag_set            *output_flags,
                           a_storage_class            *storage_class,
@@ -5175,17 +5218,7 @@ process_class_specifier:
           rescan_cached_tokens(&cache);
         }  /* if */
         if (bad_type_name_error) {
-          if (!is_error_locator(locator_for_curr_id)) {
-            if (!locator_for_curr_id.is_qualified_name &&
-                normal_id_lookup(&locator_for_curr_id,
-                                 IDL_NO_OPTIONS) == NULL) {
-              str_error(ec_undefined_identifier,
-                        locator_for_curr_id.symbol_header->identifier);
-            } else {
-              error(ec_exp_type_specifier);
-            }  /* if */
-            reference_to_invalid_name(&locator_for_curr_id);
-          }  /* if */
+          report_bad_type_name();
           err = TRUE;
           basic_type = bt_typedef;
           *type_ptr = error_type();

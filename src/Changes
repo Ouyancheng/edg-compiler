@@ -1,5 +1,16 @@
 Version 2.43
 
+11/22/99 Clearer diagnostic for unresolved type names
+
+During the processing of certain declaration specifiers, the front end now
+distinguishes between names which were not found at all, and names which were
+found but were not type names as was expected.  This makes for more
+intelligible error messages.
+
+  struct X { enum { B } };
+  typedef X::A A;  // Name X::A not found
+  typedef X::B B;  // Expected X::B to name a type
+
 11/22/99 Microsoft compatibility: using-declaration of constructor or
          destructor
 
