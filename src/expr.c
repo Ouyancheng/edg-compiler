@@ -7480,7 +7480,12 @@ Return the constant in *constant.
      does allow trivial conversions. */
   determine_arg_match_level(&result, (a_type_ptr)NULL, param_type,
                             /*try_user_conversions=*/FALSE, &arg_summary);
-  if (arg_summary.match_level == aml_exact) {
+  /* In non-strict mode, we allow promotions and standard conversions
+     as an extension. */
+  if (arg_summary.match_level == aml_exact ||
+      (!strict_ansi_mode &&
+       (arg_summary.match_level == aml_promotion ||
+        arg_summary.match_level == aml_std_conversion))) {
     /* Okay. */
     /* Convert to the required type (i.e., do any required trivial
        conversions). */
