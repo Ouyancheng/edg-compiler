@@ -225,6 +225,27 @@ symbol.  Otherwise, return NULL.
 }  /* curr_tag_symbol */
 
 
+a_symbol_ptr curr_scope_tag_symbol(a_symbol_kind kind)
+/*
+The current token is an identifier.  If it represents a tag of the indicated
+kind from the current scope, return a pointer to the corresponding symbol.
+Otherwise, return NULL.
+*/
+{
+  a_symbol_ptr  sym = symbol_list_from_locator(locator_for_curr_id);
+
+  /* Look for a symbol in the current scope for which the kind matches that
+     specified by the caller. */
+  for (; sym != NULL; sym = sym->next) {
+    if (sym->decl_scope == decl_scope_level && sym->kind == kind) {
+      /* Found it. */
+      break;
+    }  /* if */
+  }  /* for */
+  return sym;
+}  /* curr_scope_tag_symbol */
+
+
 a_boolean is_type_start(void)
 /*
 Return TRUE if the current token looks like the start of a type.  A type
@@ -4087,7 +4108,6 @@ whether or not this specifier declares something, and *defines_something
 to indicate whether an enumeration is actually defined.
 */
 {
-  a_symbol_ptr             assoc_symbol;
   a_symbol_locator         locator;
   a_symbol_ptr             tag_sym;
   a_boolean                tag_id_present;
@@ -4108,6 +4128,7 @@ to indicate whether an enumeration is actually defined.
   a_type_ptr               class_of_which_a_member;
   an_access_specifier      access;
   a_scope_depth            effective_decl_level = decl_scope_level;
+  a_token_kind             next_tok;
 
   db_enter(3, "enum_specifier");
 
@@ -4129,82 +4150,107 @@ to indicate whether an enumeration is actually defined.
      of a new tag or a reference to an existing tag. */
   tag_id_present = (get_token() == tok_identifier);
   if (tag_id_present) {
-    /* Find any current definition of this enum tag. */
-    assoc_symbol = curr_tag_symbol((a_symbol_kind)sk_enum_tag);
+    /* Find a declaration of this tag in the current scope.  (We only look
+       in the current scope for now, but we may have to do a complete lookup
+       later.) */
+    tag_sym = curr_scope_tag_symbol((a_symbol_kind)sk_enum_tag);
     /* Save the symbol locator for this identifier before doing the
        get_token. */
     locator = locator_for_curr_id;
-    (void)get_token();
     /* It seems that appearance of a tag name is a declaration of the
-       tag, even if it just repeats a previous name. */
+       tag, even if it just repeats a previous name.  At least, there's
+       a Plum Hall test that implies that. */
     *declares_something = TRUE;
+    next_tok = next_token();
+    if (next_tok == tok_lbrace) {
+      /* The token following the tag marks the start of an enum definition.
+         Determine whether it is the resolution of a previous incomplete
+         declaration. */
+      if (tag_sym != NULL) {
+        /* The tag has already appeared in the current scope. */
+        if (is_incomplete_type(tag_sym->variant.type)) {
+          /* Resolution of a previous incomplete declaration. */
+          if (C_dialect != C_dialect_cplusplus) {
+            /* If the tag was declared in a prototype scope and is now being
+               resolved within the function, as in
+                 int f(enum f p) {enum f{a, b};  ... }
+               we must switch into the file scope for the duration of the
+               definition.  (In C++ a tag declarated in a prototype scope
+               refers to a file scope type, so this check is not relevant.) */
+            if (ssep->kind == (a_scope_kind)sck_function &&
+                in_file_scope(tag_sym->variant.type)) {
+              prototype_tag_resolution = TRUE;
+            }  /* if */
+          }  /* if */
+        } else {
+          /* Redeclaration of a tag that has already been defined.  Set
+             tag_sym to NULL and let enter_symbol issue an error. */
+          tag_sym = NULL;
+        }  /* if */
+      }  /* if */
+    } else if (tag_sym == NULL) {
+      /* This is the first appearance of the tag in the current scope.  This
+         is not its definition, so it is either a reference or a "vacuous
+         declaration" (e.g. "enum S;"), an extension in strict ANSI mode whose
+         effect (by analogy with vacuous class/struct/union declarations) is
+         to establish the name in the current scope, even if the tag name
+         exists in a containing scope or is inherited from a base class. */
+      if (next_tok == tok_semicolon) {
+        /* This is indeed a vacuous declaration.  Leave tag_sym set to NULL
+           to force the creation of a new symbol in the current scope. */
+        if (strict_ansi_mode) {
+          pos_warning(ec_nonstd_forward_def_enum, &locator.source_position);
+        }  /* if */
+      } else {
+        /* This may be a reference to an existing tag from a containing
+           scope or a base class.  This can be ascertained by doing a full
+           lookup of the tag name (before it was done just for the current
+           scope). */
+        tag_sym = curr_tag_symbol((a_symbol_kind)sk_enum_tag);
+        if (tag_sym == NULL) {
+          /* We will need to enter an incomplete tag that may be resolved
+             later.  Just leave tag_sym NULL.  In C it will be entered at
+             the scope level indicated by decl_scope_level.  In C++ we need
+             to pop out to the innermost non-class/non-prototype scope.
+             (For example, to introduce enum E in a parameter declaration of
+             a member function within the definition of class A does not
+             introduce A::E; rather, E is entered in the same scope as A.) */
+          if (C_dialect == C_dialect_cplusplus) {
+            /* Pop out to the containing scope -- file scope, function
+               scope, or block scope.  effective_decl_level has
+               already been initialized to decl_scope_level. */
+            while (scope_stack[effective_decl_level].kind ==
+                                   (a_scope_kind)sck_class_struct_union ||
+                   scope_stack[effective_decl_level].kind ==
+                                   (a_scope_kind)sck_func_prototype) {
+              effective_decl_level--;
+            }  /* while */
+            if (effective_decl_level != decl_scope_level) {
+              class_of_which_a_member = NULL;
+              access = (an_access_specifier)as_public;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* Now that we have completed the lookup on the tag identifier we can
+       advance past it. */
+    (void)get_token();
   } else {
     /* No tag identifier present. */
-    assoc_symbol = NULL;
+    tag_sym = NULL;
     set_to_error_locator(locator);
-  }  /* if */
-  /* See if a "{" is next, in which case this is a declaration of an 
-     enumeration. */
-  tag_sym = NULL;
-  if (curr_token == tok_lbrace) {
-    /* This must be a declaration of an enumeration.  For pcc mode,
-       or for ANSI mode as an extension, this might be a resolution of
-       a previous incomplete declaration.  Normally, however, this is
-       a new definition. */
-    if (assoc_symbol != NULL &&
-        is_incomplete_type(assoc_symbol->variant.type)) {
-      /* Resolution of a previous incomplete declaration. */
-      tag_sym = assoc_symbol;
-      /* If the tag was declared in a prototype scope and is now being
-         resolved within the function, as in
-           int f(enum f p) {enum f{a, b};  ... }
-         set a flag so we can switch into the file scope when needed. */
-      if (ssep->kind == (a_scope_kind)sck_function &&
-          in_file_scope(assoc_symbol->variant.type)) {
-        prototype_tag_resolution = TRUE;
-      }  /* if */
+    if (curr_token == tok_lbrace) {
+      /* This is a tagless class definition. */
     } else {
-      /* Declaration of a new enumerated type.  tag_sym stays NULL to
-         force entry of the new tag. */
-    }  /* if */
-  } else {
-    /* No "{", so this should be a reference to an existing tag. */
-    if (!tag_id_present) {
       /* Neither the tag id nor the {...} is present.  This is an error. */
+      add_stop_token(tok_lbrace);
       syntax_error(ec_exp_definition_of_tag);
+      remove_stop_token(tok_lbrace);
       /* This statement might have declared something, but since we're
          scanning past the relevant tokens we'll never know.  Set the flag
          to TRUE anyway, to avoid other errors down the line. */
       *declares_something = TRUE;
-    } else if (assoc_symbol != NULL) {
-      /* Use the existing tag. */
-      tag_sym = assoc_symbol;
-    } else {
-      /* Enter an incomplete tag that may be resolved later.  This is
-         indicated by leaving tag_sym NULL. */
-      /* This is an extension in ANSI mode. */
-      if (strict_ansi_mode) {
-        pos_warning(ec_nonstd_forward_def_enum, &locator.source_position);
-      }  /* if */
-      /* In C the new symbol is entered at the scope level indicated by
-         decl_scope_level.  In C++ we need to pop out to the innermost
-         non-class/non-prototype scope.  (This follows the same approach that
-         is used for incomplete class-struct-union tag symbols.) */
-      if (C_dialect == C_dialect_cplusplus) {
-        /* Pop out to the containing scope -- file scope, function scope, or
-           block scope.  effective_decl_level has already been initialized to
-           decl_scope_level. */
-        while (scope_stack[effective_decl_level].kind ==
-                                     (a_scope_kind)sck_class_struct_union ||
-               scope_stack[effective_decl_level].kind ==
-                                     (a_scope_kind)sck_func_prototype) {
-          effective_decl_level--;
-        }  /* while */
-        if (effective_decl_level != decl_scope_level) {
-          class_of_which_a_member = NULL;
-          access = (an_access_specifier)as_public;
-        }  /* if */
-      }  /* if */
     }  /* if */
   }  /* if */
   if (tag_sym == NULL) {
