@@ -2841,6 +2841,21 @@ class template.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (curr_token == tok_lbrace ||
+      (curr_token == tok_colon && sym != NULL && is_constructor_symbol(sym))) {
+    /* This is a defining declaration of the function template. */
+    func_info->is_definition = TRUE;
+    if (func_info->function_type_from_typedef) {
+      /* Just as it is an error when a normal function is defined for the
+         function type to come from a typedef, so too is that an error when
+         a function template is being defined. */
+      a_type_ptr  tp = alloc_type((a_type_kind)tk_routine);
+      error(ec_function_type_must_come_from_declarator);
+      /* Copy the type entry, since the typedef type may not be shared. */
+      copy_routine_type_with_param_types(skip_typerefs(type_ptr), tp);
+      type_ptr = tp;
+    }  /* if */
+  }  /* if */
   if (sym == NULL) {
     /* id_linkage will set sym to point to an existing symbol when we have
        a redeclaration of a function template. */
