@@ -1,5 +1,17 @@
 Version 2.36
 
+6/12/97   Using-declaration that specifies a constructor or destructor
+
+In accord with a recent clarification to the Working Paper, an error is now
+issued (instead of a warning) when a using-declaration in a class definition
+specifies a base class constructor or destructor.
+
+  class B { B(); ~B(); };
+  class D : public B {
+    using B::B();           // Error
+    using B::~B();          // Error
+  }
+
 6/12/97   Spurious error on local-class friend function declaration
 
 When a friend function declaration appears in a local class, a spurious

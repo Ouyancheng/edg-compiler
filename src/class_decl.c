@@ -7871,6 +7871,8 @@ or implicit) controlling the declaration.
     /* The identifier should be a qualified name, with the qualifier a base
        class of the current class. */
     declared_sym = locator_for_curr_id.specific_symbol;
+    check_assertion_str(declared_sym != NULL,
+                        "member_using_decl: NULL symbol pointer");
     if (!locator_for_curr_id.is_class_member) {
       error(ec_class_qualified_name_required);
       err = TRUE;
@@ -7883,14 +7885,14 @@ or implicit) controlling the declaration.
       discard_curr_construct_pragmas();
       (void)get_token();
       goto done;
-    } else if (declared_sym != NULL &&
-               (is_constructor_symbol(declared_sym) ||
-                is_destructor_symbol(declared_sym) ||
-                is_copy_assignment_operator_sym(declared_sym))) {
-      /* The WP does not explicitly disallow a using-declaration that specifies
-         a constructor or destructor, but since they cannot be inherited it
-         is not clear what meaning such a declaration could have.  The same
-         goes for compiler-generated copy assignment operators. */
+    } else if (is_constructor_symbol(declared_sym) ||
+               is_destructor_symbol(declared_sym)) {
+      /* A using-declaration may not specify a constructor or destructor. */
+      pos_sy_error(ec_using_declaration_not_allowed, &decl_pos, declared_sym);
+      err = TRUE;
+    } else if (is_copy_assignment_operator_sym(declared_sym)) {
+      /* Using-declaration cannot apply to a copy-assignment operator,
+         since they are not inheritable. */
       pos_sy_warning(ec_using_declaration_ignored, &decl_pos, declared_sym);
       err = TRUE;
     } else if (declared_sym->ambiguous) {
@@ -8014,7 +8016,7 @@ or implicit) controlling the declaration.
                  sym->variant.routine.ptr->compiler_generated) {
         /* Ignore compiler-generated member functions silently. */
       } else if (is_copy_assignment_operator_sym(sym)) {
-        /* Using declaration cannot apply to a copy-assignment operator,
+        /* Using-declaration cannot apply to a copy-assignment operator,
            since they are not inheritable. */
         pos_sy_warning(ec_using_declaration_ignored, &decl_pos, sym);
       } else if (other_sym != NULL &&
