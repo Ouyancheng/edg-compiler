@@ -497,6 +497,17 @@ typedef struct a_function_instantiation_entry {
                 next;
                         /* Pointer to the next instance of a given
                            function template. */
+  a_function_instantiation_entry_ptr
+                next_instantiation_required;
+			/* Pointer to the next function instantiation entry
+			   on a global list of all template functions and
+			   template class member functions entries whose
+			   instantiation_required flag is TRUE.  New entries
+			   are added to the end of the list. */
+  a_function_instantiation_entry_ptr
+                prev_instantiation_required;
+			/* Same as above except points to the previous
+			   entry on the list. */
   a_symbol_ptr  routine_sym;
                         /* Pointer to the symbol entry that describes this
                            template function instance. */
@@ -1415,6 +1426,11 @@ extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
 
 extern a_symbol_ptr get_template_class(a_symbol_ptr  template_symbol);
+extern void update_instantiation_required_flag
+                                  (a_function_instantiation_entry_ptr fiep,
+                                   a_boolean                          value);
+extern void instantiation_wrapup(void);
+
 /* Allocation */
 extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);

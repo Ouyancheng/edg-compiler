@@ -104,6 +104,15 @@ static sizeof_t size_ident_buffer = 0;
 			/* Incremental allocation for ident_buffer.  Should
 			   be bigger than most identifiers. */
 
+static a_function_instantiation_entry_ptr  instantiations_required_head;
+			/* Points to the first entry on a list of
+			   function instantiation entries for which
+			   instantiations are required.  Entries are
+			   added to the end of the list. */
+static a_function_instantiation_entry_ptr  instantiations_required_tail;
+			/* Points to the last entry on a list of function
+			   instantiation entries for which instantiations
+			   are required. */
 
 #if DEBUG
 #define DEBUG_LINE_LENGTH 79
@@ -5911,6 +5920,8 @@ Allocate a new function instantiation entry and return a pointer to it.
   num_function_instantiation_entries_allocated++;
 #endif /* DEBUG */
   ptr->next    = NULL;
+  ptr->next_instantiation_required = NULL;
+  ptr->prev_instantiation_required = NULL;
   ptr->routine_sym = NULL;
   ptr->template_sym = NULL;
   ptr->arg_list = NULL;	
@@ -5921,6 +5932,64 @@ Allocate a new function instantiation entry and return a pointer to it.
   db_exit();
   return ptr;
 }  /* alloc_function_instantiation_entry */
+
+
+void update_instantiation_required_flag
+                           (a_function_instantiation_entry_ptr fiep,
+                            a_boolean                          value)
+/*
+Updates the instantiation required flag in a function instantiation
+entry.  If the flag is set to TRUE the instantiation entry is added
+to a list of instantiation entries for which instantiation is required.
+If the flag is set to FALSE the entry is removed from the list.
+*/
+{
+  /* Nothing needs to be done if the flag already has the new value. */
+  if (fiep->instantiation_required != value) {
+    fiep->instantiation_required = value;
+    if (value) {
+      /* Add the entry to the list. */
+      if (instantiations_required_head == NULL) {
+        instantiations_required_head = fiep;
+        instantiations_required_tail = fiep;
+      } else {
+        instantiations_required_tail->next_instantiation_required = fiep;
+        fiep->prev_instantiation_required = instantiations_required_tail;
+      }  /* if */
+    } else {
+      /* Remove the entry from the list. */
+      a_function_instantiation_entry_ptr prev;
+      a_function_instantiation_entry_ptr next;
+      prev = fiep->prev_instantiation_required;
+      next = fiep->next_instantiation_required;
+      if (prev != NULL) {
+        prev->next_instantiation_required = next;
+      }  /* if */
+      if (next != NULL) {
+        next->prev_instantiation_required = prev;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* update_instantiation_required_flag */
+
+
+
+void instantiation_wrapup(void)
+/*
+Performs end-of-compilation processing for template instantiation.
+This currently consists of going through a list of functions for
+which instantiations are required.
+*/
+{
+  a_function_instantiation_entry_ptr fiep;
+  fiep = instantiations_required_head;
+  while (fiep != NULL) {
+#if 0
+    instantiate_function(fiep);
+#endif /* 0 */
+    fiep = fiep->next_instantiation_required;
+  }  /* while */
+}  /* instantiation_wrapup */
 
 
 #if DEBUG
@@ -6080,6 +6149,8 @@ to avoid an 8-character external name clash with symbol_table.)
   unnamed_class_symbol_header = NULL;
   num_classes_on_scope_stack = 0;
   depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
+  instantiations_required_head = NULL;
+  instantiations_required_tail = NULL;
   /* Initialize the conversion header list. */
   conversion_header_list = NULL;
 #if DEBUG

@@ -53,6 +53,11 @@ Do any processing required at the end of execution of the front end.
 {
   db_enter(1, "fe_wrapup");
 
+  /* Do any template instantiation that may be required.  This is called
+     first because it may generate additional function bodies and class
+     definitions that need to be processed by the operations that follow. */
+  instantiation_wrapup();
+
 #if CHECKING
   /* Check that the stop_token_array elements all made it back to zero.
      (Every add_stop_token is supposed to have a corresponding
