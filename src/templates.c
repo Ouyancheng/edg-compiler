@@ -712,6 +712,23 @@ class a friend and update the friend information.
         decl_friend_class(clep->class_type, class_type);
       }  /* if */
     }  /* for */
+    if (tssp->prototype_template != NULL) {
+      /* This class is an instance of a member template declared in a
+         class template.  The template can be made a friend as
+         a member of the class template:
+           template <class T> template <class T2> friend class A<T>::B
+         as a member of an instance:
+           template <> template <class T2> friend class A<int>::B
+         or a combination of the two.  The code above will handle declarations
+         that make a member of an instance a friend.  We call this routine
+         recursively to pick up any friend declarations that made the class
+         template member a friend. */
+      a_symbol_ptr			prototype_sym;
+      a_template_symbol_supplement_ptr	prototype_tssp;
+      prototype_sym = tssp->prototype_template;
+      prototype_tssp = template_supplement_for_symbol(prototype_sym);
+      update_befriending_classes_for_class(prototype_tssp, class_type);
+    }  /* if */
   }  /* if */
 }  /* update_befriending_classes_for_class */
 
@@ -865,7 +882,7 @@ might not be able to if the template itself has not yet been defined.
        the prototype instantiation is associated with the definition
        within the original template.  Get a pointer to the template
        symbol that is associated with the prototype instantiation. */
-    if (tssp->prototype_template != NULL) {
+    if (tssp->prototype_template != NULL && !tssp->is_specific_definition) {
       template_sym_of_prototype = tssp->prototype_template;
     } else {
       template_sym_of_prototype = template_sym;
@@ -3207,6 +3224,23 @@ function a friend and update the friend information.
                                 /*is_definition=*/FALSE,
                                 /*move_to_front=*/FALSE);
   }  /* for */
+  if (tssp->prototype_template != NULL) {
+    /* This function is an instance of a member template declared in a
+       class template.  The template can be made a friend as
+       a member of the class template:
+         template <class T> template <class T2> friend void A<T>::f(T2);
+       as a member of an instance:
+         template <> template <class T2> friend void A<int>::f(T2);
+       or a combination of the two.  The code above will handle declarations
+       that make a member of an instance a friend.  We call this routine
+       recursively to pick up any friend declarations that made the function
+       template member a friend. */
+    a_symbol_ptr			prototype_sym;
+    a_template_symbol_supplement_ptr	prototype_tssp;
+    prototype_sym = tssp->prototype_template;
+    prototype_tssp = template_supplement_for_symbol(prototype_sym);
+    update_befriending_classes_for_function(prototype_tssp, rout_ptr);
+  }  /* if */
 }  /* update_befriending_classes_for_function */
 
 
@@ -3347,9 +3381,7 @@ type based on the template argument list and the template parameter list
     /* Add it to the routines list of the appropriate scope; NO_SCOPE_DEPTH
        is passed in to cause the scope to be computed. */
     add_to_routines_list(rp, NO_SCOPE_DEPTH);
-    if (tssp->befriending_classes != NULL) {
-      update_befriending_classes_for_function(tssp, rp);
-    }  /* if */
+    update_befriending_classes_for_function(tssp, rp);
     perform_deferred_access_checks_for_function(rp);
     end_deferral_of_access_checks();
   }
@@ -3860,10 +3892,8 @@ and create a function instantiation entry to bind the two symbols together.
   tip = alloc_template_instance();
   tip->template_sym = sym;
   tssp = sym->variant.routine.instance_ptr->template_info;
-  if (tssp->befriending_classes != NULL) {
-    update_befriending_classes_for_function(tssp,
-					    rout_sym->variant.routine.ptr);
-  }  /* if */
+  update_befriending_classes_for_function(tssp,
+					  rout_sym->variant.routine.ptr);
   /* Link the new entry to the start of the instantiation list of the
      function template. */
   tip->next = tssp->variant.function.instantiations;
@@ -4389,6 +4419,22 @@ been instantiated, update the befriending information for the instances.
       }  /* if */
     }  /* if */
   }  /* for */
+  if (tssp->subordinate_templates != NULL) {
+    /* This is a member class template declared in another class template.
+       We need to visit the template symbols for this template in each
+       of the instantiations of the enclosing class template and update
+       the befriending information for the instantiations of those
+       templates. */
+    a_symbol_list_entry_ptr	slep;
+    for (slep = tssp->subordinate_templates; slep != NULL; slep = slep->next) {
+      a_symbol_ptr			subordinate_sym;
+      a_template_symbol_supplement_ptr	subordinate_tssp;
+      subordinate_sym = slep->symbol;
+      subordinate_tssp = template_supplement_for_symbol(subordinate_sym);
+      add_befriending_class_to_class_template(subordinate_tssp,
+                                              class_declared_in);
+    }  /* for */
+  }  /* if */
 }  /* add_befriending_class_to_class_template */
 
 
@@ -4490,8 +4536,8 @@ now specialized.  Make sure that no instantiations have already been
 generated. 
 */
 {
+  /* Note that the prototype_template is not set to NULL. */
   tssp->is_specific_definition = TRUE;
-  tssp->prototype_template = NULL;
   /* Check for any existing instantiations.  A specialization must be
      declared before it is used. */
   if (template_sym->kind == (a_symbol_kind)sk_function_template) {
@@ -4940,7 +4986,7 @@ instantiation.
       find_class_template_member(sym, sym->parent.class_type);
     }  /* if */
   }  /* if */
-  if (decl_state->is_specialization) {
+  if (decl_state->is_specialization && !decl_state->is_template_friend) {
     /* This template is a specialization of a member template.  Update the
        template information to reflect this. */
     record_specialization(decl_state, sym, tssp);
@@ -6134,6 +6180,22 @@ been instantiated, update the befriending information for the instances.
                                 /*is_definition=*/FALSE,
                                 /*move_to_front=*/FALSE);
   }  /* for */
+  if (tssp->subordinate_templates != NULL) {
+    /* This is a member function template declared in a class template.
+       We need to visit the template symbols for this template in each
+       of the instantiations of the enclosing class template and update
+       the befriending information for the instantiations of those
+       templates. */
+    a_symbol_list_entry_ptr	slep;
+    for (slep = tssp->subordinate_templates; slep != NULL; slep = slep->next) {
+      a_symbol_ptr			subordinate_sym;
+      a_template_symbol_supplement_ptr	subordinate_tssp;
+      subordinate_sym = slep->symbol;
+      subordinate_tssp = template_supplement_for_symbol(subordinate_sym);
+      add_befriending_class_to_function_template(subordinate_tssp,
+                                                 class_declared_in);
+    }  /* for */
+  }  /* if */
 }  /* add_befriending_class_to_function_template */
 
 
@@ -6226,7 +6288,7 @@ caller.
         tssp->cache_segment->last_token_number = last_token_number;
       }  /* if */
     }  /* if */
-    if (decl_state->is_specialization) {
+    if (decl_state->is_specialization && !decl_state->is_template_friend) {
       /* This template is a specialization of a member template.  Update the
          template information to reflect this. */
       record_specialization(decl_state, sym, tssp);
@@ -7276,9 +7338,13 @@ are either the specialization of a template or a template declaration.
   if (decl_state.is_specialization) {
     /* A specialization declaration is only permitted in a namespace scope. */
     a_scope_stack_entry_ptr ssep = scope_stack_entry_for(depth_scope_stack);
-    if (ssep->kind != (a_scope_kind)sck_file &&
-        ssep->kind != (a_scope_kind)sck_namespace &&
-        ssep->kind != (a_scope_kind)sck_namespace_extension) {
+    if ((ssep->kind == (a_scope_kind)sck_file ||
+        ssep->kind == (a_scope_kind)sck_namespace ||
+        ssep->kind == (a_scope_kind)sck_namespace_extension) ||
+        (ssep->kind == (a_scope_kind)sck_class_struct_union &&
+         decl_state.is_template_friend)) {
+      /* A valid template specialization scope. */
+    } else {
       error(ec_explicit_specialization_not_in_namespace_scope);
       decl_state.decl_scope_err = TRUE;
     }  /* if */
