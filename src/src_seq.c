@@ -1132,9 +1132,9 @@ the file scope.  If it is a local class or non-real, return NO_SCOPE_DEPTH.
       !(cssp = symbol_supplement_for_class(class_type))->is_nonreal_class) {
     if (class_type->variant.class_struct_union.is_template_class &&
         !class_type->variant.class_struct_union.is_specialized) {
-      /* The class is a template instantiation.  That means it's scope is
+      /* The class is a template instantiation.  That means its scope is
          the namespace in which it is referenced (and not, as one might
-         expect, the scope in which it's definition appears) -- see
+         expect, the scope in which its definition appears) -- see
          find_instantiation_insert_scope. */
       nsp = cssp->referencing_namespace;
     } else {
@@ -1176,7 +1176,7 @@ the file scope.  If it is a local class or non-real, return NO_SCOPE_DEPTH.
     }  /* for */
 #if EXPENSIVE_CHECKING
     /* Verify that the source sequence entry for class_type really is on the
-       list of at the inferred scope depth. */
+       list at the inferred scope depth. */
     { a_source_sequence_entry_ptr  ssep;
       for (ssep = scope_stack[scope_depth].source_sequence_list;
            ssep != NULL;
@@ -1195,7 +1195,7 @@ static a_scope_depth find_innermost_namespace_scope_depth(
                                          a_scope_stack_entry_ptr  sse_ptr)
 /*
 Return the innermost namespace scope relative to the indicated scope stack
-entry.  If the scope stack entry is a template instantiation scope or belong
+entry.  If the scope stack entry is a template instantiation scope or
 belongs to a template instantiation, the innermost namespace scope to return
 is that in which the instantiation is triggered, not the one in which the
 template is defined.
