@@ -1415,7 +1415,7 @@ convert operand to an address and set *is_arrow_operator to TRUE.
 {
   if (!*is_arrow_operator) {
     /* Convert the operand to an address. */
-    conv_operand_to_object_pointer(operand);
+    conv_class_operand_to_object_pointer(operand);
     *is_arrow_operator = TRUE;
   }  /* if */
 }  /* conv_selector_to_object_pointer */
@@ -3298,9 +3298,6 @@ address_taken flag.
     internal_error("take_address_of_lvalue: not an lvalue");
   }  /* if */
 #endif /* CHECKING */
-  /* Note: If you add any additional tests here for entities whose addresses
-     cannot be taken, you probably should add the same tests in
-     conv_operand_to_object_pointer. */
   /* Check for taking the address of a bit field. */
   if (is_bit_field_operand(operand)) {
     error_in_operand(ec_address_of_bit_field, operand);
@@ -3460,7 +3457,7 @@ as part of the "->" or ".").  operand gives the selector, and routine_type
 gives the type of the routine being called.
 */
 {
-  conv_operand_to_object_pointer(operand);
+  conv_class_operand_to_object_pointer(operand);
   routine_type = skip_typerefs(routine_type);
   /* The cast here handles base class casts and also const/volatile
      differences. */
@@ -3804,9 +3801,9 @@ the expression.
 }  /* conv_class_rvalue_expr_to_object_pointer */
 
 
-void conv_operand_to_object_pointer(an_operand *operand)
+void conv_class_operand_to_object_pointer(an_operand *operand)
 /*
-Convert an operand for an object into an operand for a pointer to the
+Convert a class operand for an object into an operand for a pointer to the
 object.  The operand may be either an lvalue or an rvalue; in the rvalue
 case, a temporary is created and initialized with the rvalue, and the
 address of the temporary is returned.  This routine is only used in C++ mode.
@@ -3819,18 +3816,12 @@ address of the temporary is returned.  This routine is only used in C++ mode.
   orig_operand = *operand;
   do_operand_transformations(operand,
                              TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-  if (is_an_lvalue(operand)) {
-    /* Test for lvalues whose address cannot be taken.  See
-       take_address_of_lvalue.  Note that "register" is not tested since it
-       is legal to take the address of a register entity in C++ mode. */
-    if (is_bit_field_operand(operand)) {
-      /* One cannot take the address of a bit-field lvalue, so convert
-         the operand to an rvalue and use the rvalue code. */
-      conv_lvalue_to_rvalue(operand);
-    }  /* if */
-  }  /* if */
   if (is_error_operand(operand)) {
     /* Error operand -- leave alone. */
+#if CHECKING
+  } else if (!is_class_struct_union_type(operand->type)) {
+    internal_error("conv_class_operand_to_object_pointer: not a class");
+#endif /* CHECKING */
   } else if (is_an_lvalue(operand)) {
     /* The operand is an lvalue.  This is the easy case, since the lvalue
        is already an address. */
@@ -3842,41 +3833,32 @@ address of the temporary is returned.  This routine is only used in C++ mode.
     optimized_case = FALSE;
     if (is_expression_operand(operand)) {
       node = operand->variant.expression;
-      if (is_class_struct_union_type(operand->type)) {
-        /* Class rvalue.  Change it to an object pointer if possible. */
-        conv_class_rvalue_expr_to_object_pointer(&node, &optimized_case,
-                                                 /*see_if_possible=*/FALSE);
-        if (optimized_case) {
-          /* The expression has been rewritten as an object pointer. */
-          make_expression_operand(node, node->type, operand);
-        } else {
-          /* Couldn't find the variable value.  The rvalue will have to be
-             copied to a temporary, and the temporary address used. */
-#if CHECKING
-          /* Avoid recursion loops if the class does not allow bitwise copy.
-             The search for the variable really must succeed (i.e., it's not
-             merely an optimization) if a "real" copy constructor would have
-             to be used, since in that case we would need the address of
-             this rvalue to be able to call the copy constructor. */
-          { a_class_symbol_supplement_ptr cssp =
-                                    symbol_supplement_for_class(operand->type);
-            if (!cssp->construction_by_bitwise_copy_allowed) {
-#if DEBUG
-              db_expression(node);
-#endif /* DEBUG */
-              internal_error(
-                          "conv_operand_to_object_pointer: couldn't find var");
-            }  /* if */
-          }
-#endif /* CHECKING */
-        }  /* if */
-      } else if (is_operation_node(node) && node->variant.operation.kind ==
-                                         (an_expr_operator_kind)eok_indirect) {
-        /* The top operator is an indirection, so we can just remove the
-           indirection. */
-        optimized_case = TRUE;
-        node = node->variant.operation.operands;
+      /* Class rvalue.  Change it to an object pointer if possible. */
+      conv_class_rvalue_expr_to_object_pointer(&node, &optimized_case,
+                                               /*see_if_possible=*/FALSE);
+      if (optimized_case) {
+        /* The expression has been rewritten as an object pointer. */
         make_expression_operand(node, node->type, operand);
+      } else {
+        /* Couldn't find the variable value.  The rvalue will have to be
+           copied to a temporary, and the temporary address used. */
+#if CHECKING
+        /* Avoid recursion loops if the class does not allow bitwise copy.
+           The search for the variable really must succeed (i.e., it's not
+           merely an optimization) if a "real" copy constructor would have
+           to be used, since in that case we would need the address of
+           this rvalue to be able to call the copy constructor. */
+        { a_class_symbol_supplement_ptr cssp =
+                                    symbol_supplement_for_class(operand->type);
+          if (!cssp->construction_by_bitwise_copy_allowed) {
+#if DEBUG
+            db_expression(node);
+#endif /* DEBUG */
+            internal_error(
+                    "conv_class_operand_to_object_pointer: couldn't find var");
+          }  /* if */
+        }
+#endif /* CHECKING */
       }  /* if */
     }  /* if */
     if (!optimized_case) {
@@ -3886,12 +3868,12 @@ address of the temporary is returned.  This routine is only used in C++ mode.
     }  /* if */
 #if CHECKING
   } else {
-    internal_error("conv_operand_to_object_pointer: unexpected state");
+    internal_error("conv_class_operand_to_object_pointer: unexpected state");
 #endif /* CHECKING */
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(operand, &orig_operand);
-}  /* conv_operand_to_object_pointer */
+}  /* conv_class_operand_to_object_pointer */
 
 
 static an_expr_node_ptr conv_lvalue_expr_to_rvalue(
@@ -8754,7 +8736,7 @@ where the class type is already correct and nothing should be done to it.
     /* An entity of a base class is being initialized from an object
        of a derived class.  Get its address, cast it to the base class,
        then indirect through that to get an object of the base class. */
-    conv_operand_to_object_pointer(source_operand);
+    conv_class_operand_to_object_pointer(source_operand);
     bcp = find_base_class_of(source_type, dest_type);
 #if CHECKING
     if (bcp == NULL) {
@@ -9107,7 +9089,7 @@ part of it, if any.
   a_routine_ptr     conversion_routine;
   an_expr_node_ptr  arg_expr_list;
   an_operand        orig_operand;
-  a_boolean         possible;
+  a_boolean         possible, have_temp;
 
   *err = FALSE;
   orig_operand = *source_operand;
@@ -9142,15 +9124,50 @@ part of it, if any.
       /* Non-constructor case.  Convert the operand. */
       convert_operand(source_operand, dest_type,
                       user_conversion);
+      /* In some cases involving conversion functions, the result is already
+         in something that can be considered a temporary. */
+      have_temp = FALSE;
       if (conversion_routine != NULL &&
           conversion_routine->special_kind ==
-                                     (a_special_function_kind)sfk_conversion &&
-          skip_typerefs(conversion_routine->type)->variant.routine.extra_info->
+                                     (a_special_function_kind)sfk_conversion) {
+        /* The conversion is done by a conversion function. */
+        a_type_ptr routine_type = skip_typerefs(conversion_routine->type);
+        if (routine_type->variant.routine.extra_info->
                                    caller_provides_place_to_put_return_value) {
-        /* The conversion was done by a conversion function, and the
-           result of the conversion is already a temporary.  Convert the
-           operand from the value of the temporary to the address. */
-        conv_operand_to_object_pointer(source_operand);
+          /* The caller provides a place for the return value, so the result
+             is already in a temp. */
+          have_temp = TRUE;
+        } else if (is_reference_type(routine_type->variant.routine.
+                                                                return_type)) {
+          /* The conversion function returns a reference, so there is
+             already something we can point to.  This is perhaps not a
+             "temporary" in the traditional sense of the word, but this
+             is existing practice (cfront, Borland, Microsoft).  For example:
+               struct B { B(const B&); };
+               struct A {
+                 operator B&();
+               } a;
+               const B& x = a;  // No temp needed
+          */
+          have_temp = TRUE;
+        }  /* if */
+      }  /* if */
+      if (have_temp && is_class_struct_union_type(source_operand->type)) {
+        /* The result of the conversion is already a class temporary.
+           Convert the operand from the value of the temporary to the
+           address. */
+        conv_class_operand_to_object_pointer(source_operand);
+        /* Handle base class casts. */
+        cast_operand(make_pointer_type(dest_type), source_operand,
+                                       /*is_implicit_cast=*/TRUE);
+      } else if (have_temp && is_an_lvalue(source_operand)) {
+        /* The result of the conversion is already a non-class temporary
+           that is an lvalue (in particular, this includes array lvalues).
+           Convert to a pointer to the lvalue. */
+        /* Note that if a standard conversion is needed after the
+           conversion function, source_operand has been converted to
+           an rvalue. */
+        take_address_of_lvalue(source_operand);
       } else {
         /* Initialize a temporary with the converted value. */
         temp_init_from_operand(source_operand);
@@ -9314,11 +9331,12 @@ the initializer has previously been found to be acceptable, and
            a temporary is not allowed. */
         error_in_operand(ec_init_needing_temp_not_allowed, source_operand);
         err = TRUE;
-      } else if (type_is_correct_or_derived) {          
-        /* The source is an rvalue but otherwise has the right type.
+      } else if (type_is_correct_or_derived &&
+                 is_class_struct_union_type(base_dest_type)) {          
+        /* The source is a class rvalue but otherwise has the right type.
            Get the address of the rvalue, then cast the pointer to the right
            type to handle the derived-class case. */
-        conv_operand_to_object_pointer(source_operand);
+        conv_class_operand_to_object_pointer(source_operand);
         /* Use a pointer type instead of a reference type on the
            destination. */
         dest_type = make_pointer_type(base_dest_type);

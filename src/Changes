@@ -1,5 +1,19 @@
 Version 2.16
 
+3/26/93  No temporary used when conversion function initializes reference
+
+Initialization of references has been changed so that when a conversion
+returning a reference is used to initialize a reference, no temporary
+is used:
+
+  struct B {B(const B&);};
+  struct A {operator B&();} a;
+  void f(B);
+  void m () { 
+    f(a);  // No copy constructor used after conversion function
+  }
+
+
 3/26/93  Abort in error message processing when message contains %
 
 The error message routines were not properly handling messages
