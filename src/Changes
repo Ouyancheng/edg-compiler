@@ -1,5 +1,35 @@
 Version 3.0
 
+5/2/02   Internal error in copy_parent_type_with_substitution
+
+An internal error would occur during template argument substitution
+when the unsubstituted type is something like "U::type" and the
+substitution results in a name that is actually a class template.
+This has been fixed.
+  
+  extern "C" int printf(const char *, ...);
+  typedef char small_t;
+  typedef char (& large_t)[256];
+  
+  template<class T> class has_nested_type {
+    private:
+      template<class U> static small_t check(typename U::type*);
+      template<class U> static large_t check(...);
+    public:
+      static const bool value = sizeof(check<T>(0)) == sizeof(small_t);
+  };
+  
+  template<class T> const bool has_nested_type<T>::value;
+  
+  struct X { // 'type' is a template
+    template<class> struct type { };
+  };
+  
+  int main(int argc, char* argv[]) {
+    printf("%d\n", has_nested_type<X>::value);
+    return 0;
+  }
+
 5/2/02   Corrections to optimization of empty base classes
 
 Two corrections were made to the empty base class optimization algorithm.

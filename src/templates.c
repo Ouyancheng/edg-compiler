@@ -6350,11 +6350,17 @@ entity is known to be a type.
       /* The symbol found is a class template symbol but the original symbol
          was just a class.  Get the corresponding instance using the template
          argument list from the original parent class. */
-      check_assertion(is_any_template_instance_class_symbol(sym));
-      new_sym = copy_template_class_reference_with_substitution(
+      if (!is_any_template_instance_class_symbol(sym)) {
+        /* The original symbol was not a template instance.  This is an
+           error. */
+        *copy_error = TRUE;
+        new_sym = NULL;
+      } else {
+        new_sym = copy_template_class_reference_with_substitution(
                                  new_sym, sym->variant.class_struct_union.type,
                                  templ_arg_list, templ_param_list, source_pos,
                                  options, copy_error);
+      }  /* if */
     }  /* if */
   }  /* if */
 done:
