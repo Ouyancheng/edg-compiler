@@ -8055,10 +8055,17 @@ nonstandard anonymous unions is_nonstd is TRUE.
     if (scope != NULL) {
       a_type_ptr  nested_type = scope->types;
       for (; nested_type != NULL; nested_type = nested_type->next) {
-        pos_diagnostic(strict_ansi_mode ?
+        if (nested_type->kind == (a_type_kind)tk_typeref &&
+            nested_type
+                    ->variant.typeref.is_placeholder_for_class_instantiation) {
+          /* This type was not really declared in the nested union.  It is
+             just the side-effect of using a class template specialization. */
+        } else {
+          pos_diagnostic(strict_ansi_mode ?
                          strict_ansi_discretionary_severity : es_warning,
-                       ec_type_decl_in_anon_union,
-                       &nested_type->source_corresp.decl_position);
+                         ec_type_decl_in_anon_union,
+                         &nested_type->source_corresp.decl_position);
+        }  /* if */
       }  /* for */
     }  /* if */
   }  /* if */
