@@ -263,7 +263,7 @@ Flags that is TRUE if a message containing the reason for a runtime
 abort should be displayed.
 */
 #ifndef DISPLAY_ABORT_DESCRIPTION
-#define DISPLAY_ABORT_DESCRIPTION FALSE
+#define DISPLAY_ABORT_DESCRIPTION TRUE
 #endif /* ifndef DISPLAY_ABORT_DESCRIPTION */
 
 #endif /* CONFIG_H */
