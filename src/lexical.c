@@ -4619,7 +4619,7 @@ for the GNU C multiline string extension.
                                after_end_of_curr_source_line - 2*LE_ESCAPE_LEN;
 		       /* For checking of buffer overflow -- to leave
                           room for the newline and line-end lexical escapes. */
-  int             ignored_trailing_white_space_chars = 0;
+  unsigned long   ignored_trailing_white_space_chars = 0;
 
   /* This routine handles translation phases 1 (trigraphs, newlines) and
      2 (line splices) from the description of translation phases in
