@@ -736,7 +736,7 @@ See also 3.6.4.2.
       /* pcc treats all switch expressions as int.  This differs from
          ANSI in that even long is cast to int. */
       cast_node(&sp->expr, integer_type((an_integer_kind)ik_int),
-                /*issue_type_chg_warning=*/TRUE);
+                /*implicit_cast=*/TRUE, &error_position);
     }  /* if */
     /* Issue a remark if the selector is constant. */
     if (is_constant_node(sp->expr)) {
