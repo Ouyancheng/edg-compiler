@@ -1,5 +1,15 @@
 Version 3.5
 
+10/11/04 Embedded C: specifying the largest possible _Accum values
+
+Formerly, to specify the saturated value for a non-saturating _Accum type
+you would need to know the exact saturated value (e.g., 65535.999969...).
+The integral value just beyond the largest value for a given _Accum
+type is now accepted and results in the saturated value for the given
+_Accum type.
+
+  _Accum a = 65536.0k;  // Now accepted
+
 10/11/04 C-generating back end: GNU local labels
 
 The C-generating back end does not emit unused labels.  This could trigger
