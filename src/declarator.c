@@ -4257,8 +4257,15 @@ The syntax is:
            not preclude a parenthesized initializer, nor does the token that
            follows the left paren.  If the construct inside the parentheses
            could be interpreted as a declaration, then do so.  Otherwise,
-           treat this as a parenthesized initializer. */
-        if (not_a_function_declarator ||
+           treat this as a parenthesized initializer.  The
+           not_a_function_declarator flag is set when the declarator-id is
+           scanned if the name found is a qualified name that names a static
+           data member.  This is used in template cases when implicit typename
+           is enabled because is_decl_not_expr can return an incorrect result
+           in such cases.  In other cases, we still use is_decl_not_expr
+           because it provides for better diagnostics later on. */
+        if ((not_a_function_declarator && implicit_typename_enabled &&
+             is_template_dependent_context()) ||
             !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                               DFS_REAL_DECLARATOR_ALLOWED)) {
           a_boolean  is_function_decl = FALSE;
