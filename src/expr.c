@@ -1191,7 +1191,7 @@ does some special error-recovery processing to handle additional
 unexpected expressions more gracefully.
 */
 {
-  unsigned char save_comma_stop_token_count;
+  a_token_set_array_element save_comma_stop_token_count;
 
   /* Remove comma from the stop tokens set. */
   save_comma_stop_token_count = stop_token_array[(int)tok_comma];
