@@ -2942,9 +2942,10 @@ Display the indicated namespace entry.
   disp_ptr("next", (char *)ptr->next, iek_namespace);
   if (ptr->is_namespace_alias) {
     disp_boolean("is_namespace_alias", TRUE);
-    disp_ptr("assoc_namespace", (char *)ptr->assoc_namespace, iek_namespace);
+    disp_ptr("assoc_namespace", (char *)ptr->variant.assoc_namespace,
+             iek_namespace);
   } else {
-    disp_ptr("assoc_scope", (char *)ptr->assoc_scope, iek_scope);
+    disp_ptr("assoc_scope", (char *)ptr->variant.assoc_scope, iek_scope);
   }  /* if */
 }  /* disp_namespace */
 
