@@ -3489,8 +3489,6 @@ the same constant.
       /* Unknown array bounds should not escape the type deduction process. */
       check_assertion(!arg1->is_array_bound_of_unknown_type &&
                       !arg2->is_array_bound_of_unknown_type);
-      /* Argument in the form of an operand cannot be compared. */
-      check_assertion(arg1->arg_operand == NULL && arg2->arg_operand == NULL);
       if (ignore_unknown_arg_values &&
           (con1 == NULL || con2 == NULL)) {
         /* An argument with no specified value.  Treat this as a match. */
