@@ -12991,11 +12991,14 @@ in the class designated by tag_sym.
                                                      fund_sym, class_type,
                                                      /*template_okay=*/TRUE,
                                                      &ambiguous, &ovl_sym);
-          if (del_sym == NULL && !ambiguous) {
-            /* There is no operator delete that "corresponds" to this
+          if ((del_sym == NULL || !del_sym->is_class_member) && !ambiguous) {
+            /* There is no member operator delete that "corresponds" to this
                operator new (i.e., whose parameter types after the first
-               match). */
-            pos_stsy_remark(ec_no_corresponding_delete, &sym->decl_position,
+               match).  It is possible that a non-member operator delete
+               would match at the point of call, but relying on such is
+               widely considered to be poor coding practice. */
+            pos_stsy_remark(ec_no_corresponding_member_delete,
+                            &sym->decl_position,
                             (char *)(array_pass ? "[]" : ""), sym);
           }  /* if */
         }  /* for */

@@ -6,8 +6,9 @@ The front end previously issued a warning when a class definition contains
 a member placement operator new and no matching operator is visible at that
 point.  (Such a situation may lead to a memory leak if an initialization
 associated with an new-expression throws an exception.)  This warning has
-now be weakened to a remark, and a warning is issued if a placement operator
-delete is still missing at the point where it would be called.  For example:
+been weakened to a remark, it is now also issued if the matching delete is
+not a member.  In addition, a warning is issued if a placement operator delete
+is still missing at the point where it would be called.  For example:
 
   #include <stddef.h>
   struct S {
@@ -15,10 +16,11 @@ delete is still missing at the point where it would be called.  For example:
     static operator new(size_t, double);
   };  // Previously a warning because the member operator new has no matching
       // operator delete.  Now just a remark.
-  void operator delete(void*, double);
   void g() {
-    S *p = new(1.0) S;  // Would trigger a warning if the placement operator
-  }                     // delete declared above were omitted.
+    S *p = new(1.0) S;  // Warning.
+  }
+
+Note that these are issued only if exceptions are enabled.
 
 8/17/04  Preprocessed output for _Pragma() operator
 
