@@ -255,8 +255,8 @@ calls, and we have provided a sample implementation of those runtime
 routines in the new runtime library file c99_complex.c.
 
 Note that if you don't need to support C99 at all (e.g., if your
-product supports only C++), you can set C99_IL_EXTENSIONS to FALSE
-and make no changes to your back end.
+product supports only C++), you can set C99_IL_EXTENSIONS_SUPPORTED
+to FALSE and make no changes to your back end.
 
 The existing implementations of designated initializers, compound
 literals, VLAs, restrict, and long long have been integrated into
