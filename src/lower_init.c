@@ -123,10 +123,8 @@ be specified as NULL.  The name may be NULL.
   rout = alloc_routine();
   if (name != NULL) {
     alloc_length = strlen(name)+1;
-    rout->source_corresp.name = strcpy(alloc_il(alloc_length), name);
-#if DEBUG
-    allocated_name_string_length += alloc_length;
-#endif /* DEBUG */
+    rout->source_corresp.name = strcpy(alloc_lowered_name_string(alloc_length),
+                                       name);
   }  /* if */
   rout->storage_class = rout_storage_class;
   rout->source_corresp.name_linkage =
@@ -1878,10 +1876,7 @@ pointer to the routine.
      a name that is likely to be unique. */
   make_module_id();
   alloc_length = prefix_len + strlen(module_id) + 1;
-  name = alloc_il(alloc_length);
-#if DEBUG
-  allocated_name_string_length += alloc_length;
-#endif /* DEBUG */
+  name = alloc_lowered_name_string(alloc_length);
   (void)memcpy(name, prefix, size_t_arg(prefix_len));
   (void)strcpy(name+prefix_len, module_id);
   /* Make a type and routine entry for the routine. */

@@ -478,10 +478,7 @@ If the indicated class type is unnamed, give it a name.
        the number is different. */
     unnamed_class_name_seed++;
     name_len = digits_to_represent(unnamed_class_name_seed) + 4; /*"__C"+null*/
-    name = alloc_il(name_len);
-#if DEBUG
-    allocated_name_string_length += name_len;
-#endif /* DEBUG */
+    name = alloc_lowered_name_string(name_len);
     (void)sprintf(name, "__C%lu", (unsigned long)unnamed_class_name_seed);
     type->source_corresp.name = name;
     type->source_corresp.name_has_been_mangled = TRUE;
@@ -1237,10 +1234,7 @@ Mangle the name of the indicated function, if necessary.
       /* Allocate space for the mangled name and build it.  The old name is
          just thrown away. */
       alloc_length = mangled_name_length + 1;
-      mangled_name = alloc_il(alloc_length);
-#if DEBUG
-      allocated_name_string_length += alloc_length;
-#endif /* DEBUG */
+      mangled_name = alloc_lowered_name_string(alloc_length);
       (void)mangled_function_name(routine, suppress_param_encoding,
                                   mangled_name);
       /* Store the final null. */
@@ -1353,10 +1347,7 @@ Mangle the name of the indicated static data member.
   /* Allocate space for the mangled name and build it.  The old name is
      just thrown away. */
   alloc_length = mangled_name_length + 1;
-  mangled_name = alloc_il(alloc_length);
-#if DEBUG
-  allocated_name_string_length += alloc_length;
-#endif /* DEBUG */
+  mangled_name = alloc_lowered_name_string(alloc_length);
   (void)mangled_static_data_member_name(variable, mangled_name);
   /* Store the final null. */
   mangled_name[mangled_name_length] = '\0';
@@ -1419,10 +1410,7 @@ Mangle the name of the indicated class, if necessary.
     /* Allocate space for the mangled name and build it.  The old name is
        just thrown away. */
     alloc_length = mangled_name_length + 1;
-    mangled_name = alloc_il(alloc_length);
-#if DEBUG
-    allocated_name_string_length += alloc_length;
-#endif /* DEBUG */
+    mangled_name = alloc_lowered_name_string(alloc_length);
     (void)mangled_basic_class_name(class_type, mangled_name);
     mangled_name[mangled_name_length] = '\0';
     /* Note that the mangled name is not put into the type until after it has
@@ -1465,10 +1453,7 @@ other name mangling that might use the name is done.
     /* Allocate space for the mangled name and build it.  The old name is
        just thrown away. */
     alloc_length = mangled_name_length + 1;
-    mangled_name = alloc_il(alloc_length);
-#if DEBUG
-    allocated_name_string_length += alloc_length;
-#endif /* DEBUG */
+    mangled_name = alloc_lowered_name_string(alloc_length);
     mangled_name[0] = '_';
     mangled_name[1] = '_';
     (void)mangled_type_name(type, mangled_name + 2);
@@ -1759,10 +1744,7 @@ if the function is a template function).
     /* Allocate space for the mangled name and build it.  The old name is
        just thrown away. */
     alloc_length = mangled_name_length + 1;
-    mangled_name = alloc_il(alloc_length);
-#if DEBUG
-    allocated_name_string_length += alloc_length;
-#endif /* DEBUG */
+    mangled_name = alloc_lowered_name_string(alloc_length);
     (void)strcpy(mangled_name, scp->name);
     store_at = mangled_name + name_length;
     *store_at++ = '_';

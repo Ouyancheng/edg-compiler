@@ -265,7 +265,6 @@ EXTERN unsigned long
 Count of entries allocated, for debugging purposes.
 */
 EXTERN unsigned long
-		allocated_name_string_length,
 		num_init_pos_modifiers_allocated;
 #endif /* DEBUG */
 
@@ -285,6 +284,8 @@ extern void set_block_start_insert_location(
 
 extern void set_expr_insert_location(an_expr_node_ptr   node,
                                      an_insert_location *insert_location);
+
+extern char *alloc_lowered_name_string(sizeof_t size);
 
 extern void finish_class_type(a_type_ptr    class_type, 
                               a_targ_size_t *byte_offset);

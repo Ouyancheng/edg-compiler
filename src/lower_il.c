@@ -67,6 +67,7 @@ static a_type_ptr
 Count of entries allocated, for debugging purposes.
 */
 static unsigned long
+		allocated_name_string_length,
 		num_required_destructor_calls_allocated;
 #endif /* DEBUG */
 
@@ -388,6 +389,21 @@ and return a pointer to the base class entry.  It must be found.
 } /* find_virtual_base_class */
 
 
+char *alloc_lowered_name_string(sizeof_t size)
+/*
+Allocate a name string of length "size" and return a pointer to it.
+This is used for names added or replaced (e.g., mangled names) during
+IL lowering.
+*/
+{
+  char *ptr = alloc_il(size);
+#if DEBUG
+  allocated_name_string_length += size;
+#endif /* DEBUG */
+  return ptr;
+}  /* alloc_lowered_name_string */
+
+
 static void add_field(char          *field_name,
                       a_type_ptr    field_type,
                       a_targ_size_t field_offset,
@@ -455,10 +471,7 @@ field_offset gives the byte offset for the field.
   name_length = strlen(field_name);
   /* Allocate space for the name. */
   alloc_length = name_length + 1;
-  name_ptr = alloc_il(alloc_length);
-#if DEBUG
-  allocated_name_string_length += alloc_length;
-#endif /* DEBUG */
+  name_ptr = alloc_lowered_name_string(alloc_length);
   /* Copy in the name. */
   (void)strcpy(name_ptr, field_name);
   /* Create the field. */
@@ -489,10 +502,7 @@ offset for the field.
   name_length = mangled_basic_class_name(base_class_type, (char *)NULL);
   /* Allocate space for the whole name. */
   alloc_length = prefix_length + name_length + 1;
-  name_ptr = alloc_il(alloc_length);
-#if DEBUG
-  allocated_name_string_length += alloc_length;
-#endif /* DEBUG */
+  name_ptr = alloc_lowered_name_string(alloc_length);
   /* Copy in the prefix. */
   (void)memcpy(name_ptr, field_prefix, size_t_arg(prefix_length));
   /* Store the base class name. */
@@ -523,10 +533,7 @@ on return.
   if (field_name != NULL) {
     name_length = strlen(field_name);
     alloc_length = name_length + 1;
-    field_name = strcpy(alloc_il(alloc_length), field_name);
-#if DEBUG
-    allocated_name_string_length += alloc_length;
-#endif /* DEBUG */
+    field_name = strcpy(alloc_lowered_name_string(alloc_length), field_name);
   }  /* if */
   /* Make the field entry. */
   field_ptr = alloc_field();
@@ -569,10 +576,7 @@ It cannot create bit fields.  field_name may not be NULL.
   /* Copy the name into the file-scope IL memory region. */
   name_length = strlen(field_name);
   alloc_length = name_length + 1;
-  field_name = strcpy(alloc_il(alloc_length), field_name);
-#if DEBUG
-  allocated_name_string_length += alloc_length;
-#endif /* DEBUG */
+  field_name = strcpy(alloc_lowered_name_string(alloc_length), field_name);
   /* Make the field entry. */
   field_ptr = alloc_field();
   field_ptr->source_corresp.name = field_name;
@@ -933,10 +937,7 @@ if not, it has to be allocated and copied.
   if (!already_il_name) {
     /* Copy the name to the IL region. */
     alloc_length = strlen(var_name)+1;
-    var_name = strcpy(alloc_il(alloc_length), var_name);
-#if DEBUG
-    allocated_name_string_length += alloc_length;
-#endif /* DEBUG */
+    var_name = strcpy(alloc_lowered_name_string(alloc_length), var_name);
   }  /* if */
   var->source_corresp.name = var_name;
   var->type = var_type;
@@ -1003,10 +1004,7 @@ by the mangled name of the entity.
   info_name_length = prefix_length + mangled_name_length;
   /* Allocate space for the info name, including the final null. */
   alloc_length = info_name_length + 1;
-  info_name = alloc_il(alloc_length);
-#if DEBUG
-  allocated_name_string_length += alloc_length;
-#endif /* DEBUG */
+  info_name = alloc_lowered_name_string(alloc_length);
   /* Build the mangled name. */
   (void)strcpy(info_name, prefix);
   (void)strcpy(info_name+prefix_length, mangled_name);
@@ -2298,10 +2296,7 @@ It might be changed later to add a definition.
   mangled_name_length = mangled_vtbl_name(class_type, bcp, (char *)NULL);
   /* Allocate space for the mangled name, including the final null. */
   alloc_length = mangled_name_length + 1;
-  mangled_name = alloc_il(alloc_length);
-#if DEBUG
-  allocated_name_string_length += alloc_length;
-#endif /* DEBUG */
+  mangled_name = alloc_lowered_name_string(alloc_length);
   /* Build the mangled name. */
   (void)mangled_vtbl_name(class_type, bcp, mangled_name);
   mangled_name[mangled_name_length] = '\0';
@@ -3015,10 +3010,7 @@ this routine to do a relatively simple copy of the all the fields.
       name_length = strlen(name_ptr);
 #define SUB_PREFIX "_"
       alloc_length = name_length + sizeof(SUB_PREFIX);
-      new_name_ptr = alloc_il(alloc_length);
-#if DEBUG
-      allocated_name_string_length += alloc_length;
-#endif /* DEBUG */
+      new_name_ptr = alloc_lowered_name_string(alloc_length);
       (void)memcpy(new_name_ptr, SUB_PREFIX, size_t_arg(sizeof(SUB_PREFIX)-1));
       (void)strcpy(new_name_ptr + (sizeof(SUB_PREFIX)-1), name_ptr);
       subobject_type->source_corresp.name = new_name_ptr;
@@ -6524,7 +6516,6 @@ of the front end.
   avail_init_pos_modifiers = NULL;
   num_conditional_exprs_inside_of = 0;
 #if DEBUG
-  allocated_name_string_length            = 0;
   num_init_pos_modifiers_allocated        = 0;
 #endif /* DEBUG */
   /* Static variables in lower_il.c: */
@@ -6534,6 +6525,7 @@ of the front end.
   mptr_type = NULL;
   type_promotion_insert_location = NULL;
 #if DEBUG
+  allocated_name_string_length            = 0;
   num_required_destructor_calls_allocated = 0;
 #endif /* DEBUG */
   /* Do lower_name.c initialization. */
