@@ -305,7 +305,6 @@ static char		*doc_output_file_name;
 static FILE		*doc_output_file;
 static int		number_of_errors = 0;
 static int		number_of_tags = 0;
-static int		removed_count = 0;
 
 
 static void me_read_input_file(void)
@@ -346,7 +345,7 @@ Read the message input file and build the error_info array.
           code is no longer in use, but the sequence number must be
           reserved to preserve the sequence numbers of the error codes
           that follow. */
-       sprintf(me_input_line, "ec_removed_%0d", ++removed_count);
+       sprintf(me_input_line, "ec_removed_%0d", number_of_errors);
        error_info[number_of_errors].enumerator = me_copy_string(me_input_line);
        error_info[number_of_errors].text = (char *)NULL;
        number_of_errors++;

@@ -1,3 +1,12 @@
+Version 2.35
+
+1/3/97   Invariant name used in "removed" error codes
+
+The enumeration name used for "removed" error messages has been changed
+to use the error message number instead of a counter of removed messages.
+This was done to eliminate gratuitous changes in the error codes from
+one release to another.
+-------------------------------------------------------------------------------
 Version 2.34, December 18, 1996
 
 12/13/96 Name demangling for partial specializations
