@@ -872,23 +872,14 @@ consistent with that of the previous declaration.
          current declaration (it must have been present on the previous
          one). */
       an_error_severity  severity = es_error;
-      /* Unless we are in strict mode, only issue a warning if this is a user
-         redeclaration of a library new or delete routine: the restriction is
-         relaxed to ease upgrading of old code. */
+      /* Unless we are in strict mode, issue a warning instead of an error
+         if this is a redeclaration of a what may be a library new or delete
+         routine: the relaxation is to ease the upgrading of old code. */
       if (is_redecl && !rp->source_corresp.is_class_member &&
           (is_new_operator(rp->opname_kind) ||
            is_delete_operator(rp->opname_kind))) {
-        a_param_type_ptr  ptp = rp->type->
-                                  variant.routine.extra_info->param_type_list;
-        if (ptp != NULL && ptp->next == NULL) {
-          /* Note that we are not checking for the nothrow versions of
-             the redeclarable new and delete routines.  This is on the
-             assumption that any code in which they appear is new enough that
-             a missing exception specification can't be excused. */
-          /* Set the severity, depending on the strict mode setting. */
-          severity = strict_ansi_mode ? strict_ansi_error_severity :
-                                        es_warning;
-        }  /* if */
+        /* Set the severity, depending on the strict mode setting. */
+        severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
       }  /* if */
       pos_sy_diagnostic(severity,
                         is_redecl?
