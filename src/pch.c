@@ -672,6 +672,9 @@ changed.
     fprintf(f_debug, "Removing PCH file: %s\n", pch_input_file_name);
   }  /* if */
 #endif /* DEBUG */
+  /* First close the file. */
+  if (f_pch_input != NULL) (void)fclose(f_pch_input);
+  f_pch_input = NULL;
   delete_file(pch_input_file_name);
   db_exit();
 }  /* remove_pch_input_file */
@@ -1831,7 +1834,7 @@ directory.  Return TRUE if an applicable PCH was found.
 #endif /* DEBUG */
     /* See if this PCH file can be used. */
     last_matching_event = pch_is_applicable();
-    (void)fclose(f_pch_input);
+    if (f_pch_input != NULL) (void)fclose(f_pch_input);
     is_applicable = last_matching_event != NULL;
     if (is_applicable) result = TRUE;
 #if DEBUG
@@ -2014,6 +2017,7 @@ may be used.
        will try to use the old source file as the parent. */
     il_header.primary_source_file = NULL;
   }  /* if */
+  if (f_pch_input != NULL) (void)fclose(f_pch_input);
   db_exit();
 }  /* restore_precompiled_header_information */
 
