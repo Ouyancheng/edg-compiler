@@ -5063,7 +5063,7 @@ instantiated.
   a_type_ptr				rout_type;
   a_template_instance_ptr		tip;
   a_symbol_ptr				template_sym;
-  int					arg_num;
+  int					arg_num, i;
   a_template_symbol_supplement_ptr	tssp;
 
   check_assertion(rout_sym->kind == (a_symbol_kind)sk_routine ||
@@ -5088,7 +5088,7 @@ instantiated.
   /* Find the param type entry for the "prototype" template routine that
      corresponds to the argument number determined above. */
   templ_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
-  for (; arg_num > 1; arg_num--, templ_ptp = templ_ptp->next) {
+  for (i = arg_num; i > 1; i--, templ_ptp = templ_ptp->next) {
     if (daefp == NULL || templ_ptp == NULL) {
       daefp = NULL;
       break;
@@ -5128,6 +5128,25 @@ instantiated.
     rescan_reusable_cache(&daefp->cache.tokens);
     delayed_scan_of_default_arg_expr(daefp->param_type,
                                      /*check_for_errors=*/FALSE);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Copy the default argument expression into to corresponding param
+       type entry of the declared type, if any. */
+    { a_type_ptr        declared_type = tip->declared_type;
+      a_param_type_ptr  ptp;
+
+      if (declared_type != NULL) {
+        ptp = declared_type->variant.routine.extra_info->param_type_list;
+        for (i = arg_num; i > 1; i--, ptp = ptp->next) {
+          check_assertion(ptp != NULL);
+        }  /* if */
+        if (ptp->default_arg_expr == NULL) {
+          ptp->has_default_arg = TRUE;
+          ptp->default_arg_expr =
+             duplicate_default_arg_expr(daefp->param_type->default_arg_expr);
+        }  /* if */
+      }  /* if */
+    }
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Pop the reactivated function prototype scope off the stack. */
     pop_scope();
     /* Pop the template instantiation scope. */

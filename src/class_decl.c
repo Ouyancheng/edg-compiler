@@ -10110,10 +10110,20 @@ to be returned to the caller.
           } else if (!is_error_locator(locator)) {
             find_member_function_template(rout_sym, prototype_sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-            /* Set the declared_type in the instance entry. */
+            /* Set the declared_type in the instance entry.  Try to use
+               the declared_type already entered in the func_info block.
+               This is not just to save bytes -- the pointer in the func_info
+               block is the same as the pointer in a secondary-decl source
+               sequence entry; keep the same correspondence in the instance
+               entry, since default arg fixup depends on it. */
             if (rout_sym->variant.routine.instance_ptr != NULL) {
-              rout_sym->variant.routine.instance_ptr->declared_type =
-                                form_declared_type(local_type, &func_info);
+              a_type_ptr  declared_type = func_info.declared_type;
+
+              if (declared_type == NULL) {
+                declared_type = form_declared_type(local_type, &func_info);
+              }  /* if */
+              rout_sym->variant.routine.instance_ptr->
+                                             declared_type = declared_type;
             }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           }  /* if */
