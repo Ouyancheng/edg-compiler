@@ -1177,11 +1177,8 @@ error code.
     case ec_local_class_function_def_missing:
       m = "member function of local class -- definition is required";
       break;
-    case ec_inaccessible_constructor:
-      m = "constructor %nf is inaccessible";
-      break;
-    case ec_inaccessible_destructor:
-      m = "destructor %n is inaccessible";
+    case ec_inaccessible_special_function:
+      m = "%nf is inaccessible";
       break;
     case ec_direct_derivation_less_accessible:
       m =
@@ -1239,17 +1236,11 @@ error code.
     case ec_ambiguous_conversion_constructor:
       m = "more than one constructor or conversion function applies";
       break;
-    case ec_inaccessible_assignment_operator:
-      m = "%nf is inaccessible";
-      break;
     case ec_no_matching_operator_function:
       m = "none of the available operator functions matches these operands";
       break;
     case ec_ambiguous_operator_function:
       m = "more than one operator function matches these operands";
-      break;
-    case ec_inaccessible_conversion_function:
-      m = "conversion function %nf is inaccessible";
       break;
     case ec_bad_arg_type_for_operator_new:
       m = "operator new() requires first argument of type \"size_t\"";
@@ -1393,7 +1384,7 @@ error code.
       m = "access adjustment not allowed -- mixed accessibility for %n";
       break;
     case ec_missing_user_defined_assignment_for_copy:
-      m = "implicitly defined operator=() is not allowed for class %n";
+      m = "implicit generation of %nf is not allowed";
       break;
     case ec_nonstd_array_cast:
       m =
