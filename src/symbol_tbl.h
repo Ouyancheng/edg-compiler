@@ -3139,10 +3139,6 @@ void free_list_of_namespace_list_entries(a_namespace_list_entry_ptr nlep);
 
 extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
 
-extern void clear_template_param_default_arg_info(
-		a_template_param_ptr	ptr,
-		a_boolean		def_arg_involves_template_param);
-
 extern a_template_instance_ptr alloc_template_instance(void);
 extern void free_param_id_list(a_param_id_ptr *pidlist);
 extern void clear_func_info(a_func_info_block *func_info);

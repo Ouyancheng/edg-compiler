@@ -9577,7 +9577,7 @@ Return TRUE if the indicated symbol is a function-local symbol.
 }  /* is_local_symbol */
 
 
-void clear_template_param_default_arg_info(
+static void clear_template_param_default_arg_info(
 		a_template_param_ptr	ptr,
 		a_boolean		def_arg_involves_template_param)
 /*
