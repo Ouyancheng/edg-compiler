@@ -5331,8 +5331,9 @@ errors.
     /* On paired tokens, skip to the corresponding closing token. */
     if (curr_token == tok_lparen || curr_token == tok_lbracket ||
         curr_token == tok_lbrace ||
-        (curr_token == tok_lt && prev_token == tok_identifier && 
-         is_template_reference())) {
+        (curr_token == tok_lt &&
+         ((prev_token == tok_identifier && is_template_reference()) ||
+          prev_token == tok_template))) {
       flush_until_matching_token();
     }  /* if */
     /* Always stop the flush on:
@@ -5379,6 +5380,37 @@ In either case, return TRUE if the required token showed up.
     /* If the token did show up, take it now. */
     token_present = (curr_token == token);
     if (token_present) (void)get_token();
+  }  /* if */
+
+  db_exit();
+
+  return token_present;
+}  /* required_token */
+
+
+a_boolean required_token_no_advance(a_token_kind  token,
+                                    an_error_code error_code)
+/*
+The current token is required to be "token".  If it is not, issue the error
+message and call flush_tokens.  Do not advance past the token if it is
+found, but do return TRUE.
+*/
+{
+  a_boolean token_present;
+
+  db_enter(5, "required_token_no_advance");
+
+  if (curr_token == token) {
+    token_present = TRUE;
+  } else {
+    /* Token not present.  Report an error, flush to it or something
+       else in the stop tokens set. */
+    add_stop_token(token);
+    set_err_pos_to_curr_token();
+    syntax_error(error_code);
+    remove_stop_token(token);
+    /* If the token did show up, take it now. */
+    token_present = (curr_token == token);
   }  /* if */
 
   db_exit();
