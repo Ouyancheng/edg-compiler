@@ -439,10 +439,6 @@ configured independently.
 These configuration macros are used to initialize the targ_sizeof_fixed_point,
 targ_alignof_fixed_point, and targ_fractional_bits_for_fixed_point arrays.
 */
-#ifndef FIXED_POINT_ALLOWED
-#define FIXED_POINT_ALLOWED FALSE
-#endif /* ifndef FIXED_POINT_ALLOWED */
-
 #if FIXED_POINT_ALLOWED
 
 #ifndef TARG_SIZEOF_SIGNED_SHORT_ACCUM
@@ -3044,31 +3040,6 @@ The C-generating and C++-generating back ends can handle compound literals
 #endif /* !COMPOUND_LITERAL_ENABLING_POSSIBLE && ... */
 
 /*
-This switch controls whether support for fixed-point extensions can be
-enabled.  Having this TRUE means the back end is prepared to accept
-fixed-point IL entities.  The C-generating and C++-generating back ends
-can handle fixed-point extensions (but that's useful only if the downstream
-compiler also handles them).  The fixed-point extensions are a set of
-facilities defined by the C standardization committee's ISO/IEC TR 18037
-(e.g., support for _Fract and _Accum types).
-*/
-#ifndef FIXED_POINT_ALLOWED
-#define FIXED_POINT_ALLOWED FALSE
-#endif /* ifndef FIXED_POINT_ALLOWED */
-
-/*
-Flag that is TRUE if fixed-point extensions (e.g., support for _Fract and
-_Accum types) should be enabled by default.  It is the initial value of the
-global variable fixed_point_enabled.
-*/
-#ifndef DEFAULT_FIXED_POINT_ENABLED
-#define DEFAULT_FIXED_POINT_ENABLED FALSE
-#endif /* DEFAULT_FIXED_POINT_ENABLED */
-#if !FIXED_POINT_ALLOWED && DEFAULT_FIXED_POINT_ENABLED
- #error -- fixed-point enabling not allowed
-#endif /* !FIXED_POINT_ALLOWED && ... */
-
-/*
 This switch controls whether a post-pass is done after IL lowering
 to ensure that the types list is in order, in the sense that the
 C-generating back end can generate compilable code from it.  The
@@ -3567,15 +3538,18 @@ signatures.
 typedef int a_named_address_space_id;
 
 /*
-Number of bits needed to represent named address space ids.  This must be
-defined if NAMED_ADDRESS_SPACES_ALLOWED is TRUE.  Furthermore, the value
+Number of bits needed to represent named address space ids.  This value
 must be at least 2 if INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES us TRUE, and
-at least 1 otherwise.
+at least 1 otherwise.  If the value is not configured explicitly, these
+minimum values are used by default.
 */
 #if NAMED_ADDRESS_SPACES_ALLOWED
 #ifndef NUM_BITS_FOR_NAMED_ADDRESS_SPACE
- #error -- NUM_BITS_FOR_NAMED_ADDRESS_SPACE must be defined to a positive \
-           value
+#ifndef INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES
+#define NUM_BITS_FOR_NAMED_ADDRESS_SPACE 1
+#else /* defined(INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES) */
+#define NUM_BITS_FOR_NAMED_ADDRESS_SPACE 2
+#endif /* ifndef INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES */
 #else /* defined(NUM_BITS_FOR_NAMED_ADDRESS_SPACE) */
 #ifndef INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES
 #if NUM_BITS_FOR_NAMED_ADDRESS_SPACE < 1
