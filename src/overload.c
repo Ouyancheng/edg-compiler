@@ -1774,7 +1774,12 @@ not used in that case, and can be NULL.
     selector_type = bound_function_selector->type;
     if (!m_is_error_type(selector_type)) {
       if (selector_is_object_pointer) {
-        selector_type = type_pointed_to(selector_type);
+        if (is_template_param_type(selector_type)) {
+          /* Unknown type, in a prototype instantiation. */
+          selector_type = type_of_unknown_templ_param_nontype;
+        } else {
+          selector_type = type_pointed_to(selector_type);
+        }  /* if */
       }  /* if */
     }  /* if */
     ptr_selector_type = make_pointer_type(selector_type);
@@ -4525,7 +4530,14 @@ member name reference.
   /* This routine is similar to make_this_pointer_operand. */
   class_struct_union_type = operand_1->type;
   if (*is_arrow_operator) {
-    class_struct_union_type = type_pointed_to(class_struct_union_type);
+    if (is_template_param_type(class_struct_union_type)) {
+      /* Pointer type is unknown, in a prototype instantiation. */
+      class_struct_union_type = type_of_unknown_templ_param_nontype;
+    } else {
+      /* Normal case.  Go from the pointer type to the underlying class
+         type. */
+      class_struct_union_type = type_pointed_to(class_struct_union_type);
+    }  /* if */
   }  /* if */
   /* Drop any typedefs on the class type. */
   class_struct_union_type = skip_typerefs(class_struct_union_type);
