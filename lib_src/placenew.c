@@ -1,0 +1,25 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++  Runtime                           - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1992 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+_placenew.C -- C++ operator new(size_t, void*);
+
+*/
+
+#include <stddef.h>
+
+
+extern void *operator new(size_t size, void *ptr)
+/*
+Return the value of ptr as the address of the new object.
+*/
+{
+  return ptr;
+}  /* operator new (size_t, void*) */
