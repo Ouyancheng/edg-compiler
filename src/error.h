@@ -153,7 +153,7 @@ typedef enum /*an_error_code*/ {
   ec_exp_definition_of_tag,
   ec_code_is_unreachable,
   ec_exp_while,
-  ec_label_already_defined,
+  ec_nonstd_default_arg,
   ec_never_defined,
   ec_continue_must_be_in_loop,
   ec_break_must_be_in_loop_or_switch,
@@ -285,7 +285,7 @@ typedef enum /*an_error_code*/ {
   ec_name_not_member_of_class_or_base_classes,
   ec_member_ref_requires_object,
   ec_nonstatic_member_def_not_allowed,
-  ec_redefinition_not_allowed,
+  ec_already_defined,
   ec_pointer_to_reference,
   ec_reference_to_reference,
   ec_reference_to_void,
@@ -406,8 +406,8 @@ typedef enum /*an_error_code*/ {
   ec_anon_union_storage_class,
   ec_missing_initializer_on_field,
   ec_cannot_initialize_field,
-  ec_uninitialized_const_member,
-  ec_uninitialized_const_or_ref_member,
+  ec_no_ctor_but_const_or_ref_member,
+  ec_var_with_uninitialized_field,
   ec_missing_const_assignment_operator,
   ec_no_suitable_assignment_operator,
   ec_ambiguous_assignment_operator,
@@ -456,8 +456,7 @@ typedef enum /*an_error_code*/ {
   ec_no_constructor_for_conversion,
   ec_ambiguous_constructor_for_conversion,
   ec_ambiguous_conversion_function,
-  ec_ambiguous_conversion_to_builtin,
-  ec_nonstd_default_arg
+  ec_ambiguous_conversion_to_builtin
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -423,7 +423,7 @@ error code.
       m = "a parameter declaration may not have an initializer";
       break;
     case ec_exp_type_specifier:
-      m = "expected a type specifier (\"int\" assumed)";
+      m = "expected a type specifier";
       break;
     case ec_storage_class_not_allowed:
       m = "a storage class may not be specified here";
@@ -526,8 +526,8 @@ error code.
     case ec_exp_while:
       m = "expected \"while\"";
       break;
-    case ec_label_already_defined:
-      m = "%n has already been defined";
+    case ec_nonstd_default_arg:
+      m = "this use of a default argument is nonstandard";
       break;
     case ec_never_defined:
       m = "%n was referenced but not defined";
@@ -938,8 +938,8 @@ error code.
     case ec_nonstatic_member_def_not_allowed:
       m = "a nonstatic data member may not be defined outside its class";
       break;
-    case ec_redefinition_not_allowed:
-      m = "redefinition of this object is not allowed";
+    case ec_already_defined:
+      m = "%n has already been defined";
       break;
     case ec_pointer_to_reference:
       m = "pointer to reference is not allowed";
@@ -954,7 +954,7 @@ error code.
       m = "array of reference is not allowed";
       break;
     case ec_missing_initializer_on_reference:
-      m = "reference-type object requires an initializer";
+      m = "reference %n requires an initializer";
       break;
     case ec_exp_comma:
       m = "expected a \",\"";
@@ -969,7 +969,7 @@ error code.
       m = "invalid redeclaration of type name %sq";
       break;
     case ec_missing_initializer_on_const:
-      m = "initializer for const variable is missing";
+      m = "const %n requires an initializer";
       break;
     case ec_this_used_incorrectly:
       m = "\"this\" may only be used inside a nonstatic member function";
@@ -978,7 +978,7 @@ error code.
       m = "constant value is not known";
       break;
     case ec_missing_type_specifier:
-      m = "explicit type specifier is missing";
+      m = "explicit type is missing (\"int\" assumed)";
       break;
     case ec_missing_access_specifier:
       m = "access control not specified (%sq by default)";
@@ -1301,13 +1301,17 @@ error code.
       m = "no initializer provided for %n";
       break;
     case ec_cannot_initialize_field:
-      m = "compiler-generated constructor cannot initialize %n";
+      m = "implicitly generated constructor for class %t cannot initialize %n";
       break;
-    case ec_uninitialized_const_member:
-      m = "const %n is uninitialized";
+    case ec_no_ctor_but_const_or_ref_member:
+      m = "%n defines no constructor to initialize const or reference members";
       break;
-    case ec_uninitialized_const_or_ref_member:
-      m = "%n with type %t is uninitialized";
+    case ec_var_with_uninitialized_field:
+      if (C_dialect == C_dialect_cplusplus) {
+        m = "%n has an uninitialized const or reference member";
+      } else {
+        m = "%n has an uninitialized const field";
+      }  /* if */
       break;
     case ec_missing_const_assignment_operator:
       m = "class %t has no assignment operator to copy a const object";
@@ -1458,9 +1462,6 @@ error code.
     case ec_ambiguous_conversion_to_builtin:
       m =
         "more than one conversion function from %t to a built-in type applies";
-      break;
-    case ec_nonstd_default_arg:
-      m = "this use of a default argument is nonstandard";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
@@ -3131,22 +3132,6 @@ indicated position.
   error_msg_syms[1] = symbol;
   diag_message(error_code, error_pos, es_warning);
 }  /* pos_sy_warning */
-
-
-void pos_syty_warning(an_error_code     error_code,
-                      a_source_position *error_pos,
-                      struct a_symbol   *symbol,
-                      struct a_type     *type)
-/*
-Report the indicated warning (with the indicated symbol and type) at the
-indicated position.
-*/
-{
-  init_error_params();
-  error_msg_types[1] = type;
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_warning);
-}  /* pos_syty_warning */
 
 
 void sym_warning(an_error_code   error_code,

@@ -399,9 +399,9 @@ routine recursively for each nested class.
            reentered because parameter names hide names from enclosing scopes
            and, moreover, may not be used in default argument expressions
            (ARM 8.2.6). */
-        push_scope((a_scope_kind)sck_func_prototype,
-                   rfp->func_info.scope_number, (a_type_ptr)NULL,
-                   (a_routine_ptr)NULL);
+        (void)push_scope((a_scope_kind)sck_func_prototype,
+                         rfp->func_info.scope_number, (a_type_ptr)NULL,
+                         (a_routine_ptr)NULL);
         if (rfp->func_info.prototype_scope_symbols != NULL) {
           reactivate_prototype_scope_symbols(
                                       rfp->func_info.prototype_scope_symbols);

@@ -3116,8 +3116,11 @@ otherwise, set *ext_sym to NULL.
     if (linked_symbol->kind == (a_symbol_kind)sk_variable && !is_function) {
       if (C_dialect == C_dialect_cplusplus && linked_symbol->defined &&
           is_variable_definition) {
-        /* Variable has already been defined.  Force an error on symbol lookup
-           by leaving sym NULL. */
+        /* Variable has already been defined.  Issue an error here and
+           suppress an error when the symbol is entered. */
+        pos_sy_error(ec_already_defined, &locator->source_position,
+                     linked_symbol);
+        redecl_error_already_issued = TRUE;
         linked_redecl_error = TRUE;
       } else {
         /* Linked symbol and new symbol are both variables.  See if they
@@ -3571,7 +3574,7 @@ the symbol and its linkage (which is always "none").
     }  /* if */
 #endif /* CHECKING */
     if (sym->defined) {
-      pos_error(ec_redefinition_not_allowed, &locator->source_position);
+      pos_sy_error(ec_already_defined, &locator->source_position, sym);
       err = TRUE;
     } else if (!types_are_compatible(type_ptr, var->type)) {
       pos_sy_error(ec_not_compatible_with_previous_decl,
@@ -3602,7 +3605,7 @@ the symbol and its linkage (which is always "none").
       pos_error(ec_inherited_member_not_allowed, &locator->source_position);
     } else if (sym->kind != (a_symbol_kind)sk_undefined &&
                !is_error_locator(*locator)) {
-      pos_error(ec_redefinition_not_allowed, &locator->source_position);
+      pos_sy_error(ec_already_defined, &locator->source_position, sym);
     }  /* if */
     err = TRUE;
   }  /* if */
@@ -7928,7 +7931,7 @@ continue_with_declaration:
                 vp->storage_class != (a_storage_class)sc_extern) {
               /* Non-extern reference variables must be initialized
                  (ARM 8.4.3). */
-              error(ec_missing_initializer_on_reference);
+              sym_error(ec_missing_initializer_on_reference, symbol_ptr);
             } else if (
                      type_or_element_type_is_const_qualified(local_type_ptr)) {
               /* Uninitialized const variable.  In C++ this is permitted only
@@ -7945,18 +7948,19 @@ continue_with_declaration:
                      decl_scope_level == DEPTH_OF_FILE_SCOPE)) {
                   /* In C++ const qualified variables that are internally
                      linked must be initialized (ARM 7.1.6). */
-                  error(ec_missing_initializer_on_const);
+                  sym_error(ec_missing_initializer_on_const, symbol_ptr);
                 }  /* if */
               } else {
                 /* Ordinary C -- a warning, and only on local variables. */
                 if (name_linkage == (a_name_linkage_kind)nlk_none) {
-                  warning(ec_missing_initializer_on_const);
+                  sym_warning(ec_missing_initializer_on_const, symbol_ptr);
                 }  /* if */
               }  /* if */
             } else if (vp->storage_class != (a_storage_class)sc_extern) {
               /* Check for an uninitialed variable that has members that
                  ought to be initialized.  Issue a warning in such cases. */
-              a_type_ptr  tp = local_type_ptr;
+              a_type_ptr        tp = local_type_ptr;
+              a_base_class_ptr  next_bcp = NULL;
               if (is_array_type(tp)) tp = underlying_array_element_type(tp);
               if (is_class_struct_union_type(tp)) {
                 /* The variable is a class-struct-union type or an array
@@ -7969,26 +7973,42 @@ continue_with_declaration:
                    class declarations that contain nonstatic const or reference
                    members and no constructor, but this seems to introduce an
                    unnecessary incompatibility with C. */
+#if 0
                 tp = skip_typerefs(tp);
-                if (tp->variant.class_struct_union.any_const_member ||
-                    (C_dialect == C_dialect_cplusplus &&
-                     symbol_supplement_for_class(tp)->any_ref_member)) {
-                  /* Issue a warning on each uninitialized const or ref
-                     member. */
-                  a_symbol_ptr  field_sym;
-                  a_field_ptr   fp = tp->variant.class_struct_union.field_list;
-
-                  for (; fp != NULL; fp = fp->next) {
-                    field_sym = (a_symbol_ptr)fp->source_corresp.assoc_info;
-                    if (field_sym != NULL) {
-                      if (type_or_element_type_is_const_qualified(fp->type) ||
-                          is_reference_type(fp->type)) {
-                        pos_syty_warning(ec_uninitialized_const_or_ref_member,
-                                         &declarator_pos, field_sym, fp->type);
-                      }  /* if */
-                    }  /* if */
-                  }  /* for */
+                if (C_dialect == C_dialect_cplusplus) {
+                  next_bcp = tp->variant.class_struct_union.
+                                                   extra_info->base_classes;
                 }  /* if */
+                for (;;) {
+                  if (tp->variant.class_struct_union.any_const_member ||
+                      (C_dialect == C_dialect_cplusplus &&
+                       symbol_supplement_for_class(tp)->any_ref_member)) {
+                    /* Issue a warning on each uninitialized const or ref
+                       member. */
+                    a_symbol_ptr  field_sym;
+                    a_field_ptr   fp;
+
+                    for (fp = tp->variant.class_struct_union.field_list;
+                         fp != NULL;
+                         fp = fp->next) {
+                      field_sym = (a_symbol_ptr)fp->source_corresp.assoc_info;
+                      if (field_sym != NULL) {
+                        if (type_or_element_type_is_const_qualified(
+                                                                  fp->type)) {
+                          pos_sy_warning(ec_uninitialized_const_member,
+                                         &declarator_pos, field_sym);
+                        } else if (is_reference_type(fp->type)) {
+                          pos_sy_warning(ec_uninitialized_ref_member,
+                                         &declarator_pos, field_sym);
+                        }  /* if */
+                      }  /* if */
+                    }  /* for */
+                  }  /* if */
+                  if (next_bcp == NULL) break;
+                  tp = next_bcp->type;
+                  next_bcp = next_bcp->next;
+                }  /* for */
+#endif /* if 0 */
               }  /* if */
             }  /* if */
           }  /* if */
