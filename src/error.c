@@ -1534,6 +1534,9 @@ error code.
     case ec_ambiguous_by_inheritance_add_on:
       m = "%n (ambiguous by inheritance)";
       break;
+    case ec_addr_of_constructor_or_destructor:
+      m = "a constructor or destructor may not have its address taken";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
