@@ -41,15 +41,19 @@ Enhanced to support C++ by J. Stephen Adamczyk and R. Michael Anderson,
 #endif /* BACK_END_IS_CP_GEN_BE */
 
 /*
-The Kuck & Associates inliner is written in C++ and provides its own
-main program.  It then calls the EDG main program using the name edg_main.
+The main routine name can be set by defining EDG_MAIN.  The Kuck & Associates
+inliner/optimizer provides its own main program and calls the EDG main
+program using the name edg_main.  If EDG_MAIN is not set, the default
+"main" is assumed.
 */
+#if USING_KAI_INLINER
+#define EDG_MAIN edg_main
+#endif /* USING_KAI_INLINER */
+#ifndef EDG_MAIN
+#define EDG_MAIN main
+#endif /* ifndef(EDG_MAIN) */
 
-#if !USING_KAI_INLINER
-int main(int argc, char *argv[])
-#else /* USING_KAI_INLINER */
-int edg_main(int argc, char *argv[])
-#endif /* !USING_KAI_INLINER */
+int EDG_MAIN(int argc, char *argv[])
 {
   an_error_severity most_severe_diagnostic = es_none, diagnostic_level;
   a_timer	    start_time;
