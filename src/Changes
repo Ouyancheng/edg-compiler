@@ -11,7 +11,7 @@ old-style parameter list declaration:
 
 The Microsoft compiler incorrectly interprets a declaration such as the
 following as an object declaration (i.e., "int()" is treated as an
-initializer expression).  In Microsoft mode We now interpret declarations
+initializer expression).  In Microsoft mode we now interpret declarations
 such as this in the same way as the Microsoft compiler.
 
   int main() {
