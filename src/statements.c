@@ -43,9 +43,9 @@ static a_struct_stmt_stack_entry_ptr
 			   the container is employed; later the inactive
 			   stack can be reactivated.  Because the container
 			   is dynamically allocated, it can be expanded if
-			   necessary.   size_struct_stmt_stack_container
+			   necessary.  size_struct_stmt_stack_container
 			   gives the number of elements currently allocated.
-			   Allocation is not per-file.*/
+			   Allocation is not per-file. */
 static sizeof_t	size_struct_stmt_stack_container = 0;
 			/* Size of struct_stmt_stack_container, in terms of
 			   the number of elements. */
@@ -1008,7 +1008,6 @@ be the topmost one).
   /* The start of a clause is reachable if the start of the structured
      statement is reachable. */
   curr_reachability = sssep->start_reachable;
-  end_stmt_sequence(sssep);
 }  /* start_stmt_clause */
 
 
@@ -1068,8 +1067,7 @@ a structured statement has ended.
   kind = sssep->kind;
   sp = sssep->statement;
   /* Close the final clause of the statement, if any. */
-  if ((kind != ssk_switch || sssep->curr_switch_clause != NULL) &&
-      kind != ssk_try_block) {
+  if (kind != ssk_switch || sssep->curr_switch_clause != NULL) {
     term_stmt_clause(sssep);
   }  /* if */
   /* Determine whether or not the code following the statement is reachable,
@@ -1502,11 +1500,15 @@ static void try_block_statement(void)
 /*
 Scan a C++ try-block statement.  Its form is:
 
-  "try" compound-statement handler-seq
+  try compound-statement handler-seq
+
+where handler-seq is a sequence of one or more handlers of the form
+
+  catch ( exception-declaration ) compound-statement
 
 */
 {
-  a_statement_ptr                sp;
+  a_statement_ptr sp;
 
   db_enter(3, "try_block_statement");
   check_for_unreachable_code();
@@ -1531,15 +1533,14 @@ Scan a C++ try-block statement.  Its form is:
                                                /*at_function_level=*/FALSE,
                                                /*explicit_return_type=*/FALSE,
                                                /*is_catch_clause=*/FALSE);
-  term_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
   /* The next token should be a "catch" introducing the first handler. */
   if (required_token(tok_catch, ec_missing_handler)) {
     /* Loop through the (1 or more) handler declarations, adding each to
        the linked list of handlers pointed to by sp. */
     do {
+      term_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
       start_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
       handler_declaration(sp);
-      term_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
     } while (loop_token(tok_catch));
   }  /* if */
   /* Pop the structured statement stack. */
@@ -2119,22 +2120,20 @@ See also 3.6.6.3.
     dest_label = alloc_temp_label();
   } else {
     if (sssep->kind == ssk_switch &&
-        sssep->curr_switch_clause != NULL) {
-      /* A break that exits a switch clause. */
-      if (depth_stmt_stack != 0 &&
-          &struct_stmt_stack[depth_stmt_stack-1] == sssep) {
-        /* This break statement exits a switch clause in a way that can
-           be represented implicitly as the default action at the end of
-           the clause.  No goto is required.  However, the current switch
-           clause must be ended.  Note that this special trick can be done
-           only when the break is at the top level in the case clause. */
-        set_stmt_source_position(sssep->curr_switch_clause->break_position,
-                                 pos_curr_token);
-        sssep->curr_switch_clause = NULL;
-        term_stmt_clause(sssep);
-        set_unreachable(curr_reachability);
-        goto break_handled;
-      }  /* if */
+        sssep->curr_switch_clause ==
+                      struct_stmt_stack[depth_stmt_stack].curr_switch_clause) {
+      /* This break statement exits a switch clause in a way that can
+         be represented implicitly as the default action at the end of
+         the clause.  No goto is required.  However, the current switch
+         clause must be ended.  Note that this special trick can be done
+         only when the break is at the top level in the case clause. */
+      set_stmt_source_position(sssep->curr_switch_clause->break_position,
+                               pos_curr_token);
+      sssep->curr_switch_clause = NULL;
+      struct_stmt_stack[depth_stmt_stack].curr_switch_clause = NULL;
+      term_stmt_clause(sssep);
+      set_unreachable(curr_reachability);
+      goto break_handled;
     }  /* if */
     /* This break statement exits a loop, or some part of a switch that
        is not inside a switch clause. */
@@ -2350,6 +2349,8 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
   a_statement_ptr     goto_stmt;
   a_reachability_summary
                       prev_reachability, save_reachability;
+  a_struct_stmt_stack_entry_ptr
+                      top_sssep = &struct_stmt_stack[depth_stmt_stack];
 
   db_enter(4, "add_switch_clause");
 
@@ -2407,11 +2408,9 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
      switch, and we take care not to consider that case to be unusual.
      See add_statement for special code in adding code to a switch
      statement. */
-  label_directly_in_switch =
-              &struct_stmt_stack[depth_stmt_stack] == sssep ||
-              (struct_stmt_stack[depth_stmt_stack].kind == ssk_compound &&
-               depth_stmt_stack != 0 &&
-               &struct_stmt_stack[depth_stmt_stack-1] == sssep);
+  label_directly_in_switch = top_sssep == sssep ||
+                             (top_sssep->kind == ssk_compound &&
+                              top_sssep-1 == sssep);
               
   /* The value does not appear already, and therefore it is okay to proceed
      and add it.  First, we try to see if the new value can just be added
@@ -2427,9 +2426,9 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
      and for the "Duff's device" case above, the goto into the inner
      statement is ignored. */
   can_add_to_curr_clause = FALSE;
-  if ((scp = sssep->curr_switch_clause) != NULL) {
+  if ((scp = top_sssep->curr_switch_clause) != NULL) {
     /* There is a current switch clause, so perhaps it can be reused. */
-     clause_stmts = scp->statements;
+    clause_stmts = scp->statements;
     /* If this is a "Duff's device" case, follow the goto. */
     if (!label_directly_in_switch &&
         clause_stmts != NULL &&
@@ -2513,9 +2512,11 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
       /* Save reachability information on the flow-in. */
       prev_reachability = curr_reachability;
     }  /* if */
-    /* Activate the new switch clause so code will be added here (if the
-       switch is the outermost structured statement). */
-    sssep->curr_switch_clause = scp;
+    /* Activate the new switch clause.  If the case label is directly in the
+       switch, also change curr_switch_clause in the switch entry so that code
+       will be added there. */
+    top_sssep->curr_switch_clause = scp;
+    if (label_directly_in_switch) sssep->curr_switch_clause = scp;
     /* Start a new clause. */
     start_stmt_clause(sssep);
     if (label != NULL) {
@@ -2591,7 +2592,7 @@ Scan a case label definition.  The syntax is:
       /* Add the proper switch clause. */
       add_switch_clause(sssep, constant_ptr);
     } else {
-      /* Make code reachable for the error case. */
+      /* Make code reachable if the switch is reachable for the error case. */
       start_stmt_clause(sssep);
     }  /* if */
   } else {
