@@ -1860,7 +1860,7 @@ The result is placed in *result.
     did_not_fold = TRUE;
     template_constant = FALSE;
     if (is_constant_operand(operand_1) && curr_expr_is_evaluated() &&
-        expr_stack->fold_constant_addr_exprs
+        expr_stack->favor_constant_result
 #if UPC_EXTENSIONS_ALLOWED
         /* Do not fold field operations for shared structs. */
         && !(upc_mode && is_shared_qualified_type(class_struct_union_type))
@@ -11289,18 +11289,16 @@ standard.
         /* In constant expressions we must always reduce, so that
            1 || 2/0, for example, comes out as a constant. */
         reduce = TRUE;
+      } else if (curr_object_lifetime != NULL &&
+                 curr_object_lifetime->destructions != NULL) {
+        /* Don't remove dead code that might contain destructions, because
+           we don't want to run through the expression to find the
+           destruction to unlink it. */
+        /* reduce = FALSE; -- already set. */
       } else {
         /* Otherwise, we can reduce at our discretion. */
         reduce = ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS;
-#if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
-        if (curr_object_lifetime != NULL &&
-            curr_object_lifetime->destructions != NULL) {
-          /* Don't remove dead code that might contain destructions, because
-             we don't want to run through the expression to find the
-             destruction to unlink it. */
-          reduce = FALSE;
-        }  /* if */
-#endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
+        if (expr_stack->favor_constant_result) reduce = TRUE;
       }  /* if */
     }  /* if */
     if (!reduce) {
@@ -14386,7 +14384,7 @@ see expr.h).
     push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
-    expr_stack->fold_constant_addr_exprs = TRUE;
+    expr_stack->favor_constant_result = TRUE;
     if (expr_stack->prev->is_template_arg_expression) {
       expr_stack->is_template_arg_expression = TRUE;
     }  /* if */
@@ -15779,7 +15777,7 @@ FALSE and a pointer to the expression tree in *expression.
   }  /* if */
   push_expr_stack(ekind, &expr_stack_entry, /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  expr_stack_entry.fold_constant_addr_exprs = TRUE;
+  expr_stack_entry.favor_constant_result = TRUE;
   if (is_vla_decl) expr_stack_entry.is_vla_dimension_expression = TRUE;
   /* Scan the expression. */
   if (c99_mode) {
@@ -16314,7 +16312,7 @@ and scan_aggregate_initializer_expression.
     /* In initializations of static variables, fold constant addressing
        expressions to constants so that constant initialization can be
        more easily discerned. */
-    expr_stack->fold_constant_addr_exprs = TRUE;
+    expr_stack->favor_constant_result = TRUE;
   }  /* if */
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
@@ -16533,7 +16531,7 @@ This routine is also called in C99 and GNU C modes.
     /* In initializations of static variables, fold constant addressing
        expressions to constants so that constant initialization can be
        more easily discerned. */
-    expr_stack->fold_constant_addr_exprs = TRUE;
+    expr_stack->favor_constant_result = TRUE;
   }  /* if */
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);

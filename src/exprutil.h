@@ -513,13 +513,15 @@ typedef struct an_expr_stack_entry {
 			   entries for temporaries.  See
 			   fix_up_dynamic_init_dtors. */
   a_byte_boolean
-		fold_constant_addr_exprs;
-			/* TRUE if constant addressing expressions should be
-			   folded to constants.  Always TRUE if the expression
+		favor_constant_result;
+			/* TRUE if a constant result should be produced
+			   if possible.  Always TRUE if the expression
 			   is a constant expression; sometimes TRUE for
 			   nonconstant expressions (e.g., initializer
 			   expressions, where it helps in discerning static
-			   initialization cases from others). */
+			   initialization cases from others).  Among other
+			   things, this controls whether constant addressing
+			   expressions should be folded to constants. */
   a_byte_boolean
 		inside_conditional_expression;
 			/* TRUE if inside a conditional operand of an

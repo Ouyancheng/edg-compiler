@@ -720,7 +720,7 @@ is pushed regardless of any of the other factors.
   new_entry->is_template_arg_expression = FALSE;
   new_entry->is_vla_dimension_expression = FALSE;
   new_entry->in_cctor_elision_initializer = FALSE;
-  new_entry->fold_constant_addr_exprs = FALSE;
+  new_entry->favor_constant_result = FALSE;
   new_entry->inside_conditional_expression = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
@@ -745,9 +745,9 @@ is pushed regardless of any of the other factors.
   /* Do special handling for constant expressions.  This is done late so that
      curr_expr_kind_is_const can be used. */
   if (curr_expr_kind_is_const()) {
-    /* Constant addressing expressions should be folded to constants inside
+    /* Constant operations should be folded to constants inside
        constant expressions. */
-    expr_stack->fold_constant_addr_exprs = TRUE;
+    expr_stack->favor_constant_result = TRUE;
     /* Constant expressions are always evaluated even when inside a
        not-evaluated expression.  For example, in sizeof(int[1+1])
        the 1+1 must be evaluated. */
@@ -2634,7 +2634,7 @@ user-defined conversions.
         type_change_constant(&local_constant, new_type, is_implicit_cast,
                              curr_expr_kind_is_const(),
                              curr_expr_is_evaluated(),
-                             (a_boolean)expr_stack->fold_constant_addr_exprs,
+                             (a_boolean)expr_stack->favor_constant_result,
                              reinterpret_semantics,
                              /*maintain_expression=*/FALSE, /* Done below */
                              &did_not_fold, &operand->position);
@@ -2839,7 +2839,7 @@ the offsetof macro).  This routine is only used in C++ mode.
     /* Leave an error operand alone. */
   } else {
     did_not_fold = TRUE;
-    if (curr_expr_is_evaluated() && expr_stack->fold_constant_addr_exprs &&
+    if (curr_expr_is_evaluated() && expr_stack->favor_constant_result &&
         is_constant_operand(operand)) {
       /* Fold a cast of a constant address into another constant address.
          This folding is always done in constant expressions, but in some
@@ -5429,9 +5429,8 @@ if possible.  operator_position indicates the operator position.
        no point in checking them. */
     if (op == (an_expr_operator_kind)eok_padd_subsc ||
         op == (an_expr_operator_kind)eok_padd) {
-      /* Try folding only if the current expression is a constant
-         expression. */
-      try_folding = expr_stack->fold_constant_addr_exprs;
+      /* Try folding only that's desirable in the current expression. */
+      try_folding = expr_stack->favor_constant_result;
     } else {
       /* Not an addressing operation (normal case). */
       try_folding = TRUE;
@@ -6018,21 +6017,20 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
       /* Can't fold cases where the operand types do not match (e.g.,
          because one is a throw and the other is not). */
       /* do_folding = FALSE; -- already set. */
-#if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
-    } else if (curr_object_lifetime == NULL ||
-               curr_object_lifetime->destructions == NULL) {
-      /* We are supposed to remove dead code under conditional operators.
-         However, if the second or third operands might contain destructions
-         in this case, don't remove the dead code, because we don't
-         want to run through the expression to find the destruction to
-         unlink it. */
-      do_folding = TRUE;
-#else /* !ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
+    } else if (curr_object_lifetime != NULL &&
+               curr_object_lifetime->destructions != NULL) {
+      /* Don't remove dead code that might contain destructions, because
+         we don't want to run through the expression to find the
+         destruction to unlink it. */
+      /* do_folding = FALSE; -- already set. */
     } else if ((operand_2 == NULL || is_constant_operand(operand_2)) &&
                is_constant_operand(operand_3)) {
       /* Fold if the second and third operands are constants. */
       do_folding = TRUE;
-#endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
+    } else {
+      /* Otherwise, we can fold at our discretion. */
+      do_folding = ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS;
+      if (expr_stack->favor_constant_result) do_folding = TRUE;
     }  /* if */
   }  /* if */
   if (do_folding) {
