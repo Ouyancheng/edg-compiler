@@ -1,5 +1,14 @@
 Version 2.41
 
+3/2/99   Microsoft C compatibility: signedness difference in variable
+         redeclaration
+
+In Microsoft C mode a variable can now be redeclared with a type that
+differs in "signedness" from the original type.  For example:
+
+  extern unsigned int i;
+  extern signed int i;          // Okay in Microsoft C mode
+
 3/1/99   Abort in checking for ambiguous base class member
 
 A null-pointer abort could occur when checking for an ambiguous base
