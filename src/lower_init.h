@@ -91,7 +91,7 @@ extern void lower_dynamic_init(a_dynamic_init_ptr       dip,
 extern void lower_destructor_dynamic_init(
                                    a_dynamic_init_ptr     dip,
                                    an_init_pos_descr_ptr  ipdp,
-                                   a_boolean              dtor_case,
+                                   a_cleanup_action_ptr   cap,
                                    a_boolean              have_complete_object,
                                    an_insert_location_ptr insert_location);
 
