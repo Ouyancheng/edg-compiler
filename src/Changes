@@ -1,5 +1,20 @@
 Version 2.18
 
+5/18/93 Fixed infinite loop bug
+
+The following caused an infinite loop while recovering from an error
+in the left operand of a "->" operator where an operator-> may apply.
+Now fixed.
+
+  struct B { int i; };
+  struct A {
+    B * operator-> ();
+  } a1, a2;
+  void m() {
+    (a1+a2)->i = 1;
+  }
+
+
 5/17/93 Taking the address of a bit field
 
 A new configuration flag ADDR_OF_BIT_FIELD_ALLOWED has been added.

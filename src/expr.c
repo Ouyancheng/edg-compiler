@@ -1901,7 +1901,9 @@ bound with the function in *bound_function_selector.
        class object or reference to class object, look for another
        operator->() function. */
     if (is_arrow_operator && C_dialect == C_dialect_cplusplus) {
-      while (is_class_or_error_operand(operand_1)) {
+      /* Note that we do not use "is_class_or_error_operand" here.  That's
+         deliberate: doing so could cause infinite loops. */
+      while (is_class_struct_union_type(operand_1->type)) {
         check_for_operator_overloading((an_opname_kind)onk_arrow,
                                        /*unary_operator=*/TRUE,  /* sic */
                                        /*must_be_member_function=*/TRUE,
