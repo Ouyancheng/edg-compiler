@@ -1047,10 +1047,11 @@ entity is unnamed, generate a name.
     /* Avoid problems with C reserved identifiers (and other identifiers
        likely to mean something to the underlying C compiler). */
     if (is_C_reserved_word(name)) {
-      /* Add two underscores at the start of the name. */
-      ensure_enough_room_on_line(strlen(name)+2);
+      /* Add two underscores and an "x" at the start of the name. */
+      ensure_enough_room_on_line(strlen(name)+3);
       write_ch('_');
       write_ch('_');
+      write_ch('x');
       write_str(name);
     } else {
       m_write_tok_str(name);
