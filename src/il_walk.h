@@ -66,6 +66,12 @@ typedef a_string_entry_process_function *a_string_entry_process_function_ptr;
 typedef char *a_remap_function(char *, an_il_entry_kind);
 typedef a_remap_function *a_remap_function_ptr;
 
+EXTERN a_remap_function_ptr
+		walk_remap_func;
+			/* The function to be used to remap each pointer
+			   from an old value to a new value.  NULL if no
+			   remapping is to be done. */
+
 /* Walk the intermediate language tree for the file scope. */
 extern void walk_file_scope_il(
              an_entry_process_function_ptr       entry_process_function,
@@ -80,18 +86,16 @@ extern void walk_routine_scope_il(
              a_remap_function_ptr                remap_function);
 
 #if REMAP_ONLY_ROUTINES_NEEDED
-extern void remap_pointers_in_il_entry(char                 *entry_ptr,
-                                       an_il_entry_kind     entry_kind,
-                                       a_remap_function_ptr remap_function);
+extern void remap_pointers_in_il_entry(char             *entry_ptr,
+                                       an_il_entry_kind entry_kind);
 
-extern void remap_il_header_pointers(a_remap_function_ptr remap_function);
+extern void remap_il_header_pointers(void);
 
-extern void remap_first_ptr_of_orphaned_file_scope_entry_array(
-                                          a_remap_function_ptr remap_function);
+extern void remap_first_ptr_of_orphaned_file_scope_entry_array(void);
+
 #endif /* REMAP_ONLY_ROUTINES_NEEDED */
 
-extern void remap_last_ptr_of_orphaned_file_scope_entry_array(
-                                          a_remap_function_ptr remap_function);
+extern void remap_last_ptr_of_orphaned_file_scope_entry_array(void);
 
 extern char *retrieve_il_entry_kind_name(an_il_entry_kind entry_kind);
 
