@@ -6693,7 +6693,7 @@ directive.  Return TRUE if the identifier exists.
     a_symbol_ptr	sym;
     sym = coalesce_and_lookup_generalized_identifier(
                                  GID_IN_IF_EXISTS, ilm_normal, &err);
-    result = sym != NULL;
+    result = sym != NULL && !sym->is_error;
     /* Bypass the identifier. */
     (void)get_token();
   } else {
