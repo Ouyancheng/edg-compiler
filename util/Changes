@@ -1,5 +1,12 @@
 Version 2.39
 
+3/25/98  Output file option must be included in the instantiation command line
+         in eccp
+
+The eccp script did not include the -o option in the instantiation command
+line.  This would cause the prelinker to fail after recompiling a file that
+was originally compiled with the -o option.  This has been fixed.
+
 3/3/98   Template information files not handled correctly by -o option in eccp
 
 When using the -o option to specify an object file name for a compilation

@@ -655,19 +655,16 @@ process_option()
       used_two_params=1
       executable=$curr_param
       output_file_specified=1
-      add_to_instantiation_command=0
       ;;
     -o*)
 #     Explicitly name the executable.
       executable=`expr $arg : '-o\(.*\)'`    # Get the string after the -o
       output_file_specified=1
-      add_to_instantiation_command=0
       ;;
     --output=*)
 #     Explicitly name the executable.
       executable=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
       output_file_specified=1
-      add_to_instantiation_command=0
       ;;
     $library_option | --library_directory)
 #     Collect a list of -L options to pass to the linker.
