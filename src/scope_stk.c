@@ -935,7 +935,7 @@ specified after the point of definition of the template.
     for (; audp != NULL; audp = audp->next) {
       a_namespace_symbol_supplement_ptr	nssp;
       a_scope_depth			new_depth;
-      if (set_value &&
+      if (do_dependent_name_processing && set_value &&
           effective_decl_seq != NO_DECL_SEQUENCE_NUMBER &&
           (audp->effective_decl_seq > effective_decl_seq)) {
         /* This using-directive became effective after the point that the
@@ -1542,13 +1542,20 @@ the scope being pushed.
          (but not the body) of a template function -- no source sequence
          entries would be involved. */
       source_sequence_entries_disallowed = TRUE;
-#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     } else if (ssep->in_prototype_instantiation) {
-      /* Source sequence entries are normally not generated during a
-         prototype instantiation.  (When they are, they are placed on a list
-         that is not part of the IL proper.) */
-      source_sequence_entries_disallowed = TRUE;
-#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#if 0
+      /* FIXME - remove when prototype instantiations in the IL are fully
+         supported. */
+#else
+      if (!nonclass_prototype_instantiations) {
+#endif
+        /* Source sequence entries are generated for prototype instantiations,
+           but are placed that is not part of the IL proper. */
+        source_sequence_entries_disallowed = TRUE;
+#if 0
+#else
+      }  /* if */
+#endif
     } else if (scope_stack[DEPTH_OF_FILE_SCOPE].
                                     source_sequence_entries_disallowed) {
       check_assertion(source_sequence_entries_disallowed == TRUE);
