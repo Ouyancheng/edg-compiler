@@ -117,10 +117,10 @@ static unsigned long
 static unsigned long
 		num_macros_allocated;
 #endif /* RECORD_MACROS_IN_IL */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
 static unsigned long
 		num_per_instantiation_needed_flags_entries_allocated;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 static unsigned long
 		asm_function_body_space_allocated;
@@ -327,7 +327,7 @@ Allocate a source file entry, initialize it, and return a pointer to it.
   return sfp;
 }  /* alloc_source_file */
 
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
 
 a_per_instantiation_needed_flags_entry_ptr
             alloc_per_instantiation_needed_flags_entry(a_boolean at_file_scope)
@@ -354,7 +354,7 @@ region if at_file_scope is TRUE.
   return pinfep;
 }  /* alloc_per_instantiation_needed_flags_entry */
 
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 void set_template_param_constant_kind(a_constant                     *cp,
                                       a_template_param_constant_kind kind)
@@ -1286,9 +1286,9 @@ to it.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   vp->allocate_segname            = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   vp->instantiation_needed_bit_number = 0;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #ifdef FIL
   vp->by_address                  = FALSE;
   vp->base_var                    = NULL;
@@ -1457,9 +1457,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->overriding_function_for_covariant_return_type = NULL;
   rp->overridden_function_for_covariant_return_type = NULL;
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   rp->instantiation_needed_bit_number = 0;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #ifdef FIL
   rp->is_fortran_entry            = FALSE;
   rp->local_routine_scope         = NULL;
@@ -2697,11 +2697,11 @@ Display and return the amount of space used for various IL tables.
 #if RECORD_MACROS_IN_IL
   db_space_used("macros", num_macros_allocated, a_macro);
 #endif /* RECORD_MACROS_IN_IL */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   db_space_used("per instantiation needed flags entries",
                 num_per_instantiation_needed_flags_entries_allocated,
                 a_per_instantiation_needed_flags_entry);
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   db_space_used("orphaned list headers",
                 num_scope_orphaned_list_headers_allocated,
@@ -2771,18 +2771,18 @@ in il_init.)
 #if BACK_END_IS_CP_GEN_BE
   def_source_corresp.global_qualification_needed = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   def_source_corresp.static_used_by_instantiation = FALSE;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if RECORD_SCOPE_DEPTH_IN_IL
   def_source_corresp.scope_depth = NO_SCOPE_DEPTH;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   def_source_corresp.source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   def_source_corresp.per_instantiation_needed_flags = NULL;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
   /* Save static variables that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
@@ -2865,10 +2865,10 @@ in il_init.)
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(num_macros_allocated),
 #endif /* RECORD_MACROS_IN_IL */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
       pch_saved_var_array_elem(
                          num_per_instantiation_needed_flags_entries_allocated),
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(asm_function_body_space_allocated),
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2972,9 +2972,9 @@ of the front end.
 #if RECORD_MACROS_IN_IL
   num_macros_allocated                   = 0;
 #endif /* RECORD_MACROS_IN_IL */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   num_per_instantiation_needed_flags_entries_allocated = 0;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   asm_function_body_space_allocated      = 0;
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */

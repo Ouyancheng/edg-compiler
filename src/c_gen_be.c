@@ -1103,7 +1103,7 @@ Print the name of the indicated variable.
              !is_magic_name(variable->source_corresp.name)) {
     unsigned long len = strlen(variable->source_corresp.name) + 9 +
                         strlen(module_id);
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
     char buffer[50];
     if (needed_flag_bit_number != 0) {
       /* Add a suffix identifying the instantiation number to make this
@@ -1112,7 +1112,7 @@ Print the name of the indicated variable.
       (void)sprintf(buffer, "_%lu", needed_flag_bit_number);
       len += strlen(buffer);
     }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
     
     /* Name is at file scope, but is not external.  Add a prefix/suffix so
        that it will not conflict with external names.  See dump_variable_decl.
@@ -1123,9 +1123,9 @@ Print the name of the indicated variable.
     m_write_ch('_');
     m_write_ch('_');
     m_write_str(module_id);
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
     if (needed_flag_bit_number != 0) write_str(buffer);
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   } else {
     /* Nothing special about this case. */
@@ -4794,9 +4794,9 @@ parameters.
        variables anyway.  Putting __link out if unreferenced is necessary
        when this front end is used to compile its own output. */
     forced_referenced = has_magic_name;
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
     if (!part_of_current_output_file) forced_referenced = FALSE;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
     if (forced_referenced ||
         start_unreferenced_bracket(&variable->source_corresp)) {
       /* If the variable has an initializer, see if any wide string constants

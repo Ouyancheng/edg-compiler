@@ -28,10 +28,10 @@ a_scope_orphaned_list_header_ptr alloc_scope_orphaned_list_header(
 
 extern a_source_file_ptr alloc_source_file(void);
 
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
 extern a_per_instantiation_needed_flags_entry_ptr
            alloc_per_instantiation_needed_flags_entry(a_boolean at_file_scope);
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 extern void set_template_param_constant_kind(
                                       a_constant                     *cp,

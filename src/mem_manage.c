@@ -1098,14 +1098,14 @@ memory or with an IL file.
          do inlining. */
       keep_memory = TRUE;
 #endif /* MINIMAL_INLINING */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
     } else if (one_instantiation_per_object &&
                rout != NULL && rout->is_inline) {
       /* In one-instantiation-per-object mode, keep an inline function
          around so that its body can be swept for each instantiation that
          needs it. */
       keep_memory = TRUE;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if MAINTAIN_NEEDED_FLAGS
     } else if (rout != NULL &&
                (!rout->keep_definition_in_il || !rout->definition_needed)) {

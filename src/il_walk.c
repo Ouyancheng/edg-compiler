@@ -397,7 +397,7 @@ Set the definition_needed flag on the indicated routine.  This means the
 definition of the routine is needed, and not just the declaration.
 */
 {
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   if (one_instantiation_per_object) {
     if (!rout->is_inline) {
       if (needed_flag_bit_number != 0) {
@@ -425,7 +425,7 @@ definition of the routine is needed, and not just the declaration.
       }  /* if */
     }  /* if */
   }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Set the flag if it is not set already. */
   if (!routine_definition_needed_flag_is_set(rout)) {
     check_assertion_str(!rout->is_trivial_default_constructor,
@@ -433,12 +433,12 @@ definition of the routine is needed, and not just the declaration.
     set_routine_definition_needed_flag(rout);
 #if DEBUG
     if (db_flag_is_set("needed_flags")) {
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
       fprintf(f_debug, "Setting definition_needed (%lu) on rout  ",
                        needed_flag_bit_number);
-#else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#else /* !ONE_INSTANTIATION_PER_OBJECT */
       fprintf(f_debug, "Setting definition_needed on rout  ");
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
       db_name(&rout->source_corresp);
       fprintf(f_debug, "\n");
     }  /* if */
@@ -461,9 +461,9 @@ definition of the routine is needed, and not just the declaration.
          be callable from outside of the needed flag walk. */
       mark_as_needed((char *)scope, iek_scope);
       curr_il_region_number = saved_curr_il_region_number;
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
       if (needed_flag_bit_number == 0)
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
       /* Do not insert code here. */
       {
         /* Do the keep_definition_in_il processing now so we can free the
@@ -484,9 +484,9 @@ definition of the routine is needed, and not just the declaration.
       }  /* if */
     }  /* if */
   }  /* if */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
 end_of_routine:;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 }  /* set_routine_definition_needed */
 
 
@@ -499,7 +499,7 @@ body of the function when the routine "defined" flag gets set after some
 "definition needed" flags were set.
 */
 {
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   unsigned long saved_needed_flag_bit_number = needed_flag_bit_number;
   unsigned long bit_number;
   an_instantiation_needed_flags_scan_state
@@ -518,14 +518,14 @@ body of the function when the routine "defined" flag gets set after some
     }  /* if */
   }  /* while */
   needed_flag_bit_number = 0;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   if (rout->definition_needed) {
     rout->definition_needed = FALSE;
     set_routine_definition_needed(rout);
   }  /* if */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   needed_flag_bit_number = saved_needed_flag_bit_number;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 }  /* remark_routine_definition_needed */
 
 
@@ -540,12 +540,12 @@ definition of the class is needed, and not just the declaration.
     set_class_definition_needed_flag(type);
 #if DEBUG
     if (db_flag_is_set("needed_flags")) {
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
       fprintf(f_debug, "Setting definition_needed (%lu) on ",
                        needed_flag_bit_number);
-#else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#else /* !ONE_INSTANTIATION_PER_OBJECT */
       fprintf(f_debug, "Setting definition_needed on ");
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
       db_abbreviated_type(type);
       fprintf(f_debug, "\n");
     }  /* if */
@@ -625,11 +625,11 @@ as needed.
             entry_kind == iek_variable ||
             entry_kind == iek_routine ||
             entry_kind == iek_namespace) {
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
           fprintf(f_debug, "Setting needed (%lu) on ", needed_flag_bit_number);
-#else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#else /* !ONE_INSTANTIATION_PER_OBJECT */
           fprintf(f_debug, "Setting needed on ");
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
           if (entry_kind == iek_type) {
             fprintf(f_debug, "type ");
             db_abbreviated_type((a_type_ptr)entry_ptr);
@@ -675,7 +675,7 @@ as needed.
   return prune;
 }  /* prune_needed_flag_il_walk */
 
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
 
 void set_per_instantiation_needed_flag(char             *entry_ptr,
                                        an_il_entry_kind entry_kind,
@@ -696,7 +696,7 @@ in the compilation excluding the instantiations).
   needed_flag_bit_number = save_needed_flag_bit_number;
 }  /* set_per_instantiation_needed_flag */
 
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 void mark_as_needed(char             *entry_ptr,
                     an_il_entry_kind entry_kind)
@@ -727,7 +727,7 @@ references.
        externally-linked static data members and member functions. */
     mark_to_keep_in_il(entry_ptr, entry_kind);
   }  /* if */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   if (one_instantiation_per_object && needed_flag_bit_number == 0) {
     /* Determine a separate set of "needed" flags for each instantiation,
        so each can be put out in a separate object file.  If this is
@@ -747,11 +747,11 @@ references.
       }  /* if */
     }  /* if */
   }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   if (entry_kind == (an_il_entry_kind)iek_routine
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
       && needed_flag_bit_number == 0
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
                                                  ) {
     a_routine_ptr rout = (a_routine_ptr)entry_ptr;
 
@@ -782,9 +782,9 @@ entry is for a class, and its definition needed flags(s) are set to
 match the needed flags(s).
 */
 {
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   unsigned long saved_needed_flag_bit_number = needed_flag_bit_number;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   a_source_correspondence *scp = (a_source_correspondence *)entry_ptr;
 
   if (scp != model_scp) {
@@ -792,7 +792,7 @@ match the needed flags(s).
     scp = source_corresp_for_il_entry(entry_ptr, entry_kind);
     check_assertion(scp != NULL);
   }  /* if */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   /* For each "needed" bit set in the model, set the corresponding bit in the
      entry. */
   { an_instantiation_needed_flags_scan_state state;
@@ -812,7 +812,7 @@ match the needed flags(s).
     }  /* while */
   }
   /* needed_flag_bit_number is zero after loop above. */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   if (model_scp->needed) {
     ((a_source_correspondence *)entry_ptr)->needed = FALSE;
     mark_as_needed(entry_ptr, entry_kind);
@@ -820,9 +820,9 @@ match the needed flags(s).
       set_class_definition_needed((a_type_ptr)entry_ptr);
     }  /* if */
   }  /* if */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   needed_flag_bit_number = saved_needed_flag_bit_number;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 }  /* mark_as_needed_like */
 
 

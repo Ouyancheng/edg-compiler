@@ -435,10 +435,10 @@ typedef enum /*an_il_entry_kind*/ {
 #if RECORD_MACROS_IN_IL
   iek_macro,		/* a_macro */
 #endif /* RECORD_MACROS_IN_IL */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   iek_per_instantiation_needed_flags_entry,
 			/* a_per_instantiation_needed_flags_entry */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -551,10 +551,10 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if RECORD_MACROS_IN_IL
 /* iek_macro */				"macro",
 #endif /* RECORD_MACROS_IN_IL */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
 /* iek_per_instantiation_needed_flags_entry */
 					"per-instantiation-needed-flags-entry",
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -816,7 +816,7 @@ typedef union a_parent_class_or_namespace {
 			   NULL. */
 } a_parent_class_or_namespace;
 
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
 
 /*
 Entry used to represent a segment of the bit vector of "needed" flags
@@ -843,7 +843,7 @@ typedef struct a_per_instantiation_needed_flags_entry {
 			   CHAR_BIT+1-th bit; etc. */
 } a_per_instantiation_needed_flags_entry;
 
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 #endif /* ifdef CIL */
 
@@ -955,12 +955,12 @@ typedef struct a_source_correspondence {
 			/* A leading "::" is needed when referring to this
 			   entity.  Used within the C++-generating back end. */
 #endif /* BACK_END_IS_CP_GEN_BE */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   a_bit_field	static_used_by_instantiation:1;
 			/* TRUE if this entity is a static variable or function
 			   that is referenced from an instantiation and
 			   therefore needs to be made external. */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #endif /* ifdef CIL */
 #if RECORD_SCOPE_DEPTH_IN_IL
   a_scope_depth	scope_depth;
@@ -982,7 +982,7 @@ typedef struct a_source_correspondence {
 			   a file-scope routine or variable except within
 			   function bodies. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   a_per_instantiation_needed_flags_entry_ptr
 		per_instantiation_needed_flags;
 			/* A list of entries defining a bit vector.
@@ -990,7 +990,7 @@ typedef struct a_source_correspondence {
 			   which this is the source correspondence field is
 			   needed in the instantiation assigned number N.
 			   Bits are numbered from 1.  NULL if not needed. */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 } a_source_correspondence;
 
 /*
@@ -4186,13 +4186,13 @@ typedef struct a_variable {
 			/* When __declspec(allocate(segname)) is specified for
 			   a variable, pointer to a null-terminated segname. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   unsigned long	instantiation_needed_bit_number;
 			/* When a separate "needed" flag is maintained for
 			   each instantiation, this is the "needed" bit number
 			   associated with this (static data member) variable.
 			   0 if there is no associated bit. */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #ifdef FIL
   a_variable_ptr
                 base_var;
@@ -4706,13 +4706,13 @@ typedef struct a_routine {
 			   cast on top of an enk_result_of_overriding_function
 			   node. */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   unsigned long	instantiation_needed_bit_number;
 			/* When a separate "needed" flag is maintained for
 			   each instantiation, this is the "needed" bit number
 			   associated with this function.  0 if there is no
 			   associated bit. */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #ifdef FIL
   a_byte_boolean
                 is_fortran_entry;

@@ -2680,14 +2680,14 @@ routine is invoked at program startup.
 #if MAINTAIN_NEEDED_FLAGS
   /* This is a funny variable that is "needed" by munch even though it
      is not externally visible. */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   if (one_instantiation_per_object) {
     link_var->instantiation_needed_bit_number =
                       file_scope_init_routine->instantiation_needed_bit_number;
     set_per_instantiation_needed_flag((char *)link_var, iek_variable,
                                     link_var->instantiation_needed_bit_number);
   }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   mark_as_needed((char *)link_var, iek_variable);
 #endif /* MAINTAIN_NEEDED_FLAGS */
   switch_back_to_original_region(region_to_switch_back_to);
@@ -2695,9 +2695,9 @@ routine is invoked at program startup.
 
 #endif /* !USE_INIT_SECTION_IN_GENERATED_C */
 
-#if !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if !ONE_INSTANTIATION_PER_OBJECT
 /*ARGSUSED*/ /* needed_bit_number is not used in that case. */
-#endif /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* !ONE_INSTANTIATION_PER_OBJECT */
 static a_scope_ptr make_file_scope_init_or_term_routine(
                                  unsigned long               needed_bit_number,
                                  char                        *prefix,
@@ -2714,23 +2714,23 @@ routine.  The routine is external if named, and static if unnamed.
 A generated routine context is pushed, with *grcontext used to save the
 old state for later restoration.
 */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
 /*
 needed_bit_number, if non-zero, indicates a per-instantiation "needed"
 bit number; each instantiation is being put in a separate file, and this
 initialization routine is being generated for the instantiation associated
 with the indicated bit number.
 */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 {
   a_routine_ptr   init_rout;
   a_scope_ptr     scope;
   char            *name;
   sizeof_t        prefix_len, alloc_length;
   a_statement_ptr return_stmt;
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   char            buffer[50];
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
   if (prefix == NULL) {
     /* Make an unnamed routine. */
@@ -2742,22 +2742,22 @@ with the indicated bit number.
     module_id = make_module_id();
     prefix_len = strlen(prefix);
     alloc_length = prefix_len + strlen(module_id) + 1;
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
     if (needed_bit_number != 0) {
       /* Add a suffix to distinguish initialization routines for
          specific instantiations. */
       (void)sprintf(buffer, "_%lu", needed_bit_number);
       alloc_length += strlen(buffer);
     }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
     name = alloc_lowered_name_string(alloc_length);
     (void)memcpy(name, prefix, size_t_arg(prefix_len));
     (void)strcpy(name+prefix_len, module_id);
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
     if (needed_bit_number != 0) {
       (void)strcpy(name+prefix_len+strlen(module_id), buffer);
     }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   }  /* if */
   /* Make a type and routine entry for the routine. */
   init_rout = make_rout_entry(name,
@@ -2805,10 +2805,10 @@ instantiation.
                                        insert_location,
                                        region_number,
                                        grcontext);
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   scope->variant.routine.ptr->instantiation_needed_bit_number =
                                                              needed_bit_number;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   return scope;
 }  /* file_scope_init_insert_location */
 
@@ -6566,15 +6566,15 @@ be included in the initialization routine.
   a_memory_region_number
                      region_number;
   unsigned long      eff_needed_bit_number = needed_bit_number;
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   a_dynamic_init_ptr dip_prev = NULL;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if !USE_INIT_SECTION_IN_GENERATED_C
   a_routine_ptr      init_rout;
 #endif /* !USE_INIT_SECTION_IN_GENERATED_C */
 
   dip = file_scope->dynamic_inits;
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   if (needed_bit_number == 1) eff_needed_bit_number = 0;
   if (needed_bit_number != 0) {
     /* Find the first initialization with the appropriate bit number,
@@ -6584,7 +6584,7 @@ be included in the initialization routine.
                                                          eff_needed_bit_number;
          dip_prev = dip, dip = dip->next) {}
   }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   if (dip != NULL) {
     /* There are some file-scope dynamic initializations.  Generate a routine
        containing them. */
@@ -6629,7 +6629,7 @@ be included in the initialization routine.
                          /*others_follow_in_aggr=*/FALSE,
                          eff_insert_location, (a_boolean *)NULL);
 
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
       if (needed_bit_number != 0) {
         /* Remove the entry from the list. */
         if (dip_prev == NULL) {
@@ -6646,7 +6646,7 @@ be included in the initialization routine.
           dip_next = dip_next->next;
         }  /* while */
       }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
     }  /* for */
     if (exceptions_enabled) {
       /* Add prologue/epilogue code for exceptions if needed. */
@@ -6670,7 +6670,7 @@ Do lowering on the file-scope dynamic initializations list.  Also insert
 code to cause the generated initialization routine to be called at startup.
 */
 {
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   if (one_instantiation_per_object) {
     /* When generating one instantiation per object, each instantiation gets
        its own initialization file. */
@@ -6687,7 +6687,7 @@ code to cause the generated initialization routine to be called at startup.
     check_assertion_str(il_header.primary_scope->dynamic_inits == NULL,
                     "lower_file_scope_dynamic_inits: not all entries lowered");
   } else
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Do not insert code here; this is the "else" of an "if". */
   {
     b_lower_file_scope_dynamic_inits((unsigned long)0);

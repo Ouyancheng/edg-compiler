@@ -355,14 +355,14 @@ pointers.
 #else /* !NEED_NAME_MANGLING */
 #define walk_unmangled_name(ptr) /* Nothing */
 #endif /* NEED_NAME_MANGLING */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
 #define walk_per_instantiation_needed_flags(ptr) \
   walk_list((ptr).per_instantiation_needed_flags, \
             a_per_instantiation_needed_flags_entry_ptr, \
             iek_per_instantiation_needed_flags_entry)
-#else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#else /* !ONE_INSTANTIATION_PER_OBJECT */
 #define walk_per_instantiation_needed_flags(ptr) /* Nothing */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #define walk_source_corresp(ptr) \
 { walk_string_ptr((ptr).name, iek_id_name, 0); \
   walk_unmangled_name(ptr); \
@@ -2318,7 +2318,7 @@ after_entry_from_class:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && */
       }
       break;
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
     case iek_per_instantiation_needed_flags_entry:
       {
 #if !DO_SUBTREE_WALK
@@ -2329,7 +2329,7 @@ after_entry_from_class:
 #endif /* !DO_SUBTREE_WALK */
       }
       break;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
     case iek_id_name:
     case iek_string_text:
     case iek_other_text:

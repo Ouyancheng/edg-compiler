@@ -461,11 +461,11 @@ Display the indicated source correspondence entry.
      nested_type_mangling_has_been_done, which are used only during
      IL lowering. */
 #endif /* NEED_NAME_MANGLING */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   if (scp->static_used_by_instantiation) {
     disp_boolean("  static_used_by_instantiation", TRUE);
   }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if RECORD_SCOPE_DEPTH_IN_IL
   disp_long("  scope_depth", (long)scp->scope_depth);
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
@@ -475,7 +475,7 @@ Display the indicated source correspondence entry.
              iek_source_sequence_entry);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   if (scp->per_instantiation_needed_flags != NULL) {
     a_per_instantiation_needed_flags_entry_ptr pinfep;
 
@@ -496,7 +496,7 @@ Display the indicated source correspondence entry.
       (void)printf("\n");
     }  /* for */
   }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 }  /* disp_source_corresp */
 
 
@@ -1316,12 +1316,12 @@ Display the indicated variable.
                     iek_other_text, (sizeof_t)0);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   if (ptr->instantiation_needed_bit_number != 0) {
     disp_unsigned_long("instantiation_needed_bit_number",
                        (unsigned long)ptr->instantiation_needed_bit_number);
   }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #ifdef FFE
   if (ptr->storage_class == (a_storage_class)sc_associated ||
       ptr->storage_class == (a_storage_class)sc_pointer_based) {
@@ -1703,12 +1703,12 @@ Display the indicated routine.
              iek_routine);
   }  /* if */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   if (ptr->instantiation_needed_bit_number != 0) {
     disp_unsigned_long("instantiation_needed_bit_number",
                        (unsigned long)ptr->instantiation_needed_bit_number);
   }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #ifdef FFE
   disp_boolean("is_fortran_entry", (a_boolean)ptr->is_fortran_entry);
   disp_ptr("local_routine_scope", (char *)ptr->local_routine_scope, iek_scope);
@@ -3728,9 +3728,9 @@ This routine is called during IL walking.
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     case iek_eh_prologue_supplement:
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
     case iek_per_instantiation_needed_flags_entry:
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #endif /* ifdef CFE */
       break;
     default:

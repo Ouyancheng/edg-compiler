@@ -4872,7 +4872,7 @@ local-variable-static-init entry.
   }  /* switch */
 }  /* lower_initializer */
 
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
 
 static void externalize_source_correspondence(
                                            a_source_correspondence *scp,
@@ -4913,7 +4913,7 @@ files can reference it.
   scp->name = new_name;
 }  /* externalize_source_correspondence */
 
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 static void lower_variable(a_variable_ptr variable)
 /*
@@ -4942,14 +4942,14 @@ Do IL lowering of the indicated variable and everything under it.
          appeared. */
       variable->init_kind = (an_init_kind)initk_none;
       variable->is_member_constant = FALSE;
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
     } else if (variable->source_corresp.static_used_by_instantiation) {
       /* This is a static variable referenced from an instantiation, so
          it has to made external. */
       externalize_source_correspondence(&variable->source_corresp,
                                         /*is_variable=*/TRUE);
       variable->storage_class = (a_storage_class)sc_unspecified;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
     }  /* if */
     if (variable->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal &&
@@ -4961,12 +4961,12 @@ Do IL lowering of the indicated variable and everything under it.
          through that variable if this front end is used to compile its
          own output. */
 #if MAINTAIN_NEEDED_FLAGS
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
       if (one_instantiation_per_object) {
         set_per_instantiation_needed_flag((char *)variable, iek_variable,
                                     variable->instantiation_needed_bit_number);
       }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
       mark_as_needed((char *)variable, iek_variable);
 #endif /* MAINTAIN_NEEDED_FLAGS */
       variable->source_corresp.referenced = TRUE;
@@ -5085,7 +5085,7 @@ not include the function scope memory region, if any.
       routine->storage_class = (a_storage_class)sc_static;
     } /* if */
 #endif /* LOWER_EXTERN_INLINE */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
     if (routine->source_corresp.static_used_by_instantiation &&
         !routine->is_inline) {
       /* This is a static routine referenced from an instantiation, so
@@ -5094,7 +5094,7 @@ not include the function scope memory region, if any.
                                         /*is_variable=*/FALSE);
       routine->storage_class = (a_storage_class)sc_unspecified;
     }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
     if (routine->overriding_function_for_covariant_return_type != NULL &&
         routine->overriding_function_for_covariant_return_type->assoc_scope !=

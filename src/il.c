@@ -12178,7 +12178,7 @@ eliminated, if appropriate.
 }  /* eliminate_unneeded_il_entries */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
 
 void clear_instantiation_needed_flags_scan_state(
                            an_instantiation_needed_flags_scan_state_ptr infssp,
@@ -12371,7 +12371,7 @@ needed_flag_bit_number plus bit_offset.
 }  /* set_instantiation_needed_flag */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 a_namespace_ptr f_skip_namespace_aliases(a_namespace_ptr nsp)
 /*
