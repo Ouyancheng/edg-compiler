@@ -21,6 +21,13 @@ lower_il.h -- Declarations related to lower_il.c (having to do with
 #ifndef MEM_TABLES_H
 #include "mem_tables.h"
 #endif /* ifndef MEM_TABLES_H */
+#ifndef IL_H
+#include "il.h"
+#endif /* ifndef IL_DEF_H */
+
+
+extern a_boolean virtual_dtor_should_be_generated_for_class(
+                                                        a_type_ptr class_type);
 
 extern void lower_il_memory_region(a_memory_region_number region_number);
 

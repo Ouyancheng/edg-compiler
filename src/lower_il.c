@@ -4951,6 +4951,41 @@ have_defined_here:;
 }  /* virtual_function_table_should_be_defined_here */
 
 
+a_boolean virtual_dtor_should_be_generated_for_class(a_type_ptr class_type)
+/*
+Return TRUE if the virtual destructor for the indicated class should be
+implicitly generated because of some requirement imposed by IL lowering.
+Specifically, an otherwise unreferenced virtual destructor must be
+generated if the virtual function table for the class must be defined in
+this compilation, because a pointer to the destructor must be put in the
+virtual function table.  This routine is meant to be called from the
+front end proper rather than from within IL lowering.  It must be called
+at the end of the translation unit, before IL lowering is done for
+the file scope memory region.
+*/
+{
+  a_boolean should_generate = FALSE, force_static;
+
+  /* Force generation of the virtual function table variable (if any) for the
+     class. */
+  prelower_class_type(class_type);
+  /* See if the class has a virtual function table. */
+  if (class_type->variant.class_struct_union.extra_info->
+                                          virtual_function_table_var != NULL) {
+    /* See if the virtual function table will be defined in this
+       compilation. */
+    if (virtual_function_table_should_be_defined_here(class_type,
+                                                      &force_static)) {
+      /* The virtual function table will be defined, and it will have a
+         reference to the virtual destructor, so the virtual destructor should
+         be generated. */
+      should_generate = TRUE;
+    }  /* if */
+  }  /* if */
+  return should_generate;
+}  /* virtual_dtor_should_be_generated_for_class */
+
+
 /*
 Pointer to routine entry for the runtime routine __pure_virtual_called,
 a pointer to which is placed in virtual function table slots for
