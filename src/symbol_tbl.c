@@ -5451,7 +5451,7 @@ needs to be done using the template parameter as the class type.
   sym = alloc_symbol((a_symbol_kind)sk_class_or_struct_tag,
                      templ_param_sym->header, &templ_param_sym->decl_position);
   /* The class will be considered to be at file scope.  If this is changed
-     to be some other scope then set_source_corres_with_scope_depth may
+     to be some other scope then set_source_corresp_with_scope_depth may
      need to be called because set_source_corresp requires that the
      decl_scope of the symbol still be an active scope. */
   sym->decl_scope = FILE_SCOPE_NUMBER;
@@ -6249,7 +6249,6 @@ used for the unary "::" qualifier and may only be used in C++ mode.
   a_symbol_ptr   sym;
   a_boolean      must_be_class = (options & IDL_MUST_BE_CLASS);
   a_boolean      must_be_tag = (options & IDL_MUST_BE_TAG);
-  a_scope_number file_scope_number = scope_stack[DEPTH_OF_FILE_SCOPE].number;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 /* The name space test is needed when searching the file scope, so
@@ -6257,7 +6256,7 @@ used for the unary "::" qualifier and may only be used in C++ mode.
    is_class_or_class_proxy_symbol checks for a symbol that is a class,
    class template, or template type parameter. */
 #define is_acceptable_symbol(sym)                                     \
-  ((sym)->decl_scope == file_scope_number &&                          \
+  ((sym)->decl_scope == FILE_SCOPE_NUMBER &&                          \
    name_space_for_symbol_kind[sym->kind] == nsk_other &&              \
    (!must_be_class || is_class_or_class_proxy_symbol(sym)) && 	      \
    (!must_be_tag || is_tag_symbol(sym)))
@@ -6753,11 +6752,10 @@ otherwise.
 {
   a_symbol_ptr   sym;
   a_boolean      found = FALSE;
-  a_scope_number file_scope_number = scope_stack[DEPTH_OF_FILE_SCOPE].number;
 
   sym = sym_to_find->header->symbol;
   while (sym != NULL) {
-    if (sym->decl_scope == file_scope_number) {
+    if (sym->decl_scope == FILE_SCOPE_NUMBER) {
       /* Look for class, struct, union, enum, or typedef. */
       if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
         found = TRUE;
