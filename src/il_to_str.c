@@ -1029,6 +1029,7 @@ correspondence entry.
       memzero(&level->source_corresp[level->max_position],
               sizeof(a_source_correspondence_ptr)*new_max_pos -
                       sizeof(a_source_correspondence_ptr)*level->max_position);
+      level->max_position = new_max_pos;
     }  /* if */
     level->source_corresp[coord->position-1] = scp;
   }  /* if */

@@ -1,5 +1,12 @@
 Version 3.6
 
+3/23/05  Memory allocation problem in template parameter remapping
+
+An error in the template parameter remapping routines in il_to_str
+could cause the template parameter remapping tables to become
+corrupted.  The problem could also result in repeated reallocations
+of the tables.  Now fixed.
+
 3/22/05  GNU C++ compatibility: Defining types in nonstandard places
 
 In GNU C++ mode, when gnu_version is less than 30400, the front end accepts
