@@ -1,5 +1,10 @@
 Version 3.1
 
+10/8/02  eccp: allow .s files to be used
+
+Assembler files with a .s suffix may now be included on the eccp command
+line.  Such files are compiled by the underlying C compiler.
+
 9/12/02  Demangling fixes: closing delimiters on sizeof(expr) and []
 
 The demangling for expressions in the Cfront-like ABI got closing

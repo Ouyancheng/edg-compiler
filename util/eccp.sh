@@ -985,7 +985,7 @@ process_option()
       any_l_or_o_files=1
       add_to_instantiation_command=0
       ;;
-    *\.c | *\.C | *\.cc | *\.cpp | *\.CPP | *\.cxx | *\.CXX)
+    *\.c | *\.C | *\.cc | *\.cpp | *\.CPP | *\.cxx | *\.CXX | *\.s)
 #     Collect a list of .c files.
       if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
       if [ $multi_trans_unit -eq 0 -o $any_c_files -eq 0 ] ; then
@@ -1656,6 +1656,7 @@ for cfile in $cfiles
 do
   instantiation_command_suffix=
   basefile=`expr //$cfile : '.*/\(.*\)\.'`  # Get basename
+  suffix=`expr $cfile : '.*\.\(.*\)'` # Get the file suffix
   if [ $more_than_one_c_file -ne 0 ]
   then
     echo "$cfile:" 1>&2
@@ -1690,6 +1691,11 @@ do
     ti_file_name=$output_basename.ti
   else
     output_file=$basefile.o
+  fi
+  # Special handling for .s files
+  if [ "$suffix" = "s" ] ; then
+    compile_int_c $cfile $output_file $output_file $basefile$gen_c_suffix
+    continue
   fi
   # Build the name of the .ii file if it was not explicitly specified.  We
   # might end up specifying this even in cases where an ii file isn't
