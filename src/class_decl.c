@@ -11663,7 +11663,8 @@ bits of information that were acquired while parsing.
          record where it was defined, not where it was initially declared.
          move_to_end_of_types_list also takes care of the placeholder
          typerefs associated with this class. */
-      move_to_end_of_types_list(class_type, effective_decl_level);
+      move_to_end_of_types_list(class_type, effective_decl_level,
+                                /*delete_placeholder=*/FALSE);
 #if DEBUG
     } else {
       if (db_flag_is_set("dump_type_lists")) {

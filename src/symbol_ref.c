@@ -946,7 +946,7 @@ scopes and for the file scope.
   a_type_ptr                  tp;
   a_symbol_ptr                sym, sym_list;
 
-  db_enter(3, "check_name_hiding_scope");
+  db_enter(3, "check_name_hiding_for_scope");
   if (sp != NULL) {
     /* Check certain nested scopes first. */
     if (!C_mode()) {
@@ -954,7 +954,8 @@ scopes and for the file scope.
          namespaces.  Do checking for the nested scope before proceeding to
          the symbols that were declared in the current scope. */
       for (nsp = sp->namespaces; nsp != NULL; nsp = nsp->next) {
-        if (!nsp->is_namespace_alias) {
+        if (!nsp->is_namespace_alias &&
+            !nsp->source_corresp.copied_from_secondary_trans_unit) {
           push_namespace_extension_scope(nsp);
           check_name_hiding_for_scope(nsp->variant.assoc_scope);
           pop_namespace_extension_scope();
@@ -964,7 +965,8 @@ scopes and for the file scope.
          scope before proceeding to the symbols that were declared in the
          current scope. */
       for (tp = sp->types; tp != NULL; tp = tp->next) {
-        if (is_immediate_class_type(tp)) {
+        if (is_immediate_class_type(tp) &&
+            !tp->source_corresp.copied_from_secondary_trans_unit) {
           a_scope_ptr  scope_ptr = tp->variant.class_struct_union.
                                                 extra_info->assoc_scope;
           if (scope_ptr != NULL) {

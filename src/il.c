@@ -4926,12 +4926,16 @@ rather than determined directly.
 
 
 void move_to_end_of_types_list(a_type_ptr     type_ptr,
-                               a_scope_depth  scope_level)
+                               a_scope_depth  scope_level,
+                               a_boolean      delete_placeholder)
 /*
 Move the indicated type, which is already on the types list of an IL scope,
 to the end of that list.  Use scope_level to find the appropriate IL scope.
 When scope_level is NO_SCOPE_DEPTH, the scope is computed rather than
-determined directly.
+determined directly.  If the type has an associated namespace placeholder,
+the placeholder type is moved to the end of the file-scope list, except
+if delete_placeholder is TRUE, in which case the placeholder is simply
+removed from the list.
 */
 {
   a_scope_ptr                 sp;
@@ -4987,7 +4991,8 @@ determined directly.
 
         pointers_block = &curr_translation_unit->file_scope_pointers_block;
         tp = pointers_block->last_type;
-        if (is_assoc_namespace_type_placeholder(tp, type_ptr)) {
+        if (!delete_placeholder &&
+            is_assoc_namespace_type_placeholder(tp, type_ptr)) {
           /* The placeholder entry is already the last entry. */
         } else {
           /* Scan the list until a match is found. */
@@ -5005,13 +5010,17 @@ determined directly.
           } else {
             prev_tp->next = tp->next;
           }  /* if */
-          /* Reenter it onto the end of the list. */
-          pointers_block->last_type->next = tp;
-          pointers_block->last_type = tp;
-          tp->next = NULL;
+          if (!delete_placeholder) {
+            /* Reenter it onto the end of the list. */
+            pointers_block->last_type->next = tp;
+            pointers_block->last_type = tp;
+            tp->next = NULL;
+          }  /* if */
 #if DEBUG
           if (db_flag_is_set("dump_type_lists")) {
-            fprintf(f_debug, "Moved to end of list: ");
+            fprintf(f_debug, "%s: \n", delete_placeholder ?
+                                           "Removed placeholder from list" :
+                                           "Moved placeholder to end of list");
             db_abbreviated_type(tp);
             fprintf(f_debug, "\n");
           }  /* if */

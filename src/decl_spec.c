@@ -3282,7 +3282,8 @@ to indicate whether an enumeration is actually defined.
     } else if (*defines_something) {
       /* This is a redeclaration and also a definition.  Remove the enum type
          from the types list and reenter it at the end. */
-      move_to_end_of_types_list(enum_type, effective_decl_level);
+      move_to_end_of_types_list(enum_type, effective_decl_level,
+                                /*delete_placeholder=*/FALSE);
     }  /* if */
   }  /* if */
   /* If necessary, pop the namespace extension scope. */
