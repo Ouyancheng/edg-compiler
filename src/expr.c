@@ -3219,11 +3219,72 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+
+static an_expr_node_ptr make_node_from_property_ref_operand(
+                                                           an_operand *operand)
+/*
+Extract an expression node from a property-ref operand and return it.
+The operand is one that sets one or more temporaries, and the expressions
+that do that are extracted and concatenated.
+*/
+{
+  an_expr_node_ptr   expr;
+  an_arg_operand_ptr aop;
+
+  check_assertion(is_property_ref_operand(operand));
+  expr = operand->variant.property_ref.object;
+  /* Add any subscript operands. */
+  for (aop = operand->variant.property_ref.subscripts;
+       aop != NULL;
+       aop = aop->next) {
+    expr = make_comma_node(expr, make_node_from_operand(&aop->operand));
+  }  /* for */
+  return expr;  
+}  /* make_node_from_property_ref_operand */
+
+
+static void clone_property_ref_operand(an_operand       *operand,
+                                       an_operand       *operand_clone,
+                                       an_expr_node_ptr *temp_init_expr)
+/*
+Clone an operand used in a Microsoft property reference.
+operand is the original operand, and operand_clone is set to
+a clone of that.  If the cloning of the operand required setting
+a temporary, *temp_init_expr is set to the code that must be evaluated
+early to get the temporary initialized; otherwise, it is set to NULL.
+*/
+{
+  a_boolean temp_init_used;
+
+  check_assertion(is_property_ref_operand(operand));
+  *temp_init_expr = NULL;
+  clone_operand(operand, operand_clone, /*vars_can_change=*/TRUE,
+                &temp_init_used);
+  if (temp_init_used) {
+    a_boolean  dummy_temp_init_used;
+    an_operand temp_operand;
+    /* The cloning required a temporary.  Arrange for setting the temporary
+       before any of the code that uses it (by adding a comma expression
+       later). */
+    a_ref_entry_ptr saved_ref_entries = operand->ref_entries_list;
+    operand->ref_entries_list = NULL;
+    /* Make another reuse of the expression for use in the "get" call. */
+    clone_operand(operand, &temp_operand, /*vars_can_change=*/TRUE,
+                  &dummy_temp_init_used);
+    /* Extract and return the code that initializes the temporary. */
+    *temp_init_expr = make_node_from_property_ref_operand(operand);
+    copy_operand(&temp_operand, operand);
+    operand->ref_entries_list = saved_ref_entries;
+  }  /* if */
+}  /* clone_property_ref_operand */
+
+
 static void prepare_property_ref_incr_decr(
                                           a_boolean         is_increment,
                                           a_source_position *operator_position,
                                           an_operand        *operand,
                                           an_operand        *operand_clone,
+                                          an_expr_node_ptr  *temp_init_expr,
                                           an_operand        *result,
                                           a_boolean         *processed)
 /*
@@ -3237,10 +3298,14 @@ call of the appropriate "get" routine.  operand_clone is set to a clone
 of the operand, for use later when generating the "put" call.
 Operator overloading is checked for, and if it applies, it is handled,
 the result is placed in *result, and *processed is set to TRUE.
+If the cloning of the operand required setting a temporary,
+*temp_init_expr is set to the code that must be evaluated searly
+to get the temporary initialized; otherwise, it is set to NULL.
 */
 {
+  check_assertion(is_property_ref_operand(operand));
   /* Make a clone of the operand, to be used in the store. */
-  clone_operand(operand, operand_clone);
+  clone_property_ref_operand(operand, operand_clone, temp_init_expr);
   /* Transform the operand to a call of the appropriate "get" function. */
   rewrite_property_field_reference(operand, (an_operand *)NULL);
   if (is_overloadable_type_operand(operand)) {
@@ -3259,11 +3324,32 @@ the result is placed in *result, and *processed is set to TRUE.
 }  /* prepare_property_ref_incr_decr */
 
 
+static void insert_temporary_initialization(an_expr_node_ptr  temp_init_expr,
+                                            an_operand        *result)
+/*
+If temp_init_expr is non-NULL, insert the temporary-initialization code
+it points to into result so it executes before whatever is originally
+in result.
+*/
+{
+  if (temp_init_expr != NULL) {
+    an_operand       orig_operand;
+    an_expr_node_ptr expr;
+    orig_operand = *result;
+    expr = make_node_from_operand(result);
+    expr = make_comma_node(temp_init_expr, expr);
+    make_expression_operand(expr, expr->type, result);
+    restore_operand_details_incl_ref(result, &orig_operand);
+  }  /* if */
+}  /* insert_temporary_initialization */
+
+
 static void process_property_ref_incr_decr(
                                           a_boolean         is_increment,
                                           a_source_position *operator_position,
                                           an_operand        *operand,
                                           an_operand        *operand_clone,
+                                          an_expr_node_ptr  temp_init_expr,
                                           an_operand        *result)
 /*
 Generate the IL operation for an increment or decrement operation on a
@@ -3274,7 +3360,11 @@ position of the operator.  "operand" is the operand to be
 incremented/decremented, already transformed into a call of the
 appropriate "get" function.  operand_clone is a clone of the original
 operand, to be transformed into a call of the appropriate "put"
-function.  The result is placed in *result.
+function.  If temp_init_expr is non-NULL, the cloning of the operand
+required setting a temporary, and temp_init_expr points to the
+code to set the temporary, which must be inserted before the
+overall operation so it will be evaluated before any use of the
+temporary.  The overall result is placed in *result.
 */
 {
   an_operand             one_operand;
@@ -3297,6 +3387,8 @@ function.  The result is placed in *result.
   /* Add a call of the appropriate "put" routine. */
   rewrite_property_field_reference(operand_clone, result);
   copy_operand(operand_clone, result);
+  /* Insert temporary-initialization code if required. */
+  insert_temporary_initialization(temp_init_expr, result);
 }  /* process_property_ref_incr_decr */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3321,6 +3413,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_operand            operand_clone;
   a_boolean             operand_clone_unused = FALSE;
+  an_expr_node_ptr      temp_init_expr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position     end_position;
@@ -3345,7 +3438,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
          be made via a call of a "get" function, and the store will be made
          via a call of a "put" function. */
       prepare_property_ref_incr_decr(is_increment, &operator_position,
-                                     operand, &operand_clone,
+                                     operand, &operand_clone, &temp_init_expr,
                                      result, &processed);
       operand_clone_unused = TRUE;
     }  /* if */
@@ -3478,7 +3571,8 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
         /* Operand is a reference to a field declared with
            __declspec(property(...)). */
         process_property_ref_incr_decr(is_increment, &operator_position,
-                                       operand, &operand_clone, result);
+                                       operand, &operand_clone, temp_init_expr,
+                                       result);
         operand_clone_unused = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
@@ -3610,6 +3704,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_operand            operand_clone;
   a_boolean             operand_clone_unused = FALSE;
+  an_expr_node_ptr      temp_init_expr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_prefix_incr_decr");
@@ -3642,8 +3737,8 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
          be made via a call of a "get" function, and the store will be made
          via a call of a "put" function. */
       prepare_property_ref_incr_decr(is_increment, &start_position,
-                                     &operand, &operand_clone, result,
-                                     &processed);
+                                     &operand, &operand_clone, &temp_init_expr,
+                                     result, &processed);
       operand_clone_unused = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3733,7 +3828,8 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
         /* Operand is a reference to a field declared with
            __declspec(property(...)). */
         process_property_ref_incr_decr(is_increment, &start_position,
-                                       &operand, &operand_clone, result);
+                                       &operand, &operand_clone,
+                                       temp_init_expr, result);
         operand_clone_unused = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
@@ -12340,8 +12436,14 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   if (is_gnu_two_operand_form) {
     /* In the binary form, the second operand is omitted and instead the
        value of the first operand is used.  Make a copy before the
-       first operand is converted to bool. */
-    clone_operand(operand_1, &operand_2);
+       first operand is converted to bool.  Variables might change
+       between the first and second use if the first operand has a
+       class type and a conversion function is invoked to convert it
+       to bool. */
+    a_boolean temp_init_used;
+    a_boolean vars_can_change = (!C_mode() &&
+                                 is_class_struct_union_type(operand_1->type));
+    clone_operand(operand_1, &operand_2, vars_can_change, &temp_init_used);
   }  /* if */
   /* Check the first operand's type. */
   process_boolean_controlling_expression(operand_1);
@@ -13100,6 +13202,7 @@ See section 3.3.16 of the standard.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_operand            operand_1_clone;
   a_boolean             operand_1_clone_unused = FALSE;
+  an_expr_node_ptr      temp_init_expr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean             imaginary_arithmetic = FALSE;
 
@@ -13163,7 +13266,7 @@ See section 3.3.16 of the standard.
                                "scan_compound_assignment_operator: bad token");
     }  /* switch */
     /* Make a clone of operand_1, to be used in the store. */
-    clone_operand(operand_1, &operand_1_clone);
+    clone_property_ref_operand(operand_1, &operand_1_clone, &temp_init_expr);
     operand_1_clone_unused = TRUE;
     /* Transform the left operand to a call of the appropriate "get"
        function. */
@@ -13396,6 +13499,7 @@ See section 3.3.16 of the standard.
     rewrite_property_field_reference(&operand_1_clone, result);
     copy_operand(&operand_1_clone, result);
     operand_1_clone_unused = FALSE;
+    insert_temporary_initialization(temp_init_expr, result);
   }  /* if */
   if (operand_1_clone_unused) {
     operand_will_not_be_used_because_of_error(&operand_1_clone);

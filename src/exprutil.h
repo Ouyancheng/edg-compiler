@@ -1012,8 +1012,26 @@ extern void set_operand_expr_position_if_expr(an_operand        *operand,
 extern void set_operand_kind(an_operand      *operand,
                              an_operand_kind kind);
 
+/*
+Function type used for the call-back routine of
+make_lvalue_expr_reusable_copy.
+*/
+typedef an_expr_node_ptr a_reusable_copy_function(
+                                             an_expr_node_ptr expr,
+                                             a_boolean        vars_can_change,
+                                             a_boolean        *temp_init_used);
+typedef a_reusable_copy_function *a_reusable_copy_function_ptr;
+
+extern an_expr_node_ptr lvalue_expr_reusable_copy(
+                                 an_expr_node_ptr             expr,
+                                 a_boolean                    vars_can_change,
+                                 a_reusable_copy_function_ptr copy_func,
+                                 a_boolean                    *temp_init_used);
+
 extern void clone_operand(an_operand *operand,
-                          an_operand *operand_clone);
+                          an_operand *operand_clone,
+                          a_boolean  vars_can_change,
+                          a_boolean  *temp_init_used);
 
 extern void error_in_operand(an_error_code error_code,
 		             an_operand    *operand);

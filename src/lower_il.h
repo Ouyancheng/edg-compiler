@@ -904,9 +904,6 @@ extern a_type_ptr char_star_type(void);
 
 extern a_type_ptr make_vptp_type(void);
 
-extern void overwrite_node(an_expr_node_ptr node,
-                           an_expr_node_ptr source_node);
-
 extern void set_integer_constant_with_overflow_check(
 					a_constant_ptr		con,
                                         a_host_large_integer	con_val,
@@ -999,6 +996,8 @@ extern void set_lvalue_and_boolean_controlling_expr_masks(
 extern void lower_expr_list(an_expr_node_ptr expr_list,
                             unsigned int     is_lvalue_mask,
                             unsigned int     is_bool_controlling_expr_mask);
+
+extern void lower_reuse_value_expr(an_expr_node_ptr expr);
 
 extern void lower_expr(an_expr_node_ptr expr,
                        a_boolean        is_lvalue);

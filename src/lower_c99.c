@@ -2672,6 +2672,9 @@ second parameter.
       }
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    case enk_reuse_value:
+      lower_reuse_value_expr(expr);
+      break;
     default:
       unexpected_condition_str("Invalid C99 IL expression kind");
       break;

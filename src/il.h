@@ -918,6 +918,9 @@ extern an_expr_node_ptr make_operator_node(an_expr_operator_kind kind,
 extern an_expr_node_ptr make_comma_node(an_expr_node_ptr expr1,
                                         an_expr_node_ptr expr2);
 
+extern void overwrite_node(an_expr_node_ptr node,
+                           an_expr_node_ptr source_node);
+
 extern an_expr_node_ptr error_node(void);
 
 extern an_expr_node_ptr alloc_node_for_constant(a_constant *constant);
