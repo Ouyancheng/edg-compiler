@@ -4682,9 +4682,22 @@ for example, in something like "(short)i = 0").
   check_assertion(gnu_mode);
   if (is_an_rvalue(operand)) {
     if (is_expression_operand(operand)) {
-      a_boolean do_recovery = FALSE;
-      a_boolean casts_removed = FALSE;
+      a_boolean  do_recovery = FALSE;
+      a_boolean  casts_removed = FALSE;
+      a_type_ptr type_cast_to = NULL, type_before_cast = NULL;
       an_expr_node_ptr expr = operand->variant.expression;
+      if (gpp_mode &&
+          is_operation_node(expr) &&
+          expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
+        type_cast_to = expr->type;
+        type_before_cast = expr->variant.operation.operands->type;
+        if (identical_types(type_cast_to, type_before_cast)) {
+          /* g++ ignores a cast to the same type.  Usually this front end
+             drops it in the IL as well, but a configuration flag like
+             PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL may prevent that. */
+          expr = expr->variant.operation.operands;
+        }  /* if */
+      }  /* if */
       if (is_operation_node(expr) &&
           (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast ||
            (gcc_mode &&
@@ -4718,26 +4731,45 @@ for example, in something like "(short)i = 0").
         an_operand orig_operand;
         orig_operand = *operand;
         if (casts_removed) {
-          if (gpp_mode && gnu_version >= 30400) {
-            /* g++ 3.4 made this into an error. */
-            pos_error(ec_gcc_use_of_cast_as_lvalue, &operand->position);
+          if (gpp_mode &&
+              (gnu_version >= 30400 ||
+               !is_integral_type(type_cast_to) ||
+               !is_integral_type(type_before_cast))) {
+            /* g++ 3.4 made this into an error.  g++ versions before that gave
+               errors on non-integral cases. */
+            error_in_operand(ec_gcc_use_of_cast_as_lvalue, operand);
           } else {
             pos_warning(ec_gcc_lvalue_cast_ignored, &operand->position);
           }  /* if */
         }  /* if */
-        conv_rvalue_expr_to_object_pointer(&expr, &do_recovery,
-                                           /*see_if_possible=*/FALSE,
-                                           /*gcc_lvalue=*/gcc_mode,
-                                           ignore_casts,
-                                           &lvalue_type);
-        make_expression_operand(expr, expr->type, operand);
-        if (is_function_type(lvalue_type)) {
-          operand->state = (an_operand_state)os_function_designator;
-        } else {
-          operand->state = (an_operand_state)os_lvalue;
+        if (!is_error_operand(operand)) {
+          conv_rvalue_expr_to_object_pointer(&expr, &do_recovery,
+                                             /*see_if_possible=*/FALSE,
+                                             /*gcc_lvalue=*/gcc_mode,
+                                             ignore_casts,
+                                             &lvalue_type);
+          make_expression_operand(expr, expr->type, operand);
+          if (is_function_type(lvalue_type)) {
+            operand->state = (an_operand_state)os_function_designator;
+          } else {
+            operand->state = (an_operand_state)os_lvalue;
+          }  /* if */
+          operand->type = lvalue_type;
         }  /* if */
-        operand->type = lvalue_type;
         restore_operand_details(operand, &orig_operand);
+      }  /* if */
+    }  /* if */
+  } else if (is_an_lvalue(operand)) {
+    if (is_expression_operand(operand)) {
+      an_expr_node_ptr expr = operand->variant.expression;
+      if (gcc_mode &&
+          gnu_version >= 30400 &&
+          is_operation_node(expr) &&
+          expr->variant.operation.kind ==
+                                      (an_expr_operator_kind)eok_lvalue_cast) {
+        /* Warn on a use of an lvalue cast.  gcc started warning about this
+           in 3.4. */
+        pos_warning(ec_gcc_use_of_cast_as_lvalue, &operand->position);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -10130,41 +10162,26 @@ C mode.
   type_cast_to = skip_typerefs(type_cast_to);
 
   check_assertion(C_mode());
-  /* The result stays an lvalue if the result type size is the same as the
-     source type size.  However, casts involving floats require actual
-     changes in representation, and are not lvalue-preserving. */
   if (!is_scalar_type(type_before_cast) ||
       !is_scalar_type(type_cast_to)) {
     /* Rule out casts from/to structs. */
     /* is_still_an_lvalue = FALSE; -- already set. */
   } else if (identical_types(type_cast_to, type_before_cast)) {
-    /* Same type, operand stays an lvalue.  This applies in pcc mode,
-       SVR4 C mode, and in Microsoft C mode (it also applies in Microsoft
-       C++ mode, but that case doesn't get to this routine). */
+    /* Same type, operand stays an lvalue. */
     is_still_an_lvalue = TRUE;
-  } else if (gcc_mode &&
-             is_integral_type(type_cast_to) &&
-             is_integral_type(type_before_cast)) {
-    /* GNU C treats only a cast to the identical type as this kind
-       of lvalue cast, for integer types.  Other cases are handled by
-       revert_gcc_rvalue_to_lvalue_if_possible.  Note that this
-       lets by the integral/pointer mixed case, which is allowed by
-       gcc. */
-    /* is_still_an_lvalue = FALSE; -- already set. */
   } else if (!microsoft_mode &&
              (is_floating_type(type_before_cast) ||
               is_floating_type(type_cast_to))) {
     /* The source or destination types are floating types, so there's
        actual conversion involved. */
     /* is_still_an_lvalue = FALSE; -- already set. */
-  } else if (is_bool_type(type_before_cast) ||
-             is_bool_type(type_cast_to)) {
+  } else if (is_bool_type(type_cast_to)) {
     /* Conversion between other types and bool maps zero/non-zero to
        false/true, so it's a real conversion. */
     /* is_still_an_lvalue = FALSE; -- already set. */
   } else if (type_cast_to->size == type_before_cast->size &&
              alignment_after_cast == alignment_before_cast) {
-    /* The types are not floating types, and they have the same size
+    /* The types are not floating or bool types, and they have the same size
        and alignment. */
     is_still_an_lvalue = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
