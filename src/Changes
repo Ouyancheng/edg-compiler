@@ -19,8 +19,8 @@ In GNU C++ mode the front end now accepts GNU attributes on explicit
 template specializations.  For example:
 
   template<typename> void f();
-  template<> attribute((deprecated))  // Now accepted in GNU C++ mode.
-    void f<void>() {}                 // Previously an error.
+  template<> __attribute__((deprecated))  // Now accepted in GNU C++ mode.
+        void f<void>() {}                 // Previously an error.
 
 8/27/03  Microsoft mode: Abort while removing source sequence entry
 
