@@ -497,7 +497,7 @@ typedef struct a_projection_descr {
 			/* The fundamental base class member to which this
 			   projection symbol refers, i.e., the symbol for
 			   the definition of the entity rather than any
-			   an inherited instance of it. */
+			   inherited instance of it. */
   a_base_class_ptr
 		fundamental_base_class;
 			/* This field is a pointer to the base class entry for
