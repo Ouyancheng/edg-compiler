@@ -571,7 +571,7 @@ operator is now generated.
 
 Further adventures in Microsoft compatibility: MSVC++ 7.1 has made
 a change that makes friend functions defined in a class visible only
-via argument-dependent lookup.  However, this invisiblity applies only
+via argument-dependent lookup.  However, this invisibility applies only
 to calls written in the operator form, e.g., a+b rather than
 operator+(a, b).
 
@@ -1745,7 +1745,7 @@ behavior, i.e., that a constant that could be represented as
 an unsigned long long but not as a long long is considered to be
 an error.  We've chosen to issue a warning (even in strict
 mode) and treat the constant as unsigned long long, as before.
-This is an interim solution until the C committe rules on this,
+This is an interim solution until the C committee rules on this,
 and desirable because both Perennial and Plum Hall have tests
 with such constants, so errors are disruptive right now.
 
@@ -3046,7 +3046,7 @@ dealt with leading "::" qualifiers).
          definition in prototype instantiation
 
 The C++-generating back end incorrectly put out template-dependent
-constants in enum definitions in prototype instantations.
+constants in enum definitions in prototype instantiations.
 (Prototype instantiations are put out only in some specialized
 configurations.)  The output is now corrected.
 
