@@ -1712,9 +1712,9 @@ EXTERN a_boolean
 EXTERN a_boolean
 		thread_local_storage_specifier_enabled
 #if VAR_INITIALIZERS
-			= DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED;
+			= DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED
 #endif /* VAR_INITIALIZERS */
-			       ;
+			                                                ;
 			/* TRUE if the "__thread" specifier should be accepted
 			   to indicate that a variable should reside in thread-
 			   local storage. */
