@@ -577,11 +577,13 @@ indicates the source position at which the error should be put out.
 }  /* check_inheritance_kind */
 
 
-void apply_microsoft_w64_specifier(a_type_ptr  *type_ptr)
+void apply_microsoft_w64_specifier(a_type_ptr         *type_ptr,
+                                   a_source_position  *err_pos)
 /*
 Replace the given type with a copy that is marked as having been specified
 with the __w64 token.  Except for signedness and qualifiers the given type
-must be int, long, or a pointer type; if not, an error is issued.
+must be int, long, or a pointer type; if not, an error is issued at the
+given position.
 */
 {
   a_type_ptr       plain_type = skip_typerefs(*type_ptr);
@@ -603,7 +605,7 @@ must be int, long, or a pointer type; if not, an error is issued.
     copy->has_microsoft_w64_specifier = TRUE;
     *type_ptr = make_qualified_type(copy, qualifiers);
   } else {
-    error(ec_invalid_type_for_w64);
+    pos_error(ec_invalid_type_for_w64, err_pos);
   }  /* if */
 }  /* apply_microsoft_w64_specifier */
 
@@ -4956,6 +4958,7 @@ Returns TRUE if there is an error in the specifiers.
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                  microsoft_w64_seen = FALSE;
+  a_source_position          microsoft_w64_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
  
   db_enter(3, "decl_specifiers");
@@ -5358,6 +5361,7 @@ Returns TRUE if there is an error in the specifiers.
            except that it does not really modify the type (and Microsoft
            allows the keyword to be repeated). */
         microsoft_w64_seen = TRUE;
+        microsoft_w64_pos = pos_curr_token;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_const:
@@ -6584,7 +6588,7 @@ exit_loop:
           err = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_w64_seen) {
-          apply_microsoft_w64_specifier(type_ptr);
+          apply_microsoft_w64_specifier(type_ptr, &microsoft_w64_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
       }  /* if */

@@ -2587,13 +2587,14 @@ Clear the pointer stored in "var" if it is used.
                     are not used. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void collect_pointer_declarator_extended_qualifiers(
-                                      a_type_qualifier_set *qualifiers,
-                                      a_source_position    *qual_pos,
-                                      a_call_conv_descr    *call_conv,
-                                      a_variable_ptr       *based_var,
-                                      a_source_position    *based_pos,
-                                      a_boolean            *microsoft_w64_seen,
-                                      a_decl_pos_block_ptr decl_pos_block)
+                                     a_type_qualifier_set  *qualifiers,
+                                     a_source_position     *qual_pos,
+                                     a_call_conv_descr     *call_conv,
+                                     a_variable_ptr        *based_var,
+                                     a_source_position     *based_pos,
+                                     a_boolean             *microsoft_w64_seen,
+                                     a_source_position     *microsoft_w64_pos,
+                                     a_decl_pos_block_ptr  decl_pos_block)
 /*
 Collect a set of pointer declarator qualifiers provided as an extension
 (e.g., for Microsoft compatibility).  Aside from the standard const/volatile,
@@ -2607,7 +2608,8 @@ permissible for the input to contain no qualifiers. If Microsoft extended
 decl specifiers, introduced by __declspec, are encountered, they are
 scanned and thrown away with a warning.  If microsoft_w64_seen is NULL, the
 Microsoft keyword __w64 is rejected; otherwise, *microsoft_w64_seen is set
-to TRUE when __w64 is encountered.
+to TRUE when __w64 is encountered and the position of the keyword is recorded
+in *microsoft_w64_pos.
 */
 {
   a_type_qualifier_set new_qualifiers, duplicates;
@@ -2694,6 +2696,7 @@ to TRUE when __w64 is encountered.
            declarators. */
         if (microsoft_w64_seen != NULL) {
           *microsoft_w64_seen = TRUE;
+          *microsoft_w64_pos = pos_curr_token;
         } else {
           /* The "__w64" token was not expected. */
           error(ec_invalid_type_for_w64);
@@ -2860,25 +2863,27 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
          int far *p;
     */
     collect_pointer_declarator_extended_qualifiers(
-                                        &pending_qualifiers,
-                                        &pending_qualifiers_pos,
-                                        &ccd,
-                                        &based_var,
-                                        &based_pos,
-                                        /*microsoft_w64_seen=*/(a_boolean*)NULL,
-                                        decl_pos_block);
+                               &pending_qualifiers,
+                               &pending_qualifiers_pos,
+                               &ccd,
+                               &based_var,
+                               &based_pos,
+                               /*microsoft_w64_seen=*/(a_boolean*)NULL,
+                               /*microsoft_w64_pos=*/(a_source_position*)NULL,
+                               decl_pos_block);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
   /* Loop while there are pointer declarators. */
   for (;;) {
     /* See if there is a pointer declarator. */
-    a_boolean another_pointer_declarator = FALSE;
-    a_boolean ptr_to_member_case = FALSE;
+    a_boolean          another_pointer_declarator = FALSE;
+    a_boolean          ptr_to_member_case = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-    a_boolean *p_microsoft_w64_seen = NULL;
+    a_boolean          *p_microsoft_w64_seen = NULL;
+    a_source_position  microsoft_w64_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    a_boolean microsoft_w64_seen = FALSE;
+    a_boolean          microsoft_w64_seen = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if ((curr_token == tok_star ||
          (reference_allowed && curr_token == tok_ampersand))) {
@@ -3096,6 +3101,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                                                      &based_var,
                                                      &based_pos,
                                                      p_microsoft_w64_seen,
+                                                     &microsoft_w64_pos,
                                                      decl_pos_block);
       /* Break the qualifiers into those like const that are handled
          immediately and those like near that stay pending into the next
@@ -3106,7 +3112,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_w64_seen) {
-        apply_microsoft_w64_specifier(&complete_type);
+        apply_microsoft_w64_specifier(&complete_type, &microsoft_w64_pos);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else
