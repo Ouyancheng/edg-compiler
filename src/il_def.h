@@ -547,12 +547,6 @@ typedef struct a_source_correspondence {
 			/* TRUE if the name of the entity has been changed
 			   to the "mangled" form of the name (C++). */
 #endif /* DO_IL_LOWERING */
-#if BACK_END_IS_CP_GEN_BE
-  unsigned int	definition_put_out:1;
-			/* Used in some cases to record whether the definition
-			   for an entity has been put out by the
-			   C++/C-generating back end. */
-#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ifdef CIL */
 #if RECORD_SCOPE_DEPTH_IN_IL
   a_scope_depth	scope_depth;
@@ -2067,15 +2061,12 @@ typedef struct a_type {
                            divisible.  1 if not applicable. */
   a_type_kind   kind;
                         /* The kind of type. */
-#if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-  a_byte_boolean
-		used_in_exception;
-#else /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   unsigned int	used_in_exception:1;
 			/* TRUE if this type appeared as (1) the type of an
 			   exception-declaration of a handler, (2) the type
 			   of a throw expression, or (3) an
 			   exception-specification. */
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   unsigned int	use_cfront_transitional_nested_type_name_mangling:1;
                         /* TRUE if this type should be treated as a
                            non-nested type for purposes such as name
@@ -2083,8 +2074,18 @@ typedef struct a_type {
                            with cfront 2.1 which promotes nested types
                            to the file scope unless the name is already
                            used as a type name at the file scope. */
-  bitfield_to_avoid_codecenter_warnings();
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+#if BACK_END_IS_CP_GEN_BE
+  unsigned int	definition_put_out:1;
+			/* Used in some cases to record whether the definition
+			   of a type has been put out by the
+			   C++/C-generating back end. */
+  unsigned int	definition_delayed:1;
+			/* Used in some cases to indicate the definition of
+			   a type is required and should be put out at the
+			   first opportunity. */
+#endif /* BACK_END_IS_CP_GEN_BE */
+  bitfield_to_avoid_codecenter_warnings();
 #if DO_IL_LOWERING
   a_variable_ptr
 		typeinfo_var;

@@ -3700,10 +3700,14 @@ variant fields to default values.
   pte->used_in_exception = FALSE;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   pte->use_cfront_transitional_nested_type_name_mangling = FALSE;
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+#if BACK_END_IS_CP_GEN_BE
+  pte->definition_put_out = FALSE;
+  pte->definition_delayed = FALSE;
+#endif /* BACK_END_IS_CP_GEN_BE */
 #if CHECKING
   pte->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
-#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 #if DO_IL_LOWERING
   pte->typeinfo_var = NULL;
 #endif /* DO_IL_LOWERING */
@@ -6948,9 +6952,6 @@ of the front end.
 #if DO_IL_LOWERING
   def_source_corresp.name_has_been_mangled = FALSE;
 #endif /* DO_IL_LOWERING */
-#if BACK_END_IS_CP_GEN_BE
-  def_source_corresp.definition_put_out = FALSE;
-#endif /* BACK_END_IS_CP_GEN_BE */
 #if RECORD_SCOPE_DEPTH_IN_IL
   def_source_corresp.scope_depth = NO_SCOPE_DEPTH;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
