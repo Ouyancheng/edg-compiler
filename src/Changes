@@ -1,5 +1,14 @@
 Version 2.39
 
+3/25/98   any_mutable_member flag in class set too often
+
+The any_mutable_member flag in a class type (added in version 2.38)
+was being set if the class has any nonstatic data members, rather
+than only if the class has any mutable members.  As a consequence,
+the C-generating back end removed the "const" qualifier from most
+declarations of class variables.  The flag is now set only when
+appropriate.
+
 3/23/98   an_init_pos_descr in c_gen_be renamed
 
 The local structure in c_gen_be.c called an_init_pos_descr has been

@@ -7551,8 +7551,11 @@ specific information about the member declaration, respectively.
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     field->source_corresp.access = class_state->access;
-    field->is_mutable = ((decl_info->dso_flags & DSO_MUTABLE) != 0);
-    class_type->variant.class_struct_union.any_mutable_member = TRUE;
+    if (decl_info->dso_flags & DSO_MUTABLE) {
+      /* The member is declared "mutable". */
+      field->is_mutable = TRUE;
+      class_type->variant.class_struct_union.any_mutable_member = TRUE;
+    }  /* if */
   }  /* if */
   if (member_sym != NULL && !decl_info->is_anonymous_union) {
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
