@@ -8794,9 +8794,6 @@ eliminated, if appropriate.
             }  /* if */
             vp->next = NULL;
           } else {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-            vp->source_corresp.source_sequence_entry = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
             prev_vp = vp;
           }  /* if */
         }  /* for */  
@@ -8820,9 +8817,6 @@ eliminated, if appropriate.
             }  /* if */
             tp->next = NULL;
           } else {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-            tp->source_corresp.source_sequence_entry = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
             prev_tp = tp;
           }  /* if */
         }  /* for */  
