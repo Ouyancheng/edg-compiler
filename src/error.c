@@ -1158,7 +1158,7 @@ error code.
       m = "base class \"%s\" has already been initialized";
       break;
     case ec_base_class_init_anachronism:
-      m = "base class \"%s\" assumed for initializer (anachronism)";
+      m = "base class \"%s\" assumed (anachronism)";
       break;
     case ec_member_already_initialized:
       m = "member has already been initialized";
@@ -1168,6 +1168,9 @@ error code.
       break;
     case ec_assignment_to_this:
       m = "assignment to \"this\" (anachronism)";
+      break;
+    case ec_overload_ignored:
+      m = "\"overload\" ignored (anachronsim)";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
