@@ -1157,6 +1157,61 @@ of the file scope.  If it is a local class, return NO_SCOPE_DEPTH.
 }  /* scope_depth_for_class_ss_list */
 
 
+static a_scope_depth find_innermost_namespace_scope_depth(
+                                         a_scope_stack_entry_ptr  sse_ptr)
+/*
+Return the innermost namespace scope relative to the indicates scope stack
+entry.  If the scope stack entry is a template instantiation scope or belong
+belongs to a template instantiation, the innermost namespace scope to return
+is that in which the instantiation is triggered, not the one in which the
+template is defined.
+*/
+{
+  a_scope_depth  depth;
+
+  for (;;) {
+    if (sse_ptr->kind == (a_scope_kind)sck_template_instantiation) {
+      /* The instantiation context depth is the depth at the point the
+         instantiation is is triggered. */
+      sse_ptr = &scope_stack[sse_ptr->instantiation_context_depth];
+    } else if (sse_ptr->depth_innermost_instantiation_scope !=
+                                                         NO_SCOPE_DEPTH) {
+      /* The current scope is within an instantiation.  Find the innermost
+         instantiation scope. */
+      sse_ptr = &scope_stack[sse_ptr->depth_innermost_instantiation_scope];
+    } else {
+      /* The current scope will do. */
+      break;
+    }  /* if */
+  }  /* for */
+  depth = sse_ptr->depth_innermost_namespace_scope;
+  for (;;) {
+    sse_ptr = &scope_stack[depth];
+    if (sse_ptr->kind != (a_scope_kind)sck_namespace_extension ||
+        sse_ptr->explicitly_declared_namespace_extension) {
+      break;
+    }  /* if */
+    sse_ptr--;
+    depth = sse_ptr->depth_innermost_namespace_scope;
+  }  /* for */
+#if CHECKING
+  switch (scope_stack[depth].kind) {
+    case sck_file:
+    case sck_namespace:
+      /* Okay. */
+      break;
+    case sck_namespace_extension:
+      check_assertion(scope_stack[depth].  
+                              explicitly_declared_namespace_extension);
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+#endif /* CHECKING */      
+  return depth;
+}  /* find_innermost_namespace_scope_depth */
+
+
 static a_scope_depth find_instantiation_insert_scope(
                                      a_scope_stack_entry_ptr      curr_sse_ptr,
                                      a_source_sequence_entry_ptr  ssep)
@@ -1225,7 +1280,6 @@ innermost such class.
   a_source_correspondence       *scp;
   a_template_arg_ptr            template_arg_list;
   a_boolean                     members_only;
-  a_namespace_ptr               parent_namespace;
 
   db_enter(4, "find_instantiation_insert_scope");
 #if DEBUG
@@ -1254,7 +1308,6 @@ innermost such class.
   parent_scope_depth = NO_SCOPE_DEPTH;
   if (scp->is_class_member) {
     parent_class = scp->parent.class_type;
-    parent_namespace = NULL;
     /* Find the innermost uncompleted parent class. */
     for (;;) {
       parent_scope_depth = parent_class->variant.class_struct_union.
@@ -1266,7 +1319,6 @@ innermost such class.
       } else if (!parent_class->source_corresp.is_class_member) {
         /* parent_class is not nested in another class -- remember the
            namespace it's a member of, if any. */
-        parent_namespace = parent_class->source_corresp.parent.namespace_ptr;
         parent_class = NULL;
         break;
       }  /* if */
@@ -1276,30 +1328,11 @@ innermost such class.
   } else {
     /* The entity is not a class member.  It may be a namespace member. */
     parent_class = NULL;
-    parent_namespace = scp->parent.namespace_ptr;
   }  /* if */
-  if (parent_namespace != NULL) {
-    /* There's no active class parent on the scope stack.  Look for an
-       active namespace parent. */
-    parent_namespace = skip_namespace_aliases(parent_namespace);
-    do {
-      parent_scope_depth =
-                parent_namespace->variant.assoc_scope->depth_in_scope_stack;
-      /* The namespace is on the scope stack as the result of an explicit
-         source construct (not a reactivation), use that depth associated
-         with that scope stack entry.  Otherwise, keep looking. */
-      if (parent_scope_depth != NO_SCOPE_DEPTH) {
-        if (scope_stack[parent_scope_depth].kind ==
-                                 (a_scope_kind)sck_namespace_extension &&
-            !scope_stack[parent_scope_depth].
-                                 explicitly_declared_namespace_extension) {
-          parent_scope_depth = NO_SCOPE_DEPTH;
-        } else {
-          break;
-        }  /* if */
-      }  /* if */
-      parent_namespace = parent_namespace->source_corresp.parent.namespace_ptr;
-    } while (parent_namespace != NULL);
+  if (parent_scope_depth == NO_SCOPE_DEPTH) {
+    /* There is not a class parent scope that will serve for the the
+       insert scope.  Look for a namespace parent scope. */
+    parent_scope_depth = find_innermost_namespace_scope_depth(curr_sse_ptr);
   }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
@@ -1311,8 +1344,8 @@ innermost such class.
     }  /* if */
     if (parent_class == NULL) {
       fputs(", no uncompleted parent class\n", f_debug);
-      if (parent_namespace != NULL) {
-        fputs("  scope of innermost active parent namespace: ", f_debug);
+      if (parent_scope_depth != DEPTH_OF_FILE_SCOPE) {
+        fputs("  scope of innermost active namespace: ", f_debug);
         db_scope_stack_entry_at_depth(parent_scope_depth);
         fputs("\n", f_debug);
       }  /* if */
