@@ -97,12 +97,14 @@ typedef enum /*a_token_kind*/ {
   /* C++ tokens not in C (ARM, 2.4): */
   tok_colon_colon       /* :: */,   tok_period_star        /* .* */,
   tok_arrow_star        /* ->* */,
+  tok_asm,                          tok_catch,
   tok_class,                        tok_delete,
   tok_friend,                       tok_inline,
   tok_new,                          tok_operator,
   tok_private,                      tok_protected,
-  tok_public,                       tok_this,
-  tok_virtual,
+  tok_public,                       tok_template,
+  tok_this,                         tok_throw,
+  tok_try,                          tok_virtual,
   /* Error token. */
   tok_error,
   /* Place-holder for last position in enumeration. */
@@ -129,9 +131,9 @@ EXTERN char	*token_names[(int)tok_last+1]
    "return", "short", "signed", "sizeof", "static", "struct",
    "switch", "typedef", "union", "unsigned", "void", "volatile",
    "while", "__ALIGNOF__", "__INTADDR__",
-   "::", ".*", "->*",
-   "class", "delete", "friend", "inline", "new", "operator", "private",
-   "protected", "public", "this", "virtual",
+   "::", ".*", "->*", "asm", "catch", "class", "delete", "friend",
+   "inline", "new", "operator", "private", "protected", "public",
+   "template", "this", "throw", "try", "virtual",
    "error",
    "last" /* used to check that initialization is right. */
   }
@@ -250,6 +252,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_colon_colon */
    (an_opname_kind)onk_none,          /* tok_period_star */
    (an_opname_kind)onk_arrow_star,
+   (an_opname_kind)onk_none,          /* tok_asm */
+   (an_opname_kind)onk_none,          /* tok_catch */
    (an_opname_kind)onk_none,          /* tok_class */
    (an_opname_kind)onk_delete,
    (an_opname_kind)onk_none,          /* tok_friend */
@@ -259,7 +263,10 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_private */
    (an_opname_kind)onk_none,          /* tok_protected */
    (an_opname_kind)onk_none,          /* tok_public */
+   (an_opname_kind)onk_none,          /* tok_template */
    (an_opname_kind)onk_none,          /* tok_this */
+   (an_opname_kind)onk_none,          /* tok_throw */
+   (an_opname_kind)onk_none,          /* tok_try */
    (an_opname_kind)onk_none,          /* tok_virtual */
    (an_opname_kind)onk_none,          /* tok_error */
    (an_opname_kind)onk_last           /* tok_last */

@@ -178,6 +178,8 @@ Install the keywords in the symbol table.
   enter_keyword((a_token_kind)tok_intaddr,   "__INTADDR__");
   if (C_dialect == C_dialect_cplusplus) {
     /* Enter C++ keywords that are not also C keywords. */
+    enter_keyword((a_token_kind)tok_asm,       "asm");
+    enter_keyword((a_token_kind)tok_catch,     "catch");
     enter_keyword((a_token_kind)tok_class,     "class");
     enter_keyword((a_token_kind)tok_delete,    "delete");
     enter_keyword((a_token_kind)tok_friend,    "friend");
@@ -187,7 +189,10 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_private,   "private");
     enter_keyword((a_token_kind)tok_protected, "protected");
     enter_keyword((a_token_kind)tok_public,    "public");
+    enter_keyword((a_token_kind)tok_template,  "template");
     enter_keyword((a_token_kind)tok_this,      "this");
+    enter_keyword((a_token_kind)tok_throw,     "throw");
+    enter_keyword((a_token_kind)tok_try,       "try");
     enter_keyword((a_token_kind)tok_virtual,   "virtual");
   }  /* if */
   db_exit();
