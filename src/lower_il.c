@@ -1795,6 +1795,18 @@ type of the node is already "char *" return the original node.
 }  /* add_cast_to_char_star */
 
 
+static an_expr_node_ptr integral_promote_node(an_expr_node_ptr expr)
+/*
+Add a cast to do integral promotion to expr, if necessary.
+*/
+{
+  /* Note that this doesn't handle bit fields. */
+  expr = add_cast_if_necessary(expr,
+                               type_after_integral_promotion(expr->type));
+  return expr;
+}  /* integral_promote_node */
+
+
 static an_expr_node_ptr integral_promote_pm_node(an_expr_node_ptr expr)
 /*
 Add a cast to do integral promotion on expr, which is a pointer-to-data-member
@@ -6673,6 +6685,26 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
 }  /* lower_dynamic_cast */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
+
+void transform_bool_cast(an_expr_node_ptr expr)
+/*
+Transform an eok_bool_cast operation into a comparison with zero.
+*/
+{
+  an_expr_node_ptr      operand = expr->variant.operation.operands;
+  an_expr_node_ptr      zero_node;
+  a_constant            zero_constant;
+  an_expr_operator_kind op;
+
+  /* A cast to bool in C++ or C99 is rewritten as a "!= 0" test in C99. */
+  operand = integral_promote_node(operand);
+  make_zero_of_proper_type(operand->type, &zero_constant);
+  zero_node = alloc_node_for_constant(&zero_constant);
+  operand->next = zero_node;
+  op = which_binary_operator(tok_ne, operand->type);
+  set_node_operator(expr, op, expr->type, operand);
+}  /* transform_bool_cast */
+
 
 static void lower_bool_cast(an_expr_node_ptr expr)
 /*

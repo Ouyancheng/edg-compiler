@@ -670,15 +670,11 @@ extern a_constant_ptr copy_template_param_con_with_substitution(
 
 extern a_boolean is_operator_returning_bool(an_expr_operator_kind op);
 
-extern void transform_bool_cast(an_expr_node_ptr expr);
-
 extern an_expr_node_ptr add_cast(an_expr_node_ptr node,
                                  a_type_ptr       new_type);
 
 extern an_expr_node_ptr add_cast_if_necessary(an_expr_node_ptr node,
                                               a_type_ptr       new_type);
-
-extern an_expr_node_ptr integral_promote_node(an_expr_node_ptr expr);
 
 extern an_expr_node_ptr copy_node(an_expr_node_ptr expr);
 
