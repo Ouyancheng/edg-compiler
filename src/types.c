@@ -2497,8 +2497,8 @@ Return TRUE if the given constant is the address of a string constant.
 }  /* is_address_of_string_constant */
 
 
-a_boolean same_type_with_added_qualifiers(a_type_ptr dest_type,
-					  a_type_ptr source_type,
+a_boolean same_type_with_added_qualifiers(a_type_ptr source_type,
+					  a_type_ptr dest_type,
 					  a_boolean  ignore_qualifiers,
 					  a_boolean  *p_qualifiers_added)
 /*
@@ -2566,8 +2566,8 @@ can be NULL if the caller does not need this flag returned.
 
 
 static
-a_boolean qualification_conversion_possible(a_type_ptr dest_type,
-					    a_type_ptr source_type,
+a_boolean qualification_conversion_possible(a_type_ptr source_type,
+					    a_type_ptr dest_type,
 					    a_boolean  *p_qualifiers_added)
 /*
 Return TRUE if source_type and dest_type are compatible types except that
@@ -2684,7 +2684,7 @@ pointers-to-member, otherwise we return FALSE.
        if a qualification conversion from T1 to T2 is possible, then T2
        must be a more qualified version of T1 (or the same as T1, in which
        case qualifiers_added is FALSE). */
-    if (qualification_conversion_possible(source_type, dest_type,
+    if (qualification_conversion_possible(dest_type, source_type,
         &qualifiers_added)) {
       /* When qualification_conversion_possible returns TRUE, qualifiers may
          have been added, or the two types could have been the same.
@@ -2890,8 +2890,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 	   between incompatible pointer types, with a warning. */
         okay = TRUE;
         std_conv->warning_suggested = default_warning_code;
-      } else if (qualification_conversion_possible(dest_type_pointed_to,
-						   source_type_pointed_to,
+      } else if (qualification_conversion_possible(source_type_pointed_to,
+						   dest_type_pointed_to,
 						   &qualifiers_added)) {
         /* Allow conversion between pointers where type qualifiers are
            being added at levels other than the first, e.g.,
@@ -2901,8 +2901,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         std_conv->type_qualifiers_added = qualifiers_added;
       } else if ((!suppress_extensions || any_cfront_mode()) &&
 		 same_type_with_added_qualifiers
-                    (dest_type_pointed_to,
-		     source_type_pointed_to,
+                    (source_type_pointed_to,
+		     dest_type_pointed_to,
 		     /*ignore_qualifiers=*/check_as_operands_not_conversion,
 		     &qualifiers_added)) {
         /* Allow conversion between pointers where type qualifiers are
@@ -3110,7 +3110,7 @@ and source_type are the destination and source types of a conversion.
   *qualifiers_added = FALSE;
   if (!is_function_type(dest_type) || !is_function_type(source_type)) {
     /* This is not the special function case, so the normal check will work. */
-    correspond = qualification_conversion_possible(dest_type, source_type,
+    correspond = qualification_conversion_possible(source_type, dest_type,
 						   qualifiers_added);
   } else {
     /* We have two function types from member pointers.  See if they
@@ -3213,8 +3213,8 @@ pointers to members).
                                    get_type_qualifiers(source_type_pointed_to);
       if (dest_type_qualifiers == source_type_qualifiers) {
         /* The qualifiers are the same. */
-      } else if (qualification_conversion_possible(dest_type_pointed_to,
-						   source_type_pointed_to,
+      } else if (qualification_conversion_possible(source_type_pointed_to,
+						   dest_type_pointed_to,
 						   &qualifiers_added)) {
         /* This is an allowed qualification conversion. */
         std_conv->type_qualifiers_added = qualifiers_added;

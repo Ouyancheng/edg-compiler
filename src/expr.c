@@ -3888,7 +3888,7 @@ Syntax:
      if they go together. */
   if (err) {
     /* Some error, previously issued. */
-  } else if (same_type_with_added_qualifiers(operation_type, operand_type,
+  } else if (same_type_with_added_qualifiers(operand_type, operation_type,
                                              /*ignore_qualifiers=*/TRUE,
                                              (a_boolean *)NULL)) {
     /* The types are already the same except for qualifiers (and we've issued
