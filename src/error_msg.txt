@@ -888,6 +888,9 @@ ec_nonstd_implicit_int;;"omission of explicit type is nonstandard (\"int\" assum
 ec_ambiguous_partial_spec;;"more than one partial specialization matches the template argument list of %n"
 ec_ambiguous_partial_spec_add_on;INTERNAL;"%no"
 ec_partial_spec_is_primary_template;;"a template argument list is not allowed in a declaration of a primary template"
+ec_default_not_allowed_on_partial_spec;;"partial specializations may not have default template arguments"
+ec_not_used_in_partial_spec_arg_list;;"%n1 is not used in template argument list of %n2"
+ec_partial_spec_arg_depends_on_templ_param;;"the type of partial specialization template parameter %n depends on another template parameter"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

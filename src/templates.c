@@ -2366,8 +2366,8 @@ included in the search.
        template parameters and is therefore a "nonreal" instantiation, give
        it a size and alignment to permit it to pass through subsequent
          processing without causing spurious errors. */
-      for (tap = *new_list; tap != NULL; tap = tap->next) {
-        if (!sym->variant.class_struct_union.extra_info->is_nonreal_class) {
+    for (tap = *new_list; tap != NULL; tap = tap->next) {
+      if (!sym->variant.class_struct_union.extra_info->is_nonreal_class) {
         if (template_arg_involves_template_param(tap)) {
           sym->variant.class_struct_union.extra_info->is_nonreal_class = TRUE;
         }  /* if */
@@ -4786,7 +4786,10 @@ Otherwise, return FALSE.
 }  /* member_template_param_list_matches_class */
 
 
-static void check_template_param_default_args(a_template_param_ptr param_list)
+static void check_template_param_default_args(
+			a_template_param_ptr	param_list,
+			a_boolean		is_partial_specialization)
+
 /*
 Make sure that any default arguments are at the end of the parameter list.
 */
@@ -4802,6 +4805,12 @@ Make sure that any default arguments are at the end of the parameter list.
     has_default = tpp->has_default_arg;
     if (has_default) last_tpp_with_default = tpp;
     any_defaults |= has_default;
+    if (has_default && is_partial_specialization) {
+      /* If this is a partial specialization, make sure that it does not
+         have a default template argument. */
+      pos_error(ec_default_not_allowed_on_partial_spec, 
+                &last_tpp_with_default->param_symbol->decl_position);
+    }  /* if */
     /* If there have been parameters with default and this one doesn't have
        a default then issue an error and exit the loop. */
     if (any_defaults && !has_default) {
@@ -5189,6 +5198,67 @@ initially used when processing the declaration of a partial specialization.
                                           is_nonreal_class = TRUE;
   }
 }  /* create_prototype_type */
+
+
+static a_boolean template_param_used_in_type(a_symbol_ptr param_sym,
+                                             a_type_ptr   tp)
+/*
+Returns TRUE if the template parameter specified by param_sym is used in
+the type specified by tp.
+*/
+{
+  a_boolean	result;
+
+  if (param_sym->kind == (a_symbol_kind)sk_type) {
+    result =
+           is_or_contains_specific_template_param(tp, param_sym->variant.type);
+  } else {
+    result = type_contains_specific_template_param_constant(
+                                              tp, param_sym->variant.constant);
+  }  /* if */
+  return result;
+}  /* template_param_used_in_type */
+
+
+static void check_partial_spec_template_param_usage
+                         (a_tmpl_decl_state_ptr	decl_state,
+                          a_symbol_ptr		sym)
+/*
+Make sure that all of the template parameters are used as part of the
+template argument list of a partial specialization.
+*/
+{
+  a_template_param_ptr	templ_param_list;
+  a_template_param_ptr	tpp;
+  a_symbol_ptr		prototype_sym;
+  a_type_ptr		prototype_type;
+
+  templ_param_list = decl_state->decl_info->parameters;
+  /* Get the primary template argument list from the prototype instantiation
+     associated with this partial specialization. */
+  prototype_sym = sym->variant.template_info->
+                              variant.class_template.prototype_instantiation;
+  prototype_type = prototype_sym->variant.class_struct_union.type;
+  for (tpp = templ_param_list; tpp != NULL; tpp = tpp->next) {
+    a_symbol_ptr param_sym = tpp->param_symbol;
+    a_boolean	 param_used = FALSE;
+    if (template_param_used_in_type(param_sym, prototype_type)) {
+      param_used = TRUE;
+    }  /* for */
+    if (!param_used) {
+      pos_sy2_error(ec_not_used_in_partial_spec_arg_list,
+                    &param_sym->decl_position, param_sym, prototype_sym);
+    } /* if */
+    if (param_sym->kind != (a_symbol_kind)sk_type) {
+      /* The type of a nontype parameter is not allowed to reference another
+         template parameter. */
+      if (tpp->variant.constant.type_involves_template_param) {
+        pos_sy_error(ec_partial_spec_arg_depends_on_templ_param,
+                     &param_sym->decl_position, param_sym);
+      }  /* if */
+    }  /* if */
+  } /* for */
+}  /* check_partial_spec_template_param_usage */
 
 
 static void class_template_declaration(
@@ -5582,7 +5652,7 @@ instantiation.
      are valid (i.e., that they are at the end of the parameter list).
      This is done now because we have to wait until the parameter lists
      have been merged to do the test. */
-  check_template_param_default_args(templ_params);
+  check_template_param_default_args(templ_params, is_partial_specialization);
   if (sym == NULL) {
     /* Enter the symbol at the scope indicated by effective_decl_level. */
     a_scope_stack_entry_ptr	ssep =
@@ -5665,6 +5735,11 @@ instantiation.
        improperly formed. */
     create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
                           is_partial_specialization);
+  }  /* if */
+  if (is_partial_specialization) {
+    /* Make sure that the template parameters are used correctly in the
+       partial specialization template argument list. */
+    check_partial_spec_template_param_usage(decl_state, sym);
   }  /* if */
   if (is_definition) {
     a_token_sequence_number   first_token_number = curr_token_sequence_number;
@@ -6430,26 +6505,6 @@ existing type is simply used.
   }  /* if */
   return tp;
 }  /* rescan_template_type_default_arg */
-
-
-static a_boolean template_param_used_in_type(a_symbol_ptr param_sym,
-                                             a_type_ptr   tp)
-/*
-Returns TRUE if the template parameter specified by param_sym is used in
-the type specified by tp.
-*/
-{
-  a_boolean	result;
-
-  if (param_sym->kind == (a_symbol_kind)sk_type) {
-    result =
-           is_or_contains_specific_template_param(tp, param_sym->variant.type);
-  } else {
-    result = type_contains_specific_template_param_constant(
-                                              tp, param_sym->variant.constant);
-  }  /* if */
-  return result;
-}  /* template_param_used_in_type */
 
 
 static a_boolean template_param_appears_in_param_list
