@@ -244,7 +244,8 @@ static a_boolean check_for_troublesome_ptr_to_member_constant(
 static void promote_class_members(a_type_ptr  class_type,
                                   a_scope_ptr promotion_scope,
                                   a_type_ptr  *insert_pointer);
-static void lower_boolean_controlling_expr(an_expr_node_ptr expr);
+static void lower_boolean_controlling_expr(an_expr_node_ptr expr,
+                                           a_boolean        is_full_expr);
 static void lower_related_class_cast(an_expr_node_ptr node,
                                      a_boolean        is_lvalue,
                                      a_boolean        lower_source);
@@ -4501,7 +4502,7 @@ that are boolean controlling expressions.
   for (expr = expr_list; expr != NULL; expr = expr->next) {
     /* Lower the expression on the list. */
     if (is_bool_controlling_expr_mask & 1) {
-      lower_boolean_controlling_expr(expr);
+      lower_boolean_controlling_expr(expr, /*is_full_expr=*/FALSE);
     } else {
       lower_expr(expr, (a_boolean)(is_lvalue_mask & 1));
     }  /* if */
@@ -6636,10 +6637,13 @@ int to bool (an optimization).
 }  /* adjust_bool_operation_types */
 
 
-static void lower_boolean_controlling_expr(an_expr_node_ptr expr)
+static void lower_boolean_controlling_expr(an_expr_node_ptr expr,
+                                           a_boolean        is_full_expr)
 /*
 Lower a boolean controlling expression, e.g., the expression in an "if"
-statement.  The expression is not an lvalue.
+statement.  The expression is not an lvalue.  The expression is a full
+expression (i.e., not an expression inside some other expression) if
+is_full_expr is TRUE.
 */
 {
   if (bool_is_keyword) {
@@ -6648,6 +6652,8 @@ statement.  The expression is not an lvalue.
     a_boolean        adjusted;
     an_expr_node_ptr expr_to_adjust = expr;
     if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+      check_assertion_str(is_full_expr,
+         "lower_boolean_controlling_expr: enk_object_lifetime not at top (1)");
       /* If an enk_object_lifetime node is on top, look under that. */
       expr_to_adjust = expr->variant.object_lifetime.expr;
     }  /* if */
@@ -6664,6 +6670,8 @@ statement.  The expression is not an lvalue.
      When bool is enabled, this transformation is necessary even if no
      rewriting has occurred, for things like "if (bool_var) ...". */
   if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+    check_assertion_str(is_full_expr,
+         "lower_boolean_controlling_expr: enk_object_lifetime not at top (2)");
     /* If an enk_object_lifetime node is (still) on top, look under that. */
     expr = expr->variant.object_lifetime.expr;
   }  /* if */
@@ -7737,16 +7745,16 @@ Do IL lowering of the indicated statement and everything under it.
         lower_return_statement(statement);
         break;
       case stmk_if:
-        lower_boolean_controlling_expr(stmt_expr);
+        lower_boolean_controlling_expr(stmt_expr, /*is_full_expr=*/TRUE);
         lower_statement(statement->variant.if_stmt.then_statement);
         lower_statement(statement->variant.if_stmt.else_statement);
         break;
       case stmk_while:
-        lower_boolean_controlling_expr(stmt_expr);
+        lower_boolean_controlling_expr(stmt_expr, /*is_full_expr=*/TRUE);
         lower_statement(statement->variant.loop_statement);
         break;
       case stmk_end_test_while:
-        lower_boolean_controlling_expr(stmt_expr);
+        lower_boolean_controlling_expr(stmt_expr, /*is_full_expr=*/TRUE);
         lower_statement(statement->variant.loop_statement);
         break;
       case stmk_for:
@@ -7767,7 +7775,7 @@ Do IL lowering of the indicated statement and everything under it.
             }  /* if */
           }  /* if */
           if (stmt_expr != NULL) {
-            lower_boolean_controlling_expr(stmt_expr);
+            lower_boolean_controlling_expr(stmt_expr, /*is_full_expr=*/TRUE);
           }  /* if */
           lower_statement(statement->variant.for_loop.statement);
           if (extra_info->increment != NULL) {
