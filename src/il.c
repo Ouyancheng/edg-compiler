@@ -14249,6 +14249,7 @@ in il_init.)
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(type_of_type_info),
+      pch_array_saved_var_array_elem(types_of_type_info),
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(type_of_guid),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -14322,6 +14323,7 @@ in il_init.)
   register_trans_unit_array_with_field(orphaned_file_scope_il_entries,
                                        orphaned_file_scope_il_entries);
   register_trans_unit_variable(type_of_type_info);
+  register_trans_unit_array(types_of_type_info);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   register_trans_unit_variable(type_of_guid);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -14346,9 +14348,14 @@ Initialize static variables related to the IL.  These are variables that
 need initialization for every (primary and secondary) translation unit.
 */
 {
+  int i;
+
   /* Global variables declared in il.h. */
   curr_il_region_number = NULL_region_number;
   type_of_type_info = NULL;
+  for (i = 0; i < (int)tik_last; ++i) {
+    types_of_type_info[i] = NULL;
+  }  /* for */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   type_of_guid = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

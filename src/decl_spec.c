@@ -827,27 +827,41 @@ by scan_tag_name.  is_tag_definition is TRUE if the tag is being defined.
 }  /* check_qualified_tag_access */
 
 
-static a_boolean is_namespace_for_type_info_definition(void)
+static a_boolean is_namespace_for_type_info_definition(a_type_info_kind kind)
 /*
-Returns TRUE if the current namespace is the one in which
-type_info may be defined.
+Returns TRUE if the current namespace is the one in which the indicated
+type_info type may be defined.
 */
 {
-  a_boolean	result = FALSE;
+  a_boolean       result = FALSE;
+  a_namespace_ptr nsp;
 
-  if (type_info_in_namespace_std && !ignore_std_namespace) {
-    /* When type_info is required to be defined in the std namespace,
-       make sure we are in that namespace now. */
-    a_namespace_ptr	nsp;
-    nsp = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
-    if (nsp == symbol_for_namespace_std->variant.namespace_info.ptr) {
+  /* See what namespace we are in now. */
+  nsp = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
+#if IA64_ABI
+  if (kind != tik_user) {
+    /* Make sure we are in the abi namespace. */
+    if (nsp == symbol_for_namespace_abi->variant.namespace_info.ptr) {
       result = TRUE;
     }  /* if */
+  } else 
+#endif /* !IA64_ABI */
+  /* Do not add code here. */
+  if (kind == tik_user) {
+    if (type_info_in_namespace_std && !ignore_std_namespace) {
+      /* When type_info is required to be defined in the std namespace,
+         make sure we are in that namespace now. */
+      if (nsp == symbol_for_namespace_std->variant.namespace_info.ptr) {
+        result = TRUE;
+      }  /* if */
+    } else {
+      /* When type_info is not in std, it must be in the global namespace.
+         This is also the case when using the g++ compatibility feature
+         where the std namespace is an alias for the global namespace. */
+      result = depth_scope_stack == DEPTH_OF_FILE_SCOPE;
+    }  /* if */
   } else {
-    /* When type_info is not in std, it must be in the global namespace.
-       This is also the case when using the g++ compatibility feature
-       where the std namespace is an alias for the global namespace. */
-    result = depth_scope_stack == DEPTH_OF_FILE_SCOPE;
+    unexpected_condition();
   }  /* if */
   return result;
 }  /* is_namespace_for_type_info_definition */
@@ -1076,29 +1090,38 @@ caution when modifying this routine.
         !locator_for_curr_id.is_qualified_name &&
         computed_decl_level == depth_innermost_namespace_scope &&
         tag_kind != (a_symbol_kind)sk_enum_tag) {
-      /* See if this is an explicit declaration of class type_info, which was
-         already "predeclared".  If it is, reuse the original symbol. */
+      /* See if this is an explicit declaration of one of the type_info
+         types, which was already "predeclared".  If it is, reuse the
+         original symbol. */
       a_type_ptr       predeclared_type = NULL;
-      a_symbol_ptr     type_info_sym;
+      a_symbol_ptr     type_info_sym = NULL;
       a_namespace_ptr  nsp = NULL;
+      int              i;
 
-      check_assertion(type_of_type_info != NULL);
-      type_info_sym = (a_symbol_ptr)type_of_type_info->
-                                           source_corresp.assoc_info;
+      /* Look for a type_info type with the same name. */
+      for (i = 0; i < (int)tik_last; ++i) {
+        if (types_of_type_info[i] == NULL) continue;
+        type_info_sym = (a_symbol_ptr)types_of_type_info[i]->
+                                                    source_corresp.assoc_info;
+        if (type_info_sym->header == locator_for_curr_id.symbol_header) {
+          break;
+        }  /* if */
+      }  /* for */
       /* Note that we need a match not only on the name but also on the
          namespace.  This depends on whether the implicitly declared type_info
          is expected to be in namespace "std" or in the global namespace. */
-      if (locator_for_curr_id.symbol_header == type_info_sym->header) {
+      if (i != (int)tik_last) {
         a_pending_pragma_ptr  ppp;
 
         if (computed_decl_level == (DEPTH_OF_FILE_SCOPE + 1)) {
           nsp = scope_stack[computed_decl_level].il_scope->
                                                   variant.assoc_namespace;
         }  /* if */
-        if (is_namespace_for_type_info_definition()) {
-          /* The identifier is indeed "type_info".  Check for the pragma that
-             specifically identifies it as the type_info that is returned by
-             typeid (typically, the type_info defined in typeinfo.h). */
+        if (is_namespace_for_type_info_definition((a_type_info_kind)i)) {
+          /* The identifier does indeed  name a type info type.  Check
+             for  the pragma  that specifically  identifies it  as the
+             type_info  that  is returned  by  typeid (typically,  the
+             type_info defined in <typeinfo>). */
           ppp = extract_specific_pragmas((a_pragma_kind)pk_define_type_info,
                                          type_info_sym, (a_statement_ptr)NULL,
                                          /*curr_scope_only=*/TRUE);
@@ -1118,13 +1141,25 @@ caution when modifying this routine.
             } else {
 #if ABI_CHANGES_FOR_RTTI
               if (type_info_sym->decl_scope == NO_SCOPE_DEPTH) {
+                char buffer[50];
                 /* Not yet explicitly redeclared. */
                 /* Run-time support for RTTI declares type_info, so consider
                    the name to be reserved. */
+#if IA64_ABI
+                if (i != (int)tik_user) {
+                  sprintf(buffer, "__cxxabiv1::%s",
+                          type_info_sym->header->identifier);
+                } else
+#endif /* IA64_ABI */
+                /* Do not insert code here. */
+                {
+                  sprintf(buffer, "%s%s", 
+                          type_info_in_namespace_std ? "std::" : "",
+                          "type_info");
+                }  /* if */
                 pos_st_error(ec_conflicts_with_predeclared_type_info,
                              &locator_for_curr_id.source_position,
-                             (char *)(type_info_in_namespace_std
-                                            ? "std::type_info" : "type_info"));
+                             buffer);
               }  /* if */
               tag_sym = type_info_sym;
 #endif /* ABI_CHANGES_FOR_RTTI */
@@ -1133,7 +1168,7 @@ caution when modifying this routine.
         }  /* if */
         if (tag_sym == type_info_sym &&
             tag_sym->decl_scope == NO_SCOPE_NUMBER) {
-          predeclared_type = type_of_type_info;
+          predeclared_type = types_of_type_info[i];
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (microsoft_mode && !C_mode() &&
@@ -1535,6 +1570,24 @@ it is left unchanged.
 } /* check_nested_class_redeclaration */
 
 
+static a_boolean same_entity_as_a_type_info_type(a_type_ptr type)
+/*
+Return true if "type" is the same entity as a type_info type.
+*/
+{
+  a_boolean result = FALSE;
+  int       i;
+
+  for (i = 0; i != (int)tik_last; ++i) {
+    if (same_entities(type, types_of_type_info[i])) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* same_entity_as_a_type_info_type */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -1825,6 +1878,7 @@ new expression and should therefore not be treated as a declaration.
 #endif /* CHECKING */
         }  /* if */
       } else if (tag_sym->kind != tag_kind) {
+        /* Union/nonunion mismatch on a redeclaration. */
         if (is_nonreal_instance_class_symbol(tag_sym)) {
           /* Ignore a union/nonunion mismatch on nonreal classes. */
         } else if (is_template_class_symbol(tag_sym)) {
@@ -1835,9 +1889,8 @@ new expression and should therefore not be treated as a declaration.
           set_to_named_error_locator(locator);
           error_tag_sym = tag_sym;
           tag_sym = NULL;
-        } else if (same_entities(type_symbol_type(tag_sym),
-                                 type_of_type_info)) {
-          /* Error -- tag-kind mismatch in type_info. */
+        } else if (same_entity_as_a_type_info_type(type_symbol_type(tag_sym))){
+          /* Error -- tag-kind mismatch for a type_info type. */
           pos_sy_error(ec_union_nonunion_mismatch, &decl_start_pos, tag_sym);
           set_to_named_error_locator(locator);
           error_tag_sym = tag_sym;

@@ -3027,6 +3027,18 @@ extern void make_symbol_for_namespace_std(void);
 
 extern void enter_symbol_for_namespace_std(a_symbol_locator  *locator);
 
+#if IA64_ABI
+EXTERN a_symbol_ptr
+		symbol_for_namespace_abi;
+			/* Analogous, but for the namespace used in
+			   the IA-64 ABI for the derived classes of
+			   type_info. */
+
+extern void make_symbol_for_namespace_abi(void);
+
+extern void enter_symbol_for_namespace_abi(a_symbol_locator  *locator);
+#endif /* IA64_ABI */
+
 EXTERN a_type_ptr
 		builtin_va_list_type;
 			/* When the <stdarg.h> header is handled as a builtin,

@@ -9283,6 +9283,16 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
         ns_sym = symbol_for_namespace_std;
         enter_symbol_for_namespace_std(&locator);
         srk_flags |= SRK_DEFINITION;
+#if IA64_ABI
+      } else if (locator.symbol_header == symbol_for_namespace_abi->header &&
+                 depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+                 !locator.is_error) {
+        /* This is the initial explicit declaration of namespace "std".
+           Reuse the predeclared symbol. */
+        ns_sym = symbol_for_namespace_abi;
+        enter_symbol_for_namespace_abi(&locator);
+        srk_flags |= SRK_DEFINITION;
+#endif /* IA64_ABI */
       } else {
         /* Create a namespace symbol. */
         ns_sym = enter_symbol((a_symbol_kind)sk_namespace, &locator,

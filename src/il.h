@@ -69,12 +69,76 @@ alloc_type will make the correction.
 EXTERN a_name_linkage_kind
 		default_routine_name_linkage;
 
+/* The various type_info types. */
+enum a_type_info_kind_tag {
+  tik_user,             /* The user-visible std::type_info type.  This
+			   type must be first. */
+  /* tik_implementation is the type used by the runtime to implement
+     type_info, which must start with the type_info fields, but may
+     have additional information following that. */
+#if IA64_ABI
+  /* Additional derived classes of type_info defined by the IA-64 ABI: */
+  tik_implementation = tik_user,
+			/* An alias for the user type.	In some
+			   places (like the exception_type_spec), the
+			   front end creates pointers to the
+			   "implementation" type_info type, and
+			   providing this alias makes it unnecessary to
+			   conditionalize that code. */
+  tik_fundamental,	/* Void, integral types, floating types. */
+  tik_enum,		/* Enumeration types. */
+  tik_array,		/* Array types. */
+  tik_function,		/* Function types. */
+  tik_class,		/* Class types without inheritance. */
+  tik_si_class,		/* Class types with single, public,
+			   non-virtual inheritance. */
+  tik_vmi_class,	/* Other class types. */
+  tik_pbase,		/* Base class for pointers and
+			   pointers-to-members. */
+  tik_pointer,		/* Pointer types. */
+  tik_ptr_to_member,	/* Pointer-to-member types. */
+#else /* !IA64_ABI */
+  tik_implementation,	/* Implementation type. */
+#endif /* !IA64_ABI */
+  tik_last
+};
+typedef enum a_type_info_kind_tag a_type_info_kind;
+
+/* Names of type_info types. */
+EXTERN char	*type_info_names[(int)tik_last+1]
+#if VAR_INITIALIZERS
+= { 
+  "type_info",			/* tik_user */
+#if IA64_ABI 
+  "__fundamental_type_info",	/* tik_fundamental */
+  "__enum_type_info",		/* tik_enum */
+  "__array_type_info",		/* tik_array */
+  "__function_type_info",	/* tik_function */
+  "__class_type_info",		/* tik_class */
+  "__si_class_type_info",	/* tik_si_class */
+  "__vmi_class_type_info",	/* tik_vmi_class */
+  "__pbase_type_info",		/* tik_pbase */
+  "__pointer_type_info",	/* tik_pointer */
+  "__pointer_to_member_type_info", /* tik_ptr_to_member */
+#else /* !IA64_ABI */
+  NULL,				/* tik_implementation */
+#endif /* !IA64_ABI */
+  NULL				/* tik_last */
+}
+#endif /* VAR_INITIALIZERS */
+;
+
 EXTERN a_type_ptr
-                type_of_type_info;
-                        /* Points to the definition of the type_info type
-			   returned by typeid.  This type is identified
+		type_of_type_info;
+			/* Points to the definition of the type_info type
+			   returned by typeid.	This type is identified
 			   by a #pragma define_type_info that immediately
 			   precedes the class definition of type_info. */
+EXTERN a_type_ptr
+		types_of_type_info[(int)tik_last + 1];
+			/* The user-visible type_info types.  The element
+			   with index tik_user has the same value as
+			   type_of_type_info. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_type_ptr
