@@ -766,7 +766,8 @@ itself recursively to process classes nested within this class.
        only if a template definition appears in the source.  However, it
        still needs to appear on the instantiation-required list (because
        instantiation is required required somewhere in the program even if
-       not in the current translation unit). */
+       not in the current translation unit).  The instantiation of a static
+       data member is required only if the static data member is referenced. */
     var = class_type->variant.class_struct_union.extra_info->
 							assoc_scope->variables;
     while (var != NULL) {
@@ -778,7 +779,7 @@ itself recursively to process classes nested within this class.
          generate a possibly spurious internal error. */
 #endif /* 0 */
       if (tip != NULL && !tip->instantiation_required) {
-        update_instantiation_required_flag(tip, /*value=*/TRUE,
+        update_instantiation_required_flag(tip, /*value=*/FALSE,
                                            /*defer_inline=*/TRUE);
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS

@@ -1152,6 +1152,17 @@ projection symbol.
         sym_ptr->variant.routine.ptr->is_virtual) {
       /* Do not set IL referenced flag. */
     } else {
+      if (!scptr->referenced &&
+          sym_kind == (a_symbol_kind)sk_static_data_member) {
+        /* If we are marking a template static data member as referenced, also
+           set its instantiation required flag. */
+        a_template_instance_ptr	tip;
+        tip = sym_ptr->variant.static_data_member.instance_ptr;
+        if (tip != NULL) {
+          update_instantiation_required_flag(tip, TRUE,
+                                            /*defer_inline=*/FALSE);
+        }  /* if */
+      }  /* if */
       scptr->referenced = TRUE;
     }  /* if */
   }  /* if */

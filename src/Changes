@@ -1,5 +1,12 @@
 Version 2.39
 
+3/31/98   Template static data members are only instantiated if referenced
+
+The standard now specifies that the implicit instantiation of a
+template static data member should only be generated if the static
+data member is used in a way that requires it to be defined.  The
+front end now implements the new rule.
+
 3/31/98   Removal of top-level type qualifiers in unprototyped parameter
           lists
 
