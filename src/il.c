@@ -2529,6 +2529,7 @@ associated variant fields to default values.
 #if DO_IL_LOWERING
   cp->assoc_var_assigned = FALSE;
 #endif /* DO_IL_LOWERING */
+  cp->null_pointer_constant_ruled_out = FALSE;
 #if CHECKING
   cp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

@@ -1084,6 +1084,11 @@ typedef struct a_constant {
 			   points to it.  Used for pointer-to-member
 			   constants. */
 #endif /* DO_IL_LOWERING */
+  unsigned int	null_pointer_constant_ruled_out:1;
+			/* If TRUE, this constant has been subjected to casts
+			   or other operations that rule it out as a null
+			   pointer constant.  This is unrelated to whether
+			   the constant actually has the value zero. */
   bitfield_to_avoid_codecenter_warnings();
   a_constant_repr_kind
                 kind;

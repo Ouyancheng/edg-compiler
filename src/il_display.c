@@ -526,6 +526,9 @@ Display the indicated constant entry.
   /* Do not print out ptr->assoc_var_assigned, which is used only during IL
      lowering. */
 #endif /* DO_IL_LOWERING */
+  if (ptr->null_pointer_constant_ruled_out) {
+    disp_boolean("null_pointer_constant_ruled_out", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:
