@@ -2538,7 +2538,7 @@ typedef struct a_template_arg {
 			/* TRUE, for a function template argument list, if the
 			   argument was explicitly specified.  When a reference
 			   is being processed, this flag is set only for those
-			   argument that were explicitly specified for that
+			   arguments that were explicitly specified for that
 			   reference.  For a template argument list associated
 			   with an instance of the function template, this flag
 			   is set if any reference to the template explicitly
