@@ -4855,15 +4855,6 @@ As an anachronism, allow an expression inside the [ ].
   } else {
     ptr_delete_type = operand.type;
     delete_type = type_pointed_to(ptr_delete_type);
-    if (is_const_qualified_type(delete_type)) {
-      /* The type pointed to may not be const-qualified, according to the
-         Working Paper, but many feel that's overly restrictive, so we
-         issue the error only in strict mode. */
-      if (strict_ansi_mode) {
-        pos_diagnostic(strict_ansi_discretionary_severity,
-                       ec_delete_of_const_pointer, &operand.position);
-      }  /* if */
-    }  /* if */
     if (is_function_type(delete_type)) {
       /* The type pointed to may not be a function type.  The ARM doesn't
          say that explicitly, but it does say it must be a pointer returned
