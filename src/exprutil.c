@@ -629,7 +629,8 @@ in a loop).
        Don't push a lifetime in a constant expression. */
     if ((!long_lifetime_temps || new_object_lifetime) &&
         !curr_expr_kind_is_const()) {
-      push_object_lifetime(iek_none, (char *)NULL, /*ctor_init=*/FALSE);
+      push_object_lifetime(iek_none, (char *)NULL,
+                           (an_object_lifetime_kind)olk_expr_temporary);
       expr_stack->lifetime = curr_object_lifetime;
     } else {
       /* Don't start a new lifetime, but remember the destructions pointer
@@ -927,8 +928,7 @@ the expr_stack).  Also do nothing in C mode.
           expr->variant.object_lifetime.expr = orig_expr;
           /* expr->variant.object_lifetime.ptr is set by the bind call. */
           expr->type = orig_expr->type;
-          bind_object_lifetime(lifetime, iek_expr_node, (char *)expr,
-                               /*ctor_init=*/FALSE);
+          bind_object_lifetime(lifetime, iek_expr_node, (char *)expr);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -957,8 +957,7 @@ points to the dynamic initialization.
     }  /* if */
     if (lifetime != NULL) {
       if (dip != NULL) {
-        bind_object_lifetime(lifetime, iek_dynamic_init, (char *)dip,
-                             /*ctor_init=*/FALSE);
+        bind_object_lifetime(lifetime, iek_dynamic_init, (char *)dip);
       } else {
         /* Error. */
         mark_object_lifetime_as_useless(lifetime);

@@ -512,16 +512,14 @@ EXTERN an_object_lifetime_ptr
 			/* The top of the currently active object lifetime
 			   stack. */
 
-extern an_object_lifetime_ptr alloc_object_lifetime(void);
-
 extern void bind_object_lifetime(an_object_lifetime_ptr  olp,
                                  an_il_entry_kind        entity_kind,
-                                 char                    *entity_ptr,
-                                 a_boolean               ctor_init);
+                                 char                    *entity_ptr);
 
-extern void push_object_lifetime(an_il_entry_kind  entity_kind,
-                                 char              *entity_ptr,
-                                 a_boolean         ctor_init);
+extern void push_object_lifetime(an_il_entry_kind         entity_kind,
+                                 char                     *entity_ptr,
+                                 an_object_lifetime_kind  kind);
+
 
 extern a_boolean is_useless_object_lifetime(an_object_lifetime_ptr  olp);
 
