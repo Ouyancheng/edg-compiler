@@ -94,7 +94,7 @@ ptr_type is the type of ptr, and entry_kind is the kind of entry pointed to.
 */
 #define walk_ptr(ptr, ptr_type, entry_kind) \
 { remap_ptr((ptr), ptr_type, (entry_kind)); \
-  if (walk_subtree && ptr != NULL) { \
+  if (walk_subtree && (ptr) != NULL) { \
     walk_entry_and_subtree((char *)(ptr), (entry_kind)); \
   }  /* if */ \
 }  /* walk_ptr */
@@ -150,7 +150,7 @@ ptr_type is the type of the pointer and entry_kind is the kind of entries.
 { ptr_type *orph_ptr = (ptr_type *)&(ptr); \
   for (; *orph_ptr != NULL; \
        orph_ptr = (ptr_type *)&fs_orphan_pointer_of(*orph_ptr)) { \
-    walk_ptr((*orph_ptr), ptr_type, entry_kind) \
+    walk_ptr(*orph_ptr, ptr_type, entry_kind) \
   }  /* for */ \
 }  /* walk_orphan_entry_list */
 
