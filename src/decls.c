@@ -1289,8 +1289,8 @@ will be involved in overloading.
               a_template_symbol_supplement_ptr  tssp;
               tssp = other_decl->variant.template_info;
               if (is_function_template_decl) {
-                tp = tssp->variant.function.routine->type;
-                if (types_are_compatible(tp, type)) {
+                tp = skip_typerefs(tssp->variant.function.routine->type);
+                if (types_are_compatible(tp, skip_typerefs(type))) {
                   *linked_symbol = other_decl;
                   *overload_symbol = NULL;
                   goto determine_linkage;
@@ -1306,7 +1306,7 @@ will be involved in overloading.
                 /* No match. */
               } else {
                 tp = routine_symbol_type(other_decl);
-                if (types_are_compatible(tp, type)) {
+                if (types_are_compatible(tp, skip_typerefs(type))) {
                   /* Other_decl matches the current declaration.  Null out
                      *overload_symbol in case it was set. */
                   *overload_symbol = NULL;
