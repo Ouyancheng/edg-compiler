@@ -1961,7 +1961,9 @@ set, leave it alone.  Also compute and set the alignment requirement.
   size = type_ptr->size;
   /* If the size is set already (which means the type is considered complete),
      leave it alone. */
-  if (is_incomplete_type(type_ptr)) {
+  if (is_incomplete_type(type_ptr) ||
+      (type_ptr->kind == (a_type_kind)tk_array &&
+       type_ptr->variant.array.bound_is_zero)) {
     alignment = 1;  /* Default */
     switch(type_ptr->kind) {
       case tk_error:

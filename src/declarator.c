@@ -422,7 +422,9 @@ property fields).
            of zero, which is the case for the partial array and pointer
            types. */
         temp_type = skip_typerefs(new_type_ptr);
-        if (is_object_type(temp_type)) {
+        if (is_object_type(temp_type) &&
+            !(temp_type->kind == (a_type_kind)tk_array &&
+              temp_type->variant.array.bound_is_zero)) {
           /* Usually okay. */
           if (flexible_array_members_allowed) {
             /* A struct or union containing a member that is a zero-length
@@ -700,7 +702,9 @@ property fields).
          in). */
       /* Note that the size of a pointer pointing to an incomplete type
          can be determined, so do that even if the new type is incomplete. */
-      if (is_incomplete_type(temp_type) &&
+      if ((is_incomplete_type(temp_type) ||
+           (tkind == (a_type_kind)tk_array &&
+            temp_type->variant.array.bound_is_zero)) &&
           tkind != (a_type_kind)tk_routine /* For speed. */ &&
           !microsoft_property &&
           (tkind == (a_type_kind)tk_pointer ||
