@@ -506,7 +506,8 @@ typedef struct a_scope_stack_entry {
   a_type_ptr	assoc_type;
 			/* When kind == sck_func_prototype, this points to
 			   the function type whose prototype scope this is.
-			   When kind == sck_class_struct_union, this points
+			   When kind == sck_class_struct_union or
+			   kind == sck_class_reactivation, this points
 			   to the class type. */
   an_array_type_fixup_ptr
 		array_type_fixup_list;
@@ -664,7 +665,8 @@ extern a_symbol_ptr scope_qualified_id_lookup(a_symbol_locator *locator,
 
 /* Begin a name scope. */
 extern a_scope_ptr push_scope(a_scope_kind   kind,
-			      a_scope_number scope_number_for_function);
+			      a_scope_number scope_number_for_function,
+                              a_type_ptr     assoc_type);
 /* End a name scope. */
 extern void pop_scope(void);
 /* Record use information (for cross-reference, etc.). */

@@ -1737,7 +1737,8 @@ come out on the closing "}".
   /* Push an associated scope if this block is not for a function.  This
      does not allocate the IL scope yet. */
   if (!at_function_level) {
-    (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER);
+    (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
+                     (a_type_ptr)NULL);
   }  /* if */
 
   /* Scan the optional declarations. */
