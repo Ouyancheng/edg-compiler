@@ -1,5 +1,12 @@
 Version 2.44
 
+3/22/00  Microsoft compatibility: abort in IL lowering on __leave in __try
+
+The object lifetime processing in the front end was not right for
+__leave statements inside __try statements in some cases.  One possible
+consequence was an abort in IL lowering in gen_goto_cleanup_actions
+("common lifetime not found in curr lifetime parents").  Now fixed.
+
 3/21/00  Abort in C generating back end when an empty base is followed by a
          bit field
 

@@ -2575,19 +2575,8 @@ the block statement.
       block->assoc_scope = scope_ptr;
       scope_ptr->assoc_block = block_stmt;
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Don't pop the name scope here if this is the end of the guarded
-       statement of a Microsoft __try statement.  It will be done after the
-       __except expression, if any, is processed. */
-    if (struct_stmt_stack[depth_stmt_stack].kind != ssk_microsoft_try ||
-        struct_stmt_stack[depth_stmt_stack].
-                                  in_cleanup_statement_of_microsoft_try)
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here */
-    {
-      /* Pop the name scope. */
-      pop_scope();
-    }  /* if */
+    /* Pop the name scope. */
+    pop_scope();
   }  /* if */
   /* If a label appeared in the context of the block that was just
      terminated, it may be appropriate to push a new object lifetime for
@@ -3164,7 +3153,7 @@ statement.  Its form is
 
 */
 {
-  a_statement_ptr sp;
+  a_statement_ptr sp, block;
 
   db_enter(3, "microsoft_try_statement");
   check_for_unreachable_code();
@@ -3188,13 +3177,10 @@ statement.  Its form is
      It wouldn't do any good and could cause looping on errors. */
   /* Scan the compound statement, and save a pointer to it in the try
      statement. */
-  sp->variant.microsoft_try->guarded_statement =
+  sp->variant.microsoft_try->guarded_statement = block =
                           compound_statement(/*at_function_level=*/FALSE,
                                              /*explicit_return_type=*/FALSE,
                                              /*is_catch_clause=*/FALSE);
-  /* Define the "continue" label, if it is needed.  This is the target of
-     __leave statements. */
-  define_continue_label();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* The current token should be "__except" or "__finally": */
   sp->variant.microsoft_try->except_or_finally_position = pos_curr_token;
@@ -3215,10 +3201,13 @@ statement.  Its form is
     /* __finally form. */
     (void)required_token(tok_finally, ec_exp_except_or_finally);
   }  /* if */
-  /* Pop the name scope.  (It was not done in finish_block_statement because
-     the __except expression has to be scanned within the name scope belonging
-     to the guarded statement.) */
-  pop_scope();
+  /* Wrap up the block statement and pop the name scope.  (This was not done
+     in compound_statement because the __except expression has to be scanned
+     within the name scope belonging to the guarded statement.) */
+  finish_block_statement(block);
+  /* Define the "continue" label, if it is needed.  This is the target of
+     __leave statements. */
+  define_continue_label();
   /* Scan the cleanup statement. */
   term_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
   start_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
@@ -5477,7 +5466,19 @@ branching into it is disallowed).
     depth_stmt_stack = -1;
   } else {
     /* Block/compound statement rather than function. */
-    finish_block_statement(block);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Don't pop the name scope here if this is the end of the guarded
+       statement of a Microsoft __try statement.  It will be done after the
+       __except expression, if any, is processed. */
+    check_assertion(depth_stmt_stack >= 1);
+    if (struct_stmt_stack[depth_stmt_stack-1].kind != ssk_microsoft_try ||
+        struct_stmt_stack[depth_stmt_stack-1].
+                                  in_cleanup_statement_of_microsoft_try)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here */
+    {
+      finish_block_statement(block);
+    }  /* if */
   }  /* if */
 
   /* Restore the entry for "else" in the stop tokens set (see comment
