@@ -6007,6 +6007,19 @@ parameters.
       } else {
         dump_variable_storage_class(variable);
       }  /* if */
+#if IA64_ABI
+    if (variable->comdat_group != NULL) {
+#if GCC_IS_GENERATED_CODE_TARGET
+      /* GCC does not support COMDAT, but it does support weak, which provides
+         a sufficient approximation. */
+      write_tok_str(" __attribute__((__weak__))");
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
+      start_comment();
+      write_tok_str(" COMDAT group: ");
+      write_tok_str(variable->comdat_group);
+      end_comment();
+    } /* if */
+#endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
       /* Microsoft-specific keywords. */
@@ -6078,10 +6091,23 @@ parameters.
          the size of the executable.  However, do put out definitions
          for template static data members that are arrays, or otherwise
          the template prelinker could loop. */
+#if IA64_ABI && GCC_IS_GENERATED_CODE_TARGET
+      if (dump_vars_without_initializers && 
+          init_kind == (an_init_kind)initk_none &&
+          variable->comdat_group != NULL) {
+        /* GCC does not accept weak variables that do not have explicit
+           initializers, so temporarily pretend the variable is initialized to
+           zero. */
+        init_kind = initk_zero;
+      }  /* if */
+#endif /* IA64_ABI && GCC_IS_GENERATED_CODE_TARGET */
       if ((dump_initializers && init_con != NULL) ||
           (init_kind == (an_init_kind)initk_zero &&
            (!has_static_storage_duration(variable->storage_class) ||
             !is_array_type(variable->type) ||
+#if IA64_ABI && GCC_IS_GENERATED_CODE_TARGET
+            variable->comdat_group != NULL ||
+#endif /* IA64_ABI && GCC_IS_GENERATED_CODE_TARGET */
             variable->is_template_static_data_member))) {
         dump_initializer(variable, init_con, /*is_dynamic_init=*/FALSE);
       }  /* if */
@@ -7259,11 +7285,16 @@ its subtree.
           a_type_ptr    return_type =
                                 curr_routine_type->variant.routine.return_type;
 
-          dump_general_declaration_using_type(return_type,
-                                              NO_SCP, NO_VARIABLE,
-                                              (char *)covariant_return_expr,
-                                              NO_NAME, TQ_NONE,
-                                              /*suppress_const=*/FALSE);
+          /* In the IA64 ABI this code is used for thunks to non-covariant
+             returns; in that case, we must be careful not to create invalid
+             declarations like "void temp;". */
+          if (!is_void_type(return_type)) {
+            dump_general_declaration_using_type(return_type,
+                                                NO_SCP, NO_VARIABLE,
+                                                (char *)covariant_return_expr,
+                                                NO_NAME, TQ_NONE,
+                                                /*suppress_const=*/FALSE);
+          }  /* if */
           write_tok_ch(';');
         }  /* if */
         break;
@@ -7467,6 +7498,7 @@ by dump_routine_decl.
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
   a_memory_region_number master_scope_region_number = NO_SCOPE_NUMBER;
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+  a_statement_ptr        this_adjustment_stmt = NULL;
 
   /* Get the top-level scope for the routine definition.  Read it in if
      necessary. */
@@ -7481,8 +7513,14 @@ by dump_routine_decl.
        fetch the body of the master routine, so it can be put out as part
        of the definition of the wrapper. */
     a_statement_ptr return_stmt = scope->assoc_block->variant.block.statements;
-    check_assertion(return_stmt != NULL &&
-                    return_stmt->kind == (a_statement_kind)stmk_return);
+    check_assertion(return_stmt != NULL);
+    if (return_stmt->kind != (a_statement_kind)stmk_return) {
+      /* Sometimes there is an adjustment to the "this" pointer before the
+         return statement, e.g., for an IA-64 ABI thunk. */
+      this_adjustment_stmt = return_stmt;
+      return_stmt = return_stmt->next;
+    }  /* if */
+    check_assertion(return_stmt->kind == (a_statement_kind)stmk_return);
     covariant_return_expr = return_stmt->expr;
     covariant_return_wrapper_scope = scope;
     covariant_return_master_scope =
@@ -7495,6 +7533,11 @@ by dump_routine_decl.
   /* Generate the routine name and the parameter declarations. */
   dump_func_definition_type(rout, scope);
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+  if (this_adjustment_stmt != NULL) {
+    write_tok_ch('{');
+    indent += 2;
+    dump_statement(this_adjustment_stmt);
+  }  /* if */
   if (rout->overriding_function_for_covariant_return_type != NULL) {
     /* More processing for a wrapper for an overriding virtual function with
        a covariant return type. */
@@ -7505,6 +7548,10 @@ by dump_routine_decl.
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   /* Generate the body statement. */
   dump_statement(scope->assoc_block);
+  if (this_adjustment_stmt != NULL) {
+    indent -= 2;
+    write_tok_ch('}');
+  }  /* if */
   innermost_function_scope = NULL;
   octl.suppress_local_typedefs = TRUE;
   curr_scope = saved_curr_scope;
@@ -7715,6 +7762,19 @@ if this routine has a body (dump nothing if it has no body).
     }  /* if */
     /* Output the storage class. */
     dump_storage_class(storage_class);
+#if IA64_ABI
+    if (rout->use_comdat) {
+#if GCC_IS_GENERATED_CODE_TARGET
+      /* GCC does not support COMDAT, but it does support weak, which provides
+         a sufficient approximation. */
+      write_tok_str(" __attribute__((__weak__))");
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
+      start_comment();
+      write_tok_str(" COMDAT Group: ");
+      write_tok_str(rout->source_corresp.name);
+      end_comment();
+    } /* if */
+#endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
     /* Microsoft-specific keywords. */
