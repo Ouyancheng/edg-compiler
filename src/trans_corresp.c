@@ -2295,7 +2295,7 @@ type.
            for. */
       } else if ((a_type_ptr)trans_unit_corresp_pointer_of(sec) == type) {
         establish_trans_unit_correspondences_for_class(sec);
-        verify_class_type_correspondence(sec);
+        (void)verify_class_type_correspondence(sec);
         /* The master instance is found using the canonical entry.  We are
            creating a new canonical entry, so we must make sure its master
            instance pointer is set for the class members. */
