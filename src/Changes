@@ -29,15 +29,15 @@ the class.  Now fixed.
 
 The folding of constant expressions in inlining incorrectly assumed
 that all routines have non-NULL addresses.  This is not true when
-there is linker magic like weak external involved.  Now fixed.
+there is linker magic like weak externals involved.  Now fixed.
 
-  void feh(void);
+  void f(void);
   int effect;
-  inline void buh(void) {
-    effect = feh ? 1 : 2;  // Was folded, should not have been
+  inline void g(void) {
+    effect = f ? 1 : 2;  // Was folded, should not have been
   }
   int main() {
-    buh();
+    g();
   }
 
 3/24/02  Performance problem with inlining
