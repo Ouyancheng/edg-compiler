@@ -1454,6 +1454,11 @@ EXTERN a_boolean
 			   on the command line. */
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
 
+EXTERN a_boolean
+		more_than_one_non_export_translation_unit /* = FALSE */;
+			/* TRUE if more than one translation unit appears
+			   on the command line. */
+
 /*
 If non-NULL, the name of a file to include at the beginning of
 the compilation.  This can be used to set predefined macros, etc.

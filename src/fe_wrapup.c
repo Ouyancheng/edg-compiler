@@ -109,6 +109,12 @@ are instantiated.
     set_trans_unit_correspondences();
   }  /* if */
 
+  if (!is_primary_translation_unit && !do_preprocessing_only) {
+    /* Check for the presence of a master instance established in a prior
+       translation unit. */
+    set_master_instance_information();
+  }  /* if */
+
   db_exit();
 }  /* translation_unit_wrapup */
 

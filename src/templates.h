@@ -371,6 +371,8 @@ extern void set_master_instance_for_new_canonical_variable(
 					a_variable_ptr	primary_variable,
 					a_variable_ptr	secondary_variable);
 
+extern void set_master_instance_information(void);
+
 extern void instantiation_wrapup_setup(void);
 
 extern void instantiation_wrapup(void);

@@ -3396,7 +3396,8 @@ enable_microsoft_mode:
   }  /* if */
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
 #if COMPILE_MULTIPLE_TRANSLATION_UNITS
-  if (argc_file_list > 0) {
+  more_than_one_non_export_translation_unit = (argc_file_list > 0);
+  if (more_than_one_non_export_translation_unit) {
     /* Multiple translation units were specified.  Check for any options that
        cannot be used when using multiple translation units. */
     if (list_makefile_dependencies) {

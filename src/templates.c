@@ -11654,6 +11654,35 @@ the size of arr can be computed.
 }  /* fixup_types_that_refer_to_incomplete_instantiations */
 
 
+static an_exported_template_file_ptr alloc_exported_template_file(void)
+/*
+Allocate an exported template file entry, initialize it, and return a pointer
+to it.
+*/
+{
+  an_exported_template_file_ptr	etfp;
+
+  etfp = alloc_fe_of_type(an_exported_template_file);
+#if DEBUG
+  num_exported_template_files_allocated = 0;
+#endif /* DEBUG */
+  etfp->directory_name = NULL;
+  etfp->source_file_name = NULL;
+  etfp->translation_unit = NULL;
+  etfp->module_id = NULL;
+  etfp->incl_search_path = NULL;
+  etfp->sys_incl_search_path = NULL;
+  etfp->define_list = NULL;
+  etfp->undefine_list = NULL;
+  return etfp;
+}  /* alloc_exported_template_file */
+
+
+/* Forward declaration. */
+static a_template_lookup_entry_ptr find_exported_template(char		*name,
+					                  a_boolean	add);
+
+
 static void add_to_exported_templates_list(a_symbol_ptr	sym)
 /*
 sym is the symbol of a template function, member function of a class
@@ -11672,6 +11701,30 @@ of exported templates for this translation unit.
     exported_templates_tail->next = slep;
   }  /* if */
   exported_templates_tail = slep;
+  if (curr_translation_unit->specified_on_command_line) {
+    /* If this translation unit does not have an exported template file
+       entry associated with it yet, create one now.  When a file is loaded
+       to define an exported template, the exported template file entry is
+       created first (when the exported template files are read).  But for a
+       translation unit specified on the command line, the exported template
+       file entry is created (here) when the translation unit is processed. */
+    char			*name;
+    a_template_lookup_entry_ptr	tlp;
+    if (curr_translation_unit->exported_template_file == NULL) {
+      an_exported_template_file_ptr	etfp;
+      etfp = alloc_exported_template_file();
+      curr_translation_unit->exported_template_file = etfp;
+      etfp->translation_unit = curr_translation_unit;
+    }  /* if */
+    /* Look up the mangled name of the template to see if a definition was
+       found. */
+    name = get_mangled_name_for_symbol(
+                                   prototype_template_if_template_symbol(sym));
+    tlp = find_exported_template(name, /*add=*/TRUE);
+    /* Record information about the file where it can be found. */
+    tlp->exported_template_file = curr_translation_unit->
+                                                        exported_template_file;
+  }  /* if */  
 }  /* add_to_exported_templates_list */
 
 
@@ -14912,10 +14965,6 @@ previously computed value is returned.
 		: f_entity_can_be_instantiated(tip, implicit_inclusion_okay))
 
 
-/* Forward declaration. */
-static void set_master_instance_information(void);
-
-
 static void load_exported_template_file(an_exported_template_file_ptr	etfp)
 /*
 Compile the translation unit described by etfp for the purpose of defining
@@ -14929,8 +14978,6 @@ the exported templates in that file.
   /* Consider the exported template file to be in instantiation wrapup at
      this point. */
   in_instantiation_wrapup = TRUE;
-  /* Check for the presence of a master instance established elsewhere. */
-  set_master_instance_information();
   /* Save the translation unit pointer associated with this exported template
      file. */
   etfp->translation_unit = curr_translation_unit;
@@ -15642,30 +15689,6 @@ specified by tip.
      linkage class members. */
   instantiation_mode = saved_instantiation_mode;
 }  /* do_automatic_instantiation_of_entity */
-
-
-static an_exported_template_file_ptr alloc_exported_template_file(void)
-/*
-Allocate an exported template file entry, initialize it, and return a pointer
-to it.
-*/
-{
-  an_exported_template_file_ptr	etfp;
-
-  etfp = alloc_fe_of_type(an_exported_template_file);
-#if DEBUG
-  num_exported_template_files_allocated = 0;
-#endif /* DEBUG */
-  etfp->directory_name = NULL;
-  etfp->source_file_name = NULL;
-  etfp->translation_unit = NULL;
-  etfp->module_id = NULL;
-  etfp->incl_search_path = NULL;
-  etfp->sys_incl_search_path = NULL;
-  etfp->define_list = NULL;
-  etfp->undefine_list = NULL;
-  return etfp;
-}  /* alloc_exported_template_file */
 
 
 static a_template_lookup_entry_ptr alloc_template_lookup_entry(void)
@@ -16668,8 +16691,14 @@ be processed.
        The flag is not set because the prelinker uses an alternate
        mechanism to assign exported templates, so there is no need to
        look for a definition now. */
-    can_be_instantiated = !is_exported && (mip->already_instantiated ||
-                entity_can_be_instantiated(tip,
+   can_be_instantiated = (!is_exported ||
+                          (tip->exported_template_file != NULL &&
+                           tip->exported_template_file->
+                                                    translation_unit != NULL &&
+                           tip->exported_template_file->
+                               translation_unit->specified_on_command_line)) &&
+                         (mip->already_instantiated ||
+                          entity_can_be_instantiated(tip,
                                            /*implicit_inclusion_okay=*/FALSE));
     /* When not using a template information file, set the can_be_instantiated
        flag for any exported templates.  This is done so that the prelinker
@@ -16777,9 +16806,12 @@ be processed.
     add_entities_to_request_file();
   }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  if (export_template_allowed && generate_template_files()) {
+  if (export_template_allowed && generate_template_files() &&
+      !more_than_one_non_export_translation_unit) {
     /* Output information about exported templates defined in this
-       translation unit. */
+       translation unit.  This is suppressed when multiple translation units
+       are specified on the command line because this context cannot be
+       recreated for the purpose of defining exported templates. */
     generate_exported_template_information();
     /* Output information used to do dependency checking in the prelinker. */
     generate_template_dependency_information();
@@ -16953,7 +16985,7 @@ secondary_variable refers to.
 }  /* set_master_instance_for_new_canonical_entry */
 
 
-static void set_master_instance_information(void)
+void set_master_instance_information(void)
 /*
 This routine is used to process the instantiation list for secondary
 translation units.  The instances for secondary translation units do
@@ -17022,10 +17054,6 @@ specific definition that made it unnecessary.
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
   db_enter(3, "instantiation_wrapup");
-  /* Check for the presence of a master instance established elsewhere. */
-  if (!is_primary_translation_unit) {
-    set_master_instance_information();
-  }  /* if */
   /* Now that all input has been processed including any instantiations that
      may be done, process the classes that have been put on the can
      instantiate list. */

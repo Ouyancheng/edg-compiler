@@ -436,6 +436,7 @@ a pointer to the entry created.
 #endif /* RECORD_MACROS_IN_IL */
   tup->based_type_fixup_list = NULL;
   tup->exported_template_file = NULL;
+  tup->specified_on_command_line = FALSE;
   return tup;
 }  /* alloc_translation_unit */
 
@@ -498,6 +499,11 @@ treated as separate translation units of a single compilation.
   if (is_primary_translation_unit) fe_init_part_1();
   trans_unit = alloc_translation_unit();
   trans_unit->exported_template_file = exported_file;
+  /* If the exported_file passed in is NULL, this is a translation unit
+     specified on the command line.  Note that the exported_template_file
+     in the translation unit may get set later for files specified on the
+     command line. */
+  trans_unit->specified_on_command_line = exported_file == NULL;
   /* Add this translation unit to the list of translation units. */
   if (translation_units == NULL) {
     translation_units = trans_unit;

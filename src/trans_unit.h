@@ -85,10 +85,19 @@ typedef struct a_translation_unit {
 			   units. */
   an_exported_template_file_ptr
 		exported_template_file;
-			/* If this translation unit was loaded for the purpose
-			   of defining an exported template, this points to
-			   an entry that provides information about the
-			   file that was loaded. */
+			/* Points to an entry used to associate a translation
+			   unit with a given exported template.  When a file
+			   is loaded to define an exported template, the
+			   exported template file entry is created first (when
+			   the exported template files are read).  But for a
+			   translation unit specified on the command line, the
+			   exported template file entry is created while
+			   the translation unit is being processed. */
+  a_byte_boolean
+		specified_on_command_line;
+			/* TRUE if the translation unit was specified on the
+			   command-line (FALSE if it was loaded for to
+			   define an exported template). */
 } a_translation_unit;
 
 
