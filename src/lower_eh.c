@@ -1396,6 +1396,9 @@ generate/define typeinfo variables for any types that need them.
       if (ctsp->assoc_scope != NULL) {
         generate_scope_typeinfo_vars(ctsp->assoc_scope);
       }  /* if */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+      generate_type_list_typeinfo_vars(ctsp->promoted_local_types);
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
     }  /* if */
   }  /* for */
 }  /* generate_type_list_typeinfo_vars */

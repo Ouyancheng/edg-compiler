@@ -1,5 +1,24 @@
 Version 2.45
 
+12/19/00 Missing typeinfo variable for local class of member function
+
+A change made in 2.44 (see Changes entry of 3/5/00) caused IL lowering
+to fail to produce a definition of a typeinfo variable for a local class
+of a member function in some cases.  Now fixed.
+
+  namespace N {
+    struct A {
+      void* f ();
+    };
+  }
+  using namespace N;
+  void* A::f () {
+    struct B {  // typeinfo variable for this class was missing
+      virtual void make() {}
+    };
+    return new B;
+  }
+
 12/16/00 Abort on block extern with same name as member function
 
 A block extern declaration in a member function, with the same name
