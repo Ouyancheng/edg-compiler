@@ -853,9 +853,10 @@ the final null of the concatenated string; see 3.1.4.
       new_len = s1_len + s2_len;
       new_str = alloc_text_of_string_literal((sizeof_t)new_len);
       /* Copy the two strings into the new space. */
-      memcpy(new_str, first_string->variant.string.value, (int)s1_len);
-      memcpy(&new_str[s1_len], second_string->variant.string.value,
-                                                          (int)s2_len);
+      (void)memcpy(new_str, first_string->variant.string.value,
+                   size_t_arg(s1_len));
+      (void)memcpy(&new_str[s1_len], second_string->variant.string.value,
+                   size_t_arg(s2_len));
       /* Note that the space for the old strings is just lost; that's
          judged to be acceptable, since lexical concatenation will probably
          not be done excessively.  If we wanted to free the old strings:
