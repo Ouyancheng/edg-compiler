@@ -17308,6 +17308,7 @@ a specialized instance.
        processing. */
     result = TRUE;
   } else if (tssp->il_template_entry->is_exported) {
+#if TEMPLATE_LOOKUP_NEEDED
     /* The template is exported.  See if a definition is available. */
     char			*name;
     a_template_lookup_entry_ptr	tlp;
@@ -17322,6 +17323,7 @@ a specialized instance.
       result = TRUE;
       tip->exported_template_file = tlp->exported_template_file;
     }  /* if */
+#endif /* TEMPLATE_LOOKUP_NEEDED */
   }  /* if */
   return result;
 }  /* exported_definition_is_available */
