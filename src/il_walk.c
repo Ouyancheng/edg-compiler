@@ -547,6 +547,12 @@ references.
 
   /* Restore the state of global variables. */
   restore_il_walk_state(saved_state);
+
+  if (okay_to_eliminate_unneeded_il_entries) {
+    /* Make sure the keep_in_il flag is set also.  This is necessary for
+       externally-linked static data members and member functions. */
+    mark_to_keep_in_il(entry_ptr, entry_kind);
+  }  /* if */
 }  /* mark_as_needed */
 
 
