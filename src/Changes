@@ -1,21 +1,34 @@
 Version 2.32
 
-4/6/96    Fixes to bit-field support for better Microsoft compatibility
+4/6/96  Some bug fixes in bit-field allocation
 
--- TARG_ZERO_WIDTH_BIT_FIELD is now configured to -1 (which means to use
-   the underlying type of the bit field declaration as the container type)
-   when TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE.
+A new flag, TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT, has been
+added.  When it is configured TRUE, the alignment of the struct as a whole
+will be no less than the alignment implied by any zero-width bit field
+declaration.  It is configured to FALSE by default, which matches previous
+behavior.
 
--- We've added TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT, which
-   is set by default to TRUE for cfront object-code compatibility and
-   when TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE.  When it's TRUE, the
-   alignment of the struct as a whole will be no less than the alignment
-   implied by any zero-width bit field declaration.
+When ABI_COMPATIBILITY_VERSION >= 232 and CFRONT_OBJECT_CODE_COMPATIBILITY
+is TRUE:
 
--- A tweak was made in determining bit-field container compatibility
-   (when TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE) -- two different
-   integral types are considered compatible as long as their sizes are
-   the same.
+  -- TARG_ZERO_WIDTH_BIT_FIELD is now configured to TARG_SIZEOF_INT.
+
+  -- New flag TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT is
+     configured to TRUE.
+
+When TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE, additional configuration
+changes are provided:
+
+  -- TARG_ZERO_WIDTH_BIT_FIELD is now configured to -1 (which means to
+     use the underlying type of the bit field declaration as the container
+     type).
+
+  -- New flag TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT is
+     configured to TRUE.
+
+  -- A tweak was made in determining bit-field container compatibility:
+     two different integral types are considered compatible as long as
+     their sizes are the same.
 
 4/5/96    /**/ treated as token-pasting operator ## in SVR4 C mode
 
