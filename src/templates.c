@@ -9979,7 +9979,7 @@ the necessary processing can be done.
   parent_class = sym->parent.class_type;
   parent_sym = (a_symbol_ptr)parent_class->source_corresp.assoc_info;
   parent_templ_sym = template_symbol_for_class_symbol(parent_sym);
-  parent_tssp = parent_templ_sym->variant.template_info;
+  parent_tssp = template_supplement_for_symbol(parent_templ_sym);
   oocpsp->symbol = sym;
   set_template_cache_info(&oocpsp->cache, &decl_state->decl_token_cache,
                           decl_state->decl_info);
