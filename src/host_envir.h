@@ -832,18 +832,67 @@ form specified in the source program.
  #error -- RECORD_FORM_OF_NAME_REFERENCE cannot be used when \
            COMPILE_MULTIPLE_TRANSLATION_UNITS is TRUE
 #endif /* RECORD_FORM_OF_NAME_REFERENCE && COMPILE_MULTIPLE_TRANSLATION_UNITS*/
+
+/*
+Flag that is TRUE to enable saving of original expressions for
+constant-expressions in template declarations.  This is needed for
+full conformance to the IA-64 ABI, to generate correct mangled
+names for templates.
+*/
+#ifndef RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL
+#if IA64_ABI
+#define RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL TRUE
+#else /* !IA64_ABI */
+#define RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL FALSE
+#endif /* IA64_ABI */
+#endif /* ifndef RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL */
+
+/*
+Flag that is TRUE to enable saving of original expressions for
+constant-expressions in all contexts useful for source analysis.
+See RECORD_CONSTANT_EXPRESSIONS_IN_IL.
+*/
+#ifndef RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
+#if BACK_END_IS_CP_GEN_BE
+#define RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL TRUE
+#else /* !BACK_END_IS_CP_GEN_BE */
+#ifdef RECORD_CONSTANT_EXPRESSIONS_IN_IL
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+#define RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL TRUE
+#else /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#define RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL FALSE
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#else /* !defined(RECORD_CONSTANT_EXPRESSIONS_IN_IL) */
+#define RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL FALSE
+#endif /* ifdef RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* ifndef RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
+
 /*
 Flag that is TRUE if the front end should record the original structure of
 constant-expressions in addition to their resulting value.  (See expr field
 of struct a_constant.)  This can be useful for source-analysis applications.
+When RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL or
+RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL is set, this flag must be set also.
 */
 #ifndef RECORD_CONSTANT_EXPRESSIONS_IN_IL
-#if BACK_END_IS_CP_GEN_BE
+#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL || \
+    RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL
 #define RECORD_CONSTANT_EXPRESSIONS_IN_IL TRUE
-#else /* !BACK_END_IS_CP_GEN_BE */
+#else /* !(RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL || ... ) */
 #define RECORD_CONSTANT_EXPRESSIONS_IN_IL FALSE
-#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL || ... */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL && \
+    !RECORD_CONSTANT_EXPRESSIONS_IN_IL
+ #error -- RECORD_CONSTANT_EXPRESSIONS_IN_IL must be TRUE if \
+           RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL is TRUE
+#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL && ... */
+#if RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL && \
+    !RECORD_CONSTANT_EXPRESSIONS_IN_IL
+ #error -- RECORD_CONSTANT_EXPRESSIONS_IN_IL must be TRUE if \
+           RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL is TRUE
+#endif /* RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL && ... */
 
 /*
 Flag that is TRUE if the front end should represent empty statements using a
@@ -875,9 +924,9 @@ is TRUE.
 */
 #ifndef FULL_SOURCE_POS_IN_IL_STATEMENT
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-#define FULL_SOURCE_POS_IN_IL_STATEMENT TRUE  /* Do not change this. */
+#define FULL_SOURCE_POS_IN_IL_STATEMENT TRUE
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-#define FULL_SOURCE_POS_IN_IL_STATEMENT FALSE  /* You can change this. */
+#define FULL_SOURCE_POS_IN_IL_STATEMENT FALSE
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
@@ -888,9 +937,9 @@ with a C back end.
 */
 #ifndef DO_IL_LOWERING
 #if BACK_END_IS_CP_GEN_BE
-#define DO_IL_LOWERING FALSE /* Do not change this. */
+#define DO_IL_LOWERING FALSE
 #else /* !BACK_END_IS_CP_GEN_BE */
-#define DO_IL_LOWERING TRUE /* You can change this. */
+#define DO_IL_LOWERING TRUE
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ifndef DO_IL_LOWERING */
 #if BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING
