@@ -2267,6 +2267,13 @@ INSTANTIATE_EXTERN_INLINE set to FALSE.
     new Bar<int>();  // Object constructed but not used
   }
 
+1/16/01  Abort on empty function bodies in C99 mode for some configurations
+
+In configurations where VLA_DEALLOC_STATEMENTS_IN_IL was TRUE, the front end
+used to abort with an internal error (in statements.c) when processing an
+empty function body in C99 mode (or another mode allowing variable-length
+arrays).  This is now fixed.
+
 1/16/01  Default configuration of VLA_DEALLOC_STATEMENTS_IN_IL
 
 VLA_DEALLOC_STATEMENTS_IN_IL is now TRUE by default (it used to be FALSE)
