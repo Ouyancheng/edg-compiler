@@ -1,5 +1,16 @@
 Version 2.46
 
+2/6/02   Missing typeinfo for base class at link time
+
+In some strange cases involving a base class, none of whose member
+functions are defined, and a derived class, whose decider function
+is defined, but for which no object of the class type is created,
+a typeinfo variable for the base class was not emitted even though
+it is referenced from the typeinfo for the derived class, which is
+referenced from the virtual function table for the derived class.
+The problem is fixed, by forcing the definition of the typeinfo
+and virtual function table variables for the base class also.
+
 2/6/02   C++-generating back end, MSVC++ output: no leading "::" in selection
 
 The MSVC++ compiler (versions before 7.0) does not accept a leading "::"

@@ -126,12 +126,9 @@ returned to the caller.
 #endif /* ASM_FUNCTION_ALLOWED */
 
 static void require_definitions_of_virtual_functions_on_routine_list(
-                              a_type_ptr                         class_type,
-                              an_overriding_virtual_function_ptr override_list)
+                                                         a_type_ptr class_type)
 /*
 Require definitions for the virtual functions of the indicated class.
-Do not force definitions on any functions that are indicated as overridden
-on the override_list.
 */
 {
   a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
@@ -156,17 +153,7 @@ on the override_list.
                                                          assoc_scope->routines;
     for (; rp != NULL; rp = rp->next) {
       if (rp->is_virtual && !rp->pure_virtual) {
-        an_overriding_virtual_function_ptr ovfp;
-        a_symbol_ptr                       sym;
-
-        for (ovfp = override_list; ovfp != NULL; ovfp = ovfp->next) {
-          if (ovfp->primary_function == rp) {
-            /* This function is overridden and therefore not in the set
-               of functions that can get called for an object of the
-               most-derived class type we are considering. */
-            goto next_function;
-          }  /* if */
-        }  /* for */
+        a_symbol_ptr sym;
         /* The function could be called, so mark it to be instantiated. */
         sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
         /* Set the instantiation_required flag for the virtual function. */
@@ -179,7 +166,6 @@ on the override_list.
         set_class_keep_definition_in_il(class_type);
 #endif /* DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS */
       }  /* if */
-next_function:;
     }  /* for */
   }  /* if */
 }  /* require_definitions_of_virtual_functions_on_routine_list */
@@ -202,22 +188,10 @@ compilation.
                      ctsp = class_type->variant.class_struct_union.extra_info;
 
     /* Loop through the routines list and check the virtual functions. */
-    require_definitions_of_virtual_functions_on_routine_list(
-                                     class_type,
-                                     (an_overriding_virtual_function_ptr)NULL);
+    require_definitions_of_virtual_functions_on_routine_list(class_type);
     /* Do the same for base class virtual functions that are not overridden. */
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-      require_definitions_of_virtual_functions_on_routine_list(
-                                            bcp->type,
-                                            bcp->overriding_virtual_functions);
-      if (bcp->type->variant.class_struct_union.any_virtual_base_classes) {
-        /* With virtual base classes, the virtual functions of the
-           base classes may be put out in special versions of function
-           tables for use during construction and destruction of subobjects,
-           and therefore the virtual functions of the base class may be
-           referenced in this compilation. */
-        require_definitions_of_virtual_functions_in_class(bcp->type);
-      }  /* if */
+      require_definitions_of_virtual_functions_in_class(bcp->type);
     }  /* for */
   }  /* if */
 }  /* require_definitions_of_virtual_functions_in_class */
