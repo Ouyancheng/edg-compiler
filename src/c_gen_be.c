@@ -2940,10 +2940,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                   correctly. */
              } else {
                /* The flag is set incorrectly. */
-#if DEBUG
+#if DEBUG && !STANDALONE_UTILITY_PROGRAM
                db_expression(expr);
                db_expression(op_node);
-#endif /* DEBUG */              
+#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
                internal_error(
                          "dump_expr: result_is_not_used set wrong on operand");
              }  /* if */
