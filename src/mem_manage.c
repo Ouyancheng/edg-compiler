@@ -1077,7 +1077,7 @@ memory or with an IL file.
     if (scope->kind == (a_scope_kind)sck_function) {
       a_routine_ptr rout = scope->variant.routine.ptr;
 #if MAINTAIN_NEEDED_FLAGS
-      if (!rout->keep_definition_in_il) {
+      if (!rout->keep_definition_in_il || !rout->definition_needed) {
         /* This memory region so far looks as if it's unneeded.  Hold on
            to it for now.  If we make it to the end of the compilation with
            the memory region still unneeded, we will have the option of
@@ -1152,13 +1152,21 @@ is kept around in case definition_needed might be set later.
     if (mem_region_table[n] == NULL) {
       /* This memory has already been freed. */
     } else {
-      a_scope_ptr  sp = il_header.region_scope_entry[n];
+      a_scope_ptr   sp = il_header.region_scope_entry[n];
+      a_routine_ptr rout;
+      a_boolean     saved_definition_needed;
 
       check_assertion(sp->kind == (a_scope_kind)sck_function);
+      rout = sp->variant.routine.ptr;
       /* Mark the routine definition to be kept in the IL, to assure it will
          be written out. */
-      set_routine_keep_definition_in_il(sp->variant.routine.ptr);
+      set_routine_keep_definition_in_il(rout);
+      /* Set definition_needed temporarily so that
+         check_for_done_with_memory_region will release the memory. */
+      saved_definition_needed = rout->definition_needed;
+      rout->definition_needed = TRUE;
       check_for_done_with_memory_region(n);
+      rout->definition_needed = saved_definition_needed;
     }  /* if */
   }  /* for */
   }
