@@ -1538,14 +1538,23 @@ setting the offset field in the latter.
       bcp = corresponding_base_class(ref_bcp,
                                      proximate_derivation->derived_class);
       if (!bcp->is_virtual) {
+        /* Nonvirtual base class. */
         bcp->offset = proximate_derivation->offset + ref_bcp->offset;
-#if !CFRONT_OBJECT_CODE_COMPATIBILITY
       } else {
+        /* Virtual base class. */
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+        if (bcp->data_section_base_class == proximate_derivation) {
+          /* bcp is a virtual base class whose data section is embedded in
+             the data section of another base class data section.  Update
+             the offset. */
+          bcp->offset = ref_bcp->offset + proximate_derivation->offset;
+        } else {
+          continue;
+        }  /* if */
+#else 
         bcp->pointer_offset =
                       proximate_derivation->offset + ref_bcp->pointer_offset;
-#endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
-      } else {
-        continue;
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
       }  /* if */
 #if DEBUG
       if (debug_level >= 4) {
