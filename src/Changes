@@ -1,5 +1,11 @@
 Version 2.27
 
+12/14/94 Union member of class type with user-defined assignment operator
+
+In cfront mode a warning is now issued (instead of an error) if a union
+member is declared to have the type of a class with no constructor or
+destructor but for which the user has defined an assignment operator.
+
 12/14/94 Internal error when using nontype function template parameters
 
 An internal error would occur when calling a function template that
