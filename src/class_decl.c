@@ -6036,7 +6036,8 @@ FALSE .
          is no user-defined copy assignment operator the compiler generated
          one is not trivial.  (This goes beyond what is literally required
          in WP 9.6 at this time.) */
-      severity = any_cfront_mode() ? es_warning : es_error;
+      /* There is no error with cfront 2.1, but it is fixed in cfront 3.0. */
+      severity = cfront_2_1_mode ? es_warning : es_error;
     }  /* if */
     if (severity != es_none) {
       pos_ty_diagnostic(severity, ec_bad_union_field, pos, tp);

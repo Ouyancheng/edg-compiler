@@ -1,11 +1,24 @@
 Version 2.36
 
-5/16/97   Abort in cfront mode on anonymous union assignment operator
+5/16/97   Disallow union member with copy assignment operator in cfront 3.0
+          mode
+
+Normally a member of a union cannot have a copy assignment operator.  The
+following is still accepted in cfront 2.1 mode, but it now gets an error in
+cfront 3.0 mode:
+
+  struct S {
+    S& operator=(const S&);
+  };
+  union U { S s; };             // Error, excpt in cfront 2.1 mode
+
+5/16/97   Abort in cfront mode on anonymous union member with nonstandard
+          assignment operator
 
 An abort (with --exceptions --cfront_2.1) has been fixed on the following:
 
   struct S {
-    S& operator=(const struct S& s);
+    S& operator=(const S&);
   };
   struct T {
     union {
