@@ -1084,8 +1084,7 @@ Print out the type specifier.
       (void)fprintf(f_C_output, "union %s", get_name(&type->source_corresp));
       break;
     case tk_typeref:
-      if (type->source_corresp.name == NULL ||
-          type->variant.typeref.is_function_scope_tag) {
+      if (type->source_corresp.name == NULL) {
 	/* This is an internally generated typeref, so use the type of the
 	   typeref. */
 	dump_type_specifier(type->variant.typeref.type);
@@ -1966,11 +1965,7 @@ all types, but for structs/unions put out only a forward reference.
       break;
     case tk_typeref:
       if (!bodies) {
-        /* Do not dump typerefs that are there only to project structs/unions
-           into a local scope. */
-        if (!type->variant.typeref.is_function_scope_tag) {
-          dump_typedef(type);
-        }  /* if */
+        dump_typedef(type);
       }  /* if */
       break;
 #if CHECKING
@@ -5408,6 +5403,14 @@ is TRUE.
                     dump_initializers);
     }  /* if */
   }  /* for */
+#ifdef CFE
+  for (var_ptr = scope->nonstatic_variables;
+       var_ptr != NULL;
+       var_ptr = var_ptr->next) {
+    dump_variable(var_ptr, dump_vars_without_initializers,
+                  dump_initializers);
+  }  /* for */
+#endif /* ifdef CFE */
 }  /* dump_all_variables */
 
 #ifdef FFE
