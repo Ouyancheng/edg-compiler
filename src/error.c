@@ -2104,7 +2104,7 @@ Add a string representing a constant value to a string being formed.
         } else if (*p_char == '"') {
           buffer[i++] = '\\';
           buffer[i++] = '"';
-        } else if (isprint(*p_char)) {
+        } else if (isprint((unsigned char)*p_char)) {
           buffer[i++] = *p_char;
         } else {
           /* A nonprintable character.  Use the language defined escape
@@ -2980,7 +2980,7 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
 #endif /* STANDALONE_UTILITY_PROGRAM */
 check_for_seq_number:
             curr_segment->sequence_no = 1;
-            if (isdigit(*msg_ptr)) {
+            if (isdigit((unsigned char)*msg_ptr)) {
               i = (unsigned)*msg_ptr - (unsigned)'0';
               if (i > 0 && i <= INCR_MSG_SEGMENT_SIZE) {
                 curr_segment->sequence_no = i;
