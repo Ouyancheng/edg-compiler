@@ -17316,7 +17316,7 @@ Does nothing if called in C mode.
     a_template_instance_ptr	tip;
 
 #if DEBUG
-    if (db_flag_is_set("set_instance_required")) {
+    if (db_sym_trace("instantiations", sym)) {
       fprintf(f_debug, "Setting instance required for ");
       db_symbol_name_trans_unit(sym);
       fprintf(f_debug, " to %s\n", value ? "true" : "false");
