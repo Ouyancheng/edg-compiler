@@ -1,5 +1,17 @@
 Version 2.32
 
+5/2/96  Cfront-compatible handling of copy assignment operators
+
+Global variable allow_copy_assignment_op_with_base_class_param has been
+added to control whether an assignment operator for class A with parameter
+of type "B", "B&", or "const B&" should be viewed as a copy assignment
+operator when B is a base class of A.  When it is TRUE, its effect is that
+a user-declared A::operator=(const B&) will block the implicit generation
+of A::operator=(const A&).  It will be TRUE in cfront-compatibility mode
+and FALSE in strict-ANSI and Microsoft-compatibility modes (which fixes a
+Microsoft compatibility bug.)  In default mode, the behavior depends on
+the value of DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM.
+
 5/2/96  Removal of type qualifiers from function parameter types
 
 Whether top-level qualifiers are stripped off function parameter types is
