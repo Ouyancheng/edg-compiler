@@ -984,8 +984,8 @@ in the compilation excluding the instantiations).
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-void mark_as_needed(char             *entry_ptr,
-                    an_il_entry_kind entry_kind)
+static void mark_as_needed_basic(char             *entry_ptr,
+                                 an_il_entry_kind entry_kind)
 /*
 Set the "needed" flag in the indicated entity, and also on everything it
 references.
@@ -1038,6 +1038,18 @@ references.
     }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+}  /* mark_as_needed_basic */
+
+
+void mark_as_needed(char             *entry_ptr,
+                    an_il_entry_kind entry_kind)
+/*
+Set the "needed" flag in the indicated entity, and also on everything it
+references.  If the entity is a routine, also set its definition_needed
+flag.
+*/
+{
+  mark_as_needed_basic(entry_ptr, entry_kind);
   if (entry_kind == (an_il_entry_kind)iek_routine
 #if ONE_INSTANTIATION_PER_OBJECT
       && needed_flag_bit_number == 0
@@ -1109,7 +1121,7 @@ match the needed flags(s).
       if (needed_flag_bit_number % 2 != 0) {
         /* Clear the bit if set, then set it. */
         set_instantiation_needed_flag(scp, 0, 0);
-        mark_as_needed(entry_ptr, entry_kind);
+        mark_as_needed_basic(entry_ptr, entry_kind);
         if (set_class_defn_needed) {
           set_class_definition_needed((a_type_ptr)entry_ptr);
         }  /* if */
@@ -1120,7 +1132,7 @@ match the needed flags(s).
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   if (model_scp->needed) {
     ((a_source_correspondence *)entry_ptr)->needed = FALSE;
-    mark_as_needed(entry_ptr, entry_kind);
+    mark_as_needed_basic(entry_ptr, entry_kind);
     if (set_class_defn_needed) {
       set_class_definition_needed((a_type_ptr)entry_ptr);
     }  /* if */
