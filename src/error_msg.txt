@@ -934,6 +934,7 @@ ec_cl_invalid_microsoft_version;;"invalid Microsoft version number: "
 ec_inheritance_kind_already_set;;"pointer-to-member representation has already been set for %n"
 ec_bad_constructor_type;;"%t1 cannot be used to designate constructor for %t2"
 ec_bad_suffix;;"invalid suffix on integral constant"
+ec_uuidof_requires_uuid_class_type;;"operand of __uuidof must have a class type for which __declspec(uuid(\"...\")) was specified"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
