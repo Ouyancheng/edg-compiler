@@ -9064,7 +9064,7 @@ continue_with_declaration:
 #endif /* C_ANACHRONISMS_ALLOWED */
       }  /* if */
       is_definition = FALSE;
-      is_tentative_definition =  FALSE;
+      is_tentative_definition = FALSE;
       if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
           !is_old_style_param_decl) {
         /* Set a flag marking this as a defining declaration, if that's
@@ -9233,6 +9233,7 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
       }  /* if */
+      copy_source_position(locator.source_position, error_position);
       if (is_incomplete_type(local_type_ptr)) {
         /* Issue an error on a variable for which this is the defining
            declaration but whose type is incomplete.  Also, in C mode, issue
