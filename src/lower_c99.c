@@ -61,7 +61,7 @@ floating point elements.
   a_type_ptr   array_type;
   a_field_ptr  last_field = NULL;
 
-  result->source_corresp.name = alloc_il(strlen(name)+1);
+  result->source_corresp.name = alloc_il((sizeof_t)(strlen(name)+1));
   strcpy(result->source_corresp.name, name);
   /* Create a type "array of two real values". */
   array_type = alloc_type((a_type_kind)tk_array);
@@ -259,7 +259,7 @@ with C89).
   rout_name = select_name_from_float_kind(fkind, xnegate_routine_name);
   xnegate_call = make_prototyped_runtime_call(
                                 rout_name, &xnegate_routine[(int)fkind],
-                                return_type, return_type, /*param2_type=*/NULL,
+                                return_type, return_type, (a_type_ptr)NULL,
                                 expr->variant.operation.operands);
   overwrite_node(expr, xnegate_call);
 }  /* lower_c99_xnegate */
@@ -878,13 +878,13 @@ allocated in file scope, the lowered structure must also be placed there.)
 
   real_part = fs_constant((a_constant_repr_kind)ck_float);
   real_part->type = float_type(fkind);
-  memcpy(&real_part->variant.float_value,
-         &constant->variant.complex_value->real,
+  memcpy((char *)&real_part->variant.float_value,
+         (char *)&constant->variant.complex_value->real,
          sizeof(an_internal_float_value));
   imag_part = fs_constant((a_constant_repr_kind)ck_float);
   imag_part->type = float_type(fkind);
-  memcpy(&imag_part->variant.float_value,
-         &constant->variant.complex_value->imag,
+  memcpy((char *)&imag_part->variant.float_value,
+         (char *)&constant->variant.complex_value->imag,
          sizeof(an_internal_float_value));
   real_part->next = imag_part;
 
@@ -1536,7 +1536,7 @@ The lowered type is given the name indicated by "name".
 
     set_type_kind(im_type, (a_type_kind)tk_typeref);
     im_type->variant.typeref.type = float_type(kind);
-    im_type->source_corresp.name = alloc_il(strlen(name)+1);
+    im_type->source_corresp.name = alloc_il((sizeof_t)(strlen(name)+1));
     strcpy(im_type->source_corresp.name, name);
     add_to_front_of_file_scope_types_list(im_type);
   }  /* if */
@@ -1560,7 +1560,7 @@ The lowered type is given the name indicated by "name".
 
     /* Typedef the complex type to its lowered representation. */
     set_type_kind(cmplx_type, (a_type_kind)tk_typeref);
-    cmplx_type->source_corresp.name = alloc_il(strlen(name)+1);
+    cmplx_type->source_corresp.name = alloc_il((sizeof_t)(strlen(name)+1));
     strcpy(cmplx_type->source_corresp.name, name);
     cmplx_type->variant.typeref.type = lowered_repr;
 #if MAINTAIN_NEEDED_FLAGS
