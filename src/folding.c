@@ -1510,11 +1510,13 @@ a template parameter constant that might be a null pointer constant.
       a_constant_ptr eff_constant = constant;
       might_be_null_pointer = TRUE;
       /* Drop casts to get to the underlying constant. */
-      while (eff_constant->variant.template_param.kind ==
+      while (eff_constant->kind == (a_constant_repr_kind)ck_template_param &&
+             eff_constant->variant.template_param.kind ==
                                    (a_template_param_constant_kind)tpck_cast) {
         eff_constant  = eff_constant->variant.template_param.variant.constant;
       }  /* while */
-      if (eff_constant->variant.template_param.kind ==
+      if (eff_constant->kind == (a_constant_repr_kind)ck_template_param &&
+          eff_constant->variant.template_param.kind ==
                                 (a_template_param_constant_kind)tpck_sizeof) {
         /* A sizeof constant never has a value of zero, and therefore is
            never a null pointer constant. */
