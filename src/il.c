@@ -9836,11 +9836,12 @@ one routine; otherwise, all scheduled moves must be performed.
   rmdp = &scheduled_routine_moves[n_scheduled_routine_moves-1];
   routine = rmdp->routine;
   while (n_scheduled_routine_moves > 0) {
+    a_routine_ptr  *p_rp;
     /* Get a pointer to the scope in which the routine is declared. */
     sp = get_scope_for_list(NO_SCOPE_DEPTH, &routine->source_corresp,
                             &pointers_block);
     check_assertion_str(sp != NULL, "NULL IL scope");
-    a_routine_ptr  *p_rp = &sp->routines;
+    p_rp = &sp->routines;
     do {
       if (routine == *p_rp) {
         if (pointers_block->last_routine == rmdp->insert_after) {
