@@ -4696,17 +4696,18 @@ of the array pointer.
 }  /* new_or_delete_type_requires_array_handling */
 
 
-static a_dynamic_init_ptr f_determine_deletion_for_throw_before_new_init_done(
+static a_routine_ptr determine_deletion_for_new(
                                            a_type_ptr        base_new_type,
                                            a_symbol_ptr      new_sym,
                                            a_boolean         use_global_delete,
                                            a_source_position *position)
 /*
-Exceptions are enabled, and a "new" with initialization is being scanned.
-If an exception is thrown between the time that the allocation is done and
-the time the initialization is completed, the allocated storage should be
-freed.  Develop a dynamic initialization entry that describes the
-deallocation and return a pointer to it, or NULL if there is an error.
+Exceptions are enabled, and a "new" is being scanned.  Determine the
+delete routine to be called if an exception is thrown between the time
+that the allocation is done and the time the initialization is completed.
+Return a pointer to the routine, or NULL if there is an error.  The delete
+routine will not necessarily be used, e.g., if the "new" is folded
+into a constructor call, but access checking is done for it anyway.
 base_new_type is the type of entity being allocated (the element type
 if an array is being allocated); new_sym is the "new" routine being
 called to do the allocation, stripped to its fundamental symbol;
@@ -4714,11 +4715,10 @@ use_global_delete is TRUE if "::new" was used; and *position gives
 the position to be used for errors.
 */
 {
-  a_dynamic_init_ptr dyn_init_to_free_storage = NULL;
-  a_routine_ptr      delete_routine;
-  a_type_ptr         class_type;
-  a_symbol_ptr       delete_sym, overload_delete_sym;
-  a_boolean          ambiguous;
+  a_routine_ptr delete_routine = NULL;
+  a_type_ptr    class_type;
+  a_symbol_ptr  delete_sym, overload_delete_sym;
+  a_boolean     ambiguous;
 
   /* Select the delete routine that corresponds to the new routine selected. */
   class_type = NULL;
@@ -4755,21 +4755,37 @@ the position to be used for errors.
     /* Mark the symbol referenced. */
     record_symbol_reference(SRK_REFERENCE, fund_delete_sym,
                             position, /*update_il_entry=*/FALSE);
-    /* Mark the routine IL entry referenced. */
-    if_evaluating_mark_routine_referenced(delete_routine);
-    /* Mark the routine as called. */
-    delete_routine->called = TRUE;
-    /* The deletion is recorded in a dynamic initialization entry.
-       The delete routine is used as the "destructor". */
-    dyn_init_to_free_storage =
-                        alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
-    dyn_init_to_free_storage->destructor = delete_routine;
-    dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
-    dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
-    record_end_of_lifetime_destruction(dyn_init_to_free_storage,
-                                       /*static_lifetime=*/FALSE,
-                                       /*block_lifetime=*/FALSE);
   }  /* if */
+  return delete_routine;
+}  /* determine_deletion_for_new */
+
+
+static a_dynamic_init_ptr f_determine_deletion_for_throw_before_new_init_done(
+                                                  a_routine_ptr delete_routine)
+/*
+Exceptions are enabled, and a "new" with initialization is being scanned.
+delete_routine is the operator delete to be called if an exception is
+thrown between the time that the allocation is done and the time the
+initialization is completed.  Develop a dynamic initialization entry
+that describes the deallocation and return a pointer to it.
+*/
+{
+  a_dynamic_init_ptr dyn_init_to_free_storage;
+
+  /* Mark the routine IL entry referenced. */
+  if_evaluating_mark_routine_referenced(delete_routine);
+  /* Mark the routine as called. */
+  delete_routine->called = TRUE;
+  /* The deletion is recorded in a dynamic initialization entry.
+     The delete routine is used as the "destructor". */
+  dyn_init_to_free_storage =
+                        alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
+  dyn_init_to_free_storage->destructor = delete_routine;
+  dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
+  dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
+  record_end_of_lifetime_destruction(dyn_init_to_free_storage,
+                                     /*static_lifetime=*/FALSE,
+                                     /*block_lifetime=*/FALSE);
   return dyn_init_to_free_storage;
 }  /* f_determine_deletion_for_throw_before_new_init_done */
 
@@ -4784,22 +4800,12 @@ determined that the "new" has initialization, but before that
 initialization is scanned (so the cleanup entry gets onto the object
 lifetime list in the right place).
 */
-/* When placement delete is not enabled, do not record the deletion
-   if the new was a placement new. */
-#if ABI_CHANGES_FOR_PLACEMENT_DELETE
-#define and_placement_new_test() /* Nothing */
-#else /* !ABI_CHANGES_FOR_PLACEMENT_DELETE */
-#define and_placement_new_test() && !placement_new
-#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
-/* Do not record the deletion if exceptions are not enabled or if the
+/* Do not record the deletion if no delete routine is needed or if
    allocation is folded into a constructor (new_routine == NULL). */
 #define determine_deletion_for_throw_before_new_init_done()           \
-{ if (exceptions_enabled && new_routine != NULL                       \
-      and_placement_new_test()) {                                     \
+{ if (delete_routine != NULL && new_routine != NULL) {                \
     dyn_init_to_free_storage =                                        \
-      f_determine_deletion_for_throw_before_new_init_done(            \
-                      base_new_type, function_symbol, use_global_new, \
-                      &new_position);                                 \
+      f_determine_deletion_for_throw_before_new_init_done(delete_routine); \
   }  /* if */                                                         \
 }  /* determine_deletion_for_throw_before_new_init_done */
 
@@ -4838,7 +4844,7 @@ specification allow a variable-sized array as the top type.
   a_boolean         use_global_new = FALSE;
   a_symbol_ptr      operator_new_symbol, function_symbol, ctor_sym;
   a_symbol_ptr      proj_function_symbol;
-  a_routine_ptr     ctor_routine;
+  a_routine_ptr     ctor_routine, delete_routine = NULL;
   a_boolean         needs_initialization, trapped_left_paren;
   a_boolean         zero_initialization;
   an_expr_node_ptr  arg_expr_list, init_arg_expr_list, init_val_node;
@@ -5173,6 +5179,20 @@ specification allow a variable-sized array as the top type.
     /* Avoid freeing the lists twice. */
     arg_operand_list = NULL;
     arg_match_list = NULL;
+  }  /* if */
+  if (exceptions_enabled
+#if !ABI_CHANGES_FOR_PLACEMENT_DELETE
+      /* When placement delete is not supported do not look for a delete
+         routine. */
+      && !placement_new
+#endif /* !ABI_CHANGES_FOR_PLACEMENT_DELETE */
+                        ) {
+    /* Determine the delete routine to be called if an exception is
+       thrown before the initialization completes. */
+    delete_routine = determine_deletion_for_new(base_new_type,
+                                                function_symbol,
+                                                use_global_new,
+                                                &new_position);
   }  /* if */
   /* If the new routine will be called (and not folded into a constructor),
      the initializer expression is actually inside a conditional expression
