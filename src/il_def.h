@@ -7954,11 +7954,15 @@ typedef struct an_object_lifetime {
 		kind;
 			/* The kind of lifetime this object lifetime entry
 			   represents. */
-  a_byte_boolean
-		has_block_after_label_child_lifetime;
+  a_bit_field	has_block_after_label_child_lifetime:1;
 			/* TRUE if this entry is of kind olk_block or
 			   olk_block_after_label and has a child lifetime of
 			   kind olk_block_after_label. */
+  a_bit_field	has_implicit_child:1;
+			/* TRUE if this entry is the global static object
+			   lifetime and it has children in function scopes
+			   that aren't directly attached to it because of
+			   memory region issues. */
   a_tagged_pointer
 		entity;	/* Entity with which this object lifetime is
 			   associated.  See list of possible kinds above.

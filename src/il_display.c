@@ -3367,6 +3367,9 @@ Display the indicated object lifetime.
   if (ptr->has_block_after_label_child_lifetime) {
     disp_boolean("has_block_after_label_child_lifetime", TRUE);
   }  /* if */
+  if (ptr->has_implicit_child) {
+    disp_boolean("has_implicit_child", TRUE);
+  }  /* if */
   disp_ptr("destructions", (char *)ptr->destructions, iek_dynamic_init);
   disp_ptr("parent_lifetime", (char *)ptr->parent_lifetime,
            iek_object_lifetime);

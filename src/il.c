@@ -195,15 +195,6 @@ Display memory use for based-type fixup entries.
 }  /* db_show_based_type_fixups_used */
 #endif /* DEBUG */
 
-/*
-Flag that is set to TRUE when there are one or more implicit children of the
-lifetime object that is associated with the file scope.  (Its implicit
-children are entries that point to it as a parent but which it does not
-point back to on its child_lifetime list; that is because implicit children
-are in the function scope memory region.)
-*/
-static a_boolean any_function_scope_lifetime_entries;
-
 
 /* Forward declarations needed because of mutual recursion: */
 static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr       dip,
@@ -10577,7 +10568,7 @@ with it.  Entries associated with scopes must also have no child entries.
            useless; the latter point to the file scope as parent_lifetime.
            Explicit children also make the lifetime useful. */
         if (olp->child_lifetime == NULL &&
-            !any_function_scope_lifetime_entries) is_useless = TRUE;
+            !olp->has_implicit_child) is_useless = TRUE;
         break;
       case olk_block:
         do_child_check = TRUE;
@@ -10884,7 +10875,7 @@ lifetime is retained in the IL tree.
       /* This is an object lifetime for a function scope that will remain
          in the IL.  Set the global variable to assure that the file scope
          lifetime entry will be preserved. */
-      any_function_scope_lifetime_entries = TRUE;
+      olp->parent_lifetime->has_implicit_child = TRUE;
     }  /* if */
 #if DEBUG
     if (db_flag_is_set("dump_lifetimes")) {
@@ -12369,7 +12360,6 @@ in il_init.)
       pch_array_saved_var_array_elem(wide_string_types),
       pch_array_saved_var_array_elem(shareable_constants_table),
       pch_saved_var_array_elem(curr_object_lifetime),
-      pch_saved_var_array_elem(any_function_scope_lifetime_entries),
       pch_saved_var_array_elem(based_type_fixup_list),
 #if ORPHAN_PROCESSING_NEEDED
       pch_array_saved_var_array_elem(orphaned_file_scope_il_entries),
@@ -12425,7 +12415,6 @@ in il_init.)
   register_trans_unit_variable(last_scope_orphaned_list_header);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   register_trans_unit_variable(based_type_fixup_list);
-  register_trans_unit_variable(any_function_scope_lifetime_entries);
   register_trans_unit_variable(seq_cache);
   /* Global variables declared in il.h. */
   register_trans_unit_array(orphaned_file_scope_il_entries);
@@ -12510,7 +12499,6 @@ need initialization for every (primary and secondary) translation unit.
           sizeof(orphaned_file_scope_il_entries));
 #endif /* ORPHAN_PROCESSING_NEEDED */
   based_type_fixup_list = NULL;
-  any_function_scope_lifetime_entries = FALSE;
   il_reset();
 }  /* il_trans_unit_init */
 

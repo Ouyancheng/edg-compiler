@@ -2486,6 +2486,7 @@ to it.
   olp->kind                       = kind;
   olp->has_block_after_label_child_lifetime
                                   = FALSE;
+  olp->has_implicit_child         = FALSE;
   olp->destructions               = NULL;
   olp->parent_lifetime            = NULL;
   olp->parent_destruction_sublist = NULL;
