@@ -1,5 +1,18 @@
 Version 3.6
 
+3/3/05   Missing access error on elaborated type specifier reference to
+         an injected class name
+
+The front end failed to issue an access error when an inherited injected
+class name was referenced using an elaborated type specifier.  Now fixed.
+
+  class B { };
+  class D1 : B {};
+  class D2 : private D1 {
+    B b1;		// error issued here
+    class B b2;     // but not here
+  };
+
 3/2/05   C++-generating back end: Declarations of explicit specializations
          of member functions of class templates when
          CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE

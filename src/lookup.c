@@ -3369,8 +3369,10 @@ in a friend declaration.
     }  /* if */
   }  /* if */
   if (assoc_symbol != NULL) {
+    a_boolean	is_injected_class_name;
     /* Make sure that the lookup was not ambiguous. */
     check_for_ambiguity(locator);
+    is_injected_class_name = is_injected_class_symbol(assoc_symbol);
     if (assoc_symbol->is_template_param) {
       a_type_ptr   	tp;
       a_symbol_ptr	new_sym;
@@ -3416,7 +3418,7 @@ in a friend declaration.
         assoc_symbol = NULL;
       }  /* if */
     } else if (assoc_symbol->kind == (a_symbol_kind)sk_type &&
-               !is_injected_class_symbol(assoc_symbol)) {
+               !is_injected_class_name) {
       if (is_friend_decl && gpp_mode  && gnu_version < 30400 &&
           assoc_symbol->is_class_member && is_class_symbol(assoc_symbol)) {
         /* Some versions of g++ allows "class <typedef-name>" when the typedef
@@ -3432,11 +3434,13 @@ in a friend declaration.
     }  /* if */
     if (assoc_symbol == NULL) {
       /* A NULL symbol resulted from an error above. */
-    } else if (assoc_symbol->kind == (a_symbol_kind)sk_type) {
+    } else if (assoc_symbol->kind == (a_symbol_kind)sk_type &&
+               !is_injected_class_name) {
       /* This must be a symbol for a template parameter, and we must be in
          the midst of a prototype instantiation.  Return the symbol that
          was found. */
-    } else if (assoc_symbol->kind != tag_kind &&
+    } else if (!is_injected_class_name &&
+               assoc_symbol->kind != tag_kind &&
                assoc_symbol->decl_scope !=
                         scope_stack[decl_scope_level].number) {
       /* A tag, but it's from another scope and it's the wrong kind of tag
