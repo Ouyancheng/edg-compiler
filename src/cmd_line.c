@@ -1628,6 +1628,11 @@ by a command line option.
     }  /* if */
     single_ref_qual_ovl_res_tiebreaker = (microsoft_bugs &&
                                           microsoft_version < 1300);
+    if (microsoft_version >= 1310) {
+      late_template_ovl_res_tiebreaker = TRUE;
+    } else if (microsoft_version == 1300) {
+      late_template_ovl_res_tiebreaker = FALSE;
+    }  /* if */
     if (!(option_kind_used[(int)optk_nonconst_ref_anachronism])) {
       allow_nonconst_ref_anachronism = TRUE;
     }  /* if */
@@ -2643,6 +2648,8 @@ exclude the GNU modes already.  Hence those are not checked again here.)
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   allow_nonstandard_anonymous_unions = TRUE;
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+  /* Late template test for g++ 3.2, 3.3, and 3.4. */
+  late_template_ovl_res_tiebreaker = FALSE;
 }  /* check_and_set_gnu_mode_options */
 
 

@@ -88,8 +88,10 @@ We were surprised to discover that we had implemented one of the
 sets of rules for selecting the best candidate function in overload
 resolution out of order.  Specifically, the template checks in
 13.3.3 were done after the check on the standard conversion on
-the return type.  Now fixed, except that Microsoft version 1310 and
-above continue to do it the former, nonstandard, way.
+the return type.  This is being raised as a core issue with the
+standards committee, so we're not going to change the EDG behavior
+yet.  However, we have added code to handle this and we select the
+currently-standard behavior for GNU C++ mode and MSVC++ 7.0.
 
   struct C {
     inline operator int () { return 1; }

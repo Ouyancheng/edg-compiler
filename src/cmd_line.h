@@ -1359,6 +1359,20 @@ EXTERN a_boolean
 			   conformance.  Ignored in cfront mode. */
 
 EXTERN a_boolean
+		late_template_ovl_res_tiebreaker
+#if VAR_INITIALIZERS
+                                                 = TRUE
+#endif /* VAR_INITIALIZERS */
+                                                       ;
+			/* TRUE if, in overload resolution tiebreaker
+			   processing, the template vs. non-template test
+			   is to be done after all the other tests.
+			   Currently (Jan. 2005) the standard requires
+			   FALSE, but a core issue is being opened to
+			   discuss it; TRUE makes more sense in certain
+			   ways, and it's what EDG has always done. */
+
+EXTERN a_boolean
 		one_instantiation_per_object
 #if VAR_INITIALIZERS
                                              = FALSE

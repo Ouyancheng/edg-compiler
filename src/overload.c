@@ -4004,13 +4004,7 @@ other.  Return
   int                  cmp = 0;
   a_type_qualifier_set cfp1_type_qualifiers_added = FALSE,
                        cfp2_type_qualifiers_added = FALSE;
-  a_boolean            late_template_test = FALSE;
 
-  if (microsoft_mode && microsoft_version >= 1310) {
-    /* MSVC++ 7.1 and 8.0 do a nonstandard late template test. 7.0 does
-       not, and 6.0 aborts on our test case. */
-    late_template_test = TRUE;
-  }  /* if */
   if (cfp1->is_user_conversion) {
     cfp1_type_qualifiers_added = cfp1->conversion.std.type_qualifiers_added;
     cfp2_type_qualifiers_added = cfp2->conversion.std.type_qualifiers_added;
@@ -4021,7 +4015,7 @@ other.  Return
       (cmp = compare_late_tiebreakers(cfp1, cfp2)) != 0) {
     /* There is something about one argument list that makes it better
        than the other. */
-  } else if (!late_template_test &&
+  } else if (!late_template_ovl_res_tiebreaker &&
              (cmp = compare_template_candidate_functions(cfp1, cfp2)) != 0) {
     /* The fact that one function is a function template and the other
        is not can serve as a tie-breaker. */
@@ -4065,11 +4059,10 @@ other.  Return
       /* cfp2 uses the anachronism and cfp1 doesn't, so cfp1 is better. */
       cmp = 1;
     }  /* if */
-  } else if (late_template_test &&
+  } else if (late_template_ovl_res_tiebreaker &&
              (cmp = compare_template_candidate_functions(cfp1, cfp2)) != 0) {
     /* The fact that one function is a function template and the other
-       is not can serve as a tie-breaker.  This late position for the
-       test is the nonstandard version. */
+       is not can serve as a tie-breaker. */
   }  /* if */
   return cmp;
 }  /* compare_candidate_functions */
