@@ -157,7 +157,7 @@ itself recursively to process classes nested within this class.
   a_routine_ptr			rout;
   a_type_ptr			type;
 
-  db_enter(0, "update_instantiation_required_for_template_class_members");  
+  db_enter(4, "update_instantiation_required_for_template_class_members");  
   ctsp = class_type->variant.class_struct_union.extra_info;
   /* The assoc_scope pointer can be NULL if errors occurred during the
      instantiation of the class. */
