@@ -2372,6 +2372,11 @@ Make the code that will ensure that the file-scope initialization routine
     init_con1->next = init_con2;
     init_con2->next = init_con3;
     aggr_con->variant.aggregate.last_constant  = init_con3;
+#if MAINTAIN_NEEDED_FLAGS
+    /* This is a funny variable that is "needed" by munch even though it
+       is not externally visible. */
+    mark_as_needed((char *)link_var, iek_variable);
+#endif /* MAINTAIN_NEEDED_FLAGS */
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
 #endif /* !USE_INIT_SECTION_IN_GENERATED_C */
