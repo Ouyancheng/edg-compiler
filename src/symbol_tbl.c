@@ -22,6 +22,7 @@ symbol_tbl.c - Symbol table management routines.
 #include "types.h"
 #include "cmd_line.h"
 #include "decls.h"
+#include "decl_inits.h"
 #include "templates.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
