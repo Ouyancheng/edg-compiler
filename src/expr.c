@@ -1241,10 +1241,9 @@ void scan_ctor_arguments(a_symbol_ptr       constructor_sym,
 /*
 Scan the argument list for a C++ constructor call.  The current token is
 the one right after the opening parenthesis of the argument list.  The
-constructor symbol (possibly overloaded) is constructor_sym.  (If
-constructor_sym is NULL, there was an error previously, and the constructor
-is not known.)  Scan the arguments and the closing parenthesis, and return
-the argument list in *arg_expr_list and a pointer to the proper constructor
+constructor symbol (possibly overloaded) is constructor_sym.
+Scan the arguments and the closing parenthesis, and return the
+argument list in *arg_expr_list and a pointer to the proper constructor
 routine in *conversion_routine.  If the proper constructor cannot be
 determined, return NULL.  This routine may be called only in C++ mode.
 It's used for paren-enclosed initializers for classes that have
@@ -1272,10 +1271,7 @@ is being called for a derived class object).
   *conversion_routine = NULL;
   start_position = pos_curr_token;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
-  if (constructor_sym == NULL) {
-    /* There was a previous error. */
-    routine_type = NULL;
-  } else if (constructor_sym->kind == (a_symbol_kind)sk_member_function) {
+  if (constructor_sym->kind == (a_symbol_kind)sk_member_function) {
     /* Constructor is not overloaded.  In this case, the argument types
        can be checked as the argument list is scanned. */
     routine_type = routine_symbol_type(constructor_sym);
@@ -4697,20 +4693,19 @@ type is passed in as type_cast_to.  The result is returned in *result.
   if (is_class_struct_union_type(type_cast_to)) {
     cssp = symbol_supplement_for_class(type_cast_to);
     ctor_sym = cssp->constructor;
-    if (cssp->target_of_conversion_function &&
-        conversion_has_one_argument()) {
-      /* The class has no constructors, there is at least one conversion
-         function from some other class to this one, and the argument list
-         contains a single value, so this is treated as a normal
-         (non-constructor) case.  Note that there might or might not also be
-         a one-argument constructor for the class; if there is, it will
-         be considered along with the conversion function. */
-      ctor_case = FALSE;
-    } else {
-      /* All other cases are treated as constructor cases.  Note that this
-         includes cases where there are no constructors (error is issued
-         below). */
+    if (ctor_sym != NULL) {
+      /* The class has a constructor. */
       ctor_case = TRUE;
+      if (cssp->target_of_conversion_function &&
+          conversion_has_one_argument()) {
+        /* The class has a constructor, there is at least one conversion
+           function from some other class to this one, and the argument list
+           contains a single value, so this is treated as a normal
+           (non-constructor) case.  Note that there might or might not be
+           a one-argument constructor for the class; if there is, it will
+           be considered along with the conversion function. */
+        ctor_case = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Advance past the type keyword or identifier. */
@@ -4721,10 +4716,6 @@ type is passed in as type_cast_to.  The result is returned in *result.
   if (ctor_case) {
     /* Converting to a class type.  The contents of the parentheses are
        arguments for a constructor call. */
-    if (ctor_sym == NULL) {
-      /* Class has no constructors. */
-      pos_ty_error(ec_no_constructor, &lparen_pos, type_cast_to);
-    }  /* if */
     scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine, &lparen_pos,
 			type_cast_to);
     error_position = start_position;
