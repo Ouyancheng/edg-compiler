@@ -9336,14 +9336,19 @@ specific version of the template.
                       (a_symbol_ptr)assoc_namespace->source_corresp.assoc_info;
       ssep->assoc_pointers_block =
                      &sym->variant.namespace_info.extra_info->pointers_block;
-      if (assoc_namespace->source_corresp.name == NULL ||
-          scope_stack[depth_innermost_namespace_scope].
-                                            within_unnamed_namespace) {
-        ssep->within_unnamed_namespace = TRUE;
+      if (kind != (a_scope_kind)sck_namespace_reactivation) {
+        /* If this is a namespace scope that affects the declarative level
+           (i.e., not just a reactivation) update the information about
+           the current namespace. */
+        if (assoc_namespace->source_corresp.name == NULL ||
+            scope_stack[depth_innermost_namespace_scope].
+                                              within_unnamed_namespace) {
+          ssep->within_unnamed_namespace = TRUE;
+        }  /* if */
+        /* Maintain the depth of the innermost namespace scope. */
+        depth_innermost_namespace_scope =
+              ssep->depth_innermost_namespace_scope = depth_scope_stack;
       }  /* if */
-      /* Maintain the depth of the innermost namespace scope. */
-      depth_innermost_namespace_scope =
-            ssep->depth_innermost_namespace_scope = depth_scope_stack;
     }  /* if */
     if (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_template_instantiation ||
