@@ -2354,19 +2354,24 @@ void arg_default_promote_operand(an_operand *argument_operand)
 Do default argument promotions on an argument operand.
 */
 {
+  a_type_ptr arg_type;
+
   /* Convert the operand to an rvalue if necessary. */
   do_operand_transformations(argument_operand, TOPT_NO_OPTIONS);
+  arg_type = argument_operand->type;
   /* Do the integral promotions part of the default argument promotions
      directly on the operand because of the special case with 
      bit-fields (which can't be handled from just the type). */
-  if (is_integral_type(argument_operand->type)) {
+  if (is_integral_type(arg_type)) {
     promote_operand(argument_operand);
-  } else if (is_incomplete_type(argument_operand->type)) {
+  } else if (is_incomplete_type(arg_type)) {
     /* Catch a case like "f((void)2)" -- an argument with an incomplete
        type is not allowed. */
     error_in_operand(ec_incomplete_type_not_allowed, argument_operand);
+  } else if (is_class_struct_union_type(arg_type)) {
+    /* Class.  No promotion needed. */
   } else {
-    cast_operand(default_argument_promotion(argument_operand->type),
+    cast_operand(default_argument_promotion(arg_type),
                  argument_operand, /*check_cast_access=*/TRUE,
                  /*is_implicit_cast=*/TRUE);
   }  /* if */
