@@ -772,9 +772,6 @@ source file's compilation.
   debug_level = save_debug_level;
 #endif /* DEBUG */
 
-  /* Create constants representing the recognized name linkages. */
-  init_name_linkage_constants();
-
   il_header.plain_chars_are_signed = targ_has_signed_chars;
 #ifdef FIL
   il_header.one_trip_do_loops = FALSE;
@@ -1062,7 +1059,12 @@ when it is a secondary file.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (!is_primary_translation_unit) {
+  if (is_primary_translation_unit) {
+    /* We have to wait until now to create name linkage constants to
+       ensure that the builtin types that are created for them do not
+       get lost because of the per-translation-unit initializations above. */
+    init_name_linkage_constants();
+  } else {
     /* Preprocessing output cannot be generated for secondary translation
        units. */
     f_pp_output = NULL;
