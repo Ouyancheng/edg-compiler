@@ -3832,7 +3832,10 @@ this one is such a continuation.
           !(type->source_corresp.is_class_member ||
             type->source_corresp.is_local_to_function)) {
           /* The typedef definition is surrounded by an extern "C" block. */
-          write_tok_str("extern \"C\" { ");
+          if (!suppress_specifiers) {
+            /* Don't repeat extern "C" for every declarator. */
+            write_tok_str("extern \"C\" { ");
+          }  /* if */
           /* Force matching "}" to be output later */
           need_extern_C_closing_brace = TRUE;
         }  /* if */
@@ -3880,7 +3883,7 @@ this one is such a continuation.
     if (!suppress_closing_punct) {
       write_end_of_declaration_punctuation(*another_decl_in_comma_list);
     }  /* if */
-    if (need_extern_C_closing_brace) {
+    if (need_extern_C_closing_brace && !*another_decl_in_comma_list) {
       write_tok_ch('}');
     }  /* if */
     if (need_to_unset_typedefs) {
