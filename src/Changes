@@ -1,5 +1,23 @@
 Version 2.42
 
+6/29/99 #line directives in preprocessed output in presence of line splices
+
+In some cases involving line splices (lines continued using "\"), the
+textual preprocessed output produced by the front end lost line
+synchronization following output of a #line directive.  Now fixed.
+
+  int i;
+  #if 0
+
+
+
+
+
+
+  #endif
+  int \
+  j;
+
 6/29/99  Position on IL for initialization of extern inline local static
 
 The IL assignment statement generated to do initialization of a local

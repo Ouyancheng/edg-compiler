@@ -2105,17 +2105,18 @@ and return a pointer to it.
 
 
 /*ARGSUSED*/ /* <-- because "kind" is not used in some versions. */
-void gen_pp_line_info(char kind,
-		      int  increment)
+void gen_pp_line_info(char      kind,
+                      a_boolean next_line)
 /*
 Write a line-identification directive to f_pp_output as part of preprocessor
-output.  It should identify the current line plus "increment" lines.
-The kind character is the third operand: '1' for entry into a file,
-'2' for exit from a file, and ' ' for anything else.  This routine should
-only be called when generate_pp_output is TRUE.
+output.  It should identify the current line, or the line following the
+current line if next_line is TRUE.  The kind character is the third operand:
+'1' for entry into a file, '2' for exit from a file, and ' ' for anything
+else.  This routine should only be called when generate_pp_output is TRUE.
 */
 {
-  char *p;
+  char          *p;
+  a_line_number eff_line_number;
 
   if (gen_line_info_in_pp_output) {
     /* Put out a line-identifying directive.  The form is
@@ -2134,8 +2135,18 @@ only be called when generate_pp_output is TRUE.
       fputc('#', f_pp_output);
     }  /* if */
     /* Put out the line number. */
-    fprintf(f_pp_output, " %lu \"",
-                           (a_line_number)(curr_ise->line_number+increment));
+    eff_line_number = curr_ise->line_number;
+    if (next_line) {
+      /* Identify the line after the current one. */
+      eff_line_number++;
+    } else {
+      /* Identify the current line.  Note that curr_ise->line_number is the
+         number of the last line read, which will be the number of the last
+         physical line when a logical line is continued using backslashes.
+         In such a case, get the number of the first line. */
+      eff_line_number -= seq_number_last_read - curr_seq_number;
+    }  /* if */
+    fprintf(f_pp_output, " %lu \"",  (unsigned long)eff_line_number);
     /* Put out the file name.  For ANSI/ISO output, add escapes as
        necessary. */
     for (p = curr_ise->file_name; *p != '\0'; p++) {
@@ -2155,7 +2166,16 @@ only be called when generate_pp_output is TRUE.
     }  /* if */
 #endif /* GEN_EXTRA_LINE_ID_INFO */
     fputc('\n', f_pp_output);
-    next_seq_in_pp_output = curr_seq_number + increment;
+    /* Remember the sequence number associated with the current pp output
+       position.  When the current logical source line is continued using
+       backslashes, curr_seq_number gives the sequence number of the
+       first line and seq_number_last_read gives the sequence number of
+       the last line. */
+    if (next_line) {
+      next_seq_in_pp_output = seq_number_last_read + 1;
+    } else {
+      next_seq_in_pp_output = curr_seq_number;
+    }  /* if */
   }  /* if */
 }  /* gen_pp_line_info */
 
@@ -2263,7 +2283,7 @@ is TRUE.
         }  /* while */
       } else {
         /* Larger skip; put out a line-identifying directive. */
-        gen_pp_line_info(' ', 0);
+        gen_pp_line_info(' ', /*next_line=*/FALSE);
       }  /* if */
     }  /* if */
     /* Put out the previous line itself.  The text in curr_source_line
@@ -3486,9 +3506,9 @@ files included from directories marked as system include directories.
     /* The entry into the primary source file should not be tagged with
        "1"; that's the way cpp does it. */
     if (depth_input_stack == 0) {
-      gen_pp_line_info(' ', 1);
+      gen_pp_line_info(' ', /*next_line=*/TRUE);
     } else {
-      gen_pp_line_info('1', 1);
+      gen_pp_line_info('1', /*next_line=*/TRUE);
     }  /* if */
   }  /* if */
   /* If generating raw listing output (for input to a program that will
@@ -3679,7 +3699,7 @@ at the next level down.
     /* If generating preprocessing output, put out a line-identifying
        directive for the new file. */
     if (generate_pp_output) {
-      gen_pp_line_info('2', 1);
+      gen_pp_line_info('2', /*next_line=*/TRUE);
     }  /* if */
     /* If generating raw listing information (for input to a program that
        will generate an interspersed listing), put out line information. */
