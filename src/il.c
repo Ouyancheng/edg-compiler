@@ -6436,12 +6436,16 @@ a set of options for the copy.
           }  /* if */
         }  /* if */
 #endif /* MINIMAL_INLINING */
+        check_assertion_str(expr->variant.object_lifetime.ptr != NULL,
+                      "copy_expr_tree: enk_object_lifetime has NULL lifetime");
         push_object_lifetime(iek_none, (char *)NULL,
                              expr->variant.object_lifetime.ptr->kind);
         expr_copy->variant.object_lifetime.expr =
                              copy_expr_tree(expr->variant.object_lifetime.expr,
                                             options);
         expr_copy->variant.object_lifetime.ptr = NULL;
+        check_assertion_str(curr_object_lifetime != NULL,
+                            "copy_expr_tree: curr_object_lifetime is NULL");
         bind_object_lifetime(curr_object_lifetime, iek_expr_node,
                              (char *)expr_copy);
         (void)pop_object_lifetime();
