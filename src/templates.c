@@ -8993,6 +8993,9 @@ initially used when processing the declaration of a partial specialization.
   prototype_type->variant.class_struct_union.is_prototype_instantiation = TRUE;
   prototype_type->variant.class_struct_union.is_nonreal_class = TRUE;
   prototype_cssp->template_info = tssp;
+  /* Call a routine that manages the correspondence of entities between
+     translation units to notify it of the new instance. */
+  record_instantiation(prototype_sym, tssp);
 }  /* create_prototype_type */
 
 

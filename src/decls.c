@@ -26,6 +26,7 @@ decls.c -- Scanning of declarations.
 
 /* Additional header files. */
 #include "statements.h"
+#include "trans_corresp.h"
 #if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -6017,6 +6018,9 @@ is a template specialization declaration.
                           (storage_class == (a_storage_class)sc_extern) ?
                                 (a_name_linkage_kind)nlk_cplusplus_external :
                                 (a_name_linkage_kind)nlk_internal;
+    /* Call a routine that manages the correspondence of entities between
+       translation units to notify it of the new instance. */
+    record_instantiation(prototype_sym, tssp);
     if (prototype_instantiations_in_il && !locator->is_error) {
       /* Normally, we let add_to_routines_list determine which scope to add
          the routine to, but for proxy members nominated in friends, that
