@@ -820,7 +820,6 @@ This routine is called in C++ mode only.
         init_context->end_of_constant_list->next = cp;
       }  /* if */
       init_context->end_of_constant_list = cp;
-      init_done = TRUE;
       /* Continue looping only if there are other constructible fields that
          remain uninitialized. */
       if (found_constructible_field) {
@@ -834,6 +833,8 @@ This routine is called in C++ mode only.
         }  /* if */
       }  /* if */
     }  /* for */
+    init_done = TRUE;
+    init_context->any_dynamic_initialization = TRUE;
   }  /* if */
   db_exit();
   return init_done && !incomplete_value_init;
@@ -2075,7 +2076,6 @@ this function points to a tree that includes a dynamic-init entry.
             if (init_remaining_fields(init_info, &context)) {
               curr_field = context.field;
               if (curr_field == NULL) any_more_members = FALSE;
-              context.any_dynamic_initialization = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */
