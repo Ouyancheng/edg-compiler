@@ -7127,7 +7127,9 @@ NULL.
   }  /* switch */
 #if CHECKING
   if (scp != NULL &&
-      (sym->class_of_which_a_member != scp->class_of_which_a_member)) {
+      sym->class_of_which_a_member != scp->class_of_which_a_member &&
+      scp->class_of_which_a_member->variant.class_struct_union.extra_info->
+                   anonymous_union_kind == (an_anonymous_union_kind)auk_none) {
     internal_error("end_of_scope_symbol_check: bad class_of_which_a_member");
   }  /* if */
 #endif /* if */
