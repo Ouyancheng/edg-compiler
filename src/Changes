@@ -1,5 +1,22 @@
 Version 3.6
 
+3/17/05  GNU C++ compatibility: Nonstandard anonymous union fields
+
+GNU C++ compiler impose the same constraints on the fields of nonstandard
+anonymous unions (which aren't really unions) as on the fields of ordinary
+(named or unnamed) unions.  The front end now imposes the same constraints
+in GNU C++ mode (but the errors are discretionary).  For example:
+
+  struct S { S(); };
+  struct N {
+    struct { // Nonstandard anonymous union.
+      S s;   // Now a discretionary error in GNU C++ mode (still accepted
+    };       // in, e.g., Microsoft C++ mode).
+  };
+
+(Nonstandard anonymous union are an extension accepted in certain modes when
+ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE.)
+
 3/17/05  Diagnostic on macro redefinitions with named variadic parameter
 
 In modes allowing named variadic macros (e.g., GNU modes), the front end
@@ -757,22 +774,6 @@ explicitly written as float (i.e., with an "F" suffix) were incorrectly not
 given this special treatment.  Now fixed.
 
   float f() { return 1.0e+40F; }
-
-2/2/05   Nonstandard anonymous unions in unions
-
-The fields of a nonstandard anonymous union appearing in a union are in most
-ways members of the enclosing union.  We now therefore impose the restrictions
-of union fields on such fields.  For example:
-
-  struct S { S(); };
-  union U {
-    struct {
-      S s;  // Error: Union fields cannot have a constructor.
-    };
-  };
-
-(Nonstandard anonymous union are an extension accepted in certain modes when
-ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE.)
 
 2/2/05   GNU C compatibility: Incompatible block-extern declarations
 

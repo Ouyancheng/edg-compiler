@@ -8432,6 +8432,7 @@ TRUE if a const object can be copied.
 
 
 static a_boolean is_valid_union_field(a_type_ptr        field_type,
+                                      a_boolean         is_nonstd,
                                       a_source_position *pos)
 /*
 Nonstatic data members of a union may not be objects with a constructor,
@@ -8470,7 +8471,20 @@ FALSE .
       severity = cfront_2_1_mode ? es_warning : es_error;
     }  /* if */
     if (severity != es_none) {
-      pos_ty_diagnostic(severity, ec_bad_union_field, pos, tp);
+      an_error_code  err_code;
+      if (is_nonstd) {
+        err_code = ec_bad_nonstd_anonymous_union_field;
+        if (severity == es_error) {
+          /* The constraints for union fields are not really needed for
+             nonstandard anonymous unions (GNU C++ imposes the constraints,
+             but Microsoft C++ doesn't).  So at most a discretionary error
+             should be issued. */
+          severity = es_discretionary_error;
+        }  /* if */
+      } else {
+        err_code = ec_bad_union_field;
+      }  /* if */
+      pos_ty_diagnostic(severity, err_code, pos, tp);
     }  /* if */
   }  /* if */
 
@@ -8568,17 +8582,16 @@ promotion is for a nonstandard anonymous union.
   a_field_ptr   field = sym->variant.field.ptr;
   a_boolean     suppress_reenter_symbol_call = FALSE;
  
-  if (is_nonstd && class_type->kind == (a_type_kind)tk_union &&
-      !is_valid_union_field(field->type,
+  if (is_nonstd && gpp_mode &&
+      !is_valid_union_field(field->type, /*is_nonstd=*/TRUE,
                             &field->source_corresp.decl_position)) {
-    /* There is nothing to do because is_valid_union_field already issued the
-       diagnostic.  We can continue with the recorded type in error recovery
-       mode even though it is not a valid type for a union field (it doesn't
-       matter to the front end, and the back end won't be called).  This test
-       was already done for standard anonymous (and named unions), but for
-       nonstandard unions it had to wait until the lack of a declarator
-       determined that this is in fact a nonstandard anonymous union and even
-       then only when the promotion is to a union type. */
+    /* GNU C++ compilers apply the same constraints to nonstandard anonymous
+       unions (which aren't really unions) as to ordinary unions.  There is
+       nothing to do because is_valid_union_field already issued the
+       diagnostic.  This test was already done for standard anonymous (and
+       named unions), but for nonstandard unions it had to wait until the lack
+       of a declarator determined that this is in fact a nonstandard anonymous
+       union. */
   }  /* if */
   if (reuse_symbol) {
     /* Unlink the symbol from the inactive list and link it back into
@@ -9760,7 +9773,8 @@ non-NULL, *p_ms_attributes is returned NULL.
       !decl_info->is_anonymous_union) {
     /* An object of a class with a constructor, a destructor, or a user-
        defined assignment operator cannot be a member of a union. */
-    if (!is_valid_union_field(member_type, &locator->source_position)) {
+    if (!is_valid_union_field(member_type, /*is_nonstd=*/FALSE,
+                              &locator->source_position)) {
       member_type = error_type();
     }  /* if */
   }  /* if */
