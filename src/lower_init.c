@@ -10179,8 +10179,12 @@ and members, if necessary, and put it in a new block unattached to the
 IL tree.  Set dtor_info->epilogue_block to point to the block, or
 NULL if no block was needed.  If any code is needed preceding the user
 code in the destructor, insert it at *prologue_insert_location.
-*dtor_info is used to pass information between this function and
-lower_destructor_code and insert_dtor_member_and_base_destructions.
+In particular, code will be inserted there to establish the current
+cleanup state for the start of the user-written code in the
+destructor, so the insert position should be right before the
+user-written code.  *dtor_info is used to pass information between
+this function and lower_destructor_code and
+insert_dtor_member_and_base_destructions.
 */
 {
   a_routine_ptr          dtor_routine =
