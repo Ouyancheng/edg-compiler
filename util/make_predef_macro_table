@@ -6,6 +6,38 @@
 #
 # The output is a file named "predefined_macros.txt" in the current directory.
 #
+# This script is used to create a file that is used by the EDG C++ front end
+# to specify the macros that should be predefined.  The script should be run
+# from the $EDG_BASE/lib directory.
+#
+# The format of the entries in the file is:
+# 
+# mode,!mode,mode   cannot_redefine   macro_name   macro_value
+# 
+# - "mode" is a label from the predefined macro modes table.  The macro is
+#   defined if the mode is set, or if the mode is not set when "!mode" is
+#   used.  The macro is defined if any of the mode tests is TRUE.  The set
+#   of mode values is specified in host_envir.h.
+# 
+# - cannot_redefine indicates whether the predefined macro may later be
+#   redefined.  The value must be "yes" or "no".
+# 
+# - macro_name is the name of the macro to be defined.
+# 
+# - macro_value is the value to which the macro should be defined.  All of
+#   the characters until the end of the line are used as the macro value.
+# 
+# For example:
+# 
+# gcc no  __GXX_ABI_VERSION 102
+# gpp no  __DBL_DENORM_MIN__ 4.9406564584124654e-324
+# gnu no  __GNUC_PATCHLEVEL__ 0
+# 
+# The file may also contain comments (lines that begin with a #) and
+# empty lines.  The fields of each line are separated by white space.
+# The DEFAULT_USE_PREDEFINED_MACRO_FILE macro specifies whether or not
+# a predefined macro file should be used.
+
 
 #
 # Invoke the gcc/g++ compiler to get a list of the predefined macros
