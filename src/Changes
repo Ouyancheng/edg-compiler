@@ -1,5 +1,15 @@
 Version 2.30
 
+8/24/95  Spurious assertion failure
+
+An assertion check, which could have been tripped after an error (but
+only when GENERATE_SOURCE_SEQUENCE_LISTS was TRUE), has been removed
+from decl_variable.  For example:
+
+  int i;
+  typedef int i;
+  int i;               // No longer aborts
+
 8/24/95  IL CHANGE: Two placeholder typeref flags renamed
 
 Two flags indicating placeholder typerefs (used mostly by the C-generating
