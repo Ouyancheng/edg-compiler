@@ -1280,6 +1280,15 @@ of the front end.
   num_mapped_bytes_from_pch = 0;
 #endif /* DEBUG */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  if (index_for_il_file !=  NULL) {
+    /* This pointer will be non-NULL on all but the first compilation when
+       multiple translation units are being processed.  Clear the array of
+       values left over from a previous compilation. */
+    memzero((char *)index_for_il_file,
+            size_t_arg((size_of_mem_region_table)*sizeof(a_file_position)));
+  }  /* if */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Initialize the memory region for general front end storage. */
   init_memory_region(NULL_region_number, (sizeof_t)0);
   /* Initialize the memory region for file scope IL information. */
