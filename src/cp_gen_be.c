@@ -5493,7 +5493,9 @@ declaration or definition.
          not allowed. */
       !(is_definition ? (rout == il_header.main_routine) :
                         (rout->source_corresp.name != NULL &&
-                         strcmp(rout->source_corresp.name, "main") == 0))) {
+                         strcmp(rout->source_corresp.name, "main") == 0)) &&
+      /* Don't put it out on a friend either. */
+      !friend_decl) {
     write_tok_str("extern \"C\" ");
   } else {
     /* Put out the storage class determined above. */
