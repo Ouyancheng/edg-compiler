@@ -1919,7 +1919,8 @@ Return "size" adjusted as needed to be a multiple of the system page size.
 
 a_void_ptr map_file_region(FILE		*file,
                            sizeof_t	curr_size,
-		           sizeof_t	incremental_size)
+		           sizeof_t	incremental_size,
+			   long		file_offset)
 /*
 Expand a memory mapped file.  This routine assumes that curr_size bytes
 have already been allocated and mapped, and that incremental_size bytes
@@ -1948,11 +1949,11 @@ page size.
       addr = (a_void_ptr)mmap(map_address,
                               incremental_size,
                               PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_FIXED,
-                              fd, (off_t)curr_size);
+                              fd, (off_t)file_offset);
 #else /* !USE_FIXED_ADDRESS_FOR_MMAP */
       addr = (a_void_ptr)mmap((char*)0, incremental_size + 1,
                               PROT_WRITE | PROT_READ, MAP_PRIVATE,
-                              fd, (off_t)curr_size);
+                              fd, (off_t)file_offset);
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 #if DEBUG
       if (debug_level >= 4) {

@@ -325,10 +325,19 @@ static a_boolean
 			   opened. */
 
 static sizeof_t	mmap_size_allocated;
-			/* The number of bytes allocated to the mmap file. */
+			/* The number of bytes of mapped memory that have
+			   been allocated.  This is usually the same as
+			   mmap_file_offset, except when a precompiled
+			   header file is in use.  The memory mapped from
+			   the PCH file is included in mmap_size_allocated,
+			   but not in mmap_file_offset. */
 
 static FILE*	f_mmap_file;
 			/* The file descriptor for the mmap file. */
+
+static long	mmap_file_offset;
+			/* The offset into the mmap file of the next block
+			   to be allocated. */
 
 void record_mapped_mem_block(a_void_ptr	addr,
 			     sizeof_t	size)
@@ -376,6 +385,7 @@ Unmap the memory blocks that have been mapped.
   /* Reset the number of bytes allocated in the memory mapped file so that
      any new allocations will start over from the beginning of the file. */
   mmap_size_allocated = 0;
+  mmap_file_offset = 0;
 }  /* free_mapped_mem_blocks */
 
 
@@ -398,12 +408,15 @@ PCH was created.
     check_assertion(f_mmap_file != NULL);
     mmap_size_allocated = 0;
     mmap_initialized = TRUE;
+    mmap_file_offset = 0;
   }  /* if */
-  addr = map_file_region(f_mmap_file, mmap_size_allocated, size);
+  addr = map_file_region(f_mmap_file, mmap_size_allocated, size,
+                         mmap_file_offset);
   if (addr == NULL) {
     catastrophe(ec_unable_to_get_mapped_memory);
   }  /* if */
   mmap_size_allocated += size;
+  mmap_file_offset += size;
   /* Record this allocation in the memory allocation history array. */
   add_mem_alloc_history_entry(addr, size);
   /* The number of entries actually used is always the same as the
@@ -1051,6 +1064,8 @@ usage counts in other files.
                    num_mapped_bytes_allocated);
   fprintf(f_debug, "%25s %8s %8s %8lu (included in previous line)\n",
           "Mapped from PCH", "", "", num_mapped_bytes_from_pch);
+  fprintf(f_debug, "%25s %8s %8s %8ld\n",
+          "Mapped IL file size", "", "", mmap_file_offset);
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
   if (precompiled_header_processing_required) {
     fprintf(f_debug, "%25s %8s %8s %8lu\n",
