@@ -175,13 +175,17 @@ in the current IL walk.
   } else if (trans_unit_copy_address_of(ptr) != NULL) {
     /* A copy address has already been assigned to this entry. */
   } else {
-    a_source_correspondence_ptr  scp;
-    a_trans_unit_corresp_ptr     tucp = NULL;
-    /* See whether the entry has a source correspondence field.
-       If it does, it may correspond to something in another translation
-       unit. */
-    scp = source_corresp_for_il_entry(ptr, kind);
-    if (scp != NULL) tucp = scp->trans_unit_corresp;
+    a_trans_unit_corresp_ptr tucp = NULL;
+    /* See whether the entry corresponds to something in another
+       translation unit. */
+    if (kind == iek_base_class) {
+      tucp = ((a_base_class_ptr)ptr)->trans_unit_corresp;
+    } else {
+      /* See whether the entry has a source correspondence field, which
+         may provide correspondence information. */
+      a_source_correspondence_ptr scp = source_corresp_for_il_entry(ptr, kind);
+      if (scp != NULL) tucp = scp->trans_unit_corresp;
+    }  /* if */
     if (tucp != NULL && tucp->canonical != ptr) {
       /* This entry is in a correspondence set but it's not the canonical
          entry.  Set the copy address on the canonical entry and then use
@@ -480,6 +484,7 @@ and remap the pointers in the copy.
     scp = source_corresp_for_il_entry(copy, kind);
 #endif /* MAINTAIN_NEEDED_FLAGS */
   } else {
+    a_trans_unit_corresp_ptr tucp = NULL;
     copy = checked_trans_unit_copy_address_of(ptr);
     check_assertion_str(copy != NULL, "copy_entry: NULL copy address pointer");
     /* Copy the entry to its corresponding space and remap the pointers
@@ -488,17 +493,21 @@ and remap the pointers in the copy.
     remap_pointers_in_il_entry(copy, kind,
                                remap_secondary_ptr_to_primary,
                                remap_secondary_list_ptr_to_primary);
-    scp = source_corresp_for_il_entry(copy, kind);
-    if (scp != NULL) {
-      a_trans_unit_corresp_ptr tucp = scp->trans_unit_corresp;
-      if (tucp != NULL && !in_secondary_trans_unit(copy)) {
-        /* This entry is the canonical one, so update the canonical pointer
-           to point to the copy in the primary IL.  For the "merge" case,
-           the overwrite_primary_xxx routine updates the canonical pointer. */
-        check_assertion(tucp->canonical == ptr);
-        tucp->canonical = copy;
+    if (kind == iek_base_class) {
+      tucp = ((a_base_class_ptr)ptr)->trans_unit_corresp;
+    } else {
+      scp = source_corresp_for_il_entry(copy, kind);
+      if (scp != NULL) {
+        tucp = scp->trans_unit_corresp;
+        scp->copied_from_secondary_trans_unit = TRUE;
       }  /* if */
-      scp->copied_from_secondary_trans_unit = TRUE;
+    }  /* if */
+    if (tucp != NULL && !in_secondary_trans_unit(copy)) {
+      /* This entry is the canonical one, so update the canonical pointer
+         to point to the copy in the primary IL.  For the "merge" case,
+         the overwrite_primary_xxx routine updates the canonical pointer. */
+      check_assertion(tucp->canonical == ptr);
+      tucp->canonical = copy;
     }  /* if */
 #if DEBUG
     if (db_trace("trans_copy", ptr, kind)) {
