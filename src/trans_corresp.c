@@ -1323,10 +1323,17 @@ other entities.  (Not significant in C mode: C enumerators have no linkage.)
       for (; sym != NULL; sym = sym->next) {
         if (sym->decl_scope != NO_SCOPE_NUMBER &&
             trans_unit_for_symbol(sym) != trans_unit &&
-            may_have_correspondence(sym) &&
             same_parents(sym, enum_sym)) {
-          f_report_bad_trans_unit_corresp((char*)enumerator,
-                                          &sym->decl_position);
+          if (may_have_correspondence(sym)) {
+            f_report_bad_trans_unit_corresp((char*)enumerator,
+                                            &sym->decl_position);
+          } else {
+            a_source_correspondence_ptr  scp =
+                                         source_corresp_entry_for_symbol(sym);
+            if (scp != NULL && !in_secondary_trans_unit(scp)) {
+              scp->same_name_as_external_entity_in_secondary_trans_unit = TRUE;
+            }  /* if */
+          }  /* if */
         }  /* if */
       }  /* for */
     }  /* for */
