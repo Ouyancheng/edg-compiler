@@ -1007,6 +1007,13 @@ caution when modifying this routine.
          curr_scope_id_lookup will return ::A only, whereas normal_id_lookup
          will return a projection symbol that informs of the ambiguity. */
       tag_sym = curr_scope_id_lookup(locator, IDL_MUST_BE_TAG);
+      if (tag_sym != NULL && is_injected_class_symbol(tag_sym)) {
+        /* Ignore an injected class symbol, which would found for this sort
+           of case:
+             struct A { struct A { ... }; };
+        */
+        tag_sym = NULL;
+      }  /* if */
     }  /* if */
     if (is_tag_definition) {
       if (tag_sym != NULL) {
