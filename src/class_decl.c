@@ -418,8 +418,11 @@ routine recursively for each nested class.
           tssp->token_cache = rfp->function_body_token_cache;
           clear_token_cache(&rfp->function_body_token_cache,
                            /*reusable=*/TRUE);
-          /* Also copy the func_info block. */
+          /* Also copy the func_info block.  Null out the param-id pointer
+             in the fixup entry so that the list won't be freed when
+             free_routine_fixup is called. */
           tssp->variant.function.func_info = rfp->func_info;
+          rfp->func_info.param_id_list = NULL;
         } else {
           /* Normal case. */
           /* Let get_token know about the cache. */
