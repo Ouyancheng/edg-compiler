@@ -5218,6 +5218,7 @@ class/struct/union is actually defined.
                           cssp;
   a_scope_depth           effective_decl_level = decl_scope_level;
   a_boolean               is_anonymous_union;
+  an_expr_node_ptr        dim_expr_ptr;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -5713,8 +5714,8 @@ class/struct/union is actually defined.
             declarator(declarator_input_flags, &declarator_output_flags,
                        member_type,
                        friend_specified ? (a_type_ptr)NULL : class_type,
-                       &locator,
-                       &local_type, &bottom_derived_type, &func_info);
+                       &locator, &local_type, &bottom_derived_type,
+                       &func_info, &dim_expr_ptr);
             if (C_dialect == C_dialect_cplusplus) {
               /* Abstract class objects are prohibited (ARM 10.3). */
               if (member_storage_class != (a_storage_class)sc_typedef &&
