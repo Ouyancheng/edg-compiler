@@ -5160,7 +5160,7 @@ enum an_expr_operator_kind_tag {
   eok_ppre_incr,        /* Pointer pre increment. */
   eok_ppre_decr,        /* Pointer pre decrement. */
   eok_lvalue_from_struct_rvalue,
-			/* C mode only: placed above an an expression that
+			/* C mode only: placed above an expression that
 			   is a struct rvalue, produces the address of the
 			   struct (this can be implemented by storing the
 			   value in a temporary and returning the address of
