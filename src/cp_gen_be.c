@@ -6322,6 +6322,8 @@ TRUE if the declaration following this one is such a continuation.
   a_routine_type_supplement_ptr rtsp;
   a_boolean                     is_specialization;
   a_function_state              state;
+  a_boolean                     decl_within_function =
+                                            (innermost_function_scope != NULL);
 
   *another_decl_in_comma_list = FALSE;
   /* Note that compiler-generated routines don't appear on the source sequence
@@ -6454,11 +6456,11 @@ TRUE if the declaration following this one is such a continuation.
          declared extern inside functions. */
       if (storage_class == (a_storage_class)sc_unspecified ||
           (storage_class == (a_storage_class)sc_static &&
-           innermost_function_scope != NULL)) {
+           decl_within_function)) {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
       if (storage_class == (a_storage_class)sc_extern &&
-          innermost_function_scope != NULL) {
+          decl_within_function) {
         /* Extern within a function.  Clear the global_qualification_needed
            flag in the entity to suppress leading "::" on references. */
         if (rout->source_corresp.global_qualification_needed) {
@@ -6486,7 +6488,7 @@ TRUE if the declaration following this one is such a continuation.
         !friend_decl &&
         /* Inside a function, this is not allowed, and can only have come from
            an extern "C" { ... } wrapped around the function. */
-        innermost_function_scope == NULL) {
+        !decl_within_function) {
       write_tok_str("extern \"C\" ");
     } else {
       /* Put out the storage class determined above. */
