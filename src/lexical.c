@@ -23,6 +23,7 @@ and parsing of them into tokens.
 #include "trans_lims.h"
 #include "host_envir.h"
 #include "cmd_line.h"
+#include "debug.h"
 #include "mem_manage.h"
 #include "symbol_tbl.h"
 #include "macro.h"
@@ -235,6 +236,7 @@ static unsigned long
 		num_orig_line_modifs_allocated,
 		num_source_line_modifs_allocated,
 		num_cached_tokens_allocated,
+                num_cached_tokens_in_reusable_caches,
 		num_cached_constants_allocated,
 		num_reusable_cache_entries_allocated,
 		num_access_error_descrs_allocated;
@@ -331,7 +333,8 @@ compilation, not once per translation unit.
 #endif /* if 0 */
 
 
-void clear_token_cache(a_token_cache *cache)
+void clear_token_cache(a_token_cache *cache,
+		       a_boolean     reusable)
 /*
 Initialize a token cache, presumably so tokens can be added to it.
 */
@@ -339,6 +342,10 @@ Initialize a token cache, presumably so tokens can be added to it.
   cache->first_token = NULL;
   cache->last_token  = NULL;
   clear_lint_and_pragma_state(&cache->lint_and_pragma_state);
+  cache->is_reusable = reusable;
+#if DEBUG
+  cache->count = 0;
+#endif /* DEBUG */
 }  /* clear_token_cache */
 
 
@@ -417,8 +424,24 @@ Allocate a cached constant entry.  Reuse a freed entry if possible.
 
 
 /*
+Macro used to update the counter of tokens used in reusable caches
+and the number of tokens used in the given cache.
+When debugging code is not being generated the macro expands to nothing.
+*/
+#if DEBUG
+#define incr_tokens_in_cache(cache)					\
+  if (cache->is_reusable) {						\
+    num_cached_tokens_in_reusable_caches++;				\
+  }  /* if */								\
+  cache->count++;
+#else /* !DEBUG */
+#define incr_tokens_in_cache(cache)  /* */
+#endif /* DEBUG */
+
+
+/*
 Add the cached token pointed to by ctp to the end of the token cache
-pointed to by cache.
+pointed to by cache.  
 */
 #define add_cached_token_to_cache(ctp, cache)                         \
 { if (cache->first_token == NULL) {                                   \
@@ -427,6 +450,7 @@ pointed to by cache.
     cache->last_token->next = ctp;                                    \
   }  /* if */                                                         \
   cache->last_token = ctp;                                            \
+  incr_tokens_in_cache(cache);					      \
 }  /* add_cached_token_to_cache */
 
 
@@ -675,6 +699,16 @@ in the cache, nothing is done.
   a_lint_and_pragma_state laps;
 
   db_enter(4, "rescan_cached_tokens");
+#if DEBUG
+  /* This cache was marked as reusable but is now being destructively
+     rescanned.  Update the count of reusable cached tokens. */
+  if (cache->is_reusable) {
+    /* Reset the flag so that any tokens added to the cache (as is done
+       later in this routine) won't be considered reusable. */
+    cache->is_reusable = FALSE;
+    num_cached_tokens_in_reusable_caches -= cache->count;
+  }  /* if */
+#endif /* DEBUG */
   if (cache->first_token != NULL) {
     /* Add the current token to the cache, so that (a) it is not lost,
        and (b) the lint/pragma state is properly updated in the
@@ -715,12 +749,14 @@ tokens have been rescanned.
   a_reusable_cache_entry_ptr  rcep;
 
   db_enter(4, "rescan_reusable_cache");
+  /* Make sure that this cache is reusable. */
+  check_assertion(cache->is_reusable);
   if (cache->first_token != NULL) {
     /* Create a token cache for the current token so that (a) it is
        not lost, and (b) the lint/pragma state is properly updated in
        the transition from the end of the new list to the existing
        current token. */
-    clear_token_cache(&cache_for_curr_token);
+    clear_token_cache(&cache_for_curr_token, /*reusable=*/FALSE);
     cache_curr_token(&cache_for_curr_token);
     /* Append the current rescan list to the end of the cache just created
        for the current token. */
@@ -767,7 +803,7 @@ Free a cached token entry, i.e., put it on the avail list to be reused.
     /* The entry points to a constant entry; free it. */
     a_constant_ptr con = ctp->variant.constant;
     con->next = avail_cached_constants;
-    avail_cached_constants = con->next;
+    avail_cached_constants = con;
   }  /* if */
   ctp->next = avail_cached_tokens;
   avail_cached_tokens = ctp;
@@ -782,11 +818,20 @@ tokens therein and clear the cache.
 {
   a_cached_token_ptr ctp, ctp_next;
 
+#if DEBUG
+  /* This cache was marked as reusable but is now being discarded.
+     Update the count of reusable cached tokens. */
+  if (cache->is_reusable) {
+    /* Reset the flag just to be neat. */
+    cache->is_reusable = FALSE;
+    num_cached_tokens_in_reusable_caches -= cache->count;
+  }  /* if */
+#endif /* DEBUG */
   for (ctp = cache->first_token; ctp != NULL; ctp = ctp_next) {
     ctp_next = ctp->next;
     free_cached_token(ctp);
   }  /* for */
-  clear_token_cache(cache);
+  clear_token_cache(cache, /*reusable=*/cache->is_reusable);
 }  /* discard_token_cache */
 
 
@@ -4631,7 +4676,7 @@ This routine cannot be used when fetching raw preprocessing tokens.
 
   db_enter(3, "next_token");
   /* Put the current token into a token cache so it can be rescanned. */
-  clear_token_cache(&cache);
+  clear_token_cache(&cache, /*reusable=*/FALSE);
   cache_curr_token(&cache);
   /* Fetch the next token and remember its kind. */
   ntoken = get_token();
@@ -4662,7 +4707,7 @@ cannot be used when fetching raw preprocessing tokens.
 
   db_enter(3, "next_two_tokens");
   /* Put the current token into a token cache so it can be rescanned. */
-  clear_token_cache(&cache);
+  clear_token_cache(&cache, /*reusable=*/FALSE);
   cache_curr_token(&cache);
   /* Fetch the token or possibly the two next tokens and remember their
      kinds.  If the first token doesn't match the value specified by the
@@ -4695,7 +4740,7 @@ so efficiency is not a prime concern.
 
   db_enter(3, "unget_token");
   /* Create a token cache containing a copy of the current token. */
-  clear_token_cache(&cache);
+  clear_token_cache(&cache, /*reusable=*/FALSE);
   cache_curr_token(&cache);
   /* Push the cache.  This pushes two copies of the original token,
      and fetches one of them as the current token. */
@@ -4966,7 +5011,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
 							  arg_list,
 						          &start_position);
             }  /* if */
-	    rescan_cached_tokens(&param_ptr->variant.param_constant.
+	    rescan_reusable_cache(&param_ptr->variant.param_constant.
 						default_arg.token_cache);
             constant = fs_constant((a_constant_repr_kind)ck_error);
 	    delayed_scan_of_template_default_arg_expr(constant_type, constant);
@@ -6074,39 +6119,40 @@ Display and return the amount of space used for various lexical tables.
 {
   unsigned long num, size, total, grand_total = 0;
 
-  fprintf(f_debug, "\nLexical table use:\n");
-  fprintf(f_debug, "%25s %8s %8s %8s\n", "Table", "Number", "Each", "Total");
+  /* Subtract the number of tokens used in reusable caches from the
+     total number of cached tokens allocated.  Reusable cached tokens
+     will be reported separately. */
+  num_cached_tokens_allocated -= num_cached_tokens_in_reusable_caches;
 
-#define write_one(name, counter, type)                                \
-{ num = counter; size = sizeof(type); total = num*size;               \
-  fprintf(f_debug, "%25s %8lu %8lu %8lu\n", name, num, size, total);  \
-  grand_total += total;                                               \
-}  /* write_one */
+  db_space_used_header("Lexical table use:");
 
-  write_one("orig line modif", num_orig_line_modifs_allocated,
-                               an_orig_line_modif);
-  write_one("source line modif", num_source_line_modifs_allocated,
-                                 a_source_line_modif);
-  write_one("cached token", num_cached_tokens_allocated, a_cached_token);
-  write_one("cached constant", num_cached_constants_allocated, a_constant);
-  write_one("cache stack entry", num_reusable_cache_entries_allocated,
-            a_reusable_cache_entry);
-  write_one("access error descr", num_access_error_descrs_allocated,
-            an_access_error_descr);
+  db_space_used_lost("orig line modif", avail_orig_line_modifs,
+                     num_orig_line_modifs_allocated, an_orig_line_modif);
+  db_space_used_lost("source line modif", avail_source_line_modifs,
+                     num_source_line_modifs_allocated, a_source_line_modif);
+  db_space_used_lost("cached token", avail_cached_tokens,
+                     num_cached_tokens_allocated, a_cached_token);
+  db_space_used("reusable cached token",
+                 num_cached_tokens_in_reusable_caches, a_cached_token);
+  db_space_used_lost("cached constant", avail_cached_constants,
+                     num_cached_constants_allocated, a_constant);
+  db_space_used_lost("cache stack entry", avail_reusable_cache_entries,
+                     num_reusable_cache_entries_allocated,
+                     a_reusable_cache_entry);
+  db_space_used_lost("access error descr", avail_access_error_descrs,
+                     num_access_error_descrs_allocated, an_access_error_descr);
 
   total = after_end_of_curr_source_line - curr_source_line;
-  fprintf(f_debug, "%25s %8s %8s %8lu (gen. storage)\n", "curr_source_line",
-                   "", "", total);
+  db_space_used_other("curr_source_line", total, "(gen. storage)");
   grand_total += total;
 
   if (after_end_of_raw_listing_buffer != NULL) {
     total = after_end_of_raw_listing_buffer - raw_listing_buffer;
-    fprintf(f_debug, "%25s %8s %8s %8lu (gen. storage)\n",
-                     "raw_listing_buffer", "", "", total);
+    db_space_used_other("raw_listing_buffer", total, "(gen. storage)");
     grand_total += total;
   }  /* if */
 
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total", "", "", grand_total);
+  db_space_used_total();
 
   return (grand_total);
 }  /* show_lexical_space_used */
@@ -6160,6 +6206,7 @@ of the front end.
   num_orig_line_modifs_allocated = 0;
   num_source_line_modifs_allocated = 0;
   num_cached_tokens_allocated = 0;
+  num_cached_tokens_in_reusable_caches = 0;
   num_cached_constants_allocated = 0;
   num_reusable_cache_entries_allocated = 0;
   num_access_error_descrs_allocated = 0;
