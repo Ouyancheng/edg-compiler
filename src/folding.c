@@ -423,15 +423,15 @@ it points to the variable, routine, or constant entry.
 void fold_base_class_cast(a_constant        *constant_1,
                           a_base_class      *bcp,
                           a_constant        *result,
-                          a_boolean         is_implicit_cast,
+                          a_boolean         check_cast_access,
                           a_boolean         *did_not_fold,
                           a_source_position *err_pos)
 /*
 Fold a C++ cast of a class pointer to a base class pointer.  constant_1 is
 an address of a class object.  It is converted to point to the class
 indicated by bcp, and the new constant is returned in *result.
-The cast is implicit if is_implicit_cast is TRUE.  If the operation cannot
-be folded, *did_not_fold is returned TRUE.  If there is an error,
+Do access control on the cast if check_cast_access is TRUE.  If the operation
+cannot be folded, *did_not_fold is returned TRUE.  If there is an error,
 issue it at *err_pos;
 */
 {
@@ -457,17 +457,9 @@ issue it at *err_pos;
     for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
       /* Check that the base class is accessible from the current class.
          Accessibility is not checked if the cast is explicit. */
-      if (is_implicit_cast) {
-        if (dsp->base_class->access == (an_access_specifier)as_public) {
-          /* Public base classes are always accessible. */
-        } else {
-          /* Private or protected base class.  Accessible only if we have
-             member access to the derived class. */
-          if (have_member_access_privilege(curr_type)) {
-            /* Access okay. */
-          } else {
-            access_okay = FALSE;
-          }  /* if */
+      if (check_cast_access) {
+        if (!is_accessible_base_class(dsp->base_class, curr_type)) {
+          access_okay = FALSE;
         }  /* if */
       }  /* if */
       /* Adjust the address to reflect the cast to the next level. */
@@ -561,9 +553,8 @@ Fold a C++ cast of a class pointer to a derived class pointer.  constant_1 is
 an address of a class object.  It is converted to point to the class
 indicated by new_type_pointed_to, and the new constant is returned in *result.
 bcp points to the base class entry for the current type relative to the
-desired derived type.  The cast is implicit if is_implicit_cast is TRUE.
-If the operation cannot be folded, *did_not_fold is returned TRUE.  If there
-is an error, it is issued at *err_pos;
+desired derived type.  If the operation cannot be folded, *did_not_fold
+is returned TRUE.  If there is an error, it is issued at *err_pos;
 */
 {
   *did_not_fold = FALSE;
