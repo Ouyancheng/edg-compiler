@@ -440,6 +440,28 @@ only used when DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD is TRUE.
 #endif /* DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD */
 
 /*
+Flag that is TRUE if, when array new and delete are enabled, a
+preprocessing symbol should be defined so that header files can
+determine whether the array versions of operator new and delete
+should be declared.
+*/
+#ifndef DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED
+#define DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED TRUE
+#endif /* ifndef DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED */
+
+/*
+The name of the macro to be defined when array new and delete are
+enabled.
+This is only used when DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED
+is TRUE.
+*/
+#if DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED
+#ifndef MACRO_DEFINED_WHEN_ARRAY_NEW_AND_DELETE_ENABLED
+#define MACRO_DEFINED_WHEN_ARRAY_NEW_AND_DELETE_ENABLED "__ARRAY_OPERATORS"
+#endif /* ifndef MACRO_DEFINED_WHEN_ARRAY_NEW_AND_DELETE_ENABLED */
+#endif /* DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED */
+
+/*
 Flag that is TRUE if, in C++ mode, operator keywords (e.g., bitand, compl)
 and digraphs are recognized.  This is the default value for the global
 flag alternative_tokens_allowed, the value of which may also be modified

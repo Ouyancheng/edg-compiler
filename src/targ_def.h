@@ -1030,6 +1030,16 @@ is TRUE.
 #endif /* RUNTIME_USES_NAMESPACES */
 
 /*
+The name of the macro that is defined with the name of the "std" namespace.
+The macro will be defined either to the value "std" or "", depending
+on whether or not the runtime is in the std namespace.
+*/
+#ifndef MACRO_DEFINED_TO_NAME_OF_STD_NAMESPACE
+#define MACRO_DEFINED_TO_NAME_OF_STD_NAMESPACE "__EDG_STD_NAMESPACE"
+#endif /* ifndef MACRO_DEFINED_TO_NAME_OF_STD_NAMESPACE */
+
+
+/*
 Flag that is TRUE if the runtime library and/or system header files
 use typename.
 */

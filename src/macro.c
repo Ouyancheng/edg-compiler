@@ -3716,6 +3716,16 @@ command line -D options.
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
 #endif /* DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD */
+#if DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED
+    if (array_new_and_delete_enabled) {
+      /* Enter a predefined macro that can be used to determine that
+         array new and delete are enabled. */
+      (void)enter_predef_macro(
+                     "1", MACRO_DEFINED_WHEN_ARRAY_NEW_AND_DELETE_ENABLED,
+                     /*cannot_be_redefined=*/TRUE,
+                     /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
+#endif /* DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED */
 #if RUNTIME_USES_NAMESPACES
     /* Enter a predefined macro that can be used to determine that
        the runtime uses namespaces.  This is also used by the
@@ -3729,6 +3739,16 @@ command line -D options.
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
+    /* Define a macro that is the name of the namespace containing the
+       library.  When the runtime is in a library this is "std", otherwise
+       it is "". */
+    (void)enter_predef_macro("std", MACRO_DEFINED_TO_NAME_OF_STD_NAMESPACE,
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+#else /* !RUNTIME_USES_NAMESPACES */
+    (void)enter_predef_macro("", MACRO_DEFINED_TO_NAME_OF_STD_NAMESPACE,
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
 #endif /* RUNTIME_USES_NAMESPACES */
   }  /* if */
   /* Enter a predefined macro that can be used to determine that the

@@ -1,5 +1,28 @@
 Version 2.31
 
+12/28/95  New predefined macro containing the name of the namespace
+          containing the standard library
+
+A macro is now defined in C++ mode that contains the name of the
+namespace containing the standard library (i.e., either "std" or "").
+This makes it simpler for header files to reference entities defined
+in the standard library.  For example, a routine that can throw a
+bad_alloc exception can be declared as
+
+  void f() throw(__EDG_STD_NAMESPACE::bad_alloc);
+
+The macro name is specified by the configuration flag
+MACRO_DEFINED_TO_NAME_OF_STD_NAMESPACE.  The default value is
+__EDG_STD_NAMESPACE.
+
+12/28/95  New predefined macro for array new and delete support
+
+A macro is now defined when array new and delete are enabled.  This
+makes it possible to write header files that can conditionally
+declare array new and delete.  The macro name is specified by
+the configuration flag MACRO_DEFINED_WHEN_ARRAY_NEW_AND_DELETE_ENABLED.
+The default value is __ARRAY_OPERATORS.
+
 12/22/95  Access checking in instantiation pragmas
 
 Access checking should be suppressed when scanning instantiation pragmas.
