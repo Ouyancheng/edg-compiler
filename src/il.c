@@ -9788,6 +9788,7 @@ successor of ssep.
   a_src_seq_end_of_construct_ptr  sseocp;
   a_src_seq_secondary_decl_ptr    sssdp = NULL;
   a_type_ptr                      tag_type = NULL, tp;
+  a_boolean                       is_unnamed_enum_def = FALSE;
 
   switch (ss_entry_kind(ssep)) {
     case iek_src_seq_end_of_construct:
@@ -9798,6 +9799,9 @@ successor of ssep.
         if (tag_type->autonomous_primary_tag_decl ||
             tag_type->declared_in_function_prototype) {
           tag_type = NULL;
+        } else if (is_immediate_enum_type(tag_type) &&
+                   is_unnamed_or_originally_unnamed_tag(tag_type)) {
+          is_unnamed_enum_def = TRUE;
         }  /* if */
       }  /* if */
       break;
@@ -9822,8 +9826,10 @@ successor of ssep.
     default:;
       /* Leave tag_type NULL. */
   }  /* switch */
-  /* Note: an unnamed tag cannot be made autonomous. */
-  if (tag_type != NULL && !is_unnamed_or_originally_unnamed_tag(tag_type)) {
+  /* Note: an unnamed class tag cannot be made autonomous. */
+  if (tag_type != NULL &&
+      (is_unnamed_enum_def ||
+       !is_unnamed_or_originally_unnamed_tag(tag_type))) {
     /* This is a nonautonomous tag declaration (possibly a definition).  The
        tag is kept in the IL -- but what if the entity to whose declaration it
        belongs is eliminated?  We need special handling for cases like this:
@@ -9832,8 +9838,9 @@ successor of ssep.
        the IL we have to mark the entry for struct S as defined in an
        autonomous declaration.  In C++ and usually in C, the entity is
        next in the list. */
-    /* Note: we only examine the first entry after the tag declaration or
-       definition.  For instance, in a case like this:
+    /* Note: we only examine the first entry after the class/struct/union
+       or nameded enum tag declaration or definition.  For instance, in a
+       case like this:
          static struct S { int i; } x, y, z;
        (where x is eliminated) it will be treated as though it had originally
        been written as:
@@ -9857,6 +9864,9 @@ successor of ssep.
       db_source_sequence_entry(ssep);
     }  /* if */
 #endif /* DEBUG */
+check_next_ssep:
+    /* Note: we may loop back to this point for the special case of an
+       unnamed enum definition. */
     while (next_ssep != NULL &&
            (ss_entry_kind(next_ssep) == (an_il_entry_kind)iek_pragma
 #if RECORD_MACROS_IN_IL
@@ -9895,6 +9905,19 @@ successor of ssep.
                              "src_seq_check_for_non_autonomous_tag:",
                              "type of next entry does not match");
         make_autonomous = TRUE;
+      } else if (is_unnamed_enum_def) {
+        /* Special handling for unnamed unnamed enum definitions. */
+        if (il_entry_prefix_of(next_ssep).keep_in_il) {
+          /* No need to make the enum declaration autonomous. */
+        } else {
+          /* Remove the entry from the source-sequence list and examine the
+             next one. */
+          next_ssep = drop_from_fs_src_seq_list(next_ssep);
+#if CHECKING
+          okay_if_not_found = TRUE;
+#endif /* CHECKING */
+          goto check_next_ssep;
+        }  /* if */
       } else if (!il_entry_prefix_of(next_ssep).keep_in_il) {
         /* The successor source-sequence entry is not retained in the IL,
            so the declaration represented by ssep has to be marked as
