@@ -3821,6 +3821,33 @@ Report the indicated diagnostic at the position indicated by error_position.
 }  /* diagnostic */
 
 
+void pos_sy_diagnostic(an_error_severity  error_severity,
+                       an_error_code      error_code,
+                       a_source_position  *error_pos,
+                       a_symbol_ptr       symbol)
+/*
+Report the indicated diagnostic (with the indicated symbol) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_syms[1] = symbol;
+  diag_message(error_code, error_pos, error_severity, dck_standalone);
+}  /* pos_sy_diagnostic */
+
+
+void sym_diagnostic(an_error_severity  error_severity,
+                    an_error_code      error_code,
+                    a_symbol_ptr       symbol)
+/*
+Report the indicated diagnostic (with the indicated symbol) at the position
+indicated by error_position.
+*/
+{
+  pos_sy_diagnostic(error_severity, error_code, &error_position, symbol);
+}  /* sym_diagnostic */
+
+
 void pos_st_remark(an_error_code     error_code,
                    a_source_position *error_pos,
                    char              *error_string)
