@@ -17,9 +17,11 @@ fixed.
 
 When MAINTAIN_NEEDED_FLAGS is configured to TRUE, an abort could occur with
 the elimination of an unused routine whose type is qualified.  Now fixed.
-For example (in Microsoft 16-bit mode):
+This is a problem that could come up only for implementations providing
+support for near/far function qualifiers, e.g., in Microsoft 16-bit mode.
+For example, if function f was never called:
 
-  static void near f() { }    // Abort during elimination of unneeded routine
+  static void near f() { }  // Abort during elimination of unneeded routine
 
 2/5/99    Allow typedef and using-declaration to same typedef in a scope
 
