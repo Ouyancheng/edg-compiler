@@ -1659,11 +1659,15 @@ bcp base if it has a subobject of the same type as the first base.
     a_base_class_ptr  first_base = base_classes_of(class_type);
     for (; first_base != NULL; first_base = first_base->next) {
       if (first_base->direct && first_base->direct_base_number == 1) {
+        if (first_base->is_virtual || !first_base->offset_is_set) {
+          /* The first base should be a nonvirtual primary base. */
+          first_base = NULL;
+        }  /* if */
         break;
       }  /* if */
     }  /* for */
-    if (first_base != NULL && !first_base->is_virtual) {
-      check_assertion(first_base->offset_is_set && first_base->offset == 0);
+    if (first_base != NULL) {
+      check_assertion(first_base->offset == 0);
       result = gnu_conflict_found(skip_typerefs(bcp->type),
                                   skip_typerefs(first_base->type));
     }  /* if */
