@@ -8199,10 +8199,10 @@ static void scan_identifier(an_operand               *result,
 Scan an identifier, and return an operand for it in *operand.  In C++,
 also handle qualified names like A::x and operator names like "operator+".
 If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
-(the base symbol, not any projection symbol).
+(which might be a projection symbol), or to NULL if there is an error.
 */
 {
-  a_symbol_ptr      sym_ptr, projection_sym_ptr, anon_var_sym;
+  a_symbol_ptr      sym_ptr, projection_sym_ptr = NULL, anon_var_sym;
   a_variable_ptr    var_ptr;
   a_routine_ptr     routine_ptr;
   a_source_position start_position;
@@ -8213,7 +8213,6 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
 
   db_enter(4, "scan_identifier");
 
-  if (p_sym_ptr != NULL) *p_sym_ptr = NULL;
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
     /* Should never see an identifier in a preprocessing directive. */
@@ -8602,7 +8601,7 @@ after_advance_past_id:
   /* Set the error position to the starting position. */
   copy_source_position(start_position, error_position);
   copy_source_position(start_position, result->position);
-  if (p_sym_ptr != NULL) *p_sym_ptr = sym_ptr;
+  if (p_sym_ptr != NULL) *p_sym_ptr = projection_sym_ptr;
 
   db_exit();
 }  /* scan_identifier */
@@ -10104,7 +10103,7 @@ this routien is called only when microsoft_mode is TRUE.
 {
   an_operand              operand;
   a_variable_ptr          variable = NULL;
-  a_symbol_ptr            sym_ptr;
+  a_symbol_ptr            sym_ptr, projection_sym_ptr;
   an_expr_stack_entry     expr_stack_entry;
   an_expr_stack_entry_ptr saved_expr_stack;
 
@@ -10120,7 +10119,8 @@ this routien is called only when microsoft_mode is TRUE.
   expr_stack_entry.potentially_evaluated = FALSE;
   /* Scan the identifier. */
   scan_identifier(&operand, (a_local_expr_options_set)EOPT_NO_OPTIONS,
-                  &sym_ptr);
+                  &projection_sym_ptr);
+  sym_ptr = fundamental_symbol_of(projection_sym_ptr);
   if (is_error_operand(&operand) || sym_ptr == NULL) {
     /* Some previous error. */
   } else {
@@ -10133,7 +10133,8 @@ this routien is called only when microsoft_mode is TRUE.
         variable = sym_ptr->variant.static_data_member.variable;
         break;
       default:
-        pos_error(ec_based_requires_variable_name, &operand.position);
+        pos_sy_error(ec_based_requires_variable_name, &operand.position,
+                     projection_sym_ptr);
         break;
     }  /* if */
     if (variable != NULL) {
