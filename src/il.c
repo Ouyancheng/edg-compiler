@@ -645,6 +645,13 @@ Dump the contents of the indicated type entry, for debug purposes.
       if (tp->variant.pointer.is_reference) {
         fputs("ref to ", f_debug);
       } else {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (tp->variant.pointer.base_variable != NULL) {
+          fputs("based(", f_debug);
+          db_name(&tp->variant.pointer.base_variable->source_corresp);
+          fputs(") ", f_debug);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         fputs("ptr to ", f_debug);
       }  /* if */
       db_abbreviated_type(tp->variant.pointer.type);
