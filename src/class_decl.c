@@ -2829,7 +2829,7 @@ are unchanged.
            of the first declaration that would otherwise be missed.  For
            instance,
              class A { void f(int=1,int); void f(int,int=0); };
-           According to ARM 9.2 (commentary on p. 141) an error should be
+           According to ARM 8.2.6 (commentary on p. 141) an error should be
            issued on the first declaration of f().  Since has_default_arg is
            FALSE on the second param type entry when the cached default arg
            expression is scanned (see delayed_scan_of_default_arg_expr),
