@@ -3280,6 +3280,11 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
   if (new_modifiers->alignment != 0) {
     variable->alignment = new_modifiers->alignment;
   }  /* if */
+  if ((variable->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT)) &&
+      (variable->decl_modifiers & DM_THREAD)) {
+    pos_error(ec_dll_thread_conflict, position);
+    variable->decl_modifiers &= ~DM_THREAD;
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (any_invalid_redecl) {
     pos_diagnostic(es_discretionary_error,
