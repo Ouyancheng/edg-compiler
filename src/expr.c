@@ -1613,7 +1613,7 @@ Syntax:
   a_boolean         vacuous_destructor_case = FALSE;
   a_source_position call_position, function_position, first_arg_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position operator_position, end_position;
+  a_source_position operator_position, start_position, end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_arg_match_summary
                     this_match_summary;
@@ -1630,8 +1630,10 @@ Syntax:
   /* Save the position of the "(". */
   operator_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  call_position = operand->position;
-  function_position = call_position;
+  function_position = call_position = operand->position;
+  start_position = (bound_function_selector != NULL) ?
+                                            bound_function_selector->position :
+                                            call_position;
   if (curr_expr_kind_is_const()) {
     /* Routine calls not allowed in constant expressions. */
     error_in_operand(ec_bad_constant_function_call, operand);
@@ -1886,7 +1888,7 @@ Syntax:
     assemble_function_call(operand, bound_function_selector, argument_list,
                            result);
   }  /* if */
-  set_operand_position(result, &call_position, &end_position,
+  set_operand_position(result, &start_position, &end_position,
                        &operator_position);
   db_exit();
 }  /* scan_function_call */
