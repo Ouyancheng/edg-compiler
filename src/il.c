@@ -357,7 +357,8 @@ class_struct_union:
 	  vp = vp->next;
 	}  /* while */
       }  /* if */
-      fputc('}', f_debug);
+      fprintf(f_debug, "} : size = %lu, alignment = %d",
+              tp->size, tp->alignment);
       break;
     case tk_routine:
       fputs("routine ", f_debug);
