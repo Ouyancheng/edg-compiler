@@ -985,10 +985,12 @@ rounding fixed-point values.
 }  /* round_hex_fp_value */
 
 
-int number_of_bits_in_mantissa(a_mantissa_ptr	mp)
+int number_of_bits_in_mantissa(a_mantissa_ptr	mp,
+			       a_boolean	normalize)
 /*
 Compute the number of bits actually used to represent the mantissa
-value.
+value.  If "normalize" is TRUE, don't count any zero bits before the
+first bit that is set.
 */
 {
   int			part;
@@ -1012,7 +1014,7 @@ value.
     /* Exit the loop once we've found a non-zero part. */
     break;
   }  /* for */
-  if (bits != 0 && (mp->parts[0] & 0x8000000) == 0) {
+  if (normalize && bits != 0 && (mp->parts[0] & 0x8000000) == 0) {
     /* The mantissa is not normalized.  Compute the number of the first bit
        that is set. */
     int	first_bit = 0;
@@ -1110,7 +1112,7 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
   min_exp--;
   max_exp--;
   /* Compute the number of bits of mantissa that are present. */
-  bits = number_of_bits_in_mantissa(mp);
+  bits = number_of_bits_in_mantissa(mp, /*normalize=*/FALSE);
   /* If the exponent is too small, see if we can represent the value by
      denormalizing it. */
   if (*exponent < min_exp) {
@@ -1569,7 +1571,7 @@ because the exponent was out of range).
       unexpected_condition();
       break;
   }  /* switch */
-  any_digits = number_of_bits_in_mantissa(mp) != 0;
+  any_digits = number_of_bits_in_mantissa(mp, /*normalize=*/FALSE) != 0;
   /* Normalize the mantissa. */
   if (any_digits) {
     while ((mp->parts[0] & 0x80000000) == 0) {

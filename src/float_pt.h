@@ -50,7 +50,8 @@ extern void shift_left_mantissa(a_mantissa_ptr	mp,
 extern void shift_right_mantissa(a_mantissa_ptr	mp,
 				 int			bits);
 
-extern int number_of_bits_in_mantissa(a_mantissa_ptr	mp);
+extern int number_of_bits_in_mantissa(a_mantissa_ptr	mp,
+				      a_boolean		normalize);
 
 extern void round_hex_fp_value(a_mantissa_ptr	mp,
 			       long		*exponent,

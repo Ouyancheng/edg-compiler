@@ -523,7 +523,7 @@ the value is already known to be too large.  Set *err on overflow.  Set
     nonfract_bits = non_fractional_bits_for_fixed_point(fxp_descr);
     value_bits = value_bits_for_fixed_point(fxp_descr);
     shift_count = nonfract_bits - exponent;
-    mantissa_bits = number_of_bits_in_mantissa(mp);
+    mantissa_bits = number_of_bits_in_mantissa(mp, /*normalize=*/FALSE);
     sign_bits = fxp_descr->is_unsigned ? 0 : 1;
     if (shift_count > 0) shift_right_mantissa(mp, shift_count);
     /* See if the result value has more bits of precision than fit into
@@ -534,7 +534,7 @@ the value is already known to be too large.  Set *err on overflow.  Set
                        !fxp_descr->is_unsigned, inexact);
     /* Recompute the shift count and mantissa bits after rounding. */
     shift_count = nonfract_bits - exponent;
-    mantissa_bits = number_of_bits_in_mantissa(mp);
+    mantissa_bits = number_of_bits_in_mantissa(mp, /*normalize=*/TRUE);
     /* A shift count of zero represents an overflow for a signed value because
        the sign bit would be needed for the representation. */
     if (shift_count < sign_bits) {
