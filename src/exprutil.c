@@ -1953,17 +1953,15 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
     }  /* if */
   }  /* if */
   if (okay) {
-    if (warning_suggested != ec_no_error) {
-      /* Oddball cases call for a warning. */
-      pos_warning(warning_suggested, operator_position);
-    } else if (strict_ansi_mode && C_dialect == C_dialect_ANSI) {
-      /* In strict ANSI mode, issue warnings for the extensions let by
+    a_boolean nonstd_case = FALSE;
+    if (strict_ansi_mode && C_dialect == C_dialect_ANSI) {
+      /* In strict ANSI C mode, issue warnings for the extensions let by
          above. */
       if (!pointer_normalization_standard_in_C &&
           pointer_normalization_needed) {
         /* Conversion of null pointer constants to pointers, and conversion
            of pointers to "void *", are not standard in the present case. */
-        pos_warning(ec_incompatible_operands, operator_position);
+        nonstd_case = TRUE;
       } else {
         a_type_ptr operand_1_type_pointed_to, operand_2_type_pointed_to;
         /* Fetch the types pointed to by the pointer operands. */
@@ -1981,14 +1979,14 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
              (operand_2_is_pointer &&
                                is_function_type(operand_2_type_pointed_to)))) {
           /* Pointers to functions are not standard in the present case. */
-          pos_warning(ec_incompatible_operands, operator_position);
+          nonstd_case = TRUE;
         } else if (!pointers_to_incomplete_standard_in_C &&
                    ((operand_1_is_pointer &&
                              is_incomplete_type(operand_1_type_pointed_to)) ||
                     (operand_2_is_pointer &&
                              is_incomplete_type(operand_2_type_pointed_to)))) {
           /* Pointers to incomplete are not standard in the present case. */
-          pos_warning(ec_incompatible_operands, operator_position);
+          nonstd_case = TRUE;
         } else if (!mixed_object_and_incomplete_standard_in_C &&
                    operand_1_is_pointer && operand_2_is_pointer &&
                    ((is_incomplete_type(operand_1_type_pointed_to) &&
@@ -1997,9 +1995,19 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
                                is_object_type(operand_1_type_pointed_to)))) {
           /* One pointer to object and one pointer to incomplete are not
              standard in the present case. */
-          pos_warning(ec_incompatible_operands, operator_position);
+          nonstd_case = TRUE;
         }  /* if */
       }  /* if */
+      if (nonstd_case) {
+        /* A nonstandard case. */
+        pos_diagnostic(strict_ansi_error_severity,
+                       ec_incompatible_operands, operator_position);
+      }  /* if */
+    }  /* if */
+    if (warning_suggested != ec_no_error && !nonstd_case) {
+      /* Oddball cases call for a warning.  Suppress this if we issued a
+         diagnostic about nonstandard use. */
+      pos_warning(warning_suggested, operator_position);
     }  /* if */
   } else {
     /* The operands are not compatible. */
