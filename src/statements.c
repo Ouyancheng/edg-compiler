@@ -2068,7 +2068,8 @@ Scan the initializing expression or, in C++, declaration of a for statement.
       is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
                        /*real_declarator_allowed=*/TRUE)) {
     /* Scan a declaration (C++ only). */
-    local_declaration();
+    decl_statement();
+    wrapup_decl_statement();
   } else {
     /* Scan an expression.  It may be omitted. */
     if (curr_token != tok_semicolon) expression_statement();
