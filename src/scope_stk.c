@@ -2541,6 +2541,7 @@ scopes.
 
 
 static a_boolean is_nested_in_prototype_instantiation(
+                            a_symbol_ptr		instance_sym,
                             a_symbol_ptr		template_sym)
 /*
 See if this is an instantiation scope nested within a prototype
@@ -2557,7 +2558,8 @@ the existing context and flag it as a nested instantiation.
 The caller is responsible for checking that the current scope has
 its "in_prototype_intantiation" flag set.
 
-template_sym is the template that is being instantiated.
+template_sym is the template that is being instantiated.  instance_sym
+is the instance of template_sym, and may be NULL.
 */
 {
   a_scope_stack_entry_ptr	ssep;
@@ -2588,6 +2590,12 @@ template_sym is the template that is being instantiated.
     if (template_sym->is_class_member &&
         same_entities(template_sym->parent.class_type, assoc_type)) {
       result = TRUE;
+      if (instance_sym != NULL && is_real_class_symbol(instance_sym)) {
+        /* An instantiation of a real class during a prototype instantiation.
+           This should not be considered nested in the prototype
+           instantiation. */
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -2672,11 +2680,9 @@ is pushed here, and popped when the instantiation scope is popped.
   /* Determine whether this instantiation is a prototype instantiation of
      something within another prototype instantiation.  This affects the
      way that the scope stack is manipulated. */
-  if (scope_stack[depth_scope_stack].in_prototype_instantiation &&
-      ((options & PS_PROTOTYPE_INSTANTIATION) != 0 ||
-       (options & PS_NONREAL_INSTANTIATION) != 0)) {
+  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     nested_in_prototype_instantiation = is_nested_in_prototype_instantiation(
-                                                                 template_sym);
+                                                  instance_sym, template_sym);
   }  /* if */
 #if CHECKING
   /* Set a flag that indicates that the processing to push a new
