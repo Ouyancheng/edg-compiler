@@ -4977,14 +4977,20 @@ declaration.
           routine_ptr->is_inline && routine_ptr->suppress_inline_body) {
         /* We're in GNU C mode and this routine was previously defined with
            "extern __inline__".  In GNU C mode, the new definition simply
-           replaces the previous one. */
+           replaces the previous one (but we keep the old one in the IL,
+           which allows us to render it with the C++-generating back end
+           for example). */
+        a_routine_ptr  new_rp = make_routine(type_ptr, storage_class,
+                                             decl_scope_level);
         pos_sy_warning(ec_already_defined, &locator->source_position, sym);
+        *new_rp = *routine_ptr;
+        new_rp->next = NULL;
+        routine_ptr = new_rp;
         old_decl_has_body = FALSE;
-        sym->defined = FALSE;
         routine_ptr->is_inline = FALSE;
         routine_ptr->suppress_inline_body = FALSE;
-        clear_function_body(
-                      il_header.region_scope_entry[routine_ptr->assoc_scope]);
+        sym->defined = FALSE;
+        sym->variant.routine.ptr = routine_ptr;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* The declared type will be reset to the type of the new
            definition. */

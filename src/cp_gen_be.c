@@ -9650,7 +9650,18 @@ TRUE if the declaration following this one is such a continuation.
            a bug in the Sun C++ 5.0 compiler regarding "inline" on
            constructor definitions. */
         !(decl_within_class && is_definition)) {
-      write_tok_str("inline ");
+#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET
+      if (il_header.gcc_mode) {
+        if (rout->suppress_inline_body) {
+          write_tok_str("extern ");
+        }  /* if */
+        write_tok_str("__inline__ ");
+      } else
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
+      /* Do not insert code here. */
+      {
+        write_tok_str("inline ");
+      }  /* if */
     }  /* if */
     if (rout->is_virtual && decl_within_class) write_tok_str("virtual ");
     if (rout->is_explicit_constructor && decl_within_class) {
