@@ -1363,11 +1363,12 @@ the declaration is a function template declaration.  This function is only
 called by id_linkage.
 */
 {
-  a_boolean          decls_at_same_scope;
-  a_boolean          is_list;
-  a_symbol_ptr       other_decl, other_decl_saved;
-  a_symbol_ptr       linked_symbol = NULL;
-  a_boolean          function_template_seen = FALSE;
+  a_boolean     decls_at_same_scope;
+  a_boolean     is_list;
+  a_symbol_ptr  other_decl, other_decl_saved;
+  a_symbol_ptr  linked_symbol = NULL;
+  a_boolean     function_template_seen = FALSE;
+  a_boolean     is_function = is_function_type(type);
 
   db_enter(4, "find_linked_symbol");
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
@@ -1414,7 +1415,7 @@ called by id_linkage.
        sk_routine symbol, we may want to overload the two functions. */
     decls_at_same_scope = (other_decl->decl_scope ==
                                   scope_stack[effective_decl_level].number);
-    if (C_dialect == C_dialect_cplusplus && is_function_type(type) &&
+    if (C_dialect == C_dialect_cplusplus && is_function &&
         other_decl->kind != (a_symbol_kind)sk_variable &&
         !is_main) {
       /* C++ function -- type compatibility check is required. */
@@ -1499,15 +1500,21 @@ called by id_linkage.
         }  /* for */
       }  /* if */
     }  /* if */
-    if (is_friend_decl) {
-      linked_symbol = other_decl;
-    } else if (other_decl != NULL && decls_at_same_scope) {
-      /* A function may be redeclared at any scope, but a variable may be
-         redeclared only at file or namespace scope. */
-      if (effective_decl_level == depth_innermost_namespace_scope ||
-          (other_decl->kind != (a_symbol_kind)sk_variable &&
-           is_function_type(type))) {
+    if (other_decl != NULL &&
+        ((other_decl->kind == (a_symbol_kind)sk_variable) != is_function)) {
+      if (is_friend_decl) {
         linked_symbol = other_decl;
+      } else if (decls_at_same_scope) {
+        if (effective_decl_level == depth_innermost_namespace_scope) {
+          /* Redeclaration at file or namespace scope. */
+          linked_symbol = other_decl;
+        } else if (is_function ||
+                   !other_decl->variant.variable.ptr->
+                           source_corresp.is_local_to_function) {
+          /* Redeclaration at a local scope -- okay only if both declarations
+             are block-extern declarations. */
+          linked_symbol = other_decl;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
