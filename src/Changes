@@ -4,7 +4,7 @@ Version 2.32
 
 The supplement for an stmk_for statement now contains a scope pointer.
 When (in C++ mode) the for-init-statement is a declaration, for_init_scope
-may non-null to point to an implicitly generated sck_block scope that
+may be non-null to point to an implicitly generated sck_block scope that
 surrounds the entire for-statement.  This enables support for the "new"
 scoping rules for for-init declarations (WP 6.5.3 [stmt.for]) -- e.g.,
 
