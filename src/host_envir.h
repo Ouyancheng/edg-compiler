@@ -475,6 +475,21 @@ IL lowering is used or if automatic template instantiation is selected.
 #endif /* DO_IL_LOWERING ... */
 
 /*
+Flag that is TRUE if unrecognized pragmas should be accepted and passed
+through to the back end using the characteristics specified by the
+pk_unrecognized pragma kind.  The pragma is converted to a character string
+that is included in the IL.  When this flag is FALSE, an unrecognized
+pragma warning is issued and the pragma is discarded.
+*/
+#ifndef INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+#define INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL TRUE
+#else /* !(BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) */
+#define INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL FALSE
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#endif /* !defined(INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL) */
+
+/*
 Flag that is TRUE to specify that source files should be read in
 binary mode under MS-DOS.  In this mode, carriage return and control-Z
 are handled by the front end instead of the host C runtime library.
