@@ -1669,13 +1669,17 @@ that do normal id lookup processing.
       ref_sym = common_sym;
     }  /* if */
   }  /* if */
-  if (ref_sym != NULL && !is_function_or_template_symbol(ref_sym)) {
-    /* Only functions from the referencing context are used.  All other
-       names can only come from the definition context.  The WP
-       requires only "dependent" functions from the referencing context
-       be considered.  The "dependent" lookup portion has not been
-       implemented yet. */
-    ref_sym = NULL;
+  if (ref_sym != NULL) {
+    a_symbol_ptr	fund_ref_sym;
+    fund_ref_sym = fundamental_symbol_of(ref_sym);
+    if (!is_function_or_template_symbol(fund_ref_sym)) {
+      /* Only functions from the referencing context are used.  All other
+         names can only come from the definition context.  The WP
+         requires only "dependent" functions from the referencing context
+         be considered.  The "dependent" lookup portion has not been
+         implemented yet. */
+      ref_sym = NULL;
+    }  /* if */
   }  /* if */
   if (ref_sym != NULL && def_sym != NULL) {
     /* Both symbols are present.  Merge the results. */
