@@ -1,5 +1,18 @@
 Version 3.6
 
+3/8/05   Generated copy constructor call as bitwise copy with direct-
+         initialization
+
+A direct-initialization that calls a generated bitwise copy constructor
+is now optimized as a bitwise copy instead of a call.  Calls of such
+copy constructors were formerly optimized only in copy-initializations.
+
+  struct A {
+    A();
+  };
+  A a;
+  A b(a);  // Now done as bitwise copy.
+
 3/8/05   Invalid memory access with VLA lowering and
          COMPILE_MULTIPLE_SOURCE_FILES
 

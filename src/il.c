@@ -4133,13 +4133,18 @@ pointer to its first element is ignored in the determination.
   if (con->kind == (a_constant_repr_kind)ck_address &&
       con->variant.address.kind == (an_address_base_kind)abk_variable &&
       con->variant.address.offset == 0) {
+    a_variable_ptr cvar = con->variant.address.variant.variable;
+    a_type_ptr     uctype;
     /* Check for type compatibility. */
-    if (!con->implicit_cast) {
+    if (!con->implicit_cast ||
+        (is_pointer_type(con->type) &&
+         (uctype = type_pointed_to(con->type),
+          identical_types(uctype, cvar->type)))) {
       is_exact_addr = TRUE;
     } else if (array_decay_allowed &&
                is_pointer_type(con->type) &&
-               is_array_type(con->variant.address.variant.variable->type)) {
-      a_type_ptr source_type = con->variant.address.variant.variable->type;
+               is_array_type(cvar->type)) {
+      a_type_ptr source_type = cvar->type;
       a_type_ptr target_type = con->type;
       source_type =
                    f_skip_typerefs(underlying_array_element_type(source_type));
@@ -4154,9 +4159,7 @@ pointer to its first element is ignored in the determination.
         is_exact_addr = TRUE;
       }  /* if */
     }  /* if */
-    if (is_exact_addr) {
-      *var = con->variant.address.variant.variable;
-    }  /* if */
+    if (is_exact_addr) *var = cvar;
   }  /* if */
   return is_exact_addr;
 }  /* con_is_exact_addr_of_variable */
@@ -8861,12 +8864,17 @@ copy constructor for class class_of_which_a_member; if it is, also set and
 return *qualifiers to indicate the type qualifiers on the copy constructor's
 first parameter -- this will show what restrictions are placed on the object
 being copied.  is_declarative_context is TRUE if this is a constructor
-declaration rather than a constructor reference.
+declaration rather than a constructor reference.  If qualifiers is NULL,
+no value is returned for that.
 */
 {
-  a_param_type_ptr  ptp;
-  a_boolean         is_cctor = FALSE;
+  a_param_type_ptr     ptp;
+  a_type_qualifier_set local_qualifiers;
+  a_boolean            is_cctor = FALSE;
 
+  if (qualifiers == NULL) {
+    qualifiers = &local_qualifiers;
+  }  /* if */
   /* A constructor is deemed a copy constructor if (1) the type of the first
      parameter is reference-to-class or reference-to-qualified-class where
      "class" is the class of which it is a member function, and
@@ -8926,13 +8934,18 @@ class_of_which_a_member; if it does, also set and return *qualifiers to
 indicate the type qualifiers on the copy constructor's first parameter --
 this will show what restrictions are placed on the object being copied.
 is_declarative_context is TRUE if this is a constructor declaration rather
-than a constructor reference.
+than a constructor reference.  If class_of_which_a_member is NULL, it is
+set from ctor_rout.  If qualifiers is NULL, no value is returned for that.
+ctor_rout must be a constructor.
 */
 {
   a_boolean is_cctor;
 
   check_assertion(ctor_rout->special_kind ==
                                   (a_special_function_kind)sfk_constructor);
+  if (class_of_which_a_member == NULL) {
+    class_of_which_a_member = ctor_rout->source_corresp.parent.class_type;
+  }  /* if */
   is_cctor = is_copy_constructor_type(ctor_rout->type, class_of_which_a_member,
                                       qualifiers, is_declarative_context);
   return is_cctor;
@@ -12766,6 +12779,17 @@ the same effect), and return a pointer to the new expression.
         operand1->next = NULL;
         operand2 = add_indirection_to_node(operand2);
         operand1->next = operand2;
+      }  /* if */
+    } else if (is_constant_node(node)) {
+      /* A constant node.  Optimize indirecting through an address
+         constant. */
+      a_constant_ptr con = node->variant.constant;
+      a_variable_ptr var;
+      if (con_is_exact_addr_of_variable(con, &var,
+                                        /*array_decay_allowed=*/FALSE)) {
+        optimized_case = TRUE;
+        set_expr_node_kind(node, (an_expr_node_kind)enk_variable);
+        node->variant.variable = var;
       }  /* if */
     }  /* if */
     if (is_template_param_type(node->type)) {

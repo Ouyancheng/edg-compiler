@@ -3771,12 +3771,10 @@ and return TRUE if the tiebreakers should be suppressed for this case.
       reduce_projection_symbol_to_fundamental_symbol(template_sym);
       /* See whether the non-template function is a copy constructor. */
       if (non_template_sym->kind == (a_symbol_kind)sk_member_function) {
-        a_routine_ptr        rout = non_template_sym->variant.routine.ptr;
-        a_type_qualifier_set qualifiers;
-        a_type_ptr           class_of_which_a_member =
-                                       rout->source_corresp.parent.class_type;
+        a_routine_ptr rout = non_template_sym->variant.routine.ptr;
         if (rout->special_kind == (a_special_function_kind)sfk_constructor &&
-            is_copy_constructor(rout, class_of_which_a_member, &qualifiers,
+            is_copy_constructor(rout, (a_type_ptr)NULL,
+                                (a_type_qualifier_set *)NULL,
                                 /*is_declarative_context=*/FALSE)) {
           /* A non-template copy constructor against a template.  Suppress
               the tiebreakers. */
@@ -3879,8 +3877,6 @@ on the basis that MSVC++ prefers copy constructors over other functions.
   if (sym1 != NULL && sym2 != NULL &&
       !cfp1->is_function_template && !cfp2->is_function_template) {
     a_routine_ptr rout1, rout2;
-    a_type_qualifier_set
-                  qualifiers;
     a_boolean     is_cctor1, is_cctor2;
     reduce_projection_symbol_to_fundamental_symbol(sym1);
     reduce_projection_symbol_to_fundamental_symbol(sym2);
@@ -3892,15 +3888,13 @@ on the basis that MSVC++ prefers copy constructors over other functions.
     rout2 = sym2->variant.routine.ptr;
     is_cctor1 = (rout1->special_kind ==
                                     (a_special_function_kind)sfk_constructor &&
-                 is_copy_constructor(rout1,
-                                     rout1->source_corresp.parent.class_type,
-                                     &qualifiers,
+                 is_copy_constructor(rout1, (a_type_ptr)NULL,
+                                     (a_type_qualifier_set *)NULL,
                                      /*is_declarative_context=*/FALSE));
     is_cctor2 = (rout2->special_kind ==
                                     (a_special_function_kind)sfk_constructor &&
-                 is_copy_constructor(rout2,
-                                     rout2->source_corresp.parent.class_type,
-                                     &qualifiers,
+                 is_copy_constructor(rout2, (a_type_ptr)NULL,
+                                     (a_type_qualifier_set *)NULL,
                                      /*is_declarative_context=*/FALSE));
     if (is_cctor1 && !is_cctor2) {
       cmp = 1;
@@ -11697,9 +11691,9 @@ happen only in C++ mode.
     if (conversion_routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor) {
       /* The routine is a constructor (copy or not). */
-      a_type_qualifier_set qualifiers;
       if (f_same_entities(skip_typerefs(source_operand->type), class_type) &&
-          is_copy_constructor(conversion_routine, class_type, &qualifiers,
+          is_copy_constructor(conversion_routine, class_type,
+                              (a_type_qualifier_set *)NULL,
                               /*is_declarative_context=*/FALSE)) {
         /* The conversion routine is a copy constructor, and the source and
            destination have the same type (i.e., the source is not a derived
@@ -13674,8 +13668,9 @@ used only in C++ mode.
         routine_type = routine->type;
       }  /* if */
       routine_type = skip_typerefs(routine_type);
-      if (!is_copy_constructor_type(routine_type, class_type, &qualifiers,
-                                   /*is_declarative_context=*/FALSE)) {
+      if (!is_copy_constructor_type(routine_type, class_type,
+                                    (a_type_qualifier_set *)NULL,
+                                    /*is_declarative_context=*/FALSE)) {
         /* Not a copy constructor. */
         goto reject_function;
       }  /* if */
