@@ -1015,7 +1015,7 @@ source position to be used for errors.  This routine is only used in C++ mode.
     access_okay = TRUE;
     curr_type = type_pointed_to((*p_node)->type);
     curr_type = skip_typerefs(curr_type);
-    for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
+    for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
       base_class = dsp->base_class;
       /* Check that the base class is accessible from the current class. */
       if (check_cast_access) {
@@ -1087,14 +1087,16 @@ used in C++ mode.
     pos_ty2_error(ec_ambiguous_derived_class, err_pos,
                   new_type_pointed_to, bcp->type);
     *p_node = error_node();
-  } else if (bcp->derivation->base_class->is_virtual) {
-    /* The base class is a virtual base of the derived class. */
+  } else if (any_virtual_steps_in_derivation(bcp)) {
+    /* The base class is a virtual base of the derived class, or there's a
+       virtual step on the derivation path. */
     pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
                   new_type_pointed_to, bcp->type);
     *p_node = error_node();
   } else {
     /* Use recursion to process the list backwards to generate casts. */
-    add_a_derived_class_cast(new_type_pointed_to, bcp->derivation, p_node);
+    add_a_derived_class_cast(new_type_pointed_to, cast_derivation_path_of(bcp),
+                             p_node);
   }  /* if */
 }  /* add_derived_class_casts */
 
@@ -1123,7 +1125,7 @@ of base classes is not necessary.
   } else {
     /* Loop through the classes between the derived class and the
        base class.  Generate the necessary casts. */
-    for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
+    for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
       /* Add the cast to the next level. */
       curr_type = dsp->base_class->type;
       *p_node = make_operator_node(
@@ -1195,8 +1197,9 @@ source position to be used for errors.  This routine is only used in C++ mode.
     pos_ty2_error(ec_ambiguous_derived_class, err_pos,
                   new_class_pointed_to, bcp->type);
     *p_node = error_node();
-  } else if (bcp->derivation->base_class->is_virtual) {
-    /* The base class is a virtual base of the derived class. */
+  } else if (any_virtual_steps_in_derivation(bcp)) {
+    /* The base class is a virtual base of the derived class, or there's a
+       virtual step on the derivation path. */
     pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
                   new_class_pointed_to, bcp->type);
     *p_node = error_node();
@@ -1205,7 +1208,7 @@ source position to be used for errors.  This routine is only used in C++ mode.
       /* Check the accessibility of the base class.  (Recall that casts
          to derived types can be done implicitly.) */
       curr_type = new_class_pointed_to;
-      for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
+      for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
         base_class = dsp->base_class;
         /* Check that the base class is accessible from the current class. */
         if (!is_accessible_imm_base_class(base_class, curr_type)) {
@@ -1216,7 +1219,8 @@ source position to be used for errors.  This routine is only used in C++ mode.
       }  /* for */
     }  /* if */
     /* Use recursion to process the list backwards to generate casts. */
-    add_a_pm_derived_class_cast(new_class_pointed_to, bcp->derivation,
+    add_a_pm_derived_class_cast(new_class_pointed_to,
+                                cast_derivation_path_of(bcp),
                                 is_implicit_cast, p_node);
   }  /* if */
 }  /* add_pm_derived_class_casts */
