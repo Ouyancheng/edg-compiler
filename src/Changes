@@ -84,6 +84,28 @@ having a bit-field at the beginning.
     return ((char*)&a)[k];  // Bad C code generated for this.
   }
 
+7/5/98    C++-generating back end, Microsoft compatibility: abort with
+          missing declared_type
+
+An abort has been fixed in the C++ generating back end when
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is configured to
+TRUE.  The problem came up in Microsoft compatibility mode when an
+explicit specialization directive appeared inside a template body; the
+declared_type pointer was not set properly.
+
+  typedef struct _GUID {} GUID;
+  typedef GUID IID;
+  class _com_error { };
+  template<typename _Interface, const IID* _IID  > class _com_IIID { };
+  template<typename _IIID> class _com_ptr_t {
+	template<typename _InterfacePtr>
+            bool operator>=(_InterfacePtr p) throw(_com_error) { }
+	template<> bool operator>=(int null) throw(_com_error) { }
+  };
+  struct __declspec(uuid("00000000-0000-0000-c000-000000000046")) IUnknown;
+  typedef _com_ptr_t<_com_IIID<IUnknown, &__uuidof(IUnknown)> > IUnknownPtr;
+  IUnknownPtr m_pUnknown;
+
 7/3/98    C++-generating back end: operator function name followed by
           explicit template argument list
 
