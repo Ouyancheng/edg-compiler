@@ -779,17 +779,16 @@ offset for the field.
      field_prefix and the (possibly mangled) base class name. */
   prefix_length = strlen(field_prefix);
   /* Determine how long the base class name is. */
-  /* Note the use of mangled_basic_class_name instead of mangled_class_name
-     here; we don't need nested class information since we're inside the
-     nested class. */
-  name_length = mangled_basic_class_name(base_class_type, (char *)NULL);
+  /* Note: it *is* necessary to include nested class information on these
+     names. */
+  name_length = mangled_class_name(base_class_type, (char *)NULL);
   /* Allocate space for the whole name. */
   alloc_length = prefix_length + name_length + 1;
   name_ptr = alloc_lowered_name_string(alloc_length);
   /* Copy in the prefix. */
   (void)memcpy(name_ptr, field_prefix, size_t_arg(prefix_length));
   /* Store the base class name. */
-  (void)mangled_basic_class_name(base_class_type, name_ptr+prefix_length);
+  (void)mangled_class_name(base_class_type, name_ptr+prefix_length);
   name_ptr[prefix_length+name_length] = '\0';
   /* Create the field. */
   add_field(name_ptr, field_type, field_offset, struct_type);
