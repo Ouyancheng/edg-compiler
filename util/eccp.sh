@@ -589,7 +589,7 @@ do
 	rofiles=$rofiles" "$basefile.o
 	if [ $keep_int_file -eq 0 ]
 	then
-          rm $basefile.int.c
+          rm -f $basefile.int.c
 	fi
       fi
     fi
@@ -658,7 +658,9 @@ then
           rm -f $tmpfile.c $tmpfile.o
         fi
       fi
-      rm -f $rofiles
+      if [ "$rofiles" != "" ] ; then
+        rm -f $rofiles
+      fi
     fi
   fi
 else
