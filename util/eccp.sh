@@ -377,6 +377,12 @@ compile_int_c()
     cat $cc_tmp_file >&2
     echo $driver_name: end of diagnostics from compilation of $int_c_diag_name >&2
   fi
+#
+# If the C compiler returned a non-zero status, report that.
+#
+  if [ $status -ne 0 ] ; then
+    echo $driver_name: $EDG_C_TO_OBJ_COMPILER compilation of $int_c_diag_name returned an exit status of $status
+  fi
   rm -f $cc_tmp_file
   if [ $status -ne 0 ]
   then
