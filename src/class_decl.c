@@ -3011,7 +3011,7 @@ done:
     class_type->variant.class_struct_union.
                  any_virtual_functions_including_in_base_classes = TRUE;
     if (virtual_function_number != VIRTUAL_FUNCTION_NUMBER_NONE) {
-      /* The virtual base class is being shared between the current class
+      /* The virtual function is being shared between the current class
          and one of its base classes.  We reuse the existing number instead
          of reserving a new slot in the table. */
       rout->virtual_function_number = virtual_function_number;
