@@ -2568,7 +2568,7 @@ been completed.
       /* Marking the routine type as needed was suppressed before (since it
          can be redeclared even after it's called), so do that now. */
       rp->source_corresp.needed = FALSE;
-      mark_as_needed((char *)rp, (an_il_entry_kind)iek_variable);
+      mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
     }  /* if */
   }  /* for */
 }  /* set_needed_flags_at_end_of_file_scope */
