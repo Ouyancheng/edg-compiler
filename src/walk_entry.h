@@ -1295,8 +1295,9 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if KEEP_IN_IL_WALK
         /* When setting the keep_in_il flag, source sequence entries are
-           kept if and only if the associated IL entry is kept.  Note that
-           this is done last so all the keep_in_il flags are set already. */
+           kept if and only if the associated IL entry is kept.  (In
+           function scopes, all entries are kept.)  Note that this is
+           done last so all the keep_in_il flags are set already. */
         set_keep_in_il_on_source_sequence_entries(ptr);
 #else /* !KEEP_IN_IL_WALK */
         walk_list_not_needed(ptr->source_sequence_list,
