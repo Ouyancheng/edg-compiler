@@ -9466,7 +9466,7 @@ diagnostics.
                   &func_info->throw_position);
       rtsp->exception_specification = NULL;
     }  /* if */
-    /* "static" are not allowed (ARM 3.4). */
+    /* "static" is not allowed (ARM 3.4). */
     if (*declared_storage_class == (a_storage_class)sc_static) {
       pos_error(ec_static_not_allowed, pos);
       *declared_storage_class = (a_storage_class)sc_unspecified;
