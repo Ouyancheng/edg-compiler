@@ -312,11 +312,6 @@ typedef int an_expr_copy_options_set;
 #define CE_INSIDE_CONDITIONAL_EXPRESSION 0x4
 			/* TRUE if the expression is being copied into a
 			   context that is under a conditional operator. */
-#define CE_DOING_SUBSTITUTION_OF_TEMPLATE_ARGS 0x8
-			/* TRUE if this copy operation is copying an expression
-			   for template type deduction and the template
-			   arguments should be substituted for occurrences
-			   of the template parameters in the expression. */
 
 a_constant_ptr copy_unshared_constant_full(
                                          a_constant_ptr           old_constant,
@@ -433,6 +428,9 @@ extern an_expr_node_ptr make_operator_node(an_expr_operator_kind kind,
 extern an_expr_node_ptr error_node(void);
 
 extern an_expr_node_ptr alloc_node_for_constant(a_constant *constant);
+
+extern an_expr_node_ptr alloc_node_for_allocated_constant(
+                                                         a_constant *constant);
 
 extern an_expr_node_ptr node_for_integer_constant(long            value,
                                                   an_integer_kind kind);

@@ -1459,9 +1459,7 @@ This is used when the constant is already an allocated IL constant.
     node = var_rvalue_expr(temp_var);
   } else {
     /* Normal case; make a constant node. */
-    node = alloc_expr_node((an_expr_node_kind)enk_constant);
-    node->variant.constant = constant;
-    node->type = constant->type;
+    node = alloc_node_for_allocated_constant(constant);
   }  /* if */
   return node;
 }  /* make_node_for_il_constant */
