@@ -2361,6 +2361,13 @@ class type.
       sssdp->autonomous_tag_decl = TRUE;
       sssdp->first_declaration =
           symbol_supplement_for_class(class_type)->definition_is_first_decl;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      if (prototype_instantiations_in_il) {
+        a_class_type_supplement_ptr ctsp =
+                            class_type->variant.class_struct_union.extra_info;
+        sssdp->template_decl = (ctsp != NULL) ? ctsp->template_decl : NULL;
+      }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     }  /* if */
   }  /* if */
 }  /* eliminate_class_body_source_sequence_entries */
