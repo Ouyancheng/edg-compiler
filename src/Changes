@@ -1,5 +1,12 @@
 Version 3.1
 
+8/28/02  GNU mode: Memory clobber representation (IL Change)
+
+In GNU modes, the front end previously parsed "memory" clobber specifications,
+but it did not represent that specification in the IL.  Now, such extended
+asm clobber specifications are represented with the pseudo-register
+anr_memory.
+
 8/28/02  GNU compatibility: Extended asm operand constraints
 
 In GNU modes, the front end now distinguishes between "input" and "output"
