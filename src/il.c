@@ -722,8 +722,7 @@ Dump the contents of the indicated constant, for debug purposes.
       break;
     case ck_ptr_to_member:
       /* C++ pointer-to-member. */
-      fprintf(f_debug, "(&-member-of(%s) ", cp->variant.ptr_to_member.
-                                 class_of_which_a_member->source_corresp.name);
+      fprintf(f_debug, "(&-member ");
       if (cp->variant.ptr_to_member.is_function_ptr) {
         db_name(&cp->variant.ptr_to_member.variant.routine->source_corresp);
       } else {
@@ -1528,9 +1527,8 @@ fields to default values.
       cp->variant.address.offset = 0;
       break;
     case ck_ptr_to_member:
-      cp->variant.ptr_to_member.class_of_which_a_member = NULL;
-      cp->variant.ptr_to_member.is_function_ptr         = FALSE;
-      cp->variant.ptr_to_member.variant.field           = NULL;
+      cp->variant.ptr_to_member.is_function_ptr = FALSE;
+      cp->variant.ptr_to_member.variant.field   = NULL;
       break;
     case ck_dynamic_init:
       cp->variant.dynamic_init = NULL;
@@ -1788,11 +1786,7 @@ Return TRUE if the two constants are identical.
         }  /* if */
         break;
       case ck_ptr_to_member:
-        if (cp1->variant.ptr_to_member.class_of_which_a_member ==
-                          cp2->variant.ptr_to_member.class_of_which_a_member &&
-            cp1->variant.ptr_to_member.base_class ==
-                                       cp2->variant.ptr_to_member.base_class &&
-            cp1->variant.ptr_to_member.is_function_ptr ==
+        if (cp1->variant.ptr_to_member.is_function_ptr ==
                                   cp2->variant.ptr_to_member.is_function_ptr) {
           if (cp1->variant.ptr_to_member.is_function_ptr) {
             eq = (cp1->variant.ptr_to_member.variant.routine ==

@@ -486,16 +486,6 @@ typedef struct a_constant {
     /* When kind == ck_ptr_to_member: */
     struct {
       /* A C++ pointer-to-member (data or function). */
-      a_type_ptr
-		class_of_which_a_member;
-			/* Type of the class to which the member pointed to
-			   belongs. */
-      a_base_class_ptr
-		base_class;
-			/* Pointer to the base class entry for the base class
-			   of class_of_which_a_member in which the member
-			   pointed to is defined.  NULL if the member is
-			   defined directly in class_of_which_a_member. */
       a_byte_boolean
 		is_function_ptr;
 			/* TRUE if the pointer is to a member function,
@@ -504,10 +494,12 @@ typedef struct a_constant {
         /* When is_function_ptr == TRUE: */
         a_routine_ptr
 		routine;
-			/* The routine for the member function pointed to. */
+			/* The routine for the member function pointed to.
+			   NULL for a NULL pointer-to-member. */
         /* When is_function_ptr == FALSE: */
         a_field_ptr
-		field;	/* The field for the data member pointed to. */
+		field;	/* The field for the data member pointed to.
+			   NULL for a NULL pointer-to-member. */
       } variant;
     } ptr_to_member;
     /* When kind = ck_dynamic_init: */
