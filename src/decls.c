@@ -7656,6 +7656,19 @@ and for the instantiation of template functions.
   db_enter(3, "scan_function_body");
   class_type = rout_ptr->source_corresp.class_of_which_a_member;
   rout_type = skip_typerefs(rout_ptr->type);
+  /* Check whether the routine needs special support for returning a class
+     object by value.   This flag is set in declarator (i.e., as soon as the
+     routine type is seen) and usually that is sufficient.  However, with
+     inlined friend functions a class that is referenced as a return type may
+     not have been completely defined. */
+  set_routine_calling_method_flag(rout_type);
+  /* Similarly, check for value parameters that must be passed using a copy
+     constructor. */
+  for (ptp = rout_type->variant.routine.extra_info->param_type_list;
+       ptp != NULL;
+       ptp = ptp->next) {
+    set_arg_transfer_method_flag(ptp);
+  }  /* for */
   rtsp = rout_type->variant.routine.extra_info;
   if (class_type != NULL && !(flags & SFB_NO_CLASS_REACTIVATION)) {
     /* Push a class symbol reactivation scope, to make class member names
@@ -8028,30 +8041,17 @@ processing of function definition.
 */
 {
   a_type_ptr          rout_type, return_type;
-  a_param_type_ptr    ptp;
 
   db_enter(3, "inline_function_definition");
   rout_type = skip_typerefs(rout_ptr->type);
   /* Make sure the return type has been instantiated.  This must be done
-     before calling set_routine_calling_method_flag. */
+     before calling set_routine_calling_method_flag (which is called by
+     scan_function_body). */
   return_type = rout_type->variant.routine.return_type;
   check_for_uninstantiated_template_class(return_type);
   /* Issue an error if this is an invalid return type. */
   check_function_return_type(return_type,
                              &rout_ptr->source_corresp.decl_position);
-  /* Check whether the routine needs special support for returning a class
-     object by value.   This flag is set in declarator (i.e., as soon as the
-     routine type is seen) and usually that is sufficient.  However, with
-     inlined friend functions a class that is referenced as a return type may
-     not have been completely defined. */
-  set_routine_calling_method_flag(rout_type);
-  /* Similarly, check for value parameters that must be passed using a copy
-     constructor. */
-  for (ptp = rout_type->variant.routine.extra_info->param_type_list;
-       ptp != NULL;
-       ptp = ptp->next) {
-    set_arg_transfer_method_flag(ptp);
-  }  /* for */
   /* Scan the function body. */
   scan_function_body(rout_ptr, func_info,
                      (SFB_NO_CLASS_REACTIVATION |

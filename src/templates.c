@@ -350,9 +350,7 @@ Instantiate the body of the template function associated with tip.
 {
   a_symbol_ptr                      rout_sym;
   a_routine_ptr                     rout_ptr;
-  a_type_ptr                        rout_type;
   a_template_symbol_supplement_ptr  tssp;
-  a_param_type_ptr		    ptp;
 
   db_enter(3, "instantiate_template_function");
   rout_sym = tip->instance_sym;
@@ -366,7 +364,6 @@ Instantiate the body of the template function associated with tip.
   } else {
     tssp = tip->template_sym->variant.template_info;
   }  /* if */
-  rout_type = rout_ptr->type;
   if (tssp->pending_instantiations >= MAX_PENDING_INSTANTIATIONS) {
     /* This function instantiation occurs within the context of other
        instantiations of the same function template.  When the number of
@@ -418,18 +415,6 @@ Instantiate the body of the template function associated with tip.
                                   (a_name_linkage_kind)nlk_cplusplus_external;
     }  /* if */
   }  /* if */
-  /* Check whether the routine needs special support for returning a class
-     object by value.   The flag is set in declarator but the information
-     used may not have been complete at the time the flag was originally
-     set. */
-  set_routine_calling_method_flag(rout_type);
-  /* Similarly, check for value parameters that must be passed using a copy
-     constructor. */
-  for (ptp = rout_type->variant.routine.extra_info->param_type_list;
-       ptp != NULL;
-       ptp = ptp->next) {
-    set_arg_transfer_method_flag(ptp);
-  }  /* for */
   ++(tssp->pending_instantiations);
   /* Push the template instantiation scope. */
   (void)push_scope((a_scope_kind)sck_template_instantiation,
