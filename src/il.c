@@ -6654,6 +6654,20 @@ and return a pointer to it.
 }  /* alloc_expr_statement */
 
 
+void copy_statement(a_statement *from,
+                    a_statement *to)
+/*
+Copy a statement entry from "from" to "to".
+*/
+{
+  a_boolean has_associated_pragma = to->has_associated_pragma;
+
+  *to = *from;
+  /* Preserve the pragma flag in the destination statement. */
+  to->has_associated_pragma = has_associated_pragma;
+}  /* copy_statement */
+
+
 a_constructor_init_ptr alloc_ctor_init(a_constructor_init_kind  kind)
 /*
 Allocate a constructor initializer entry, initialize it, and return a

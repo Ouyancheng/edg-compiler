@@ -305,6 +305,9 @@ extern void clear_expr_node(an_expr_node_ptr  node,
 
 extern an_expr_node_ptr alloc_expr_node(an_expr_node_kind node_kind);
 
+extern void copy_statement(a_statement *from,
+                           a_statement *to);
+
 extern void set_expr_result_not_used(an_expr_node_ptr node);
 
 extern void set_node_operator(an_expr_node_ptr      node,
