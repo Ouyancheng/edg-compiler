@@ -4162,14 +4162,18 @@ for the qualified identifier, and return TRUE.  This is recognized only
 in C++ mode.  If a qualified name is not next, leave specific_symbol
 set to NULL and return FALSE.  options is a set of special options,
 as a bit set; they control the lookup of (only) the final identifier in the
-qualified name.
+qualified name.  They may not include constraints (such as IDL_MUST_BE_CLASS).
 */
 {
   a_boolean         is_qualified_name = FALSE, qualifier_err, okay;
-  a_symbol_ptr      name_symbol;
   a_scope_number    class_scope;
   a_source_position start_position;
 
+#if CHECKING
+  if (options & IDL_CONSTRAINTS) {
+    internal_error("get_qualified_name: options may not have constraints");
+  }  /* if */
+#endif /* CHECKING */
   if (C_dialect == C_dialect_cplusplus) {
     if (curr_token == tok_identifier) {
       if (locator_for_curr_id.specific_symbol != NULL) {
@@ -4205,13 +4209,11 @@ qualified name.
           } else {
             /* The final identifier is present.  Look it up in the class
                scope. */
-            name_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
-                                                    class_scope,
-                                                    options);
-            if (name_symbol != NULL) {
-              /* The name was found. */
+            if (scope_qualified_id_lookup(&locator_for_curr_id, class_scope,
+                                          options) != NULL) {
+              /* The name was found.  locator_for_curr_id.specific_symbol
+                 is already set. */
               okay = TRUE;
-              locator_for_curr_id.specific_symbol = name_symbol;
             } else {
               /* The identifier could not be found in the class. */
               if (!qualifier_err) error(ec_not_a_member);
