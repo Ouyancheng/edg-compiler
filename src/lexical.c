@@ -129,6 +129,15 @@ static a_boolean
 			   optimization in deciding whether or not one can
 			   use the fast method of converting a line location
 			   into a source position. */
+static a_boolean
+		init_do_not_put_curr_line_in_pp_output;
+			/* The value of do_not_put_curr_line_in_pp_output
+			   that applies to any text inserted at the beginning
+			   of the current source line.  Such text may have to
+			   be put out even if the main line is suppressed
+			   (e.g., if the inserted text is an inert macro
+			   identifier and the new line is a preprocessing
+			   directive). */
 static char	curr_raw_listing_line_code;
 			/* When a raw listing file is being generated,
 			   this indicates the code for the current line:
@@ -855,7 +864,11 @@ the parent_modif_determined flag to see if the parent is already known.
   char                    *line_loc;
 
   line_loc = slmp->line_loc;
-  if (within_curr_source_line(line_loc)) {
+  if (line_loc == NULL) {
+    /* This is line_start_source_line_modif, the special entry to insert at 
+       the beginning of the current source line.  Its parent is NULL. */
+    parent_slmp = NULL;
+  } else if (within_curr_source_line(line_loc)) {
     /* slmp modifies the primary source line; it has no parent. */
     parent_slmp = NULL;
   } else {
@@ -1004,7 +1017,15 @@ is TRUE.
   /* do_not_put_curr_line_in_pp_output is TRUE if there is no current
      source line (as at the start of source), or if the line should not
      be put out (for example, because it's a preprocessing directive). */
-  if (!do_not_put_curr_line_in_pp_output) {
+  /* There's a strange special case that happens when some text that
+     should be output is inserted at the front of a line that should not
+     be output, e.g., an inert macro identifier is inserted at the beginning
+     of a line that is a preprocessing directive.  The flag
+     init_do_not_put_curr_line_in_pp_output controls output of the inserted
+     text independently. */
+  if (!do_not_put_curr_line_in_pp_output ||
+      (line_start_source_line_modif != NULL &&
+       !init_do_not_put_curr_line_in_pp_output)) {
     /* See if the new line immediately follows the line previously written.
        If not, put out a directive to indicate the new line's position.
        If the previous output line did not end with a newline,
@@ -1055,8 +1076,7 @@ is TRUE.
       /* The logic here is very similar to that in
          gen_expanded_raw_listing_output_for_curr_line.  If you change
          this routine, change the other too. */
-      loc_in_line = first_char_of_modified_source_line();
-      slmp = NULL;
+      set_up_for_walk_of_source_line(loc_in_line, slmp);
       prev_ch = '\n';
       token_start = FALSE;
       for (;;) {
@@ -1073,6 +1093,11 @@ is TRUE.
              of a macro expansion.  Exit the loop if at the end of the whole
              line. */
           if (slmp == NULL) break;
+          /* If we've just finished the inserted text at the start of the
+             source line, and the main part of the line is not supposed to
+             be displayed (see comment above), stop here. */
+          if (slmp == line_start_source_line_modif &&
+              do_not_put_curr_line_in_pp_output) break;
           /* End of a macro.  Pick up after the invocation text. */
           walk_out_of_insertion(slmp, loc_in_line);
           token_start = TRUE;
@@ -1100,6 +1125,7 @@ is TRUE.
       }  /* for */
     }  /* if */
     /* Make sure this line is written only once. */
+    init_do_not_put_curr_line_in_pp_output = TRUE;
     do_not_put_curr_line_in_pp_output = TRUE;
   }  /* if */
 }  /* gen_pp_output_for_curr_line */
@@ -1233,11 +1259,20 @@ Add a character to the raw listing buffer.  Expand the buffer if necessary.
 }  /* add_char_to_raw_listing_buffer. */
 
 
-void gen_expanded_raw_listing_output_for_curr_line(void)
+void gen_expanded_raw_listing_output_for_curr_line(a_boolean do_inserted_text)
 /*
 Generate the raw listing file output for the macro-expanded version of
-the current source line.  This routine should not be called unless
-f_raw_listing != NULL.
+the current source line.  This routine should only be called if
+f_raw_listing != NULL.  If do_inserted_text is TRUE, there must be text
+inserted at the beginning of the current source line, and the
+expanded information for that inserted text (only) will be output.
+If do_inserted_text is FALSE, there must be a current source line, and
+the expanded information for it (and not any inserted text) will be output.
+This routine shouldn't be called more than once with each value of
+do_inserted_text for a given line, since it doesn't maintain its own flag
+indicating that the expanded version has already been put out.
+See gen_raw_listing_output_for_curr_line and cpp_driver, which control
+the calls to this routine.
 */
 {
   register char                    *loc_in_line;
@@ -1250,14 +1285,14 @@ f_raw_listing != NULL.
   /* The output line is generated in raw_listing_buffer first, then
      written to output.  This expensive and unfortunate technique is
      required because of cases like
-       #pragma hello / *
-       * / there
+       ??=pragma hello / *
+       * / there 
      (where the / * and * / are really comment delimiters, of course).
      For that case, we'll get here with "#pragma hello " with no newline,
      and then later with " there".  The whole line is written when the
      piece with the newline arrives.  That's because the raw listing
      output has to look like
-       N#pragma hello / *
+       N??=pragma hello / *
        N* / there
        X#pragma hello   there
      Without this trick, the two parts of the "X" line could not be written
@@ -1280,8 +1315,18 @@ f_raw_listing != NULL.
   } else {
     /* The logic here is very similar to that in gen_pp_output_for_curr_line.
        If you change this routine, change the other too. */
-    loc_in_line = first_char_of_modified_source_line();
-    slmp = NULL;
+    if (do_inserted_text) {
+      /* Do the text inserted at the front of the source line. */
+      slmp = line_start_source_line_modif;
+      loc_in_line = slmp->inserted_text;
+    } else {
+      /* Do the source line itself. */
+      slmp = NULL;
+      loc_in_line = curr_source_line;
+      /* A line containing trigraphs or line splices is considered modified
+         and must be displayed. */
+      if (orig_line_modif_list != NULL) must_display_raw_listing_buffer = TRUE;
+    }  /* if */
     prev_ch = '\n';
     token_start = FALSE;
     for (;;) {
@@ -1301,8 +1346,9 @@ f_raw_listing != NULL.
       } else if (ch == '\0') {
         /* Null indicates either the end of the whole line or the end
            of a macro expansion.  Exit the loop if at the end of the whole
-           line. */
+           line or the end of the insert at the beginning of the line. */
         if (slmp == NULL) break;
+        if (slmp == line_start_source_line_modif) break;
         /* End of a macro.  Pick up after the invocation text. */
         walk_out_of_insertion(slmp, loc_in_line);
         token_start = TRUE;
@@ -1318,28 +1364,20 @@ f_raw_listing != NULL.
                                           add_char_to_raw_listing_buffer(' '));
           /* Output the character. */
           add_char_to_raw_listing_buffer(ch);
+          /* If the character is a newline, we have a complete line and we
+             should output it or throw it away now. */
+          if (ch == '\n') {
+            if (must_display_raw_listing_buffer) {
+              *loc_in_raw_listing_buffer = '\0';
+              putc('X', f_raw_listing);
+              fputs(raw_listing_buffer, f_raw_listing);
+            }  /* if */
+            clear_raw_listing_buffer();
+          }  /* if */
         }  /* if */
         loc_in_line++;
       }  /* if */
     }  /* for */
-    /* A line containing trigraphs or line splices is considered modified
-       and must be displayed. */
-    if (orig_line_modif_list != NULL) must_display_raw_listing_buffer = TRUE;
-    /* If the last character in the buffer is a newline, we have a complete
-       line and we should output it now (that's almost always what will
-       happen).  If not, we leave the line to be output on a later call of
-       this routine. */
-    if (loc_in_raw_listing_buffer != raw_listing_buffer &&
-        loc_in_raw_listing_buffer[-1] == '\n') {
-      /* Suppress the output if there are no nontrivial modifications in the
-         line. */
-      if (must_display_raw_listing_buffer) {
-        *loc_in_raw_listing_buffer = '\0';
-        putc('X', f_raw_listing);
-        fputs(raw_listing_buffer, f_raw_listing);
-      }  /* if */
-      clear_raw_listing_buffer();
-    }  /* if */
   }  /* if */
 }  /* gen_expanded_raw_listing_output_for_curr_line */
 
@@ -1355,6 +1393,11 @@ only be called when f_raw_listing is non-NULL.
 
   /* No output if there is no current line. */
   if (curr_raw_listing_line_code != '\0') {
+    /* Write the macro-expanded form of the text inserted at the beginning
+       of the source line if there is any and if there are modifications. */
+    if (line_start_source_line_modif != NULL) {
+      gen_expanded_raw_listing_output_for_curr_line(/*do_inserted_text=*/TRUE);
+    }  /* if */
     /* If we are now (at the end of the line) not in an if-skip, force
        the line to be an "N" (normal) line.  This gets #else and #endif
        lines out as "N" lines rather than "S" (skipped) lines. */
@@ -1402,7 +1445,7 @@ partially_process_line_splice:
        line. */
     write_orig_line_piece(loc_in_line, (char *)NULL);
     /* Write the macro-expanded form of the line if there are modifications. */
-    gen_expanded_raw_listing_output_for_curr_line();
+    gen_expanded_raw_listing_output_for_curr_line(/*do_inserted_text=*/FALSE);
     /* Make sure this line is written only once. */
     curr_raw_listing_line_code = '\0';
   }  /* if */
@@ -2108,10 +2151,13 @@ simple_return:
      in a directive being passed unchanged to preprocessing output,
      put the line out. */
   if (generate_pp_output) {
-    do_not_put_curr_line_in_pp_output = return_value ||
-                                        currently_in_pp_if_skip ||
+    do_not_put_curr_line_in_pp_output = currently_in_pp_if_skip ||
                                         (in_preprocessing_directive &&
                                          !pass_pp_directive_to_output);
+    /* Maintain a separate flag for any text inserted at the beginning of
+       the line. */
+    init_do_not_put_curr_line_in_pp_output = do_not_put_curr_line_in_pp_output;
+    if (return_value) do_not_put_curr_line_in_pp_output = TRUE;
   }  /* if */
   if (f_raw_listing != NULL) {
     /* If a raw listing file is being generated, save the line type:
@@ -4477,6 +4523,7 @@ of the front end.
   eof_read_on_curr_input_stream = FALSE;
   at_end_of_source_file = FALSE;
   after_end_of_all_source = FALSE;
+  init_do_not_put_curr_line_in_pp_output = TRUE;
   curr_raw_listing_line_code = '\0';
   cached_token_rescan_list = NULL;
   avail_cached_tokens = NULL;
