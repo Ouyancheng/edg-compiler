@@ -541,6 +541,12 @@ are not enabled, and thus stays zero on all calls).
 
   lptr = *temp_ptr;
   targ_ch = (unsigned char)*lptr;
+  if (targ_ch == LE_ESCAPE) {
+    check_assertion(lptr[1] == LE_NULL);
+    /* Null (zero) character, represented as an escape. */
+    targ_ch = 0;
+    lptr += LE_ESCAPE_LEN-1;
+  }  /* if */
   if (*remaining_mbc_char_count != 0) {
     /* We are in the middle of a multibyte character sequence started on a
        previous call of this routine.  Return another character and
@@ -736,7 +742,8 @@ the size of wchar_t.
   conv_single_char(temp_ptr, &remaining_mbc_char_count, ch, centity_mask);
 #else /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   /* Multibyte character processing may be needed. */
-  if (!multibyte_chars_in_source_enabled || **temp_ptr == '\\') {
+  if (!multibyte_chars_in_source_enabled || **temp_ptr == '\\' ||
+      **temp_ptr == LE_ESCAPE) {
     /* Use simple routine if multibyte characters are disabled or if
        the character is an escape. */
     conv_single_char(temp_ptr, &remaining_mbc_char_count, ch, centity_mask);

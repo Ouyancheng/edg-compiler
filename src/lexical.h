@@ -1040,6 +1040,9 @@ escape.
 			   a macro that appears within its own expansion,
 			   and should therefore not be expanded.  Not used
 			   in pcc preprocessing mode. */
+#define LE_NULL 6	/* In modes that allow a null (zero) character in
+			   an input line (e.g., gcc mode), indicates such
+			   a character. */
 
 /*
 Modifications made to the current source line.  orig_line_modif holds

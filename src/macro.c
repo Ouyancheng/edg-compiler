@@ -767,6 +767,11 @@ print the replacement text and expansions of macros.
         ch = '#';
         n_printed++;
         p += LE_ESCAPE_LEN;
+      } else if (ch == LE_NULL) {
+        /* Marker indicating a null (zero) character. */
+        ch = '0';
+        n_printed++;
+        p += LE_ESCAPE_LEN;
       } else {
         (void)fprintf(f_debug, "**BAD LEXICAL ESCAPE**");
         break;
@@ -1059,6 +1064,9 @@ with \.  Return the macro argument created.
      needed if the string includes escapes that are removed.  Note that
      the space counted for the quotes will be used to hold the LE_ESCAPE
      that must be added at the end of the string. */
+#if LE_ESCAPE_LEN != 2
+ #error -- LE_ESCAPE_LEN expected to be 2
+#endif /* LE_ESCAPE_LEN != 2 */
   length = curr_char_loc - start_of_curr_token;
   map = alloc_macro_arg();
   ensure_arg_raw_text_space(length, map);
@@ -1270,6 +1278,17 @@ In such cases, charize is TRUE.
       } else if (p[1] == LE_END_OF_INSERTION) {
         /* End of argument. */
         break;
+      } else if (p[1] == LE_NULL) {
+        /* A null is passed through as \0 if inside a string.  Otherwise,
+           it's discarded. */
+        if (within_char_literal) {
+          len += 2;
+          if (src_loc != NULL) {
+            *(*src_loc)++ = '\\';
+            *(*src_loc)++ = '0';
+          }  /* if */
+        }  /* if */
+        p += LE_ESCAPE_LEN-1;
       } else {
         unexpected_condition_str("stringized_arg: bad lexical escape");
       }  /* if */
@@ -3031,9 +3050,14 @@ the macro definition.
         for (; rts_number > 0; rts_number--) {
           char ch = *ptr++;
           if (ch == LE_ESCAPE) {
-            /* End of token marker. */
-            check_assertion_str(*ptr == LE_END_OF_TOKEN,
-                                "make_il_macro_entry: bad lexical escape");
+            if (*ptr == LE_NULL) {
+              /* Null (zero) character in line. */
+              put_ch_to_temp_text_buffer('\0');
+            } else {
+              /* End of token marker, ignored. */
+              check_assertion_str(*ptr == LE_END_OF_TOKEN,
+                                  "make_il_macro_entry: bad lexical escape");
+            }  /* if */
             ptr++;
             rts_number--;
           } else {

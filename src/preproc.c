@@ -848,9 +848,13 @@ Escapes in the string are processed only if process_escapes is TRUE.
      including unprocessed escapes was allocated in the output string, so
      there may be a bit of wasted space. */
   for (i = 1; i <= name_len; i++) {
-    check_assertion_str(*in_pos != LE_ESCAPE,
-                        "copy_header_name: lexical escape in header name");
-    if (process_escapes) {
+    if (*in_pos == LE_ESCAPE) {
+      check_assertion_str(in_pos[1] == LE_NULL,
+                          "copy_header_name: lexical escape in header name");
+      /* Null (zero) character in header name. */
+      *out_pos++ = '\0';
+      in_pos += LE_ESCAPE_LEN;
+    } else if (process_escapes) {
       /* Process the character, considering escape characters. */
       char *prev_pos = in_pos;
       conv_single_char(&in_pos, &remaining_mbc_char_count, &ch, centity_mask);
