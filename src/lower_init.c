@@ -75,12 +75,13 @@ static void set_lowering_variable_address_taken(a_variable_ptr variable);
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
-                                     a_type_ptr param_1_type)
+                                     a_type_ptr param_1_type,
+                                     a_type_ptr param_2_type)
 /*
 Make a function type for a prototyped function prototyped as
-having a parameter with type param_1_type and returning return_type,
-and return a pointer to it.  If no arguments are desired, param_1_type
-should be specified as NULL.
+having parameters with type param_1_type and param_2_type, and
+returning return_type, and return a pointer to it.  param_1_type
+and param_2_type can be NULL if fewer parameters are needed.
 */
 {
   a_type_ptr       rout_type;
@@ -95,6 +96,12 @@ should be specified as NULL.
     /* It is not necessary to clear il_lowering_flag; the entry does not need
        to be lowered. */
     rout_type->variant.routine.extra_info->param_type_list = ptp;
+    if (param_2_type != NULL) {
+      ptp = alloc_param_type(param_2_type);
+      /* It is not necessary to clear il_lowering_flag; the entry does not need
+         to be lowered. */
+      rout_type->variant.routine.extra_info->param_type_list->next = ptp;
+    }  /* if */
   }  /* if */
   return rout_type;
 }  /* make_function_type */
@@ -118,7 +125,7 @@ not added to any routines list; see make_rout_entry for that.
   a_type_ptr    rout_type;
   sizeof_t      alloc_length;
 
-  rout_type = make_function_type(return_type, param_1_type);
+  rout_type = make_function_type(return_type, param_1_type, (a_type_ptr)NULL);
   rout = alloc_routine();
   if (name != NULL) {
     alloc_length = strlen(name)+1;
@@ -1686,15 +1693,24 @@ static an_expr_node_ptr num_elem_node_from_count(
 /*
 Build an expression for a constant that represents the number of elements
 in an array for an array new/delete call.  -1 indicates a variable-length
-array.
+array (that's used only in the Cfront-like ABI).  The node has type int
+for the Cfront-like ABI, type size_t for the IA-64 ABI.
 */
 {
   an_expr_node_ptr num_elem_node;
   a_constant       num_elem_constant;
 
+#if IA64_ABI
+  check_assertion(array_element_count >= 0);
+#endif /* IA64_ABI */
   set_integer_constant_with_overflow_check(
                  &num_elem_constant, (a_host_large_integer)array_element_count,
-                 (an_integer_kind)ik_int, (a_type_ptr)NULL);
+#if IA64_ABI
+                 targ_size_t_int_kind,
+#else /* !IA64_ABI */
+                 (an_integer_kind)ik_int,
+#endif /* IA64_ABI */
+                 (a_type_ptr)NULL);
   /* Allocate an expression node for the constant. */
   num_elem_node = alloc_node_for_constant(&num_elem_constant);
   return num_elem_node;
@@ -1737,29 +1753,189 @@ type of the array pointed to by ptr_type, and return a pointer to it.
 }  /* size_elem_node_from_pointer_type */
 
 
-static an_expr_node_ptr expr_for_pointer_to_routine(a_routine_ptr routine)
+static an_expr_node_ptr expr_for_pointer_to_routine(a_routine_ptr routine,
+                                                    a_type_ptr    ptr_type)
 /*
 Build and return an expression node for the address of the indicated routine.
 If the routine pointer is NULL, build an expression that is a null function
-pointer and return that.  In either case, the node is cast to a generic
+pointer and return that.  In either case, the node is cast to the given
 function pointer type.
 */
 {
   an_expr_node_ptr expr;
-  a_type_ptr       gen_func_ptr_type = make_vptp_type();
   a_constant       null_constant;
 
   if (routine != NULL) {
     expr = function_addr_expr(routine, /*set_address_taken_flag=*/TRUE);
     /* Cast the function pointer to the generic function type. */
-    expr = add_cast_if_necessary(expr, gen_func_ptr_type);
+    expr = add_cast_if_necessary(expr, ptr_type);
   } else {
     /* No routine; use 0 cast to the right function pointer type. */
-    make_zero_of_proper_type(gen_func_ptr_type, &null_constant);
+    make_zero_of_proper_type(ptr_type, &null_constant);
     expr = alloc_node_for_constant(&null_constant);
   }  /* if */
   return expr;
 }  /* expr_for_pointer_to_routine */
+
+
+/*
+Pointer to the generic function pointer types used for passing constructors,
+destructors, copy constructors, operator new, and operator delete functions
+to runtime routines for array construction/destruction.  NULL until created.
+*/
+static a_type_ptr
+		ctor_ptr_type,
+		dtor_ptr_type,
+		cctor_ptr_type,
+		new_routine_ptr_type,
+		delete_routine_ptr_type;
+
+
+static an_expr_node_ptr expr_for_pointer_to_constructor(a_routine_ptr routine)
+/*
+Build and return an expression node for the address of the indicated
+constructor, to be used to pass it to a runtime routine for array
+construction/destruction.  If the routine pointer is NULL, build an
+expression that is a null function pointer and return that.
+*/
+{
+  an_expr_node_ptr expr;
+
+  if (ctor_ptr_type == NULL) {
+    /* Make the generic constructor pointer type.  It is
+         void  (*)(void *);  // IA-64 ABI
+         void *(*)(void *);  // Cfront-like ABI
+    */
+    a_type_ptr function_type;
+#if IA64_ABI
+    function_type = make_function_type(void_type(),
+                                       void_star_type(),
+                                       (a_type_ptr)NULL);
+#else /* !IA64_ABI */
+    function_type = make_function_type(void_star_type(),
+                                       void_star_type(),
+                                       (a_type_ptr)NULL);
+#endif /* IA64_ABI */
+    ctor_ptr_type = make_pointer_type(function_type);
+  }  /* if */
+  expr = expr_for_pointer_to_routine(routine, ctor_ptr_type);
+  return expr;
+}  /* expr_for_pointer_to_constructor */
+
+
+static an_expr_node_ptr expr_for_pointer_to_destructor(a_routine_ptr routine)
+/*
+Build and return an expression node for the address of the indicated
+destructor, to be used to pass it to a runtime routine for array
+construction/destruction.  If the routine pointer is NULL, build an
+expression that is a null function pointer and return that.
+*/
+{
+  an_expr_node_ptr expr;
+
+  if (dtor_ptr_type == NULL) {
+    /* Make the generic destructor pointer type.  It is
+         void (*)(void *);       // IA-64 ABI
+         void (*)(void *, int);  // Cfront-like ABI
+    */
+    a_type_ptr function_type;
+#if IA64_ABI
+    function_type = make_function_type(void_type(),
+                                       void_star_type(),
+                                       (a_type_ptr)NULL);
+#else /* !IA64_ABI */
+    function_type = make_function_type(void_type(),
+                                       void_star_type(),
+                                       integer_type((an_integer_kind)ik_int));
+#endif /* IA64_ABI */
+    dtor_ptr_type = make_pointer_type(function_type);
+  }  /* if */
+  expr = expr_for_pointer_to_routine(routine, dtor_ptr_type);
+  return expr;
+}  /* expr_for_pointer_to_destructor */
+
+
+static an_expr_node_ptr expr_for_pointer_to_copy_constructor(
+                                                         a_routine_ptr routine)
+/*
+Build and return an expression node for the address of the indicated
+copy constructor, to be used to pass it to a runtime routine for array
+construction/destruction.  If the routine pointer is NULL, build an
+expression that is a null function pointer and return that.
+*/
+{
+  an_expr_node_ptr expr;
+
+  if (cctor_ptr_type == NULL) {
+    /* Make the generic copy constructor pointer type.  It is
+         void  (*)(void *, void *);  // IA-64 ABI
+         void *(*)(void *, void *);  // Cfront-like ABI
+    */
+    a_type_ptr function_type;
+#if IA64_ABI
+    function_type = make_function_type(void_type(),
+                                       void_star_type(),
+                                       void_star_type());
+#else /* !IA64_ABI */
+    function_type = make_function_type(void_star_type(),
+                                       void_star_type(),
+                                       void_star_type());
+#endif /* IA64_ABI */
+    cctor_ptr_type = make_pointer_type(function_type);
+  }  /* if */
+  expr = expr_for_pointer_to_routine(routine, cctor_ptr_type);
+  return expr;
+}  /* expr_for_pointer_to_copy_constructor */
+
+
+static an_expr_node_ptr expr_for_pointer_to_new(a_routine_ptr routine)
+/*
+Build and return an expression node for the address of the indicated
+operator new routine, to be used to pass it to a runtime routine for array
+construction/destruction.  If the routine pointer is NULL, build an
+expression that is a null function pointer and return that.
+*/
+{
+  an_expr_node_ptr expr;
+
+  if (new_routine_ptr_type == NULL) {
+    /* Make the generic operator new routine pointer type.  It is
+         void *(*)(size_t);
+    */
+    a_type_ptr function_type;
+    function_type = make_function_type(void_star_type(),
+                                       integer_type(targ_size_t_int_kind),
+                                       (a_type_ptr)NULL);
+    new_routine_ptr_type = make_pointer_type(function_type);
+  }  /* if */
+  expr = expr_for_pointer_to_routine(routine, new_routine_ptr_type);
+  return expr;
+}  /* expr_for_pointer_to_new */
+
+
+static an_expr_node_ptr expr_for_pointer_to_delete(a_routine_ptr routine)
+/*
+Build and return an expression node for the address of the indicated
+operator delete routine, to be used to pass it to a runtime routine for array
+construction/destruction.  If the routine pointer is NULL, build an
+expression that is a null function pointer and return that.
+*/
+{
+  an_expr_node_ptr expr;
+
+  if (delete_routine_ptr_type == NULL) {
+    /* Make the generic operator delete routine pointer type.  It is
+         void (*)(void *);
+    */
+    a_type_ptr function_type;
+    function_type = make_function_type(void_type(),
+                                       void_star_type(),
+                                       (a_type_ptr)NULL);
+    delete_routine_ptr_type = make_pointer_type(function_type);
+  }  /* if */
+  expr = expr_for_pointer_to_routine(routine, delete_routine_ptr_type);
+  return expr;
+}  /* expr_for_pointer_to_delete */
 
 #if IA64_ABI
 
@@ -1896,7 +2072,7 @@ IA-64 ABI; see comments below.
   }  /* if */
 #endif /* IA64_ABI */
   /* Build an expression for the address of the constructor. */
-  ctor_addr_node = expr_for_pointer_to_routine(ctor_routine);
+  ctor_addr_node = expr_for_pointer_to_constructor(ctor_routine);
   if (new_routine == NULL && delete_routine == NULL) {
     /* Normal case.  The call looks like
          __vec_new   (entity_node, num_elems, size_elem, ctor_routine)
@@ -1921,6 +2097,10 @@ IA-64 ABI; see comments below.
       make_zero_of_proper_type(void_star_type(), &null_constant);
       entity_node = alloc_node_for_constant(&null_constant);
     }  /* if */
+    /* The runtime routines take an element count of type int.
+       If we have size_t now, convert to int. */
+    num_elem_node=add_cast_if_necessary(num_elem_node,
+                                        integer_type((an_integer_kind)ik_int));
 #else /* IA64_ABI */
     if (entity_node != NULL)
 #endif /* IA64_ABI */
@@ -1947,14 +2127,14 @@ IA-64 ABI; see comments below.
     if (zero_storage) {
       /* __vec_new_eh_zero call, which zeroes storage before calling the
          constructor, for value-initialization. */
-      dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
+      dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
       ctor_addr_node->next = dtor_addr_node;
       call_node = make_runtime_rout_call("__vec_new_eh_zero",
                                          &vec_new_eh_zero_routine,
                                          void_star_type(), arg_expr_list);
     } else if (exceptions_enabled && dtor_routine != NULL) {
       /* __vec_new_eh call, with destructor. */
-      dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
+      dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
       ctor_addr_node->next = dtor_addr_node;
       call_node = make_runtime_rout_call("__vec_new_eh", &vec_new_eh_routine,
                                          void_star_type(), arg_expr_list);
@@ -1964,7 +2144,7 @@ IA-64 ABI; see comments below.
                                          void_star_type(), arg_expr_list);
     }  /* if */
 #else /* IA64_ABI */
-    dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
+    dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
     ctor_addr_node->next = dtor_addr_node;
     if (entity_node != NULL) {
       call_node = make_runtime_rout_call("__cxa_vec_ctor", &vec_ctor_routine,
@@ -2002,7 +2182,7 @@ IA-64 ABI; see comments below.
                         dtor_routine, new_routine, delete_routine)
        The latter is for the two-argument delete case. */
     check_assertion(entity_node == NULL);
-    dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
+    dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
     is_two_arg_delete = (delete_routine != NULL &&
                          is_two_argument_delete(delete_routine));
 #if !IA64_ABI
@@ -2039,8 +2219,8 @@ IA-64 ABI; see comments below.
       delete_routine = delete_sym->variant.routine.ptr;
     }  /* if */
 #endif /* !IA64_ABI */
-    new_addr_node = expr_for_pointer_to_routine(new_routine);
-    delete_addr_node = expr_for_pointer_to_routine(delete_routine);
+    new_addr_node = expr_for_pointer_to_new(new_routine);
+    delete_addr_node = expr_for_pointer_to_delete(delete_routine);
     arg_expr_list = num_elem_node;
     num_elem_node->next = size_elem_node;
 #if !IA64_ABI
@@ -2116,10 +2296,14 @@ IA-64 ABI, the routines called are different.
          __placement_array_new(entity_node, num_elems, size_elem,
                                ctor_routine, dtor_routine)
   */
+  /* The runtime routines take an element count of type int.
+     If we have size_t now, convert to int. */
+  num_elem_node = add_cast_if_necessary(num_elem_node,
+                                        integer_type((an_integer_kind)ik_int));
   /* Build a constant node for the size of the array elements. */
   size_elem_node = size_elem_node_from_pointer_type(entity_type);
-  ctor_addr_node = expr_for_pointer_to_routine(ctor_routine);
-  dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
+  ctor_addr_node = expr_for_pointer_to_constructor(ctor_routine);
+  dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
   arg_expr_list = entity_node;
   entity_node->next = num_elem_node;
   num_elem_node->next = size_elem_node;
@@ -2252,7 +2436,7 @@ instead of __vec_delete.
   /* Build a constant node for the size of the array elements. */
   size_elem_node = size_elem_node_from_pointer_type(entity_node->type);
   /* Build an expression for the address of the destructor. */
-  dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
+  dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
 #if !IA64_ABI
   if (delete_routine == NULL) {
     /* The call looks like
@@ -2279,7 +2463,7 @@ instead of __vec_delete.
        is_two_arg is 1 to indicate that the delete routine is a 2-argument
        routine, 0 otherwise.
     */
-    delete_addr_node = expr_for_pointer_to_routine(delete_routine);
+    delete_addr_node = expr_for_pointer_to_delete(delete_routine);
     is_two_arg_node = node_for_integer_constant(
                               is_two_argument_delete(delete_routine) ? 1L : 0L,
                               (an_integer_kind)ik_int);
@@ -2327,7 +2511,7 @@ instead of __vec_delete.
                                          arg_expr_list);
     }  /* if */
   } else {
-    delete_addr_node = expr_for_pointer_to_routine(delete_routine);
+    delete_addr_node = expr_for_pointer_to_delete(delete_routine);
     dtor_addr_node->next = delete_addr_node;
     check_assertion(array_element_count == -1 && free_storage);
     if (is_two_argument_delete(delete_routine)) {
@@ -2379,18 +2563,16 @@ called is different.
 
   /* Build a constant node for the number of array elements. */
   num_elem_node = num_elem_node_from_count(array_element_count);
+#if !IA64_ABI
   /* The num_elems parameter of __vec_cctor has type size_t, which
      is different than most of the similar routines. */
-  cast_node(&num_elem_node, integer_type(targ_size_t_int_kind),
-            /*check_cast_access=*/FALSE,
-            /*is_implicit_cast=*/TRUE,
-            /*is_reinterpret_cast=*/FALSE,
-            /*reinterpret_semantics=*/FALSE,
-            &error_position);
+  num_elem_node = add_cast_if_necessary(num_elem_node,
+                                        integer_type(targ_size_t_int_kind));
+#endif /* !IA64_ABI */
   /* Build a constant node for the size of the array elements. */
   size_elem_node = size_elem_node_from_pointer_type(entity_node->type);
   /* Build an expression for the address of the copy constructor. */
-  func_addr_node = expr_for_pointer_to_routine(cctor_routine);
+  func_addr_node = expr_for_pointer_to_copy_constructor(cctor_routine);
 #if !IA64_ABI
   /* The call looks like
        __vec_cctor   (entity_node, num_elems, size_elem, cctor_routine,
@@ -2405,7 +2587,7 @@ called is different.
   func_addr_node->next = source_node;
   if (exceptions_enabled && dtor_routine != NULL) {
     /* __vec_cctor_eh call, with destructor. */
-    dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
+    dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
     source_node->next = dtor_addr_node;
     call_node = make_runtime_rout_call("__vec_cctor_eh", &vec_cctor_eh_routine,
                                        void_type(), arg_expr_list);
@@ -2419,7 +2601,7 @@ called is different.
        __cxa_vec_cctor(entity_node, source_node, num_elems, size_elem,
                        cctor_routine, dtor_routine);
   */
-  dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
+  dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
   arg_expr_list = entity_node;
   entity_node->next = source_node;
   source_node->next = num_elem_node;
@@ -5297,7 +5479,7 @@ from entity_type itself.  Insert the code for the call at *insert_location.
       num_elem_node->next = node_for_host_large_integer(
                                              (a_host_large_integer)entity_size,
                                              targ_size_t_int_kind);
-     entity_size_node= make_operator_node((an_expr_operator_kind)eok_imultiply,
+      entity_size_node=make_operator_node((an_expr_operator_kind)eok_imultiply,
                                           num_elem_node->type,
                                           num_elem_node);
     }  /* if */
@@ -11698,6 +11880,11 @@ Do one-time initialization of static variables declared in lower_init.c.
       pch_saved_var_array_elem(guid_array_type),
       pch_saved_var_array_elem(null_guid_variable),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      pch_saved_var_array_elem(ctor_ptr_type),
+      pch_saved_var_array_elem(dtor_ptr_type),
+      pch_saved_var_array_elem(cctor_ptr_type),
+      pch_saved_var_array_elem(new_routine_ptr_type),
+      pch_saved_var_array_elem(delete_routine_ptr_type),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -11751,6 +11938,11 @@ Do one-time initialization of static variables declared in lower_init.c.
   register_trans_unit_variable(guid_array_type);
   register_trans_unit_variable(null_guid_variable);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  register_trans_unit_variable(ctor_ptr_type);
+  register_trans_unit_variable(dtor_ptr_type);
+  register_trans_unit_variable(cctor_ptr_type);
+  register_trans_unit_variable(new_routine_ptr_type);
+  register_trans_unit_variable(delete_routine_ptr_type);
 }  /* init_lower_one_time_init */
 
 
@@ -11807,6 +11999,11 @@ for each translation unit.
   guid_array_type = NULL;
   null_guid_variable = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  ctor_ptr_type = NULL;
+  dtor_ptr_type = NULL;
+  cctor_ptr_type = NULL;
+  new_routine_ptr_type = NULL;
+  delete_routine_ptr_type = NULL;
 }  /* init_lower_trans_unit_init */
 
 
