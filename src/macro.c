@@ -1836,7 +1836,11 @@ end_arg_expansion:;
       }  /* if */
       /* Check that all of the formal parameters were taken. */
       if (pp != NULL) {
-        error(ec_too_few_macro_args);
+        /* An argument is missing.  This is an error, except in PCC
+           preprocessing mode and in SVR4 C mode. */
+        diagnostic(pcc_preprocessing_mode || SVR4_C_mode
+                                        ? es_warning : es_discretionary_error,
+                   ec_too_few_macro_args);
         /* Set the rest of the parameters to null strings. */
         do {
           map = alloc_macro_arg();

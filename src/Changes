@@ -1,5 +1,10 @@
 Version 2.31
 
+1/15/95   Too few macro arguments now a warning in PCC and SVR4 modes
+
+A macro invocation with too few arguments now results in a warning
+instead of an error in PCC preprocessing mode and in SVR4 C mode.
+
 1/12/96   Exception specification on overriding virtual function
 
 An error is now issued when the exception specification on an overriding
