@@ -3775,13 +3775,29 @@ the expression.
         node->type = op2->type;
       }  /* if */
     }  /* if */
+  } else if (is_operation && node->variant.operation.kind ==
+                                       (an_expr_operator_kind)eok_subscript) {
+    /* "[]" operator -- transform to pointer addition. */
+    op1 = node->variant.operation.operands;
+    /* See if the operand can be rewritten. */
+    conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
+                                             /*see_if_possible=*/TRUE);
+    if (op1_possible) {
+      *converted = TRUE;
+      if (!see_if_possible) {
+        conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
+                                                 /*see_if_possible=*/FALSE);
+        node->variant.operation.kind = (an_expr_operator_kind)eok_padd_subsc;
+        node->type = make_pointer_type(node->type);
+      }  /* if */
+    }  /* if */
   } else if (is_operation &&
       node->variant.operation.kind == (an_expr_operator_kind)eok_value_field) {
     /* Selection of a field from an rvalue.  Try to find an lvalue in
        the struct rvalue, and if one can be found rewrite the operation
        as a normal field selection. */
     op1 = node->variant.operation.operands;
-    /* See if both branches can be rewritten. */
+    /* See if the operand can be rewritten. */
     conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
                                              /*see_if_possible=*/TRUE);
     if (op1_possible) {
