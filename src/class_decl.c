@@ -3662,10 +3662,12 @@ is omitted, the type defaults to "int".
 }  /* decl_member_constant */
 
 
-static void decl_static_data_member(a_symbol_locator    *locator,
-                                    a_type_ptr          class_type,
-                                    a_type_ptr          member_type,
-                                    an_access_specifier access)
+static void decl_static_data_member(a_symbol_locator *locator,
+                                    a_type_ptr       class_type,
+                                    a_type_ptr       member_type,
+                                    an_access_specifier access,
+                                    a_boolean        is_nonreal_class,
+                                    a_symbol_ptr     corresp_prototype_tag_sym)
 /*
 Do processing for a static data member, including entering it in the symbol
 table.
@@ -3676,29 +3678,41 @@ table.
 
   db_enter(3, "decl_static_data_member");
   /* Enter a new symbol in the symbol table. */
-  sym = enter_local_symbol((a_symbol_kind)sk_static_data_member,
+  sym = enter_local_symbol(is_nonreal_class ?
+                             (a_symbol_kind)sk_static_data_member_template :
+                             (a_symbol_kind)sk_static_data_member,
                            locator, decl_scope_level,
                            /*suppress_redecl_error=*/FALSE);
   sym->class_of_which_a_member = class_type;
-  /* Create the variable entry for the static data member. */
-  /* The storage class of static data members is sc_static until they are
-     promoted to external linkage, at which time the storage class will
-     become sc_extern or sc_unspecified (depending on whether or not a
-     definition is provided).  All static data member variables are allocated
-     in the file scope memory region and put on the variables list for the
-     current class. */
-  var = make_variable(member_type, (a_storage_class)sc_static,
-                      /*at_file_scope=*/FALSE);
-  sym->variant.variable = var;
-  /* Set the source correspondence fields of the variable. */
-  set_source_corresp(&var->source_corresp, sym);
-  var->source_corresp.class_of_which_a_member = class_type;
-  /* Static data members will have the same name linkage as the class of
-     which they are members.  For now, the class will have internal linkage.
-     If and when its linkage is promoted to C++, the linkage of the static
-     data members will also be changed. */
-  var->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
-  var->source_corresp.access = access;
+  if (!is_nonreal_class) {
+    /* Create the variable entry for the static data member. */
+    /* The storage class of static data members is sc_static until they are
+       promoted to external linkage, at which time the storage class will
+       become sc_extern or sc_unspecified (depending on whether or not a
+       definition is provided).  All static data member variables are allocated
+       in the file scope memory region and put on the variables list for the
+       current class. */
+    var = make_variable(member_type, (a_storage_class)sc_static,
+                        /*at_file_scope=*/FALSE);
+    sym->variant.variable = var;
+    /* Set the source correspondence fields of the variable. */
+    set_source_corresp(&var->source_corresp, sym);
+    var->source_corresp.class_of_which_a_member = class_type;
+    /* Static data members will have the same name linkage as the class of
+       which they are members.  For now, the class will have internal linkage.
+       If and when its linkage is promoted to C++, the linkage of the static
+       data members will also be changed. */
+    var->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
+    var->source_corresp.access = access;
+    if (corresp_prototype_tag_sym != NULL) {
+      /* We must be in the midst of a template class instantiation.  We need
+         to bind this static data member to the static data member template
+         that was created for it in the prototype instantiation.  This will
+         enable the compiler to generate a definition if a defining template
+         is declared. */
+      find_static_data_member_template(sym, corresp_prototype_tag_sym);
+    }  /* if */
+  } /* if */
 #if DEBUG
   if (debug_level >= 3) db_symbol(sym, "", 4);
 #endif /* DEBUG */
@@ -6136,8 +6150,9 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                    spurious error messages if there are references to it. */
                 local_type = error_type();
               }  /* if */
-              decl_static_data_member(&locator, class_type,
-                                      local_type, access);
+              decl_static_data_member(&locator, class_type, local_type,
+                                      access, is_nonreal_instantiation,
+                                      corresp_prototype_tag_sym);
             } else {
               /* Non-static data member (= field). */
               /* The type specified must be complete. */
