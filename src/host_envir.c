@@ -1668,17 +1668,16 @@ Display the difference in CPU time and elapsed time between two timers.
 }  /* display_time_used */
 
 
-/*lint -esym(528,chdir_with_check)*/ /* <-- Not used in some configurations. */
-static void chdir_with_check(char	*dir_name)
 /*
-Change to the specified directory, make sure the operation
-succeeded.
+Change to the specified directory, make sure the operation succeeded.
 */
-{
-  if (chdir(dir_name) != 0) {
-    str_catastrophe(ec_cannot_chdir, dir_name);
-  }  /* if */
+/*lint -esym(750,chdir_with_check)*/ /* <-- not used in some configurations. */
+#define chdir_with_check(dir_name) \
+{ if (chdir(dir_name) != 0) { \
+    str_catastrophe(ec_cannot_chdir, (dir_name)); \
+  }  /* if */ \
 }  /* chdir_with_check */
+
 
 /* Header comment for is_directory */
 /*
