@@ -5867,11 +5867,14 @@ Do IL lowering of the indicated statement and everything under it.
       case stmk_switch:
         /* If there is a body statement and it has a scope, push it as
            context around the processing of the switch clauses. */
+        scope = NULL;
         body_statement = statement->variant.switch_stmt.body_statement;
         if (body_statement != NULL &&
             body_statement->kind == (a_statement_kind)stmk_block) {
           /* The body statement is a block with an associated scope. */
           scope = body_statement->variant.block.extra_info->assoc_scope;
+        }  /* if */
+        if (scope != NULL) {
           push_context(&context, scope);
           lower_statement_list(body_statement->variant.block.statements,
                                &last_statement);
