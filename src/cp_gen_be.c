@@ -4570,6 +4570,12 @@ precedence confusion and need_parens is TRUE.
       form_constant(constant->variant.template_param.variant.constant,
 		    need_parens, &octl);
       processed = TRUE;
+    } else if (constant->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function) {
+      /* A tpck_unknown_function constant represents the address of the
+         unknown function.  Drop the "&" to make an lvalue. */
+      form_unknown_function_constant(constant, &octl);
+      processed = TRUE;
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   } else if (kind == (an_expr_node_kind)enk_constant &&
@@ -5236,12 +5242,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
         case eok_address:
           write_tok_ch('&');
-          if (is_operation_node(operand_1) &&
-              operand_1->variant.operation.kind ==
-                                          (an_expr_operator_kind)eok_lvalue) {
-            operand_1 = operand_1->variant.operation.operands;
-          }  /* if */
-          /* Fall through. */
+          gen_lvalue(operand_1);
+          goto done_with_operation;
         case eok_lvalue:
           /* Operand is an lvalue where an rvalue was expected. */
           gen_lvalue_no_parens(operand_1);

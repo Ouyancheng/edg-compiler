@@ -2767,6 +2767,36 @@ out as the original enum constant.
 }  /* is_enum_constant_equivalent */
 
 
+void form_unknown_function_constant(
+                                a_constant_ptr                        constant,
+                                an_il_to_str_output_control_block_ptr octl)
+/*
+Output the name indicated by a ck_template_param/tpck_unknown_function
+constant.  Note that while the constant represents the address of the unknown
+function, this routine puts out just the name, without a leading "&".
+Do the output in the way described by octl.
+*/
+{
+  check_assertion(constant->kind == (a_constant_repr_kind)ck_template_param &&
+                  constant->variant.template_param.kind ==
+                        (a_template_param_constant_kind)tpck_unknown_function);
+  if (constant->variant.template_param.variant.unknown_function.
+                                                     conversion_type != NULL) {
+    /* The associated function is a conversion function.  Generate
+       its name from the type. */
+    check_assertion(constant->source_corresp.is_class_member);
+    form_class_qualifier(constant->source_corresp.parent.class_type, octl);
+    octl->output_str("operator ");
+    form_type(constant->variant.template_param.variant.
+                                              unknown_function.conversion_type,
+              octl);
+  } else {
+    /* Normal case (not a conversion function). */
+    form_name(&constant->source_corresp, iek_constant, octl);
+  }  /* if */
+}  /* form_unknown_function_constant */
+
+
 void form_constant(a_constant_ptr                        constant,
                    a_boolean                             need_parens,
                    an_il_to_str_output_control_block_ptr octl)
@@ -3102,23 +3132,12 @@ precedence confusion.  Do the output in the way described by octl.
                       prototype_instantiations_in_il);
       switch (constant->variant.template_param.kind) {
         case tpck_unknown_function:
-          if (constant->variant.template_param.variant.unknown_function.
-                                                     conversion_type != NULL) {
-            /* The associated function is a conversion function.  Generate
-               its name from the type. */
-            check_assertion(constant->source_corresp.is_class_member);
-            form_class_qualifier(constant->source_corresp.parent.class_type,
-                                 octl);
-            octl->output_str("operator ");
-            form_type(constant->variant.template_param.variant.
-                                              unknown_function.conversion_type,
-                      octl);
-            break;
-          }  /* if */
-          goto name_cases;
+          /* Address of an unknown function. */
+          octl->output_str("&");
+          form_unknown_function_constant(constant, octl);
+          break;
         case tpck_param:
         case tpck_member:
-name_cases:
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
           {
             a_source_correspondence_ptr scp = NULL;
@@ -3176,9 +3195,12 @@ name_cases:
           octl->output_str(")");
           break;
         case tpck_template_ref:
+          /* Unknown function template with explicit template argument list. */
+          /* Put out the template. */
           form_constant(constant->variant.template_param.variant.
                                                               template_ref.con,
                         /*need_parens=*/FALSE, octl);
+          /* Add the arguments. */
           form_template_args(constant->variant.template_param.variant.
                                                          template_ref.arg_list,
                              octl);
