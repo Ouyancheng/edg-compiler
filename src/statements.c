@@ -1064,7 +1064,8 @@ static void for_init_statement(void)
 Scan the initializing expression or, in C++, declaration of a for statement.
 */
 {
-  if (C_dialect == C_dialect_cplusplus && is_declaration_not_expression()) {
+  if (C_dialect == C_dialect_cplusplus &&
+      is_declaration_not_expression(/*abstract_declarator_allowed=*/FALSE)) {
     /* Scan a declaration (C++ only). */
     local_declaration();
   } else {
@@ -1754,7 +1755,8 @@ rescan_statement:
   /* If a lint-style "notreached" comment was detected, suppress the
      warning on unreachable code. */
   check_lint_notreached_flag();
-  if (C_dialect == C_dialect_cplusplus && is_declaration_not_expression()) {
+  if (C_dialect == C_dialect_cplusplus &&
+      is_declaration_not_expression(/*abstract_declarator_allowed=*/FALSE)) {
     /* Scan a declaration (C++ only). */
     local_declaration();
   } else {

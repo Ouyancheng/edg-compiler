@@ -315,15 +315,26 @@ function-definitions, since they can start with the declarator.
 }  /* is_decl_start */
 
 
-a_boolean is_declaration_not_expression(void)
+a_boolean is_declaration_not_expression(a_boolean  abstract_declarator_allowed)
 /*
-This routine is called by statement processing routines to distinguish
-statements from declarations.  In C this is straightforward.  In C++
-the use of a function-style type cast may be indistinguishable from a
-declaration without scanning ahead.  For instance, "int(a)++;" means to
-cast "a" to integer and increment, but "int(a);" is equivalent to "int
-a;": to distinguish them we must look scan past the parentheses and
-examine what follows.  The technique is discussed in ARM 6.8.
+This routine is called in various contexts to distinguish expressions from
+declarations.  In C this is straightforward -- is_decl_start() provides
+enough information to make the decision.
+
+In C++ this routine is called to distinguish (1) a statement vs. a
+declaration; (2) casts vs. parenthesized expressions; (3) a parenthsized
+type vs. a placement expression in an operator new expression; and (4) a
+parenthesized initializer vs. a parameter declaration.
+
+For instance, a function-style type cast may not be indistinguishable from
+a declaration without scanning ahead: "int(a)++" means to cast "a" to
+integer and increment, but "int(a)" is equivalent to "int a".  To
+distinguish them we must look scan past the parentheses and examine what
+follows; the technique is discussed in ARM 6.8.
+
+Another example: if A is the name of a class, "A(1)" is an expression -- a
+constructor call -- but "A(*)" is a declaration -- an abstract declarator
+for a pointer to class A.
 */
 {
   a_token_cache         token_cache;
@@ -358,66 +369,71 @@ examine what follows.  The technique is discussed in ARM 6.8.
       /* Advance to the left paren and cache it, too. */
       (void)get_token();
       cache_curr_token(&token_cache);
-      /* Cache all tokens up to the corresponding right paren.  (Note that
-         tok_rparen is the only thing in the stop token array.) */
+      /* Advance to the first token within the parentheses. */
       (void)get_token();
-      cache_token_stream(&token_cache);
-      if (curr_token == tok_rparen) {
-        cache_curr_token(&token_cache);
-        (void)get_token();
-        switch (curr_token) {
-          case tok_assign:
-          case tok_lparen:
-          case tok_const:
-          case tok_volatile:
-          case tok_lbracket:
-          case tok_comma:
-          case tok_semicolon:
-            /* It's a declaration. */
-            break;
-          case tok_period:
-          case tok_arrow:
-          case tok_plus_plus:
-          case tok_minus_minus:
-          case tok_ampersand:
-          case tok_star:
-          case tok_plus:
-          case tok_minus:
-          case tok_divide:
-          case tok_remainder:
-          case tok_shift_left:
-          case tok_shift_right:
-          case tok_lt:
-          case tok_gt:
-          case tok_le:
-          case tok_ge:
-          case tok_eq:
-          case tok_ne:
-          case tok_excl_or:
-          case tok_or:
-          case tok_and_and:
-          case tok_or_or:
-          case tok_quest_mark:
-          case tok_times_assign:
-          case tok_divide_assign:
-          case tok_remainder_assign:
-          case tok_plus_assign:
-          case tok_minus_assign:
-          case tok_shift_left_assign:
-          case tok_shift_right_assign:
-          case tok_and_assign:
-          case tok_excl_or_assign:
-          case tok_or_assign:
-          case tok_period_star:
-          case tok_arrow_star:
-            /* It's an expression. */
-            is_decl = FALSE;
-            break;
-          default:;
-            /* What's not obviously a declaration or an expression is
-               probably a syntax error.  Let the error be reported in
-               declaration processing. */
-        }  /* switch */
+      if (abstract_declarator_allowed && is_abstract_declarator_start()) {
+        /* It is a declaration. */
+      } else {
+        /* Cache all tokens up to the corresponding right paren.  (Note that
+           tok_rparen is the only thing in the stop token array.) */
+        cache_token_stream(&token_cache);
+        if (curr_token == tok_rparen) {
+          cache_curr_token(&token_cache);
+          (void)get_token();
+          switch (curr_token) {
+            case tok_assign:
+            case tok_lparen:
+            case tok_const:
+            case tok_volatile:
+            case tok_lbracket:
+            case tok_comma:
+            case tok_semicolon:
+              /* It's a declaration. */
+              break;
+            case tok_period:
+            case tok_arrow:
+            case tok_plus_plus:
+            case tok_minus_minus:
+            case tok_ampersand:
+            case tok_star:
+            case tok_plus:
+            case tok_minus:
+            case tok_divide:
+            case tok_remainder:
+            case tok_shift_left:
+            case tok_shift_right:
+            case tok_lt:
+            case tok_gt:
+            case tok_le:
+            case tok_ge:
+            case tok_eq:
+            case tok_ne:
+            case tok_excl_or:
+            case tok_or:
+            case tok_and_and:
+            case tok_or_or:
+            case tok_quest_mark:
+            case tok_times_assign:
+            case tok_divide_assign:
+            case tok_remainder_assign:
+            case tok_plus_assign:
+            case tok_minus_assign:
+            case tok_shift_left_assign:
+            case tok_shift_right_assign:
+            case tok_and_assign:
+            case tok_excl_or_assign:
+            case tok_or_assign:
+            case tok_period_star:
+            case tok_arrow_star:
+              /* It's an expression. */
+              is_decl = FALSE;
+              break;
+            default:;
+              /* What's not obviously a declaration or an expression is
+                 probably a syntax error.  Let the error be reported in
+                 declaration processing. */
+          }  /* switch */
+        }  /* if */
       }  /* if */
       rescan_cached_tokens(&token_cache);
       copy_stop_tokens(save_stop_token_array, stop_token_array);
