@@ -5191,18 +5191,20 @@ detected, issue a diagnostic at the given position.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean acceptable_winmain_redecl_type(a_routine_ptr  rp,
-                                                a_type_ptr     new_type)
+static a_boolean compatible_calling_convention_redecl(a_routine_ptr  rp,
+                                                      a_type_ptr     new_type)
 /*
-The routine rp is being redeclared with the given new type, which was found
-to have a calling convention incompatible with that rp->type.  Return TRUE 
-if this is a routine called "WinMain" or "wWinMain" in global scope, and if
-the calling conventions would be compatible if the default calling convention
-were "__stdcall".
+The routine rp is being redeclared with the given new type.  Return TRUE if
+the calling conventions are compatible.  Special care must be taken to handle
+routines called "WinMain" or "wWinMain" in global scope: Their default calling
+convention is always "__stdcall".
 */
 {
-  a_boolean  result = FALSE;
+  a_calling_convention  saved_default_cc = default_calling_convention;
+  a_boolean             result;
 
+  /* Temporarily change the default calling convention is rp represents
+     "WinMain" or "wWinMain". */
   if (!rp->source_corresp.is_class_member &&
       rp->source_corresp.parent.namespace_ptr == NULL &&
       rp->source_corresp.name != NULL) {
@@ -5213,14 +5215,14 @@ were "__stdcall".
       ++name;
     }  /* if */
     if (strcmp(name, "WinMain") == 0) {
-      a_calling_convention  saved_default_cc = default_calling_convention;
       default_calling_convention = (a_calling_convention)cc_stdcall;
-      result = calling_conventions_are_compatible(rp->type, new_type);
-      default_calling_convention = saved_default_cc;
     }  /* if */
   }  /* if */
+  result = calling_conventions_are_compatible(rp->type, new_type);
+  /* Restore the default calling convention to the saved value. */
+  default_calling_convention = saved_default_cc;
   return result;
-}  /* acceptable_winmain_redecl_type */
+}  /* compatible_calling_convention_redecl */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -5742,9 +5744,8 @@ declaration.
           routines_compat = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_mode &&
-                   !calling_conventions_are_compatible(routine_ptr->type,
-                                                       type_ptr) &&
-                   !acceptable_winmain_redecl_type(routine_ptr, type_ptr)) {
+                   !compatible_calling_convention_redecl(routine_ptr,
+                                                         type_ptr)) {
           /* Error -- calling conventions are not compatible. */
           routines_compat = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
