@@ -1473,6 +1473,11 @@ internal linkage).
       }  /* if */
       if (prior_decl != NULL) {
         reduce_projection_symbol_to_fundamental_symbol(prior_decl);
+        if (is_type_symbol(prior_decl)) {
+          /* The prior declaration may have been a typedef in an enclosing
+             scope; there is no relationship wrt. name linkage. */
+          prior_decl = NULL;
+        }  /* if */
       }  /* if */
       if (prior_decl != NULL &&
           (idlbp->func_info == NULL) ==

@@ -1,5 +1,20 @@
 Version 2.43
 
+11/15/99 Name linkage of block extern declaration with visible type name
+         synonym in surrounding scope
+
+When a block extern declaration was processed with the same name as a
+previously declared type, the declaration was sometimes given no name
+linkage.
+
+  typedef int I;
+  int f() {
+    extern I I(I a);  // Used to be processed as having no linkage;
+    return I(1);      // now C++ linkage (or C linkage in C mode).
+  }
+
+This is now fixed.
+
 11/15/99 Diagnose unqualified destructor name in friend declarations
 
 Friend declarations that refer to a destructor using an unqualified name are
