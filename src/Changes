@@ -5,11 +5,74 @@ Version 2.27, December 22, 1994
 
 12/22/94 IL version number changed to 2.19.
 
+12/22/94 Bugs in exception handling
+
+The object lifetime changes exposed several bugs in exception handling,
+which have been corrected:
+
+- On uses of conditional flags, the code that put the address of the
+  conditional flag into the object address table was putting the
+  address into the slot of the object address table indexed by the region
+  table number (rather than the index number for the object address table).
+  By coincidence, the runtime was looking for the conditional flag address
+  in the same wrong place, so the bugs often cancelled out, particularly
+  in small test programs.
+- When destroying unordered temporaries, the values placed in
+  __eh_curr_region during the destructions were wrong and would
+  result in incomplete destructions if an exception was thrown in one
+  of the destructors.
+- The processing to free storage allocated but not initialized when
+  an exception is thrown did not interact correctly with the processing
+  for unordered temporaries.
+- At the end of a "try" block, the code that popped the EH stack
+  frame restored __eh_curr_region from the stack, but it shouldn't have --
+  no value was stored there.  Fortunately, there was always a superfluous
+  assignment to __eh_curr_region immediately following, so the bad
+  value was never used.
+
+12/22/94 Destruction of temporaries in new-initializer when alloc fails
+
+If "operator new" returns NULL, indicating that the allocation for a
+new could not be done, the initialization of the storage is suppressed.
+Unfortunately, the destructions of any temporaries in that initialization
+were not considered conditional, so the destructions would be done
+even though the corresponding constructions never were.
+
+12/22/94 Elimination of extra destructor call in switch body
+
+In some cases an extra unreachable destructor call would be placed
+inside the body statement of a switch.
+
+12/22/94 Destruction of long-lifetime temporaries on break or continue
+
+Code with the following general form:
+
+  ... A(1) + A(2);  // Some temporaries created
+  while (expr) {
+    if (expr2) break;
+  }
+
+was incorrectly handled in that the temporaries were destroyed on the break
+(and therefore destroyed each time around the loop).
+
+12/22/94 Lifetime of temporaries to which a reference is bound
+
+The lifetime of a temporary to which a reference is bound has now been
+extended to match the lifetime of the reference.  The problem was most
+noticeable for local static references:
+
+  void f() {
+    static const A &r = A(1);
+  }
+
+Formerly, the temporary was destroyed at the end of the scope, leaving
+the reference dangling.
+
 12/22/94 MAKE_ALL_FUNCTIONS_UNPROTOTYPED as variable
 
 The build option MAKE_ALL_FUNCTIONS_UNPROTOTYPED, which controls whether
 IL lowering turns all functions into unprototyped functions (for
-compartibility with the +a0 mode of cfront), is now selectable at
+compatibility with the +a0 mode of cfront), is now selectable at
 compile-time.  The setting of MAKE_ALL_FUNCTIONS_UNPROTOTYPED is transferred
 to the new variable make_all_functions_unprototyped, which is then tested
 in IL lowering.  There is no command-line option to change this setting
@@ -168,7 +231,7 @@ that back ends should not have to understand much of the language rules.
 Because the front end indicates the time of destruction for all entities,
 it now also controls the lifetime of temporaries explicitly.  The short-
 lifetime temporaries of the Working Paper are now implemented.  The
-old long-lifetime temporaries are still used in cfront compatiblity
+old long-lifetime temporaries are still used in cfront compatibility
 mode and when --long_lifetime_temps is specified.  --short_lifetime_temps
 is also available to request the standard (and, usually, the default)
 behavior.
