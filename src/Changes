@@ -4,18 +4,17 @@ Version 3.0
 
 The typeinfo variable was not defined for a class mentioned in a
 catch handler type but not otherwise much used in the program, when
-the class has called virtual functions but no object of the class
-is actually created (highly unlikely in real programs).
+the class has a decider function that has to be instantiated and
+no object of the class type is actually created.
 
-  struct C {
+  template <class T> struct C {
     virtual void f();
   };
+  template <class T> void C<T>::f() {}
   int main() {
     try {
-    } catch (C *) {
+    } catch (C<int> *) {
     }
-    C *p = 0;
-    p->f();
   }
 
 3/1/02   "called" flag in IL routine not set for call of static function
