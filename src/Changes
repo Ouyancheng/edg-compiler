@@ -1,3 +1,11 @@
+6/3/92  Improved error checking of constructor and destructor parameter
+        declarations.
+
+We now issue an error on a non-NULL param list for a destructor and on a
+param type for a constructor that is the same, except for qualifiers, as
+the type of the object to be constructed (e.g., error on X::X(X) is now
+reported).
+
 6/3/92  Added support for the nested class anachronism.
 
 The nested class anachronism in ARM 18.3.5 has been added as part of the
