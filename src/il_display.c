@@ -2416,6 +2416,9 @@ Display the indicated switch clause.
   disp_ptr("statements", (char *)ptr->statements, iek_statement);
   disp_boolean("implied_break_at_end", (a_boolean)ptr->implied_break_at_end);
   disp_stmt_source_position("break_position", ptr->break_position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_stmt_source_position("break_end_position", ptr->break_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   disp_stmt_source_position("default_position", ptr->default_position);
 }  /* disp_switch_clause */
 
@@ -2507,6 +2510,9 @@ Display the indicated statement.
 */
 {
   disp_stmt_source_position("position", ptr->position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_stmt_source_position("end_position", ptr->end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   disp_ptr("next", (char *)ptr->next, iek_statement);
   if (ptr->has_associated_pragma) {
     disp_boolean("has_associated_pragma", TRUE);

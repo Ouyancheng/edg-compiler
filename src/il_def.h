@@ -6030,6 +6030,12 @@ typedef struct a_switch_clause {
 			   (which is represented in the IL as an implied break
 			   at the end of the switch clause), the break
 			   statement's source position; otherwise zero. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_stmt_source_position
+		break_end_position;
+			/* If the source contains an explicit break statement,
+			   its end position; otherwise zero. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_stmt_source_position
 		default_position;
 			/* If the clause contains a default label (i.e.,
@@ -6434,6 +6440,12 @@ typedef struct a_statement {
 		position;
                         /* Source position from which this statement
                            came.  0 if no direct correspondence. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_stmt_source_position
+		end_position;
+                        /* Source position of the end of this statement.
+                           0 if no direct correspondence. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_statement_ptr
                 next;
                         /* Next statement in execution sequence in the

@@ -1734,8 +1734,17 @@ Dump a statement, for debug purposes.
         break;
       default:;
     }  /* switch */
+#if EXTRA_SOURCE_POSITIONS_IN_IL && FULL_SOURCE_POS_IN_IL_STATEMENT
+    fprintf(f_debug, ", at %lu/%lu", sp->position.seq, sp->position.column);
+    if (sp->end_position.seq != 0) {
+      fprintf(f_debug, " -- %lu/%lu", sp->end_position.seq,
+              sp->end_position.column);
+    }  /* if */
+    fputc('\n', f_debug);
+#else /* !(EXTRA_SOURCE_POSITIONS_IN_IL && FULL_SOURCE_POS_IN_IL_STATEMENT) */
     fprintf(f_debug, ", at %lu\n",
             seq_number_from_stmt_source_position(sp->position));
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL && FULL_SOURCE_POS_IN_IL_STATEMENT */
   }  /* if */
 }  /* db_statement */
 
@@ -1802,8 +1811,24 @@ the dump (this one counts as the first).
                     f_debug);
               db_statement_list(scp->statements, indent+4, "", how_deep-1);
               if (scp->implied_break_at_end) {
+                a_seq_number  seq =
+                    seq_number_from_stmt_source_position(scp->break_position);
                 for (a = 0; a < indent+4; a++) fputs(" ", f_debug);
-                fputs("[implied break]\n", f_debug);
+                fputs("[implied break", f_debug);
+                if (seq != 0) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL && FULL_SOURCE_POS_IN_IL_STATEMENT
+                  fprintf(f_debug, ", at %lu/%lu", seq,
+                          scp->break_position.column);
+                  if (scp->break_end_position.seq != 0) {
+                    fprintf(f_debug, " -- %lu/%lu",
+                            scp->break_end_position.seq,
+                            scp->break_end_position.column);
+                  }  /* if */
+#else /* !(EXTRA_SOURCE_POSITIONS_IN_IL && FULL_SOURCE_POS_IN_IL_STATEMENT) */
+                  fprintf(f_debug, ", at %lu", seq);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL && FULL_SOURCE_POS_IN_IL_STATEMENT */
+                }  /* if */
+                fputs("]\n", f_debug);
               }  /* if */
             }  /* for */
           }  /* if */

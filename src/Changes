@@ -1,5 +1,10 @@
 Version 2.39
 
+4/29/98   End positions on statements
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the end positions of statements
+are now recorded.
+
 4/27/98   Microsoft compatibility: define static data member using derived
           class qualifier
 

@@ -98,6 +98,12 @@ static a_control_flow_descr_ptr
 			   case the lifetime pointer in the associated
 			   statement should be cleared. */
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+static a_statement_ptr last_statement_ptr;
+			/* Pointer set to last statement allocated when
+			   its end position will not be known until later. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
 #define function_scope_object_lifetime                                \
   (scope_stack[depth_innermost_function_scope].curr_scope_object_lifetime)
 
@@ -1824,7 +1830,8 @@ Put out the definition for the indicated label.  If label == NULL, do nothing.
     label->num_microsoft_trys_inside_of =
               struct_stmt_stack[depth_stmt_stack].num_microsoft_trys_inside_of;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    sp = add_statement((a_statement_kind)stmk_label);
+    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_label,
+                                   &label->source_corresp.decl_position);
     label->variant.exec_stmt = sp;
     sp->variant.label.ptr = label;
   }  /* if */
@@ -2808,6 +2815,9 @@ See also 3.6.4.1.
   if (is_condition_decl) finish_condition_block();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  set_stmt_source_position(sp->end_position, curr_construct_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_exit();
 }  /* if_statement */
@@ -2909,6 +2919,9 @@ See also 3.6.4.2.
      the scope being resumed. */
   reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
                                    (char *)sp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  set_stmt_source_position(sp->end_position, curr_construct_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_exit();
 }  /* switch_statement */
@@ -2967,7 +2980,9 @@ See also 3.6.5.1.
      the scope being resumed. */
   reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
                                    (char *)sp);
-
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  set_stmt_source_position(sp->end_position, curr_construct_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
 }  /* while_statement */
 
@@ -3018,6 +3033,12 @@ See also 3.6.5.2.
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (curr_token == tok_semicolon) {
+    curr_construct_end_position = end_pos_curr_token;
+  }  /* if */
+  set_stmt_source_position(sp->end_position, curr_construct_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and skip the semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
@@ -3089,6 +3110,9 @@ where handler-seq is a sequence of one or more handlers of the form
                                                /*at_function_level=*/FALSE,
                                                /*explicit_return_type=*/FALSE,
                                                /*is_catch_clause=*/FALSE);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  set_stmt_source_position(sp->end_position, curr_construct_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* The next token should be a "catch" introducing the first handler. */
   /* Save the current token position as catch_pos before checking whether
      it is in fact tok_catch, since the function that checks also advances
@@ -3232,12 +3256,18 @@ well.
     }  /* if */
   }  /* if */
   /* Advance past the semicolon. */
-  if (curr_token == tok_semicolon) (void)get_token();
+  if (curr_token == tok_semicolon) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    (void)get_token();
+  }  /* if */
   db_exit();
 }  /* empty_statement */
 
 
-static void add_goto_to_continue_label(a_struct_stmt_stack_entry_ptr sssep,
+static a_statement_ptr add_goto_to_continue_label(
+                                       a_struct_stmt_stack_entry_ptr sssep,
                                        a_boolean                     is_leave)
 /*
 Generate a goto to the "continue" label for the indicated structured
@@ -3271,6 +3301,9 @@ __leave instead of a continue.
     }  /* if */
     /* Allocate the goto statement. */
     sp = add_statement((a_statement_kind)stmk_goto);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     stmt_update_source_sequence_list(sp);
     /* Put the destination label into the goto. */
     sp->variant.label.ptr = dest_label;
@@ -3292,6 +3325,7 @@ __leave instead of a continue.
        statement. */
     process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   }  /* if */
+  return sp;
 }  /* add_goto_to_continue_label */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3307,6 +3341,7 @@ The syntax is:
 */
 {
   a_struct_stmt_stack_entry_ptr sssep;
+  a_statement_ptr               goto_stmt;
 
   db_enter(3, "leave_statement");
   check_for_unreachable_code();
@@ -3325,7 +3360,7 @@ The syntax is:
   sssep = NULL;
 found:
   /* Add a "goto" to the continue label for the __try. */
-  add_goto_to_continue_label(sssep, /*is_leave=*/TRUE);
+  goto_stmt = add_goto_to_continue_label(sssep, /*is_leave=*/TRUE);
   /* Ignore the initial "__leave". */
 #if CHECKING
   if (curr_token != tok_leave) {
@@ -3333,6 +3368,15 @@ found:
   }  /* if */
 #endif /* CHECKING */
   (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (curr_token == tok_semicolon) {
+    curr_construct_end_position = end_pos_curr_token;
+  }  /* if */
+  if (goto_stmt != NULL) {
+    set_stmt_source_position(goto_stmt->end_position,
+                             curr_construct_end_position);
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   db_exit();
@@ -3359,6 +3403,12 @@ Scan an expression statement.
   /* If the expression is a throw expression, the code following is
      unreachable. */
   if (is_throw_expr(expr)) set_unreachable(curr_reachability);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (curr_token == tok_semicolon) {
+    curr_construct_end_position = end_pos_curr_token;
+  }  /* if */
+  set_stmt_source_position(sp->end_position, curr_construct_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* expression_statement */
 
 
@@ -3534,6 +3584,9 @@ either an expression statement or a declaration statement.
      the scope being resumed. */
   reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
                                    (char *)sp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  set_stmt_source_position(sp->end_position, curr_construct_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
 }  /* for_statement */
 
@@ -3977,6 +4030,12 @@ See also 3.6.6.1.
      the goto to allow diagnosis of jump-over-initialization errors.  If
      it is backward reference, do the checking immediately. */
   check_for_jump_over_initialization(sp, &goto_pos);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (curr_token == tok_semicolon) {
+    curr_construct_end_position = end_pos_curr_token;
+  }  /* if */
+  set_stmt_source_position(sp->end_position, curr_construct_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
@@ -3996,6 +4055,7 @@ See also 3.6.6.2.
 */
 {
   a_struct_stmt_stack_entry_ptr sssep;
+  a_statement_ptr               goto_stmt;
 
   db_enter(3, "continue_statement");
   check_for_unreachable_code();
@@ -4008,7 +4068,7 @@ See also 3.6.6.2.
     error(ec_continue_must_be_in_loop);
   }  /* if */
   /* Add a "goto" to the continue label. */
-  add_goto_to_continue_label(sssep, /*is_leave=*/FALSE);
+  goto_stmt = add_goto_to_continue_label(sssep, /*is_leave=*/FALSE);
   /* Ignore the initial "continue". */
 #if CHECKING
   if (curr_token != tok_continue) {
@@ -4016,6 +4076,15 @@ See also 3.6.6.2.
   }  /* if */
 #endif /* CHECKING */
   (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (curr_token == tok_semicolon) {
+    curr_construct_end_position = end_pos_curr_token;
+  }  /* if */
+  if (goto_stmt != NULL) {
+    set_stmt_source_position(goto_stmt->end_position,
+                             curr_construct_end_position);
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   db_exit();
@@ -4033,10 +4102,13 @@ The syntax is:
 See also 3.6.6.3.
 */
 {
-  register a_statement_ptr      sp;
+  register a_statement_ptr      sp = 0;
   a_struct_stmt_stack_entry_ptr sssep;
   a_label_ptr                   dest_label;
   a_control_flow_descr_ptr      cfdp;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_stmt_source_position*	end_position_ptr = 0;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_enter(3, "break_statement");
   check_for_unreachable_code();
@@ -4064,6 +4136,9 @@ See also 3.6.6.3.
          only when the break is at the top level in the case clause. */
       set_stmt_source_position(sssep->curr_switch_clause->break_position,
                                pos_curr_token);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_position_ptr = &sssep->curr_switch_clause->break_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       sssep->curr_switch_clause->implied_break_at_end = TRUE;
       sssep->curr_switch_clause = NULL;
       struct_stmt_stack[depth_stmt_stack].curr_switch_clause = NULL;
@@ -4080,6 +4155,9 @@ See also 3.6.6.3.
       }  /* if */
       /* Allocate the goto statement. */
       sp = add_statement((a_statement_kind)stmk_goto);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_position_ptr = &sp->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       stmt_update_source_sequence_list(sp);
       /* Put the destination label into the goto. */
       sp->variant.label.ptr = dest_label;
@@ -4106,6 +4184,12 @@ See also 3.6.6.3.
   }  /* if */
 #endif /* CHECKING */
   (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = end_pos_curr_token;
+  if (end_position_ptr) {
+    *end_position_ptr = end_pos_curr_token;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   db_exit();
@@ -4255,6 +4339,9 @@ See also 3.6.6.4.
 #endif /* CHECKING */
   /* Save the position of the beginning of the return statement. */
   return_pos = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)get_token();
   add_stop_token(tok_semicolon);
   /* Get a pointer to the current routine entry, and its return type. */
@@ -4319,6 +4406,12 @@ See also 3.6.6.4.
     sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return, &return_pos);
     stmt_update_source_sequence_list(sp);
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (curr_token == tok_semicolon) {
+    curr_construct_end_position = end_pos_curr_token;
+  }  /* if */
+  set_stmt_source_position(sp->end_position, curr_construct_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
@@ -4760,6 +4853,9 @@ Scan a case label definition.  The syntax is:
     /* Make code reachable for the error case. */
     set_reachable(curr_reachability);
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and ignore the final colon. */
   (void)required_token(tok_colon, ec_exp_colon);
   remove_stop_token(tok_colon);
@@ -4803,6 +4899,9 @@ Scan a default case label definition.  The syntax is:
   }  /* if */
 #endif /* CHECKING */
   (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and ignore the final colon. */
   (void)required_token(tok_colon, ec_exp_colon);
   db_exit();
@@ -4938,6 +5037,12 @@ rescan_statement:
              definition. */
           define_label(label);
           stmt_update_source_sequence_list(label->variant.exec_stmt);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          check_assertion(curr_token == tok_colon);
+          curr_construct_end_position = end_pos_curr_token;
+          set_stmt_source_position(label->variant.exec_stmt->end_position,
+                                   curr_construct_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           if (!C_mode()) {
             /* Record the innermost object lifetime that this label is part
                of, ignoring any object lifetimes that are "useless".  (They
@@ -5254,19 +5359,29 @@ branching into it is disallowed).
   add_end_of_construct_source_sequence_entry(
                            (char *)block, (a_byte_il_entry_kind)iek_statement);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  set_stmt_source_position(block->end_position, end_pos_curr_token);
+  curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for the closing "}".  Note that for a function, the "}" is left
      for the caller (function_definition) to handle. */
   if (!at_function_level) (void)required_token(tok_rbrace, ec_exp_rbrace);
   remove_stop_token(tok_rbrace);
 
 #if DEBUG
-  if (debug_level >= 3) {
+  if (debug_level >= 3 ||
+      (at_function_level && db_flag_is_set("dump_stmts"))) {
+    int  how_deep = 3;
     fputs("terminating compound statement for ", f_debug);
     if (at_function_level) {
       db_scope(scope_stack[depth_scope_stack].il_scope);
       fputs("\n", f_debug);
+      /* If debug_level is less than 3, then this display is triggered by
+         the "dump_stmts" flag; do a full display of the statements in the
+         function. */
+      if (debug_level < 3) how_deep = 100;
     }  /* if */
-    db_statement_list(block, /*indent=*/0, "", /*how_deep=*/3);
+    db_statement_list(block, /*indent=*/0, "", how_deep);
   }  /* if */
 #endif /* DEBUG */
   db_exit();

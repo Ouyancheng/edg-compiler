@@ -1862,6 +1862,9 @@ to it.
   scp->statements           = NULL;
   scp->implied_break_at_end = FALSE;
   clear_stmt_source_position(scp->break_position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  clear_stmt_source_position(scp->break_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   clear_stmt_source_position(scp->default_position);
   return scp;
 }  /* alloc_switch_clause */
@@ -2040,6 +2043,9 @@ to it.  The statement kind is set as indicated.
   num_statements_allocated++;
 #endif /* DEBUG */
   clear_stmt_source_position(sp->position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  clear_stmt_source_position(sp->end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   sp->next                    = NULL;
   sp->has_associated_pragma   = FALSE;
   sp->is_initialization_guard = FALSE;
