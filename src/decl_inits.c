@@ -378,12 +378,12 @@ ref field of a class object (or an array of same) remains uninitialized.
   a_boolean           array_too_long_error_given = FALSE;
   a_boolean           took_extra_comma;
   a_dynamic_init_ptr  dip;
+  a_boolean           whole_object_initialization = FALSE;
 
   db_enter(4, "get_initializer");
   err = FALSE;
   *nothing_taken = FALSE;
   local_type = skip_typerefs(*type);
-  check_for_opening_brace(&brace_flag);
   /* There is special handling to initialize a field or array element that
      is itself a class object.  If it is a C-style struct (an aggregate
      class, which has no constructors -- see ARM 8.4.1) we assume the
@@ -405,10 +405,37 @@ ref field of a class object (or an array of same) remains uninitialized.
      ta.  (If we wanted to support the initialization of sa2 and disallow that
      of sa1, the check for is_class_aggregate in the following conditional
      would have to be removed.) */
-  if (!brace_flag && C_dialect == C_dialect_cplusplus &&
-      is_class_struct_union_type(local_type) &&
-      !(symbol_supplement_for_class(local_type)->is_class_aggregate)) {
-    /* Whole object initialization. */
+  if (C_dialect == C_dialect_cplusplus) {
+    if (is_class_struct_union_type(local_type)) {
+      /* If this is not a C-style struct (i.e., if it is not one for which
+         C-style aggregate initialization is allowed) or if it has no
+         members, the object is initialized as a whole. */
+      if (!(symbol_supplement_for_class(local_type)->is_class_aggregate)) {
+        if (curr_token == tok_lbrace) {
+          pos_ty_error(ec_brace_initialization_not_allowed, &pos_curr_token,
+                       local_type);
+          local_type = error_type();
+        } else {
+          whole_object_initialization = TRUE;
+        }  /* if */
+      } else if (local_type->variant.class_struct_union.field_list == NULL) {
+        /* An empty class.*/
+        if (curr_token == tok_lbrace) {
+          if (next_token() == tok_rbrace) {
+            /* An empty class can be initialized with "{}". */
+          } else {
+            pos_ty_error(ec_brace_initialization_not_allowed, &pos_curr_token,
+                         local_type);
+            local_type = error_type();
+          }  /* if */
+        } else {
+          whole_object_initialization = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  check_for_opening_brace(&brace_flag);
+  if (whole_object_initialization) {
 #if CHECKING
     if (top_level) {
       internal_error("get_initializer: class encountered at top level");
@@ -591,6 +618,7 @@ ref field of a class object (or an array of same) remains uninitialized.
                                      /*top_level=*/FALSE, incomplete_init,
                                      &local_nothing_taken);
         remove_stop_token(tok_comma);
+        check_assertion(!(local_nothing_taken && is_incomplete_array));
         /* Add the constant to the list. */
         if (con_list == NULL) {
           con_list = member_con;
@@ -1206,7 +1234,10 @@ issuing an error on an incomplete type.
        object for which there is a constructor, nonpublic members, base
        classes, or virtual functions.  In such cases a constructor must be
        used. */
-    syntax_error(ec_brace_initialization_not_allowed);
+    /* We can't call syntax_error because the type is being displayed. */
+    type_error(ec_brace_initialization_not_allowed, vp_type);
+    /* Flush tokens until something in the stop token set turns up. */
+    flush_tokens();
     err = TRUE;
   } else if (is_class_struct_union_type(vp_type) && curr_token != tok_lbrace &&
              (C_dialect == C_dialect_cplusplus ||
