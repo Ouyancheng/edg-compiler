@@ -1,5 +1,11 @@
 Version 2.40
 
+9/22/98   Excessive memory use when using memory mapped PCH files
+
+Version 2.39 introduced a bug that could result in an excessive amount
+of memory being used when memory mapped precompiled header files are
+used.  This has been fixed.
+
 9/18/98   Duplicate class member using declaration
 
 Duplicate using declarations in a class definition are now reported (see

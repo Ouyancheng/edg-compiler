@@ -596,10 +596,10 @@ a smaller-sized block.  Return a pointer to the block header.
   hdr->malloc_size = alloc_size;
   hdr->start_of_block = (char *)alloc_addr + adjusted_header_size;
   hdr->after_end_of_block = (char *)alloc_addr + alloc_size;
-  hdr->trimmed = FALSE;
 have_hdr:
   /* Everything in the block is available. */
   hdr->next_avail_in_block = hdr->start_of_block;
+  hdr->trimmed = FALSE;
 #ifdef USING_PURIFY
   /* When using Purify, reserve the smallest possible piece of memory
      at the beginning of the block.  This is done to prevent what
