@@ -4205,10 +4205,10 @@ well as C++ mode.
     /* Cannot cast to an incomplete type. */
     /* okay = FALSE; -- already set. */
   } else if (is_pointer(source_type) && is_integral(dest_type) &&
-      (C_mode() ||
-       dest_of_ptr_cast_big_enough(source_type, dest_type))) {
+             (C_mode() || microsoft_mode ||
+              dest_of_ptr_cast_big_enough(source_type, dest_type))) {
     /* Pointer --> integral is okay if (a) the integer is big enough or
-       (b) it's not big enough but we're compiling C. */
+       (b) it's not big enough but we're compiling C or Microsoft C++. */
     okay = TRUE;
     if (!dest_of_ptr_cast_big_enough(source_type, dest_type)) {
       /* The destination it not large enough to hold all of the bits
