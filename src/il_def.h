@@ -679,11 +679,11 @@ typedef struct a_source_correspondence {
 			   classes have the flag set to TRUE, and objects
 			   declared at file scope and within nonlocal classes
 			   have it set to FALSE. */
-#if DO_IL_LOWERING
+#if NEED_NAME_MANGLING
   unsigned int	name_has_been_mangled:1;
 			/* TRUE if the name of the entity has been changed
 			   to the "mangled" form of the name (C++). */
-#endif /* DO_IL_LOWERING */
+#endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
   unsigned int	global_qualification_needed:1;
 			/* A leading "::" is needed when referring to this

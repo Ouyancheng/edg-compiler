@@ -1,5 +1,11 @@
 Version 2.26
 
+9/26/94  NEED_NAME_MANGLING without IL lowering
+
+Formerly, lower_name.c did not compile correctly if one set
+NEED_NAME_MANGLING to TRUE and DO_IL_LOWERING to FALSE.  That has been
+corrected.
+
 9/25/94  Hash for strings/names in looking for shareable constants
 
 The hash algorithm used for strings and names in looking for shareable

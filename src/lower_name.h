@@ -19,7 +19,8 @@ lower_name.h -- Declarations related to lower_name.c (name mangling for
 #define LOWER_NAME_H 1
 
 /* Only include this code if it is needed: */
-#if DO_IL_LOWERING
+/* NEED_NAME_MANGLING is always TRUE if DO_IL_LOWERING is TRUE. */
+#if NEED_NAME_MANGLING
 
 #ifndef IL_H
 #include "il.h"
@@ -52,7 +53,7 @@ extern void do_all_name_mangling(void);
 
 extern void name_lower_init(void);
 
-#endif /* DO_IL_LOWERING */
+#endif /* NEED_NAME_MANGLING */
 #endif /* ifndef LOWER_NAME_H */
 
 /******************************************************************************

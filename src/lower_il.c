@@ -16,7 +16,167 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 #include "basics.h"
 #include "host_envir.h"
 
-/* Only include this code if it is needed: */
+/* Only include this code if it is needed.  The first few routines are
+   needed if name mangling is needed, even if IL lowering is not. */
+/* NEED_NAME_MANGLING is always TRUE if DO_IL_LOWERING is TRUE. */
+#if NEED_NAME_MANGLING
+
+/* There are more includes below.  These are just those needed for
+   the name mangling routines. */
+#include "il.h"
+
+
+static a_targ_ptrdiff_t pm_cast_offset(a_constant_ptr constant)
+/*
+constant is a pointer to member constant.  Return the byte offset to be
+added to the basic member offset to account for casts done on the pointer
+to member.
+*/
+{
+  a_targ_ptrdiff_t offset;
+  a_base_class_ptr bcp;
+
+  bcp = constant->variant.ptr_to_member.casting_base_class;
+  if (bcp == NULL) {
+    offset = 0;
+  } else {
+    offset = bcp->offset;
+    if (constant->variant.ptr_to_member.cast_to_base) offset = -offset;
+  }  /* if */
+  return offset;
+}  /* pm_cast_offset */
+
+
+void repr_for_ptr_to_data_member_constant(a_constant_ptr   constant, 
+                                          a_targ_ptrdiff_t *delta)
+/*
+Determine the lowered representation of the indicated pointer-to-data-member
+constant, and return information about it in *delta.
+*/
+{
+  a_field_ptr      field;
+  a_targ_ptrdiff_t offset = 0;
+
+  field = constant->variant.ptr_to_member.variant.field;
+  /* Use offset == 0 for NULL, otherwise the field offset. */
+  if (field != NULL) {
+    /* Determine the offset of the field within the class. */
+    /* If the field is a member of an anonymous union, add in the offset of
+       the anonymous union.  Several may be nested inside one another. */
+    for (;;) {
+      a_type_ptr field_class = field->source_corresp.class_of_which_a_member;
+      a_class_type_supplement_ptr
+                 ctsp = field_class->variant.class_struct_union.extra_info;
+      offset += (a_targ_ptrdiff_t)field->offset;
+      if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
+        break;
+      }  /* if */
+      field = ctsp->anonymous_union_field;
+    }  /* for */
+    /* Add the offset of the field class relative to the pointer-to-member
+       class and the offset of the field relative to its class.  Final
+       "+1" is to reserve zero for NULL pointers. */
+    offset = pm_cast_offset(constant) + offset + 1;
+  }  /* if */
+  *delta = offset;
+}  /* repr_for_ptr_to_data_member_constant */
+
+
+void repr_for_ptr_to_member_function_constant(a_constant_ptr   constant,
+                                              a_targ_ptrdiff_t *delta,
+                                              a_targ_ptrdiff_t *index,
+                                              a_routine_ptr    *func,
+                                              a_targ_ptrdiff_t *offset)
+/*
+Determine the lowered representation of the indicated pointer-to-member
+function constant, and return information about it in *delta, *index,
+*func, and *offset.  *offset is only meaningful if *func is returned
+NULL.
+*/
+{
+  a_routine_ptr routine;
+
+  routine = constant->variant.ptr_to_member.variant.routine;
+  /* The first field is the delta value, the offset of the class of the
+     routine relative to the class pointed to by the pointer-to-member. */
+  if (routine == NULL) {
+    /* For a NULL ptr-to-member, delta is zero. */
+    *delta = 0;
+  } else {
+    *delta = pm_cast_offset(constant);
+  }  /* if */
+  /* The second field is
+       0 for a NULL pointer;
+       an index into the virtual function table (>0) is the function is
+         virtual;
+       -1 if the function is non-virtual.
+  */
+  if (routine == NULL) {
+    /* For a NULL ptr-to-member, index is zero. */
+    *index = 0;
+  } else if (!routine->is_virtual) {
+    /* For a non-virtual function, index is -1. */
+    *index = (-1);
+  } else {
+    /* For a virtual function, index is the index in the virtual function
+       table.  No "+1" to reserve the value zero for NULL pointers is
+       needed, because the indices start with 1. */
+    *index = routine->virtual_function_number;
+  }  /* if */
+  /* The third field is
+       NULL for a null pointer;
+       the offset of the virtual function table pointer in the class of
+         the routine if the function is virtual;
+       a pointer to the function if the function is non-virtual.
+  */
+  *offset = 0;
+  if (routine == NULL) {
+    /* For a NULL ptr-to-member, *func == NULL, *offset == 0. */
+    *func = NULL;
+  } else if (!routine->is_virtual) {
+    /* For a non-virtual function, *func points to the routine. */
+    *func = routine;
+  } else {
+    /* For a virtual function, the offset of the virtual function table
+       pointer in the class of the routine is returned in *offset,
+       *func == NULL. */
+    *offset = routine->source_corresp.class_of_which_a_member->
+                                        variant.class_struct_union.extra_info->
+                                                  virtual_function_info_offset;
+    *func = NULL;
+  }  /* if */
+}  /* repr_for_ptr_to_member_function_constant */
+
+
+#if DEBUG && DO_IL_LOWERING
+/*
+Count of entries allocated, for debugging purposes.
+*/
+static unsigned long
+		allocated_name_string_length,
+		num_cleanup_actions_allocated,
+		num_return_memos_allocated;
+#endif /* DEBUG && DO_IL_LOWERING */
+
+
+char *alloc_lowered_name_string(sizeof_t size)
+/*
+Allocate a name string of length "size" and return a pointer to it.
+This is used for names added or replaced (e.g., mangled names) during
+IL lowering.
+*/
+{
+  char *ptr = alloc_il(size);
+#if DEBUG && DO_IL_LOWERING
+  allocated_name_string_length += size;
+#endif /* DEBUG && DO_IL_LOWERING */
+  return ptr;
+}  /* alloc_lowered_name_string */
+
+
+/* The things above this point are the routines needed for name mangling
+   even if lowering is not done. */
+/* Everything below this point is related to IL lowering. */
 #if DO_IL_LOWERING
 
 #include "target.h"
@@ -27,7 +187,6 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 #include "lower_eh.h"
 #include "debug.h"
 #include "error.h"
-#include "il.h"
 #include "cmd_line.h"
 #include "types.h"
 #include "exprutil.h"
@@ -39,7 +198,6 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 #include "mem_manage.h"
 #include "pch.h"
 
-
 /*
 IL lowering is only needed in this compilation if the source language
 is C++, there are no errors, and lowering hasn't been suppressed.
@@ -47,16 +205,6 @@ is C++, there are no errors, and lowering hasn't been suppressed.
 #define il_lowering_needed()                                          \
   (C_dialect == C_dialect_cplusplus && !suppress_il_lowering &&       \
    total_errors == 0)
-
-#if DEBUG
-/*
-Count of entries allocated, for debugging purposes.
-*/
-static unsigned long
-		allocated_name_string_length,
-		num_cleanup_actions_allocated,
-		num_return_memos_allocated;
-#endif /* DEBUG */
 
 
 /*
@@ -594,21 +742,6 @@ a type identical to base_class_type.  It must be found.
   }  /* for */
   return bcp;
 }  /* find_direct_or_virtual_base_class_of */
-
-
-char *alloc_lowered_name_string(sizeof_t size)
-/*
-Allocate a name string of length "size" and return a pointer to it.
-This is used for names added or replaced (e.g., mangled names) during
-IL lowering.
-*/
-{
-  char *ptr = alloc_il(size);
-#if DEBUG
-  allocated_name_string_length += size;
-#endif /* DEBUG */
-  return ptr;
-}  /* alloc_lowered_name_string */
 
 
 /*
@@ -2278,128 +2411,6 @@ will not fit in an integer of kind TARG_DELTA_INT_KIND.
   set_integer_constant_with_overflow_check(delta_con, delta,
                                            TARG_DELTA_INT_KIND);
 }  /* set_delta_constant */
-
-
-static a_targ_ptrdiff_t pm_cast_offset(a_constant_ptr constant)
-/*
-constant is a pointer to member constant.  Return the byte offset to be
-added to the basic member offset to account for casts done on the pointer
-to member.
-*/
-{
-  a_targ_ptrdiff_t offset;
-  a_base_class_ptr bcp;
-
-  bcp = constant->variant.ptr_to_member.casting_base_class;
-  if (bcp == NULL) {
-    offset = 0;
-  } else {
-    offset = bcp->offset;
-    if (constant->variant.ptr_to_member.cast_to_base) offset = -offset;
-  }  /* if */
-  return offset;
-}  /* pm_cast_offset */
-
-
-void repr_for_ptr_to_data_member_constant(a_constant_ptr   constant, 
-                                          a_targ_ptrdiff_t *delta)
-/*
-Determine the lowered representation of the indicated pointer-to-data-member
-constant, and return information about it in *delta.
-*/
-{
-  a_field_ptr      field;
-  a_targ_ptrdiff_t offset = 0;
-
-  field = constant->variant.ptr_to_member.variant.field;
-  /* Use offset == 0 for NULL, otherwise the field offset. */
-  if (field != NULL) {
-    /* Determine the offset of the field within the class. */
-    /* If the field is a member of an anonymous union, add in the offset of
-       the anonymous union.  Several may be nested inside one another. */
-    for (;;) {
-      a_type_ptr field_class = field->source_corresp.class_of_which_a_member;
-      a_class_type_supplement_ptr
-                 ctsp = field_class->variant.class_struct_union.extra_info;
-      offset += (a_targ_ptrdiff_t)field->offset;
-      if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
-        break;
-      }  /* if */
-      field = ctsp->anonymous_union_field;
-    }  /* for */
-    /* Add the offset of the field class relative to the pointer-to-member
-       class and the offset of the field relative to its class.  Final
-       "+1" is to reserve zero for NULL pointers. */
-    offset = pm_cast_offset(constant) + offset + 1;
-  }  /* if */
-  *delta = offset;
-}  /* repr_for_ptr_to_data_member_constant */
-
-
-void repr_for_ptr_to_member_function_constant(a_constant_ptr   constant,
-                                              a_targ_ptrdiff_t *delta,
-                                              a_targ_ptrdiff_t *index,
-                                              a_routine_ptr    *func,
-                                              a_targ_ptrdiff_t *offset)
-/*
-Determine the lowered representation of the indicated pointer-to-member
-function constant, and return information about it in *delta, *index,
-*func, and *offset.  *offset is only meaningful if *func is returned
-NULL.
-*/
-{
-  a_routine_ptr routine;
-
-  routine = constant->variant.ptr_to_member.variant.routine;
-  /* The first field is the delta value, the offset of the class of the
-     routine relative to the class pointed to by the pointer-to-member. */
-  if (routine == NULL) {
-    /* For a NULL ptr-to-member, delta is zero. */
-    *delta = 0;
-  } else {
-    *delta = pm_cast_offset(constant);
-  }  /* if */
-  /* The second field is
-       0 for a NULL pointer;
-       an index into the virtual function table (>0) is the function is
-         virtual;
-       -1 if the function is non-virtual.
-  */
-  if (routine == NULL) {
-    /* For a NULL ptr-to-member, index is zero. */
-    *index = 0;
-  } else if (!routine->is_virtual) {
-    /* For a non-virtual function, index is -1. */
-    *index = (-1);
-  } else {
-    /* For a virtual function, index is the index in the virtual function
-       table.  No "+1" to reserve the value zero for NULL pointers is
-       needed, because the indices start with 1. */
-    *index = routine->virtual_function_number;
-  }  /* if */
-  /* The third field is
-       NULL for a null pointer;
-       the offset of the virtual function table pointer in the class of
-         the routine if the function is virtual;
-       a pointer to the function if the function is non-virtual.
-  */
-  *offset = 0;
-  if (routine == NULL) {
-    /* For a NULL ptr-to-member, *func == NULL, *offset == 0. */
-    *func = NULL;
-  } else if (!routine->is_virtual) {
-    /* For a non-virtual function, *func points to the routine. */
-    *func = routine;
-  } else {
-    /* For a virtual function, the offset of the virtual function table
-       pointer in the class of the routine is returned in *offset,
-       *func == NULL. */
-    *offset = routine->source_corresp.class_of_which_a_member->
-                                        variant.class_struct_union.extra_info->
-                                                  virtual_function_info_offset;
-    *func = NULL;
-  }  /* if */
-}  /* repr_for_ptr_to_member_function_constant */
 
 
 void lower_ptr_to_member_constant(a_constant_ptr constant)
@@ -7913,6 +7924,7 @@ of the front end.
 }  /* il_lower_init */
 
 #endif /* DO_IL_LOWERING */
+#endif /* NEED_NAME_MANGLING */
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -34,7 +34,6 @@ static sizeof_t mangled_function_name(a_routine_ptr routine,
                                       char          *store_at);
 static sizeof_t mangled_static_data_member_name(a_variable_ptr variable,
                                                 char           *store_at);
-static void do_scope_other_name_mangling(a_scope_ptr scope);
 
 
 static sizeof_t digits_to_represent(unsigned long value)
@@ -1333,6 +1332,7 @@ types; just put out the base encoded name.
   return mangled_name_length;
 }  /* mangled_function_name */
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION || DO_IL_LOWERING
 
 static a_boolean function_name_mangling_needed(
                                         a_routine_ptr routine,
@@ -1364,40 +1364,7 @@ mangled without parameter encoding.
   return mangling_needed;
 }  /* function_name_mangling_needed */
 
-
-static void mangle_function_name(a_routine_ptr routine)
-/*
-Mangle the name of the indicated function, if necessary.
-*/
-{
-  a_boolean suppress_param_encoding;
-  sizeof_t  mangled_name_length, alloc_length;
-  char      *mangled_name;
-
-  error_position = routine->source_corresp.decl_position;
-  /* Compiler-generated routines have no name, and they are left alone. */
-  if (routine->source_corresp.name != NULL &&
-      !routine->source_corresp.name_has_been_mangled) {
-    if (function_name_mangling_needed(routine, &suppress_param_encoding)) {
-      /* Mangle the function name. */
-      /* Determine how long the mangled name is. */
-      mangled_name_length = mangled_function_name(routine,
-                                                  suppress_param_encoding,
-                                                  (char *)NULL);
-      /* Allocate space for the mangled name and build it.  The old name is
-         just thrown away. */
-      alloc_length = mangled_name_length + 1;
-      mangled_name = alloc_lowered_name_string(alloc_length);
-      (void)mangled_function_name(routine, suppress_param_encoding,
-                                  mangled_name);
-      /* Store the final null. */
-      mangled_name[mangled_name_length] = '\0';
-      routine->source_corresp.name = mangled_name;
-      routine->source_corresp.name_has_been_mangled = TRUE;
-    }  /* if */
-  }  /* if */
-}  /* mangle_function_name */
-
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION || DO_IL_LOWERING */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 char *get_mangled_function_name(a_routine_ptr routine)
@@ -1495,32 +1462,6 @@ must be called only for static data member variables.
   return mangled_member_name(&variable->source_corresp, store_at);
 }  /* mangled_static_data_member_name */
 
-
-static void mangle_static_data_member_name(a_variable_ptr variable)
-/*
-Mangle the name of the indicated static data member.
-*/
-{
-  sizeof_t mangled_name_length, alloc_length;
-  char     *mangled_name;
-
-  if (!variable->source_corresp.name_has_been_mangled) {
-    error_position = variable->source_corresp.decl_position;
-    /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_static_data_member_name(variable,
-                                                          (char *)NULL);
-    /* Allocate space for the mangled name and build it.  The old name is
-       just thrown away. */
-    alloc_length = mangled_name_length + 1;
-    mangled_name = alloc_lowered_name_string(alloc_length);
-    (void)mangled_static_data_member_name(variable, mangled_name);
-    /* Store the final null. */
-    mangled_name[mangled_name_length] = '\0';
-    variable->source_corresp.name = mangled_name;
-    variable->source_corresp.name_has_been_mangled = TRUE;
-  }  /* if */
-}  /* mangle_static_data_member_name */
-
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 char *get_mangled_static_data_member_name(a_variable_ptr variable)
@@ -1558,32 +1499,11 @@ name in the variable entry.
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
-static void mangle_member_constant_name(a_constant_ptr con)
-/*
-Mangle the name of the indicated member constant, if necessary.  con
-is either an enumerator constant or (as an extension) a declared member
-constant.
-*/
-{
-  sizeof_t mangled_name_length, alloc_length;
-  char     *mangled_name;
-
-  if (!con->source_corresp.name_has_been_mangled) {
-    error_position = con->source_corresp.decl_position;
-    /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_member_name(&con->source_corresp,
-                                              (char *)NULL);
-    /* Allocate space for the mangled name and build it.  The old name is
-       just thrown away. */
-    alloc_length = mangled_name_length + 1;
-    mangled_name = alloc_lowered_name_string(alloc_length);
-    (void)mangled_member_name(&con->source_corresp, mangled_name);
-    /* Store the final null. */
-    mangled_name[mangled_name_length] = '\0';
-    con->source_corresp.name = mangled_name;
-    con->source_corresp.name_has_been_mangled = TRUE;
-  }  /* if */
-}  /* mangle_member_constant_name */
+/* Exclude routines that are needed for IL lowering but not for name
+   mangling in the absence of IL lowering. */
+#if DO_IL_LOWERING
+/* Declaration required because of forward reference: */
+static void do_scope_other_name_mangling(a_scope_ptr scope);
 
 
 static void mangle_class_name(a_type_ptr class_type)
@@ -1615,6 +1535,217 @@ Mangle the name of the indicated class, if necessary.
     class_type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* mangle_class_name */
+
+
+static void do_type_list_class_name_mangling(a_type_ptr type_list)
+/*
+Do class name mangling for the types on the indicated type list and subscopes
+thereunder.  Note that this does not include special processing for
+nested class names.
+*/
+{
+  a_type_ptr  type;
+  a_scope_ptr class_scope;
+
+  /* Visit all types on the list. */
+  for (type = type_list; type != NULL; type = type->next) {
+    /* If the type is a class, process it and its scope. */
+    if (is_immediate_class_type(type)) {
+      mangle_class_name(type);
+      class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
+      if (class_scope != NULL) {
+        do_type_list_class_name_mangling(class_scope->types);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* do_type_list_class_name_mangling */
+
+
+static void do_class_name_mangling(void)
+/*
+Do name mangling for all class names.  Note that this does not include
+special processing for nested class names.
+*/
+{
+  a_scope_orphaned_list_header_ptr solhp;
+
+  /* Process the file-scope types and types inside of file-scope classes. */
+  do_type_list_class_name_mangling(il_header.primary_scope->types);
+  /* Process local types by visiting the types on orphan lists. */
+  for (solhp = il_header.scope_orphaned_list_headers;
+       solhp != NULL;
+       solhp = solhp->next) {
+    do_type_list_class_name_mangling(solhp->orphaned_types);
+  }  /* for */
+}  /* do_class_name_mangling */
+
+
+static void mangle_member_constant_name(a_constant_ptr con)
+/*
+Mangle the name of the indicated member constant, if necessary.  con
+is either an enumerator constant or (as an extension) a declared member
+constant.
+*/
+{
+  sizeof_t mangled_name_length, alloc_length;
+  char     *mangled_name;
+
+  if (!con->source_corresp.name_has_been_mangled) {
+    error_position = con->source_corresp.decl_position;
+    /* Determine how long the mangled name is. */
+    mangled_name_length = mangled_member_name(&con->source_corresp,
+                                              (char *)NULL);
+    /* Allocate space for the mangled name and build it.  The old name is
+       just thrown away. */
+    alloc_length = mangled_name_length + 1;
+    mangled_name = alloc_lowered_name_string(alloc_length);
+    (void)mangled_member_name(&con->source_corresp, mangled_name);
+    /* Store the final null. */
+    mangled_name[mangled_name_length] = '\0';
+    con->source_corresp.name = mangled_name;
+    con->source_corresp.name_has_been_mangled = TRUE;
+  }  /* if */
+}  /* mangle_member_constant_name */
+
+
+static void do_type_list_other_name_mangling(a_type_ptr type_list)
+/*
+Do name mangling for things other than classes (e.g., functions, static
+data members) for the types on the indicated type list and subscopes
+thereunder.
+*/
+{
+  a_type_ptr  type;
+  a_scope_ptr class_scope;
+
+  /* Visit all types on the list. */
+  for (type = type_list; type != NULL; type = type->next) {
+    /* If the type is a class, do its scope. */
+    if (is_immediate_class_type(type)) {
+      /* Make sure the type-as-subobject for a class gets the class name
+         before it is changed, if it is a nested class name. */
+      prelower_class_type(type);
+      class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
+      if (class_scope != NULL) {
+        do_scope_other_name_mangling(class_scope);
+      }  /* if */
+    } else if (is_immediate_enum_type(type) &&
+               type->source_corresp.class_of_which_a_member != NULL) {
+      /* Mangle the names of member enum constants. */
+      a_constant_ptr enum_con;
+      for (enum_con = type->variant.integer.enum_info.constant_list;
+           enum_con != NULL;
+           enum_con = enum_con->next) {
+        mangle_member_constant_name(enum_con);
+      }  /* for */
+    }  /* if */
+  }  /* for */
+}  /* do_type_list_other_name_mangling */
+
+
+static void mangle_function_name(a_routine_ptr routine)
+/*
+Mangle the name of the indicated function, if necessary.
+*/
+{
+  a_boolean suppress_param_encoding;
+  sizeof_t  mangled_name_length, alloc_length;
+  char      *mangled_name;
+
+  error_position = routine->source_corresp.decl_position;
+  /* Compiler-generated routines have no name, and they are left alone. */
+  if (routine->source_corresp.name != NULL &&
+      !routine->source_corresp.name_has_been_mangled) {
+    if (function_name_mangling_needed(routine, &suppress_param_encoding)) {
+      /* Mangle the function name. */
+      /* Determine how long the mangled name is. */
+      mangled_name_length = mangled_function_name(routine,
+                                                  suppress_param_encoding,
+                                                  (char *)NULL);
+      /* Allocate space for the mangled name and build it.  The old name is
+         just thrown away. */
+      alloc_length = mangled_name_length + 1;
+      mangled_name = alloc_lowered_name_string(alloc_length);
+      (void)mangled_function_name(routine, suppress_param_encoding,
+                                  mangled_name);
+      /* Store the final null. */
+      mangled_name[mangled_name_length] = '\0';
+      routine->source_corresp.name = mangled_name;
+      routine->source_corresp.name_has_been_mangled = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* mangle_function_name */
+
+
+static void mangle_static_data_member_name(a_variable_ptr variable)
+/*
+Mangle the name of the indicated static data member.
+*/
+{
+  sizeof_t mangled_name_length, alloc_length;
+  char     *mangled_name;
+
+  if (!variable->source_corresp.name_has_been_mangled) {
+    error_position = variable->source_corresp.decl_position;
+    /* Determine how long the mangled name is. */
+    mangled_name_length = mangled_static_data_member_name(variable,
+                                                          (char *)NULL);
+    /* Allocate space for the mangled name and build it.  The old name is
+       just thrown away. */
+    alloc_length = mangled_name_length + 1;
+    mangled_name = alloc_lowered_name_string(alloc_length);
+    (void)mangled_static_data_member_name(variable, mangled_name);
+    /* Store the final null. */
+    mangled_name[mangled_name_length] = '\0';
+    variable->source_corresp.name = mangled_name;
+    variable->source_corresp.name_has_been_mangled = TRUE;
+  }  /* if */
+}  /* mangle_static_data_member_name */
+
+
+static void do_scope_other_name_mangling(a_scope_ptr scope)
+/*
+Do name mangling for things other than classes (e.g., functions, static
+data members) in the indicated scope and its subscopes.  The scope is
+the file scope or a class scope.  If the scope is the file scope,
+the orphan lists for function-local entities are also processed.
+*/
+{
+  a_routine_ptr  routine;
+  a_variable_ptr variable;
+  a_constant_ptr con;
+
+  /* Visit all types. */
+  do_type_list_other_name_mangling(scope->types);
+  if (scope == il_header.primary_scope) {
+    /* When processing the file scope, also process function-local types
+       by processing the orphan lists. */
+    a_scope_orphaned_list_header_ptr solhp;
+    for (solhp = il_header.scope_orphaned_list_headers;
+         solhp != NULL;
+         solhp = solhp->next) {
+      do_type_list_other_name_mangling(solhp->orphaned_types);
+    }  /* for */
+  }  /* if */
+  /* Visit all routines. */
+  for (routine = scope->routines; routine != NULL; routine = routine->next) {
+    mangle_function_name(routine);
+  }  /* for */
+  /* If this is a class scope, visit the static data member variables
+     and class constants. */
+  if (scope->kind == (a_scope_kind)sck_class_struct_union) {
+    /* Look for static data members and mangle their names. */
+    for (variable = scope->variables;
+         variable != NULL;
+         variable = variable->next) {
+      mangle_static_data_member_name(variable);
+    }  /* for */
+    /* Look for member constants (an extension) and mangle their names. */
+    for (con = scope->constants; con != NULL; con = con->next) {
+      mangle_member_constant_name(con);
+    }  /* for */
+  }  /* if */
+}  /* do_scope_other_name_mangling */
 
 
 static void mangle_nested_type_name(a_type_ptr type)
@@ -1661,129 +1792,6 @@ other name mangling that might use the name is done.
     type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* mangle_nested_type_name */
-
-
-static void do_type_list_class_name_mangling(a_type_ptr type_list)
-/*
-Do class name mangling for the types on the indicated type list and subscopes
-thereunder.  Note that this does not include special processing for
-nested class names.
-*/
-{
-  a_type_ptr  type;
-  a_scope_ptr class_scope;
-
-  /* Visit all types on the list. */
-  for (type = type_list; type != NULL; type = type->next) {
-    /* If the type is a class, process it and its scope. */
-    if (is_immediate_class_type(type)) {
-      mangle_class_name(type);
-      class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
-      if (class_scope != NULL) {
-        do_type_list_class_name_mangling(class_scope->types);
-      }  /* if */
-    }  /* if */
-  }  /* for */
-}  /* do_type_list_class_name_mangling */
-
-
-static void do_class_name_mangling(void)
-/*
-Do name mangling for all class names.  Note that this does not include
-special processing for nested class names.
-*/
-{
-  a_scope_orphaned_list_header_ptr solhp;
-
-  /* Process the file-scope types and types inside of file-scope classes. */
-  do_type_list_class_name_mangling(il_header.primary_scope->types);
-  /* Process local types by visiting the types on orphan lists. */
-  for (solhp = il_header.scope_orphaned_list_headers;
-       solhp != NULL;
-       solhp = solhp->next) {
-    do_type_list_class_name_mangling(solhp->orphaned_types);
-  }  /* for */
-}  /* do_class_name_mangling */
-
-
-static void do_type_list_other_name_mangling(a_type_ptr type_list)
-/*
-Do name mangling for things other than classes (e.g., functions, static
-data members) for the types on the indicated type list and subscopes
-thereunder.
-*/
-{
-  a_type_ptr  type;
-  a_scope_ptr class_scope;
-
-  /* Visit all types on the list. */
-  for (type = type_list; type != NULL; type = type->next) {
-    /* If the type is a class, do its scope. */
-    if (is_immediate_class_type(type)) {
-      /* Make sure the type-as-subobject for a class gets the class name
-         before it is changed, if it is a nested class name. */
-      prelower_class_type(type);
-      class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
-      if (class_scope != NULL) {
-        do_scope_other_name_mangling(class_scope);
-      }  /* if */
-    } else if (is_immediate_enum_type(type) &&
-               type->source_corresp.class_of_which_a_member != NULL) {
-      /* Mangle the names of member enum constants. */
-      a_constant_ptr enum_con;
-      for (enum_con = type->variant.integer.enum_info.constant_list;
-           enum_con != NULL;
-           enum_con = enum_con->next) {
-        mangle_member_constant_name(enum_con);
-      }  /* for */
-    }  /* if */
-  }  /* for */
-}  /* do_type_list_other_name_mangling */
-
-
-static void do_scope_other_name_mangling(a_scope_ptr scope)
-/*
-Do name mangling for things other than classes (e.g., functions, static
-data members) in the indicated scope and its subscopes.  The scope is
-the file scope or a class scope.  If the scope is the file scope,
-the orphan lists for function-local entities are also processed.
-*/
-{
-  a_routine_ptr  routine;
-  a_variable_ptr variable;
-  a_constant_ptr con;
-
-  /* Visit all types. */
-  do_type_list_other_name_mangling(scope->types);
-  if (scope == il_header.primary_scope) {
-    /* When processing the file scope, also process function-local types
-       by processing the orphan lists. */
-    a_scope_orphaned_list_header_ptr solhp;
-    for (solhp = il_header.scope_orphaned_list_headers;
-         solhp != NULL;
-         solhp = solhp->next) {
-      do_type_list_other_name_mangling(solhp->orphaned_types);
-    }  /* for */
-  }  /* if */
-  /* Visit all routines. */
-  for (routine = scope->routines; routine != NULL; routine = routine->next) {
-    mangle_function_name(routine);
-  }  /* for */
-  /* If this is a class scope, visit the static data member variables
-     and class constants. */
-  if (scope->kind == (a_scope_kind)sck_class_struct_union) {
-    /* Look for static data members and mangle their names. */
-    for (variable = scope->variables;
-         variable != NULL;
-         variable = variable->next) {
-      mangle_static_data_member_name(variable);
-    }  /* for */
-    /* Look for member constants (an extension) and mangle their names. */
-    for (con = scope->constants; con != NULL; con = con->next) {
-      mangle_member_constant_name(con);
-    }  /* for */
-  }  /* if */
-}  /* do_scope_other_name_mangling */
 
 
 static void do_type_list_nested_type_name_mangling(a_type_ptr type_list)
@@ -1851,6 +1859,7 @@ orphan lists).
   do_nested_type_name_mangling();
 }  /* do_all_name_mangling */
 
+#endif /* DO_IL_LOWERING */
 
 static sizeof_t mangled_derivation_name(a_derivation_step_ptr dsp,
                                         char                  *store_at)

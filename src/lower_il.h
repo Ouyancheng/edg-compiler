@@ -18,13 +18,28 @@ lower_il.h -- Declarations related to lower_il.c (having to do with
 #ifndef LOWER_IL_H
 #define LOWER_IL_H 1
 
-/* Only include this code if it is needed: */
-#if DO_IL_LOWERING
+/* Only include this code if it is needed.  A few routines are needed
+   if name mangling is needed, even if IL lowering is not. */
+/* NEED_NAME_MANGLING is always TRUE if DO_IL_LOWERING is TRUE. */
+#if NEED_NAME_MANGLING
 
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_DEF_H */
 
+
+extern void repr_for_ptr_to_data_member_constant(a_constant_ptr   constant, 
+                                                 a_targ_ptrdiff_t *delta);
+
+extern void repr_for_ptr_to_member_function_constant(a_constant_ptr   constant,
+                                                     a_targ_ptrdiff_t *delta,
+                                                     a_targ_ptrdiff_t *index,
+                                                     a_routine_ptr    *func,
+                                                     a_targ_ptrdiff_t *offset);
+
+extern char *alloc_lowered_name_string(sizeof_t size);
+
+#if DO_IL_LOWERING
 
 EXTERN a_boolean
 		lowering_file_scope;
@@ -447,8 +462,6 @@ extern void set_switch_clause_start_insert_location(
 extern void set_expr_insert_location(an_expr_node_ptr   node,
                                      an_insert_location *insert_location);
 
-extern char *alloc_lowered_name_string(sizeof_t size);
-
 extern void finish_class_type(a_type_ptr    class_type, 
                               a_targ_size_t *byte_offset);
 
@@ -561,15 +574,6 @@ extern void set_unsigned_integer_constant_with_overflow_check(
                                               unsigned long   con_val,
                                               an_integer_kind ikind);
 
-extern void repr_for_ptr_to_data_member_constant(a_constant_ptr   constant, 
-                                                 a_targ_ptrdiff_t *delta);
-
-extern void repr_for_ptr_to_member_function_constant(a_constant_ptr   constant,
-                                                     a_targ_ptrdiff_t *delta,
-                                                     a_targ_ptrdiff_t *index,
-                                                     a_routine_ptr    *func,
-                                                     a_targ_ptrdiff_t *offset);
-
 /* See also below -- this is defined as a macro if IL lowering is
    configured out. */
 extern a_boolean virtual_dtor_should_be_generated_for_class(
@@ -680,6 +684,7 @@ error checking, but FALSE would be equally proper.
 #define virtual_dtor_should_be_generated_for_class(class_type) TRUE
 
 #endif /* DO_IL_LOWERING */
+#endif /* NEED_NAME_MANGLING */
 #endif /* ifndef LOWER_IL_H */
 
 /******************************************************************************
