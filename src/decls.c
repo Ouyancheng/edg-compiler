@@ -8350,63 +8350,71 @@ and for the instantiation of template functions.
                         make_param_variable(rtsp->implicit_this_param_type,
                                             (a_storage_class)sc_auto);
   }  /* if */
-  if (!is_instantiation) {
-    /* Parameter symbols that were created in the prototype scope (and then
-       removed in pop_scope) have to be reentered in the function scope; they
-       will be transformed in to variable symbols.  Also, in C mode, types
-       that were defined in the prototype scope need to reactivated now so
-       that they will be available in the current scope. */
-    if (func_info->prototype_scope_symbols != NULL) {
-      reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
+  if (func_info->function_type_from_typedef) {
+    /* An error was already issued on this.  Now, since no parameters were
+       specified, skip the processing for parameter names. */
+    check_assertion(func_info->prototype_scope_symbols == NULL);
+    check_assertion(func_info->param_id_list == NULL);
+  } else {
+    /* Correctly declared function type. */
+    if (!is_instantiation) {
+      /* Parameter symbols that were created in the prototype scope (and then
+         removed in pop_scope) have to be reentered in the function scope; they
+         will be transformed into variable symbols.  Also, in C mode, types
+         that were defined in the prototype scope need to reactivated now so
+         that they will be available in the current scope. */
+      if (func_info->prototype_scope_symbols != NULL) {
+        reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
+      }  /* if */
     }  /* if */
-  }  /* if */
-  /* If the parameters are old-style, process a set of declarations.
-     If they are new-style, declare the identifiers that appeared in
-     the function prototype. */
-  if (flags & SFB_OLD_STYLE_PARAM_DECL) {
-    /* Old-style id list. */
-    if (func_info->param_id_list == NULL) {
-      /* No parameters to declare. */
-    } else {
-      /* When the id list was originally scanned, sk_parameter symbols were
-         created but not actually entered into the symbol table, since there
-         was no scope in which to enter them.  Now that the function scope
-         has been created, enter the param names. */
-      for (param_id = func_info->param_id_list;
-           param_id != NULL;
-           param_id = param_id->next) {
-        check_assertion(param_id->symbol != NULL);
-        reenter_symbol(param_id->symbol, decl_scope_level,
-                       /*suppress_error=*/FALSE);
-      }  /* for */
+    /* If the parameters are old-style, process a set of declarations.
+       If they are new-style, declare the identifiers that appeared in
+       the function prototype. */
+    if (flags & SFB_OLD_STYLE_PARAM_DECL) {
+      /* Old-style id list. */
+      if (func_info->param_id_list == NULL) {
+        /* No parameters to declare. */
+      } else {
+        /* When the id list was originally scanned, sk_parameter symbols were
+           created but not actually entered into the symbol table, since there
+           was no scope in which to enter them.  Now that the function scope
+           has been created, enter the param names. */
+        for (param_id = func_info->param_id_list;
+             param_id != NULL;
+             param_id = param_id->next) {
+          check_assertion(param_id->symbol != NULL);
+          reenter_symbol(param_id->symbol, decl_scope_level,
+                         /*suppress_error=*/FALSE);
+        }  /* for */
+      }  /* if */
     }  /* if */
-  }  /* if */
-  if (rtsp->prototyped && func_info->any_prototype_names_omitted) {
-    /* New-style (function prototype) for which at least one of the param
-       names was omitted in the prototype.  In C this is not valid on a
-       function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
-    if (C_dialect != C_dialect_cplusplus) {
-      error(ec_all_proto_params_must_be_named);
+    if (rtsp->prototyped && func_info->any_prototype_names_omitted) {
+      /* New-style (function prototype) for which at least one of the param
+         names was omitted in the prototype.  In C this is not valid on a
+         function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
+      if (C_dialect != C_dialect_cplusplus) {
+        error(ec_all_proto_params_must_be_named);
+      }  /* if */
     }  /* if */
-  }  /* if */
-  param_id = func_info->param_id_list;
-  ptp = rtsp->param_type_list;
-  /* Be sure param-id and param-type lists are in sync. */
-  check_assertion((param_id == NULL) == (ptp == NULL));
-  for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
-    /* Declare each parameter identifier to have the associated type
-       from the parameter type list. */
-    decl_parameter(param_id, ptp, is_instantiation);
+    param_id = func_info->param_id_list;
+    ptp = rtsp->param_type_list;
     /* Be sure param-id and param-type lists are in sync. */
-    check_assertion((param_id->next == NULL) == (ptp->next == NULL));
-  }  /* for */
-  if (!is_instantiation) {
-    /* Free the list of parameter ids, now that it is no longer needed. */
-    free_param_id_list(&(func_info->param_id_list));
+    check_assertion((param_id == NULL) == (ptp == NULL));
+    for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
+      /* Declare each parameter identifier to have the associated type
+         from the parameter type list. */
+      decl_parameter(param_id, ptp, is_instantiation);
+      /* Be sure param-id and param-type lists are in sync. */
+      check_assertion((param_id->next == NULL) == (ptp->next == NULL));
+    }  /* for */
+    if (!is_instantiation) {
+      /* Free the list of parameter ids, now that it is no longer needed. */
+      free_param_id_list(&(func_info->param_id_list));
+    }  /* if */
+    /* Set the assoc_param_type field in each of the parameter variables. */
+    fixup_parameters(scope_ptr->variant.routine.parameters,
+                     rtsp->param_type_list);
   }  /* if */
-  /* Set the assoc_param_type field in each of the parameter variables. */
-  fixup_parameters(scope_ptr->variant.routine.parameters,
-                   rtsp->param_type_list);
   /* Enter the constructor initializers.  If the current token is a ":",
      explicit initialization for the constructor follows, but even without
      an explicit initializer, any implicit initializers should be recorded. */
@@ -8461,26 +8469,23 @@ and for the instantiation of template functions.
 }  /* scan_function_body */
 
 
-static void function_definition(
-                          a_symbol_locator   *locator,
-                          a_type_ptr         rout_type,
-                          a_boolean          top_declarator_type_is_function,
-                          a_func_info_block  *func_info,
-                          a_storage_class    storage_class,
-                          a_boolean          has_explicit_type_specifier)
+static void function_definition(a_symbol_locator   *locator,
+                                a_type_ptr         rout_type,
+                                a_func_info_block  *func_info,
+                                a_storage_class    storage_class,
+                                a_boolean          has_explicit_type_specifier)
 /*
 Scan a function definition.  The declarator has already been scanned; the
 old-style parameter declarations and the compound statement for the body
 are still to come.  *locator is the locator to be used to enter the
 function symbol; rout_type is the type for the function (which, in C++,
 can be qualified -- hence the use of local variable unqualified_rout_type
-where appropriate in this routine); top_declarator_type_is_function is
-TRUE if the top type of rout_type is a function, and the function came
-from a declarator rather than a typedef (the FALSE case is flagged as an
-error by this routine); *func_info contains information about parameters;
-storage_class is the storage class from the specifiers list; and
-has_explicit_type_specifier is TRUE if the type of the function was
-explicitly specified (rather than defaulted to "int").
+where appropriate in this routine); *func_info contains information about
+parameters, as well as field function_type_from_typedef (when it is FALSE,
+the the function type came from the declarator; when it is TRUE an error is
+reported); storage_class is the storage class from the specifiers list; and
+has_explicit_type_specifier is TRUE if the type of the function was explicitly
+specified (rather than defaulted to "int").
 */
 {
   a_symbol_ptr       symbol_ptr, ext_sym;
@@ -8498,7 +8503,7 @@ explicitly specified (rather than defaulted to "int").
   db_enter(3, "function_definition");
   /* The top type (function) must have come from a declarator, not from a
      typedef (see constraints section of 3.7.1, and associated footnote). */
-  if (!top_declarator_type_is_function) {
+  if (func_info->function_type_from_typedef) {
     error(ec_function_type_must_come_from_declarator);
     /* Build a copy of the routine type that can be used below, to avoid
        further error recovery problems, and because we need a non-shared
@@ -9634,8 +9639,9 @@ continue_with_declaration:
         }  /* if */
         remove_all_local_stop_tokens();
         func_info.is_definition = TRUE;
-        function_definition(&locator, local_type_ptr, 
-                            top_declarator_type_is_function, &func_info,
+        func_info.function_type_from_typedef =
+                                    !top_declarator_type_is_function;
+        function_definition(&locator, local_type_ptr, &func_info,
                             local_storage_class, has_explicit_type_specifier);
         goto return_point;
       }  /* if */
