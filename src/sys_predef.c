@@ -1465,7 +1465,7 @@ Enter macros as requires by the UPC specification.  Called in UPC modes only.
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
   (void)sprintf(num_as_str, "%ld", max_upc_block_size);
-  (void)enter_predef_macro("num_as_str", "UPC_MAX_BLOCK_SIZE", 
+  (void)enter_predef_macro(num_as_str, "UPC_MAX_BLOCK_SIZE", 
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 }  /* enter_upc_predefined_macros */
