@@ -9197,8 +9197,8 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
       /* Create a temporary to store the result of the call. */
       call_copy = make_reusable_copy(call_node, /*vars_can_change=*/FALSE);
       call_copy = add_cast_if_necessary(call_copy, expr->type);
-      /* Build "temp != NULL". */
-      make_zero_of_proper_type(call_copy->type, &constant);
+      /* Build "(temp = __dynamic_cast(...)) != NULL". */
+      make_zero_of_proper_type(call_node->type, &constant);
       null_constant_node = alloc_node_for_constant(&constant);
       call_node->next = null_constant_node;
       compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
@@ -9220,7 +9220,7 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
   }  /* if */
 #if IA64_ABI
   if (!reference_case)
-#endif /* !IA64_ABI */
+#endif /* IA64_ABI */
   /* Do not add code here. */
   {
     /* Add a cast to the right type (from the void* return of the runtime
