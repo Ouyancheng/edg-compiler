@@ -644,6 +644,7 @@ after the command-line processing has been done.
   symbol_tbl_one_time_init();
   scope_stk_one_time_init();
   templates_one_time_init();
+  trans_unit_one_time_init();
 #if DO_IL_LOWERING
   /* IL lowering is initialized even when IL lowering is suppressed.  This
      is done because some of the variables that are initialized in IL
@@ -713,6 +714,7 @@ source file's compilation.
   layout_init();
   def_arg_init();
   templates_init();
+  trans_unit_init();
   expr_init();
   lookup_init();
   macro_init();
@@ -941,7 +943,7 @@ compiled (e.g., for export template processing).  This initialization
 is also done implicitly during part 1 of the normal front end
 initialization (i.e., by fe_init_part_1).  is_primary_translation_unit
 is TRUE when the current translation is a primary file, and FALSE
-when is is a secondary file.
+when it is a secondary file.
 */
 {
   error_trans_unit_init();
@@ -961,6 +963,8 @@ when is is a secondary file.
   lower_c99_trans_unit_init();
 #endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
+  /* Suppress PCH processing on secondary translation units. */
+  abandon_pch_processing();
   /* Initialize the symbol table (keywords and predefined macros).  Note that
      keyword_init is called first, so that predefined macros will have
      priority over keywords.  Also, macro_init must have been called, so
@@ -969,15 +973,15 @@ when is is a secondary file.
      target_init must have been called for correct handling of __int32 and
      __int64. */
   keyword_init();
+  init_predefined_macros(curr_date_time);
   /* Push an entry for the file scope onto the scope stack, saving the
-     pointer to the scope in the IL header.  This is done after the entry
-     of keywords and predefined macros, because they do not belong to the
-     file scope. */
-  il_header.primary_scope =
+     pointer to the scope in the translation unit entry.  This is done after
+     the entry of keywords and predefined macros, because they do not belong
+     to the file scope. */
+  curr_translation_unit->primary_scope =
                     push_scope((a_scope_kind)sck_file,
                                NO_SCOPE_NUMBER, (a_type_ptr)NULL,
                                (a_routine_ptr)NULL);
-  init_predefined_macros(curr_date_time);
   if (!C_mode()) {
     /* This is done even when RTTI is not enabled because the type_info
        struct may still be defined when RTTI is disabled. */
@@ -1035,7 +1039,11 @@ when is is a secondary file.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (!is_primary_translation_unit) {
+  if (is_primary_translation_unit) {
+    /* For the primary translation unit, record the primary scope in the
+       IL header. */
+    il_header.primary_scope = curr_translation_unit->primary_scope;
+  } else {
     /* Preprocessing output cannot be generated for secondary translation
        units. */
     f_pp_output = NULL;

@@ -27,6 +27,8 @@ trans_unit.c -- Translation unit management routines.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
+#include "fe_init.h"
+#include "fe_wrapup.h"
 
 /*
 Structure used to keep track of variables that are specific to a
@@ -108,6 +110,9 @@ Register a variable that is specific to a given translation unit.
   check_assertion_str2(!any_translation_units_allocated,
                        "f_register_trans_unit_variable:",
                        "registration too late");
+  check_assertion_str2(var != NULL,
+                       "f_register_trans_unit_variable:",
+                       "NULL variable pointer");
 #if EXPENSIVE_CHECKING
   {
     /* Make sure this variable is not already registered. */
@@ -153,6 +158,7 @@ pointed to by the translation unit entry.
   }  /* for */
 }  /* save_translation_unit_state */
 
+#if 0
 
 static void restore_translation_unit_state(a_translation_unit_ptr	tup)
 /*
@@ -173,6 +179,8 @@ pointed to by the translation unit entry.
   }  /* for */
 }  /* restore_translation_unit_state */
 
+#endif /* 0 */
+
 
 a_translation_unit_ptr alloc_translation_unit(void)
 /*
@@ -188,8 +196,89 @@ a pointer to the entry created.
   tup = alloc_fe_of_type(a_translation_unit);
   /* Allocate the variable block for this translation unit. */
   tup->variables_block = alloc_fe(trans_unit_var_block_size);
+  tup->primary_scope = NULL;
   return tup;
 }  /* alloc_translation_unit */
+
+
+void process_translation_unit(a_boolean	is_primary)
+/*
+This routine processes a translation unit (a source file and any
+files included by that source file).  is_primary is TRUE if the
+translation unit is the primary translation unit.
+
+There is usually one translation unit per compilation.  When the
+COMPILE_MULTIPLE_SOURCE_FILES flag is TRUE, the front end can
+perform multiple compilations, each of which will typically contain
+one translation unit (but may contain more).  There is more than one
+translation unit per compilation when making use of exported templates.
+When using exported templates, the translation units containing the
+definitions of the exported templates are processed as secondary
+translation units.
+*/
+{
+  a_translation_unit_ptr	trans_unit;
+
+  if (curr_translation_unit != NULL) {
+    /* Save the currently active set of translation unit specific variables. */
+    save_translation_unit_state(curr_translation_unit);
+  }  /* if */
+  /* Initialize the front end. */
+  is_primary_translation_unit = is_primary;
+  if (is_primary_translation_unit) fe_init_part_1();
+  trans_unit = alloc_translation_unit();
+  curr_translation_unit = trans_unit;
+  fe_translation_unit_init();
+  if (do_preprocessing_only) {
+    /* Compiler is to operate like cpp, and do just preprocessing. */
+    fe_init_part_2();
+    cpp_driver();
+  } else {
+    /* Compiler is to do preprocessing and compilation. */
+    if (precompiled_header_processing_required &&
+        !cannot_do_pch_processing) {
+      fe_init_for_pch_prefix_scan();
+      precompiled_header_processing();
+    }  /* if */
+    fe_init_part_2();
+    translation_unit();
+    translation_unit_wrapup();
+  }  /* if */
+#if 0
+#else /* 0 */
+  /* Temporary code to process secondary translation units. */
+  {
+    extern void proc_secondary_translation_units(void);
+    proc_secondary_translation_units();
+  }
+#endif /* 0 */
+}  /* process_translation_unit */
+
+
+void trans_unit_one_time_init(void)
+/*
+One-time initialization for trans_unit variables.
+*/
+{
+  /* Save variables that are needed for precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(curr_translation_unit),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* trans_unit_one_time_init */
+
+
+void trans_unit_init(void)
+/*
+The per-compilation unit initialization routine for variables related to
+translation unit processing.
+*/
+{
+  curr_translation_unit = NULL;
+}  /* trans_unit_init */
 
 
 void trans_unit_early_init(void)

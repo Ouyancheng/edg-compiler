@@ -88,23 +88,8 @@ int EDG_MAIN(int argc, char *argv[])
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
     /* Get the front end starting time. */
     if (display_compilation_time) get_timer(&fe_start_time);
-    /* Initialize the front end. */
-    fe_init_part_1();
-    fe_translation_unit_init();
-    if (do_preprocessing_only) {
-      /* Compiler is to operate like cpp, and do just preprocessing. */
-      fe_init_part_2();
-      cpp_driver();
-    } else {
-      /* Compiler is to do preprocessing and compilation. */
-      if (precompiled_header_processing_required &&
-          !cannot_do_pch_processing) {
-        fe_init_for_pch_prefix_scan();
-        precompiled_header_processing();
-      }  /* if */
-      fe_init_part_2();
-      translation_unit();
-    }  /* if */
+    /* Process the source file. */
+    process_translation_unit(/*is_primary=*/TRUE);
     /* Do wrap-up processing for the front end (before the back end). */
     fe_wrapup();
     if (display_compilation_time) {

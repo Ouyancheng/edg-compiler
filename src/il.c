@@ -12299,7 +12299,7 @@ in il_init.)
   }  /* if */
   /* Register variables (and arrays) that have distinct copies for distinct
      compilation units. */
-  register_trans_unit_array(curr_il_region_number);
+  register_trans_unit_variable(curr_il_region_number);
   register_trans_unit_array(int_types);
   register_trans_unit_array(signed_int_types);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -12323,7 +12323,7 @@ in il_init.)
   register_trans_unit_variable(last_macro);
 #endif /* RECORD_MACROS_IN_IL */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  register_trans_unit_array(last_scope_orphaned_list_header);
+  register_trans_unit_variable(last_scope_orphaned_list_header);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   register_trans_unit_variable(based_type_fixup_list);
   register_trans_unit_variable(any_function_scope_lifetime_entries);

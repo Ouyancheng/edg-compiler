@@ -161,27 +161,6 @@ extern void free_memory_region(a_memory_region_number region_number);
 extern void free_all_memory_regions(void);
 /* Free the unused space in the final block of a memory region. */
 extern void trim_memory_region(a_memory_region_number region_number);
-extern void f_register_trans_unit_variable(a_void_ptr	var,
-					   sizeof_t	size);
-
-/*
-Macro used to register a variable that is related to a specific translation
-unit.  This is used to save and restore the contents of the variable when
-switching between translation units.
-*/
-#define register_trans_unit_variable(var)				\
-  (f_register_trans_unit_variable((a_void_ptr)&var, sizeof(var)))
-
-
-/*
-Macro used to register an array that is related to a specific translation
-unit.  This is used to save and restore the contents of the array when
-switching between translation units.
-*/
-#define register_trans_unit_array(var)				\
-  (f_register_trans_unit_variable((a_void_ptr)var, sizeof(var)))
-
-
 #if DEBUG
 /* Display the amount of memory used, for debug purposes. */
 extern void show_mem_manage_space_used(unsigned long total_accounted_for);

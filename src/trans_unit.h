@@ -36,16 +36,54 @@ typedef struct a_translation_unit {
 			/* Pointer to the block of memory used to store
 			   variables that are saved and restored when
 			   switching between translation units. */
+  a_scope_ptr	primary_scope;
+			/* The file scope of the translation unit. */
 } a_translation_unit;
 
 
 extern void trans_unit_early_init(void);
+
+extern a_translation_unit_ptr alloc_translation_unit(void);
+
+extern void process_translation_unit(a_boolean	is_primary);
+
+extern void trans_unit_one_time_init(void);
+
+extern void trans_unit_init(void);
+
+EXTERN a_translation_unit_ptr
+		curr_translation_unit;
+			/* Pointer to the translation unit entry for the
+			   translation unit that is being processed (and
+			   whose per-translation unit data structures are
+			   currently active). */
 
 EXTERN a_boolean
 		is_primary_translation_unit;
 			/* TRUE when processing the primary translation
 			   unit.  FALSE when processing secondary translation
 			   units. */
+
+extern void f_register_trans_unit_variable(a_void_ptr	var,
+					   sizeof_t	size);
+
+/*
+Macro used to register a variable that is related to a specific translation
+unit.  This is used to save and restore the contents of the variable when
+switching between translation units.
+*/
+#define register_trans_unit_variable(var)				\
+  (f_register_trans_unit_variable((a_void_ptr)&var, sizeof(var)))
+
+
+/*
+Macro used to register an array that is related to a specific translation
+unit.  This is used to save and restore the contents of the array when
+switching between translation units.
+*/
+#define register_trans_unit_array(var)				\
+  (f_register_trans_unit_variable((a_void_ptr)var, sizeof(var)))
+
 
 #endif /* ifndef TRANS_UNIT_H */
 

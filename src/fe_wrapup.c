@@ -63,18 +63,33 @@ Show the amount of memory allocated.
 #endif /* DEBUG */
 
 
+void translation_unit_wrapup(void)
+/*
+Do any processing that is required at the end of a translation unit
+(primary or secondary).
+*/
+{
+  db_enter(1, "translation_unit_wrapup");
+
+  if (is_primary_translation_unit) {
+    /* Do any template instantiation that may be required.  This is called
+       first because it may generate additional function bodies and class
+       definitions that need to be processed by the operations that follow. */
+    instantiation_wrapup();
+  }  /* if */
+
+  db_exit();
+}  /* translation_unit_wrapup */
+
+
 void fe_wrapup(void)
 /*
 Do any processing required at the end of execution of the front end,
 and before the back end (if any) is executed.
 */
 {
-  db_enter(1, "fe_wrapup");
 
-  /* Do any template instantiation that may be required.  This is called
-     first because it may generate additional function bodies and class
-     definitions that need to be processed by the operations that follow. */
-  instantiation_wrapup();
+  db_enter(1, "fe_wrapup");
 
 #if CHECKING
   /* Check that the stop_token_array elements all made it back to zero.

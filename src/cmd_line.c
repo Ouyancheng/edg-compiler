@@ -3338,6 +3338,33 @@ enable_microsoft_mode:
   }  /* if */
 }  /* proc_command_line */
 
+#if 0
+#else /* 0 */
+void proc_secondary_translation_units(void)
+/*
+This is a temporary routine for testing of the routines that handle
+multiple translation units.
+
+Call the translation unit routine for the secondary translation units.
+*/
+{
+  while (argc_file_list > 0) {
+    /* There is another file. */
+    argc_file_list--;
+    primary_source_file_name = *(argv_file_list)++;
+    if (put_dir_of_each_opened_source_file_on_incl_search_path) {
+      /* Update the first entry of the include file search list, the one
+         that contains the directory of the primary source file. */
+      /* If you change this, see the similar code in proc_command_line. */
+      dir_name_of_primary_source_file = 
+                                    gs_directory_of(primary_source_file_name);
+      change_primary_include_search_dir(dir_name_of_primary_source_file);
+    }  /* if */
+    process_translation_unit(/*is_primary=*/FALSE);
+  }  /* while */
+}  /* proc_secondary_translation_units */
+#endif /* 0 */
+
 
 #if COMPILE_MULTIPLE_SOURCE_FILES
 a_boolean get_next_source_file(void)

@@ -17,6 +17,8 @@ fe_wrapup.h - declarations related to end of front end processing.
 #ifndef FE_WRAPUP_H
 #define FE_WRAPUP_H 1
 
+extern void translation_unit_wrapup(void);
+
 extern void fe_wrapup(void);
 
 extern void fe_wrapup_part_2(void);
