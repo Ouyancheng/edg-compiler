@@ -14388,18 +14388,16 @@ specified by "tip" depend on a template parameter.
 
 #endif /* EXPENSIVE_CHECKING */
 
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-/* Forward declaration. */
-static void check_if_entity_should_be_automatically_instantiated(
-					a_template_instance_ptr tip);
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
-void add_to_instantiations_required_list(a_template_instance_ptr  tip)
+a_boolean add_to_instantiations_required_list(a_template_instance_ptr  tip)
 /*
 Add a template instance entry to the end of the instantiations_required
-list.
+list if it is not already on the list.  Return TRUE if the entry was
+added, FALSE if it was already on the list.
 */
 {
+  a_boolean	added = FALSE;
+
   db_enter(5, "add_to_instantiations_required_list");
   if (tip->next_in_instantiation_list != NULL ||
       tip == instantiations_required_tail) {
@@ -14420,14 +14418,7 @@ list.
       instantiations_required_tail->next_in_instantiation_list = tip;
     }  /* if */
     instantiations_required_tail = tip;
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (in_instantiation_wrapup) {
-      /* This entity is being added after we've already gone through the
-         instantiations list to look for entities that must be instantiated.
-         Do the check for this entity now. */
-      check_if_entity_should_be_automatically_instantiated(tip);
-    }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+    added = TRUE;
 #if EXPENSIVE_CHECKING
     /* Make sure none of the template arguments depend on template
        parameters. */
@@ -14435,6 +14426,7 @@ list.
 #endif /* EXPENSIVE_CHECKING */
   }  /* if */
   db_exit();
+  return added;
 }  /* add_to_instantiations_required_list */
 
 
@@ -15810,6 +15802,7 @@ defer_inline is TRUE.
   a_symbol_ptr			   sym;
   a_template_symbol_supplement_ptr tssp;
   a_boolean			   add_to_list = TRUE;
+  a_boolean			   added_to_list = FALSE;
 
   db_enter(5, "update_instantiation_required_flag");
   /* Inline functions are not treated differently for instantiation purposes
@@ -15913,10 +15906,21 @@ defer_inline is TRUE.
        required flag is FALSE because certain entries for which instantiation
        is not required need to be processed for automatic instantiation
        processing. */
-    add_to_instantiations_required_list(tip);
+    added_to_list = add_to_instantiations_required_list(tip);
   }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (in_instantiation_wrapup) {
+    /* This entity is being added after we've already gone through the
+       instantiations list to look for entities that must be instantiated.
+       Do the check for this entity now. */
+    if (added_to_list || value) {
+      /* Check if the entity should be automatically instantiated.  An
+         entity will be instantiated if it is present in the instantiation
+         request file, or if it should be adopted by this translation unit.
+         This check is done when the entry is first added to the list, and
+         again if the instantiation required flag is set to TRUE. */
+      check_if_entity_should_be_automatically_instantiated(tip);
+    }  /* if */
     /* See if the entity should be instantiated as a result of an
        assignment by the automatic instantiation mechanism. */
     if (value &&

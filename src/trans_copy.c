@@ -1813,7 +1813,7 @@ associated symbol for the original primary IL entry.
     } else {
       /* The instance was newly created, not copied on top of an
          existing entry. */
-      add_to_instantiations_required_list(copy_instance);
+      (void)add_to_instantiations_required_list(copy_instance);
     }  /* if */
   }  /* if */
 }  /* merge_instantiation_instances */
