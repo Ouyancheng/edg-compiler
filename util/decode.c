@@ -1420,6 +1420,20 @@ end_of_routine:
 }  /* demangle_function_parameters */
 
 
+static char *skip_extern_C_indication(char *ptr)
+/*
+ptr points to the character after the "F" of a function type.  Skip over
+and ignore an indication of extern "C" following the "F", if one is present.
+Return a pointer to the character following the extern "C" indication.
+There's no syntax for representing the extern "C" in the function type, so
+just ignore it.
+*/
+{
+  if (*ptr == 'K') ptr++;
+  return ptr;
+}  /* skip_extern_C_indication */
+
+
 static char *demangle_type_first_part(
                                char                       *ptr,
                                a_boolean                  under_lhs_declarator,
@@ -1473,9 +1487,10 @@ not empty, because it contains a name or a derived type).
     /* Function type, e.g., "Fii_f" is function(int, int) returning float.
        The return type is not present for top-level function types (except
        for template functions). */
+    p = skip_extern_C_indication(p+1);
     /* Skip over the parameter types without outputting anything. */
     dctl->suppress_id_output++;
-    p = demangle_function_parameters(p+1, dctl);
+    p = demangle_function_parameters(p, dctl);
     dctl->suppress_id_output--;
     if (*p == '_' && p[1] != '_') {
       /* The return type is present. */
@@ -1552,8 +1567,9 @@ use of parentheses around parts of the declarator.)
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) write_id_ch(')', dctl);
+    p = skip_extern_C_indication(p+1);
     /* Put out the parameter types. */
-    p = demangle_function_parameters(p+1, dctl);
+    p = demangle_function_parameters(p, dctl);
     /* Put out any cv-qualifiers (member functions). */
     /* Note that such things could come up on nonmember functions in the
        presence of typedefs.  In such a case what we generate here will not
