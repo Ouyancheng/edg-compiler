@@ -3948,7 +3948,6 @@ scan_paren:
                a constructor exists.  Otherwise, it will be initialized
                like any scalar. */
             if (dependent_class_init) {
-              check_assertion(cssp != NULL);
               scan_dependent_type_parenthesized_initializer(
                                         /*force_object_lifetime=*/TRUE, &dip);
             } else {
