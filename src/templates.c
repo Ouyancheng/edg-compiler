@@ -10341,7 +10341,6 @@ resulting constant is stored in the pointer pointed to by "constant".
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean				type_involves_template_param;
   a_boolean				constant_involves_template_param;
-  a_boolean				dependent_arg_list;
 
   type_involves_template_param =
                param_ptr->variant.constant.type_involves_template_param;
@@ -10352,11 +10351,7 @@ resulting constant is stored in the pointer pointed to by "constant".
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Determine whether the template argument list depends on a template
-     parameter type.  If so, we don't actually rescan the argument now,
-     we use the "prototype instantiation" value of the default argument. */
-  dependent_arg_list = template_arg_list_involves_template_param(arg_list);
-  if (type_involves_template_param && !dependent_arg_list) {
+  if (type_involves_template_param) {
     /* Push the template instantiation scope.  Note that the instance symbol
        passed to push_scope is NULL because we don't yet know which instance
        is being instantiated.  Also note that a class type is not being
@@ -10384,6 +10379,11 @@ resulting constant is stored in the pointer pointed to by "constant".
   }  /* if */
   if (do_default_arg) {
     /* This parameter has a default argument whose value is to be used. */
+    /* Determine whether the template argument list depends on a template
+       parameter type.  If so, we don't actually rescan the argument now,
+       we use the "prototype instantiation" value of the default argument. */
+    a_boolean	dependent_arg_list;
+    dependent_arg_list = template_arg_list_involves_template_param(arg_list);
     if (constant_involves_template_param && !dependent_arg_list) {
       /* Push the template instantiation scope.  See note above regarding
          the instance symbol and class type. */
