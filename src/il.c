@@ -8005,6 +8005,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       a_boolean                     autonomous = FALSE;
       a_boolean                     is_friend = FALSE;
       a_boolean                     is_implicit = FALSE;
+      a_boolean                     is_anon_union_parent = FALSE;
       a_boolean                     func_prototype_decl = FALSE;
       a_boolean                     other_scope_def = FALSE;
       a_type_ptr                    declared_type = NULL;
@@ -8039,6 +8040,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
             a_routine_ptr  rp = (a_routine_ptr)ssep->entity.ptr;
             if (rp->defined_in_friend_decl) is_friend = TRUE;
             if (rp->defined_outside_of_parent) other_scope_def = TRUE;
+          } else if (kind == (an_il_entry_kind)iek_variable) {
+            if (((a_variable_ptr)ssep->entity.ptr)->
+                                        is_anonymous_parent_object) {
+              is_anon_union_parent = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
         sym = (a_symbol_ptr)scp->assoc_info;
@@ -8079,6 +8085,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         }  /* if */
         if (autonomous) {
           fprintf(f_debug, "%sautonomous decl",
+                           (lparen_printed ? ", " : " ("));
+          lparen_printed = TRUE;
+        }  /* if */
+        if (is_anon_union_parent) {
+          fprintf(f_debug, "%sanon union parent",
                            (lparen_printed ? ", " : " ("));
           lparen_printed = TRUE;
         }  /* if */
