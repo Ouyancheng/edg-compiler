@@ -821,6 +821,11 @@ the file scope, do not process it (but record an orphan in the latter case).
                   iek_source_sequence_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         walk_string_ptr(ptr->pragma_text, iek_other_text, 0);
+#if IDENT_PRAGMA
+        if (ptr->kind == pk_ident) {
+          walk_ptr(ptr->variant.ident_string, a_constant_ptr, iek_constant);
+        }  /* if */
+#endif /* IDENT_PRAGMA */
       }
       break;
 #if RECORD_HIDDEN_NAMES_IN_IL

@@ -1525,6 +1525,10 @@ enum a_pragma_kind_tag {
 			   members of subsequent classes, structs, and
 			   unions. */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if IDENT_PRAGMA
+  pk_ident,		/* Specifies a source identification string (like
+			   #ident); passed on to the back end. */
+#endif /* IDENT_PRAGMA */
 #if INCLUDE_EDG_TEST_PRAGMAS
   /* For testing purposes. */
   pk_test_next_statement,
@@ -1570,6 +1574,9 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 #if USER_CONTROL_OF_STRUCT_PACKING
 /* pk_pack */			"pack",
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if IDENT_PRAGMA
+/* pk_ident */			"ident",
+#endif /* IDENT_PRAGMA */
 #if INCLUDE_EDG_TEST_PRAGMAS
 /* For testing purposes. */
 /* pk_test_next_statement */	"test_next_statement",
@@ -1642,6 +1649,12 @@ typedef struct a_pragma {
 			/* Remove this field (present only to avoid compiler
 			   diagnostics) if additional variant fields are
 			   added. */
+#if IDENT_PRAGMA
+    /* When kind == pk_ident: */
+    a_constant_ptr
+		ident_string;
+			/* The string for the ident. */
+#endif /* IDENT_PRAGMA */
   } variant;
 } a_pragma;
 

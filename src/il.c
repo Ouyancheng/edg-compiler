@@ -7177,6 +7177,11 @@ pointer to it.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   pp->pragma_text           = NULL;
   switch (kind) {
+#if IDENT_PRAGMA
+    case pk_ident:
+      pp->variant.ident_string = NULL;
+      break;
+#endif /* IDENT_PRAGMA */
     case pk_none:
 #if USER_CONTROL_OF_STRUCT_PACKING
     case pk_pack:
