@@ -418,13 +418,10 @@ to an array of abstract class objects.
     switch (tp->kind) {
       case tk_pointer:
         tp = type_pointed_to(tp);
-#if 0
-        if (tp->variant.pointer.is_reference) {
-          /* Check for NULL pointer in situation where type is being
-             constructed but is not yet complete. */
-          if (tp == NULL) goto done;
-        }  /* if */
-#endif
+        /* Check for NULL pointer in a situation where type is being
+           constructed but is not yet complete.  This applies to pointer
+           and reference types only. */
+        if (tp == NULL) goto done;
         array_type_required = TRUE;
         break;
       case tk_array:
