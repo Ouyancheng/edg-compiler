@@ -12,7 +12,7 @@ increment operation is used as an lvalue.  The constant had type
     ++j = 0;         
   }
 
-10/6/03  IA-64 ABI: some alternate entry points unnamed
+10/7/03  IA-64 ABI: some alternate entry points unnamed
 
 IL lowering for the IA-64 ABI in some cases generated unnamed
 entry points for constructors and destructors when the entry
