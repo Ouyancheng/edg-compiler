@@ -554,6 +554,7 @@ of throwing tokens away it adds them to the specified token cache.)
       case tok_rbracket:  if (bracket_count > 0) bracket_count--; break;
       case tok_lbrace:                           brace_count++;   break;
       case tok_rbrace:    if (brace_count > 0)   brace_count--;   break;
+      default:;
     }  /* switch */
     /* Always stop the flush on end of source. */
     if (curr_token == tok_end_of_source) break;
@@ -862,7 +863,7 @@ original source line because of trigraphs and line splices.
   olmp->line_loc = line_loc;
   olmp->kind     = kind;
   /* Set the variant fields. */
-  switch ((int)kind) {
+  switch (kind) {
     case olm_trigraph:
       olmp->variant.trigraph_orig_char = ' ';  /* To be neat. */
       break;
@@ -1668,7 +1669,7 @@ only be called when f_raw_listing is non-NULL.
       /* Process each modification in order. */
       /* Write unaffected text that precedes this modification. */
       write_orig_line_piece(loc_in_line, olmp->line_loc);
-      switch(olmp->kind) {
+      switch (olmp->kind) {
         case olm_trigraph:
           fprintf(f_raw_listing, "??%c", olmp->variant.trigraph_orig_char);
           /* If the trigraph is "??/", which turns into "\", and it's at the
@@ -2457,7 +2458,7 @@ simple_return:
         for (olmp = orig_line_modif_list; olmp != NULL; olmp = olmp->next) {
           /* Put a caret under the proper character of the source line. */
           fprintf(f_debug, "%*c ", olmp->line_loc-curr_source_line+1, '^');
-          switch ((int)olmp->kind) {
+          switch (olmp->kind) {
             case olm_trigraph:
               fprintf(f_debug, "trigraph: ??%c\n",
                                olmp->variant.trigraph_orig_char);
@@ -3079,6 +3080,9 @@ end_of_comment:;
          this must be done after the test of kind_skipped above. */
       kind_skipped |= WHITE_SPACE_COMMENTS;
       goto white_space_loop;
+    default:
+      /* For all non-white-space characters, do nothing and return. */
+      ;
   }  /* switch */
 end_skip:
   /* "Return" the mask of kinds of white space skipped. */
@@ -3224,11 +3228,14 @@ constant_accumulated:
 #if DEBUG
   if (debug_level >= 4) {
     char *ks;
-    switch ((int)kind) {
+    switch (kind) {
       case k_decimal:   ks = "decimal"; break;
       case k_octal:     ks = "octal";   break;
       case k_hex:       ks = "hex";     break;
       case k_float:     ks = "float";   break;
+#if CHECKING
+      default:          ks = "<bad kind>";
+#endif /* CHECKING */
     }  /* switch */
     fprintf(f_debug, "Numeric token = \"%.*s\", kind = %s\n",
                      (end_of_curr_token - start_of_curr_token + 1),
@@ -3286,7 +3293,7 @@ constant_accumulated:
     }  /* if */
     /* Convert the constant.  Errors are still possible, since the checking
        above allows certain cases by. */
-    switch ((int)kind) {
+    switch (kind) {
       case k_decimal:
         conv_integer_literal(10, &err_code, &err_pos);
         ctoken = tok_int_constant;
@@ -3303,6 +3310,10 @@ constant_accumulated:
         conv_float_literal(&err_code, &err_pos);
         ctoken = tok_float_constant;
         break;
+#if CHECKING
+      default:
+        internal_error("scan_number: bad kind");
+#endif /* CHECKING */
     }  /* switch */
     /* Check for errors detected. */
     if (err_code != ec_no_error) {
@@ -4460,6 +4471,7 @@ an opening parenthesis).  Flush to the corresponding closing token.
       case tok_rbracket:  if (bracket_count > 0) bracket_count--; break;
       case tok_lbrace:                           brace_count++;   break;
       case tok_rbrace:    if (brace_count > 0)   brace_count--;   break;
+      default:;
     }  /* switch */
     /* Always stop the flush on:
        1)  End of source;

@@ -638,7 +638,7 @@ can be that both are TRUE.
               /* It's an expression. */
               *may_be_decl = FALSE;
               break;
-            default:;
+            default:
               /* What's not obviously a declaration or an expression is
                  probably a syntax error.  Let the error be reported in
                  declaration processing. */
@@ -5562,6 +5562,10 @@ Returns TRUE if there is an error in the specifiers.
                 *storage_class = (a_storage_class)sc_auto;     break;
               case tok_register:
                 *storage_class = (a_storage_class)sc_register; break;
+#if CHECKING
+              default:
+                internal_error("decl_specifiers: bad storage class");
+#endif /* CHECKING */
             }  /* switch */
           }  /* if */
         }  /* if */
@@ -5713,6 +5717,10 @@ Returns TRUE if there is an error in the specifiers.
             case tok_int:      basic_type = bt_int;    break;
             case tok_float:    basic_type = bt_float;  break;
             case tok_double:   basic_type = bt_double; break;
+#if CHECKING
+            default:
+              internal_error("decl_specifiers: bad type specifier");
+#endif /* CHECKING */
           }  /* switch */
         }  /* if */
         break;
