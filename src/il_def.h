@@ -5155,6 +5155,12 @@ typedef struct a_for_loop {
 			/* Pointer to an expression to be executed at the end
 			   of each iteration of the loop; NULL if there is
 			   none. */
+  a_scope_ptr	for_init_scope;
+			/* Pointer to the sck_block scope created for name(s)
+			   declared in the for-init statement.  NULL in C++
+			   mode if the for-init statement is not a declaration
+			   or if old_for_init_scope is TRUE; always NULL in C
+			   mode. */
 } a_for_loop;
 
 /* Information about a handler (or catch-clause) defined within a try block. */

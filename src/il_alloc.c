@@ -1740,6 +1740,7 @@ fields to default values.
 #endif /* DEBUG */
       flip->initialization = NULL;
       flip->increment = NULL;
+      flip->for_init_scope = NULL;
       break;
     case stmk_switch:
       sp->variant.switch_stmt.clause_list    = NULL;

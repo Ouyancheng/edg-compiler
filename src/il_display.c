@@ -2310,6 +2310,11 @@ do_label:
       disp_ptr("increment",
                (char *)ptr->variant.for_loop.extra_info->increment,
                iek_expr_node);
+      if (ptr->variant.for_loop.extra_info->for_init_scope != NULL) {
+        disp_ptr("for_init_scope",
+                 (char *)ptr->variant.for_loop.extra_info->for_init_scope,
+                 iek_scope);
+      }  /* if */
       break;
     case stmk_switch:
       (void)printf("stmk_switch\n");

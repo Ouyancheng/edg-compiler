@@ -1039,6 +1039,7 @@ do_set_proper_definition_needed_flag:
         a_for_loop_ptr ptr = (a_for_loop_ptr)entry_ptr;
         walk_ptr(ptr->initialization, a_statement_ptr, iek_statement);
         walk_ptr(ptr->increment, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(ptr->for_init_scope, a_scope_ptr, iek_scope);
       }
       break;
     case iek_switch_clause:
