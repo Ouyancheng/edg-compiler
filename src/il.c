@@ -3311,6 +3311,47 @@ have_node:
 }  /* alloc_node_for_constant */
 
 
+an_expr_node_ptr copy_node(an_expr_node_ptr expr)
+/*
+Make a copy of an expression node and return a pointer to it.
+*/
+{
+  an_expr_node_ptr expr_copy;
+
+  expr_copy = alloc_expr_node(expr->kind);
+  *expr_copy = *expr;
+  expr_copy->next = NULL;
+  return expr_copy;
+}  /* copy_node */
+
+
+an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr)
+/*
+Make a copy of an expression tree and return a pointer to it.
+*/
+{
+  an_expr_node_ptr expr_copy, operand, operand_copy, prev_operand_copy;
+
+  expr_copy = copy_node(expr);
+  if (expr->kind == (an_expr_node_kind)enk_operation) {
+    /* Copy the operands of the operation. */
+    prev_operand_copy = NULL;
+    for (operand = expr->variant.operation.operands;
+         operand != NULL;
+         operand = operand->next) {
+      operand_copy = copy_expr_tree(operand);
+      if (prev_operand_copy == NULL) {
+        expr_copy->variant.operation.operands = operand_copy;
+      } else {
+        prev_operand_copy->next = operand_copy;
+      }  /* if */
+      prev_operand_copy = operand_copy;
+    }  /* for */
+  }  /* if */
+  return expr_copy;
+}  /* copy_expr_tree */
+
+
 a_switch_clause_ptr alloc_switch_clause(void)
 /*
 Allocate a switch clause, clear it to default values, and return a pointer

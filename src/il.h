@@ -182,6 +182,10 @@ extern an_expr_node_ptr error_node(void);
 
 extern an_expr_node_ptr alloc_node_for_constant(a_constant *constant);
 
+extern an_expr_node_ptr copy_node(an_expr_node_ptr expr);
+
+extern an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr);
+
 extern a_switch_clause_ptr alloc_switch_clause(void);
 
 extern void set_statement_kind(a_statement_ptr  sp,
