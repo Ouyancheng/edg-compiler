@@ -3616,7 +3616,7 @@ from the front end to the runtime.
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
   /* Define the number of elements in the setjmp buffer. */
-  (void)enter_predef_macro(conv_int_to_str(targ_jmp_buf_num_elements),
+  (void)enter_predef_macro(conv_int_to_str((int)targ_jmp_buf_num_elements),
 			   "__EDG_JMP_BUF_NUM_ELEMENTS",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
@@ -3635,7 +3635,7 @@ from the front end to the runtime.
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* DO_IL_LOWERING */
   /* Define the ABI compatibility version being used. */
-  (void)enter_predef_macro(conv_int_to_str(ABI_COMPATIBILITY_VERSION),
+  (void)enter_predef_macro(conv_int_to_str((int)ABI_COMPATIBILITY_VERSION),
 			   "__EDG_ABI_COMPATIBILITY_VERSION",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
