@@ -2454,6 +2454,8 @@ special function kind (e.g., constructor, destructor), if any.
   a_routine_ptr                  rtn;
   a_class_symbol_supplement_ptr  cssp;
   a_boolean                      const_object_okay, dummy_flag;
+  a_type_ptr                     tp;
+  a_conversion_list_entry_ptr    clep;
 
   db_enter(3, "decl_member_function");
   sym = symbol_for_member_function(locator, member_type, &overload_sym);
@@ -2504,7 +2506,23 @@ special function kind (e.g., constructor, destructor), if any.
         }  /* if */
       }  /* if */
     } else if (locator->is_conversion_name) {
+      /* User-defined conversion function. */
       rtn->special_kind = (a_special_function_kind)sfk_conversion;
+      /* Create a conversion list entry.  This list provides an alternative
+         to traversing the entire symbols list for a class to find its
+         conversion functions. */
+      clep = alloc_conversion_list_entry();
+      clep->symbol = sym;
+      clep->next = cssp->conversion_list;
+      cssp->conversion_list = clep;
+      /* If the return type of the conversion is a class type (without const
+         or volatile qualifier) set a flag to mark it as target of a
+         conversion. */
+      tp = rtn->type->variant.routine.return_type;
+      if (!is_qualified_type(tp) && is_class_struct_union_type(tp) ) {
+        (symbol_supplement_for_class(skip_typerefs(tp)))->
+                  target_of_user_defined_conversion = TRUE;
+      }  /* if */
     } else {
       rtn->special_kind = spec_kind;
     }  /* if */
