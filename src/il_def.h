@@ -3626,6 +3626,19 @@ typedef struct a_routine {
 			   at least one "try" block.  This may affect
 			   optimization relating to local variables of the
 			   routine. */
+#if MINIMAL_INLINING
+  unsigned int	inlinable:1;
+			/* TRUE if this routine can be inlined.  Starts out as
+			   TRUE if is_inline is TRUE, then turned off if an
+			   attempt to inline the routine discovers something
+			   it cannot handle. */
+  unsigned int	inlining_temporarily_suppressed:1;
+			/* Inlining of this routine is temporarily suppressed,
+			   e.g., because it's currenly being inlined. */
+  unsigned int	need_out_of_line_copy:1;
+			/* TRUE if an out-of-line copy of this inline routine
+			   is needed, e.g., because its address was taken. */
+#endif /* MINIMAL_INLINING */
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
 		decl_modifiers;

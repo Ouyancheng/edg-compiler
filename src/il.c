@@ -5861,6 +5861,12 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   rp->specific_def            = FALSE;
   rp->contains_try_block      = FALSE;
+#if MINIMAL_INLINING
+  rp->inlinable               = FALSE;
+  rp->inlining_temporarily_suppressed
+                              = FALSE;
+  rp->need_out_of_line_copy   = FALSE;
+#endif /* MINIMAL_INLINING */
 #if DECL_MODIFIERS_IN_USE
   rp->decl_modifiers              = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
