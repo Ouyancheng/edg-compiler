@@ -85,6 +85,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_class_type_supplement),
   sizeof(a_constructor_init),
 #endif /* ifdef CIL */
+#if ORPHAN_PROCESSING_NEEDED
+  sizeof(an_orphaned_il_list),
+#endif /* ORPHAN_PROCESSING_NEEDED */
   0 /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */
@@ -141,6 +144,9 @@ extern void remap_il_header_pointers(a_remap_function_ptr remap_function);
 
 #if ORPHAN_PROCESSING_NEEDED
 extern void remap_orphaned_file_scope_entry_array_ptrs(
+                                       a_remap_function_ptr remap_function);
+
+extern void remap_orphaned_il_list_next_pointers(
                                        a_remap_function_ptr remap_function);
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
