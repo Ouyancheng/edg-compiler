@@ -856,6 +856,17 @@ EXTERN a_boolean
 			   to control the definition of extern inline
 			   functions. */
 
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+EXTERN a_boolean
+		msvc_is_generated_code_target
+#if VAR_INITIALIZERS
+                                              = MSVC_IS_GENERATED_CODE_TARGET
+#endif /* VAR_INITIALIZERS */
+                                                                             ;
+			/* TRUE if code is being generated for the Microsoft
+			   MSVC++ compiler. */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+
 
 /* Aside from occasional references in targ_def.h, the following values
    should be used *only* to initialize the variables declared in this file.
