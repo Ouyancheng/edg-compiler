@@ -165,6 +165,14 @@ typedef struct an_aggregate_init_context {
 			   initialized (since the first direct member of an
 			   aggregate class can itself be an aggregate class
 			   or an array). */
+  a_symbol_ptr	anonymous_union_field_sym;
+			/* In a case where a designated initializer names
+			   a field of an anonymous union or (nonstandard)
+			   anonymous struct, this points to the symbol for
+			   the field; NULL otherwise.  This is non-NULL while
+			   processing the implicit designator levels needed
+			   to get down to the field, at which point it is
+			   cleared to NULL. */
 } an_aggregate_init_context;
 
 
@@ -185,6 +193,7 @@ Initialize an entry of type an_aggregrate_init_context.
   init_context->pending_init_con = NULL;
   init_context->repeat = NULL;
   init_context->pending_init_levels = 0;
+  init_context->anonymous_union_field_sym = NULL;
   if (prev_init_context != NULL && !is_error_type(type)) {
     /* See if there is a pending constant (parsed while testing for the
        "whole-object initialization" case) that needs to be moved to the
@@ -200,6 +209,12 @@ Initialize an entry of type an_aggregrate_init_context.
       init_context->pending_init_levels = levels_down - 1;
       prev_init_context->pending_init_con = NULL;
       prev_init_context->pending_init_levels = 0;
+    }  /* if */
+    /* Transfer the anonymous_union_field_sym value down if set. */
+    if (prev_init_context->anonymous_union_field_sym != NULL) {
+      init_context->anonymous_union_field_sym =
+                                  prev_init_context->anonymous_union_field_sym;
+      prev_init_context->anonymous_union_field_sym = NULL;
     }  /* if */
   }  /* if */
 }  /* initialize_init_context */
@@ -1466,6 +1481,60 @@ the recursion in get_initializer.
 }  /* get_array_designator */
 
 
+static void add_field_designator(an_aggregate_init_context   *context,
+                                 a_field_ptr                 designated_field)
+/*
+Add the ck_designator constant for a field designator to the current
+context.  designated_field identifies the field named by the designator.
+*/
+{
+  a_constant_ptr designator =
+                           alloc_constant((a_constant_repr_kind)ck_designator);
+
+  designator->variant.designator.field = designated_field;
+  append_initializer_constant(context, designator);
+}  /* add_field_designator */
+
+
+static void add_field_designator_for_anonymous_union(
+                                            an_aggregate_init_context *context,
+                                            a_field_ptr               *field)
+/*
+We are in the middle of processing designators for an anonymous union
+or (nonstandard) anonymous struct member.  context->anonymous_union_field_sym
+indicates the field named.  context->type indicates where we are now.
+Add one level of ck_designator constant and return *field set to the
+field designated at this level.  For levels before the last, the designator
+is an implied one and the field is a generated one for an anonymous
+parent object.  At the last level, the field is the one named;
+context->anonymous_union_field_sym is reset to NULL at that point.
+*/
+{
+  a_symbol_ptr member_sym = context->anonymous_union_field_sym;
+  a_field_ptr  member_field;
+
+  /* Work up through parent types looking for the level that comes next
+     at the current context->type. */
+  for (;;) {
+    check_assertion(member_sym != NULL &&
+                    member_sym->kind == (a_symbol_kind)sk_field);
+    member_field = member_sym->variant.field.ptr;
+    if (same_entities(member_field->source_corresp.parent.class_type,
+                      context->type)) {
+      break;
+    }  /* if */
+    member_sym = member_sym->variant.field.anonymous_parent_object;
+  }  /* for */
+  *field = member_field;
+  /* Add the ck_designator constant for this next level. */
+  add_field_designator(context, member_field);
+  if (member_sym == context->anonymous_union_field_sym) {
+    /* We made it to the designated field. */
+    context->anonymous_union_field_sym = NULL;
+  } /* if */
+}  /* add_field_designator_for_anonymous_union */
+
+
 static void get_field_designator(an_aggregate_init_info_ptr  init_info,
                                  an_aggregate_init_context   *context,
                                  a_field_ptr                 *field)
@@ -1535,6 +1604,13 @@ multiple designators are handled by the recursion in get_initializer.
         check_assertion_str(member_sym->kind == (a_symbol_kind)sk_field,
                             "get_field_designator: non-field member");
         designated_field = member_sym->variant.field.ptr;
+        if (member_sym->variant.field.anonymous_parent_object != NULL) {
+          /* This field is a member of an anonymous union or (nonstandard)
+             anonymous struct.  We will have to put out one or more
+             implicit designators to step down through the anonymous
+             parent objects. */
+          context->anonymous_union_field_sym = member_sym;
+        }  /* if */
       }  /* if */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -1545,13 +1621,14 @@ multiple designators are handled by the recursion in get_initializer.
   }  /* if */
   error_position = start_pos;
   if (okay) {
-    /* Build the ck_designator constant and add it to the list. */
-    a_constant_ptr designator =
-                         alloc_constant((a_constant_repr_kind)ck_designator);
-
-    designator->variant.designator.field = designated_field;
-    append_initializer_constant(context, designator);
-    *field = designated_field;
+    if (context->anonymous_union_field_sym != NULL) {
+      /* Special processing for the anonymous union case. */
+      add_field_designator_for_anonymous_union(context, field);
+    } else {
+      /* Build the ck_designator constant and add it to the list. */
+      add_field_designator(context, designated_field);
+      *field = designated_field;
+    }  /* if */
   } else {
     /* Some error. */
     context->type = error_type();
@@ -1847,8 +1924,11 @@ this function points to a tree that includes a dynamic-init entry.
       while (any_more_initializers) {
         add_stop_token(tok_comma);
         /* See whether a designator is next. */
-        if (get_designator(init_info, &context, &curr_array_element,
-                           &curr_field)) {
+        if (context.anonymous_union_field_sym != NULL) {
+          /* Special processing for the anonymous union case. */
+          add_field_designator_for_anonymous_union(&context, &curr_field);
+        } else if (get_designator(init_info, &context, &curr_array_element,
+                                  &curr_field)) {
           /* A designator was present and has been processed.  If initializers
              were being discarded because we ran out of array elements, we can
              now start recording the initializers again (GNU C mode). */
