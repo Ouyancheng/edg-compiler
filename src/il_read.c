@@ -518,8 +518,8 @@ necessary to make it directly accessible in memory.
             set_entry_read_array(byte_entry_kind, index);
           }  /* for */
         }  /* if */
-      }
 #endif /* DEBUG */
+      }
 #endif /* CHECKING */
     } else {
       /* Non-string entry. */
