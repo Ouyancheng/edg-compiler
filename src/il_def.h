@@ -4360,8 +4360,6 @@ typedef long a_upc_block_size;
 
 #if UPC_EXTENSIONS_ALLOWED
 
-typedef unsigned int a_upc_phase;
-
 /* Coded values for UPC block size specifications. */
 #define UPC_BLOCK_SIZE_INDEFINITE ((a_upc_block_size)(0))
 #define UPC_BLOCK_SIZE_BLOCK ((a_upc_block_size)(-2))

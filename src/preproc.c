@@ -1829,37 +1829,9 @@ pragmas, process them now.
 }  /* check_for_stdc_pragmas */
 
 #if UPC_EXTENSIONS_ALLOWED
-void check_for_upc_pragmas(a_statement_ptr sp)
-/*
-Checks for any pending UPC pragmas inside a block; if found there, it affects
-local settings only, so pass along the block statement to which it will be
-associated.
-*/
-{
-  a_pending_pragma_ptr  ppp;
-  a_pending_pragma_ptr  prev_ppp = NULL;
-  a_pending_pragma_ptr  next_ppp;
 
-  for (ppp = curr_token_pragmas; ppp != NULL; ppp = next_ppp) {
-    next_ppp = ppp->next;
-    if (ppp->descr_ptr->kind == (a_pragma_kind)pk_upc) {
-      process_upc_pragma(ppp, sp);
-      /* Unlink this entry from the list of current token pragmas. */
-      if (prev_ppp == NULL) {
-        curr_token_pragmas = ppp->next;
-      } else {
-        prev_ppp->next = ppp->next;
-      }  /* if */
-      free_pending_pragma(ppp);
-    } else {
-      prev_ppp = ppp;
-    }  /* if */
-  }  /* for */
-}  /* check_for_upc_pragmas */
-
-
-void process_upc_pragma(a_pending_pragma_ptr  ppp,
-                        a_statement_ptr       assoc_statement)
+static void process_upc_pragma(a_pending_pragma_ptr  ppp,
+                               a_statement_ptr       assoc_statement)
 /*
 Process a predefined UPC pragma.  These pragmas have the following form:
 
@@ -1896,8 +1868,9 @@ pragmas, and by upc_pragma for pragmas that appear in the file scope.
       /* No associated statement, so update the global setting. */
       curr_upc_access_method = value;
     } else {
-      check_assertion_str(assoc_statement->kind == stmk_block,
-                          "process_upc_pragma: expected block");
+      check_assertion_str(
+                        assoc_statement->kind == (a_statement_kind)stmk_block,
+                        "process_upc_pragma: expected block");
       /* Save the local setting in the block. */
       assoc_statement->variant.block.extra_info->upc_access_method = value;
     }  /* if */
@@ -1909,6 +1882,35 @@ pragmas, and by upc_pragma for pragmas that appear in the file scope.
     }  /* if */
   }  /* if */
 }  /* process_upc_pragma */
+
+
+void check_for_upc_pragmas(a_statement_ptr sp)
+/*
+Checks for any pending UPC pragmas inside a block; if found there, it affects
+local settings only, so pass along the block statement to which it will be
+associated.
+*/
+{
+  a_pending_pragma_ptr  ppp;
+  a_pending_pragma_ptr  prev_ppp = NULL;
+  a_pending_pragma_ptr  next_ppp;
+
+  for (ppp = curr_token_pragmas; ppp != NULL; ppp = next_ppp) {
+    next_ppp = ppp->next;
+    if (ppp->descr_ptr->kind == (a_pragma_kind)pk_upc) {
+      process_upc_pragma(ppp, sp);
+      /* Unlink this entry from the list of current token pragmas. */
+      if (prev_ppp == NULL) {
+        curr_token_pragmas = ppp->next;
+      } else {
+        prev_ppp->next = ppp->next;
+      }  /* if */
+      free_pending_pragma(ppp);
+    } else {
+      prev_ppp = ppp;
+    }  /* if */
+  }  /* for */
+}  /* check_for_upc_pragmas */
 
 
 void upc_pragma(a_pending_pragma_ptr   ppp)
@@ -1928,7 +1930,6 @@ is called directly by compound_statement.
 }  /* upc_pragma */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
-
 
 #if ALIAS_DIRECTIVE
 static void proc_alias(void)

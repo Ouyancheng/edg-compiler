@@ -827,18 +827,12 @@ extern a_upc_block_size f_get_upc_block_size(a_type_ptr  tp,
 
 extern a_boolean is_underlying_shared_qualified_type(a_type_ptr tp);
 extern a_boolean is_underlying_threads_dimensioned_array_type(a_type_ptr tp);
-extern a_boolean is_threads_dimensioned_array_type(a_type_ptr tp);
 extern void fixup_upc_block_size (a_type_ptr array_type);
 extern a_boolean is_shared_void_star_type(a_type_ptr tp);
-extern a_upc_access_method get_underlying_upc_access_method(a_type_ptr tp);
 extern a_targ_size_t upc_local_type_size(a_type_ptr tp);
 
 #define typeref_is_shared_qualified(tp)                               \
  (((tp)->variant.typeref.qualifiers & TQ_UPC_SHARED) != 0)
-#define typeref_is_relaxed_qualified(tp)                              \
- (((tp)->variant.typeref.qualifiers & TQ_UPC_RELAXED) != 0)
-#define typeref_is_strict_qualified(tp)                               \
- (((tp)->variant.typeref.qualifiers & TQ_UPC_STRICT) != 0)
 #define is_ptr_to_shared_type(tp)                                     \
  (is_pointer_type(tp) &&                                             \
   is_underlying_shared_qualified_type(type_pointed_to(tp)))
@@ -849,12 +843,6 @@ extern a_targ_size_t upc_local_type_size(a_type_ptr tp);
   ((get_type_qualifiers(tp) & TQ_UPC_RELAXED) != 0)
 #define is_strict_qualified_type(tp)                                  \
   ((get_type_qualifiers(tp) & TQ_UPC_STRICT) != 0)
-
-#define is_generic_shared_pointer_type(tp) \
-  (is_shared_void_star_type(tp) && \
-   get_underlying_upc_block_size(type_pointed_to(tp)) == 1)
-
-#define get_typeref_upc_block_size(tp) ((tp)->variant.typeref.upc_block_size)
 
 #define get_upc_block_size(tp)                                          \
   (((tp)->kind == (a_type_kind)tk_typeref ||                           \

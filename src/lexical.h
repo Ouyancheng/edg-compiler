@@ -1822,15 +1822,17 @@ valid only with certain configurations.
 Unified Parallel C adds several new type qualifiers.
 */
 #if UPC_EXTENSIONS_ALLOWED
-#define or_is_upc_qual_token(tok)                                              \
-  || (tok) == tok_upc_shared || (tok) == tok_upc_strict || (tok) == tok_upc_relaxed
+/*lint -save -e773*/
+#define or_is_upc_qual_token(tok)                                             \
+  || (tok) == tok_upc_shared                                                  \
+  || (tok) == tok_upc_strict || (tok) == tok_upc_relaxed
 #else /* !UPC_EXTENSIONS_ALLOWED */
 #define or_is_upc_qual_token(tok) /* Nothing */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
-#define is_type_qualifier_token(tok)                                           \
-  ((tok) == tok_const || (tok) == tok_volatile || (tok) == tok_restrict        \
-  or_is_unaligned_token(tok))                                                  \
+#define is_type_qualifier_token(tok)                                          \
+  ((tok) == tok_const || (tok) == tok_volatile || (tok) == tok_restrict       \
+  or_is_unaligned_token(tok))                                                 \
   or_is_upc_qual_token((tok))
 
 

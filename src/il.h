@@ -1295,14 +1295,6 @@ extern void il_init(void);
 
 #define upc_dynamic_threads() (upc_num_threads == 0)
 
-extern void change_integer_constant_to_threads_constant(a_constant  *ic);
-
-extern void convert_threads_constant_to_integer_constant(a_constant  *tc,
-                                                         a_constant  *ic);
-
-extern void set_threads_constant(a_constant            *cp,
-                                 a_host_large_integer  value);
-
 extern a_boolean warn_if_block_size_too_large(a_upc_block_size  block_size);
 
 EXTERN a_upc_block_size

@@ -6005,7 +6005,7 @@ Each has the form
         fprintf(f_debug, "UPC notify statement\n");
       }  /* if */
 #endif /* DEBUG */
-      kind = stmk_upc_notify;
+      kind = (a_statement_kind)stmk_upc_notify;
       break;
     case tok_upc_wait:
 #if DEBUG
@@ -6013,7 +6013,7 @@ Each has the form
         fprintf(f_debug, "UPC wait statement\n");
       }  /* if */
 #endif /* DEBUG */
-      kind = stmk_upc_wait;
+      kind = (a_statement_kind)stmk_upc_wait;
       break;
     case tok_upc_barrier:
 #if DEBUG
@@ -6021,7 +6021,7 @@ Each has the form
         fprintf(f_debug, "UPC barrier statement\n");
       }  /* if */
 #endif /* DEBUG */
-      kind = stmk_upc_barrier;
+      kind = (a_statement_kind)stmk_upc_barrier;
       break;
     default:
       unexpected_condition();

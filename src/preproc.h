@@ -261,9 +261,6 @@ extern void check_for_stdc_pragmas(void);
 #if UPC_EXTENSIONS_ALLOWED
 extern void check_for_upc_pragmas(a_statement_ptr  sp);
 
-extern void process_upc_pragma(a_pending_pragma_ptr  ppp,
-                               a_statement_ptr       assoc_statement);
-
 extern void upc_pragma(a_pending_pragma_ptr  ppp);
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
