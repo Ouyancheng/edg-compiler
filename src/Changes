@@ -1,5 +1,17 @@
 Version 2.30
 
+10/5/95  Diagnostics on variables of empty-class type
+
+Some diagnostics complaining about uninitialized variables of empty-class
+type have been suppressed in default mode.
+
+  class A { };
+  const A x[10];     // No missing-initializer diagnostic in default mode
+  A f() {
+    A y;
+    return y;        // No used-before-set warning in default mode
+  }
+
 10/5/95  Pragma on dependent statement of loop with condition
 
 A bug has been fixed that related to IL lowering of a pragma bound
