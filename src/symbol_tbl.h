@@ -256,9 +256,6 @@ Clear a symbol locator.
 #ifndef DEF_ARG_H
 #include "def_arg.h"
 #endif /* ifndef DEF_ARG_H */
-#ifndef STATEMENTS_H
-#include "statements.h"
-#endif /* ifndef STATEMENTS_H */
 
 /*
 Kinds of symbols in the symbol table.
@@ -1129,8 +1126,8 @@ typedef struct a_symbol {
       a_label_ptr
 		ptr;
 			/* The label. */
-      a_control_flow_descr_ptr
-		assoc_control_flow_descr;
+      struct a_control_flow_descr
+		*assoc_control_flow_descr;
 			/* When the label has been referenced in one or more
 			   goto statements but has not yet been defined,
 			   pointer to a list of entries identifying the
