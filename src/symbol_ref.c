@@ -1539,7 +1539,7 @@ projection symbol.
           !(kind & SRK_DEFAULT_ARG_EXPR)) {
         /* If we are marking a template static data member as referenced, also
            set its instantiation required flag. */
-        set_instance_required(sym_ptr, TRUE, /*defer_inline=*/FALSE);
+        set_instance_required(sym_ptr, TRUE, SIR_DEFER_INLINE);
       }  /* if */
       scptr->referenced = TRUE;
     }  /* if */

@@ -162,7 +162,7 @@ Require definitions for the virtual functions of the indicated class.
         /* The function could be called, so mark it to be instantiated. */
         sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
         /* Set the instantiation_required flag for the virtual function. */
-        set_instance_required(sym, /*value=*/TRUE, /*defer_inline=*/TRUE);
+        set_instance_required(sym, /*value=*/TRUE, SIR_DEFER_INLINE);
 #if DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS
         /* Force the class definition to be kept, because if it is removed the
            virtual function table variable will be detached, and later the
