@@ -3846,7 +3846,9 @@ check_routine:
       scp = &sym->variant.constant->source_corresp;
       break;
     case sk_field:
-      if (sym->variant.field.anonymous_union_variable != NULL) {
+      if (C_dialect != C_dialect_cplusplus) {
+        scp = &sym->variant.field.ptr->source_corresp;
+      } else if (sym->variant.field.anonymous_union_variable != NULL) {
         scp = &sym->variant.field.anonymous_union_variable->source_corresp;
       } else {
         a_field_ptr  fp = sym->variant.field.ptr;
