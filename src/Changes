@@ -1,5 +1,13 @@
 Version 2.42
 
+4/21/99  C++-generating back end: Microsoft extern template directives
+         not suppressed
+
+In versions with TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set
+to TRUE, the C++-generating back end once again puts out Microsoft
+extern template directives (meaning "do not instantiate").  See
+Changes entry of 8/6/98.
+
 4/21/99  Microsoft compatibility: storage class of local variable declared
          with __declspec(dllimport)
 
