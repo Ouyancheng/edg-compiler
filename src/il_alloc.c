@@ -378,7 +378,7 @@ ck_template_param constant.
       cp->variant.template_param.variant.expr = NULL;
       break;
     case tpck_member:
-      /* No variant fields. */
+      cp->variant.template_param.variant.is_address = FALSE;
       break;
     case tpck_cast:
       cp->variant.template_param.variant.constant = NULL;

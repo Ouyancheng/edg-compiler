@@ -1550,7 +1550,9 @@ enum a_template_param_constant_kind_tag {
 			       int a[T::k];
 			     };
 			   (where, during prototype instantiation, k is
-			   assumed to be a member of T and a constant). */
+			   assumed to be a member of T and a constant).
+			   Can also be used for the address of a member
+			   (a flag indicates address versus value). */
   tpck_cast,		/* The template param constant represents some constant
 			   (ck_template_param or other) cast to a type that
 			   contains a template parameter type. */
@@ -1853,8 +1855,12 @@ typedef struct a_constant {
 			   a template param constant (of kind tpck_param),
 			   "I+1" is also a template param constant (of kind
 			   tpck_expression). */
-	/* When template param constant kind == tpck_member, no variant
-           fields. */
+        /* When template param constant kind == tpck_member: */
+        a_byte_boolean
+		is_address;
+			/* TRUE if the constant represents the address of
+			   the member.  FALSE if it represents the value
+			   of the member. */
         /* When template param constant kind == tpck_cast: */
         a_constant_ptr
 		constant;

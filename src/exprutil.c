@@ -3516,6 +3516,27 @@ with the type probably determined by determine_arithmetic_conversions.
 }  /* change_binary_operand_types */
 
 
+void change_nonreal_member_constant_operand_to_lvalue(an_operand *operand)
+/*
+If the indicated operand is an rvalue indicating the value of a
+member of a nonreal class, change it to an lvalue that refers to
+the member.
+*/
+{
+  if (is_an_rvalue(operand) && is_constant_operand(operand)) {
+    a_constant_ptr con = &operand->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_template_param &&
+        con->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_member &&
+        !con->variant.template_param.variant.is_address) {
+      con->variant.template_param.variant.is_address = TRUE;
+      operand->state = (an_operand_state)os_lvalue;
+      check_assertion(operand->type == type_of_unknown_templ_param_nontype);
+    }  /* if */
+  }  /* if */
+}  /* change_nonreal_member_constant_operand_to_lvalue */
+
+
 a_boolean check_modifiable_lvalue_operand(an_operand *operand)
 /*
 Return FALSE and issue an error message if the operand is not a modifiable
@@ -4373,10 +4394,6 @@ be used (e.g., eok_add, not eok_iadd).
       default:;
         /* Other operators are unchanged. */
     }  /* switch */
-    /* Make sure lvalues are converted to rvalues (for proxy member
-       constants in prototype instantiations). */
-    do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
-    do_operand_transformations(operand_2, TOPT_NO_OPTIONS);
   } else {
     /* The current expression is not a constant expression. */
     prep_generic_operand(operand_1);
@@ -4495,15 +4512,14 @@ be used (e.g., eok_negate, not eok_inegate).
     if (op == (an_expr_operator_kind)eok_negate) {
       op = (an_expr_operator_kind)eok_inegate;
     }  /* if */
-    /* Make sure lvalues are converted to rvalues (for proxy member
-       constants in prototype instantiations). */
-    do_operand_transformations(operand, TOPT_NO_OPTIONS);
   } else {
     /* The current expression is not a constant expression. */
     prep_generic_operand(operand);
   }  /* if */
-  if (op == (an_expr_operator_kind)eok_address) {
-    /* There's no IL equivalent of the "&" operator, so do that specially. */
+  if (op == (an_expr_operator_kind)eok_address &&
+      is_constant_operand(operand)) {
+    /* "&" operator, which cannot be folded the usual way. */
+    check_assertion(is_an_lvalue(operand));
     copy_operand(operand, result);
     take_address_of_lvalue(result);
   } else {
@@ -4561,11 +4577,6 @@ it happens in prototype instantiations.
                         is_constant_operand(operand_2) &&
                         is_constant_operand(operand_3),
                         "template_question_operation: non-const operand");
-    /* Make sure lvalues are converted to rvalues (for proxy member
-       constants in prototype instantiations). */
-    do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
-    do_operand_transformations(operand_2, TOPT_NO_OPTIONS);
-    do_operand_transformations(operand_3, TOPT_NO_OPTIONS);
   } else {
     /* The current expression is not a constant expression. */
     prep_generic_operand(operand_1);
@@ -5530,7 +5541,9 @@ address_taken flag.
       /* Not a bit field reference. */
       /* The operand becomes an rvalue. */
       operand->state = (an_operand_state)os_rvalue;
-      operand->type = make_pointer_type(operand->type);
+      if (operand->type != type_of_unknown_templ_param_nontype) {
+        operand->type = make_pointer_type(operand->type);
+      }  /* if */
       /* Change the kind in the reference entries to address-taken. */
       /* This will check for taking the address of a register variable. */
       change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
@@ -6059,18 +6072,6 @@ not an lvalue, it is left alone.
               operand->variant.constant.expr = constant_expr;
             }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-            constant_case = TRUE;
-          } else if (variable->type == type_of_unknown_templ_param_nontype) {
-            /* A member of a proxy class.  Switch to the corresponding
-               constant, which is the value of the member. */
-            a_symbol_ptr sym =
-                           (a_symbol_ptr)(variable->source_corresp.assoc_info);
-            check_assertion(sym != NULL &&
-                            sym->kind == (a_symbol_kind)sk_static_data_member);
-            sym = create_alternate_nontype_nonreal_member(
-                                                   sym,
-                                                   (a_symbol_kind)sk_constant);
-            make_sym_constant_operand(sym, operand);
             constant_case = TRUE;
           } else {
             /* Not constant-valued; the rvalue is the value of the variable. */

@@ -3480,7 +3480,9 @@ nonidentical.
               check_assertion(cp1->source_corresp.assoc_info != NULL);
               check_assertion(cp2->source_corresp.assoc_info != NULL);
               eq = (cp1->source_corresp.assoc_info ==
-                    cp2->source_corresp.assoc_info);
+                    cp2->source_corresp.assoc_info &&
+                    cp1->variant.template_param.variant.is_address ==
+                    cp2->variant.template_param.variant.is_address);
               break;
             case tpck_cast:
               eq = compare_constants(cp1->variant.template_param.variant.
@@ -7666,7 +7668,7 @@ in doing substitution on a type), set *copy_error to TRUE.
         }
         break;
       case tpck_member:
-        /* If a tpck_contant remains after the parent substitution done
+        /* If a tpck_member remains after the parent substitution done
            earlier, simply leave it unsubstituted for now.  The parent
            type substitution may be attempted again later. */
         break;

@@ -2869,6 +2869,9 @@ confusion.  Do the output in the way described by octl.
       switch (constant->variant.template_param.kind) {
         case tpck_param:
         case tpck_member:
+          if (constant->variant.template_param.variant.is_address) {
+            octl->output_str("&");
+          }  /* if */
           form_name(&constant->source_corresp, iek_constant, octl);
           break;
         case tpck_expression:

@@ -815,6 +815,9 @@ extern void type2_error_in_operand(an_error_code error_code,
                                    a_type_ptr    type1,
                                    a_type_ptr    type2);
 
+extern void change_nonreal_member_constant_operand_to_lvalue(
+                                                          an_operand *operand);
+
 extern a_boolean check_modifiable_lvalue_operand(an_operand *operand);
 
 extern a_boolean check_scalar_operand(an_operand *operand);

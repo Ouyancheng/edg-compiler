@@ -2293,6 +2293,7 @@ nonstatic_member_function:
         case sk_constant:
           /* Member constant (e.g., an enumerator). */
           make_sym_constant_operand(member_sym, result);
+          change_nonreal_member_constant_operand_to_lvalue(result);
           combine_unneeded_selector_with_operand(operand_1, &is_arrow_operator,
                                                  result);
           break;
@@ -3212,6 +3213,10 @@ operation is a pointer-to-member (see ARM 5.3).
          check its type.  Just produce an expression with a generic
          operator.  (Note that there is a generic "&" operator, but
          no standard IL "&" operator.) */
+      /* If the operand is a member of a nonreal class, e.g., &T::x,
+         make an lvalue for the member instead of the previous assumption
+         that it is a constant. */
+      change_nonreal_member_constant_operand_to_lvalue(&operand);
       template_unary_operation((an_expr_operator_kind)eok_address,
                                tok_ampersand, &operand,
                                result, &start_position);
@@ -10713,6 +10718,10 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
             if (!is_template_param_type(result->type)) {
               (void)check_integral_or_enum_operand(result);
             }  /* if */
+          } else if (!curr_expr_kind_is_const()) {
+            /* In a non-constant expression, treat a nonreal member as
+               an lvalue rather than a constant. */
+            change_nonreal_member_constant_operand_to_lvalue(result);
           }  /* if */
           break;
         case sk_static_data_member:
@@ -10777,10 +10786,6 @@ variable:
                 /* The value of the variable is used. */
                 change_ref_kinds(rep, SRK_USE);
               }  /* if */
-            } else if (var_ptr->type == type_of_unknown_templ_param_nontype) {
-              /* A reference to a member of a proxy class.  Allow through.
-                 Will be converted to a constant if converted to an rvalue. */
-              make_lvalue_variable_operand(var_ptr, result, rep);
             } else {
               /* All other cases are not allowed. */
               error_and_make_error_operand(ec_expr_not_constant, result);
