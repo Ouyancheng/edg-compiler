@@ -1,5 +1,12 @@
 Version 2.39
 
+4/27/98  Prelinker problem when nonlocal files are used in conjunction with
+         a definition list file
+
+When a definition list file is being used and nonlocal files are specified,
+a local and nonlocal file could both end up "adopting" the same instantiation,
+resulting in a prelinker internal error.  This has been fixed.
+
 4/25/98  Demangling of virtual function table names with three parts
 
 The name demangler now demangles virtual function tables that name three

@@ -3627,10 +3627,16 @@ end_of_options:
            the first of which attempts to do assignments in local files,
            the second in nonlocal files. */
         no_local_changes = pl_determine_actions(/*do_local_files=*/TRUE);
-        if (!do_not_assign_to_nonlocal_objects) {
-          no_nonlocal_changes = pl_determine_actions(/*do_local_files=*/FALSE);
+       /* Only attempt to assign compilations to nonlocal files if
+           such assignments are permitted.  Suppress nonlocal assignments
+           if we've already assigned something to a local file and we are
+           using a definition list file. */
+        if (do_not_assign_to_nonlocal_objects ||
+            (use_definition_list && !no_local_changes)) {
+          /* Don't assign to nonlocal files. */
+          no_nonlocal_changes = TRUE; 
         } else {
-          no_nonlocal_changes = TRUE;
+          no_nonlocal_changes = pl_determine_actions(/*do_local_files=*/FALSE);
         }  /* if */
         done = no_local_changes && no_nonlocal_changes;
 
