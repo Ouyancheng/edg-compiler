@@ -7030,12 +7030,30 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
       a_type_ptr	other_tp = NULL;
       a_type_ptr	tp;
       a_boolean		ambiguous = FALSE;
+      a_boolean		error_already_issued = FALSE;
 
       field_sel_type = skip_typerefs(field_sel_type);
       field_sym = (a_symbol_ptr)field_sel_type->source_corresp.assoc_info;
       check_assertion_str2(field_sym != NULL, "get_destructor_name:",
                            "NULL assoc_info");
-      if (field_sym->header == locator_for_curr_id.symbol_header) {
+      if (qualifier_sym != NULL && is_type_symbol(qualifier_sym)) {
+        /* If the destructor name was specified with a qualified name,
+           make sure the class specified by the qualifier names the
+           field selection class or a base class thereof. */
+        a_type_ptr	qualifier_type;
+        qualifier_type = type_symbol_type(qualifier_sym);
+        if (!identical_types(field_sel_type, qualifier_type) &&
+            find_base_class_of(field_sel_type, qualifier_type) == NULL) {
+          pos_ty_error(ec_invalid_destructor_name,
+                       &locator_for_curr_id.source_position,
+                       field_sel_type);
+          set_to_error_locator(locator_for_curr_id);
+          error_already_issued = TRUE;
+        }  /* if */
+      }  /* if */
+      if (error_already_issued) {
+        /* Skip this section if an error was already issued. */
+      } else if (field_sym->header == locator_for_curr_id.symbol_header) {
         /* The destructor name matches the class name -- this is a normal
            destructor reference. */
         destructor_okay = TRUE;
@@ -7095,7 +7113,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
           }  /* if */
         }  /* if */
       }  /* if */
-      if (!destructor_okay) {
+      if (!destructor_okay && !error_already_issued) {
         /* None of the lookups match the field selection class.  Determine
            whether any of them match a base class.  If either of the
            previous lookups do match a base class, the symbol will still be
@@ -7135,7 +7153,9 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
         }  /* if */
         if (type_sym != NULL) destructor_okay = TRUE;
       }  /* if */
-      if (!destructor_okay) {
+      if (error_already_issued) {
+        /* Skip this section if an error was already issued. */
+      } else if (!destructor_okay) {
         /* No match was found -- issue an error. */
         pos_ty_error(ec_invalid_destructor_name,
                      &locator_for_curr_id.source_position,

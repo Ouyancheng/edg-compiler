@@ -1,5 +1,19 @@
 Version 2.37
 
+6/26/97   Internal error when template qualified destructor name does not
+          match the left operand of "." or "->" operator
+
+An internal error would result if an explicit destructor call used a
+qualified name in which the type of both the qualifier and the left operand
+of the field selection were different instances of the same class template.
+This has been fixed.
+
+  template <class T> struct A { };
+  int main() {
+    A<int>* p;
+    p ->A<float>::~A();
+  }
+
 6/25/97   Abort on use of anonymous union member in nontype template argument
 
 A use of an anonymous union member of reference type in a nontype
