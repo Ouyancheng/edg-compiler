@@ -3995,8 +3995,23 @@ use in generating cross-reference output describing this declaration.
         check_assertion(variable_ptr != NULL);
         *old_type = variable_ptr->type;
         if (!types_are_redecl_compatible(type_ptr, *old_type)) {
-          an_error_severity  severity = es_error;
+          an_error_severity  severity = es_none;
 
+          if (gcc_mode) {
+            a_type_ptr  orig_type = skip_typerefs(*old_type);
+            a_type_ptr  redecl_type = skip_typerefs(type_ptr);
+            if (types_are_redecl_compatible(redecl_type, orig_type)) {
+              /* GNU C accepts (with a warning) redeclarations of variables
+                 that only differ in cv-qualification. */
+              severity = es_warning;
+              type_ptr = make_qualified_type(redecl_type,
+                                             get_type_qualifiers(type_ptr) |
+                                             get_type_qualifiers(*old_type));
+              *old_type = make_qualified_type(orig_type,
+                                              get_type_qualifiers(type_ptr) |
+                                              get_type_qualifiers(*old_type));
+            }  /* if */
+          }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (C_mode() && microsoft_mode &&
               is_integral_type(type_ptr) && is_integral_type(*old_type) &&
@@ -4009,7 +4024,7 @@ use in generating cross-reference output describing this declaration.
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
-          {
+          if (severity == es_none) {
             severity = es_error;      
             redecl_error_already_issued = TRUE;
             linked_redecl_error = TRUE;
