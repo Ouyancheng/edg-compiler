@@ -335,7 +335,7 @@ typedef enum /*an_error_code*/ {
   ec_ambiguous_derived_class,
   ec_derived_class_from_virtual_base,
   ec_no_matching_constructor,
-  ec_inaccessible_copy_constructor,
+  ec_ambiguous_copy_constructor,
   ec_no_default_constructor,
   ec_not_a_field_or_base_class,
   ec_indirect_nonvirtual_base_class_not_allowed,
@@ -378,7 +378,8 @@ typedef enum /*an_error_code*/ {
   ec_local_class_function_def_missing,
   ec_inaccessible_constructor,
   ec_inaccessible_destructor,
-  ec_direct_derivation_less_accessible
+  ec_direct_derivation_less_accessible,
+  ec_missing_const_copy_constructor
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
