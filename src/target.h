@@ -939,6 +939,7 @@ EXTERN a_boolean
 #undef TARG_JMP_BUF_ELEMENT_INT_KIND
 #undef TARG_JMP_BUF_ELEMENT_FLOAT_KIND
 #undef TARG_VAR_HANDLE_INT_KIND
+#undef MSVC_IS_GENERATED_CODE_TARGET
 
 #ifndef MAKE_TARG_NAMES_REFER_TO_VARIABLES
 #define MAKE_TARG_NAMES_REFER_TO_VARIABLES 0
@@ -1027,6 +1028,7 @@ EXTERN a_boolean
 #define TARG_JMP_BUF_ELEMENT_INT_KIND targ_jmp_buf_element_int_kind
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND targ_jmp_buf_element_float_kind
 #define TARG_VAR_HANDLE_INT_KIND targ_var_handle_int_kind
+#define MSVC_IS_GENERATED_CODE_TARGET msvc_is_generated_code_target
 #endif /* MAKE_TARG_NAMES_REFER_TO_VARIABLES */
 
 a_targ_size_t size_of_pointer_to(a_type_ptr        type_pointed_to,
