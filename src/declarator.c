@@ -422,9 +422,7 @@ property fields).
            of zero, which is the case for the partial array and pointer
            types. */
         temp_type = skip_typerefs(new_type_ptr);
-        if (is_object_type(temp_type) &&
-            !(temp_type->kind == (a_type_kind)tk_array &&
-              temp_type->variant.array.bound_is_zero)) {
+        if (is_object_type(temp_type)) {
           /* Usually okay. */
           if (flexible_array_members_allowed) {
             /* A struct or union containing a member that is a zero-length
@@ -4002,8 +4000,9 @@ The syntax is:
              separated list of identifiers followed by a right paren followed
              by a left brace or the start of a declaration, then this can
              only be a function definition.  Otherwise assume it to be a
-             parenthesized initializer. */
-          if (curr_token == tok_identifier) {
+             parenthesized initializer.  GNU C++ does not accept old-style
+             parameter lists. */
+          if (curr_token == tok_identifier && !gpp_mode) {
             a_token_cache       cache;
 
             clear_token_cache(&cache, /*reusable=*/FALSE);

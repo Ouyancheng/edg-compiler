@@ -1,5 +1,19 @@
 Version 3.2
 
+2/11/03  GNU C++ mode: Old-style parameter lists and attributes
+
+In GNU C++ mode, the front end would sometimes erroneously treat as an
+old-style parameter list a parenthesized initializer followed by an
+attribute.  For example:
+
+  struct S { S(int); };
+  int x;
+  S s(x) __attribute__((alignment(4)));  // Used to trigger an error
+                                         // in GNU C++ mode.
+
+In the example above, "s(x)" was incorrectly parsed as a function declarator.
+This is now fixed.
+
 2/11/03  UPC mode: Folding of unary operations
 
 The front end no longer attempts to constant-fold unary operators applied on
