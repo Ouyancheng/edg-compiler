@@ -5,16 +5,18 @@ Version 2.44
 When emulating Microsoft Visual C++ 6.0 and higher the front end now treats
 the extension types __int8, __int16, __int32 and __int64 as distinct built-in
 types instead of making them synonyms for standard integer types of the
-appropriate size.  This enables the following example:
+appropriate size.  An integer literal with an "i-suffix" then assume these
+types; e.g., "13i16" is a literal expression of type __int16.  This enables
+the following example:
 
   extern "C" int printf(char const*, ...);
   void f(__int32 x) { printf("Special\n"); } 
   void f(int) { printf("Normal\n"); }
   int main() {
     f(1);                         // Calls f(int)
-    f(__int32(2));                // Calls f(__int32)
+    f(2i32);                      // Calls f(__int32)
     f(__int32(3)+__int32(4));     // Calls f(int) (promotion for '+')
-    f(__int16(5));                // Calls f(int) (promotion)
+    f(5i16);                      // Calls f(int) (promotion)
     return 0;
   }
 

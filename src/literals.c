@@ -372,7 +372,13 @@ kind_established:;
   } else {
     /* Build a constant with the right type and value. */
     clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_integer);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    const_for_curr_token.type                  =
+        extended_integer_type(kind, microsoft_version >= 1200 &&
+                                    isuffix_kind != (an_integer_kind)ik_none);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
     const_for_curr_token.type                  = integer_type(kind);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* For values that might be negative (possible in pcc mode), do
        sign extension. */
     if (do_sign_extension) {
