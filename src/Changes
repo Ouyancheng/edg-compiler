@@ -1,5 +1,14 @@
 Version 2.42
 
+5/25/99  Partially lowered EH: keeping body of destructor of thrown type
+
+When IL lowering does partial lowering of exception handling, and
+"throw" expression nodes are preserved in the IL, if a throw supplement
+refers to a destructor the destructor body should be considered needed
+and not eliminated when removing unneeded entities.  Unfortunately,
+its definition was not marked as needed, and if it was not otherwise
+required the body was removed.  Now fixed.
+
 5/21/99  C++ generating back end: suppression of "this->" on function calls
 
 A change made previously to suppress "this->" on some member function
