@@ -9088,15 +9088,8 @@ and all subscopes.
           (void)fprintf(f_debug, " being moved to point of definition\n");
         }  /* if */
 #endif /* DEBUG */
-        /* Clear the nested class flag to avoid double processing. */
-        nested_type->variant.class_struct_union.
-                                nested_class_defined_outside_of_parent = FALSE;
         /* Promote the class, and its type-as-subobject if that is present. */
         promote_type_list(nested_type, scope, &insert_pointer);
-        /* Put the flag back on in case a back end cares about it for some
-           reason. */
-        nested_type->variant.class_struct_union.
-                                nested_class_defined_outside_of_parent = TRUE;
         if (scope->kind == (a_scope_kind)sck_file ||
             scope->kind == (a_scope_kind)sck_function ||
             scope->kind == (a_scope_kind)sck_block) {
