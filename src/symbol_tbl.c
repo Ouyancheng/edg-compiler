@@ -7180,7 +7180,8 @@ symbol "used" or "set", if appropriate.
   }  /* if */
   /* Set the referenced flag in the symbol. */
   sym_ptr->referenced = TRUE;
-  if (update_il_entry) {
+  scptr = source_corresp_entry_for_symbol(sym_ptr);
+  if (update_il_entry && scptr != NULL) {
     /* Set the referenced flag in the associated intermediate language entry,
        if there is one.  Note that more than one symbol can point to the same
        IL entry.  Use the fact that all the IL tables begin with
@@ -7193,96 +7194,106 @@ symbol "used" or "set", if appropriate.
         sym_ptr->variant.routine.ptr->is_virtual) {
       /* Do not set IL referenced flag. */
     } else {
-      scptr = source_corresp_entry_for_symbol(sym_ptr);
-      if (scptr != NULL) scptr->referenced = TRUE;
+      scptr->referenced = TRUE;
     }  /* if */
-    if (sym_ptr->kind == (a_symbol_kind)sk_variable) {
-      /* If this reference involves a modification or, by taking the variable's
-         address, a potential modification, mark the variable as having its
-         value set. */
-      if (kind == srk_modification || kind == srk_use_and_modif ||
-          kind == srk_address_taken) {
-        mark_variable_value_set(sym_ptr);
-      }  /* if */
-      /* If this reference is a use or, by taking the variable's address, a
-         potential use, mark the variable has having been used. */
-      if (kind == srk_use || kind == srk_use_and_modif ||
-          kind == srk_address_taken) {
-        if (sym_ptr->variant.variable.used) {
-          /* This is not the first use. */
-          if (sym_ptr->variant.variable.ptr->is_parameter) {
-            /* Mark the parameter as multiply used (information that may be
-               useful for inlining). */
-            sym_ptr->variant.variable.ptr->param_used_more_than_once = TRUE;
-          }  /* if */
-        } else {
-          /* This is the first use of the variable. */
-          if (!sym_ptr->variant.variable.value_has_been_set &&
-              !suppress_used_before_set_warnings) {
-            /* But its value has not been set yet.  Issue a warning, if
-               appropriate. */
-            a_boolean                suppress_warning = FALSE;
-            a_scope_stack_entry_ptr  ssep;
+  }  /* if */
+  if (sym_ptr->kind == (a_symbol_kind)sk_variable) {
+    /* If this reference involves a modification or, by taking the variable's
+       address, a potential modification, mark the variable as having its
+       value set. */
+    if (kind == srk_modification || kind == srk_use_and_modif ||
+        kind == srk_address_taken) {
+      mark_variable_value_set(sym_ptr);
+    }  /* if */
+    /* If this reference is a use or, by taking the variable's address, a
+       potential use, mark the variable has having been used. */
+    if (kind == srk_use || kind == srk_use_and_modif ||
+        kind == srk_address_taken) {
+      if (sym_ptr->variant.variable.used) {
+        /* This is not the first use. */
+        if (sym_ptr->variant.variable.ptr->is_parameter) {
+          /* Mark the parameter as multiply used (information that may be
+             useful for inlining). */
+          sym_ptr->variant.variable.ptr->param_used_more_than_once = TRUE;
+        }  /* if */
+      } else {
+        /* This is the first use of the variable. */
+        if (!sym_ptr->variant.variable.value_has_been_set &&
+            !suppress_used_before_set_warnings) {
+          /* But its value has not been set yet.  Issue a warning, if
+             appropriate. */
+          a_boolean                suppress_warning = FALSE;
+          a_scope_stack_entry_ptr  ssep;
 
-            /* To determine whether to suppress the warning, examine the scope
-               stack for labels and uncompleted loops that might enable the
-               program to set the variable in code that has not yet been seen
-               and then to branch back to the current code.  In other words,
-               only issue a warning if we're sure the variable cannot have
-               been set. */
-            for (ssep = &scope_stack[decl_scope_level]; ; --ssep) {
-              check_assertion(ssep != &scope_stack[0]);
-              if (ssep->kind == (a_scope_kind)sck_function) {
-                /* We are at the outermost scope of the function.  Check for
-                   a label. */
-                goto check_label_decl_seq;
-              } else if (ssep->number == sym_ptr->decl_scope) {
-                /* We are at the scope in which the variable was declared.
-                   Jump out to the function scope and look for a label. */
-                ssep = &scope_stack[depth_innermost_function_scope];
+          /* To determine whether to suppress the warning, examine the scope
+             stack for labels and uncompleted loops that might enable the
+             program to set the variable in code that has not yet been seen
+             and then to branch back to the current code.  In other words,
+             only issue a warning if we're sure the variable cannot have
+             been set. */
+          for (ssep = &scope_stack[decl_scope_level]; ; --ssep) {
+            check_assertion(ssep != &scope_stack[0]);
+            if (ssep->kind == (a_scope_kind)sck_function) {
+              /* We are at the outermost scope of the function.  Check for
+                 a label. */
+              goto check_label_decl_seq;
+            } else if (ssep->number == sym_ptr->decl_scope) {
+              /* We are at the scope in which the variable was declared.
+                 Jump out to the function scope and look for a label. */
+              ssep = &scope_stack[depth_innermost_function_scope];
 check_label_decl_seq:
-                /* If the variable was declared before the label, suppress the
-                   warning.  If it was declared after the label, the warning
-                   is appropriate.  For example:
-                     void f() {
-                       int i;
+              /* If the variable was declared before the label, suppress the
+                 warning.  If it was declared after the label, the warning
+                 is appropriate.  For example:
+                   void f() {
+                     int i;
+                       :
+                   L:
+                     int j;
+                     ++i;          // No warning -- i may be set later.
+                     ++j;          // Warning -- j cannot have been set yet.
                          :
-                     L:
-                       int j;
-                       ++i;          // No warning -- i may be set later.
-                       ++j;          // Warning -- j cannot have been set yet.
-                           :
-                     }
-                */
-                if (ssep->last_label_decl_seq > sym_ptr->decl_seq) {
-                  /* Variable was declared before the label was defined. */
-                  suppress_warning = TRUE;
-                }  /* if */
-                break;
-              } else if (ssep->is_loop_scope) {
-                /* The variable was declared in a scope outside the loop
-                   scope, so suppress the warning.  If it were declared within
-                   the loop, the warning would still be okay.  For example:
-                     void f() {
-                       int i;
-                         :
-                       for (;;) {
-                         int j;
-                         ++i;        // No warning -- i may be set later.
-                         ++j;        // Warning -- j cannot have been set yet.
-                           :
-                       }
-                     }
-                */
+                   }
+              */
+              if (ssep->last_label_decl_seq > sym_ptr->decl_seq) {
+                /* Variable was declared before the label was defined. */
                 suppress_warning = TRUE;
-                break;
-              }
-            }  /* for */
-            if (!suppress_warning) {
-              pos_sy_warning(ec_used_before_set, source_position, sym_ptr);
-            }  /* if */
+              }  /* if */
+              break;
+            } else if (ssep->is_loop_scope) {
+              /* The variable was declared in a scope outside the loop
+                 scope, so suppress the warning.  If it were declared within
+                 the loop, the warning would still be okay.  For example:
+                   void f() {
+                     int i;
+                       :
+                     for (;;) {
+                       int j;
+                       ++i;        // No warning -- i may be set later.
+                       ++j;        // Warning -- j cannot have been set yet.
+                         :
+                     }
+                   }
+              */
+              suppress_warning = TRUE;
+              break;
+            }
+          }  /* for */
+          if (!suppress_warning) {
+            pos_sy_warning(ec_used_before_set, source_position, sym_ptr);
           }  /* if */
-          sym_ptr->variant.variable.used = TRUE;
+        }  /* if */
+        sym_ptr->variant.variable.used = TRUE;
+        if (scptr != NULL) {
+          /* The variable may point to a different symbol in cases like
+             this:
+               static int i = 1;
+               int f() { extern int i; return i; }
+             and it is necessary for the file-scope symbol to be marked
+             "used" too. */
+          if ((a_symbol_ptr)scptr->assoc_info != sym_ptr) {
+            ((a_symbol_ptr)scptr->assoc_info)->variant.variable.used = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

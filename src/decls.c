@@ -3870,6 +3870,7 @@ skip_overloading:;
       /* There is no IL entry, so create one now.  If the variable has
          internal or external linkage, it is entered at the file scope. */
       variable_ptr = make_variable(type_ptr, storage_class, at_file_scope);
+      source_corresp_ptr = &variable_ptr->source_corresp;
     } else {
       /* There is an existing IL entry that we are reusing. */
       /* Check for internal linkage on the old but not the new, or
@@ -3898,8 +3899,17 @@ skip_overloading:;
           variable_ptr->source_corresp.referenced) {
         sym->referenced = TRUE;
       }  /* if */
+      /* Similarly, it should have it's "used" flag set.  This is only needed
+         for file-scope static variables, in cases like this:
+           int f() { extern int i; return i; }
+           static int i = 0;
+         to avoid "set-but-never-used" diagnostics. */
+      source_corresp_ptr = &variable_ptr->source_corresp;
+      if (((a_symbol_ptr)source_corresp_ptr->assoc_info)->
+                                                    variant.variable.used) {
+        sym->variant.variable.used = TRUE;
+      }  /* if */
     }  /* if */
-    source_corresp_ptr = &variable_ptr->source_corresp;
     /* Link the symbol to the IL variable entry. */
     sym->variant.variable.ptr = variable_ptr;
     if (*ext_sym != NULL) {
