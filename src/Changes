@@ -1,5 +1,18 @@
 Version 2.06
 
+5/19/92  Fixed a bug in detecting illegal initialization of classes with
+         private or protected fields.
+
+ARM 8.4.1 says that only certain class objects ("aggregates") can be
+initialized with a brace-enclosed list.  We were too liberal before, but
+an error is now issued for this kind of initialization:
+
+  class A { private: int i; } a = { 1 };
+
+The ARM refers to "private or protected members", but we have applied the
+restriction only to fields (which seems in accord with the intent if not
+the letter of 8.4.1).
+
 5/19/92  Fixed bugs in interaction between mulitple inheritance and abstract
          base classes.
 
