@@ -1,5 +1,14 @@
 Version 2.32
 
+1/31/96   Internal error on maintaining source-sequence list for
+          old-style param list
+
+An internal error has been fixed in managing the source-sequence lists
+for this rather obscure case, where a omitted parameter appears in a
+function prototype nested within a function prototype:
+
+  void f(a) int a(int); { ... } 
+
 1/31/96   Internal error or abort on invalid nested class in a class template
 
 2.31 introduced a bug what could cause an abort or internal error when
