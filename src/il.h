@@ -264,6 +264,8 @@ extern void add_to_dynamic_inits_list(a_dynamic_init_ptr dip);
 
 extern a_variable_ptr alloc_variable(a_storage_class  storage_class);
 
+extern void remove_from_variables_list(a_variable_ptr var_ptr);
+
 extern void add_to_variables_list(a_variable_ptr var_ptr,
                                   a_boolean      at_file_scope);
 

@@ -5014,6 +5014,45 @@ to it.
 }  /* alloc_variable */
 
 
+void remove_from_variables_list(a_variable_ptr var_ptr)
+/*
+Unlink the given variable from the variables list for the file scope.  This
+is done so the variable can be added again at the end of the list, to keep
+the variables in order of appearance of their definitions.
+*/
+{
+  a_variable_ptr           prev_var, vp;
+  a_scope_stack_entry_ptr  ssep;
+  a_scope_ptr              sp;
+
+  /* Get pointer to the file scope entry. */
+  ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+  sp = ssep->il_scope;
+  check_assertion_str(sp != NULL, "remove_from_variables_list: NULL IL scope");
+  /* Find the variable on the current list that precedes var_ptr; we'll need
+     it to unlink var_ptr. */
+  prev_var = NULL;
+  for (vp = sp->variables; vp != NULL; vp = vp->next) {
+    if (vp == var_ptr) break;
+    prev_var = vp;
+  }  /* for */
+#if CHECKING
+  check_assertion_str(vp != NULL, "remove_from_variables_list: not found");
+#endif /* CHECKING */
+  /* Link the previous entry to the entry following this one. */
+  if (prev_var == NULL) {
+    sp->variables = var_ptr->next;
+  } else {
+    prev_var->next = var_ptr->next;
+  }  /* if */
+  /* If the entry being removed was the last on the list, update the
+     last_variable pointer. */
+  if (var_ptr == ssep->last_variable) {
+    ssep->last_variable = prev_var;
+  }  /* if */
+}  /* remove_from_variables_list */
+
+
 void add_to_variables_list(a_variable_ptr var_ptr,
                            a_boolean      at_file_scope)
 /*
