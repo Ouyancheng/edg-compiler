@@ -8908,6 +8908,8 @@ Syntax:
   a_type_ptr        operation_type;
   a_boolean         cast_type_okay, template_param_case = FALSE;
   a_boolean         reference_case = FALSE, err = FALSE;
+  a_boolean         microsoft_enum_cast_case = FALSE;
+  a_boolean         microsoft_lvalue_cast_case = FALSE;
 
   db_enter(4, "scan_const_cast_operator");
   /* Save the position of the const_cast keyword. */
@@ -8930,10 +8932,24 @@ Syntax:
                            &operand)) {
     err = TRUE;
   }  /* if */
+  if (microsoft_bugs &&
+      is_enum_type(cast_type) &&
+      f_identical_types(f_skip_typerefs(operand.type),
+                        f_skip_typerefs(cast_type),
+                        ITF_NO_FLAGS)) {
+    /* MSVC++ (6.0, 7.0, and 7.1 at least) allows a cast to an enum type
+       in a const_cast. */
+    microsoft_enum_cast_case = TRUE;
+    if (is_an_lvalue(&operand) &&
+        !is_bit_field_operand(&operand)) {
+      /* The cast is an lvalue cast (its result is also an lvalue). */
+      microsoft_lvalue_cast_case = TRUE;
+    }  /* if */
+  }  /* if */
   /* Except when casting to a reference type, do operand transformations
      on the source operand. */
   reference_case = is_reference_type(cast_type);
-  if (!reference_case) {
+  if (!reference_case && !microsoft_lvalue_cast_case) {
     do_operand_transformations(&operand, TOPT_NO_OPTIONS);
   }  /* if */
   /* Check for casts that aren't valid in this kind of expression.
@@ -8967,6 +8983,8 @@ Syntax:
       template_param_case = TRUE;
       cast_type_okay = TRUE;
       underlying_cast_type = type_of_unknown_templ_param_nontype;
+    } else if (microsoft_enum_cast_case) {
+      cast_type_okay = TRUE;
     } else {
       /* cast_type is not a pointer, reference, or pointer to member type;
          error. */
@@ -9036,7 +9054,11 @@ Syntax:
                            (an_expr_operator_kind)eok_const_cast,
                            /*is_implicit_cast=*/FALSE,
                            /*is_reference_cast=*/FALSE);
-      copy_operand(&operand, result);
+    } else if (microsoft_lvalue_cast_case) {
+      /* The Microsoft case of a cast of an enum value to the same enum
+         type with possibly adjusted cv-qualifiers does nothing but
+         adjust the cv-qualifiers. */
+      microsoft_lvalue_cv_qual_adjustment(&operand, cast_type);
     } else {
       /* The types are already the same except for qualifiers.  The result
          is just the source cast to the destination type. */
@@ -9045,8 +9067,8 @@ Syntax:
       cast_operand(operation_type, &operand, /*check_cast_access=*/FALSE,
                    /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE,
                    /*reinterpret_semantics=*/FALSE);
-      copy_operand(&operand, result);
     }  /* if */
+    copy_operand(&operand, result);
     /* For a cast to a reference type, the result is an lvalue. */
     if (reference_case) {
       conv_object_pointer_to_lvalue(result);

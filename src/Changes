@@ -1,5 +1,21 @@
 Version 3.4
 
+5/1/04   Microsoft compatibility: const_cast to enum type
+
+The Microsoft compiler (versions 6.0, 7.0, and 7.1 at least) allows
+a const_cast that casts an operand of an enumeration type to the same
+type with possibly adjusted cv-qualifiers.  If the operand is an
+lvalue, the result is also an lvalue.  This is now emulated in
+Microsoft bugs mode.
+
+  enum ItemType { TYPEA, TYPEB };
+  int main() {
+    const ItemType x = TYPEA;
+    const_cast<ItemType>(x) = TYPEA;
+  }
+
+(A case like this is reported to occur in the WinCE 5.0 source code.)
+
 4/30/04  Embedded C Extensions
 
 The front end now accepts the C language extensions suggested by ISO/IEC
