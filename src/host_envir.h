@@ -661,21 +661,11 @@ in preprocessing output.  see gen_pp_line_info in lexical.c.
 #endif /* ifndef GEN_EXTRA_LINE_ID_INFO */
 
 /*
-Flag that is TRUE if the front end should include support for
-precompiled header processing.
-*/
-#ifndef SUPPORT_PRECOMPILED_HEADERS
-#define SUPPORT_PRECOMPILED_HEADERS TRUE
-#endif /* SUPPORT_PRECOMPILED_HEADERS */
-
-/*
 Precompiled header file suffix.
 */
-#if SUPPORT_PRECOMPILED_HEADERS
 #ifndef PCH_FILE_SUFFIX
 #define PCH_FILE_SUFFIX ".pch"
 #endif /* ifndef PCH_FILE_SUFFIX */
-#endif /* SUPPORT_PRECOMPILED_HEADERS */
 
 /*
 USE_MMAP_FOR_MEMORY_REGIONS is TRUE if memory mapping available for use

@@ -3587,7 +3587,7 @@ multiple message diagnostic being processed.
   diag_message(error_code, (a_source_position *)NULL , es_none, dck_list);
 }  /* sym_add_diag_info */
 
-#if SUPPORT_PRECOMPILED_HEADERS
+
 void pch_message(an_error_code error_code,
 		 char	    *fill_in_str)
 /*
@@ -3608,7 +3608,6 @@ two string fill-ins for the source file name and PCH file name.
     fprintf(stderr, "\n");
   }  /* if */
 }  /* pch_message */
-#endif /* SUPPORT_PRECOMPILED_HEADERS */
 
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
