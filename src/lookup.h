@@ -155,6 +155,11 @@ represented as a bit set:
 				/* Flag that indicates a lookup in an
 				   expression context.  Controls the kind
 				   of nonreal member created. */
+#define IDL_MEMBER_OF_UNKNOWN_BASE 0x800000
+				/* We are looking up a name that comes from
+				   an unknown base class.  See the comment
+				   on the tpck_member variant of a_constant
+				   for more information. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
@@ -235,8 +240,7 @@ extern a_symbol_list_entry_ptr argument_dependent_lookup(
 					a_symbol_locator	*locator,
 					a_type_list_entry_ptr	*type_list);
 
-extern
-a_symbol_ptr create_proxy_or_nonreal_class_member
+extern a_symbol_ptr add_member_to_proxy_or_nonreal_class
 					(a_type_ptr	          class_type,
 					 an_id_lookup_options_set options,
 					 a_symbol_locator         *locator);

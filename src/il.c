@@ -3254,6 +3254,8 @@ value.  Several fields are cleared or adjusted.
        break_source_correspondence, so restore it. */
     ucp->source_corresp.name = cp->source_corresp.name;
     ucp->source_corresp.is_class_member = cp->source_corresp.is_class_member;
+    ucp->source_corresp.member_of_unknown_base =
+                                     cp->source_corresp.member_of_unknown_base;
     if (ucp->source_corresp.is_class_member) {
       ucp->source_corresp.parent.class_type =
                                           cp->source_corresp.parent.class_type;
@@ -3783,6 +3785,8 @@ nonidentical.
                     cp2->source_corresp.name &&
                     cp1->source_corresp.is_class_member ==
                     cp2->source_corresp.is_class_member &&
+                    cp1->source_corresp.member_of_unknown_base ==
+                    cp2->source_corresp.member_of_unknown_base &&
                     (cp1->source_corresp.is_class_member ?
                       same_type_entities(
                                       cp1->source_corresp.parent.class_type,
@@ -8189,27 +8193,35 @@ name lookup options.
     orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
     check_assertion(orig_sym != NULL && con->source_corresp.is_class_member);
     parent_type = con->source_corresp.parent.class_type;
-    sym = copy_parent_type_with_substitution(orig_sym, parent_type,
-                                             template_arg_list,
-                                             template_param_list,
-                                             source_pos,
-                                             /*is_type=*/FALSE,
-                                             options,
-                                             copy_error);
-    if (sym == orig_sym) {
-      /* A reference like "X::operator T" will not be substituted by the call
-         above because the parent type is not altered.  Check for an unknown
-         conversion function that must be processed. */
-      a_type_ptr	conv_type;
-      conv_type = type_if_unknown_conversion_function_symbol(orig_sym);
-      if (conv_type != NULL) {
-        /* Substitute the any template parameters in the conversion type. */
-        conv_type = copy_type_with_substitution(conv_type, template_arg_list,
-                                                template_param_list,
-                                                source_pos,
-                                                options, copy_error);
-        /* Look for a conversion function that converts to the new type. */
-        sym = look_up_conversion_function(parent_type, conv_type, source_pos);
+    if (parent_type->source_corresp.member_of_unknown_base) {
+      /* We're pretending that we found the member in a dependent
+         base class.  That means the original form of reference
+         was unqualified.  Leave the constant as it is. */
+      sym = orig_sym;
+    } else {
+      sym = copy_parent_type_with_substitution(orig_sym, parent_type,
+                                               template_arg_list,
+                                               template_param_list,
+                                               source_pos,
+                                               /*is_type=*/FALSE,
+                                               options,
+                                               copy_error);
+      if (sym == orig_sym) {
+        /* A reference like "X::operator T" will not be substituted by the call
+           above because the parent type is not altered.  Check for an unknown
+           conversion function that must be processed. */
+        a_type_ptr	conv_type;
+        conv_type = type_if_unknown_conversion_function_symbol(orig_sym);
+        if (conv_type != NULL) {
+          /* Substitute the any template parameters in the conversion type. */
+          conv_type = copy_type_with_substitution(conv_type, template_arg_list,
+                                                  template_param_list,
+                                                  source_pos,
+                                                  options, copy_error);
+          /* Look for a conversion function that converts to the new type. */
+          sym = look_up_conversion_function(parent_type, conv_type,
+                                            source_pos);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

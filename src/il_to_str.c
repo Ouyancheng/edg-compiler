@@ -3480,23 +3480,32 @@ precedence confusion.  Do the output in the way described by octl.
           if (need_parens) octl->output_str(")");
           break;
         case tpck_param:
-        case tpck_member:
           {
             a_source_correspondence_ptr scp = &constant->source_corresp;
             an_il_entry_kind            scp_kind = iek_constant;
+            a_source_correspondence_ptr new_scp;
             /* See whether the template parameter name is remapped in the
                current context. */
-            if (constant->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_param) {
-              a_source_correspondence_ptr new_scp;
-              new_scp = source_corresp_for_template_param(
+            new_scp = source_corresp_for_template_param(
                        &constant->variant.template_param.variant.coordinates);
-              if (new_scp != NULL) {
-                scp = new_scp;
-                scp_kind = iek_template_parameter;
-              }  /* if */
+            if (new_scp != NULL) {
+              scp = new_scp;
+              scp_kind = iek_template_parameter;
             }  /* if */
             form_name(scp, scp_kind, octl);
+          }
+          break;
+        case tpck_member:
+          {
+            a_source_correspondence_ptr scp = &constant->source_corresp;
+            if (scp->member_of_unknown_base) {
+              /* We're pretending that we found the member in a dependent
+                 base class.  That means the original form of reference
+                 was unqualified. */
+              form_unqualified_name(scp, (an_il_entry_kind)iek_constant, octl);
+            } else {
+              form_name(scp, (an_il_entry_kind)iek_constant, octl);
+            }  /* if */
           }
           break;
         case tpck_expression:

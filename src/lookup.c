@@ -654,15 +654,43 @@ template or a type, then it is created as a constant.
           sk_constant))
 
 
+static a_boolean acceptable_nonreal_class_member_symbol(
+				a_symbol_ptr			sym,
+				an_id_lookup_options_set	options,
+				a_symbol_locator		*locator)
+/*
+Return TRUE if the symbol specified by "sym" matches the nonreal symbol
+that would be created to represent the symbol described by "locator"
+and the lookup options "options".
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (sym->kind == nonreal_member_symbol_kind(locator, options)) {
+    /* If the symbol represents a member of an unknown base class, it
+       is a match only if the current lookup is also for a member of
+       an unknown base. */
+    a_source_correspondence	*scp;
+    scp = source_corresp_entry_for_symbol(sym);
+    if (scp->member_of_unknown_base ==
+                               ((options & IDL_MEMBER_OF_UNKNOWN_BASE) != 0)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* acceptable_nonreal_class_member_symbol */
+
+
 static a_symbol_ptr create_proxy_or_nonreal_class_member_of_kind(
-				a_type_ptr		class_type,
-				a_symbol_kind		kind,
-				a_symbol_locator	*locator)
+				a_type_ptr			class_type,
+				a_symbol_kind			kind,
+				an_id_lookup_options_set	options,
+				a_symbol_locator		*locator)
 /*
 Create a proxy or nonreal member with the specified symbol kind.
 class_type is the nonreal class in which the member is to be created.
 "locator" is used to get the name, source position, and conversion
-result type.
+result type.  options specifies the lookup options being used.
 
 The member that is created is not added to the inactive list by this
 routine.
@@ -763,12 +791,19 @@ routine.
     default:
       unexpected_condition();
   }  /* switch */
-  if (scp != NULL) set_source_corresp_with_scope_depth(scp, sym, depth);
+  if (scp != NULL) {
+    set_source_corresp_with_scope_depth(scp, sym, depth);
+    scp->member_of_unknown_base = (options & IDL_MEMBER_OF_UNKNOWN_BASE) != 0;
+  }  /* if */
   set_class_membership(sym, scp, class_type);
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, "Created: ");
     db_symbol(sym, "", 0);
+    if (scp != NULL) {
+      fprintf(f_debug, "Member of unknown base=%s\n",
+              scp->member_of_unknown_base ? "true" : "false");
+    }  /* if */
   }  /* if */
 #endif /* DEBUG */
   db_exit();
@@ -776,7 +811,7 @@ routine.
 }  /* create_proxy_or_nonreal_class_member_of_kind */
 
 
-a_symbol_ptr create_proxy_or_nonreal_class_member
+static a_symbol_ptr create_proxy_or_nonreal_class_member
 					(a_type_ptr	          class_type,
 					 an_id_lookup_options_set options,
 					 a_symbol_locator         *locator)
@@ -803,13 +838,13 @@ routine.
      lookup being done. */
   kind = nonreal_member_symbol_kind(locator, options);
   sym = create_proxy_or_nonreal_class_member_of_kind(class_type, kind,
-                                                     locator);
+                                                     options, locator);
   db_exit();
   return sym;
 }  /* create_proxy_or_nonreal_class_member */
 
 
-static a_symbol_ptr add_member_to_proxy_or_nonreal_class
+a_symbol_ptr add_member_to_proxy_or_nonreal_class
 					(a_type_ptr	          class_type,
 					 an_id_lookup_options_set options,
 					 a_symbol_locator         *locator)
@@ -2755,7 +2790,8 @@ C and C++.
              be set if check_for_nonreal_bases was set earlier. */
           sym = class_qualified_id_lookup(
                                  locator, lookup_state.class_with_nonreal_base,
-                                 options | IDL_DO_NOT_CREATE_PROJ_SYM);
+                                 options | IDL_DO_NOT_CREATE_PROJ_SYM |
+					   IDL_MEMBER_OF_UNKNOWN_BASE);
         }  /* if */
       }  /* if */
       if (sym == NULL && C_dialect == C_dialect_ANSI && !strict_ansi_mode &&
@@ -3119,19 +3155,17 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
         if (is_acceptable_symbol(sym, fund_sym)) {
           /* Found an acceptable symbol. */
           if (is_proxy_or_nonreal_class_lookup &&
-              sym->kind != nonreal_member_symbol_kind(locator, options)) {
-            /* The nonreal class member found is a type when a nontype is
-               expected or vice-versa.  Ignore this symbol. */
+              !acceptable_nonreal_class_member_symbol(sym, options, locator)) {
+            /* The nonreal class member found does not match the kind required
+               by the lookup.  Ignore this symbol. */
           } else if (any_nonreal_base_classes &&
-                     !implicit_typename_enabled &&
                      sym->kind == (a_symbol_kind)sk_projection &&
                      sym->variant.projection.fund_sym_is_nonreal_member &&
-                     fund_sym->kind != nonreal_member_symbol_kind(locator,
-                                                                  options)) {
-            /* The symbol is a projection symbol in derived class that points
+                     !acceptable_nonreal_class_member_symbol(fund_sym, options,
+                                                             locator)) {
+            /* The symbol is a projection symbol in a derived class that points
                to a nonreal member of a base class.  Ignore this symbol
-               when not using implicit-typename, if it is a type when a nontype
-               is expected or vice-versa. */
+               if it does not match the kind required by the lookup. */
           } else if (direct_class_members_only &&
                      sym->kind == (a_symbol_kind)sk_projection &&
                      !sym->variant.projection.is_using_decl) {
@@ -3175,14 +3209,13 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
         a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
         if (is_acceptable_symbol(sym, fund_sym)) {
           if (any_nonreal_base_classes &&
-              !implicit_typename_enabled &&
               sym->kind == (a_symbol_kind)sk_projection &&
               sym->variant.projection.fund_sym_is_nonreal_member &&
-              fund_sym->kind != nonreal_member_symbol_kind(locator, options)) {
+              !acceptable_nonreal_class_member_symbol(fund_sym, options,
+                                                     locator)) {
           /* The symbol is a projection symbol in derived class that points
              to a nonreal member of a base class.  Ignore this symbol
-             when not using implicit-typename, if it is a type when a nontype
-             is expected or vice-versa. */
+             if it does not match the kind required by the lookup. */
           } else if (direct_class_members_only &&
                      sym->kind == (a_symbol_kind)sk_projection &&
                      !sym->variant.projection.is_using_decl) {

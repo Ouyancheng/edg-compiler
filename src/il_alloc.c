@@ -3221,6 +3221,7 @@ in il_alloc_init.)
   def_source_corresp.okay_to_walk_subtree_of_local_entity = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
   def_source_corresp.copied_from_secondary_trans_unit = FALSE;
+  def_source_corresp.member_of_unknown_base = FALSE;
 #if RECORD_SCOPE_DEPTH_IN_IL
   def_source_corresp.scope_depth = NO_SCOPE_DEPTH;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */

@@ -2626,15 +2626,21 @@ member specialization.
   }  /* if */
   /* Copy the name. */
   add_str_to_mangled_name(name, mctl);
-  if (distinct_template_signatures && is_specialization) {
-    /* Put out an indication of the fact that a static data member is
-       specialized. */
-    mangled_specialization_indication(mctl);
+  if (scp->member_of_unknown_base) {
+    /* We're pretending that we found the member in a dependent
+       base class.  That means the original form of reference
+       was unqualified.  Don't put out the parent qualifier. */
+  } else {
+    if (distinct_template_signatures && is_specialization) {
+      /* Put out an indication of the fact that a static data member is
+         specialized. */
+      mangled_specialization_indication(mctl);
+    }  /* if */
+    /* Add two underscores after the name. */
+    add_str_to_mangled_name("__", mctl);
+    /* Output the mangled parent name. */
+    mangled_parent_qualifier(scp, mctl);
   }  /* if */
-  /* Add two underscores after the name. */
-  add_str_to_mangled_name("__", mctl);
-  /* Output the mangled parent name. */
-  mangled_parent_qualifier(scp, mctl);
 }  /* mangled_member_name */
 
 

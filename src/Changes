@@ -1,5 +1,29 @@
 Version 2.46
 
+6/19/01  C++-generating back end, prototype instantiations: output
+         of name from unknown dependent base class
+
+A reference to an unknown name in the prototype instantiation of
+a class template that has one or more dependent base classes is considered
+to be okay because the unknown name might turn out to be a member
+of one of the dependent base classes when the template is
+actually instantiated.  When the C++-generating back end outputs
+templates from prototype instantiation IL, such cases were incorrectly
+output as qualified names indicating that the name appears in the
+first dependent base class.  If the name actually appears in
+a different base class, of course, this ends up being incorrect.
+This is now fixed: the name is put out as an unqualified name.
+
+  template <class T1> class A {};
+  template <class T> class B {
+    void internal();
+  };
+  template <class T1, class T2> class C : A<T1>, B<T2> {
+    void method() {
+      internal();  // Formerly put out as A<T1>::internal();
+    }
+  };
+
 6/19/01  C++-generating back end, Microsoft compatibility: further
          work-around on MSVC++ problem with template uses in default arguments
 

@@ -1095,6 +1095,18 @@ typedef struct a_source_correspondence {
 			   translation unit IL.  That might mean that its
 			   name conflicts with the name of another entity
 			   in the IL. */
+  a_bit_field	member_of_unknown_base:1;
+			/* When a name is looked up in a class with
+			   a dependent base class and is not found in the
+			   derived class or in a nondependent base, the name
+			   is assumed to be a member of the nonreal base class.
+			   This flag is TRUE for the entities created to
+			   represent such nonreal class members.  Such names
+			   must be used with care because they may actually
+			   come from one of several dependent bases (the
+			   front end assigns a member to the first dependent
+			   base) or the name could come from a base class
+			   of the dependent base. */
 #endif /* ifdef CIL */
 #if RECORD_SCOPE_DEPTH_IN_IL
   a_scope_depth	scope_depth;

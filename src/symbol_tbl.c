@@ -8741,8 +8741,9 @@ entry that points to the class in which the nonreal member is created.
   }  /* for */
   check_assertion_str2(nonreal_bcp != NULL,
                        "create_nonreal_progenitor_symbol:", "no nonreal base");
-  sym = create_proxy_or_nonreal_class_member(nonreal_bcp->type, options,
-                                             locator);
+  sym = class_qualified_id_lookup(locator, nonreal_bcp->type,
+                                  options | IDL_MEMBER_OF_UNKNOWN_BASE);
+  check_assertion(sym != NULL);
   *path = make_derivation_step(nonreal_bcp, (a_derivation_step_ptr)NULL);
   return sym;
 }  /* create_nonreal_progenitor_symbol */
