@@ -1927,9 +1927,6 @@ specified id-linkage block.
                idlbp->func_info->is_inline) {
       /* An inline function. */
       idlbp->linkage = idl_internal;
-    } else if (idlbp->within_unnamed_namespace &&
-               !idlbp->extern_C_name_linkage_specified) {
-      idlbp->linkage = idl_internal;
     } else if (!C_mode() && is_object &&
                is_const_qualified_type(idlbp->type) &&
                decl_scope_level == depth_innermost_namespace_scope &&
@@ -5245,9 +5242,6 @@ is a template specialization declaration.
   check_assertion(scope_stack[depth_scope_stack].kind ==
                                 (a_scope_kind)sck_template_declaration);
   if (func_info->is_inline && !extern_inline_allowed) {
-    storage_class = (a_storage_class)sc_static;
-  } else if (scope_stack[depth_innermost_namespace_scope].
-                                        within_unnamed_namespace) {
     storage_class = (a_storage_class)sc_static;
   } else if (storage_class == (a_storage_class)sc_unspecified) {
     /* Default. */

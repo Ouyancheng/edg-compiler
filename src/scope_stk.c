@@ -2802,9 +2802,10 @@ NULL.
       } else if (rout_ptr->source_corresp.referenced) {
         /* Referenced function.  We check the IL referenced flag because
            a reference in, say, a sizeof operation doesn't count. */
-        if (storage_class == (a_storage_class)sc_static &&
-            rout_ptr->assoc_scope == NULL_region_number) {
-          /* A routine with internal linkage (or in an unnamed namespace) was
+        if ((storage_class == (a_storage_class)sc_static ||
+             is_member_of_unnamed_namespace(&rout_ptr->source_corresp)) &&
+            !routine_defined(rout_ptr)) {
+          /* A routine with internal linkage or in an unnamed namespace was
              never given a definition.  For nontemplate cases we check the
              corresponding sk_extern_routine symbol; for template instances
              there is no such symbol and hence we check it here. */
@@ -2944,8 +2945,9 @@ NULL.
       if (rout_ptr->source_corresp.referenced) {
         /* Referenced function.  We check the IL referenced flag because
            a reference in, say, a sizeof operation doesn't count.*/
-        if (rout_ptr->storage_class == (a_storage_class)sc_static &&
-            /* No definition: */rout_ptr->assoc_scope == NULL_region_number) {
+        if ((rout_ptr->storage_class == (a_storage_class)sc_static ||
+             is_member_of_unnamed_namespace(&rout_ptr->source_corresp)) &&
+             !routine_defined(rout_ptr)) {
           if (C_dialect == C_dialect_pcc) {
             /* In pcc mode, just change the routine to extern. */
             rout_ptr->storage_class = (a_storage_class)sc_extern;

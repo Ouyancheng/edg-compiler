@@ -1317,9 +1317,6 @@ Set the name_linkage field of the class or enum type pointed to by tp.
        namespace -- give it internal linkage by default.  It may be promoted
        later, based on how it's used, etc. */
     scp->name_linkage = (a_name_linkage_kind)nlk_internal;
-  } else if (is_member_of_unnamed_namespace(scp)) {
-    /* Declared inside an unnamed namespace -- no linkage. */
-    /* Should already be set to nlk_none. */
   } else {
     /* Ordinary default for classes and enums is C++ external linkage. */
     scp->name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;

@@ -2882,8 +2882,7 @@ and the class instantiation will detect the runaway case.
   complete_type_is_needed(var_ptr->type);
   /* If the storage class is sc_extern, reset it to sc_unspecified (since the
      variable is being defined).  If it is sc_static (e.g., for a static
-     data member of a class declared inside an unnamed namespace), leave it
-     alone. */
+     data member), leave it alone. */
   if (var_ptr->storage_class == (a_storage_class)sc_extern) {
     var_ptr->storage_class = (a_storage_class)sc_unspecified;
     /* Increment the count of external template functions and static data
@@ -8419,18 +8418,9 @@ instantiation.
     tssp->variant.class_template.type_kind = type_kind;
     /* Set the name-linkage for this template -- it will be propagated
        into the instances. */
-    if (ssep->within_unnamed_namespace) {
-      /* Templates declared inside an unnamed namespace have internal
-         linkage.  Note that classes in tim_local instantiation mode
-         are still external even though their members have internal
-         linkage. */
-      tssp->variant.class_template.name_linkage =
-                                       (a_name_linkage_kind)nlk_internal;
-    } else {
-      /* Normally, a template has C++ linkage. */
-      tssp->variant.class_template.name_linkage =
-                              (a_name_linkage_kind)nlk_cplusplus_external;
-    }  /* if */
+    /* Normally, a template has C++ linkage. */
+    tssp->variant.class_template.name_linkage =
+                            (a_name_linkage_kind)nlk_cplusplus_external;
     is_redecl = FALSE;
   }  /* if */
   if (is_definition) {
@@ -11373,17 +11363,9 @@ that follows.
           storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
         if ((func_info.is_inline && !extern_inline_allowed) ||
-            storage_class == (a_storage_class)sc_static ||
-            (scp->is_class_member ?
-             (scp->parent.class_type->source_corresp.name_linkage ==
-                                      (a_name_linkage_kind)nlk_internal) :
-             (scp->parent.namespace_ptr != NULL &&
-              (symbol_supplement_for_namespace(scp->parent.namespace_ptr)->
-                                                within_unnamed_namespace)))) {
-          /* Function was declared "static" or is a member of an unnamed
-             namespace or of a class that belongs to an unnamed namespace.
-             Or else it was declared "inline" and inline functions have
-             internal linkage by default. */
+            storage_class == (a_storage_class)sc_static) {
+          /* Function was declared "static" or it was declared "inline" and
+             inline functions have internal linkage by default. */
           rp->storage_class = (a_storage_class)sc_static;
           rp->source_corresp.name_linkage =
                                  (a_name_linkage_kind)nlk_internal;
@@ -11872,8 +11854,7 @@ is static or inline (i.e., is not an external function).
     result = TRUE;
   } else {
     /* Return TRUE if the function is marked as static.  This will be
-       the case for static functions, and for functions that are
-       declared within an unnamed namespace. */
+       the case for static functions. */
     a_routine_ptr	rout = tip->instance_sym->variant.routine.ptr;
     result = (rout->storage_class == (a_storage_class)sc_static);
   }  /* if */

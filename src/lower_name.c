@@ -1054,7 +1054,6 @@ If the indicated namespace is unnamed, give it a name.
 {
   char     *name;
   sizeof_t name_len;
-  char     buffer[50];
 
   /* Note that we may be changing a namespace that is not being lowered yet,
      but that's okay -- the name in the IL entry is not used by the front
@@ -1063,12 +1062,12 @@ If the indicated namespace is unnamed, give it a name.
     /* The namespace is unnamed, so make up a name. */
     /* The name is __Nnn, where nn is a unique number for the
        namespace.  This is not from the ARM or cfront. */
+    char *module_id = make_module_id();
     unnamed_namespace_name_seed++;
-    (void)sprintf(buffer, "__N%lu",
-                  (unsigned long)unnamed_namespace_name_seed);
-    name_len = strlen(buffer) + 1;
+    name_len = 6 + strlen(module_id) + 1;
     name = alloc_lowered_name_string(name_len);
-    (void)strcpy(name, buffer);
+    (void)strcpy(name, "__NU__");
+    (void)strcpy(name+6, module_id);
     nsp->source_corresp.name = name;
     nsp->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
