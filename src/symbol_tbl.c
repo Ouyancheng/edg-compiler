@@ -11146,7 +11146,6 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(symbol_for_namespace_abi),
 #endif /* IA64_ABI */
       pch_saved_var_array_elem(builtin_va_list_type),
-      pch_saved_var_array_elem(conversion_header_list),
       pch_saved_var_array_elem(error_class_template_symbol),
       pch_saved_var_array_elem(file_scope_number),
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
