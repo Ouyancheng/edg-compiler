@@ -2146,10 +2146,9 @@ declaration.
                allowed in Microsoft C++ mode, as long as the class is an
                "aggregate".  Note: last-field restriction and the aggregate
                restriction in C++ are enforced in scan_class_definition.
-               GNU C also allows zero-sized array types: they have the same
-               semantics as the "[]" notation for the last field of a
-               struct, but different semantics in other contexts.  Our
-               emulation currently just treats it identically to "[]". */
+               GNU C also allows zero-sized array types: they are considered
+               complete types of zero size.  The can be used to achieve the
+               same effect as flexible array members, but are more general. */
             num_of_elements = 0;
           } else {
             error(ec_array_size_must_be_positive);
