@@ -10704,7 +10704,7 @@ lookup options.
 void increment_template_dependent_enum_constant(a_constant_ptr  con)
 /*
 The given constant has kind ck_template_param.  We need to make it represent
-a constant that is the previous value increment by one.
+a constant that is the previous value incremented by one.
 */
 {
   a_constant_ptr  prev_val = alloc_unshared_constant(con);
@@ -10721,9 +10721,9 @@ a constant that is the previous value increment by one.
                        (an_integer_kind)ik_int);
   operands->next = alloc_node_for_constant(&one_val);
   con->variant.template_param.variant.expr =
-                            make_operator_node((an_expr_operator_kind)eok_add,
-                                               con->type,
-                                               operands);
+                           make_operator_node((an_expr_operator_kind)eok_iadd,
+                                              con->type,
+                                              operands);
 }  /* increment_template_dependent_enum_constant */
 
 
