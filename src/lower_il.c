@@ -13135,7 +13135,7 @@ or namespace scope) into the file scope.
           if (arout == NULL) break;
         }  /* for */
       }  /* for */
-    }
+    }  /* if */
 #endif /* IA64_ABI */
   }  /* for */
   /* Clear the list of promoted routines.  Since the scope is for a class
