@@ -479,6 +479,8 @@ extern void lower_virtual_function_call(an_expr_node_ptr expr);
 extern void lower_call(an_expr_node_ptr      expr,
                        an_init_pos_descr_ptr ipdp);
 
+extern void lower_statement(a_statement_ptr statement);
+
 extern void lower_il_memory_region(a_memory_region_number region_number);
 
 #if DEBUG
