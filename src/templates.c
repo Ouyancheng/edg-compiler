@@ -17857,8 +17857,8 @@ be processed.
     if (one_instantiation_per_object && generate_template_files()) {
       a_boolean		instantiation_file_generated;
       instantiation_file_generated = is_static_data_member
-                                   ? variable->instantiation_needed_bit_number
-                                   : routine->instantiation_needed_bit_number;
+                             ? (variable->instantiation_needed_bit_number != 0)
+                             : (routine->instantiation_needed_bit_number != 0);
 #if MAINTAIN_NEEDED_FLAGS
       if (instantiation_file_generated) {
         /* Don't generate an instantiation file for the entity unless the
@@ -17886,7 +17886,6 @@ be processed.
        errors occurred. */
     add_entities_to_request_file();
   }  /* if */
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (export_template_allowed && generate_template_files() &&
       !more_than_one_non_export_translation_unit) {
     /* Output information about exported templates defined in this
@@ -17897,7 +17896,6 @@ be processed.
     /* Output information used to do dependency checking in the prelinker. */
     generate_template_dependency_information();
   }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   db_exit();
 }  /* update_auto_instantiation_flags */
 
