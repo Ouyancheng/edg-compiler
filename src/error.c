@@ -2028,6 +2028,9 @@ error code.
     case ec_branch_into_handler:
       m = "transfer of control into an exception handler";
       break;
+    case ec_used_before_set:
+      m = "%n is used before its value is set";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
