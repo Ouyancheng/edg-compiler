@@ -15,7 +15,7 @@ constraint are removed.  For example:
   __declspec(selectany) int S::y = f();  // OK in Microsoft mode versions 1300
                                          // and later (error otherwise).
 
-8/27/02   Microsoft compatibility: friend declaration with __declspec specifier
+8/27/02  Microsoft compatibility: friend declaration with __declspec specifier
 
 In Microsoft mode, a friend class declaration could either omit the class 
 (or struct or union) keyword or add a __declspec specifier, but not both.
@@ -26,19 +26,19 @@ Now the combination of both extensions is accepted in Microsoft mode.
     friend __declspec(dllimport) S;  // Previously an error; now accepted in
   };                                 // Microsoft mode.
 
-8/22/02   IL CHANGE: opname_or_builtin field of a_routine renamed "variant"
+8/22/02  IL CHANGE: opname_or_builtin field of a_routine renamed "variant"
 
 As part of the IA-64 ABI changes, the field named "opname_or_builtin"
 in the IL a_routine entry has been renamed "variant".
 
-8/21/02   GNU C compatibility: "visibility" attribute on variable declarations
+8/21/02  GNU C compatibility: "visibility" attribute on variable declarations
 
 In GNU C mode, the front end now accepts the visibility attribute on
 variable declarations (see also the entry of 6/27/02).
 
   int i __attribute__((visibility("hidden")));  // Accepted in GNU C mode
 
-8/21/02   Build problem when not using IEEE floating point
+8/21/02  Build problem when not using IEEE floating point
 
 The front end did not build properly when TARG_HAS_IEEE_FLOATING_POINT
 was FALSE.  This problem was introduced in version 3.0 and is now fixed.
@@ -63,13 +63,13 @@ visible in a direct base class through another using-declaration.
 
 This is now fixed.
 
-8/21/02   Abort using precompiled headers on invalid input file
+8/21/02  Abort using precompiled headers on invalid input file
 
 Certain invalid input files (e.g., a file that contains only the string
 literal "test") would cause the front end to abort when using precompiled
 headers.  This has been fixed.
 
-8/21/02   Spurious error on text in "#if" that looks like hex FP constant
+8/21/02  Spurious error on text in "#if" that looks like hex FP constant
 
 In C99 mode a spurious error was issued on a string that looks like a
 hexadecimal floating point constant in text being skipped because of a "#if"
@@ -79,7 +79,7 @@ directive.  This has been fixed.
   x is 0x1234.
   #endif
 
-8/21/02   Missing error on extraneous right parenthesis in ctor-initializer
+8/21/02  Missing error on extraneous right parenthesis in ctor-initializer
 
 In some cases, the front end silently ignored an extraneous right parenthesis
 following a ctor-initializer.  For example:
@@ -91,7 +91,7 @@ following a ctor-initializer.  For example:
 
 This is now fixed.
 
-8/21/02   Microsoft compatibility: internal error on __super reference
+8/21/02  Microsoft compatibility: internal error on __super reference
 
 An internal error would occur on certain uses of the Microsoft __super
 keyword when the entity referenced is a member of an indirect base class.
@@ -105,7 +105,7 @@ This has been fixed.
      void f() { __super::f(); }
   };
 
-8/20/02   GNU compatibility: Built-in functions misdeclared
+8/20/02  GNU compatibility: Built-in functions misdeclared
 
 The following built-in functions were previously misdeclared: __builtin_apply,
 __builtin_trap, __builtin_unwind_init, __builtin_unwind_dwarf_cfa, and
@@ -118,7 +118,7 @@ __builtin_dwarf_fp_regnum.
 
 This is now fixed.
 
-8/20/02   GNU compatibility: Typedef attributes
+8/20/02  GNU compatibility: Typedef attributes
 
 The front end used to systematically apply typedef declaration attributes
 to a copy of the underlying type.  This caused problems with class types
@@ -132,12 +132,12 @@ to the typedef entry itself, or they are ignored with a warning.
     p->i = 1;  // Used to trigger an error.  Now fixed.
   }
 
-8/19/02   Preinclude can be used in conjunction with precompiled headers
+8/19/02  Preinclude can be used in conjunction with precompiled headers
 
 The use of preinclude files was previously not supported when using
 precompiled header files.  These features may now be used together.
 
-8/17/02   IL write/read error, pragma on Microsoft property field
+8/17/02  IL write/read error, pragma on Microsoft property field
 
 Inconsistent IL (and an IL write/read error if an IL file is written)
 resulted from placing a pragma on a field that is declared to be
@@ -145,7 +145,7 @@ a property in Microsoft mode.  The problem is that the field does
 not really exist, and is removed by IL lowering.  A pragma in
 such cases is now ignored, with a diagnostic.
 
-8/16/02   GNU compatibility: x86 calling convention attributes on typedefs
+8/16/02  GNU compatibility: x86 calling convention attributes on typedefs
 
 When GNU_X86_ATTRIBUTES_ALLOWED is TRUE, the front end now allows the
 __stdcall__ and __cdecl__ attributes on typedefs in GNU C and C++ modes.
@@ -154,12 +154,12 @@ for example:
 
   typedef int __attribute__((__stdcall__)) (*proc)( void );
 
-8/16/02   GNU compatibility: x86 register names can be prefixed with %
+8/16/02  GNU compatibility: x86 register names can be prefixed with %
 
 The GNU compiler accepts a "%" on register names in asm constructs.
 This is now emulated when GNU_X86_ASM_EXTENSIONS_ALLOWED is TRUE.
 
-8/16/02   Abort on use of "::" in #if expression
+8/16/02  Abort on use of "::" in #if expression
 
 The front end aborted on use of a leading "::" in an expression
 in a #if.  "::" is meaningless in preprocessing expressions
@@ -169,7 +169,7 @@ error is issued).
   #if ::x  // Aborted
   #endif
 
-8/15/02   Fix on fix to overload resolution tiebreaker processing
+8/15/02  Fix on fix to overload resolution tiebreaker processing
 
 The fix to overload resolution tiebreaker processing done recently
 (see Changes entry of 6/3/02) was not correct in some cases.
@@ -183,7 +183,7 @@ Now fixed.
   static unsigned short *p;
   static const vstr x = p;  // Should choose 1, got ambiguity previously
 
-8/15/02   Microsoft C++ compatibility: extern inline declarations
+8/15/02  Microsoft C++ compatibility: extern inline declarations
 
 In Microsoft C++ mode, inline functions have external linkage by default.
 However, if the extern keyword is explicitly specified on an inline function
