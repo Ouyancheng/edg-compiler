@@ -5904,10 +5904,12 @@ resulting constant is stored in the pointer pointed to by "constant".
      passed to push_scope is NULL because we don't yet know which instance
      is being instantiated.  Also note that a class type is not being
      passed for the same reason. */
-  (void)push_scope((a_scope_kind)sck_template_instantiation,
-                   tssp->declaration_scope, (a_type_ptr)NULL,
-                   (a_routine_ptr)NULL, (a_symbol_ptr)NULL, template_sym,
-                   arg_list);
+  (void)push_template_instantiation_scope(tssp->declaration_scope,
+					  (a_type_ptr)NULL,
+					  (a_routine_ptr)NULL,
+					  (a_symbol_ptr)NULL,
+					  template_sym, arg_list,
+					  /*nested_instantiation=*/FALSE);
   saved_pos_curr_token = pos_curr_token;
   saved_error_position = error_position;
   if (type_involves_template_param) {
@@ -7480,8 +7482,7 @@ pragma scope to be used while scanning the pragma tokens.
   /* Push a pragma scope.  This prevents names introduced by the pragma
      processing from polluting the current scope. */
   (void)push_scope((a_scope_kind)sck_pragma, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
-	           (a_routine_ptr)NULL, (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
-	           (a_template_arg_ptr)NULL);
+	           (a_routine_ptr)NULL);
 }  /* begin_rescan_of_pragma_tokens */
 
 

@@ -519,8 +519,7 @@ and for the instantiation of template functions.
                         NO_SCOPE_NUMBER : func_info->scope_number;
   /* Push the name scope for the routine body. */
   scope_ptr = push_scope((a_scope_kind)sck_function, scope_number,
-                         (a_type_ptr)NULL, rout_ptr, (a_symbol_ptr)NULL,
-                         (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
+                         (a_type_ptr)NULL, rout_ptr);
   /* Associate the scope to the routine entry and the routine entry to its
      type entry. */
   rout_ptr->assoc_scope = curr_il_region_number;
@@ -979,8 +978,7 @@ associated with the function is returned.
       /* Push the name scope for the parameter declarations. */
       (void)push_scope((a_scope_kind)sck_func_prototype,
                        func_info->scope_number, rout_type,
-                       (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
-                       (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
+                       (a_routine_ptr)NULL);
       /* Remember the scope number for later use when the body is scanned. */
       func_info->scope_number = scope_stack[depth_scope_stack].number;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -1680,8 +1678,7 @@ empty statement block.
     push_class_reactivation_scope(class_type);
     /* Push the scope for the new function itself. */
     scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
-                       (a_type_ptr)NULL, rout_ptr, (a_symbol_ptr)NULL,
-                       (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
+                       (a_type_ptr)NULL, rout_ptr);
     /* Associate the scope to the routine entry and the routine entry to its
        type entry. */
     rout_ptr->assoc_scope = curr_il_region_number;

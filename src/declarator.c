@@ -942,8 +942,7 @@ scope is that of a class definition.
     }  /* if */
     /* Push a function prototype scope for the parameters. */
     (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
-                     *new_type_ptr, (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
-                     (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
+                     *new_type_ptr, (a_routine_ptr)NULL);
     /* Remember the scope number for later use if and when a body appears. */
     func_info->scope_number = scope_stack[depth_scope_stack].number;
 #if GENERATE_SOURCE_SEQUENCE_LISTS

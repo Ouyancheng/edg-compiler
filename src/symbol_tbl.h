@@ -1643,6 +1643,15 @@ typedef struct a_scope_stack_entry {
 			   not be issued -- e.g. a template declaration, a
 			   a template instantiation, or a pragma. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  unsigned int  nested_instantiation:1;
+                        /* TRUE for a template instantiation scope that
+			   is expected to be nested inside of another
+			   instantiation scope.  This occurs when a friend
+			   template declaration from a class template is
+			   being instantiated.  This flag lets name lookups
+			   continue on past the nested instantiation scope so
+			   that names from the outer instantiation scope can
+			   be visible. */
   a_symbol_ptr	symbols,
 		last_symbol;
 			/* First/last pointers to the list of all symbols
@@ -2396,10 +2405,16 @@ extern a_symbol_ptr opname_function_symbol(an_opname_kind kind);
 extern a_scope_ptr push_scope(a_scope_kind       kind,
        	                      a_scope_number     scope_number_to_reuse,
                               a_type_ptr         assoc_type,
-                              a_routine_ptr      assoc_routine,
-                              a_symbol_ptr       instance_symbol,
-                              a_symbol_ptr       template_symbol,
-                              a_template_arg_ptr template_arg_list);
+                              a_routine_ptr      assoc_routine);
+
+extern a_scope_ptr push_template_instantiation_scope
+                           (a_scope_number       scope_number_to_reuse,
+			    a_type_ptr           assoc_type,
+			    a_routine_ptr        assoc_routine,
+			    a_symbol_ptr         instance_sym,
+			    a_symbol_ptr         template_sym,
+			    a_template_arg_ptr   template_arg_list,
+			    a_boolean            nested_instantiation);
 /* End a name scope. */
 extern void pop_scope(void);
 extern void push_class_reactivation_scope(a_type_ptr class_type);

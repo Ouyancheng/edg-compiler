@@ -2312,9 +2312,7 @@ being created to surround a dependent statement in C++.
      scope is created). */
   if (!cfront_dependent_statement) {
     (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
-                     (a_type_ptr)NULL, (a_routine_ptr)NULL,
-                     (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
-                     (a_template_arg_ptr)NULL);
+                     (a_type_ptr)NULL, (a_routine_ptr)NULL);
     olp = curr_object_lifetime;
     kind = struct_stmt_stack[depth_stmt_stack].kind;
     if (kind == ssk_while || kind == ssk_do || kind == ssk_for) {

@@ -387,8 +387,7 @@ routine recursively for each nested class.
              (ARM 8.2.6). */
           (void)push_scope((a_scope_kind)sck_func_prototype,
                            rfp->func_info.scope_number, (a_type_ptr)NULL,
-                           (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
-                           (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
+                           (a_routine_ptr)NULL);
           if (rfp->func_info.prototype_scope_symbols != NULL) {
             reactivate_prototype_scope_symbols(
                                       rfp->func_info.prototype_scope_symbols);
@@ -5766,9 +5765,7 @@ Scan the body of a class definition, including the base classes list.
        allocated there -- push_scope will switch to the file scope memory
        region; pop_scope will switch back. */
     scope_ptr = push_scope((a_scope_kind)sck_class_struct_union,
-                           NO_SCOPE_NUMBER, class_type, (a_routine_ptr)NULL,
-                           (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
-                           (a_template_arg_ptr)NULL);
+                           NO_SCOPE_NUMBER, class_type, (a_routine_ptr)NULL);
     if (C_dialect == C_dialect_cplusplus) {
       /* In C++ every class, struct, and union type entry will have a non-NULL
          pointer to a class type supplement entry.  Put a pointer to the

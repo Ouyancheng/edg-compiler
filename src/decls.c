@@ -4395,9 +4395,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
      declaration to assure that the scope of the handler's parameter is the
      same as that of the handler's compound statement block. */
   (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
-                   (a_type_ptr)NULL, (a_routine_ptr)NULL,
-                   (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
-                   (a_template_arg_ptr)NULL);
+                   (a_type_ptr)NULL, (a_routine_ptr)NULL);
   /* Allocate the handler. */
   handler = alloc_handler();
   /* Set the assoc_handler field of the IL scope entry. */

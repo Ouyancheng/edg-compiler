@@ -676,10 +676,12 @@ might not be able to if the template itself has not yet been defined.
          parameter names. */
       template_arg_list = class_type->variant.class_struct_union.extra_info->
                                                              template_arg_list;
-      (void)push_scope((a_scope_kind)sck_template_instantiation,
-                       tssp->declaration_scope, class_type,
-                       (a_routine_ptr)NULL, instance_sym, template_sym,
-                       template_arg_list);
+      (void)push_template_instantiation_scope(tssp->declaration_scope,
+					      class_type,
+					      (a_routine_ptr)NULL,
+					      instance_sym, template_sym,
+					      template_arg_list,
+					      /*nested_instantiation=*/FALSE);
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
       reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -784,10 +786,11 @@ encountered.
   tssp->variant.class_template.prototype_instantiation = instance_sym;
   template_arg_list = prototype_type->variant.class_struct_union.extra_info->
                                                              template_arg_list;
-  (void)push_scope((a_scope_kind)sck_template_instantiation,
-                   tssp->declaration_scope, prototype_type,
-                   (a_routine_ptr)NULL, instance_sym, template_sym,
-                   template_arg_list);
+  (void)push_template_instantiation_scope(tssp->declaration_scope,
+					  prototype_type,
+					  (a_routine_ptr)NULL, instance_sym,
+					  template_sym, template_arg_list,
+					  /*nested_instantiation=*/FALSE);
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -908,16 +911,18 @@ Instantiate the body of the template function associated with tip.
   }  /* if */
   ++(tssp->pending_instantiations);
   /* Push the template instantiation scope. */
-  (void)push_scope((a_scope_kind)sck_template_instantiation,
-                   tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr,
-                   rout_sym, tip->template_sym, tip->arg_list);
+  (void)push_template_instantiation_scope(tssp->declaration_scope,
+					  (a_type_ptr)NULL, rout_ptr,
+					  rout_sym, tip->template_sym,
+					  tip->arg_list,
+					  /*nested_instantiation=*/FALSE);
   if (rout_sym->defined) {
     /* Member functions of class templates where the definition appears
        inside the class definition will already have been marked as defined
        (when the class was instantiated).  If mark_defined is called for
        such cases, an incorrect source sequence entry can be generated. */
   } else {
-    /* We wait till after the push_scope call before calling mark_defined
+    /* We wait till after the scope is pushed before calling mark_defined
        because the fact that a template instantiation scope is on the scope
        stack affects some decisions in that routine. */
     mark_defined(rout_sym, &rout_sym->decl_position);
@@ -1006,10 +1011,12 @@ and the class instantiation will detect the runaway case.
     /* But note that a template parameter T will be hidden by a member T --
        is this correct? */
 #endif /* if 0 */
-    (void)push_scope((a_scope_kind)sck_template_instantiation,
-                     tssp->declaration_scope, (a_type_ptr)NULL,
-                     (a_routine_ptr)NULL, static_data_member_sym,
-                     tip->template_sym, tip->arg_list);
+    (void)push_template_instantiation_scope(tssp->declaration_scope,
+					    (a_type_ptr)NULL,
+					    (a_routine_ptr)NULL,
+					    static_data_member_sym,
+					    tip->template_sym, tip->arg_list,
+					    /*nested_instantiation=*/FALSE);
     /* Reactivate any pragmas that should be bound to the generated
        instance. */
     reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -1827,8 +1834,7 @@ Rescan the default arguments of a function template.
        (ARM 8.2.6). */
     (void)push_scope((a_scope_kind)sck_func_prototype,
                      tssp->declaration_scope, (a_type_ptr)NULL,
-                     (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
-                     (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
+                     (a_routine_ptr)NULL);
     if (tssp->variant.function.func_info.prototype_scope_symbols != NULL) {
       reactivate_prototype_scope_symbols(
                     tssp->variant.function.func_info.prototype_scope_symbols);
@@ -2019,14 +2025,16 @@ type based on the template argument list and the template parameter list
     a_source_position   saved_pos_curr_token;
     a_source_position   saved_error_position;
     /* Push the template instantiation scope.  Note that the instance symbol
-       passed to push_scope is NULL.  This is done because the type
-       associated with the symbol is not yet complete (it has no routine
-       type).  Using a partially constructed symbol could cause problems
-       if errors occur while rescanning the declaration. */
-    (void)push_scope((a_scope_kind)sck_template_instantiation,
-                     tssp->declaration_scope, (a_type_ptr)NULL,
-                     (a_routine_ptr)NULL, (a_symbol_ptr)NULL, templ_sym,
-                     templ_arg_list);
+       passed to push_template_instantiation_scope is NULL.  This is done
+       because the type associated with the symbol is not yet complete
+       (it has no routine type).  Using a partially constructed symbol could
+       cause problems if errors occur while rescanning the declaration. */
+    (void)push_template_instantiation_scope(tssp->declaration_scope,
+					    (a_type_ptr)NULL,
+					    (a_routine_ptr)NULL,
+					    (a_symbol_ptr)NULL, templ_sym,
+					    templ_arg_list,
+					    /*nested_instantiation=*/FALSE);
     /* Reactivate any pragmas that should be bound to the generated
        instance. */
     reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -2081,9 +2089,11 @@ type based on the template argument list and the template parameter list
        parameters, scan the default argument expressions. */
     if (tssp->variant.function.def_arg_expr_list != NULL) {
       /* Push the template instantiation scope. */
-      (void)push_scope((a_scope_kind)sck_template_instantiation,
-                       tssp->declaration_scope, (a_type_ptr)NULL, rp,
-                       sym, tip->template_sym, tip->arg_list);
+      (void)push_template_instantiation_scope(tssp->declaration_scope,
+					      (a_type_ptr)NULL, rp,
+					      sym, tip->template_sym,
+					      tip->arg_list,
+					      /*nested_instantiation=*/FALSE);
       delayed_scan_for_function_template_default_args
 			(templ_rout, rp, tssp);
       /* Pop the template instantiation scope. */
@@ -4170,8 +4180,7 @@ as the current token; otherwise, it is consumed.
      tok_template token will be processed in the current scope. */
   (void)get_token();
   (void)push_scope((a_scope_kind)sck_template_declaration, NO_SCOPE_NUMBER,
-                   (a_type_ptr)NULL, (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
-                   (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
+                   (a_type_ptr)NULL, (a_routine_ptr)NULL);
   /* The template parameters. */
   template_param_list = scan_template_param_list();
   /* Cache the tokens for this declaration.  If this turns out to be

@@ -4534,8 +4534,7 @@ routine entry of the function that was declared.
       cowam_type = rp->source_corresp.class_of_which_a_member;
       if (cowam_type != NULL) push_class_reactivation_scope(cowam_type);
       (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
-                       (a_type_ptr)NULL, rp, (a_symbol_ptr)NULL,
-                       (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
+                       (a_type_ptr)NULL, rp);
       perform_deferred_access_checks();
       pop_scope();
       if (cowam_type != NULL) pop_class_reactivation_scope();
@@ -6165,8 +6164,12 @@ next_scope:
            scope we are at the right point in the active list.  Within
            an instantiation scope only file scope symbols, template
            parameters, and symbols defined within the instantiation
-           should be visible. */
-        if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+           should be visible.  If this is a nested instantiation (i.e.,
+           an instantiation of something defined within another template)
+	   then continue looking for names until the first nonnested
+	   instantiation is encountered. */
+        if (ssep->kind == (a_scope_kind)sck_template_instantiation &&
+	    !ssep->nested_instantiation) {
           a_scope_number  file_scope_number;
           ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
           file_scope_number = ssep->number;
@@ -6762,13 +6765,14 @@ class reactivations and template instantiations are not real scopes.
          (kind) != (a_scope_kind)sck_template_instantiation))
 
 
-a_scope_ptr push_scope(a_scope_kind         kind,
-		       a_scope_number       scope_number_to_reuse,
-                       a_type_ptr           assoc_type,
-                       a_routine_ptr        assoc_routine,
-                       a_symbol_ptr         instance_sym,
-                       a_symbol_ptr         template_sym,
-                       a_template_arg_ptr   template_arg_list)
+static a_scope_ptr push_scope_full(a_scope_kind         kind,
+				   a_scope_number       scope_number_to_reuse,
+				   a_type_ptr           assoc_type,
+				   a_routine_ptr        assoc_routine,
+				   a_symbol_ptr         instance_sym,
+				   a_symbol_ptr         template_sym,
+				   a_template_arg_ptr   template_arg_list,
+				   a_boolean            nested_instantiation)
 /*
 Begin a new name scope by pushing an entry on the scope stack.  kind indicates
 the kind of scope (file, function, block, function prototype, etc.).  Returns
@@ -6795,7 +6799,7 @@ specific version of the template.
   a_scope_ptr             sp = NULL;
   a_boolean		  reactivate_template_params = FALSE;
 
-  db_enter(3, "push_scope");
+  db_enter(3, "push_scope_full");
   if (depth_scope_stack+1 == (int)size_scope_stack) {
     /* The stack is full; expand it by reallocating. */
     sizeof_t new_size = size_scope_stack + SCOPE_STACK_INCREMENTAL_ALLOCATION;
@@ -6938,6 +6942,7 @@ specific version of the template.
   ssep->instance_sym             = instance_sym;
   ssep->template_sym             = template_sym;
   ssep->template_arg_list        = template_arg_list;
+  ssep->nested_instantiation     = nested_instantiation;
   ssep->source_position          = pos_curr_token;
   ssep->depth_innermost_function_scope = depth_innermost_function_scope;
   ssep->template_param_list      = NULL;
@@ -7232,7 +7237,46 @@ specific version of the template.
 #endif /* DEBUG */
   db_exit();
   return sp;
+}  /* push_scope_full */
+
+a_scope_ptr push_scope(a_scope_kind         kind,
+		       a_scope_number       scope_number_to_reuse,
+		       a_type_ptr           assoc_type,
+		       a_routine_ptr        assoc_routine)
+/*
+Interface to push_scope_full that is used for scopes other than template
+instantiation scopes.
+*/
+{
+  a_scope_ptr scope;
+  scope = push_scope_full(kind, scope_number_to_reuse, assoc_type,
+			  assoc_routine, (a_symbol_ptr)NULL,
+			  (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL,
+			  /*nested_instantiation=*/FALSE);
+  return scope;
 }  /* push_scope */
+
+
+a_scope_ptr push_template_instantiation_scope
+                           (a_scope_number       scope_number_to_reuse,
+			    a_type_ptr           assoc_type,
+			    a_routine_ptr        assoc_routine,
+			    a_symbol_ptr         instance_sym,
+			    a_symbol_ptr         template_sym,
+			    a_template_arg_ptr   template_arg_list,
+			    a_boolean            nested_instantiation)
+/*
+Interface to push_scope_full that is used for template instantiation
+scopes.
+*/
+{
+  a_scope_ptr scope;
+  scope = push_scope_full(sck_template_instantiation, scope_number_to_reuse,
+			  assoc_type, assoc_routine, instance_sym,
+			  template_sym, template_arg_list,
+			  nested_instantiation);
+  return scope;
+}  /* push_template_instantiation_scope */
 
 
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
@@ -8279,8 +8323,7 @@ is called only in C++.
 #endif /* CHECKING */
   /* Push an entry for the scope. */
   (void)push_scope((a_scope_kind)sck_class_reactivation, il_scope->number,
-                   class_type, (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
-                   (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
+                   class_type, (a_routine_ptr)NULL);
 }  /* push_class_reactivation_scope */
 
 
