@@ -65,8 +65,8 @@ in namespace scope.  For example,
 
   struct S {
     void S::f(); // No warning with --microsoft_bugs
-    friend void S::g(); // No warning or error with --microsoft_bugs
-  };                    // but the friend is ::g (!)
+    friend void S::g(); // Warning (no error) with --microsoft_bugs
+  };                    // and the friend is ::g (!)
 
 7/2/99  Multiple carriage returns ignored before newline
 

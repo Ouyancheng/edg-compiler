@@ -3034,7 +3034,13 @@ to FALSE if the entity being declared is not initializable.
              class A if f had not been declared yet), but Microsoft compilers
              perform the transformation anyway (thereby creating ::f instead
              of A::f(!!)). */
-          (void)simplify_curr_class_qualified_name();
+          if (simplify_curr_class_qualified_name() /* side effects */ &&
+              (input_flags & DI_IS_FRIEND_DECL)) {
+            /* We're emulating a Microsoft bug by ignoring the qualification
+               on a friend function (possibly injecting it in the surrounding
+               namespace scope).  This is likely unintended. */
+            warning(ec_friend_qualification_ignored);
+          }  /* if */
         }  /* if */
       } else {
         /* This must be a namespace-qualified name.  This is used when a

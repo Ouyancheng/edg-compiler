@@ -1017,6 +1017,7 @@ ec_invalid_UCN;;"universal character name specifies an invalid character"
 ec_UCN_names_basic_char;;"a universal character name cannot designate a character in the basic character set"
 ec_invalid_identifier_UCN;;"this universal character is not allowed in an identifier"
 ec_VA_ARGS_not_allowed;;"the identifier __VA_ARGS__ can only appear in the replacement lists of variadic macros"
+ec_friend_qualification_ignored;;"the qualifier on this friend declaration is ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
