@@ -4510,8 +4510,10 @@ be used (e.g., eok_add, not eok_iadd).
 */
 {
   if (curr_expr_kind_is_const()) {
-    check_assertion_str(is_constant_operand(operand_1) &&
-                        is_constant_operand(operand_2),
+    check_assertion_str((is_constant_operand(operand_1) ||
+                         is_error_operand(operand_1)) &&
+                        (is_constant_operand(operand_2) ||
+                         is_error_operand(operand_2)),
                         "template_binary_operation: non-const operand");
     /* In a constant expression, only operations on integral types are
        allowed on operands involving template parameter types, so
@@ -4660,7 +4662,8 @@ be used (e.g., eok_negate, not eok_inegate).
 */
 {
   if (curr_expr_kind_is_const()) {
-    check_assertion_str(is_constant_operand(operand),
+    check_assertion_str(is_constant_operand(operand) ||
+                        is_error_operand(operand),
                         "tempate_unary_operation: non-const operand");
     /* In a constant expression, only operations on integral types are
        allowed on operands involving template parameter types, so
@@ -4759,6 +4762,11 @@ in *result.  Constant operations are not folded.
       }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
+  } else if (is_error_operand(operand_1) ||
+             is_error_operand(operand_2) ||
+             is_error_operand(operand_3)) {
+    /* Some error. */
+    make_error_operand(result);
   } else {
     /* Build the expression tree for the operation. */
     build_question_result_operand(operand_1, operand_2, operand_3,
