@@ -272,7 +272,7 @@ array-to-pointer decay).
     declared_type = type_ptr;
   } else {
     /* Make a copy of the type.  Note that default arg expressions, if any,
-       will be copied, too. */
+       will be copied later. */
     declared_type =
                copy_routine_type_with_param_types(type_ptr,
                                                   /*copy_default_args=*/FALSE);
