@@ -2877,6 +2877,137 @@ can be NULL if the caller does not need this flag returned.
 }  /* same_type_with_added_qualifiers */
 
 
+static a_boolean type_is_catchable_by_handler_for_other_type(
+                                                      a_type_ptr  type,
+                                                      a_type_ptr  other_type)
+/*
+Return TRUE if an object of type "type" is catchable by a handler whose
+handler-parameter is of type "other_type".
+*/
+{
+  a_boolean                    match;
+  a_base_class_ptr             bcp;
+  a_base_class_derivation_ptr  preferred_derivation;
+
+  /* Return TRUE if the types are identical. */
+  match = identical_types(type, other_type);
+  if (!match) {
+    /* if type is an unambiguous and public base class of other_type,
+       a handler for other_type will catch type. */
+    if (is_pointer_type(type) && is_pointer_type(other_type)) {
+      /* The same goes if both are pointer types. */
+      type = type_pointed_to(type);
+      other_type = type_pointed_to(other_type);
+    }  /* if */
+    type = skip_typerefs(type);
+    other_type = skip_typerefs(other_type);
+    if (is_immediate_class_type(type) && is_immediate_class_type(other_type)) {
+      /* bcp will come back non-NULL if type is a base class of other_type. */
+      bcp = find_base_class_of(other_type, type);
+      /* now be sure bcp is unambiguous and public. */
+      if (bcp != NULL && !bcp->ambiguous) {
+        /* Be sure bcp points to a public base class of other_type. */
+        preferred_derivation = preferred_derivation_of(bcp);
+        if (access_to_end_of_path((an_access_specifier)as_public,
+                                  preferred_derivation->path,
+                                  preferred_derivation) ==
+                                             (an_access_specifier)as_public) {
+          match = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* type_is_catchable_by_handler_for_other_type */
+
+
+a_boolean exception_spec_is_less_restrictive(a_type_ptr  type1,
+                                             a_type_ptr  type2)
+/*
+Compare the exception specifications associated with function types type1
+and type2.  Return TRUE if the exception specification on the former is less
+restrictive than that on the latter.  The exception specification for one
+function is considered "less restrictive" than that of another if at least
+one type may be thrown from the former that would violate the exception
+specification of the latter (i.e., that would not be caught by handlers for
+the types specified for the latter).  For example, the following are in
+order from most restrictive to least restrictive:
+
+  void f1() throw();              // Nothing will be thrown
+  void f2() throw(T);
+  void f3() throw(T,U);
+  void f4();                      // Anything might be thrown
+
+Moreover:
+
+  struct D : public B { ... };
+  void g1() throw(D);             // Does not violate exception spec of g2
+  void g2() throw(B);             // Violates exception spec of g1
+
+If B is a public and unambiguous base class of D, g2 is less restrictive than
+g1, because a handler for B can also catch a D, but a handler for D cannot
+catch a B.
+*/
+{
+  a_boolean                            is_less_restrictive = FALSE;
+  an_exception_specification_ptr       esp1, esp2;
+  an_exception_specification_type_ptr  estp1, estp2;
+
+  if (exceptions_enabled) {
+    esp1 = type1->variant.routine.extra_info->exception_specification;
+    esp2 = type2->variant.routine.extra_info->exception_specification;
+    if (esp2 == NULL) {
+      /* The function associated with type2 can throw any exception; type1
+         cannot be less restrictive than that. */
+      /* is_less_restrictive = FALSE; */
+    } else if (esp1 == NULL) {
+      /* Type1's function can can throw any exception, and type2's function
+         has at least some restriction, so the former is less restrictive. */
+      is_less_restrictive = TRUE;
+    } else {
+      /* If any type on the exception specification list of type1's function
+         does not match a type on the list of type2, the former is less
+         restrictive. Corollary 1: if the list of the type1's function is
+         empty (i.e., if its exception specification is maximally
+         restrictive), there is no way it can be less restrictive; in this
+         case, the outer loop stops before it even gets started.  Corollary 2:
+         if there is anything on the list for type1 and the list for type2 is
+         empty, type1 has to be less restrictive; in this case it is the inner
+         loop that doesn't run. */
+      /* The outer loop traverses the types specified for type1. */
+      estp1 = esp1->exception_specification_type_list;
+      for (; estp1 != NULL; estp1 = estp1->next) {
+        /* Ignore entries marked "redundant" -- the type has already been
+           seen on the list. */
+        if (estp1->redundant) continue;
+        /* The inner loop traverses the types specified for type2, looking
+           for an entry that matches the current entry from type1's list. */
+        estp2 = esp2->exception_specification_type_list;
+        for (; estp2 != NULL; estp2 = estp2->next) {
+          /* Ignore entries marked "redundant" -- the type has already been
+             seen on the list. */
+          if (estp2->redundant) continue;
+          /* The types "match" if a handler for estp1->type can catch
+             estp2->type -- e.g., if the types are identical or espt1->type
+             is a public and unambiguous base class of espt2->type. */
+          if (type_is_catchable_by_handler_for_other_type(estp2->type,
+                                                          estp1->type)) {
+            /* Match. */
+            goto continue_outer_loop;
+          }  /* if */
+        }  /* for */
+        /* Falling through to here means a match was not found. */
+        is_less_restrictive = TRUE;
+        break;
+continue_outer_loop:;
+        /* A match was found.  Move on to the next type in type1's list. */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return is_less_restrictive;
+}  /* exception_spec_is_less_restrictive */
+
+
 static
 a_boolean qualification_conversion_possible(a_type_ptr source_type,
 					    a_type_ptr dest_type,
@@ -3019,7 +3150,6 @@ FALSE.
 }  /* cast_removes_qualifiers */
 				  
 
-
 a_boolean impl_pointer_conversion(
                          a_type_ptr           source_type,
                          a_boolean            source_is_constant,
@@ -3117,14 +3247,22 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     if (types_are_compatible_for_impl_conversion(
                                             unqual_source_type_pointed_to,
                                             unqual_dest_type_pointed_to)) {
-      /* The types pointed to are compatible, ignoring the type qualifiers.
-         ANSI C 3.3.6 (pointer - pointer: caller will check that types are
-         object types); ANSI C 3.3.8 (relational operators: caller will check
-         that types are both object or both incomplete); ANSI C 3.3.9
-         (equality operators); ANSI C 3.3.15 (?: operator); ANSI C 3.3.16.1
-         (assignment: preservation of qualifiers is tested below). */
-      okay = TRUE;
-      std_conv->nontrivial_conversion = FALSE;
+      if (!C_mode () && is_function(unqual_dest_type_pointed_to) &&
+          exception_spec_is_less_restrictive(unqual_source_type_pointed_to,
+                                             unqual_dest_type_pointed_to)) {
+        /* In pointer-to-function assignment and initialization, any exception
+           allowed by the source type must allowed by the destination
+           type; but that's not the case here, so return FALSE. */
+      } else {
+        /* The types pointed to are compatible, ignoring the type qualifiers.
+           ANSI C 3.3.6 (pointer - pointer: caller will check that types are
+           object types); ANSI C 3.3.8 (relational operators: caller will check
+           that types are both object or both incomplete); ANSI C 3.3.9
+           (equality operators); ANSI C 3.3.15 (?: operator); ANSI C 3.3.16.1
+           (assignment: preservation of qualifiers is tested below). */
+        okay = TRUE;
+        std_conv->nontrivial_conversion = FALSE;
+      }  /* if */
     } else if (is_error(unqual_dest_type_pointed_to) ||
                is_error(unqual_source_type_pointed_to)) {
       /* Pointer --> pointer-to-error and pointer-to-error --> pointer are
