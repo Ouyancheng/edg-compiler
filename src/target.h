@@ -389,7 +389,7 @@ EXTERN a_targ_ptrdiff_t
                                    = TARG_PTRDIFF_T_MAX
 #endif /* VAR_INITIALIZERS */
                                                        ;
-			/* Alignment of a pointer.  Initialized to the default
+			/* Maximum ptrdiff_t value. Initialized to the default
 			   value but reconfigurable. */
 
 EXTERN a_targ_ptrdiff_t
@@ -398,7 +398,7 @@ EXTERN a_targ_ptrdiff_t
                                    = TARG_PTRDIFF_T_MIN
 #endif /* VAR_INITIALIZERS */
                                                        ;
-			/* Alignment of a pointer.  Initialized to the default
+			/* Minimum ptrdiff_t value.  Initialized to the default
 			   value but reconfigurable. */
 
 EXTERN an_integer_kind
