@@ -1987,7 +1987,7 @@ either an expression statement or a declaration statement.
   remove_stop_token(tok_semicolon);
   /* Scan the incrementing expression if it is present. */
   if (curr_token != tok_rparen) {
-    /* Be sure that now used-before-set warnings are issued in scanning
+    /* Be sure that no used-before-set warnings are issued in scanning
        the increment expression -- after all, a variable it references could
        be set within the body of the loop.  */
     saved_flag = suppress_used_before_set_warnings;
