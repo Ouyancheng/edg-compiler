@@ -323,7 +323,8 @@ static void gen_declaration_using_type(a_type_ptr              type,
                                        an_il_entry_kind        entry_kind);
 static void gen_type_decl(void);
 static void gen_variable_decl(a_boolean gen_final_semicolon,
-                              a_boolean suppress_specifiers);
+                              a_boolean suppress_specifiers,
+                              a_boolean is_condition);
 static void gen_routine_decl(void);
 static void gen_secondary_decl(void);
 static void gen_statement_list(a_statement_ptr stmt_list,
@@ -2621,7 +2622,8 @@ is the one associated with the definition of the class.
       case iek_variable:
         /* Static data member. */
         gen_variable_decl(/*gen_final_semicolon=*/TRUE,
-                          /*suppress_specifiers=*/FALSE);
+                          /*suppress_specifiers=*/FALSE,
+                          /*is_condition=*/FALSE);
         break;
       case iek_routine:
         /* Member function */
@@ -4050,7 +4052,8 @@ This can be a condition declaration or simply an expression.
   } else {
     /* Condition declaration. */
     gen_variable_decl(/*gen_final_semicolon=*/FALSE,
-                      /*suppress_specifiers=*/FALSE);
+                      /*suppress_specifiers=*/FALSE,
+                      /*is_condition=*/TRUE);
   }  /* if */
 }  /* gen_condition */  
 
@@ -4116,7 +4119,8 @@ Generate code for the indicated "for" statement.
             write_space();
           }  /* if */
           gen_variable_decl(/*gen_final_semicolon=*/FALSE,
-                            /*suppress_specifiers=*/decl_after_first);
+                            /*suppress_specifiers=*/decl_after_first,
+                            /*is_condition=*/FALSE);
           decl_after_first = TRUE;
           last_is_variable = TRUE;
         } else if (ss_entry_kind(curr_source_sequence_entry) ==
@@ -5241,9 +5245,11 @@ TRUE, "()" is put out.
 }  /* gen_dynamic_init */
 
 
-static void gen_initializer(a_variable_ptr var)
+static void gen_initializer(a_variable_ptr var,
+                            a_boolean      is_condition)
 /*
-Output the initializer, if any, for the indicated variable.
+Output the initializer, if any, for the indicated variable.  The variable
+is a condition variable if is_condition is TRUE.
 */
 {
   a_boolean          parenthesized_init;
@@ -5279,9 +5285,10 @@ Output the initializer, if any, for the indicated variable.
            A x(y);
          for classes with constructors, and the "=" form, e.g.,
            A x = y;
-         Otherwise. */
-      if (dip->kind == (a_dynamic_init_kind)dik_constructor ||
-          dip->kind == (a_dynamic_init_kind)dik_zero) {
+         Otherwise.  Conditions allow only the "=" form. */
+      if (!is_condition &&
+          (dip->kind == (a_dynamic_init_kind)dik_constructor ||
+           dip->kind == (a_dynamic_init_kind)dik_zero)) {
         parenthesized_init = TRUE;
       } else {
         write_tok_str(" = ");
@@ -5324,13 +5331,15 @@ again on a member declaration.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_variable_decl(a_boolean gen_final_semicolon,
-                              a_boolean suppress_specifiers)
+                              a_boolean suppress_specifiers,
+                              a_boolean is_condition)
 /*
 Generate a declaration of the variable indicated by the current source
 sequence entry.  If gen_final_semicolon is TRUE, a semicolon is put out
 at the end of the declaration.  If suppress_specifiers is TRUE, the type
 specifiers are suppressed in the type; this is used for comma-separated
-lists of declarations, as in for-init statements.
+lists of declarations, as in for-init statements.  If is_condition is
+TRUE, this variable is a declared in a condition declaration.
 */
 {
   a_variable_ptr               var;
@@ -5454,7 +5463,7 @@ lists of declarations, as in for-init statements.
      the definition. */
   consider_initialization = is_definition;
   if (var->is_member_constant) consider_initialization = !is_definition;
-  if (consider_initialization) gen_initializer(var);
+  if (consider_initialization) gen_initializer(var, is_condition);
   if (gen_final_semicolon) {
     /* Finish the declaration. */
     write_tok_ch(';');
@@ -5921,7 +5930,8 @@ source sequence entry identifies the entity.
       break;
     case iek_variable:
       gen_variable_decl(/*gen_final_semicolon=*/TRUE,
-                        /*suppress_specifiers=*/FALSE);
+                        /*suppress_specifiers=*/FALSE,
+                        /*is_condition=*/FALSE);
       break;
     case iek_routine:
       gen_routine_decl();
@@ -5949,7 +5959,8 @@ sequence entry.
       break;
     case iek_variable:
       gen_variable_decl(/*gen_final_semicolon=*/TRUE,
-                        /*suppress_specifiers=*/FALSE);
+                        /*suppress_specifiers=*/FALSE,
+                        /*is_condition=*/FALSE);
       break;
     case iek_routine:
       gen_routine_decl();
