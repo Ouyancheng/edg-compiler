@@ -1,5 +1,24 @@
 Version 2.38
 
+11/24/97  C++-generating back end: friend decl of static function
+
+In Microsoft mode, a friend declaration can include a storage class,
+e.g., "friend static void f();".  As part of the change to accept
+that (Changes entry of 9/12/96), the C++-generating back end was
+changed to recognize and output such cases.  Unfortunately, the change
+did not check for Microsoft mode specifically, and that meant
+incorrect output in non-Microsoft mode for cases like the following:
+
+  static int f();
+  int local() {
+    struct X {
+      friend int f();
+    };
+    return f();
+  }
+  int f() { return 0; }
+
+
 11/22/97  --preinclude comand-line option
 
 The --preinclude=filename command-line option can now be used to specify

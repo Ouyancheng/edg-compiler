@@ -6604,16 +6604,18 @@ TRUE if the declaration following this one is such a continuation.
       /* "friend" is used instead of a storage class. */
       write_tok_str("friend ");
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      /* In Microsoft mode a storage class can be specified on a friend
-         declaration. */
-      if ((rout->storage_class == (a_storage_class)sc_extern &&
-           !rout->is_inline) ||
-          (rout->storage_class == (a_storage_class)sc_static &&
-           rout->is_inline)) {
-        /* The storage class can be omitted -- the default is right. */
-      } else {
-        /* Specify the storage class explicitly. */
-        storage_class = rout->storage_class;
+      if (microsoft_mode) {
+        /* In Microsoft mode a storage class can be specified on a friend
+           declaration. */
+        if ((rout->storage_class == (a_storage_class)sc_extern &&
+             !rout->is_inline) ||
+            (rout->storage_class == (a_storage_class)sc_static &&
+             rout->is_inline)) {
+          /* The storage class can be omitted -- the default is right. */
+        } else {
+          /* Specify the storage class explicitly. */
+          storage_class = rout->storage_class;
+        }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
