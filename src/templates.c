@@ -3432,12 +3432,13 @@ that make up the declaration and do a prototype instantiation.
         discard_token_cache(p_token_cache);
       }  /* if */
       if (is_template_friend) {
-	/* A friend template declaration may not be used to define a
-	   class.  If a definition is found, issue an error and discard
-	   the token cache so that no instantiations will be attempted. */
-	pos_error(ec_template_friend_definition_not_allowed,
-		  &locator.source_position);
-	discard_token_cache(p_token_cache);
+        if (strict_ansi_mode) {
+	  /* A friend template declaration may not be used to define a
+	     class. */
+	  pos_diagnostic(strict_ansi_error_severity,
+			 ec_template_friend_definition_not_allowed,
+			 &locator.source_position);
+	}  /* if */
       }	/* if */
     } else {
       if (!in_prototype_instantiation) {
@@ -4326,12 +4327,13 @@ declaration.
 				 is_constructor_symbol(sym),
 				 defines_something, sym);
     if (*defines_something && is_template_friend) {
-      /* A friend template declaration may not be used to define a
-	 function.  If a definition is found, issue an error and discard
-	 the token cache so that no instantiations will be attempted. */
-      pos_error(ec_template_friend_definition_not_allowed,
-		&locator->source_position);
-      discard_token_cache(&tssp->token_cache);
+      if (strict_ansi_mode) {
+	/* A friend template declaration may not be used to define a
+	   function. */ 
+	pos_diagnostic(strict_ansi_error_severity,
+		       ec_template_friend_definition_not_allowed,
+		       &locator->source_position);
+      }  /* if */
     }	/* if */
     if (!scope_stack[depth_scope_stack].in_prototype_instantiation) {
       /* Suppress this processing during prototype instantiations. */
