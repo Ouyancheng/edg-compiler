@@ -196,20 +196,38 @@ arg_done:;
 
 
 static sizeof_t mangled_encoding_for_function_type(a_type_ptr type,
+                                                   a_boolean  do_return_type,
                                                    char       *store_at)
 /*
 Determine the mangled encoding for the function type "type".  Place the
 encoded form at *store_at if store_at != NULL, and (always) return the
-length of the encoding.  See ARM 7.2.1c for name encoding.
+length of the encoding.  See ARM 7.2.1c for name encoding.  The return type
+of the function is encoded if do_return_type is TRUE.
 */
 {
+  sizeof_t mangled_name_length, section_length;
+
+  check_assertion(type->kind == (a_type_kind)tk_routine);
   /* The encoding for a function type is "F" followed by the encoding
      for the parameter types.  mangled_function_name takes care of putting
      out additional information preceding the "F" if the function is a
      member function. */
   /* Start with the "F" indicating a function type. */
+  mangled_name_length = 1;
   if (store_at != NULL) *store_at++ = 'F';
-  return 1 + mangled_encoding_for_parameter_types(type, store_at);
+  /* Add the parameter types. */
+  section_length = mangled_encoding_for_parameter_types(type, store_at);
+  mangled_name_length += section_length;
+  if (store_at != NULL) store_at += section_length;
+  if (do_return_type) {
+    /* Add the return type at the end, as "_" followed by the type. */
+    mangled_name_length++;
+    if (store_at != NULL) *store_at++ = '_';
+    mangled_name_length +=
+                  mangled_encoding_for_type(type->variant.routine.return_type,
+                                            store_at);
+  }  /* if */
+  return mangled_name_length;
 }  /* mangled_encoding_for_function_type */
 
 
@@ -259,6 +277,43 @@ the size of the output including the underscore.
 {
   (void)sprintf(store_at, "%lu%s", value, (digits > 1) ? "_" : "");
 }  /* store_digits_and_underscore */
+
+
+static size_t mangled_encoding_for_template_parameter(
+                                       a_template_param_coordinate *coordinate,
+                                       char                        *store_at)
+/*
+Place the encoding for a template parameter with the given coordinates at
+*store_at if store_at != NULL, and (always) return the length of the
+encoding.
+*/
+{
+  sizeof_t mangled_name_length, digits;
+
+  check_assertion(distinct_mangling_for_templates);
+  /* The encoding is "Zn_" for a first-level parameter, and "Z_m_n_" for
+     a non-first-level parameter, with "n" the parameter number, and
+     "m" the depth number. */
+  mangled_name_length = 1;
+  if (store_at != NULL) *store_at++ = 'Z';
+  if (coordinate->depth != 1) {
+    /* Put out "_depth_". */
+    digits = digits_to_represent((unsigned long)coordinate->depth);
+    mangled_name_length += digits + 2;
+    if (store_at != NULL) {
+      (void)sprintf(store_at, "_%lu_", (unsigned long)coordinate->depth);
+      store_at += digits+2;
+    }  /* if */
+  }  /* if */
+  /* Put out the parameter number. */
+  digits = digits_to_represent((unsigned long)coordinate->position);
+  mangled_name_length += digits + 1;
+  if (store_at != NULL) {
+    (void)sprintf(store_at, "%lu_", (unsigned long)coordinate->position);
+    store_at += digits;
+  }  /* if */
+  return mangled_name_length;
+}  /* mangled_encoding_for_template_parameter */
 
 
 static sizeof_t literal_representation(a_constant_ptr con,
@@ -535,6 +590,22 @@ used to encode constants as part of the mangled names of template classes.
         }  /* if */
       }  /* if */
       break;
+    case ck_template_param:
+      /* This comes up when mangling the names for template entities using
+         the modern mangling approach. */
+      switch (con->variant.template_param.kind) {
+        case tpck_param:
+          /* A simple reference to a template parameter. */
+          literal_length = mangled_encoding_for_template_parameter(
+                              &con->variant.template_param.variant.coordinates,
+                              store_at);
+          if (store_at != NULL) store_at += literal_length;
+          break;
+        default:
+          unexpected_condition_str(
+                            "literal_representation: bad template param kind");
+      }  /* switch */
+      break;
 #if CHECKING
     case ck_string:
       /* Strings should be converted to addresses. */
@@ -670,30 +741,35 @@ If the indicated member variable is unnamed, give it a name.
 }  /* give_unnamed_member_variable_a_name */
 
 
-static sizeof_t mangled_template_arguments(a_type_ptr type,
-                                           char       *store_at)
+static sizeof_t mangled_template_arguments(
+                                          a_template_arg_ptr template_arg_list,
+                                          char               *store_at)
 /*
-Determine the mangled form of the actual parameters of the template class
-"type".  Place the mangled name at *store_at if store_at != NULL, and (always)
-return the length of the name.
+Determine the mangled form of the template arguments given by
+template_arg_list.  Place the output at *store_at if store_at != NULL,
+and (always) return the length of the output.
 */
 {
   sizeof_t           mangled_name_length, digits, arg_length, total_arg_length;
   sizeof_t           literal_length, type_length;
-  a_template_arg_ptr template_arg_list =
-                            type->variant.class_struct_union.extra_info->
-                                                             template_arg_list;
   a_template_arg_ptr tap;
   a_constant_ptr     con;
   int                pass;
 
-  /* The mangled form of the parameters is something like
-       3_ii
-         ^^--- Two template arguments of type int.
-       ^------ Total length of template argument list string,
-	       including the underscore.
+  /* The mangled form of template arguments is something like
+       __pt__3_ii
+               ^^--- Two template arguments of type int.
+             ^------ Total length of template argument list string,
+                     including the underscore.
+         ^^--------- Fixed string, indicates "parameterized type".
   */
-  mangled_name_length = 0;
+#define PT_STR "__pt__"
+  mangled_name_length = sizeof(PT_STR) - 1;
+  if (store_at != NULL) {
+    (void)strcpy(store_at, PT_STR);
+    store_at += sizeof(PT_STR) - 1;
+  }  /* if */
+#undef PT_STR
   /* Run through the template argument list, determining the representation
      for each argument.  The first time through, determine the size;
      the second, put out the string. */
@@ -762,8 +838,24 @@ return the length of the name.
 }  /* mangled_template_arguments */
 
 
-static sizeof_t mangled_basic_class_name(a_type_ptr type,
-                                         char       *store_at)
+static sizeof_t mangled_specialization_indication(char *store_at)
+/*
+Add a qualifier that indicates specialization.  Place it at *store_at if
+store_at != NULL, and (always) return its length.
+*/
+{
+#define SPEC_INDIC "__S"
+  if (store_at != NULL) (void)strcpy(store_at, SPEC_INDIC);
+  return sizeof(SPEC_INDIC) - 1;
+#undef SPEC_INDIC
+}  /* mangled_specialization_indication */
+
+
+static sizeof_t mangled_full_class_name(
+                                       a_type_ptr type,
+                                       a_boolean  show_template_specialization,
+                                       a_boolean  show_specialization,
+                                       char       *store_at)
 /*
 Determine the mangled form of the basic name of the class "type".  This is
 not the version that contains a leading count of the number of characters
@@ -771,19 +863,22 @@ in the name; here, the name is usually just the original name, but is
 different if the class is a template class or is unnamed.  Also, this
 routine does not do anything special with nested types.  Place the mangled
 name at *store_at if store_at != NULL, and (always) return the length of
-the name.
+the name.  show_template_specialization is TRUE if the class is generated
+from a specialization of a template and an indication of that fact should be
+put out.  show_specialization is TRUE if the class is itself a specialization
+and an indication of that fact should be put out.
 */
 {
-  sizeof_t           mangled_name_length;
+  sizeof_t           mangled_name_length, section_length;
   char               *name;
-  a_template_arg_ptr template_arg_list =
-                            type->variant.class_struct_union.extra_info->
-                                                             template_arg_list;
+  a_class_type_supplement_ptr
+                     ctsp = type->variant.class_struct_union.extra_info;
+  a_boolean          previously_mangled_version_used = FALSE;
 
   /* This routine shouldn't be called after the nested type mangling has been
      done. */
   check_assertion_str(!type->source_corresp.nested_type_mangling_has_been_done,
-                "mangled_basic_class_name: nested type mangling done already");
+                 "mangled_full_class_name: nested type mangling done already");
   /* Always start with the name of the class, which applies even in the
      template class case. */
   name = type->source_corresp.name;
@@ -791,29 +886,41 @@ the name.
     give_unnamed_class_a_name(type);
     name = type->source_corresp.name;
   }  /* if */
+  if (type->source_corresp.name_has_been_mangled) {
+    /* The name is already mangled, including any template parameters.
+       We can use that unless we need to add specialization indicators,
+       which are not present in the saved mangled form. */
+    if (!show_template_specialization && !show_specialization) {
+      previously_mangled_version_used = TRUE;
+    } else {
+      name = type->source_corresp.unmangled_name;
+    }  /* if */
+  }  /* if */
   mangled_name_length = strlen(name);
   if (store_at != NULL) {
     (void)memcpy(store_at, name, size_t_arg(mangled_name_length));
     store_at += mangled_name_length;
   }  /* if */
-  if (!type->source_corresp.name_has_been_mangled) {
-    if (template_arg_list != NULL) {
-      /* A template class.  The mangled form of the name is something like
-           abc__pt__3_ii
-                      ^^--- Two template arguments of type int.
-                    ^------ Total length of template argument list string,
-                            including the underscore.
-                ^^--------- Fixed string, indicates "parameterized type".
-           ^^^------------- The name of the class template.
-      */
-#define PT_STR "__pt__"
-      mangled_name_length += sizeof(PT_STR) - 1;
-      if (store_at != NULL) {
-        (void)strcpy(store_at, PT_STR);
-        store_at += sizeof(PT_STR) - 1;
-      }  /* if */
-#undef PT_STR
-      mangled_name_length += mangled_template_arguments(type, store_at);
+  if (!previously_mangled_version_used) {
+    if (show_template_specialization) {
+      /* Put out an indication of the fact the template from which this
+         class is generated is specialized. */
+      section_length = mangled_specialization_indication(store_at);
+      mangled_name_length += section_length;
+      if (store_at != NULL) store_at += section_length;
+    }  /* if */
+    if (ctsp->template_arg_list != NULL) {
+      /* A template class.  Add information on template arguments. */
+      section_length = mangled_template_arguments(ctsp->template_arg_list,
+                                                  store_at);
+      mangled_name_length += section_length;
+      if (store_at != NULL) store_at += section_length;
+    }  /* if */
+    if (show_specialization) {
+      /* Put out an indication of the fact that this class is specialized. */
+      section_length = mangled_specialization_indication(store_at);
+      mangled_name_length += section_length;
+      if (store_at != NULL) store_at += section_length;
     }  /* if */
     /* If the class is a local class, put out "__Lnn" using the declaration
        scope number for "nn".  This is not from the ARM.  cfront uses a
@@ -835,7 +942,16 @@ the name.
     }  /* if */
   }  /* if */
   return mangled_name_length;
-}  /* mangled_basic_class_name */
+}  /* mangled_full_class_name */
+
+
+/*
+Interface to mangled_full_class_name for the case where
+show_template_specialization and show_specialization are FALSE (meaning no
+information about those things should be put out).
+*/
+#define mangled_basic_class_name(type, store_at)                      \
+  mangled_full_class_name((type), FALSE, FALSE, (store_at))
 
 
 static sizeof_t r_mangled_parent_qualifier(
@@ -854,7 +970,7 @@ the usual nesting_level == 1.
 */
 {
   a_source_correspondence *parent_scp;
-  sizeof_t                mangled_name_length = 0, name_length;
+  sizeof_t                mangled_name_length = 0, name_length, section_length;
   sizeof_t                digits;
   a_boolean               more_levels;
 
@@ -880,10 +996,10 @@ the usual nesting_level == 1.
   if (more_levels) {
     /* This level is nested inside something else.  Do a recursive call to
        deal with all of the parents. */
-    name_length = r_mangled_parent_qualifier(parent_scp, nesting_level + 1,
-                                             store_at);
-    mangled_name_length = name_length;
-    if (store_at != NULL) store_at += name_length;
+    section_length = r_mangled_parent_qualifier(parent_scp, nesting_level + 1,
+                                                store_at);
+    mangled_name_length = section_length;
+    if (store_at != NULL) store_at += section_length;
   } else {
     /* This is the topmost qualifier. */
     if (nesting_level > 1) {
@@ -910,14 +1026,43 @@ the usual nesting_level == 1.
   if (scp->is_class_member) {
     /* Class name. */
     a_type_ptr type = scp->parent.class_type;
-    name_length = mangled_basic_class_name(type, (char *)NULL);
+    a_boolean  is_specialization = FALSE;
+    a_boolean  is_template_specialization = FALSE;
+    if (distinct_mangling_for_templates) {
+      /* When templates get distinct mangling from normal functions,
+         information is included for specialization in parent classes. */
+      /* See if the class comes from a template and that template is
+         specialized. */
+      a_symbol_ptr template_sym =
+                             symbol_supplement_for_class(type)->class_template;
+      if (template_sym != NULL) {
+        /* This class is an instance of a template. */
+        if (template_sym->variant.template_info->is_specific_definition) {
+          /* The template is specialized. */
+          is_template_specialization = TRUE;
+        }  /* if */
+      }  /* if */
+      /* See if the class itself is specialized (but not with the old
+         syntax). */
+      if (type->variant.class_struct_union.is_specialized &&
+          !type->variant.class_struct_union.specialized_with_old_syntax) {
+        is_specialization = TRUE;
+      }  /* if */
+    }  /* if */
+    name_length = mangled_full_class_name(type,
+                                          is_template_specialization,
+                                          is_specialization,
+                                          (char *)NULL);
     digits = digits_to_represent((unsigned long)name_length);
     mangled_name_length += name_length + digits;
     if (store_at != NULL) {
       /* Actually store the name. */
       (void)sprintf(store_at, "%lu", (unsigned long)name_length);
       store_at += digits;
-      store_at += mangled_basic_class_name(type, store_at);
+      store_at += mangled_full_class_name(type,
+                                          is_template_specialization,
+                                          is_specialization,
+                                          store_at);
     }  /* if */
   } else {
     /* Namespace name. */
@@ -928,6 +1073,8 @@ the usual nesting_level == 1.
       give_unnamed_namespace_a_name(nsp);
       name = nsp->source_corresp.name;
     }  /* if */
+    /* Put out the namespace name preceded by the length of the name, e.g.,
+       "NNN" --> "3NNN". */
     name_length = strlen(name);
     digits = digits_to_represent((unsigned long)name_length);
     mangled_name_length += name_length + digits;
@@ -1206,21 +1353,24 @@ See ARM 7.2.1c for name encoding.
         break;
       case tk_routine:
         /* Function.  Put out "F" and the argument types. */
-        section_length = mangled_encoding_for_function_type(type, store_at);
+        section_length = mangled_encoding_for_function_type(type,
+                                                       /*do_return_type=*/TRUE,
+                                                            store_at);
         mangled_name_length += section_length;
         if (store_at != NULL) store_at += section_length;
-        /* Add the return type at the end, as "_" followed by the type. */
-        mangled_name_length++;
-        if (store_at != NULL) *store_at++ = '_';
-        mangled_name_length +=
-                  mangled_encoding_for_type(type->variant.routine.return_type,
-                                            store_at);
         goto have_whole_mangled_name;
       case tk_class:
       case tk_struct:
       case tk_union:
         /* Unnamed classes.  mangled_type_name will make up a name. */
         mangled_name_length += mangled_type_name(type, store_at);
+        goto have_whole_mangled_name;
+      case tk_template_param:
+        /* This comes up when mangling the names for template entities using
+           the modern mangling approach. */
+        mangled_name_length += mangled_encoding_for_template_parameter(
+                         &type->variant.template_param.extra_info->coordinates,
+                         store_at);
         goto have_whole_mangled_name;
 #if CHECKING
       default:
@@ -1435,29 +1585,6 @@ names.
 }  /* mangled_operator_name */
 
 
-static sizeof_t mangled_specialization_suffix(char *store_at)
-/*
-Output the mangled name suffix that indicates an explicit specialization.
-Place the suffix at *store_at if store_at != NULL, and (always) return
-the length of the suffix.
-*/
-{
-  sizeof_t mangled_name_length = 0;
-
-  if (distinct_mangling_for_specializations) {
-    /* Explicit specializations get an extra "__S" at the end to distinguish
-       them from compiler-generated instantiations. */
-    mangled_name_length += 3;
-    if (store_at != NULL) {
-      *store_at++ = '_';
-      *store_at++ = '_';
-      *store_at++ = 'S';
-    }  /* if */
-  }  /* if */
-  return mangled_name_length;
-}  /* mangled_specialization_suffix */
-
-
 static sizeof_t mangled_function_name(a_routine_ptr routine,
                                       a_boolean     suppress_param_encoding,
                                       char          *store_at)
@@ -1469,10 +1596,11 @@ If suppress_param_encoding is TRUE, suppress the information on parameter
 types; just put out the base encoded name.
 */
 {
-  sizeof_t     mangled_name_length, section_length;
-  char         *name;
-  a_type_ptr   conversion_type, routine_type;
-  a_boolean    is_member;
+  sizeof_t   mangled_name_length, section_length;
+  char       *name;
+  a_type_ptr conversion_type, routine_type;
+  a_boolean  is_member, mangle_as_template;
+  a_boolean  is_specialization = FALSE, is_template_specialization = FALSE;
 
   /* Most of the processing is done in mangled_encoding_for_function_type,
      but this routine handles:
@@ -1488,6 +1616,41 @@ types; just put out the base encoded name.
      processing.
   */
   routine_type = skip_typerefs(routine->type);
+  /* See if the function should be mangled as a template.  In the modern C++
+     language, template functions are mangled using the template arguments
+     and the prototype for the function.  This allows overloading of function
+     templates (the instances have the same function parameter types, but
+     one can be chosen over the other based on whether it is more
+     specialized). */
+  mangle_as_template = (distinct_mangling_for_templates &&
+                        routine->is_template_function);
+  if (mangle_as_template) {
+    /* See if the function comes from a template and that template is
+       specialized. */
+    a_symbol_ptr sym = (a_symbol_ptr)(routine->source_corresp.assoc_info);
+    if (sym->variant.routine.instance_ptr != NULL) {
+      /* This function is an instance of a template. */
+      a_symbol_ptr template_sym =
+                               sym->variant.routine.instance_ptr->template_sym;
+      a_template_symbol_supplement_ptr tssp =
+                                  template_supplement_for_symbol(template_sym);
+      if (tssp->is_specific_definition) {
+        /* The template is specialized. */
+        is_template_specialization = TRUE;
+      }  /* if */
+      /* Use the type of the prototype routine from the template as the
+         routine type for the rest of the mangling. */
+      /* Note that "routine" is not updated. */
+      routine_type = tssp->variant.function.routine->type;
+      routine_type = skip_typerefs(routine_type);
+    }  /* if */
+    /* See if the function itself is specialized (but not with the old
+       syntax). */
+    if (routine->is_specialized && !routine->specialized_with_old_syntax) {
+      is_specialization = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Put out the name of the function. */
   mangled_name_length = 0;
   if (routine->special_kind == (a_special_function_kind)sfk_none) {
     /* Normal name. */
@@ -1533,6 +1696,29 @@ types; just put out the base encoded name.
     mangled_name_length += section_length;
     if (store_at != NULL) store_at += section_length;
   }  /* if */
+  if (mangle_as_template) {
+    if (is_template_specialization) {
+      /* Put out an indication of the fact the template from which this
+         function is generated is specialized. */
+      section_length = mangled_specialization_indication(store_at);
+      mangled_name_length += section_length;
+      if (store_at != NULL) store_at += section_length;
+    }  /* if */
+    if (routine->template_arg_list != NULL) {
+      /* Put out the template arguments. */
+      section_length = mangled_template_arguments(routine->template_arg_list,
+                                                  store_at);
+      mangled_name_length += section_length;
+      if (store_at != NULL) store_at += section_length;
+    }  /* if */
+    if (is_specialization) {
+      /* Put out an indication of the fact that this function is
+         specialized. */
+      section_length = mangled_specialization_indication(store_at);
+      mangled_name_length += section_length;
+      if (store_at != NULL) store_at += section_length;
+    }  /* if */
+  }  /* if */
   /* See if the function is a class member function or a member of a
      namespace. */
   is_member = (routine->source_corresp.is_class_member ||
@@ -1566,14 +1752,9 @@ types; just put out the base encoded name.
     }  /* if */
     /* Now output the function type, including the parameter types. */
     section_length = mangled_encoding_for_function_type(routine_type,
+                                                        /*do_return_type=*/
+                                                            mangle_as_template,
                                                         store_at);
-    mangled_name_length += section_length;
-    if (store_at != NULL) store_at += section_length;
-  }  /* if */
-  if (routine->is_specialized && !routine->specialized_with_old_syntax) {
-    /* Explicit specializations get an extra suffix at the end to distinguish
-       them from compiler-generated instantiations. */
-    section_length = mangled_specialization_suffix(store_at);
     mangled_name_length += section_length;
     if (store_at != NULL) store_at += section_length;
   }  /* if */
@@ -1689,6 +1870,13 @@ variable is a template static data member specialization.
     (void)memcpy(store_at, name, size_t_arg(section_length));
     store_at += section_length;
   }  /* if */
+  if (distinct_mangling_for_templates && is_specialization) {
+    /* Put out an indication of the fact that a static data member is
+       specialized. */
+    section_length = mangled_specialization_indication(store_at);
+    mangled_name_length += section_length;
+    if (store_at != NULL) store_at += section_length;
+  }  /* if */
   /* Add two underscores after the name. */
   mangled_name_length += 2;
   if (store_at != NULL) {
@@ -1699,13 +1887,6 @@ variable is a template static data member specialization.
   section_length = mangled_parent_qualifier(scp, store_at);
   mangled_name_length += section_length;
   if (store_at != NULL) store_at += section_length;
-  if (is_specialization) {
-    /* Explicit specializations get an extra suffix at the end to distinguish
-       them from compiler-generated instantiations. */
-    section_length = mangled_specialization_suffix(store_at);
-    mangled_name_length += section_length;
-    if (store_at != NULL) store_at += section_length;
-  }  /* if */
   return mangled_name_length;
 }  /* mangled_member_name */
 
@@ -1719,7 +1900,7 @@ at *store_at if store_at != NULL, and (always) return the length of the name.
 See ARM 7.2.1c for name encoding.
 */
 {
-  a_boolean  is_specialization;
+  a_boolean is_specialization;
 
   if (!has_name(variable)) {
     /* An anonymous union can cause an unnamed member of a namespace:
