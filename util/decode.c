@@ -3827,25 +3827,16 @@ high-order bytes first, using lower-case letters.
     bad_mangled_name(dctl);
     length = sizeof(x);
   }  /* if */
-  /* p points to the first hex byte to be converted in the loop.
-     For a little-endian host, that's at the end of the hex string. */
-  if (host_little_endian) {
-    p = ptr + length*2 - 2;
-  } else {
-    p = ptr;
-  }  /* if */
   /* Convert the right number of bytes. */
-  for (i = 0; i < length; i++) {
-    unsigned char byte = get_hex_digit(p, dctl);
+  for (i = 0; i < length; i++, ptr+=2) {
+    unsigned char byte = get_hex_digit(ptr, dctl);
     if (dctl->err_in_id) break;
-    byte = byte<<4 | get_hex_digit(p+1, dctl);
+    byte = byte<<4 | get_hex_digit(ptr+1, dctl);
     if (dctl->err_in_id) break;
     if (host_little_endian) {
       ((unsigned char *)&x)[length-1-i] = byte;
-      p -= 2;
     } else {
       ((unsigned char *)&x)[i] = byte;
-      p += 2;
     }  /* if */
   }  /* for */
   if (!dctl->err_in_id) {
@@ -3887,7 +3878,6 @@ high-order bytes first, using lower-case letters.
     }  /* if */
     write_id_str(str, dctl);
     /* Skip the final "E". */
-    ptr += length*2;
     ptr = advance_past('E', ptr, dctl);
   }  /* if */
   return ptr;
