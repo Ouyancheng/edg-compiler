@@ -4169,6 +4169,11 @@ for handling virtual bases and functions.
 #endif /* TARG_REUSE_TAIL_PADDING */
 
   db_enter(3, "do_class_layout");
+  if (class_type->variant.class_struct_union.is_prototype_instantiation) {
+    /* In general, no meaningful layout can be computed for prototype
+       instantiations.  We just make sure that it has a nonzero size. */
+    goto set_size_for_complete_object;
+  }  /* if */
 #if DEBUG
   if (db_trace("dump_layout", class_type, iek_type)) {
     fprintf(f_debug, "Computing layout for ");
@@ -4360,6 +4365,7 @@ for handling virtual bases and functions.
     ctsp->size_without_virtual_base_classes = class_type->size;
     ctsp->alignment_without_virtual_base_classes = class_type->alignment;
   }  /* if */
+set_size_for_complete_object:
   /* The alignment for the class is (by definition) no less than
      targ_minimum_struct_alignment, but its size may have been computed to be
      smaller (e.g., for an empty class).  Adjust the size if appropriate. */
