@@ -13748,6 +13748,26 @@ eliminated, if appropriate.
               okay_to_clear_flag = FALSE;
             }  /* if */
           }  /* if */
+#if IA64_ABI
+          if (okay_to_clear_flag) {
+            if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
+                rp->special_kind == (a_special_function_kind)sfk_destructor) {
+              /* If an alternate entry point of a constructor or destructor
+                 has to be kept, don't clear the instantiation required
+                 flag, because it represents all the variants of the
+                 constructor or destructor. */
+              a_routine_list_entry_ptr rlep;
+              for (rlep = rp->variant.ctor_dtor.alternate_entry_points;
+                   rlep != NULL;
+                   rlep = rlep->next) {
+                if (il_entry_prefix_of(rlep->routine).keep_in_il) {
+                  okay_to_clear_flag = FALSE;
+                  break;
+                }  /* if */
+              }  /* for */
+            }  /* if */
+          }  /* if */
+#endif /* IA64_ABI */
           if (okay_to_clear_flag) {
             set_instance_required(sym, FALSE, SIR_CLEAR_VALUE);
           }  /* if */
