@@ -1429,6 +1429,7 @@ common_cfront_mode_settings:
         ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
         do_late_ovl_res_tiebreaker = TRUE;
         friend_injection_enabled = TRUE;
+        arg_dependent_lookup_enabled = FALSE;
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
