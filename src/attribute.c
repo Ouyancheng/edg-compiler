@@ -1084,6 +1084,26 @@ messages about any invalid attributes.
 }  /* apply_attributes_to_field */
 
 
+static void ensure_routine_has_modifiable_type(a_routine_ptr  rp)
+/*
+Before applying an attribute to the type field of a routine, we must make
+sure that that type is not a typedef (which could be shared with other
+routines).  This makes a private copy of the underlying type is that is
+the case.
+*/
+{
+  if (rp->type->kind == (a_type_kind)tk_typeref &&
+      typeref_is_typedef(rp->type)) {
+    /* We cannot apply the attribute to the type underlying the
+       typedef.  So make a copy of that type and apply the attribute
+       to that. */
+    rp->type = copy_type_and_apply_attributes((an_attribute_ptr)NULL,
+                                              rp->type->variant.typeref.type,
+                                              /*is_typedef=*/FALSE);
+  }  /* if */
+}  /* ensure_routine_has_modifiable_type */
+
+
 void apply_attributes_to_routine(an_attribute_ptr  attributes,
                                  a_routine_ptr     rp)
 /*
@@ -1117,16 +1137,7 @@ messages about any invalid attributes.
       case ak_noreturn:
       case ak_const:
         { a_routine_type_supplement_ptr  rtsp;
-          if (rp->type->kind == (a_type_kind)tk_typeref &&
-              typeref_is_typedef(rp->type)) {
-            /* We cannot apply the attribute to the type underlying the
-               typedef.  So make a copy of that type and apply the attribute
-               to that. */
-            rp->type = copy_type_and_apply_attributes(
-                                                (an_attribute_ptr)NULL,
-                                                rp->type->variant.typeref.type,
-                                                /*is_typedef=*/FALSE);
-          }  /* if */
+          ensure_routine_has_modifiable_type(rp);
           rtsp = rp->type->variant.routine.extra_info;
           if (ap->kind == (an_attribute_kind)ak_const) {
             rtsp->is_const = TRUE;
@@ -1155,6 +1166,7 @@ messages about any invalid attributes.
           a_param_type_ptr              ptp;
           a_boolean                     error_occurred = FALSE;
           int                           count;
+          ensure_routine_has_modifiable_type(rp);
           rtsp = rp->type->variant.routine.extra_info;
           if (!rtsp->prototyped) {
             /* For an unprototyped function, no checks are
@@ -1219,6 +1231,7 @@ messages about any invalid attributes.
           a_param_type_ptr              ptp;
           int                           count;
           a_boolean                     error_occurred = FALSE;
+          ensure_routine_has_modifiable_type(rp);
           rtsp = rp->type->variant.routine.extra_info;
           if (!rtsp->prototyped) {
             /* For an unprototyped function, no checks are
@@ -1262,6 +1275,7 @@ messages about any invalid attributes.
 #if GNU_X86_ATTRIBUTES_ALLOWED
       case ak_cdecl:
         { a_routine_type_supplement_ptr rtsp;
+          ensure_routine_has_modifiable_type(rp);
           rtsp = rp->type->variant.routine.extra_info;
           if (rtsp->calling_convention == (a_calling_convention)cc_default) {
             /* The GNU C compiler appears to ignore the cdecl attribute if
@@ -1272,6 +1286,7 @@ messages about any invalid attributes.
         break;
       case ak_stdcall:
         { a_routine_type_supplement_ptr rtsp;
+          ensure_routine_has_modifiable_type(rp);
           rtsp = rp->type->variant.routine.extra_info;
           rtsp->calling_convention = (a_calling_convention)cc_stdcall;
         }
