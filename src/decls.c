@@ -1551,7 +1551,7 @@ scope is that of a class definition.
           }  /* if */
           /* Put the parameter type on the type list attached to the function
              type, and the name (if present) on the id list. */
-          ptp = alloc_param_type(param_type_ptr, /*at_file_scope=*/FALSE);
+          ptp = alloc_param_type(param_type_ptr);
           if (last_param_type == NULL) {
             extra_info->param_type_list = ptp;
           } else {
@@ -3645,9 +3645,7 @@ a pointer to it in *symbol_ptr.
   sym->variant.type = tp = alloc_named_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
   set_source_corresp(&(tp->source_corresp), sym);
-#if 0
-  add_to_types_list(tp, decl_scope_level, in_old_style_param_decl_list);
-#endif /* if 0 */
+  add_to_types_list(tp, DEPTH_OF_FILE_SCOPE, in_old_style_param_decl_list);
 
 return_point:
   /* Return the type name symbol to the caller. */
@@ -4644,7 +4642,11 @@ to indicate whether an enumeration is actually defined.
     /* Create a new enumerated type.  All enumeration type entries are
        allocated in the file scope memory region. */
     switch_to_file_scope_region(&region_to_switch_back_to);
-    enum_type = alloc_type((a_type_kind)tk_integer);
+    if (tag_id_present) {
+      enum_type = alloc_named_type((a_type_kind)tk_integer);
+    } else {
+      enum_type = alloc_unlinked_type((a_type_kind)tk_integer);
+    }  /* if */
     switch_back_to_original_region(region_to_switch_back_to);
     /* set_type_size is called later, once the final type is known. */
     /* Set a default representation of "int", which may be adjusted later. */
@@ -4895,12 +4897,10 @@ to indicate whether an enumeration is actually defined.
        Tags that were declared in a prototype scope were added to the
        type list at the end of the prototype scope, so do not add them
        again. */
-#if 0
     if (!prototype_tag_resolution) {
       add_to_types_list(enum_type, DEPTH_OF_FILE_SCOPE,
                         /*in_old_style_param_decl_list=*/FALSE);
     }  /* if */
-#endif /* if 0 */
     /* Switch back from the file scope memory region to whatever region
        was current upon entry. */
     switch_back_to_original_region(region_to_switch_back_to);
@@ -6212,6 +6212,7 @@ prototype scope) now that we are in the body of the function.
 }  /* reactivate_prototype_scope_symbols */
 
 
+#if 0
 static void link_param_types_into_file_scope_types_list(
                                               a_param_type_ptr param_type_list,
                                               a_scope_ptr      prototype_scope)
@@ -6256,15 +6257,14 @@ list and not linked into the file scope types list.
         }  /* if */
       }  /* for */
     }  /* if */
-#if 0
     /* The parameter type is not on the file scope or prototype scope types
        lists, so add it to the file scope types list. */
     add_to_types_list(param_type, DEPTH_OF_FILE_SCOPE,
                       /*in_old_style_param_decl_list=*/FALSE);
-#endif /* if 0 */
 done_with_param_type:;
   }  /* for */
 }  /* link_param_types_into_file_scope_types_list */
+#endif /* if 0 */
 
 
 static void function_definition(
@@ -6463,7 +6463,7 @@ explicitly specified (rather than defaulted to "int").
           decl_parameter(&(param_id->locator), &param_id->symbol);
         }  /* if */
         /* The param_type entry must be allocated in the file-scope region. */
-        ptp = alloc_param_type(param_id->type, /*at_file_scope=*/TRUE);
+        ptp = alloc_param_type(param_id->type);
         /* Add the parameter variable to the list of parameters for this
            routine.  This is done in this way so that the parameters
            will be in the order they appear in the original identifier
@@ -6505,6 +6505,7 @@ explicitly specified (rather than defaulted to "int").
         if (comp_prototyped) {
           extra_info->param_type_list = comp_param_type_list;
           extra_info->prototyped      = comp_prototyped;
+#if 0
           /* This causes a strange situation -- the types of the old-style
              parameter variables are compatible with, but not identical to, the
              types on the param_type_list.  What's worse, the types of the
@@ -6517,6 +6518,7 @@ explicitly specified (rather than defaulted to "int").
              list. */
           link_param_types_into_file_scope_types_list(old_style_param_types,
                                                   extra_info->prototype_scope);
+#endif /* if 0 */
         }  /* if */
       } else {
         /* Type of previous declaration is incompatible with the type here.
