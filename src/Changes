@@ -1,5 +1,12 @@
 Version 2.23
 
+4/20/94  Casting to a reference type using a conversion function
+
+Casting a class value to a reference to a different class, where a
+conversion function of the first class is available to do the conversion,
+now uses the conversion function.  Formerly, the code generated was
+just a pointer cast.
+
 4/20/94  Cfront layout compatibility
 
 A bug that resulted in an internal error has been fixed.  Now the data
