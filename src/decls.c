@@ -485,9 +485,16 @@ we keep scanning till the end of the declarator and return leaving both
       /* Cache and bypass the "[" and all tokens following it up to but not
          including the matching "]".  Note that what's contained within the
          brackets can't help resolve the ambiguity, so we can ignore it. */
+      a_stop_token_array  save_stop_token_array;
+
+      /* Save the current stop token state, and reinitialize it. */
+      copy_stop_tokens(stop_token_array, save_stop_token_array);
+      clear_stop_tokens();
       add_stop_token(tok_rbracket);
       cache_token_stream(token_cache_ptr);
       remove_stop_token(tok_rbracket);
+      /* Restore the stop token state. */
+      copy_stop_tokens(save_stop_token_array, stop_token_array);
       /* Bypass and cache the "]". */
       if (curr_token == tok_rbracket) {
         cache_curr_token(token_cache_ptr);
@@ -742,15 +749,10 @@ either.
 */
 {
   a_token_cache       token_cache;
-  a_stop_token_array  save_stop_token_array;
   a_boolean           may_be_decl = TRUE;
   a_boolean           may_be_expr = TRUE;
 
   db_enter(3, "f_is_decl_not_expr");
-  /* Save the current stop token state, and reinitialize it. */
-  copy_stop_tokens(stop_token_array, save_stop_token_array);
-  clear_stop_tokens();
-  add_stop_token(tok_rparen);
   /* Initialize the token cache. */
   clear_token_cache(&token_cache, /*reusable=*/FALSE);
   /* Scan forward as far as required to determine whether this is a
@@ -760,8 +762,6 @@ either.
                       real_declarator_allowed, &may_be_decl, &may_be_expr);
   /* Restore the tokens. */
   rescan_cached_tokens(&token_cache);
-  /* Restore the stop token state. */
-  copy_stop_tokens(save_stop_token_array, stop_token_array);
   db_exit();
   return may_be_decl;
 }  /* f_is_decl_not_expr */
