@@ -21,6 +21,7 @@ new.h -- Include file for C++ default operator new (see ARM 12.5).
 #else /* ifndef __EDG_RUNTIME_USES_NAMESPACES */
 #define __EDG_STD_NAMESPACE /* nothing */
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
+#endif /* ifdef __EDG_STD_NAMESPACE */
 
 
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
