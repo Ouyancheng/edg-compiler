@@ -1317,6 +1317,10 @@ do_struct_union:
       (void)printf("tk_typeref\n");
       disp_ptr("typeref_type", (char *)ptr->variant.typeref.type,
                iek_type);
+#if DO_IL_LOWERING
+      disp_ptr("orig_member_type",
+               (char *)ptr->variant.typeref.orig_member_type, iek_type);
+#endif /* DO_IL_LOWERING */
       disp_boolean("is_const", ptr->variant.typeref.is_const);
       disp_boolean("is_volatile", ptr->variant.typeref.is_volatile);
       disp_boolean("is_function_scope",
