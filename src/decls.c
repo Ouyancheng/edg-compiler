@@ -6129,7 +6129,8 @@ TRUE if an error was reported while the decl-specifiers were scanned.
          no declarator.  May or may not be in an old-style param list. */
       pos_error(ec_exp_identifier, &pos_curr_token);
     }  /* if */
-    /* Note: the missing-semicolon error is issued by the caller. */
+    /* Issue the missing-semicolon error. */
+    pos_error(ec_exp_semicolon, &pos_curr_token);
     discard_curr_construct_pragmas();
   }  /* if */
   return declarator_omitted;
@@ -6401,6 +6402,12 @@ continue_with_declaration:
       check_for_missing_declarator(dso_flags, type_ptr, storage_class,
                                    is_old_style_param_decl, extern_implied,
                                    &decl_start_pos, err)) {
+    if (curr_token != tok_semicolon) {
+      /* This must be a "dangling type specifier", and an error has already
+         been issued on the missing semicolon.  required_token is not called
+         because it would flush what is assumed to be the next declaration. */
+      goto advance_past_final_token;
+    }  /* if */
   } else if (curr_token == tok_void && C_dialect == C_dialect_pcc && 
              storage_class == (a_storage_class)sc_typedef &&
              next_token() == tok_semicolon) {
