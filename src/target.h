@@ -654,16 +654,6 @@ EXTERN a_boolean
 			/* If TRUE, template functions are given mangled names
 			   that are distinct from the names for nontemplate
 			   functions. */
-EXTERN a_boolean
-		distinct_mangling_for_specializations
-#if VAR_INITIALIZERS
-                           = DEFAULT_DISTINCT_MANGLING_FOR_SPECIALIZATIONS
-#endif /* VAR_INITIALIZERS */
-                                                     ;
-			/* If TRUE, explicit specializations are given
-			   mangled names that are distinct from the names for
-			   the corresponding compiler-generated
-			   instantiations. */
 #endif /* NEED_NAME_MANGLING */
 
 #if DO_IL_LOWERING

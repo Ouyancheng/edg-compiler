@@ -1239,23 +1239,6 @@ and a nontemplate function could satisfy the need for a template function.
 #endif /* ABI_COMPATIBILITY_VERSION < 232 || ... */
 #endif /* ifndef DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES */
 
-/*
-Default value for distinct_mangling_for_specializations.
-Controls whether the mangled name for an explicit specialization
-is different from the mangled name that the compiler-generated version
-would get.  Having a difference allows detection of certain errors
-at link time.
-*/
-#ifndef DEFAULT_DISTINCT_MANGLING_FOR_SPECIALIZATIONS
-/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
-   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
-#if ABI_COMPATIBILITY_VERSION < 232 || CFRONT_OBJECT_CODE_COMPATIBILITY
-#define DEFAULT_DISTINCT_MANGLING_FOR_SPECIALIZATIONS FALSE
-#else /* !(ABI_COMPATIBILITY_VERSION < 232 || ...) */
-#define DEFAULT_DISTINCT_MANGLING_FOR_SPECIALIZATIONS TRUE
-#endif /* ABI_COMPATIBILITY_VERSION < 232 || ... */
-#endif /* ifndef DEFAULT_DISTINCT_MANGLING_FOR_SPECIALIZATIONS */
-
 #endif /* NEED_NAME_MANGLING */
 
 #if DO_IL_LOWERING
