@@ -1,5 +1,19 @@
 Version 2.46
 
+1/25/01  Microsoft compatibility: __declspec specifiers on enum definitions
+
+In Microsoft mode, the front end now accepts the same __declspec specifiers
+on enum definitions as on class definitions.  IL CHANGE: Only the uuid variant
+of these extended specifiers is recorded in the IL however.
+For example:
+
+  enum __declspec(dllexport) E {};  // Accepted but the dllexport attribute
+                                    // is not recorded
+  enum __declspec(uuid("11111111-1111-1111-1111-111111111111") E;
+                                    // Accepted and uuid string is recorded
+  enum __declspec(uuid("22222222-2222-2222-2222-222222222222") E {};
+                                    // Error: incompatible uuid specifier
+
 1/25/01  Performance bug in module-id routine
 
 A bug in the routine that generates the module-id caused it to loop
@@ -379,15 +393,6 @@ example below.  [Patch sent out 1/23/01.]
       f();  // A<int>::f is visible
     }
   };
-
-1/12/01  Microsoft compatibility: __declspec specifiers on enum definitions
-
-In Microsoft mode, the front end now accepts (but discards) the same
-__declspec specifiers on enum definitions as on class definitions.
-For example:
-
-enum __declspec(dllexport) E {};  // Accepted but the dllexport attribute is
-                                  // not recorded in the IL
 
 1/11/01  Microsoft compatibility: name lookup in templates defined outside
          of their namespace

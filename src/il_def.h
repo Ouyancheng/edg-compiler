@@ -3984,6 +3984,12 @@ typedef struct a_type {
 			   to suppress conversion warnings.  Always NULL
 			   in C++. */
       } enum_info;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      char
+		*uuid_string;
+			/* Pointer to a character string representing the
+			   argument of a uuid decl-modifier (enums only). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
     } integer;
     /* When kind == tk_float: */

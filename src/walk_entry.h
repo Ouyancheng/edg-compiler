@@ -754,6 +754,10 @@ the file scope, do not process it (but record an orphan in the latter case).
               walk_ptr(ptr->variant.integer.enum_info.affiliated_type,
                        a_type_ptr, iek_type);
             }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            walk_string_ptr(ptr->variant.integer.uuid_string,
+                            iek_other_text, 0);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
             break;
           case tk_pointer:

@@ -2442,11 +2442,17 @@ or enum.
     if (type->first_declaration_pending) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-      if (il_header.source_language == sl_Cplusplus &&
-          type->kind != (a_type_kind)tk_enum) {
-        /* On the first declaration put out declaration modifiers that apply
-           to the class as a whole. */
-        gen_microsoft_class_decl_modifiers(type);
+      if (il_header.source_language == sl_Cplusplus) {
+        if (type->kind != (a_type_kind)tk_enum) {
+          /* On the first declaration put out declaration modifiers that apply
+             to the class as a whole. */
+          gen_microsoft_class_decl_modifiers(type);
+        } else {
+           /* For enums we may have to issue a uuid string. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+           gen_microsoft_uuid_declspec(type->variant.integer.uuid_string);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        }  /* if */
       }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3059,6 +3065,12 @@ is the one associated with the definition of the enum.
   /* Put out the name if the enum is named.  In C mode, invent a name for
      an unnamed enum because it may be needed for casts to enum types defined
      in prototype scopes. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (type->variant.integer.uuid_string != NULL) {
+    write_space();
+    gen_microsoft_uuid_declspec(type->variant.integer.uuid_string);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (has_name(type) || il_header.source_language == sl_C) {
     write_space();
     gen_name(&type->source_corresp, iek_type, GN_DECLARATION,

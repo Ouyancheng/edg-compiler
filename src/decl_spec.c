@@ -2520,29 +2520,32 @@ whether or not this specifier declares something, and *defines_something
 to indicate whether an enumeration is actually defined.
 */
 {
-  a_symbol_locator         locator;
-  a_symbol_ptr             tag_sym;
-  a_boolean                tag_id_present;
-  a_type_ptr               enum_type;
-  a_type_ptr               enum_con_type;
-  a_symbol_ptr             enum_sym;
-  a_constant               constant;
-  a_boolean                err, did_not_fold, template_param;
-  a_constant_ptr           enum_con;
-  a_constant_ptr           end_of_enum_con_list;
-  a_constant               max_value, min_value;
-  a_boolean                done, min_max_set;
-  a_source_position        pos_comma;
-  a_memory_region_number   region_to_switch_back_to;
-  a_type_ptr               class_of_which_a_member;
-  an_access_specifier      access;
-  a_scope_depth            effective_decl_level = decl_scope_level;
-  a_boolean                inside_class_definition;
-  a_boolean                is_redeclaration;
-  a_boolean                namespace_extension_pushed = FALSE;
-  a_source_position        tag_position;
-  a_decl_pos_block         local_decl_pos_block;
-  a_boolean                is_predeclared_type_decl = FALSE;
+  a_symbol_locator             locator;
+  a_symbol_ptr                 tag_sym;
+  a_boolean                    tag_id_present;
+  a_type_ptr                   enum_type;
+  a_type_ptr                   enum_con_type;
+  a_symbol_ptr                 enum_sym;
+  a_constant                   constant;
+  a_boolean                    err, did_not_fold, template_param;
+  a_constant_ptr               enum_con;
+  a_constant_ptr               end_of_enum_con_list;
+  a_constant                   max_value, min_value;
+  a_boolean                    done, min_max_set;
+  a_source_position            pos_comma;
+  a_memory_region_number       region_to_switch_back_to;
+  a_type_ptr                   class_of_which_a_member;
+  an_access_specifier          access;
+  a_scope_depth                effective_decl_level = decl_scope_level;
+  a_boolean                    inside_class_definition;
+  a_boolean                    is_redeclaration;
+  a_boolean                    namespace_extension_pushed = FALSE;
+  a_source_position            tag_position;
+  a_decl_pos_block             local_decl_pos_block;
+  a_boolean                    is_predeclared_type_decl = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_extended_decl_info_block  extended_decl_info;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "enum_specifier");
 
@@ -2566,17 +2569,16 @@ to indicate whether an enumeration is actually defined.
   check_assertion(curr_token == tok_enum);
   (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (!C_mode() && microsoft_mode) {
-      a_boolean                    local_err;
-      an_extended_decl_info_block  extended_decl_info;
+  if (!C_mode() && microsoft_mode) {
+    a_boolean                    local_err;
 
-      /* Scan any __declspec decl-modifiers "as if" this were a class (even
-         though they are ignored for enum types). */
-      clear_extended_decl_info_block(extended_decl_info);
-      scan_extended_decl_modifiers(/*is_class_decl=*/TRUE,
-                                   /*is_member_decl=*/FALSE,
-                                   &extended_decl_info, &local_err);
-    }  /* if */
+    /* Scan any __declspec decl-modifiers "as if" this were a class (even
+       though they are ignored for enum types). */
+    clear_extended_decl_info_block(extended_decl_info);
+    scan_extended_decl_modifiers(/*is_class_decl=*/TRUE,
+                                 /*is_member_decl=*/FALSE,
+                                 &extended_decl_info, &local_err);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If there is an identifier next, it is a tag.  It can be the declaration
      of a new tag or a reference to an existing tag. */
@@ -2790,6 +2792,23 @@ to indicate whether an enumeration is actually defined.
       *declares_something = FALSE;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (extended_decl_info.decl_modifiers.uuid_string != NULL) {
+    if (enum_type->variant.integer.uuid_string != NULL) {
+      /* Issue an error if __declspec(uuid(...)) strings are present and
+         they aren't identical. */
+      if (strcmp(enum_type->variant.integer.uuid_string,
+                 extended_decl_info.decl_modifiers.uuid_string) != 0) {
+        pos_diagnostic(es_discretionary_error,
+                       ec_decl_modifiers_incompatible_with_previous_decl,
+                       &tag_position);
+      }  /* if */
+    } else {
+      enum_type->variant.integer.uuid_string =
+                                extended_decl_info.decl_modifiers.uuid_string;
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (curr_token == tok_lbrace) {
     /* We associate a curr-construct pragma with this enum type only if this
        is a definition.  Otherwise this is assumed to be part of a declaration

@@ -1011,6 +1011,7 @@ to default values.
       pte->variant.integer.bool_type = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.integer.microsoft_sized_int_type = FALSE;
+      pte->variant.integer.uuid_string = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
       pte->variant.integer.avoid_codecenter_warnings = 0;
