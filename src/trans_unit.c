@@ -190,9 +190,12 @@ Make the translation unit specified by "tup" the current translation unit.
 */
 {
   check_assertion(curr_translation_unit != NULL);
-  save_translation_unit_state(curr_translation_unit);
-  restore_translation_unit_state(tup);
-  curr_translation_unit = tup;
+  if (tup != curr_translation_unit) {
+    /* Only switch if the current translation unit is not the one desired. */
+    save_translation_unit_state(curr_translation_unit);
+    restore_translation_unit_state(tup);
+    curr_translation_unit = tup;
+  }  /* if */
 }  /* switch_translation_unit */
 
 
