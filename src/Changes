@@ -1,5 +1,22 @@
 Version 2.31
 
+12/22/95  Access checking in instantiation pragmas
+
+Access checking should be suppressed when scanning instantiation pragmas.
+This was done some time ago for pragmas that have the form of a function
+declaration, but not for those that accept a simple name.  Access
+checking is now suppressed for all instantiation pragmas.
+
+  template <class T> class X {
+    void f();
+  };
+  template <class T> void X<T>::f() {}
+  class Y {
+    private:
+    struct Z {};
+  };
+  #pragma instantiate X<Y::Z>  // Now accepted
+
 12/22/95  Nonstandard anonymous unions in C mode
 
 Incorrect source-sequence information was being generated for the following
