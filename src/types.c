@@ -2588,7 +2588,12 @@ for more information.
                                                           parent.class_type));
                 }  /* if */
                 break;
-              case tptk_unknown: /* Should never happen. */
+              case tptk_unknown:
+                /* Two unknown types.  This should only occur when comparing
+                   the unknown types of two different translation units.
+                   Consider them to be the same. */
+                identical = TRUE;
+                break;
               default:
                 unexpected_condition_str
                              ("f_identical_types: bad templ param type kind");
