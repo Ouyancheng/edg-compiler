@@ -9494,8 +9494,11 @@ continue_with_declaration:
       }  /* if */
       declarator(di_flags, &do_flags, type_ptr, 
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
-                 &local_type_ptr, &bottom_derived_type, &func_info);
-      is_function = is_function_type(local_type_ptr);
+                 &local_type_ptr, &bottom_derived_type,
+                 storage_class == (a_storage_class)sc_typedef ?
+                              (a_func_info_block *)NULL : &func_info);
+      is_function = (storage_class != (a_storage_class)sc_typedef &&
+                     is_function_type(local_type_ptr));
       is_main_function = FALSE;
       if (is_function && !is_error_locator(locator) &&
           locator.symbol_header->identifier != NULL &&
