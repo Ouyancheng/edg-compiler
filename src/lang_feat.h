@@ -77,6 +77,19 @@ features (e.g., suffixes for constants) are allowed.
 */
 #define LONG_LONG_ALLOWED TRUE
 
+/*
+Flag that is TRUE if pointers to incomplete arrays should be allowed
+in pointer addition and subtraction operations, e.g.,
+
+  int (*p)[];
+  ...
+  p[0];
+
+If this is turned on, the back end must be able to deal with the
+resultant operations on pointers to zero-length types.
+*/
+#define PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED FALSE
+
 #endif /* ifndef LANG_FEAT_H */
 
 

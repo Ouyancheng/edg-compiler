@@ -1,5 +1,13 @@
 Version 2.12
 
+11/10/92 Pointers to incomplete arrays allowed in pointer operations
+
+When the configuration flag PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED is
+TRUE (and it is FALSE by default), pointers to incomplete arrays are
+allowed in pointer addition, subtraction, and subscripting.  If the
+flag is turned on, the back end must be able to deal with the
+resultant operations on pointers to zero-length types.
+
 11/10/92 C-generating back end temporaries in proper scope
 
 The C-generating back end now generates temporaries in the scope in

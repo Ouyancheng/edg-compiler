@@ -514,9 +514,18 @@ Syntax:
         copy_operand(&operand_temp, &operand_2);
       }  /* if */
 
-      /* The first operand must be a pointer. */
-      if (check_object_pointer_operand
-                                  (operand_1, ec_expr_not_pointer_to_object)) {
+      /* The first operand must be a pointer to object. */
+      if (
+#if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
+          /* Pointer to incomplete array is also allowed. */
+          check_object_or_incomp_array_pointer_operand(operand_1,
+                                                 ec_expr_not_pointer_to_object,
+                                                       &operand_2)
+#else /* !PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
+          check_object_pointer_operand(operand_1,
+                                       ec_expr_not_pointer_to_object)
+#endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
+                                                                            ) {
         result_type = type_pointed_to(operand_1->type);
       } else {
         result_type = error_type();
@@ -4750,13 +4759,10 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
     /* Non-operator-function cases. */
     /* The first operand must be arithmetic or a pointer. */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS, expression_kind);
+    operand_1_is_pointer = FALSE;
     if (is_arithmetic_type(operand_1->type)) {
-      operand_1_is_pointer = FALSE;
+      /* Okay. */
     } else if (check_pointer_operand(operand_1, ec_expr_not_scalar)) {
-      /* If the first operand is a pointer, it must be a pointer to an
-         object. */
-      (void)check_object_pointer_operand(operand_1,
-                                         ec_expr_not_pointer_to_object);
       operand_1_is_pointer = TRUE;
     }  /* if */
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS, expression_kind);
@@ -4767,6 +4773,16 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       /* Operand 1 has pointer type. */
       if (is_integral_type(operand_2.type)) {
         /* Pointer +- integral. */
+        /* The first operand must be a pointer to an object. */
+#if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
+        /* Pointer to incomplete array is also allowed. */
+        (void)check_object_or_incomp_array_pointer_operand(operand_1,
+                                                 ec_expr_not_pointer_to_object,
+                                                           &operand_2);
+#else /* !PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
+        (void)check_object_pointer_operand(operand_1,
+                                           ec_expr_not_pointer_to_object);
+#endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
         /* The result type is the same as the pointer type in operand 1. */
         result_type = operation_type = operand_1->type;
       } else if (save_token == tok_minus && is_pointer_type(operand_2.type)) {
@@ -4776,6 +4792,9 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
            unqualified members of compatible object types (ANSI C 3.3.6).
            In C++, the standard pointer conversions are also done
            (ARM 4.6, 5.7). */
+        /* The first operand must be a pointer to an object. */
+        (void)check_object_pointer_operand(operand_1,
+                                           ec_expr_not_pointer_to_object);
         if (check_compatibility_of_pointer_operands(
                            operand_1, &operand_2, &operator_position,
                            /*pointer_normalization_standard_in_C=*/FALSE,
@@ -4799,11 +4818,18 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                is_pointer_type(operand_2.type) &&
                is_integral_type(operand_1->type)) {
       /* Integral + pointer. */
-      /* The result type is the same as the pointer type in operand 2. */
-      result_type = operation_type = operand_2.type;
-      /* The pointer operand must be a pointer to an object. */
+      /* The second operand must be a pointer to an object. */
+#if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
+      /* Pointer to incomplete array is also allowed. */
+      (void)check_object_or_incomp_array_pointer_operand(&operand_2,
+                                                 ec_expr_not_pointer_to_object,
+                                                         operand_1);
+#else /* !PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
       (void)check_object_pointer_operand(&operand_2,
                                          ec_expr_not_pointer_to_object);
+#endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
+      /* The result type is the same as the pointer type in operand 2. */
+      result_type = operation_type = operand_2.type;
       /* Reverse the operands so that the pointer is always first. */
       copy_operand(operand_1, &operand_temp);
       copy_operand(&operand_2, operand_1);
@@ -4994,8 +5020,9 @@ standard.
     /* Non-operator-function cases. */
     /* The first operand must be arithmetic or a pointer. */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS, expression_kind);
+    operand_1_is_pointer = FALSE;
     if (is_arithmetic_type(operand_1->type)) {
-      operand_1_is_pointer = FALSE;
+      /* Okay. */
     } else if (check_pointer_operand(operand_1, ec_expr_not_scalar)) {
       operand_1_is_pointer = TRUE;
     }  /* if */

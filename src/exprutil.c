@@ -2188,11 +2188,7 @@ See section 3.1.2.5 of the standard.
   a_boolean  okay = TRUE;
   a_type_ptr underlying_type;
 
-  if (is_error_operand(operand)) {
-    /* If the operand has a type of error, an error message has already been
-       issued. */
-    okay = FALSE;
-  } else if (!check_pointer_operand(operand, err_code)) {
+  if (!check_pointer_operand(operand, err_code)) {
     okay = FALSE;
   } else {
     /* Instantiate the underlying type if it is a template class. */
@@ -2203,10 +2199,56 @@ See section 3.1.2.5 of the standard.
       okay = FALSE;
     }  /* if */
   }  /* if */
-
   return okay;
 }  /* check_object_pointer_operand */
 
+#if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
+
+a_boolean check_object_or_incomp_array_pointer_operand(an_operand    *operand,
+                                                       an_error_code err_code,
+                                                       an_operand    *otherop)
+/*
+Return FALSE and issue an error message if the operand is not a pointer to
+object or incomplete array.  If there is an error, change "operand" to an
+error operand.  See section 3.1.2.5 of the standard.  If the operand is
+a pointer to incomplete array, issue a remark if otherop is a constant
+zero, a warning otherwise.  Do not accept the pointer to incomplete
+array case in strict ANSI mode.
+*/
+{
+  a_boolean  okay = TRUE;
+  a_type_ptr underlying_type;
+
+  if (!check_pointer_operand(operand, err_code)) {
+    okay = FALSE;
+  } else {
+    underlying_type = type_pointed_to(operand->type);
+    /* Instantiate the underlying type if it is a template class. */
+    check_for_uninstantiated_template_class(underlying_type);
+    if (is_object_type(underlying_type)) {
+      /* okay = TRUE; -- Already set. */
+    } else if ((!strict_ansi_mode ||
+               strict_ansi_error_severity == es_warning) &&
+               is_array_type(underlying_type) &&
+               is_incomplete_type(underlying_type)) {
+      /* Pointer to incomplete array.  If the other operand (the one being
+         combined with the pointer) is a constant zero, issue a remark
+         (that's a case like p[0]); otherwise, issue a warning. */
+      if (op_is_zero_constant(otherop) && !strict_ansi_mode) {
+        pos_remark(err_code, &operand->position);
+      } else {
+        pos_warning(err_code, &operand->position);
+      }  /* if */
+    } else {
+      /* A pointer, but not a valid pointer. */
+      error_in_operand(err_code, operand);
+      okay = FALSE;
+    }  /* if */
+  }  /* if */
+  return okay;
+}  /* check_object_or_incomp_pointer_operand */
+
+#endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
 
 a_boolean check_function_pointer_operand(an_operand *operand)
 /*
