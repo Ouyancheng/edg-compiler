@@ -431,7 +431,8 @@ flags cleared.  Note that this happens even if no hiding had occurred.
     hnp = make_new_hidden_name(sp);
     hnp->entity.ptr = il_entry_for_symbol(sym_ptr, &entity_kind);
     hnp->entity.kind = (a_byte_il_entry_kind)entity_kind;
-  } else if (sp->kind == (a_scope_kind)sck_block) {
+  } else if (sp->kind == (a_scope_kind)sck_function ||
+             sp->kind == (a_scope_kind)sck_block) {
     /* A block extern declaration makes the associated entity accessible
        without qualification.  A new hidden name entry will override any
        previous entry that might have imposed qualification. */
@@ -451,6 +452,13 @@ flags cleared.  Note that this happens even if no hiding had occurred.
         hnp->entity.ptr = il_entry_for_symbol(sym_ptr, &entity_kind);
         hnp->entity.kind = (a_byte_il_entry_kind)entity_kind;
       }  /* if */
+    } else if (sym_ptr->kind == (a_symbol_kind)sk_overloaded_function) {
+      /* Each member of the overload set must be separately "unhidden". */
+      a_symbol_ptr  overload_item =
+                                 sym_ptr->variant.overloaded_function.symbols;
+      for (; overload_item != NULL; overload_item = overload_item->next) {
+        check_name_unhiding(overload_item, sp);
+      }  /* for */
     }  /* if */
   }  /* if */
 #if DEBUG
