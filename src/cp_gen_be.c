@@ -288,15 +288,12 @@ sequence entries.
         /* End of the entire source sequence list. */
         break;
       }  /* if */
-    } else if (ss_entry_kind(curr_source_sequence_entry) ==
-                                                         iek_src_seq_sublist) {
+    } else if (is_sublist_parent(curr_source_sequence_entry)) {
       /* This entry points from the function scope memory region to a
          segment of the source sequence list that is in the file scope memory
          region.  Go there, but remember how to get back. */
-      a_src_seq_sublist_ptr sssp;
+      a_src_seq_sublist_ptr sssp= assoc_sublist_of(curr_source_sequence_entry);
       sublist_parent_source_sequence_entry = curr_source_sequence_entry;
-      sssp = ss_entry_ptr(sublist_parent_source_sequence_entry,
-                          a_src_seq_sublist_ptr);
       curr_source_sequence_entry = sssp->source_sequence_list;
       /* Keep looping. */
 #if 0
