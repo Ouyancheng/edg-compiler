@@ -4472,10 +4472,12 @@ thrown away by the caller.
     if (!after_copy) {
       set_routine_defined(routine);
     } else {
+#if MAINTAIN_NEEDED_FLAGS
       /* For a function copied from a secondary translation unit,
          the defined flag is already set.  Sweep the definition if
          necessary. */
       remark_routine_definition_needed(routine);
+#endif /* MAINTAIN_NEEDED_FLAGS */
     }  /* if */
   }  /* if */
 }  /* finish_function_body_processing */
