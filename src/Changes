@@ -1,5 +1,20 @@
 Version 2.37
 
+7/26/97   Explicit cast of overloaded function of derived class to
+          pointer-to-member of base class selects matching function
+
+An explicit cast of an overloaded member function name of a derived
+class to a pointer-to-member of a base class thereof now selects
+the proper function out of the overload set.
+
+  struct A {};
+  struct B : public A {
+    void f();
+    void f(int);
+  };
+  typedef void (A::*pmf)(void);
+  pmf pfn = (pmf)&B::f;
+
 7/26/97   In static_cast of T1 Derived::* to T2 Base::*, T1 must be T2
 
 The processing for static_cast for pointers-to-members has been slightly

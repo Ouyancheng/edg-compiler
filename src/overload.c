@@ -72,6 +72,7 @@ Clear a conversion description.
 a_symbol_ptr find_addr_of_overloaded_function_match(
                                                a_symbol_ptr       ovl_sym,
                                                a_type_ptr         dest_type,
+                                               a_boolean          is_cast,
                                                an_arg_match_level *match_level,
                                                a_std_conv_descr   *std_conv,
                                                a_boolean          *ambiguous)
@@ -84,8 +85,9 @@ a pointer to that function's symbol (possibly a projection symbol);
 otherwise, return NULL.  Also set *match_level to indicate whether or not
 any conversion is needed after the coercion to a specific function pointer
 and set *std_conv to indicate any such conversion.  If more than one function
-matches, return NULL and *ambiguous TRUE.  See ARM 13.3, "Address of
-Overloaded Function".
+matches, return NULL and *ambiguous TRUE.  See WP [over.over], and ARM 13.3,
+"Address of Overloaded Function".  If is_cast is TRUE, this disambiguation
+is being done via an explicit cast.
 */
 {
   a_boolean        is_ptr = FALSE, is_ref = FALSE, is_ptr_to_member = FALSE;
@@ -245,14 +247,29 @@ Overloaded Function".
                                                     sym->parent.class_type);
             }  /* if */
           }  /* if */
+          /* See if the type of the function can be converted to the required
+             destination type.  For the explicit cast case, use
+             static_cast_conversion_possible to find cases of a
+             pointer-to-member of a derived class cast to a pointer-to-member
+             of a base class.  expl_conversion_possible would be too broad
+             because it would also allow changing the member type. */
           if (ptr_routine_type != NULL &&
-              impl_conversion_possible(ptr_routine_type,
-                                       /*source_is_constant=*/FALSE,
-                                       (a_constant_ptr)NULL,
-                                       dest_type,
-                                       /*suppress_extensions=*/TRUE,
-                                       ec_no_error,
-                                       &std_conversion)) {
+              is_cast ?
+                (clear_std_conv_descr(&std_conversion),
+                 static_cast_conversion_possible(ptr_routine_type,
+                                                 /*source_is_constant=*/FALSE,
+                                                 (a_constant_ptr)NULL,
+                                                 dest_type,
+                                                 ec_no_error,
+                                                 &std_conversion.
+                                                          warning_suggested)) :
+                impl_conversion_possible(ptr_routine_type,
+                                         /*source_is_constant=*/FALSE,
+                                         (a_constant_ptr)NULL,
+                                         dest_type,
+                                         /*suppress_extensions=*/TRUE,
+                                         ec_no_error,
+                                         &std_conversion)) {
             /* A match. */
             match_sym = proj_sym;
             *match_level = aml_std_conversion;
@@ -1415,6 +1432,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
          must be a function designator. */
       if (find_addr_of_overloaded_function_match(arg_operand->variant.symbol,
                                                  orig_param_type,
+                                                 /*is_cast=*/FALSE,
                                                  &arg_summary->match_level,
                                                  &std_conversion,
                                                  &ambiguous) != NULL ||
@@ -6819,6 +6837,7 @@ rewritten) for use in error messages.
       if (find_addr_of_overloaded_function_match(
                                            source_operand->variant.symbol,
                                            dest_type,
+                                           /*is_cast=*/FALSE,
                                            &match_level,
                                            &std_conversion,
                                            &ambiguous) != NULL) {
@@ -8008,6 +8027,7 @@ direct binding is "possible" and not whether it is "valid".
     *function_symbol =
         find_addr_of_overloaded_function_match(source_operand->variant.symbol,
                                                dest_type,
+                                               /*is_cast=*/FALSE,
                                                &match_level,
                                                &std_conversion,
                                                &ambiguous);

@@ -1860,7 +1860,8 @@ is TRUE, those related class casts are not checked for.
              related_member_pointers(old_type, new_type, &baseward_cast,
                                      &bcp)) {
     /* C++ cast from pointer-to-member to
-       pointer-to-member-of-related-class. */
+       pointer-to-member-of-related-class.  Note that the underlying
+       member types may be different. */
     if (baseward_cast) {
       /* Derived --> base (allowed only as an explicit cast).  Valid unless
          the cast is ambiguous. */
@@ -2085,6 +2086,8 @@ user-defined conversions.
           function_symbol = find_addr_of_overloaded_function_match(
                                                     overloaded_function_symbol,
                                                     new_type,
+                                                    /*is_cast=*/
+                                                             !is_implicit_cast,
                                                     &match_level,
                                                     &std_conversion,
                                                     &ambiguous);

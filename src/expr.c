@@ -6105,6 +6105,7 @@ to select one of the functions in the overload set.  See [over.over].
 
   if (find_addr_of_overloaded_function_match(operand->variant.symbol,
                                              type_cast_to,
+                                             /*is_cast=*/TRUE,
                                              &match_level,
                                              &std_conversion,
                                              &ambiguous) != NULL) {
