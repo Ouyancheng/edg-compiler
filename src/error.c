@@ -1061,6 +1061,11 @@ declaration position to eliminate redundant file names in a diagnostic.
     case sk_namespace:
       entity_kind = "namespace ";
       goto symbol_name;
+#if NAMED_REGISTERS_ALLOWED
+    case sk_named_register:
+      entity_kind = "named register ";
+      goto symbol_name;
+#endif /* NAMED_REGISTERS_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
     case sk_named_address_space:
       entity_kind = "named address space ";

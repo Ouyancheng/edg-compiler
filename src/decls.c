@@ -217,6 +217,31 @@ expression is permitted.
   return(is_start);
 }  /* is_type_start */
 
+#if NAMED_REGISTERS_ALLOWED
+
+a_boolean curr_id_is_named_register_specifier(void)
+/*
+The current token is an identifier.  Return TRUE if and only if it stands for
+an Embedded C (ISO/IEC TR 18037) named register.
+*/
+{
+  a_boolean  result = FALSE;
+
+  check_assertion(curr_token == tok_identifier);
+  if (named_registers_enabled) {
+    /* Use IDL_TENTATIVE_TYPE_LOOKUP to avoid warnings generated for the
+       the "out-of-scope lookup" feature (carried over from SVR4 C to other
+       nonstrict C modes). */
+    a_symbol_ptr  sym = normal_id_lookup(&locator_for_curr_id,
+                                         IDL_TENTATIVE_TYPE_LOOKUP);
+    if (sym != NULL && sym->kind == (a_symbol_kind)sk_named_register) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* curr_id_is_named_register_specifier */
+
+#endif /* NAMED_REGISTERS_ALLOWED */
 
 a_boolean is_decl_start(a_boolean  expr_context,
                         a_boolean  real_declarator_allowed)
@@ -258,6 +283,16 @@ optimization is suppressed.
        If the lexical sequence suggests that this is a declaration even
        though the current identifier is not defined (and therefore not
        recognized as a type name), call it a declaration anyway. */
+#if NAMED_REGISTERS_ALLOWED
+    if (named_registers_enabled && curr_id_is_named_register_specifier()) {
+      /* A named register storage class specifiers should not normally
+         appear as the first token of a declaration (since it always must
+         be preceded by the keyword "register") but for error recovery
+         purposes it is more convenient to assume a declaration is being
+         started. */
+      is_start = TRUE;
+    } else
+#endif /* NAMED_REGISTERS_ALLOWED */
     if (!real_declarator_allowed) {
       /* With a sizeof or cast operation, real_declarator_allowed will come
          in as FALSE.  There's no point in looking ahead in such cases:
