@@ -6616,6 +6616,7 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
     set_variable_address_constant(var, &constant,
                                   /*set_address_taken_flag=*/TRUE);
   }  /* if */
+#if ABI_COMPATIBILITY_VERSION >= 241
   desired_type_node = alloc_node_for_constant(&constant);
   /* Make the static_type argument. */
   set_variable_address_constant(make_typeinfo_var(
@@ -6623,10 +6624,13 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
                                 &constant,
                                 /*set_address_taken_flag=*/TRUE);
   static_type_node = alloc_node_for_constant(&constant);
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
   /* Link the arguments together. */
   src_copy->next = vptr_expr;
   vptr_expr->next = desired_type_node;
+#if ABI_COMPATIBILITY_VERSION >= 241
   desired_type_node->next = static_type_node;
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
   /* Generate the proper call. */
   if (reference_case) {
     call_node = make_runtime_rout_call("__dynamic_cast_ref",
