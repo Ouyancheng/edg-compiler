@@ -1065,7 +1065,7 @@ Change the indicated narrow string literal into a wide string literal.
   a_targ_size_t narrow_str_len = con->variant.string.length;
   char          *narrow_str = con->variant.string.value;
   a_targ_size_t wide_str_len = narrow_str_len * targ_sizeof_wchar_t;
-  char          *wide_str = alloc_text_of_string_literal(wide_str_len);
+  char          *wide_str=alloc_text_of_string_literal((sizeof_t)wide_str_len);
   char          *wide_ptr = wide_str;
   a_targ_size_t i;
 

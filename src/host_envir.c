@@ -2652,7 +2652,7 @@ the data will be local.  This is used to map a section of a PCH
 file to a memory region.
 */
 {
-  int		fd = fileno(file);
+  int		fd = fileno(file); /*lint !e718 !e746*/
   a_void_ptr	result_addr;
   int		mmap_flags = MAP_FIXED;
 

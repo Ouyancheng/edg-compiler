@@ -1202,9 +1202,9 @@ Syntax:
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean         ignore_call = FALSE;
   a_boolean         saved_evaluated, saved_potentially_evaluated;
+  a_boolean         call_folded_to_constant = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean         call_may_be_folded = FALSE;
-  a_boolean         call_folded_to_constant = FALSE;
 
   db_enter(4, "scan_function_call");
 

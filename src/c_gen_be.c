@@ -881,22 +881,22 @@ digit5:
   digit = (unsigned int)(num/10000);
   digitch = (char)(digit + '0');
   m_write_ch(digitch);
-  num = num - digit*10000;
+  num = num - digit*10000; /*lint !e647*/
 digit4:
   digit = (unsigned int)(num/1000);
   digitch = (char)(digit + '0');
   m_write_ch(digitch);
-  num = num - digit*1000;
+  num = num - digit*1000; /*lint !e647*/
 digit3:
   digit = (unsigned int)(num/100);
   digitch = (char)(digit + '0');
   m_write_ch(digitch);
-  num = num - digit*100;
+  num = num - digit*100; /*lint !e647*/
 digit2:
   digit = (unsigned int)(num/10);
   digitch = (char)(digit + '0');
   m_write_ch(digitch);
-  num = num - digit*10;
+  num = num - digit*10; /*lint !e647*/
 digit1:
   digitch = (char)(num + '0');
   m_write_ch(digitch);
@@ -2677,7 +2677,7 @@ Return the byte offset following the end of the indicated field.
     offset_after = field->offset + (targ_char_bit - 1 + 
                                     field->declared_bit_size +
                                     field->offset_bit_remainder) /
-                                                                 targ_char_bit;
+                                                  targ_char_bit; /*lint !e776*/
   }  /* if */
   return offset_after;
 }  /* offset_after_field */
