@@ -1369,9 +1369,19 @@ subobject_type are considered in addition to direct bases.
   /* If the subobject is an array, get the (ultimate) element type. */
   if (array_subobject && emulate_gnu_abi_bugs) {
     /* Early GNU implementations of the IA-64 class layout algorithm ignore
-       conflicts with array subobjects. */
-    goto done;
-  } else if (array_subobject && !has_unknown_specified_bound(subobject_type)) {
+       conflicts with array subobjects that have a dimension equal to 1. */
+    a_type_ptr  element_type = skip_typerefs(subobject_type);
+    do {
+      if (has_unknown_specified_bound(element_type)) {
+        break;
+      } else if (element_type->variant.array.variant.number_of_elements == 1) {
+        goto done;
+      } else {
+        element_type = skip_typerefs(element_type->variant.array.element_type);
+      }  /* if */
+    } while (is_array_type(element_type));
+  } /* if */
+  if (array_subobject && !has_unknown_specified_bound(subobject_type)) {
     num_array_elts = num_array_elements(subobject_type);
     subobject_type = underlying_array_element_type(subobject_type);
   } else {
