@@ -656,8 +656,8 @@ might not be able to if the template itself has not yet been defined.
       ++(tssp->pending_instantiations);
       cssp->instantiation_in_progress = TRUE;
 #if DEBUG
-      if (debug_level >= 3) {
-        fprintf(f_debug, "instantiating: ");
+      if (debug_level >= 3 || db_flag_is_set("instantiations")) {
+        fprintf(f_debug, "Beginning full instantiation of: ");
         db_type(class_type);
         db_symbol(template_sym, "\nbased on: ", 2);
       }  /* if */
@@ -1428,8 +1428,8 @@ included in the search.
       update_befriending_classes_for_class(tssp, class_type);
     }  /* if */
 #if DEBUG
-    if (debug_level >= 3) {
-      db_symbol(sym, "created: ", 2);
+    if (debug_level >= 3 || db_flag_is_set("instantiations")) {
+      db_symbol(sym, "Partial instantiation of: ", 2);
       db_symbol(class_template_sym, "template: ", 2);
     }  /* if */
 #endif /* DEBUG */
@@ -3537,9 +3537,18 @@ static a_boolean class_template_declaration
 				  a_type_ptr           *new_type,
 				  a_boolean            *defines_something)
 /*
-If this turns out to be a class template declaration, scan it and return
-TRUE, setting *p_sym_ptr to the class template symbol.  If it is not a class
-declaration, return FALSE.  If a class template had been declared previously
+The beginning of a template declaration or definition has been scanned,
+e.g.,
+
+  template <class T> struct A { ... };
+                    ^current position is here
+
+Examine the next part of the template declararation to determine whether
+this is a class template declaration or something else.  If this turns out
+to be a class template declaration, scan it and return TRUE, setting
+*p_sym_ptr to the class template symbol.  If it is not a class template
+declaration (e.g., it's a function template declaration or definition),
+return FALSE.  If a class template had been declared previously
 but not defined, and this is a defining declaration, return *resolution
 TRUE.  In addition, if this is a defining declaration, cache all the tokens
 that make up the declaration and do a prototype instantiation.
@@ -3755,6 +3764,8 @@ that make up the declaration and do a prototype instantiation.
       *defines_something = TRUE;
       if (!in_prototype_instantiation && sym != NULL) {
         mark_defined(sym, &locator.source_position);
+        /* Create the symbol for the prototype instantiation (but don't do
+           the instantation yet). */
         prototype_sym = make_template_class_symbol(sym, &sym->decl_position);
         /* Add the new symbol to the head of the instantiation list. */
         prototype_sym->next = tssp->variant.class_template.instantiations;
