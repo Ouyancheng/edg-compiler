@@ -1242,6 +1242,9 @@ to the secondary translation unit.
   /* Visit all types. */
   prev_type = NULL;
   for (type = scope->types; type != NULL; type = type->next) {
+#if DEBUG
+    a_type_ptr trace_type = type;
+#endif /* DEBUG */
     check_correspondences(&type->source_corresp, iek_type);
     keep_on_list = TRUE;
     if (is_immediate_class_type(type) &&
@@ -1263,6 +1266,9 @@ to the secondary translation unit.
         ref_type = ref_type->variant.typeref.type;
       } while (ref_type->kind == (a_type_kind)tk_typeref &&
                !typeref_is_typedef(ref_type));
+#if DEBUG
+      trace_type = ref_type;
+#endif /* DEBUG */
       keep_on_list = entry_should_be_kept(ref_type);
     } else if (entry_should_be_copied(type)) {
       /* The type doesn't exist in the primary IL, and just gets copied
@@ -1294,7 +1300,7 @@ to the secondary translation unit.
       corresp_type->used_in_exception_or_rtti = TRUE;
     }  /* if */
 #if DEBUG
-    if (db_trace("trans_copy", type, iek_type)) {
+    if (db_trace("trans_copy", trace_type, iek_type)) {
       fprintf(f_debug, "prepare_for_trans_unit_copy, ");
       fprintf(f_debug, "%skeeping on list, ", keep_on_list ? "" : "not ");
       fprintf(f_debug, "%smerging:\n",
