@@ -4328,7 +4328,7 @@ static a_boolean is_anonymous_union_decl(a_type_ptr       member_type,
       }  /* if */
       if (is_anonymous_union) {
         /* Issue a diagnostic that this is an extension. */
-        warning(ec_nonstd_anonymous_union);
+        warning(ec_nonstd_unnamed_field);
       }  /* if */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     }  /* if */
