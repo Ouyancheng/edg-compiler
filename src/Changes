@@ -1,5 +1,17 @@
 Version 2.16
 
+4/8/93  Spurious diagnostic on typedef declarations
+
+A warning (or in strict ANSI mode an error) is no longer issued on a
+typedef declaration without a declarator when the the type declaration
+declares a tag name or defines an enumeration.  For example:
+
+  typedef struct S { int i; };     // No diagnostic
+  typedef struct T;                // No diagnostic
+  typedef enum E { e1, e2, e3 };   // No diagnostic
+  typedef enum { e = 100 };        // No diagnostic
+  typedef struct { int i; };       // Warning is still issued
+
 4/8/93  Setting is_instantiation
 
 The is_instantiation flags in the routine and variable entries
