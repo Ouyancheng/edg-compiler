@@ -5361,6 +5361,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   a_boolean        operand_1_is_lvalue = FALSE;
   a_routine_ptr    rout;
   a_boolean        need_reference_close_paren = FALSE;
+  an_expr_operator_kind
+                   op;
 
   check_assertion_str(expr != NULL, "gen_expr: NULL expression");
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
@@ -5403,6 +5405,15 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   switch (expr->kind) {
     case enk_operation:
       /* Expression operation. */
+      op = expr->variant.operation.kind;
+      operand_1 = expr->variant.operation.operands;
+      operand_2 = operand_1->next;
+      if (op == (an_expr_operator_kind)eok_lvalue) {
+        /* Operand is an lvalue where an rvalue was expected. */
+        /* Done early to optimize parentheses. */
+        gen_lvalue_full(operand_1, need_parens);
+        goto done_with_operation_after_parens;
+      }  /* if */
       if (need_parens) m_write_tok_ch('(');
       if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
         /* Lvalue-returning version, used as an rvalue.  Need "&" in front. */
@@ -5414,9 +5425,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         gen_lvalue(expr);
         goto done_with_operation;
       }  /* if */
-      operand_1 = expr->variant.operation.operands;
-      operand_2 = operand_1->next;
-      switch (expr->variant.operation.kind) {
+      switch (op) {
         /* One-operand operators. */
         case eok_indirect:
           /* Put out the underlying expression as an value, which adds a "*"
@@ -5502,9 +5511,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           gen_lvalue(operand_1);
           goto done_with_operation;
         case eok_lvalue:
-          /* Operand is an lvalue where an rvalue was expected. */
-          gen_lvalue_no_parens(operand_1);
-          goto done_with_operation;
+          /* Handled above. */
+          unexpected_condition();
         case eok_rvalue:
           /* Operand is an rvalue where an rvalue was expected. */
           gen_expression(operand_1);
@@ -5838,6 +5846,7 @@ finish_new_style_cast:
           goto done_with_operation;
         case eok_call:
         case eok_generic_call:
+        case eok_generic_member_call:
           /* Call (nonvirtual). */
           args = operand_2;
           if (handle_conversion_function_call(expr)) {
@@ -5859,19 +5868,6 @@ finish_new_style_cast:
               /* Nonmember function or static member function. */
               gen_routine_name(rout);
             }  /* if */
-          } else if (is_constant_node(operand_1) &&
-                     operand_1->variant.constant->kind ==
-                                     (a_constant_repr_kind)ck_template_param &&
-                     (operand_1->variant.constant->variant.
-                                                         template_param.kind ==
-                       (a_template_param_constant_kind)tpck_unknown_function ||
-                      operand_1->variant.constant->variant.
-                                                         template_param.kind ==
-                       (a_template_param_constant_kind)tpck_template_ref)) {
-            /* A tpck_unknown_function or tpck_template_ref constant
-               represents the address of the unknown function.  Drop the "&"
-               (it's implied) to make neater output. */
-            form_unknown_function_constant(operand_1->variant.constant, &octl);
           } else if (is_dot_static_operation(operand_1)) {
             /* Call of a static member function identified by a static
                selection, e.g., p->f().  Put out the selection without
@@ -5880,14 +5876,35 @@ finish_new_style_cast:
                argument parentheses). */
             gen_expression(operand_1);
           } else {
-            /* Specific routine is not known (e.g., call through a pointer). */
-            /* Note that this can't be a member function. */
-            gen_expr_with_parens(operand_1);
+            if (op == (an_expr_operator_kind)eok_generic_member_call) {
+              /* Unknown member function call. */
+              gen_expr_with_parens(args);
+              write_tok_str("->");
+              args = args->next;
+            }  /* if */
+            if (is_constant_node(operand_1) &&
+                operand_1->variant.constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param &&
+                (operand_1->variant.constant->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function ||
+                 operand_1->variant.constant->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_template_ref)) {
+              /* A tpck_unknown_function or tpck_template_ref constant
+                 represents the address of the unknown function.  Drop the "&"
+                 (it's implied) to make neater output. */
+              form_unknown_function_constant(operand_1->variant.constant,
+                                             &octl);
+            } else {
+              /* Specific routine is not known (e.g., call through a 
+                 pointer). */
+              gen_expr_with_parens(operand_1);
+            }  /* if */
           }  /* if */
           /* Put out the arguments. */
           gen_argument_list(args,
-                            (expr->variant.operation.kind ==
-                                     (an_expr_operator_kind)eok_generic_call) ?
+                            (op == (an_expr_operator_kind)eok_generic_call ||
+                             op ==
+                              (an_expr_operator_kind)eok_generic_member_call) ?
                                       NULL : type_pointed_to(operand_1->type),
                             /*skip_num=*/0);
           goto done_with_operation;
@@ -5930,8 +5947,7 @@ finish_new_style_cast:
             /* Explicit call of a destructor for a type that doesn't have one,
                e.g., "p->int::~int()". */
             gen_expr_with_parens(operand_1);
-            if (expr->variant.operation.kind ==
-                          (an_expr_operator_kind)eok_vacuous_destructor_call) {
+            if (op == (an_expr_operator_kind)eok_vacuous_destructor_call) {
               write_tok_str("->");
               type = type_pointed_to(operand_1->type);
             } else {
@@ -6021,6 +6037,7 @@ finish_new_style_cast:
       }  /* if */
 done_with_operation:
       if (need_parens) m_write_tok_ch(')');
+done_with_operation_after_parens:
       break;
     case enk_constant:
       gen_constant(expr->variant.constant, need_parens);
@@ -8210,7 +8227,9 @@ flags on the classes found on an earlier call.
       if (expr->kind == (an_expr_node_kind)enk_operation &&
           (expr->variant.operation.kind == (an_expr_operator_kind)eok_call ||
            expr->variant.operation.kind ==
-                                    (an_expr_operator_kind)eok_generic_call)) {
+                                    (an_expr_operator_kind)eok_generic_call ||
+           expr->variant.operation.kind ==
+                             (an_expr_operator_kind)eok_generic_member_call)) {
         an_expr_node_ptr op1 = expr->variant.operation.operands;
         if (op1->kind == (an_expr_node_kind)enk_routine_address) {
           a_routine_ptr rout = op1->variant.routine;

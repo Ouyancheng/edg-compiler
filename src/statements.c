@@ -184,7 +184,9 @@ unreachable.
     if (node->kind == (an_expr_node_kind)enk_operation &&
         (node->variant.operation.kind == (an_expr_operator_kind)eok_call ||
          node->variant.operation.kind ==
-                                    (an_expr_operator_kind)eok_generic_call)) {
+                                    (an_expr_operator_kind)eok_generic_call ||
+         node->variant.operation.kind ==
+                             (an_expr_operator_kind)eok_generic_member_call)) {
       node = node->variant.operation.operands;
       if (node->kind == (an_expr_node_kind)enk_routine_address) {
         if (node->variant.routine->decl_modifiers & DM_NORETURN) {

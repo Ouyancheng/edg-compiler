@@ -2419,6 +2419,8 @@ Display the name of an expression operator.
     case eok_lvalue:            s = "eok_lvalue";                 break;
     case eok_rvalue:            s = "eok_rvalue";                 break;
     case eok_generic_call:      s = "eok_generic_call";           break;
+    case eok_generic_member_call:
+				s = "eok_generic_member_call";    break;
 #endif /* ifdef CFE */
     case eok_error:             s = "eok_error";                  break;
     default:                    s = "**BAD EXPR OPERATOR KIND**"; break;

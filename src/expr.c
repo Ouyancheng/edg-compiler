@@ -126,6 +126,7 @@ should be suppressed.
     case eok_multiply_assign:
     case eok_divide_assign:
     case eok_generic_call:
+    case eok_generic_member_call:
       /* These all cause side effects. */
       has_side_effects = TRUE;
       break;
@@ -1592,17 +1593,19 @@ Syntax:
   } else if (unknown_dependent_function) {
     /* A call of a function whose type is not completely known, in
        a prototype instantiation.  Make a generic call. */
-    an_expr_node_ptr function_node, call_node, implicit_this_argument;
+    an_expr_node_ptr      function_node, call_node, implicit_this_argument;
+    an_expr_operator_kind op = (an_expr_operator_kind)eok_generic_call;
     function_node = make_node_from_operand(operand);
     if (operand->bound_function) {
       implicit_this_argument = make_node_from_operand(bound_function_selector);
       implicit_this_argument->next = argument_list;
       argument_list = implicit_this_argument;
+      op = (an_expr_operator_kind)eok_generic_member_call;
     }  /* if */
     function_node->next = argument_list;
-    call_node = make_operator_node((an_expr_operator_kind)eok_generic_call,
-                                    type_of_unknown_templ_param_nontype,
-                                    function_node);
+    call_node = make_operator_node(op,
+                                   type_of_unknown_templ_param_nontype,
+                                   function_node);
     make_expression_operand(call_node, call_node->type, result);
   } else {
     /* Build the call node and an operand for it. */

@@ -6139,7 +6139,12 @@ enum an_expr_operator_kind_tag {
   eok_lvalue,           /* Indicates that the operand is an lvalue. */
   eok_rvalue,           /* Indicates that the operand is an rvalue. */
   eok_generic_call,	/* Like eok_call, but called function details are
-			   not known. */
+			   not known.  Used for calls that are not written in
+			   the bound-function p->f() or x.f() form. */
+  eok_generic_member_call,
+			/* Like eok_call, but called function details are
+			   not known.  Used for calls that are written in the
+			   bound-function p->f() or x.f() form. */
 #endif /* ifdef CIL */
   /* Special operators: */
   eok_error,            /* This is a special operator used in the cases when
@@ -8648,7 +8653,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "G=", "G+=", "G-=", "G*=", "G/=",
    "&G", "G.*", "G->*",
    "static cast", "const cast", "reinterpret cast",
-   "lvalue", "rvalue", "Gcall",
+   "lvalue", "rvalue", "Gcall", "GMcall",
 #endif /* ifdef CIL */
    "error", "last"
 }

@@ -1,5 +1,15 @@
 Version 2.46
 
+6/4/01   C++-generating back end, output of member function calls in
+         prototype instantiations
+
+Certain member function calls in prototype instantiations were put
+out by the C++-generating back end in the form f(p, a1, a2, ...)
+instead of the original source form p->f(a1, a2, ...).  Now fixed.
+This required the addition of a new expression operator
+eok_generic_member_call (IL CHANGE), which will be seen only in
+IL for prototype instantations.
+ 
 6/1/01   Microsoft compatibility: floating-point nontype template
          parameters accepted
 
