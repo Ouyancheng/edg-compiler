@@ -4466,8 +4466,9 @@ list pointer in type_list.  *type_list should be NULL on the first call.
                                                              template_arg_list;
           for (; tap != NULL; tap = tap->next) {
             if (is_type_templ_arg(tap)) {
-              /* Note that nontype and template template arguments do not
-                 influence argument dependent lookup. */
+              /* Note that nontype template arguments do not influence
+                 argument dependent lookup.  Template template arguments
+                 are handled later. */
               add_to_arg_dependent_lookup_list(tap->variant.type, type_list);
             } /* if */
           }  /* for */
@@ -4509,6 +4510,30 @@ list pointer in type_list.  *type_list should be NULL on the first call.
 }  /* add_to_arg_dependent_lookup_list */
 
 
+static void add_namespace_to_namespace_list(
+			a_namespace_ptr			nsp,
+			a_namespace_list_entry_ptr	*namespace_list)
+/*
+Add "nsp" to the list of namespaces specified by "namespace_list".  Note
+that "nsp" can be NULL to represent the global namespace.
+*/
+{
+  a_namespace_list_entry_ptr	nlep;
+
+  /* Look for its namespace on the namespace list. */
+  for (nlep = *namespace_list; nlep != NULL; nlep = nlep->next) {
+    if (nlep->ptr == nsp) break;
+  }  /* for */
+  if (nlep == NULL) {
+    /* The namespace was not found.  Add it to the list now. */
+    nlep = alloc_namespace_list_entry();
+    nlep->ptr = nsp;
+    nlep->next = *namespace_list;
+    *namespace_list = nlep;
+  }  /* if */
+}  /* add_namespace_to_namespace_list */
+
+
 static void add_namespace_of_type_to_lookup_list(
 			a_type_ptr			type,
 			a_namespace_list_entry_ptr	*namespace_list)
@@ -4516,7 +4541,6 @@ static void add_namespace_of_type_to_lookup_list(
 Add the namespace in which "type" is defined to the namespace_list.
 */
 {
-  a_namespace_list_entry_ptr	nlep;
   a_namespace_ptr		nsp;
 
   if (!type->source_corresp.is_local_to_function) {
@@ -4527,17 +4551,7 @@ Add the namespace in which "type" is defined to the namespace_list.
     }  /* while */
     /* Note that "nsp" will be NULL for global scope types. */
     nsp = type->source_corresp.parent.namespace_ptr;
-    /* Look for its namespace on the namespace list. */
-    for (nlep = *namespace_list; nlep != NULL; nlep = nlep->next) {
-      if (nlep->ptr == nsp) break;
-    }  /* for */
-    if (nlep == NULL) {
-      /* The namespace was not found.  Add it to the list now. */
-      nlep = alloc_namespace_list_entry();
-      nlep->ptr = nsp;
-      nlep->next = *namespace_list;
-      *namespace_list = nlep;
-    }  /* if */
+    add_namespace_to_namespace_list(nsp, namespace_list);
   }  /* if */
 }  /* add_namespace_of_type_to_lookup_list */
 
@@ -4574,6 +4588,32 @@ which it is defined to the namespace_list.
 }  /* add_class_to_lookup_lists */
 
 
+static void add_template_template_arg_to_lookup_lists(
+			a_template_arg_ptr		tap,
+			a_namespace_list_entry_ptr	*namespace_list,
+			a_type_list_entry_ptr		*type_list)
+/*
+Add the namespace in which "type" is defined to the namespace_list.
+*/
+{
+  a_template_ptr		templ = tap->variant.templ;
+  a_namespace_ptr		nsp;
+  a_source_correspondence	*scp;
+
+  /* Add any parent types to to the types list. */
+  scp = &templ->source_corresp;
+  while (scp->is_class_member) {
+    a_type_ptr	parent_type;
+    parent_type = scp->parent.class_type;
+    add_class_to_lookup_lists(parent_type, namespace_list, type_list);
+    scp = &parent_type->source_corresp;
+  }  /* while */
+  /* Note that "nsp" will be NULL for global scope types. */
+  nsp = scp->parent.namespace_ptr;
+  add_namespace_to_namespace_list(nsp, namespace_list);
+}  /* add_template_template_arg_to_lookup_list */
+
+
 static void determine_assoc_namespaces_and_classes_for_type(
 			a_type_ptr			type,
 			a_namespace_list_entry_ptr	*namespace_list,
@@ -4607,6 +4647,19 @@ associated namespaces and classes to "namespace_list" and "class_list".
       }  /* for */
       /* The enclosing class (if any) and namespace should be included. */
       add_parent = TRUE;
+      /* A class type.  Add the types and namespaces associated with
+         any template template arguments. */
+      if (type->variant.class_struct_union.is_template_class) {
+        /* Include the types of any template type arguments. */
+        a_template_arg_ptr	tap;
+        tap = type->variant.class_struct_union.extra_info->template_arg_list;
+        for (; tap != NULL; tap = tap->next) {
+          if (is_template_templ_arg(tap)) {
+            add_template_template_arg_to_lookup_lists(tap, namespace_list,
+                                                      class_list);
+          } /* if */
+        }  /* for */
+      }  /* if */
       break;
     case tk_integer:
       /* Enums are represented using a tk_integer. */

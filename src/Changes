@@ -1,5 +1,23 @@
 Version 3.1
 
+1/18/03  Argument-dependent lookup and template template arguments
+
+Argument-dependent lookup failed to consider the namespaces associated with
+template template arguments, resulting in incorrect lookups in certain
+cases.  This has been fixed.
+
+  namespace M {
+    template<template<class> class T> class A;
+  }
+  namespace N {
+    template <class T> struct Y {};
+    void f(M::A<Y> * A);
+  }
+  int main() {
+    M::A<N::Y> *a;
+    f(a);  // should find N::f
+  }
+
 1/17/03  Precompiled headers: internal error if memory cannot be mapped
 
 Before a precompiled header is loaded, the front end attempts to map the
