@@ -2993,7 +2993,9 @@ of a function template.
          add an implicit this-param pointer to the type. */
       di_flags |= DI_NONSTATIC_MEMBER;
     }  /* if */
-    if ((*dso_flags & DSO_CONSTRUCTOR) != 0) di_flags |= DI_IS_CONSTRUCTOR;
+    if (is_member_decl && (*dso_flags & DSO_CONSTRUCTOR) != 0) {
+      di_flags |= DI_IS_CONSTRUCTOR;
+    }  /* if */
     declarator(di_flags, do_flags, *type,
                !friend_specified ? parent_class : (a_type_ptr)NULL,
                locator, type,
