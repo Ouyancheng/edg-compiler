@@ -1710,8 +1710,8 @@ destroyed its source position, etc.  Restore such things from
 }  /* restore_operand_details */
 
 
-static void restore_operand_details_incl_ref(an_operand *operand,
-                                             an_operand *orig_operand)
+void restore_operand_details_incl_ref(an_operand *operand,
+                                      an_operand *orig_operand)
 /*
 *operand has been subjected to some sort of modification, which may have
 destroyed its source position, etc.  Restore such things from

@@ -1097,6 +1097,9 @@ extern void conv_to_error_operand(an_operand *operand);
 extern void restore_operand_details(an_operand *operand,
                                     an_operand *orig_operand);
 
+extern void restore_operand_details_incl_ref(an_operand *operand,
+                                             an_operand *orig_operand);
+
 extern a_boolean check_function_pointer_operand(an_operand *operand);
 
 extern void make_function_designator_operand(

@@ -5111,7 +5111,9 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
       make_expression_operand(expr, operand->type, operand);
       operand->state = saved_operand_state;
     }  /* if */
-    restore_operand_details(operand, &orig_operand);
+    /* Restore the reference entries list too so that we can get
+       address_taken set on the function. */
+    restore_operand_details_incl_ref(operand, &orig_operand);
   }  /* if */
 }  /* combine_unneeded_selector_with_operand */
 
