@@ -262,7 +262,7 @@ Install the keywords in the symbol table.
     }  /* if */
     enter_keyword((a_token_kind)tok_based, "__based");
     enter_keyword((a_token_kind)tok_based, "_based");
-    if (microsoft_16_mode) {
+    if (il_header.microsoft_16_mode) {
       /* Enter 16-bit mode keywords. */
       enter_keyword((a_token_kind)tok_near, "near");
       enter_keyword((a_token_kind)tok_near, "_near");
@@ -551,10 +551,28 @@ have_il_file:;
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 
+void fe_early_init(void)
+/*
+Do initialization that needs to be done very early, specifically before command
+line processing is done.
+*/
+{
+  /* Do host-specific initialization.  This must be done first in this
+     routine. */
+  host_envir_early_init();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  il_header.microsoft_16_mode = DEFAULT_MICROSOFT_16_MODE;
+  il_header.far_data_pointers = DEFAULT_FAR_DATA_POINTERS;
+  il_header.far_code_pointers = DEFAULT_FAR_CODE_POINTERS;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* fe_early_init */
+
+
 void fe_one_time_init(void)
 /*
 Do initialization that does not have to be redone with each translation
-unit, in case multiple source files are allowed.
+unit, in case multiple source files are allowed.  This initialization is done
+after the command-line processing has been done.
 */
 {
 #if CHECKING
@@ -721,12 +739,16 @@ to replace the initial portion of this compilation.
   il_header.source_language =
                       (C_dialect == C_dialect_cplusplus) ? sl_Cplusplus : sl_C;
   il_header.pcc_compatibility_mode = (C_dialect == C_dialect_pcc);
-#if RECORD_MACROS_IN_IL
-  il_header.macros = NULL;
-#endif /* RECORD_MACROS_IN_IL */
 #if USER_CONTROL_OF_STRUCT_PACKING
   il_header.default_max_member_alignment = default_max_member_alignment;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if RECORD_MACROS_IN_IL
+  il_header.macros = NULL;
+#endif /* RECORD_MACROS_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* microsoft_16_mode, far_data_pointers, and far_code_pointers are
+     initialized in fe_early_init and changed if necessary in cmd_line.c. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (pp_output_file_needed) {
     /* Open the preprocessing output file. */
     open_pp_output_file();
