@@ -1115,6 +1115,27 @@ The given expression is a GNU-style binary conditional expression of the form
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
 
+static an_expr_node_ptr compute_vla_dimension(a_vla_dimension_ptr  vla_dim)
+/*
+Create a temporary variable and assign to it the total number of elements
+of a VLA as represented by the given a_vla_dimension entry.  Return the
+assignment expression.
+*/
+{
+  a_type_ptr           ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
+  an_expr_node_ptr     expr = vla_dim->dimension_expr, assign_ops;
+
+  check_assertion(vla_dim->total_number_of_elements == NULL);
+  /* Create a new temporary variable and assign to it the expression
+     computing the array length. */
+  vla_dim->total_number_of_elements = make_lowered_temporary(ptrdiff_type);
+  assign_ops = var_lvalue_expr(vla_dim->total_number_of_elements);
+  assign_ops->next = expr;
+  return make_operator_node((an_expr_operator_kind)eok_iassign,
+                            ptrdiff_type, assign_ops);
+}  /* compute_vla_dimension */
+
+
 static an_expr_node_ptr vla_size_expr(a_type_ptr  vla_type,
                                       a_boolean   byte_count)
 /*
@@ -1187,6 +1208,118 @@ be lowered to a pointer to the first element of the VLA.
   expr->variant.operation.operands->type = expr->type;
 }  /* lower_vla_pointer_arithmetic */
 
+
+static an_expr_node_ptr accumulate_multilevel_vla_lengths(a_type_ptr  tp)
+/*
+If tp is a type with a multilevel VLA component (e.g., "int (*)[n][2*n]"),
+update the variables created when lowering the associated stmk_set_vla_size
+to hold the total number of elements in the multilevel VLA component.
+The computation is returned as a single expression (NULL if no variables
+needed to be updated).
+
+For example, a declaration like
+	int (*p)[n][2*n][3][4*n][5];
+will cause the creation of three variables (say _D1, _D2, and _D3) initialized
+as follows by the lowering of the associated stmk_set_vla_size statements:
+	_D1 = n;
+	_D2 = 2*n;
+	_D3 = 4*n;
+This routine will update these variables as follows:
+        _D3 *= 5;
+	_D2 *= 3*D3;
+	_D1 *= D2;  // _D1 now holds the total number of elements in *p
+Arranging the computations in this way provides the quantity needed to compute
+any storage to be allocated for a VLA variable, but the other computed
+variables also make indexing into the VLA arrays more efficient.
+*/
+{
+  an_expr_node_ptr  result = NULL;
+  a_type_ptr        ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
+
+  /* There may be multiple multilevel VLA components in a type.  For example:
+       int (*const (a[n][n]))[m][m];
+     The outer loop deals with that possibility. */
+  while (is_variably_modified_type(tp)) {
+    a_vla_dimension_ptr  vla_dim;
+    /* Skip over pointer and type qualifier components.  If we encounter a
+       typedef we can stop since variably modified typedefs have their own
+       stmk_decl that would have caused this processing for the underlying
+       type already.  For this reason we cannot easily call is_vla_type since
+       it ignores typedefs. */
+    for (;;) {
+      if (tp->kind == (a_type_kind)tk_pointer) {
+        tp = tp->variant.pointer.type;
+      } else if (tp->kind == (a_type_kind)tk_typeref) {
+        if (typeref_is_typedef(tp)) {
+          goto done;
+        } else {
+          tp = tp->variant.typeref.type;
+        }  /* if */
+      } else {
+        /* Since tp was a variably-modified type, the only remaining case is
+           tk_array.  Top-level non-VLA array components can be skipped (e.g.,
+           "int[2][3][n][m][6]" can be handled as "int[n][m][6]". */
+        check_assertion(tp->kind == (a_type_kind)tk_array);
+        if (tp->variant.array.is_vla) {
+          break;
+        } else {
+          tp = tp->variant.array.element_type;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    /* tp should now point to a VLA type. */
+    vla_dim = find_vla_dimension(tp);
+    tp = tp->variant.array.element_type;
+    do {
+      a_targ_size_t  constant_factor = 1;
+      while (tp->kind == (a_type_kind)tk_array && !tp->variant.array.is_vla) {
+        constant_factor *= tp->variant.array.variant.number_of_elements;
+        tp = tp->variant.array.element_type;
+      }  /* while */
+      if (constant_factor == 1 && tp->kind != (a_type_kind)tk_array) {
+        /* A bottom-level VLA (e.g., T[n]): No adjustment needed. */
+        break;
+      } else {
+        an_expr_node_ptr  const_expr = NULL, var_expr = NULL, lhs, rhs, acc;
+        lhs = var_lvalue_expr(vla_dim->total_number_of_elements);
+        if (constant_factor != 1) {
+          const_expr =
+            node_for_host_large_integer((a_host_large_integer)constant_factor,
+                                        targ_ptrdiff_t_int_kind);
+        }  /* if */
+        if (tp->kind == (a_type_kind)tk_array) {
+          vla_dim = find_vla_dimension(tp);
+          tp = tp->variant.array.element_type;
+          var_expr = var_rvalue_expr(vla_dim->total_number_of_elements);
+        }  /* if */
+        if (var_expr != NULL && const_expr != NULL) {
+          /* Multiply the constant and variable parts. */
+          var_expr->next = const_expr;
+          rhs = make_operator_node((an_expr_operator_kind)eok_imultiply,
+                                   ptrdiff_type, var_expr);
+        } else if (var_expr != NULL) {
+          rhs = var_expr;
+        } else {
+          rhs = const_expr;
+        }  /* if */
+        /* Now multiply the variable associated with vla_dim with the rhs
+           value. */
+        lhs->next = rhs;
+        acc = make_operator_node((an_expr_operator_kind)eok_imultiply_assign,
+                                 ptrdiff_type, lhs);
+        /* Insert the accumulation expression in the right location. */
+        if (result == NULL) {
+          result = acc;
+        } else {
+          result = make_comma_node(acc, result);
+        }  /* if */
+      }  /* if */
+    } while (tp->kind == (a_type_kind)tk_array);
+  }  /* while */
+done:
+  return result;
+}  /* accumulate_multilevel_vla_lengths */
+
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 
 static void lower_runtime_sizeof(an_expr_node_ptr  expr)
@@ -1196,7 +1329,7 @@ number of bytes of the VLA type underlying the sizeof expression.
 */
 {
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-  an_expr_node_ptr  byte_count;
+  an_expr_node_ptr  byte_count, precomputation = NULL;
   a_type_ptr        vla_type;
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 
@@ -1206,9 +1339,35 @@ number of bytes of the VLA type underlying the sizeof expression.
   }  /* if */
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
   if (expr->variant.runtime_sizeof.is_type) {
-    vla_type = expr->variant.runtime_sizeof.variant.type;
+    /* Something like "sizeof(X[2][n][m/2])".  Unlike uses of VLAs in
+       declarations there is no stmk_set_vla_size for VLA types named in
+       expressions.  So we may have to perform computations on the fly. */
+    a_type_ptr        tp = expr->variant.runtime_sizeof.variant.type;
+    an_expr_node_ptr  update_dim = NULL;
+    vla_type = tp;
+    /* First compute all the individual dimensions and store them in
+       temporary variables. */
+    while (tp->kind == (a_type_kind)tk_array) {
+      if (tp->variant.array.is_vla) {
+        an_expr_node_ptr  init_dim =
+                                compute_vla_dimension(find_vla_dimension(tp));
+        if (precomputation == NULL) {
+          precomputation = init_dim;
+        } else {
+          precomputation = make_comma_node(init_dim, precomputation);
+        }  /* if */
+      }  /* if */
+      tp = tp->variant.array.element_type;
+    }  /* while */
+    /* If we're dealing with a multilevel VLA type, the total element counts
+       need to be updated. */
+    update_dim = accumulate_multilevel_vla_lengths(vla_type);
+    if (update_dim != NULL) {
+      precomputation = make_comma_node(precomputation, update_dim);
+    }  /* if */
   } else {
-    vla_type = expr->variant.runtime_sizeof.variant.expr->type;
+    precomputation = expr->variant.runtime_sizeof.variant.expr;
+    vla_type = precomputation->type;
     if (expr->variant.runtime_sizeof.is_lvalue) {
       vla_type = type_pointed_to(vla_type);
     }  /* if */
@@ -1216,9 +1375,8 @@ number of bytes of the VLA type underlying the sizeof expression.
   byte_count = vla_size_expr(vla_type, /*byte_count=*/TRUE);
   byte_count = add_cast_if_necessary(byte_count,
                                      integer_type(targ_size_t_int_kind));
-  if (!expr->variant.runtime_sizeof.is_type) {
-    byte_count = make_comma_node(expr->variant.runtime_sizeof.variant.expr,
-                                 byte_count);
+  if (precomputation != NULL) {
+    byte_count = make_comma_node(precomputation, byte_count);
   }  /* if */
   overwrite_node(expr, byte_count);
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
@@ -1817,134 +1975,13 @@ entry, but it will be updated to the total number of elements in the VLA
 when lowering the stmk_vla_decl statement that follows.
 */
 {
-  a_type_ptr           ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
   a_vla_dimension_ptr  vla_dim = stmt->variant.vla_dimension;
-  an_expr_node_ptr     expr = vla_dim->dimension_expr, assign_ops;
 
-  check_assertion(vla_dim->total_number_of_elements == NULL);
-  /* Create a new temporary variable and assign to it the expression
-     computing the array length. */
-  vla_dim->total_number_of_elements = make_lowered_temporary(ptrdiff_type);
   set_statement_kind(stmt, (a_statement_kind)stmk_expr);
-  assign_ops = var_lvalue_expr(vla_dim->total_number_of_elements);
-  assign_ops->next = expr;
-  stmt->expr = make_operator_node((an_expr_operator_kind)eok_iassign,
-                                  ptrdiff_type, assign_ops);
-  /* The result of the assignment is not used. */
+  stmt->expr = compute_vla_dimension(vla_dim);
+  /* The result of the expression is not used. */
   set_expr_result_not_used(stmt->expr);
 }  /* lower_set_vla_size */
-
-
-static an_expr_node_ptr accumulate_multilevel_vla_lengths(a_type_ptr  tp)
-/*
-If tp is a type with a multilevel VLA component (e.g., "int (*)[n][2*n]"),
-update the variables created when lowering the associated stmk_set_vla_size
-to hold the total number of elements in the multilevel VLA component.
-The computation is returned as a single expression (NULL if no variables
-needed to be updated).
-
-For example, a declaration like
-	int (*p)[n][2*n][3][4*n][5];
-will cause the creation of three variables (say _D1, _D2, and _D3) initialized
-as follows by the lowering of the associated stmk_set_vla_size statements:
-	_D1 = n;
-	_D2 = 2*n;
-	_D3 = 4*n;
-This routine will update these variables as follows:
-        _D3 *= 5;
-	_D2 *= 3*D3;
-	_D1 *= D2;  // _D1 now holds the total number of elements in *p
-Arranging the computations in this way provides the quantity needed to compute
-any storage to be allocated for a VLA variable, but the other computed
-variables also make indexing into the VLA arrays more efficient.
-*/
-{
-  an_expr_node_ptr  result = NULL;
-  a_type_ptr        ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
-
-  /* There may be multiple multilevel VLA components in a type.  For example:
-       int (*const (a[n][n]))[m][m];
-     The outer loop deals with that possibility. */
-  while (is_variably_modified_type(tp)) {
-    a_vla_dimension_ptr  vla_dim;
-    /* Skip over pointer and type qualifier components.  If we encounter a
-       typedef we can stop since variably modified typedefs have their own
-       stmk_decl that would have caused this processing for the underlying
-       type already.  For this reason we cannot easily call is_vla_type since
-       it ignores typedefs. */
-    for (;;) {
-      if (tp->kind == (a_type_kind)tk_pointer) {
-        tp = tp->variant.pointer.type;
-      } else if (tp->kind == (a_type_kind)tk_typeref) {
-        if (typeref_is_typedef(tp)) {
-          goto done;
-        } else {
-          tp = tp->variant.typeref.type;
-        }  /* if */
-      } else {
-        /* Since tp was a variably-modified type, the only remaining case is
-           tk_array.  Top-level non-VLA array components can be skipped (e.g.,
-           "int[2][3][n][m][6]" can be handled as "int[n][m][6]". */
-        check_assertion(tp->kind == (a_type_kind)tk_array);
-        if (tp->variant.array.is_vla) {
-          break;
-        } else {
-          tp = tp->variant.array.element_type;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    /* tp should now point to a VLA type. */
-    vla_dim = find_vla_dimension(tp);
-    tp = tp->variant.array.element_type;
-    do {
-      a_targ_size_t  constant_factor = 1;
-      while (tp->kind == (a_type_kind)tk_array && !tp->variant.array.is_vla) {
-        constant_factor *= tp->variant.array.variant.number_of_elements;
-        tp = tp->variant.array.element_type;
-      }  /* while */
-      if (constant_factor == 1 && tp->kind != (a_type_kind)tk_array) {
-        /* A bottom-level VLA (e.g., T[n]): No adjustment needed. */
-        break;
-      } else {
-        an_expr_node_ptr  const_expr = NULL, var_expr = NULL, lhs, rhs, acc;
-        lhs = var_lvalue_expr(vla_dim->total_number_of_elements);
-        if (constant_factor != 1) {
-          const_expr =
-            node_for_host_large_integer((a_host_large_integer)constant_factor,
-                                        targ_ptrdiff_t_int_kind);
-        }  /* if */
-        if (tp->kind == (a_type_kind)tk_array) {
-          vla_dim = find_vla_dimension(tp);
-          tp = tp->variant.array.element_type;
-          var_expr = var_rvalue_expr(vla_dim->total_number_of_elements);
-        }  /* if */
-        if (var_expr != NULL && const_expr != NULL) {
-          /* Multiply the constant and variable parts. */
-          var_expr->next = const_expr;
-          rhs = make_operator_node((an_expr_operator_kind)eok_imultiply,
-                                   ptrdiff_type, var_expr);
-        } else if (var_expr != NULL) {
-          rhs = var_expr;
-        } else {
-          rhs = const_expr;
-        }  /* if */
-        /* Now multiply the variable associated with vla_dim with the rhs
-           value. */
-        lhs->next = rhs;
-        acc = make_operator_node((an_expr_operator_kind)eok_imultiply_assign,
-                                 ptrdiff_type, lhs);
-        /* Insert the accumulation expression in the right location. */
-        if (result == NULL) {
-          result = acc;
-        } else {
-          result = make_comma_node(acc, result);
-        }  /* if */
-      }  /* if */
-    } while (tp->kind == (a_type_kind)tk_array);
-  }  /* while */
-done:
-  return result;
-}  /* accumulate_multilevel_vla_lengths */
 
 
 static a_routine_ptr  vla_alloc_routine = NULL;
