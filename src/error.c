@@ -1274,6 +1274,9 @@ error code.
       m =
     "single-argument function used for postfix \"++\" or \"--\" (anachronism)";
       break;
+    case ec_bad_access_adjustment_with_overloading:
+      m = "access adjustment not allowed -- mixed accessibility for %s";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
