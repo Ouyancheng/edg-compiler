@@ -1972,26 +1972,43 @@ scan_paren:
         copy_source_position(pos_curr_token, lparen_pos);
         if (required_token(tok_lparen, ec_exp_lparen)) {
           if (is_class_struct_union_type(init_type)) {
+            cssp = symbol_supplement_for_class(init_type);
+          } else {
+            cssp = NULL;
+          }  /* if */
+          if (curr_token == tok_rparen &&
+              (cssp == NULL || cssp->constructor == NULL)) {
+            if (cssp != NULL) {
+              /* "class-name()" can only be a default constructor call,
+                 but only issue a warning since it's not clearly outlawed. */
+              pos_ty_warning(ec_no_constructor, &lparen_pos, init_type);
+            } else {
+              /* "field-name()" is, technically, permitted by the syntax, so
+                 we can only issue a warning. */
+              pos_warning(ec_exp_primary_expr, &pos_curr_token);
+            }  /* if */
+            /* Bypass the right paren. */
+            (void)get_token();
+            if (new_cip != NULL) {
+              /* Set the initializer field to record that an initialization
+                 (such as it is) has been attempted. */
+              new_cip->initializer = 
+                            alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+            }  /* if */
+          } else if (cssp != NULL && cssp->constructor != NULL) {
             /* This is either a base class or a field of class type.  In
                either case, it will be initialized by a constructor call if
                a constructor exists.  Otherwise, it will be initialized
                like any scalar. */
             an_expr_node_ptr  arg_list;
-            cssp = symbol_supplement_for_class(init_type);
-            if (cssp->constructor == NULL) {
-              /* There is no constructor. */
-              goto scan_arg_for_scan_initialization;
-            } else {
-              /* This is treated like an initialization of the form
-                 S x (arg [, ...]), where S is a class type name.  Depending
-                 on the arguments present, a constructor will be selected and
-                 returned.  The scan function returns FALSE if it finds no
-                 constructor for which the arguments match. */
-              scan_ctor_arguments(cssp->constructor, &arg_list,
-                                  &conversion_routine, &lparen_pos,
-				  class_type);
-              if (conversion_routine == NULL) err = TRUE;
-            }   /* if */
+            /* This is treated like an initialization of the form
+               S x (arg [, ...]), where S is a class type name.  Depending
+               on the arguments present, a constructor will be selected and
+               returned.  The scan function returns FALSE if it finds no
+               constructor for which the arguments match. */
+            scan_ctor_arguments(cssp->constructor, &arg_list,
+                                &conversion_routine, &lparen_pos, class_type);
+            if (conversion_routine == NULL) err = TRUE;
             if (!err) {
               /* Set the dynamic init entry to represent constructor
                  initialization. */
@@ -2008,40 +2025,33 @@ scan_paren:
             }  /* if */
             new_cip->initializer = dip;
           } else {
-scan_arg_for_scan_initialization:
-            if (curr_token == tok_rparen) {
-              /* No expression. */
-              pos_warning(ec_exp_primary_expr, &pos_curr_token);
-              /* Bypass the right paren. */
-              (void)get_token();
-            } else {
-              add_stop_token(tok_rparen);
-              /* Allocate a new dynamic init entry, setting the kind to
-                 dik_none for now.  It will be adjusted after the scan. */
-              dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-              scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
-                                                init_type, dip);
-              if (new_cip != NULL) new_cip->initializer = dip;
-              remove_stop_token(tok_rparen);
-              if (!required_token(tok_rparen, ec_exp_rparen)) {
-                /* Special code to avoid poor error recovery in cases where
-                   a comma-list appears between the parens in what is taken
-                   to be the initializer of a simple object -- e.g.,
-                       A::A(int i, int j) : x(i,j) { }
-                   If there is no constructor for x then it is interpreted as
-                   a simple object, only "i" is scanned, and an error is issued
-                   on the expected ")".  After that we want to bypass the rest
-                   of the comma-list before resuming scanning. */
-                if (curr_token == tok_comma) {
-                  a_stop_token_array  save_stop_token_array;
-                  /* Save the current stop token state, and reinitialize it. */
-                  copy_stop_tokens(stop_token_array, save_stop_token_array);
-                  stop_token_array[(int)tok_comma] = 0;
-                  /* Flush the tokens till a stop-token is reached. */
-                  flush_tokens();
-                  /* Restore the original stop token state. */
-                  copy_stop_tokens(save_stop_token_array, stop_token_array);
-                }  /* if */
+            /* A field whose initialization does not involve a constructor. */
+            add_stop_token(tok_rparen);
+            /* Allocate a new dynamic init entry, setting the kind to
+               dik_none for now.  It will be adjusted after the scan. */
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+            scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
+                                              init_type, dip);
+            if (new_cip != NULL) new_cip->initializer = dip;
+            remove_stop_token(tok_rparen);
+            if (!required_token(tok_rparen, ec_exp_rparen)) {
+              /* Special code to avoid poor error recovery in cases where
+                 a comma-list appears between the parens in what is taken
+                 to be the initializer of a simple object -- e.g.,
+                     A::A(int i, int j) : x(i,j) { }
+                 If there is no constructor for x then it is interpreted as
+                 a simple object, only "i" is scanned, and an error is issued
+                 on the expected ")".  After that we want to bypass the rest
+                 of the comma-list before resuming scanning. */
+              if (curr_token == tok_comma) {
+                a_stop_token_array  save_stop_token_array;
+                /* Save the current stop token state, and reinitialize it. */
+                copy_stop_tokens(stop_token_array, save_stop_token_array);
+                stop_token_array[(int)tok_comma] = 0;
+                /* Flush the tokens till a stop-token is reached. */
+                flush_tokens();
+                /* Restore the original stop token state. */
+                copy_stop_tokens(save_stop_token_array, stop_token_array);
               }  /* if */
             }  /* if */
           }  /* if */
@@ -2067,7 +2077,8 @@ scan_arg_for_scan_initialization:
   prev_cip = NULL;
   for (cip = cip_list; cip != NULL; cip = next_cip) {
     next_cip = cip->next;
-    if (cip->initializer == NULL) {
+    if (cip->initializer == NULL ||
+        cip->initializer->kind == (a_dynamic_init_kind)dik_none) {
       a_boolean          is_const_qualified = FALSE;
       a_source_position  err_pos;
       /* object_class_type is the type of the object being created.
