@@ -135,6 +135,10 @@ static unsigned long
 static unsigned long
 		num_macros_allocated;
 #endif /* RECORD_MACROS_IN_IL */
+#if ASM_FUNCTION_ALLOWED
+static unsigned long
+		asm_function_body_space_allocated;
+#endif /* ASM_FUNCTION_ALLOWED */
 
 /*
 Number of times the based_types lists of types are searched for related types.
@@ -5987,6 +5991,20 @@ Add the given routine to the asm entries list for the current scope.
   asm_entry_ptr->next = NULL;
 }  /* add_to_asm_entries_list */
 
+#if ASM_FUNCTION_ALLOWED
+
+char *alloc_asm_function_body(sizeof_t  len)
+/*
+Allocate space for an asm function body and return a pointer to it.
+*/
+{
+#if DEBUG
+  asm_function_body_space_allocated += len;
+#endif /* DEBUG */
+  return (char *)alloc_cil(len);
+}  /* alloc_asm_function_body */
+
+#endif /* ASM_FUNCTION_ALLOWED */
 
 a_label_ptr alloc_label(void)
 /*
@@ -10062,6 +10080,10 @@ Display and return the amount of space used for various IL tables.
 #endif /* ORPHAN_PROCESSING_NEEDED */
   db_space_used("IL entry prefix", num_il_entry_prefixes_allocated,
                 an_il_entry_prefix);
+#if ASM_FUNCTION_ALLOWED
+  db_space_used_other("asm function bodies",
+                      asm_function_body_space_allocated, "");
+#endif /* ASM_FUNCTION_ALLOWED */
 
   db_space_used_total();
 
@@ -10283,6 +10305,9 @@ in il_init.)
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(num_macros_allocated),
 #endif /* RECORD_MACROS_IN_IL */
+#if ASM_FUNCTION_ALLOWED
+      pch_saved_var_array_elem(asm_function_body_space_allocated),
+#endif /* ASM_FUNCTION_ALLOWED */
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -10401,6 +10426,9 @@ of the front end.
 #if RECORD_MACROS_IN_IL
   num_macros_allocated                   = 0;
 #endif /* RECORD_MACROS_IN_IL */
+#if ASM_FUNCTION_ALLOWED
+  asm_function_body_space_allocated      = 0;
+#endif /* ASM_FUNCTION_ALLOWED */
 #endif /* DEBUG */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   last_scope_orphaned_list_header = NULL;

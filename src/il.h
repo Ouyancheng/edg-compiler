@@ -351,6 +351,10 @@ extern void add_to_routines_list(a_routine_ptr rout_ptr,
 
 extern an_asm_entry_ptr alloc_asm_entry(a_boolean  is_asm_func_body);
 
+#if ASM_FUNCTION_ALLOWED
+extern char *alloc_asm_function_body(sizeof_t  len);
+#endif /* ASM_FUNCTION_ALLOWED */
+
 extern void add_to_asm_entries_list(an_asm_entry_ptr asm_entry_ptr);
 
 extern a_label_ptr alloc_label(void);
