@@ -42,7 +42,11 @@ int		opterr = 1;
 			/* If non-zero, produce an error message on
 			   a bad option. */
 
+#ifndef GETOPT_PARAMS_ARE_NOT_CONST
 int getopt(int argc, char * const argv[], const char *optstring)
+#else /* !defined(GETOPT_PARAMS_ARE_NOT_CONST) */
+int getopt(int argc, char * argv[], char *optstring)
+#endif /* defined(GETOPT_PARAMS_ARE_NOT_CONST) */
 /*
 Fetch a command-line option.  This routine is a functional analogue of
 the System V getopt routine (see the SVID, getopt(BA_LIB)).  argc and
