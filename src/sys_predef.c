@@ -90,16 +90,17 @@ Enter predeclared symbols as required by the implementation.
   a_symbol_locator  loc;
   a_type_ptr        return_type, param1_type, param2_type, param3_type;
 
-  /* This routine should not be called before make_symbol_for_namespace_std
-     is called to predeclare namespace "std" (see fe_init.c). */
-  check_assertion(symbol_for_namespace_std != NULL);
-  /* First push the scope for namespace std.  (This is done on the assumption
-     that the current scope is the file scope.) */
-  check_assertion(depth_scope_stack == DEPTH_OF_FILE_SCOPE);
-  (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
-                             symbol_for_namespace_std->
-                                           variant.namespace_info.ptr);
-
+  if (namespaces_enabled) {
+    /* This routine should not be called before make_symbol_for_namespace_std
+       is called to predeclare namespace "std" (see fe_init.c). */
+    check_assertion(symbol_for_namespace_std != NULL);
+    /* First push the scope for namespace std.  (This is done on the assumption
+       that the current scope is the file scope.) */
+    check_assertion(depth_scope_stack == DEPTH_OF_FILE_SCOPE);
+    (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
+                               symbol_for_namespace_std->
+                                             variant.namespace_info.ptr);
+  }  /* if */
   /* For each function to be entered, clear the locator, call find_symbol
      to create the symbol header, create type entries for the return type
      and the param types, and then call make_predeclared_function_symbol
@@ -123,10 +124,11 @@ Enter predeclared symbols as required by the implementation.
   (void)make_predeclared_function_symbol(&loc, return_type, param1_type,
                                          param2_type, param3_type);
   /* Repeat these steps for additional predeclared functions. */
-
-  /* After all the functions have been entered, pop the scope for namespace
-     std. */
-  (void)pop_scope();
+  if (namespaces_enabled) {
+    /* After all the functions have been entered, pop the scope for namespace
+       std. */
+    (void)pop_scope();
+  }  /* if */
 
   /* An example of entering a predefined type: */
   enter_predefined_type(integer_type((an_integer_kind)ik_long_long),
