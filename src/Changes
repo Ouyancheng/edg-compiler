@@ -1,5 +1,17 @@
 Version 2.31
 
+12/1/95   Reference to template class no longer causes instantiation
+
+Defining a variable with type reference-to-template-class used to force
+instantiation of that class; this was a best guess in the original
+implementation of templates, but clarifications in the language definition
+now make it an unlikely interpretation.  Here's an example of where behavior
+has changed:
+
+  template <class T> class A { };
+  extern A<int> a;                   // No instantiation (unchanged)
+  A<int> &ra = a;                    // No longer triggers instantiation
+
 12/1/95   Spurious diagnostics caused by out-of-scope declarations that
 	  should be ignored
 
