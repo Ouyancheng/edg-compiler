@@ -4335,11 +4335,12 @@ typedef struct a_switch_clause {
   a_statement_ptr
 		statements;
 			/* The dependent statement sequence.  If
-			   implied_break_at_end is TRUE, the logical
-			   successor of the end of the list is the statement
-			   following the switch statement; any action other
-			   than the "implied break" is represented by an
-			   explicit goto as the last statement. */
+			   implied_break_at_end is TRUE, this linked list of
+			   statements ends with an implicit goto to the
+			   statement following the switch statement; any
+			   action other than the "implied break" is
+			   represented by an explicit goto as the last
+			   statement. */
   a_byte_boolean
 		implied_break_at_end;
 			/* TRUE if the clause ends with an "implied break"
