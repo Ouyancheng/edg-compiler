@@ -2829,6 +2829,7 @@ members), and does not enter those.
         }
         break;
       case iek_namespace:
+      case iek_based_type_list_member:
         could_be_orphan = FALSE;
         break;
       default:
