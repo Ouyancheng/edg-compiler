@@ -564,8 +564,8 @@ Do the output in the way described by octl.
       qualifiers &= ~(TQ_NEAR | TQ_FAR);
     }  /* if */
 #endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
-    output_qualifier(TQ_NEAR, "__near");
-    output_qualifier(TQ_FAR, "__far");
+    output_qualifier(TQ_NEAR, microsoft_mode ? "__near" : "near");
+    output_qualifier(TQ_FAR, microsoft_mode ? "__far" : "far");
 #endif /* NEAR_AND_FAR_ALLOWED */
     /* Put out a trailing space if required. */
     if (need_trailing_space && qualifier_put_out) octl->output_str(" ");

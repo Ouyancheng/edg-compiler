@@ -2390,8 +2390,8 @@ encountered, they are scanned and thrown away with a warning.
                                      /* is_member_decl=*/FALSE,
                                      &extended_decl_info, &local_err);
       } else if (curr_token == tok_mutable) {
-        /* The Microsoft compiler appears to accept and ignore "mutable" during
-           declarator processing.  Issue a warning and continue. */
+        /* The Microsoft compiler appears to accept and ignore "mutable"
+           during declarator processing.  Issue a warning and continue. */
         warning(ec_mutable_not_allowed);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         if (decl_pos_block != NULL) {
@@ -3390,11 +3390,11 @@ The syntax is:
   derived_type = NULL;
   bottom_derived_type = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
-    clear_call_conv_descr(&inner_left_call_conv);
-    inner_left_qualifiers = TQ_NONE;
-  }  /* if */
+  if (microsoft_mode) clear_call_conv_descr(&inner_left_call_conv);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+  if (near_and_far_enabled()) inner_left_qualifiers = TQ_NONE;
+#endif /* NEAR_AND_FAR_ALLOWED */
   /* The next thing is an identifier, or a parenthesis that begins a
      nested declarator.  For the abstract declarator case, the
      identifier is omitted. */
@@ -3427,6 +3427,10 @@ The syntax is:
         pos_error(ec_calling_convention_may_not_precede_nested_declarator,
                   &declarator_pos);
       }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+    if (near_and_far_enabled()) {
       if (unbound_qualifiers != TQ_NONE) {
         /* Constructs such as
              int far (*p);
@@ -3435,7 +3439,7 @@ The syntax is:
                   &declarator_pos);
       }  /* if */
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif  /* NEAR_AND_FAR_ALLOWED */
     add_stop_token(tok_rparen);
     /* Get the nested declarator, removing the flag allowing parenthesized
        initializers from the input_flags bit vector.  (The other flags are
@@ -3771,6 +3775,10 @@ function_lparen:
         update_calling_convention(&new_type_ptr, &inner_left_call_conv,
                                   &locator->source_position);
       }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+    if (near_and_far_enabled()) {
       if (inner_left_qualifiers != TQ_NONE) {
         if (new_type_ptr->kind == (a_type_kind)tk_array) {
           /* A case like
@@ -3787,7 +3795,7 @@ function_lparen:
         }  /* if */
       }  /* if */
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif  /* NEAR_AND_FAR_ALLOWED */
     /* Add the new type to the bottom of the existing derived type list.
        Note that this involves error checking. */
     add_to_derived_type_list(new_type_ptr,
@@ -3835,6 +3843,13 @@ function_lparen:
         left_call_conv = inner_left_call_conv;
       }  /* if */
     }  /* if */
+    /* Return the left calling convention to the caller if it can't be
+       handled at this level (i.e., in a nested declarator). */
+    if (specifiers_type == NULL) *p_left_call_conv = left_call_conv;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+  if (near_and_far_enabled()) {
     if (inner_left_qualifiers != TQ_NONE) {
       if (complete_type != NULL) {
         check_for_addition_of_incompatible_qualifiers(complete_type,
@@ -3847,15 +3862,12 @@ function_lparen:
         left_qualifiers = inner_left_qualifiers;
       }  /* if */
     }  /* if */
-    /* Return the left qualifiers to the caller if they couldn't be handled
+    /* Return the left qualifiers to the caller if they can't be handled
        at this level by applying them to the specifiers type (i.e., in a
        nested declarator). */
-    if (specifiers_type == NULL) {
-      *p_left_call_conv = left_call_conv;
-      *p_left_qualifiers = left_qualifiers;
-    }  /* if */
+    if (specifiers_type == NULL) *p_left_qualifiers = left_qualifiers;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
   if (specifiers_type != NULL) {
     /* This is a top-level call to declarator.  Do some checks for special
        member functions and set complete_type appropriately, so that it can
@@ -3927,6 +3939,10 @@ function_lparen:
         *p_unbound_call_conv = unbound_call_conv;
       }  /* if */
     }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+  if (near_and_far_enabled()) {
     if (unbound_qualifiers != TQ_NONE) {
       /* If there are unbound type qualifiers, apply them to the complete
          type (if it exists).  If it does not exist, return the unbound
@@ -3941,7 +3957,7 @@ function_lparen:
       }  /* if */
     }  /* if */
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif  /* NEAR_AND_FAR_ALLOWED */
   if (specifiers_type != NULL) {
     /* This is a top-level call to declarator. */
     if (!is_function_type(complete_type)) {
