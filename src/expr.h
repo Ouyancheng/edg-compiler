@@ -25,59 +25,6 @@ expr.h -- Declarations related to expression parsing.
 #endif /* ifndef SYMBOL_TBL_H */
 
 
-/*
-Entry describing a function that is a candidate instance of an overloaded
-function.  This entry is used is resolving overloaded function calls.
-*/
-typedef struct a_candidate_function *a_candidate_function_ptr;
-typedef struct a_candidate_function {
-  a_candidate_function_ptr
-		next;	/* Next entry on the list of candidates, or NULL
-			   if this is the last entry. */
-  a_symbol_ptr	function_symbol;
-			/* Pointer to the symbol for the function. */
-} a_candidate_function;
-/*
-Entry describing how well a given actual argument matches the corresponding
-formal parameter, used in resolving overloaded function calls.
-*/
-typedef enum /*an_argument_match_level*/ {
-  /* Match levels -- See ARM 13.2. */
-  aml_exact,		/* Exact match or trivial conversions. */
-  aml_exact_qualified,	/* Trivial conversions including removal of a type
-			   qualifier from the base type of a reference or
-			   pointer. */
-  aml_promotion,	/* Match with promotions. */
-  aml_std_conversion,	/* Match with standard conversions. */
-  aml_user_conversion,	/* Match with user-defined conversions. */
-  aml_ellipsis,		/* Match with ellipsis. */
-  aml_error,		/* Match with error type (not in ARM). */
-  aml_none		/* No match.  Must be last (highest value). */
-} an_argument_match_level;
-typedef struct an_argument_match_summary *an_argument_match_summary_ptr;
-typedef struct an_argument_match_summary {
-  an_argument_match_summary_ptr
-		next;	/* Pointer to entry for following argument, or NULL
-			   if this is the last argument.  Also used to link
-			   entries on the avail_argument_match_summries
-			   list. */
-  an_argument_match_level
-		match_level;
-			/* Match level -- see ARM 13.2.  Primary key. */
-  a_derivation_step_ptr
-		downward_cast_derivation;
-			/* If match_level == aml_std_conversion and the
-			   compatibility involves a downward cast, this is
-			   the derivation.  Otherwise, NULL.  Secondary key. */
-  an_error_code	warning_suggested;
-			/* If not ec_no_error, the code for a warning to be
-			   issued if this match is chosen. */
-  a_source_position
-		position;
-			/* Source position of the argument expression. */
-} an_argument_match_summary;
-
-
 extern a_boolean node_has_side_effects(an_expr_node_ptr node);
 
 extern a_symbol_ptr scan_ctor_arguments(a_symbol_ptr     constructor_sym,
