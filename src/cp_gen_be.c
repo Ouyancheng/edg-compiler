@@ -2988,12 +2988,15 @@ Generate code for the indicated statement.
       break;
     case stmk_decl:
       /* Statement that marks the location of declarations. */
-      /* Loop until the last declaration is processed. */
-      do {
-        /* Process the declaration entry and its source sequence entry. */
-        gen_curr_func_declaration();
-      } while (func_scope_source_sequence_entry !=
+      /* Avoid problems with vestigial stmk_decls that point to nothing. */
+      if (statement->source_sequence_entry != NULL) {
+        /* Loop until the last declaration is processed. */
+        do {
+          /* Process the declaration entry and its source sequence entry. */
+          gen_curr_func_declaration();
+        } while (func_scope_source_sequence_entry !=
                                     statement->variant.last_declaration->next);
+      }  /* if */
       break;
     default:
       unexpected_condition_str("gen_statement: bad statement kind");
