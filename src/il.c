@@ -7512,8 +7512,8 @@ it points.
   }  /* if */
   /* Get the address of the appropriate field of the IL entry so that the
      lifetime pointer can be cleared. */
-  lifetime_addr = addr_of_lifetime_ptr(olp->entity.kind, olp->entity.ptr,
-                                       ctor_init);
+  lifetime_addr = addr_of_lifetime_ptr((an_il_entry_kind)olp->entity.kind,
+                                       olp->entity.ptr, ctor_init);
   check_assertion(*lifetime_addr == olp);
   *lifetime_addr = NULL;
   /* Clear the fields in the object lifetime, too. */
