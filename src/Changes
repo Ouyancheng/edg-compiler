@@ -1,5 +1,11 @@
 Version 2.42
 
+5/13/99  Microsoft compatibility: allow __declspec on explicit specialization
+         of template
+
+In Microsoft compatibility mode, an error is not longer issued when a
+__declspec attribute appears on an explicit specialization of a template.
+
 5/10/99  Microsoft compatibility: dllimport and function definition
 
 In Microsoft compatibility mode, a function now can be initially
