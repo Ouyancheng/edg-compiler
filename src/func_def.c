@@ -1020,12 +1020,11 @@ on a prior declaration.
   if (func_info->is_inline) {
     if (!sym->variant.routine.ptr->is_inline &&
         sym->variant.routine.ptr->called) {
-      /* Unless it was originally declared "inline" a member function that
-         has been called may not have the "inline" attribute here. */
-      pos_sy_diagnostic(strict_ansi_mode ?
-                          strict_ansi_discretionary_severity : es_warning,
-                        ec_called_function_redeclared_inline,
-                        &locator->source_position, sym);
+      /* In the ARM, member functions could not be redeclared inline after
+         being called.  This restriction has been eliminated in the
+         working paper. */
+      pos_sy_remark(ec_called_function_redeclared_inline,
+                    &locator->source_position, sym);
     }  /* if */
     sym->variant.routine.ptr->is_inline = TRUE;
     /* Reset the storage class and name linkage. */

@@ -4032,10 +4032,8 @@ skip_overloading:;
   }  /* if */
   if (changed_to_inline) {
     if (routine_ptr->called) {
-      pos_sy_diagnostic(strict_ansi_mode ?
-                          strict_ansi_discretionary_severity : es_warning,
-                        ec_called_function_redeclared_inline,
-                        &locator->source_position, sym);
+      pos_sy_remark(ec_called_function_redeclared_inline,
+                    &locator->source_position, sym);
     }  /* if */
   }  /* if */
   if (linkage != idl_none) {
@@ -4455,8 +4453,8 @@ class template.
         }  /* if */
         /* Issue a diagnostic is the function has already been called. */
         if (!rp->is_inline && rp->called) {
-          sym_error(ec_called_function_redeclared_inline,
-                    tip->instance_sym);
+          sym_remark(ec_called_function_redeclared_inline,
+                     tip->instance_sym);
         }  /* if */
         rp->is_inline = TRUE;
       }  /* if */

@@ -3139,7 +3139,7 @@ the function instantiation entry and set all the pointers.
         }  /* if */
         if (templ_rp->is_inline) {
           if (rp->called) {
-            sym_error(ec_called_function_redeclared_inline, rout_sym);
+            sym_remark(ec_called_function_redeclared_inline, rout_sym);
           }  /* if */
           rp->is_inline = TRUE;
         }  /* if */

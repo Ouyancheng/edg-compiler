@@ -1,5 +1,11 @@
 Version 2.31
 
+12/13/95  No longer an error to declare a function inline after it is called
+
+Formerly, it was an error to redeclare a function as inline after it
+had been called.  X3J16/WG21 has removed this restriction.  A
+remark is now issued in this case.
+
 12/12/95  IL CHANGE: new field in a_statement
 
 A new field, has_empty_else_clause, has been added to a_statement to mark
