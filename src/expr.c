@@ -8209,12 +8209,8 @@ a pointer to the expression tree.
 
 an_expr_node_ptr scan_void_expression(void)
 /*
-Scan an expression whose result is to be thrown away.  The idea here is to
-scan an expression as "scan_expression" would and determine what parts (if
-any) of the expression should be discarded.  Returns a pointer to the
-expression, or NULL if the expression reduces to nothing (in theory; in
-practice, that doesn't happen, because no meaningful simplification is
-done.  The NULL return is provided as a hook for future expansion).
+Scan a "void expression," i.e., one whose value is discarded.  This is
+used for expression statements, the increment expression of a "for", etc.
 This routine is not used for constant or not-evaluated expressions.
 */
 {
@@ -8236,11 +8232,7 @@ This routine is not used for constant or not-evaluated expressions.
 
 #if DEBUG
   if (debug_level >= 3) {
-    if (expression != NULL) {
-      db_expression(expression);
-    } else {
-      fprintf(f_debug, "void\n");
-    }  /* if */
+    db_expression(expression);
   }  /* if */
 #endif /* DEBUG */
   db_exit();

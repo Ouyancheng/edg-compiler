@@ -1944,22 +1944,17 @@ static void expression_statement(void)
 Scan an expression statement.
 */
 {
-  a_statement_ptr   sp;
-  an_expr_node_ptr  expr;
-  a_source_position start_position;
+  a_statement_ptr  sp;
+  an_expr_node_ptr expr;
 
-  start_position = pos_curr_token;
+  sp = add_statement_at_stmt_pos((a_statement_kind)stmk_expr, &pos_curr_token);
+  stmt_update_source_sequence_list(sp);
+  /* Scan the expression. */
   expr = scan_void_expression();
-  /* Add the expression if it is not void. */
-  if (expr != NULL) {
-    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_expr,
-                                   &start_position);
-    stmt_update_source_sequence_list(sp);
-    sp->expr = expr;
-    /* If the expression is a throw expression, the code following is
-       unreachable. */
-    if (is_throw_expr(expr)) set_unreachable(curr_reachability);
-  }  /* if */
+  sp->expr = expr;
+  /* If the expression is a throw expression, the code following is
+     unreachable. */
+  if (is_throw_expr(expr)) set_unreachable(curr_reachability);
 }  /* expression_statement */
 
 
