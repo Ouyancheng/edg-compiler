@@ -727,7 +727,6 @@ be passed to the back end.
 }  /* derived_name */
 
 #endif /* NEED_DERIVED_NAME */
-#if !STANDALONE_UTILITY_PROGRAM
 
 char *combine_dir_and_file_name (char *dir_name,
                                  char *file_name,
@@ -798,8 +797,9 @@ to allocate the space in the intermediate language memory region.
   return(temp_file_name);
 }  /* combine_dir_and_file_name */
 
-
+#if !STANDALONE_UTILITY_PROGRAM
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
+
 char *replace_file_name_suffix(char  *new_suffix,
                                char  *file_name,
                                char  *buffer,
