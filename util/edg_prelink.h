@@ -34,7 +34,7 @@ Declarations for EDG template prelink utility.
 
 /* The maximum number of iterations after which we give up under the
    assumption that we've encountered an instantiation loop. */
-#define PL_MAX_ITERATIONS	100
+#define PL_MAX_ITERATIONS	30
 
 /* Function that executes "command" and directs its output to the
    returned file pointer. */
