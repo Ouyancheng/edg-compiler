@@ -2433,7 +2433,7 @@ static void check_for_overridden_severity(an_error_code     error_code,
 Determine whether this error code has should have its severity
 overridden by a value specified on the command line.  Diagnostics
 may have their severity increased or decreased using this mechanism,
-but diagnostics with a severity greater then es_discretionary_error
+but diagnostics with a severity greater than es_discretionary_error
 may not have their severity altered.
 */
 {
