@@ -74,6 +74,12 @@ approach.
 #define PASS_DTOR_POINTER_TO_THROW FALSE
 #endif /* ABI_CHANGES_FOR_RTTI && ABI_COMPATIBILITY_VERSION >= 238 */
 
+/*
+Flag that is TRUE during generate_typeinfo_vars.
+*/
+static a_boolean
+		in_typeinfo_var_generation_phase;
+
 
 /* Forward declaration needed because of mutual recursion: */
 static a_type_ptr make_base_class_spec_type(void);
@@ -1215,16 +1221,13 @@ internal linkage.
 #endif /* IA64_ABI */
 
 static void define_typeinfo_var(a_type_ptr type,
-                                a_boolean  definition_needed,
                                 a_boolean  force_static,
                                 a_boolean  use_comdat)
 /*
 Generate a definition for the typeinfo variable (used to provide runtime
-type information) associated with type "type", if definition_needed
-is TRUE.  If force_static is TRUE, change the typeinfo variable to static.
-If use_comdat is TRUE, emit the typeinfo variable in a COMDAT group.
-If the type is a class, prepare_for_defining_class_typeinfo_variable should
-have been called on it at some previous point.
+type information) associated with type "type".  If force_static is TRUE,
+change the typeinfo variable to static.  If use_comdat is TRUE, emit the
+typeinfo variable in a COMDAT group.
 */
 {
   a_boolean      is_class_type = is_immediate_class_type(type);
@@ -1239,8 +1242,6 @@ have been called on it at some previous point.
   a_type_ptr     curr_field_type;
 #endif /* !IA64_ABI */
   a_field_ptr    curr_field;
-  a_memory_region_number
-                 region_to_switch_back_to;
   a_source_position
                  saved_error_position;
 #if ABI_CHANGES_FOR_RTTI
@@ -1270,7 +1271,7 @@ have been called on it at some previous point.
       put_variable_into_comdat_group(typeinfo_var);
     }  /* if */
 #endif /* IA64_ABI */
-  } else if (definition_needed) {
+  } else {
     /* For an externally-linked class, change the variable to an external
        definition. */
     typeinfo_var->storage_class = (a_storage_class)sc_unspecified;
@@ -1307,7 +1308,7 @@ have been called on it at some previous point.
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT && DUPLICATE_SPECIAL_STATICS_IN_... */
 
-  if (definition_needed) {
+  { a_memory_region_number region_to_switch_back_to;
 #if !IA64_ABI
     /* Cfront-like ABI: */
     /* The initial value of the typeinfo variable is an aggregate containing
@@ -1579,7 +1580,7 @@ have been called on it at some previous point.
           } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
             /* Add the context field for the pointer-to-member case. */
             context_con = alloc_constant((a_constant_repr_kind)ck_address);
-            context_typeinfo_var = make_typeinfo_var (pm_class_type(type));
+            context_typeinfo_var = make_typeinfo_var(pm_class_type(type));
             set_variable_address_constant(context_typeinfo_var,
                                           context_con,
                                           /*set_address_taken_flag=*/TRUE);
@@ -1618,7 +1619,7 @@ have been called on it at some previous point.
             check_assertion(base != NULL);
             /* Make the base_type initializer. */
             base_con = alloc_constant((a_constant_repr_kind)ck_address);
-            set_variable_address_constant(make_typeinfo_var (base->type),
+            set_variable_address_constant(make_typeinfo_var(base->type),
                                           base_con,
                                           /*set_address_taken_flag=*/TRUE);
             implicit_cast (base_con,
@@ -1720,7 +1721,7 @@ have been called on it at some previous point.
     /* Return to the memory region that was current when this routine was
        entered. */
     switch_back_to_original_region(region_to_switch_back_to);
-  }  /* if */
+  }
   error_position = saved_error_position;
 }  /* define_typeinfo_var */
 
@@ -1787,7 +1788,7 @@ unit.
         (void)make_typeinfo_var(bcp->type);
         generate_class_typeinfo_var_definition(bcp->type);
       }  /* for */
-      define_typeinfo_var(type, definition_needed, force_static, use_comdat);
+      define_typeinfo_var(type, force_static, use_comdat);
     }  /* if */
   }  /* if */
 }  /* generate_class_typeinfo_var_definition */
@@ -1906,7 +1907,7 @@ pointers-to-members).
 #endif /* ABI_CHANGES_FOR_RTTI */
 #if !ABI_CHANGES_FOR_RTTI || IA64_ABI
       {
-        /* Old implementation: */
+        /* Old Cfront-like ABI implementation, or IA-64 ABI: */
         /* typeinfo variables for non-classes are always external tentative
            definitions (initialized to NULL/zero by default). */
         storage_class = (a_storage_class)sc_unspecified;
@@ -1920,7 +1921,17 @@ pointers-to-members).
           storage_class = (a_storage_class)sc_extern;
         } else {
           define_now = TRUE;
-          use_comdat = TRUE;
+          /* Types that refer to local types need not be shared, unless they
+             are from a routine that may be instantiated more than once. */
+          if (!is_or_contains_local_type(type)) {
+            use_comdat = TRUE;
+          } else {
+            check_assertion(innermost_function_scope != NULL);
+            if (routine_might_exist_in_multiple_copies(
+                              innermost_function_scope->variant.routine.ptr)) {
+              use_comdat = TRUE;
+            }  /* if */
+          }  /* if */
         } /* if */
 #endif /* IA64_ABI */
         /* Determine the name for the typeinfo variable.  A name is required
@@ -1959,9 +1970,12 @@ pointers-to-members).
     if (define_now) {
       /* The typeinfo variable is supposed to be defined right now (for
          non-class cases). */
-      define_typeinfo_var(type, /*definition_needed=*/TRUE,
-                          /*force_static=*/FALSE,
-                          use_comdat);
+      define_typeinfo_var(type, /*force_static=*/FALSE, use_comdat);
+    } else if (in_typeinfo_var_generation_phase &&
+               is_immediate_class_type(type)) {
+      /* If we're already in the definition generation phase, generate the
+         definition for a class typeinfo now. */
+      generate_class_typeinfo_var_definition(type);
     }  /* if */
   }  /* if */
 #if !ABI_CHANGES_FOR_RTTI || IA64_ABI
@@ -2404,6 +2418,7 @@ pointed to from virtual function tables.
 {
   a_scope_orphaned_list_header_ptr solhp;
 
+  in_typeinfo_var_generation_phase = TRUE;
   generate_scope_typeinfo_vars(il_header.primary_scope);
   /* Process function-local types by visiting the types on orphan lists. */
   for (solhp = il_header.scope_orphaned_list_headers;
@@ -2414,6 +2429,7 @@ pointed to from virtual function tables.
   /* Also visit types on the list of nontag exception handling/RTTI types. */
   generate_type_list_typeinfo_vars(
                              il_header.nontag_types_used_in_exception_or_rtti);
+  in_typeinfo_var_generation_phase = FALSE;
 }  /* generate_typeinfo_vars */
 
 #if GENERATE_EH_TABLES
@@ -5593,6 +5609,7 @@ must be initialized for each translation unit.
   exception_started_routine = NULL;
 #endif /* ABI_COMPATIBILITY_VERSION >= 233 */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
+  in_typeinfo_var_generation_phase = FALSE;
 }  /* eh_lower_trans_unit_init */
 
 
