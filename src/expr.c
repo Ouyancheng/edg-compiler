@@ -3073,7 +3073,8 @@ See section 3.3.3.2 of the standard.
         if (is_function_type(operand.type)) {
           /* This will become a function designator. */
           operand.state = (an_operand_state)os_function_designator;
-        } else if (is_void_type(operand.type)) {
+        } else if (is_void_type(operand.type) &&
+                   !is_qualified_type(operand.type)) {
           /* If the type pointed to is void, the result is not an lvalue.
                void *p; *p;
              is legal, but *p is not an lvalue. */
