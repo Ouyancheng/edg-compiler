@@ -1,6 +1,25 @@
 Version 3.3
 
-6/23/03  Diagnostic on member typedef with same name as enclosing class
+6/24/03  Spurious correspondence errors on unnamed class types
+
+Under some circumstances the front end produced spurious correspondence
+errors on unnamed class types that acquired a "name for linkage purposes"
+through a typedef.  For example, errors were produced for two identical
+translation units containing the following declarations:
+
+  template<typename T> struct S {
+    typedef T *P;
+  };
+  typedef struct {
+   int i;
+  } N;
+  typedef struct {} E;  // Spurious correspondence error on E
+  typedef S<E>::P SEP;
+  typedef S<N>::P SNP;
+
+This is now fixed.
+
+6/24/03  Diagnostic on member typedef with same name as enclosing class
 
 The front end now diagnoses a member typedef of the enclosing class using
 the same name as that enclosing class.  An error is issued in strict C++

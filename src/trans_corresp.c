@@ -1820,17 +1820,20 @@ associated symbols are listed under the same header).
   a_source_correspondence_ptr
                        scp1 = (a_source_correspondence_ptr)entity1,
                        scp2 = (a_source_correspondence_ptr)entity2;
+  a_symbol_ptr         sym1 = (a_symbol_ptr)scp1->assoc_info,
+                       sym2 = (a_symbol_ptr)scp2->assoc_info;
   a_symbol_header_ptr  sh1, sh2;
 
   if (scp1->name == scp2->name) {
     match = TRUE;
-  } else if (scp1->assoc_info == NULL || scp2->assoc_info == NULL) {
+  } else if (sym1 == NULL || sym2 == NULL ||
+             is_unnamed_tag_symbol(sym1) || is_unnamed_tag_symbol(sym2)) {
     /* A mismatch in which one of the entities is unnamed. */
-    check_assertion(!(scp1->assoc_info == NULL && scp2->assoc_info == NULL));
+    check_assertion(!(sym1 == NULL && sym2 == NULL));
     match = FALSE;
   } else {
-    sh1 = ((a_symbol_ptr)scp1->assoc_info)->header;
-    sh2 = ((a_symbol_ptr)scp2->assoc_info)->header;
+    sh1 = sym1->header;
+    sh2 = sym2->header;
     match = (sh1 == sh2);
     if (!match) {
       /* This is possible if the associated symbol is not part of the symbol
