@@ -2175,6 +2175,7 @@ definition whose name can be used as part of the module ID.
     for (routine = scope->routines;
          routine != NULL; routine = routine->next) {
       if (routine->storage_class == (a_storage_class)sc_unspecified &&
+          !routine->is_inline &&
           !is_or_contains_unnamed_namespace_type(routine->type)) {
         /* Don't use template functions.  Some implementations
            may generate these in multiple files. */
