@@ -462,7 +462,7 @@ it the current translation unit.
   tusep = alloc_translation_unit_stack_entry();
   tusep->next = curr_translation_unit_stack_entry;
   tusep->translation_unit = tup;
-  if (curr_translation_unit_stack_entry != NULL) {
+  if (curr_translation_unit != tup) {
     /* Make the new translation unit the currently active one.  This should
        not be done when pushing the primary translation unit. */
     switch_translation_unit(tup);
