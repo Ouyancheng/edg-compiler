@@ -1,5 +1,19 @@
 Version 2.41
 
+12/18/98  Class member using declaration with "typename"
+
+Support is now provided for class member using declarations of the form
+"using typename ...".
+
+  template <class T> struct B {
+    typedef int char_type;
+  };
+  template <class T> struct D: public B<T> {
+    using typename B<T>::char_type;    // Spurious error no longer issued
+    char_type c;                       //   during instantiation D<int>
+  };
+  D<int> d;
+
 12/16/98  Independent configuration support for declaration modifiers
 
 You can now set DECL_MODIFIERS_IN_USE (in lang_feat.h) even when

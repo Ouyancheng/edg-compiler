@@ -403,6 +403,8 @@ typedef enum /* an_identifier_lookup_mode */ {
   ilm_linkage,		/* Uses IDL_LINKAGE_LOOKUP to do the lookup. */
   ilm_using_declaration,
 			/* Uses IDL_USING_DECLARATION to do the lookup. */
+  ilm_using_typename,	/* Used both IDL_USING_DECLARATION and
+			   IDL_TYPENAME_LOOKUP to do the lookup. */
   ilm_last
 } an_identifier_lookup_mode;
 

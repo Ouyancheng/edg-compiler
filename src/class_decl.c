@@ -8809,7 +8809,7 @@ or implicit) controlling the declaration.
     /* This is a using declaration.  Bypass "using" and scan the
        identifier. */
     (void)get_token();
-    if (!is_decl_qualified_name_start()) {
+    if (!is_decl_qualified_name_start() && curr_token != tok_typename) {
       syntax_error(ec_exp_identifier);
       discard_curr_construct_pragmas();
       goto done;
@@ -8822,9 +8822,20 @@ or implicit) controlling the declaration.
   /* Coalesce the identifier, which should be a qualified name with a class
      qualifier where the class is a base class of the current class (as
      indicated by class_type). */
-  (void)coalesce_and_lookup_generalized_identifier(
+  if (curr_token == tok_typename) {
+    /* If typename appears in the using declaration, the lookup is a bit
+       different, and there are some additional error checks.  If an error
+       type is returned, an error was reported in the subroutine. */
+    a_type_ptr  tp;
+
+    typename_specifier(&tp, /*within_using_decl=*/TRUE,
+                       (a_decl_pos_block_ptr)NULL);
+    if (is_error_type(tp)) err = TRUE;
+  } else {
+    (void)coalesce_and_lookup_generalized_identifier(
                               GID_DTOR_RECOGNIZED | GID_TEMPLATE_ARGS_OPTIONAL,
                               ilm_using_declaration, &err);
+  }  /* if */
   if (!err) {
     decl_pos = locator_for_curr_id.source_position;
     /* The identifier should be a qualified name, with the qualifier a base

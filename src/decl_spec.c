@@ -2855,6 +2855,7 @@ return_point:;
                 information is being recorded in the IL. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 void typename_specifier(a_type_ptr            *type_ptr,
+                        a_boolean             within_using_decl,
                         a_decl_pos_block_ptr  decl_pos_block)
 /*
 Scan a typename specifier.  Typename is an elaborated type specifier.
@@ -2866,7 +2867,9 @@ The syntax is
 The identifier that follows the typename keyword must be a type name,
 otherwise a diagnostic is issued.  The type is returned in *type_ptr.
 On return, the current token is the one following the final identifier
-above.
+above.  within_using_decl is TRUE in a class member using declaration that
+starts with "using typename".  decl_pos_block is a possibly NULL pointer to
+a block of source position information when the context is a declaration.
 */
 {
   a_type_ptr	tp = NULL;
@@ -2889,9 +2892,11 @@ above.
   if (!is_generalized_identifier_start(GID_IS_TYPENAME)) {
     syntax_error(ec_exp_identifier);
   } else {
-    a_boolean	err = FALSE;
-    if (!coalesce_and_lookup_qualified_name(GID_NO_OPTIONS,
-                                            ilm_typename, &err) ||
+    a_boolean	               err = FALSE;
+    an_identifier_lookup_mode  ilm;
+
+    ilm = within_using_decl ? ilm_using_typename : ilm_typename;
+    if (!coalesce_and_lookup_qualified_name(GID_NO_OPTIONS, ilm, &err) ||
         !locator_for_curr_id.is_qualified_name || 
         locator_for_curr_id.is_file_scope_qualified_name || err) {
       /* The identifier scanned is not a class-qualified name,
@@ -2922,7 +2927,7 @@ above.
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Bypass the identifier token. */
-    (void)get_token();
+    if (!within_using_decl) (void)get_token();
   }  /* if */
   /* If no type was created, an error must have occurred above.  Return
      an error type. */
@@ -4569,7 +4574,8 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            typename_specifier(type_ptr, decl_pos_block);
+            typename_specifier(type_ptr, /*within_using_decl=*/FALSE,
+                               decl_pos_block);
             basic_type = bt_typename;
             is_elaborated_type_specifier = TRUE;
           } else {
@@ -4578,7 +4584,8 @@ process_class_specifier:
             bad_combination_of_type_specifiers = TRUE;
             error(ec_bad_combination_of_type_specifiers);
             /* Scan the specifier anyway, but throw it away. */
-            typename_specifier(&dummy_type, decl_pos_block);
+            typename_specifier(&dummy_type, /*within_using_decl=*/FALSE,
+                               decl_pos_block);
           }  /* if */
           decl_specifiers_seen |= DS_TYPE;
           goto no_get_token;

@@ -11283,7 +11283,8 @@ handle_trapped_left_paren:
 
         if (curr_token == tok_typename) {
           /* "typename X::Y" is an allowed form of type. */
-          typename_specifier(&cast_type, (a_decl_pos_block_ptr)NULL);
+          typename_specifier(&cast_type, /*within_using_decl=*/FALSE,
+                             (a_decl_pos_block_ptr)NULL);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_mode) {
           /* The Microsoft compiler allows things like "unsigned int(x)". */

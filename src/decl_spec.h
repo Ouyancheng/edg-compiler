@@ -68,6 +68,7 @@ extern void check_inheritance_kind(a_type_ptr           class_type,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void typename_specifier(a_type_ptr            *type_ptr,
+                               a_boolean             within_using_decl,
                                a_decl_pos_block_ptr  decl_pos_block);
 
 extern a_boolean is_constructor_decl(a_type_ptr  class_type);
