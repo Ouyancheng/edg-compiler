@@ -4522,6 +4522,7 @@ constructor scope, and also lower the user code.
       call_node = add_cast_if_necessary(call_node,
                                         f_skip_typerefs(this_param_var->type));
       this_param_node = var_lvalue_expr(this_param_var);
+      this_param_var->param_value_has_been_changed = TRUE;
       this_param_node->next = call_node;
       assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
                                        call_node->type, this_param_node);

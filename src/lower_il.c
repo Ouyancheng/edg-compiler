@@ -2328,6 +2328,10 @@ eok_last, determine the assignment operator from the type.
   }  /* if */
   /* Make an expression for the lvalue address. */
   lvalue_expr = var_lvalue_expr(lvalue_var);
+  /* If this variable is a parameter, mark it as having been changed. */
+  if (lvalue_var->is_parameter) {
+    lvalue_var->param_value_has_been_changed = TRUE;
+  }  /* if */
   /* Make and insert the assignment. */
   assign_stmt = insert_assignment_statement(lvalue_expr, op, rvalue_expr,
                                             insert_location);
