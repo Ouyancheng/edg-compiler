@@ -4845,6 +4845,10 @@ otherwise it is NULL.  The syntax is:
                   is_constructor = TRUE;
                 } else if (is_destructor_symbol(sym)) {
                   is_destructor = TRUE;
+                  if (!is_unknown_type(complete_type)) {
+                    error(ec_bad_destructor_decl);
+                    complete_type = unknown_type();
+                  }  /* if */
                 }  /* if */
               }  /* if */
               if (input_flags & DI_IS_TEMPLATE_DECLARATION) {
@@ -6813,7 +6817,7 @@ exit_loop:
     }  /* if */
     /* Combine the type specifiers into a type. */
     /* If there was no basic type, use int or (for constructors and
-       destructors) void. */
+       destructors) tk_unknown. */
     if (basic_type == bt_none) {
       basic_type = bt_int;
     } else if (basic_type == bt_no_type) {
