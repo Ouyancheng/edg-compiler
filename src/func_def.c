@@ -1226,13 +1226,19 @@ member declaration (allowed in Microsoft mode only).
     }  /* if */
     *old_type = type_ptr;
   } else {
+    rp = sym->variant.routine.ptr;
     /* A member function symbol with a compatible type was found. */
     *old_type = routine_symbol_type(sym);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode &&
+        !calling_conventions_are_compatible(*old_type, rout_type)) {
+      pos_error(ec_conflicting_calling_conventions, &locator->source_position);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* The types may be compatible but not identical.  Create (in type_ptr)
        a composite type.  First copy the implicit this param type pointer
        into type_ptr:  it is always wrong for nonstatic member functions.
        Also be sure the routine name linkage for the type is right. */
-    rp = sym->variant.routine.ptr;
     adjust_member_routine_type(rout_type, *old_type);
     /* Do compatibility checking on the throw specification. */
     check_exception_specification(rout_type, sym, &func_info->throw_position,

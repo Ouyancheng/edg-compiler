@@ -1,5 +1,16 @@
 Version 3.1
 
+6/14/02  Microsoft compatibility: Calling convention on out-of-class definition
+
+The front end used to fail to diagnose a mismatch between the calling
+convention declared on the in-class declaration of a member function and
+that declared on the corresponding out-of-class definition.
+
+  struct S { void f(); };
+  void __stdcall S::f() {}  // Used to be accepted; now an error
+
+This is now fixed.
+
 6/14/02  GNU C compatibility: Duplicate type specifiers
 
 In GNU C mode, the front end now accepts duplicate type specifiers (with a
