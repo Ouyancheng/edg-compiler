@@ -4145,7 +4145,6 @@ Generate the code for a switch statement.
   a_statement_ptr     case_statement, body_statement;
   a_constant_ptr      constant;
   a_switch_clause_ptr switch_clause;
-  a_boolean           need_break;
   /* curr_scope is saved here because dump_block_declarations may change it. */
   a_scope_ptr         saved_curr_scope = curr_scope;
 
@@ -4226,28 +4225,10 @@ position_set:;
         write_tok_ch(':');
       } while ((constant = constant->next) != NULL);
     }  /* if */
-    need_break = TRUE;
     /* Indent for the dependent statements. */
     indent += 2;
-    if ((case_statement = switch_clause->statements) == NULL) {
-      /* NULL statement list indicates that there were no statements for
-         this case, print nothing. */
-    } else {
-      for (; case_statement != NULL; case_statement = case_statement->next) {
-        dump_statement(case_statement);
-        if (case_statement->next == NULL) {
-          /* This is the last statement in this case; check for a goto
-             which indicates a branch out this case.  This branch results
-             from either an explicit goto or falling through to the next
-             case label.  If a goto is present, a break is not needed. */
-          if (case_statement->kind == (a_statement_kind)stmk_goto ||
-               case_statement->kind == (a_statement_kind)stmk_return ) {
-            need_break = FALSE;
-          }  /* if */
-        }  /* if */
-      }  /* for */
-    }  /* if */
-    if (need_break) {
+    dump_statement_list(switch_clause->statements);
+    if (switch_clause->implied_break_at_end) {
       set_output_position_for_stmt(&switch_clause->break_position);
       write_tok_str("break;");
     }  /* if */
