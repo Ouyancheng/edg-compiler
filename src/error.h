@@ -293,7 +293,11 @@ typedef enum /*an_error_code*/ {
   ec_member_ref_requires_object,
   ec_nonstatic_member_def_not_allowed,
   ec_redefinition_not_allowed,
-  ec_static_member_in_local_class
+  ec_static_member_in_local_class,
+  ec_pointer_to_reference,
+  ec_reference_to_reference,
+  ec_reference_to_void,
+  ec_array_of_reference
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

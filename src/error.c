@@ -789,6 +789,18 @@ error code.
     case ec_static_member_in_local_class:
       m = "static data member is not allowed in a local class";
       break;
+    case ec_pointer_to_reference:
+      m = "pointer to reference is not allowed";
+      break;
+    case ec_reference_to_reference:
+      m = "reference to reference is not allowed";
+      break;
+    case ec_reference_to_void:
+      m = "reference to void is not allowed";
+      break;
+    case ec_array_of_reference:
+      m = "array of reference is not allowed";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
