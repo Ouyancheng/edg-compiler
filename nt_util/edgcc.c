@@ -41,7 +41,7 @@ Driver program.
 #define MUNCH_OBJ_FILE			"munchtmp.obj"
 #define EDG_PRELINK			"edg_prelink"
 #define DEFAULT_MICROSOFT_INCLUDE	"\\progra~1\\micros~1\\vc98\\include"
-#define DEFAULT_MSVC_TARGET_VERSION	7
+#define DEFAULT_MSVC_TARGET_VERSION	1300
 #else /* !__WIN32__ */
 #define C_COMMAND			"cc"
 #define GEN_C_OBJECT_FILE_SUFFIX	".int.o"
@@ -868,7 +868,7 @@ Startup initialization.
       msvc_target_version = scan_opt_arg_number(version);
     }  /* if */
     /* Munch is needed for versions of MSVC prior to 7.0. */
-    if (msvc_target_version < 7) use_munch = TRUE;
+    if (msvc_target_version < 1300) use_munch = TRUE;
   }
   /* Build $EDG_BASE/lib/munch_nm. */
   sprintf(string_buffer, "%s%s%s", edg_lib, PATH_DELIMITER, "munch_nm");
@@ -1085,7 +1085,7 @@ to handle static initialization.
   add_cl_argument(&link_command, output_file_name);
   add_cl_argument(&link_command, LINKER_OPTIONS);
 #if __WIN32__
-  if (msvc_target_version < 7) {
+  if (msvc_target_version < 1300) {
     /* A special linker option is needed to generate information for munch
        when using older MSVC versions. */
     add_cl_argument(&link_command, "/debugtype:both");

@@ -534,7 +534,7 @@ configuration macro, MSVC_TARGET_VERSION, specifies the default
 Microsoft version being targeted when MSVC_IS_GENERATED_CODE_TARGET
 is TRUE.  The C generating back end now emits the new pragma to get
 static initialization routines invoked at program startup when
-MSVC_IS_GENERATED_CODE_TARGET is TRUE and MSVC_TARGET_VERSION is 7 or
+MSVC_IS_GENERATED_CODE_TARGET is TRUE and MSVC_TARGET_VERSION is 1300 or
 higher.  The --msvc_target_version command-line option can be used to
 override the default version number.  
 
