@@ -256,9 +256,7 @@ and for the instantiation of template functions.
   is_instantiation = (flags & SFB_IS_INSTANTIATION) != 0;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!func_info->function_type_from_typedef &&
-      func_info->prototype_scope_ss_entry_start != NULL &&
-      depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
-      depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+      func_info->prototype_scope_ss_entry_start != NULL) {
     a_source_sequence_entry_ptr  starting_ssep, ending_ssep;
     a_src_seq_sublist_ptr        sublist = NULL;
 
@@ -326,9 +324,7 @@ and for the instantiation of template functions.
   } else {
     /* Correctly declared function type. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (func_info->prototype_scope_ss_entry_start != NULL &&
-        depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
-        depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+    if (func_info->prototype_scope_ss_entry_start != NULL) {
       /* Step through the segment of file-scope source sequence entries
          generated when the parameter list of the function was scanned.
          Do necessary fixups for parameter entries, and build function-scope
