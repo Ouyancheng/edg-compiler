@@ -3956,8 +3956,16 @@ Syntax:
         node->type = integer_type(targ_size_t_int_kind);
         node->variant.runtime_sizeof.type = sizeof_type;
         if (!is_type) {
-          prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
-          node->variant.runtime_sizeof.expr = make_node_from_operand(&operand);
+          /* The original form is sizeof(expression), so record that
+             expression.  The IL operator assumes the operand is an
+             lvalue, so don't do this for non-lvalues except when
+             dealing with an expression in a prototype instantiation. */
+          if (is_template_dependent_context()) {
+            prep_generic_operand(&operand, /*lvalue_expected=*/TRUE);
+            node->variant.runtime_sizeof.expr=make_node_from_operand(&operand);
+          } else if (is_an_lvalue(&operand)) {
+            node->variant.runtime_sizeof.expr=make_node_from_operand(&operand);
+          }  /* if */
         }  /* if */
         constant.expr = node;
       }
