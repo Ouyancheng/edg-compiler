@@ -1382,9 +1382,10 @@ funcs_not_identical:;
                                          il_identical));
           break;
         case tk_template_param:
-          /* Template parameter types are identical only if the pointers
-             match, and that has already been checked for. */
-          identical = FALSE;
+          /* Template parameter types are considered to be identical if
+             their positions in the template parameter list are the same. */
+          identical = (type_1->variant.list_position ==
+                                           type_2->variant.list_position);
           break;
 #if CHECKING
         default:
@@ -1629,6 +1630,12 @@ the initial test for exact pointer equality.
                     f_types_are_compatible(pm_member_type(type_1),
                                            pm_member_type(type_2),
                                            allow_error_type));
+          break;
+        case tk_template_param:
+          /* Template parameter types are considered to be compatible if
+             their positions in the template parameter list are the same. */
+          compat = (type_1->variant.list_position ==
+                                           type_2->variant.list_position);
           break;
 #if CHECKING
         default:
@@ -2560,6 +2567,7 @@ is allocated, it is allocated in the file scope.
         case tk_class:
         case tk_struct:
         case tk_union:
+        case tk_template_param:
           /* Simple types.  The composite type is either of the types. */
           /* The class/struct/union cases are here because a
              class/struct/union can be compatible with a file-scope
