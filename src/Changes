@@ -1,5 +1,15 @@
 Version 2.16
 
+4/9/93  More information about friend declarations in the IL
+
+Two new fields, friend_routines and friend_classes, have been added to the
+class type supplement to identify the routines and classes that were
+declared as friends of the given class.  This may be useful for symbolic
+debugger support.  (Until now the friend information was only maintained
+"backwards", with the class in which the friend declaration appears
+recorded in the befriending_class field of the routine entry or class upon
+which friendship was conferred.)
+
 4/8/93  Spurious diagnostic on typedef declarations
 
 A warning (or in strict ANSI mode an error) is no longer issued on a
