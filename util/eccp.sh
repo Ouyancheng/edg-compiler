@@ -384,7 +384,7 @@ cmd_tmp_file=$TMPDIR/cl$$
 trap "exit 134" 6 # abort
 trap "exit 137" 9 # kill (used by timeout detection)
 trap "exit 138" 10 # bus error
-trap "exit 139" 11 # segmentation fault
+trap "exit 139" 11 2>/dev/null # segmentation fault (fails on some systems)
 #
 # Function that compiles a generated C file
 #
