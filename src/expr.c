@@ -1068,7 +1068,8 @@ build an argument operand list and return a pointer to it in
 	    /* Compare the type of the promoted actual with the promoted formal
 	       without qualifiers. */
 	    if (!is_error_type(curr_param_type->type)) {
-              formal_type = default_argument_promotion(curr_param_type->type);
+              formal_type = default_argument_promotion(
+                                         skip_typerefs(curr_param_type->type));
               if (!types_are_compatible(formal_type, argument_operand.type)) {
                 if (interchangeable_types(formal_type,
                                           argument_operand.type)) {
@@ -2888,7 +2889,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
         a_type_kind kind;
         /* Operand is okay. */
         modifying_lvalue(operand, /*value_used=*/TRUE);
-        result_type = make_unqualified_type(operand->type);
+        result_type = rvalue_type(operand->type);
         kind = skip_typerefs(result_type)->kind;
         if (is_increment) {
           switch (kind) {
@@ -3060,7 +3061,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
         /* Operand is okay. */
         modifying_lvalue(&operand, /*value_used=*/TRUE);
         orig_result_type = operand.type;
-        result_type = make_unqualified_type(orig_result_type);
+        result_type = rvalue_type(orig_result_type);
         kind = skip_typerefs(result_type)->kind;
         if (is_increment) {
           switch (kind) {
@@ -8098,10 +8099,10 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
 #if ASSIGNMENT_TO_THIS_ALLOWED
       }  /* if */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-      /* The type of the assignment is the destination type with any qualifiers
-         dropped. */
+      /* The type of the assignment is the destination type with qualifiers
+         dropped as appropriate. */
       orig_result_type = operand_1->type;
-      result_type = make_unqualified_type(orig_result_type);
+      result_type = rvalue_type(orig_result_type);
       /* do_operand_transformations is not done in the second operand, because
          the processing for that is done in the conversion stuff.
          In C++, an lvalue, or an array, or an indefinite function might
@@ -8242,7 +8243,7 @@ See section 3.3.16 of the standard.
         make_error_operand(result);
       } else {
         orig_result_type = operand_1->type;
-        result_type = make_unqualified_type(orig_result_type);
+        result_type = rvalue_type(orig_result_type);
         if (pointer_add_sub) {
           /* For pointer += or -=, integral promotions are not done, and
              the operation type is the first operand's type.  This is
