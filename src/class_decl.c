@@ -2870,6 +2870,31 @@ that tracks the highest number assigned thus far.
 }  /* update_virtual_function_number */
 
 
+static void report_override_exception_spec_mismatch(
+                                               a_symbol_ptr       overrider,
+                                               a_symbol_ptr       overridden,
+                                               a_source_position  *source_pos)
+/*
+The member function represented by overrider overrides the virtual member
+represented by overridden, but its exception specification is less
+restrictive.  Issue an appropriate diagnostic at the given position.
+*/
+{
+  if (overrider->variant.routine.ptr->compiler_generated) {
+    /* Issue a warning on a compiler-generated constructor
+       or assignment operator. */
+    pos_sy2_warning(ec_generated_exception_spec_override_incompat,
+                    source_pos, overrider, overridden);
+  } else {
+    /* Microsoft compilers don't diagnose this (and in fact, they
+       don't do much with exception specifications at all). */
+    pos_sy2_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
+                       ec_exception_spec_override_incompat,
+                       source_pos, overrider, overridden);
+  }  /* if */
+}  /* report_override_exception_spec_mismatch */
+
+
 static a_boolean check_for_virtual_function(
                                      a_boolean             virtual_specified,
                                      a_symbol_ptr          rout_sym,
@@ -3075,16 +3100,8 @@ routine entry and return TRUE; otherwise return FALSE.
               /* The exception specification for the overriding virtual
                  function is less restrictive that that of the overridden
                  function. */
-              if (rout->compiler_generated) {
-                /* Issue a warning on a compiler-generated constructor
-                   or assignment operator. */
-                pos_sy2_warning(ec_generated_exception_spec_override_incompat,
-                                source_pos, rout_sym, sym);
-              } else {
-                pos_sy2_diagnostic(es_discretionary_error,
-                                   ec_exception_spec_override_incompat,
-                                   source_pos, rout_sym, sym);
-              }  /* if */
+              report_override_exception_spec_mismatch(rout_sym, sym,
+                                                      source_pos);
             }  /* if */
             /* Record the virtual function override in the base class entry.
                It can be used later, e.g., for building a virtual function

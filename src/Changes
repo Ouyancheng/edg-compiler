@@ -1,5 +1,19 @@
 Version 3.3
 
+7/18/03  Microsoft mode: Exception specifications and virtual overriders
+
+In Microsoft mode (with exceptions enabled and microsoft_version >= 1300),
+the front end now only issues a warning on a virtual overrider whose
+exception specification is less restrictive than that of the member it
+overrides.  Previously, a (discretionary) error was issued.  For example:
+
+  struct B {
+    virtual void f() throw() {}
+  };
+  struct D: B {
+    virtual void f() {}  // Now a warning in Microsoft mode.
+  };                     // (Previously an error.)
+
 7/18/03  Missing stmk_init for lowered compound literal in C++ mode
 
 IL lowering failed to add an stmk_init statement to cause the
