@@ -3658,19 +3658,28 @@ Return TRUE if the candidate functions cfp1 and cfp2 are the same function.
          class subobjects. */
       /* same = FALSE; -- already set. */
     } else {
-      a_routine_ptr rout1, rout2;
       sym1 = fundamental_symbol_of(sym1);
       sym2 = fundamental_symbol_of(sym2);
-      /* Note that sym1 or sym2 can be a function template here. */
-      if (sym1 == sym2 ||
-          ((sym1->kind == (a_symbol_kind)sk_routine ||
-            sym1->kind == (a_symbol_kind)sk_member_function) &&
-           sym1->kind == sym2->kind &&
-           /* Compare IL entry pointers to deal with block extern symbols. */
-           (rout1 = sym1->variant.routine.ptr,
-            rout2 = sym2->variant.routine.ptr,
-            same_routine_entities(rout1, rout2)))) {
+      if (sym1 == sym2) {
         same = TRUE;
+      } else if (sym1->kind == sym2->kind) {
+        if (sym1->kind == (a_symbol_kind)sk_routine ||
+            sym1->kind == (a_symbol_kind)sk_member_function) {
+           /* Compare IL entry pointers to deal with block extern symbols. */
+          a_routine_ptr rout1 = sym1->variant.routine.ptr;
+          a_routine_ptr rout2 = sym2->variant.routine.ptr;
+          same = same_routine_entities(rout1, rout2);
+        } else {
+          /* A function template.  Compare the canonical a_template entries. */
+          a_template_ptr temp1, temp2;
+          check_assertion(sym1->kind == (a_symbol_kind)sk_function_template);
+          temp1 = sym1->variant.template_info->il_template_entry->
+                                                            canonical_template;
+          temp2 = sym2->variant.template_info->il_template_entry->
+                                                            canonical_template;
+          same = (canonical_il_entry_of(temp1) ==
+                  canonical_il_entry_of(temp2));
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
