@@ -873,7 +873,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
     }  /* if */
   }  /* if */
 
-#if USER_CONTROL_OF_STRUCT_PACKING && USER_CONTROL_OF_STRUCT_BIT_PACKING
+#if USER_CONTROL_OF_STRUCT_PACKING
   /* Adjust the container alignment for packing, if required.  Some
      environments do not let packing directives influence the layout of bit
      fields that cross their base type's alignment boundary, but the class
@@ -882,9 +882,10 @@ targ_microsoft_bit_field_allocation is FALSE.)
      directive wrt. the origin of the containing object, but in absolute
      terms the field may end up being unaligned.)  For such environments, the
      adjustment is made later on. */
-  adjust_alignment_for_packing(&container_alignment, lob->class_type);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING &&
-          USER_CONTROL_OF_STRUCT_BIT_PACKING */
+  if (targ_user_control_of_struct_packing_affects_bit_fields) {
+    adjust_alignment_for_packing(&container_alignment, lob->class_type);
+  }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   /* We want to make sure that the bit field can be grabbed using one
      load of the size of the container aligned the way the container
      must be. */
@@ -931,9 +932,10 @@ targ_microsoft_bit_field_allocation is FALSE.)
        not apply packing directives to the relative layout of bit fields that
        straddle their base type's alignment boundary.  The class as a whole
        still obeys the packing directive however. */
-    adjust_alignment_for_packing(&container_alignment, lob->class_type);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING  &&
-          !USER_CONTROL_OF_STRUCT_BIT_PACKING */
+    if (!targ_user_control_of_struct_packing_affects_bit_fields) {
+      adjust_alignment_for_packing(&container_alignment, lob->class_type);
+    }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (container_alignment > lob->alignment) {
       lob->alignment = container_alignment;
     }  /* if */

@@ -358,6 +358,18 @@ EXTERN int	targ_unnamed_bit_field_affects_struct_alignment
 			   of the struct as well as the alignment of the next
 			   field. */
 
+EXTERN int	targ_user_control_of_struct_packing_affects_bit_fields
+#if VAR_INITIALIZERS
+                     = TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS
+#endif /* VAR_INITIALIZERS */
+                                                                             ;
+			/* TRUE if "#pragma pack(n)" and the command-line
+			   option "--pack_alignment=n" affect the alignment of
+			   bit field containers (when bit fields straddle
+			   container alignment boundaries). */
+
+
+
 /*
 Pointer types:
 */
@@ -845,6 +857,7 @@ EXTERN a_boolean
 #undef TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
 #undef TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
 #undef TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT
+#undef TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS
 #if TARG_ALL_POINTERS_SAME_SIZE
 #undef TARG_SIZEOF_POINTER
 #undef TARG_ALIGNOF_POINTER
@@ -922,6 +935,8 @@ EXTERN a_boolean
                         targ_enum_bit_fields_are_always_unsigned
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT                             \
                         targ_zero_width_bit_field_alignment
+#define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS          \
+                        targ_user_control_of_struct_packing_affects_bit_fields
 #if TARG_ALL_POINTERS_SAME_SIZE
 #define TARG_SIZEOF_POINTER targ_sizeof_pointer
 #define TARG_ALIGNOF_POINTER targ_alignof_pointer

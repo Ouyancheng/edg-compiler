@@ -558,7 +558,6 @@ match the target machine behavior on integer operations in C.
 			 targ_zero_width_bit_field_affects_struct_alignment. */
 #endif /* ifndef TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT */
 
-
 /* TRUE when an unnamed bit field, typically used to control the alignment
    of the next field, thereby also affects how the alignment of the struct
    as a whole is determined. */
@@ -586,6 +585,17 @@ match the target machine behavior on integer operations in C.
 			/* Default value, used to initialize global variable
 			   targ_unnamed_bit_field_affects_struct_alignment. */
 #endif /* ifndef TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT */
+
+/*
+Flag that is TRUE if "#pragma pack(n)" and the command-line option
+"--pack_alignment=n", when supported, affect the container boundary/alignment
+of bit fields.  FALSE indicates that TARG_BIT_FIELD_CONTAINER_SIZE controls
+the container boundary/alignment at all times.
+*/
+#ifndef TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS
+#define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS  \
+                                              USER_CONTROL_OF_STRUCT_PACKING
+#endif /* ifndef TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS */
 
 
 /*

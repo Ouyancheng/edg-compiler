@@ -92,11 +92,13 @@ did not call for destruction of the preceding variable).
 
 7/14/99  Option to not pack bit fields that straddle alignment boundaries
 
-A configuration flag USER_CONTROL_OF_STRUCT_BIT_PACKING -- which by default is
-equal to USER_CONTROL_OF_STRUCT_PACKING -- was added to emulate the behavior
-of compilers that to not apply packing directives to bit fields that straddle
-alignment boundaries of their base type.  For example, assuming 32-bit aligned
-int objects:
+A new global variable, targ_user_control_of_struct_packing_affects_bit_fields,
+has been added.  TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS is
+defined in targ_def.h and selects the default value of the new variable.
+When the variable is equal to FALSE the front end emulates the behavior of
+compilers that do not apply packing directives to bit fields that straddle
+alignment boundaries of their base types.  For example, assuming 32-bit
+aligned int objects:
 
   #pragma pack (1)
   struct S {      //   Flag FALSE          Flag TRUE
