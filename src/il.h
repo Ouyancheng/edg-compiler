@@ -1198,7 +1198,7 @@ a NULL pointer is returned.
                                              : NULL)
 
 /*
-Compare to translation unit correspondence pointers.  They match if they
+Compare two translation unit correspondence pointers.  They match if they
 are equal and non-NULL.
 */
 #define same_trans_unit_corresps(ptr1, ptr2)				\
