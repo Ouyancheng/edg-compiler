@@ -1062,7 +1062,14 @@ extern void db_template_name(a_template_ptr  tp);
 
 extern void db_type_name(a_type_ptr  tp);
 
+extern void db_name_full(a_source_correspondence *sc,
+                         an_il_entry_kind        kind);
+
 extern void db_name(a_source_correspondence *sc);
+
+extern char *db_name_str_full(a_source_correspondence *scp,
+                              an_il_entry_kind        kind,
+                              a_boolean               include_func_params);
 
 extern char *db_name_str(a_source_correspondence *sc,
                          an_il_entry_kind        kind);

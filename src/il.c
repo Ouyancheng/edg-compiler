@@ -235,17 +235,29 @@ template, dump the template arguments, too.
 }  /* db_type_name */
 
 
+void db_name_full(a_source_correspondence *sc,
+                  an_il_entry_kind        kind)
+/*
+Dump the name from a source correspondence (if any).  This gets the entry
+kind and can provide full information, e.g., template arguments on
+template classes.
+*/
+{
+  if (sc == NULL) {
+    fputs("<no source corresp>", f_debug);
+  } else {
+    fprintf(f_debug, "%s", db_name_str(sc, kind));
+  }  /* if */
+}  /* db_name */
+
+
 void db_name(a_source_correspondence *sc)
 /*
 Dump the name from a source correspondence (if any).  This doesn't provide
 template arguments on template classes.
 */
 {
-  if (sc == NULL) {
-    fputs("<no source corresp>", f_debug);
-  } else {
-    fprintf(f_debug, "%s", db_name_str(sc, iek_none));
-  }  /* if */
+  db_name_full(sc, iek_none);
 }  /* db_name */
 
 #endif /* DEBUG */
@@ -268,13 +280,15 @@ Output a string into the db_name_str buffer.
 }  /* put_str_into_db_name_str_buffer */
 
 
-char *db_name_str(a_source_correspondence *scp,
-                  an_il_entry_kind        kind)
+char *db_name_str_full(a_source_correspondence *scp,
+                       an_il_entry_kind        kind,
+                       a_boolean               include_func_params)
 /*
 Return the name of an entity.  The name string is in a buffer and should
 not be expected to stay around for a long time.  kind is the kind of
 entity.  The name includes the translation unit file name if the
-entity is not from the primary translation unit.
+entity is not from the primary translation unit.  If include_func_params
+is TRUE, include type information for function parameters.
 */
 {
   an_il_to_str_output_control_block octl;
@@ -305,8 +319,26 @@ entity is not from the primary translation unit.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   /* Generate the name of this entity. */
   form_name(scp, kind, &octl);
+  if (include_func_params && kind == (an_il_entry_kind)iek_routine) {
+    /* Add function parameter types. */
+    a_routine_ptr rout = (a_routine_ptr)scp;
+    form_function_declarator(f_skip_typerefs(rout->type), &octl);
+  }  /* if */
   add_char_to_text_buffer(db_name_str_buffer, '\0');
   return db_name_str_buffer->buffer;
+}  /* db_name_str_full */
+
+
+char *db_name_str(a_source_correspondence *scp,
+                  an_il_entry_kind        kind)
+/*
+Return the name of an entity.  The name string is in a buffer and should
+not be expected to stay around for a long time.  kind is the kind of
+entity.  The name includes the translation unit file name if the
+entity is not from the primary translation unit.
+*/
+{
+  return db_name_str_full(scp, kind, /*include_func_params=*/TRUE);
 }  /* db_name_str */
 
 #endif /* DEBUG */

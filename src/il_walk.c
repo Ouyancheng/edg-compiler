@@ -511,12 +511,16 @@ definition of the routine is needed, and not just the declaration.
 #if DEBUG
     if (db_trace("needed_flags", rout, iek_routine)) {
 #if ONE_INSTANTIATION_PER_OBJECT
-      fprintf(f_debug, "Setting definition_needed (%lu) on rout  ",
-                       needed_flag_bit_number);
-#else /* !ONE_INSTANTIATION_PER_OBJECT */
-      fprintf(f_debug, "Setting definition_needed on rout  ");
+      if (needed_flag_bit_number != 0) {
+        fprintf(f_debug, "Setting definition_needed (%lu) on rout  ",
+                         needed_flag_bit_number);
+      } else
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-      db_name(&rout->source_corresp);
+      /* Do not insert code here. */
+      {
+        fprintf(f_debug, "Setting definition_needed on rout  ");
+      }  /* if */
+      db_name_full(&rout->source_corresp, iek_routine);
       fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
@@ -633,11 +637,15 @@ definition of the class is needed, and not just the declaration.
 #if DEBUG
     if (db_trace("needed_flags", type, iek_type)) {
 #if ONE_INSTANTIATION_PER_OBJECT
-      fprintf(f_debug, "Setting definition_needed (%lu) on ",
-                       needed_flag_bit_number);
-#else /* !ONE_INSTANTIATION_PER_OBJECT */
-      fprintf(f_debug, "Setting definition_needed on ");
+      if (needed_flag_bit_number != 0) {
+        fprintf(f_debug, "Setting definition_needed (%lu) on ",
+                         needed_flag_bit_number);
+      } else
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+      /* Do not insert code here. */
+      {
+        fprintf(f_debug, "Setting definition_needed on ");
+      }  /* if */
       db_abbreviated_type(type);
       fprintf(f_debug, "\n");
     }  /* if */
@@ -743,22 +751,30 @@ as needed.
             entry_kind == iek_routine ||
             entry_kind == iek_namespace) {
 #if ONE_INSTANTIATION_PER_OBJECT
-          fprintf(f_debug, "Setting needed (%lu) on ", needed_flag_bit_number);
-#else /* !ONE_INSTANTIATION_PER_OBJECT */
-          fprintf(f_debug, "Setting needed on ");
+          if (needed_flag_bit_number != 0) {
+            fprintf(f_debug, "Setting needed (%lu) on ",
+                             needed_flag_bit_number);
+          } else
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+          /* Do not insert code here. */
+          {
+            fprintf(f_debug, "Setting needed on ");
+          }  /* if */
           if (entry_kind == iek_type) {
             fprintf(f_debug, "type ");
             db_abbreviated_type((a_type_ptr)entry_ptr);
           } else if (entry_kind == iek_variable) {
             fprintf(f_debug, "var  ");
-            db_name(&((a_variable_ptr)entry_ptr)->source_corresp);
+            db_name_full(&((a_variable_ptr)entry_ptr)->source_corresp,
+                         iek_variable);
           } else if (entry_kind == iek_routine) {
             fprintf(f_debug, "rout ");
-            db_name(&((a_routine_ptr)entry_ptr)->source_corresp);
+            db_name_full(&((a_routine_ptr)entry_ptr)->source_corresp,
+                         iek_routine);
           } else if (entry_kind == iek_namespace) {
             fprintf(f_debug, "namespace ");
-            db_name(&((a_routine_ptr)entry_ptr)->source_corresp);
+            db_name_full(&((a_routine_ptr)entry_ptr)->source_corresp,
+                         iek_namespace);
           }  /* if */
           fprintf(f_debug, "\n");
         }  /* if */
@@ -1160,7 +1176,7 @@ declaration.
 #if DEBUG
     if (db_trace("needed_flags", rout, iek_routine)) {
       fprintf(f_debug, "Setting keep_definition_in_il on rout  ");
-      db_name(&rout->source_corresp);
+      db_name_full(&rout->source_corresp, iek_routine);
       fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
@@ -1322,15 +1338,18 @@ to be kept.
         fprintf(f_debug, "\n");
       } else if (entry_kind == iek_variable) {
         fprintf(f_debug, "Setting keep_in_il on var  ");
-        db_name(&((a_variable_ptr)entry_ptr)->source_corresp);
+        db_name_full(&((a_variable_ptr)entry_ptr)->source_corresp,
+                     iek_variable);
         fprintf(f_debug, "\n");
       } else if (entry_kind == iek_routine) {
         fprintf(f_debug, "Setting keep_in_il on rout ");
-        db_name(&((a_routine_ptr)entry_ptr)->source_corresp);
+        db_name_full(&((a_routine_ptr)entry_ptr)->source_corresp,
+                     iek_routine);
         fprintf(f_debug, "\n");
       } else if (entry_kind == iek_namespace) {
         fprintf(f_debug, "Setting keep_in_il on namespace ");
-        db_name(&((a_routine_ptr)entry_ptr)->source_corresp);
+        db_name_full(&((a_routine_ptr)entry_ptr)->source_corresp,
+                     iek_namespace);
         fprintf(f_debug, "\n");
       }  /* if */
     }  /* if */

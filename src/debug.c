@@ -387,24 +387,36 @@ correspondence, do nothing.
       scp->name != NULL) {
     /* Get the entity name. */
     char *name = db_name_str(scp, entry_kind);
+    char *name_with_params = NULL;
+    if (entry_kind == (an_il_entry_kind)iek_routine) {
+      /* Also generate a version with parameter types in case it's needed. */
+      name_with_params = db_name_str_full(scp, entry_kind,
+                                          /*include_func_params=*/TRUE);
+    }  /* if */
     /* Compare it against the list of debug requests. */
     for (request = debug_requests; request != NULL; request = request->next) {
       if (request->action == da_name) {
         char *eff_name = name;
         char *eff_request_name = request->name;
-        if (request->name[0] != '[') {
+        if (name_with_params != NULL &&
+            strchr(eff_request_name, '(') != NULL) {
+          /* The request has a left parenthesis, so compare against the
+             form of the name with parameter types. */
+          eff_name = name_with_params;
+        }  /* if */
+        if (eff_request_name[0] != '[') {
           /* A name on the command line without a translation unit file
              name matches any translation unit.  Skip past the translation
              unit name on the generated name, if there is one. */
-          if (name[0] == '[') {
-            eff_name = strchr(name, ']');
+          if (eff_name[0] == '[') {
+            eff_name = strchr(eff_name, ']');
             check_assertion(eff_name != NULL);
             eff_name++;
           }  /* if */
-        } else if (request->name[1] == ']') {
+        } else if (eff_request_name[1] == ']') {
           /* A name on the command line beginning with [] matches only
              a name in the primary translation unit. */
-          if (name[0] == '[') continue;
+          if (eff_name[0] == '[') continue;
           eff_request_name += 2;
         }  /* if */
         if (strcmp(eff_name, eff_request_name) == 0) {
