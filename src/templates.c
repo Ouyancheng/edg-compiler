@@ -6160,8 +6160,9 @@ set *copy_error to TRUE.
         /* If the constant does not have the required type, see if it can
            be converted. */
         a_type_ptr	type_from_constant = new_tap->variant.constant->type;
-        if (!identical_types(skip_typerefs(new_const_type),
-                             skip_typerefs(type_from_constant))) {
+        if (!f_identical_types(skip_typerefs(new_const_type),
+                               skip_typerefs(type_from_constant),
+                               ITF_NO_FLAGS)) {
           /* Attempt to convert the constant. */
           if (!conv_nontype_arg_to_required_type(new_tap, new_const_type,
                                                  source_pos)) {
