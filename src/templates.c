@@ -1853,10 +1853,6 @@ declaration.
   a_scope_ptr		   definition_scope;
   a_type_ptr		   definition_class = NULL;
 
-#if 0
-  /* This will need to be updated for member templates.  Member templates
-     cannot be defined in friend declarations. */
-#endif /* 0 */
   definition_scope = cache_for_template(tssp)->decl_info->enclosing_scope;
   if (definition_scope->kind == (a_scope_kind)sck_class_struct_union) {
     definition_class = definition_scope->variant.assoc_type;
@@ -2035,9 +2031,6 @@ supplement already associated with ft_symbol.
       rp->source_corresp.name_linkage = orig_rp->source_corresp.name_linkage;
     }
   }  /* if */
-#if 0
-  /* Is there any friend processing that needs to be done here? */
-#endif
 error_exit:
   db_exit();
 }  /* find_function_template_member */
@@ -4110,15 +4103,8 @@ type based on the template argument list and the template parameter list
 #if CHECKING
   check_function_template_arg_list(templ_arg_list, templ_sym);
 #endif /* CHECKING */
-  if (templ_sym->kind == (a_symbol_kind)sk_member_function) {
-#if 0
-    tssp = templ_sym->variant.routine.instance_ptr->template_info;
-#else /* 0 */
-    unexpected_condition();
-#endif /* if 0 */
-  } else {
-    tssp = templ_sym->variant.template_info;
-  }  /* if */
+  check_assertion(templ_sym->kind == (a_symbol_kind)sk_function_template);
+  tssp = templ_sym->variant.template_info;
   /* Create the associated function instantiation entry and link it
      onto the front of the instantiation list for the template. */
   tip = alloc_template_instance();
@@ -8044,10 +8030,6 @@ instantiation, then you don't know what X is.
 
   db_enter(4, "prescan_nonclass_template_declaration");
 
-#if 0
-  /* This will need to be checked when member template classes are
-     implemented. */
-#endif /* 0 */  
   ssep = &scope_stack[depth_scope_stack];
   check_assertion(ssep->kind == (a_scope_kind)sck_template_declaration);
   tp = prescan_and_find_declarator(&decl_state->decl_token_cache, &is_friend);
