@@ -1,5 +1,14 @@
 Version 2.46
 
+2/13/02  Incorrect instantiation file suffix list on Windows
+
+When the front end is built with the __MICROSOFT_OS__ macro set, the
+DEFAULT_INSTANTIATION_FILE_SUFFIX macro contained some null file
+suffix entries which could result in the front end using a file with
+no suffix as an implicitly included template definition file (this
+would only occur if implicit inclusion was enabled).  This has been
+fixed.
+
 2/13/02  __ALIGNOF__ no longer requires parentheses around argument expressions
 
 The __ALIGNOF__ (or __alignof__) operator now more closely matches the
