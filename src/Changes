@@ -1,5 +1,10 @@
 Version 2.25
 
+7/26/94  Pragmas in classes in C++-generating back end
+
+The C++-generating back end now correctly handles pragmas inside class
+definitions.
+
 7/18/94  Possible ordering problem in lowered code for ptr-to-member call
 
 The lowered code for a pointer-to-member call included an adjustment of
