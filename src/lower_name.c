@@ -1665,7 +1665,7 @@ template classes.
     a_boolean     suppress_parent_encoding = FALSE;
     a_routine_ptr routine = con->variant.address.variant.routine;
 #if IA64_ABI
-    add_str_to_mangled_name("_Z", mctl);
+    if (!emulate_gnu_abi_bugs) add_str_to_mangled_name("_Z", mctl);
     suppress_param_encoding = FALSE;
     if (!function_name_mangling_needed(routine, &suppress_param_encoding)) {
       suppress_param_encoding = TRUE;
