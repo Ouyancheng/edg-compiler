@@ -238,6 +238,7 @@ this case and add it to the list for the current scope.
           /* Get pointer to current scope entry. */
           ssep = &scope_stack[decl_scope_level];
           if (ssep->kind == (a_scope_kind)sck_pragma) --ssep;
+          while (ssep->kind == (a_scope_kind)sck_template_declaration) --ssep;
           /* Create the IL scope if necessary (for block scopes). */
           sp = ensure_il_scope_exists(ssep);
           check_assertion_str(sp != NULL,
@@ -528,8 +529,9 @@ hiding.
        are the ones that have been turned into variables. */
   } else if (is_unnamed_tag_symbol(sym_ptr)) {
     /* No name hiding for unnamed entities. */
-  } else if (depth_template_declaration_scope != NO_SCOPE_DEPTH ||
-             ssep->in_prototype_instantiation) {
+  } else if ((depth_template_declaration_scope != NO_SCOPE_DEPTH ||
+              ssep->in_prototype_instantiation) &&
+             sym_ptr->kind == (a_symbol_kind)sk_class_template) {
     /* We don't deal with class template definitions. */
   } else if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
     /* Ignore template instantiation scopes. */
@@ -685,9 +687,16 @@ hiding.
          declaration -- if there is one, see if the hidden reference can be
          resolved by using a name qualifier. */
       if (sym_ptr->decl_scope != FILE_SCOPE_NUMBER) {
+        an_id_lookup_options_set	options;
         clear_specific_symbol(locator);
-        old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
-                                                 IDL_SKIP_CURR_SCOPE);
+        options = IDL_HIDDEN_NAME_LOOKUP | IDL_SKIP_CURR_SCOPE;
+        if (sym_ptr->kind == (a_symbol_kind)sk_function_template) {
+          /* If this is a function template, skip any template declaration
+             scopes before skipping the "current" scope (the one in which
+             the template is declared). */
+          options |= IDL_SKIP_TEMPLATE_DECL_SCOPES;
+        }  /* if */
+        old_sym_ptr = normal_id_lookup(&locator, options);
         if (old_sym_ptr != NULL) {
           an_il_entry_kind  il_kind;
           if (old_sym_ptr == sym_ptr) {

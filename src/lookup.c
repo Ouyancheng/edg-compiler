@@ -1171,6 +1171,9 @@ typedef struct a_lookup_state {
   a_boolean	hidden_name_lookup;
 			/* TRUE if the IDL_HIDDEN_NAME_LOOKUP option was
 			   specified for this lookup. */
+  a_boolean	skip_template_decl_scopes;
+			/* TRUE if the IDL_SKIP_TEMPLATE_DECL_SCOPES option
+			   was specified for this lookup. */
   a_boolean	terminate_lookup;
 			/* TRUE if a condition occurred that should cause
 			   the lookup to terminate even is a symbol was
@@ -1252,6 +1255,7 @@ value.
   cleared_lookup_state.is_linkage_lookup             = FALSE;
   cleared_lookup_state.is_friend_lookup              = FALSE;
   cleared_lookup_state.hidden_name_lookup            = FALSE;
+  cleared_lookup_state.skip_template_decl_scopes     = FALSE;
   cleared_lookup_state.terminate_lookup              = FALSE;
   cleared_lookup_state.skip_curr_scope               = FALSE;
   cleared_lookup_state.skip_class_scopes             = FALSE;
@@ -1427,8 +1431,6 @@ lookup processing.
   a_symbol_ptr		sym = NULL;
   a_symbol_ptr		active_sym;
   a_symbol_ptr		prev_active_sym;
-  a_boolean		first_scope =
-                                    scope_depth_of(ssep) == depth_scope_stack;
 
 /* Local macro that tests whether or not a symbol on the active list
    is acceptable.  See if the symbol is in the proper name space. */
@@ -1447,13 +1449,7 @@ lookup processing.
   for (; active_sym != NULL && active_sym->decl_scope == ssep->number;
        prev_active_sym = active_sym, active_sym = active_sym->next) {
     a_symbol_ptr	fund_sym = fundamental_symbol_of(active_sym);
-    if (first_scope && lookup_state->skip_curr_scope) {
-      /* IDL_SKIP_CURR_SCOPE is being used.  Don't accept symbols from the
-         first scope entry.  (This is used when looking up names from the
-         initializer list of a constructor declaration; the constructor
-         parameters must not be visible during this lookup.  It is also
-         used during hidden-name processing.) */
-    } else if (is_acceptable_active_symbol(active_sym, fund_sym)) {
+    if (is_acceptable_active_symbol(active_sym, fund_sym)) {
       /* Found a symbol.  Record whether this symbol was found
          at file scope.  If it was, we will later need to also
          check for symbols visible as a result of using
@@ -1525,15 +1521,6 @@ that do normal id lookup processing.
   if (kind == (a_scope_kind)sck_class_reactivation &&
       lookup_state->skip_class_scopes) {
     /* This is a class scope and we are skipping class scopes. */
-    skip_scope = TRUE;
-  }  /* if */
-  if (lookup_state->skip_curr_scope &&
-      scope_depth_of(ssep) == depth_scope_stack) {
-    /* IDL_SKIP_CURR_SCOPE is being used.  Don't accept symbols from the
-       first scope entry.  (This is used when looking up names from the
-       initializer list of a constructor declaration; the constructor
-       parameters must not be visible during this lookup.  It is also
-       used during hidden-name processing.) */
     skip_scope = TRUE;
   }  /* if */
   if (!skip_scope) {
@@ -1785,8 +1772,9 @@ lookup_state is used to pass state information between the various routines
 that do normal id lookup processing.
 */
 {
-  a_symbol_ptr		sym = NULL;
-  a_scope_depth		curr_depth;
+  a_symbol_ptr			sym = NULL;
+  a_scope_depth			curr_depth;
+  a_scope_stack_entry_ptr	ssep = NULL;
 
   /* Work out from the innermost scope on the stack, and look at each
      scope.  If the scope is a class reactivation or a template
@@ -1801,9 +1789,11 @@ that do normal id lookup processing.
 #endif /* DEBUG */
   /* Loop through the scope stack until we reach the scope indicated by
      end_depth. */
-  for (curr_depth = start_depth ;curr_depth > end_depth;) {
-    a_scope_stack_entry_ptr	ssep = &scope_stack[curr_depth];
-    a_scope_kind		kind = ssep->kind;
+  for (curr_depth = start_depth ;curr_depth > end_depth;
+       curr_depth = ssep->previous_scope) {
+    a_scope_kind		kind;
+    ssep = &scope_stack[curr_depth];
+    kind = ssep->kind;
 #if DEBUG
     if (debug_level >= 5 || db_flag_is_set("scope_stack_lookup")) {
       fprintf(f_debug, "Doing lookup in ");
@@ -1814,6 +1804,19 @@ that do normal id lookup processing.
     /* Record the depth of the scope in which the symbol is being sought. */
     lookup_state->last_scope_used = curr_depth;
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
+    /* If IDL_SKIP_TEMPLATE_DECL_SCOPES is used, skip any template declaration
+       scopes on the stack. */
+    if (ssep->kind == (a_scope_kind)sck_template_declaration &&
+        lookup_state->skip_template_decl_scopes) continue;
+    if (lookup_state->skip_curr_scope) {
+      /* IDL_SKIP_CURR_SCOPE is being used.  Don't accept symbols from the
+         first scope entry.  (This is used when looking up names from the
+         initializer list of a constructor declaration; the constructor
+         parameters must not be visible during this lookup.  It is also
+         used during hidden-name processing.) */
+      lookup_state->skip_curr_scope = FALSE;
+      continue;
+    }  /* if */
     /* Clear the flag that indicates whether a projected symbol should be
        sought. */
     lookup_state->look_for_projected_symbol = FALSE;
@@ -1919,14 +1922,6 @@ that do normal id lookup processing.
         break;
       }  /* if */
     }  /* if */
-    /* Typically, the lookup starts in the innermost scope and proceeds
-       outward one scope at a time.  The sequence of processing is
-       different when there are template instantiation scopes on the
-       stack.  Skip over the scopes from the next scope to the one
-       just before the scope indicated to be the previous scope.
-       If the ending scope for this particular lookup is found
-       during this process, exit the loop. */
-    curr_depth = ssep->previous_scope;
   }  /* for */
   return sym;
 }  /* scope_stack_lookup */
@@ -2138,6 +2133,8 @@ C and C++.
     lookup_state.is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP) != 0;
     lookup_state.is_friend_lookup = (options & IDL_FRIEND_LOOKUP) != 0;
     lookup_state.hidden_name_lookup = (options & IDL_HIDDEN_NAME_LOOKUP) != 0;
+    lookup_state.skip_template_decl_scopes =
+                                (options & IDL_SKIP_TEMPLATE_DECL_SCOPES) != 0;
     lookup_state.skip_curr_scope = (options & IDL_SKIP_CURR_SCOPE) != 0;
     lookup_state.skip_class_scopes = (options & IDL_SKIP_CLASS_SCOPES) != 0;
     /* If any instantiation scopes are active we will need to check for

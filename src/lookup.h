@@ -44,14 +44,16 @@ represented as a bit set:
 				   compatibility mode. */
 #define IDL_SKIP_CURR_SCOPE	0x8
 				/* Causes normal_id_lookup to skip over the
-				   innermost scope entry.  (This is used to
-				   look up the identifiers used in constructor
-				   initializer lists; names of parameters of
-				   the constructor must not be visible during
-				   this lookup.  It is also used during
-				   hidden-name processing to find a name in
-				   the innermost scope enclosing the current
-				   scope.) */
+				   innermost scope entry (after any template
+				   declaration scopes have been skiped if
+				   IDL_SKIP_TEMPLATE_DECL_SCOPES is used).
+				   (This is used to look up the identifiers
+				   used in constructor initializer lists;
+				   names of parameters of the constructor must
+				   not be visible during this lookup.  It is
+				   also used during hidden-name processing to
+				   find a name in the innermost scope
+				   enclosing the current scope.) */
 #define IDL_DO_NOT_ADD_TO_NONREAL_CLASS 0x10
 				/* When a name is being looked up in
 				   a proxy or nonreal class, this flag
@@ -128,6 +130,9 @@ represented as a bit set:
 				   up as part of the hidden name table
 				   processing.  This suppresses the creation
 				   of projection symbols. */
+#define IDL_SKIP_TEMPLATE_DECL_SCOPES 0x40000
+				/* Skip any template declaration scopes before
+				   doing other processing. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
