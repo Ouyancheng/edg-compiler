@@ -26,6 +26,10 @@ the release should contain no defines.
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #define USING_QUANTIFY 1
 
+#ifndef __STDC__
+#define USING_OLD_STYLE_C 1
+#endif /* !defined(__STDC__) */
+
 #ifdef OPTIMIZED_VERSION
 
 /* Options for Sun optimized version. */

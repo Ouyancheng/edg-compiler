@@ -297,16 +297,29 @@ typedef true_size_t
 typedef int     a_ptrdiff;
 #endif /* __ANSIC__ */
 
+/* Define a flag that can be used to determine whether we are compiling
+   with an old-style (i.e., K&R/pcc) C compiler or a new-style (ANSI C
+   or C++) compiler.  This is used, for example, to determine whether
+   the type "char *" should be used in place of "void *".  You would think
+   that __STDC__ could be used for this, but in practice the setting of
+   __STDC__ varies quite a bit.  Some implementations only define
+   __STDC__ in their strict mode, others define it in all modes, but
+   alter the value depending on the mode.  We assume that we are compiling
+   with a new-style compiler unless USING_OLD_STYLE_C is set TRUE. */
+#ifndef USING_OLD_STYLE_C
+#define USING_OLD_STYLE_C 0
+#endif /* !defined(USING_OLD_STYLE_C) */
+
 /* Define typedefs to be used for "void *" and "const void *".  When
    using an ANSI C compiler these are just typedefs to the appropriate
    types.  When compiling with an old-style C compiler, "char *" is used. */
-#ifdef __STDC__
+#if !USING_OLD_STYLE_C
 typedef void * a_void_ptr;
 typedef const void * a_const_void_ptr;
-#else /* !__STDC__ */
+#else /* USING_OLD_STYLE_C */
 typedef char * a_void_ptr;
 typedef char * a_const_void_ptr;
-#endif /* __STDC__ */
+#endif /* !USING_OLD_STYLE_C */
 
 /*
 Definition of a generic byte.  Always "unsigned char".
