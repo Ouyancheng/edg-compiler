@@ -776,7 +776,7 @@ error to reference a file-scope static entity from such a function.  We
 cannot tell whether the current routine definition is an "inline definition"
 until the end of the translation unit.  So at this time we just record the
 position of the suspect construct if an error is still a possibility.  If var
-is non-NULL, it represent a local static variable being declared; otherwise,
+is non-NULL, it represents a local static variable being declared; otherwise,
 the suspect construct is a reference to a file-scope static entity.
 */
 {

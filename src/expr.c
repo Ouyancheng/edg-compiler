@@ -14274,7 +14274,7 @@ verification.
                                                   (a_storage_class)sc_static);
       }  /* if */
       if (suspect_ref) {
-        check_c99_inline_definition(/*var=*/NULL, &error_position);
+        check_c99_inline_definition((a_variable_ptr)NULL, &error_position);
       }  /* if */
     }  /* if */
   } /* if */
