@@ -2539,6 +2539,13 @@ created, or NULL it there is none.
                    make_local_static_variable_init(vp, (a_scope_ptr)NULL,
                                                    (an_init_kind)initk_dynamic,
                                                    (a_constant_ptr)NULL, dip);
+      if (inside_statement_expression() && !C_mode()) {
+        /* Dynamically-initialized local statics are not allowed inside
+           GNU statement expressions.  This is because in some modes the
+           initialization guard variable must be cleared when an exception
+           is thrown. */
+        pos_error(ec_dyn_local_static_in_statement_expr, source_pos);
+      }  /* if */
     } else {
       /* Make the variable point at the dynamic initialization. */
       vp->init_kind = (an_init_kind)initk_dynamic;
