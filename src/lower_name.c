@@ -2429,21 +2429,25 @@ part of a template-dependent expression.
 {
   char             *operation_name;
   an_expr_node_ptr operand;
+  an_expr_operator_kind
+                   op;
 #if !IA64_ABI
   unsigned long    num_operands;
 #endif /* !IA64_ABI */
 
   /* Drop eok_lvalue and eok_rvalue. */
   while (is_operation_node(expr) &&
-         (expr->variant.operation.kind == (an_expr_operator_kind)eok_lvalue ||
-          expr->variant.operation.kind == (an_expr_operator_kind)eok_rvalue
+         ((op = expr->variant.operation.kind),
+          (op == (an_expr_operator_kind)eok_lvalue ||
+           op == (an_expr_operator_kind)eok_rvalue
 #if IA64_ABI
-          /* Also drop implicit casts in the IA-64 ABI. */
-                                                                            ||
-          (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
-           expr->variant.operation.compiler_generated)
+           /* Also drop implicit casts in the IA-64 ABI. */
+                                                   ||
+           ((op == (an_expr_operator_kind)eok_cast ||
+             op == (an_expr_operator_kind)eok_bool_cast) &&
+            expr->variant.operation.compiler_generated)
 #endif /* IA64_ABI */
-                                                                           )) {
+                                                       ))) {
     expr = expr->variant.operation.operands;
   }  /* while */
   switch (expr->kind) {
