@@ -6498,11 +6498,14 @@ routine or variable has the given source correspondence field and
   /* Determine the output file name.  Use the mangled name (or the beginning
      of it) plus an underscore plus the hexadecimal for the CRC-32 checksum
      for the whole mangled name. */
-  (void)strncpy(buffer, scp->name, MAX_C_OUTPUT_FILE_LEN-9);
-  buffer[MAX_C_OUTPUT_FILE_LEN-9] = '\0';
-  (void)sprintf(buffer+strlen(C_output_file_name), "_%08lx",
-                crc_32(scp->name));
+#define MAX_LEN_WITHOUT_SUFFIX \
+                (MAX_C_OUTPUT_FILE_LEN-sizeof(GEN_C_FILE_SUFFIX)-8)
+  check_assertion(MAX_LEN_WITHOUT_SUFFIX > 0);
+  (void)strncpy(buffer, scp->name, MAX_LEN_WITHOUT_SUFFIX);
+  buffer[MAX_LEN_WITHOUT_SUFFIX] = '\0';
+  (void)sprintf(buffer+strlen(buffer), "_%08lx", crc_32(scp->name));
 #undef MAX_C_OUTPUT_FILE_LEN
+#undef MAX_LEN_WITHOUT_SUFFIX
   if (f_C_file_list == NULL) {
     a_boolean cannot_open, bad_name;
 
