@@ -1,5 +1,13 @@
 Version 2.31
 
+11/27/95  Exception handling: RDF_BASE_CLASS_SUBOBJECT flag in region table
+
+The region table entry used for the fully-lowered and partially-lowered
+versions of exception handling now contains an RDF_BASE_CLASS_SUBOBJECT
+flag that indicates that the object is a base class of the object being
+constructed or destroyed in a constructor or destructor.  This is used
+by the runtime to control the "complete object" flag passed to destructors.
+
 11/27/95  cfront compatibility: comparisons of pointers to members related by
           virtual inheritance
 
