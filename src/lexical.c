@@ -3680,8 +3680,8 @@ the search path that was used to find this file.
        searched first.  Note that this is not done for the primary source
        file.  The include search entry for the primary source file is
        managed by the routines in cmd_line.c. */
-    push_primary_include_search_dir(curr_ise->dir_name,
-                                    curr_ise->from_system_include_dir);
+    push_primary_include_search_dir(
+             curr_ise->dir_name, (a_boolean)curr_ise->from_system_include_dir);
   }  /* if */
   if (C_dialect != C_dialect_pcc) {
     /* If not in pcc mode, keep the base of the preprocessing if stack
@@ -3851,8 +3851,8 @@ at the next level down.
     /* Modify the search rules for #include directives found within this
        source file, so that the directory containing the current include
        file will be searched first. */
-    pop_primary_include_search_dir(curr_ise->dir_name,
-                                   curr_ise->from_system_include_dir);
+    pop_primary_include_search_dir(
+             curr_ise->dir_name, (a_boolean)curr_ise->from_system_include_dir);
     if (C_dialect != C_dialect_pcc) {
       /* If not in pcc mode, keep the base of the preprocessing if stack
          up to date.  Each file's #ifs are kept separate; an #if must
