@@ -612,7 +612,7 @@ Return a pointer to the name for the indicated variable.
     name = name_buffer;
   } else
 #endif /* ifdef FFE */
-  if (variable->implicit_this_param) {
+  if (variable->is_this_parameter) {
     /* "this" parameter in C++. */
     name = "this";
   } else if (variable->source_corresp.name_linkage ==

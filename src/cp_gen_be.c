@@ -901,7 +901,7 @@ static void gen_variable_name(a_variable_ptr var)
 Output the name of the indicated variable.
 */
 {
-  if (var->implicit_this_param) {
+  if (var->is_this_parameter) {
     /* "this" parameter in C++. */
     write_tok_str("this");
   } else {

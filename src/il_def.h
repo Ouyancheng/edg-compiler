@@ -2533,9 +2533,9 @@ typedef struct a_variable {
   unsigned int  is_handler_param:1;
 			/* TRUE if the variable is a handler parameter (C++
 			   only). */
-  unsigned int	implicit_this_param:1;
-			/* TRUE if the variable represents an implicit "this"
-			   parameter (C++ only). */
+  unsigned int	is_this_parameter:1;
+			/* TRUE if the variable represents a "this" parameter
+			   (C++ only). */
 #endif /* ifdef CIL */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any. */

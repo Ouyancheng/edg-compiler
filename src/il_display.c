@@ -1498,8 +1498,8 @@ Display the indicated variable.
   if (ptr->is_handler_param) {
     disp_boolean("is_handler_param", TRUE);
   }  /* if */
-  if (ptr->implicit_this_param) {
-    disp_boolean("implicit_this_param", TRUE);
+  if (ptr->is_this_parameter) {
+    disp_boolean("is_this_parameter", TRUE);
   }  /* if */
 #ifdef FFE
   disp_boolean("by_address", (a_boolean)ptr->by_address);

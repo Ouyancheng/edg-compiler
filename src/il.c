@@ -4720,7 +4720,7 @@ to it.
   vp->param_value_has_been_changed= FALSE;
   vp->param_used_more_than_once   = FALSE;
   vp->is_handler_param            = FALSE;
-  vp->implicit_this_param         = FALSE;
+  vp->is_this_parameter           = FALSE;
 #endif /* ifdef CIL */
 #ifdef FIL
   vp->by_address                  = FALSE;
