@@ -250,7 +250,7 @@ must be unsigned.
 #define UNNAMED_ZERO_LENGTH_BIT_FIELD_SIZE (TARG_MAX_BIT_FIELD_SIZE + 1)
 
 
-void scan_bit_field_size(a_boolean  unnamed_bit_field,
+void scan_bit_field_size(a_boolean  *unnamed_bit_field,
                          a_type_ptr *p_base_type,
                          long       *p_bit_field_size,
                          a_boolean  *p_is_signed)
@@ -260,7 +260,7 @@ Scan the size in a bit-field declaration:
     unsigned int j: 5 ;
                     ^---- this size.
 
-The current token is the colon preceding the size.  If unnamed_bit_field
+The current token is the colon preceding the size.  If *unnamed_bit_field
 is TRUE, the bit-field is unnamed.  *p_base_type gives the base type
 of the declaration (unsigned int in the above example); it may be updated
 on return.  *p_bit_field_size is set to the bit field size in bits.
@@ -333,16 +333,28 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
       bit_field_size = max_size_allowed;
     } else if (bit_field_size == 0) {
       /* The bit-field size is zero, so the field must be unnamed. */
-      if (!unnamed_bit_field) {
-        error(ec_zero_length_bit_field_must_be_unnamed);
-        bit_field_size = 1;
-      } else {
+      if (*unnamed_bit_field || cfront_compatibility_mode) {
         /* Use a special value other than zero for the size of an unnamed
            zero length bit field.  This is required for distinguishing a
            field entry of type bit_field_type representing a zero length
            bit field from a field entry for an ordinary field of the same
            type that is unnamed (an extension). */
         bit_field_size = UNNAMED_ZERO_LENGTH_BIT_FIELD_SIZE;
+        if (!(*unnamed_bit_field)) {
+          /* Cfront compatibility -- permit named bit fields to have zero
+             size, but change the value of *unnamed_bit_field so that they
+             will not be entered into the symbol table.  (Note that it would
+             be possible for the name to be used again (though this would not
+             be acceptable to cfront), but it also means the field will not
+             subject to initialization (cfront sorta allows this but may
+             generate bad C code) and cannot be referenced (again cfront
+             allows it and generates illegal C). */
+          warning(ec_zero_length_bit_field_must_be_unnamed);
+          *unnamed_bit_field = TRUE;
+        }  /* if */
+      } else {
+        error(ec_zero_length_bit_field_must_be_unnamed);
+        bit_field_size = 1;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -379,7 +391,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   }  /* if */
   /* Give a warning for a signed one-bit field; ANSI C allows it, but it's
      strange. */
-  if (!unnamed_bit_field && is_signed && bit_field_size == 1) {
+  if (!*unnamed_bit_field && is_signed && bit_field_size == 1) {
     warning(ec_signed_one_bit_field);
   }  /* if */
   /* Set base_type to bit_field_type with the proper type qualifiers. */

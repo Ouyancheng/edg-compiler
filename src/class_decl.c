@@ -3964,7 +3964,7 @@ class, struct, or union.
   /* A colon next indicates a bit-field. */
   if (curr_token == tok_colon) {
     /* Scan the bit-field size and determine the bit-field type. */
-    scan_bit_field_size(unnamed_field, member_type, &bit_field_size,
+    scan_bit_field_size(&unnamed_field, member_type, &bit_field_size,
                         &bit_field_is_signed);
   }  /* if */
   /* Create the field entry.  For unnamed fields it will not actually become

@@ -50,7 +50,7 @@ typedef struct a_layout_block {
 extern void clear_layout_block(a_layout_block_ptr  lob,
                                a_type_ptr          class_type);
 
-extern void scan_bit_field_size(a_boolean  unnamed_bit_field,
+extern void scan_bit_field_size(a_boolean  *unnamed_bit_field,
                                 a_type_ptr *p_base_type,
                                 long       *p_bit_field_size,
                                 a_boolean  *p_is_signed);
