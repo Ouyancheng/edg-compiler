@@ -2012,28 +2012,28 @@ Display the indicated variable.
 #if NAMED_REGISTERS_ALLOWED
     named_register_storage_class = ptr->named_register_storage_class;
 #endif /* NAMED_REGISTERS_ALLOWED */
-
-  if (asm_name_valid && named_register_storage_class) {
-    /* A GNU asm alias and an Embedded C named-register storage class are
-       mutually exclusive. */
-    unexpected_condition();
+    if (asm_name_valid && named_register_storage_class) {
+      /* A GNU asm alias and an Embedded C named-register storage class are
+         mutually exclusive. */
+      unexpected_condition();
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-  } else if (asm_name_valid) {
-    if (ptr->asm_name_or_reg.name != NULL) {
-      disp_string_ptr("asm_name", ptr->asm_name_or_reg.name, iek_other_text, 
-                      (sizeof_t)0);
-    }  /* if */
+    } else if (asm_name_valid) {
+      if (ptr->asm_name_or_reg.name != NULL) {
+        disp_string_ptr("asm_name", ptr->asm_name_or_reg.name, iek_other_text,
+                        (sizeof_t)0);
+      }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if NAMED_REGISTERS_ALLOWED
-  } else if (named_register_storage_class) {
-    disp_string_ptr("register_id", ptr->asm_name_or_reg.name, iek_other_text, 
-                    (sizeof_t)0);
+    } else if (named_register_storage_class) {
+      disp_string_ptr("register_id", ptr->asm_name_or_reg.name, iek_other_text,
+                      (sizeof_t)0);
 #endif /* NAMED_REGISTERS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  } else {
-    disp_named_register("reg", ptr->asm_name_or_reg.reg);
+    } else {
+      disp_named_register("reg", ptr->asm_name_or_reg.reg);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  }  /* if */
+    }  /* if */
+  }
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->alignment != 0) {
     disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
