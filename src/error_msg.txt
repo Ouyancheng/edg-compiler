@@ -964,6 +964,8 @@ ec_bad_allocate_segname;;"missing or invalid segment name in __declspec(allocate
 ec_declspec_allocate_not_allowed;;"__declspec(allocate) is not allowed on this declaration"
 ec_dupl_allocate_segname;;"a segment name has already been specified"
 ec_pm_virtual_base_from_derived_class;;"cannot convert pointer to member of derived class %t1 to pointer to member of base class %t2 -- base class is virtual"
+ec_cl_invalid_instantiation_gen_c_directory;;"invalid directory for instantiation generated C files: "
+ec_cl_one_instantiation_per_object_option_only_in_cplusplus;;"option \"one_instantiation_per_object\" can be used only when compiling C++"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

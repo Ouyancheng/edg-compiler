@@ -157,6 +157,11 @@ typedef enum /*an_option_kind*/ {
 #endif /* VLA_ALLOWED */
   optk_enum_overloading,
   optk_nonstandard_qualifier_deduction,
+#if ONE_INSTANTIATION_PER_OBJECT
+  optk_one_instantiation_per_object,
+  optk_instantiation_gen_c_dir,
+  optk_instantiation_file_list,
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -936,6 +941,24 @@ EXTERN a_boolean
 			   tiebreaker even if only one of them is a reference.
 			   FALSE is the setting required for standard
 			   conformance.  Ignored in cfront mode. */
+
+EXTERN a_boolean
+		one_instantiation_per_object /* = FALSE */;
+			/* TRUE if each externally linked function and static
+			   data member should be generated in its own object
+			   file. */
+
+#if ONE_INSTANTIATION_PER_OBJECT
+EXTERN char	*instantiation_file_list_name /* = NULL*/;
+			/* The name of a file into which the front end should
+			   write a list of files that were created that contain
+			   instantiations. */
+
+EXTERN char	*instantiation_gen_c_dir_name /* = NULL*/;
+			/* The name of the directory in which the instantiation
+			   files should be created when one instantiation is
+			   being put into each file. */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

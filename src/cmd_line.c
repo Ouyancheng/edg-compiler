@@ -691,6 +691,20 @@ Initialize the option information table.
                          "no_nonstd_qualifier_deduction",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if ONE_INSTANTIATION_PER_OBJECT
+  add_option_description(optk_one_instantiation_per_object,
+                         "one_instantiation_per_object",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_instantiation_gen_c_dir,
+                         "instantiation_gen_c_dir",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+  add_option_description(optk_instantiation_file_list,
+                         "instantiation_file_list",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 }  /* initialize_option_descriptions */
 
 
@@ -1776,6 +1790,22 @@ enable_microsoft_mode:
       case optk_nonstandard_qualifier_deduction:
         nonstandard_qualifier_deduction = opt_value;
         break;
+#if ONE_INSTANTIATION_PER_OBJECT
+      case optk_one_instantiation_per_object:
+        /* Enable one instantiation per object file mode. */
+        one_instantiation_per_object = opt_value;
+        break;
+      case optk_instantiation_gen_c_dir:
+        instantiation_gen_c_dir_name = opt_arg;
+        if (!is_directory(instantiation_gen_c_dir_name)) {
+          str_command_line_error(ec_cl_invalid_instantiation_gen_c_directory,
+                                 instantiation_gen_c_dir_name);
+        }  /* if */
+        break;
+      case optk_instantiation_file_list:
+        instantiation_file_list_name = opt_arg;
+        break;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1877,6 +1907,10 @@ enable_microsoft_mode:
     if (option_kind_used[(int)optk_nonstandard_qualifier_deduction]) {
       command_line_error(
               ec_cl_nonstandard_qualifier_deduction_option_only_in_cplusplus);
+    }  /* if */
+    if (option_kind_used[(int)optk_one_instantiation_per_object]) {
+      command_line_error(
+              ec_cl_one_instantiation_per_object_option_only_in_cplusplus);
     }  /* if */
     /* Turn on features implied by SVR4 C mode. */
     if (SVR4_C_mode) {
