@@ -1778,7 +1778,7 @@ static a_boolean function_template_declaration(a_symbol_ptr  *sym)
   if (curr_token == tok_end_of_source) {
     /* Advance past the end-of-source token. */
     (void)get_token();
-    if (curr_token == tok_colon && is_constructor_symbol(*sym)) {
+    if (!err && curr_token == tok_colon && is_constructor_symbol(*sym)) {
       add_stop_token(tok_lbrace);
       add_stop_token(tok_semicolon);
       cache_token_stream(p_token_cache);
