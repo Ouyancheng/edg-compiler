@@ -139,6 +139,161 @@ Report correspondence pointer for given entry.
 
 #endif /* DEBUG */
 
+#if DEBUG
+
+static void db_scp(char  *entity)
+/*
+Output a brief description of the given entity (which is assumed to start with
+a source correspondence).
+*/
+{
+  a_source_correspondence_ptr  scp = (a_source_correspondence_ptr)entity;
+  a_symbol_ptr                 sym = (a_symbol_ptr)scp->assoc_info;
+  a_line_number                line;
+  char                         *file_name, *full_name;
+  a_boolean                    at_end_of_source;
+
+  if (scp->assoc_info != NULL) {
+    db_symbol_name(sym);
+    fprintf(f_debug, " (%s)", symbol_kind_names[(int)sym->kind]);
+  } else {
+    db_name(scp);
+  }  /* if */
+  conv_seq_to_file_and_line(scp->decl_position.seq, &file_name,
+                            &full_name, &line, &at_end_of_source);
+  if (line != 0) {
+    fprintf(f_debug, " in file %s (line %ld)", file_name, line);
+  } else {
+    fprintf(f_debug, " (built-in; line %ld)", line);
+  }  /* if */
+}  /* db_scp */
+
+#endif /* DEBUG */
+
+
+static void f_change_canonical_entry(a_trans_unit_corresp_ptr  tcp,
+                                     char                      *entity)
+/*
+Update the canonical entry field of the given correspondence entry to be the
+given entity.
+*/
+{
+  check_assertion(entity != NULL);
+#if DEBUG
+  if (tcp->kind != (an_il_entry_kind)iek_base_class &&
+      (db_trace("trans_corresp", entity, tcp->kind) ||
+       db_trace("trans_corresp", tcp->canonical, tcp->kind))) {
+    if (tcp->canonical != NULL) {
+      fprintf(f_debug, "Canonical entity ");
+      db_scp(tcp->canonical);
+      fprintf(f_debug, " replaced by ");
+      db_scp(entity);
+      fprintf(f_debug, ".\n");
+    } else {
+      db_scp(entity);
+      fprintf(f_debug, " is canonical.\n");
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+  tcp->canonical = entity;
+}  /* f_change_canonical_entry */
+
+#define change_canonical_entry(tcp, ptr)                                 \
+  f_change_canonical_entry((tcp), (char*)(ptr))
+
+
+static void update_canonical_entry(an_il_entry_kind  kind,
+                                   char              *entity)
+/*
+The given IL entity (of the given kind) may be a more appropriate canonical
+entry than the current canonical in the attached correspondence entry.  If so,
+the canonical entity is changed by this routine.  In general, canonical
+entries be definitions if possible, and among the definitions, one from
+the primary translation unit is preferred.
+*/
+{
+  if (kind == (an_il_entry_kind)iek_base_class) {
+    a_base_class_ptr  bcp = (a_base_class_ptr)entity;
+    a_type_ptr        derived = bcp->derived_class;
+    if (canonical_il_entry_of(derived) == (char*)derived) {
+      change_canonical_entry(bcp->trans_unit_corresp, entity);
+    }  /* if */
+  } else {
+    a_boolean             do_update = FALSE;
+    a_trans_unit_corresp  *tcp = trans_unit_corresp_of_unknown_entry(entity);
+    check_assertion(tcp != NULL && kind == tcp->kind);
+    if (tcp->canonical != entity) {
+      switch (kind) {
+        case iek_constant:
+          /* FIXME */
+          break;
+        case iek_field:
+          {
+            a_type_ptr  parent = ((a_field_ptr)entity)
+                                           ->source_corresp.parent.class_type;
+            if (canonical_il_entry_of(parent) == (char*)parent) {
+              do_update = TRUE;
+            }  /* if */
+          }
+          break;
+        case iek_namespace:
+          if (!in_secondary_trans_unit(entity)) {
+            do_update = TRUE;
+          }  /* if */
+          break;
+        case iek_routine:
+          if (assoc_sym_defined(entity) &&
+              (!assoc_sym_defined(canonical_il_entry_of(entity)) ||
+               !in_secondary_trans_unit(entity))) {
+            do_update = TRUE;
+          }  /* if */
+          break;
+        case iek_template:
+          if (assoc_sym_defined(entity) &&
+              (!assoc_sym_defined(canonical_il_entry_of(entity)) ||
+               !in_secondary_trans_unit(entity))) {
+            do_update = TRUE;
+            /* Update all_instantiations (FIXME)? */
+          }  /* if */
+          break;
+        case iek_type:
+          {
+            a_type_ptr  type = (a_type_ptr)entity;
+            a_type_ptr  canon = (a_type_ptr)canonical_il_entry_of(type);
+            if (type_has_definition(type) &&
+                (!type_has_definition(canon) ||
+                 !in_secondary_trans_unit(type))) {
+              do_update = TRUE;
+            }  /* if */
+          }
+          break;
+        case iek_variable:
+          {
+            a_variable_ptr  var = (a_variable_ptr)entity;
+            if (var->storage_class == (a_storage_class)sc_unspecified) {
+              a_variable_ptr  canon =
+                                   (a_variable_ptr)canonical_il_entry_of(var);
+              if (canon->storage_class != (a_storage_class)sc_unspecified ||
+                  (var->init_kind != (an_init_kind)initk_none &&
+                   canon->init_kind == (an_init_kind)initk_none) ||
+                  (!in_secondary_trans_unit(var) &&
+                   (var->init_kind == (an_init_kind)initk_none) ==
+                            (canon->init_kind == (an_init_kind)initk_none))) {
+                do_update = TRUE;
+              }  /* if */
+            }  /* if */
+          }
+          break;
+        default:
+          unexpected_condition_str("Bad kind for correspondence checking");
+      }  /* switch */
+      if (do_update) {
+        change_canonical_entry(tcp, entity);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* update_canonical_entry */
+
 
 static void f_set_trans_unit_corresp(an_il_entry_kind  kind,
                                      char              *entity1,
@@ -155,34 +310,10 @@ this routine will create such a correspondence entry.
 #if DEBUG
   if (kind != (an_il_entry_kind)iek_base_class &&
       db_trace("trans_corresp", entity1, kind)) {
-    a_source_correspondence_ptr  scp1 = (a_source_correspondence_ptr)entity1;
-    a_source_correspondence_ptr  scp2 = (a_source_correspondence_ptr)entity2;
-    a_symbol_ptr                 sym = (a_symbol_ptr)scp1->assoc_info;
-    a_line_number                line;
-    char                         *file_name, *full_name;
-    a_boolean                    at_end_of_source;
-
-    if (scp1->assoc_info != NULL) {
-      db_symbol_name(sym);
-      fprintf(f_debug, " (%s)", symbol_kind_names[(int)sym->kind]);
-    } else {
-      db_name(scp1);
-    }  /* if */
-    conv_seq_to_file_and_line(scp1->decl_position.seq, &file_name,
-                              &full_name, &line, &at_end_of_source);
-    if (line != 0) {
-      fprintf(f_debug, " in file %s (line %ld) ", file_name, line);
-    } else {
-      fprintf(f_debug, " (built-in; line %ld) ", line);
-    }  /* if */
-    conv_seq_to_file_and_line(scp2->decl_position.seq, &file_name,
-                              &full_name, &line, &at_end_of_source);
-    fprintf(f_debug, "should correspond to ");
-    if (line != 0) {
-      fprintf(f_debug, "entity in file %s (line %ld).\n", file_name, line);
-    } else {
-      fprintf(f_debug, "built-in entity (line %ld).\n", line);
-    }  /* if */
+    db_scp(entity1);
+    fprintf(f_debug, " should correspond to ");
+    db_scp(entity2);
+    fprintf(f_debug, ".\n");
   }  /* if */
 #endif /* DEBUG */
   if (kind == (an_il_entry_kind)iek_base_class) {
@@ -198,22 +329,23 @@ this routine will create such a correspondence entry.
        entity2. */
     *tcp2 = alloc_trans_unit_corresp();
     (*tcp2)->kind = kind;
-    (*tcp2)->canonical = entity2;
+    change_canonical_entry(*tcp2, entity2);
 #if CHECKING
     ++(*tcp2)->count;
 #endif /* CHECKING */
-  }  /* if */
-  /* Is either entity coming from a primary translation unit? */
-  if (!in_secondary_trans_unit(entity2)) {
-    (*tcp2)->primary = entity2;
-  } else if (!in_secondary_trans_unit(entity1)) {
-    (*tcp2)->primary = entity1;
   }  /* if */
   /* Add entity1 to the correspondence set of entity2. */
   *tcp1 = *tcp2;
 #if CHECKING
   ++(*tcp2)->count;
 #endif /* CHECKING */
+  update_canonical_entry(kind, entity1);
+  /* Is either entity coming from a primary translation unit? */
+  if (!in_secondary_trans_unit(entity2)) {
+    (*tcp2)->primary = entity2;
+  } else if (!in_secondary_trans_unit(entity1)) {
+    (*tcp2)->primary = entity1;
+  }  /* if */
 }  /* f_set_trans_unit_corresp */
 
 #define set_trans_unit_corresp(kind, entity1, entity2)                    \
@@ -237,26 +369,8 @@ has not yet been examined for a matching entry in another translation unit.
 #if DEBUG
   if (kind != (an_il_entry_kind)iek_base_class &&
       db_trace("trans_corresp", entity, kind)) {
-    a_source_correspondence_ptr  scp = (a_source_correspondence_ptr)entity;
-    a_symbol_ptr                 sym = (a_symbol_ptr)scp->assoc_info;
-    a_line_number                line;
-    char                         *file_name, *full_name;
-    a_boolean                    at_end_of_source;
-
-    if (sym != NULL) {
-      db_symbol_name(sym);
-      fprintf(f_debug, " (%s)", symbol_kind_names[(int)sym->kind]);
-    } else {
-      db_name(scp);
-    }  /* if */
-    conv_seq_to_file_and_line(scp->decl_position.seq, &file_name,
-                              &full_name, &line, &at_end_of_source);
-    if (line != 0) {
-      fprintf(f_debug, " in file %s (line %ld) ", file_name, line);
-    } else {
-      fprintf(f_debug, " (built-in; line %ld) ", line);
-    }  /* if */
-    fprintf(f_debug, "has no correspondence.\n");
+    db_scp(entity);
+    fprintf(f_debug, " has no correspondence.\n");
   }  /* if */
 #endif /* DEBUG */
   if (kind == (an_il_entry_kind)iek_base_class) {
@@ -269,7 +383,7 @@ has not yet been examined for a matching entry in another translation unit.
   /* Allocate a correspondence node. */
   *tcp = alloc_trans_unit_corresp();
   (*tcp)->kind = kind;
-  (*tcp)->canonical = entity;
+  change_canonical_entry(*tcp, entity);
   if (!in_secondary_trans_unit(entity)) {
     (*tcp)->primary = entity;
   }  /* if */
@@ -1813,7 +1927,9 @@ done:
     if (report_error) {
       report_bad_trans_unit_corresp(type);
     }  /* if */
+#if 0 /* FIXME */
     set_no_class_type_correspondence(type);
+#endif /* FIXME */
   }  /* if */
   return match;
 }  /* verify_class_type_correspondence */
@@ -2501,7 +2617,7 @@ given type.
     new_canon = TRUE;
     /* Prefer definitions as canonical entries, and definitions in primary
        translation units in particular. */
-    trans_unit_corresp_of(type)->canonical = (char*)type;
+    change_canonical_entry(trans_unit_corresp_of(type), (char*)type);
     /* Work from the noncanonical entry to set the correspondences of
        members. */
     type = canon;
@@ -2687,9 +2803,6 @@ translation unit correspondence pointer if one is found.
           /* Record the correspondence. */
           set_trans_unit_corresp(iek_namespace,
                                  nsp, sym->variant.namespace_info.ptr);
-          if (!in_secondary_trans_unit(nsp)) {
-            trans_unit_corresp_of(nsp)->canonical = (char*)nsp;
-          }  /* if */
         } else {
           /* An error since the conflicting entity has external linkage. */
           f_report_bad_trans_unit_corresp((char*)nsp, &sym->decl_position);
@@ -2754,11 +2867,6 @@ entities.
           a_type_ptr  corresp_type = type_symbol_type(sym);
           set_trans_unit_corresp(iek_type, type, corresp_type);
           if(type_has_definition(type)) {
-            if (!type_has_definition((a_type*)canonical_il_entry_of(type)) ||
-                !in_secondary_trans_unit(type)) {
-              /* This new entry should be considered the canonical type. */
-              trans_unit_corresp_of(type)->canonical = (char*)type;
-            }  /* if */
             if (is_immediate_class_type(type)) {
               establish_trans_unit_correspondences_for_class(type);
             } else if (is_immediate_enum_type(type)) {
@@ -3417,14 +3525,6 @@ entities.
 #endif /* FIXME */
       /* Record the correspondence. */
       set_trans_unit_corresp(iek_template, templ, corresp_templ);
-      if (assoc_sym_defined(templ) &&
-          (!assoc_sym_defined(canonical_il_entry_of(templ)) ||
-           !in_secondary_trans_unit(templ))) {
-        /* Prefer definition as canonical entries, especially if they are
-           in the primary translation unit. */
-        trans_unit_corresp_of(templ)->canonical = (char*)templ;
-        /* Update all_instantiations (FIXME). */
-      }  /* if */
       establish_instantiation_correspondences(templ);
     } else {
       /* Mark this template as visited. */
@@ -3544,8 +3644,8 @@ translation unit correspondence pointer if one is found.
   }  /* if */
   if (corresp_sym != NULL) {
     /* Record the correspondence. */
-    set_trans_unit_corresp(iek_routine,
-                           routine, corresp_sym->variant.routine.ptr);
+    a_routine_ptr  corresp_routine = corresp_sym->variant.routine.ptr;
+    set_trans_unit_corresp(iek_routine, routine, corresp_routine);
   } else {
     /* Mark this routine as visited. */
     set_no_trans_unit_corresp(iek_routine, routine);
@@ -3616,20 +3716,6 @@ translation unit correspondence pointer if one is found.
     a_variable_ptr  corresp_var = corresp_var_sym->variant.variable.ptr;
     /* Record the correspondence. */
     set_trans_unit_corresp(iek_variable, var, corresp_var);
-    /* Prefer definitions for the canonical entry, especially if there is an
-       initializer.  Definitions in the primary translation unit are even
-       better. */
-    if (var->storage_class == (a_storage_class)sc_unspecified) {
-      a_variable_ptr  canon = (a_variable_ptr)canonical_il_entry_of(var);
-      if (canon->storage_class != (a_storage_class)sc_unspecified ||
-          (var->init_kind != (an_init_kind)initk_none &&
-           canon->init_kind == (an_init_kind)initk_none) ||
-          (!in_secondary_trans_unit(var) &&
-           (var->init_kind == (an_init_kind)initk_none) ==
-                            (canon->init_kind == (an_init_kind)initk_none))) {
-        trans_unit_corresp_of(var)->canonical = (char*)var;
-      }  /* if */
-    }  /* if */
     /* If the variable has an anonymous type, assume it matches
        that of the corresponding entity. */
     if (!has_correspondence(var->type) &&
