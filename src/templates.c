@@ -14830,6 +14830,7 @@ data member specified by tip.
 */
 {
   a_template_instance_ptr	orig_tip = tip;
+  a_boolean			trans_unit_stack_pushed = FALSE;
 
   /* The instantiation process may rescan various things and invalidate the
      current token positions as a result.  Save these positions so that they
@@ -14844,13 +14845,17 @@ data member specified by tip.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (tip->exported_template_file != NULL) {
+  /* See if the exported template was defined in a translation unit other
+     than the current one. */
+  if (tip->exported_template_file != NULL &&
+      tip->exported_template_file->translation_unit != curr_translation_unit) {
     /* If the template was defined in an exported template file, make sure
        that file is loaded as a translation unit. */
     ensure_exported_template_file_is_loaded(tip);
     /* Push the translation unit containing the template definition onto the
        stack.  This will make it the current translation unit. */
     push_translation_unit_stack(tip->exported_template_file->translation_unit);
+    trans_unit_stack_pushed = TRUE;
     /* Find the corresponding template instance in the translation unit
        containing the template definition. */
     tip = find_corresponding_instance(tip);
@@ -14873,7 +14878,7 @@ data member specified by tip.
       num_total_pending_instantiations--;
     }  /* if */
   }  /* if */
-  if (orig_tip->exported_template_file != NULL) {
+  if (trans_unit_stack_pushed) {
     /* Restore the previously active translation unit. */
     pop_translation_unit_stack();
     /* If the instantiation was successful, copy the already_instantiated
@@ -15461,6 +15466,31 @@ Returns a pointer to the FILE structure for the file.
 }  /* open_exported_template_file_for_input */
 
 
+static void check_for_already_loaded_trans_unit(
+				an_exported_template_file_ptr	etfp)
+/*
+Determine whether the source file specified by the exported template entry
+etfp has already been loaded.  This could occur if the template is defined
+in the primary source file or in a secondary translation unit specified
+on the command line.
+*/
+{
+  a_translation_unit_ptr	tup;
+
+  for (tup = translation_units; tup != NULL; tup = tup->next) {
+    /* See if the file names match.  Note that this will convert the file
+       names to a canonical form so that two differently spelled paths that
+       refer to the same name will match. */
+    if (compare_file_names(tup->source_file->name_as_written,
+                           etfp->source_file_name) == 0) {
+      /* A match was found.  Record the translation unit pointer in the
+         exported template file entry. */
+      etfp->translation_unit = tup;
+    }  /* if */
+  }  /* for */
+}  /* check_for_already_loaded_trans_unit */
+
+
 static void read_exported_template_file(
 				char				*file_name,
 				a_directory_name_entry_ptr	dnep)
@@ -15505,6 +15535,9 @@ templates defined in the file.
       unexpected_condition_str("read_exported_template_file: bad line kind");
     }  /* if */
   }  /* while */
+  /* See if the translation unit associated for this exported template file
+     has already been loaded. */
+  check_for_already_loaded_trans_unit(etfp);
   /* Close the file. */
   (void)fclose(f_file);
 }  /* read_exported_template_file */
@@ -16272,6 +16305,9 @@ specific definition that made it unnecessary.
      called by fe_wrapup after instantiation_wrapup has completed. */
   in_instantiation_wrapup = TRUE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
+  /* Read the exported template files to determine the translation units
+     that can be used to define the exported templates that are used. */
+  find_exported_template_files();
   /* Create the file name of the template information file and template
      request file.  This may be used to create the files or to remove them
      if no template entities exist. */
@@ -17668,8 +17704,6 @@ Initializations for template.
   /* Allocate a buffer used to read the various template files. */
   file_read_buffer = alloc_text_buffer(1024);
   memzero((char *)template_lookup_table, sizeof(template_lookup_table));
-  /* FIXME - temporary */
-  find_exported_template_files();
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 }  /* templates_init */
 
