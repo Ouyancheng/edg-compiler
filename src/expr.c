@@ -10799,10 +10799,8 @@ standard.
   a_token_sequence_number
                         operator_tok_seq_number;
   a_boolean             operand_1_is_false = FALSE;
-#if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
   a_host_large_integer  local_result;
   a_boolean             known_result       = FALSE;
-#endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
   a_token_kind          save_token;
   a_type_ptr            result_type;
   a_boolean             processed = FALSE;
@@ -10866,18 +10864,14 @@ standard.
         operand_1_is_false = op_is_false_constant(operand_1);
         if (save_token == tok_and_and && operand_1_is_false) {
           /* 0 && something -- this always evaluates to a zero/false value. */
-#if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
           local_result = 0;
           known_result = TRUE;
-#endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
           expr2_evaluated = FALSE;
         } else if (save_token == tok_or_or && !operand_1_is_false) {
           /* non-zero || something -- this always evaluates to a value of
              1/true. */
-#if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
           local_result = 1;
           known_result = TRUE;
-#endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
           expr2_evaluated = FALSE;
         }  /* if */
       }  /* if */
@@ -10918,6 +10912,7 @@ standard.
                                          &processed);
   }  /* if */
   if (!processed) {
+    a_boolean reduce;
     /* Non-operator-function cases. */
     /* Both operands must be scalar. */
     if (!operand_1_transformations_done) {
@@ -10927,24 +10922,42 @@ standard.
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     (void)check_boolean_controlling_expr(&operand_2);
     result_type = boolean_result_type();
+    /* See if we should reduce this operation to a constant in the case
+       that the first operand is constant and dictates the result and
+       the second operand is non-constant.  The fully-constant case
+       is always sent to do_binary_operation, which folds it to a
+       constant but also does other useful things. */
+    reduce = FALSE;
+    if (known_result && !is_constant_operand(&operand_2)) {
+      if (curr_expr_kind_is_const()) {
+        /* In constant expressions we must always reduce, so that
+           1 || 2/0, for example, comes out as a constant. */
+        reduce = TRUE;
+      } else {
+        /* Otherwise, we can reduce at our discretion. */
+        reduce = ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS;
 #if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
-    /* If we know the result from the first operand, we can reduce
-       the operation to a constant even if the second operand is not
-       constant.  Note that we let the fully-constant case go to
-       do_binary_operation to be folded, because that does some
-       extra things. */
-    if (known_result &&
-        !is_constant_operand(&operand_2) &&
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-        /* If we are recording constant expressions, do the normal
-           processing. */
-        !curr_expr_kind_is_one_in_which_const_exprs_are_recorded() &&
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-        /* Don't remove dead code that might contain destructions, because
-           we don't want to run through the expression to find the destruction
-           to unlink it. */
-        (curr_object_lifetime == NULL ||
-         curr_object_lifetime->destructions == NULL)) {
+        if (curr_object_lifetime != NULL &&
+            curr_object_lifetime->destructions != NULL) {
+          /* Don't remove dead code that might contain destructions, because
+             we don't want to run through the expression to find the
+             destruction to unlink it. */
+          reduce = FALSE;
+        }  /* if */
+#endif /* !ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
+      }  /* if */
+    }  /* if */
+    if (!reduce) {
+      /* Make an expression, or fold to a constant if both operands are
+         constant. */
+      op = which_binary_operator(save_token, result_type);
+      do_binary_operation(op, operand_1, &operand_2, result_type, result,
+                          &operator_position);
+    } else {
+      /* Reduce the expression to a constant.  The first operand is
+         constant and dictates the result, and the second operand is
+         non-constant. */
+      check_assertion(!is_constant_operand(&operand_2));
       make_integer_constant_operand(result, local_result);
       /* Cast if necessary (e.g., to bool). */
       cast_operand(result_type, result, /*check_cast_access=*/TRUE,
@@ -10952,15 +10965,16 @@ standard.
                    /*reinterpret_semantics=*/FALSE);
       /* The result is not a null pointer constant. */
       result->variant.constant.null_pointer_constant_ruled_out = TRUE;
-    } else
-#endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
-    /* Do not insert code here. */
-    {
-      /* Make an expression, or fold to a constant if both operands
-         are constant. */
-      op = which_binary_operator(save_token, result_type);
-      do_binary_operation(op, operand_1, &operand_2, result_type, result,
-                          &operator_position);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+        an_operand temp_operand;
+        /* Record an expression under the constant. */
+        op = which_binary_operator(save_token, result_type);
+        build_binary_result_operand(operand_1, &operand_2, op,
+                                    result_type, &temp_operand);
+        result->variant.constant.expr = make_node_from_operand(&temp_operand);
+      }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
   }  /* if */
 
