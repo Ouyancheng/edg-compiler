@@ -343,9 +343,9 @@ typedef struct an_extern_symbol_descr {
 typedef struct a_derivation_node *a_derivation_node_ptr;
 typedef struct a_derivation_node {
   /* Description of one step in the derivation of a projection symbol
-     from an original class member.  A list of these gives a complete
+     from a fundamental class member.  A list of these gives a complete
      reverse history of the derivation, in order from the most derived
-     class to the original class. */
+     class to the fundamental class. */
   a_derivation_node_ptr
                 next;
 			/* The next step in the derivation path.  If next
@@ -371,22 +371,22 @@ typedef struct a_projection_descr {
 			   is a projection of A::i; within class C B::i is
 			   the progenitor symbol.  If ambiguous is TRUE, this
 			   symbol is one of several possible. */
-  a_symbol_ptr  original_symbol;
-			/* The original base class member to which this
+  a_symbol_ptr  fundamental_symbol;
+			/* The fundamental base class member to which this
 			   projection symbol refers.  It will be different
 			   from the progenitor_symbol when the latter is a
 			   projection symbol.  Referring to the previous
 			   example, B::i is the progenitor symbol for C::i,
-			   but A::i is the original symbol.  If ambiguous
+			   but A::i is the fundamental symbol.  If ambiguous
 			   is TRUE, this symbol is one of several possible. */
   a_derivation_node_ptr
                 derivation;
 			/* Pointer to a linked list of entries together
 			   specifying a path between the current class object
-			   and the member specified by original_symbol.
+			   and the member specified by fundamental_symbol.
 			   This path can be interpreted as a sequence of
 			   casts, the final cast being to the class of
-			   the original base class member.  If ambiguous is
+			   the fundamental base class member.  If ambiguous is
 			   TRUE this node identifies one of several possible
                            paths. */
   a_derivation_node_ptr
@@ -394,7 +394,7 @@ typedef struct a_projection_descr {
 			/* Pointer to a linked list of derivation node
                            entries associated with the virtual base class(es)
 			   along the derivation paths of symbols hidden by
-			   original_symbol.  This field is updated when a
+			   fundamental_symbol.  This field is updated when a
 			   projection symbol is overridden by a redeclaration
 			   of a member name, and it is referenced when
 			   dominance is computed. */
@@ -781,7 +781,7 @@ extern void reenter_symbol(a_symbol_ptr     symbol_to_reenter,
                            a_scope_depth    scope_depth,
                            a_boolean        suppress_error);
 
-extern a_symbol_ptr make_projection_symbol(a_symbol_ptr orig_sym);
+extern a_symbol_ptr make_projection_symbol(a_symbol_ptr basis_sym);
 
 extern a_symbol_ptr full_enter_symbol(char          *identifier,
 				      sizeof_t      identifier_length,
@@ -830,17 +830,17 @@ extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
 
 
 /*
-If symbol is a projection symbol, change it to the original symbol pointed
+If symbol is a projection symbol, change it to the fundamental symbol pointed
 to by the projection.
 */
-#define reduce_projection_symbol_to_original_symbol(symbol)           \
+#define reduce_projection_symbol_to_fundamental_symbol(symbol)        \
 { if ((symbol)->kind == (a_symbol_kind)sk_projection) {               \
-    (symbol) = (symbol)->variant.projection.extra_info->original_symbol;\
+    (symbol) = (symbol)->variant.projection.extra_info->fundamental_symbol;\
   }  /* if */                                                         \
-}  /* reduce_projection_symbol_to_original_symbol */
+}  /* reduce_projection_symbol_to_fundamental_symbol */
 
 
-extern a_symbol_ptr project_into_class(a_symbol_ptr orig_sym,
+extern a_symbol_ptr project_into_class(a_symbol_ptr basis_sym,
                                        a_type_ptr   class_type);
 
 extern a_symbol_ptr scope_qualified_id_lookup(

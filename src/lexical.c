@@ -4267,7 +4267,7 @@ id of a qualified name or the normal identifier.
                    "get_normal_id_or_qualified_name: specific_symbol is NULL");
     }  /* if */
 #endif /* CHECKING */
-    reduce_projection_symbol_to_original_symbol(symbol);
+    reduce_projection_symbol_to_fundamental_symbol(symbol);
   } else {
     /* Normal identifier -- look it up. */
     symbol = normal_id_lookup(&locator_for_curr_id, options);
