@@ -631,9 +631,9 @@ check_label_decl_seq:
               }  /* if */
               /* Advance up the scope stack. */
               --ssep;
-              check_assertion_str(ssep->within_try_block,
-                                  "record_symbol_reference:"
-                                  "within_try_block not set properly");
+              check_assertion_str2(ssep->within_try_block,
+                                   "record_symbol_reference:",
+                                   "within_try_block not set properly");
             }  /* for */
           } /* if */
         }  /* if */
