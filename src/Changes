@@ -1,5 +1,19 @@
 Version 2.25
 
+8/17/94  Diagnostic on missing initializer in a new-expression
+
+If a new-expression produces an uninitialized const object or object with
+const members, a warning is issued by default, but in strict ANSI mode
+strict_ansi_discretionary_error is used -- meaning that severity of the
+diagnostic issued in -A mode may be reduced by a command line option.
+
+8/17/94  Diagnostic on "const" or "volatile" in new-expression
+
+In strict ANSI mode we used to issue a warning if "const" or "volatile"
+appeared in type-specifier-seq in a new-expression.  The diagnostic now
+used strict_ansi_error_severity, which means is may be an error in -A
+mode.
+
 8/16/94  x ? base : derived
 
 A conditional expression that juxtaposes a base class lvalue and a
