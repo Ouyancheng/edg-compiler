@@ -1,5 +1,18 @@
 Version 2.39
 
+2/26/98   Microsoft compatibility: bound function converts to pointer to
+          member
+
+In Microsoft bugs mode, a bound function expression that is not called
+is now converted implicitly to a pointer to member, with a warning.
+
+  struct A {
+    void f();
+  };
+  void g(A *p) {
+    void (A::*pmf)() = p->f;  // Allowed in Microsoft bugs mode
+  }
+
 2/25/98   IL lowering of aggregate initialization of anonymous union
 
 Aggregate initialization of an anonymous union field was not handled

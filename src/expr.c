@@ -6285,9 +6285,9 @@ This is very top-level checking applicable to all casts.  Return TRUE if
 there is an error.  *p_type_cast_to is the destination type of the cast,
 which may be updated on return if the cast should be to some other type.
 On return, *cast_to_func_ptr is TRUE if the cast is to a pointer-to-function
-type in C++.  This routine is called for both C-style casts and C++ functional-
-notation type conversions.  The current error_position must be set to the
-source position of the type.
+type in C++ with anachronisms enabled.  This routine is called for both
+C-style casts and C++ functional-notation type conversions.  The current
+error_position must be set to the source position of the type.
 */
 {
   a_boolean  err = FALSE;
@@ -6724,6 +6724,55 @@ type.
   }  /* if */
 }  /* rewrite_cast_to_reference_as_pointer_cast */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean conv_bound_function_to_pointer_to_member(
+                                           an_operand *operand,
+                                           an_operand *bound_function_selector)
+/*
+Convert a bound function that is not being called (normally an error) to
+a pointer-to-member.  This is an extension in Microsoft mode.  Returns
+FALSE if the bound function case is not one that undergoes the conversion.
+*/
+{
+  a_boolean converted = FALSE;
+
+  check_assertion(operand->bound_function && bound_function_selector != NULL);
+  /* Do not convert cases that result from the operators .* and ->*. */
+  if (is_a_function_designator(operand)) {
+    a_constant_ptr con;
+    a_symbol_ptr   sym;
+    an_operand     orig_operand;
+
+    orig_operand = *operand;
+    pos_warning(ec_bound_function_must_be_called, &operand->position);
+    /* Find the function underlying the operand. */
+    check_assertion(is_constant_operand(operand))
+    con = &operand->variant.constant;
+    check_assertion(con->kind == (a_constant_repr_kind)ck_address &&
+                    con->variant.address.kind ==
+                                           (an_address_base_kind)abk_routine &&
+                    !con->implicit_cast);
+    sym = (a_symbol_ptr)
+             (con->variant.address.variant.routine->source_corresp.assoc_info);
+    check_assertion(sym != NULL);
+    /* Make a pointer-to-member for the function. */
+    make_ptr_to_member_constant_operand(sym,
+                                        sym,
+                                        &orig_operand.position,
+                                        /*check_protected_access=*/FALSE,
+                                        /*is_qualified_name=*/FALSE,
+                                        /*is_operand_of_address_of=*/FALSE,
+                                        operand);
+    restore_operand_details(operand, &orig_operand);
+    operand->bound_function = FALSE;
+    discard_operand(bound_function_selector);
+    converted = TRUE;
+  }  /* if */
+  return converted;
+}  /* conv_bound_function_to_pointer_to_member */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void cast_bound_function(a_type_ptr        type_cast_to,
                                 a_boolean         cast_to_func_ptr,
@@ -11208,10 +11257,18 @@ bad_start_of_primary:
       }  /* if */
     }  /* if */
     if (local_result.bound_function) {
-      /* Do not allow bound functions functions to survive unless they
-         are about to be called. */
+      /* Do not allow bound functions to survive unless they are about
+         to be called. */
       if (curr_token == tok_lparen) {
         /* The bound function is about to be called, so it's okay. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (microsoft_bugs &&
+                 conv_bound_function_to_pointer_to_member(
+                                             &local_result,
+                                             &local_bound_function_selector)) {
+        /* The Microsoft compiler converts a bound function that is not
+           called into a pointer-to-member. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* The bound function is about to be the operand of some
            operation other than a call, so there's a problem. */
@@ -11332,11 +11389,7 @@ bad_start_of_primary:
   if (local_result.bound_function) {
     /* Do not allow bound functions to survive unless the caller
        permits it. */
-    if (!(local_options & EOPT_ALLOW_BOUND_FUNCTION)) {
-      /* Bound function not allowed. */
-      error_in_operand(ec_bound_function_must_be_called, &local_result);
-      local_result.bound_function = FALSE;
-    } else {
+    if (local_options & EOPT_ALLOW_BOUND_FUNCTION) {
       /* Bound function allowed.  Return the operand for the object to
          which the function is bound in *bound_function_selector. */
 #if CHECKING
@@ -11346,6 +11399,18 @@ bad_start_of_primary:
 #endif /* CHECKING */
       copy_operand(&local_bound_function_selector, bound_function_selector);
       selector_ref_entry_list = bound_function_selector->ref_entries_list;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_bugs &&
+               conv_bound_function_to_pointer_to_member(
+                                             &local_result,
+                                             &local_bound_function_selector)) {
+    /* The Microsoft compiler converts a bound function that is not
+       called into a pointer-to-member. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else {
+      /* Bound function not allowed. */
+      error_in_operand(ec_bound_function_must_be_called, &local_result);
+      local_result.bound_function = FALSE;
     }  /* if */
   }  /* if */
 
