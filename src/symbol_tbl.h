@@ -24,7 +24,7 @@ typedef int an_id_lookup_options_set;
 /*
 Type used to represent a local class number.
 */
-typedef long a_local_class_number;
+typedef unsigned long a_local_class_number;
 
 /* Declare pointer types up front to minimize mutual recursion problems. */
 typedef struct a_symbol        *a_symbol_ptr;
