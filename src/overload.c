@@ -1222,15 +1222,14 @@ is TRUE.
       ref_type_qualifiers_added = TRUE;
     }  /* if */
   } else {
-    /* The parameter type is not a reference, which means the argument would
-       have to be converted from an lvalue to an rvalue.  In the process,
-       it would lose its top-level type qualifiers.  That means the type
-       qualifiers will be compatible. */
+    /* The parameter type is not a reference, which means the argument is
+       passed by value (i.e., a copy is made).  The cv-qualifiers on the
+       source do not matter: you can copy a const T to a T without problem. */
     arg_type = skip_typerefs(arg_type);
-    /* Qualifiers on the parameter type are also not significant when dealing
-       with rvalues.  One cannot distinguish f(int) and f(const int).
-       In default mode the declaration processing removes the qualifiers,
-       but there might be some in cfront mode. */
+    /* Qualifiers on the parameter type are also not significant.
+       One cannot distinguish f(int) and f(const int).  In default mode
+       the declaration processing removes the qualifiers, but there might
+       be some in cfront mode. */
     param_type = skip_typerefs(param_type);
     /* See if the operand is an lvalue for a constant-valued variable.
        If so, an lvalue --> rvalue transformation might be useful.
@@ -2167,7 +2166,7 @@ type qualifiers are added in the conversion from *arg_type to *param_type
     /* All the qualifiers on the parameter type are case (b) and can be
        removed from further consideration. */
     *param_type = skip_typerefs(*param_type);
-  }
+  }  /* if */
 }  /* check_template_arg_type_qualifiers */
 
 
@@ -2354,12 +2353,11 @@ evaluated (but not checked to see if the match is good enough).
                                            &type_qualifiers_added);
       } else {
         /* Not a reference. */
-        /* The argument would be converted to an rvalue and would lose its
-           top-level type qualifiers. */
+        /* The argument will be passed by copying it, so its cv-qualifiers
+           are not significant. */
         arg_type = skip_typerefs(arg_type);
         /* Top-level type qualifiers on the parameter type are also not
-           important (this is not supported by the ARM, but it matches the
-           handling in determine_arg_match_level). */
+           significant. */
         param_type = skip_typerefs(param_type);
       }  /* if */
       if (is_pointer_type(arg_type) && is_pointer_type(param_type)) {
