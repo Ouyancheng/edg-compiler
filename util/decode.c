@@ -2471,19 +2471,44 @@ length returned the second time will be correct).
 Start of demangling code for IA-64 ABI.
 */
 
+/*
+Information about a function that has to be preserved from the
+time of scanning of the name (e.g., in a <nested-name>) until later use
+in processing the <bare-function-type>.
+*/
+typedef struct a_func_block {
+  a_boolean	no_return_type;
+			/* TRUE if the function is one that will not have
+			   a return type encoded in the function type. */
+  char		*cv_qual;
+			/* If the function is a cv-qualified member function,
+			   points to the encoding for the cv-qualifiers.
+			   NULL otherwise. */
+} a_func_block;
+
+
 static char *demangle_type(char                       *ptr,
                            a_decode_control_block_ptr dctl);
 static char *demangle_template_args(char                       *ptr,
                                     a_decode_control_block_ptr dctl);
 static char *demangle_name(char                       *ptr,
-                           a_boolean                  *no_return_type,
-                           char                       **cv_qual,
+                           a_func_block               *func_block,
                            a_decode_control_block_ptr dctl);
 static char *demangle_expression(char                       *ptr,
                                  a_decode_control_block_ptr dctl);
 static char *demangle_encoding(char                       *ptr,
                                a_boolean                  include_func_params,
                                a_decode_control_block_ptr dctl);
+
+
+static void clear_func_block(a_func_block *func_block)
+/*
+Clear a function information block to default values.
+*/
+{
+  func_block->no_return_type = FALSE;
+  func_block->cv_qual = NULL;
+}  /* clear_func_block */
 
 
 static char *get_number(char                       *p,
@@ -2724,7 +2749,8 @@ demangle_type_second_part.
       allow_template_args = TRUE;
     } else {
       /* <class-enum-type>, i.e., <name> */
-      p = demangle_name(p, (a_boolean *)NULL, (char **)NULL, dctl);
+      a_func_block func_block;
+      p = demangle_name(p, &func_block, dctl);
     }  /* if */
     if (allow_template_args && *p == 'I') {
       /* A <template-args> list. */
@@ -3552,8 +3578,7 @@ type (constructor, destructor, or conversion function).
 
 
 static char *demangle_nested_name(char                       *ptr,
-                                  a_boolean                  *no_return_type,
-                                  char                       **cv_qual,
+                                  a_func_block               *func_block,
                                   a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <nested-name> and output the demangled form.  Return
@@ -3570,25 +3595,20 @@ The syntax is:
     <template-prefix> ::= <prefix> <template unqualified-name>
                       ::= <substitution>
 
-For function names, *no_return_type is returned TRUE to indicate
-that the function type will not include an encoding for the return type.
-If there is a <CV-qualifiers> in the name, *cv_qual is set to point to
-it; otherwise, *cv_qual is returned NULL.  no_return_type and/or
-cv_qual can be NULL if the caller does not need the value.
+For function names, additional information is returned in *func_block.
 */
 {
   char      *prev_component_start = NULL;
   a_boolean has_templ_arg_list = FALSE;
   a_boolean is_no_return_name = FALSE;
 
-  if (no_return_type != NULL) *no_return_type = FALSE;
-  if (cv_qual != NULL) *cv_qual = NULL;
+  clear_func_block(func_block);
   /* Skip the initial "N". */
   ptr++;
   /* Skip <CV-qualifiers> if present. */
   if (is_immediate_cv_qualifier(ptr)) {
     /* Pass the cv-qualifiers position back to the caller. */
-    *cv_qual = ptr;
+    func_block->cv_qual = ptr;
     dctl->suppress_id_output++;
     ptr = demangle_cv_qualifiers(ptr, /*trailing_space=*/FALSE, dctl);
     dctl->suppress_id_output--;
@@ -3621,20 +3641,19 @@ cv_qual can be NULL if the caller does not need the value.
   ptr = advance_past('E', ptr, dctl);
   /* The function will have no return type if it is not a template. */
   if (!has_templ_arg_list) {
-    if (no_return_type != NULL) *no_return_type = TRUE;
+    func_block->no_return_type = TRUE;
   }  /* if */
   /* The function will have no return type if it is a constructor,
      destructor, or conversion function. */
   if (is_no_return_name) {
-    if (no_return_type != NULL) *no_return_type = TRUE;
+    func_block->no_return_type = TRUE;
   }  /* if */
   return ptr;
 }  /* demangle_nested_name */
 
 
 static char *demangle_local_name(char                       *ptr,
-                                 a_boolean                  *no_return_type,
-                                 char                       **cv_qual,
+                                 a_func_block               *func_block,
                                  a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <local-name> and output the demangled form.  Return
@@ -3647,16 +3666,10 @@ The syntax is:
                := Z <function encoding> E s [<discriminator>]
   <discriminator> := _ <non-negative number> 
 
-For function names, *no_return_type is returned TRUE to indicate
-that the function type will not include an encoding for the return type.
-If the name is a cv-qualified member function, *cv_qual is set to point
-at the cv-qualifier encoding; otherwise, *cv_qual is set to NULL.
-no_return_type and/or cv_qual can be NULL if the caller does not need
-the value.
+For function names, additional information is returned in *func_block.
 */
 {
-  if (no_return_type) *no_return_type = FALSE;
-  if (cv_qual != NULL) *cv_qual = NULL;
+  clear_func_block(func_block);
   /* Skip over the "Z". */
   ptr++;
   /* Demangle the function name. */
@@ -3669,7 +3682,7 @@ the value.
     ptr++;
   } else {
     /* Demangle the entity name. */
-    ptr = demangle_name(ptr, no_return_type, cv_qual, dctl);
+    ptr = demangle_name(ptr, func_block, dctl);
   }  /* if */
   if (*ptr == '_') {
     /* Demangle the discriminator. */
@@ -3689,9 +3702,35 @@ the value.
 }  /* demangle_local_name */
 
 
+static char *demangle_unscoped_name(char                       *ptr,
+                                    a_func_block               *func_block,
+                                    a_decode_control_block_ptr dctl)
+/*
+Demangle an IA-64 <unscoped-name> and output the demangled form.
+Return a pointer to the character position following what was demangled.
+The syntax is:
+
+    <unscoped-name> ::= <unqualified-name>
+                    ::= St <unqualified-name>   # ::std::
+
+For function names, additional information is updated in *func_block.
+*/
+{
+  a_boolean is_no_return_name;
+
+  if (*ptr == 'S' && ptr[1] == 't') {
+    /* "St" for "std::". */
+    write_id_str("std::", dctl);
+    ptr += 2;
+  }  /* if */
+  ptr = demangle_unqualified_name(ptr, &is_no_return_name, dctl);
+  func_block->no_return_type = is_no_return_name;
+  return ptr;
+}  /* demangle_unscoped_name */
+
+
 static char *demangle_name(char                       *ptr,
-                           a_boolean                  *no_return_type,
-                           char                       **cv_qual,
+                           a_func_block               *func_block,
                            a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <name> and output the demangled form.  Return
@@ -3702,27 +3741,19 @@ The syntax is:
            ::= <unscoped-name>
            ::= <unscoped-template-name> <template-args>
            ::= <local-name>
-    <unscoped-name> ::= <unqualified-name>
-                    ::= St <unqualified-name>   # ::std::
     <unscoped-template-name> ::= <unscoped-name>
                              ::= <substitution>
 
-For function names, *no_return_type is returned TRUE to indicate
-that the function type will not include an encoding for the return type.
-If the name is a cv-qualified member function, *cv_qual is set to point
-at the cv-qualifier encoding; otherwise, *cv_qual is set to NULL.
-no_return_type and/or cv_qual can be NULL if the caller does not need
-the value.
+For function names, additional information is returned in *func_block.
 */
 {
-  if (no_return_type != NULL) *no_return_type = FALSE;
-  if (cv_qual != NULL) *cv_qual = NULL;
+  clear_func_block(func_block);
   if (*ptr == 'N') {
     /* Nested name, for something like "A::f". */
-    ptr = demangle_nested_name(ptr, no_return_type, cv_qual, dctl);
+    ptr = demangle_nested_name(ptr, func_block, dctl);
   } else if (*ptr == 'Z') {
     /* Local name, identifies function and entity local to the function. */
-    ptr = demangle_local_name(ptr, no_return_type, cv_qual, dctl);
+    ptr = demangle_local_name(ptr, func_block, dctl);
   } else {
     /* <unscoped-name> or <unscoped-template-name> <template-args>. */
     if (*ptr == 'S' && ptr[1] != '\0' && ptr[2] == 'I') {
@@ -3730,21 +3761,16 @@ the value.
          followed by the "I" beginning a <template-args>. */
       ptr = demangle_substitution(ptr, dctl);
     } else {
-      /* An <unscoped-name>. */
-      if (*ptr == 'S' && ptr[1] == 't') {
-        /* "St" for "std::". */
-        write_id_str("std::", dctl);
-        ptr += 2;
-      }  /* if */
-      /* An <unqualified-name>. */
-      ptr = demangle_unqualified_name(ptr, no_return_type, dctl);
+      /* An <unscoped-name>, possibly as the whole of an
+         <unscoped-template-name>.  */
+      ptr = demangle_unscoped_name(ptr, func_block, dctl);
     }  /* if */
     if (*ptr == 'I') {
       /* A <template-args> list. */
       ptr = demangle_template_args(ptr, dctl);
     } else {
       /* Non-template functions do not have return types encoded. */
-      if (no_return_type != NULL) *no_return_type = TRUE;
+      func_block->no_return_type = TRUE;
     }  /* if */
   }  /* if */
   return ptr;
@@ -3814,8 +3840,9 @@ The syntax is:
   if (*ptr == 'G') {
     if (ptr[1] == 'V') {
       /* Guard variable, GV <object name>. */
+      a_func_block func_block;
       write_id_str("Initialization guard variable for ", dctl);
-      ptr = demangle_name(ptr+2, (a_boolean *)NULL, (char **)NULL, dctl);
+      ptr = demangle_name(ptr+2, &func_block, dctl);
     } else {
       bad_mangled_name(dctl);
     }  /* if */
@@ -3878,18 +3905,18 @@ Do not output function parameters if include_func_params is FALSE.
   if (*ptr == 'T' || (*ptr == 'G' && ptr[1] == 'V')) {
     ptr = demangle_special_name(ptr, dctl);
   } else {
-    a_boolean no_return_type;
-    char      *cv_qual;
     /* Function or data name. */
-    ptr = demangle_name(ptr, &no_return_type, &cv_qual, dctl);
+    a_func_block func_block;
+    ptr = demangle_name(ptr, &func_block, dctl);
     /* If there's more, it's the <bare-function-type>. */
     if (*ptr != '\0' && *ptr != 'E') {
       if (!include_func_params) dctl->suppress_id_output++;
-      ptr = demangle_bare_function_type(ptr, no_return_type, dctl);
-      if (include_func_params && cv_qual != NULL) {
+      ptr = demangle_bare_function_type(ptr, func_block.no_return_type, dctl);
+      if (include_func_params && func_block.cv_qual != NULL) {
         /* Put out cv-qualifiers for a member function. */
         write_id_ch(' ', dctl);
-        (void)demangle_cv_qualifiers(cv_qual, /*trailing_space=*/FALSE, dctl);
+        (void)demangle_cv_qualifiers(func_block.cv_qual,
+                                     /*trailing_space=*/FALSE, dctl);
       }  /* if */
       if (!include_func_params) dctl->suppress_id_output--;
     }  /* if */
