@@ -1920,6 +1920,9 @@ done:;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* is_template is only used for Microsoft emulation. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void check_friend_class_declaration(a_symbol_locator  *locator,
                                            a_symbol_ptr      *tag_sym,
                                            a_boolean         *is_template)
