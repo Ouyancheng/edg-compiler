@@ -4382,7 +4382,7 @@ set_size_for_complete_object:
        compiler will perform the padding and we must ensure that this front
        end agrees with the C compiler on the size and offsets of the type. */
     if (!C_mode()) {
-      a_class_type_supplement_ptr	ctsp = lob.class_type->
+      a_class_type_supplement_ptr	ctsp = class_type->
                                         variant.class_struct_union.extra_info;
       ctsp->size_without_virtual_base_classes =
                                  ctsp->alignment_without_virtual_base_classes;
