@@ -3146,7 +3146,8 @@ this is not allowed, an error will be issued by the caller.
       /* err = TRUE; */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_mode && microsoft_version >= 1300 &&
-               use_nonstandard_for_init_scope &&
+               (use_nonstandard_for_init_scope ||
+                microsoft_type_dependent_for_init_scope) &&
                old_sym->kind == (a_symbol_kind)sk_variable &&
                new_sym->kind == (a_symbol_kind)sk_variable &&
                old_sym->variant.variable.declared_in_for_init) {
