@@ -518,6 +518,7 @@ is TRUE, change the typeinfo variable to static.
   a_field_ptr    curr_field;
   a_type_ptr     curr_field_type;
   a_symbol_ptr   dtor_sym;
+  a_routine_ptr  dtor_routine;
   a_memory_region_number
                  region_to_switch_back_to;
 
@@ -568,12 +569,19 @@ is TRUE, change the typeinfo variable to static.
   dtor_con = alloc_constant((a_constant_repr_kind)ck_address);
   /* See if the class has a destructor. */
   dtor_sym = symbol_supplement_for_class(type)->destructor;
-  if (dtor_sym == NULL) {
+  dtor_routine = NULL;
+  if (dtor_sym != NULL) {
+    dtor_routine = dtor_sym->variant.routine.ptr;
+    if (dtor_routine->assoc_scope == NULL_region_number) {
+      /* The destructor is declared but not defined.  Use a null pointer. */
+      dtor_routine = NULL;
+    }  /* if */
+  }  /* if */
+  if (dtor_routine == NULL) {
     /* The class has no destructor; use a NULL pointer. */
     make_zero_of_proper_type(curr_field_type, dtor_con);
   } else {
     /* The class has a destructor.  Make a pointer to the routine. */
-    a_routine_ptr dtor_routine = dtor_sym->variant.routine.ptr;
     dtor_routine->source_corresp.referenced = TRUE;
     set_routine_address_constant(dtor_routine, dtor_con);
     implicit_cast(dtor_con, curr_field_type);
