@@ -945,16 +945,9 @@ do_struct_union:
       if (ptr->variant.typeref.is_placeholder_for_file_scope_type) {
         disp_boolean("is_placeholder_for_file_scope_type", TRUE);
       } else if (ptr->variant.typeref.qualifiers != TQ_NONE) {
-        disp_name("qualifier");
-        if (ptr->variant.typeref.qualifiers & TQ_CONST) {
-          (void)printf("const ");
-        }  /* if */
-        if (ptr->variant.typeref.qualifiers & TQ_VOLATILE) {
-          (void)printf("volatile ");
-        }  /* if */
-        /* Additional implementation-defined qualifiers, if any, may be put
-           out here. */
-        (void)printf("\n");
+        disp_name("qualifiers");
+        (void)printf("%s\n",
+                     type_qualifier_names[ptr->variant.typeref.qualifiers]);
       }  /* if */
       break;
     case tk_ptr_to_member:
