@@ -3795,7 +3795,7 @@ special function kind (e.g., constructor, destructor), if any.
       if (is_copy_constructor(rtn, class_type, &qualifiers)) {
         cssp->has_copy_constructor = TRUE;
         cssp->has_copy_constructor_for_const_object |= 
-                                                (qualifiers & TQ_CONST != 0);
+                                               ((qualifiers & TQ_CONST) != 0);
         if (!compiler_generated) {
           /* If a user-defined copy constructor is declared for the class,
              construction by bitwise copying is not allowed.  (On the other
