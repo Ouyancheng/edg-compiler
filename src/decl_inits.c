@@ -234,10 +234,10 @@ a copy is made and modified.
 a_boolean check_string_constant_initializer(a_type_ptr      *var_type,
                                             a_constant_ptr  string_con)
 /*
-var_type is an array of char or wchar_t.  Return TRUE if and only if it can
-be initialized with the given string literal.  If necessary, the string
-literal may be truncated and the type may be modified (e.g., to set the
-length of the string).
+var_type is an array of char or wchar_t (or an array whose element type is
+template dependent).  Return TRUE if and only if it can be initialized with
+the given string literal.  If necessary, the string literal may be truncated
+and the type may be modified (e.g., to set the length of the string).
 */
 {
   /* The object being initialized has type array of char or wchar_t, and
@@ -245,17 +245,22 @@ length of the string).
   a_type_ptr     array_type;
   a_targ_size_t  string_length, num_elems;
   a_targ_size_t  array_length;
+  a_boolean      is_template_dependent = is_template_dependent_type(*var_type);
   a_boolean      is_wide_string = !is_char_array_type(string_con->type);
   a_boolean      err = FALSE;
 
   /* The object to be initialized is an array (possibly incomplete) of
-     char or wchar_t -- i.e., a string or wide string. */
+     char or wchar_t -- i.e., a string or wide string.  During prototype
+     instantiations, we assume that any template-dependent array type may
+     end up with an appropriate type during a real instantiation. */
   check_assertion(is_char_array_type(*var_type) ||
-                  is_wchar_t_array_type(*var_type));
+                  is_wchar_t_array_type(*var_type) ||
+                  (is_array_type(*var_type) && is_template_dependent));
   /* The constant and the array should have the same underlying character
      element type -- e.g., it's a mismatch if one is a wide string
      and the other a normal string. */
-  err = (is_char_array_type(*var_type) != !is_wide_string);
+  err = (is_char_array_type(*var_type) != !is_wide_string &&
+         !is_template_dependent);
   if (!err) {
     /* The constant is a string with characters that are compatible with
        the array element type.  (Note that an array of characters of any
@@ -322,6 +327,8 @@ constant's type, or remove the final null from a string literal, if necessary.
 If *type_ptr is an incomplete type, change it to reflect the actual size of
 the string literal. (Note the extra level of indirection that allows that.)
 If there is an error, issue an error and return an error constant.
+During prototype instantiations, *type_ptr may also be an array whose
+element type is template dependent.
 */
 {
   a_boolean      is_string_init = FALSE;
@@ -329,7 +336,8 @@ If there is an error, issue an error and return an error constant.
   a_boolean      using_pending_init_con = FALSE;
   a_constant_ptr cp;
 
-  if (is_string_type(*type_ptr)) {
+  if (is_string_type(*type_ptr) ||
+      (is_template_dependent_type(*type_ptr) && is_array_type(*type_ptr))) {
     if (init_context != NULL && init_context->pending_init_con != NULL) {
       /* The initializer has already been scanned. */
       if (init_context->pending_init_levels == 0) {

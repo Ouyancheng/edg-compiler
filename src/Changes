@@ -1,5 +1,18 @@
 Version 3.4
 
+10/8/03  String literal initializers for template-dependent arrays
+
+The front end used to issue spurious errors when processing string literal
+initializers for template-dependent arrays.  For example:
+
+  template<typename T> void f() {
+    T s1[2] = "x";  // Used to trigger an error.
+    T s2[] = "y";   // Used to trigger an error.
+  }
+
+This is now fixed.  (An error is still issued if a real instantiation
+produces an array type that cannot be initialized with a string literal.)
+
 10/8/03  Comparison operator overloading and comparisons with "void *"
 
 Operator overloading processing using conversion functions for
