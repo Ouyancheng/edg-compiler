@@ -6634,7 +6634,7 @@ or NULL otherwise (e.g., for a call through a pointer to function).
     if (extra_info->this_class != NULL) {
       /* For nonstatic member functions, the "this" parameter is number one.
          Since the corresponding argument is not counted, we must compensate
-         the count here. */
+         the numbering of the format argument here. */
       --arg_block->fmt_arg;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
