@@ -1,5 +1,14 @@
 Version 3.1
 
+1/20/03  Abort on invalid wide-string initializer in GNU C mode
+
+Attempting to initialize an array of the wrong type with a wide string
+literal could trigger an internal error in GNU C mode.  For example:
+
+  int a[] = L"x";  // Used to abort in GNU C mode; now an error.
+
+This is now fixed.
+
 1/20/03  EH destruction of base class subobjects, with construction vtables
 
 When base class subobjects are constructed or destroyed in objects
