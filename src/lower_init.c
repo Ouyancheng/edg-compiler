@@ -3314,13 +3314,13 @@ in this routine must be FALSE in that case.
   a_type_ptr         ctor_routine_type;
   a_type_ptr         this_param_type;
   a_param_type_ptr   param;
-  a_boolean          static_var_init, pushed_static_context = FALSE;
+  a_boolean          static_var_init;
   a_local_static_variable_init_ptr
                      lsvip = NULL;
   an_insert_location insert_location2;
   an_insert_location *eff_insert_location = insert_location;
   an_object_lifetime_ptr
-                     lifetime, init_expr_lifetime, local_static_lifetime;
+                     init_expr_lifetime, local_static_lifetime;
   a_context          context, static_context, static_context2;
   a_context_ptr      eff_context = curr_context;
   a_boolean          expr_is_lvalue, local_keep_dynamic_init = FALSE;
@@ -3382,17 +3382,21 @@ in this routine must be FALSE in that case.
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
     }  /* if */
   }  /* if */
-  lifetime = dip->lifetime;
-  if (lifetime != NULL) {
+  if (dip->lifetime != NULL) {
+    an_object_lifetime_ptr lifetime = dip->lifetime;
     /* This dynamic initialization is on the destructions list of an
-       object lifetime, so it must indicate a destruction. */
-    if (lifetime->kind == (an_object_lifetime_kind)olk_function_static) {
+       object lifetime, so it must indicate a destruction.  Activate
+       the right object lifetime if it's not the current one. */
+    if (curr_object_lifetime == lifetime) {
+      /* The current lifetime is the right one. */
+    } else if (lifetime->kind == (an_object_lifetime_kind)olk_function_static){
       /* For local static initializations, make the function static lifetime
-         the current lifetime but restore the previous lifetime after
-         processing the dynamic initialization. */
+         the effective lifetime. */
       push_context(&static_context, (a_scope_ptr)NULL, lifetime);
-      pushed_static_context = TRUE;
       eff_context = curr_context;
+      /* Pop the context and object lifetime off the stack, but keep them
+         around and use them as the effective context. */
+      pop_context();
     } else if (curr_object_lifetime->kind ==
                                  (an_object_lifetime_kind)olk_expr_temporary &&
                curr_object_lifetime->parent_lifetime == lifetime) {
@@ -3400,12 +3404,13 @@ in this routine must be FALSE in that case.
          a reference was bound to it.  The temporary is in a lifetime outside
          of the current one, and a context outside the current one. */
       eff_context = context_for_lifetime(lifetime);
+    } else if (processing_file_scope_init_routine &&
+               lifetime->kind == (an_object_lifetime_kind)olk_global_static) {
+      /* Initialization of a global variable from inside the routine
+         generated for file-scope initializations. */
+      eff_context = context_for_lifetime(lifetime);
     } else {
-      /* Not a local static initialization. */
-      check_assertion_str(curr_object_lifetime == lifetime ||
-                          (processing_file_scope_init_routine &&
-                           lifetime->kind ==
-                                   (an_object_lifetime_kind)olk_global_static),
+      unexpected_condition_str(
      "lower_dynamic_init: dynamic init has lifetime other than curr lifetime");
     }  /* if */
   }  /* if */
@@ -3764,9 +3769,6 @@ do_assignment:;
       }  /* if */
     }  /* if */
   }  /* if */
-  /* If the dynamic initialization was for a local static, pop the context
-     pushed for it. */
-  if (pushed_static_context) pop_context();
   if (!local_keep_dynamic_init) {
     /* Clear the initialization part of the dynamic init now that it has
        been rewritten.  This is important because the dynamic init may

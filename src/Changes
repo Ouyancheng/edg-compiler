@@ -1,5 +1,23 @@
 Version 2.33
 
+9/25/96 Internal error in IL lowering on binding static reference
+
+When a static reference is bound to an expression that includes a
+temporary whose lifetime is not extended to static lifetime, an
+internal error was generated.  This bug was introduced in 2.32, though
+the behavior before that wasn't correct either (it didn't destroy the
+temporary, but on the other hand it didn't get an internal error).
+
+  struct B {
+    B(int i);
+    ~B();
+  };
+  struct A {
+    A(const B &rB);
+    ~A();
+  };
+  extern const A &a2 = B(2);
+
 9/25/96 Global qualifier on friend declaration inside namespace
 
 When a global qualifier appeared on a friend function declaration and the
