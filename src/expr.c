@@ -7978,6 +7978,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     change_operand_refs_to_error(&operand_2);
     change_operand_refs_to_error(&operand_3);
     processed = TRUE;
+    err = TRUE;
   } else if (C_dialect == C_dialect_cplusplus) {
     if (types_are_compatible(operand_2.type, operand_3.type)) {
       /* In C++, if the types are the same the result has that type.
