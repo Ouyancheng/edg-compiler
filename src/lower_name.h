@@ -60,8 +60,6 @@ extern char *get_mangled_function_name(a_routine_ptr routine);
 extern char *get_mangled_static_data_member_name(a_variable_ptr variable);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
-extern void preserve_mangled_name_as_template_arg(a_constant *con);
-
 extern char *mangled_vtbl_name(a_type_ptr       class_type,
                                a_base_class_ptr bcp,
                                a_base_class_ptr ctor_bcp);

@@ -492,9 +492,9 @@ associated variant fields to default values.
   cp->assoc_var_assigned = FALSE;
 #endif /* DO_IL_LOWERING || BACK_END_IS_C_GEN_BE */
   cp->null_pointer_constant_ruled_out = FALSE;
-#if NEED_NAME_MANGLING
-  cp->name_is_template_arg_mangled_name = FALSE;
-#endif /* NEED_NAME_MANGLING */
+#if CHECKING
+  cp->avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
   set_constant_kind(cp, kind);
 }  /* clear_constant */
 

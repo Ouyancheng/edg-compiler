@@ -1663,13 +1663,7 @@ typedef struct a_constant {
 			   or other operations that rule it out as a null
 			   pointer constant.  This is unrelated to whether
 			   the constant actually has the value zero. */
-#if NEED_NAME_MANGLING
-  a_bit_field	name_is_template_arg_mangled_name:1;
-			/* If TRUE, the name of this constant is a mangled
-			   form of the constant value, to be used when the
-			   constant is mangled as a nontype template
-			   argument. */
-#endif /* NEED_NAME_MANGLING */
+  bitfield_to_avoid_codecenter_warnings()
   a_constant_repr_kind
                 kind;
                         /* The kind of representation for the constant. */

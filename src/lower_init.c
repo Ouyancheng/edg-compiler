@@ -8731,9 +8731,6 @@ associated class was declared.
   a_variable_ptr uuid_var;
   a_constant_ptr con_next = con->next;
 
-  /* Develop and save the mangled name for the constant value, because after
-     the lowering it won't be possible to generate it. */
-  preserve_mangled_name_as_template_arg(con);
   orig_source_corresp = con->source_corresp;
   /* Create the initialized uuid variable for the type, if it doesn't
      exist already. */
@@ -8746,7 +8743,6 @@ associated class was declared.
                                 /*set_address_taken_flag=*/TRUE);
   implicit_cast(con, orig_con_type);
   con->source_corresp = orig_source_corresp;
-  con->name_is_template_arg_mangled_name = TRUE;
   con->next = con_next;
 #if MAINTAIN_NEEDED_FLAGS
   /* If the constant has already been marked as needed, mark it as

@@ -658,10 +658,6 @@ Display the indicated constant entry.
   if (ptr->null_pointer_constant_ruled_out) {
     disp_boolean("null_pointer_constant_ruled_out", TRUE);
   }  /* if */
-#if NEED_NAME_MANGLING
-  /* Do not print out name_is_template_arg_mangled_name, which is used only in
-     the front end. */
-#endif /* NEED_NAME_MANGLING */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:
