@@ -3206,14 +3206,23 @@ function_lparen:
         if (derived_type == NULL) {
           /* Top level function declaration. */
           disallow_exception_spec = FALSE;
-        } else if (is_pointer_type(derived_type)) {
-          /* If derived_type is a pointer type that currently points to NULL,
-             this can be assumed to be a top-level pointer declaration, and
-             an exception specification is permitted:
+        } else if (is_ptr_or_ref_type(derived_type)) {
+          /* If derived_type is a pointer or reference type that currently
+             points to NULL, this can be assumed to be a top-level pointer
+             or reference declaration, and an exception specification is
+             permitted:
                void (*pf)() throw();    // Okay
                void (**ppf)() throw();  // Error
           */
           disallow_exception_spec = (type_pointed_to(derived_type) != NULL);
+        } else if (is_ptr_to_member_type(derived_type)) {
+          /* Similarly if derived_type is a pointer-to-member type whose
+             member pointer is NULL:
+               void (A::*pmf)() throw ();  // Okay
+               void (A::**ppmf)() throw(); // Error
+               void (* A::*pm)() throw();  // Error
+          */
+          disallow_exception_spec = (pm_member_type(derived_type) != NULL);
         }  /* if */
       }  /* if */
       function_declarator(&new_type_ptr, func_info, locator,
