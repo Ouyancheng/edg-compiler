@@ -67,6 +67,16 @@ a "for"] would have to be rewritten.)
  #error -- The C++/C-generating back end requires RECORD_TEMPLATES_IN_IL.
 #endif /* !RECORD_TEMPLATES_IN_IL */
 
+#if RECORD_MACROS_IN_IL
+/* RECORD_MACROS_IN_IL is supported after a fashion in the C++-generating
+   back end, but if you enable it you produce output that won't necessarily
+   mean the same thing as the input (because some of the code may be subjected
+   to additional macro transformations even though it's already been
+   macro-expanded).  So it's pretty likely an error to attempt to have
+   macro output enabled here. */
+ #error -- The C++/C-generating back end requires RECORD_MACROS_IN_IL FALSE.
+#endif /* RECORD_MACROS_IN_IL */
+
 /* Header files common to all files. */
 #include "fe_common.h"
 
