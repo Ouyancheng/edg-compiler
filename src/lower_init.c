@@ -5741,6 +5741,45 @@ to some other type.  Set *var to the variable.
 }  /* is_static_variable_address_node */
 
 
+static void lower_optimized_class_rvalue_question_mark(
+                                           an_expr_node_ptr   expr,
+                                           an_insert_location *insert_location)
+/*
+Lower an optimized "?" operation that returns a class rvalue.  Specifically,
+expr is the expression from a dynamic initialization with
+is_optimized_class_rvalue_question_mark set to TRUE, which initializes
+the temporary that is the result of the "?" operation.  The expression
+is supposed to be evaluated to initialize the temporary, but its value
+is discarded.  The initialization code is inserted at *insert_location.
+The expression passed in has not been lowered yet and must be lowered.
+*/
+{
+  an_expr_node_ptr operand_1, operand_2, operand_3;
+
+  check_assertion(is_operation_node(expr) &&
+                  expr->variant.operation.kind ==
+                                          (an_expr_operator_kind)eok_question);
+  operand_1 = expr->variant.operation.operands;
+  operand_2 = operand_1->next;
+  operand_3 = operand_2->next;
+  operand_2->next = NULL;
+  /* Cast the operands to void and mark their results as not used so we
+     can get better code generation. */
+  set_expr_result_not_used(operand_2);
+  set_expr_result_not_used(operand_3);
+  operand_2 = add_cast_if_necessary(operand_2, void_type());
+  operand_3 = add_cast_if_necessary(operand_3, void_type());
+  operand_1->next = operand_2;
+  operand_2->next = operand_3;
+  expr->type = void_type();
+  set_expr_result_not_used(expr);
+  /* Lower the operation now that the operands indicate the result is
+     not used. */
+  lower_expr(expr, /*expr_is_lvalue=*/FALSE);
+  (void)insert_expr_statement(expr, insert_location);
+}  /* lower_optimized_class_rvalue_question_mark */
+
+
 void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_init_pos_descr_ptr  ipdp,
                         a_constructor_init_ptr ctor_init,
@@ -6112,6 +6151,14 @@ C99 mode for the same reason.
         }  /* if */
 #endif /* DO_C99_IL_LOWERING */
       } else {
+        if (dip->is_optimized_class_rvalue_question_mark) {
+          /* For the optimized "?" class rvalue case, the expression must
+             be evaluated (it initializes the temporary) but its value is
+             not stored into the temporary. */
+          lower_optimized_class_rvalue_question_mark(source_node,
+                                                     eff_insert_location);
+          break;
+        }  /* if */
         /* It's an lvalue if the thing being initialized is a reference. */
         expr_is_lvalue = is_reference_type(type_from_init_pos_descr(ipdp));
         if ((options & LDIO_FULL_EXPR) && init_expr_lifetime == NULL) {
@@ -6119,13 +6166,6 @@ C99 mode for the same reason.
         } else {
           /* Normal case: not a full expression. */
           lower_expr(source_node, expr_is_lvalue);
-        }  /* if */
-        if (dip->is_optimized_class_rvalue_question_mark) {
-          /* For the optimized "?" class rvalue case, the expression must
-             be evaluated (it initializes the temporary) but its value is
-             not stored into the temporary. */
-          (void)insert_expr_statement(source_node, eff_insert_location);
-          break;
         }  /* if */
         { a_variable_ptr var;
           if (!simple_constant_init_opt_ruled_out &&
@@ -7785,52 +7825,52 @@ Do IL lowering of an enk_temp_init expression node.
           expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
         an_expr_node_ptr first_operand = expr->variant.operation.operands;
         an_expr_node_ptr second_operand = first_operand->next;
-        a_type_ptr       expr_type = expr->type;
-        a_type_ptr       first_op_type = first_operand->type;
-        if (result_is_addr ? (is_variable_address_node(second_operand) &&
-                              is_ptr_or_ref_type(first_op_type)):
+        if (result_is_addr ? is_variable_address_node(second_operand) :
                              is_variable_node(second_operand)) {
           /* The second operand is the value or address of a variable,
-             as appropriate.  It's not necessarily a temporary.
-             The pointer test on the first operand guards the removal
-             of the pointer level below. */
-          if (result_is_addr) {
-            expr_type = type_pointed_to(expr_type);
-            first_op_type = type_pointed_to(first_op_type);
-          }  /* if */
-          /* See whether the type of the first operand is the same as the
-             required result type or close enough that we can cast to adjust
-             cv-qualifiers.  The first pointer level has been removed
-             because it's likely to be a pointer in one case and a reference
-             in the other. */
-          if (same_type_with_added_qualifiers(first_op_type,
-                                              expr_type,
-                                              /*ignore_qualifiers=*/TRUE,
-                                              (a_boolean *)NULL)) {
-            a_boolean can_optimize = FALSE;
-            if (result_is_not_used) {
-              /* The result is not used and the second operand has no side
-                 effects (because it's a simple variable reference).  Do
-                 the optimization to just use the first operand.  Note that
-                 this includes the class rvalue "?" case. */
+             as appropriate.  It's not necessarily a temporary. */
+          a_boolean can_optimize = FALSE;
+          if (result_is_not_used) {
+            /* The result is not used and the second operand has no side
+               effects (because it's a simple variable reference).  Do
+               the optimization to just use the first operand.  Note that
+               this includes the class rvalue "?" case.  Also note that
+               we may be changing the type of the overall expression,
+               but that's okay because the result is not used. */
+            can_optimize = TRUE;
+          } else if (result_is_addr && is_constructor_init &&
+                     is_ptr_or_ref_type(first_operand->type) &&
+                     is_constructor_call(first_operand)) {
+            /* The first operand is a constructor call and the overall
+               return value is the address of the entity initialized.
+               The pointer type test rules out ABIs where the constructor
+               returns void (e.g., the IA-64 ABI) and guards the
+               type_pointed_to call below. */
+            a_type_ptr expr_type = type_pointed_to(expr->type);
+            a_type_ptr first_op_type = type_pointed_to(first_operand->type);
+            /* See whether the type of the first operand is the same as the
+               required result type or close enough that we can cast to adjust
+               cv-qualifiers.  The first pointer level has been removed
+               because it's likely to be a pointer in one case and a reference
+               in the other. */
+            if (same_type_with_added_qualifiers(first_op_type,
+                                                expr_type,
+                                                /*ignore_qualifiers=*/TRUE,
+                                                (a_boolean *)NULL)) {
+              /* The optimization can be done. */
               can_optimize = TRUE;
-            } else if (is_constructor_call(first_operand)) {
-              /* The first operand is a constructor call that returns the
-                 address of the entity initialized.  Note that the type
-                 tests above ruled out ABIs where the constructor returns
-                 void (e.g., the IA-64 ABI). */
-              can_optimize = TRUE;
-            }  /* if */
-            if (can_optimize) {
-              /* The optimization is possible. */
               /* If necessary, add a cast to adjust qualification. */
               if (!il_identical_types(expr_type, first_op_type)) {
                 first_operand->next = NULL;
                 first_operand->result_is_not_used = FALSE;
                 first_operand = add_cast(first_operand, expr->type);
               }  /* if */
-              overwrite_node(expr, first_operand);
             }  /* if */
+          }  /* if */
+          if (can_optimize) {
+            /* Do the optimization by replacing the overall expression by
+               the first operand. */
+            overwrite_node(expr, first_operand);
           }  /* if */
         }  /* if */
       }  /* if */
