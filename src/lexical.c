@@ -5813,8 +5813,11 @@ point to the character after the universal character name.
                        "scan_universal_character:",
                        "curr pos not universal character");
   /* Suppress diagnostics if we are skipping over this string because of
-     some kind of preprocessor "if" directive. */
-  if (currently_in_pp_if_skip) issue_diagnostics = FALSE;
+     some kind of preprocessor "if" directive, or when doing the initial
+     PCH prefix scan of a file. */
+  if (currently_in_pp_if_skip || building_pch_prefix) {
+    issue_diagnostics = FALSE;
+  }  /* if */
   /* Skip past the "\u" or "\U", and determine whether we are processing a
      four or eight character name.  "\u" is followed by four hex digits,
      "\U" is followed by eight hex digits. */
