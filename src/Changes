@@ -136,8 +136,7 @@ Prior to this change, the lookup of f from N::h failed.
 A bug has been fixed that caused the front end to abort when scanning a
 declaration of a pointer to member of type pointer to function.
 
-  struct A {};
-  void (*A::*x)();
+  template < class T > void f11 ( void ( * T :: * ) () ) { } 
 
 10/3/97   INSTANTIATION_INFO_LINES_RESERVED renamed
 
