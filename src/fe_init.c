@@ -76,6 +76,10 @@ in the include files will become external definitions for the symbols.
 #include "c_gen_be.h"
 #endif /* BACK_END_IS_C_GEN_BE */
 
+#if DO_IL_LOWERING
+#include "lower_il.h"
+#endif /* DO_IL_LOWERING */
+
 static void host_init(void)
 /*
 Do required initialization for host-dependent things.
