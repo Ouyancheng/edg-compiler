@@ -25,10 +25,6 @@ Declarations for exception handling.
 
 #if EXCEPTION_HANDLING
 
-#if USE_SYSTEM_JMP_BUF_DEFINITION
-#include <setjmp.h>
-#endif /* USE_SYSTEM_JMP_BUF_DEFINITION */
-
 #ifndef NULL
 #define NULL (0)
 #endif /* NULL */
