@@ -3884,7 +3884,7 @@ End a name scope by popping an entry off the scope stack.
       curr_object_lifetime = ssep->saved_curr_object_lifetime;
     }  /* if */
     /* Dispose of the list of entries of type a_name_hidden_by_old_for_init.
-       The are no longer needed once the scope has been completed. */
+       They are no longer needed once the scope has been completed. */
     if (ssep->names_hidden_by_old_for_init != NULL) {
       free_names_hidden_by_old_for_init(ssep->names_hidden_by_old_for_init);
     }  /* if */
