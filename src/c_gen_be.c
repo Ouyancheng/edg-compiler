@@ -5706,22 +5706,28 @@ parameters.
   char            *var_name;
   a_storage_class storage_class;
   a_constant_ptr  init_con;
+#ifdef CFE
+  a_boolean       forced_static;
+#endif /* ifdef CFE */
 
   /* Determine whether or not the variable has a constant initializer.
      Non-constant initializers are handled by dump_dynamic_init. */
   init_con = constant_initializer(variable);
+#ifdef CFE
+  /* The variable __link and unnamed variables must be kept static even if
+     they are initialized. */
+  forced_static = (init_con != NULL &&
+                   ((variable->source_corresp.name_linkage ==
+                                           (a_name_linkage_kind)nlk_internal &&
+                     strcmp(variable->source_corresp.name, "__link") == 0) ||
+                    variable->source_corresp.name == NULL));
+#endif /* ifdef CFE */
   if (!dump_vars_without_initializers && init_con == NULL) {
     /* The variable has no initializer, and we're not supposed to dump
        variables without initializers. */
 #ifdef CFE
-  } else if (!dump_initializers && init_con != NULL &&
-             ((variable->source_corresp.name_linkage ==
-                                           (a_name_linkage_kind)nlk_internal &&
-               strcmp(variable->source_corresp.name, "__link") == 0) ||
-              variable->source_corresp.name == NULL)) {
-    /* Dump the C++ startup variable __link only once, rather than once
-       without the initializer and once with.  That allows it to be static.
-       Ditto for unnamed variables. */
+  } else if (!dump_initializers && forced_static) {
+    /* Suppress the first declaration of forced-static variables. */
 #endif /* ifdef CFE */
   } else {
 #ifdef FFE
@@ -5768,6 +5774,7 @@ parameters.
 #endif /* ifdef FFE */
       {
         if (init_con != NULL && storage_class == (a_storage_class)sc_static &&
+            !forced_static &&
             (!dump_vars_without_initializers || !dump_initializers)) {
           /* For initialized file-scope static variables, suppress the
              storage class on both declarations of the variable.  This
