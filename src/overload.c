@@ -11361,11 +11361,10 @@ to be acceptable, and *conversion describes it.
                            source_operand);
         }  /* if */
       }  /* if */
+    } else {
+      /* Not a constant expression. */
+      prep_generic_operand(source_operand, /*lvalue_expected=*/TRUE);
     }  /* if */
-    generic_cast_operand(source_operand, result_ptr_type,
-                         (an_expr_operator_kind)eok_cast,
-                         /*is_implicit_cast=*/TRUE,
-                         /*is_reference_cast=*/TRUE);
   } else if (direct_binding_conversion_possible) {
     /* The initial value can be converted to an lvalue of the right type
        through use of a conversion function returning a reference. */

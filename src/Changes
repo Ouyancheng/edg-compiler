@@ -1,5 +1,19 @@
 Version 3.0
 
+3/20/02  C++-generating back end, prototype instantiations, reference
+         binding
+
+In some cases the C++-generating back end, when configured to
+use prototype instantiations of templates to output the template
+definitions, incorrectly rendered the binding of a reference
+to a class type to a constant, when in an actual instantiation a
+conversion would be required.  Now fixed.
+
+  template <class T> struct A {
+    const A<T>&r;
+    template <class P> explicit A(P) : r(37) {}  // "37" was "*37"
+  };
+
 3/19/02  Use of va_start with no ellipsis parameter
 
 In GNU C mode, the front end now issues an error when va_start is used
