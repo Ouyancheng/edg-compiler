@@ -2539,7 +2539,7 @@ about variables and routines.
 /*
 Type used to represent a set of decl modifiers.
 */
-typedef int	a_decl_modifier;
+typedef char	a_decl_modifier;
 typedef a_decl_modifier *a_decl_modifier_ptr;
 
 /*
