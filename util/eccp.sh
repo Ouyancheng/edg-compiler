@@ -1701,17 +1701,20 @@ do
   # might end up specifying this even in cases where an ii file isn't
   # created (e.g., preprocessing only), but that won't hurt anything.
   ii_file_option=
-  if [ $ii_file_specified -eq 0 ] ; then
-    # No file name was specified -- construct the default name.
-    ii_file_name=$basefile.ii
-    ti_file_name=$basefile.ti
-  fi
-  if [ $ii_file_specified -eq 1 -o $compile_as_secondary -ne 0 ] ; then
-    # A name was specified -- pass it to the front end.  Also do this when
-    # using --compile_as_secondary mode.
-    ii_file_option="--ii_file=$ii_file_name"
-    if [ $driver_version -ge 237 ] ; then
-      ti_file_option="--template_info_file=$ti_file_name"
+  ti_file_option=
+  if [ $automatic_instantiation -ne 0 ] ; then
+    if [ $ii_file_specified -eq 0 ] ; then
+      # No file name was specified -- construct the default name.
+      ii_file_name=$basefile.ii
+      ti_file_name=$basefile.ti
+    fi
+    if [ $ii_file_specified -eq 1 -o $compile_as_secondary -ne 0 ] ; then
+      # A name was specified -- pass it to the front end.  Also do this when
+      # using --compile_as_secondary mode.
+      ii_file_option="--ii_file=$ii_file_name"
+      if [ $driver_version -ge 237 ] ; then
+        ti_file_option="--template_info_file=$ti_file_name"
+      fi
     fi
   fi
   instantiation_dir_option=
