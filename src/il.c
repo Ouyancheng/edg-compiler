@@ -10973,7 +10973,7 @@ subscopes as well.
 void db_type_lists(a_scope_ptr scope,
                    int         indent)
 /*
-Dump the type lists for the indicate scope and its subscopes, for debug
+Dump the type lists for the indicated scope and its subscopes, for debug
 purposes.  indent indicates the indentation level.
 */
 {
