@@ -480,7 +480,7 @@ Display the indicated source correspondence entry.
     while (byte_count-- > 0) {
       a_byte curr_byte = (a_byte)(*ptr++);
       int    i;
-      for (i = 0; i < TARG_CHAR_BIT; i++) {
+      for (i = 0; i < CHAR_BIT; i++) {
         (void)printf("%c", ((curr_byte >> i)&1) ? '1' : '0');
       }  /* for */
     }  /* while */
