@@ -4115,8 +4115,6 @@ Syntax:
       }  /* if */
     } else {
       /* The type cast to is okay. */
-      /* Check at the operand has the same underlying type (i.e., only
-         qualifiers are being changed). */
       operand_type = operand.type;
       operation_type = cast_type;
       if (reference_case) {
@@ -4136,11 +4134,12 @@ Syntax:
         }  /* if */
       }  /* if */
       if (!err) {
-        /* Check that the cast just removes qualifiers (or makes no change). */
+        /* Check that the cast just changes qualifiers (or makes no change). */
         /* Note that this comparison considers error types equal to any
            other types. */
-        if (!cast_removes_qualifiers(operand_type, operation_type,
-                                     /*is_const_cast=*/TRUE)) {
+        if (!same_type_with_added_qualifiers(operand_type, operation_type,
+                                             /*ignore_qualifiers=*/TRUE,
+                                             (a_boolean *)NULL)) {
           if (is_or_contains_template_param(operand_type) ||
               is_or_contains_template_param(operation_type)) {
             /* With template parameters, we can't tell whether these would
