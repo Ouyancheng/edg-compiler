@@ -27,10 +27,12 @@ pragma.h -- Declarations related to the #pragma directives
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
-a_pending_pragma_ptr get_specific_pragmas(a_pragma_kind    kind,
-                                          a_symbol_ptr     sym,
-                                          a_statement_ptr  sp);
+extern a_pending_pragma_ptr extract_specific_pragmas(a_pragma_kind    kind,
+                                                     a_symbol_ptr     sym,
+                                                     a_statement_ptr  sp);
 
+extern void process_pragmas_bound_to_curr_decl_or_stmt(a_symbol_ptr     sym,
+                                                       a_statement_ptr  sp);
 #endif /* ifndef PRAGMA_H */
 
 /******************************************************************************

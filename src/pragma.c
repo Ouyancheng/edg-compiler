@@ -79,9 +79,52 @@ there is additional processing to be done.
 }  /* add_pragma_to_il */
 
 
-a_pending_pragma_ptr get_specific_pragmas(a_pragma_kind    kind,
-                                          a_symbol_ptr     sym,
-                                          a_statement_ptr  sp)
+static void create_il_entry_for_pragma(a_pending_pragma_ptr ppp,
+                                       a_symbol_ptr         sym,
+                                       a_statement_ptr      sp)
+/*
+Create an IL pragma entry for a pending pragma entry.  If either
+sym or sp is non-NULL, bind the pragma IL entry to the IL entry
+indicated by sym or sp.  For pbk_next_construct pragmas, a non-NULL sym
+or sp pointer must be supplied.  The IL entry is then added to the IL.
+*/
+{
+  char              		 *entity;
+  an_il_entry_kind	 	 entity_kind;
+  a_boolean	         	 at_file_scope;
+  a_boolean			 is_bound_to_curr_construct;
+  a_pragma_kind_description_ptr	 pkdp;
+
+  pkdp = ppp->descr_ptr;
+  is_bound_to_curr_construct = pkdp->binding_kind == pbk_next_construct;
+  /* A symbol pointer or statement pointer may only be supplied for
+     pbk_next_construct pragmas. */
+  check_assertion_str
+        (is_bound_to_curr_construct && ((sym == NULL) != (sp == NULL)),
+        "create_il_entry_for_pragma: invalid next_construct call");
+  check_assertion_str
+         (!is_bound_to_curr_construct && (sym == NULL && sp == NULL),
+          "create_il_entry_for_pragma: binding kind/argument mismatch");
+  if (is_bound_to_curr_construct) {
+    if (sym != NULL) {
+      entity = il_entry_for_symbol(sym, &entity_kind);
+    } else {
+      entity = (char *)sp;
+      entity_kind = (an_il_entry_kind)iek_statement;
+    }  /* if */
+    at_file_scope = FALSE;
+  } else {
+    entity = NULL;
+    entity_kind = (an_il_entry_kind)iek_none;
+    at_file_scope = pkdp->global;
+  }  /* if */
+  add_pragma_to_il(ppp, entity_kind, entity, at_file_scope);
+}  /* create_il_entry_for_pragma */
+
+
+a_pending_pragma_ptr extract_specific_pragmas(a_pragma_kind    kind,
+                                              a_symbol_ptr     sym,
+                                              a_statement_ptr  sp)
 /*
 Return one or more pending-pragma entries of the specified pragma kind.  If
 the pragma binds to the currrent declaration or statement and the pragma's
@@ -94,28 +137,29 @@ are returned in a linked list.  This is possible, since the entries returned
 are first removed from the lists they currently reside on.
 */
 {
-  a_pending_pragma_ptr           ppp, *scope_list_addr;
-  a_pragma_kind_description_ptr  pdp;
-  a_pending_pragma_ptr           new_list = NULL, end_of_new_list = NULL;
-  a_pending_pragma_ptr           prev_in_scope_list, next_in_scope_list;
+  a_pending_pragma_ptr           ppp;
+  a_pending_pragma_ptr		 *scope_list_addr;
+  a_pragma_kind_description_ptr  pkdp;
+  a_pending_pragma_ptr           new_list = NULL;
+  a_pending_pragma_ptr           end_of_new_list = NULL;
+  a_pending_pragma_ptr           prev_in_scope_list;
+  a_pending_pragma_ptr           next_in_scope_list;
   a_boolean                      is_bound_to_curr_construct;
   a_scope_stack_entry_ptr        ssep;
 
   /* Get the pragma description entry for the specified kind. */
-  pdp = pragma_description_for_pragma_kind[(int)kind];
-  if (pdp->binding_kind == (a_pragma_binding_kind)pbk_next_construct) {
+  pkdp = pragma_description_for_pragma_kind[(int)kind];
+  if (pkdp->binding_kind == (a_pragma_binding_kind)pbk_next_construct) {
     /* Set up to search for a pragma bound to the current declaration or
        statement. */
-    check_assertion(!pdp->automatically_include_in_il ||
-                    (sym == NULL) == (sp != NULL));
     is_bound_to_curr_construct = TRUE;
     ssep = &scope_stack[depth_scope_stack];
     scope_list_addr = &ssep->pragmas_bound_to_curr_decl_or_stmt;
   } else {
     /* Set up to search for a pbk_other pragma. */
-    check_assertion((sym == NULL) && (sp == NULL));
     is_bound_to_curr_construct = FALSE;
-    ssep = &scope_stack[pdp->global ? DEPTH_OF_FILE_SCOPE : depth_scope_stack];
+    ssep = &scope_stack[pkdp->global ?
+                                     DEPTH_OF_FILE_SCOPE : depth_scope_stack];
     scope_list_addr = &ssep->pending_pragmas;
   }  /* if */
   /* The outer loop examines one or more scope stack entries.  If it's a
@@ -128,7 +172,7 @@ are first removed from the lists they currently reside on.
     /* Check the appropriate list of pending-pragma entries. */
     for (ppp = *scope_list_addr; ppp != NULL; ppp = next_in_scope_list) {
       next_in_scope_list = ppp->next;
-      if (ppp->descr_ptr == pdp) {
+      if (ppp->descr_ptr == pkdp) {
         /* It's the right kind -- remove it from the scope stack list. */
         if (prev_in_scope_list == NULL) {
           (*scope_list_addr) = ppp->next;
@@ -144,25 +188,8 @@ are first removed from the lists they currently reside on.
         ppp->next = NULL;
         end_of_new_list = ppp;
         /* If an IL pragma should be generated for it, do that now. */
-        if (pdp->automatically_include_in_il) {
-          char              *entity;
-          an_il_entry_kind  entity_kind;
-          a_boolean         at_file_scope;
-
-          if (is_bound_to_curr_construct) {
-            if (sym != NULL) {
-              entity = il_entry_for_symbol(sym, &entity_kind);
-            } else {
-              entity = (char *)sp;
-              entity_kind = (an_il_entry_kind)iek_statement;
-            }  /* if */
-            at_file_scope = FALSE;
-          } else {
-            entity = NULL;
-            entity_kind = (an_il_entry_kind)iek_none;
-            at_file_scope = pdp->global;
-          }  /* if */
-          add_pragma_to_il(ppp, entity_kind, entity, at_file_scope);
+        if (pkdp->automatically_include_in_il) {
+          create_il_entry_for_pragma(ppp, sym, sp);
         }  /* if */
       } else {
         /* Not a match.  Save the prev pointer and advance to the next entry
@@ -185,66 +212,53 @@ are first removed from the lists they currently reside on.
     }  /* if */
   }  /* for */
   return new_list;  
-}  /* get_specific_pragmas */
+}  /* extract_specific_pragmas */
 
 
-#if 0
-void end_of_construct_pragma_check(a_symbol_ptr     sym,
-                                   a_statement_ptr  sp)
+void process_pragmas_bound_to_curr_decl_or_stmt(a_symbol_ptr     sym,
+                                                a_statement_ptr  sp)
 /*
+Go through the list of pragmas that are to be bound to the current
+declaration or statement and perform any actions required to process
+the pragmas.
 */
 {
-  a_pending_pragma_ptr      ppp, *scope_list_addr;
-  a_pragma_description_ptr  pdp;
-  char                      *entity;
-  an_il_entry_kind          entity_kind;
+  a_pending_pragma_ptr     	ppp;
+  a_pending_pragma_ptr		list_start;
+  a_pragma_kind_description_ptr	pkdp;
+  a_scope_stack_entry_ptr   	ssep;
 
-  check_assertion((sym == NULL) == (sp != NULL));
+  check_assertion_str((sym == NULL) == (sp != NULL),
+                      "process_pragmas_bound...: invalid arguments");
   /* Go though the pragmas that are meant to apply to the current
      declaration or statement. */
-  scope_list_addr = &scope_stack[depth_scope_stack].
-                                           pragmas_bound_to_curr_decl_or_stmt;
-  for(ppp = *scope_list_addr; ppp != NULL; ppp = ppp->next) {
-    pdp = ppp->descr_ptr;
-    if (pdp->may_bind_to_decl && sym != NULL ||
-        pdp->may_bind_to_stmt && sp != NULL) {
-      if (pdp->automatically_include_in_il) {
-        if (sym != NULL) {
-          entity = il_entry_for_symbol(sym, &entity_kind);
-        } else {
-          entity = (char *)sp;
-          entity_kind = (an_il_entry_kind)iek_statement;
-        }  /* if */
-        if (entity != NULL) {
-          add_pragma_to_il(ppp, entity_kind, entity, /*at_file_scope=*/FALSE);
-        }  /* if */
-      }  /* if */
-      if (pdp->processing_function != NULL) {
-#if 0
-        (pdp->processing_function)(ppp, sym, (a_statement_ptr)NULL);
-#endif /* if 0 */
-      }  /* if */
-    } else {
-      /* Must be that a pragma was intended for a statement but current
-         construct is a declaration, or vice versa.  Issue a diagnostic? */
+  ssep = &scope_stack[depth_scope_stack];
+  ppp = ssep->pragmas_bound_to_curr_decl_or_stmt;
+  list_start = ppp;
+  for(; ppp != NULL; ppp = ppp->next) {
+    a_next_construct_pragma_function_ptr ncpfp;
+    pkdp = ppp->descr_ptr;
+    /* Make sure that the binding information in the pragma description
+       is consistent with the argument list.  If these do not match then
+       the is_decl flag used when select_pragmas_bound_to_curr_decl_or_stmt
+       must have been invalid. */
+    check_assertion_str((pkdp->may_bind_to_decl && sym != NULL) || 
+                        (pkdp->may_bind_to_stmt && sp != NULL),
+                   "process_pragmas_bound...: binding/argument list mismatch")
+    ncpfp = pkdp->variant.next_construct_processing_function;
+    if (pkdp->automatically_include_in_il) {
+      /* Create an IL entry for pragmas that should automatically be
+         included in the IL. */
+      create_il_entry_for_pragma(ppp, sym, sp);
     }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if 0
-/* Shouldn't this be added to free_pending_pragma? */
-#endif /* if 0 */
-    if (ppp->source_sequence_entry != NULL &&
-        ppp->source_sequence_entry->entity.kind ==
-                                        (an_il_entry_kind)iek_none) {
-      a_src_seq_sublist_ptr  sublist = NULL;
-      remove_from_source_sequence_list(ppp->source_sequence_entry, &sublist);
-      ppp->source_sequence_entry = NULL;
+    if (ncpfp != NULL) {
+      /* Call the pragma processing function associated with this pragma. */
+      (ncpfp)(ppp, sym, (a_statement_ptr)NULL);
     }  /* if */
-#endif /* if GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* for */
-  free_pending_pragma_list(*scope_list_addr);
-  *scope_list_addr = NULL;
-}  /* end_of_construct_pragma_check */
-#endif /* if 0 */
+  free_pending_pragma_list(list_start);
+  ssep->pragmas_bound_to_curr_decl_or_stmt = NULL;
+}  /* process_pragmas_bound_to_curr_decl_or_stmt */
 
 /******************************************************************************
 *                                                             \  ___  /       *
