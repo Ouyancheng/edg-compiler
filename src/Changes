@@ -1,5 +1,38 @@
 Version 2.42
 
+8/9/99   Empty base class layout optimization (ABI CHANGE)
+
+The front end can now allocate a nonvirtual nonpolymorphic base with no direct
+or inherited member at the same offset as another direct base or at the same
+offset as the first direct field of the class containing that "empty base".
+E.g., assuming 4-byte int objects aligned on 4-byte boundaries:
+
+  struct Empty {};
+  struct Class: Empty {
+    int i;
+  };  // sizeof(Class) == 8 without the empty base optimization, but with
+      // the optimization enabled sizeof(Class) == 4 because the Empty base
+      // subobject is allocated at the same offset as the field i.
+
+The optimization can only be performed if it does not cause two subobjects of
+the same type to be allocated at the same address.  The optimization can also
+cause an empty base class that appears after a nonempty base in the list of
+base class declarations to be allocated at an earlier offset than the nonempty
+base class.  For example,
+
+  struct Empty {};
+  struct Nonempty1 { char c; };
+  struct Nonempty2 { char c; };
+  struct Optimized: Nonempty1, Nonempty2, Empty {};
+    // Empty and Nonempty1 are allocated at offset 0, while Nonempty2
+    // appears at a positive offset (only if the optimization is enabled).
+
+The variable targ_optimize_empty_base_class_layout controls whether the
+optimization is attempted.  The default value of this variable is set from
+TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT, which in turn is TRUE by default if
+ABI_COMPATIBILITY_VERSION is at least 242 and CFRONT_OBJECT_CODE_COMPATIBILITY
+is FALSE.
+
 8/9/99   Parenthesized declarators for cv-qualified member functions
 
 The front end used to complain about cv-qualifiers on a member function
