@@ -10062,6 +10062,10 @@ member.  Determine whether a diagnostic is actually required and put it out.
 }  /* report_missing_constructor */
 
 
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
+/*ARGSUSED*/ /* instance is not used unless source sequence lists are
+                generated. */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 static a_symbol_ptr class_member_declaration(
                       a_type_ptr               class_type,
                       a_class_def_state_ptr    class_state,
@@ -10862,7 +10866,7 @@ is the template parameter list for the function template.
   sym = class_member_declaration(class_type, class_state_ptr,
                                  /*is_member_template=*/TRUE,
                                  templ_param_list, &skip_semicolon_check,
-                                 &dummy_type, /*instance=*/NULL,
+                                 &dummy_type, (a_template_instance_ptr)NULL,
                                  decl_pos_block_ptr);
   if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
   if (sym == NULL) {
@@ -11539,7 +11543,8 @@ nested classes when their definition appears outside of the class template.
                                        /*is_template_member=*/FALSE,
                                        (a_template_param_ptr)NULL,
                                        &skip_semicolon_check,
-                                       &dummy_type, /*instance=*/NULL,
+                                       &dummy_type,
+                                       (a_template_instance_ptr)NULL,
                                        (a_decl_pos_block *)NULL);
         if (!skip_semicolon_check) {
           /* Check for and ignore the semicolon following the member
