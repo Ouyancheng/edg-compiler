@@ -956,6 +956,9 @@ extern void add_scope_orphaned_il_lists(a_scope_ptr scope);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
+#if MAINTAIN_NEEDED_FLAGS || MICROSOFT_EXTENSIONS_ALLOWED
+extern void clear_function_body(a_routine_ptr  rp);
+#endif /* MAINTAIN_NEEDED_FLAGS || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MAINTAIN_NEEDED_FLAGS
 extern void eliminate_bodies_of_unneeded_functions(void);
 

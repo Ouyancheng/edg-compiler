@@ -9566,6 +9566,29 @@ Add the IL macro entry pointed to by mp to the list for the file scope.
 }  /* add_to_macros_list */
 
 #endif /* RECORD_MACROS_IN_IL */
+#if MAINTAIN_NEEDED_FLAGS || MICROSOFT_EXTENSIONS_ALLOWED
+ 
+void clear_function_body(a_routine_ptr  rp)
+/*
+rp points to a routine whose definition is being eliminated.  Reset the entry
+to an undefined state and free the associated memory region.
+*/
+{
+  a_memory_region_number  n = rp->assoc_scope;
+
+  /* Reset the routine entry to undefined state. */
+  rp->defined = FALSE;
+  rp->defined_in_friend_decl = FALSE;
+  rp->assoc_scope = NULL_region_number;
+  rp->type->variant.routine.extra_info->assoc_routine = NULL;
+  if (rp->storage_class == (a_storage_class)sc_unspecified) {
+    rp->storage_class = (a_storage_class)sc_extern;
+  }  /* if */
+  /* Free the memory region. */
+  free_memory_region(n);
+}  /* clear_function_body */
+
+#endif /* MAINTAIN_NEEDED_FLAGS || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MAINTAIN_NEEDED_FLAGS
 
 static void eliminate_references_from_befriended_entities(
@@ -9942,24 +9965,6 @@ of the class.
   }  /* if */
   db_exit();
 }  /* eliminate_unneeded_class_definitions */
-
-
-static void clear_function_body(a_routine_ptr  rp)
-/*
-rp points to a routine whose definition is being eliminated.  Reset the entry
-to an undefined state and free the associated memory region.
-*/
-{
-  a_memory_region_number  n = rp->assoc_scope;
-
-  /* Reset the routine entry to undefined state. */
-  rp->defined = FALSE;
-  rp->defined_in_friend_decl = FALSE;
-  rp->assoc_scope = NULL_region_number;
-  rp->type->variant.routine.extra_info->assoc_routine = NULL;
-  /* Free the memory region. */
-  free_memory_region(n);
-}  /* clear_function_body */
 
 
 void eliminate_bodies_of_unneeded_functions(void)

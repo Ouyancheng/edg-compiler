@@ -8729,13 +8729,6 @@ continue_with_declaration:
           func_info.max_member_alignment =
                              current_max_alignment_for_class_members();
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          /* A function declared __declspec(dllimport) cannot be defined
-             unless it is "inline". */
-          if (!func_info.is_inline && (decl_modifiers.flags & DM_DLLIMPORT)) {
-            pos_error(ec_cannot_define_dllimport_function, &pos_curr_token);
-          }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           if (!C_mode()) {
             /* Issue diagnostic on an incomplete-type in an exception
                specification.  (It wasn't done when the exception

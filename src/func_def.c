@@ -1251,6 +1251,14 @@ and for the instantiation of template functions.
   if (curr_token != tok_rbrace) {
     pos_error(ec_exp_rbrace, &pos_curr_token);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* A dllimport routine is not always an error (i.e., if it's "inline"),
+     but it's body is ignored by the compiler.  Remove any trace of the
+     function definition from the IL. */
+  if (microsoft_mode && rout_ptr->decl_modifiers & DM_DLLIMPORT) {
+    clear_function_body(rout_ptr);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (debug_level >= 4) {
     a_symbol_ptr  sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
@@ -1805,6 +1813,14 @@ associated with the function is returned.
   if (!has_explicit_type_specifier) {
     flags |= SFB_IMPLICITLY_DECLARED_RETURN_TYPE;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* A function declared __declspec(dllimport) cannot be defined unless it
+     is "inline". */
+  if (!routine_ptr->is_inline &&
+      (routine_ptr->decl_modifiers & DM_DLLIMPORT)) {
+    pos_error(ec_cannot_define_dllimport_function, &pos_curr_token);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   scan_function_body(routine_ptr, func_info, flags);
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   /* Save the symbol associated with the most recent constructor or

@@ -2266,7 +2266,7 @@ is pushed here, and popped when the instantiation scope is popped.
       /* Start a new stop token context for the instantiation. */
       push_stop_token_stack();
       ssep->stop_token_stack_pushed = TRUE;
-   }  /* if */
+    }  /* if */
   }
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("instantiation_scope")) {
@@ -2775,6 +2775,11 @@ NULL.
               pos_sy_error(ec_never_defined, &sym->decl_position, sym);
             }  /* if */
           }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (microsoft_mode &&
+                   (rout_ptr->decl_modifiers & DM_DLLIMPORT)) {
+          /* No diagnostic. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (rout_ptr->is_inline &&
                    rout_ptr->storage_class == (a_storage_class)sc_extern) {
           /* An extern-inline function that was referenced but not defined.
