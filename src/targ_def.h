@@ -2544,6 +2544,10 @@ the region table for the portable implementation of EH.
            with ABI_COMPATIBILITY_VERSION <= 238
 #endif /* ABI_COMPATIBILITY_VERSION <= 238 */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+#if IA64_ABI && !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+ #error -- The IA-64 ABI requires ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+#endif /* IA64_ABI && !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+
 
 /*
 Flag that is TRUE if the definition of extern inline functions
