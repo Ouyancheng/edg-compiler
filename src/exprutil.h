@@ -517,11 +517,13 @@ Macro that is TRUE if the operand is a function designator.
 
 /*
 Return TRUE if a variable is a constant identifier usable in
-constant expressions.  See ARM 7.1.6.
+constant expressions.  See ARM 7.1.6.  Static data members can be constant
+identifiers too; see [class.static.data].  Those can have template parameter
+types, so use the is_member_constant flag.
 */
 #define is_const_variable(var)                                          \
-	(is_integral_type((var)->type) &&                               \
-         is_const_qualified_type((var)->type) )
+  ((is_integral_type((var)->type) && is_const_qualified_type((var)->type)) || \
+   (var)->is_member_constant)
 
 
 extern void flush_ref_entries_except(a_ref_entry_ptr keep_list1,
