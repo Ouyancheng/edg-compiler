@@ -152,6 +152,13 @@ static a_boolean
 			/* TRUE when instantiation wrapup has been called
 			   to do end-of-compilation unit instantiations. */
 
+#if DEBUG
+static a_boolean
+		after_instantiation_wrapup;
+			/* TRUE after instantiation wrapup processing has
+			   completed. */
+#endif /* DEBUG */
+
 static a_boolean
 		entries_updated_during_instantiation_wrapup;
 			/* TRUE when entries on the instantiation required
@@ -10498,6 +10505,7 @@ file we simply return.
     db_symbol(tip->instance_sym, "", 2);
   }  /* if */
 #endif /* DEBUG */
+  check_assertion(!after_instantiation_wrapup);
   decl_position = &tip->template_sym->decl_position;
   sfp = source_file_for_seq(decl_position->seq, &line_number,
                             &at_end_of_source, &nesting_depth,
@@ -11563,11 +11571,6 @@ specific definition that made it unnecessary.
     for (tip = instantiations_required;
          tip != NULL;
          tip = tip->next_in_instantiation_list) {
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-      /* Call can_be_instantiated.  This is done to force any implicit
-         inclusions that may be needed. */
-      (void)can_be_instantiated(tip);
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
       /* See if the entity should be instantiated.  Note that the result of
          can_be_instantiated is ignored because the tests done by
          should_be_instantiated can result the generation of diagnostics
@@ -11593,13 +11596,22 @@ specific definition that made it unnecessary.
     /* Do processing related to automatic instantiation processing. */
     automatic_instantiation();
   }  /* if */
+  for (tip = instantiations_required;
+       tip != NULL;
+       tip = tip->next_in_instantiation_list) {
+    /* Call can_be_instantiated.  This is done to force any implicit
+       inclusions that may be needed. */
+    (void)can_be_instantiated(tip);
+  }  /* for */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-
   /* If any friend state changed between the initial prescan and the later one,
      an error should have been issued somewhere. */
   check_assertion_str2(!any_friend_state_changed || total_errors != 0,
                        "instantiation_wrapup:",
                        "silent change in friend state");
+#if DEBUG
+  after_instantiation_wrapup = TRUE;
+#endif /* DEBUG */
   db_exit();
 }  /* instantiation_wrapup */
 
@@ -12492,6 +12504,7 @@ Initializations for template.
   deferred_instantiations_in_process = FALSE;
 #if DEBUG
   num_partial_order_candidates_allocated = 0;
+  after_instantiation_wrapup = FALSE;
 #endif /* DEBUG */
 #if CHECKING
   any_friend_state_changed = FALSE;
