@@ -2822,6 +2822,9 @@ bucket of the shareable_constants_table to use for the constant.
       }  /* if */
       hash_value += 250;
       break;
+    case ck_cast:
+      hash_value = hash_constant(cp->variant.source_constant);
+      break;
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
       hash_value =
@@ -2834,7 +2837,8 @@ bucket of the shareable_constants_table to use for the constant.
       break;
   }  /* switch */
   if (cp->implicit_cast ||
-      cp->kind == (a_constant_repr_kind)ck_ptr_to_member) {
+      cp->kind == (a_constant_repr_kind)ck_ptr_to_member ||
+      cp->kind == (a_constant_repr_kind)ck_cast) {
     /* Work the type into the hash.  This is important when you have lots of
        NULL pointer constants for a lot of different types. */
     hash_value += hash_type(cp->type);
