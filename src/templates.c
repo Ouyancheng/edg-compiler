@@ -18070,7 +18070,7 @@ a body (if needed) for extern inline functions.
           scp = &rout_ptr->source_corresp;
           create_instantiation_flag_variables(
              scp, instance_required, do_not_instantiate, can_be_instantiated);
-      }  /* if */
+        }  /* if */
 #endif /* DO_IL_LOWERING */
       }  /* if */
     }  /* if */
