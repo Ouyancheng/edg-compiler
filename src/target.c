@@ -259,7 +259,7 @@ Perform consistency check on target configuration variables.
      appropriate and may be stored within a_targ_alignment, which is a_byte
      (= unsigned char). */
   if (targ_minimum_pack_alignment < 1 ||
-      targ_minimum_pack_alignment > UCHAR_MAX) {
+      targ_minimum_pack_alignment > UCHAR_MAX) { /*lint !e685*/
     internal_error("check_target_config: invalid targ_minimum_pack_alignment");
   }  /* if */
   if (targ_maximum_pack_alignment < targ_minimum_pack_alignment ||
