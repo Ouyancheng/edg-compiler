@@ -43,7 +43,9 @@ function definition is the parameter was marked using the GNU attribute
 
 In some situations, the C++-generating back end was emitting an invented
 temporary name to qualify members of nonstandard anonymous unions (a
-construct accepted, e.g., in Microsoft C++ mode).  For example:
+construct accepted, e.g., in Microsoft C++ mode).  (The problem was visible
+only in configurations for which RECORD_FORM_OF_NAME_REFERENCE is FALSE.)
+For example:
 
   struct S {
     struct {  // Nonstandard anonymous union
