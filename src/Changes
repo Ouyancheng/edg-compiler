@@ -1,5 +1,17 @@
 Version 2.44
 
+2/2/00   Abort while processing command-line macros
+
+The changes made to allow function-style macros on the command line (entry of
+9/10/99) introduced a bug in version 2.43 that would cause an abort when a
+command-line macro contained an unclosed comment.
+
+  edgcpfe -DM='/*' ...
+
+Versions prior to 2.43 would accept this and expand the macro textually.
+Now, however, the command-line macro is diagnosed as having an invalid
+definition (just as would the equivalent #define in the source).
+
 2/1/00   Exception handling cleanup state: new not folded into constructor
 
 When "new" operations are not folded into constructors

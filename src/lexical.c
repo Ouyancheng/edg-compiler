@@ -4980,9 +4980,11 @@ normal_comment:
             }  /* if */
             /* Read a new line.  Note the parameter asking that the input
                stack not be popped, since we need to know about ends of files
-               (it is an error for a comment to be unclosed at the end of
-               the file in which it was opened). */
-            if (read_logical_source_line(/*do_pop_on_end_of_file=*/FALSE)) {
+               (it is an error for a comment to be unclosed at the end of the
+               file in which it was opened).  If we are processing command-
+               line macros, we shouldn't attempt to read another line. */
+            if (curr_command_line_macro_def != NULL ||
+                read_logical_source_line(/*do_pop_on_end_of_file=*/FALSE)) {
               /* End of file encountered, unclosed comment. */
               if (!building_pch_prefix) {
                 /* Only issue this warning during the real compilation, not
