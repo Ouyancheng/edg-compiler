@@ -155,7 +155,7 @@ is TRUE.  Used in do_alloc.
 Allocate an IL entry of size "size" preceded by an_il_entry_prefix, and
 initialize the latter to default values.  ptr is a "char *" pointer and is
 set to point to the entry proper.  The allocation is done in the memory
-region memory_region.  file_scope is TRUE if the allocation is in the
+region region_number.  file_scope is TRUE if the allocation is in the
 file scope.  (Yes, that could be determined from region_number, but it
 happens that it is usually known by the caller).
 */
