@@ -4174,7 +4174,8 @@ to TRUE if we are in Microsoft mode and in a for-init block.
       struct_stmt_stack != NULL && depth_stmt_stack >= 0 &&
       struct_stmt_stack[depth_stmt_stack].for_init) {
     *in_for_init = TRUE;
-    if (microsoft_version >= 1300 && decl_level != depth_scope_stack) {
+    if (microsoft_version >= 1300 &&
+        (decl_level != depth_scope_stack || use_nonstandard_for_init_scope)) {
       a_scope_depth  saved_decl_scope_level = decl_scope_level;
       a_symbol_ptr   prev_decl;
       /* Look for an existing variable in the scope in which the for-init
