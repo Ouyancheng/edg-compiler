@@ -2098,13 +2098,11 @@ structure.
     a_type_ptr	type = tap->variant.type;
     if (is_or_contains_local_type(type)) {
       pos_error(ec_local_type_in_template_arg, source_pos);
-      tap->variant.type = error_type();
     } else if (is_class_struct_union_type(type)) {
       a_symbol_ptr class_sym;
       class_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
       if (is_unnamed_class_symbol(class_sym)) {
         pos_error(ec_unnamed_type_in_template_arg, source_pos);
-        tap->variant.type = error_type();
       }  /* if */
     }  /* if */
     tap = tap->next;
@@ -3381,7 +3379,7 @@ file we simply return.
   a_boolean		at_end_of_source;
   unsigned long		nesting_depth;
   a_source_file_ptr	sfp;
-  char			*full_file_name;
+  char			*full_file_name, *display_name;
   FILE			*f_source;
   a_boolean		is_system_include;
 
@@ -3416,7 +3414,7 @@ file we simply return.
                                      is_system_include ? sys_incl_search_path :
                                                          incl_search_path,
 				     /*replace_suffix=*/TRUE,
-				     &full_file_name);
+				     &full_file_name, &display_name);
       if (f_source != NULL) {
         if (strcmp(full_file_name, sfp->full_name) != 0) {
 #if DEBUG
@@ -3428,7 +3426,7 @@ file we simply return.
              file found is not the same as the file we started with.  This
              could occur if the user included a .c file that contains a
              template declaration. */
-          push_input_stack(f_source, full_file_name, full_file_name,
+          push_input_stack(f_source, display_name, full_file_name,
                            is_system_include);
           scan_implicitly_included_template_definition_file();
         } else {

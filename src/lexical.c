@@ -1831,13 +1831,15 @@ is_system_include is TRUE for files included with the #include <file.h>
 notation and FALSE for all other files.
 */
 {
-  char  *full_file_name;
+  char  *full_file_name, *display_name;
   FILE  *input_file;
 
   db_enter(2, "open_file_and_push_input_stack");
   input_file = open_file_for_input(file_name, search_path,
-                                   /*replace_suffix=*/FALSE, &full_file_name);
-  push_input_stack(input_file, file_name, full_file_name, is_system_include);
+                                   /*replace_suffix=*/FALSE, &full_file_name,
+                                   &display_name);
+  push_input_stack(input_file, display_name, full_file_name,
+                   is_system_include);
   db_exit();
 }  /* open_file_and_push_input_stack */
 
@@ -1849,7 +1851,8 @@ notation and FALSE for all other files.
 FILE *open_file_for_input(char                       *file_name,
                           a_directory_name_entry_ptr search_path,
                           a_boolean                  replace_suffix,
-                          char                       **full_file_name)
+                          char                       **full_file_name,
+                          char                       **display_name)
 /*
 Try to open file_name, and return a pointer to the file if the open is
 successful.  file_name must be allocated in IL storage.  If suffixes is
@@ -1858,8 +1861,9 @@ suffix in turn, in the specified order.  If search_path is non-NULL,
 the search begins in the first directory on the path (for each suffix, if
 appropriate), and proceeds until a file is found;  if search_path is NULL,
 only the current directory is checked.  If the open is successful, the full
-name of the file that is opened is returned in *full_file_name.  If
-suffixes is NULL then the open must be successful and a catastrophic
+name of the file that is opened is returned in *full_file_name and the name
+intended for use in diagnostics and other output is returned in *display_name.
+If replace_suffix is FALSE, the open must be successful and a catastrophic
 error will be issued if it is not; otherwise, a NULL file pointer will be
 returned.
 */
@@ -2007,6 +2011,9 @@ returned.
       (void)strcpy(temp_file_name, buffer);
     }  /* if */
     *full_file_name = temp_file_name;
+    /* Note that *display_name gets the same name as full name.  This is
+       a matter of taste. */
+    *display_name = temp_file_name;
   }  /* if */
   db_exit();
   return new_input_file;
@@ -2014,7 +2021,7 @@ returned.
   
 
 void push_input_stack (FILE      *new_input_file,
-                       char      *file_name,
+                       char      *display_name,
                        char      *full_file_name,
 		       a_boolean is_system_include)
 /*
@@ -2083,9 +2090,9 @@ Push the indicated file onto the input stack.
   /* Update other variables describing the current state. */
   eof_read_on_curr_input_stream = FALSE;
   curr_input_stream = curr_ise->file;
-  /* Save both the source form of the name and the full name. */
+  /* Save the "display" form of the name and the full name. */
   curr_ise->full_name = full_file_name;
-  curr_ise->file_name = full_file_name;
+  curr_ise->file_name = display_name;
   curr_ise->dir_name = directory_of(full_file_name);
   /* Create an intermediate file record describing this file.  It is
      useful later in converting sequence numbers into file name/line
@@ -2108,12 +2115,9 @@ Push the indicated file onto the input stack.
   } else {
     parent_file = input_stack[depth_input_stack-1].assoc_il_file;
   }  /* if */
-  /* Note that full_file_name is passed twice to record_start_of_source_file.
-     This is because the actual file name and the display name start off
-     the same.  The latter can be modified in a #line directive. */
   record_start_of_source_file(parent_file,
                               (a_seq_number)seq_number_last_read+1,
-                              (a_line_number)1, full_file_name,
+                              (a_line_number)1, display_name,
                               full_file_name, &(curr_ise->assoc_il_file),
 			      is_system_include);
   /* The two il file pointers start out the same.  They will be made to
