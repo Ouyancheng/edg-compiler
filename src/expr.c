@@ -1201,7 +1201,8 @@ Syntax:
                                             (a_boolean)operand->bound_function,
                                             bound_function_selector,
                                             arg_operand_list,
-                                            arg_dependent_lookup_enabled,
+                                            arg_dependent_lookup_enabled &&
+                                                   !operand->is_qualified_name,
                                          (a_boolean)operand->is_qualified_name,
                                             ec_no_matching_function,
                                             ec_ambiguous_overloaded_function,
