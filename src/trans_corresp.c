@@ -431,9 +431,21 @@ the primary translation unit is preferred.
             if (var->is_template_static_data_member &&
                 !var->source_corresp.parent.class_type
                     ->variant.class_struct_union.is_prototype_instantiation) {
-              a_variable_ptr  old_ce = (a_variable_ptr)tcp->canonical;
-              if (var->storage_class == (a_storage_class)sc_unspecified &&
-                  old_ce->storage_class == (a_storage_class)sc_unspecified) {
+              a_variable_ptr
+                   old_ce = (a_variable_ptr)tcp->canonical;
+              a_symbol_ptr
+                   new_sym = (a_symbol_ptr)var->source_corresp.assoc_info,
+                   old_sym = (a_symbol_ptr)old_ce->source_corresp.assoc_info;
+              a_template_instance_ptr
+                   new_tip = new_sym->variant.static_data_member.instance_ptr,
+                   old_tip = old_sym->variant.static_data_member.instance_ptr;
+              if (new_tip == NULL || old_tip == NULL ||
+                  old_tip->master_instance == NULL) {
+                /* In a normal (no correspondence errors) case, we should have
+                   valid instance pointers.  However, cases can be constructed
+                   that are invalid C++ where this is not the case.  */
+                expect_error();
+              } else {
                 set_master_instance_for_new_canonical_variable(var, old_ce);
               }  /* if */
             }  /* if */
