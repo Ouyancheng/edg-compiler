@@ -3108,9 +3108,19 @@ scan_paren:
     prev_cip = cip;
   }  /* for */
   if (uninit_list != NULL) {
-    /* Issue an error for uninitialized const and ref members. */
-    an_error_severity  severity = any_ref_member_on_uninit_list ?
-                                      es_error : es_discretionary_error;
+    /* Issue a diagnostic for uninitialized const and ref members.  If one
+       of the uninitialized members is a reference or if this is an implicit
+       definition of a constructor, issue an error.  If this is a user
+       defined constructor and only const members are involved, no diagnostic
+       is actually required but a warning is issued anyway, since it might
+       well be an oversight. */
+    an_error_severity  severity;
+
+    if (any_ref_member_on_uninit_list || ctor_rout->compiler_generated) {
+      severity = es_error;
+    } else {
+      severity = es_warning;
+    }  /* if */
     if (ctor_rout->compiler_generated) {
       pos_ty_start_diagnostic(severity, ec_cannot_initialize_fields,
                               &class_type->source_corresp.decl_position,
