@@ -4896,9 +4896,8 @@ As an anachronism, allow an expression inside the [ ].
       }  /* if */
       /* Select the proper "delete" routine.  If the type is a class type and
          the class has a "delete" operator, use it.  However, if "::" preceded
-         the keyword "delete", always use the global ::delete.  Also use the
-         global ::delete for arrays of class objects. */
-      delete_routine = select_delete_routine(delete_type,
+         the keyword "delete", always use the global ::delete. */
+      delete_routine = select_delete_routine(base_delete_type,
                                              use_global_delete,
                                              array_delete,
                                              &delete_position);
