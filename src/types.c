@@ -1699,6 +1699,34 @@ done:
 }  /* corresponding_base_class */
 
 
+a_base_class_ptr corresp_base_class(a_base_class_ptr base_class,
+                                    a_base_class_ptr old_class_as_base_of_new)
+/*
+base_class is a base class of the type of old_class_as_base_of_new.
+Find the corresponding base class under the derived class of
+old_class_as_base_of_new and return a pointer to it.   The base class
+must be found.
+
+In other words:
+
+  base_class:               A in B
+  old_class_as_base_of_new:      B in C
+  returned base class:      A      in C
+
+*/
+{
+  a_base_class_ptr new_bcp;
+  a_base_class_ptr disambiguator;
+
+  check_assertion(base_class->derived_class == old_class_as_base_of_new->type);
+  disambiguator = find_disambiguator(old_class_as_base_of_new, base_class);
+  new_bcp = corresponding_base_class(base_class,
+                                     old_class_as_base_of_new->derived_class,
+                                     disambiguator);
+  return new_bcp;
+}  /* corresp_base_class */
+
+
 a_boolean is_same_class_or_base_class_thereof(a_type_ptr class_1,
                                               a_type_ptr class_2)
 /*

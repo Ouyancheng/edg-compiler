@@ -286,6 +286,10 @@ extern a_base_class_ptr corresponding_base_class(
                                             a_type_ptr        new_class,
                                             a_base_class_ptr  disambiguator);
 
+extern a_base_class_ptr corresp_base_class(
+                                    a_base_class_ptr base_class,
+                                    a_base_class_ptr old_class_as_base_of_new);
+
 extern a_base_class_ptr find_base_class_of_full(
                                          a_type_ptr derived_class,
                                          a_type_ptr base_class,

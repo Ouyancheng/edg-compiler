@@ -4379,9 +4379,7 @@ index number of the first entry, or 0 if no entries were created.
           if (bcp != NULL) {
             /* Find the base class we want to process in the complete
                object class type. */
-            a_base_class_ptr disambiguator = find_disambiguator(bcp, sub_bcp);
-            eff_bcp = corresponding_base_class(sub_bcp, class_type,
-                                               disambiguator);
+            eff_bcp = corresp_base_class(sub_bcp, bcp);
           }  /* if */
 #if !IA64_ABI
           /* Virtual base classes are processed only in a complete object,
@@ -4553,7 +4551,7 @@ emitted.  Return NULL if vcall offsets should not be emitted.
 */
 {
   a_base_class_ptr result = NULL;
-  a_base_class_ptr virtual_bcp, primary_bcp, disambiguator;
+  a_base_class_ptr virtual_bcp, primary_bcp;
 
   if (bcp->is_virtual) {
     /* If bcp is a virtual base, we need vcall offsets. */
@@ -4580,10 +4578,7 @@ emitted.  Return NULL if vcall offsets should not be emitted.
       if (primary_bcp == NULL) {
         break;
       }  /* if */
-      disambiguator = find_disambiguator(virtual_bcp, primary_bcp);
-      primary_bcp = corresponding_base_class(primary_bcp,
-                                             bcp->derived_class,
-                                             disambiguator);
+      primary_bcp = corresp_base_class(primary_bcp, virtual_bcp);
       /* If the primary_bcp is bcp, then bcp is indeed the location where the
          vcall offsets must be emitted. */
       if (primary_bcp == bcp) {
@@ -5449,7 +5444,7 @@ actual complete object type (used in determining layout).  The vbase_offset
 gives the offset to the virtual base class whose vtable is being made.
 */
 {
-  a_base_class_ptr                   bcp, disambiguator;
+  a_base_class_ptr                   bcp;
   a_base_class_ptr                   overrider_bcp;
   a_class_type_supplement_ptr        ctsp;
   an_overriding_virtual_function_ptr ovfp;
@@ -5468,9 +5463,7 @@ gives the offset to the virtual base class whose vtable is being made.
       bcp = vbase;
     } else {
       /* Find the base corresponding to bcp in vbase->derived_class. */
-      disambiguator = find_disambiguator(vbase, bcp);
-      bcp = corresponding_base_class(bcp, vbase->derived_class, 
-                                     disambiguator);
+      bcp = corresp_base_class(bcp, vbase);
     }  /* if */
     /* Find the class in which this routine was overridden. */
     overrider_bcp = bcp;
@@ -5487,10 +5480,7 @@ gives the offset to the virtual base class whose vtable is being made.
       if (overrider_bcp == NULL) {
         overrider_bcp = ctor_bcp;
       } else {
-        disambiguator = find_disambiguator(ctor_bcp, overrider_bcp);
-        overrider_bcp = corresponding_base_class(overrider_bcp, 
-                                                 ctor_bcp->derived_class,
-                                                 disambiguator);
+        overrider_bcp = corresp_base_class(overrider_bcp, ctor_bcp);
       }  /* if */
     }  /* if */
     /* The offset is the offset from vbase to overrider_bcp -- where both are
@@ -5646,7 +5636,7 @@ table.
   a_virtual_function_number          entry_number, highest_entry_number;
   a_targ_ptrdiff_t                   delta;
   a_routine_ptr                      func_to_call;
-  a_base_class_ptr                   sharing_bcp, imm_bcp, disambiguator;
+  a_base_class_ptr                   sharing_bcp, imm_bcp;
   a_virtual_table_index              vcall_index;
 #if IA64_ABI
   a_routine_ptr                      second_func_to_call;
@@ -5797,18 +5787,12 @@ table.
         if (overriding_bcp == NULL) {
           overriding_bcp = ctor_bcp;
         } else {
-          disambiguator = find_disambiguator(ctor_bcp, overriding_bcp);
-          overriding_bcp = corresponding_base_class(overriding_bcp,
-                                                    ctor_bcp->derived_class,
-                                                    disambiguator);
+          overriding_bcp = corresp_base_class(overriding_bcp, ctor_bcp);
         }  /* if */
         if (overridden_bcp == NULL) {
           overridden_bcp = ctor_bcp;
         } else {
-          disambiguator = find_disambiguator(ctor_bcp, overridden_bcp);
-          overridden_bcp = corresponding_base_class(overridden_bcp,
-                                                    ctor_bcp->derived_class,
-                                                    disambiguator);
+          overridden_bcp = corresp_base_class(overridden_bcp, ctor_bcp);
         }  /* if */
       }  /* if */
       find_delta_and_vcall_index(primary_function, overriding_bcp,
@@ -6108,11 +6092,7 @@ table.
         delta = (a_targ_ptrdiff_t)0;
 #endif /* IA64_ABI */
       } else {
-        a_base_class_ptr disambiguator = find_disambiguator(ctor_bcp, bcp);
-        a_base_class_ptr eff_bcp = corresponding_base_class(
-                                                       bcp,
-                                                       ctor_bcp->derived_class,
-                                                       disambiguator);
+        a_base_class_ptr eff_bcp = corresp_base_class(bcp, ctor_bcp);
         delta = eff_bcp->offset - ctor_bcp->offset;
       }
 #if IA64_ABI
@@ -6147,10 +6127,7 @@ table.
     /* Find the base (in the most derived class) corresponding to the subobject
        whose vtable is being made. */
     if (ctor_bcp != NULL && bcp != NULL) {
-      a_base_class_ptr disambiguator;
-      disambiguator = find_disambiguator(ctor_bcp, bcp);
-      derived_bcp = corresponding_base_class(bcp, ctor_bcp->derived_class, 
-                                             disambiguator);
+      derived_bcp = corresponding_base_class(bcp, ctor_bcp);
     } else if (ctor_bcp != NULL) {
       derived_bcp = ctor_bcp;
     } else {
@@ -6633,7 +6610,7 @@ TRUE, bcp is a direct or indirect primary base of class_type.
   a_type_ptr                         base_type;
   a_class_type_supplement_ptr        ctsp, base_ctsp;
   a_routine_ptr                      rout;
-  a_base_class_ptr                   b, b_in_derived, disambiguator;
+  a_base_class_ptr                   b, b_in_derived;
   a_vcall_offset_entry_ptr           voep;
 
   ctsp = class_type->variant.class_struct_union.extra_info;
@@ -6645,9 +6622,7 @@ TRUE, bcp is a direct or indirect primary base of class_type.
   if (b != NULL && (!b->is_virtual || is_primary)) {
     /* Find the base (in the derived class) that corresponds to b. */
     if (bcp != NULL) {
-      disambiguator = find_disambiguator(bcp, b);
-      b_in_derived = corresponding_base_class(b, class_type,
-                                              disambiguator);
+      b_in_derived = corresp_base_class(b, bcp);
     } else {
       b_in_derived = b;
     }  /* if */
@@ -6698,9 +6673,7 @@ TRUE, bcp is a direct or indirect primary base of class_type.
     if (b->direct && !b->is_virtual && b != base_ctsp->primary_base_class) {
       /* Find the base (in the derived class) that corresponds to b. */
       if (bcp != NULL) {
-        disambiguator = find_disambiguator(bcp, b);
-        b_in_derived = corresponding_base_class(b, class_type,
-                                                disambiguator);
+        b_in_derived = corresp_base_class(b, bcp);
       } else {
         b_in_derived = b;
       }  /* if */
@@ -6724,7 +6697,7 @@ come from bcp.
 {
   a_class_type_supplement_ptr        ctsp, base_ctsp;
   a_type_ptr                         base_type;
-  a_base_class_ptr                   sharing_bcp, disambiguator;
+  a_base_class_ptr                   sharing_bcp;
   a_base_class_ptr                   b, b_in_derived;
 
   check_assertion(bcp == NULL || bcp->derived_class == class_type);
@@ -6738,9 +6711,7 @@ come from bcp.
   if (sharing_bcp != NULL) {
     if (bcp != NULL) {
       /* Find sharing_bcp in the complete object. */
-      disambiguator = find_disambiguator(bcp, sharing_bcp);
-      sharing_bcp = corresponding_base_class(sharing_bcp, class_type,
-                                             disambiguator);
+      sharing_bcp = corresp_base_class(sharing_bcp, bcp);
     }  /* if */
     compute_vbase_and_vcall_offset_indices(class_type, sharing_bcp);
   }  /* if */

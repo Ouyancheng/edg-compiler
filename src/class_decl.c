@@ -2150,12 +2150,8 @@ new_direct_bcp.
       } else {
         /* Be sure to select the right base class (its type could appear
            multiple times in the object hierarchy). */
-        a_base_class_ptr  disambiguator;
-        disambiguator = find_disambiguator(new_direct_bcp,
-                                           ovfp_to_copy->base_class);
         new_ovfp_base_class = 
-                 corresponding_base_class(ovfp_to_copy->base_class, new_class,
-                                          disambiguator);
+                 corresp_base_class(ovfp_to_copy->base_class, new_direct_bcp);
       }  /* if */
       if (check_new_list) {
         for (ovfp_from_new_list = new_bcp->overriding_virtual_functions;
@@ -2481,10 +2477,7 @@ object.  Return NULL if bcp->type has no primary base.
 
   ctsp = bcp->type->variant.class_struct_union.extra_info;
   if (ctsp->primary_base_class != NULL) {
-    disambiguator = find_disambiguator(bcp, ctsp->primary_base_class);
-    primary = corresponding_base_class(ctsp->primary_base_class,
-                                       bcp->derived_class,
-                                       disambiguator);
+    primary = corresp_base_class(ctsp->primary_base_class, bcp);
   } else {
     primary = NULL;
   }  /* if */
@@ -2529,13 +2522,9 @@ TRUE.
     bcp = base_class->type->variant.class_struct_union.extra_info->
                                               virtual_function_info_base_class;
     if (bcp != NULL) {
-      /* bcp is the base class of base_class->type with which the latter
-         shares its virtual function info.  Find out what the corresponding
-         base class of class_type is. */
-      disambiguator = find_disambiguator(base_class, bcp);
       /* bcp now points to a base class of base_class; change it to point
          to the corresponding base class of class_type. */
-      bcp = corresponding_base_class(bcp, class_type, disambiguator);
+      bcp = corresp_base_class(bcp, base_class);
       if (virtual_function_info_base_class == bcp) {
         shares = TRUE;
       }  /* if */
@@ -3926,8 +3915,7 @@ the base class.
       } else {
         /* bcp now points to a base class of base_class; change it to point
            to the corresponding base class of class_type. */
-        disambiguator = find_disambiguator(base_class, bcp);
-        bcp = corresponding_base_class(bcp, class_type, disambiguator);
+        bcp = corresp_base_class(bcp, base_class);
       }  /* if */
       /* Set the flag. */
       bcp->shares_virtual_function_info = TRUE;
@@ -3963,9 +3951,7 @@ the base class.
          shares_virtual_function_info is TRUE for each. */
       while (primary_bcp != NULL) {
         if (base_class != NULL) {
-          disambiguator = find_disambiguator(base_class, primary_bcp);
-          primary_bcp = corresponding_base_class(primary_bcp, class_type,
-                                                 disambiguator);
+          primary_bcp = corresp_base_class(primary_bcp, base_class);
         }  /* if */
         if (primary_bcp == bcp) break;
         base_class = primary_bcp;
@@ -4135,8 +4121,7 @@ duplicate paths.  The copy will be a base class of new_class.
              new_direct_bcp that was not first in the depth-first
              left-to-right traversal of the latter's derivation graph. */
           /* Find the base class in new_class that corresponds to bcp. */
-          disambiguator = find_disambiguator(new_bcp, bcp);
-          fixup_bcp = corresponding_base_class(bcp, new_class, disambiguator);
+          fixup_bcp = corresp_base_class(bcp, new_bcp);
           /* Find the derivation, which has the appropriate access. */
           do {
             bcdp = bcdp->next;
@@ -4390,8 +4375,7 @@ list.  Returns a pointer to the new end of the list.
     if (base == NULL) {
       new_base = bcp;
     } else {
-      disambiguator = find_disambiguator(base, bcp);
-      new_base = corresponding_base_class(bcp, type_ptr, disambiguator);
+      new_base = corresp_base_class(bcp, base);
     } /* if */
     /* If the new_base is virtual, we may already have a copy on the
        list. */
@@ -4514,13 +4498,8 @@ shares virtual function info.
     /* Refer to the same virtual_function_info_base_class as the
        direct base class does.  */
     /* base_bcp is a base class of bcp->type; we need to find
-       the corresponding base class of type_ptr.  Find a disambiguator
-       in case what we are looking for is an ambiguous base class of
-       type_ptr. */
-    disambiguator = find_disambiguator(bcp, base_bcp);
-    ctsp->virtual_function_info_base_class =
-                       corresponding_base_class(base_bcp, class_type, 
-                                                disambiguator);
+       the corresponding base class of type_ptr. */
+    ctsp->virtual_function_info_base_class = corresp_base_class(base_bcp, bcp);
   }  /* if */
   /* Advance the virtual function count so that any new virtual
      functions will be tacked on at the end of the shared virtual
@@ -4935,8 +4914,7 @@ or struct definition.  The syntax is
                the corresponding base class of type_ptr.  Find a disambiguator
                in case what we are looking for is an ambiguous base class of
                type_ptr. */
-            disambiguator = find_disambiguator(new_direct_bcp, bcp);
-            new_bcp = corresponding_base_class(bcp, type_ptr, disambiguator);
+            new_bcp = corresp_base_class(bcp, new_direct_bcp);
           } else {
             continue;
           }  /* if */

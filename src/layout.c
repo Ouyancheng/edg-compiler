@@ -1547,7 +1547,7 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
     /* There is no direct conflict.  There might, however, be
        a conflict with bases that are going to be allocated as part of
        this base.  (This code is structured to reduce the number of calls
-       to find_disambiguator, because those can be expensive.) */
+       to corresp_base_class, because those can be expensive.) */
     if (bcp->primary_base_class != NULL &&
         base_subobject_conflict(bcp->primary_base_class, offset)) {
       /* The primary base is always at offset zero. */
@@ -1558,9 +1558,7 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
            base_bcp = base_bcp->next) {
         if (base_bcp->direct && !base_bcp->is_virtual) {
           /* A direct base is at a fixed offset. */
-          disambiguator = find_disambiguator(bcp, base_bcp);
-          eff_bcp = corresponding_base_class(base_bcp, class_type,
-                                             disambiguator);
+          eff_bcp = corresp_base_class(base_bcp, bcp);
           if (bcp->primary_base_class != eff_bcp &&
               base_subobject_conflict(eff_bcp, offset + base_bcp->offset)) {
             result = TRUE;
@@ -2257,13 +2255,8 @@ setting the offset field in the latter.
 #if IA64_ABI
     } else if (consider_indirect_bases && ref_bcp->is_virtual) {
       /* In the IA64 ABI we must consider the possibility that an indirect
-         virtual (nearly empty) base is the primary base.  In that case,
-         we need to compute a disambiguator. */
-      a_base_class_ptr  disambiguator =
-                            find_disambiguator(proximate_derivation, ref_bcp);
-      bcp = corresponding_base_class(ref_bcp,
-                                     proximate_derivation->derived_class,
-                                     disambiguator);
+         virtual (nearly empty) base is the primary base. */
+      bcp = corresp_base_class(ref_bcp, proximate_derivation);
       if (proximate_derivation->primary_base_class != bcp) {
         bcp = NULL;
       }  /* if */

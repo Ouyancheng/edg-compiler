@@ -8906,10 +8906,7 @@ qualified reference either to A::i or to C::i will pick up A::i).
              symbol for sym2 was declared. */
           a_base_class_ptr  temp_bcp = sym2->variant.projection.extra_info->
                                                        fundamental_base_class;
-          a_base_class_ptr  disambiguator = find_disambiguator(dominated_bcp,
-                                                               temp_bcp);
-          dominated_bcp = corresponding_base_class(temp_bcp, class_type,
-                                                   disambiguator);
+          dominated_bcp = corresp_base_class(temp_bcp, dominated_bcp);
         }  /* if */
       }  /* if */
       /* If they are the same base class or if bcp is on any possible
