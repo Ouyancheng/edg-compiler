@@ -1724,6 +1724,23 @@ typedef struct a_scope_stack_entry {
 			/* Depth of the innermost scope on the scope stack
 			   with a source sequence list (= DEPTH_OF_FILE_SCOPE
 			   or depth_innermost_function_scope). */
+  a_source_sequence_entry_ptr
+		ss_list_instantiation_insert_point;
+			/* If kind == sck_file, pointer to a source sequence
+			   entry before which source sequence entries for a
+			   template instantiation should be inserted, or NULL
+			   if they should be added to the end of the list.
+			   If kind == sck_template_instantiation, the current
+			   pointer in the file scope entry when push_scope is
+			   called and to which that pointer is restored by
+			   pop_scope.  Not used for any other scope kinds. */
+  a_source_sequence_entry_ptr
+		saved_last_ss_entry;
+			/* If kind == sck_template_instantiation, the current
+			   value of last_source_sequence_entry in the file
+			   scope when push_scope is called and to which that
+			   pointer is restored by pop_scope.  Not used for
+			   any other scope kinds. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if RECORD_HIDDEN_NAMES_IN_IL
   a_hidden_name_ptr
