@@ -1,5 +1,19 @@
 Version 3.4
 
+2/13/04  Microsoft compatibility:  Explicit instantiation and dllimport
+
+In Microsoft mode, explicit instantiation directives containing a
+__declspec(dllimport) specifier are now treated as "do not instantiation"
+directives.  (This is the same behavior as obtained by starting the
+directive with "extern template".)  For example:
+
+  template<typename T> void f(T) {}
+  template __declspec(dllimport) void f(int);  // OK.  Inhibits implicit
+                                               // instantiation of f<int>.
+
+Previously, an error was issued because a non-inline function definition
+cannot be declared with dllimport.
+
 2/13/04  GNU IA-64 ABI: Effect of #pragma pack on bit fields
 
 The effect of #pragma pack directives on bit fields changed substantially

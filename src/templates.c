@@ -20435,6 +20435,14 @@ instantiation.
                         (an_attribute_ptr *)NULL, (an_ms_attribute_ptr*)NULL,
                         &decl_modifiers, &decl_pos_block,
                         (a_upc_block_size *)NULL);
+#if MICROSOFT_EXTENSIONS_ALLOWED && DECL_MODIFIERS_IN_USE
+  if (microsoft_mode && (decl_modifiers.flags & DM_DLLIMPORT) != 0) {
+    /* Microsoft compilers treat __declspec(dllimport) in an explicit
+       instantiation directive as if the directive was "extern template";
+       i.e., a "do not instantiate" directive. */
+    kind = (a_pragma_kind)pk_do_not_instantiate;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLWOED && DECL_MODIFIERS_IN_USE */
   if (is_error_type(type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(locator);
