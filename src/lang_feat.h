@@ -28,12 +28,23 @@ These extensions were added in System V release 4.
 
 /*
 Flag that is TRUE to include asm function definitions in the language.
-Note that in the standard version the code to implement this is not
-included, so this flag cannot be set to TRUE.
+In the standard version of the front end they are not interpreted but
+instead passed on to the back end verbatim.
 */
 #ifndef ASM_FUNCTION_ALLOWED
 #define ASM_FUNCTION_ALLOWED FALSE
 #endif /* ifndef ASM_FUNCTION_ALLOWED */
+
+#if ASM_FUNCTION_ALLOWED
+/*
+Flag that is TRUE if comments appearing within the text of an asm function
+body should be preserved as part of the string representation (and passed
+on to the back end).
+*/
+#ifndef INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
+#define INCLUDE_COMMENTS_IN_ASM_FUNC_BODY FALSE
+#endif /* ifndef INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
+#endif /* ASM_FUNCTION_ALLOWED */
 
 /*
 Flag that is TRUE if assignment to "this" (a C++ anachronism) should
