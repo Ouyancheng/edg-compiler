@@ -81,6 +81,7 @@ to TRUE if the cast actually appeared in the source.
                                    (a_template_param_constant_kind)tpck_cast);
   new_constant->variant.template_param.variant.constant = old_cp;
   new_constant->type = new_type;
+  new_constant->explicit_cast_applied = is_explicit;
 }  /* make_template_param_cast_constant */
 
 
