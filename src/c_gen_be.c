@@ -5638,7 +5638,7 @@ definitions needed to support the generated code.
   (void)fprintf(f_C_output, "int __EDGCPFE__");
   for (p = il_header.compiler_version; *p != '\0'; p++) {
     char ch = *p;
-    /* Replace non-alhanumeric characters in the version number with
+    /* Replace non-alphanumeric characters in the version number with
        an underscore. */
     if (!isalnum((unsigned int)ch)) ch = '_';
     (void)fputc(ch, f_C_output);
