@@ -93,6 +93,12 @@ static int	diagnostic_indent;
 				   start of each additional message.  See
 				   NORMAL_DIAG_INDENT and LIST_DIAG_INDENT
 				   above. */
+static a_boolean
+		context_required = FALSE;
+				/* TRUE if context information (such as
+				   information about templates currently
+				   being instantiated) is required after
+				   an error message is issued.. */
 				   
 /*
 Diagnostics messages being generated can be one of several category of
@@ -114,10 +120,19 @@ typedef enum a_diagnostic_category_kind_tag {
                                    be indented relative to its associated
 				   primary message.  Source file information
 				   is suppressed. */
-  dck_end_list			/* Signifies the end of a list of messages and
+  dck_end_list,			/* Signifies the end of a list of messages and
 				   that source line, if available, should be
 				   outputted.  There is no actual diagnostic
 				   text associated with this category. */
+  dck_context_primary,		/* The beginning or primary message of a
+				   multi-line diagnostic that specifies
+				   error context information.  This is similar
+				   to dck_primary except that the source
+				   line, location, and severity are not
+				   printed (because they were printed
+				   as part of the original message). */
+  dck_end_context		/* Like dck_end_list except that the source
+				   line is not output. */
 } a_diagnostic_category_kind;
 
 #define BASE_MSG_SEGMENT_SIZE 100
@@ -139,6 +154,8 @@ enum a_message_segment_kind_tag {
   msk_type,			/* Type to be expanded in the message */
   msk_symbol,			/* Symbol name to be expanded in the
 				   message at this point. */
+  msk_source_position,		/* Source position to be inserted in the
+				   message. */
   msk_last			/* Termination of the current message
 				   being formatted.  This should be the last
 				   message segment kind. */
@@ -158,10 +175,10 @@ typedef struct a_msg_segment {
   int		length;		/* Current length of the message segment. */
   int		max_length;	/* Maximum string size that can be accommodated
 				   in the message segment buffer. */
-  short		sequence_no;	/* Sequence number of the user string, type or
-				   symbol name in the error message.  This
-				   field is meaningless for kind ==
-				   msk_error_text_part. */
+  short		sequence_no;	/* Sequence number of the user string, type,
+				   source position, or symbol name in the
+				   error message.  This field is meaningless
+				   for kind == msk_error_text_part. */
   a_message_segment_kind
 		kind;		/* The kind of this message segment. */
   union {
@@ -184,6 +201,9 @@ typedef struct a_msg_segment {
     /* When kind == msk_type: no variant
 				   The pointer to the type is in
 				   error_msg_types[]. */
+    /* When kind == msk_source_position: no variant
+				   The pointer to the position is in
+				   error_msg_positions[]. */
     /* When kind == msk_symbol:    The pointer to the symbol is in
 				   error_msg_syms[]. */
     struct {
@@ -220,6 +240,10 @@ static a_type_ptr
 				/* Array of pointers to the types to be
 				   used for substitutions in diagnostic
 				   messages. */
+static a_source_position_ptr
+		error_msg_positions[MAX_ERR_SEG_KIND_PER_MSG + 1];
+				/* Array of source positions to be used
+				   for insertion into diagnostic messages. */
 #if !STANDALONE_UTILITY_PROGRAM
 static a_symbol_ptr
 		error_msg_syms[MAX_ERR_SEG_KIND_PER_MSG + 1];
@@ -1699,6 +1723,12 @@ error code.
     case ec_return_type_on_conversion_function:
       m = "return type may not be specified on a conversion function";
       break;
+    case ec_template_detected_while_header:
+      m = "detected while:";
+      break;
+    case ec_template_instantiation_context:
+      m = "%sinstantiating %nf %p";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
@@ -2401,14 +2431,16 @@ string immediately into whichever memory region is appropriate.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-static void form_decl_position(a_symbol_ptr        sym,
-                               a_source_position   *error_pos,
-                               a_msg_segment_ptr   seg_ptr)
+static void form_source_position(a_source_position   *pos,
+                                 a_source_position   *error_pos,
+			         char		     *prefix_string,
+			         char		     *suffix_string,
+                                 a_msg_segment_ptr   seg_ptr)
 /*
-Format the declaration position for the specified symbol in the message
-segment described by seg_ptr.  The generated format is:
+Format a source position in the message segment described by seg_ptr.
+The generated format is:
 
-        (declared at line xxx of "file name")
+        <prefix_string>at line xxx of "file name"<suffix string>
 
 If the file is stdin or the file name is identical to that of the error
 position of the diagnostic message being composed, the file name is not
@@ -2428,16 +2460,17 @@ redundant file names in a diagnostic.*/
                               &line_number, &at_end_of_source);
     if (at_end_of_source) diag_file_name = "";
   }  /* if */
-  if (sym->decl_position.seq != 0) {
+  if (pos->seq != 0) {
     /* Have a valid source position. */
-    conv_seq_to_file_and_line(sym->decl_position.seq, &file_name, &full_name,
+    conv_seq_to_file_and_line(pos->seq, &file_name, &full_name,
                               &line_number, &at_end_of_source);
     if (at_end_of_source) {
       add_string_to_segment(" (at end of source)", seg_ptr);
     } else {
-      add_string_to_segment(" (declared at line ", seg_ptr);
+      add_string_to_segment(prefix_string, seg_ptr);
+      add_string_to_segment("at line ", seg_ptr);
 #if CHECKING
-      if (digits_to_represent((unsigned long)sym->decl_position.seq)
+      if (digits_to_represent((unsigned long)pos->seq)
                           >= BASE_MSG_SEGMENT_SIZE) {
         internal_error("form_bound: buffer size too small");
       }  /* if */
@@ -2451,10 +2484,10 @@ redundant file names in a diagnostic.*/
         add_string_to_segment(file_name, seg_ptr);
         add_string_to_segment("\"", seg_ptr);
       }  /* if */
-      add_string_to_segment(")", seg_ptr);
+      add_string_to_segment(suffix_string, seg_ptr);
     }  /* if */
   }  /* if */
-}  /* form_decl_position */
+}  /* form_source_position */
 
 
 static a_boolean is_overloaded_function(a_symbol_ptr sym)
@@ -2687,7 +2720,8 @@ symbol_name:
 
   /* Add the declaration position as requested. */
   if (seg_ptr->variant.symbol.decl_pos) {
-    form_decl_position(sym, error_pos, seg_ptr);
+    form_source_position(&sym->decl_position, error_pos, " (declared ", ")",
+                         seg_ptr);
   }  /* if */
 }  /* form_symbol_name */
 
@@ -2703,6 +2737,7 @@ template beginning with a "%".  Accepted substitution designations are:
 	s[q]x		- user provided string insertion.
 	tx		- type insertion in double quotes.
         n[f|o][d]x	- symbol name insertion in double quotes.
+        p		- insert a source position
 
 where "x" is an optional number in the range of 1 to MAX_ERR_SEG_KIND_PER_MSG
 (defaulted to 1) that indicates which of multiple types, strings, or
@@ -2754,6 +2789,10 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
           case 't':
             curr_segment->kind = (a_message_segment_kind)msk_type;
             msg_ptr++;
+            goto check_for_seq_number;
+          case 'p':
+            curr_segment->kind = (a_message_segment_kind)msk_source_position;
+	    msg_ptr++;
             goto check_for_seq_number;
           case 'n':
 #if STANDALONE_UTILITY_PROGRAM
@@ -3530,6 +3569,7 @@ a diagnostic message.
   for (i = 1; i <= MAX_ERR_SEG_KIND_PER_MSG; i++) {
     error_msg_strings[i] = NULL;
     error_msg_types[i] = NULL;
+    error_msg_positions[i] = NULL;
 #if !STANDALONE_UTILITY_PROGRAM
     error_msg_syms[i] = NULL;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -3571,6 +3611,7 @@ successive additional lines as necessary.
                            line_len, wrap, /*quoted_text=*/FALSE,
                            start_of_message);
         break;
+      case msk_source_position:
       case msk_type:
       case msk_symbol:
 handle_embedded_quoted_text:
@@ -3784,7 +3825,9 @@ in lower case.
       internal_error("write_diag_to_raw_listing: bad severity");
 #endif /* CHECKING */
   }  /* switch */
-  if (diag_kind == dck_list) severity_char = tolower(severity_char);
+  if (diag_kind == dck_list || diag_kind == dck_context_primary) {
+     severity_char = tolower(severity_char);
+  }  /* if */
   (void)putc(severity_char, f_raw_listing);
   (void)fputc(' ', f_raw_listing);
   /* Determine the source position (file, line number). */
@@ -3837,11 +3880,13 @@ additional messages in a multiple message diagnostic.
   } else {
     if (diag_kind == (a_diagnostic_category_kind)dck_list) {
       diagnostic_indent = LIST_DIAG_INDENT;
+    } else if (diag_kind == (a_diagnostic_category_kind)dck_context_primary) {
+      diagnostic_indent = INDENT_AMOUNT;
     } else {
       diagnostic_indent = NORMAL_DIAG_INDENT;
     }  /* if */
   
-    if (diag_kind != dck_end_list) {
+    if (diag_kind != dck_end_list && diag_kind != dck_end_context) {
       /* Perform any indentation needed (based on the category kind) */
       for (line_len = 0; line_len < diagnostic_indent; line_len++) {
         putc(' ', stderr);
@@ -3857,7 +3902,7 @@ additional messages in a multiple message diagnostic.
                                   &line_len);
     }  /* if */
 
-    if (diag_kind != dck_end_list) {
+    if (diag_kind != dck_end_list && diag_kind != dck_end_context) {
       /* There is a message to be formatted and written. */
       /* Put out the error message text to stderr. */
       write_message(stderr, &line_len, /*wrap=*/TRUE);
@@ -3887,12 +3932,18 @@ additional messages in a multiple message diagnostic.
         }  /* if */
       }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-      /* Put out an extra space line after the error, for clarity. */
+    }  /* if */
+    if ((diag_kind == dck_standalone || diag_kind == dck_end_list ||
+         diag_kind == dck_end_context) && !context_required) {
+      /* Put out an extra space line after the error, for clarity.  The
+         space is suppressed if a context message is to follow since the
+         space should follow the context. */
       putc('\n', stderr);
     }  /* if */
   }  /* if */
 
-  if (diag_kind == dck_standalone || diag_kind == dck_end_list) {
+  if ((diag_kind == dck_standalone || diag_kind == dck_end_list ||
+       diag_kind == dck_end_context) && !context_required ) {
     /* Terminate the compilation for the more serious severities. */
     if (severity == es_catastrophe || severity == es_command_line_error ||
         severity == es_internal_error) {
@@ -4050,24 +4101,28 @@ restore the previously saved settings.
      with such extra lines. */
   if ((saved_severity == (an_error_severity)es_none) !=
       (diag_kind == (a_diagnostic_category_kind)dck_standalone ||
-       diag_kind == (a_diagnostic_category_kind)dck_primary)) {
+       diag_kind == (a_diagnostic_category_kind)dck_primary ||
+       diag_kind == (a_diagnostic_category_kind)dck_context_primary)) {
     internal_error("check_severity: bad saved severity");
   }  /* if */
 #endif /* CHECKING */
   if (diag_kind == (a_diagnostic_category_kind)dck_standalone) {
     /* Just use the severity and error position specified. */
-  } else if (diag_kind == (a_diagnostic_category_kind)dck_primary) {
+  } else if (diag_kind == (a_diagnostic_category_kind)dck_primary ||
+             diag_kind == (a_diagnostic_category_kind)dck_context_primary) {
     /* The principal message of a multiple message diagnostic.  Save the
        arguments for later calls. */
     copy_source_position(**error_pos, saved_error_position);
     saved_severity = *severity;
   } else if (diag_kind == (a_diagnostic_category_kind)dck_list ||
-             diag_kind == (a_diagnostic_category_kind)dck_end_list) {
+             diag_kind == (a_diagnostic_category_kind)dck_end_list ||
+             diag_kind == (a_diagnostic_category_kind)dck_end_context) {
     /* Reuse the error position and severity from the primary diagnostic. */
     *error_pos = &saved_error_position;
     *severity = saved_severity;
 #if CHECKING
-    if (diag_kind == (a_diagnostic_category_kind)dck_end_list) {
+    if (diag_kind == (a_diagnostic_category_kind)dck_end_list ||
+        diag_kind == (a_diagnostic_category_kind)dck_end_context) {
       saved_severity = (an_error_severity)es_none;
     }  /* if */
 #endif /* CHECKING */
@@ -4098,7 +4153,7 @@ template associated with error_code.  After constructing the segment list
   if (check_severity(&error_pos, &severity, diag_kind)) {
     /* Get the error message text (template) and construct the message
        segment list. */
-    if (diag_kind != dck_end_list) {
+    if (diag_kind != dck_end_list && diag_kind != dck_end_context) {
       msg_template = error_text(error_code);
     } else {
       msg_template = "";
@@ -4138,6 +4193,15 @@ template associated with error_code.  After constructing the segment list
 #endif /* CHECKING */
           form_type_summary(error_msg_types[curr_seg->sequence_no], curr_seg);
           break;
+        case msk_source_position:
+#if CHECKING
+          if (error_msg_positions[curr_seg->sequence_no] == NULL) {
+            internal_error("diag_message: missing position substitution");
+          }  /* if */
+#endif /* CHECKING */
+          form_source_position(error_msg_positions[curr_seg->sequence_no],
+                               error_pos, "", "",  curr_seg);
+          break;
         case msk_symbol:
 #if !STANDALONE_UTILITY_PROGRAM
 #if CHECKING
@@ -4166,7 +4230,88 @@ template associated with error_code.  After constructing the segment list
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     }  /* for */
 #endif /* CHECKING */
-    write_diagnostic(error_pos, severity, diag_kind);
+    /* Certain conditions, such as errors that occur while instantiating
+       template classes and functions, require additional context information
+       to be supplied after the message is printed.  The context is printed
+       following standalone messages and after the end of a list of messages.
+       The processing is done in two phases.  First, we determine whether
+       any context information is required.  This is needed because the
+       processing of the initial message is handled slightly differently
+       if context is to follow (for example, the error limit check is not
+       done until the end of the context information is printed).  Once we
+       know whether context is required, the original message is issued.
+       Then we issue and context-related messages. */
+    if (diag_kind != dck_standalone && diag_kind != dck_end_list) {
+      /* The context display processing is only required after standalone and
+         end-list messages. */
+      write_diagnostic(error_pos, severity, diag_kind);
+    } else {
+      int	num_of_instantiations = 0;
+      /* Check whether we are inside of a template instantiation and need
+         to supply additional context information. */
+      a_scope_depth	sd;
+      for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
+        if (scope_stack[sd].kind == (a_scope_kind)sck_template_instantiation) {
+          num_of_instantiations++;
+        }  /* if */
+      }  /* for */
+      /* Issue the original message. */
+      context_required = num_of_instantiations > 0;
+      write_diagnostic(error_pos, severity, diag_kind);
+      context_required = FALSE;
+      /* Loop through the scope stack and output context information. */
+      if (num_of_instantiations > 0) {
+        a_diagnostic_category_kind	context_diag_kind;
+        char				*prefix_string;
+        if (num_of_instantiations != 1) {
+          /* If there is more than one line of context we output an
+	     initial header line. */
+          diag_message(ec_template_detected_while_header, &error_position,
+                       severity, dck_context_primary);
+        }  /* if */
+        for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
+          a_scope_stack_entry_ptr ssep = &scope_stack[sd];
+          a_symbol_ptr		sym;
+          if (ssep->kind != (a_scope_kind)sck_template_instantiation) continue;
+          /* If an instantiation pointer exists, use the symbol from it,
+	     otherwise there must be an assoc_type entry that we can get
+	     a symbol from. */
+          if (ssep->assoc_instantiation == NULL) {
+            sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
+          } else {
+	    sym = ssep->assoc_instantiation->routine_sym;
+          }  /* if */
+#if CHECKING
+          if (sym == NULL) {
+            internal_error("diag_message: no symbol for template information");
+          }  /* if */
+#endif /* CHECKING */
+          /* If only one line of context is being issued, then it is
+	     considered the "primary" context line and is prefixed with
+	     the string "detected while".  Otherwise a header was issued
+	     above and the context lines are handled as list elements. */
+          if (num_of_instantiations == 1) {
+ 	    context_diag_kind = dck_context_primary;
+	    prefix_string = "detected while ";
+          } else {
+ 	    context_diag_kind = dck_list;
+	    prefix_string = "";
+          }  /* if */
+          init_error_params();
+          error_msg_syms[1] = sym;
+	  error_msg_strings[1] = prefix_string;
+	  error_msg_positions[1] = &ssep->source_position;
+          diag_message(ec_template_instantiation_context,
+                       &error_position, severity, context_diag_kind);
+        }  /* for */
+       /* Issue an "end context" message to indicate that all of the
+          context information has been supplied. */
+       init_error_params();
+       context_required = FALSE;
+       diag_message(ec_no_error, (a_source_position *)NULL, es_none,
+                    dck_end_context);
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* diag_message */
 
