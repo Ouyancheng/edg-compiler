@@ -8623,7 +8623,8 @@ If the operand is an array rvalue, the conversion is done in some modes
 */
 {
   if (is_array_type(operand->type)) {
-    if (is_an_rvalue(operand) && (!C_mode() || c99_mode || gcc_mode)) {
+    if (is_an_rvalue(operand) &&
+        (!C_mode() || c99_mode || gcc_mode || microsoft_mode)) {
       /* In C++ or C99 (but not in older C), an array rvalue is converted
          to a pointer to its first element.  Make an lvalue so the
          conversion below will apply. */

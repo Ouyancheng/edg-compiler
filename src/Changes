@@ -1,5 +1,11 @@
 Version 3.4
 
+12/10/03 Array rvalue to pointer decay in Microsoft C mode
+
+An array rvalue now decays to a pointer in Microsoft C mode
+in addition to the other modes (C99, C++) in which that
+was already done.
+
 12/10/03 __PRETTY_FUNCTION__ in GNU C mode
 
 __PRETTY_FUNCTION__ in GNU C mode is now the same as __FUNCTION__,
