@@ -582,6 +582,8 @@ Return TRUE if the current source sequence entry is for a declaration.
       case iek_src_seq_secondary_decl:
       case iek_pragma:
       case iek_template:
+      case iek_namespace:
+      case iek_using_directive:
 #if RECORD_MACROS_IN_IL
       case iek_macro:
 #endif /* RECORD_MACROS_IN_IL */
