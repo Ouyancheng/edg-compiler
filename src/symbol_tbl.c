@@ -2213,6 +2213,7 @@ and return a pointer to it.
   tssp->prototype_template = NULL;
   tssp->subordinate_templates = NULL;
   tssp->il_template_entry = NULL;
+  tssp->all_instantiations = NULL;
   tssp->is_specific_definition = FALSE;
   tssp->is_nonreal_member = FALSE;
   tssp->is_error = FALSE;

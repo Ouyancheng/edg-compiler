@@ -1547,6 +1547,12 @@ typedef struct a_template_symbol_supplement {
 			   sk_function_template, the IL entry created to
 			   represent this template.  Points to the entry
 			   associated with the first declaration. */
+  a_symbol_list_entry_ptr
+		all_instantiations;
+			/* When secondary translation units are processed,
+			   this points to a list of all the instantiations of
+			   this template (across all translation units).
+                           Only set for the canonical entry. */
   a_bit_field
 		is_specific_definition:1;
 			/* TRUE if the template is a specific definition of

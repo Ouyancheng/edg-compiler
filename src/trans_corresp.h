@@ -28,6 +28,8 @@ extern void establish_trans_unit_correspondences_for_scope(a_scope_ptr  scope);
 
 extern void verify_trans_unit_correspondences_for_scope(a_scope_ptr  scope);
 
+extern void record_instantiation(a_symbol_ptr  inst);
+
 #endif /* ifndef TRANS_CORRESP_H */
 
 /******************************************************************************

@@ -90,14 +90,21 @@ entity1 point to the IL node pointed to by entity2.
     char           *file_name, *full_name;
     a_boolean      at_end_of_source;
 
+    fprintf(f_debug, "DBG> ");
+    if (scp1->assoc_info != NULL) {
+      a_symbol_ptr  sym = (a_symbol_ptr)scp1->assoc_info;
+      db_symbol_name(sym);
+      fprintf(f_debug, " (%s)", symbol_kind_names[(int)sym->kind]);
+    } else {
+      db_name(scp1);
+    }  /* if */
     conv_seq_to_file_and_line(scp1->decl_position.seq, &file_name, &full_name,
                               &line, &at_end_of_source);
-    fprintf(f_debug, "DBG> %s in file %s (line %ld) should correspond to ",
-            (scp1->name != NULL) ? scp1->name : "<unnamed>", file_name, line);
+    fprintf(f_debug, " in file %s (line %ld) should correspond to ",
+            file_name, line);
     conv_seq_to_file_and_line(scp2->decl_position.seq, &file_name, &full_name,
                               &line, &at_end_of_source);
-    fprintf(f_debug, "%s in file %s (line %ld).\n",
-            (scp2->name != NULL) ? scp1->name : "<unnamed>", file_name, line);
+    fprintf(f_debug, "entity in file %s (line %ld).\n", file_name, line);
   }  /* if */
 #endif /* DEBUG */
 }  /* f_record_trans_unit_corresp */
@@ -235,6 +242,38 @@ need to be determined.
 }  /* may_have_correspondence */
 
 
+static a_type_ptr skip_template_types(a_type_ptr  type)
+/*
+Return the first nontemplate type in the list that starts with the given one
+(NULL if none). 
+*/
+{
+  a_type_ptr  result = type;
+  while (result != NULL &&
+         is_immediate_class_type(result) &&
+         is_unspecialized_template_class(result)) {
+    result = result->next;
+  }  /* while */
+  return result;
+}  /* skip_template_types */
+
+
+static a_routine_ptr skip_template_routines(a_routine_ptr  routine)
+/*
+Return the first nontemplate routine in the list that starts with the given
+one (NULL if none). 
+*/
+{
+  a_routine_ptr  result = routine;
+  while (result != NULL &&
+         result->is_template_function &&
+         !result->is_specialized) {
+    result = result->next;
+  }  /* while */
+  return result;
+}  /* skip_template_routines */
+
+
 static void clear_enum_type_correspondence(a_type_ptr  type)
 /*
 Clear the correspondence pointers in the substructure of an enum type.
@@ -256,49 +295,59 @@ Clear the correspondence pointers in the substructure of an enum type.
   a_scope_ptr  scope = type->
                            variant.class_struct_union.extra_info->assoc_scope;
 
-  /* Traverse fields: */
-  {
-    a_field_ptr  field = type->variant.class_struct_union.field_list;
-    for (; field != NULL; field = field->next) {
-      clear_trans_unit_corresp(field);
-    }  /* for */
-  }
-
-  /* Traverse member types: */
-  {
-    a_type_ptr  mem_type = scope->types;
-    for (; mem_type != NULL; mem_type = mem_type->next) {
-      if (is_immediate_enum_type(mem_type)) {
-        clear_enum_type_correspondence(mem_type);
-      } else if (is_immediate_class_type(mem_type)) {
-        clear_class_type_correspondence(mem_type);
-      }  /* if */
-      clear_trans_unit_corresp(mem_type);
-    }  /* for */
-  }
-  /* Traverse member routines: */
-  {
-    a_routine_ptr  routine = scope->routines;
-    for (;routine != NULL; routine = routine->next) {
-      clear_trans_unit_corresp(routine);
-    }  /* for */
-  }
-
-  /* Traverse static data members: */
-  {
-    a_variable_ptr  variable = scope->variables;
-    for (; variable != NULL; variable = variable->next) {
-      clear_trans_unit_corresp(variable);
-    }  /* for */
-  }
-
-  /* Traverse member constants: */
-  {
-    a_constant_ptr  constant = scope->constants;
-    for (; constant != NULL; constant = constant->next) {
-      clear_trans_unit_corresp(constant);
-    }  /* for */
-  }
+  if (!is_incomplete_type(type)) {
+    /* Traverse fields: */
+    {
+      a_field_ptr  field = type->variant.class_struct_union.field_list;
+      for (; field != NULL; field = field->next) {
+        clear_trans_unit_corresp(field);
+      }  /* for */
+    }
+  
+    /* Traverse member templates: */
+    {
+      a_template_ptr  templ = scope->templates;
+      for (; templ != NULL; templ = templ->next) {
+        clear_trans_unit_corresp(templ);
+      }  /* for */
+    }
+  
+    /* Traverse member types: */
+    {
+      a_type_ptr  mem_type = scope->types;
+      for (; mem_type != NULL; mem_type = mem_type->next) {
+        if (is_immediate_enum_type(mem_type)) {
+          clear_enum_type_correspondence(mem_type);
+        } else if (is_immediate_class_type(mem_type)) {
+          clear_class_type_correspondence(mem_type);
+        }  /* if */
+        clear_trans_unit_corresp(mem_type);
+      }  /* for */
+    }
+    /* Traverse member routines: */
+    {
+      a_routine_ptr  routine = scope->routines;
+      for (;routine != NULL; routine = routine->next) {
+        clear_trans_unit_corresp(routine);
+      }  /* for */
+    }
+  
+    /* Traverse static data members: */
+    {
+      a_variable_ptr  variable = scope->variables;
+      for (; variable != NULL; variable = variable->next) {
+        clear_trans_unit_corresp(variable);
+      }  /* for */
+    }
+  
+    /* Traverse member constants: */
+    {
+      a_constant_ptr  constant = scope->constants;
+      for (; constant != NULL; constant = constant->next) {
+        clear_trans_unit_corresp(constant);
+      }  /* for */
+    }
+  }  /* if */
 }  /* clear_class_type_correspondence */
 
 
@@ -309,14 +358,25 @@ correspondence pointer have the same name (effectively, that their associated
 symbols are listed under the same header).
 */
 {
-  char  *entity2 = trans_unit_corresp_pointer_of(entity1);
+  a_boolean  match;
+  char       *entity2 = trans_unit_corresp_pointer_of(entity1);
   a_source_correspondence_ptr
-        scp1 = (a_source_correspondence_ptr)entity1,
-        scp2 = (a_source_correspondence_ptr)entity2;
-
+             scp1 = (a_source_correspondence_ptr)entity1,
+             scp2 = (a_source_correspondence_ptr)entity2;
+  a_symbol_header_ptr
+             sh1, sh2;
   check_assertion(scp1->assoc_info != NULL && scp2->assoc_info != NULL);
-  return ((a_symbol_ptr)scp1->assoc_info)->header ==
-                                     ((a_symbol_ptr)scp2->assoc_info)->header;
+  sh1 = ((a_symbol_ptr)scp1->assoc_info)->header;
+  sh2 = ((a_symbol_ptr)scp2->assoc_info)->header;
+  match = (sh1 == sh2);
+  if (!match) {
+    /* This is possible if the associated is not part of the symbol table
+       (which is TRUE of template instances). */
+    match = !strncmp(sh1->identifier, sh2->identifier,
+                     (sh1->identifier_length < sh2->identifier_length) ?
+                       sh1->identifier_length : sh2->identifier_length);
+  }  /* if */
+  return match;
 }  /* f_verify_name_correspondence */
 
 #define verify_name_correspondence(ptr)                                \
@@ -338,6 +398,18 @@ is in fact valid.
   }  /* if */
   return match;
 }  /* verify_field_correspondence */
+
+
+static a_boolean verify_template_correspondence(a_template_ptr  templ)
+/*
+Check that the recorded translation unit correspondence for the given template
+is in fact valid.
+*/
+{
+  a_boolean  match = TRUE;
+  /* FIXME */
+  return match;
+}  /* verify_template_correspondence */
 
 
 static a_boolean verify_routine_correspondence(a_routine_ptr  routine)
@@ -410,8 +482,7 @@ type is in fact valid.
   for (; enumerator != NULL && corresp_enumerator != NULL;
        enumerator = enumerator->next,
                               corresp_enumerator = corresp_enumerator->next) {
-    record_trans_unit_corresp(enumerator, corresp_enumerator);
-    if (!verify_constant_correspondence) {
+    if (!verify_constant_correspondence(enumerator)) {
       process_bad_trans_unit_corresp(enumerator);
       match = FALSE;
       break;
@@ -439,7 +510,10 @@ type is in fact valid.
   a_type_ptr  corresp_type = (a_type_ptr)canonical_il_entry_of(type);
 
   if (!match) {
-     report_error = TRUE;
+    report_error = TRUE;
+  } else if (is_incomplete_type(type) || is_incomplete_type(corresp_type)) {
+    /* The types are matching since at least one is incomplete and therefore
+       has no inner structure to conflict with. */
   } else {
     if (corresp_type != NULL && is_immediate_class_type(corresp_type)) {
       a_scope_ptr  scope = type->
@@ -454,7 +528,6 @@ type is in fact valid.
                                         variant.class_struct_union.field_list;
         for (; field != NULL && corresp_field != NULL;
              field = field->next, corresp_field = corresp_field->next) {
-          record_trans_unit_corresp(field, corresp_field);
           if (!verify_field_correspondence(field)) {
             match = FALSE;
             break;
@@ -466,14 +539,30 @@ type is in fact valid.
           match = FALSE;
         }  /* if */
       }
+      /* Traverse member templates: */
+      {
+        a_template_ptr  templ = scope->templates;
+        a_template_ptr  corresp_templ = corresp_scope->templates;
+        for (; templ != NULL && corresp_templ != NULL;
+             templ = templ->next, corresp_templ = corresp_templ->next) {
+          if (!verify_template_correspondence(templ)) {
+            match = FALSE;
+            break;
+          }  /* if */
+        }  /* for */
+        if ((templ != NULL && corresp_templ == NULL) ||
+            (corresp_templ != NULL && templ == NULL)) {
+          report_error = TRUE;
+          match = FALSE;
+        }  /* if */
+      }
       /* Traverse member types: */
       {
         a_type_ptr  mem_type = scope->types;
         a_type_ptr  corresp_mem_type = corresp_scope->types;
         for (; mem_type != NULL && corresp_mem_type != NULL;
-             mem_type = mem_type->next,
-                                  corresp_mem_type = corresp_mem_type->next) {
-          record_trans_unit_corresp(mem_type, corresp_mem_type);
+             mem_type = skip_template_types(mem_type->next),
+             corresp_mem_type = skip_template_types(corresp_mem_type->next)) {
           if (!verify_type_correspondence(mem_type)) {
             match = FALSE;
             break;
@@ -490,9 +579,8 @@ type is in fact valid.
         a_routine_ptr  routine = scope->routines;
         a_routine_ptr  corresp_routine = corresp_scope->routines;
         for (; routine != NULL && corresp_routine != NULL;
-             routine = routine->next,
-                                    corresp_routine = corresp_routine->next) {
-          record_trans_unit_corresp(routine, corresp_routine);
+             routine = skip_template_routines(routine->next),
+             corresp_routine = skip_template_routines(corresp_routine->next)) {
           if (!verify_routine_correspondence(routine)) {
             match = FALSE;
             break;
@@ -511,7 +599,6 @@ type is in fact valid.
         for (; variable != NULL && corresp_variable != NULL;
              variable = variable->next,
                                   corresp_variable = corresp_variable->next) {
-          record_trans_unit_corresp(variable, corresp_variable);
           if (!verify_variable_correspondence(variable)) {
             match = FALSE;
             break;
@@ -530,7 +617,6 @@ type is in fact valid.
         for (; constant != NULL && corresp_constant != NULL;
              constant = constant->next,
                                   corresp_constant = corresp_constant->next) {
-          record_trans_unit_corresp(constant, corresp_constant);
           if (!verify_constant_correspondence(constant)) {
             match = FALSE;
             break;
@@ -725,7 +811,8 @@ are not checked.
 {
   a_type_ptr  corresp_type = (a_type_ptr)canonical_il_entry_of(type);
 
-  if (corresp_type != NULL && is_immediate_class_type(corresp_type)) {
+  if (corresp_type != NULL && is_immediate_class_type(corresp_type) &&
+      !is_incomplete_type(type) && !is_incomplete_type(corresp_type)) {
     a_scope_ptr  scope = type->
                            variant.class_struct_union.extra_info->assoc_scope;
     a_scope_ptr  corresp_scope = corresp_type->
@@ -741,6 +828,15 @@ are not checked.
         record_trans_unit_corresp(field, corresp_field);
       }  /* for */
     }
+    /* Traverse member templates: */
+    {
+      a_template_ptr  templ = scope->templates;
+      a_template_ptr  corresp_templ = corresp_scope->templates;
+      for (; templ != NULL && corresp_templ != NULL;
+           templ = templ->next, corresp_templ = corresp_templ->next) {
+        record_trans_unit_corresp(templ, corresp_templ);
+      }  /* for */
+    }
     /* Traverse member types: */
     {
       a_type_ptr  mem_type = scope->types;
@@ -751,6 +847,27 @@ are not checked.
         record_trans_unit_corresp(mem_type, corresp_mem_type);
         if (is_immediate_class_type(mem_type)) {
           establish_trans_unit_correspondences_for_class(mem_type);
+          /* This could be a member of a template class.  If we're dealing
+             with a prototype instantiation, this is a good opportunity to
+             get to any a_template entry associated with an out-of-class
+             definition of the nested class. */
+          if (mem_type
+                    ->variant.class_struct_union.is_prototype_instantiation) {
+            a_symbol_ptr  sym = (a_symbol_ptr)mem_type
+                                                  ->source_corresp.assoc_info;
+            a_symbol_ptr  corresp_sym = (a_symbol_ptr)corresp_mem_type
+                                                  ->source_corresp.assoc_info;
+            a_template_symbol_supplement_ptr
+                          tssp = template_supplement_for_symbol(sym),
+                          corresp_tssp =
+                                  template_supplement_for_symbol(corresp_sym);
+            if (tssp != NULL && corresp_tssp != NULL &&
+                tssp->il_template_entry != NULL &&
+                corresp_tssp->il_template_entry != NULL) {
+              record_trans_unit_corresp(tssp->il_template_entry,
+                                        corresp_tssp->il_template_entry);
+            }  /* if */
+          }  /* if */
         } else if (is_immediate_enum_type(mem_type)) {
           establish_trans_unit_correspondences_for_enum(mem_type);
         }  /* if */
@@ -764,16 +881,51 @@ are not checked.
            routine = routine->next,
                                     corresp_routine = corresp_routine->next) {
         record_trans_unit_corresp(routine, corresp_routine);
+        /* This could be a member of a template class.  If we're dealing
+           with a prototype instantiation, this is a good opportunity to
+           get to any a_template entry associated with an out-of-class
+           definition of the member function. */
+        if (routine->is_prototype_instantiation &&
+            corresp_routine->is_prototype_instantiation) {
+          a_symbol_ptr  sym = (a_symbol_ptr)routine->source_corresp.assoc_info,
+                        corresp_sym = (a_symbol_ptr)corresp_routine
+                                                  ->source_corresp.assoc_info;
+          a_template_symbol_supplement_ptr
+                        tssp = template_supplement_for_symbol(sym),
+                        corresp_tssp =
+                                  template_supplement_for_symbol(corresp_sym);
+          if (tssp != NULL && corresp_tssp != NULL &&
+              tssp->il_template_entry != NULL &&
+              corresp_tssp->il_template_entry != NULL) {
+            record_trans_unit_corresp(tssp->il_template_entry,
+                                      corresp_tssp->il_template_entry);
+          }  /* if */
+        }  /* if */
       }  /* for */
     }
     /* Traverse static data members: */
     {
-      a_variable_ptr  variable = scope->variables;
-      a_variable_ptr  corresp_variable = corresp_scope->variables;
-      for (; variable != NULL && corresp_variable != NULL;
-           variable = variable->next,
-                                corresp_variable = corresp_variable->next) {
-        record_trans_unit_corresp(variable, corresp_variable);
+      a_variable_ptr  var = scope->variables;
+      a_variable_ptr  corresp_var = corresp_scope->variables;
+      for (; var != NULL && corresp_var != NULL;
+           var = var->next, corresp_var = corresp_var->next) {
+        record_trans_unit_corresp(var, corresp_var);
+        if (type->variant.class_struct_union.is_prototype_instantiation) {
+          a_symbol_ptr  sym = (a_symbol_ptr)var->source_corresp.assoc_info;
+          a_symbol_ptr  corresp_sym = (a_symbol_ptr)corresp_var
+                                                  ->source_corresp.assoc_info;
+          a_template_symbol_supplement_ptr
+                        tssp = template_supplement_for_symbol(sym),
+                        corresp_tssp =
+                                  template_supplement_for_symbol(corresp_sym);
+          if (tssp != NULL && corresp_tssp != NULL &&
+              tssp->il_template_entry != NULL &&
+              corresp_tssp->il_template_entry != NULL) {
+            record_trans_unit_corresp(tssp->il_template_entry,
+                                      corresp_tssp->il_template_entry);
+          }  /* if */
+  
+        }  /* if */
       }  /* for */
     }
     /* Traverse member constants: */
@@ -862,6 +1014,357 @@ unit correspondence pointer if one is found.
 }  /* find_type_correspondence */
 
 
+static void record_class_template_instantiation(a_symbol_ptr  inst)
+/*
+Search for an instantiation that corresponds to inst in a prior translation
+unit that.  If there is one, record a correspondence pointer; otherwise, add
+the instantiation to the list of instantiations in the associated template
+symbol supplement.
+*/
+{
+  a_template_symbol_supplement_ptr
+                  tssp = inst->variant.class_struct_union.extra_info
+                             ->class_template
+                             ->variant.template_info;
+  a_template_ptr  templ = tssp->il_template_entry,
+                  corresp_templ = (a_template_ptr)canonical_il_entry_of(templ);
+  a_template_symbol_supplement_ptr
+                  corresp_tssp =
+                       ((a_symbol_ptr)corresp_templ->source_corresp.assoc_info)
+                         ->variant.template_info;
+  a_symbol_list_entry_ptr
+                  sym_entry = corresp_tssp->all_instantiations;
+  a_type_ptr      class_type = type_symbol_type(inst);
+  a_template_arg_ptr
+                  templ_args = class_type
+                    ->variant.class_struct_union.extra_info->template_arg_list;
+
+  if (sym_entry == NULL &&
+      corresp_tssp->variant.class_template.instantiations != NULL) {
+    /* FIXME This should only happen when the corresponding template is in
+       the primary translation unit.  Probably a pass should be made to
+       copy the instantiations list if necessary. */
+    a_symbol_ptr  sym = corresp_tssp->variant.class_template.instantiations;
+    for (; sym != NULL; sym = next_instance_sym(sym)) {
+      sym_entry = alloc_symbol_list_entry();
+      sym_entry->next = corresp_tssp->all_instantiations;
+      corresp_tssp->all_instantiations = sym_entry;
+      sym_entry->symbol = sym;
+    }  /* for */
+  }  /* if */
+  for (; sym_entry != NULL; sym_entry = sym_entry->next) {
+    a_type_ptr  corresp_type = type_symbol_type(sym_entry->symbol);
+    if (equiv_template_arg_lists(corresp_type
+                                   ->variant.class_struct_union.extra_info
+                                   ->template_arg_list,
+                                 templ_args, ETA_NO_OPTIONS)) {
+      record_trans_unit_corresp(class_type, corresp_type);
+      establish_trans_unit_correspondences_for_class(class_type);
+      break;
+    }  /* if */
+  }  /* for */
+  if (sym_entry == NULL) {
+    /* The instantiation was not found on the canonical list.  Add it now. */
+    a_symbol_list_entry_ptr  slep = alloc_symbol_list_entry();
+    slep->next = corresp_tssp->all_instantiations;
+    corresp_tssp->all_instantiations = slep;
+    slep->symbol = inst;
+  }  /* if */
+}  /* record_class_template_instantiation */
+
+
+static void record_function_template_instantiation(
+                                                a_template_instance_ptr  inst)
+/*
+Search for an instantiation that corresponds to inst in a prior translation
+unit that.  If there is one, record a correspondence pointer; otherwise, add
+the instantiation to the list of instantiations in the associated template
+symbol supplement.
+*/
+{
+  a_template_symbol_supplement_ptr
+                  tssp = inst->template_sym->variant.template_info;
+  a_template_ptr  templ = tssp->il_template_entry,
+                  corresp_templ = (a_template_ptr)canonical_il_entry_of(templ);
+  a_template_symbol_supplement_ptr
+                  corresp_tssp =
+                       ((a_symbol_ptr)corresp_templ->source_corresp.assoc_info)
+                         ->variant.template_info;
+  a_symbol_list_entry_ptr
+                  sym_entry = corresp_tssp->all_instantiations;
+  a_routine_ptr   routine = inst->instance_sym->variant.routine.ptr;
+  a_template_arg_ptr
+                  templ_args = routine->template_arg_list;
+
+  if (sym_entry == NULL &&
+      corresp_tssp->variant.function.instantiations != NULL) {
+    /* FIXME This should only happen when the corresponding template is in
+       the primary translation unit.  Probably a pass should be made to
+       copy the instantiations list if necessary. */
+    a_template_instance_ptr  ip = corresp_tssp
+                                            ->variant.function.instantiations;
+    for (; ip != NULL; ip = ip->next) {
+      sym_entry = alloc_symbol_list_entry();
+      sym_entry->next = corresp_tssp->all_instantiations;
+      corresp_tssp->all_instantiations = sym_entry;
+      sym_entry->symbol = ip->instance_sym;
+    }  /* for */
+  }  /* if */
+  for (; sym_entry != NULL; sym_entry = sym_entry->next) {
+    a_routine_ptr  corresp_routine = sym_entry->symbol->variant.routine.ptr;
+    if (identical_types(routine->type, corresp_routine->type) &&
+        equiv_template_arg_lists(corresp_routine->template_arg_list,
+                                 templ_args, ETA_NO_OPTIONS)) {
+      record_trans_unit_corresp(routine, corresp_routine);
+      break;
+    }  /* if */
+  }  /* for */
+  if (sym_entry == NULL) {
+    /* The instantiation was not found on the canonical list.  Add it now. */
+    a_symbol_list_entry_ptr  slep = alloc_symbol_list_entry();
+    slep->next = corresp_tssp->all_instantiations;
+    corresp_tssp->all_instantiations = slep;
+    slep->symbol = inst->instance_sym;
+  }  /* if */
+}  /* record_function_template_instantiation */
+
+
+void record_instantiation(a_symbol_ptr  inst)
+/*
+Check if the given instantiation has a corresponding entry in another
+translation unit and record the correspondence if so.  If not, add the
+instantiation to the list of all instantiations of the corresponding
+template.
+*/
+{
+  if (is_primary_translation_unit) {
+    a_template_symbol_supplement_ptr  tssp;
+    a_symbol_list_entry_ptr           sym_entry;
+
+    if (is_class_struct_union_symbol(inst)) {
+      a_symbol_ptr  proto_sym = inst->variant.class_struct_union.extra_info
+                                    ->corresp_prototype_sym;
+      tssp = template_supplement_for_symbol(proto_sym);
+    } else if (is_function_symbol(inst)) {
+      tssp = template_supplement_for_symbol(inst->variant.routine.instance_ptr
+                                                ->template_sym);
+    } else {
+      check_assertion(inst->kind == (a_symbol_kind)sk_static_data_member);
+      tssp = template_supplement_for_symbol(
+                 inst->variant.static_data_member.instance_ptr->template_sym);
+    }  /* if */
+    sym_entry = alloc_symbol_list_entry();
+    sym_entry->next = tssp->all_instantiations;
+    tssp->all_instantiations = sym_entry;
+    sym_entry->symbol = inst;
+  } else {
+#if 0 /* FIXME: need code to handle members of templates. */
+    if (is_class_struct_union_tag(inst)) {
+      record_class_template_instantiation(inst);
+    } else if (is_function_symbol(inst)) {
+      record_function_template_instantiation(
+                                          inst->variant.routine.instance_ptr);
+    }  /* if */
+#endif /* FIXME */
+  }  /* if */
+}  /* record_instantiation */
+
+
+static void establish_instantiation_correspondences(a_template_ptr  templ)
+/*
+Find correspondences for every instantiation of the given template.
+This routine should only be called for templates that have an associated
+sk_class_template or sk_function_template symbol.  Other template entries
+correspond to class members (e.g., a member function of a class template)
+and are handled elsewhere.
+*/
+{
+  a_symbol_ptr    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+  a_template_symbol_supplement_ptr
+                  tssp = templ_sym->variant.template_info;
+
+  if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
+    a_type_ptr    class_type = tssp
+                              ->variant.class_template.prototype_instantiation
+                              ->variant.class_struct_union.type;
+    a_symbol_ptr  inst = tssp->variant.class_template.instantiations;
+    for (; inst != NULL; inst = next_instance_sym(inst)) {
+      record_class_template_instantiation(inst);
+    }  /* for */
+     /* Also process prototype instantiation. */
+    record_trans_unit_corresp(
+               class_type,
+               ((a_symbol_ptr)
+                 ((a_template_ptr)canonical_il_entry_of(templ))
+                   ->source_corresp.assoc_info)
+                 ->variant.template_info
+                 ->variant.class_template.prototype_instantiation
+                 ->variant.class_struct_union.type);
+    establish_trans_unit_correspondences_for_class(class_type);
+  } else if (templ_sym->kind == (a_symbol_kind)sk_function_template) {
+    a_template_instance_ptr  inst = tssp->variant.function.instantiations;
+    for (; inst != NULL; inst = inst->next) {
+      record_function_template_instantiation(inst);
+    }  /* for */
+    /* Also process prototype instantiation. */
+    record_trans_unit_corresp(tssp->variant.function.routine,
+                              ((a_symbol_ptr)
+                                ((a_template_ptr)canonical_il_entry_of(templ))
+                                  ->source_corresp.assoc_info)
+                                ->variant.template_info
+                                ->variant.function.routine);
+  } else {
+    unexpected_condition_str("Bad symbol");
+  }  /* if */
+}  /* establish_instantiation_correspondences */
+
+
+static a_template_ptr find_corresp_class_template(a_template_ptr  templ,
+                                                  a_symbol_ptr    sym)
+/*
+Find a class template from another translation unit corresponding to the given
+class template templ.  However, only consider sym and its subordinate symbols
+when looking up a correspondence: if none is found, return NULL.
+*/
+{
+  a_template_ptr  corresp_templ = NULL;
+  a_symbol_ptr    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+  a_template_symbol_supplement_ptr
+                  tssp = template_supplement_for_symbol(templ_sym),
+                  corresp_tssp = template_supplement_for_symbol(sym);
+
+  /* The symbol "sym" always corresponds to a primary symbol. */
+  check_assertion(
+           corresp_tssp->variant.class_template.primary_template_sym == NULL);
+  if (tssp->variant.class_template.primary_template_sym != NULL) {
+    /* The given template is a partial specialization: look for a partial
+       specialization with the same set of parameters and arguments. */
+    for (sym = corresp_tssp->variant.class_template.partial_specializations;
+         sym != NULL;
+         sym = sym->next) {
+      corresp_tssp = template_supplement_for_symbol(sym);
+      if (equiv_template_param_lists(corresp_tssp->cache.decl_info->parameters,
+                                     tssp->cache.decl_info->parameters,
+                                     /*issue_errors=*/FALSE,
+                                     &templ_sym->decl_position)) {
+        /* The template parameters correspond; now check the arguments: they
+           are attached to the prototype instantiation. */
+        a_symbol_ptr  proto, corresp_proto;
+        proto = tssp->variant.class_template.prototype_instantiation;
+        corresp_proto =
+                 corresp_tssp->variant.class_template.prototype_instantiation;
+        if (equiv_template_arg_lists(
+                  type_symbol_type(proto)->
+                     variant.class_struct_union.extra_info->template_arg_list,
+                  type_symbol_type(corresp_proto)->
+                     variant.class_struct_union.extra_info->template_arg_list,
+                  ETA_NO_OPTIONS)) {
+          corresp_templ = corresp_tssp->il_template_entry;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  } else {
+    /* This is a primary template: the template parameters must match. */
+    if (equiv_template_param_lists(corresp_tssp->cache.decl_info->parameters,
+                                   tssp->cache.decl_info->parameters,
+                                   /*issue_errors=*/TRUE,
+                                   &templ_sym->decl_position)) {
+      corresp_templ = corresp_tssp->il_template_entry;
+    }  /* if */
+  }  /* if */
+  return corresp_templ;
+}  /* find_corresp_class_template */
+
+
+static a_template_ptr find_corresp_function_template(a_template_ptr  templ,
+                                                     a_symbol_ptr    sym)
+/*
+Find a function template from another translation unit corresponding to the
+given class template templ.  However, only consider sym and its subordinate
+symbols when looking up a correspondence: if none is found, return NULL.
+*/
+{
+  a_template_ptr  corresp_templ = NULL;
+  a_boolean       is_list =
+                         (sym->kind == (a_symbol_kind)sk_overloaded_function);
+  a_symbol_ptr    sub_sym = is_list ? sym->variant.overloaded_function.symbols
+                                    : sym;
+  a_symbol_ptr    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+  a_template_symbol_supplement_ptr
+                  tssp = template_supplement_for_symbol(templ_sym),
+                  corresp_tssp;
+  a_routine_ptr   routine = tssp->variant.function.routine,
+                  corresp_routine;
+
+  /* If necessary, iterate over every overloaded function template. */
+  for (; sub_sym != NULL; sub_sym = is_list ? sub_sym->next : NULL) {
+    if (sub_sym->kind != (a_symbol_kind)sk_function_template) continue;
+    corresp_tssp = template_supplement_for_symbol(sub_sym);
+    corresp_routine = corresp_tssp->variant.function.routine;
+    if (equiv_template_param_lists(corresp_tssp->cache.decl_info->parameters,
+                                   tssp->cache.decl_info->parameters,
+                                   /*issue_errors=*/FALSE,
+                                   &templ_sym->decl_position) &&
+        identical_types(routine->type, corresp_routine->type) &&
+        equiv_template_arg_lists(routine->template_arg_list,
+                                 corresp_routine->template_arg_list,
+                                 ETA_NO_OPTIONS)) {
+      
+      corresp_templ = corresp_tssp->il_template_entry;
+      break;
+    }  /* if */
+  }  /* for */
+  return corresp_templ;
+}  /* find_corresp_function_template */
+
+
+static void find_template_correspondence(a_template_ptr  templ)
+/*
+Look for the given type in another translation unit and set the translation
+unit correspondence pointer if one is found.
+*/
+{
+  a_boolean     error = FALSE;
+  a_symbol_ptr  templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+  a_symbol_ptr  sym;
+
+  check_assertion(templ_sym != NULL);
+  sym = templ_sym->header->inactive_symbols;
+  for (; sym != NULL; sym = sym->next) {
+    if (sym->decl_scope != templ_sym->decl_scope &&
+        may_have_correspondence(sym) &&
+        same_parents(sym, templ_sym)) {
+      /* Two different declarations in the same namespace and with the same
+         name: they should probably match up. */
+      if (is_class_template_symbol(sym) ==
+                                        is_class_template_symbol(templ_sym)) {
+        a_template_ptr  corresp_templ;
+        if (is_class_template_symbol(templ_sym)) {
+          corresp_templ = find_corresp_class_template(templ, sym);
+        } else {
+          corresp_templ = find_corresp_function_template(templ, sym);
+        }  /* if */
+        if (corresp_templ != NULL) {
+          /* Record the correspondence. */
+          record_trans_unit_corresp(templ, corresp_templ);
+          establish_instantiation_correspondences(templ);
+          break;
+        }  /* if */
+      } else {
+        /* An error if the conflicting entity has external linkage. */
+        error = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (error) {
+    pos_sy_error(ec_not_compatible_with_previous_decl,
+                 &templ_sym->decl_position, sym);
+  }  /* if */
+}  /* find_template_correspondence */
+
+
 static void find_routine_correspondence(a_routine_ptr  routine)
 /*
 Look for the given routine in another translation unit and set the
@@ -893,11 +1396,13 @@ translation unit correspondence pointer if one is found.
                 /* Record the correspondence. */
                 record_trans_unit_corresp(routine,
                                           sub_sym->variant.routine.ptr);
-              }  /* *if */
+              }  /* if */
               break;
+            case sk_function_template:
             case sk_class_or_struct_tag:
             case sk_union_tag:
             case sk_enum_tag:
+              /* No conflict. */
               break;
             case sk_type:
               if (sym->variant.type.is_injected_class_name) break;
@@ -978,10 +1483,20 @@ scope.  The process is repeated in nested class and namespace scopes.
     }  /* for */
   }
 
+  /* Visit all templates. */
+  {
+    a_template_ptr  templ;
+    for (templ = scope->templates; templ != NULL; templ = templ->next) {
+      find_template_correspondence(templ);
+    }  /* for */
+  }
+
   /* Visit all types. */
   {
     a_type_ptr  type;
-    for (type = scope->types; type != NULL; type = type->next) {
+    for (type = scope->types;
+         type != NULL;
+         type = skip_template_types(type->next)) {
       a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
 
       /* Note that placeholder types do not have an associated symbol. */
@@ -996,18 +1511,16 @@ scope.  The process is repeated in nested class and namespace scopes.
     a_routine_ptr  routine;
     for (routine = scope->routines;
          routine != NULL;
-         routine = routine->next) {
+         routine = skip_template_routines(routine->next)) {
       find_routine_correspondence(routine);
     }  /* for */
   }
 
   /* Visit all variables. */
   {
-    a_variable_ptr  variable;
-    for (variable = scope->variables;
-         variable != NULL;
-         variable = variable->next) {
-      find_variable_correspondence(variable);
+    a_variable_ptr  var;
+    for (var = scope->variables; var != NULL; var = var->next) {
+      find_variable_correspondence(var);
     }  /* for */
   }
 }  /* establish_trans_unit_correspondences_for_scope */
