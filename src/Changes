@@ -144,6 +144,8 @@ arguments.
 Condition declarations in if-, switch-, while- and for-statements are now
 supported.  A new expression node kind, enk_condition, has been added,
 along with a_condition_supplement and a new scope kind, sck_condition.
+IL lowering rewrites these into C form, so those using IL lowering
+will not see the new constructs.
 
 4/26/95  Discretionary nonstandard errors
 
