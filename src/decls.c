@@ -9749,7 +9749,7 @@ continue_with_declaration:
                     &incomplete_type_error_reported, &decl_pos_block);
         if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
             !is_old_style_param_decl) {
-           /* All initialized variables are considered defined.  This flag
+          /* All initialized variables are considered defined.  This flag
              may have already been set based on storage class and scope
              level.  Be sure to check this after the initializer is scanned,
              so that "int x = x;" can be caught. */
