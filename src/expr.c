@@ -2295,11 +2295,12 @@ bound with the function in *bound_function_selector.
           }  /* if */
         }  /* if */
       }  /* if */
-      /* If the field was not found in pcc mode, look for any field with
-         that name.  If there's only one (or several with the same offsets),
-         cast the left-side variable to the right struct/union type and do
-         the selection with the found field. */
-      if (member_sym == NULL && C_dialect == C_dialect_pcc &&
+      /* If the field was not found in pcc or SVR4 C mode, look for any field
+         with that name.  If there's only one (or several with the same
+         offsets), cast the left-side variable to the right struct/union type
+         and do the selection with the found field. */
+      if (member_sym == NULL &&
+          (C_dialect == C_dialect_pcc || SVR4_C_mode) &&
           /* Avoid the "rvalue . field" case. */
           (is_arrow_operator || is_an_lvalue(operand_1))) {
         a_symbol_ptr other_field_sym = other_field_with_same_name();
@@ -5192,9 +5193,10 @@ C-style casts and C++ functional-notation type conversions.
           if (warning_suggested != ec_no_error) {
             pos_warning(warning_suggested, start_position);
           }  /* if */
-          /* In pcc mode, some lvalues cast to same-sized types remain lvalues
-             (e.g., int to unsigned). */
-          if (C_dialect == C_dialect_pcc && is_an_lvalue(operand) &&
+          /* In pcc or SVR4 C mode, some lvalues cast to same-sized types
+             remain lvalues (e.g., int to unsigned). */
+          if ((C_dialect == C_dialect_pcc || SVR4_C_mode) &&
+              is_an_lvalue(operand) &&
               still_an_lvalue(source_type, type_cast_to)) {
             /* Use a special "lvalue cast" operator.  Always do the cast on
                an expression node, even if the lvalue address is currently
