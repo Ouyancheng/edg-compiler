@@ -8989,15 +8989,20 @@ It also may do fix up on entries it removes.
       /* Found -- stop looping. */
       break;
     }  /* if */
-#if 0
-#if CHECKING
-    if (il_entry_prefix_of(ssep->entity.ptr).keep_in_il && !C_mode()) {
-      unexpected_condition_str2("drop_tag_def_from_src_seq_list:",
-                                "keep_in_il flag is TRUE for entry");
-    }  /* if */
-#endif /* CHECKING */
-#endif /* if 0 */
-    if (C_mode()) {
+    if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_pragma
+#if RECORD_MACROS_IN_IL
+        || ss_entry_kind(ssep) == (an_il_entry_kind)iek_macro
+#endif /* RECORD_MACROS_IN_IL */
+                                                             ) {
+      if (il_entry_prefix_of(ssep->entity.ptr).keep_in_il) {
+        /* Link around a needed macro or pragma that appears inside this
+           class/struct/union body. */
+        *prev_link_addr = ssep;
+        ssep->prev = prev_ssep;
+        prev_ssep = ssep;
+        prev_link_addr = &ssep->next;
+      }  /* if */
+    } else if (C_mode()) {
       /* Special processing in C mode, which does not have nested structs and
          enums in the sense that C++ does. */
       if (il_entry_prefix_of(ssep->entity.ptr).keep_in_il) {
