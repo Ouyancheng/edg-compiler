@@ -900,7 +900,7 @@ typedef struct a_class_symbol_supplement {
 			   full instantiation is in the process of being
 			   generated. */
 #if IA64_ABI
-  a_bit_field	has_empty_class_subobject;
+  a_bit_field	has_empty_class_subobject:1;
 			/* TRUE if a (field or base) subobject has an empty
 			   class type.  The subobject could be an indirect
 			   base or field.  This is also TRUE for a class that
