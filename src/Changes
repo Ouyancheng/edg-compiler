@@ -1,5 +1,12 @@
 Version 3.4
 
+4/13/04  Compound literal not lowered in C89 mode with compound literals
+         manually enabled
+
+When the front end is run in non-C99 non-GNU C mode with compound
+literals explicit enabled, such literals were not lowered (because
+the C99 lowering phase was not run).  Now, it is and they are.
+
 4/13/04  Incorrect fully-lowered EH code for almost-trivial constructor
          when NEW_CAN_BE_FOLDED_INTO_CTOR is FALSE
 
