@@ -3947,26 +3947,21 @@ template.
     }  /* if */
     if (is_class_struct_union_symbol(inst)) {
       a_type_ptr               prim = type_symbol_type(inst);
-      if (prim->variant.class_struct_union.is_prototype_instantiation ||
-          prim->variant.class_struct_union.is_nonreal_class) {
-        /* Nothing to be done. */
-      } else {
-        a_symbol_list_entry_ptr
+      a_symbol_list_entry_ptr
                          slep = find_class_template_instantiation(tssp, inst);
-        if (slep == NULL) {
-          mark_canonical_instantiation(tssp, inst);
-        } else if (slep->symbol != inst) {
-          /* This template class was presumably first instantiated in a
-             secondary translation unit, but now it is instantiated in the
-             primary translation unit.  The new instantiation should become
-             the canonical correspondence. */
-          a_type_ptr  sec = type_symbol_type(slep->symbol);
-          check_assertion(in_secondary_trans_unit(sec));
-          set_type_corresp(prim, sec);
-          /* It is tempting to set slep->symbol = inst at this point, but we
-             may need to have a record of sec to set correspondences for its
-             members when establish_class_instantiation_corresp is called. */
-        }  /* if */
+      if (slep == NULL) {
+        mark_canonical_instantiation(tssp, inst);
+      } else if (slep->symbol != inst) {
+        /* This template class was presumably first instantiated in a
+           secondary translation unit, but now it is instantiated in the
+           primary translation unit.  The new instantiation should become
+           the canonical correspondence. */
+        a_type_ptr  sec = type_symbol_type(slep->symbol);
+        check_assertion(in_secondary_trans_unit(sec));
+        set_type_corresp(prim, sec);
+        /* It is tempting to set slep->symbol = inst at this point, but we
+           may need to have a record of sec to set correspondences for its
+           members when establish_class_instantiation_corresp is called. */
       }  /* if */
     } else if (is_function_symbol(inst)) {
       a_symbol_list_entry_ptr
