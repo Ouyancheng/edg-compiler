@@ -4403,6 +4403,9 @@ specified by decl_scope_level.
 }  /* check_anonymous_union_symbols */
 
 
+#if !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+/* ARGSUSED */ /* error_pos is only used with the anonymous union extension. */
+#endif /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS*/
 static a_boolean is_anonymous_union_decl(a_type_ptr        member_type,
                                          a_decl_flag_set   dso_flags,
                                          a_boolean         *is_nonstd,

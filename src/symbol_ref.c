@@ -246,7 +246,9 @@ created for this entity; otherwise, it is NULL.
 {
   a_boolean                is_definition = srk_flags & SRK_DEFINITION;
   a_boolean                is_tentative_def = srk_flags & SRK_TENTATIVE_DEF;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                is_primary_decl = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_source_correspondence  *scptr = NULL;
 
   if (is_definition) {
@@ -257,7 +259,9 @@ created for this entity; otherwise, it is NULL.
           !(srk_flags & SRK_TENTATIVE_DEF)) {
         /* This must be an initializing definition following a tentative
            definition. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
         is_primary_decl = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       } else {
         /* A definition is ordinarily the primary declaration, but if it was
            previously defined and this is just a redefinition, this should be
@@ -265,7 +269,9 @@ created for this entity; otherwise, it is NULL.
         is_definition = FALSE;
       }  /* if */
     } else {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
       is_primary_decl = !is_tentative_def;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       sym_ptr->defined = TRUE;
       sym_ptr->decl_position = *source_position;
     }  /* if */
