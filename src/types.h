@@ -154,9 +154,6 @@ Bit flags for calls of f_types_are_compatible et al.
 #define TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING 0x1
 			/* An error type is considered compatible with
 			   anything. */
-#define TCF_TEMPLATE_TYPE_COMPATIBLE_WITH_ANOTHER 0x2
-			/* A template parameter type is considered
-			   compatible with anything. */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 extern a_boolean param_types_are_compatible(a_type_ptr              rout_type1,
