@@ -2343,7 +2343,13 @@ is in fact valid.
        scp->access != corresp_scp->access ||
        scp->name_linkage != corresp_scp->name_linkage)) {
     match = FALSE;
-    report_bad_trans_unit_corresp(type);
+    if (C_mode() &&
+        (is_immediate_class_type(type) || is_immediate_enum_type(type))) {
+      /* Just ignore the correspondence in C mode. */
+      set_no_trans_unit_corresp(iek_type, type);
+    } else {
+      report_bad_trans_unit_corresp(type);
+    }  /* if */
   }
   return match;
 }  /* verify_type_correspondence */
