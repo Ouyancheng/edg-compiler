@@ -265,6 +265,10 @@ typedef enum /*an_il_entry_kind*/ {
   iek_switch_clause,	/* a_switch_clause */
   iek_handler,          /* a_handler */
   iek_try_supplement,	/* a_try_supplement */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  iek_microsoft_try_supplement,
+			/* a_microsoft_try_supplement */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
   iek_block,		/* a_block */
   iek_statement,	/* a_statement */
@@ -383,6 +387,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_switch_clause */			"switch-clause",
 /* iek_handler */			"handler",
 /* iek_try_supplement */		"try-supplement",
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* iek_microsoft_try_supplement */	"microsoft-try-supplement",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
 /* iek_block */				"block",
 /* iek_statement */			"statement",
@@ -1456,6 +1463,9 @@ enum a_type_qualifier_tag {
 #if RESTRICT_ALLOWED
   tqt_restrict,		/* Restrict qualifier. */
 #endif /* RESTRICT_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  tqt_unaligned,	/* Microsoft __unaligned qualifier. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tqt_last		/* Must be last. */
 };
 
@@ -1472,6 +1482,10 @@ Definitions of the bits in bit sets of type a_type_qualifier_set.
 #define TQ_RESTRICT	(1 << (int)tqt_restrict)
 			/* This bit is set to represent restrict. */
 #endif /* RESTRICT_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define TQ_UNALIGNED	(1 << (int)tqt_unaligned)
+			/* This bit is set to represent __unaligned. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 The last type qualifier tag value is used as the number of bits required
@@ -4571,6 +4585,9 @@ enum a_statement_kind_tag {
   stmk_asm_func_body,	/* Body of an asm function. */
 #endif /* ASM_FUNCTION_ALLOWED */
   stmk_try_block,	/* Try block (C++ only). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  stmk_microsoft_try,	/* Microsoft try-finally or try-except. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   stmk_decl,		/* One or more consecutive declarations within a
 			   given function or block scope. */
@@ -4738,6 +4755,24 @@ typedef struct a_try_supplement {
 			   that have this lifetime, but there may be runtime
 			   objects with the lifetime. */
 } a_try_supplement;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* Supplement for a Microsoft try-finally or try-except statement. */
+typedef struct a_microsoft_try_supplement *a_microsoft_try_supplement_ptr;
+typedef struct a_microsoft_try_supplement {
+  a_statement_ptr
+		guarded_statement;
+			/* The statement protected by the __try. */
+  an_expr_node_ptr
+		except_expr;
+			/* If this is a try-except, this is the expression
+			   tested by the __except.  Otherwise (for a
+			   try-finally), NULL. */
+  a_statement_ptr
+		cleanup_statement;
+			/* The statement to be executed on cleanup. */
+} a_microsoft_try_supplement;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifdef CIL */
 
@@ -5187,6 +5222,11 @@ typedef struct a_statement {
     /* When kind == stmk_try_block: */
     a_try_supplement_ptr
 		try_block;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* When kind == stmk_microsoft_try: */
+    a_microsoft_try_supplement_ptr
+		microsoft_try;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == stmk_fentry: */
