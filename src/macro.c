@@ -4145,6 +4145,7 @@ try_match_again:
        make the current token (e.g., tok_newline) be scanned again.
        Without this, we could run off the end of the #if directive. */
     curr_char_loc = start_of_curr_token;
+    *rescan = TRUE;
   }  /* if */
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;
