@@ -1570,8 +1570,14 @@ of a function template.
   if (is_initial_decl) {
     dsi_flags |= DSI_IS_TEMPLATE_DECLARATION;
     di_flags |= DI_IS_TEMPLATE_DECLARATION;
+    /* An end-of-source marker is not present when the initial declaration
+       is scanned. */
+    add_stop_token(tok_lbrace);
+    add_stop_token(tok_colon);
+    add_stop_token(tok_semicolon);
+  } else {
+    add_stop_token(tok_end_of_source);
   }  /* if */
-  add_stop_token(tok_end_of_source);
   (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type);
   if (is_error_type(*type) && !is_declarator_start()) {
     /* Error of some sort. */
@@ -1581,13 +1587,21 @@ of a function template.
     declarator(di_flags, do_flags, *type, (a_type_ptr)NULL, locator, type,
                &bottom_derived_type, func_info);
   }  /* if */
-  remove_stop_token(tok_end_of_source);
-  /* In the normal case the current token should be end_of_source,
-     which was inserted to mark the end of the cached token stream.
-     If necessary, keep flushing until end-of-source is found. */
-  while (curr_token != tok_end_of_source) (void)get_token();
-  /* Get the token that follows the declarator. */
-  (void)get_token();
+  if (is_initial_decl) {
+    /* An end-of-source marker is not present when the initial declaration
+       is scanned. */
+    remove_stop_token(tok_lbrace);
+    remove_stop_token(tok_colon);
+    remove_stop_token(tok_semicolon);
+  } else {
+    remove_stop_token(tok_end_of_source);
+    /* In the normal case the current token should be end_of_source,
+       which was inserted to mark the end of the cached token stream.
+       If necessary, keep flushing until end-of-source is found. */
+    while (curr_token != tok_end_of_source) (void)get_token();
+    /* Get the token that follows the declarator. */
+    (void)get_token();
+  }  /* if */
 }  /* scan_template_declaration */
 
 
@@ -1651,15 +1665,26 @@ templ_sym).
     a_symbol_locator    locator;
     a_func_info_block	func_info;
     a_storage_class     storage_class;
-    /* Rescan the tokens of the function declaration. */
-    rescan_reusable_cache(&tssp->variant.function.decl_token_cache);
-    /* Push the template instantiation scope. */
+    a_source_position   saved_pos_curr_token;
+    a_source_position   saved_error_position;
+    /* Push the template instantiation scope.  Note that the instance symbol
+       passed to push_scope is NULL.  This is done because the type
+       associated with the symbol is not yet complete (it has no routine
+       type).  Using a partially constructed symbol could cause problems
+       if errors occur while rescanning the declaration. */
     (void)push_scope((a_scope_kind)sck_template_instantiation,
                      tssp->declaration_scope, (a_type_ptr)NULL,
-                     (a_routine_ptr)NULL, sym, templ_sym, templ_arg_list);
+                     (a_routine_ptr)NULL, (a_symbol_ptr)NULL, templ_sym,
+                     templ_arg_list);
+    /* Rescan the tokens of the function declaration. */
+    saved_pos_curr_token = pos_curr_token;
+    saved_error_position = error_position;
+    rescan_reusable_cache(&tssp->variant.function.decl_token_cache);
     scan_template_declaration(/*is_initial_decl=*/FALSE, &dso_flags, &do_flags,
                               &locator, &rout_type, &func_info,
                               &storage_class);
+    error_position = saved_error_position;
+    pos_curr_token = saved_pos_curr_token;
     /* Pop the template instantiation scope. */
     pop_scope();
 #endif /* 0 */
@@ -2798,6 +2823,7 @@ this will never be a class declaration.
 */
 {
   a_stop_token_array  save_stop_token_array;
+  a_token_cache	      temp_token_cache;
 
   db_enter(3, "cache_template_declaration");
   /* Save the current stop token state, and reinitialize it. */
@@ -2806,7 +2832,6 @@ this will never be a class declaration.
   add_stop_token(tok_lbrace);
   add_stop_token(tok_colon);
   add_stop_token(tok_semicolon);
-  add_stop_token(tok_assign);
   /* Cache the current token and advance past it. */
   cache_curr_token(p_token_cache);
   (void)get_token();
@@ -2814,16 +2839,32 @@ this will never be a class declaration.
      "{" that begins a definition, or a ":" that begins a ctor
      initializer list. */
   cache_token_stream(p_token_cache);
-  remove_stop_token(tok_assign);
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_colon);
   remove_stop_token(tok_semicolon);
+  /* Restore the stop token state. */
+  copy_stop_tokens(save_stop_token_array, stop_token_array);
   /* Add an end-of-source token to the end of the token cache to
      assure that we don't scan past the end of the cache in the actual
      scan. */
   terminate_token_cache(p_token_cache);
-  /* Restore the stop token state. */
-  copy_stop_tokens(save_stop_token_array, stop_token_array);
+  /* Make a copy of the token cache as a nonreusable token cache.
+     Rescan the cached tokens from this cache.  This is done so that
+     when the original template declaration is scanned the last token of
+     the cache is followed by the token that followed it in the original
+     source program with no intervening tok_end_of_source.  This also
+     allows the reusable token cache to be discarded if it turns out that
+     this is not a function declaration. */
+  clear_token_cache(&temp_token_cache, /*reusable=*/FALSE);
+  rescan_reusable_cache(p_token_cache);
+  while (curr_token != tok_end_of_source) {
+    cache_curr_token(&temp_token_cache);
+    (void)get_token();
+  }  /* while */
+  /* Skip past the end-of-source token. */
+  (void)get_token();
+  /* Rescan the tokens from the temporary cache. */
+  rescan_cached_tokens(&temp_token_cache);
   db_exit();
 }  /* cache_template_declaration */
 
@@ -3125,6 +3166,8 @@ entry is pushed on the scope stack.
   a_boolean                         tag_resolution = FALSE;
   a_type_ptr                        prototype_type = NULL;
   a_def_arg_expr_fixup_ptr	    saved_curr_default_args;
+  a_token_cache 		    decl_token_cache;
+  a_boolean		            decl_token_cache_used = FALSE;
 
   db_enter(3, "template_declaration");
 #if CHECKING
@@ -3135,6 +3178,7 @@ entry is pushed on the scope stack.
   saved_curr_default_args = curr_default_args;
   curr_default_args = NULL;
   *defines_something = FALSE;
+  clear_token_cache(&decl_token_cache, /*reusable=*/TRUE);
   if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
     /* template declarations may appear at file scope only (ARM 14.1). */
     error(ec_nonglobal_template_declaration);
@@ -3146,6 +3190,16 @@ entry is pushed on the scope stack.
   (void)get_token();
   /* The the template parameters. */
   template_param_list = scan_template_param_list();
+  /* Cache the tokens for this declaration.  If this turns out to be
+     a function the cache will be saved to generates new routine types
+     for this function.  If it is not a function the cache will be
+     discarded.  The tokens are cached and a temporary copy of the
+     cache is made.  The tokens are scanned in a nonreusable manner
+     from the temporary cache.  The last cached token is followed
+     immediately by the token that followed it in the original source
+     program (i.e., the temporary cache does not contain a terminating
+     tok_end_of_source). */
+  cache_template_declaration(&decl_token_cache);
   /* See if it is a class template declaration.  If it is, scan the tokens
      of the definition (if any) and cache them away of later reference. */
   if (class_template_declaration(template_param_list, &sym, &tag_resolution,
@@ -3162,18 +3216,9 @@ entry is pushed on the scope stack.
     a_decl_flag_set    do_flags;
     a_decl_flag_set    dso_flags;
     a_boolean          has_parenthesized_initializer = FALSE;
-    a_token_cache      decl_token_cache;
-    a_boolean          decl_token_cache_used = FALSE;
     a_func_info_block  func_info;
     a_storage_class    storage_class;
 
-    /* Cache the tokens for this declaration.  If this turns out to be
-       a function the cache will be saved to generates new routine types
-       for this function.  If it is not a function the cache will be
-       discarded. */
-    clear_token_cache(&decl_token_cache, /*reusable=*/TRUE);
-    cache_template_declaration(&decl_token_cache);
-    rescan_reusable_cache(&decl_token_cache);
     /* Scan the decl. specifiers and the declaration. */
     scan_template_declaration(/*is_initial_decl=*/TRUE, &dso_flags, &do_flags,
                               &locator, &type, &func_info, &storage_class);
@@ -3358,10 +3403,6 @@ entry is pushed on the scope stack.
                      locator.symbol_header->identifier);
       }  /* if */
     }  /* if */
-    /* If the declaration token cache is not needed, discard it. */
-    if (!decl_token_cache_used) {
-      discard_token_cache(&decl_token_cache);
-    }  /* if */
   } else {
     /* Template parameters are declared, but the declaration is missing. */
     pos_error(ec_exp_declaration, &pos_curr_token);
@@ -3390,6 +3431,10 @@ entry is pushed on the scope stack.
        is by analogy with normal classes, for which an array of incomplete
        class objects is allowed, pending completion.) */
     check_fixup_list_for_array_types();
+  }  /* if */
+  /* If the declaration token cache is not needed, discard it. */
+  if (!decl_token_cache_used) {
+    discard_token_cache(&decl_token_cache);
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
