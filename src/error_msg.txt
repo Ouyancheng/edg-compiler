@@ -966,6 +966,8 @@ ec_dupl_allocate_segname;;"a segment name has already been specified"
 ec_pm_virtual_base_from_derived_class;;"cannot convert pointer to member of derived class %t1 to pointer to member of base class %t2 -- base class is virtual"
 ec_cl_invalid_instantiation_directory;;"invalid directory for instantiation files: "
 ec_cl_one_instantiation_per_object_option_only_in_cplusplus;;"option \"one_instantiation_per_object\" can be used only when compiling C++"
+ec_cl_invalid_output_file;;"invalid output file "
+ec_cl_cannot_open_output_file;;"cannot open output file "
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
