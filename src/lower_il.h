@@ -682,8 +682,9 @@ extern void lower_call(an_expr_node_ptr      expr,
                        a_statement_ptr       statement);
 
 extern void initial_processing_on_destructible_initialization(
-                                          a_dynamic_init_ptr dip,
-                                          an_insert_location *insert_location);
+                                     a_dynamic_init_ptr dip,
+                                     a_variable_ptr     *partial_aggr_cond_var,
+                                     an_insert_location *insert_location);
 
 extern void begin_object_lifetime(
                               an_object_lifetime_ptr lifetime,
