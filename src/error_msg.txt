@@ -878,7 +878,7 @@ ec_union_already_initialized;;"only one member of a union may be specified in a 
 ec_no_array_new_and_delete_support;;"support for \"new[]\" and \"delete[]\" is disabled"
 ec_double_for_long_double;;"\"double\" used for \"long double\" in generated C code"
 ec_no_corresponding_delete;;"%n has no corresponding operator delete%s (to be called if an exception is thrown during initialization of an allocated object)"
-ec_useless_placement_delete;;"useless placement-delete declaration"
+ec_useless_placement_delete;;"support for placement delete is disabled"
 ec_no_appropriate_delete;;"no appropriate operator delete is visible"
 ec_ptr_or_ref_to_incomplete_type;;"pointer or reference to incomplete type is not allowed"
 ec_bad_partial_specialization;;"invalid partial specialization -- %n is already fully specialized"
