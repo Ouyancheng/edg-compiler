@@ -4315,13 +4315,13 @@ table.
          the class definition (9.5.2).   This makes the static data member
          usable as a member constant.  Note that the variable entry will
          have an initializer but it is not yet considered defined. */
-      a_constant_ptr  cp = alloc_constant((a_constant_repr_kind)ck_error);
+      a_constant constant;
       /* Advance past the "=". */
       (void)get_token();
       /* Scan the constant expression. */
-      scan_member_constant_initializer_expression(member_type, cp);
+      scan_member_constant_initializer_expression(member_type, &constant);
       var->init_kind = (an_init_kind)initk_static;
-      var->initializer.constant = cp;
+      var->initializer.constant = alloc_unshared_constant(&constant);
       /* Set the flag indicating to the back end that, even though there is
          an initializer for this variable entry, it has not necessarily been
          defined. */
