@@ -170,6 +170,7 @@ extern void form_name(a_source_correspondence               *scp,
                       an_il_entry_kind                      kind,
                       an_il_to_str_output_control_block_ptr octl);
 
+extern
 void form_unqualified_name(a_source_correspondence               *scp,
                            an_il_entry_kind                      entry_kind,
                            an_il_to_str_output_control_block_ptr octl);
