@@ -8653,6 +8653,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(opname_symbol_table),
       pch_saved_var_array_elem(scope_stack),
       pch_saved_var_array_elem(size_scope_stack),
+      pch_saved_var_array_elem(next_scope_number),
       pch_saved_var_array_elem(symbol_table),
       pch_saved_var_array_elem(anonymous_parent_object_symbol_header),
       pch_saved_var_array_elem(avail_access_error_descrs),
