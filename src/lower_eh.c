@@ -3572,15 +3572,11 @@ is not passed through).
   /* Make a rethrow. */
   rethrow_node = make_rethrow_call();
   /* Make (catch-expr, rethrow). */
-  catch_expr->next = rethrow_node;
-  catch_plus_rethrow = make_operator_node((an_expr_operator_kind)eok_comma,
-                                          rethrow_node->type, catch_expr);
+  catch_plus_rethrow = make_comma_node(catch_expr, rethrow_node);
   /* Add a zero constant cast to void after the rethrow to give the
      expression void type. */
   zero_node = zero_cast_to_void();
-  catch_plus_rethrow->next = zero_node;
-  catch_plus_rethrow = make_operator_node((an_expr_operator_kind)eok_comma,
-                                          zero_node->type, catch_plus_rethrow);
+  catch_plus_rethrow = make_comma_node(catch_plus_rethrow, zero_node);
   /* Make (setjmp(...)==0) ? (void)try_expr : (catch_expr, rethrow, (void)0) */
   /* Cast try_expr to void since its value is discarded. */
   try_expr = add_cast_if_necessary(try_expr, void_type());

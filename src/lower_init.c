@@ -1642,9 +1642,7 @@ is completed; if it is NULL, the storage is not freed.
     call_node = make_internal_try_expr(call_node, delete_call);
     /* Add a comma expression to get the value returned from the call as
        the value of the overall expression. */
-    call_node->next = temp_value;
-    call_node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                   temp_value->type, call_node);
+    call_node = make_comma_node(call_node, temp_value);
   }  /* if */
   return call_node;
 }  /* make_placement_array_new_call */
@@ -4830,9 +4828,7 @@ The subtree of the node has not yet been lowered.
     call_node = make_delete_call(delete_routine, ndsp->type, ptr_node);
     if (dip != NULL) {
       /* Finish the destructor case by building the comma node. */
-      dtor_call_node->next = call_node;
-      call_node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                     call_node->type, dtor_call_node);
+      call_node = make_comma_node(dtor_call_node, call_node);
     }  /* if */
     /* Overwrite the enk_new_delete node with the final expression. */
     overwrite_node(expr, call_node);
@@ -5643,9 +5639,7 @@ constructor scope, and also lower the user code.
              (this = new_rout(size), (exception_code, this))
         */
         this_param_node = var_rvalue_expr(this_param_var);
-        assign_node->next = this_param_node;
-        assign_node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                         this_param_node->type, assign_node);
+        assign_node = make_comma_node(assign_node, this_param_node);
         set_expr_insert_location(this_param_node, &expr_insert_location);
         /* Make a dynamic initialization entry that describes the deletion. */
         dyn_init_to_free_storage =

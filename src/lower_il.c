@@ -1601,6 +1601,23 @@ still pointer to member and therefore doesn't look promotable.
   return expr;
 }  /* integral_promote_pm_node */
 
+
+an_expr_node_ptr make_comma_node(an_expr_node_ptr expr1,
+                                 an_expr_node_ptr expr2)
+/*
+Make a comma expression node with the indicated two expressions as its
+operands, and return a pointer to it.
+*/
+{
+  an_expr_node_ptr comma_node;
+
+  expr1->next = expr2;
+  expr2->next = NULL;
+  comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
+                                  expr2->type, expr1);
+  return comma_node;
+}  /* make_comma_node */
+
 #if DO_FULL_PORTABLE_EH_LOWERING
 
 an_expr_node_ptr array_var_lvalue_expr(a_variable_ptr var)
@@ -5475,9 +5492,7 @@ used as an lvalue if is_lvalue is TRUE.
       assign_node = make_operator_node((an_expr_operator_kind)eok_sassign,
                                        temp_var->type, temp_node);
       /* Make "(temp = pmf, (temp.i != 0) ? temp.d += offset : 0)". */
-      assign_node->next = question_node;
-      comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                       question_node->type, assign_node);
+      comma_node = make_comma_node(assign_node, question_node);
       /* Overwrite the original node with a "," operator to make the
          full expression. */
       comma_node->next = var_rvalue_expr(temp_var);
@@ -5697,9 +5712,7 @@ Those operations set the lvalue to true instead of incrementing.
     x_lvalue_copy->next = one_node;
     assign_node = make_operator_node((an_expr_operator_kind)eok_iassign,
                                      x_rvalue->type, x_lvalue_copy);
-    x_rvalue->next = assign_node;
-    comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                    assign_node->type, x_rvalue);
+    comma_node = make_comma_node(x_rvalue, assign_node);
     comma_node->next = x_rvalue_copy;
     set_node_operator(expr, (an_expr_operator_kind)eok_comma,
                       x_rvalue_copy->type, comma_node);
@@ -6084,14 +6097,8 @@ the expression have already been lowered.
                                                mptr_f_field);
     /* Combine the three expressions that make up the virtual function
        processing code. */
-    vtbl_temp_assign_node->next = this_increment_node;
-    comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                    this_increment_node->type,
-                                    vtbl_temp_assign_node);
-    comma_node->next = vtbl_f_value;
-    comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                    vtbl_f_value->type,
-                                    comma_node);
+    comma_node = make_comma_node(vtbl_temp_assign_node, this_increment_node);
+    comma_node = make_comma_node(comma_node, vtbl_f_value);
     /* Assemble the "?:" operator. */
     compare_node->next = select_f_node;
     select_f_node->next = comma_node;
@@ -6112,11 +6119,8 @@ the expression have already been lowered.
                                             func_temp_node);
     /* Combine the assignment to this_temp and the assignment to
        func_temp into one expression using a comma operator. */
-    this_temp_assign_node->next = func_temp_assign_node;
-    this_temp_assign_node = make_operator_node(
-                                              (an_expr_operator_kind)eok_comma,
-                                              ptr_routine_type,
-                                              this_temp_assign_node);
+    this_temp_assign_node = make_comma_node(this_temp_assign_node,
+                                            func_temp_assign_node);
     /* Get the address of the function from func_temp for the call. */
     func_addr_node = var_rvalue_expr(func_temp_var);
   }  /* if */
