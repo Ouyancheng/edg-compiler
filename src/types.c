@@ -5368,13 +5368,13 @@ well as C++ mode.
     /* Cannot cast to an incomplete type. */
     /* okay = FALSE; -- already set. */
   } else if (is_pointer(source_type) && is_integral(dest_type) &&
-             (C_mode() || microsoft_mode ||
+             (C_mode() || microsoft_mode || gnu_mode ||
               dest_of_ptr_cast_big_enough(source_type, dest_type))) {
     /* Pointer --> integral is okay
          -- In C mode, always (size of destination is not an issue; see
             6.3.4 in the ISO C89 standard)
          -- In C++ mode, if (a) the integer is big enough or (b) it's
-            not big enough but we're compiling in Microsoft mode. */
+            not big enough but we're compiling in Microsoft or GNU mode. */
     okay = TRUE;
     if (!dest_of_ptr_cast_big_enough(source_type, dest_type)) {
       /* The destination is not large enough to hold all of the bits
@@ -5534,11 +5534,14 @@ set to TRUE (otherwise it is set to FALSE).
                               source_type, dest_type,
                               &reinterpret_cast_warning_suggested) != FALSE;
       if (reinterpret_cast_okay &&
-          reinterpret_cast_warning_suggested == ec_no_error) {
+          (reinterpret_cast_warning_suggested == ec_no_error ||
+           reinterpret_cast_warning_suggested ==
+                                           ec_pointer_conversion_loses_bits)) {
         /* The conversion can be done as a reinterpret_cast, without a
-           warning. */
+           warning or with a mild warning. */
         okay = TRUE;
         *reinterpret_cast_needed = TRUE;
+        *warning_suggested = reinterpret_cast_warning_suggested;
       } else if (static_cast_okay) {
         /* static_cast is okay but with a warning. */
         okay = TRUE;

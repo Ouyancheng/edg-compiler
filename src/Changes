@@ -1,5 +1,10 @@
 Version 3.2
 
+3/5/03   GNU C++ mode: cast from pointer to smaller integer allowed
+
+In GNU C++ mode, a cast from a pointer type to an integer type that
+is smaller than the pointer type is now allowed, with a warning.
+
 3/5/03   GNU C and C++ modes: nonstandard casts allowed in null pointer
          constants
 
