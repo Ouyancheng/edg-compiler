@@ -5880,8 +5880,10 @@ This routine is called only in C++ mode.
         /* Error case. */
         opname = (an_opname_kind)onk_none;
       }  /* if */
-    } else if (opname == (an_opname_kind)onk_new ||
-               opname == (an_opname_kind)onk_delete) {
+#if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
+    } else if (array_new_and_delete_enabled &&
+               (opname == (an_opname_kind)onk_new ||
+                opname == (an_opname_kind)onk_delete)) {
       /* See if this is really new[] or delete[].  If so, adjust the opname. */
       if (next_two_tokens(tok_lbracket, &second_token) &&
           second_token == tok_rbracket) {
@@ -5892,6 +5894,7 @@ This routine is called only in C++ mode.
                     (an_opname_kind)onk_array_new :
                     (an_opname_kind)onk_array_delete;
       }  /* if */
+#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
     }  /* if */
     if (opname == (an_opname_kind)onk_none ||
         opname == (an_opname_kind)onk_question) {
