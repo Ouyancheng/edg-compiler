@@ -400,8 +400,8 @@ Comments in asm functions are saved along with the normal tokens.
 
 static a_statement_ptr scan_asm_function_body(void)
 /*
-Scan the body of an asm function.  An
-stmk_asm statement is returned to the caller.
+Scan the body of an asm function.  An stmk_asm_func_body statement is
+returned to the caller.
 */
 {
   a_statement_ptr    stmt;
