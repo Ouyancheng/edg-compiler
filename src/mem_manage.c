@@ -1078,7 +1078,7 @@ memory or with an IL file.
     if (scope->kind == (a_scope_kind)sck_function) {
 #if MAINTAIN_NEEDED_FLAGS
       if (okay_to_eliminate_unneeded_il_entries &&
-          !scope->variant.routine.ptr->source_corresp.needed) {
+          !il_entry_prefix_of(scope).keep_in_il) {
         /* This is the memory region for a function scope that may not be
            needed.  As an optimization to keep the IL file from growing too
            large, don't write it out.  If we later discover that it's needed,
