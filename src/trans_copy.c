@@ -573,6 +573,94 @@ Eliminate the body of the indicated routine.
 }  /* clear_body_for_routine */
 
 
+static a_boolean befriending_lists_need_to_be_merged(
+                                                  a_class_list_entry_ptr list1,
+                                                  a_class_list_entry_ptr list2)
+/*
+Return TRUE if the indicated befriending_classes lists are not identical
+and therefore require merging.
+*/
+{
+  a_boolean need_merge = FALSE;
+
+  if (list1 != NULL || list2 != NULL) {
+    a_class_list_entry_ptr clep1, clep2;
+    /* Try a first pass on the assumption that the entries will be in the
+       same order.  list1 and list2 are updated to point past the initial
+       matching sequence, if any. */
+    for (;
+         list1 != NULL && list2 != NULL;
+         list1 = list1->next, list2 = list2->next) {
+      if (!identical_types(list1->class_type, list2->class_type)) break;
+    }  /* for */
+    if (list1 == NULL && list2 == NULL) {
+      /* The lists matched up in the same order. */
+      /* need_merge = FALSE;  -- already set. */
+    } else {
+      /* Try the match in any order on the remaining entries. */
+      for (clep1 = list1; clep1 != NULL; clep1 = clep1->next) {
+        for (clep2 = list2; clep2 != NULL; clep2 = clep2->next) {
+          if (identical_types(clep1->class_type, clep2->class_type)) break;
+        }  /* for */
+        if (clep2 == NULL) {
+          need_merge = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return need_merge;
+}  /* befriending_lists_need_to_be_merged */
+
+
+static a_boolean class_befriending_lists_need_to_be_merged(a_type_ptr type1,
+                                                           a_type_ptr type2)
+/*
+Return TRUE if the befriending_classes lists of the two indicated
+classes need to be merged.
+*/
+{
+  a_boolean                   need_merge = FALSE;
+  a_class_type_supplement_ptr ctsp1 =
+                                  type1->variant.class_struct_union.extra_info;
+  a_class_type_supplement_ptr ctsp2 =
+                                  type2->variant.class_struct_union.extra_info;
+
+  check_assertion(ctsp1 != NULL && ctsp2 != NULL);
+  if (befriending_lists_need_to_be_merged(ctsp1->befriending_classes,
+                                          ctsp2->befriending_classes)) {
+    need_merge = TRUE;
+  }  /* if */
+  return need_merge;
+}  /* class_befriending_lists_need_to_be_merged */
+
+
+static a_boolean class_body_should_be_copied(a_type_ptr type,
+                                             a_type_ptr primary_type)
+/*
+Return TRUE if the type "type", in a secondary translation unit, has
+a definition that should be copied onto the type "primary_type", in
+the primary IL.
+*/
+{
+  a_boolean should_copy = FALSE;
+
+  if (class_type_has_body(type)) {
+    if (!class_type_has_body(primary_type)) {
+      /* The class in the secondary translation unit has a body, and the
+         one in the primary translation unit does not, so copy. */
+      should_copy = TRUE;
+    } else if (type->variant.class_struct_union.is_specialized &&
+               !primary_type->variant.class_struct_union.is_specialized) {
+      /* The class in the secondary translation unit is a specialization,
+         and the one the primary translation unit is not, so copy. */
+      should_copy = TRUE;
+    }  /* if */
+  }  /* if */
+  return should_copy;
+}  /* class_body_should_be_copied */
+
+
 static a_boolean type_should_be_merged(a_type_ptr type)
 /*
 Return TRUE if the indicated type, which has a corresponding type in the
@@ -582,16 +670,22 @@ primary IL, should be merged into that type.
   a_boolean  merge = FALSE;
   a_type_ptr corresp_type = (a_type_ptr)canonical_il_entry_of(type);
 
-  if ((is_immediate_class_type(type) &&
-       class_type_has_body(type) &&
-       !class_type_has_body(corresp_type)) ||
-      (is_immediate_enum_type(type) &&
-       !is_incomplete_type(type) &&
-       is_incomplete_type(corresp_type))) {
-    /* This type is a struct, union, class, or enum with a definition,
-       and the corresponding type has no definition.  Therefore the
-       definition must be merged into the corresponding type. */
-    merge = TRUE;
+  if (is_immediate_class_type(type)) {
+    if (class_body_should_be_copied(type, corresp_type)) {
+      /* The class definition needs to be copied to corresp_type. */
+      merge = TRUE;
+    } else if (!C_mode() &&
+               class_befriending_lists_need_to_be_merged(type, corresp_type)) {
+      /* The befriending lists of the classes need to be merged. */
+      merge = TRUE;
+    }  /* if */
+  } else if (is_immediate_enum_type(type)) {
+    if (!is_incomplete_type(type) && is_incomplete_type(corresp_type)) {
+      /* This type is an enum with a definition, and the corresponding type
+         has no definition.  Therefore the definition must be merged into
+         the corresponding type. */
+      merge = TRUE;
+    }  /* if */
   }  /* if */
   return merge;
 }  /* type_should_be_merged */
@@ -624,6 +718,33 @@ in the primary IL, should be merged into that variable.
 }  /* variable_should_be_merged */
 
 
+static a_boolean routine_body_should_be_copied(a_routine_ptr routine,
+                                               a_routine_ptr primary_routine)
+/*
+Return TRUE if the routine "routine", in a secondary translation unit, has
+a definition that should be copied onto the routine "primary_routine", in
+the primary IL.
+*/
+{
+  a_boolean should_copy = FALSE;
+
+  if (routine->assoc_scope != NULL_region_number) {
+    if (primary_routine->assoc_scope == NULL_region_number) {
+      /* This routine has a definition, and the corresponding routine
+         has no definition.  Therefore the definition must be merged into
+         the corresponding routine. */
+      should_copy = TRUE;
+    } else if (routine->is_specialized && !primary_routine->is_specialized) {
+      /* This routine has a definition that is a specialization, and the
+         other routine has a definition that is not a specialization.
+         Copy this definition over to the corresponding routine. */
+      should_copy = TRUE;
+    }  /* if */
+  }  /* if */
+  return should_copy;
+}  /* routine_body_should_be_copied */
+
+
 static a_boolean routine_should_be_merged(
                                     a_routine_ptr routine,
                                     a_boolean     *any_removed_function_bodies)
@@ -638,22 +759,22 @@ any_removed_function_bodies is NULL, that deletion is suppressed.
   a_boolean     merge = FALSE;
   a_routine_ptr corresp_routine= (a_routine_ptr)canonical_il_entry_of(routine);
 
-  if (routine->assoc_scope != NULL_region_number) {
-    if (corresp_routine->assoc_scope == NULL_region_number) {
-      /* This routine has a definition, and the corresponding routine
-         has no definition.  Therefore the definition must be merged into
-         the corresponding routine. */
-      merge = TRUE;
-    } else if (routine->is_specialized && !corresp_routine->is_specialized) {
-      /* This routine has a definition that is a specialization, and the
-         other routine has a definition that is not a specialization.
-         Copy this definition over to the corresponding routine. */
-      merge = TRUE;
-    } else if (any_removed_function_bodies != NULL) {
-      /* Both instances have definitions.  Eliminate the body of this copy. */
-      clear_body_for_routine(routine);
-      *any_removed_function_bodies = TRUE;
-    }  /* if */
+  if (routine_body_should_be_copied(routine, corresp_routine)) {
+    /* The routine definition needs to be copied to corresp_routine. */
+    merge = TRUE;
+  } else if (any_removed_function_bodies != NULL &&
+             routine->assoc_scope != NULL_region_number &&
+             corresp_routine->assoc_scope != NULL_region_number) {
+    /* Both instances have definitions.  Eliminate the body of this copy. */
+    clear_body_for_routine(routine);
+    *any_removed_function_bodies = TRUE;
+  }  /* if */
+  if (!C_mode() && !merge &&
+      befriending_lists_need_to_be_merged(
+                                       routine->befriending_classes,
+                                       corresp_routine->befriending_classes)) {
+    /* The befriending lists of the routines need to be merged. */
+    merge = TRUE;
   }  /* if */
   return merge;
 }  /* routine_should_be_merged */
@@ -884,6 +1005,11 @@ the lists.
            as we look at the members. */
         keep_on_parent_list = FALSE;
         check_member_merges = TRUE;
+        /* Check for other reasons to do a merge, e.g., befriending lists. */
+        if (type_should_be_merged(class_type)) {
+          keep_on_parent_list = TRUE;
+          mark_to_merge(class_type);
+        }  /* if */
       }  /* if */
     }  /* if */
     pointers_block = NULL;
@@ -1292,6 +1418,61 @@ primary file IL.
 }  /* move_to_end_of_primary_file_types_list */
 
 
+static void merge_befriending_classes_lists(a_class_list_entry_ptr *plist1,
+                                            a_class_list_entry_ptr list2)
+/*
+Merge the befriending lists pointed to by *plist1 and plist2, and
+update *plist1 to point to the merged list.
+*/
+{
+  a_class_list_entry_ptr clep1, clep2, clep2_next, list1 = *plist1;
+
+  for (clep2 = list2; clep2 != NULL; clep2 = clep2_next) {
+    clep2_next = clep2->next;
+    for (clep1 = list1; clep1 != NULL; clep1 = clep1->next) {
+      if (clep1->class_type == clep2->class_type) break;
+    }  /* for */
+    if (clep1 == NULL) {
+      /* Add the entry from clep2 to the *plist1 list. */
+      clep2->next = *plist1;
+      *plist1 = clep2;
+    }  /* if */
+  }  /* for */
+}  /* merge_befriending_classes_lists */
+
+
+static void merge_class_details(a_type_ptr type,
+                                a_type_ptr primary_type)
+/*
+The class primary_type (in the primary IL) has just been overwritten by,
+or is otherwise being merged with, the class "type" from a secondary
+translation unit.  Do merging of minor information.
+*/
+{
+  a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+  a_class_type_supplement_ptr primary_ctsp =
+                           primary_type->variant.class_struct_union.extra_info;
+
+  check_assertion(ctsp != NULL && primary_ctsp != NULL);
+  merge_befriending_classes_lists(&primary_ctsp->befriending_classes,
+                                  ctsp->befriending_classes);
+}  /* merge_class_details */
+
+
+static void merge_routine_details(a_routine_ptr rout,
+                                  a_routine_ptr primary_rout)
+/*
+The routine primary_rout (in the primary IL) has just been overwritten by,
+or is otherwise being merged with, the routine rout from a secondary
+translation unit.  Do merging of minor information.
+*/
+{
+  merge_befriending_classes_lists(&primary_rout->befriending_classes,
+                                  rout->befriending_classes);
+}  /* merge_routine_details */
+
+
 /*
 Macros that do saves/restores needed for each overwrite_primary_xxx
 routine, used when an IL entry in the secondary translation unit
@@ -1342,9 +1523,20 @@ Overwrite the type primary_type (in the primary IL) with type (in
 the secondary translation unit IL).
 */
 {
+  a_boolean                   is_class = is_immediate_class_type(type);
+  a_class_list_entry_ptr      saved_befriending_classes;
+  a_class_type_supplement_ptr primary_ctsp;
   do_saves_for_overwrite(primary_type, a_type_ptr);
+  if (is_class) {
+    primary_ctsp = primary_type->variant.class_struct_union.extra_info;
+    saved_befriending_classes = primary_ctsp->befriending_classes;
+  }  /* if */
   *primary_type = *type;
   do_restores_for_overwrite(primary_type, type);
+  if (is_class) {
+    primary_ctsp = primary_type->variant.class_struct_union.extra_info;
+    primary_ctsp->befriending_classes = saved_befriending_classes;
+  }  /* if */
 }  /* overwrite_primary_type */
 
 
@@ -1391,6 +1583,8 @@ the secondary translation unit IL).
                             (primary_rout->assoc_scope != NULL_region_number) ?
                                            primary_rout->suppress_inline_body :
                                            rout->suppress_inline_body;
+  a_class_list_entry_ptr saved_befriending_classes =
+                                             primary_rout->befriending_classes;
   do_saves_for_overwrite(primary_rout, a_routine_ptr);
 #if MAINTAIN_NEEDED_FLAGS
   /* Eliminate any default argument object lifetimes associated with the
@@ -1409,6 +1603,7 @@ the secondary translation unit IL).
   primary_rout->inline_instance_required = saved_inline_instance_required;
 #endif /* INSTANTIATE_EXTERN_INLINE */
   primary_rout->suppress_inline_body = saved_suppress_inline_body;
+  primary_rout->befriending_classes = saved_befriending_classes;
 }  /* overwrite_primary_routine */
 
 
@@ -1475,19 +1670,25 @@ secondary scope to the primary file IL.
             last_type->next = corresp_type;
           }  /* if */
         } else {
+          /* The entry gets merged into the corresponding type. */
           a_type_ptr primary_type =
                (a_type_ptr)checked_trans_unit_corresp_pointer_of(corresp_type);
-          /* If both copies have a definition, leave the primary definition
-             alone.  The class was presumably marked to be merged because
-             some of its member definitions needed to be merged. */
-          if (is_immediate_class_type(primary_type) &&
-              class_type_has_body(primary_type)) goto end_of_type_list_add;
-          /* Merge the information from this type into the primary IL type
-             (the secondary translation unit instance has a definition and
-             the primary translation unit instance does not).  Move the
-             primary IL type to the end of the types list so that it
-             appears on the list at the point where the definition
-             appears.  Class members are not moved to the end of the list. */
+          if (is_immediate_class_type(corresp_type)) {
+            merge_class_details(corresp_type, primary_type);
+            if (!class_body_should_be_copied(corresp_type, primary_type)) {
+              /* No overwriting is needed, so we're done.  This happens,
+                 for example, when the only reason for merging is to merge
+                 the befriending lists, or when the class is marked to be
+                 merged because some of its members need to be merged. */
+              goto end_of_type_list_add;
+            }  /* if */
+            check_assertion(class_type_has_body(corresp_type));
+          }  /* if */
+          /* Copy this type and its definition, overwriting the
+             existing primary type.  Move the primary IL type
+             to the end of the types list so that it appears on
+             the list at the point where the definition appears.
+             Class members are not moved to the end of the list. */
           if (!is_class_scope) {
             move_to_end_of_primary_file_types_list(primary_type);
           }  /* if */
@@ -1617,16 +1818,19 @@ end_of_variable_list_add:;
         a_routine_ptr corresp_routine =
                  (a_routine_ptr)checked_trans_unit_corresp_pointer_of(routine);
         if (entry_to_be_merged(routine)) {
-          /* Merge the information from this routine into the primary IL
-             routine (the secondary translation unit instance has a
-             definition and the primary translation unit instance does not).
-             Move the primary IL routine to the end of the routines list
-             so that it appears on the list at the point where the
-             definition appears.  Class members are not moved to the
-             end of the list. */
+          /* The entry gets merged into the corresponding type. */
           a_routine_ptr primary_routine =
                    (a_routine_ptr)checked_trans_unit_corresp_pointer_of(
                                                               corresp_routine);
+          merge_routine_details(corresp_routine, primary_routine);
+          if (!routine_body_should_be_copied(corresp_routine,
+                                             primary_routine)) {
+            /* No overwriting is needed, so we're done.  This happens,
+               for example, when the only reason for merging is to merge
+               the befriending lists. */
+            goto end_of_routine_list_add;
+          }  /* if */
+          check_assertion(corresp_routine->assoc_scope != NULL_region_number);
           if (primary_routine->assoc_scope != NULL_region_number) {
             /* Eliminate the body of the primary routine (this happens when
                the secondary has a specialization and the primary does not). */
@@ -1639,6 +1843,11 @@ end_of_variable_list_add:;
               clear_body_for_routine(primary_routine);
             }  /* if */
           }  /* if */
+          /* Copy this routine and its definition, overwriting the
+             existing primary routine.  Move the primary IL routine
+             to the end of the routines list so that it appears on
+             the list at the point where the definition appears.
+             Class members are not moved to the end of the list. */
           if (!is_class_scope) {
             remove_from_primary_file_routines_list(primary_routine);
             last_routine = pointers_block->last_routine;
