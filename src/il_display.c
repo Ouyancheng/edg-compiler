@@ -3464,6 +3464,16 @@ where file.cil specifies the IL file.  Output is to stdout.
 }  /* main */
 #endif /* STANDALONE_IL_DISPLAY */
 
+#else /* !NEED_IL_DISPLAY */
+
+#ifdef USING_QUANTIFY
+/*
+Quantify has a bug that causes an error when an empty object file is used.
+When using quantify, generate a dummy variable.
+*/
+char quantify_dummy_in_il_display;
+#endif /* defined(USING_QUANTIFY) */
+
 #endif /* NEED_IL_DISPLAY */
 
 /******************************************************************************
