@@ -1,5 +1,15 @@
 Version 3.4
 
+1/11/04  Abort in pm_class_type, with RECORD_CONSTANT_EXPRESSIONS_IN_IL and
+         IL lowering
+
+In a configuration with DO_IL_LOWERING and RECORD_CONSTANT_EXPRESSIONS_IN_IL
+both TRUE, an abort could happen when the IL walk routines walked the
+unlowered expression attached to a lowered constant and encountered
+a lowered dpointer-to-member type attached to an unlowered
+pointer-to-member operation.  The abort was in pm_class_type,
+called from walk_entry.h/il_walk.c.  Now fixed.
+
 1/9/04   GNU C mode: abort on incorrect array initializer
 
 The front end aborted on certain incorrect array initializers in

@@ -374,6 +374,14 @@ necessary.
 { if (clear_fe_pointers_during_walk) (ptr) = NULL; }
 #endif /* NEEDED_FLAG_WALK && ... */
 
+#if DO_IL_LOWERING
+/* We need pm_class_type_possibly_lowered. */
+#include "lower_il.h"
+#else /* !DO_IL_LOWERING */
+/* No lowering, so use pm_class_type for pm_class_type_possibly_lowered. */
+#define pm_class_type_possibly_lowered(x) pm_class_type(x)
+#endif /* DO_IL_LOWERING */
+
 #undef remap_source_sequence_entry
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
 #define remap_source_sequence_entry(ptr) \
@@ -636,7 +644,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                      a_name_reference_ptr, iek_name_reference);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
-            set_proper_definition_needed_flag(pm_class_type(ptr->type));
+            set_proper_definition_needed_flag(
+                                    pm_class_type_possibly_lowered(ptr->type));
             if (ptr->variant.ptr_to_member.cast_to_base) {
               /* On a cast from a derived to a base class, mark the derived
                  class's definition as needed. */
@@ -1267,12 +1276,12 @@ cast_source_type_must_be_pointer_to_complete_class:
                   goto do_set_proper_definition_needed_flag;
                 case eok_pm_base_class_cast:
                   /* First operand is a pointer to member. */
-                  optype = pm_class_type(op1_type);
+                  optype = pm_class_type_possibly_lowered(op1_type);
                   goto do_set_proper_definition_needed_flag;
                 case eok_pm_derived_class_cast:
                   /* Destination class (pointed to by result type) must be
                      complete. */
-                  optype = pm_class_type(ptr->type);
+                  optype = pm_class_type_possibly_lowered(ptr->type);
 do_set_proper_definition_needed_flag:
                   set_proper_definition_needed_flag(optype);
                   break;

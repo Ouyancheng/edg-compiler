@@ -1295,7 +1295,7 @@ its member type.
 }  /* pm_member_type_possibly_lowered */
 
 
-static a_type_ptr pm_class_type_possibly_lowered(a_type_ptr type)
+a_type_ptr pm_class_type_possibly_lowered(a_type_ptr type)
 /*
 type is (or was, before lowering) a pointer-to-member type.  Get and return
 its class type.
