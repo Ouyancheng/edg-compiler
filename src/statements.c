@@ -2256,10 +2256,17 @@ a structured statement has ended.
     }  /* if */
   } else {
     /* Non-loop statement. */
-    if (kind == ssk_switch && !sssep->switch_has_default_clause) {
-      /* Switch statement without a default.  If the initial statement
-         can be reached, the end can be reached. */
-      merge_reachability(&sssep->start_reachable, &sssep->end_reachable);
+    if (kind == ssk_switch) {
+      if (!sssep->switch_has_default_clause) {
+        /* Switch statement without a default.  If the initial statement
+           can be reached, the end can be reached. */
+        merge_reachability(&sssep->start_reachable, &sssep->end_reachable);
+      } else {
+        /* Switch statement with a default.  If the end of the default clause
+           is reachable (curr_reachability), then the end of the switch can
+           be reached. */
+        merge_reachability(&curr_reachability, &sssep->end_reachable);
+      }  /* if */
     } else if (kind == ssk_if && sp->variant.if_stmt.else_statement == NULL &&
                !is_true_constant_expr(sp->expr)) {
       /* If without an else, except "if (1) ...".  If the initial statement
