@@ -9752,12 +9752,16 @@ information is the easiest way to know the associated class for those.
 }  /* clear_parent_info_on_file_scope_routines */
 
 
+#if !(NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR)
+/*ARGSUSED*/
+#endif /* !(NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR) */
 static void do_class_lowering_wrapup(a_scope_ptr scope)
 /*
 Do any wrapup processing on classes that has to wait until the very
 end of the lowering process for a memory region.
 */
 {
+#if NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR 
   a_type_ptr  type;
   a_scope_ptr block_scope;
 
@@ -9771,7 +9775,6 @@ end of the lowering process for a memory region.
   for (type = scope->types; type != NULL; type = type->next) {
     if (is_immediate_class_type(type)) {
       /* Found a class type. */
-#if NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR 
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
@@ -9780,7 +9783,6 @@ end of the lowering process for a memory region.
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
       ctsp->assoc_operator_delete_routine = NULL;
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR */
     }  /* if */
   }  /* for */
   /* Visit all block scopes. */
@@ -9789,6 +9791,7 @@ end of the lowering process for a memory region.
        block_scope = block_scope->next) {
     do_class_lowering_wrapup(block_scope);
   }  /* for */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR */
 }  /* do_class_lowering_wrapup */
 
 
