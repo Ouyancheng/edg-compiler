@@ -325,7 +325,7 @@ extern void add_to_text_buffer(a_text_buffer_ptr	buffer,
 Add the specified string to a text buffer.
 */
 #define add_string_to_text_buffer(buffer, string)			\
-  (add_to_text_buffer(buffer, string, size_t_arg(strlen(string))))
+  (add_to_text_buffer(buffer, string, (sizeof_t)(strlen(string))))
 
 /*
 Make sure that the specified buffer has at least "length" total bytes in it.
