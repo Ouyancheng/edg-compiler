@@ -9782,7 +9782,9 @@ to be returned to the caller.
   a_symbol_ptr         rout_sym;
   a_member_decl_info   decl_info;
   a_boolean            is_member_template_rescan;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean            any_decl_other_than_nonstatic_data_member = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "class_member_declaration");
   *skip_semicolon_check = FALSE;
@@ -9876,7 +9878,9 @@ to be returned to the caller.
       goto next_declaration;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   any_decl_other_than_nonstatic_data_member = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* A declarator list should be present.  Scan it. */
   do {
     a_symbol_locator                  locator;
@@ -10440,9 +10444,11 @@ to be returned to the caller.
         }  /* if */
       }  /* if */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (!is_nonstatic_data_member) {
       any_decl_other_than_nonstatic_data_member = TRUE;
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     remove_stop_token(tok_comma);
     decl_info.is_first_in_declarator_list = FALSE;
     /* Loop for additional declarators. */
