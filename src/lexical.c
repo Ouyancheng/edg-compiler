@@ -4440,7 +4440,7 @@ curr_source_line is resized.
   /* Step through the characters of the source line, stepping over
      multibyte character sequences. */
   for (ptr = curr_source_line+offset;; ptr += numch, offset += numch) {
-    numch = mbc_length(ptr, (a_boolean *)NULL);
+    numch = mbc_length_simple(ptr);
     if (ptr + numch > new_char) break;
   }  /* for */
 
@@ -5647,7 +5647,7 @@ normal_comment:
             if (multibyte_chars_in_source_enabled) {
               /* Advance to the next character, dealing with multibyte
                  characters. */
-              curr_char_loc += mbc_length(curr_char_loc, (a_boolean *)NULL);
+              curr_char_loc += mbc_length_simple(curr_char_loc);
             } else
 #endif /* STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
@@ -6399,7 +6399,7 @@ responsible for issuing error messages.
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
       if (multibyte_chars_in_source_enabled) {
         /* Advance to the next character, dealing with multibyte characters. */
-        int numch = mbc_length(curr_char_loc, (a_boolean *)NULL);
+        int numch = mbc_length_simple(curr_char_loc);
         curr_char_loc += numch;
         if (is_wide) {
           nchars++;

@@ -1643,17 +1643,23 @@ the macro need not be defined at all.
 #endif /* ifndef char_may_begin_multibyte_sequence */
 
 /* Return the length of the multibyte character sequence beginning at ptr.
-   If the sequence there is invalid, set *err to TRUE if err is non-NULL,
-   and return 1. */
+   If the sequence there is invalid, set *err to TRUE, and return 1.
+   err must be non-NULL; call mbc_length_simple if you do not need the
+   err parameter. */
 #ifdef char_may_begin_multibyte_sequence
 #define mbc_length(ptr, err) \
   (char_may_begin_multibyte_sequence(*(ptr)) ? \
      f_mbc_length((ptr), (err)) : \
-     (/*lint --e(506) --e(505)*/(((err) != NULL)&&((*(err) = FALSE), 0)), 1))
+     ((*(err) = FALSE), 1))
+#define mbc_length_simple(ptr) \
+  (char_may_begin_multibyte_sequence(*(ptr)) ? \
+     f_mbc_length((ptr), (a_boolean *)NULL) : \
+     1)
 #else /* !defined(char_may_begin_multibyte_sequence) */
 /* The char_may_begin_multibyte_sequence macro is not defined, so just
    call f_mbc_length. */
 #define mbc_length(ptr, err) f_mbc_length((ptr), (err))
+#define mbc_length_simple(ptr) f_mbc_length((ptr), (a_boolean *)NULL)
 #endif /* ifdef char_may_begin_multibyte_sequence */
 extern int f_mbc_length(char *ptr, a_boolean *err);
 /* Convert multibyte character sequence to wide character. */
