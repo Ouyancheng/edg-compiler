@@ -11107,6 +11107,11 @@ the IL, the template header is passed via template_decl.
           decl_info.decl_modifiers.put_property_name != NULL) {
         di_flags |= DI_IS_MICROSOFT_PROPERTY;
       }  /* if */
+      /* Microsoft compilers allow redundant qualifiers when declaring
+         members. */
+      if (microsoft_mode) {
+        di_flags |= DI_QUALIFIED_NAME_ALLOWED;
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
       /* Look for optional attributes, which are added to the prefix

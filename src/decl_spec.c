@@ -3545,6 +3545,11 @@ is a that of a constructor.
            been done. */
         type_mismatch = TRUE;
       }  /* if */
+    } else if (microsoft_mode && locator_for_curr_id.is_qualified_name &&
+               locator_for_curr_id.is_class_member &&
+               !same_entities(locator_for_curr_id.parent.class_type,
+                              class_type->source_corresp.parent.class_type)) {
+      type_mismatch = TRUE;
     }  /* if */
   }  /* if */
   if (name_match || microsoft_mode) {
@@ -3552,7 +3557,7 @@ is a that of a constructor.
        class "A".  This is necessary for curr_token_type_symbol to handle
        this case correctly. */
     (void)simplify_curr_class_qualified_name();
-    if (!locator_for_curr_id.is_qualified_name &&
+    if ((!locator_for_curr_id.is_qualified_name || microsoft_mode) &&
         !locator_for_curr_id.is_conversion_name &&
         !locator_for_curr_id.is_operator_name) {
       if (!cache_in_use) {
