@@ -1540,6 +1540,8 @@ The result is placed in *result.
       }  /* if */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     } else {
+      /* The field-selection operation was constant-folded; reconstruct the
+         original expression and record it in the constant: */
       an_operand  result_op;
       copy_operand(operand_1, &result_op);
       make_field_operand(field, &field_operand);
@@ -4622,7 +4624,7 @@ because the feature is used to implement offsetof, a standard feature.
                /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
                /*is_reinterpret_cast=*/FALSE);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  /* There is no IL operator for __INTADDR__; so we cannot really record the
+  /* There is no IL operator for __INTADDR__, so we cannot really record the
      expression that formed the resulting constant. */
   result->variant.constant.expr = NULL;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
@@ -12073,8 +12075,8 @@ Return the constant in *constant.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   /* There is no point in recording the constant expression for a nontype
-     template parameter, because it can differ from one instantion point to
-     another, and we can record only one set. */
+     template argument, because it can differ from one instantion point to
+     another, and we can record only one expression. */
   constant->expr = NULL;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 

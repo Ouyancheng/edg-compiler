@@ -1591,10 +1591,9 @@ typedef struct a_constant {
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   an_expr_node_ptr
                 expr;
-                        /* If the constant is not a preprocessing constant,
-                           and is the result of some operation (on other
-                           constants), this points to an expression node
-                           representing that constant.  Otherwise, NULL. */
+                        /* If the constant is not just a literal this points
+                           to an expression node representing that constant.
+                           Otherwise, NULL. */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #ifdef FIL
                         /* A ck_init_position entry also has a NULL type

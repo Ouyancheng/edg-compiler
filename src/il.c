@@ -3671,8 +3671,7 @@ region).
 #endif /* CHECKING */
           break;
         case abk_constant:
-          has_nfs_ref =
-                  !in_file_scope((char *)cp->variant.address.variant.constant);
+          has_nfs_ref = !in_file_scope(cp->variant.address.variant.constant);
           break;
         case abk_uuidof:
           /* The type pointed to must be in the file scope. */
@@ -3702,7 +3701,9 @@ region).
 #endif /* CHECKING */
   }  /* switch */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  if (!has_nfs_ref && cp->expr != NULL && !in_file_scope((char*)cp->expr)) {
+  if (!has_nfs_ref && cp->expr != NULL && !in_file_scope(cp->expr)) {
+    /* The constant recorded an expression that is not allocated in file
+       scope. */
     has_nfs_ref = TRUE;
   }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */

@@ -4178,6 +4178,9 @@ if possible.  operator_position indicates the operator position.
     make_error_operand(result);
   } else {
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    /* If we are recording the expressions leading to constants in the IL, we
+       can go ahead an build the expression even though it might be folded
+       later on. */
     an_operand  result_expr;
     build_binary_result_operand(operand_1, operand_2, op,
                                 result_type, &result_expr);
@@ -4233,6 +4236,7 @@ if possible.  operator_position indicates the operator position.
         make_error_operand(result);
       } else {
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+        /* We already created an expression for this operand; just copy it. */
         copy_operand(&result_expr, result);
 #else /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
         /* The constant operation was not folded; create an expression
@@ -4257,7 +4261,8 @@ if possible.  operator_position indicates the operator position.
         }  /* if */
       }  /* if */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-    } else if (!curr_expr_kind_is(ek_pp)) {
+    } else if (!(curr_expr_kind_is(ek_pp) ||
+                 curr_expr_kind_is(ek_template_arg))) {
       /* Folding succeeded: record the expression in the constant. */
       result->variant.constant.expr = result_expr.variant.expression;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
@@ -4293,6 +4298,8 @@ position.
       copy_operand(operand, result);
     } else {
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      /* Create an IL representation of the expression.  It will be recorded
+         in a constant if the expression is folded. */
       an_operand  result_expr;
       build_unary_result_operand(operand, op, result_type, &result_expr);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
@@ -4469,6 +4476,7 @@ reference entry, or is NULL if none is needed.
                                     /*set_address_taken_flag=*/FALSE);
       result->type = variable_type;
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      /* Record the lvalue variable expression as IL in the constant. */
       result->variant.constant.expr = var_lvalue_expr(variable);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
@@ -5693,12 +5701,15 @@ non-NULL return *con_value == NULL.
     }  /* if */
   }  /* if */
   if (con_expr_value != NULL) {
-    /* The rvalue has a constant value. */
+    /* The rvalue has a constant value; this must be a const variable. */
+    check_assertion_str(node->kind == enk_variable_address,
+                        "conv_lvalue_expr_to_rvalue: unexpected expression");
     *constant_case = TRUE;
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    /* Record the variable expression in the constant (making sure it is
+       recorded as an rvalue). */
     con_expr_value = alloc_unshared_constant(con_expr_value);
-    con_expr_value->expr = node->kind == enk_variable_address ?
-                             var_rvalue_expr(node->variant.variable) : node;
+    con_expr_value->expr = var_rvalue_expr(node->variant.variable);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     if (con_value != NULL) {
       /* The caller wants the constant instead of an expression node for
@@ -5836,9 +5847,13 @@ not an lvalue, it is left alone.
           if (con_var_value != NULL) {
             /* Replace a constant-valued variable by its value. */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-            /* Save the expression that lead to the constant, and restore it
+            /* Save the expression that led to the constant, and restore it
                when the constant is constructed: */
-            an_expr_node_ptr  constant_expr = var_rvalue_expr(variable);
+            an_expr_node_ptr  constant_expr;
+            if (!(curr_expr_kind_is(ek_pp) ||
+                  curr_expr_kind_is(ek_template_arg))) {
+              constant_expr = var_rvalue_expr(variable);
+            }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
             make_constant_operand(con_var_value, operand);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
