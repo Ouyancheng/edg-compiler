@@ -3211,6 +3211,26 @@ have_cmp:;
   return cmp;
 }  /* compare_standard_conversions */
 
+/*
+Return TRUE if the indicated standard conversion is an identity conversion
+(i.e., no conversion at all, ignoring lvalue-to-rvalue conversions).
+is_ref is TRUE if the parameter has a reference type.  For a reference
+binding, type_qualifiers_added does not indicate a qualification
+conversion.
+*/
+#define is_identity_conversion(is_ref, conv) \
+  (!(conv)->nontrivial_conversion && \
+   ((is_ref) || !(conv)->type_qualifiers_added))
+
+/*
+Return TRUE if the indicated standard conversion is a qualification
+conversion.  is_ref is TRUE if the parameter has a reference type.
+For a reference binding, type_qualifiers_added does not indicate a
+qualification conversion.
+*/
+#define is_qualification_conversion(is_ref, conv) \
+  (!(conv)->nontrivial_conversion && \
+   !(is_ref) && (conv)->type_qualifiers_added)
 
 /*
 Return TRUE if the indicated parameter type is a reference type, or if
@@ -3304,16 +3324,16 @@ apply that would make one better than the other, and return
         /* If one conversion sequence is an identity conversion (i.e.,
            no change at all) and the other has a qualification conversion,
            the identity conversion is a subsequence of the other and is
-           better.  Note that if one of the conversions is an identity
-           conversion the other must have type_qualifiers_added TRUE because
-           of the test above.  Also note that for a reference parameter
-           type_qualifiers_added TRUE does not indicate a qualification
-           conversion. */
-        if (!param2_is_ref &&
-            is_identity_conversion(&arg_match1->conversion.std)) {
+           better. */
+        if (is_identity_conversion(param1_is_ref,
+                                   &arg_match1->conversion.std) &&
+            is_qualification_conversion(param2_is_ref,
+                                        &arg_match2->conversion.std)) {
           cmp = 1;
-        } else if (!param1_is_ref &&
-                   is_identity_conversion(&arg_match2->conversion.std)) {
+        } else if (is_identity_conversion(param2_is_ref,
+                                          &arg_match2->conversion.std) &&
+                   is_qualification_conversion(param1_is_ref,
+                                               &arg_match1->conversion.std)) {
           cmp = -1;
         } else {
           /* Test for adding cv-qualifiers immediately below a reference. */

@@ -1,5 +1,19 @@
 Version 3.1
 
+8/15/02   Fix on fix to overload resolution tiebreaker processing
+
+The fix to overload resolution tiebreaker processing done recently
+(see Changes entry of 6/3/02) was not correct in some cases.
+Now fixed.
+
+  struct vstr  {
+    vstr(unsigned short * const &);  // 1
+    vstr(unsigned short const *);
+    vstr(unsigned short const * &);
+  };
+  static unsigned short *p;
+  static const vstr x = p;  // Should choose 1, got ambiguity previously
+
 8/15/02   Microsoft C++ compatibility: extern inline declarations
 
 In Microsoft C++ mode, inline functions have external linkage by default.
