@@ -7882,6 +7882,9 @@ moreover, several fields of *decl_info may be updated by this routine.
         /* Invalid friend declaration. */
         pos_error(ec_bad_friend_decl, err_pos);
       }  /* if */
+    } else if (decl_info->is_member_template) {
+      /* Function declarator is missing on a member template declaration. */
+      pos_error(ec_bad_member_template_decl, err_pos);
     } else if (dso_flags & DSO_DECLARES_SOMETHING) {
       /* This is a free standing declaration of a class, struct, union, or
          enum type entry.  It will already have been recorded on the types
@@ -7927,13 +7930,6 @@ moreover, several fields of *decl_info may be updated by this routine.
     } else {
       /* A case like "int;" is explicitly disallowed by language in ARM 9.2. */
       pos_error(ec_useless_decl, err_pos);
-    }  /* if */
-    if (decl_info->is_member_template &&
-        (dso_flags & DSO_DEFINES_SOMETHING)) {
-      /* Put the tag symbol into decl_info.  It will be used later in a
-         diagnostic. */
-      decl_info->member_sym = (a_symbol_ptr)(skip_typerefs(member_type))->
-                                                   source_corresp.assoc_info;
     }  /* if */
   } else {
     /* C mode. */
@@ -8824,10 +8820,13 @@ class (prototype instantiation of a class template).
   sym = class_member_declaration(class_type, class_state_ptr,
                                  /*is_member_template=*/TRUE,
                                  &skip_semicolon_check, &dummy_type);
-  if (sym == NULL || sym->is_error) {
-    pos_error(ec_bad_member_template_decl, &decl_start_pos);
+  if (sym == NULL) {
+    /* An error has already been issued. */
+  } else if (sym->is_error) {
+    /* An error has already been issued -- return null. */
     sym = NULL;
   } else if (sym->kind != (a_symbol_kind)sk_function_template) {
+    /* Issue the error and return NULL. */
     pos_sy_error(ec_bad_member_template_sym, &sym->decl_position, sym);
     sym = NULL;
   }  /* if */
