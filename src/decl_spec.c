@@ -4861,9 +4861,16 @@ from decl_specifiers only.
           pos_error(ec_named_address_space_on_function_type, qualifier_pos);
           *qualifiers = simple_qualifiers(*qualifiers);
         } else {
-          a_type_qualifier_set      old_quals = get_type_qualifiers(*type_ptr);
-          a_named_address_space_id  old_nas =
-                             named_address_space_from_qualifier_set(old_quals);
+          a_type_ptr                type = *type_ptr;
+          a_type_qualifier_set      old_quals;
+          a_named_address_space_id  old_nas;
+          if (is_array_type(type)) {
+            /* The qualifiers for an array type are actually applied to the
+               underlying element type. */
+            type = underlying_array_element_type(type);
+          }  /* if */
+          old_quals = get_type_qualifiers(type);
+          old_nas = named_address_space_from_qualifier_set(old_quals);
           if (old_nas != 0) {
             /* Double qualification with a named address space.  If the address
                space is identical, issue a warning; otherwise, an error. */
