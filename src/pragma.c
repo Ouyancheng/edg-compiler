@@ -1056,7 +1056,7 @@ the pragmas.
      declaration or statement. */
   ppp = *curr_list_of_curr_construct_pragmas();
   list_start = ppp;
-  /* Clear the list now so that pragma can be added to this list as
+  /* Clear the list now so that pragmas can be added to this list as
      a consequence of processing the list of pragmas. */
   *curr_list_of_curr_construct_pragmas() = NULL;
   for(; ppp != NULL; ppp = ppp->next) {
