@@ -1,5 +1,13 @@
 Version 3.0
 
+2/25/02  LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C: no "L" suffix on constants
+
+When the LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C option is enabled,
+"long double" is put out as "double" in the C-generating back end.
+One nit that was not done correctly: long double constants should not
+have the "L" suffix -- they should be double constants, with no suffix.
+Now fixed.
+
 2/23/02  Microsoft mode: overload resolution, template constructors
 
 MSVC++ has some quirks related to overload resolution involving
