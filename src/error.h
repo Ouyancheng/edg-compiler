@@ -533,7 +533,8 @@ typedef enum /*an_error_code*/ {
   ec_instantiation_requested_no_definition_supplied,
   ec_instantiation_requested_and_specific_definition,
   ec_no_constructor,
-  ec_template_param_only_used_in_default_args
+  ec_template_param_only_used_in_default_args,
+  ec_no_match_for_type_of_overloaded_function
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -1847,6 +1847,9 @@ error code.
     case ec_template_param_only_used_in_default_args:
       m = "%n1 must be used in a parameter without a default value in %n2";
       break;
+    case ec_no_match_for_type_of_overloaded_function:
+      m = "no instance of %n matches the specified type";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -1146,7 +1146,7 @@ assumed if the return type is omitted.
 	 the specified type. */
       sym = member_function_redecl_sym(sym, type);
       if (sym == NULL) {
-	sym_error(ec_no_matching_function, orig_sym);
+	sym_error(ec_no_match_for_type_of_overloaded_function, orig_sym);
 	err = TRUE;
       } else {
         /* Update the flags for the symbol found. */
@@ -1195,7 +1195,7 @@ assumed if the return type is omitted.
         }  /* if */
       }  /* for */
       if (!any_found) {
-	sym_error(ec_no_matching_function, orig_sym);
+	sym_error(ec_no_match_for_type_of_overloaded_function, orig_sym);
 	err = TRUE;
       } else if (!err) {
         /* Update the flags for the symbol found. */
