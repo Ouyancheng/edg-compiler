@@ -1517,7 +1517,8 @@ called by id_linkage.
       /* Not a context in which lookup in enclosing scopes is meaningful.
          Just check for a prior declaration in the current scope. */
       check_assertion(idlbp->effective_decl_level ==
-                                            depth_innermost_namespace_scope);
+                                            depth_innermost_namespace_scope ||
+                      idlbp->is_friend_decl);
       if (depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
         /* Do the lookup in the file scope. */
         (void)file_scope_id_lookup(locator, IDL_LINKAGE_LOOKUP);
@@ -1873,8 +1874,7 @@ specified id-linkage block.
                   !idlbp->locator->specific_symbol->is_class_member);
   is_function = idlbp->func_info != NULL;
   is_object = !is_function;
-  if (is_error_locator(*idlbp->locator) ||
-      is_or_contains_error_type(idlbp->type)) {
+  if (is_error_locator(*idlbp->locator)) {
     /* Symbol is compiler-generated as a result of an error, so there are
        no other declarations of the same symbol. */
   } else if (is_object && depth_innermost_function_scope != NO_SCOPE_DEPTH &&
