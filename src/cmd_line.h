@@ -1320,6 +1320,12 @@ EXTERN a_boolean
 			   synonym for the global namespace.  This is a
 			   g++ compatibility feature. */
 
+EXTERN a_boolean
+		end_of_line_comments_allowed /* = FALSE */;
+			/* TRUE if "//" is accepted as a comment delimiter
+			   (e.g., in C++, C99, and microsoft modes).  See
+			   also END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE. */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

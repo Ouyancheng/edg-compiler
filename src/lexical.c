@@ -11667,30 +11667,6 @@ are handled in lexical_init.)
                                         RAW_LISTING_BUFFER_INITIAL_ALLOCATION;
     clear_raw_listing_buffer();
   }  /* if */
-  /* Set the variable that controls whether "//" is allowed as a comment
-     delimiter. */
-  if (C_dialect == C_dialect_cplusplus) {
-    /* C++: // comments are allowed. */
-    end_of_line_comments_allowed = TRUE;
-  } else {
-    /* C mode. */
-    if (strict_ansi_mode) {
-      /* Strict ANSI/ISO C: // comments are not allowed. */
-      end_of_line_comments_allowed = FALSE;
-    } else if (C_dialect == C_dialect_pcc) {
-      /* pcc mode: // comments are not allowed. */
-      end_of_line_comments_allowed = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode) {
-      /* Microsoft C mode: // comments are allowed. */
-      end_of_line_comments_allowed = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else {
-      /* Normal C mode. */
-      end_of_line_comments_allowed = END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE;
-    }  /* if */
-  }  /* if */
-
 #if CHECKING
   /* Check that the table of token names is correctly initialized.  This
      guards against someone changing the enumeration and forgetting to

@@ -1319,13 +1319,6 @@ EXTERN a_boolean
 			   character after the first in an identifier.
 			   Also used in scanning pp-numbers. */
 
-EXTERN a_boolean
-		end_of_line_comments_allowed;
-			/* TRUE if "//" is accepted as a comment delimiter.
-			   Always TRUE in C++ mode and Microsoft-compatibility
-			   mode; always FALSE in strict-ANSI-C mode; otherwise,
-			   see END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE. */
-
 /*
 Structure used to record information about a pp token in a token cache.
 */

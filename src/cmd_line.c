@@ -1255,6 +1255,8 @@ by a command line option.
   if (!option_kind_used[(int)optk_allow_dollar_in_id_chars]) {
     allow_dollar_in_id_chars = TRUE;
   }  /* if */
+  /* '//' is accepted as a comment delimiter in both C and C++. */
+  end_of_line_comments_allowed = TRUE;
   if (!C_mode()) {
     /* Microsoft C++ mode. */
     if (!option_kind_used[(int)optk_bool_is_keyword]) {
@@ -1456,6 +1458,42 @@ static int	argc_file_list;
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
 
 
+static void set_c99_mode_flags(void)
+/*
+Set the various flags appropriate to C99 mode.
+*/
+{
+#if VLA_ALLOWED
+  if (!vla_enabled && !(option_kind_used[(int)optk_vla])) {
+    /* Support for VLAs is turned on by default in C99 mode. */
+    vla_enabled = TRUE;
+  }  /* if */
+#endif /* VLA_ALLOWED */
+  if (!extended_designators_allowed &&
+      !(option_kind_used[(int)optk_extended_designators])) {
+    /* Support for extended designators is turned on by default in
+       C99 mode. */
+    extended_designators_allowed = TRUE;
+    if (!designators_allowed &&
+        !(option_kind_used[(int)optk_designators])) {
+      /* Support for designators is turned on by default in C99 mode. */
+      designators_allowed = TRUE;
+    }  /* if */
+  }  /* if */
+#if COMPOUND_LITERAL_ENABLING_POSSIBLE
+  if (!compound_literals_allowed &&
+      !(option_kind_used[(int)optk_compound_literals])) {
+    /* Support for compound literals is turned on by default in C99 mode. */
+    compound_literals_allowed = TRUE;
+  }  /* if */
+#endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
+  /* Support for alternative tokens is turned on by default in C99 mode. */
+  alternative_tokens_allowed = TRUE;
+  /* C99 mode, strict or otherwise: // comments are allowed. */
+  end_of_line_comments_allowed = TRUE;
+}  /* set_c99_mode_flags */
+
+
 static void set_c_mode_flags(void)
 /*
 Set the various flags appropriate for the specific C mode we are going to
@@ -1468,32 +1506,7 @@ process.
     allow_ellipsis_only_param_in_C_mode = TRUE;
   } else if (c99_mode) {
     /* Turn on features implied by C99 mode. */
-#if VLA_ALLOWED
-    if (!vla_enabled && !(option_kind_used[(int)optk_vla])) {
-      /* Support for VLAs is turned on by default in C99 mode. */
-      vla_enabled = TRUE;
-    }  /* if */
-#endif /* VLA_ALLOWED */
-    if (!extended_designators_allowed &&
-        !(option_kind_used[(int)optk_extended_designators])) {
-      /* Support for extended designators is turned on by default in
-         C99 mode. */
-      extended_designators_allowed = TRUE;
-      if (!designators_allowed &&
-          !(option_kind_used[(int)optk_designators])) {
-        /* Support for designators is turned on by default in C99 mode. */
-        designators_allowed = TRUE;
-      }  /* if */
-    }  /* if */
-#if COMPOUND_LITERAL_ENABLING_POSSIBLE
-    if (!compound_literals_allowed &&
-        !(option_kind_used[(int)optk_compound_literals])) {
-      /* Support for compound literals is turned on by default in C99 mode. */
-      compound_literals_allowed = TRUE;
-    }  /* if */
-#endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
-    /* Support for alternative tokens is turned on by default in C99 mode. */
-    alternative_tokens_allowed = TRUE;
+    set_c99_mode_flags();
   } /* if */
   /* Turn off language features that must not be on in C mode, in case
      the default value is on. */
@@ -1527,6 +1540,20 @@ process.
   operator_overloading_on_enums_enabled = FALSE;  /* Not really needed. */
   string_literals_are_const = FALSE;
   arg_dependent_lookup_enabled = FALSE;
+  /* Set the variable that controls whether "//" is allowed as a comment
+     delimiter. */
+  if (c99_mode || microsoft_mode) {
+    /* The variable is set elsewhere. */
+  } else if (strict_ansi_mode) {
+    /* Strict ANSI/ISO C (not C99): // comments are not allowed. */
+    end_of_line_comments_allowed = FALSE;
+  } else if (C_dialect == C_dialect_pcc) {
+    /* pcc mode: // comments are not allowed. */
+    end_of_line_comments_allowed = FALSE;
+  } else {
+    /* Normal C mode. */
+    end_of_line_comments_allowed = END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE;
+  }  /* if */
 }  /* set_c_mode_flags */
 
 
@@ -1692,6 +1719,8 @@ setting is used, and to set various unmentioned settings as needed.
   if (option_kind_used[(int)optk_compound_literals]) {
     command_line_error(ec_cl_compound_literals_option_only_in_C);
   }  /* if */
+  /* "//" is allowed as a comment delimiter. */
+  end_of_line_comments_allowed = TRUE;
 }  /* check_and_set_cplusplus_mode_options */
 
 
