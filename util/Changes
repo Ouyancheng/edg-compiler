@@ -25,6 +25,8 @@ Several demangling problems have been fixed in the Cfront-like ABI:
    demangled name.  Formerly, they did not give the containing
    function information.
 
+   __ct__15A__L0__main__FvFv
+
 -------------------------------------------------------------------------------
 Version 3.2, May 12, 2003
 
