@@ -1,5 +1,28 @@
 Version 2.28
 
+3/1/95   Lvalues required as first operands of builtin operators in overload
+         resolution.
+
+In overload resolution, the fact that a builtin operator requires an
+lvalue for its first operand can now rule out that operator if
+the first operand supplied is a class type and there are no conversion
+functions that can convert to an appropriate reference type.  Formerly,
+conversions to a non-reference type were accepted, which would result
+in an error later if the builtin operator was selected as the best
+match, or ambiguity if the builtin operator was one of several best
+matches.
+
+3/1/54   Minimal inlining in IL lowering
+
+IL lowering can now do inlining of function calls.  This option is
+by default enabled when the C-generating back end is being used.
+See the configuration flag MINIMAL_INLINING.  The inlining is
+supposed to be comparable to what is done by cfront.  We're providing
+this only for the convenience of those who need to generate C code
+and do not have inlining in their C compilers; it's not supposed
+to be anything too fancy.  We'll fix bugs, of course, but we don't
+want to do enhancements beyond the cfront level of functionality.
+
 3/1/95   File scope variable definitions in the C generating back end
 
 Formerly, the C generating back end would emit two declarations of any
