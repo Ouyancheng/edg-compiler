@@ -860,6 +860,9 @@ to default values.
       pte->variant.class_struct_union.definition_needed = FALSE;
       pte->variant.class_struct_union.keep_definition_in_il = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
+#if CHECKING
+      pte->variant.integer.avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
       /* The class type supplement is only allocated in C++ mode. */
       if (C_mode()) {
         pte->variant.class_struct_union.extra_info = NULL;

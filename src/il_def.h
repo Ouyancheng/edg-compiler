@@ -3196,6 +3196,7 @@ typedef struct a_type {
 			   the IL is passed to the back end).  It is for
 			   front-end use only. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
+      bitfield_to_avoid_codecenter_warnings()
 #if USER_CONTROL_OF_STRUCT_PACKING
       a_targ_alignment
 		max_member_alignment;
