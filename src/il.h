@@ -95,6 +95,13 @@ extern a_type_ptr alloc_type(a_type_kind kind);
 
 extern a_type_ptr fs_type(a_type_kind kind);
 
+extern a_type_ptr alloc_named_type(a_type_kind kind);
+
+extern a_type_ptr alloc_local_scope_type(
+                                  a_type_kind    kind,
+                                  a_scope_depth  scope_level,
+                                  a_boolean      in_old_style_param_decl_list);
+
 extern void add_to_types_list(a_type_ptr     type_ptr,
                               a_scope_depth  scope_level,
                               a_boolean      in_old_style_param_decl_list);
