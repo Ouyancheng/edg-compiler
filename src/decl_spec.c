@@ -940,8 +940,7 @@ skip_tag_scan:
                                      ssep->il_scope->variant.assoc_namespace,
                                    "scan_tag_name:",
                                    "expected curr-namespace qualified name");
-              pos_error(ec_qualifier_in_namespace_member_decl,
-                        &locator.source_position);
+              pos_error(ec_qualifier_in_namespace_member_decl, &tag_position);
               tag_sym = NULL;
               set_to_error_locator(locator);
             }  /* if */
@@ -952,7 +951,20 @@ skip_tag_scan:
         if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
             tag_sym->parent.class_type == ssep->assoc_type) {
           /* Redeclaration of nested class name inside the body of the class
-             of which it is a member.  Be sure the access is consistent. */
+             of which it is a member. */
+          if (is_class_definition && locator.is_qualified_name) {
+            /* Issue a warning on a case like this:
+                 class A {
+                   class N;
+                   class A::N { ... };    // Qualified name is not allowed
+                 };
+               -- a warning rather than an error for consistency with other
+               member declarations (see simplify_curr_class_qualified_name). */
+            pos_diagnostic(strict_ansi_mode ?
+                               strict_ansi_error_severity : es_warning,
+                           ec_qualifier_in_member_declaration, &tag_position);
+          }  /* if */
+          /* Be sure the access is consistent. */
           if (!is_friend_decl &&
               ssep->current_access !=
                           type_symbol_type(tag_sym)->source_corresp.access) {
