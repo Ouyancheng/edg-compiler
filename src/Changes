@@ -1,5 +1,14 @@
 Version 2.42
 
+6/22/99  Abort on unprototyped definition in C mode
+
+In C mode, the front end used to abort on the following code:
+
+  char (*f())[5];
+  char (*f(c))[] char c; { return 0; }
+
+This is now fixed.
+
 6/21/99  Property field of incomplete array type
 
 In Microsoft mode, the front end now allows a field marked as "property" to

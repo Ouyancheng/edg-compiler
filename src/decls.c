@@ -3096,23 +3096,31 @@ not be TRUE.
         routine_ptr->type = rout_type = type_ptr;
       }  /* if */
       /* If rout_type is not what was returned, copy the composite
-         type on top of the existing rout_type (it's guaranteed to be
-         unshared). */
+         type on top of the existing rout_type. */
       if (comp_type != rout_type) {
         comp_type = skip_typerefs(comp_type);
         comp_rtsp = comp_type->variant.routine.extra_info;
         rout_type = skip_typerefs(rout_type);
         rtsp = rout_type->variant.routine.extra_info;
-        /* Transfer the composite type to rout_type, which is unshared.
-           We want to preserve fields like assoc_routine and arg_pragma in
-           rout_type, so we can't just do a copy_type. */
+        /* Transfer the composite type to rout_type, which is usually
+           unshared.  We want to preserve fields like assoc_routine and
+           arg_pragma in rout_type, so we can't just do a copy_type. */
         rout_type->variant.routine.return_type =
                             comp_type->variant.routine.return_type;
         rtsp->prototyped = comp_rtsp->prototyped;
         preserve_qualifiers_from_rout_type = FALSE;
         if (rtsp->param_type_list == NULL) {
           /* The entire list may just be transferred over. */
-          rtsp->param_type_list = comp_rtsp ->param_type_list;
+          rtsp->param_type_list = comp_rtsp->param_type_list;
+        } else if (rtsp->param_type_list == comp_rtsp->param_type_list) {
+          /* This is a fairly rare case in C mode: the routine was declared
+             twice without prototype, but the latter declaration is a
+             definition.  In that case, composite_routine_type will have
+             shared the param_type_list between the composed types.
+             Nothing needs to be done. */
+          check_assertion_str2(C_mode(), "reconcile_routine_types:",
+                                         "shared param types unexpected");
+
         } else {
           /* Copy the param type entries from the composite type onto the
              param type entries for the routine type.  This is done in case
