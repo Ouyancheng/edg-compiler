@@ -752,13 +752,11 @@ do_variable:
             fprintf(f_debug, "(routine ptr is NULL)");
           }  /* if */
           fprintf(f_debug, "\n");
-          fprintf(f_debug, "%*sclass_declared_in: ", indentation, "");
           if (tssp->variant.function.class_declared_in != NULL) {
+            fprintf(f_debug, "%*sclass_declared_in: ", indentation, "");
             db_type(tssp->variant.function.class_declared_in);
-          } else {
-            fprintf(f_debug, "(NULL)");
+            fprintf(f_debug, "\n");
           }  /* if */
-          fprintf(f_debug, "\n");
           tip = tssp->variant.function.instantiations;
           while (tip != NULL) {
             fprintf(f_debug, "%*sinstantiation", indentation, "");
@@ -7273,7 +7271,8 @@ scopes.
 */
 {
   a_scope_ptr scope;
-  scope = push_scope_full(sck_template_instantiation, scope_number_to_reuse,
+  scope = push_scope_full((a_scope_kind)sck_template_instantiation,
+			  scope_number_to_reuse,
 			  assoc_type, assoc_routine, instance_sym,
 			  template_sym, template_arg_list,
 			  nested_instantiation);
@@ -9086,6 +9085,7 @@ of the front end.
      be reset. */
   avail_param_ids = NULL;
   avail_dependent_type_fixups = NULL;
+  avail_access_error_descrs = NULL;
   error_symbol_header = NULL;
   unnamed_class_symbol_header = NULL;
   anonymous_parent_object_symbol_header = NULL;
