@@ -126,8 +126,6 @@ B.  Layout options
 
 #include "basics.h"
 #include "layout.h"
-#include "class_decl.h"
-#include "decls.h"
 #include "il.h"
 #include "error.h"
 #include "cmd_line.h"
