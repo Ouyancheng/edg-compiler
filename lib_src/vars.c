@@ -20,6 +20,7 @@ Performs initialization of global variables used by the runtime.
 #include "basics.h"
 #include "runtime.h"
 #include "main.h"
+#include "vec_newdel.h"
 #include "eh.h"
 
 

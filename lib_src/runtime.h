@@ -78,6 +78,10 @@ typedef void (*a_void_function_ptr)();
 typedef void (*a_destructor_ptr)(void*, int);
 			/* Type used to store a pointer a destructor. */
 
+typedef void* (*a_new_ptr)(size_t);
+			/* Type used to store a pointer to an operator new
+			   routine. */
+
 typedef void (*a_delete_ptr)(void*);
 			/* Type used to store a pointer to an operator delete
 			   routine. */

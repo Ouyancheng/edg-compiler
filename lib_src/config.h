@@ -16,6 +16,8 @@ Configuration parameters for the runtime.
 #ifndef CONFIG_H
 #define CONFIG_H 1
 
+#include "defines.h"
+
 /*
 Flag used to retain ABI (Application Binary Interface, i.e., runtime layout
 and calling sequence) compatibility with older versions.  The value is the
@@ -96,6 +98,48 @@ with versions up to 2.28.
            ABI_COMPATIBILITY_VERSION <= 228
 #endif /* ABI_CHANGES_FOR_RTTI && (ABI_COMPATIBILITY_VERSION <= 228) */
 
+/*
+This switch controls whether or not the ABI changes for array
+new and delete are done.  New runtime routines are added.
+The changes are upward-compatible (you can use old object code
+with new object code and the new library).  If the switch is off,
+compatibility with versions up to 2.28 is preserved, but the
+array new and delete language features are turned off.
+*/
+#ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
+#if ABI_COMPATIBILITY_VERSION <= 228
+#define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE FALSE /* Versions up to 2.28. */
+#else /* ABI_COMPATIBILITY_VERSION > 228 */
+#define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE TRUE  /* Versions after 2.28. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 228 */
+#endif /* ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
+#if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE && (ABI_COMPATIBILITY_VERSION <= 228)
+ #error -- ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE TRUE is incompatible with \
+           ABI_COMPATIBILITY_VERSION <= 228
+#endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE && ... */
+
+
+/*
+This switch controls how the runtime keeps track of information about the
+size of arrays that have been allocated.  Through version 2.28 this
+information was maintained using a separate data structure allocated
+by vec_new.  Beginning with 2.29 this information is maintained in
+header block that is part of the array memory allocated.  The new
+mechanism can be used with older ABI versions.   The only consequences
+of this are that the size of the memory blocks requested from operator
+new will change because they now include the size of the prefix information,
+and the behavior of programs that perform undefined operations (e.g.,
+writing to memory that preceded the beginning of the array) may change.
+*/
+#ifndef USE_PREFIX_FOR_ARRAY_ALLOC_INFO
+#if ABI_COMPATIBILITY_VERSION <= 228
+#define USE_PREFIX_FOR_ARRAY_ALLOC_INFO FALSE /* Versions up to 2.28. */
+#else /* ABI_COMPATIBILITY_VERSION > 228 */
+#define USE_PREFIX_FOR_ARRAY_ALLOC_INFO TRUE  /* Versions after 2.28. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 228 */
+#endif /* ifndef USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
+
+
 #if EXCEPTION_HANDLING
 /*
 The EH runtime allocates a static block of memory to be used for purposes
@@ -109,7 +153,8 @@ any additional blocks that are required.
 #endif /* ifndef EH_MEMORY_ALLOCATION_INCREMENT */
 
 /*
-The strictest alignment required of any data type.
+The strictest alignment required of any data type.  This should be
+the alignment that malloc uses for memory that is allocated.
 */
 #ifndef MOST_STRICT_ALIGNMENT
 #define MOST_STRICT_ALIGNMENT 8

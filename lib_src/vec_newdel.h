@@ -13,6 +13,9 @@ Declarations for runtime routines for vector new() and delete() functionality.
 
 */
 
+#ifndef VEC_NEWDEL_H
+#define VEC_NEWDEL_H
+
 #include "runtime.h"
 
 EXTERN_C void *__vec_new_eh(void                         *array_ptr,
@@ -34,6 +37,15 @@ EXTERN_C void __vec_delete(void                *array_ptr,
                            int                 /*unused_arg*/);
 
 EXTERN_C void _array_pointer_not_from_vec_new();
+
+/*
+Type name used by the exception handling mechanism to point to the
+structure used to maintain information about array new and delete
+operations that are in process.
+*/
+typedef struct an_array_alloc_eh_info *an_array_alloc_eh_info_ptr;
+
+#endif /* ifndef VEC_NEWDEL_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *

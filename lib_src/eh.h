@@ -19,6 +19,7 @@ Declarations for exception handling.
 #include "config.h"
 #include "runtime.h"
 #include "rtti.h"
+#include "vec_newdel.h"
 
 #if EXCEPTION_HANDLING
 
@@ -260,32 +261,11 @@ typedef struct an_eh_stack_entry {
 			/* Pointer to an array of entries that specify the
 			   types that can be thrown. */
     /* When kind == ehsek_vec_new_or_delete. */
-    struct {
-      void*	array_ptr;
-			/* Pointer to the memory allocated for the array. */
-      a_sizeof_t
-		number_of_elements;
-			/* Total number of elements in the array. */
-      a_sizeof_t
-		element_size;
-			/* Size of each element. */
-      a_sizeof_t
-		elements_processed;
-			/* Number of elements constructed or destructed so
-			   far. */
-      a_boolean
-		is_vec_new;
-			/* TRUE if this is a vec_new operation, FALSE if this
-			   is a vec_delete. */
-      a_boolean
-		free_memory_on_cleanup;
-			/* TRUE if the memory for the array was allocated by
-			   new and should be freed during object cleanup. */
-      a_destructor_ptr
-		destructor;
-			/* Pointer to the destructor to be called for each
-			   element of the array. */
-    } vec_new_del;
+    an_array_alloc_eh_info_ptr
+		array_alloc_eh_info;
+			/* Pointer to a structure used to handle exceptions
+			   that occur while processing an array new or delete
+			   operation. */
   } variant;
 } an_eh_stack_entry;
 
