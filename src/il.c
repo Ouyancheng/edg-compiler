@@ -5943,9 +5943,13 @@ declaration rather than a constructor reference.
              };
            In even more obscure cases, there may be more than one parameter
            to examine.  Note: the loop start with the second parameter, if
-           there is one. */
+           there is one.
+           A default argument with a NULL default_arg_expr is accepted if it
+           has an unevaluated template value, because we know this value can
+           be produced when the call is generated. */
         for (ptp = ptp->next; ptp != NULL; ptp = ptp->next) {
-          if (ptp->default_arg_expr == NULL) {
+          if (ptp->default_arg_expr == NULL &&
+              !ptp->has_unevaluated_template_default) {
             is_cctor = FALSE;
             break;
           }  /* if */

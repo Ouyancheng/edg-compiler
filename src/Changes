@@ -1,5 +1,21 @@
 Version 2.42
 
+3/12/99  Class template copy constructor problem with default argument
+
+A problem was introduced when the new rules for the instantiation of
+template default arguments were added in 2.40, which caused this example
+to get a spurious error when compiled in strict mode.  This has been
+fixed.
+
+  template<class T> struct A {
+    A();
+    A(const A&, int = 0);
+  };
+  void f(const A<int>&);
+  void g() {
+    f(A<int>()); 
+  }
+
 3/9/99   Microsoft compatibility: loop in Microsoft mode in version 2.41
 
 A Microsoft compatibility bug fix in 2.40 introduced a new bug that could
