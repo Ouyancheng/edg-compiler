@@ -972,6 +972,7 @@ ec_cl_ii_file_name_incompatible_with_multiple_inputs;;"an instantiation informat
 ec_cl_one_instantiation_per_object_incompatible_with_multiple_inputs;;"option \"one_instantiation_per_object\" may not be used when compiling several input files"
 ec_cl_ambiguous_option;;"more than one command line option matches the abbreviation \"--%s\":"
 ec_cl_ambiguous_fill_in;INTERNAL;"--%s"
+ec_cv_qualified_function_type;;"a type qualifier cannot be applied to a function type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

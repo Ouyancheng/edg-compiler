@@ -1,5 +1,15 @@
 Version 2.37
 
+10/8/97   Applying a type qualifier to a function type is not allowed
+
+A discretionary error (a warning in Microsoft and cfront compatibility
+modes) is now issued when a cv-qualifier is applied to a function type.
+For instance:
+
+  typedef void F(int);
+  typedef const F CF;               // Error
+  void g(const F *pf) { ... }       // Error
+
 10/8/97   Spurious error on operator name followed by "<"
 
 In version 2.36, a "<" following an operator name was incorrectly

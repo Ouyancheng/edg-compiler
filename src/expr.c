@@ -2922,13 +2922,6 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
         /* The result type is the member type pointed to by the second
            operand. */
         result_type = pm_member_type(operand_2_type);
-        if (!microsoft_mode) {
-          /* ... plus cv-qualifiers from the first operand.  (This was not
-             in the ARM, but it's in the WP, and cfront does it.) */
-          result_type = type_plus_qualifiers_from_second_type(
-                                                          result_type,
-                                                          qual_operand_1_type);
-        }  /* if */
         if (is_function_type(result_type)) {
           /* Result is a bound function.  It can only be called or (as an
              anachronism) cast to a normal function pointer. */
@@ -2941,8 +2934,19 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
           bind_member_function_operand_to_selector(result,
                                                    bound_function_selector);
         } else {
-          /* Result is a data member.  Use an eok_pm_field node with the
-             pointer to object and pointer-to-member as the operands. */
+          /* Result is a data member. */
+          if (!microsoft_mode) {
+            /* Add cv-qualifiers from the first operand to the result type.
+               (This was not in the ARM, but it's in the WP, and cfront does
+               it.)   Note: this isn't done for the pointer-to-member-function
+               case, since applying type qualifiers to a function type is
+               not allowed. */
+            result_type = type_plus_qualifiers_from_second_type(
+                                                          result_type,
+                                                          qual_operand_1_type);
+          }  /* if */
+          /* Use an eok_pm_field node with the pointer to object and
+             pointer-to-member as the operands. */
           object_node = make_node_from_operand(operand_1);
           pm_node = make_node_from_operand(&operand_2);
           object_node->next = pm_node;

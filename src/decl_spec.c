@@ -2930,7 +2930,7 @@ from decl_specifiers only.
           *qualifiers = TQ_NONE;
           pos_warning(ec_useless_type_qualifiers, qualifier_pos);
 #endif /* RESTRICT_ALLOWED */
-        }  /* if */        
+        }  /* if */
       } else {
         /* In C we check for duplicate qualifiers on a declaration, even
            if, in the case of an array type, one is a top-level qualifier
@@ -2956,6 +2956,30 @@ from decl_specifiers only.
           }  /* if */
           diagnostic(severity, ec_dupl_type_qualifier);
         }  /* if */
+      }  /* if */
+    }  /* if */
+    if (!C_mode() || *qualifiers != TQ_NONE) {
+      /* Type qualifiers are not allowed on function types. */
+      if (is_function_type(*type_ptr) ||
+          (is_array_type(*type_ptr) &&
+           is_function_type(underlying_array_element_type(*type_ptr)))) {
+        an_error_severity  severity;
+
+        /* Put out a warning instead of an error in Microsoft and cfront
+           compatibility modes -- but don't the qualifiers. */
+        if (microsoft_mode || any_cfront_mode()) {
+          severity = es_warning;
+        } else {
+          severity = es_discretionary_error;
+          /* Note that err is not set for this discretionary error.  That's
+             because it might actually end up as a warning.  Besides, since
+             the qualifiers are ignored, there are no side-effects in the
+             IL, etc. */
+        }  /* if */
+        pos_diagnostic((microsoft_mode || any_cfront_mode()) ?
+                             es_warning : es_discretionary_error,
+                       ec_cv_qualified_function_type, qualifier_pos);
+        *qualifiers = TQ_NONE;
       }  /* if */
     }  /* if */
 #if RESTRICT_ALLOWED
