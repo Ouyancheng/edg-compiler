@@ -9193,12 +9193,18 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
     /* Get a pointer to the new and delete symbols (which may be overload
        symbols). */
     new_sym = opname_member_function_symbol(new_kind, class_type);
-    del_sym = opname_member_function_symbol(del_kind, class_type);
+    if (new_sym != NULL) {
+      if (new_sym->kind == (a_symbol_kind)sk_projection &&
+          !new_sym->variant.projection.is_using_decl) {
+        /* Ignore operator new if it is simply inherited. */
+        new_sym = NULL;
+      }  /* if */
+    }  /* if */
     if (exceptions_enabled) {
       /* When exceptions are enabled, be sure each placement operator new
          has a corresponding operator delete. */
-      a_symbol_ptr  sym = new_sym;
-      if (sym != NULL) {
+      if (new_sym != NULL) {
+        a_symbol_ptr  sym = new_sym;
         if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
           is_overloaded = TRUE;
           sym = sym->variant.overloaded_function.symbols;
@@ -9223,23 +9229,28 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
     } else {
       /* Exceptions are not enabled.  Just issue a remark if the class has an
          operator new() but no default operator delete() or vice versa. */
+      del_sym = opname_member_function_symbol(del_kind, class_type);
+      ambiguous = FALSE;
+      if (del_sym != NULL) {
+        if (del_sym->kind == (a_symbol_kind)sk_projection &&
+            !del_sym->variant.projection.is_using_decl) {
+          /* Ignore operator delete if it is simply inherited. */
+          del_sym = NULL;
+        } else {
+          del_sym = find_default_operator_delete_sym(del_sym, &ambiguous);
+        }  /* if */
+      }  /* if */
+      /* If del_sym is non-NULL it now points to a default operator delete. */
       if (new_sym != NULL) {
-        /* Some sort of operator new has been declared.  Check for the
-           default operator delete. */
-        if (del_sym == NULL ||
-            (find_default_operator_delete_sym(del_sym, &ambiguous) == NULL &&
-             !ambiguous)) {
+        if (del_sym == NULL && !ambiguous) {
           /* No default operator delete. */
           pos_stsy_remark(ec_class_with_op_new_but_no_op_delete,
                           &error_position, array_pass ? "[]" : "", tag_sym);
         }  /* if */
       } else {
         /* No operator new was declared.  If a default operator delete was
-           declared, issue a warning. */
-        if (del_sym != NULL &&
-            find_default_operator_delete_sym(del_sym, &ambiguous) == NULL &&
-            !ambiguous) {
-          /* There is an operator delete. */
+           declared, issue a diagnostic. */
+        if (del_sym != NULL) {
           pos_stsy_remark(ec_class_with_op_delete_but_no_op_new,
                           &error_position, array_pass ? "[]" : "", tag_sym);
         }  /* if */
