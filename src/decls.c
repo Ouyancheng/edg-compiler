@@ -7087,7 +7087,8 @@ current scope.
             (ssep->kind == (a_scope_kind)sck_file ||
              ssep->kind == (a_scope_kind)sck_namespace ||
              ssep->kind == (a_scope_kind)sck_namespace_extension) &&
-            fundamental_symbol_of(sym) == fundamental_symbol_of(other_decl)) {
+            symbols_are_lookup_equivalent(fundamental_symbol_of(sym),
+                                          fundamental_symbol_of(other_decl))) {
           /* This is a duplicate using declaration of something other than a
              function or function template.  7.3.3 [namespace.udecl] para 7
              says duplicates are allowed in file or namespace scope, so ignore
