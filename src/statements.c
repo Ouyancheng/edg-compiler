@@ -5038,6 +5038,20 @@ branching into it is disallowed).
   if (C_dialect == C_dialect_cplusplus || !any_statements) {
     wrapup_decl_statement();
   }  /* if */
+  /* Move cached #pragma declarations (if any) to the current scope stack
+     entry.  This is needed for lint "notreached" comments, and also, if this
+     is the top level block of the function, so that they can be examined
+     and acted upon in processing the implicit return. */
+  if (select_curr_construct_pragmas(/*add_to_list=*/FALSE)) {
+    /* Check for a lint-style "notreached" comment -- it will affect
+       diagnostics in check_void_return_okay. */
+    check_lint_notreached_state();
+    if (at_function_level) {
+      /* Issue diagnostics on pragmas that are trying to bind to the
+         implicit return. */
+      cannot_bind_to_curr_construct();
+    }  /* if */
+  }  /* if */
   if (at_function_level) {
     /* We are at the right brace terminating a function definition.  If the
        code at the end of a function runs off the end, a implicit return is
@@ -5050,17 +5064,6 @@ branching into it is disallowed).
       a_statement_ptr  sp;
       an_expr_node_ptr return_expr;
 
-      /* Move cached #pragma declarations (if any) to the current scope stack
-         entry so they can be examined and acted upon in processing the
-         implicit return. */
-      if (select_curr_construct_pragmas(/*add_to_list=*/FALSE)) {
-        /* Check for a lint-style "notreached" comment -- it will affect
-           diagnostics in check_void_return_okay. */
-        check_lint_notreached_state();
-        /* Issue diagnostics on pragmas that are trying to bind to the
-           implicit return. */
-        cannot_bind_to_curr_construct();
-      }  /* if */
       /* Make sure that a void return is acceptable here.  If this is the main
          routine, generate an implicit return value, if possible. */
       check_void_return_okay(/*is_implicit_return=*/TRUE, &return_expr);

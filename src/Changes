@@ -1,5 +1,18 @@
 Version 2.33
 
+9/26/96  Bug fixed in processing lint NOTREACHED comments
+
+A spurious warning complaining that a nonvoid function should return a
+value is no longer issued on the following:
+
+  int f(int n) {
+    if (n) {
+      return 1;
+    } else {
+      /*NOTREACHED*/
+    }
+  }
+
 9/26/96  Name mangling for types/variables promoted out of functions
 
 The name mangling for variables and types promoted out of functions
