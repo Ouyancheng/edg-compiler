@@ -5094,7 +5094,16 @@ identifiers to be recognized and/or allowed.
 When the GID_VACUOUS_DTOR_RECOGNIZED flag is set in "options" a qualified
 destructor name will be recognized for non-class types and for class
 types that have no destructors.  This is used to handle
-constructs such as "p->int::~int".
+constructs such as "p->int::~int".  Note that the qualifier_class_type field
+in the locator normally contains the type of the qualifier portion of
+a qualified name.  For nonclass vacuous destructors, however, it contains the
+type of the thing after the "::~".  This is necessary because vacuous
+destructors may not have a qualifier and the type information is still
+needed by the caller in this case.  So class_type starts out with the
+qualifier type and is updated by the vacuous destructor code to contain
+the type of the destructor name following the "::~".  This really only
+matters for error handling because in nonerror cases the two types
+will be the same.
 
 If the token following a class qualifier is not part of a valid identifier
 we still return TRUE so that an appropriate diagnostic can be generated when
@@ -5466,9 +5475,32 @@ This routine may only be called in C++ mode.
          look up the identifier or type that follows the tilde. */
       (void)get_token();  /* Get the token after the "~". */
       if (curr_token == tok_identifier) {
-	/* A typedef name -- lookup the symbol and find the type pointed to. */
+	/* A typedef name -- lookup the symbol and find the type pointed to.
+           This will be something like "i::~i" or "A::i::~i".  If "i"
+           is a member of a class then we need to do the lookup in the class
+           of which "i" is a member.  If "i" is not a member, then just
+           a normal lookup.  Global qualifiers are not allowed in field
+	   selection operators (which is the only place where vacuous
+	   destructor references are allowed).  If a global qualifier is
+	   present, skip the lookup and set class_type to NULL so that the
+	   only error to be issued will be "global qualifier not allowed"
+	   error issued by the coalesce routine. */
         a_symbol_ptr	type_sym;
-	type_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+	a_type_ptr	cowam = class_symbol->class_of_which_a_member;
+        /* Set dtor_class_type to class_type.  This is only needed when
+	   we have a typedef name.  For a type name like "int" it will
+	   already have been set. */
+        dtor_class_type = class_type;
+        if (is_global_qualified_name || class_symbol == NULL) {
+	  class_type = NULL;
+	} else if (cowam != NULL) {
+          type_sym = class_qualified_id_lookup(&locator_for_curr_id, cowam,
+                                               IDL_NO_OPTIONS);
+	} else {
+	  type_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+        }  /* if */
+        /* Clear the specific symbol found by these lookups. */
+	locator_for_curr_id.specific_symbol = NULL;
         if (type_sym != NULL && is_type_symbol(type_sym)) {
 	  /* If the symbol found is a type, get the type pointed to. */
 	  dtor_type = type_symbol_type(type_sym);
