@@ -1,5 +1,16 @@
 Version 2.07
 
+6/22/92  Fixed bug in setting storage class on mutiply declared functions
+
+In the following case:
+
+  static void f();
+  void f() { /* ... */ }
+
+the function is now marked as internally linked with a storage class of
+"static".  Before, it was given external linkage and "unspecified"
+storage class.
+
 6/19/92  Support for "asm declarations"
 
 "asm" is now treated as a token, even in C mode.  An asm "declaration"
