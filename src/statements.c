@@ -4254,6 +4254,7 @@ branching into it is disallowed).
     control_flow_descr_list = end_of_control_flow_descr_list = NULL;
     goto_fixup_list = NULL;
     block = alloc_statement((a_statement_kind)stmk_block);
+    block->variant.block.extra_info->end_of_block_reachable = FALSE;
     set_stmt_source_position(block->position, pos_curr_token);
     stmt_update_source_sequence_list(block);
     /* Clear statement stack just to be careful. */
