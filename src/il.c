@@ -282,24 +282,37 @@ Dump an access control specifier.
 }  /* db_access_control */
 
 
-void db_field(a_field *fp)
+static void db_field(a_field *fp,
+                     int     depth)
 /*
 Dump a field entry, for debug purposes.
 */
 {
-  (void)fputc('\n', f_debug);
-  (void)fputc(' ', f_debug);
+  a_targ_size_t  byte_offset;
+  int            i, bit_offset_at_byte;
+
+  fputs("\n  ", f_debug);
+  if (depth > 0) for (i = depth; i > 0; --i) fputs("  ", f_debug);
   if (C_dialect == C_dialect_cplusplus) {
-    (void)fputc(' ', f_debug);
     db_access_control(fp->source_corresp.access);
+    (void)fputc(' ', f_debug);
   }  /* if */
-  fputs(" field \"", f_debug);
+  fputs("field \"", f_debug);
   db_name(&fp->source_corresp);
   fputs("\", type = ", f_debug);
   db_abbreviated_type(fp->type);
-  fprintf(f_debug, ", bit offset %lu", fp->bit_offset);
-  if (fp->bit_size > 0) {
-    fprintf(f_debug, ", bit size %d", fp->bit_size);
+  byte_offset = fp->bit_offset / TARG_CHAR_BIT;
+  bit_offset_at_byte = fp->bit_offset - byte_offset * TARG_CHAR_BIT;
+  if (bit_offset_at_byte > 0 || fp->bit_size > 0) {
+    fprintf(f_debug, ", bit offset %lu", fp->bit_offset);
+    if (byte_offset > 0) {
+      fprintf(f_debug, " (%lu+%lu)", byte_offset, bit_offset_at_byte);
+    }  /* if */
+    if (fp->bit_size > 0) {
+      fprintf(f_debug, ", bit size %d", fp->bit_size);
+    }  /* if */
+  } else {
+    fprintf(f_debug, ", offset %lu", byte_offset);
   }  /* if */
 }  /* db_field */
 
@@ -344,28 +357,6 @@ Dump a member function (a routine entry), for debug purposes.
                    db_storage_class_names[(int)rp->storage_class]);
   db_abbreviated_type(rp->type);
 }  /* db_member_function */
-
-
-static void db_base_class_field(a_field *fp,
-                                int     depth)
-/*
-Dump field *fp, for debug purposes.
-*/
-{
-  int i;
-
-  fputs("\n    ", f_debug);
-  for (i = depth; i > 0; --i) fputs("  ", f_debug);
-  db_access_control(fp->source_corresp.access);
-  fputs(" field \"", f_debug);
-  db_name(&fp->source_corresp);
-  fputs("\", type = ", f_debug);
-  db_abbreviated_type(fp->type);
-  fprintf(f_debug, ", bit offset %lu", fp->bit_offset);
-  if (fp->bit_size > 0) {
-    fprintf(f_debug, ", bit size %d", fp->bit_size);
-  }  /* if */
-}  /* db_base_class_field */
 
 
 static void db_virtual_function_info(a_class_type_supplement_ptr ctsp,
@@ -433,7 +424,7 @@ Dump a direct base class entry, for debug purposes.
     }  /* for */
     fp = tp->variant.class_struct_union.field_list;
     while (fp != NULL) {
-      db_base_class_field(fp, depth);
+      db_field(fp, depth+1);
       fp = fp->next;
     }  /* while */
     /* Put out the virtual base class pointers. */
@@ -520,7 +511,7 @@ Dump a virtual base class entry, for debug purposes.
     }  /* for */
     fp = tp->variant.class_struct_union.field_list;
     while (fp != NULL) {
-      db_base_class_field(fp, depth);
+      db_field(fp, depth+1);
       fp = fp->next;
     }  /* while */
     for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
@@ -666,7 +657,7 @@ class_struct_union:
           if (bcp->is_virtual) any_virtual_base_classes = TRUE;
         } /* for */
         fp = tp->variant.class_struct_union.field_list;
-        for (; fp != NULL; fp = fp->next) db_field(fp);
+        for (; fp != NULL; fp = fp->next) db_field(fp, 0);
         if (any_virtual_base_classes) {
           if (ctsp != NULL) bcp = ctsp->base_classes;
           for (; bcp != NULL; bcp = bcp->next) {
