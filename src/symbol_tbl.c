@@ -3131,9 +3131,10 @@ FALSE, the reference is within an unevaluated expression.
     /* Exactly one default constructor. */
     /* Check that the constructor is accessible and mark it referenced. */
     reference_to_implicitly_invoked_function(ctor_sym, err_pos,
-					     object_class_type,
+                                             object_class_type,
                                              /*honor_virtual=*/FALSE,
-                                             evaluated);
+                                             evaluated,
+                                             /*suppress_access_check=*/FALSE);
     ctor_routine = ctor_sym->variant.routine.ptr;
   }  /* if */
   return ctor_routine;
@@ -3144,17 +3145,18 @@ a_routine_ptr select_destructor(a_type_ptr        class_type,
 				a_type_ptr        object_class_type,
                                 a_source_position *position,
                                 a_boolean         honor_virtual,
-                                a_boolean         evaluated)
+                                a_boolean         evaluated,
+                                a_boolean         suppress_access_check)
 /*
-If the indicated class has a destructor, check that it is accessible,
-mark it as referenced, and return a pointer to the routine entry.
-Otherwise, return NULL.  object_class_type points to the type of the object
-being destroyed;  class_type may be a base class of object_class_type.
-This is needed for protected member access checking.  If honor_virtual
-is TRUE, and if the destructor is virtual, consider this reference
-a virtual function call.  If evaluated is FALSE, the reference is
-within an unevaluated expression.  *position is the source position of
-the reference.
+If the indicated class has a destructor, check that it is accessible, mark
+it as referenced, and return a pointer to the routine entry.  Otherwise,
+return NULL.  object_class_type points to the type of the object being
+destroyed; class_type may be a base class of object_class_type.  This is
+needed for protected member access checking.  If honor_virtual is TRUE, and
+if the destructor is virtual, consider this reference a virtual function
+call.  If evaluated is FALSE, the reference is within an unevaluated
+expression.  *position is the source position of the reference.  If
+suppress_access_check is TRUE, no access checking is done.
 */
 {
   a_symbol_ptr  dtor_sym;
@@ -3167,8 +3169,9 @@ the reference.
     if (dtor_sym != NULL) {
       /* Check that the destructor is accessible and mark it referenced. */
       reference_to_implicitly_invoked_function(dtor_sym, position,
-					       object_class_type,
-                                               honor_virtual, evaluated);
+                                               object_class_type,
+                                               honor_virtual, evaluated,
+                                               suppress_access_check);
       dtor_routine = dtor_sym->variant.routine.ptr;
     }  /* if */
   }  /* if */
@@ -3284,7 +3287,8 @@ a_routine_ptr select_copy_constructor(
                                     a_source_position *err_pos,
 				    a_type_ptr        object_class_type,
                                     a_boolean         *class_bitwise_copy,
-                                    a_boolean         evaluated)
+                                    a_boolean         evaluated,
+                                    a_boolean         suppress_access_check)
 /*
 Find and return a pointer to a routine representing a copy constructor for
 the class indicated by class_type.  If const_object_required is TRUE, return
@@ -3297,7 +3301,8 @@ the type of the object being copied;  class_type may be a base class of
 object_class_type.  This is needed for protected member access checking.
 If a bitwise copy is allowed, return NULL and *class_bitwise_copy TRUE.
 If evaluated is FALSE, the reference is within an unevaluated expression.
-This routine is only used in C++ mode.
+This routine is only used in C++ mode.  If suppress_access_check is TRUE,
+no access checking is done.
 */
 {
   a_symbol_ptr  cctor_sym;
@@ -3329,9 +3334,9 @@ This routine is only used in C++ mode.
     /* Exactly one copy constructor is best. */
     /* Check that the constructor is accessible and mark it referenced. */
     reference_to_implicitly_invoked_function(cctor_sym, err_pos,
-					     object_class_type,
+                                             object_class_type,
                                              /*honor_virtual=*/FALSE,
-                                             evaluated);
+                                             evaluated, suppress_access_check);
     cctor_routine = cctor_sym->variant.routine.ptr;
   }  /* if */
   return cctor_routine;
