@@ -6177,7 +6177,7 @@ This routine may only be called in C++ mode.
       /* Process a template reference.  This is considered a potential
          template reference if the symbol points to a class template
          or if the next token is a "<" (the latter case is handled here
-         for error recovery purposes. */
+         for error recovery purposes). */
       class_symbol = coalesce_template_class_reference(class_symbol,
                                                        options, &err);
     }  /* if */
