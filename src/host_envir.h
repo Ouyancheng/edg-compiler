@@ -641,6 +641,19 @@ of struct a_constant.)  This can be useful for source-analysis applications.
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 /*
+Flag that is TRUE if the front end should represent empty statement using a
+distinct statement kind.  Otherwise, NULL pointers or empty blocks are used
+for that purpose.
+*/
+#ifndef REPRESENT_EMPTY_STATEMENTS_IN_IL
+#if BACK_END_IS_CP_GEN_BE
+#define REPRESENT_EMPTY_STATEMENTS_IN_IL TRUE
+#else /* !BACK_END_IS_CP_GEN_BE */
+#define REPRESENT_EMPTY_STATEMENTS_IN_IL FALSE
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
+
+/*
 Flag that is TRUE to cause additional IL entries to contain source position
 information.  Note that this can take a lot of extra space, so you should
 enable this only if you really need it.
