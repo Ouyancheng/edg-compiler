@@ -8112,6 +8112,7 @@ locator_for_curr_id.
   pip->type_pos.seq = 0;
   pip->type_pos.column = SP_COL_UNKNOWN;
   pip->storage_class = (a_storage_class)sc_unspecified;
+  pip->implicitly_declared = FALSE;
   pip->decl_seq_info.decl_seq = 0;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   pip->decl_seq_info.source_sequence_entry = NULL;
@@ -8227,9 +8228,9 @@ storage_class are the type and storage class for the parameter.
       sym = NULL;
     } else {
       if (type_ptr != NULL) {
-        /* Prototyped parameter list.  The symbol is entered in the the
-           function prototype scope.  It will later be copied to the function
-           scope when it is changed to sk_variable. */
+        /* Prototyped parameter list.  The symbol is entered in the function
+           prototype scope.  It will later be copied to the function scope
+           when it is changed to sk_variable. */
         sym = enter_symbol((a_symbol_kind)sk_parameter, locator,
                            depth_scope_stack, /*suppress_redecl_error=*/FALSE);
       } else {

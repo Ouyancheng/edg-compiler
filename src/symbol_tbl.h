@@ -647,9 +647,13 @@ typedef struct a_param_id {
 			   specification of the parameter declaration. */
   a_storage_class
 		storage_class;
-			/* For a new- or old-style style function parameter,
-			   this is the storage class to be associated with
-			   it when it is declared. */
+			/* For a new- or old-style function parameter, this is
+			   the storage class to be associated with it when it
+			   is declared. */
+  a_byte_boolean
+		implicitly_declared;
+			/* TRUE for an old-style parameter that for which
+			   an explicit declaration is omitted. */
   a_decl_seq_info
 		decl_seq_info;
 			/* Decl-sequence and source-sequence information
