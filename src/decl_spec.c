@@ -4708,7 +4708,8 @@ Returns TRUE if there is an error in the specifiers.
           err = TRUE;
         } else if (decl_specifiers_seen & DS_VIRTUAL) {
           /* Only one "virtual" specifier at at time. */
-          error(ec_dupl_decl_specifier);
+          diagnostic(microsoft_mode ? es_warning : es_error,
+                     ec_dupl_decl_specifier);
           err = TRUE;
         } else {
           decl_specifiers_seen |= DS_VIRTUAL;

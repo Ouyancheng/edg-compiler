@@ -1,5 +1,14 @@
 Version 2.44
 
+6/13/00  Microsoft compatibility: allow duplicate virtual specifier
+
+In Microsoft mode, the duplicate appearance of the "virtual" specifier in a
+member declaration only elicits a warning; not a fatal error.
+
+  struct S {
+    virtual virtual void f();  // Warning in Microsoft mode; error otherwise
+  };
+
 6/12/00  Microsoft 7.0 compatibility: void return expressions
 
 In MSVC++ 7.0, void return expressions are permitted (just as in strict ANSI
