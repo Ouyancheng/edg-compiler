@@ -1,5 +1,16 @@
 Version 2.14
 
+1/25/93 Fixed bug with elaborated type name inside a template declaration
+
+In the following example the declaration of "i1" was incorrectly
+introducing a new type named "A" instead of using the current
+instantiation of the template.
+
+	template <class T> struct A {
+		int i1[sizeof (struct A*)];	// These two statements
+		int i2[sizeof (struct A<T>*)];	// should be equivalent
+	};
+
 1/25/93 Declaration of tags first seen in a template declaration
 
 A bug has been fixed that caused an error to be produced for this code:

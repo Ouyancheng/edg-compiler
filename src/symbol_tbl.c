@@ -4640,6 +4640,14 @@ symbol.  Otherwise, return NULL.
 
   /* Look up the current token.  Note that a qualified name is not allowed. */ 
   assoc_symbol = normal_id_lookup(locator, IDL_MUST_BE_TAG);
+  if (assoc_symbol != NULL &&
+      assoc_symbol->kind == (a_symbol_kind)sk_class_template &&
+      depth_of_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    /* If the symbol found is a class template symbol and we are inside an
+       instantiation of the class, use the template class symbol associated
+       with the current instantiation. */
+    current_class_symbol_if_class_template(&assoc_symbol);
+  }  /* if */
   if (assoc_symbol != NULL) {
     if (assoc_symbol->kind != tag_kind) {
       /* A tag, but the wrong kind of tag (e.g., struct when union is
