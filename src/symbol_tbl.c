@@ -1532,7 +1532,9 @@ list.
 
   db_enter(4, "unlink_symbol_from_symbol_table");
 #if DEBUG
-  if (debug_level >= 3) {
+  if (db_active && 
+      (debug_level >= 3 ||
+       db_flag_is_set("dump_symbols"))) {
     db_symbol(sym_ptr, "unlinking: ", 2);
   }  /* if */
 #endif /* CHECKING */
