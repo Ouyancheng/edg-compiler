@@ -1257,7 +1257,7 @@ the default constructor (if one exists) is called.
              end_of_scope_symbol_check is nontrivial.  And I'm not sure it
              works for multi-dimensional array. */
           pos_warning(ec_default_size_for_incomplete_array, err_pos);
-#else
+#else  /* 0 */
 #if CHECKING
           internal_error(
                       "def_initializer: incomplete types not yet supported");
@@ -1552,7 +1552,8 @@ initialized.  These are addressed in the course of the processing.
               type_error(ec_base_class_already_initialized, init_type);
               err = TRUE;
             } else {
-              type_warning(ec_base_class_init_anachronism, init_type);
+              type_diagnostic(anachronism_error_severity,
+                              ec_base_class_init_anachronism, init_type);
             }  /* if */
           }  /* if */
           /* Back up so that the left paren will be rescanned. */
