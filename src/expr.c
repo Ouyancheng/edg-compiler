@@ -10691,7 +10691,7 @@ the appropriate dynamic initialization entry and return NULL.
          (cfront_2_1_mode && is_void_type(result.type)))) {
       /* In cfront 2.1 mode a void function may have a return expression of
          void type.  In Microsoft C mode it may have a return expression of
-         any type; we treat is as a void expression (in part to get better
+         any type; we treat it as a void expression (in part to get better
          diagnostics). */
       do_operand_transformations(&result, TOPT_NO_OPTIONS);
       simplify_void_operand(&result);
