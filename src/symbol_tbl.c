@@ -5063,6 +5063,9 @@ the latter will be NULL for variables.
     }  /* if */
     second_best_match = NULL;
     for (sym = hdr_ptr->other_symbols; sym != NULL; sym = sym->next) {
+      /* Ignore symbols not associated with the current file scope.  These
+         could be extern entities associated with other translation units. */
+      if (sym->decl_scope != file_scope_number) continue;
       if (extern_C_linkage_specified) {
         a_source_correspondence  *scp;
         if (sym->kind == (a_symbol_kind)sk_extern_variable) {
@@ -5097,11 +5100,7 @@ the latter will be NULL for variables.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (sym->decl_scope != file_scope_number) {
-        /* Ignore symbols not associated with the current file scope.
-           These could be extern entities associated with other translation
-           units. */
-      } else if (sym->parent.namespace_ptr != nsp) {
+      if (sym->parent.namespace_ptr != nsp) {
         /* Namespaces do not match -- keep looking. */
       } else if (sym->kind == (a_symbol_kind)sk_extern_variable) {
         if (rout_type == NULL) break;
