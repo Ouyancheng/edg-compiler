@@ -1768,6 +1768,9 @@ error code.
     case ec_function_template_named_main:
       m = "\"main\" is not a valid name for a function template";
       break;
+    case ec_tag_mismatch_in_template_instance:
+      m = "invalid tag for an instance of class template \"%s\"";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
