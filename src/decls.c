@@ -2786,9 +2786,17 @@ created; the caller must set it.
       old_name = scp->name;
       new_name = locator->symbol_header->identifier;
       check_assertion(old_name != NULL);
-      if ((a_name_linkage_kind)scp->name_linkage != name_linkage ||
+      if (((a_name_linkage_kind)scp->name_linkage != name_linkage &&
+           ((a_name_linkage_kind)scp->name_linkage ==
+                                           (a_name_linkage_kind)nlk_external ||
+            name_linkage == (a_name_linkage_kind)nlk_external)) ||
           (old_name != new_name && strcmp(old_name, new_name) != 0)) {
-        /* Two distinct entities ended up mapping to the same external name. */
+        /* Two distinct entities ended up mapping to the same external name.
+           One case occurs when an extern "C" declaration in a namespace
+           conflicts with a variable declaration in global scope.  The other
+           case can result from two different names in the source being mapped
+           onto the same external name (e.g., when external names are case-
+           insensitive). */
         if (!suppress_incompatible_error) {
           pos_sy_error(ec_external_name_clash, &locator->source_position,
                        ext_sym);
