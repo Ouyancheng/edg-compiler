@@ -279,7 +279,7 @@ Perform consistency check on target configuration variables.
 void select_cp_gen_be_target_dialect(void)
 /*
 If CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT is TRUE, select the target dialect
-to match the source dialect.
+to match the source dialect (including the version of the dialect).
 */
 {
 #if CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
@@ -294,8 +294,10 @@ to match the source dialect.
 #else /* !GCC_BUILTIN_VARARGS */
     gcc_builtin_varargs_in_generated_code = FALSE;
 #endif /* GCC_BUILTIN_VARARGS */
+    gnu_target_version_number = gnu_version;
   } else if (microsoft_mode) {
     microsoft_dialect_is_generated_code_target = TRUE;
+    msvc_target_version_number = microsoft_version;
   }  /* if */
 #endif /* CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT */
 }  /* select_cp_gen_be_target_dialect */
