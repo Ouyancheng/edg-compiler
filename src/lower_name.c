@@ -3393,14 +3393,14 @@ compressed mangled name in a temporary buffer.
        of the original (uncompressed) name, not counting the final null. */
     (void)sprintf(buffer, "__CPR%lu__", (unsigned long)size_of_mangled_name-1);
     prefix_length = strlen(buffer);
-#if CHECKING
+#if EXPENSIVE_CHECKING
     /* Make sure the name does not already have the compression prefix in
        it.  If it does, we've used a previously compressed name in building
        up this name, and that won't work. */
     check_assertion_str(strstr(temp_text_buffer+start_of_compressed_name,
                                "__CPR") == NULL,
                         "compress_mangled_name: double compression");
-#endif /* CHECKING */
+#endif /* EXPENSIVE_CHECKING */
     size_of_compressed_name = (pos_in_temp_text_buffer -
                                start_of_compressed_name) +
                               prefix_length;
