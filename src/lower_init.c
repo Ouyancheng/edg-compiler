@@ -4896,6 +4896,8 @@ Do lowering on the file-scope dynamic initializations list.
       /* Add prologue/epilogue code for exceptions if needed. */
       add_eh_function_prologue(scope);
     }  /* if */
+    /* Free any return memos that were not used. */
+    free_return_memo_list(return_memo_list);
     processing_file_scope_init_routine = FALSE;
     pop_context();
 #if ORPHAN_PROCESSING_NEEDED
@@ -4940,6 +4942,8 @@ Do lowering on the file-scope dynamic initializations list.
       /* Add prologue/epilogue code for exceptions if needed. */
       add_eh_function_prologue(scope);
     }  /* if */
+    /* Free any return memos that were not used. */
+    free_return_memo_list(return_memo_list);
     pop_context();
 #if ORPHAN_PROCESSING_NEEDED
     /* Make orphan lists for any local types or static variables in the
