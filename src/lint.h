@@ -92,6 +92,65 @@ Included from basic_hdrs.h in every compilation.
 #if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
 /*lint -esym(769,ec_bad_multibyte_char_locale)*/
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+#if !BACK_END_IS_C_GEN_BE
+/*lint -esym(759,form_char)*/
+/*lint -esym(765,form_char)*/
+/*lint -esym(759,traverse_type_tree)*/
+/*lint -esym(765,traverse_type_tree)*/
+#endif /* !BACK_END_IS_C_GEN_BE */
+#if DO_IL_LOWERING && DO_FULL_PORTABLE_EH_LOWERING
+/*lint -esym(750,RDF_INDIRECT,RDF_THIS_PARAM_OFFSET)*/
+#endif /* DO_IL_LOWERING && DO_FULL_PORTABLE_EH_LOWERING */
+#if !DO_IL_LOWERING
+/*lint -esym(552,virtual_function_table_definition)*/
+/*lint -esym(759,clear_expr_node)*/
+/*lint -esym(765,clear_expr_node)*/
+/*lint -esym(759,implicit_cast)*/
+/*lint -esym(765,implicit_cast)*/
+/*lint -esym(759,find_disambiguator)*/
+/*lint -esym(765,find_disambiguator)*/
+/*lint -esym(759,find_local_static_variable_init)*/
+/*lint -esym(765,find_local_static_variable_init)*/
+/*lint -esym(714,find_assoc_pragma)*/
+/*lint -esym(759,find_assoc_pragma)*/
+/*lint -esym(765,find_assoc_pragma)*/
+/*lint -esym(759,add_base_class_casts)*/
+/*lint -esym(765,add_base_class_casts)*/
+/*lint -esym(759,add_to_end_of_destructions_list)*/
+/*lint -esym(765,add_to_end_of_destructions_list)*/
+/*lint -esym(759,alloc_node_for_allocated_constant)*/
+/*lint -esym(765,alloc_node_for_allocated_constant)*/
+/*lint -esym(759,new_or_delete_type_requires_special_handling)*/
+/*lint -esym(765,new_or_delete_type_requires_special_handling)*/
+/*lint -esym(759,int_kind_for_size_or_alignment)*/
+/*lint -esym(765,int_kind_for_size_or_alignment)*/
+/*lint -esym(759,rout_is_inline_template_function)*/
+/*lint -esym(765,rout_is_inline_template_function)*/
+/*lint -esym(759,copy_list_of_expr_trees)*/
+/*lint -esym(765,copy_list_of_expr_trees)*/
+/*lint -esym(759,copy_node)*/
+/*lint -esym(765,copy_node)*/
+/*lint -esym(759,copy_statement)*/
+/*lint -esym(765,copy_statement)*/
+/*lint -esym(759,copy_unshared_constant_full)*/
+/*lint -esym(765,copy_unshared_constant_full)*/
+/*lint -esym(759,set_class_keep_definition_in_il)*/
+/*lint -esym(765,set_class_keep_definition_in_il)*/
+/*lint -esym(759,set_expr_node_kind)*/
+/*lint -esym(765,set_expr_node_kind)*/
+/*lint -esym(759,set_node_operator)*/
+/*lint -esym(765,set_node_operator)*/
+/*lint -esym(759,set_scope_kind)*/
+/*lint -esym(765,set_scope_kind)*/
+/*lint -esym(759,set_statement_kind)*/
+/*lint -esym(765,set_statement_kind)*/
+/*lint -esym(759,require_definitions_of_virtual_functions_in_class)*/
+/*lint -esym(765,require_definitions_of_virtual_functions_in_class)*/
+/*lint -esym(759,is_default_operator_delete)*/
+/*lint -esym(765,is_default_operator_delete)*/
+/*lint -esym(759,num_array_elements)*/
+/*lint -esym(765,num_array_elements)*/
+#endif /* !DO_IL_LOWERING */
 
 
 /******************************************************************************

@@ -1428,7 +1428,6 @@ the runtime's definition.
 */
 typedef unsigned long a_region_descr_flags_set;
 #define RDF_NONE		0
-/*lint -esym(750,RDF_INDIRECT,RDF_THIS_PARAM_OFFSET)*/
 #define RDF_INDIRECT		0x01
 			/* TRUE if the address provided by the handle field
 			   is a pointer to the object. */
