@@ -6656,11 +6656,12 @@ to indicate whether an enumeration is actually defined.
     /* Record cross-reference information. */
     if (curr_token == tok_lbrace) {
       mark_defined(tag_sym, &locator.source_position);
-    } else if (curr_token == tok_semicolon) {
+    } else if (curr_token == tok_semicolon && !strict_ansi_mode) {
       /* A useless redeclaration of an enum tag. */
       mark_declared(tag_sym, &locator.source_position);
     } else {
       mark_referenced(tag_sym, &locator.source_position);
+      *declares_something = FALSE;
     }  /* if */
   }  /* if */
   if (curr_token == tok_lbrace) {
@@ -6746,6 +6747,7 @@ to indicate whether an enumeration is actually defined.
                                      integer_type((an_integer_kind)ik_int),
                                      /*is_implicit_cast=*/TRUE,
                                      /*constant_context=*/TRUE,
+                                     /*evaluated_context=*/TRUE,
                                      &did_not_fold,
                                      &error_position);
               }  /* if */
