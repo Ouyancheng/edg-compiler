@@ -2806,12 +2806,6 @@ definition.
     a_routine_ptr assoc_rout = NULL;
     /* If this is an entry point of some other routine, it's needed only
        if the primary routine is needed. */
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-    if (rout->overriding_function_for_covariant_return_type != NULL) {
-      assoc_rout = rout->overriding_function_for_covariant_return_type;
-      rout = assoc_rout; /* Allow thunk plus ctor/dtor alternate entry. */
-    }  /* if */
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if IA64_ABI
     if (rout->primary_ctor_or_dtor != NULL) {
       assoc_rout = rout->primary_ctor_or_dtor;
