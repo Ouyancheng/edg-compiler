@@ -483,8 +483,8 @@ also create an stmk_init statement at the current point in the code.
     case dik_aggregate:
       new_dip->variant.aggregate.aggr_const =
                                   dip->variant.aggregate.aggr_const;
-      new_dip->variant.aggregate.dynamic_init =
-                                  dip->variant.aggregate.dynamic_init;
+      new_dip->variant.aggregate.dynamic_init_list =
+                                  dip->variant.aggregate.dynamic_init_list;
       break;
 #if CHECKING
     default:
@@ -782,7 +782,7 @@ The syntax is:
          of the items on the initializer list were not constants (but rather
          expressions or constructor calls).  If di_list is not NULL, dynamic
          initialization is called for. */
-      local_di.variant.aggregate.dynamic_init = di_list;
+      local_di.variant.aggregate.dynamic_init_list = di_list;
       initialization_is_dynamic = (di_list != NULL);
     } else if (cp->kind == (a_constant_repr_kind)ck_string) {
       clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constant);
@@ -987,7 +987,7 @@ a_boolean def_initializer(a_symbol_ptr       sym,
               alloc_constant((a_constant_repr_kind)ck_dynamic_init);
             /* Set the ck_dynamic_init_constant. */
             cp1->variant.dynamic_init = dip;
-            local_di.variant.aggregate.dynamic_init = dip;
+            local_di.variant.aggregate.dynamic_init_list = dip;
           }  /* if */
           gen_dynamic_initialization(var, &local_di);
           def_init_performed = TRUE;

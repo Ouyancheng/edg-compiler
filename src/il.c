@@ -872,7 +872,7 @@ static void db_dynamic_initializer(a_dynamic_init_ptr  dip,
       db_expr_node(dip->variant.expression, level);
       break;
     case dik_aggregate:
-      if (dip->variant.aggregate.dynamic_init == NULL) {
+      if (dip->variant.aggregate.dynamic_init_list == NULL) {
         db_static_initializer(dip->variant.aggregate.aggr_const);
         fputc('\n', f_debug);
       } else {
@@ -2592,7 +2592,7 @@ Initialize a dynamic_init entry of the kind specified.
       break;
     case dik_aggregate:
       dip->variant.aggregate.aggr_const = NULL;
-      dip->variant.aggregate.dynamic_init = NULL;
+      dip->variant.aggregate.dynamic_init_list = NULL;
       break;
 #if CHECKING
     default:

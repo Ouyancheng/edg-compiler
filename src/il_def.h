@@ -340,7 +340,7 @@ typedef struct a_dynamic_init {
 			   the initialization of the components (fields or
 			   array elements) of the aggregate object. */
       a_dynamic_init_ptr
-		dynamic_init;
+		dynamic_init_list;
 			/* Pointer to a linked list of dynamic-init entries
 			   representing all non-constant initializers in the
 			   ck_aggregate "constant" list; NULL when all entries
