@@ -111,62 +111,6 @@ fp_scale.
 }  /* construct_fxp_scale_factor */
 
 
-void fxp_string_to_fixed_point(a_fixed_point_type_descr  *fxp_descr,
-                               char                      *str,
-                               a_fixed_point_value       *value,
-                               a_boolean                 *err)
-/*
-Convert the decimal fixed-point number in the null-terminated string str to
-internal form in *value.  The number is known to be syntactically correct,
-but may not be representable (it may be too large or too small); if there's
-an error, return *err = TRUE.  The specific fixed-point kind is indicated by
-*fxp_descr (and will typically affect the representation in *value).
-The string need not have a decimal point or exponent (it can look like an
-integer).  It may have a leading "-" sign.
-
-This implementation is for demonstration purposes only: It is known to be
-imprecise.  Specifically, this implementation scans the string as a floating-
-point value and scales that value to obtain an integer that is used as the
-fixed-point representation.  It relies on a_fixed_point_value being identical
-to an_integer_value.
-*/
-{
-  char        *result_str;
-  an_internal_float_value
-              fp_scale, fp_value, fp_scaled_value;
-  a_boolean   depends_on_fp_mode;
-  a_boolean   pos_infinity, neg_infinity, not_a_number;
-
-  *err = FALSE;
-  construct_fxp_scale_factor(fxp_descr, &fp_scale);
-
-  /* Convert the given string to a floating point value. */
-  fp_string_to_float((a_float_kind)fk_long_double, str, &fp_value, err);
-  if (*err) {
-    goto done;
-  }  /* if */
-  /* Multiply the floating-point representation of the given string by the
-     scaling factor. */
-  fp_multiply((a_float_kind)fk_long_double,
-              &fp_scale, &fp_value, &fp_scaled_value,
-              err, &depends_on_fp_mode);
-  if (*err) {
-    goto done;
-  }  /* if */
-  /* Extract the integer part of the result using a string as an intermediate
-     representation. */
-  result_str = fp_to_string((a_float_kind)fk_long_double, &fp_scaled_value,
-                            &pos_infinity, &neg_infinity, &not_a_number);
-  if (pos_infinity || neg_infinity || not_a_number) {
-    *err = TRUE;
-    goto done;
-  }  /* if */
-  conv_float_string_to_integer_value(result_str, value,
-                                     !fxp_descr->is_unsigned, err);
-done:;
-}  /* fxp_string_to_fixed_point */
-
-
 static int value_bits_for_fixed_point(a_fixed_point_type_descr	*fxp_descr)
 /*
 Return the number of data bits in a fixed point value (i.e., the number of
@@ -219,16 +163,29 @@ The sign bit (if any) is included in the non-fractional bits.
 
 static void set_mantissa_to_saturated_value(
 				a_mantissa_ptr			mp,
+				a_boolean			is_negative,
 				a_fixed_point_type_descr	*fxp_descr)
 /*
 Set the mantissa to the value used to represent a saturated fixed-point
-value.  This is all bits set to 1, except for the sign bit.
+value.  is_negative is TRUE if the value should be the saturated negative
+value.  The positive value is all 1 bits, except for the sign bit.  The
+negative value has just the sign bit set.
 */
 {
-  int i;
+  int			i;
+  an_fp_value_part	part_value;
+  a_boolean		result_is_negative;
 
-  for (i = 0; i < MANTISSA_PARTS; i++) mp->parts[i] = 0xffffffff;
-  if (!fxp_descr->is_unsigned) mp->parts[0] = 0x7fffffff;
+  /* Set all of the parts to either zero or one bits, depending on the
+     sign of the result.  Ignore the is_negative flag if the result is
+     unsigned. */
+  result_is_negative = is_negative && !fxp_descr->is_unsigned;  
+  part_value = result_is_negative ? 0 : 0xffffffff;
+  for (i = 0; i < MANTISSA_PARTS; i++) mp->parts[i] = part_value;
+  /* For signed values, set the sign bit to the appropriate value. */
+  if (!fxp_descr->is_unsigned) {
+    mp->parts[0] = result_is_negative ? 0x80000000 : 0x7fffffff;
+  }  /* if */
 }  /* set_mantissa_to_saturated_value */
 
 
@@ -395,6 +352,7 @@ the value is already known to be too large.  Set *err on overflow.  Set
   int		nonfract_bits;
   int		value_bits;
   int		shift_count;
+  int		mantissa_bits = 0;
 
   *err = FALSE;
   *inexact = FALSE;
@@ -404,11 +362,14 @@ the value is already known to be too large.  Set *err on overflow.  Set
     nonfract_bits = non_fractional_bits_for_fixed_point(fxp_descr);
     value_bits = value_bits_for_fixed_point(fxp_descr);
     shift_count = nonfract_bits - exponent;
-    if (shift_count >= 0) {
+    mantissa_bits = number_of_bits_in_mantissa(mp);
+    /* A shift count of zero represents an overflow for a signed value because
+       the sign bit would be needed for the representation. */
+    if (shift_count >= (fxp_descr->is_unsigned ? 0 : 1)) {
       if (shift_count > 0) shift_right_mantissa(mp, shift_count);
       /* See if the result value has more bits of precision than fit int
          the destination type. */
-      if (number_of_bits_in_mantissa(mp) > value_bits) *inexact = TRUE;
+      if (mantissa_bits > value_bits) *inexact = TRUE;
       /* Round the value to the nearest representable value. */
       round_hex_fp_value(mp, &exponent, value_bits, inexact);
     } else {
@@ -427,14 +388,22 @@ the value is already known to be too large.  Set *err on overflow.  Set
   if (overflow) {
     /* On overflow, return an error flag and set the result value to a
        saturated value. */
-    *err = TRUE;
-    set_mantissa_to_saturated_value(mp, fxp_descr);
+    if (mantissa_bits == 1 && exponent == 1 && fxp_descr->is_fract_type) {
+      /* The input value is 1 or -1.  Return the saturated value, but don't
+         set the error flag. */
+    } else {
+      /* Except for the case above, set the error flag on overflow. */
+      *err = TRUE;
+    }  /* if */
+    set_mantissa_to_saturated_value(mp, is_negative, fxp_descr);
   }  /* if */
   /* Store the result in the appropriate form. */
   store_hex_fxp_value(mp, fxp_descr, value);
   /* Negate the value, if necessary.  If the source is negative and the
-     destination is unsigned, a diagnostic will be issued by the caller. */
-  if (is_negative && !fxp_descr->is_unsigned) {
+     destination is unsigned, a diagnostic will be issued by the caller.
+     On overflow, the saturated value will have already been created with
+     the appropriate sign. */
+  if (!overflow && is_negative && !fxp_descr->is_unsigned) {
     a_boolean	negate_err;
     negate_fixed_point_value(value, &negate_err);
     if (negate_err) *err = TRUE;
@@ -580,6 +549,50 @@ indicated by the given string.  Otherwise, it is set to FALSE.
   conv_mantissa_to_fixed_point(&mantissa, exponent, /*is_negative=*/FALSE,
                                fxp_descr, overflow, value, err, inexact);
 }  /* fxp_hex_string_to_fixed_point */
+
+
+void fxp_string_to_fixed_point(a_fixed_point_type_descr  *fxp_descr,
+                               char                      *str,
+                               a_fixed_point_value       *value,
+                               a_boolean                 *err)
+/*
+Convert the decimal fixed-point number in the null-terminated string str to
+internal form in *value.  The number is known to be syntactically correct,
+but may not be representable (it may be too large or too small); if there's
+an error, return *err = TRUE.  The specific fixed-point kind is indicated by
+*fxp_descr (and will typically affect the representation in *value).
+The string need not have a decimal point or exponent (it can look like an
+integer).  It may have a leading "-" sign.
+
+This implementation is for demonstration purposes only: It is known to be
+imprecise.  Specifically, this implementation scans the string as a floating-
+point value.  It relies on a_fixed_point_value being identical to
+an_integer_value.
+*/
+{
+  an_internal_float_value
+		fp_value;
+  a_boolean	inexact;
+  long		exponent;
+  a_boolean	is_negative;
+  a_mantissa	mantissa;
+
+  *err = FALSE;
+  /* Convert the given string to a floating point value. */
+  fp_string_to_float((a_float_kind)fk_long_double, str, &fp_value, err);
+  if (!*err) {
+    /* Convert the floating-point value into a fixed-point. */
+    load_hex_fp_value(&fp_value,
+                      (a_float_kind)fk_long_double,
+                      &mantissa, &exponent, &is_negative,
+                      /*restore_implicit_bit=*/TRUE);
+    /* Convert and store the mantissa as a fixed-point value. */
+    conv_mantissa_to_fixed_point(&mantissa, exponent, is_negative,
+                                 fxp_descr,
+                                 /*overflow=*/FALSE,
+                                 value, err, &inexact);
+  }  /* if */
+}  /* fxp_string_to_fixed_point */
 
 
 char* fxp_to_string(a_fixed_point_type_descr  *fxp_descr,
