@@ -2393,10 +2393,12 @@ was an lvalue or rvalue, etc.
 */
 {
   prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
-  if ((is_constant_operand(operand) && is_an_rvalue(operand)) ||
-      is_error_operand(operand)) {
-    /* The operand is a constant rvalue or an error, which we can use
-       directly. */
+  if (is_error_operand(operand)) {
+    /* Note that is_error_operand returns TRUE if the type is error, so
+       make sure we have an actual error operand. */
+    conv_to_error_operand(operand);
+  } else if (is_constant_operand(operand) && is_an_rvalue(operand)) {
+    /* The operand is a constant rvalue, which we can use directly. */
   } else {
     /* The argument is something more complicated, e.g., an expression.
        Make an expression and put it under a tpck_expression constant. */
