@@ -495,6 +495,7 @@ check_abbreviation()
 --cfront_2.1
 --cfront_3.0
 --class_name_injection
+--clear_flag
 --command
 --comments
 --compile
@@ -665,6 +666,7 @@ check_abbreviation()
 --remove_unneeded_entities
 --restrict
 --rtti
+--set_flag
 --short_lifetime_temps
 --signed_chars
 --special_subscript_cost
@@ -1222,6 +1224,8 @@ process_option()
          --incl_suffixes | \
          --db_name | \
          --context_limit | \
+         --set_flag | \
+         --clear_flag | \
          --pack_alignment)
       feoptions=$feoptions" $curr_arg $curr_param"
       used_two_params=1
@@ -1288,6 +1292,8 @@ process_option()
           --incl_suffixes=* | \
           --db_name=* | \
           --context_limit=* | \
+          --set_flag=* | \
+          --clear_flag=* | \
           --definition_list_file=* | \
           --pack_alignment=*)
       feoptions=$feoptions" $curr_arg"
