@@ -6055,16 +6055,25 @@ done_with_operation:
     case enk_temp_init:
       /* Temporary creation/initialization. */
       if (expr->variant.init.result_is_addr) {
-        /* Using the address of the temp.  This can come up if it is allowed
-           to cast a class rvalue to a reference type. */
+        /* Using the address of the temp. */
         a_type_ptr temp_type = type_pointed_to(expr->type);
         write_tok_ch('(');
         gen_ampersand(temp_type);
-        check_assertion(is_class_struct_union_type(temp_type));
-        write_tok_ch('(');
-        gen_type(temp_type);
-        write_tok_str(" &)");
-        gen_temp_init(expr);
+        if (C_mode()) {
+          /* Address of temp-init in C.  This comes up for the address
+             of a C99 compound literal. */
+          a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+          check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant);
+          gen_compound_literal(dip->variant.constant);
+        } else {
+          /* Address of temp-init in C++.  This can come up if it is allowed
+             to cast a class rvalue to a reference type. */
+          check_assertion(is_class_struct_union_type(temp_type));
+          write_tok_ch('(');
+          gen_type(temp_type);
+          write_tok_str(" &)");
+          gen_temp_init(expr);
+        }  /* if */
         write_tok_ch(')');
       } else {
         /* Normal case (using the value of the temp). */
