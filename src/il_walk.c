@@ -31,9 +31,11 @@ il_walk.c -- Routines to walk the intermediate language tree.
 
 #if IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS
 
+#if !STANDALONE_UTILITY_PROGRAM
 #if DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if !ORPHAN_PROCESSING_NEEDED
  #error -- ORPHAN_PROCESSING_NEEDED must be set if IL walking is needed.
