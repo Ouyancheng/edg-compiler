@@ -5429,7 +5429,7 @@ if possible.  operator_position indicates the operator position.
        no point in checking them. */
     if (op == (an_expr_operator_kind)eok_padd_subsc ||
         op == (an_expr_operator_kind)eok_padd) {
-      /* Try folding only that's desirable in the current expression. */
+      /* Try folding only if that's desirable in the current expression. */
       try_folding = expr_stack->favor_constant_result;
     } else {
       /* Not an addressing operation (normal case). */
