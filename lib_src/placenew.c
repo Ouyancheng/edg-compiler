@@ -16,7 +16,7 @@ _placenew.C -- C++ operator new(size_t, void*);
 #include <stddef.h>
 
 
-extern void *operator new(size_t size, void *ptr)
+void *operator new(size_t, void *ptr)
 /*
 Return the value of ptr as the address of the new object.
 */
