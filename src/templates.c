@@ -1270,159 +1270,171 @@ be NULL if the caller does not need to know whether a conversion was performed.
     /* The type from the template is not a template parameter type.  Before
        checking further, remove typedefs -- but keep the type qualifiers
        in place. */
+    a_type_kind	templ_type_kind = templ_type->kind;
+    a_type_kind	type_kind = type->kind;
+    /* Normalize the type kinds so that class and struct are treated as the
+       same kind. */
+    if (templ_type_kind == (a_type_kind)tk_struct) templ_type_kind = tk_class;
+    if (type_kind == (a_type_kind)tk_struct) type_kind = tk_class;
     type = skip_typedefs(type);
     templ_type = skip_typedefs(templ_type);
     if (templ_type == type) {
       /* Identical type entries, so it's a match. */
       match = TRUE;
-    } else if (templ_type->kind != type->kind) {
+    } else if (templ_type_kind != type_kind) {
       /* No match. */
-    } else if (type->source_corresp.class_of_which_a_member != NULL) {
-      /* The argument type is a class member -- a nested class or enum.  Be
-         sure the parent classes match and that the members correspond (i.e.,
-         have the same name). */
-      tp = type->source_corresp.class_of_which_a_member;
-      ttp = templ_type->source_corresp.class_of_which_a_member;
-      if (ttp == NULL) {
-        /* No match. */
-      } else {
-        a_symbol_ptr  sym, templ_sym;
-
-        sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-        templ_sym = (a_symbol_ptr)templ_type->source_corresp.assoc_info;
-        if (sym->header != templ_sym->header) {
-          /* Members have different names -- no match. */
-        } else if (matches_template_type(tp, ttp, templ_arg_list,
-                                         /*allow_conversion=*/FALSE,
-                                         (a_base_class_ptr*)NULL)) {
-          /* Members have the same names and the parent classes "match". */
-          match = TRUE;
+    } else {
+      if (type->source_corresp.class_of_which_a_member != NULL) {
+        /* The argument type is a class member -- a nested class or enum.  Be
+           sure the parent classes match and that the members correspond (i.e.,
+           have the same name). */
+        tp = type->source_corresp.class_of_which_a_member;
+        ttp = templ_type->source_corresp.class_of_which_a_member;
+        if (ttp == NULL) {
+          /* No match. */
+        } else {
+          a_symbol_ptr  sym, templ_sym;
+  
+          sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+          templ_sym = (a_symbol_ptr)templ_type->source_corresp.assoc_info;
+          if (sym->header != templ_sym->header) {
+            /* Members have different names -- no match. */
+          } else if (matches_template_type(tp, ttp, templ_arg_list,
+                                           /*allow_conversion=*/FALSE,
+                                           (a_base_class_ptr*)NULL)) {
+            /* Members have the same names and the parent classes "match". */
+            match = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
-    } else {
-      switch (type->kind) {
-        case tk_class:
-        case tk_struct:
-        case tk_union:
-          match = matches_template_type_for_class_type(type, templ_type,
-                                                       templ_arg_list);
-          if (!match && allow_conversion) {
-            a_base_class_ptr	bcp;
-            /* See if the type matches a base class type of actual argument
-               type.  This is allows a Derived<T> to be passed to a function
-               expecting a Base<T> as an argument. */
-            bcp = type->variant.class_struct_union.extra_info->base_classes;
-            while (bcp != NULL) {
-              match = matches_template_type_for_class_type(bcp->type,
-                                                           templ_type,
-                                                           templ_arg_list);
-              if (match) {
-                if (base_class_conv_needed != NULL) {
-                  *base_class_conv_needed = bcp;
+      if (match) {
+        /* No need to check further. */
+      } else {
+        switch (type->kind) {
+          case tk_class:
+          case tk_struct:
+          case tk_union:
+            match = matches_template_type_for_class_type(type, templ_type,
+                                                         templ_arg_list);
+            if (!match && allow_conversion) {
+              a_base_class_ptr	bcp;
+              /* See if the type matches a base class type of actual argument
+                 type.  This is allows a Derived<T> to be passed to a function
+                 expecting a Base<T> as an argument. */
+              bcp = type->variant.class_struct_union.extra_info->base_classes;
+              while (bcp != NULL) {
+                match = matches_template_type_for_class_type(bcp->type,
+                                                             templ_type,
+                                                             templ_arg_list);
+                if (match) {
+                  if (base_class_conv_needed != NULL) {
+                    *base_class_conv_needed = bcp;
+                  }  /* if */
+                  break;
                 }  /* if */
-                break;
-              }  /* if */
-              bcp = bcp->next;
-            }  /* while */
-          }  /* if */
-          break;
-        case tk_typeref:
-          if (!type_qualifiers_match(type, templ_type)) {
-            /* Not a match. */
-          } else {
-            /* Qualifiers match.  See if the underlying types do, too. */
-            tp = type->variant.typeref.type;
-            ttp = templ_type->variant.typeref.type;
-            match = matches_template_type(tp, ttp, templ_arg_list,
-                                          /*allow_conversion=*/FALSE,
-                                          (a_base_class_ptr*)NULL);
-          }  /* if */
-          break;
-        case tk_array:
-          /* Array types match if their element types match and the number of
-             elements is the same. */
-          check_assertion(!type->variant.array.is_variable_size_array);
-          check_assertion(!templ_type->variant.array.is_variable_size_array);
-          if (type->variant.array.variant.number_of_elements !=
+                bcp = bcp->next;
+              }  /* while */
+            }  /* if */
+            break;
+          case tk_typeref:
+            if (!type_qualifiers_match(type, templ_type)) {
+              /* Not a match. */
+            } else {
+              /* Qualifiers match.  See if the underlying types do, too. */
+              tp = type->variant.typeref.type;
+              ttp = templ_type->variant.typeref.type;
+              match = matches_template_type(tp, ttp, templ_arg_list,
+                                            /*allow_conversion=*/FALSE,
+                                            (a_base_class_ptr*)NULL);
+            }  /* if */
+            break;
+          case tk_array:
+            /* Array types match if their element types match and the number of
+               elements is the same. */
+            check_assertion(!type->variant.array.is_variable_size_array);
+            check_assertion(!templ_type->variant.array.is_variable_size_array);
+            if (type->variant.array.variant.number_of_elements !=
                         templ_type->variant.array.variant.number_of_elements) {
-            /* Not a match. */
-          } else {
-            tp = type->variant.array.element_type;
-            ttp = templ_type->variant.array.element_type;
-            match = matches_template_type(tp, ttp, templ_arg_list,
-                                          /*allow_conversion=*/FALSE,
-                                          (a_base_class_ptr*)NULL);
-          }  /* if */
-          break;
-        case tk_pointer:
-          /* Pointer matches pointer and reference matches reference, but they
-             can't be mixed. */
-          if (type->variant.pointer.is_reference !=
-                         templ_type->variant.pointer.is_reference) {
-            /* Not a match. */
-          } else {
-            tp = type->variant.pointer.type;
-            ttp = templ_type->variant.pointer.type;
-            match = matches_template_type(tp, ttp, templ_arg_list,
-                                          /*allow_conversion=*/FALSE,
-                                          (a_base_class_ptr*)NULL);
-          }  /* if */
-          break;
-        case tk_ptr_to_member:
-          /* For ptr-to-member types, there needs to be a match on both the
-             member types and the class-of-which-a-member. */
-          tp = type->variant.ptr_to_member.type;
-          ttp = templ_type->variant.ptr_to_member.type;
-          if (matches_template_type(tp, ttp, templ_arg_list,
-                                    /*allow_conversion=*/FALSE,
-                                    (a_base_class_ptr*)NULL)) {
-            tp = type->variant.ptr_to_member.class_of_which_a_member;
-            ttp = templ_type->variant.ptr_to_member.class_of_which_a_member;
-            match = (matches_template_type(tp, ttp, templ_arg_list,
+              /* Not a match. */
+            } else {
+              tp = type->variant.array.element_type;
+              ttp = templ_type->variant.array.element_type;
+              match = matches_template_type(tp, ttp, templ_arg_list,
+                                            /*allow_conversion=*/FALSE,
+                                            (a_base_class_ptr*)NULL);
+            }  /* if */
+            break;
+          case tk_pointer:
+            /* Pointer matches pointer and reference matches reference, but
+               they can't be mixed. */
+            if (type->variant.pointer.is_reference !=
+                           templ_type->variant.pointer.is_reference) {
+              /* Not a match. */
+            } else {
+              tp = type->variant.pointer.type;
+              ttp = templ_type->variant.pointer.type;
+              match = matches_template_type(tp, ttp, templ_arg_list,
+                                            /*allow_conversion=*/FALSE,
+                                            (a_base_class_ptr*)NULL);
+            }  /* if */
+            break;
+          case tk_ptr_to_member:
+            /* For ptr-to-member types, there needs to be a match on both the
+               member types and the class-of-which-a-member. */
+            tp = type->variant.ptr_to_member.type;
+            ttp = templ_type->variant.ptr_to_member.type;
+            if (matches_template_type(tp, ttp, templ_arg_list,
+                                      /*allow_conversion=*/FALSE,
+                                      (a_base_class_ptr*)NULL)) {
+              tp = type->variant.ptr_to_member.class_of_which_a_member;
+              ttp = templ_type->variant.ptr_to_member.class_of_which_a_member;
+              match = (matches_template_type(tp, ttp, templ_arg_list,
+                                             /*allow_conversion=*/FALSE,
+                                             (a_base_class_ptr*)NULL));
+            }  /* if */
+            break;
+          case tk_routine:
+            /* For routine types there has to be a match both on the return
+               types and on all the parameter types.  In addition, the
+               has-ellipsis flags should be set the same. */
+            tp = type->variant.routine.return_type;
+            ttp = templ_type->variant.routine.return_type;
+            if (matches_template_type(tp, ttp, templ_arg_list,
+                                      /*allow_conversion=*/FALSE,
+                                      (a_base_class_ptr*)NULL) &&
+                (type->variant.routine.extra_info->has_ellipsis ==
+                    templ_type->variant.routine.extra_info->has_ellipsis)) {
+              /* Return type and ellipsis are okay.  Check the param types. */
+              ptp = type->variant.routine.extra_info->param_type_list;
+              tptp = templ_type->variant.routine.extra_info->param_type_list;
+              for (;;) {
+                if (ptp == NULL || tptp == NULL) {
+                  /* One or both of the param type lists is exhausted.  It's a
+                     match only if they're both done. */
+                  match = (ptp == tptp);
+                  break;
+                }  /* if */
+                tp = ptp->type;
+                ttp = tptp->type;
+                if (!matches_template_type(tp, ttp, templ_arg_list,
                                            /*allow_conversion=*/FALSE,
-                                           (a_base_class_ptr*)NULL));
-          }  /* if */
-          break;
-        case tk_routine:
-          /* For routine types there has to be a match both on the return types
-             and on all the parameter types.  In addition, the has-ellipsis
-             flags should be set the same. */
-          tp = type->variant.routine.return_type;
-          ttp = templ_type->variant.routine.return_type;
-          if (matches_template_type(tp, ttp, templ_arg_list,
-                                    /*allow_conversion=*/FALSE,
-                                    (a_base_class_ptr*)NULL) &&
-              (type->variant.routine.extra_info->has_ellipsis ==
-                  templ_type->variant.routine.extra_info->has_ellipsis)) {
-            /* Return type and ellipsis are okay.  Check the param types. */
-            ptp = type->variant.routine.extra_info->param_type_list;
-            tptp = templ_type->variant.routine.extra_info->param_type_list;
-            for (;;) {
-              if (ptp == NULL || tptp == NULL) {
-                /* One or both of the param type lists is exhausted.  It's a
-                   match only if they're both done. */
-                match = (ptp == tptp);
-                break;
-              }  /* if */
-              tp = ptp->type;
-              ttp = tptp->type;
-              if (!matches_template_type(tp, ttp, templ_arg_list,
-                                         /*allow_conversion=*/FALSE,
-                                         (a_base_class_ptr*)NULL)) {
-                /* The first param type for which there is a mismatch causes
-                   a mismatch for the entire type.  No need to keep looping. */
-                break;
-              }  /* if */
-              ptp = ptp->next;
-              tptp = tptp->next;
-            }  /* for */
-          }  /* if */
-          break;
-        default:
-          /* They are simple types -- these are leaf nodes in a type tree.
-             Check for identity. */
-          match = identical_types(templ_type, type);
-      }  /* switch */
+                                           (a_base_class_ptr*)NULL)) {
+                  /* The first param type for which there is a mismatch causes
+                     a mismatch for the entire type.  No need to keep
+                     looping. */
+                  break;
+                }  /* if */
+                ptp = ptp->next;
+                tptp = tptp->next;
+              }  /* for */
+            }  /* if */
+            break;
+          default:
+            /* They are simple types -- these are leaf nodes in a type tree.
+               Check for identity. */
+            match = identical_types(templ_type, type);
+        }  /* switch */
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
