@@ -5789,6 +5789,181 @@ current scope.
 }  /* nonmember_using_declaration */
 
 
+static a_boolean check_for_missing_declarator(
+                                    a_decl_flag_set   dso_flags,
+                                    a_type_ptr        type_ptr,
+                                    a_storage_class   storage_class,
+                                    a_boolean         is_old_style_param_decl,
+                                    a_boolean         extern_implied,
+                                    a_source_position *decl_start_pos,
+                                    a_boolean         decl_spec_err)
+/*
+The decl-specifiers have been scanned.  Check for the case in which a
+declarator is missing, in which case return TRUE after issuing appropriate
+diagnostics.  (It is not always an error -- for example, an "autonomous"
+class definition like "struct S { int i; };".)
+
+Three of the parameters relay information returned from decl_specifiers:
+dso_flags is a vector of flags, type_ptr is the type that was specified, and
+storage_class is the storage class specified.  is_old_style_param_decl is
+TRUE if a parameter declaration from a non-prototyped parameter list is
+being scanned.  extern_implied is TRUE if the declaration is part of a
+linkage-specification declaration.  decl_start_pos indicates the source
+position of the first token of the current declaration.  decl_spec_err is
+TRUE if an error was reported while the decl-specifiers were scanned.
+*/
+{
+  a_boolean  declarator_omitted = FALSE;
+  a_boolean  declares_something = dso_flags & DSO_DECLARES_SOMETHING;
+  a_boolean  defines_something = dso_flags & DSO_DEFINES_SOMETHING;
+  a_boolean  inline_specified = dso_flags & DSO_INLINE;
+
+  if (curr_token == tok_semicolon) {
+    declarator_omitted = TRUE;
+    if (decl_spec_err) {
+      /* Don't issue further errors on this declaration. */
+    } else if (is_old_style_param_decl &&
+               (declares_something || defines_something)) {
+      /* ANSI C does not allow freestanding declarations (as of structs)
+         within an old-style parameter list.  pcc, on the other hand,
+         will allow something like
+            int f(a)
+            struct s {int b;};
+            struct s a;
+            { ... }
+      */
+      if (C_dialect != C_dialect_pcc) {
+        diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
+                   ec_decl_should_be_of_param);
+      }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      set_autonomous_tag_decl_flag(type_ptr, defines_something);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    } else if (!declares_something && C_dialect == C_dialect_cplusplus &&
+               defines_something && type_ptr->kind == (a_type_kind)tk_union &&
+               storage_class != (a_storage_class)sc_typedef) {
+      /* Special C++ case:  the declaration of an anonymous union.   Do the
+         required error checking and special processing, including creation
+         of a variable which will represent the anonymous union and with
+         which its fields will be aliased. */
+      check_assertion(is_unnamed_tag_symbol(
+                        (a_symbol_ptr)(type_ptr->source_corresp.assoc_info)));
+      make_anonymous_union_variable(type_ptr, storage_class);
+      /* The anonymous union variable is marked as referenced, as are all
+         unnamed entities.  So its type is also marked referenced. */
+      type_ptr->source_corresp.referenced = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      set_autonomous_tag_decl_flag(type_ptr, /*is_definition=*/TRUE);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    } else if (extern_implied && is_enum_type(type_ptr)) {
+      /* This is a declaration like
+                      extern "C" enum E { e1, e2, e3 };
+         which is not allowed (inference from ARM 7.4). */
+      pos_error(ec_enum_not_allowed, decl_start_pos);
+    } else {
+      if (storage_class == (a_storage_class)sc_typedef) {
+        /* Typedef declaration with no declarator. */
+        an_error_severity  severity = es_warning;
+
+        if (declares_something ||
+            (defines_something && is_enum_type(type_ptr))) {
+          /* No error on a case like "typedef struct S { int i; };" or
+             "typedef enum { red, green, blue };" -- see first constraint,
+             Section 3.5 of the ANSI C standard.  However, a warning should
+             be issued, since the "typedef" is superfluous. */
+        } else {
+          /* A case like "typedef int;" or "typedef struct { int i; };" --
+             gets a warning by default but may get an error in strict ANSI
+             mode. */
+          if (strict_ansi_mode) severity = strict_ansi_error_severity;
+        }  /* if */
+        set_err_pos_to_curr_token();
+        diagnostic(severity, ec_missing_typedef_name);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        if (defines_something) {
+          set_autonomous_tag_decl_flag(type_ptr, /*is_definition=*/TRUE);
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if ASM_FUNCTION_ALLOWED
+      } else if (storage_class == (a_storage_class)sc_asm) {
+        pos_error(ec_bad_asm_function_def, &pos_curr_token);
+        local_storage_class = (a_storage_class)sc_unspecified;
+#endif /* ASM_FUNCTION_ALLOWED */
+      } else {
+        if (!declares_something) {
+          /* The specifiers should have declared something or this declaration
+             is pointless.  Examples would be
+                int ;
+                struct { int i; };
+             whereas, despite the missing declarator,
+                struct x {int a;};
+             is not useless since it declares something (namely x). */
+          /* ANSI probably thinks of this as an error, but that seems a bit
+             extreme, especially since pcc allows it.  Normally we issue a
+             warning, unless the -A option is selected. */
+          diagnostic(strict_ansi_mode ?
+                       strict_ansi_error_severity : es_warning,
+                     ec_useless_decl);
+        }  /* if */
+        /* A storage class can only be specified for an object or a function
+           (ARM 7.1.1). */
+        if (storage_class != (a_storage_class)sc_unspecified) {
+          diagnostic((C_mode() || any_cfront_mode()) ? es_warning : es_error,
+                     ec_storage_class_not_allowed);
+        }  /* if */
+        /* ARM 7.1.6 implies that the absence of a object in this declaration
+           makes it ill-formed.  Is the implication strong enough to justify
+           an error here? */
+        if (is_qualified_type(type_ptr)) {
+          diagnostic(C_dialect == C_dialect_cplusplus && strict_ansi_mode ?
+                       strict_ansi_error_severity : es_warning,
+                     ec_const_volatile_not_allowed);
+        }  /* if */
+        /* Inline can only be specified for a function (ARM 7.1.2). */
+        if (inline_specified) {
+          error(ec_inline_and_nonfunction);
+        }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        if (defines_something || declares_something) {
+          /* This is a class/struct/union or enum declaration. */
+          set_autonomous_tag_decl_flag(type_ptr, defines_something);
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      }  /* if */
+    }  /* if */
+    cannot_bind_to_curr_construct();
+  } else if ((dso_flags & DSO_DANGLING_TYPE_SPECIFIER) ||
+             (!C_mode() && identifier_is_template_id())) {
+    /* The "dangling type specifier" case -- a class, struct, union, or
+       enum definition was followed by a type specifier keyword.  This is
+       treated as a missing-semicolon error, since the type specifier can
+       be taken as introducing a new declaration.  (A similar case is the
+       identifier-but-not-declarator-id case -- which occurs when a
+       template-id appears where a declarator was expected. */
+    declarator_omitted = TRUE;
+    if (decl_spec_err) {
+      /* Don't issue further errors on this declaration. */
+    } else if (dso_flags & DSO_DECLARES_SOMETHING) {
+      if (is_old_style_param_decl) {
+        /* An old style param declaration that introduces a named struct or
+           enum type but has no declarator for the parameter. */
+        pos_error(ec_decl_should_be_of_param, decl_start_pos);
+      } else {
+        /* Maybe something "struct A { ... } int i;", where the declaration
+           is okay and the problem is that a semicolon is missing. */
+      }  /* if */
+    } else {
+      /* A declaration that introduces an unnamed struct or enum type but has
+         no declarator.  May or may not be in an old-style param list. */
+      pos_error(ec_exp_identifier, &pos_curr_token);
+    }  /* if */
+    /* Note: the missing-semicolon error is issued by the caller. */
+    discard_curr_construct_pragmas();
+  }  /* if */
+  return declarator_omitted;
+}  /* check_for_missing_declarator */
+
+
 /*
 Local macro for the routine "declaration".  Does any remove_stop_token
 calls that have not yet been done.  Useful in ensuring that all the stop
@@ -5856,7 +6031,6 @@ of local variables (and types, etc.) of functions and in blocks.
   a_type_ptr                   type_ptr, old_type;
   a_type_ptr	               local_type_ptr;
   a_boolean                    has_explicit_type_specifier;
-  a_boolean	               declares_something;
   a_boolean	               defines_something;
   a_decl_flag_set              dso_flags, do_flags;
   a_type_qualifier_set         qualifiers;
@@ -5876,7 +6050,6 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean                    has_initializer;
   a_boolean                    has_parenthesized_initializer;
   a_boolean                    err = FALSE;
-  a_boolean                    dangling_type_specifier = FALSE;
   a_boolean                    inline_specified;
   a_source_position            decl_start_pos, declarator_pos;
   a_boolean                    need_semicolon_remove_stop_token = FALSE;
@@ -6050,148 +6223,12 @@ continue_with_declaration:
   err = decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
                         &qualifiers, &decl_modifiers);
   has_explicit_type_specifier = dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
-  declares_something = dso_flags & DSO_DECLARES_SOMETHING;
-  defines_something = dso_flags & DSO_DEFINES_SOMETHING;
-  dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
-  decl_specifiers_omitted = dso_flags & DSO_NO_DECL_SPECIFIERS;
-  is_constructor_or_destructor =
-                            dso_flags & (DSO_CONSTRUCTOR | DSO_DESTRUCTOR);
-  inline_specified = dso_flags & DSO_INLINE;
+  if (dso_flags & DSO_NO_DECL_SPECIFIERS) decl_specifiers_omitted = TRUE;
   /* The declaration can end at this point (";" is next). */
-  if (curr_token == tok_semicolon && !decl_specifiers_omitted) {
-    if (err) {
-      /* There was a previous error, so do not check further. */
-    } else if (is_old_style_param_decl &&
-               (declares_something || defines_something)) {
-      /* ANSI C does not allow freestanding declarations (as of structs)
-         within an old-style parameter list.  pcc, on the other hand,
-         will allow something like
-            int f(a)
-            struct s {int b;};
-            struct s a;
-            { ... }
-      */
-      if (C_dialect != C_dialect_pcc) {
-        diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
-                   ec_decl_should_be_of_param);
-      }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      set_autonomous_tag_decl_flag(type_ptr, defines_something);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    } else if (!declares_something && C_dialect == C_dialect_cplusplus &&
-               defines_something && type_ptr->kind == (a_type_kind)tk_union &&
-               storage_class != (a_storage_class)sc_typedef) {
-      /* Special C++ case:  the declaration of an anonymous union.   Do the
-         required error checking and special processing, including creation
-         of a variable which will represent the anonymous union and with
-         which its fields will be aliased. */
-      check_assertion(is_unnamed_tag_symbol(
-                        (a_symbol_ptr)(type_ptr->source_corresp.assoc_info)));
-      make_anonymous_union_variable(type_ptr, storage_class);
-      /* The anonymous union variable is marked as referenced, as are all
-         unnamed entities.  So its type is also marked referenced. */
-      type_ptr->source_corresp.referenced = TRUE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      set_autonomous_tag_decl_flag(type_ptr, /*is_definition=*/TRUE);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    } else if (extern_implied && is_enum_type(type_ptr)) {
-      /* This is a declaration like
-                      extern "C" enum E { e1, e2, e3 };
-         which is not allowed (inference from ARM 7.4). */
-      pos_error(ec_enum_not_allowed, &decl_start_pos);
-    } else {
-      if (storage_class == (a_storage_class)sc_typedef) {
-        /* Typedef declaration with no declarator. */
-        an_error_severity  severity = es_warning;
-
-        if (declares_something ||
-            (defines_something && is_enum_type(type_ptr))) {
-          /* No error on a case like "typedef struct S { int i; };" or
-             "typedef enum { red, green, blue };" -- see first constraint,
-             Section 3.5 of the ANSI C standard.  However, a warning should
-             be issued, since the "typedef" is superfluous. */
-        } else {
-          /* A case like "typedef int;" or "typedef struct { int i; };" --
-             gets a warning by default but may get an error in strict ANSI
-             mode. */
-          if (strict_ansi_mode) severity = strict_ansi_error_severity;
-        }  /* if */
-        set_err_pos_to_curr_token();
-        diagnostic(severity, ec_missing_typedef_name);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        if (defines_something) {
-          set_autonomous_tag_decl_flag(type_ptr, /*is_definition=*/TRUE);
-        }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if ASM_FUNCTION_ALLOWED
-      } else if (storage_class == (a_storage_class)sc_asm) {
-        pos_error(ec_bad_asm_function_def, &pos_curr_token);
-        local_storage_class = (a_storage_class)sc_unspecified;
-#endif /* ASM_FUNCTION_ALLOWED */
-      } else {
-        if (!declares_something) {
-          /* The specifiers should have declared something or this declaration
-             is pointless.  Examples would be
-                int ;
-                struct { int i; };
-             whereas, despite the missing declarator,
-                struct x {int a;};
-             is not useless since it declares something (namely x). */
-          /* ANSI probably thinks of this as an error, but that seems a bit
-             extreme, especially since pcc allows it.  Normally we issue a
-             warning, unless the -A option is selected. */
-          diagnostic(strict_ansi_mode ?
-                       strict_ansi_error_severity : es_warning,
-                     ec_useless_decl);
-        }  /* if */
-        /* A storage class can only be specified for an object or a function
-           (ARM 7.1.1). */
-        if (storage_class != (a_storage_class)sc_unspecified) {
-          diagnostic((C_mode() || any_cfront_mode()) ? es_warning : es_error,
-                     ec_storage_class_not_allowed);
-        }  /* if */
-        /* ARM 7.1.6 implies that the absence of a object in this declaration
-           makes it ill-formed.  Is the implication strong enough to justify
-           an error here? */
-        if (is_qualified_type(type_ptr)) {
-          diagnostic(C_dialect == C_dialect_cplusplus && strict_ansi_mode ?
-                       strict_ansi_error_severity : es_warning,
-                     ec_const_volatile_not_allowed);
-        }  /* if */
-        /* Inline can only be specified for a function (ARM 7.1.2). */
-        if (inline_specified) {
-          error(ec_inline_and_nonfunction);
-        }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        if (defines_something || declares_something) {
-          /* This is a class/struct/union or enum declaration. */
-          set_autonomous_tag_decl_flag(type_ptr, defines_something);
-        }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      }  /* if */
-    }  /* if */
-    cannot_bind_to_curr_construct();
-  } else if (dangling_type_specifier ||
-             (!decl_specifiers_omitted && !C_mode() &&
-              identifier_is_template_id())) {
-    /* A class, struct, union, or enum definition was followed by a type
-       specifier keyword.  Issue a missing-semicolon error, since the type
-       specifier can be taken as introducing a new declaration. */
-    /* A similar case is the identifier-but-not-declarator-id case -- which
-       occurs when a template-id appears where a declarator was expected. */
-    set_err_pos_to_curr_token();
-    if (is_old_style_param_decl && declares_something) {
-      /* An old style param declaration that introduces a named struct or
-         enum type but has no declarator for the parameter. */
-      pos_error(ec_decl_should_be_of_param, &decl_start_pos);
-    } else if (!declares_something) {
-      /* A declaration that introduces an unnamed struct or enum type but has
-         no declarator.  May or may not be in an old-style param list. */
-      error(ec_exp_identifier);
-    }  /* if */
-    error(ec_exp_semicolon);
-    discard_curr_construct_pragmas();
-    goto return_point;
+  if (!decl_specifiers_omitted &&
+      check_for_missing_declarator(dso_flags, type_ptr, storage_class,
+                                   is_old_style_param_decl, extern_implied,
+                                   &decl_start_pos, err)) {
   } else if (curr_token == tok_void && C_dialect == C_dialect_pcc && 
              storage_class == (a_storage_class)sc_typedef &&
              next_token() == tok_semicolon) {
@@ -6204,6 +6241,11 @@ continue_with_declaration:
     (void)get_token();
     goto advance_past_final_token;
   } else {
+    /* Flags based results from decl_specifiers. */
+    is_constructor_or_destructor =
+                            dso_flags & (DSO_CONSTRUCTOR | DSO_DESTRUCTOR);
+    inline_specified = dso_flags & DSO_INLINE;
+    defines_something = dso_flags & DSO_DEFINES_SOMETHING;
     /* Set the various flags for declarator processing. */
     di_flags = DI_REAL_DECLARATOR_ALLOWED;
     if (C_dialect == C_dialect_cplusplus) {
