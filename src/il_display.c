@@ -2524,10 +2524,8 @@ Display the indicated routine.
 #if IA64_ABI && DO_IL_LOWERING
   } else if (ptr->special_kind == (a_special_function_kind)sfk_constructor ||
              ptr->special_kind == (a_special_function_kind)sfk_destructor) {
-    if (ptr->variant.ctor_dtor.alternate_entry_points != NULL) {
-      disp_routine_list("alternate_entry_points",
-                        ptr->variant.ctor_dtor.alternate_entry_points);
-    }  /* if */
+    /* Do not print out alternate_entry_points, which is used only
+       during IL lowering. */
     disp_unsigned_long("base_name_offset",
                        ptr->variant.ctor_dtor.base_name_offset);
 #endif /* IA64_ABI && DO_IL_LOWERING */
