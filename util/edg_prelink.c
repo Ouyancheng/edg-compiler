@@ -1302,9 +1302,12 @@ Read the existing instantiation assignment information from the
       }  /* if */
 #endif /* DEBUG */
       if (ii_file != NULL) {
+        int	i;
         pifp->info_filename = pl_copy_string(pl_filename_buffer);
-        /* Read line 1 that contains the command line. */
-	pl_read_input_line(ii_file);
+        /* Skip over the reserved lines. */
+        for (i = 0; i < INSTANTIATION_INFO_LINES_RESERVED; ++i) {
+          pl_read_input_line(ii_file);
+        }  /* for */
         /* Read the instantiation list. */
         while (pl_read_input_line(ii_file)) {
           a_pl_symbol_ptr	sym;
@@ -1532,8 +1535,12 @@ has changed then write the updated list of instantiations to the file.
 {
 
   a_pl_input_file_ptr		pifp;
-  static a_pl_input_line	command_line_buffer;
   int				return_status = 0;
+  int				i;
+
+  /* We allocate one additional array element because it is possible
+     for there to be zero reserved lines. */
+  char *reserved_lines[INSTANTIATION_INFO_LINES_RESERVED + 1];
 
   pifp = pl_input_files;
   while (pifp != NULL) {
@@ -1550,15 +1557,20 @@ has changed then write the updated list of instantiations to the file.
         fprintf(stderr, "File %s is missing\n", pifp->info_filename);
         pl_internal_error("Instantiation information file is missing");
       }  /* if */
-      /* Read the command line and save it. */
-      pl_read_input_line(ii_file);
-      strcpy(command_line_buffer, pl_input_line);
+      /* Read the reserved lines and save them to be rewritten later. */
+      for (i = 0; i < INSTANTIATION_INFO_LINES_RESERVED; ++i) {
+        pl_read_input_line(ii_file);
+        reserved_lines[i] = pl_copy_string(pl_input_line);
+      }  /* for */
       /* Truncate the original file so that it can be rewritten. */
       ii_file = fopen(pifp->info_filename, "w");
       if (ii_file == NULL) {
         pl_internal_error("Could not reopen instantiation information file.");
       }  /* if */
-      fprintf(ii_file, "%s\n", command_line_buffer);
+      /* Rewrite the reserved lines. */
+      for (i = 0; i < INSTANTIATION_INFO_LINES_RESERVED; ++i) {
+        fprintf(ii_file, "%s\n", reserved_lines[i]);
+      }  /* for */
       /* Write the instantiation list to the file. */
       psp = pifp->info_list;
       while (psp != NULL) {
@@ -1567,10 +1579,16 @@ has changed then write the updated list of instantiations to the file.
       }  /* while */
       fclose(ii_file);
       if (!suppress_compilation) {
-        return_status = pl_recompile_file(command_line_buffer);
+	/* This depends on the command line being in the first reserved
+	   line. */
+        return_status = pl_recompile_file(reserved_lines[0]);
         /* Stop if an error occurs. */
         if (return_status != 0) break;
       }  /* if */
+      /* Free the space occupied by the reserved lines. */
+      for (i = 0; i < INSTANTIATION_INFO_LINES_RESERVED; ++i) {
+        free(reserved_lines[i]);
+      }  /* for */
     }  /* if */
     pifp = pifp->next;
   }  /* while */
