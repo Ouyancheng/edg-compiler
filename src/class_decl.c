@@ -814,6 +814,10 @@ old_class under new_class.  If old_class is NULL it means we don't know
   }  /* if */
 #endif /* if CHECKING */
   if (old_class == NULL) old_class = base_class->derived_class;
+  if (old_class == new_class) {
+    new_base_class = base_class;
+    goto done;
+  }  /* if */
   for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
     if (base_class == NULL) {
 #if CHECKING
@@ -828,36 +832,37 @@ old_class under new_class.  If old_class is NULL it means we don't know
       }  /* if */
     } else if (bcp->type == base_class->type) {
       /* The types match. */
-      if (!bcp->ambiguous && !base_class->ambiguous) {
+      a_derivation_step_ptr  step = bcp->derivation;
+
+      if (base_class->is_virtual && bcp->is_virtual) {
+        new_base_class = bcp;
+        goto done;
+      } else if (base_class->direct) {
+        for (; step != NULL; step = step->next) {
+          if (step->base_class->type == old_class) {
+            new_base_class = bcp;
+            goto done;
+          }  /* if */
+        }  /* for */
+      } else if (!bcp->ambiguous && !base_class->ambiguous) {
         new_base_class = bcp;
         goto done;
       } else {
         /* One or both of the base classes is ambiguous.  That means there
            is more than one instance of the base class in the base classes
            list.  Check the derivations to resolve the ambiguity. */
-        if (equivalent_paths(bcp->derivation, base_class->derivation)) {
+        if (equivalent_paths(step, base_class->derivation)) {
           new_base_class = bcp;
           goto done;
         } else {
-          a_derivation_step_ptr  step = bcp->derivation;
-
-          if (base_class->direct) {
-            for (; step != NULL; step = step->next) {
-              if (step->base_class->type == old_class) {
-                new_base_class = bcp;
-                goto done;
-              }  /* if */
-            }  /* for */
-          } else {
-            for (; step != NULL; step = step->next) {
-              if (step->base_class->type ==
+          for (; step != NULL; step = step->next) {
+            if (step->base_class->type ==
                                base_class->derivation->base_class->type &&
-                  congruent_paths(step, base_class->derivation)) {
-                new_base_class = bcp;
-                goto done;
-              }  /* if */
-            }  /* for */
-          }  /* if */
+                congruent_paths(step, base_class->derivation)) {
+              new_base_class = bcp;
+              goto done;
+            }  /* if */
+          }  /* for */
         }  /* if */
       }  /* if */
     }  /* if */
