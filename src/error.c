@@ -3712,38 +3712,6 @@ position and string fill-in.
 }  /* pos_st_start_error */
 
 
-void pos_start_error(an_error_code     error_code,
-                     a_source_position *error_pos)
-/*
-Begin a multiple message error with the specified error code and source
-position.
-*/
-{
-  pos_st_start_error(error_code, error_pos, (char *)NULL);
-}  /* pos_start_error */
-
-
-void str_start_error(an_error_code error_code,
-                     char          *error_string)
-/*
-Begin a multiple message error with the specified error code and string
-fill-in and the source position indicated by error_position.
-*/
-{
-  pos_st_start_error(error_code, &error_position, error_string);
-}  /* str_start_error */
-
-
-void start_error(an_error_code error_code)
-/*
-Begin a multiple message error at the source position specified by
-error_position.
-*/
-{
-  pos_st_start_error(error_code, &error_position, (char *)NULL);
-}  /* start_error */
-
-
 void pos_ty_start_error(an_error_code     error_code,
                         a_source_position *error_pos,
                         struct a_type     *type)
@@ -3774,17 +3742,6 @@ position, and 2 types as fill-ins.
 }  /* pos_ty2_start_error */
 
 
-void type_start_error(an_error_code error_code,
-                      struct a_type *type)
-/*
-Begin a multiple message error with the specified error code and type
-fill-in for the source position reflected in error_position.
-*/
-{
-  pos_ty_start_error(error_code, &error_position, type);
-}  /* type_start_error */
-
-
 void str_add_diag_info(an_error_code error_code,
                        char          *error_string)
 /*
@@ -3796,19 +3753,6 @@ multiple message diagnostic being processed.
   error_msg_strings[1] = error_string;
   diag_message(error_code, (a_source_position *)NULL, es_none, dck_list);
 }  /* str_add_diag_info */
-
-
-void type_add_diag_info(an_error_code error_code,
-                        struct a_type *type)
-/*
-Add the specified diagnostic message with the type substitution to the
-multiple message diagnostic being processed.
-*/
-{
-  init_error_params();
-  error_msg_types[1] = type;
-  diag_message(error_code, (a_source_position *)NULL, es_none, dck_list);
-}  /* type_add_diag_info */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -3840,17 +3784,6 @@ position and symbol fill-in.
 }  /* pos_sy_start_warning */
 
 
-void sym_start_error(an_error_code   error_code,
-                     struct a_symbol *symbol)
-/*
-Begin a multiple message error with the specified error code and symbol
-fill-in for the source position reflected in error_position.
-*/
-{
-  pos_sy_start_error(error_code, &error_position, symbol);
-}  /* sym_start_error */
-
-
 void sym_add_diag_info(an_error_code   error_code,
                        struct a_symbol *symbol)
 /*
@@ -3864,16 +3797,6 @@ multiple message diagnostic being processed.
 }  /* sym_add_diag_info */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-
-void add_diag_info(an_error_code error_code)
-/*
-Add the specified diagnostic message  to the multiple message diagnostic
-being processed.
-*/
-{
-  str_add_diag_info(error_code, (char *)NULL);
-}  /* add_diag_info */
-
 
 void end_error(void)
 /*
