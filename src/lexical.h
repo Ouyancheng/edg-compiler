@@ -1821,16 +1821,6 @@ extern void add_to_text_buffer(a_text_buffer_ptr	buffer,
 Make sure that the specified buffer has at least "length" total bytes in it.
 If not, expand the buffer by reallocating it.
 */
-#define ensure_unicode_buffer_space(buf, length)			\
-{ if ((length) > (buf)->allocated_size) {				\
-    expand_unicode_buffer(buf, length);					\
-  }  /* if */								\
-}  /* ensure_unicode_buffer_space */
-
-/*
-Make sure that the specified buffer has at least "length" total bytes in it.
-If not, expand the buffer by reallocating it.
-*/
 #define ensure_text_buffer_space(buf, length)			\
 { if ((length) > (buf)->allocated_size) {				\
     expand_text_buffer(buf, length);					\

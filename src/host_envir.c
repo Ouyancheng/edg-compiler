@@ -2837,7 +2837,7 @@ Add "dir_name" to the end of the directory name specified by "buf".
       char	*orig_buf_ptr = buf_ptr;
       if (buf->size == 0) {
         /* We are already at the start of the buffer. */
-#if __MICROSOFT_OS
+#if __MICROSOFT_OS__
       } else if (buf->size == 2 && has_drive_specification(buf->buffer)) {
         /* On Windows, we are back to something like "C:".  Don't go any
            further. */
@@ -2891,7 +2891,7 @@ to the current directory.
       check_assertion(has_drive_specification(current_directory_name));
       add_to_text_buffer(buf, current_directory_name, 2);
     }  /* if */
-#endif __MICROSOFT_OS__
+#endif /* __MICROSOFT_OS__ */
   }  /* if */
   /* Add the specified directory name. */
   append_dir_name(buf, dir_name);
@@ -2974,16 +2974,14 @@ file names are not known to be relative to the current directory.
   file_start2 = start_of_file_name(start2);
   if (compare_file_chars(file_start1, file_start2) == 0) {
     /* Only the directory names only if the file name components match. */
-    if (!match) {
-      char	*dir1;
-      char	*dir2;
-      /* Normalize the directory names so that "./x.h" and "x.h" will
-         compare equal. */
-      dir1 = directory_of(start1);
-      dir2 = directory_of(start2);
-      if (compare_dir_names(dir1, dir2, is_partial_file_name) == 0) {
-        match = TRUE;
-      }  /* if */
+    char	*dir1;
+    char	*dir2;
+    /* Normalize the directory names so that "./x.h" and "x.h" will
+       compare equal. */
+    dir1 = directory_of(start1);
+    dir2 = directory_of(start2);
+    if (compare_dir_names(dir1, dir2, is_partial_file_name) == 0) {
+      match = TRUE;
     }  /* if */
   }  /* if */
   if (ignore_delimiters) {
