@@ -1208,8 +1208,9 @@ enum a_constant_repr_kind_tag {
 #endif /* DO_IL_LOWERING && ... */
   ck_dynamic_init,	/* Dynamic initialization.  Indicates the location of
 			   a non-constant part of an aggregate initialization,
-			   one that requires code.  Only used in C++, and in
-			   C mode with Microsoft extensions. */
+			   one that requires code.  Only used in C++ and in C
+			   modes that allow nonconstant initializers in
+			   aggregates. */
 #endif /* ifdef CIL */
   ck_aggregate,         /* For list of constants in initialization. */
   ck_init_repeat,       /* Used to specify a repeated initialization constant
