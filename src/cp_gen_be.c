@@ -5307,7 +5307,8 @@ TRUE, "()" is put out.
           gen_argument_list(args, ctor->type, /*skip_num=*/0);
         } else {
           /* This is the non-elision case. */
-          if (parenthesized_init && args == NULL) {
+          if (parenthesized_init &&
+              (args == NULL || args->generated_default_arg)) {
             /* This is a default constructor, so do not list the
                initialization except when specifically asked to. */
             if (force_parens) write_tok_str("()");
