@@ -207,32 +207,14 @@ the current statement sequence.
        i.e., the dependent statement of the "if" is labeled, and therefore
        two dependent statements are required under the if, which only allows
        one.  It also happens for "continue" labels.  For cases like this,
-       we create an additional block to contain the list of statements. 
-       If the dependent statement is a block (because the source dependent
-       statement is a block), that block is used. */
-    if ((*head_ptr)->kind == (a_statement_kind)stmk_block &&
-        (*head_ptr)->variant.block.extra_info->assoc_scope == NULL) {
-      /* There is an existing block from a source construct.  Find the 
-         end of its statement list, and add there.  Note that blocks that
-         contain declarations are ruled out: we don't want to add a
-         statement inside such a block.  (That's especially true in
-         C++, where the end of the block may kick off destructor calls
-         which must be done before the statement being added is executed.)
-         Also note that the top compound statement of a switch never has
-         an associated scope at this point (the scope gets added at the
-         closing brace), so it's acceptable, which is what we want. */
-      extra_block = *head_ptr;
-      temp_stmt = extra_block->variant.block.statements;
-      if (temp_stmt != NULL) {
-        while (temp_stmt->next != NULL) temp_stmt = temp_stmt->next;
-      }  /* if */
-      sssep->last_dep_statement = temp_stmt;
-    } else {
-      /* Create a new block to allow additional statements. */
-      extra_block = alloc_statement((a_statement_kind)stmk_block);
-      extra_block->variant.block.statements = *head_ptr;
-      *head_ptr = extra_block;
-    }  /* if */
+       we create an additional block to contain the list of statements.
+       Note that we don't try to reuse an existing block if the dependent
+       statement is one.  That doesn't reflect the source structure as clearly,
+       and we wouldn't want to do it if there were declarations (or worse,
+       declarations requiring destructor calls) inside the block. */
+    extra_block = alloc_statement((a_statement_kind)stmk_block);
+    extra_block->variant.block.statements = *head_ptr;
+    *head_ptr = extra_block;
     head_ptr = &extra_block->variant.block.statements;
     sssep->extra_block = extra_block;
   } /* if */
@@ -678,10 +660,12 @@ found:
 }  /* find_enclosing_struct_stmt */
 
 
-static void start_block_statement(a_statement_ptr *block)
+static void start_block_statement(a_statement_ptr *block,
+                                  a_boolean       dependent_statement)
 /*
 Do processing to begin a block or compound statement.  Return a pointer
-to the block statement in *block.
+to the block statement in *block.  dependent_statement is TRUE if the
+block is being created to surround a dependent statement in C++.
 */
 {
   *block = add_statement((a_statement_kind)stmk_block);
@@ -691,10 +675,19 @@ to the block statement in *block.
                                         nearest_enclosing_compound_statement();
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_compound, *block);
-  /* Push an associated scope.  This does not allocate the IL scope yet. */
-  (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
-                   (a_routine_ptr)NULL, (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
-                   (a_template_arg_ptr)NULL);
+  /* Push an associated scope.  This does not allocate the IL scope yet.
+     Do not do this in cfront compatibility mode (the old rule was that no
+     scope is created). */
+  if (cfront_compatibility_mode && dependent_statement) {
+    /* Mark the block for special processing in IL lowering or a back end:
+       Anything constructed within the block must also be destroyed therein. */
+    (*block)->dependent_statement = TRUE;
+  } else {
+    (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
+                     (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                     (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                     (a_template_arg_ptr)NULL);
+  }  /* if */
 }  /* start_block_statement */
 
 
@@ -717,8 +710,8 @@ block statement.
     block->variant.block.extra_info->assoc_scope = scope_ptr;
     scope_ptr->assoc_block = block;
   }  /* if */
-  /* Pop the name scope. */
-  pop_scope();
+  /* Pop the name scope.  Do this only if a name scope was pushed. */
+  if (!block->dependent_statement) pop_scope();
   /* Pop the statement stack. */
   pop_stmt_stack();
 }  /* finish_block_statement */
@@ -739,14 +732,13 @@ statement no new scope is required.
   db_enter(3, "dependent_statement");
   start_position = pos_curr_token;
   /* In C++, add a block (and potential scope).  Do not do so, however,
-     if a block will be created anyway.  Also do not do so in cfront
-     compatibility mode.  In the ARM and in cfront 2.1 no scope was
-     created. */
-  if (C_dialect != C_dialect_cplusplus || curr_token == tok_lbrace ||
-      cfront_compatibility_mode) {
+     if a block will be created anyway. */
+  if (C_dialect != C_dialect_cplusplus || curr_token == tok_lbrace) {
     block_added = FALSE;
   } else {
-    start_block_statement(&block);
+    /* Normal case (in C++): add a block and potential scope.
+       In cfront mode, the block is added but not the scope. */
+    start_block_statement(&block, /*dependent_statement=*/TRUE);
     block_added = TRUE;
   }  /* if */
   is_executable = statement();
@@ -1964,7 +1956,7 @@ come out on the closing "}".
     } else {
       check_for_unreachable_code();
     }  /* if */
-    start_block_statement(&block);
+    start_block_statement(&block, /*dependent_statement=*/FALSE);
     /* Clear the entry for "else" in the stop tokens set.  Without this,
        an else encountered where a statement is expected could cause an
        error recovery loop. */

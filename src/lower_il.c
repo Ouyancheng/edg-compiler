@@ -5669,72 +5669,13 @@ NULL if there are no statements in the block.
 }  /* pop_block_scope_context */
 
 
-static void lower_dependent_statement(a_statement_ptr statement)
-/*
-Do IL lowering of the indicated statement and everything under it.
-The statement is the dependent statement of another statement, so in
-cfront mode any destruction required within the dependent statement must be
-done on exit from that statement.
-*/
-{
-  a_context          context;
-  an_insert_location insert_location;
-  a_statement_ptr    last_statement;
-
-  if (!cfront_compatibility_mode) {
-    /* When not in cfront compatibility mode, no special processing is
-       needed. */
-    lower_statement(statement);
-  } else {
-    /* In cfront compatibility mode, it is possible for a dependent statement
-       to not have an associated scope.  However, it is still required that
-       anything contructed in the dependent statement (i.e., conditionally)
-       be destroyed at the end of the dependent statement, so push a special
-       dependent-statement context around the lowering of the statement. */
-    push_context(&context, curr_context->scope, /*dependent_statement=*/TRUE);
-    lower_statement(statement);
-    if (any_required_destructor_calls(curr_context)) {
-#if 0
-#else
-      char *file_name, *full_name;
-      a_line_number line_number;
-      a_boolean at_end_of_source;
-      conv_seq_to_file_and_line(statement->seq_number, &file_name, &full_name,
-                                &line_number, &at_end_of_source);
-      fprintf(stderr, "Dependent statement with dtors at %s line %lu\n",
-                      file_name, (unsigned long)line_number);
-#endif
-      /* Some destructor calls must be emitted.  Make the statement into a
-         block if it is not already a block, then find the last statement
-         within the block so we can insert after it. */
-      if (statement->kind != (a_statement_kind)stmk_block) {
-        turn_statement_into_block(statement);
-      }  /* if */
-      last_statement = statement->variant.block.statements;
-      if (last_statement == NULL) {
-        /* Empty block; insert at start. */
-        set_block_start_insert_location(statement, &insert_location);
-      } else {
-        /* Find the last statement. */
-        for (; last_statement->next != NULL;
-             last_statement = last_statement->next) {}
-        set_insert_location(last_statement, &insert_location);
-      }  /* if */
-      /* Generate the required destructor calls. */
-      gen_required_destructor_calls(curr_context, &insert_location);
-    }  /* if */
-    pop_context();
-  }  /* if */
-}  /* lower_dependent_statement */
-
-
 static void lower_statement(a_statement_ptr statement)
 /*
 Do IL lowering of the indicated statement and everything under it.
 */
 {
   a_routine_ptr      curr_routine;
-  a_context          context;
+  a_context          context, dependent_context;
   a_scope_ptr        scope;
   an_insert_location insert_location;
   a_statement_ptr    last_statement, body_statement;
@@ -5748,6 +5689,15 @@ Do IL lowering of the indicated statement and everything under it.
     /* Track the source position for internal errors. */
     error_position.seq = statement->seq_number;
     error_position.column = 0;
+    if (statement->dependent_statement) {
+      /* In cfront compatibility mode, it is possible for a dependent statement
+         to not have an associated scope.  However, it is still required that
+         anything contructed in the dependent statement (i.e., conditionally)
+         be destroyed at the end of the dependent statement, so push a special
+         dependent-statement context around the lowering of the statement. */
+      push_context(&dependent_context, curr_context->scope,
+                   /*dependent_statement=*/TRUE);
+    }  /* if */
     if (statement->expr != NULL) lower_normal_expr(statement->expr);
     switch (statement->kind) {
       case stmk_expr:
@@ -5845,12 +5795,12 @@ Do IL lowering of the indicated statement and everything under it.
         }  /* if */
         break;
       case stmk_if:
-        lower_dependent_statement(statement->variant.if_stmt.then_statement);
-        lower_dependent_statement(statement->variant.if_stmt.else_statement);
+        lower_statement(statement->variant.if_stmt.then_statement);
+        lower_statement(statement->variant.if_stmt.else_statement);
         break;
       case stmk_while:
       case stmk_end_test_while:
-        lower_dependent_statement(statement->variant.loop_statement);
+        lower_statement(statement->variant.loop_statement);
         break;
       case stmk_block:
         /* Push a block context around the processing of the block.
@@ -5888,7 +5838,7 @@ Do IL lowering of the indicated statement and everything under it.
         } else {
           /* There is no body statement, or the body statement is something
              other than a block statement with a scope. */
-          lower_dependent_statement(body_statement);
+          lower_statement(body_statement);
           lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
                                    (a_context_ptr)NULL);
         }  /* if */
@@ -5901,6 +5851,34 @@ Do IL lowering of the indicated statement and everything under it.
         internal_error("lower_statement: bad kind");
 #endif /* CHECKING */
     }  /* switch */
+    if (statement->dependent_statement) {
+      /* Earlier in this routine we pushed a special context for a dependent
+         statement in cfront compatibility mode. */
+      if (any_required_destructor_calls(curr_context)) {
+        a_statement_ptr    last_statement;
+        an_insert_location insert_location;
+        /* Some destructor calls must be emitted at the end of the dependent
+           statement.  Make the statement into a block if it is not already
+           a block, then find the last statement within the block so we can
+           insert after it. */
+        if (statement->kind != (a_statement_kind)stmk_block) {
+          turn_statement_into_block(statement);
+        }  /* if */
+        last_statement = statement->variant.block.statements;
+        if (last_statement == NULL) {
+          /* Empty block; insert at start. */
+          set_block_start_insert_location(statement, &insert_location);
+        } else {
+          /* Find the last statement. */
+          for (; last_statement->next != NULL;
+               last_statement = last_statement->next) {}
+          set_insert_location(last_statement, &insert_location);
+        }  /* if */
+        /* Generate the required destructor calls. */
+        gen_required_destructor_calls(curr_context, &insert_location);
+      }  /* if */
+      pop_context();
+    }  /* if */
   }  /* if */
 }  /* lower_statement */
 
