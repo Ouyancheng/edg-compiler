@@ -491,14 +491,11 @@ does not mean one wants to -- see INSTANTIATE_TEMPLATES_EVERYWHERE_USED.
 Flag that is TRUE if templates should be instantiated everywhere they
 are used, with duplicates discarded by the linker.  This approach
 does not require a prelinker, and setting this mode disables the
-prelinker by default.
+prelinker by default.  Note that without a prelinker we cannot
+implement exported templates.
 */
 #ifndef INSTANTIATE_TEMPLATES_EVERYWHERE_USED
-#if IA64_ABI
-#define INSTANTIATE_TEMPLATES_EVERYWHERE_USED TRUE
-#else /* !IA64_ABI */
 #define INSTANTIATE_TEMPLATES_EVERYWHERE_USED FALSE
-#endif /* IA64_ABI */
 #endif /* ifndef INSTANTIATE_TEMPLATES_EVERYWHERE_USED */
 
 #if INSTANTIATE_TEMPLATES_EVERYWHERE_USED && \
@@ -714,6 +711,12 @@ is disabled by default except when using the C generating back end.
  #error -- MAINTAIN_NEEDED_FLAGS must be TRUE \
            when ONE_INSTANTIATION_PER_OBJECT is TRUE
 #endif /* !MAINTAIN_NEEDED_FLAGS && ... */
+#if ONE_INSTANTIATION_PER_OBJECT && !AUTOMATIC_TEMPLATE_INSTANTIATION
+/* One-instantiation-per-object mode needs the .ti file, which it
+   uses to give the driver a list of the files to be compiled. */
+ #error -- AUTOMATIC_TEMPLATE_INSTANTIATION must be TRUE \
+           when ONE_INSTANTIATION_PER_OBJECT is TRUE
+#endif /* ONE_INSTANTIATION_PER_OBJECT && !AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 /*
 In the "one instantiation per object file" mode, entities with internal
