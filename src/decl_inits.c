@@ -2794,9 +2794,9 @@ initialized.  These are addressed in the course of the processing.
              but the differences will be manifested as slightly different
              diagnostics, and then only in rather obscure cases.
           */
-          if (!locator_for_curr_id.is_qualified_name) {
+          if (!is_error_locator(locator_for_curr_id) &&
+              !locator_for_curr_id.is_qualified_name) {
             a_boolean     check_base_classes;
-            a_symbol_ptr  sym;
 
             if (member_or_base_sym == NULL) {
               check_base_classes = TRUE;
@@ -2819,9 +2819,10 @@ initialized.  These are addressed in the course of the processing.
                    bcp = bcp->next) {
                 if (bcp->direct || bcp->is_virtual ||
                     member_or_base_sym == NULL) {
-                  sym = (a_symbol_ptr)bcp->type->source_corresp.assoc_info;
-                  if (locator_for_curr_id.symbol_header == sym->header) {
-                    member_or_base_sym = sym;
+                  a_symbol_ptr  tmp_sym = (a_symbol_ptr)bcp->type->
+                                                 source_corresp.assoc_info;
+                  if (locator_for_curr_id.symbol_header == tmp_sym->header) {
+                    member_or_base_sym = tmp_sym;
                     break;
                   }  /* if */
                 }  /* if */
