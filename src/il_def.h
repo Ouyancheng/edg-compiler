@@ -3092,7 +3092,7 @@ typedef struct a_for_loop {
   a_statement_ptr
 	        initialization;
 			/* Pointer to a statement that represents the
-			   the loop initialization (in C, the initialization
+			   loop initialization (in C, the initialization
 			   expression is wrapped in an stmk_expr statement);
 			   NULL if there is none. */
   an_expr_node_ptr
