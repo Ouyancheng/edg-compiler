@@ -1,5 +1,21 @@
 Version 2.46
 
+4/13/01  Spurious error on prototype instantiation of aggregate initializer
+
+When doing nonclass prototype instantiations, the front end would issue a
+spurious error on an aggregate initializer containing multiple values when
+it initializes a static data member whose type is a template parameter.
+For example:
+
+  template<typename T> struct S {
+    int a, b;
+    static T x;
+  };
+  template<typename T> T S<T>::x = { 7, 8 };  // Used to trigger spurious
+                                              // "missing brace" error.
+
+This is now fixed.
+
 4/3/01   Return type of main() in C99 mode
 
 A main() function with a return type different from int now produces a warning

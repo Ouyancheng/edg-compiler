@@ -2160,16 +2160,20 @@ initialized is not a reference.
   a_constant_ptr sub_con;
   a_type_ptr     sub_type;
   a_field_ptr    field;
-  a_boolean      array_case;
 
   if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
+    a_boolean      array_case, template_param_case;
     /* Aggregate constant (e.g., "{1, 2, 3}"). */
     write_tok_ch('{');
     /* Figure out the kind of aggregate so we can track the type as we
        work through constants. */
     type = skip_typerefs(type);
     array_case = (type->kind == (a_type_kind)tk_array);
-    if (array_case) {
+    template_param_case = (type->kind == (a_type_kind)tk_template_param);
+    if (template_param_case) {
+      /* The subobject type is unknown. */
+      sub_type = NULL;
+    } else if (array_case) {
       /* Array -- each constant will fill an element of the array. */
       sub_type = type->variant.array.element_type;
     } else {
@@ -2202,7 +2206,10 @@ initialized is not a reference.
         }  /* if */
         /* Determine the type of the entity initialized by the next
            constant. */
-        if (!array_case) {
+        if (template_param_case) {
+          /* No constraints on the type: use the type of the constant. */
+          sub_type = eff_sub_con->type;
+        } else if (!array_case) {
           check_assertion_str(field != NULL,
                               "gen_initializer_constant: ran out of fields");
           sub_type = field->type;

@@ -1128,8 +1128,9 @@ array type of unknown size, *is_incomplete_array will be set to TRUE.
 
   *any_more_members = TRUE;  /* Assume. */
   *is_incomplete_array = FALSE;
-  if (kind == (a_type_kind)tk_error) {
-    /* Error type. */
+  if (kind == (a_type_kind)tk_error ||
+      kind == (a_type_kind)tk_template_param) {
+    /* Unknown member type (due to error or template parameterization). */
     *member_type = error_type();
   } else if (kind == (a_type_kind)tk_array) {
     /* Array.  Start with first element. */
@@ -1703,7 +1704,8 @@ this function points to a tree that includes a dynamic-init entry.
        initialization" case did not apply, in which case "FALSE" was returned
        and we fall through.  Otherwise, all the required work was done. */
   } else if (is_aggregate_or_union_type(context.type) ||
-             (is_error_type(context.type) &&
+             ((is_error_type(context.type) ||
+               is_template_param_type(context.type)) &&
               ((curr_token == tok_lbrace &&
                 context.pending_init_con == NULL) ||
                (init_info->designation_state != ds_complete_designation &&
@@ -1791,6 +1793,11 @@ this function points to a tree that includes a dynamic-init entry.
              what we're initializing. */
           member_type = error_type();
           kind = (a_type_kind)tk_error;
+        } else if (is_template_param_type(context.type)) {
+          /* The destination type is a template parameter and therefore
+             essentially unknown.  Treat it as if it had members of its
+             own type. */
+          member_type = context.type;
         } else if (kind == (a_type_kind)tk_array) {
           /* member_type was set outside the loop. */
 #if DEBUG
@@ -1890,8 +1897,9 @@ this function points to a tree that includes a dynamic-init entry.
         check_assertion(!(local_nothing_taken && is_incomplete_array));
         /* Advance to the next member of the aggregate.  Set
            any_more_members FALSE if there are no more members. */
-        if (kind == (a_type_kind)tk_error) {
-          /* Error case; do not advance. */
+        if (kind == (a_type_kind)tk_error ||
+            kind == (a_type_kind)tk_template_param) {
+          /* Unknown destination type: there is nothing to "advance". */
         } else if (kind == (a_type_kind)tk_array) {
           /* Array; see if there are any elements remaining. */
           if (curr_array_element == targ_size_t_max) {
@@ -2904,7 +2912,8 @@ returned set to TRUE.
       check_closing_paren_after_expr_list();
     }  /* if */
   } else if (is_aggregate_or_union_type(vp_type) ||
-             (is_error_type(vp_type) && curr_token == tok_lbrace)) {
+             (curr_token == tok_lbrace &&
+              (is_error_type(vp_type) || is_template_param_type(vp_type)))) {
     /* Either a brace enclosed list of initializers or other aggregate
        initialization. */
     if (curr_token != tok_lbrace && is_class_struct_union_type(vp_type) &&
