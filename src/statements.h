@@ -74,7 +74,14 @@ typedef struct a_struct_stmt_stack_entry {
 		curr_switch_clause;
 			/* When kind == stmk_switch, this points to the
 			   current switch clause, or is NULL if there
-			   is no current switch clause. */
+			   is no current switch clause.  It is set only for
+			   simple clauses, those begun by case labels appearing
+			   directly within the switch statement or a top-level
+			   compound statement.  When kind != stmk_switch,
+			   if this statement is nested within a switch and
+			   it contains case labels, this points to the case
+			   clause for the case label most recently encountered;
+			   otherwise, it is NULL. */
   a_statement_ptr
 		extra_block;
 			/* If non-NULL, points to an stmk_block statement
