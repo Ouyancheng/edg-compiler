@@ -200,6 +200,7 @@ conversion can be done, return the result in "result".
       check_assertion_str(tmp != NULL && tmp[1] == '\0' &&
                           isdigit((unsigned char)str_flt_max[0]),
                           "conv_host_fp_to_float: bad FLT_MAX definition");
+      *tmp = '\0';
     }  /* if */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
     host_fp_flt_max = str_to_long_double(str_flt_max);
