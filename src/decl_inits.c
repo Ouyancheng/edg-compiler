@@ -1856,6 +1856,7 @@ this function points to a tree that includes a dynamic-init entry.
   a_class_symbol_supplement_ptr  cssp;
   an_aggregate_init_context      context;
   a_boolean                      top_level = (prev_init_context == NULL);
+  a_source_position              initializer_pos;
 
   db_enter(4, "get_initializer");
   *nothing_taken = FALSE;
@@ -2039,6 +2040,9 @@ this function points to a tree that includes a dynamic-init entry.
                 }  /* if */
                 init_info->has_flexible_array_initializer = TRUE;
                 any_more_members = FALSE;
+                /* Record the current position in case a diagnostic must be
+                   issued below. */
+                initializer_pos = pos_curr_token;
               } else if (is_incomplete_type(member_type)) {
                 error(ec_cannot_initialize_flexible_array_member);
               }  /* if */
@@ -2055,6 +2059,14 @@ this function points to a tree that includes a dynamic-init entry.
         member_con = get_initializer(&member_type, init_info, &context,
                                      &local_nothing_taken,
                                      &local_any_dynamic_init);
+        if (gcc_mode && !is_flexible_array && local_any_dynamic_init &&
+            init_info->has_flexible_array_initializer) {
+          /* We just scanned an aggregate initializer for a flexible array
+             member, and it contained a dynamic component.  In GNU C, this
+             is invalid. */
+          pos_error(ec_nonconstant_flexible_array_member_init,
+                    &initializer_pos);
+        }  /* if */
         /* If exceptions are enabled and the type of the member being
            initialized is a class with a destructor, it may be appropriate to
            record the destructor in case an exception is thrown before the
