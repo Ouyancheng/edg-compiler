@@ -1867,6 +1867,9 @@ Do IL lowering for an stmk_try_block statement.
   /* The dependent statement is the statement under the "try". */
   copy_of_orig_stmt->variant.if_stmt.then_statement = stmt_to_try;
   if_stmt = copy_of_orig_stmt;
+  /* Pop the stack after the rewritten "if" statement. */
+  set_insert_location(copy_of_orig_stmt, &insert_location);
+  pop_eh_stack_frame(try_frame, &insert_location);
   /* Walk through the catch clauses and turn each one into an "if" in the
      "else" part of the previous "if". */
   catch_clause_number = 0;
