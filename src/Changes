@@ -58,8 +58,8 @@ form of name mangling, and it addition it can be compiled into
 the runtime library to provide a user-callable demangler
 (via the ABI-mandated __cxa_demangle interface).
 
-g++ 3.2 implements the IA-64 ABI, but it has a fair number of
-bugs.  We have added code to do a fairly thorough emulation of
+g++ 3.2 implements the IA-64 ABI, but it has a considerable number
+of bugs.  We have added code to do a fairly thorough emulation of
 those bugs, which is enabled by DEFAULT_EMULATE_GNU_ABI_BUGS.
 We believe that by default g++ 3.3 will continue to have these
 bugs except when invoked with -fabi-version=0, so the emulation
