@@ -1,5 +1,17 @@
 Version 2.45
 
+9/18/00  Microsoft compatibility: lookup problem introduced in 2.44
+
+A bug was introduced in version 2.44 that could cause members of
+an enclosing class to be ignored during certains lookups in a
+template class.  This has been fixed.
+
+  template <class T> struct A {
+    struct C { };
+    struct B { B(C); };
+  };
+  template<> A< int>::B::B(C); // spurious error: "C is undefined"
+
 9/15/00  Visibility of operator functions in template base classes in
          strict mode
 

@@ -5049,6 +5049,12 @@ the class symbol supplement points to the partial specialization).
        scopes should be visible for these cases (Microsoft specialization
        scopes are pushed for class scopes for explicitly specialized classes,
        and for class reactivation scopes for all template classes). */
+    if (class_type->source_corresp.is_class_member) {
+      /* Reactivate the parent class. */
+      a_type_ptr	parent_class;
+      parent_class = class_type->source_corresp.parent.class_type;
+      push_class_reactivation_scope(parent_class, /*entend_namespace=*/FALSE);
+    }  /* if */
     push_simple_instantiation_scope(decl_info, class_type,
                                     (a_routine_ptr)NULL, class_sym,
                                     template_sym, template_arg_list,
@@ -5176,16 +5182,23 @@ is called only in C++.
   a_scope_stack_entry_ptr	ssep;
   a_scope_depth			orig_depth;
   a_boolean			namespace_pushed = FALSE;
+  a_boolean			microsoft_specialization_scope_pushed;
+  a_boolean			instantiation_scope_pushed;
 
   ssep = &scope_stack[depth_scope_stack];
-  if (ssep->instantiation_scope_pushed) {
-    a_boolean	microsoft_specialization_scope_pushed;
-    microsoft_specialization_scope_pushed =
+  microsoft_specialization_scope_pushed =
                                    ssep->microsoft_specialization_scope_pushed;
-    /* Pop the single class reactivation scope that was pushed. */
-    pop_scope();
-    /* Pop the template instantiation and instantiation context scopes. */
-    pop_template_instantiation_scope();
+  namespace_pushed = ssep->namespace_pushed;
+  instantiation_scope_pushed = ssep->instantiation_scope_pushed;
+  orig_depth = scope_stack[depth_scope_stack].orig_depth;
+  /* Pop scopes until the depth of the scope stack is equal to orig_depth,
+     which is the depth before any of the class reactivation scopes were
+     pushed. */
+  check_assertion_str2(orig_depth != NO_SCOPE_DEPTH,
+                       "pop_class_reactivation_scope:",
+                       "invalid orig_depth");
+  while (orig_depth < depth_scope_stack) pop_scope();
+  if (instantiation_scope_pushed) {
     if (microsoft_specialization_scope_pushed &&
         scope_stack[depth_scope_stack].kind ==
                                      (a_scope_kind)sck_template_declaration) {
@@ -5196,15 +5209,6 @@ is called only in C++.
     }  /* if */
   } else {
     /* Pop the class and namespace reactivation scopes. */
-    namespace_pushed = ssep->namespace_pushed;
-    orig_depth = scope_stack[depth_scope_stack].orig_depth;
-    check_assertion_str2(orig_depth != NO_SCOPE_DEPTH,
-                         "pop_class_reactivation_scope:",
-                         "invalid orig_depth");
-    /* Pop scopes until the depth of the scope stack is equal to orig_depth,
-       which is the depth before any of the class reactivation scopes were
-       pushed. */
-    while (orig_depth < depth_scope_stack) pop_scope();
     if (namespace_pushed) {
       /* The class is nested in a namespace -- pop enclosing namespace(s).
          The enclosing scopes could have been pushed as either extension
