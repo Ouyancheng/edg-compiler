@@ -1,5 +1,12 @@
 Version 2.29
 
+5/19/95  C++-generating back end -- uninstantiated member functions
+
+When the C++-generating back end is used, and it is configured to put
+out instantiations of class templates, an internal error occurred
+on the attempt to put out the declaration of an uninstantiated
+member function of the class.  Now fixed.
+
 5/19/95  Declaring a class a friend of itself
 
 We now issue a warning instead of an error in -A mode when a class is
