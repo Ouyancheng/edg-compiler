@@ -779,329 +779,335 @@ Dump the contents of the indicated type entry, for debug purposes.
   a_routine_type_supplement_ptr rtsp;
   a_boolean	                comma_required;
 
-  switch (tp->kind) {
-    case tk_error:
-      fputs("<error type>", f_debug);
-      break;
-    case tk_unknown:
-      fputs("<unknown type>", f_debug);
-      break;
-    case tk_void:
-      fputs("void", f_debug);
-      break;
-    case tk_integer:
-      if (tp->variant.integer.wchar_t_type) {
-        fputs("wchar_t", f_debug);
-      } else if (tp->variant.integer.bool_type) {
-        fputs("bool", f_debug);
-      } else {
-        fprintf(f_debug, "%s", int_kind_name(tp->variant.integer.int_kind));
-        if (tp->variant.integer.enum_type) fputs(" enum", f_debug);
-      }  /* if */
-      break;
-    case tk_float:
-      fprintf(f_debug, "%s", float_kind_name(tp->variant.float_kind));
-      break;
-    case tk_pointer:
-      if (tp->variant.pointer.is_reference) {
-        fputs("ref to ", f_debug);
-      } else {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (tp->variant.pointer.base_variable != NULL) {
-          fputs("based(", f_debug);
-          db_name(&tp->variant.pointer.base_variable->source_corresp);
-          fputs(") ", f_debug);
+  if (tp == NULL) {
+    fputs("<null pointer>", f_debug);
+    } else {
+    switch (tp->kind) {
+      case tk_error:
+        fputs("<error type>", f_debug);
+        break;
+      case tk_unknown:
+        fputs("<unknown type>", f_debug);
+        break;
+      case tk_void:
+        fputs("void", f_debug);
+        break;
+      case tk_integer:
+        if (tp->variant.integer.wchar_t_type) {
+          fputs("wchar_t", f_debug);
+        } else if (tp->variant.integer.bool_type) {
+          fputs("bool", f_debug);
+        } else {
+          fprintf(f_debug, "%s", int_kind_name(tp->variant.integer.int_kind));
+          if (tp->variant.integer.enum_type) fputs(" enum", f_debug);
         }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        fputs("ptr to ", f_debug);
-      }  /* if */
-      db_abbreviated_type(tp->variant.pointer.type);
-      break;
-    case tk_array:
-      fputs("array [", f_debug);
-      if (tp->variant.array.is_vla) {
-        if (tp->variant.array.has_assoc_vla_dimension) {
+        break;
+      case tk_float:
+        fprintf(f_debug, "%s", float_kind_name(tp->variant.float_kind));
+        break;
+      case tk_pointer:
+        if (tp->variant.pointer.is_reference) {
+          fputs("ref to ", f_debug);
+        } else {
+  #if MICROSOFT_EXTENSIONS_ALLOWED
+          if (tp->variant.pointer.base_variable != NULL) {
+            fputs("based(", f_debug);
+            db_name(&tp->variant.pointer.base_variable->source_corresp);
+            fputs(") ", f_debug);
+          }  /* if */
+  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          fputs("ptr to ", f_debug);
+        }  /* if */
+        db_abbreviated_type(tp->variant.pointer.type);
+        break;
+      case tk_array:
+        fputs("array [", f_debug);
+        if (tp->variant.array.is_vla) {
+          if (tp->variant.array.has_assoc_vla_dimension) {
+            fputs("**EXPR**", f_debug);
+          } else {
+            fputc('*', f_debug);
+          }  /* if */
+        } else if (tp->variant.array.is_variable_size_array) {
           fputs("**EXPR**", f_debug);
         } else {
-          fputc('*', f_debug);
+          fprintf(f_debug, "%lu",
+                  (unsigned long)tp->variant.array.variant.number_of_elements);
         }  /* if */
-      } else if (tp->variant.array.is_variable_size_array) {
-        fputs("**EXPR**", f_debug);
-      } else {
-        fprintf(f_debug, "%lu",
-                (unsigned long)tp->variant.array.variant.number_of_elements);
-      }  /* if */
-      fputs("] of ", f_debug);
-      db_abbreviated_type(tp->variant.array.element_type);
-      break;
-    case tk_struct:
-      fputs("struct", f_debug);
-      goto class_struct_union;
-    case tk_union:
-      fputs("union", f_debug);
-      goto class_struct_union;
-    case tk_class:
-      fputs("class", f_debug);
-class_struct_union:
-      fputs(" ", f_debug);
-      ctsp = tp->variant.class_struct_union.extra_info;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (ctsp != NULL) {
-        a_type_kind  orig_type_kind = ctsp->orig_type_kind;
-        if (orig_type_kind != tp->kind) {
-          fputs("[orig: ", f_debug);
-          switch (orig_type_kind) {
-            case tk_struct:  fputs("struct", f_debug); break;
-            case tk_union:   fputs("union", f_debug); break;
-            case tk_class:   fputs("class", f_debug); break;
-            default:         fputs("***BAD KIND***", f_debug);
-          }  /* switch */
-          fputs("] ", f_debug);
-        }  /* if */
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      db_type_name(tp);
-      if (tp->variant.class_struct_union.field_list == NULL &&
-          (ctsp == NULL || ctsp->assoc_scope == NULL)) {
-        fputs(" (undefined)", f_debug);
-      } else {
-        a_base_class_ptr  bcp = NULL;
-        a_boolean         any_virtual_base_classes = FALSE;
-        a_boolean         any_indirect_base_classes = FALSE;
-
-        if (tp->variant.class_struct_union.abstract) {
-          fputs(" (abstract)", f_debug);
-        }  /* if */
-        if (ctsp != NULL &&
-            ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
-          fprintf(f_debug, " (anonymous, %s)",
-                  ctsp->anonymous_union_kind ==
-                        (an_anonymous_union_kind)auk_field ? "field" : "var");
-        }  /* if */
-        fputs(" {", f_debug);
-        if (ctsp != NULL) bcp = ctsp->base_classes;
-        for (; bcp != NULL; bcp = bcp->next) {
-          if (bcp->direct) {
-            if (!bcp->is_virtual) db_direct_base_class(bcp, 0);
-          } else {
-            any_indirect_base_classes = TRUE;
+        fputs("] of ", f_debug);
+        db_abbreviated_type(tp->variant.array.element_type);
+        break;
+      case tk_struct:
+        fputs("struct", f_debug);
+        goto class_struct_union;
+      case tk_union:
+        fputs("union", f_debug);
+        goto class_struct_union;
+      case tk_class:
+        fputs("class", f_debug);
+  class_struct_union:
+        fputs(" ", f_debug);
+        ctsp = tp->variant.class_struct_union.extra_info;
+  #if MICROSOFT_EXTENSIONS_ALLOWED
+        if (ctsp != NULL) {
+          a_type_kind  orig_type_kind = ctsp->orig_type_kind;
+          if (orig_type_kind != tp->kind) {
+            fputs("[orig: ", f_debug);
+            switch (orig_type_kind) {
+              case tk_struct:  fputs("struct", f_debug); break;
+              case tk_union:   fputs("union", f_debug); break;
+              case tk_class:   fputs("class", f_debug); break;
+              default:         fputs("***BAD KIND***", f_debug);
+            }  /* switch */
+            fputs("] ", f_debug);
           }  /* if */
-          if (bcp->is_virtual) any_virtual_base_classes = TRUE;
-        } /* for */
-        fp = tp->variant.class_struct_union.field_list;
-        for (; fp != NULL; fp = fp->next) db_field(fp, 0);
-        if (any_virtual_base_classes) {
+        }  /* if */
+  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        db_type_name(tp);
+        if (tp->variant.class_struct_union.field_list == NULL &&
+            (ctsp == NULL || ctsp->assoc_scope == NULL)) {
+          fputs(" (undefined)", f_debug);
+        } else {
+          a_base_class_ptr  bcp = NULL;
+          a_boolean         any_virtual_base_classes = FALSE;
+          a_boolean         any_indirect_base_classes = FALSE;
+  
+          if (tp->variant.class_struct_union.abstract) {
+            fputs(" (abstract)", f_debug);
+          }  /* if */
+          if (ctsp != NULL &&
+              ctsp->anonymous_union_kind
+                                      != (an_anonymous_union_kind)auk_none) {
+            fprintf(f_debug, " (anonymous, %s)",
+                    ctsp->anonymous_union_kind ==
+                        (an_anonymous_union_kind)auk_field ? "field" : "var");
+          }  /* if */
+          fputs(" {", f_debug);
           if (ctsp != NULL) bcp = ctsp->base_classes;
           for (; bcp != NULL; bcp = bcp->next) {
-            if (bcp->is_virtual) {
-#if !CFRONT_OBJECT_CODE_COMPATIBILITY
-              if (!bcp->direct) continue;
-#endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
-              db_virtual_base_class_ptr(bcp, 0);
+            if (bcp->direct) {
+              if (!bcp->is_virtual) db_direct_base_class(bcp, 0);
+            } else {
+              any_indirect_base_classes = TRUE;
             }  /* if */
+            if (bcp->is_virtual) any_virtual_base_classes = TRUE;
           } /* for */
-        }  /* if */
-        if (ctsp != NULL && ctsp->assoc_scope != NULL) {
-          a_variable_ptr    vp = ctsp->assoc_scope->variables;
-          a_routine_ptr     rp = ctsp->assoc_scope->routines;
-          a_using_decl_ptr  udp = ctsp->assoc_scope->using_decls;
-
-          db_virtual_function_info(tp, /*nesting_depth=*/0);
+          fp = tp->variant.class_struct_union.field_list;
+          for (; fp != NULL; fp = fp->next) db_field(fp, 0);
           if (any_virtual_base_classes) {
-            fputs("\n  collected virtual base classes:", f_debug);
-            for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-              if (bcp->is_virtual) db_virtual_base_class(bcp, 0);
-            }  /* for */
+            if (ctsp != NULL) bcp = ctsp->base_classes;
+            for (; bcp != NULL; bcp = bcp->next) {
+              if (bcp->is_virtual) {
+  #if !CFRONT_OBJECT_CODE_COMPATIBILITY
+                if (!bcp->direct) continue;
+  #endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
+                db_virtual_base_class_ptr(bcp, 0);
+              }  /* if */
+            } /* for */
           }  /* if */
-          if (any_indirect_base_classes) {
-            fputs("\n  indirect base classes:", f_debug);
-            for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-              if (!bcp->direct) db_indirect_base_class(bcp);
-            }  /* for */
-          }  /* if */
-          if (vp != NULL) {
-            fputs("\n  static data members:", f_debug);
-            for (; vp != NULL; vp = vp->next) db_static_data_member(vp);
-          }  /* if */
-          if (rp != NULL) {
-            fprintf(f_debug,
-                    "\n  member functions (highest virtual func number = %d):",
-                    ctsp->highest_virtual_function_number);
-            for (; rp != NULL; rp = rp->next) db_member_function(rp);
-          }  /* if */
-          if (udp != NULL) {
-            fputs("\n  using decls:", f_debug);
-            for (; udp != NULL; udp = udp->next) {
-              db_using_decl(udp);
+          if (ctsp != NULL && ctsp->assoc_scope != NULL) {
+            a_variable_ptr    vp = ctsp->assoc_scope->variables;
+            a_routine_ptr     rp = ctsp->assoc_scope->routines;
+            a_using_decl_ptr  udp = ctsp->assoc_scope->using_decls;
+  
+            db_virtual_function_info(tp, /*nesting_depth=*/0);
+            if (any_virtual_base_classes) {
+              fputs("\n  collected virtual base classes:", f_debug);
+              for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+                if (bcp->is_virtual) db_virtual_base_class(bcp, 0);
+              }  /* for */
+            }  /* if */
+            if (any_indirect_base_classes) {
+              fputs("\n  indirect base classes:", f_debug);
+              for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+                if (!bcp->direct) db_indirect_base_class(bcp);
+              }  /* for */
+            }  /* if */
+            if (vp != NULL) {
+              fputs("\n  static data members:", f_debug);
+              for (; vp != NULL; vp = vp->next) db_static_data_member(vp);
+            }  /* if */
+            if (rp != NULL) {
+              fprintf(f_debug, "\n  member functions "
+                               "(highest virtual func number = %d):",
+                      ctsp->highest_virtual_function_number);
+              for (; rp != NULL; rp = rp->next) db_member_function(rp);
+            }  /* if */
+            if (udp != NULL) {
+              fputs("\n  using decls:", f_debug);
+              for (; udp != NULL; udp = udp->next) {
+                db_using_decl(udp);
+              }  /* if */
             }  /* if */
           }  /* if */
+          fputc('\n', f_debug);
+          if (ctsp != NULL) {
+            db_all_virtual_function_override_lists(tp);
+          }  /* if */
+          fprintf(f_debug, "} : size = %lu, alignment = %d",
+                  (unsigned long)tp->size, tp->alignment);
+          if (any_virtual_base_classes) {
+            fprintf(f_debug, "; w/o virtuals: size = %lu, alignment = %d",
+                    (unsigned long)ctsp->size_without_virtual_base_classes,
+                    ctsp->alignment_without_virtual_base_classes);
+          }  /* if */
+        }
+        break;
+      case tk_routine:
+        rtsp = tp->variant.routine.extra_info;
+  #if MICROSOFT_EXTENSIONS_ALLOWED
+        if (rtsp->calling_convention != (a_calling_convention)cc_default) {
+          fprintf(f_debug, "%s ",
+                  calling_convention_names[(int)rtsp->calling_convention]);
         }  /* if */
-        fputc('\n', f_debug);
-        if (ctsp != NULL) {
-          db_all_virtual_function_override_lists(tp);
-        }  /* if */
-        fprintf(f_debug, "} : size = %lu, alignment = %d",
-                (unsigned long)tp->size, tp->alignment);
-        if (any_virtual_base_classes) {
-          fprintf(f_debug, "; w/o virtuals: size = %lu, alignment = %d",
-                  (unsigned long)ctsp->size_without_virtual_base_classes,
-                  ctsp->alignment_without_virtual_base_classes);
-        }  /* if */
-      }
-      break;
-    case tk_routine:
-      rtsp = tp->variant.routine.extra_info;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (rtsp->calling_convention != (a_calling_convention)cc_default) {
-        fprintf(f_debug, "%s ",
-                calling_convention_names[(int)rtsp->calling_convention]);
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      if (rtsp->routine_name_linkage != (a_name_linkage_kind)nlk_none) {
-        fputs("[", f_debug);
-        db_name_linkage((a_name_linkage_kind)rtsp->routine_name_linkage);
-        fputs("] ", f_debug);
-      }  /* if */
-      fputs("function", f_debug);
-      if (rtsp->assoc_routine != NULL) {
-        fputs(" ", f_debug);
-        db_name(&rtsp->assoc_routine->source_corresp);
-      }  /* if */
-      if (!rtsp->prototyped) {
-        fputs(" unprototyped", f_debug);
-      }  /* if */
-      fputs("(", f_debug);
-      ptp = rtsp->param_type_list;
-      if (rtsp->implicit_this_param_type != NULL) {
-	fputs("this: ", f_debug);
-        db_abbreviated_type(rtsp->implicit_this_param_type);
-        if (ptp != NULL || rtsp->has_ellipsis) {
-          fputs("; ", f_debug);
-        }  /* if */
-      }  /* if */
-      comma_required = FALSE;
-      while (ptp != NULL) {
-	if (comma_required) fputs(", ", f_debug);
-        if (ptp->qualifiers != TQ_NONE && remove_qualifiers_from_param_types) {
-          a_type_qualifier_set  qualifiers = ptp->qualifiers;
+  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        if (rtsp->routine_name_linkage != (a_name_linkage_kind)nlk_none) {
           fputs("[", f_debug);
-          if (qualifiers & TQ_CONST) {
-            fputs("const", f_debug);
-            qualifiers &= ~TQ_CONST;
-            if (qualifiers != TQ_NONE) fputs(" ", f_debug);
-          }  /* if */
-          if (qualifiers & TQ_VOLATILE) {
-            fputs("volatile", f_debug);
-#if RESTRICT_ALLOWED
-            qualifiers &= ~TQ_VOLATILE;
-            if (qualifiers != TQ_NONE) fputs(" ", f_debug);
-          }  /* if */
-          if (qualifiers & TQ_RESTRICT) {
-            fputs("restrict", f_debug);
-#endif /* RESTRICT_ALLOWED */
-          }  /* if */
+          db_name_linkage((a_name_linkage_kind)rtsp->routine_name_linkage);
           fputs("] ", f_debug);
         }  /* if */
-        db_abbreviated_type(ptp->type);
-        if (ptp->has_default_arg) {
-          an_expr_node_ptr expr = ptp->default_arg_expr;
-          fputs(" (= ", f_debug);
-	  if (expr == NULL) {
-	    /* Can be NULL for template parameter based default arguments. */
-	    fputs("<NULL>", f_debug);
-	  } else {
-            switch (expr->kind) {
-              case enk_constant:
-                db_constant(expr->variant.constant);
-                break;
-              case enk_variable:
-                db_name(&expr->variant.variable->source_corresp);
-                break;
-              case enk_error:
-                fputs("<error>", f_debug);
-                break;
-              default:
-                fputs("<expr>", f_debug);
-                break;
-            }  /* switch */
-	  }  /* if */
-          fputs(")", f_debug);
+        fputs("function", f_debug);
+        if (rtsp->assoc_routine != NULL) {
+          fputs(" ", f_debug);
+          db_name(&rtsp->assoc_routine->source_corresp);
         }  /* if */
-	comma_required = TRUE;
-        ptp = ptp->next;
-      }  /* while */
-      if (rtsp->has_ellipsis) {
-	if (comma_required) fputs(", ", f_debug);
-        fputs("...", f_debug);
-      }  /* if */
-      fputs(") returning ", f_debug);
-      db_abbreviated_type(tp->variant.routine.return_type);
-      break;
-    case tk_typeref:
-      if (typeref_is_qualified(tp)) {
-        if (typeref_is_const_qualified(tp)) fputs("const ", f_debug);
-        if (typeref_is_volatile_qualified(tp)) fputs("volatile ", f_debug);
-#if RESTRICT_ALLOWED
-        if (typeref_is_restrict_qualified(tp)) fputs("restrict ", f_debug);
-#endif /* RESTRICT_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-        { a_type_qualifier_set qualifiers = tp->variant.typeref.qualifiers;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          if (qualifiers & TQ_UNALIGNED) fputs("unaligned ", f_debug);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if NEAR_AND_FAR_ALLOWED
-          if (qualifiers & TQ_NEAR) fputs("near ", f_debug);
-          if (qualifiers & TQ_FAR) fputs("far ", f_debug);
-#endif /* NEAR_AND_FAR_ALLOWED */
-        }
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
-      } else {
-        fputs("typeref ", f_debug);
-        if (has_name(tp)) { 
-          fputs("\"", f_debug);
-          db_name(&tp->source_corresp);
-          fputs("\" ", f_debug);
+        if (!rtsp->prototyped) {
+          fputs(" unprototyped", f_debug);
         }  /* if */
-        if (tp->variant.typeref.is_placeholder_for_class_instantiation) {
-          fputs("class-inst-PH ", f_debug);
+        fputs("(", f_debug);
+        ptp = rtsp->param_type_list;
+        if (rtsp->implicit_this_param_type != NULL) {
+          fputs("this: ", f_debug);
+          db_abbreviated_type(rtsp->implicit_this_param_type);
+          if (ptp != NULL || rtsp->has_ellipsis) {
+            fputs("; ", f_debug);
+          }  /* if */
         }  /* if */
-        if (tp->variant.typeref.is_placeholder_for_namespace_type) {
-          fputs("namespace-type-PH ", f_debug);
+        comma_required = FALSE;
+        while (ptp != NULL) {
+          if (comma_required) fputs(", ", f_debug);
+          if (ptp->qualifiers != TQ_NONE &&
+              remove_qualifiers_from_param_types) {
+            a_type_qualifier_set  qualifiers = ptp->qualifiers;
+            fputs("[", f_debug);
+            if (qualifiers & TQ_CONST) {
+              fputs("const", f_debug);
+              qualifiers &= ~TQ_CONST;
+              if (qualifiers != TQ_NONE) fputs(" ", f_debug);
+            }  /* if */
+            if (qualifiers & TQ_VOLATILE) {
+              fputs("volatile", f_debug);
+  #if RESTRICT_ALLOWED
+              qualifiers &= ~TQ_VOLATILE;
+              if (qualifiers != TQ_NONE) fputs(" ", f_debug);
+            }  /* if */
+            if (qualifiers & TQ_RESTRICT) {
+              fputs("restrict", f_debug);
+  #endif /* RESTRICT_ALLOWED */
+            }  /* if */
+            fputs("] ", f_debug);
+          }  /* if */
+          db_abbreviated_type(ptp->type);
+          if (ptp->has_default_arg) {
+            an_expr_node_ptr expr = ptp->default_arg_expr;
+            fputs(" (= ", f_debug);
+            if (expr == NULL) {
+              /* Can be NULL for template parameter based default arguments. */
+              fputs("<NULL>", f_debug);
+            } else {
+              switch (expr->kind) {
+                case enk_constant:
+                  db_constant(expr->variant.constant);
+                  break;
+                case enk_variable:
+                  db_name(&expr->variant.variable->source_corresp);
+                  break;
+                case enk_error:
+                  fputs("<error>", f_debug);
+                  break;
+                default:
+                  fputs("<expr>", f_debug);
+                  break;
+              }  /* switch */
+            }  /* if */
+            fputs(")", f_debug);
+          }  /* if */
+          comma_required = TRUE;
+          ptp = ptp->next;
+        }  /* while */
+        if (rtsp->has_ellipsis) {
+          if (comma_required) fputs(", ", f_debug);
+          fputs("...", f_debug);
         }  /* if */
-        if (tp->variant.typeref.is_placeholder_for_nested_class_def) {
-          fputs("nested-class-def-PH ", f_debug);
-        }  /* if */
-      }  /* if */
-      db_abbreviated_type(tp->variant.typeref.type);
-      break;
-    case tk_ptr_to_member:
-      fputs("ptr-to-member of ", f_debug);
-      db_abbreviated_type(tp->variant.ptr_to_member.class_of_which_a_member);
-      fputs(" of type ", f_debug);
-      db_abbreviated_type(tp->variant.ptr_to_member.type);
-      break;
-    case tk_template_param:
-      fputs("template-param", f_debug);
-      if (tp->variant.template_param.kind ==
-                   (a_template_param_type_kind)tptk_type_of_unknown_constant) {
-        fputs(" <unknown-type>", f_debug);
-      } else {
-        if (tp->variant.template_param.kind ==
-                   (a_template_param_type_kind)tptk_param) {
-          fprintf(f_debug, "#(%lu,%lu) ",
-                  (unsigned long)tp->variant.
-                              template_param.extra_info->coordinates.depth,
-                  (unsigned long)tp->variant.
-                              template_param.extra_info->coordinates.position);
+        fputs(") returning ", f_debug);
+        db_abbreviated_type(tp->variant.routine.return_type);
+        break;
+      case tk_typeref:
+        if (typeref_is_qualified(tp)) {
+          if (typeref_is_const_qualified(tp)) fputs("const ", f_debug);
+          if (typeref_is_volatile_qualified(tp)) fputs("volatile ", f_debug);
+  #if RESTRICT_ALLOWED
+          if (typeref_is_restrict_qualified(tp)) fputs("restrict ", f_debug);
+  #endif /* RESTRICT_ALLOWED */
+  #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+          { a_type_qualifier_set qualifiers = tp->variant.typeref.qualifiers;
+  #if MICROSOFT_EXTENSIONS_ALLOWED
+            if (qualifiers & TQ_UNALIGNED) fputs("unaligned ", f_debug);
+  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  #if NEAR_AND_FAR_ALLOWED
+            if (qualifiers & TQ_NEAR) fputs("near ", f_debug);
+            if (qualifiers & TQ_FAR) fputs("far ", f_debug);
+  #endif /* NEAR_AND_FAR_ALLOWED */
+          }
+  #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
         } else {
-          fputc(' ', f_debug);
+          fputs("typeref ", f_debug);
+          if (has_name(tp)) { 
+            fputs("\"", f_debug);
+            db_name(&tp->source_corresp);
+            fputs("\" ", f_debug);
+          }  /* if */
+          if (tp->variant.typeref.is_placeholder_for_class_instantiation) {
+            fputs("class-inst-PH ", f_debug);
+          }  /* if */
+          if (tp->variant.typeref.is_placeholder_for_namespace_type) {
+            fputs("namespace-type-PH ", f_debug);
+          }  /* if */
+          if (tp->variant.typeref.is_placeholder_for_nested_class_def) {
+            fputs("nested-class-def-PH ", f_debug);
+          }  /* if */
         }  /* if */
-        db_name(&tp->source_corresp);
-      }  /* if */
-      break;
-    default:
-      fputs("<bad type kind>", f_debug);
-  }  /* switch */
+        db_abbreviated_type(tp->variant.typeref.type);
+        break;
+      case tk_ptr_to_member:
+        fputs("ptr-to-member of ", f_debug);
+        db_abbreviated_type(tp->variant.ptr_to_member.class_of_which_a_member);
+        fputs(" of type ", f_debug);
+        db_abbreviated_type(tp->variant.ptr_to_member.type);
+        break;
+      case tk_template_param:
+        fputs("template-param", f_debug);
+        if (tp->variant.template_param.kind ==
+                   (a_template_param_type_kind)tptk_type_of_unknown_constant) {
+          fputs(" <unknown-type>", f_debug);
+        } else {
+          if (tp->variant.template_param.kind ==
+                     (a_template_param_type_kind)tptk_param) {
+            fprintf(f_debug, "#(%lu,%lu) ",
+                    (unsigned long)tp->variant.
+                              template_param.extra_info->coordinates.depth,
+                    (unsigned long)tp->variant.
+                              template_param.extra_info->coordinates.position);
+          } else {
+            fputc(' ', f_debug);
+          }  /* if */
+          db_name(&tp->source_corresp);
+        }  /* if */
+        break;
+      default:
+        fputs("<bad type kind>", f_debug);
+    }  /* switch */
+  }  /* if */
 }  /* db_type */
 
 
