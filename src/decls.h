@@ -165,6 +165,15 @@ extern void declaration(a_boolean      function_definition_allowed,
 
 extern void local_declaration(void);
 
+EXTERN a_boolean
+		next_token_is_top_level_decl_start;
+			/* Flag toggled in translation_unit when advancing
+			   past a token that marks the end of a "top-level"
+			   declaration (i.e., a ";" or "}").  When this flag
+			   is TRUE, the state of the compiler is in effect
+			   between declarations -- or else just before the
+			   first declaration or just after the last. */
+
 extern void translation_unit(void);
 
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
