@@ -3190,9 +3190,9 @@ cannot be taken.
 static void set_address_taken_on_variables_in_expr(an_expr_node_ptr  node,
                                                    a_source_position *err_pos)
 /*
-node points to an expression whose address is being taken.  Set the
-address_taken flag on the variable(s) in the lvalue.  Issue an error at
-*err_pos if the address of the variable cannot be taken.
+node points to an expression for an lvalue whose address is being taken.
+Set the address_taken flag on the variable(s) in the lvalue.  Issue an error
+at *err_pos if the address of the variable cannot be taken.
 */
 {
   an_expr_operator_kind op;
@@ -3693,32 +3693,34 @@ replaced by its value, return *constant_case TRUE.
       optimized_case = TRUE;
       node->variant.operation.kind =
                                   (an_expr_operator_kind)eok_extract_bit_field;
-    } else if (C_dialect == C_dialect_cplusplus &&
-               op == (an_expr_operator_kind)eok_question) {
-      /* "?" operator.  Convert each branch to an rvalue.  This is
-         particularly useful for a case like
-           &(i ? j : k)
-         (only valid in C++). */
-      optimized_case = TRUE;
-      op2 = op1->next;
-      op3 = op2->next;
-      op1->next = op2 = conv_lvalue_expr_to_rvalue(op2, &constant_case2);
-      op2->next = conv_lvalue_expr_to_rvalue(op3, &constant_case3);
-      *constant_case = constant_case2 && constant_case3;
-    } else if (C_dialect == C_dialect_cplusplus &&
-               op == (an_expr_operator_kind)eok_comma) {
-      /* Comma operator.  Apply the transformation to the second operand
-         of the ",".  This is useful for a case like
-           (p = f(x), *p)
-      */
-      optimized_case = TRUE;
-      op2 = op1->next;
-      op1->next = conv_lvalue_expr_to_rvalue(op2, &constant_case2);
-      *constant_case = constant_case2;
     } else if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue){
-      /* The operation is an assignment that returns an lvalue.
-         Change it to one that returns an rvalue. */
-      optimized_case = TRUE;
+      /* Operation that returns an lvalue where the C case would return
+         an rvalue. */
+      if (op == (an_expr_operator_kind)eok_question) {
+        /* "?" operator.  Convert each branch to an rvalue.  This is
+           particularly useful for a case like
+             &(i ? j : k)
+           (only valid in C++). */
+        optimized_case = TRUE;
+        op2 = op1->next;
+        op3 = op2->next;
+        op1->next = op2 = conv_lvalue_expr_to_rvalue(op2, &constant_case2);
+        op2->next = conv_lvalue_expr_to_rvalue(op3, &constant_case3);
+        *constant_case = constant_case2 && constant_case3;
+      } else if (op == (an_expr_operator_kind)eok_comma) {
+        /* Comma operator.  Apply the transformation to the second operand
+           of the ",".  This is useful for a case like
+             (p = f(x), *p)
+        */
+        optimized_case = TRUE;
+        op2 = op1->next;
+        op1->next = conv_lvalue_expr_to_rvalue(op2, &constant_case2);
+        *constant_case = constant_case2;
+      } else {
+        /* The operation is an assignment or prefix ++/-- that returns an
+           lvalue.  Change it to one that returns an rvalue. */
+        optimized_case = TRUE;
+      }  /* if */
       node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
     }  /* if */
   }  /* if */
