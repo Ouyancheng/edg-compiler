@@ -1541,8 +1541,8 @@ If "restrict" is seen, set *restrict_seen to TRUE.
 static a_calling_convention scan_microsoft_qualifiers(void)
 /*
 Scan a list of Microsoft calling conventions (__cdecl, __fastcall, __stdcall).
-Actually, only one calling convention may be specified, but it the
-same value may appear more than once.
+Actually, only one calling convention may be specified, but the
+same specifier may appear more than once.
 */
 {
   a_calling_convention	call_conv = (a_calling_convention)cc_default;
@@ -1596,7 +1596,7 @@ information should be ignored or if an error should be issued.
     a_boolean		invalid_type = FALSE;
 
     if (is_function_type(*type)) {
-      /* A calling convention of a function type is valid. */
+      /* A calling convention on a function type is valid. */
     } else if (is_reference_type(*type) || is_pointer_type(*type)) {
       /* A calling convention on a pointer or reference type is invalid. */
       invalid_type = TRUE;
@@ -1691,7 +1691,8 @@ the first calling convention is returned in *p_calling_convention,
 the middle one is discarded (by applying it to the pointer type), and the
 last one (not followed by a pointer operator) is returned in
 *p_unbound_calling_convention.  When specifiers_type is not NULL, only
-an unbound calling convention is allowed.
+an unbound calling convention is returned.  The initial calling convention
+is immediately applied to the specifiers type.
 
 When pointer_declarator is called from elsewhere in the compiler
 (e.g., new_type_name), p_calling_convention and p_unbound_calling_convention
@@ -1823,8 +1824,7 @@ are NULL.
       }  /* if */
 #if MICROSOFT_KEYWORDS_ALLOWED
     } else if (is_microsoft_calling_convention()) {
-      /* A Microsoft qualifier that may appear in a nonstandard place such
-         as "int (_cdecl * fp)()". */
+      /* A Microsoft calling convention specifier. */
       a_calling_convention	new_call_conv;
       a_source_position		start_pos;
       start_pos = pos_curr_token;
@@ -1986,12 +1986,12 @@ that may turn out to be member functions, member_parent_type is
 a pointer to the class (or struct or union) type of which it is a member;
 otherwise it is NULL.
 
-p_calling_convention is a pointer to a calling convention.  If a calling
-convention was scanned at a higher level (e.g., if this is a nested
-declarator) the calling convention from the higher level is passed
-in.  If a calling convention has not been encountered at a higher level,
-the value cc_default is passed in.  In the top level call to declarator
-p_calling_convention is NULL.
+p_calling_convention is used when scanning nested declarators.  If
+a nested declarator contains a calling convention that could not be
+processed at that level, it is returned to the caller in
+p_calling_convention, otherwise the value returned in p_calling_convention
+is cc_default.  When declarator is called from elsewhere in the
+front end, p_calling_convention should be NULL.
 
 The syntax is:
 
@@ -2473,10 +2473,9 @@ The syntax is:
           curr_token != tok_rparen && curr_token != tok_ellipsis) {
         /* The context and other information we have about the declarator do
            not preclude a parenthesized initializer, nor does the token that
-           follows the left paren.  Be sure the declarator type (which has not
-           yet been assembled) is one for which a parenthesized initializer is
-           legal and see if the token(s) following the left paren are not
-           declarations. */
+           follows the left paren.  If the construct inside the parentheses
+           could be interpreted as a declaration, then do so.  Otherwise,
+           treat this as a parenthesized initializer. */
         if (!is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
                               /*real_declarator_allowed=*/TRUE,
                               /*single_type_required=*/FALSE)) {
@@ -2666,7 +2665,7 @@ function_lparen:
 #if MICROSOFT_KEYWORDS_ALLOWED
   if (unbound_call_conv.call_conv != (a_calling_convention)cc_default) {
     /* If there is an unbound calling convention, attempt to apply it to
-       the complete type (if one exists).  If none exits, return the unbound
+       the complete type (if one exists).  If none exists, return the unbound
        type to the caller. */
     if (complete_type != NULL) {
       update_calling_convention(&complete_type, &unbound_call_conv,

@@ -64,7 +64,7 @@ a command line option.
 #endif /* ifndef DEFAULT_ALLOW_ANACHRONISMS */
 
 /*
-Flag that is TRUE to enable Microsoft mode at the default mode.  This
+Flag that is TRUE to enable Microsoft mode as the default mode.  This
 is the default value used to initialize microsoft_mode.  This may
 be modified by a command line option.
 */
