@@ -1,6 +1,22 @@
 Version 2.39, August 10, 1998
 
-8/9/98    IL version number changed to 2.31
+8/10/98   IL version number changed to 2.31
+
+8/10/98   Spurious partial ordering ambiguity
+
+Certain unusual partial ordering cases resulted in a spurious error
+that more than one partial specialization matches the template argument
+list.  This has been fixed.
+
+  struct dummy { };
+  template<class A, class B> struct foo { };
+  template<class A> struct foo<A,dummy> { };
+  template<class T> struct wrapper { };
+  template<class A, class B> struct wrapper< foo<A,B> > { };
+  template<class A> struct wrapper< foo<A,dummy> > { };
+  int main(void) {
+     wrapper< foo<float,dummy> > w;
+  }
 
 8/8/98    C++-generating back end: template instantiations triggered by
           base specifiers

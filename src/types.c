@@ -2037,6 +2037,8 @@ checking instead of equivalence checking).
       } else if (cssp_1->class_template != NULL &&
                  cssp_2->class_template != NULL) {
         if (cssp_1->class_template == cssp_2->class_template ||
+            primary_template_of(cssp_1->class_template) ==
+                                 primary_template_of(cssp_2->class_template) ||
             equiv_nonreal_templates(type_1, cssp_1->class_template,
                                     type_2, cssp_2->class_template)) {
           /* Both types are template classes, and they are based on the same
