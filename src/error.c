@@ -1644,9 +1644,6 @@ error code.
     case ec_bad_nonconst_ref_init:
       m = "initial value of reference to non-const has incorrect type";
       break;
-    case ec_array_of_incomplete_type:
-      m = "array of incomplete type is not allowed";
-      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
