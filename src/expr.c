@@ -5352,7 +5352,11 @@ specification allow a variable-sized array as the top type.
     }  /* if */
     while (is_array_type(base_new_type)) {
       if (unqual_base_new_type->variant.array.is_variable_size_array) {
-        check_assertion(err);
+        /* Arrays whose bounds are given by template-dependent constant
+           expressions (in prototype instantiations) are marked as
+           variable-sized. */
+        check_assertion(is_template_dependent_context());
+        effective_num_of_elements = 0;
       } else {
         effective_num_of_elements *=
                 unqual_base_new_type->variant.array.variant.number_of_elements;
