@@ -542,6 +542,7 @@ check_abbreviation()
 --dollar
 --driver_debug
 --early_tiebreaker
+--embedded_c
 --embedded_c++
 --enum_overloading
 --error_limit
@@ -585,6 +586,8 @@ check_abbreviation()
 --multibyte_chars
 --multi_trans_unit
 --munch
+--named_address_spaces
+--named_registers
 --namespaces
 --near_code_pointers
 --near_data_pointers
@@ -607,6 +610,7 @@ check_abbreviation()
 --no_dep_name
 --no_designators
 --no_distinct_template_signatures
+--no_embedded_c
 --no_enum_overloading
 --no_exceptions
 --no_explicit
@@ -629,6 +633,8 @@ check_abbreviation()
 --no_microsoft
 --no_microsoft_bugs
 --no_multibyte_chars
+--no_named_address_spaces
+--no_named_registers
 --no_namespaces
 --no_nonconst_ref_anachronism
 --no_nonstd_qualifier_deduction
@@ -1193,6 +1199,12 @@ process_option()
 	 --short_enums | \
          --fixed_point | \
          --no_fixed_point | \
+         --named_address_spaces | \
+         --no_named_address_spaces | \
+         --named_registers | \
+         --no_named_registers | \
+         --embedded_c | \
+         --no_embedded_c | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
