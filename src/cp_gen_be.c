@@ -1625,7 +1625,7 @@ static a_template_arg_ptr template_arguments_for_name(
                                         a_boolean               *insert_space)
 /*
 Return the list of explicit template arguments that should be added onto the
-bare name of the entity of kind entry_kind with source correspondence data
+bare name of the entity of kind entry_kind with source correspondence
 scp.  If insert_space is non-null, *insert_space will be set to TRUE if a
 space should be inserted between the bare name and the explicit template
 argument list and to FALSE otherwise.
@@ -1639,8 +1639,26 @@ argument list and to FALSE otherwise.
   if (entry_kind == iek_type) {
     /* Check for template arguments on a class name. */
     a_type_ptr type = (a_type_ptr)scp;
-    if (is_class_type_kind(type->kind)) {
+    if (is_immediate_class_type(type)) {
       tap = type->variant.class_struct_union.extra_info->template_arg_list;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      /* Suppress template arguments on a reference to a prototype
+         instantiation.  Rule out partial specializations. */
+      if (type->variant.class_struct_union.extra_info->
+                                      partial_spec_template_arg_list == NULL) {
+        a_template_ptr templ =
+                   type->variant.class_struct_union.extra_info->assoc_template;
+        /* This is the prototype instantiation if the associated template
+           points back to this type. */
+        if (templ != NULL) {
+          check_assertion(templ->kind == (a_template_kind)templk_class ||
+                          templ->kind == (a_template_kind)templk_member_class);
+          if (templ->prototype_instantiation.type == type) {
+            tap = NULL;
+          }  /* if */
+        }  /* if */
+      }
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     }  /* if */
   } else if (entry_kind == iek_routine) {
     /* Check for template arguments on a routine, but put them out only if
@@ -2427,7 +2445,7 @@ or enum.
 static void gen_type_reference(a_type_ptr type)
 /*
 Generate a reference to the indicated type, which is a tag or a typedef.
-A reference is not the definition unless the type is unnamed.
+A reference is not the definition.
 */
 {
   if (type->replace_by_generated_typedef) {
@@ -3333,32 +3351,6 @@ Print a set of Microsoft declaration modifiers.
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-
-static void gen_class_decl_name(a_type_ptr type)
-/*
-Output the name of the given class type for the purposes of declaring that
-type.  If type corresponds to a class template prototype instantiation, the
-template arguments should usually be omitted (unless we're actually dealing
-with the declaration of a partial specialization).
-*/
-{
-  a_gen_name_options_set  options = GN_DECLARATION;
-  if (type->variant.class_struct_union.is_nonreal_class &&
-      type->variant.class_struct_union.extra_info->
-                                     partial_spec_template_arg_list == NULL) {
-    /* For a primary template definition, we should not issue the template
-       argument list. */
-    options |= GN_NO_TEMPLATE_ARGS;
-  }  /* if */
-  /* Put out the name.  Note that a name will be generated for an unnamed
-     class, which can be useful for casts. */
-  gen_name(&type->source_corresp, iek_type, options, (a_boolean *)NULL);
-  write_space();
-}  /* gen_class_decl_name */
-
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-
 static void gen_class_definition(a_type_ptr type)
 /*
 Output the definition of the indicated class type.  This is in the form of
@@ -3421,13 +3413,9 @@ is the one associated with the definition of the class.
   } else {
     /* Put out the name.  Note that a name will be generated for an
        unnamed class, which can be useful for casts. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-    gen_class_decl_name(type);
-#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
     gen_name(&type->source_corresp, iek_type, GN_DECLARATION,
              (a_boolean *)NULL);
     write_space();
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   /* Put out the class definition. */
   if (il_header.source_language == sl_Cplusplus) {
@@ -3972,17 +3960,7 @@ this one is such a continuation.
       adv_curr_source_sequence_entry();
       /* For a friend, put out the "friend" prefix. */
       if (friend_decl) write_tok_str("friend ");
-      if (!prototype_instantiations_in_il || kind == (a_type_kind)tk_enum) {
-        /* Don't take this route if the type may be a prototype instantiation.
-           In that case, we may have to inhibit the template argument list. */
-        gen_tag_reference(type);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-      } else {
-        write_tok_str(tag_kind(type->kind));
-        write_space()
-        gen_class_decl_name(type);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-      }  /* if */
+      gen_tag_reference(type);
     } else if (kind == (a_type_kind)tk_enum) {
       /* An enum type definition. */
       gen_enum_definition(type);
