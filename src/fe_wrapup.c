@@ -159,28 +159,40 @@ It's a static entity that may be referenced from exported templates.
   tucp->canonical = (char *)scp;
   if (!in_secondary_trans_unit(scp)) tucp->primary = (char *)scp;
   scp->trans_unit_corresp = tucp;
+  if (!is_variable) {
+    /* A static function that has been externalized. */
+    a_boolean is_template = (rout->is_template_function &&
+                             !rout->is_specialized);
+    if (!rout->is_inline && !is_template) {
+      /* A simple non-inline static function.  Gets put out when its file
+         is compiled as a primary file, i.e., not "instantiatable". */
+    } else {
+      /* For others, someone will decide where the definition is put out:
+         either the prelinker or the extern inline lowering mechanism. */
 #if ONE_INSTANTIATION_PER_OBJECT
-  if (one_instantiation_per_object && !is_variable &&
-      !in_secondary_trans_unit(scp)) {
-    /* Assign a slice number for one-instantiation-per-object mode if there
-       isn't one already. */
-    if (rout->instantiation_needed_bit_number == 0) {
-      rout->instantiation_needed_bit_number =
+      if (one_instantiation_per_object && !is_variable &&
+          !in_secondary_trans_unit(scp)) {
+        /* Assign a slice number for one-instantiation-per-object mode if there
+           isn't one already. */
+        if (rout->instantiation_needed_bit_number == 0) {
+          rout->instantiation_needed_bit_number =
                                       assign_instantiation_needed_bit_number();
-    }  /* if */
-  }  /* if */
+        }  /* if */
+      }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-  if (!is_variable &&
-      !(rout->is_template_function && !rout->is_specialized &&
-        !rout->is_inline)) {
-    /* This is a routine that is not an inline template.  Treat it as if
-       it were extern inline. */
-    rout->consider_to_be_extern_inline = TRUE;
-    if (instantiate_extern_inline &&
-        !rout->on_inline_function_list) {
-      /* Add the function to the inline functions list, which is an
-         instantiation list for non-templates. */
-      add_to_inline_function_list(rout);
+      if (!rout->is_inline && is_template) {
+        /* A non-inline static template.  This is already on the instantiation
+           lists. */
+      } else {
+        /* Other cases are treated as if they were extern inline. */
+        rout->consider_to_be_extern_inline = TRUE;
+        if (instantiate_extern_inline &&
+            !rout->on_inline_function_list) {
+          /* Add the function to the inline functions list, which is an
+             instantiation list for non-templates. */
+          add_to_inline_function_list(rout);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
