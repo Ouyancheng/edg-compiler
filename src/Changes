@@ -1,5 +1,11 @@
 Version 3.4
 
+12/17/03 C99 has "F" conversion specifier for printf
+
+C99 added an "F" conversion specifier for the library functions in
+the printf/scanf family.  It is now recognized by the Front End
+in C99 mode.
+
 12/17/03 printf conversion specifiers for long long are standard in C99
 
 The conversion specifiers for long long types for the library
