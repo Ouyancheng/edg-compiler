@@ -12324,9 +12324,12 @@ any non-empty template parameter lists that were scanned.
     /* Since we record a prototype instantiation, remove the source sequence
        entry for the corresponding a_template entry.  (We never want both in
        the IL.) */
-    remove_from_src_seq_list(
-         decl_state->il_template_entry->source_corresp.source_sequence_entry);
-    decl_state->il_template_entry->source_corresp.source_sequence_entry = NULL;
+    a_source_correspondence_ptr scp = 
+                               &decl_state->il_template_entry->source_corresp;
+    if (scp->source_sequence_entry != NULL) {
+      remove_from_src_seq_list(scp->source_sequence_entry);
+      scp->source_sequence_entry = NULL;
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   if (class_templ_cache_segments != NULL) {
