@@ -1388,21 +1388,23 @@ called by id_linkage.
       /* This is either a block-extern declaration of a function or variable
          or (what amounts to the same thing) a friend declaration within a
          local class.  Find the visible declaration of the same name. */
-      other_decl = normal_id_lookup(locator, IDL_LINKAGE_LOOKUP);
+      (void)normal_id_lookup(locator, IDL_LINKAGE_LOOKUP);
+      other_decl = locator->specific_symbol;
     } else {
       /* Not a context in which lookup in enclosing scopes is meaningful.
          Just check for a prior declaration in the current scope. */
       check_assertion(effective_decl_level == depth_innermost_namespace_scope);
       if (depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
         /* Do the lookup in the file scope. */
-        other_decl = file_scope_id_lookup(locator, IDL_LINKAGE_LOOKUP);
+        (void)file_scope_id_lookup(locator, IDL_LINKAGE_LOOKUP);
+        other_decl = locator->specific_symbol;
       } else {
         /* Do the lookup in the innermost namespace scope. */
         a_namespace_ptr  nsp;
         nsp = scope_stack[depth_innermost_namespace_scope].il_scope->
                                                        variant.assoc_namespace;
-        other_decl = namespace_qualified_id_lookup(locator, nsp,
-                                                   IDL_LINKAGE_LOOKUP);
+        (void)namespace_qualified_id_lookup(locator, nsp, IDL_LINKAGE_LOOKUP);
+        other_decl = locator->specific_symbol;
       }  /* if */      
     }  /* if */
     /* Clear out the specific symbol pointer of the locator.  It was set by
@@ -4372,7 +4374,8 @@ return a pointer to it in *symbol_ptr.
   a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
 
   db_enter(3, "decl_typedef");
-  if ((sym = curr_scope_id_lookup(locator, IDL_NO_OPTIONS)) != NULL) {
+  if (curr_scope_id_lookup(locator, IDL_NO_OPTIONS) != NULL) {
+    sym = locator->specific_symbol;
     if (sym->kind == (a_symbol_kind)sk_type ||
         (C_dialect == C_dialect_cplusplus && is_type_symbol(sym))) {
       /* sym is a type name symbol from the current scope.  Issue an error
