@@ -2993,6 +2993,11 @@ members), and does not enter those.
           }  /* if */
         }
         break;
+#if RECORD_FORM_OF_NAME_REFERENCE
+      case iek_name_reference:
+        could_be_orphan = TRUE;
+        break;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       default:
         could_be_orphan = FALSE;
         break;
