@@ -1909,31 +1909,42 @@ bit field in a trailing bit field container of one of its bases.
 }  /* gnu_may_use_bit_padding */
 
 
-static void warn_if_field_uses_tail_padding(a_field_ptr         field,
-                                            a_layout_block_ptr  lob)
+static void warn_if_offset_in_tail_padding(a_field_ptr         field,
+                                           a_base_class_ptr    base,
+                                           a_layout_block_ptr  lob)
 /*
-Issue a warning if the given field was allocated in the tail padding of a
-base class.
+Issue a warning if the given field or base was allocated in the tail padding 
+of a base class.  Either field or base (but not both) must be NULL.
 */
 {
   a_type_ptr        class_type = lob->class_type;
   a_base_class_ptr  bcp = base_classes_of(class_type);
+  a_targ_size_t     offset;
 
+  check_assertion((field != NULL) ^ (base != NULL));
+  offset = (field != NULL) ? field->offset : base->offset;
   for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct && !bcp->is_virtual && !is_empty_class_type(bcp->type)) {
+    if (bcp->direct && bcp->offset_is_set && !is_empty_class_type(bcp->type)) {
       /* Note that we don't need to warn about empty base classes because
          they are handled correctly through the empty base class optimization
          code. */
       an_unnormalized_bit_offset
-                        dummy = 0;
+                      dummy = 0;
       a_class_type_supplement_ptr
-                        cts = bcp->type->variant.class_struct_union.extra_info;
-      a_targ_alignment  alignment=cts->alignment_without_virtual_base_classes;
-      a_targ_size_t     size = cts->size_without_virtual_base_classes;
+                      cts = bcp->type->variant.class_struct_union.extra_info;
+      a_targ_alignment
+                      alignment = cts->alignment_without_virtual_base_classes;
+      a_targ_size_t   size = cts->size_without_virtual_base_classes;
       (void)do_alignment(&size, &dummy, alignment);
-      if (field->offset < bcp->offset + size) {
-        pos_warning(ec_field_uses_tail_padding,
-                    &field->source_corresp.decl_position);
+      if (offset < bcp->offset + size && offset > bcp->offset) {
+        if (field != NULL) {
+          pos_warning(ec_field_uses_tail_padding,
+                      &field->source_corresp.decl_position);
+        } else {
+          pos_sy2_warning(ec_base_uses_tail_padding, &base->decl_position,
+                          (a_symbol_ptr)base->type->source_corresp.assoc_info,
+                          (a_symbol_ptr)bcp->type->source_corresp.assoc_info);
+        }  /* if */
         break;
       }  /* if */
     }  /* if */
@@ -1941,12 +1952,12 @@ base class.
   /* If this is a bit field, GNU compilers may allocate it in the container
      of an inherited bit field.  Warn about the layout difference if this is
      such a situation. */
-  if (emulate_gnu_abi_bugs && field->is_bit_field &&
+  if (emulate_gnu_abi_bugs && field != NULL && field->is_bit_field &&
       gnu_may_use_bit_padding(lob, field)) {
     pos_warning(ec_gnu_may_use_bit_padding,
                 &field->source_corresp.decl_position);
   }  /* if */
-}  /* warn_if_field_uses_tail_padding */
+}  /* warn_if_offset_in_tail_padding */
 
 #endif /* IA64_ABI */
 
@@ -2134,7 +2145,7 @@ there's no overflow TRUE is returned.
   if (warn_about_tail_padding_use &&
       class_type->variant.class_struct_union.field_list == field) {
     /* First field.  See if it reuses tail padding. */
-    warn_if_field_uses_tail_padding(field, lob);
+    warn_if_offset_in_tail_padding(field, (a_base_class_ptr)NULL, lob);
   }  /* if */
 #endif /* IA64_ABI */
   db_exit();
@@ -3642,6 +3653,11 @@ Set bcp->offset.  The base class bcp must be a virtual base.
     bcp->offset = set_offset_and_alignment(lob, size, alignment, bcp);
   }  /* if */
 #if IA64_ABI
+  if (warn_about_tail_padding_use) {
+    /* Examine if this base class was allocated in the tail padding of
+       another base. */
+    warn_if_offset_in_tail_padding((a_field_ptr)NULL, bcp, lob);
+  }  /* if */
   /* Set the offsets for all of the non-virtual bases of this base. */
   set_base_class_offsets(bcp);
 #endif /* IA64_ABI */

@@ -1260,11 +1260,12 @@ ec_bad_upc_shared_array_layout_qualifier;;"layout qualifier cannot qualify an in
 ec_decl_hides_catch_parameter;;"declaration of %sq hides handler parameter"
 ec_nonstd_ignored_array_cast;;"nonstandard cast to array type ignored"
 ec_invalid_pragma_operator;;"this pragma cannot be used in a _Pragma operator (a #pragma directive must be used)"
-ec_field_uses_tail_padding;;"field uses tail padding of its base class"
+ec_field_uses_tail_padding;;"field uses tail padding of a base class"
 ec_gnu_may_use_bit_padding;;"GNU C++ compilers may use bit field padding"
 ec_deprecated_entity;;"use of %nd is deprecated"
 ec_field_with_asm_name_not_allowed;;"an asm name is not allowed on a nonstatic member declaration"
 ec_unrecognized_format_function_type;;"unrecognized format function type %sq ignored"
+ec_base_uses_tail_padding;;"base class %no1 uses tail padding of base class %no2"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
