@@ -1550,8 +1550,9 @@ routine entry and return TRUE; otherwise return FALSE.
                                                  rp->type)) {
             /* The exception specification for the overriding virtual function
                is less restrictive that that of the overridden function. */
-            pos_sy2_error(ec_exception_specs_override_incompat, source_pos,
-                          rout_sym, sym);
+            pos_sy2_diagnostic(es_discretionary_error,
+                               ec_exception_specs_override_incompat,
+                               source_pos, rout_sym, sym);
           }  /* if */
           record_virtual_function_override(bcp, rp, rout);
           if (shares_virtual_function_info(class_type, bcp)) {
@@ -1643,8 +1644,9 @@ routine entry and return TRUE; otherwise return FALSE.
                       /* The exception specification for the overriding
                          virtual function is less restrictive that that of
                          the overridden function. */
-                      pos_sy2_error(ec_exception_specs_override_incompat,
-                                    source_pos, rout_sym, sym);
+                      pos_sy2_diagnostic(es_discretionary_error,
+                                         ec_exception_specs_override_incompat,
+                                         source_pos, rout_sym, sym);
                     }  /* if */
                     /* Record the virtual function override in the base class
                        entry.  It can be used later, e.g., for building a
