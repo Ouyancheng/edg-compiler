@@ -139,25 +139,78 @@ written if there are errors.
 #endif /* ifndef WRITE_SIGNOFF_MESSAGE */
 
 /*
+The flag STANDALONE_IL_DISPLAY is set to TRUE when compiling the standalone
+IL display utility.  It should be set on the command line if needed;
+the code here should not be changed.
+*/
+#ifndef STANDALONE_IL_DISPLAY
+#define STANDALONE_IL_DISPLAY FALSE /* Do not change this. */
+#else /* defined(STANDALONE_IL_DISPLAY) */
+#undef STANDALONE_IL_DISPLAY
+#define STANDALONE_IL_DISPLAY TRUE /* Do not change this. */
+#endif /* ifndef STANDALONE_IL_DISPLAY */
+
+/*
+The flag STANDALONE_C_GEN_BE is set to TRUE when compiling the standalone
+C-generating back end c_gen_be.  It should be set on the command 
+line if needed; the code here should not be changed.
+*/
+#ifndef STANDALONE_C_GEN_BE
+#define STANDALONE_C_GEN_BE FALSE /* Do not change this. */
+#else /* defined(STANDALONE_C_GEN_BE) */
+#undef STANDALONE_C_GEN_BE
+#define STANDALONE_C_GEN_BE TRUE /* Do not change this. */
+#endif /* ifndef STANDALONE_C_GEN_BE */
+
+/*
 The flag STANDALONE_UTILITY_PROGRAM is set to TRUE when compiling one of
 the standalone utility programs (the C-generating back end c_gen_be or
-the IL display utility il_display).  It should be set to TRUE on the
-command line if needed; the code here should not be changed.
+the IL display utility il_display).  It should NOT be set on the
+command line; but should be set indirectly by setting either 
+STANDALONE_IL_DISPLAY or STANDALONE_C_GEN_BE if needed.  The code here
+should not be changed.
 */
-#ifndef STANDALONE_UTILITY_PROGRAM
-#define STANDALONE_UTILITY_PROGRAM FALSE /* Do not change this. */
-#else /* defined(STANDALONE_UTILITY_PROGRAM) */
+#ifdef STANDALONE_UTILITY_PROGRAM
+??=error Define either STANDALONE_IL_DISPLAY or STANDALONE_C_GEN_BE on \
+         the compilation command line.
 #undef STANDALONE_UTILITY_PROGRAM
+#else /* !defined(STANDALONE_UTILITY_PROGRAM) */
+#if STANDALONE_IL_DISPLAY || STANDALONE_C_GEN_BE
 #define STANDALONE_UTILITY_PROGRAM TRUE /* Do not change this. */
-#define IL_SHOULD_BE_WRITTEN_TO_FILE TRUE  /* Do not change this. */
-#endif /* ifndef STANDALONE_UTILITY_PROGRAM */
+#else /* !STANDALONE_UTILITY_PROGRAM */
+#define STANDALONE_UTILITY_PROGRAM FALSE  /* Do not change this. */
+#endif /* STANDALONE_IL_DISPLAY || STANDALONE_C_GEN_BE */
+#endif /* ifdef STANDALONE_UTILITY_PROGRAM */
+
+/*
+Flag that is TRUE if the code necessary to display the IL in a readable
+form on stdout is to be compiled.  This flag may be set on the command
+line or will be forced to TRUE if STANDALONE_IL_DISPLAY is TRUE.
+*/
+#ifdef NEED_IL_DISPLAY
+#undef NEED_IL_DISPLAY
+#define NEED_IL_DISPLAY TRUE /* Do not change this. */
+#else /* !defined(NEED_IL_DISPLAY) */
+#if STANDALONE_IL_DISPLAY
+#define NEED_IL_DISPLAY TRUE /* Do not change this. */
+#else /* !STANDALONE_IL_DISPLAY */
+#define NEED_IL_DISPLAY FALSE
+#endif /* STANDALONE_IL_DISPLAY */
+#endif /* ifndef NEED_IL_DISPLAY */
 
 /*
 Flag that is TRUE if the intermediate language should be written to a file.
 FALSE means the IL is passed in memory to the back end.
 */
-#ifndef IL_SHOULD_BE_WRITTEN_TO_FILE
+#ifdef IL_SHOULD_BE_WRITTEN_TO_FILE
+#undef IL_SHOULD_BE_WRITTEN_TO_FILE
+#define IL_SHOULD_BE_WRITTEN_TO_FILE TRUE
+#else /* !defined(IL_SHOULD_BE_WRITTEN_TO_FILE) */
+#if STANDALONE_UTILITY_PROGRAM
+#define IL_SHOULD_BE_WRITTEN_TO_FILE TRUE
+#else /* !STANDALONE_UTILITY_PROGRAM */
 #define IL_SHOULD_BE_WRITTEN_TO_FILE FALSE
+#endif /* STANDALONE_UTILITY_PROGRAM */
 #endif /* ifndef IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 /*
@@ -180,6 +233,16 @@ slower.
 #else /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
 #define ALTERNATE_IL_FILE_FORMAT FALSE
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+/*
+The flag IL_WALK_NEEDED controls the compilation of the routines required
+to walk the IL.  These routines are needed if NEED_IL_DISPLAY is TRUE or
+IL_SHOULD_BE_WRITTEN_TO_FILE is TRUE.
+*/
+#if IL_SHOULD_BE_WRITTEN_TO_FILE || NEED_IL_DISPLAY
+#undef IL_WALK_NEEDED
+#define IL_WALK_NEEDED TRUE
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || NEED_IL_DISPLAY */
 
 /*
 If the IL is written to a file, this defines the suffix to be used in
