@@ -1809,6 +1809,23 @@ token.
     scan_integral_constant_expression(&constant);
     if (is_error_constant(&constant)) {
       err = TRUE;
+    } else if (constant.kind == (a_constant_repr_kind)ck_template_param) {
+#if CHECKING
+      a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
+      if (ssep->kind != (a_scope_kind)sck_class_struct_union ||
+          !(symbol_supplement_for_class(ssep->il_scope->variant.assoc_type))->
+                                                         is_nonreal_class) {
+        internal_error("array_declarator: unexpected template param const");
+      }  /* if */
+#endif /* CHECKING */
+      /* We are in the midst of a prototype instantiation of a class.  Treat
+         this array as an error type, since there is no way to represent
+         an array with an unspecified number of elements. */
+#if 0
+      /* Maybe tk_unknown type, with some appropriate modifier to indicate
+         that this is an array, would be better. */
+#endif /* if 0 */
+      err = TRUE;
     } else {
 #if CHECKING
       if (constant.kind != (a_constant_repr_kind)ck_integer) {
@@ -1852,7 +1869,7 @@ size of the array created is zero.  When there is a constant, *dim_expr
 is set to NULL and the constant value is used for the size.
 */
 {
-  long              num_of_elements;
+  a_targ_size_t     num_of_elements;
   a_constant        constant;
   a_boolean         err = FALSE, is_constant;
   a_source_position start_pos;
