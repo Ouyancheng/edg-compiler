@@ -672,6 +672,7 @@ may have extra operand at end).
      The syntax for the cpp-output form is:
 
      # digit-sequence string-literal kind
+     # digit-sequence
 
      where kind is empty or is "1" or "2".
   */
@@ -715,11 +716,10 @@ may have extra operand at end).
        suppressed. */
     error(ec_bad_line_number);
   }  /* if */
-  /* After the line number, there may be a file name as a string literal.
-     For the cpp form, the file name must be present. */
+  /* After the line number, there may be a file name as a string literal. */
   /* Note that since in_pp_if_expression is FALSE, the constant will
      be returned in character form rather than converted. */
-  if (get_token() == tok_newline && !cpp_output_form) {
+  if (get_token() == tok_newline) {
     /* The optional file name is missing, so keep the same name. */
     temp_file = curr_ise->file_name;
   } else if (curr_token == tok_string_literal && *start_of_curr_token != 'L') {
