@@ -7429,6 +7429,16 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         fprintf(f_debug, "%s: \"", (lparen_printed ? ")" : ""));
         if (kind == (an_il_entry_kind)iek_type) {
           db_type_name((a_type_ptr)ssep->entity.ptr);
+#if RECORD_TEMPLATES_IN_IL
+        } else if (kind == (an_il_entry_kind)iek_template) {
+          an_il_to_str_output_control_block octl;
+
+          /* Set up for use of form_constant. */
+          clear_il_to_str_output_control_block(&octl);
+          octl.output_str = put_str_to_f_debug;
+          octl.debug_output = TRUE;
+          form_symbol_name(sym, &octl);
+#endif /* RECORD_TEMPLATES_IN_IL */
         } else {
           db_name(scp);
         }  /* if */
