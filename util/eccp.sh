@@ -326,6 +326,7 @@ do
       shift;
       ;;
     -t*)
+#     Template instantiation mode
       feoptions=$feoptions" "$1;
       shift;
       ;;
