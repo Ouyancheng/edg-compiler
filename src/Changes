@@ -1,5 +1,16 @@
 Version 2.15
 
+3/22/93 C-generating back end no longer outputs useless code
+
+The annotation comments and the code for unreferenced entities formerly
+output by the C-generating back end (within comments or #if 0/#endif)
+are no longer put out by default.  In versions generated with debugging
+code, any debug request on the command line (e.g., -d0) will cause the
+generation of the annotations and unreferenced code.  In the default case,
+however, the generated C is now much smaller and (if you can believe it)
+even more cryptic, and compilation using the C-generating back end is
+quite a bit faster.
+
 3/19/93 Change of page size in internal documentation
 
 The page size in the LaTeX-form internal documentation has been changed;
