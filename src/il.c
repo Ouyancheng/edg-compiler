@@ -4673,6 +4673,7 @@ Copy the type entry "from" to "to".
   a_type_kind                   from_kind;
   a_routine_type_supplement_ptr extra_info;
   a_type_ptr                    next_ptr, tp;
+  a_dependent_type_fixup_kind   dtf_kind;
 
   from_kind = from->kind;
   if (from_kind == (a_type_kind)tk_routine) {
@@ -4693,8 +4694,10 @@ Copy the type entry "from" to "to".
       *extra_info = *from->variant.routine.extra_info;
       to->variant.routine.extra_info = extra_info;
       tp = skip_typerefs(to->variant.routine.return_type);
+      dtf_kind = (a_dependent_type_fixup_kind)dtfk_routine_calling_method;
     } else {
       tp = skip_typerefs(underlying_array_element_type(to));
+      dtf_kind = (a_dependent_type_fixup_kind)dtfk_array_type_size;
     }  /* if */
     if (is_incomplete_type(tp) && is_immediate_class_type(tp)) {
       /* An array type is placed on a fixup list if the underlying element
@@ -4703,10 +4706,7 @@ Copy the type entry "from" to "to".
          incomplete class type. */
       /* Pass the NULL source position since no errors should be issued about
          this type. */
-      add_to_dependent_type_fixup_list(tp,
-                                       (a_dependent_type_fixup_kind)
-                                                  dtfk_array_type_size,
-                                       (char *)to,
+      add_to_dependent_type_fixup_list(tp, dtf_kind, (char *)to,
                                        (a_byte_il_entry_kind)iek_type,
                                        &null_source_position);
     }  /* if */
