@@ -1113,6 +1113,128 @@ Transform the given complex cast expression into a function call
 #if LOWER_FIXED_POINT
 
 /*
+Fixed-point lowering:
+--------------------
+
+When LOWER_FIXED_POINT is TRUE, fixed-point constructs are lowered
+to standard C.  Fixed-point types are lowered to appropriately-
+sized integral types; fixed-point constants are lowered to
+integral constants; and fixed-point operations and casts are
+lowered to calls of runtime routines.  The runtime routines
+are not supplied by EDG.  They can be obtained from Dinkumkware, Ltd.
+(www.dinkumware.com).
+
+Here's an overview of the runtime interface.
+
+First, let's define a generic container called an "fxvalue"
+that can hold the bits of any fixed-point value or any integer value:
+
+  typedef unsigned long long fxvalue;
+
+The underlying type is configurable, but usually it's the largest
+integer type, e.g., unsigned long long if that is supported.
+It must be big enough to fit all target integers and also all
+fixed-point types represented in integral form.  For values taking
+less than the full set of bits, the bits of the value are placed
+at the least-significant end of the fxvalue (this is done simply
+by casting; having the fxvalue type be unsigned prevents sign
+extension).
+
+Next, let's define a 5-bit field called an "fxtype" that describes
+the type contained in an fxvalue.  Starting from the least-significant
+bit:
+
+(2 bits) Precision: 00 short
+                    01 default
+                    10 long
+                    11 integral operand
+(1 bit)  Kind:       0 _Fract
+                     1 _Accum
+(1 bit)  Sign:       0 signed     ]
+                     1 unsigned   ]--- also used for integral operands
+(1 bit)  Saturation: 0 not _Sat
+                     1 _Sat
+
+Next, let's define a 3-bit field called an "fxcontrol" that
+describes the pragma state at the point of an operation.
+Starting from the least-significant bit:
+
+(1 bit)  FX_FRACT_OVERFLOW   0 DEFAULT
+                             1 SAT
+(1 bit)  FX_ACCUM_OVERFLOW   0 DEFAULT
+                             1 SAT
+(1 bit)  FX_FULL_PRECISION   0 OFF
+                             1 ON
+
+This may not be used by the runtime (and in fact at the moment the
+EDG front end always passes zeroes for those bits).
+
+These fields are combined into several sets of bits that 
+describe operand and result types and pragma state.  In each case,
+the fields are listed starting from the least-significant bit:
+
+fxmask1: fxcontrol, fxtype for operand (also gives result type)
+fxmask2: fxcontrol, fxtype for operand 1, fxtype for operand 2,
+         fxtype for result
+fxmaskr: fxcontrol, fxtype for operand 1, fxtype for operand 2
+fxmaskc: fxcontrol, fxtype for operand, fxtype for result
+fxmaskf: fxcontrol, fxtype for operand
+fxmaskg: fxcontrol, fxtype for result
+
+The integral types in which these are passed are configurable,
+but the default (to match the Dinkumware runtime) is unsigned short
+for all fxmasks except fxmask2, which is passed as unsigned long.
+
+The runtime routines are as follows:
+
+// Unary operators:
+fxvalue _Fixed_negate(fxmask1, fxvalue);
+fxvalue _Fixed_incr  (fxmask1, fxvalue);  // Used for ++
+fxvalue _Fixed_decr  (fxmask1, fxvalue);  // Used for --
+
+// Binary operators:
+fxvalue _Fixed_add     (fxmask2, fxvalue, fxvalue);
+fxvalue _Fixed_subtract(fxmask2, fxvalue, fxvalue);
+fxvalue _Fixed_multiply(fxmask2, fxvalue, fxvalue);
+fxvalue _Fixed_fivide  (fxmask2, fxvalue, fxvalue);
+
+// Relational operators:
+int     _Fixed_eq      (fxmaskr, fxvalue, fxvalue);
+int     _Fixed_ne      (fxmaskr, fxvalue, fxvalue);
+int     _Fixed_gt      (fxmaskr, fxvalue, fxvalue);
+int     _Fixed_lt      (fxmaskr, fxvalue, fxvalue);
+int     _Fixed_ge      (fxmaskr, fxvalue, fxvalue);
+int     _Fixed_le      (fxmaskr, fxvalue, fxvalue);
+
+// Shift
+fxvalue _Fixed_shiftl  (fxmask1, fxvalue, int shift_count);
+fxvalue _Fixed_shiftr  (fxmask1, fxvalue, int shift_count);
+
+// Conversion
+//   Fixed to (other) fixed, fixed-point to integer, and
+//   integer to fixed
+fxvalue     _Fixed_conv        (fxmaskc, fxvalue);
+//   Fixed to floating-point
+float       _Fixed_to_float    (fxmaskf, fxvalue);
+double      _Fixed_to_double   (fxmaskf, fxvalue);
+long double _Fixed_to_ldouble  (fxmaskf, fxvalue);
+//   Floating-point to fixed
+fxvalue     _Fixed_from_float  (fxmaskg, float);
+fxvalue     _Fixed_from_double (fxmaskg, double);
+fxvalue     _Fixed_from_ldouble(fxmaskg, long double);
+
+Conversions to/from complex and imaginary are handled by using
+the floating-point conversions on the real part and/or an
+appropriate zero.
+
+Compound assignments are handled by rewriting, e.g.,
+x += 1 is turned into x = x + 1 (but x is evaluated only
+once) and that is lowered.  Likewise increments and decrements
+are rewritten as adds or subtracts of 1, e.g., ++x becomes
+x = x + 1 and that is lowered.
+*/
+
+/*
 Integer kind for the fxmask parameter to fixed-point runtime routines.
 Must match the size chosen in the runtime provided by Dinkumware.
 The fxmask2 case is used for two-operand routines like _Fixed_add,
@@ -1126,19 +1248,7 @@ and a result type.
 static int fxtype_value(a_fixed_point_type_descr descr)
 /*
 Return the "fxtype" value that describes the indicated fixed-point
-type description.  An fxtype has, starting from the least-significant
-bit:
-
-(2 bits) Precision: 00 short
-                    01 default
-                    10 long
-                    11 integral operand
-(1 bit)  Kind:       0 _Fract
-                     1 _Accum
-(1 bit)  Sign:       0 signed     ]
-                     1 unsigned   ]--- also used for integral operands
-(1 bit)  Saturation: 0 not _Sat
-                     1 _Sat
+type description.  See the documentation above for the bit values.
 */
 {
 #define FXTYPE_SIZE 5
@@ -1163,8 +1273,8 @@ bit:
 static int integral_fxtype_value(a_boolean is_signed)
 /*
 Return the fxtype value used to represent an integral operand,
-signed if is_signed is TRUE.  See fxtype_value for the definition
-of the fxtype bits.
+signed if is_signed is TRUE.    See the documentation above for the
+bit values.
 */
 {
   int fxtype = 3;  /* 11 in bottom 2 bits means integral value. */
@@ -1177,7 +1287,7 @@ of the fxtype bits.
 static int fxtype_value_for_type(a_type_ptr type)
 /*
 Return the fxtype value for the given (fixed-point or integral)
-type.  See fxtype_value.
+type.  See the documentation above for the bit values.
 */
 {
   int fxtype;
@@ -1211,18 +1321,12 @@ static int fxcontrol_value(void)
 /*
 Return the "fxcontrol" value for the current location in the
 program.  It describes the current fixed-point pragma state.
-Starting from the least-significant bit:
-
-(1 bit)  FX_FRACT_OVERFLOW   0 DEFAULT
-                             1 SAT
-(1 bit)  FX_ACCUM_OVERFLOW   0 DEFAULT
-                             1 SAT
-(1 bit)  FX_FULL_PRECISION   0 OFF
-                             1 ON
+See the documentation above for the bit values.
 */
 {
 #define FXCONTROL_SIZE 3
-  /* FIXME */
+  /* Currently always returns zero, because the Dinkumware runtime
+     does not use the bits. */
   return 0;
 }  /* fxcontrol_value */
 
