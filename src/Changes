@@ -25,14 +25,14 @@ the same type.
 
 The front end would abort on certain redeclarations when custom name linkage
 kinds were added by defining the macros CUSTOM_NAME_LINKAGE_KINDS,
-CUSTOM_NAME_LINKAGE_KIND_NAMES and NUM_BITS_FOR_NAME_LINKAGE while omitting
+CUSTOM_NAME_LINKAGE_KIND_NAMES, and NUM_BITS_FOR_NAME_LINKAGE while omitting
 a definition of is_custom_name_linkage_kind_for_rout_type (or when that
 macro resulted in a false expression).  For example:
 
   void f();
   extern "MyLinkage" void f();  // Used to abort in some configurations
 
-Furthermore, custom name linkages were applied to routine type even when the
+Furthermore, custom name linkages were applied to a routine type even when the
 macro is_custom_name_linkage_kind_for_rout_type indicated that this should
 not be the case.  These problems are now fixed.
 
