@@ -7638,12 +7638,10 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
     bit_field_size = unsigned_value_of_integer_constant(&constant, &err);
     /* Note that one reason for err to be TRUE is if the constant is
        less than zero. */
-    if (err) {
-      error(ec_bad_bit_field_size);
-    } else if (bit_field_size > max_size_allowed) {
-      if (C_mode()) {
+    if (err || bit_field_size > max_size_allowed) {
+      if (err || C_mode()) {
         error(ec_bad_bit_field_size);
-      } else {
+      } else if (bit_field_size > max_size_allowed) {
         /* A warning in C++. */
         char  buffer[8];
         sprintf(buffer, "%ld", max_size_allowed);
