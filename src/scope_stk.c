@@ -4071,7 +4071,8 @@ End a name scope by popping an entry off the scope stack.
 
   /* The IL scope, if any, is no longer on the stack.  This must occur
      after IL lowering and before check_for_done_with_memory_region. */
-  if (il_scope != NULL) {
+  if (il_scope != NULL &&
+      il_scope->depth_in_scope_stack == depth_scope_stack) {
     il_scope->depth_in_scope_stack = NO_SCOPE_DEPTH;
   }  /* if */
   if (!old_region_still_needed) {
