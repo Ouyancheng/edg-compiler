@@ -2194,8 +2194,7 @@ that is not required to be checked by the ANSI C standard.
   } else if (type_1->kind == (a_type_kind)tk_integer) {
     /* Look for two integral types that differ only in signedness, or
        two character types. */
-    if (strict_ansi_mode &&
-        strict_ansi_error_severity == (an_error_severity)es_error) {
+    if (strict_ansi_mode) {
       /* In strict ANSI mode (C or C++), two integral types are interchangeable
          if they're the same type with signedness ignored. */
       /* Reduce the integral kinds to canonical (signedness-free) versions. */
