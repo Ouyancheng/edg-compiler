@@ -4705,20 +4705,16 @@ Generate code for a stmk_init (dynamic initialization) statement.
   if (dip->destructor != NULL) {
     /* Initialization with a later destructor. */
     non_C_case = TRUE;
-  } else if (dip->init_expr_lifetime) {
+  } else if (dip->init_expr_lifetime != NULL) {
     /* Initialization that wraps a lifetime around the initialization (because
        there are temporaries created in it). */
     non_C_case = TRUE;
-#if LOWER_EXTERN_INLINE
-  } else if (innermost_function_scope->variant.routine.ptr->is_inline &&
-             innermost_function_scope->variant.routine.ptr->storage_class ==
-                                             (a_storage_class)sc_unspecified &&
-             has_static_storage_duration(var->storage_class)) {
-    /* Initialization of a local static variable in an extern inline function.
-       The variable will be promoted to external, so code must be used to
-       initialize it. */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
+  } else if (var->promoted_local_static_init) {
+    /* Initialization of a local static variable promoted out of a function.
+       Code must be used to initialize it. */
     non_C_case = TRUE;
-#endif /* LOWER_EXTERN_INLINE */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
   }  /* if */
   switch (dip->kind) {
     case dik_none:
