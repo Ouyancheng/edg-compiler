@@ -517,7 +517,7 @@ static void switch_canonical_for_deleted_definition(
                                                   a_source_correspondence *scp)
 /*
 The definition of the entity with the indicated source correspondence has
-been deleted.  If the entity is the canonical entry or a correspondence
+been deleted.  If the entity is the canonical entry of a correspondence
 set, and there is a primary IL entry that's now just as good, switch the
 canonical entry to the primary IL entry.  Note that the entity passed
 in must not be a specialization (in that case, the secondary IL copy
@@ -1245,16 +1245,6 @@ to the secondary translation unit.
       } else {
         prev_variable->next = variable->next;
       }  /* if */
-      /* If we need the type of this variable, the type of the corresponding
-         variable can be used. */
-      if (in_secondary_trans_unit(variable->type) &&
-          trans_unit_corresp_of(variable->type) == NULL &&
-          trans_unit_copy_address_of(variable->type) == NULL) {
-        a_variable_ptr corresp_variable =
-                               (a_variable_ptr)canonical_il_entry_of(variable);
-        trans_unit_copy_address_of(variable->type) =
-                 primary_il_entry_of((char *)corresp_variable->type, iek_type);
-      }  /* if */
       if (variable->storage_class == (a_storage_class)sc_unspecified) {
         /* Delete the definition of this variable. */
         clear_variable_definition(variable);
@@ -1374,16 +1364,6 @@ to the secondary translation unit.
         scope->routines = routine->next;
       } else {
         prev_routine->next = routine->next;
-      }  /* if */
-      /* If we need the type of this routine, the type of the corresponding
-         routine can be used. */
-      if (in_secondary_trans_unit(routine->type) &&
-          trans_unit_corresp_of(routine->type) == NULL &&
-          trans_unit_copy_address_of(routine->type) == NULL) {
-        a_routine_ptr corresp_routine =
-                               (a_routine_ptr)canonical_il_entry_of(routine);
-        trans_unit_copy_address_of(routine->type) =
-                  primary_il_entry_of((char *)corresp_routine->type, iek_type);
       }  /* if */
       if (routine->assoc_scope != NULL_region_number) {
         /* Delete the body of this routine. */
