@@ -1,5 +1,15 @@
 Version 2.35
 
+1/27/97 Preprocessor stringizing of wide literals: quotes escaped
+
+When the preprocessor stringizing operation is applied to a wide character
+constant or wide string literal, quotes in the token are now escaped.
+
+  #define X(A) #A
+  int main() {
+    printf("%s\n", X(L"x"));  // Produces string "L\"x\"" now
+  }
+
 1/27/97 Initialized incomplete array of char (typedef case)
 
 A spurious error is no longer put out when a character array is declared
