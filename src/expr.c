@@ -10072,6 +10072,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                              ec_nonstandard_ptr_minus_ptr,
                              &operator_position,
                              operand_1->type, operand_2.type);
+          operation_type = operand_1->type;
         } else if (!check_object_pointer_operand(
                                   &operand_2, ec_expr_not_pointer_to_object)) {
           /* The second operand is not a pointer to an object type. */
