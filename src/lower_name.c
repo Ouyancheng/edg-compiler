@@ -847,6 +847,16 @@ is available; do not put it out.
   a_boolean            result = FALSE;
   char                 *str;
 
+  if (kind == iek_type) {
+    a_type_ptr type = (a_type_ptr)entity;
+    if (is_immediate_class_type(type) &&
+        type->source_corresp.assoc_info != NULL) {
+      /* If this class is a proxy class for a template parameter,
+         use the template parameter as the entity. */
+      type = symbol_supplement_for_class(type)->template_param_for_proxy_class;
+      if (type != NULL) entity = (char *)type;
+    }  /* if */
+  }  /* if */
   /* See if the entity is one of the special entities for which an
      abbreviation exists. */
   switch (kind) {
@@ -948,6 +958,19 @@ entity processed.
   return add_substitution_if_available_full(entity, kind,
                                             /*test=*/FALSE, mctl);
 }  /* add_substitution_if_available */
+
+
+static a_boolean substitution_available(char                     *entity,
+                                        an_il_entry_kind         kind,
+                                        a_mangling_control_block *mctl)
+/*
+If there is a substitution available for entity (which has kind "kind"),
+return TRUE.  Do not add the substitution to the mangled name.
+*/
+{
+  return add_substitution_if_available_full(entity, kind,
+                                            /*test=*/TRUE, mctl);
+}  /* substitution_available */
 
 
 static void add_prefix_for_local_entity(a_routine_ptr            routine,
@@ -3648,8 +3671,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
     if (tmpl != NULL &&
         /* Test done separately from output to allow the opportunity to
            put out "N...E" below. */
-        add_substitution_if_available_full((char *)tmpl, iek_template,
-                                           /*test=*/TRUE, mctl)) {
+        substitution_available((char *)tmpl, iek_template, mctl)) {
       a_boolean need_close = FALSE;
       if ((tmpl->source_corresp.is_class_member ||
            tmpl->source_corresp.parent.namespace_ptr != NULL) &&
