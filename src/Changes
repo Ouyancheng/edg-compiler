@@ -1,5 +1,12 @@
 Version 2.28
 
+1/25/95  Improved error recovery on "?" operator
+
+  char * g() {
+    int i = 0;
+    return i ? 0 : &undefined; // Gets only one error now.
+  }
+
 1/25/95  __builtin_va_alist handling in C-generating back end on Sun
 
 A static variable with the name __builtin_va_alist is no longer mangled

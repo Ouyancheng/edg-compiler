@@ -6794,6 +6794,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     if (types_are_the_same) {
       /* If the types are the same in C++ mode, no further checking of types
          is needed. */
+      /* If either operand has an error type, make sure the result type is
+         an error type. */
+      if (is_error_type(operand_3.type)) result_type = operand_3.type;
     } else if (is_throw_operand(&operand_2)) {
       /* The second operand is a throw expression and the third is not
          (because if they both were, they would have the same types),
