@@ -13650,6 +13650,7 @@ see expr.h).
       }  /* if */
       (void)get_token();
       break;
+#if GNU_EXTENSIONS_ALLOWED
     case tok_null:
       { a_constant  null_constant;
         make_zero_of_proper_type(integer_type(ik_int), &null_constant);
@@ -13658,6 +13659,7 @@ see expr.h).
       }
       (void)get_token();
       break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case tok_int_constant:
     case tok_char_constant:
     case tok_true:
