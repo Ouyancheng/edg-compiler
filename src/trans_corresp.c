@@ -2591,7 +2591,14 @@ scope.  The process is repeated in nested class and namespace scopes.
     for (type = skip_generated_type(scope->types);
          type != NULL;
          type = skip_generated_type(type->next)) {
-      find_type_correspondence(type);
+      if (is_immediate_class_type(type) &&
+          type->variant.class_struct_union.is_template_class &&
+          type->variant.class_struct_union.is_specialized) {
+        /* Explicit specializations are handled with the template they
+           specialize. */
+      } else {
+        find_type_correspondence(type);
+      }  /* if */
     }  /* for */
   }
 
