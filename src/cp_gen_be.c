@@ -6104,9 +6104,15 @@ the current function.
                                  ^^^^^^
   */
   if (return_stmt->next == NULL) {
-    a_statement_ptr stmt;
-    /* Look through the statements in the top block of the function. */
-    for (stmt= innermost_function_scope->assoc_block->variant.block.statements;
+    /* Look in the top block of the function. */
+    a_statement_ptr stmt = innermost_function_scope->assoc_block;
+    if (stmt->kind == (a_statement_kind)stmk_try_block) {
+      /* For a function try block, look at the dependent block of the try. */
+      stmt = stmt->variant.try_block->statement;
+    }  /* if */
+    check_assertion(stmt->kind == (a_statement_kind)stmk_block);
+    /* Look through the statements in the block. */
+    for (stmt= stmt->variant.block.statements;
          stmt != NULL;
          stmt = stmt->next) {
       if (stmt == return_stmt) {
