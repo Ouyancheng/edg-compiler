@@ -1248,8 +1248,11 @@ class a friend and update the friend information.
     /* Only update the friend information when the class being made a friend
        is a real class type. */
     for (clep = tssp->befriending_classes; clep != NULL; clep = clep->next) {
-      if (!same_entities(clep->class_type, class_type)) {
-         /* Don't declare the current class as a friend. */
+      if (clep->class_type != class_type) {
+         /* Don't declare the current class as a friend.  Note that this
+            test does not use same_entities, so there may be some kinds of
+            cross-translation unit friend declarations that could still result
+            in self-friendship. */
         decl_friend_class(clep->class_type, class_type);
       }  /* if */
     }  /* for */
@@ -8997,8 +9000,11 @@ been instantiated, update the befriending information for the instances.
     a_type_ptr  tp = instance_sym->variant.class_struct_union.type;
     if (is_real_class_symbol(instance_sym)) {
       /* Don't do this for the nonreal class types. */
-      if (!same_entities(class_declared_in, tp)) {
-         /* Don't declare the current class as a friend. */
+      if (class_declared_in != tp) {
+         /* Don't declare the current class as a friend.  Note that this
+            test does not use same_entities, so there may be some kinds of
+            cross-translation unit friend declarations that could still result
+            in self-friendship. */
         decl_friend_class(class_declared_in, tp);
       }  /* if */
     }  /* if */
