@@ -365,6 +365,7 @@ Install the keywords in the symbol table.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (gcc_mode) {
     enter_keyword((a_token_kind)tok_function_name, "__FUNCTION__");
+    enter_keyword((a_token_kind)tok_function_name, "__func__");
     enter_keyword((a_token_kind)tok_decorated_function_name,
                   "__PRETTY_FUNCTION__");
     enter_gnu_keyword((a_token_kind)tok_inline, "inline");
