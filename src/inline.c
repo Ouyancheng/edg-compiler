@@ -1217,7 +1217,8 @@ statement).
             a_statement_ptr inner_stmt;
             for (;;) {
               inner_stmt = block_stmt->variant.block.statements;
-              if (inner_stmt->kind == (a_statement_kind)stmk_block &&
+              if (inner_stmt != NULL &&
+                  inner_stmt->kind == (a_statement_kind)stmk_block &&
                   inner_stmt->next == NULL &&
                   block_stmt->variant.block.extra_info->assoc_scope == NULL) {
                 block_stmt = inner_stmt;
