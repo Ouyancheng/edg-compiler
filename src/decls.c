@@ -4512,9 +4512,9 @@ otherwise it is NULL.  The syntax is:
               parenthesized_initializer_allowed = FALSE;
               member_parent_type = sym->class_of_which_a_member;
             }  /* if */
-          } else {
+          } else if (lookup_options == IDL_NO_OPTIONS) {
             /* This is a declaration in which a qualified name is not
-               allowed. */
+               allowed, and no "unary :: not allowed" message was issued. */
             pos_error(ec_qualified_name_not_allowed, &declarator_pos);
             set_to_error_locator(locator_for_curr_id);
           }  /* if */
@@ -7499,6 +7499,7 @@ of local variables (and types, etc.) of functions and in blocks.
   an_expr_node_ptr  dim_expr_ptr;
   a_memory_region_number
                     region_to_switch_back_to;
+  a_boolean         is_definition, incomplete_type_error_reported;
 #if ASM_FUNCTION_ALLOWED
   a_boolean         is_asm_function = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -8102,13 +8103,33 @@ continue_with_declaration:
         has_initializer = TRUE;
         warning(ec_old_fashioned_initializer);
       }  /* if */
+      is_definition = FALSE;
+      if (symbol_ptr->kind == (a_symbol_kind)sk_variable && !is_parameter) {
+        /* Set a flag marking this as a defining declaration, if that's
+           appropriate. */
+        if (C_dialect == C_dialect_cplusplus) {
+          /* In C++ all variable declarations are definitions, except those
+             with a storage class of extern. */
+          is_definition = (local_storage_class != (a_storage_class)sc_extern);
+        } else if (linkage == idl_none || has_initializer) {
+          /* In C all local variable declarations are definitions, as are
+             all initializations. */
+          is_definition = TRUE;
+        }  /* if */
+      } else if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
+        /* All static data member declarations that that pass though this
+           code are definitions. */
+        is_definition = TRUE;
+      }  /* if */
+      incomplete_type_error_reported = FALSE;
       if (has_initializer) {
         /* Initializer is present.  Scan it. */
         /* If the symbol is a parameter, the subroutine will generate the
            error.  This is done rather than flagging the error here because
            the subroutine can scan over the initializer expression neatly. */
         initializer(symbol_ptr, &locator.source_position, linkage,
-                    has_parenthesized_initializer, is_parameter);
+                    has_parenthesized_initializer, is_parameter,
+                    &incomplete_type_error_reported);
         if (symbol_ptr->kind == (a_symbol_kind)sk_variable && !is_parameter) {
           /* Fetch the type of the symbol again, since it might have been
              changed if it was an incomplete array and was initialized. */
@@ -8130,9 +8151,7 @@ continue_with_declaration:
              changed if it was an incomplete array and was initialized. */
           local_type_ptr = symbol_ptr->variant.variable->type;
         }  /* if */
-      } else if ((symbol_ptr->kind == (a_symbol_kind)sk_variable ||
-                  symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) &&
-                 !is_parameter && !is_error_locator(locator)) {
+      } else if (is_definition && !is_error_locator(locator)) {
         a_variable_ptr  vp = symbol_ptr->variant.variable;
         if (vp->init_kind != (an_init_kind)initk_none) {
           /* Already initialized -- this must be a redeclaration. */
@@ -8209,12 +8228,14 @@ continue_with_declaration:
          defining declaration (namely, this one), they must always have
          a complete type. */
       if (is_incomplete_type(local_type_ptr)) {
-        if ((symbol_ptr->kind == (a_symbol_kind)sk_variable && !is_parameter &&
-              (linkage == idl_none ||
-                (local_storage_class == (a_storage_class)sc_unspecified &&
-                 is_void_type(local_type_ptr)))) ||
-            symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
-          error(ec_incomplete_type_not_allowed);
+        if (is_definition ||
+            (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
+             is_void_type(local_type_ptr) &&
+             (local_storage_class == (a_storage_class)sc_unspecified ||
+              local_storage_class == (a_storage_class)sc_static))) {
+          if (!incomplete_type_error_reported) {
+            error(ec_incomplete_type_not_allowed);
+          }  /* if */
           symbol_ptr->variant.variable->type = error_type();
         }  /* if */
       }  /* if */
