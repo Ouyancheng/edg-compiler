@@ -11397,7 +11397,7 @@ with the outermost enclosing class, for later promotion out of the class
     }  /* for */
     /* Clear the types list now that all types have been promoted. */
     scope->types = NULL;
-    set_last_type_pointer_for_scope(scope, NULL);
+    set_last_type_pointer_for_scope(scope, (a_type_ptr)NULL);
   }  /* if */
 }  /* promote_types_out_of_function */
 
