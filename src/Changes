@@ -1,5 +1,15 @@
 Version 2.35
 
+1/19/97 Microsoft compatibility: sizeof typename, without parentheses
+
+In Microsoft C++ mode, "sizeof typename" may now be used instead of the
+standard "sizeof(typename)".
+
+  typedef int I;
+  int i = sizeof I;  // sizeof(I) is standard
+
+The typename may not be a type keyword, e.g., "sizeof int" is not allowed.
+
 1/17/97 Microsoft compatibility: C++ variable declared as a zero-length array
 
 In Microsoft C++ compatibility mode a file-scope variable declared as a

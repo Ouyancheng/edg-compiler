@@ -3583,8 +3583,7 @@ Syntax:
   a_source_position     lparen_position;
   an_operand            operand;
   a_constant            constant;
-  a_boolean             trapped_left_paren = FALSE;
-  a_boolean             parenthesized_type = FALSE;
+  a_boolean             is_parenthesized = FALSE, is_type = FALSE;
   a_type_ptr            sizeof_type;
   a_local_expr_options_set
                         local_options;
@@ -3618,25 +3617,48 @@ Syntax:
        right parenthesis, as shown by the following:
          sizeof (v).b
        The sizeof should be applied to "(v).b", not just "(v)". */
+    is_parenthesized = TRUE;
     copy_source_position(pos_curr_token, lparen_position);
     (void)get_token();
     if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                          DFS_SINGLE_TYPE_REQUIRED)) {
       /* This is a type-name in parentheses. */
-      parenthesized_type = TRUE;
-    } else {
-      /* This is an expression in parentheses. */
-      trapped_left_paren = TRUE;
+      is_type = TRUE;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode && !C_mode()) {
+    /* Microsoft allows "sizeof T" without parentheses in C++ mode,
+       where T is a type-name (not a keyword like "int"). */
+    if (is_qualified_name_start() &&
+        is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                         DFS_SINGLE_TYPE_REQUIRED)) {
+      /* Something like
+           typedef int I;
+           sizeof I;
+         but not
+           sizeof I();
+      */
+      is_type = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 
-  if (parenthesized_type) {
-    /* Scan the type-name for a parenthesized type. */
+  if (is_type) {
     copy_source_position(pos_curr_token, type_position);
-    add_matching_stop_token(tok_rparen);
-    type_name(&sizeof_type);
-    (void)required_token(tok_rparen, ec_exp_rparen);
-    remove_matching_stop_token(tok_rparen);
+    if (is_parenthesized) {
+      /* Scan the type-name for a parenthesized type. */
+      add_matching_stop_token(tok_rparen);
+      type_name(&sizeof_type);
+      (void)required_token(tok_rparen, ec_exp_rparen);
+      remove_matching_stop_token(tok_rparen);
+    } else {
+      /* Unparenthesized type, e.g., "sizeof T" (Microsoft extension). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      sizeof_type = simple_type_specifier_sequence();
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      unexpected_condition();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
     /* If the top type is a reference, drop the reference so that the sizeof
        applies to the type referenced (ARM 5.3.2). */
     if (is_reference_type(sizeof_type)) {
@@ -3646,7 +3668,7 @@ Syntax:
     /* It has been determined that the operand of the sizeof is an expression
        and not a type.  Scan the operand. */
     local_options = EOPT_NO_OPTIONS;
-    if (trapped_left_paren) local_options |= EOPT_TRAPPED_LEFT_PAREN;
+    if (is_parenthesized) local_options |= EOPT_TRAPPED_LEFT_PAREN;
     scan_expr(&operand, PREC_PREFIX, local_options);
     /* Do not convert a type of "routine returning type" to "pointer to
        routine returning type".  See section 3.2.2.1 in the C standard.
@@ -3655,7 +3677,7 @@ Syntax:
                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
-    if (trapped_left_paren) {
+    if (is_parenthesized) {
       /* When scanning the expression with a trapped left parenthesis, the
          position returned in the operand indicates the token following
          the left parenthesis, which is wrong.  Correct it. */

@@ -5576,7 +5576,7 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
   a_decl_modifier       decl_modifiers;
   a_source_position     pos;
 
-  check_assertion(microsoft_mode && is_type_specifier());
+  check_assertion(microsoft_mode);
   pos = pos_curr_token;
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                         &storage_class, &type_ptr, &qualifiers,
