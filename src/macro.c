@@ -2988,6 +2988,16 @@ Scan and process a #define directive.
       }  /* if */
       remove_stop_token(tok_rparen);
     }  /* if */
+    /* If we're scanning a command-line macro definition option, then the
+       next character should be a "=".  Skip it. */
+    if (curr_command_line_macro_def != NULL) {
+      if (*curr_char_loc != '=') {
+        str_command_line_error(ec_bad_cmd_line_macro,
+                               curr_command_line_macro_def);
+      } else {
+        ++curr_char_loc;
+      }  /* if */
+    }  /* if */
     /* Scan the replacement-list as tokens, and place in the buffer; then
        allocate space for the text, and build the a_macro_def entry. */
     /* Do not reset the next_avail_in_macro_buffer pointer if there
@@ -4019,9 +4029,11 @@ the "-D").
        leave the processing to proc_define.  Allocate an extra 2 bytes for
        "-D" options that do not contain an equal; they'll be processed as
            define id 1
-       (i.e., a " 1" is appended).  During this processing, ensure that
-       diagnostics are correctly attributed by setting the global variable
-       curr_command_line_macro_def. */
+       (i.e., a "=1" is appended, and the "=" will be skipped).  During this
+       processing, ensure that diagnostics are correctly attributed by setting
+       the global variable curr_command_line_macro_def.  This is also used by
+       proc_define to decide that the "=" introducing the macro definition
+       should be skipped. */
     curr_command_line_macro_def = du_str;
     du_len = strlen(du_str);
     /* Ensure the buffer holding the logical source line is large enough to
@@ -4034,12 +4046,9 @@ the "-D").
     strcpy(curr_source_line, du_str);
     equal_pos = strchr(curr_source_line, '=');
     if (equal_pos == NULL) {
-      /* "-DNAME(X)" becomes "NAME(X) 1". */
-      strcpy(curr_source_line+du_len, " 1");
+      /* "-DNAME(X)" becomes "NAME(X)=1". */
+      strcpy(curr_source_line+du_len, "=1");
       du_len += 2;
-    } else {
-      /* "-DNAME=value" becomes "NAME value". */
-      *equal_pos = ' ';
     }  /* if */
     curr_source_line[du_len+0] = LE_ESCAPE;
     curr_source_line[du_len+1] = LE_NEWLINE;
