@@ -3867,7 +3867,14 @@ current token on entry.
 
   /* Scan the operand.  This must be a single label.  */
   (void)get_token();
-  label = scan_label(/*is_definition=*/FALSE, /*is_declaration=*/FALSE);
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    label = scan_label(/*is_definition=*/FALSE, /*is_declaration=*/FALSE);
+  } else {
+    error(ec_nonlocal_label_reference);
+    /* Skip over the identifier without attempting to create a label. */
+    (void)get_token();
+    err = TRUE;
+  }  /* if */
 
   if (err) {
     make_error_operand(result);
