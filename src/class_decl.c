@@ -3746,6 +3746,10 @@ routine body is generated at this time.
            make_qualified_type(make_pointer_type(class_type),
                                /*is_const=*/TRUE, /*is_volatile=*/FALSE);
   extra_info->prototyped = TRUE;
+  /* Check whether the routine needs special support for returning a class
+     object by value.  This call should be superfluous; it is included just
+     to be safe, in case the rules change on when the flag needs to be set. */
+  set_routine_calling_method_flag(rout_type);
   if (sfkind != sfk_operator) {
     extra_info->constructor_or_destructor = TRUE;
   }  /* if */
