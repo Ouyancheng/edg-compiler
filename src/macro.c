@@ -5415,6 +5415,16 @@ command line -D options.
       (void)enter_predef_macro("1", "_WCHAR_T_DEFINED",
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
+      if (microsoft_version >= 1300) {
+        /* For Microsoft versions 1300 and beyond, also define
+           _NATIVE_WCHAR_T_DEFINED.  Because _WCHAR_T_DEFINED is also defined
+           by the Microsoft header files when wchar_t is not a keyword,
+           _NATIVE_WCHAR_T_DEFINED can be used to determine whether wchar_t
+           is a keyword. */
+        (void)enter_predef_macro("1", "_NATIVE_WCHAR_T_DEFINED",
+                                 /*cannot_be_redefined=*/TRUE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      }  /* if */
     }  /* if */
 #if DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD
     if (bool_is_keyword) {

@@ -14,6 +14,11 @@ already been seen.  For example:
 
 This is now fixed.
 
+10/13/04 Microsoft compatibility: _NATIVE_WCHAR_T_DEFINED
+
+The macro _NATIVE_WCHAR_T_DEFINED is now defined in Microsoft mode
+when microsoft_version is >= 1300.
+
 10/13/04 Embedded C: Named-register variables of void type
 
 In Embedded C mode (and any other modes accepting named-register storage
