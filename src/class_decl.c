@@ -9545,6 +9545,42 @@ respectively.
   *member_type = field_type;
 }  /* check_field_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void check_declspec_for_field(
+                                     a_member_decl_info_ptr  decl_info,
+                                     a_symbol_locator  *locator)
+/*
+A field is being declared with extended specifiers.  Issue a diagnostic for
+__declspec specifiers that are not valid in this context.  The diagnostic is
+emitted for the position indicated by the given locator.
+*/
+{
+  a_decl_modifier  flags = decl_info->decl_modifiers.flags;
+
+  flags &= (DM_DLLIMPORT | DM_DLLEXPORT | DM_THREAD | DM_NAKED | DM_SELECTANY |
+            DM_NOTHROW | DM_NOVTABLE | DM_NORETURN | DM_NOINLINE);
+  if (decl_info->decl_modifiers.allocate_segname != NULL) {
+    /* Only allowed for variables with static storage duration. */
+    pos_error(ec_declspec_allocate_not_allowed, &locator->source_position);
+  }  /* if */
+  if (flags != 0) {
+    an_error_severity  severity;
+    an_error_code      err_code;
+    if ((flags & ~(DM_NORETURN | DM_NOINLINE)) == 0) {
+      /* Microsoft compilers silently ignore the noreturn and noinline
+         __declspec specifiers.  We issue a warning. */
+      severity = es_warning;
+      err_code = ec_decl_modifiers_ignored;
+    } else {
+      severity = es_error;
+      err_code = ec_declspec_invalid;
+    }  /* if */
+    pos_diagnostic(severity, err_code, &locator->source_position);
+  }  /* if */
+}  /* check_declspec_for_field */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- attributes is only used for GNU extensions.
@@ -9776,12 +9812,12 @@ non-NULL, *p_ms_attributes is returned NULL.
       pos_error(ec_interface_cannot_have_data_member,
                 &locator->source_position);
     }  /* if */
-    if (decl_info->decl_modifiers.allocate_segname != NULL) {
-      /* Only allowed for variables with static storage duration. */
-      pos_error(ec_declspec_allocate_not_allowed, &locator->source_position);
-    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Check validity of __declspec. */
+  check_declspec_for_field(decl_info, locator);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Remember if any member of the class, struct, or union is const-
      qualified, including recursively the members of any contained
      classes, structs, or unions.  This is useful for determination of

@@ -1,5 +1,16 @@
 Version 3.5
 
+10/26/04 Microsoft compatibility: __declspec and field declarations
+
+The front end previously silently ignored most __declspec specifiers on field
+declarations.  Now errors are issued for such specifiers if the Microsoft
+compiler also issues an error on them; otherwise, a warning is issued.
+For example:
+
+  struct S {
+    __declspec(selectany) int i;  // Error: Invalid specifier.
+  };
+
 10/25/04 Embedded C: Incorrect conversion of negative float to fixed-point
 
 The compile-time conversion of float (but not double or long double) to
