@@ -294,7 +294,7 @@ routine recursively for each nested class.
 #if DEBUG
     if (debug_level >= 3) {
       fputs("delayed scan fixup for ", f_debug);
-      db_name(&class_type->source_corresp);
+      db_type_name(class_type);
       fputc('\n', f_debug);
     }  /* if */
 #endif /* DEBUG */
@@ -485,9 +485,9 @@ Dump the virtual function override lists for a class, by base class.
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     if (bcp->overriding_virtual_functions != NULL) {
       fputs("virtual function override list for base class \"", f_debug);
-      db_name(&bcp->type->source_corresp);
+      db_type_name(bcp->type);
       fputs("\" in class \"", f_debug);
-      db_name(&class_type->source_corresp);
+      db_type_name(class_type);
       fputs("\":\n", f_debug);
       db_virtual_function_override_list(bcp);
     }  /* if */
@@ -770,7 +770,7 @@ for the class to which they belong.
 #if DEBUG
   if (debug_level >= 4) {
     fputs("virtual function sequence for base class ", f_debug);
-    db_name(&base_class->type->source_corresp);
+    db_type_name(base_class->type);
     fputs(": ", f_debug);
     db_virtual_function_number_sequence(base_class);
     (void)fputc('\n', f_debug);
@@ -870,7 +870,7 @@ new_bcp is the base class being created in new_class.
 #if DEBUG
         if (debug_level >= 4) {
           fputs("copy for base class ", f_debug);
-          db_name(&new_bcp->type->source_corresp);
+          db_type_name(new_bcp->type);
           fputs(": ", f_debug);
           db_virtual_function_override(ovfp);
         }  /* if */
@@ -1321,7 +1321,7 @@ Dump a linked list of derivation steps, for debug purposes.
   } else {
     for (; dsp != NULL; dsp = dsp->next) {
       fprintf(f_debug, "==>%s", dsp->base_class->is_virtual ? "[v]" : "");
-      db_name(&dsp->base_class->type->source_corresp);
+      db_type_name(dsp->base_class->type);
       if (show_offset) {
         fprintf(f_debug, "@%ld", dsp->base_class->offset);
         if (dsp->base_class->is_virtual) {
@@ -1342,17 +1342,26 @@ Dump a base class entry, for debug purposes.
   (void)fputc('"', f_debug);
   db_type_name(bcp->type);
   if (bcp->derived_class != NULL) {
-    fputs("\", base class of \"", f_debug);
+    fputc('"', f_debug);
+    fprintf(f_debug, " (%lu/%u)",
+            bcp->decl_position.seq, bcp->decl_position.column);
+    fputs(", base class of \"", f_debug);
     db_type_name(bcp->derived_class);
   }  /* if */
   fputs("\": ", f_debug);
   if (show_offset) {
-    fprintf(f_debug, "(%ld bytes): offset = %ld",
-                     bcp->type->size, bcp->offset);
+    fprintf(f_debug, "size = %ld, offset = %ld",
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+                     bcp->complete_subobject ?
+                       bcp->type->size :
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+                       bcp->type->variant.class_struct_union.extra_info->
+                                          size_without_virtual_base_classes,
+                     bcp->offset);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
     if (bcp->data_section_base_class != NULL) {
       fputs(", in ", f_debug);
-      db_name(&bcp->data_section_base_class->type->source_corresp);
+      db_type_name(bcp->data_section_base_class->type);
     }  /* if */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     fputs(", ", f_debug);
@@ -1365,7 +1374,7 @@ Dump a base class entry, for debug purposes.
       fprintf(f_debug, " (ptr offset = %ld", bcp->pointer_offset);
       if (bcp->pointer_base_class != NULL) {
         fputs(", in ", f_debug);
-        db_name(&bcp->pointer_base_class->type->source_corresp);
+        db_type_name(bcp->pointer_base_class->type);
       }  /* if */
       fputc(')', f_debug);
     }  /* if */
@@ -1388,7 +1397,7 @@ Dump a linked list of base class entries, for debug purposes.
 
   if (is_class_struct_union_type(tp)) {
     fputs("base classes for ", f_debug);
-    db_name(&tp->source_corresp);
+    db_type_name(tp);
     bcp = base_classes_of(tp);
     if (bcp == NULL) {
       fputs(": <null list>\n", f_debug);
@@ -1421,7 +1430,7 @@ path entries are also on the base classes list of class_type.
 #if DEBUG
   if (debug_level >= 3) {
     fputs("path consistency check: base class \"", f_debug);
-    db_name(&base_class->type->source_corresp);
+    db_type_name(base_class->type);
     fputs("\", path ", f_debug);
     db_path(base_class->derivation, /*show_offset=*/FALSE);
     (void)fputc('\n', f_debug);
@@ -1810,6 +1819,7 @@ is a base class.
   if (path == NULL) {
     /* When path is NULL we have a direct base class. */
     base_class->direct = TRUE;
+    base_class->decl_position = pos_curr_token;
     /* Give preference to the path of the direct base class unless the path
        of the other instance gives more access. */
     if (is_more_accessible(base_class_access, new_access)) {
@@ -1894,6 +1904,9 @@ is a base class.
         /* Replace what was just thrown away (if anything) with the steps
            represented by "path". */
         bcp->derivation = copy_and_extend_path(path, dsp, bcp);
+        if (path == NULL) {
+          bcp->decl_position = base_class->decl_position;
+        }  /* if */
 #if DEBUG
         if (debug_level >= 3) {
           fputs("  modified ", f_debug);
@@ -2237,7 +2250,7 @@ duplicate paths.  The copy will be a base class of new_class.
 #if DEBUG
         if (debug_level >= 3) {
           fputs("  reencountering virtual base class \"", f_debug);
-          db_name(&base_class_to_copy->type->source_corresp);
+          db_type_name(base_class_to_copy->type);
           fputs("\" for ", f_debug);
           db_abbreviated_type(new_class);
           fputc('\n', f_debug);
@@ -2267,7 +2280,7 @@ duplicate paths.  The copy will be a base class of new_class.
 #if DEBUG
   if (debug_level >= 3) {
     fputs("  creating indirect base class \"", f_debug);
-    db_name(&base_class_to_copy->type->source_corresp);
+    db_type_name(base_class_to_copy->type);
     fputs("\" for ", f_debug);
     db_abbreviated_type(new_class);
     fputc('\n', f_debug);
@@ -2277,6 +2290,7 @@ duplicate paths.  The copy will be a base class of new_class.
   new_bcp = alloc_base_class();
   new_bcp->type = base_class_to_copy->type;
   new_bcp->derived_class = new_class;
+  new_bcp->decl_position = directly_derived_bcp->decl_position;
   new_bcp->direct = FALSE;
   /* Retain the access of the original derivation from this base class. */
   new_bcp->access = base_class_to_copy->access;
@@ -2360,6 +2374,7 @@ or struct definition.  The syntax is
   a_class_symbol_supplement_ptr cssp, bcp_cssp;
   a_boolean                     any_base_class_with_override_list;
   a_boolean                     first_direct_nonvirtual_base_class = TRUE;
+  a_source_position             base_class_decl_pos;
 
   db_enter(3, "scan_base_specifier_list");
 #if DEBUG
@@ -2430,6 +2445,8 @@ or struct definition.  The syntax is
     } else {
       /* Scan the base class name. */
       a_boolean gid_err;
+
+      base_class_decl_pos = pos_curr_token;
       sym = coalesce_and_lookup_generalized_identifier
             	(GID_NO_OPTIONS, ilm_normal, &gid_err);
       if (sym == NULL || !is_class_symbol(sym)) {
@@ -2564,6 +2581,7 @@ or struct definition.  The syntax is
       new_direct_bcp = alloc_base_class();
       new_direct_bcp->type = base_class_type;
       new_direct_bcp->derived_class = type_ptr;
+      new_direct_bcp->decl_position = base_class_decl_pos;
       new_direct_bcp->access = access;
       if (is_virtual) {
         new_direct_bcp->is_virtual = TRUE;
@@ -4162,6 +4180,7 @@ routine body is generated at this time.
   a_type_ptr                rout_type;
   a_routine_type_supplement *extra_info;
   a_symbol_locator          locator;
+  a_source_position         pos;
 
   db_enter(3, "generate_special_function");
   /* Allocate and initialize the routine type entry for the function. */
@@ -4185,15 +4204,15 @@ routine body is generated at this time.
      to be safe, in case the rules change on when the flag needs to be set. */
   set_routine_calling_method_flag(rout_type);
   /* Create a locator for the symbol that will be created. */
+  pos = class_type->source_corresp.decl_position;
   if (sfkind == (a_special_function_kind)sfk_operator) {
-    make_opname_locator((an_opname_kind)onk_assign, &locator,
-                        &class_type->source_corresp.decl_position);
+    make_opname_locator((an_opname_kind)onk_assign, &locator, &pos);
   } else {
-    make_locator_for_symbol(
-                        (a_symbol_ptr)class_type->source_corresp.assoc_info,
-                        &locator);
+    make_locator_for_symbol((a_symbol_ptr)class_type->
+                                                  source_corresp.assoc_info,
+                            &locator);
     if (sfkind == (a_special_function_kind)sfk_constructor) {
-      change_class_locator_into_constructor_locator(&locator);
+      change_class_locator_into_constructor_locator(&locator, &pos);
     } else {
       tildize_locator(&locator);
     }  /* if */
@@ -5098,27 +5117,13 @@ The routine body is not generated until it is known to be needed.
 */
 {
   a_param_type_ptr              ptp;
-  a_class_symbol_supplement_ptr cssp, base_class_cssp;
-  a_base_class_ptr              bcp;
+  a_class_symbol_supplement_ptr cssp;
   a_boolean                     const_okay, dummy_flag;
 
   db_enter(3, "check_special_member_functions");
   cssp = symbol_supplement_for_class(class_type);
   if (cssp->constructor_required && cssp->constructor == NULL) {
-    /* A default constructor needs to be generated.  Check each direct and
-       virtual base class that requires a constructor for initialization to be
-       sure it has a default constructor. */
-    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct || bcp->is_virtual) {
-        base_class_cssp = symbol_supplement_for_class(bcp->type);
-        if (base_class_cssp->constructor != NULL &&
-            !base_class_cssp->has_default_constructor) {
-          /* Base class needs to be initialized with a constructor, but no
-             default constructor exists. */
-          type_warning(ec_base_class_with_no_default_ctor, bcp->type);
-        }  /* if */
-      }  /* if */
-    }  /* for */
+    /* A default constructor needs to be generated. */
     generate_special_function(class_type, (a_param_type_ptr)NULL,
                               (a_special_function_kind)sfk_constructor);
   }  /* if */
@@ -5603,7 +5608,7 @@ back down to find A<T>::B).
   if (debug_level >= 3) {
     if (corresp_prototype_tag_sym != NULL) {
       fputs("returning symbol for ", f_debug);
-      db_name(&type_symbol_type(corresp_prototype_tag_sym)->source_corresp);
+      db_type_name(type_symbol_type(corresp_prototype_tag_sym));
       fputc('\n', f_debug);
     }  /* if */
   }  /* if */
@@ -6762,7 +6767,8 @@ next_declaration:
           }  /* for */
           if (ctor_sym == NULL) {
             /* All constructors are private. */
-            sym_warning(ec_no_access_to_constructors, tag_sym);
+            pos_sy_warning(ec_no_access_to_constructors,
+                           &tag_sym->decl_position, tag_sym);
           }  /* if */
         }  /* if */
       }  /* if */
