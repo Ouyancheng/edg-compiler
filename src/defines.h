@@ -73,6 +73,7 @@ the release should contain no defines.
 #define TARG_JMP_BUF_NUM_ELEMENTS 8
 #define DEBUG 1
 #define CHECKING 1
+#define USE_MMAP_FOR_MEMORY_REGIONS 1
 
 #ifndef OPTIMIZED_VERSION
 #define OPTIMIZED_VERSION 1

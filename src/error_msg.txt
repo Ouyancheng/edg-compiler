@@ -689,6 +689,7 @@ ec_cl_pch_incompatible_with_multiple_inputs;;"precompiled header files may not b
 ec_not_enough_preallocated_memory;;"insufficient preallocated memory for generation of precompiled header file (%s bytes required)"
 ec_program_entity_too_large_for_pch;;"very large entity in program prevents generation of precompiled header file"
 ec_cannot_chdir;;"%sq is not a valid directory"
+ec_cannot_build_temp_file_name;;"cannot build temporary file name"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

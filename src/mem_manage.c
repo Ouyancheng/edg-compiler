@@ -376,7 +376,7 @@ Unmap the memory blocks that have been mapped.
     /* Record the total amount of allocated memory that was allocated via
        memory mapped files. */
     num_mapped_bytes_allocated -= size;
-    adjust_record_of_total_allocation((long)-size);
+    adjust_record_of_total_allocation(-(long)size);
 #endif /* DEBUG */
   }  /* for */
   num_of_mem_alloc_history_entries = 0;

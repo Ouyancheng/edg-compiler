@@ -27,6 +27,10 @@ MS-DOS, or VAX/VMS.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
+#if __WIN32__
+#include <windows.h>
+#endif /* __WIN32__ */
+
 /*
 Argument strings for fopen.
 */
@@ -1867,7 +1871,203 @@ buffer.
 
 
 #if USE_MMAP_FOR_MEMORY_REGIONS
+
+
 #if __WIN32__
+
+static HANDLE	f_mmap_file;
+			/* The file handle for the mapped IL file. */
+
+static HANDLE	f_mapped_input;
+			/* The file handle of the PCH input file as
+			   opened for file mapping purposes. */
+
+static HANDLE	f_map_object;
+			/* The file handle of the map object associated with
+			   the mapped input file. */
+
+void open_mapped_il_temp_file(void)
+/*
+Open a temporary file to be used for allocation of file mapped
+memory for IL memory blocks.
+*/
+{
+  char		temp_dir[MAX_PATH];
+  char		temp_file_name[MAX_PATH];
+
+  db_enter(3, "open_mapped_il_temp_file");
+  if (GetTempPath(MAX_PATH, temp_dir) == 0 ||
+      GetTempFileName(temp_dir, "edg", 0, temp_file_name) == 0) {
+    catastrophe(ec_cannot_build_temp_file_name);
+  }  /* if */
+  f_mmap_file = CreateFile(temp_file_name, GENERIC_READ | GENERIC_WRITE,
+                           /*fdwShareMode=*/0, (LPSECURITY_ATTRIBUTES)NULL,
+                           CREATE_ALWAYS,
+                           FILE_ATTRIBUTE_TEMPORARY |
+                                                  FILE_FLAG_DELETE_ON_CLOSE,
+                           NULL);
+  if (f_mmap_file == INVALID_HANDLE_VALUE) {
+    str_catastrophe(ec_cannot_open_temp_file, temp_file_name);
+  }  /* if */
+  db_exit();
+}  /* open_mapped_il_temp_file */
+
+
+void open_mapped_input_file(char *file_name)
+/*
+Open a file that contains memory region information that will be mapped
+into the address space of the current process.  This is used to reactivate
+a precompiled header file.  This file will already have been opened using
+fopen, so this open must be done in shared mode.
+*/
+{
+  f_mapped_input = CreateFile(file_name, GENERIC_READ | GENERIC_WRITE,
+                              FILE_SHARE_READ, /*lpsa=*/NULL,
+                              OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
+  check_assertion_str(f_mapped_input != INVALID_HANDLE_VALUE,
+                      "CreateFile of mapped input file failed");
+  if (f_mapped_input == INVALID_HANDLE_VALUE) {
+    /* This shouldn't happen because the file must have already been
+       successfully opened as a normal input file before this routine is
+       called. */
+    str_command_line_error(ec_cl_cannot_open_pch_input_file,
+                           file_name);
+  }  /* if */
+  f_map_object = CreateFileMapping(f_mapped_input, NULL,
+                                   PAGE_WRITECOPY, 0, 0, NULL);
+  check_assertion_str(f_map_object != INVALID_HANDLE_VALUE,
+                      "CreateFileMapping failed");
+  if (f_map_object == INVALID_HANDLE_VALUE) {
+    catastrophe(ec_unable_to_get_mapped_memory);
+  }  /* if */
+}  /* open_mapped_input_file */
+
+
+void close_mapped_input_file(void)
+/*
+Close the mapped input file and the associated map object.
+*/
+{
+  if (!CloseHandle(f_mapped_input)) {
+    unexpected_condition_str("CloseHandle of mapped input failed");
+  }  /* if */
+  if (!CloseHandle(f_map_object)) {
+    unexpected_condition_str("CloseHandle of map object failed");
+  }  /* if */
+}  /* close_mapped_input_file */
+
+
+a_void_ptr map_file_region(sizeof_t	curr_size,
+		           sizeof_t	incremental_size,
+			   long		file_offset)
+/*
+Expand a memory mapped file.  This routine assumes that curr_size bytes
+have already been allocated and mapped, and that incremental_size bytes
+should be added.  incremental_size must be a multiple of the host
+page size.
+*/
+{
+  a_void_ptr		addr = NULL;
+  sizeof_t		size;
+  DWORD			new_pos;
+  DWORD			bytes_written;
+  HANDLE		f_map;
+#if USE_FIXED_ADDRESS_FOR_MMAP
+  a_void_ptr		map_address;
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+
+  db_enter(4, "map_file_region");
+  size = curr_size + incremental_size;
+  /* The file must be large enough to contain the mapped area. */
+  new_pos = SetFilePointer(f_mmap_file, (long)size, (PLONG)NULL, FILE_BEGIN);
+  if (new_pos != 0xffffffff) {
+    /* Write a character at the last allocated position. */
+    if (WriteFile(f_mmap_file, &new_pos, 1, &bytes_written,
+                  (LPOVERLAPPED)NULL)) {
+      f_map = CreateFileMapping(f_mmap_file,
+                                (LPSECURITY_ATTRIBUTES)NULL,
+                                PAGE_READWRITE, (DWORD)0, (DWORD)0,
+                                (LPTSTR)NULL);
+      if (f_map != INVALID_HANDLE_VALUE) {
+#if USE_FIXED_ADDRESS_FOR_MMAP
+        map_address = ((char *)FIXED_ADDRESS_FOR_MMAP) + curr_size;
+        addr = MapViewOfFileEx(f_map, FILE_MAP_WRITE, (DWORD)0,
+                               (DWORD)file_offset, incremental_size,
+                               map_address);
+#else /* !USE_FIXED_ADDRESS_FOR_MMAP */
+        addr = MapViewOfFile(f_map, FILE_MAP_WRITE, (DWORD)0,
+                             (DWORD)file_offset, incremental_size);
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+      }  /* if */
+#if DEBUG
+      if (debug_level >= 4) {
+        fprintf(f_debug, "Allocated %lu bytes of mmap memory at %p\n",
+                (unsigned long)incremental_size, addr);
+      }  /* if */
+#endif /* DEBUG */
+    }  /* if */
+  }  /* if */
+  db_exit();
+  return addr;
+}  /* map_file_region */
+
+
+/*ARGSUSED*/ /* <-- Because "file" is not used. */
+a_void_ptr map_input_file_to_region(FILE		*file,
+                                    sizeof_t		offset,
+				    sizeof_t		size,
+				    a_void_ptr		address)
+/*
+Map the data pointed to by "file", starting at "offset" bytes,
+for "size" bytes to the address specified by "address".
+This mapping is done as a FILE_MAP_COPY mapping so that any changes to
+the data will be local.  This is used to map a section of a PCH
+file to a memory region.
+*/
+{
+  a_void_ptr	result_addr;
+
+  result_addr = MapViewOfFileEx(f_map_object, FILE_MAP_COPY, (DWORD)0,
+                                (DWORD)offset, size, address);
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "Allocated %lu bytes of mmap memory at %p\n",
+            (unsigned long)size, address);
+  }  /* if */
+  if (debug_level >= 1 && result_addr == NULL) {
+    fprintf(f_debug, "Map failed: address=%p, size=%lu, offset=%lu\n",
+            address, (unsigned long)size, (unsigned long)offset);
+  }  /* if */
+#endif /* DEBUG */
+  return result_addr;
+}  /* map_input_file_to_region */
+
+
+/*ARGSUSED*/ /* <-- Because "size" is not used. */
+void unmap_memory(a_void_ptr	addr,
+	          sizeof_t	size)
+/*
+Unmap a block of previously mapped memory.
+*/
+{
+  if (!UnmapViewOfFile(addr)) {
+    unexpected_condition_str("unmap_memory: UnmapViewOfFile failed\n");
+  }  /* if */
+}  /* unmap_memory */
+
+
+static int get_page_size(void)
+/*
+Return the size of a host page.  When map_file_region is called,
+incremental_size must be a multiple of the page size.
+*/
+{
+  /* Windows-NT addresses and file offsets must be multiples of
+     64K. */
+  return 65536;
+}  /* get_page_size */
+
+
 #else /* !__WIN32__ */
 #include <sys/mman.h>
 
@@ -1922,7 +2122,7 @@ page size.
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 
   db_enter(4, "map_file_region");
-  size = curr_size + incremental_size;
+  size = file_offset + incremental_size;
   /* The file must be large enough to contain the mapped area. */
   if (fseek(f_mmap_file, (long)size, SEEK_SET) == 0) {
     /* Write a character at the last allocated position and
@@ -2008,25 +2208,6 @@ Unmap a block of previously mapped memory.
 }  /* unmap_memory */
 
 
-sizeof_t seek_to_page_alignment(FILE *file)
-/*
-Seeks to the next position in the file that is a multiple of the
-host page size.  This is used to ensure that data written to a file
-is at an offset that can be used as an argument to mmap.  Return the
-current file position.
-*/
-{
-  sizeof_t	curr_pos;
-
-  curr_pos = (sizeof_t)ftell(file);
-  curr_pos = do_page_alignment(curr_pos);
-  if (fseek(file, (long)curr_pos, SEEK_SET) != 0) {
-    unexpected_condition_str("seek_to_page_alignment: fseek error");
-  }  /* if */
-  return curr_pos;
-}  /* seek_to_page_alignment */
-
-
 void open_mapped_il_temp_file(void)
 /*
 Open a temporary file to be used for allocation of file mapped
@@ -2055,12 +2236,35 @@ Return "size" adjusted as needed to be a multiple of the system page size.
   sizeof_t	size2;
 
   /* On the first call of this routine, get the host page size. */
-  if (page_size == 0) page_size = get_page_size();
+  if (page_size == 0) {
+    page_size = get_page_size();
+    /* The host allocation increment must be a multiple of the page size. */
+    check_assertion_str(HOST_ALLOCATION_INCREMENT % page_size == 0,
+                        "invalid HOST_ALLOCATION_INCREMENT for page size");
+  }  /* if */
   size2 = (size / page_size) * page_size;
   if (size2 < size) size2 += page_size;
   return size2;
 }  /* do_page_alignment */
 
+
+sizeof_t seek_to_page_alignment(FILE *file)
+/*
+Seeks to the next position in the file that is a multiple of the
+host page size.  This is used to ensure that data written to a file
+is at an offset that can be used as an argument to mmap.  Return the
+current file position.
+*/
+{
+  sizeof_t	curr_pos;
+
+  curr_pos = (sizeof_t)ftell(file);
+  curr_pos = do_page_alignment(curr_pos);
+  if (fseek(file, (long)curr_pos, SEEK_SET) != 0) {
+    unexpected_condition_str("seek_to_page_alignment: fseek error");
+  }  /* if */
+  return curr_pos;
+}  /* seek_to_page_alignment */
 
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 

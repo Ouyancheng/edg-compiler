@@ -65,13 +65,18 @@ format.  Unused pieces at the ends of regions are freed when the regions
 are completed, so there's no waste.  Larger blocks will be allocated if
 needed (say, for incredibly large string literals formed by token
 concatenation).
+
+When USE_MMAP_FOR_MEMORY_REGIONS is TRUE, HOST_ALLOCATION_INCREMENT
+must be a multiple of the host page size.  On Windows-NT, when
+USE_MMAP_FOR_MEMORY_REGIONS is TRUE, HOST_ALLOCATION_INCREMENT must
+be a multiple of 64K.
 */
 #ifndef HOST_ALLOCATION_INCREMENT
-#if __MSDOS__
+#if __MSDOS__ && !__WIN32__
 #define HOST_ALLOCATION_INCREMENT 16384
-#else /* !__MSDOS__ */
+#else /* !(__MSDOS__ && !__WIN32__) */
 #define HOST_ALLOCATION_INCREMENT 65536
-#endif /* __MSDOS__ */
+#endif /* __MSDOS__ && !__WIN32__ */
 #endif /* ifndef HOST_ALLOCATION_INCREMENT */
 				   
 /*
@@ -1078,6 +1083,11 @@ Define a macro that can be used to compare two file names.
 /* On other systems, the comparison is case sensitive. */
 #define compare_file_names(s1, s2) strcmp((s1), (s2))
 #endif /* __MSDOS__ */
+
+#if __WIN32__
+extern void open_mapped_input_file(char *file_name);
+extern void close_mapped_input_file(void);
+#endif /* __WIN32__ */
 
 /* Set up signal handlers. */
 extern void set_signal_handlers(void);

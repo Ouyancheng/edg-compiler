@@ -154,17 +154,9 @@ Macro to perform an fwrite with an error check.
   }  /* if */
 
 /*
-Macro to do an fseek on the input file with an error check.
-*/
-#define fseek_input_with_check(file, pos, mode)				\
-  if (fseek((file), (long)(pos), (mode)) != 0) {			\
-    unexpected_condition_str("PCH seek error");				\
-  }  /* if */
-
-/*
 Macro to do an fseek on the output file with an error check.
 */
-#define fseek_output_with_check(file, pos, mode)			\
+#define fseek_with_check(file, pos, mode)			\
   if (fseek((file), (long)(pos), (mode)) != 0) {			\
     unexpected_condition_str("PCH seek error");				\
   }  /* if */
@@ -904,22 +896,24 @@ child files encountered.
 */
 {
   db_enter(5, "write_list_of_file_timestamps");
-  while (sfp != NULL) {
+  for (; sfp != NULL; sfp = sfp->next) {
     time_t	time;
-    (void)get_file_modification_time(sfp->full_name, &time);
-    pch_write_string(sfp->full_name);
-    pch_write_value(time);
+    /* Don't do this for the primary source file. */
+    if (sfp != il_header.primary_source_file) {
+      (void)get_file_modification_time(sfp->full_name, &time);
+      pch_write_string(sfp->full_name);
+      pch_write_value(time);
 #if DEBUG
-    if (debug_level >= 5) {
-      fprintf(f_debug, "Writing file timestamp for %s, time is %ld\n",
-              sfp->full_name, time);
-    }  /* if */
+      if (debug_level >= 5) {
+        fprintf(f_debug, "Writing file timestamp for %s, time is %ld\n",
+                sfp->full_name, time);
+      }  /* if */
 #endif /* DEBUG */
+    }  /* if */
     if (sfp->first_child_file != NULL) {
       write_list_of_file_timestamps(sfp->first_child_file);
     }  /* if */
-    sfp = sfp->next;
-  }  /* while */
+  }  /* for */
   db_exit();
 }  /* write_list_of_file_timestamps */
 
@@ -1201,16 +1195,22 @@ the PCH file.
 */
 {
   int		i;
+  a_void_ptr	addr;
+  sizeof_t	offset;
+
 
   /* The memory regions that have already been allocated should be
      unmapped so that the address space is available to be remapped. */
   free_mapped_mem_blocks();
+  /* Get the current input file position. */
+  offset = ftell(f_pch_input);
   for (i = 0; i < new_alloc_history_entries; ++i) {
     a_mem_alloc_history_ptr	mahp = &new_alloc_history[i];
-    sizeof_t			offset;
-    offset = seek_to_page_alignment(f_pch_input);
-    if (map_input_file_to_region(f_pch_input, offset,
-                                 mahp->size, mahp->addr) == NULL) {
+    offset = do_page_alignment(offset);
+    addr = map_input_file_to_region(f_pch_input, offset,
+                                    mahp->size, mahp->addr);
+    offset += mahp->size;
+    if (addr == NULL) {
       /* We were unable to get the desired mapped memory.  This is
          something we can't recover from. */
       catastrophe(ec_unable_to_get_mapped_memory);
@@ -1223,8 +1223,6 @@ the PCH file.
               mahp->addr, (unsigned long)mahp->size);
     }  /* if */
 #endif /* DEBUG */
-    /* Seek past the area just mapped. */
-    fseek_input_with_check(f_pch_input, offset + mahp->size, SEEK_SET);
   }  /* for */
 }  /* read_memory_used_for_memory_regions */
 
@@ -1271,6 +1269,8 @@ header information about the memory regions such as the memory_region_table.
 {
   a_memory_region_number	mem_regions_used;
   db_enter(4, "write_memory_regions");
+  /* Write a copy of the IL header. */
+  pch_write_value(il_header);
   mem_regions_used = highest_used_region_number + 1;
   /* Write the memory region table and the region_scope_entry table from
      the IL header.  Note that index_for_il_file is not written. */
@@ -1304,8 +1304,6 @@ header information about the memory regions such as the memory_region_table.
     }  /* for */
   }
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  /* Write a copy of the IL header. */
-  pch_write_value(il_header);
   db_exit();
 }  /* write_memory_regions */
 
@@ -1320,6 +1318,8 @@ header information about the memory regions such as the memory_region_table.
 
   db_enter(4, "read_memory_regions");
   check_file_section_id(pfs_memory_regions);
+  /* Read the copy of the IL header. */
+  pch_read_value(il_header_from_pch);
   /* Read the memory region table and the region_scope_entry table from
      the IL header.  Note that index_for_il_file is not written. */
   pch_read_value(highest_used_region_number);
@@ -1352,8 +1352,6 @@ header information about the memory regions such as the memory_region_table.
     }  /* for */
   }
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  /* Read the copy of the IL header. */
-  pch_read_value(il_header_from_pch);
   db_exit();
 }  /* read_memory_regions */
 
@@ -1406,7 +1404,7 @@ current point.
   write_file_section_id(pfs_memory_regions);
   write_memory_regions();
   /* Write the flag that indicates that the PCH file is now complete. */
-  fseek_output_with_check(f_pch_output, flag_position, SEEK_SET);
+  fseek_with_check(f_pch_output, flag_position, SEEK_SET);
   is_complete = TRUE;
   pch_write_value(is_complete);
   (void)fclose(f_pch_output);
@@ -1989,6 +1987,11 @@ may be used.
        the memory configuration needed by the PCH is compatible with
        what we can allocate. */
     last_event_from_pch = pch_is_applicable();
+#if __WIN32__ && USE_MMAP_FOR_MEMORY_REGIONS
+    /* Open the file a second time in a way that it can be used for
+       file mapping purposes. */
+    open_mapped_input_file(pch_input_file_name);
+#endif /* __WIN32__  && USE_MMAP_FOR_MEMORY_REGIONS */
     if (last_event_from_pch != NULL && read_mem_alloc_history()) {
       /* Everything is OK. */
       pos_of_last_event_from_pch = last_event_from_pch->position;
@@ -2010,6 +2013,9 @@ may be used.
     using_a_pch_file = TRUE;
     read_saved_variables();
     read_memory_regions();
+#if __WIN32__ && USE_MMAP_FOR_MEMORY_REGIONS
+    close_mapped_input_file();
+#endif /* __WIN32__  && USE_MMAP_FOR_MEMORY_REGIONS */
     if (new_alloc_history != NULL) {
       /* Free the new allocation history information. */
       free_general((a_void_ptr)new_alloc_history,
