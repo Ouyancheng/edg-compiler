@@ -9434,10 +9434,9 @@ for space tracking purposes.
   db_space_used_lost("vla fixup", avail_vla_fixups, num_vla_fixups_allocated,
                      a_vla_fixup);
 #if RECORD_HIDDEN_NAMES_IN_IL
-  db_space_used_lost("hidden templ name fixup",
-                     avail_hidden_template_name_fixups,
-                     num_hidden_template_name_fixups_allocated,
-                     a_hidden_template_name_fixup);
+  db_space_used("hidden templ name fixup",
+                 num_hidden_template_name_fixups_allocated,
+                 a_hidden_template_name_fixup);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   db_space_used("template instance", num_template_instances_allocated,
                 a_template_instance);
