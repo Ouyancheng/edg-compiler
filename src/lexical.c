@@ -8493,7 +8493,6 @@ selection operator, in which case it points to the type of the left operand.
         if (type_sym != NULL && is_type_symbol(type_sym)) {
 	  /* If the symbol found is a type, get the type pointed to. */
 	  dtor_type = type_symbol_type(type_sym);
-          dtor_type = skip_typerefs(dtor_type);
           /* This will eventually result in the locator qualifier class type
 	     being set to the type of the vacuous destructor. */
           qualifier_type = dtor_type;
@@ -8590,7 +8589,7 @@ selection operator, in which case it points to the type of the left operand.
         if (dtor_class_type == NULL) {
 	  qualifier_type = NULL;
         } else if (dtor_type == NULL ||
-			(skip_typerefs(dtor_class_type) != dtor_type)) {
+                        !identical_types(dtor_class_type, dtor_type)) {
           pos_ty_error(ec_destructor_type_mismatch, &tilde_position,
 		       dtor_class_type);
           err = TRUE;
