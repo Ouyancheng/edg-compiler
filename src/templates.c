@@ -5530,15 +5530,17 @@ points to the template parameter list.
                                                            templ_type,
                                                            templ_arg_list,
                                                            templ_param_list);
-              /* If we have already found one match, a second match should
-                 cause deduction to fail. */
-              if (base_match) {
-                match = FALSE;
-                break;
+              if (match) {
+                /* If we have already found one match, a second match should
+                   cause deduction to fail. */
+                if (base_match) {
+                  match = FALSE;
+                  break;
+                }  /* if */
+                /* This is the first match.  Keep searching in case the
+                   conversion is ambiguous. */
+                base_match = TRUE;
               }  /* if */
-              /* This is the first match.  Keep searching in case the
-                 conversion is ambiguous. */
-              base_match = match = TRUE;
               bcp = bcp->next;
             }  /* while */
           }  /* if */
