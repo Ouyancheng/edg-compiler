@@ -4897,8 +4897,7 @@ is already an entry of the indicated kind on the list.
        ignores some based type entries and we don't want to duplicate the
        logic for that here. */
     if (base_type->source_corresp.needed) {
-      base_type->source_corresp.needed = FALSE;
-      mark_as_needed((char *)base_type, iek_type);
+      remark_as_needed((char *)base_type, iek_type);
     }  /* if */
     if (il_entry_prefix_of(base_type).keep_in_il) {
       il_entry_prefix_of(base_type).keep_in_il = FALSE;

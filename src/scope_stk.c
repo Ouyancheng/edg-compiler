@@ -3359,8 +3359,7 @@ been completed.
       if (tp->source_corresp.needed) {
         /* Walk the class subtree, if appropriate.  Clear the needed flag
            first, else the subtree walk will not be done. */
-        tp->source_corresp.needed = FALSE;
-        mark_as_needed((char *)tp, (an_il_entry_kind)iek_type);
+        remark_as_needed((char *)tp, (an_il_entry_kind)iek_type);
       }  /* if */
       ctsp = tp->variant.class_struct_union.extra_info;
       if (ctsp != NULL && ctsp->assoc_scope != NULL) {
@@ -3386,24 +3385,21 @@ been completed.
          initializer, if appropriate.  (Even if it was already marked as
          needed, the initializer is not scanned till this end-of-file-scope
          phase, so we have to do it again.) */
-      vp->source_corresp.needed = FALSE;
-      mark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
+      remark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
     }  /* if */
   }  /* for */
   for (rp = scope->routines; rp != NULL; rp = rp->next) {
     if (rp->source_corresp.needed) {
       /* Marking the routine type as needed was suppressed before (since it
          can be redeclared even after it's called), so do that now. */
-      /* Clear the "needed" flag to keep mark_as_needed from returning
-         immediately. */
-      rp->source_corresp.needed = FALSE;
       /* If the "defined" flag is TRUE, the body will already have been
          walked to mark its constituents as needed; we clear the flag to
          keep it from being walked again. */
       saved_defined = rp->defined;
       rp->defined = FALSE;
-      /* Mark the routine type, etc., as needed. */
-      mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
+      /* Mark the routine type, etc., as needed.  The needed flag is cleared
+         first so the subtree will be visited. */
+      remark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
       /* Restore the "defined" flag. */
       rp->defined = saved_defined;
     }  /* if */
@@ -3791,8 +3787,7 @@ End a name scope by popping an entry off the scope stack.
          that entities eliminated (e.g., by inlining) are not. */
       /* It must also be called before the depth_in_scope_stack flag is
          cleared. */
-      curr_routine->source_corresp.needed = FALSE;
-      mark_as_needed((char *)curr_routine, (an_il_entry_kind)iek_routine);
+      remark_as_needed((char *)curr_routine, (an_il_entry_kind)iek_routine);
 #if DEBUG
     } else if (debug_level >= 3) {
       fprintf(f_debug, "Not calling mark_as_needed for \"");

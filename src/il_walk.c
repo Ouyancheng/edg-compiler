@@ -460,10 +460,9 @@ definition of the class is needed, and not just the declaration.
        because before the definition_needed flag is set the subtree of
        the class is not swept when the class needed flag is set. */
     if (type->source_corresp.needed) {
-      type->source_corresp.needed = FALSE;
       /* walk_tree_and_set_needed is not used here so that this routine can
          be callable from outside of the needed flag walk. */
-      mark_as_needed((char *)type, iek_type);
+      remark_as_needed((char *)type, iek_type);
     }  /* if */
   }  /* if */
 }  /* set_class_definition_needed */
@@ -691,6 +690,20 @@ references.
   }  /* if */
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 }  /* mark_as_needed */
+
+
+void remark_as_needed(char             *entry_ptr,
+                      an_il_entry_kind entry_kind)
+/*
+The "needed" flag in the indicated entity is already set.  Clear it and
+set it again.  This is used when the subtree of the entity may have changed,
+to make sure the entities in the subtree are marked as needed.
+*/
+{
+  ((a_source_correspondence *)entry_ptr)->needed = FALSE;
+  mark_as_needed(entry_ptr, entry_kind);
+}  /* remark_as_needed */
+
 
 /* "keep_in_il" flag section: */
 
