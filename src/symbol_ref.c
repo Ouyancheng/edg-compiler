@@ -840,16 +840,17 @@ C++-generating back end.
           /* This can happen when the scope to which sym_ptr belongs is
              an unnamed namespace. */
         } else {
-          tag_hidden_by_nontag = TRUE;
           if (old_sym_ptr->decl_scope == file_scope_number ||
               old_sym_ptr->is_class_member ||
               old_sym_ptr->parent.namespace_ptr != NULL) {
+            /* old_sym_ptr can point to a type or a class template at this
+               point. */
+            tag_hidden_by_nontag = is_class_struct_union_symbol(old_sym_ptr);
             hidden_class_or_namespace_member = TRUE;
-            record_defeatable_name_hiding(
-                                        old_sym_ptr,
-                                        tag_hidden_by_nontag,
-                                        hidden_class_or_namespace_member,
-                                        sp, sym_ptr);
+            record_defeatable_name_hiding(old_sym_ptr,
+                                          tag_hidden_by_nontag,
+                                          hidden_class_or_namespace_member,
+                                          sp, sym_ptr);
           }  /* if */
         }  /* if */
       }  /* if */
