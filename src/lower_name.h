@@ -26,6 +26,34 @@ lower_name.h -- Declarations related to lower_name.c (name mangling for
 #include "il.h"
 #endif /* ifndef IL_H */
 
+/*
+Entry used to record the position of a compressible string in a mangled name.
+Used in compressing the mangled name.
+*/
+typedef struct a_compressible_string_pos *a_compressible_string_pos_ptr;
+typedef struct a_compressible_string_pos {
+  a_compressible_string_pos_ptr
+		next;
+			/* Next entry in the same bucket of the hash table. */
+  sizeof_t	str_pos;
+			/* The index of the compressible string in the
+			   original mangled name. */
+} a_compressible_string_pos;
+
+EXTERN a_compressible_string_pos_ptr
+		avail_compressible_string_pos;
+			/* List of compressible string position entries freed
+			   and available for reuse. */
+
+#if DEBUG
+/*
+Count of entries allocated, for debugging purposes.
+*/
+EXTERN unsigned long
+		num_compressible_string_pos_allocated;
+#endif /* DEBUG */
+
+
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 extern char *get_mangled_function_name(a_routine_ptr routine);
 

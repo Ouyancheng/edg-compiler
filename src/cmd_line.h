@@ -1130,6 +1130,17 @@ EXTERN a_boolean
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+#if NEED_NAME_MANGLING
+EXTERN a_boolean
+		compress_mangled_names
+#if VAR_INITIALIZERS
+                                          = (ABI_COMPATIBILITY_VERSION >= 241)
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* Indicates whether mangled names should be compressed
+			   to reduce their size. */
+#endif /* NEED_NAME_MANGLING */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

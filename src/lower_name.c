@@ -63,6 +63,7 @@ static void mangled_member_name(a_source_correspondence  *scp,
 static void mangled_encoding_for_constant(a_constant_ptr           con,
                                           a_boolean                old_form,
                                           a_mangling_control_block *mctl);
+static char *compress_mangled_name(a_mangling_control_block *mctl);
 
 
 static void clear_mangling_control_block(a_mangling_control_block_ptr mctl)
@@ -87,7 +88,8 @@ temp_text_buffer and mctl.
 }  /* start_mangling */
 
 
-static void set_control_block_for_supression(a_mangling_control_block_ptr sctl,
+static void set_control_block_for_suppression(
+                                             a_mangling_control_block_ptr sctl,
                                              a_mangling_control_block_ptr mctl)
 /*
 Copy the mangling control block mctl to sctl, then set sctl to indicate
@@ -98,7 +100,7 @@ provisional mangling, e.g., to determine the length of an encoding.
   *sctl = *mctl;
   sctl->suppress_output = TRUE;
   sctl->slength = 0;
-}  /* set_control_block_for_supression */
+}  /* set_control_block_for_suppression */
 
 
 static void add_to_mangled_name(char                         ch,
@@ -146,9 +148,16 @@ adding the final null character.  Return the address of the mangled name
 in the buffer.
 */
 {
+  char *buffer;
+
   /* Add the final null. */
   add_to_mangled_name('\0', mctl);
-  return temp_text_buffer;
+  buffer = temp_text_buffer;
+  if (compress_mangled_names) {
+    /* Compress the mangled name to make it smaller. */
+    buffer = compress_mangled_name(mctl);
+  }  /* if */
+  return buffer;
 }  /* end_mangling */
 
 
@@ -568,12 +577,12 @@ template classes.
         variable->source_corresp.parent.namespace_ptr != NULL) {
       /* Static data member or namespace member variable. */
       is_member = TRUE;
-      set_control_block_for_supression(&sctl, mctl);
+      set_control_block_for_suppression(&sctl, mctl);
       mangled_member_variable_name(variable, &sctl);
       str_length = sctl.slength;
     } else {
       /* Normal variable. */
-      str = variable->source_corresp.name;
+      str = unmangled_name_of(&variable->source_corresp);
       check_assertion_str(str != NULL,
                      "mangled_encoding_for_address_constant: addr of unnamed");
       str_length = strlen(str);
@@ -581,7 +590,7 @@ template classes.
   } else if (abkind == (an_address_base_kind)abk_routine) {
     /* Routine. */
     /* Do the mangling once to get the length, then again for real. */
-    set_control_block_for_supression(&sctl, mctl);
+    set_control_block_for_suppression(&sctl, mctl);
     routine = con->variant.address.variant.routine;
     mangled_function_name(routine, /*suppress_param_encoding=*/TRUE, &sctl);
     str_length = sctl.slength;
@@ -732,12 +741,13 @@ specification in the mangling for lengths of literals.
         /* Include class and namespace information in the name. */
         a_mangling_control_block sctl;
         /* Do the mangling once to get the length, then again for real. */
-        set_control_block_for_supression(&sctl, mctl);
+        set_control_block_for_suppression(&sctl, mctl);
         mangled_function_name(func, /*suppress_param_encoding=*/TRUE, &sctl);
         str_length = sctl.slength;
       } else {
         /* Use a simple name (no class or namespace information). */
-        str = func->source_corresp.name;
+        str = unmangled_name_of(&func->source_corresp);
+        check_assertion(str != NULL);
         /* Determine the size of the name.  Stop on two underscores. */
         for (str_length = 0;
              str[str_length] != '\0' &&
@@ -824,7 +834,7 @@ specification in the mangling for lengths of literals.
           /* A member of a template parameter type, e.g., T::x. */
           { a_mangling_control_block sctl;
             /* Do the mangling once to get the length, then again for real. */
-            set_control_block_for_supression(&sctl, mctl);
+            set_control_block_for_suppression(&sctl, mctl);
             mangled_member_name(&con->source_corresp,
                                 /*is_specialization=*/FALSE,
                                 &sctl);
@@ -1132,7 +1142,7 @@ literals.
   /* Run through the template argument list, determining the representation
      for each argument.  The first time through, determine the size;
      the second, put out the string. */
-  set_control_block_for_supression(&sctl, mctl);
+  set_control_block_for_suppression(&sctl, mctl);
   eff_ctl = &sctl;
   for (pass = 1; ; pass++) {
     for (tap = template_arg_list; tap != NULL; tap = tap->next) {
@@ -1197,97 +1207,83 @@ and an indication of that fact should be put out.
 {
   char                        *name;
   a_class_type_supplement_ptr ctsp;
-  a_boolean                   previously_mangled_version_used = FALSE;
+  a_template_arg_ptr          template_args;
 
   check_assertion(is_immediate_class_type(type));
   ctsp = type->variant.class_struct_union.extra_info;
-  /* This routine shouldn't be called after the nested type mangling has been
-     done. */
-  check_assertion_str(!type->source_corresp.nested_type_mangling_has_been_done,
-                 "mangled_full_class_name: nested type mangling done already");
   /* Always start with the name of the class, which applies even in the
      template class case. */
-  name = type->source_corresp.name;
+  name = unmangled_name_of(&type->source_corresp);
   if (name == NULL) {
+    /* For an unnamed class, generate a name (or use the name previously
+       generated). */
     give_unnamed_class_a_name(type);
     name = type->source_corresp.name;
   }  /* if */
-  if (type->source_corresp.name_has_been_mangled) {
-    /* The name is already mangled, including any template parameters.
-       We can use the mangled form unless we need to add specialization
-       indicators, which are not present in the saved mangled form. */
-    if (!show_template_specialization && !show_specialization) {
-      previously_mangled_version_used = TRUE;
-    } else {
-      name = type->source_corresp.unmangled_name;
-    }  /* if */
-  }  /* if */
   add_str_to_mangled_name(name, mctl);
-  if (!previously_mangled_version_used) {
-    /* See if template arguments are needed.  For partial specializations,
-       there are two argument lists. */
-    a_template_arg_ptr template_args = ctsp->template_arg_list;
-    if (distinct_template_signatures &&
-        ctsp->partial_spec_template_arg_list != NULL) {
-      /* A partial specialization.  The first list is the argument list
-         from the prototype instantiation of the partial specialization.
-           template <class T> struct A { ... };
-           template <class T> struct A<T *> { ... };
-                                       ^^^this argument list
-      */
-      a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
-      a_class_type_supplement_ptr   proto_ctsp;
+  /* See if template arguments are needed.  For partial specializations,
+     there are two argument lists. */
+  template_args = ctsp->template_arg_list;
+  if (distinct_template_signatures &&
+      ctsp->partial_spec_template_arg_list != NULL) {
+    /* A partial specialization.  The first list is the argument list
+       from the prototype instantiation of the partial specialization.
+         template <class T> struct A { ... };
+         template <class T> struct A<T *> { ... };
+                                     ^^^this argument list
+    */
+    a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
+    a_class_type_supplement_ptr   proto_ctsp;
 
-      if (cssp->is_prototype_instantiation) {
-        proto_ctsp = ctsp;
-      } else {
-        a_symbol_ptr proto_sym = cssp->corresp_prototype_sym;
-        a_type_ptr   proto_type = proto_sym->variant.class_struct_union.type;
-        proto_ctsp = proto_type->variant.class_struct_union.extra_info;
-      }  /* if */
-      mangled_template_arguments(proto_ctsp->template_arg_list,
-                                 /*partial_spec=*/TRUE,
-                                 /*old_form=*/FALSE,
-                                 mctl);
-      /* The second argument list is the deduced argument values for the
-         template parameter list of the partial specialization. */
-      template_args = ctsp->partial_spec_template_arg_list;
+    if (cssp->is_prototype_instantiation) {
+      proto_ctsp = ctsp;
+    } else {
+      a_symbol_ptr proto_sym = cssp->corresp_prototype_sym;
+      a_type_ptr   proto_type = proto_sym->variant.class_struct_union.type;
+      proto_ctsp = proto_type->variant.class_struct_union.extra_info;
     }  /* if */
-    if (show_template_specialization) {
-      /* Put out an indication of the fact the template from which this
-         class is generated is specialized. */
-      mangled_specialization_indication(mctl);
-    }  /* if */
-    if (template_args != NULL) {
-      /* A template class.  Add information on template arguments. */
-      /* old_form=TRUE forces use of the cfront-compatible mangling convention
-         for lengths on literals, which though ambiguous is okay here because
-         the class cannot be followed by an "_". */
-      a_boolean old_form = !distinct_template_signatures;
+    mangled_template_arguments(proto_ctsp->template_arg_list,
+                               /*partial_spec=*/TRUE,
+                               /*old_form=*/FALSE,
+                               mctl);
+    /* The second argument list is the deduced argument values for the
+       template parameter list of the partial specialization. */
+    template_args = ctsp->partial_spec_template_arg_list;
+  }  /* if */
+  if (show_template_specialization) {
+    /* Put out an indication of the fact the template from which this
+       class is generated is specialized. */
+    mangled_specialization_indication(mctl);
+  }  /* if */
+  if (template_args != NULL) {
+    /* A template class.  Add information on template arguments. */
+    /* old_form=TRUE forces use of the cfront-compatible mangling convention
+       for lengths on literals, which though ambiguous is okay here because
+       the class cannot be followed by an "_". */
+    a_boolean old_form = !distinct_template_signatures;
 #if ABI_COMPATIBILITY_VERSION < 235
-      old_form = TRUE;
+    old_form = TRUE;
 #endif /* ABI_COMPATIBILITY_VERSION < 235 */
-      mangled_template_arguments(template_args,
-                                 /*partial_spec=*/FALSE,
-                                 old_form,
-                                 mctl);
-    }  /* if */
-    if (show_specialization) {
-      /* Put out an indication of the fact that this class is specialized. */
-      mangled_specialization_indication(mctl);
-    }  /* if */
-    /* If the class is a local class, put out "__Lnn" using the declaration
-       scope number for "nn".  This is not from the ARM.  cfront uses a
-       similar form but it also includes the function mangling in the name
-       and the number is probably different. */
-    /* Don't do this for nested classes. */
-    if (type->source_corresp.is_local_to_function &&
-        !type->source_corresp.is_class_member) {
-      /* This is a local name. */
-      a_symbol_ptr assoc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-      add_str_to_mangled_name("__L", mctl);
-      add_number_to_mangled_name((unsigned long)assoc_sym->decl_scope, mctl);
-    }  /* if */
+    mangled_template_arguments(template_args,
+                               /*partial_spec=*/FALSE,
+                               old_form,
+                               mctl);
+  }  /* if */
+  if (show_specialization) {
+    /* Put out an indication of the fact that this class is specialized. */
+    mangled_specialization_indication(mctl);
+  }  /* if */
+  /* If the class is a local class, put out "__Lnn" using the declaration
+     scope number for "nn".  This is not from the ARM.  cfront uses a
+     similar form but it also includes the function mangling in the name
+     and the number is probably different. */
+  /* Don't do this for nested classes. */
+  if (type->source_corresp.is_local_to_function &&
+      !type->source_corresp.is_class_member) {
+    /* This is a local name. */
+    a_symbol_ptr assoc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+    add_str_to_mangled_name("__L", mctl);
+    add_number_to_mangled_name((unsigned long)assoc_sym->decl_scope, mctl);
   }  /* if */
 }  /* mangled_full_class_name */
 
@@ -1354,7 +1350,7 @@ should be put out.
       case tptk_member:
         /* For something like T::x, where T is a template parameter, just
            put out "x" here. */
-        name = type->source_corresp.name;
+        name = unmangled_name_of(&type->source_corresp);
         check_assertion_str(name != NULL,
                             "mangled_class_encoding: tptk_member has no name");
         mangled_name_with_length(name, mctl);
@@ -1368,7 +1364,7 @@ should be put out.
        by its length. */
     a_mangling_control_block sctl;
     /* Do the mangling once to get the length, then again for real. */
-    set_control_block_for_supression(&sctl, mctl);
+    set_control_block_for_suppression(&sctl, mctl);
     mangled_full_class_name(type,
                             show_template_specialization,
                             show_specialization,
@@ -1473,9 +1469,10 @@ mangled_parent_qualifier, which supplies the usual nesting_level == 1.
   } else {
     /* Namespace name. */
     a_namespace_ptr nsp = scp->parent.namespace_ptr;
-    char            *name = nsp->source_corresp.name;
+    char            *name = unmangled_name_of(&nsp->source_corresp);
     if (name == NULL) {
-      /* Unnamed namespace. */
+      /* For an unnamed namespace, generate a name (or use the name previously
+         generated). */
       give_unnamed_namespace_a_name(nsp);
       name = nsp->source_corresp.name;
     }  /* if */
@@ -1524,45 +1521,37 @@ and for unnamed classes and enums.  Nested types are encoded as such.
 {
   char *name;
 
-  if (type->source_corresp.nested_type_mangling_has_been_done) {
-    /* The parent information has already been mangled into the type name,
-       i.e., the name is already fully mangled.  Return the name after
-       the prefix. */
-    char *mangled_name = type->source_corresp.name +
-                         sizeof(PREFIX_ON_NESTED_TYPE_NAME) - 1;
-    add_str_to_mangled_name(mangled_name, mctl);
+  if (type_needs_parent_qualifier(type)) {
+    /* The type is a member of a class or namespace, so put out a qualifier.
+       Note that the count starts at 2 because the type name itself is level
+       1. */
+    r_mangled_parent_qualifier(&type->source_corresp,
+                               (unsigned long)2,
+                               mctl);
+  }  /* if */
+  /* Put out the type name itself. */
+  /* The mangled form of a type name is the type name with a length
+       preceding it:
+         AB          --> 2AB
+         ABCDEFGHIJK --> 11ABCDEFGHIJK
+  */
+  if (is_immediate_class_type(type)) {
+    /* Class name. */
+    mangled_class_encoding(type,
+                           /*show_template_specialization*/FALSE,
+                           /*show_specialization=*/FALSE,
+                           mctl);
   } else {
-    if (type_needs_parent_qualifier(type)) {
-      /* The type is a member of a class or namespace, so put out a qualifier.
-         Note that the count starts at 2 because the type name itself is level
-         1. */
-      r_mangled_parent_qualifier(&type->source_corresp,
-                                 (unsigned long)2,
-                                 mctl);
-    }  /* if */
-    /* Put out the type name itself. */
-    /* The mangled form of a type name is the type name with a length
-         preceding it:
-           AB          --> 2AB
-           ABCDEFGHIJK --> 11ABCDEFGHIJK
-    */
-    if (is_immediate_class_type(type)) {
-      /* Class name. */
-      mangled_class_encoding(type,
-                             /*show_template_specialization*/FALSE,
-                             /*show_specialization=*/FALSE,
-                             mctl);
-    } else {
-      /* Not a class name (typedef or enum). */
+    /* Not a class name (typedef or enum). */
+    name = unmangled_name_of(&type->source_corresp);
+    if (name == NULL) {
+      /* For an unnamed enum, generate a name (or use the name previously
+         generated). */
+      check_assertion(is_enum_type(type));
+      give_unnamed_enum_a_name(type);
       name = type->source_corresp.name;
-      if (name == NULL) {
-        /* Unnamed entity. */
-        check_assertion(is_enum_type(type));
-        give_unnamed_enum_a_name(type);
-        name = type->source_corresp.name;
-      }  /* if */
-      mangled_name_with_length(name, mctl);
     }  /* if */
+    mangled_name_with_length(name, mctl);
   }  /* if */
 }  /* mangled_type_name */
 
@@ -1612,7 +1601,7 @@ Add to the mangled name the encoding for the type "type".
     qualifiers |= type->variant.typeref.qualifiers;
 #if ABI_COMPATIBILITY_VERSION < 230
     /* Remember the bottommost named typedef encountered. */
-    if (type->source_corresp.name != NULL) named_typedef = type;
+    if (has_name(type)) named_typedef = type;
 #endif /* ABI_COMPATIBILITY_VERSION < 230 */
   }  /* for */
   /* Put out type qualifiers, if any. */
@@ -2122,11 +2111,8 @@ types; just put out the base encoded name.
   if (routine->special_kind == (a_special_function_kind)sfk_none) {
     /* Normal name. */
     name = unmangled_name_of(&routine->source_corresp);
-#if CHECKING
-    if (name == NULL) {
-      internal_error("mangled_function_name: unnamed routine");
-    }  /* if */
-#endif /* CHECKING */
+    check_assertion_str(name != NULL,
+                        "mangled_function_name: unnamed routine");
   } else {
     /* Use a special name for the routine. */
     add_leading_underscores = TRUE;
@@ -2262,13 +2248,13 @@ name in the routine entry.
   a_boolean                suppress_param_encoding;
   char                     *mangled_name;
 
-  /* The routine should not be unnamed. */
-  mangled_name = routine->source_corresp.name;
-  check_assertion(mangled_name != NULL);
   if (routine->source_corresp.name_has_been_mangled ||
       !function_name_mangling_needed(routine, &suppress_param_encoding)) {
     /* The name has already been mangled, or it doesn't need to be
        mangled, so just return it. */
+    mangled_name = routine->source_corresp.name;
+    /* The routine should not be unnamed. */
+    check_assertion(mangled_name != NULL);
   } else {
     /* Generate the mangled name in a buffer. */
     start_mangling(&mctl);
@@ -2302,8 +2288,12 @@ member specialization.
      The same encoding is used for members of namespaces.
   */
   name = unmangled_name_of(scp);
-  /* For an unnamed member, use the mangled name. */
-  if (name == NULL) name = scp->name;
+  if (name == NULL) {
+    /* For an unnamed member, use the generated name.  This can happen for
+       an anonymous union in a namespace. */
+    name = scp->name;
+    check_assertion(name != NULL);
+  }  /* if */
   /* Copy the name. */
   add_str_to_mangled_name(name, mctl);
   if (distinct_template_signatures && is_specialization) {
@@ -2355,11 +2345,11 @@ name in the variable entry.
   a_mangling_control_block mctl;
   char                     *mangled_name;
 
-  /* The variable should not be unnamed. */
-  mangled_name = variable->source_corresp.name;
-  check_assertion(mangled_name != NULL);
   if (variable->source_corresp.name_has_been_mangled) {
     /* The name has already been mangled, so just return it. */
+    mangled_name = variable->source_corresp.name;
+    /* The variable should not be unnamed. */
+    check_assertion(mangled_name != NULL);
   } else {
     /* Generate the mangled name in a buffer. */
     start_mangling(&mctl);
@@ -2398,9 +2388,6 @@ Mangle the name of the indicated class, if necessary.
     /* Allocate space for the mangled name and copy it. */
     mangled_name = alloc_lowered_name_string(mctl.length);
     (void)strcpy(mangled_name, buffer);
-    /* Note that the mangled name is not put into the type until after it has
-       been completely built, because the old name is used in building the
-       mangled form. */
     class_type->source_corresp.unmangled_name= class_type->source_corresp.name;
     class_type->source_corresp.name = mangled_name;
     class_type->source_corresp.name_has_been_mangled = TRUE;
@@ -2822,8 +2809,8 @@ necessarily "same type."
        bcp != NULL;
        bcp = bcp->next) {
     if (bcp != orig_bcp) {
-      char *bcp_name = bcp->type->source_corresp.name;
-      char *orig_bcp_name = orig_bcp->type->source_corresp.name;
+      char *bcp_name      = unmangled_name_of(&bcp->type->source_corresp);
+      char *orig_bcp_name = unmangled_name_of(&orig_bcp->type->source_corresp);
       if (bcp_name != NULL && orig_bcp_name != NULL &&
           strcmp(bcp_name, orig_bcp_name) == 0) {
         /* Found another base class with the same name. */
@@ -2920,7 +2907,7 @@ a virtual function table.  The name describes the base class given by bcp.
   */
   dsp = cast_derivation_path_of(bcp);
   /* Determine the length. */
-  set_control_block_for_supression(&sctl, mctl);
+  set_control_block_for_suppression(&sctl, mctl);
   mangled_derivation_name(dsp, &sctl);
   /* Put out the name length and the name. */
   add_number_to_mangled_name((unsigned long)sctl.slength, mctl);
@@ -2952,7 +2939,7 @@ for use in a virtual function table name.
        form (e.g., "7Q2_1A1B" instead of "Q2_1A1B"). */
     a_mangling_control_block sctl;
     /* Do the mangling once to get the length, then again for real. */
-    set_control_block_for_supression(&sctl, mctl);
+    set_control_block_for_suppression(&sctl, mctl);
     mangled_type_name(type, &sctl);
     add_number_to_mangled_name((unsigned long)sctl.slength, mctl);
     mangled_type_name(type, mctl);
@@ -3224,6 +3211,207 @@ entry_routine (it has no name on entry).
 
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
+
+static a_compressible_string_pos_ptr alloc_compressible_string_pos(void)
+/*
+Allocate compressible string position entry, set its fields to default
+values, and return a pointer to it.
+*/
+{
+  a_compressible_string_pos_ptr cspp;
+
+  if (avail_compressible_string_pos != NULL) {
+    /* Reuse a freed entry. */
+    cspp = avail_compressible_string_pos;
+    avail_compressible_string_pos = cspp->next;
+  } else {
+    /* Allocate a new entry. */
+    cspp = (a_compressible_string_pos_ptr)alloc_fe(
+                                            sizeof(a_compressible_string_pos));
+#if DEBUG
+    num_compressible_string_pos_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  cspp->next = NULL;
+  cspp->str_pos = 0;
+  return cspp;
+}  /* alloc_compressible_string_pos */
+
+
+static void free_compressible_string_pos(a_compressible_string_pos_ptr cspp)
+/*
+Free the indicated compressible string position entry by returning it
+to the available list for reuse.
+*/
+{
+  cspp->next = avail_compressible_string_pos;
+  avail_compressible_string_pos = cspp;
+}  /* free_compressible_string_pos */
+
+
+static char *compress_mangled_name(a_mangling_control_block *mctl)
+/*
+Compress the mangled name that's been built up.  Return a pointer to the
+compressed mangled name in a temporary buffer.
+*/
+{
+  char *mangled_name = temp_text_buffer;
+
+  /* Don't try compression if the name is already fairly small. */
+  /* Note that one advantage of avoiding compression on relatively
+     small names is allowing more compatibility with libraries
+     compiled by cfront.  The largest name noted in the iostream
+     package had 56 characters. */
+  if (mctl->length >= 60) {
+    /* Build up the compressed name in the temp_text_buffer, following the
+       null character at the end of the mangled name. */
+    /* Note that positions in the temp_text_buffer are kept as offsets
+       rather than pointers because the temp_text_buffer may get moved
+       if it is resized. */
+    sizeof_t start_of_compressed_name = pos_in_temp_text_buffer;
+    sizeof_t src_pos;
+    a_compressible_string_pos_ptr
+             cspp;
+    sizeof_t size_of_mangled_name = pos_in_temp_text_buffer;
+    sizeof_t size_of_compressed_name, prefix_length;
+    sizeof_t i;
+    char     buffer[20];
+#define NUM_BUCKETS_IN_COMPRESSION_HASH_TABLE 64
+    a_compressible_string_pos_ptr
+             hash_table[NUM_BUCKETS_IN_COMPRESSION_HASH_TABLE];
+    /* Clear the hash table used to keep track of the position of
+       compressible strings in the original mangled name. */
+    memzero((char *)hash_table, sizeof(hash_table));
+    for (src_pos = 0; temp_text_buffer[src_pos] != '\0'; ) {
+      /* Copy characters from the original name to the mangled name, looking
+         for a string of digits (which starts a compressible section). */
+      char ch = temp_text_buffer[src_pos];
+      if (!isdigit((unsigned char)ch)) {
+        put_ch_to_temp_text_buffer(ch);
+        /* If a "J" appears, copy it as "JJ" to avoid confusion with the
+           "J" markers used to indicate compression. */
+        if (ch == 'J') put_ch_to_temp_text_buffer('J');
+        src_pos++;
+      } else {
+        /* A digit.  This may be the start of a compressible string. */
+        sizeof_t      num_digits = 1;
+        sizeof_t      digit, length, hash_value;
+        unsigned long value = (ch - '0');
+        a_boolean     ovflo = FALSE, valid, compressed = FALSE;
+        /* Determine the number of digits in the digit string and accumulate
+           its value. */
+        for (;;) {
+          ch = temp_text_buffer[src_pos+num_digits];
+          if (!isdigit((unsigned char)ch)) break;
+          digit = ch - '0';
+          num_digits++;
+          if (value > ULONG_MAX / 10) ovflo = TRUE;
+          value *= 10;
+          if (value > ULONG_MAX-digit) ovflo = TRUE;
+          value += digit;
+        }  /* for */
+        /* See whether the length is valid. */
+        if (ovflo) {
+          valid = FALSE;
+        } else if (value < 4) {
+          /* Don't compress very small strings like "3ABC", because
+             the compressed form is probably not smaller.  This also
+             discards cases where a user variable has a name like "f2",
+             which are not worth examining. */
+          valid = FALSE;
+        } else if ((length = num_digits + value),
+                   size_of_mangled_name-src_pos <= length) {
+          /* The length is too long -- it runs off the end of the mangled
+             name.  That means it can't be a real length. */
+          valid = FALSE;
+        } else {
+          /* The length is okay. */
+          valid = TRUE;
+        }  /* if */
+        if (valid) {
+          /* See whether the string has appeared previously by comparing
+             it against the strings in the hash table. */
+          hash_value = value % NUM_BUCKETS_IN_COMPRESSION_HASH_TABLE;
+          for (cspp = hash_table[hash_value];
+               cspp != NULL;
+               cspp = cspp->next) {
+            /* Compare the previous string to this new string. */
+            if (strncmp(temp_text_buffer+cspp->str_pos,
+                        temp_text_buffer+src_pos,
+                        size_t_arg(length)) == 0) {
+              /* Found an identical previous string, so we can compress it. */
+              compressed = TRUE;
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+        if (compressed) {
+          /* Replace the string by "JnnnJ", where "nnn" is the position of
+             the previous identical string. */
+          (void)sprintf(buffer, "J%luJ", (unsigned long)cspp->str_pos);
+          put_str_to_temp_text_buffer(buffer);
+          /* Continue scanning the original string after the full string
+             that was compressed away. */
+          src_pos += length;
+        } else {
+          /* The string has not appeared previously.  If it's a valid
+             string, remember it for possible later reuse. */
+          if (valid) {
+            cspp = alloc_compressible_string_pos();
+            cspp->str_pos = src_pos;
+            cspp->next = hash_table[hash_value];
+            hash_table[hash_value] = cspp;
+          }  /* if */
+          /* Put out the digit string. */
+          for (i = 0; i < num_digits; i++) {
+            put_ch_to_temp_text_buffer(temp_text_buffer[src_pos]);
+            src_pos++;
+          }  /* for */
+          /* Continue scanning the original string after the digit
+             string. */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    /* Add the final null. */
+    put_ch_to_temp_text_buffer('\0');
+    /* Free the entries in the hash table. */
+    for (i = 0; i < NUM_BUCKETS_IN_COMPRESSION_HASH_TABLE; i++) {
+      a_compressible_string_pos_ptr cspp_next;
+      for (cspp = hash_table[i]; cspp != NULL; cspp = cspp_next) {
+        cspp_next = cspp->next;
+        free_compressible_string_pos(cspp);
+      } /* for */
+    }  /* for */
+    /* The prefix on the compressed form is "__CPR" followed by the size
+       of the original (uncompressed) name, not counting the final null. */
+    (void)sprintf(buffer, "__CPR%lu__", (unsigned long)size_of_mangled_name-1);
+    prefix_length = strlen(buffer);
+#if CHECKING
+    /* Make sure the name does not already have the compression prefix in
+       it.  If it does, we've used a previously compressed name in building
+       up this name, and that won't work. */
+    check_assertion_str(strstr(temp_text_buffer+start_of_compressed_name,
+                               "__CPR") == NULL,
+                        "compress_mangled_name: double compression");
+#endif /* CHECKING */
+    size_of_compressed_name = (pos_in_temp_text_buffer -
+                               start_of_compressed_name) +
+                              prefix_length;
+    if (size_of_compressed_name < size_of_mangled_name) {
+      /* The compressed name is shorter, so use it.  (There are some
+         pathological cases where the compressed version might be larger.) */
+      /* Put the prefix out in front of the compressed name, and return
+         the position of the prefix in that position as the address of
+         the full compressed name. */
+      check_assertion(prefix_length < size_of_mangled_name);
+      mangled_name = temp_text_buffer+start_of_compressed_name - prefix_length;
+      (void)memcpy(mangled_name, buffer, size_t_arg(prefix_length));
+    }  /* if */
+  }  /* if */
+  return mangled_name;
+}  /* compress_mangled_name */
+
+
 void name_lower_one_time_init(void)
 /*
 Do one-time initialization of variables related to name mangling.  (Variables
@@ -3254,11 +3442,14 @@ can be redone to compile more than one source file in a single invocation
 of the front end.
 */
 {
-  /* Static variable in lower_name.c: */
   unnamed_class_name_seed = 0;
   unnamed_namespace_name_seed = 0;
   unnamed_enum_name_seed = 0;
   unnamed_member_variable_name_seed = 0;
+  avail_compressible_string_pos = NULL;
+#if DEBUG
+  num_compressible_string_pos_allocated = 0;
+#endif /* DEBUG */
 }  /* name_lower_init */
 
 #endif /* NEED_NAME_MANGLING */

@@ -12430,6 +12430,9 @@ Display and return the amount of space used for various IL lowering tables.
   db_space_used_lost("scopeless comp stmts", avail_scopeless_compound_stmts,
                      num_scopeless_compound_stmts_allocated,
                      a_scopeless_compound_stmt);
+  db_space_used_lost("compressible string pos", avail_compressible_string_pos,
+                     num_compressible_string_pos_allocated,
+                     a_compressible_string_pos);
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
   db_space_used("construction vtbls", num_construction_vtbls_allocated,
                  a_construction_vtbl);
