@@ -8955,6 +8955,7 @@ continue_with_declaration:
           } else {
             /* Not a class or namespace member named "main". */
             a_routine_type_supplement_ptr  rtsp;
+            a_type_ptr                     return_type, int_type;
 
             check_assertion(locator.specific_symbol == NULL ||
                             (!locator.specific_symbol->is_class_member &&
@@ -8962,9 +8963,10 @@ continue_with_declaration:
                                           parent.namespace_ptr == NULL));
             func_info.is_main_function = is_main_function = TRUE;
             /* Perform some error checking that is specific to C++. */
-            if (!identical_types(skip_typerefs(local_type_ptr)->
-                                                 variant.routine.return_type,
-                                 integer_type((an_integer_kind)ik_int))) {
+            return_type = skip_typerefs(local_type_ptr)->
+                                              variant.routine.return_type;
+            int_type = integer_type((an_integer_kind)ik_int);
+            if (!identical_types(return_type, int_type)) {
               /* main must return "int" (3.6.1). */
               pos_diagnostic(strict_ansi_mode ?
                                strict_ansi_discretionary_severity : es_warning,
