@@ -584,7 +584,7 @@ to replace the initial portion of this compilation.
     make_global_operator_new_or_delete_symbol((an_opname_kind)onk_new);
     make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete);
   }  /* if */
-  /* The primary souce file pointer is updated when the file is opened. */
+  /* The primary source file pointer is updated when the file is opened. */
   il_header.primary_source_file = NULL;
 
   db_exit();
