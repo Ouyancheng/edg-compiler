@@ -12231,7 +12231,7 @@ a thrown exception) if that is appropriate.
       /* An array is also an aggregate.  However, generally the whole
          array is not initialized -- the first member is initialized. */
       if (is_string_type(required_type) &&
-          is_simple_string_literal(&result)) {
+          result.is_simple_string_literal) {
         /* char array initialized by string literal, either one possibly
            wide.  Don't go down to the member type. */
         break;
