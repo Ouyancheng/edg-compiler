@@ -1,5 +1,17 @@
 Version 2.16
 
+4/8/93  Abstract uninstantiated template classes
+
+We now detect uses of abstract template classes even when they have not
+yet been instantiated (as long a the template upon which they will be
+based has been defined).  For instance, an error is now issued for this:
+
+  template <class T> class A {
+    virtual T f() = 0;            // pure virtual ==> A<T> is abstract
+  };
+  extern A<int> x;                // A<int> need not be instantiated, but
+                                  //   error is still appropriate
+
 4/7/93  Invalid parameter for copy constructor
 
 It used to be that an error was always issued when a constructor had a
