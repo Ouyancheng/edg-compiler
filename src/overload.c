@@ -3247,6 +3247,23 @@ be processed under an ellipsis).
 }  /* node_for_arg_of_overloaded_function_call */
 
 
+static void change_arg_operand_list_refs_to_error(
+                                           an_arg_operand_ptr arg_operand_list)
+/*
+Change the references on each operand in the list of operands headed by
+arg_operand_list to error references.
+*/
+{
+  an_arg_operand_ptr arg_operand;
+
+  for (arg_operand = arg_operand_list;
+       arg_operand != NULL;
+       arg_operand = arg_operand->next) {
+    change_operand_refs_to_error(&arg_operand->operand);
+  }  /* for */
+}  /* change_arg_operand_list_refs_to_error */
+
+
 void adjust_overloaded_function_call_arguments(
                              a_symbol_ptr             function_symbol,
                              a_boolean                have_selector,
@@ -3334,11 +3351,7 @@ overloaded operator cases.
   } else {
     /* There was an error.  Change the references on the operand lists to
        errors. */
-    for (arg_operand = arg_operand_list;
-         arg_operand != NULL;
-         arg_operand = arg_operand->next) {
-      change_operand_refs_to_error(&arg_operand->operand);
-    }  /* for */
+    change_arg_operand_list_refs_to_error(arg_operand_list);
   }  /* if */
   /* Free the argument match list. */
   free_arg_match_summary_list(arg_match_list);
@@ -4389,6 +4402,7 @@ functions could still apply).
   a_param_type_ptr         param;
   an_operand               *bound_function_selector;
   a_boolean                undecidable_because_of_error;
+  a_boolean                arg_operand_list_discarded;
 
   db_enter(4, "check_for_operator_overloading");
   *processed = FALSE;
@@ -4489,9 +4503,11 @@ functions could still apply).
                                         &undecidable_because_of_error);
         function_symbol = NULL;
         arg_expr_list = NULL;
+        arg_operand_list_discarded = FALSE;
         if (undecidable_because_of_error) {
           /* There was a previous error. */
           *processed = TRUE;
+          arg_operand_list_discarded = TRUE;
           make_error_operand(result);
         } else if (candidate_functions == NULL) {
           /* None of the functions applies. */
@@ -4504,6 +4520,7 @@ functions could still apply).
             *processed = TRUE;
             pos_error(ec_no_matching_operator_function, operator_position);
             make_error_operand(result);
+            arg_operand_list_discarded = TRUE;
           }  /* if */
         } else if (candidate_functions->next != NULL) {
           /* More than one function applies and is a best match --
@@ -4518,6 +4535,7 @@ functions could still apply).
                              opname_names[(int)kind]);
           diagnose_overload_ambiguity(candidate_functions, kind);
           make_error_operand(result);
+          arg_operand_list_discarded = TRUE;
         } else {
           /* Exactly one function applies and is best. */
           function_symbol = candidate_functions->function_symbol;
@@ -4614,6 +4632,11 @@ functions could still apply).
         }  /* if */
         /* Free the candidate functions list. */
         free_candidate_function_list(candidate_functions);
+        if (arg_operand_list_discarded) {
+          /* There was an error and the arg_operand list was not used,
+             so change all the references in it to error references. */
+          change_arg_operand_list_refs_to_error(arg_operand_list);
+        }  /* if */
         /* Free the argument list. */
         free_arg_operand_list(arg_operand_list);
       }  /* if */
