@@ -21,6 +21,7 @@ symbol_tbl.c - Symbol table management routines.
 #include "types.h"
 #include "cmd_line.h"
 #include "decls.h"
+#include "templates.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
@@ -1646,12 +1647,11 @@ ct_symbol is the symbol of the class template.
      class_or_struct or a union depending on the type of the class
      template. */
   kind = (ct_symbol->variant.template.extra_info->variant.class.is_union)
-         ? (a_symbol_kind)sk_class_or_struct_tag : (a_symbol_kind)sk_union_tag;
+         ? (a_symbol_kind)sk_union_tag : (a_symbol_kind)sk_class_or_struct_tag;
   /* Create the symbol.  Use the current source position as the declaration
      position. */
   sym = alloc_symbol(kind, ct_symbol->header, pos);
-  mark_declared(sym, &ct_symbol->decl_position,
-                /*save_as_decl_position=*/TRUE);
+  mark_declared(sym, pos, /*save_as_decl_position=*/TRUE);
   /* Make the declaration scope the same as the class template's. */
   sym->decl_scope = ct_symbol->decl_scope;
 
@@ -5316,12 +5316,17 @@ a routine to lookup or create the symbol and type information for
 an instance of the class template.
 */
 {
-  a_source_position  start_pos;
+  a_source_position      start_pos;
+  a_template_param_ptr   param_ptr;
+  a_template_arg_ptr     arg_list = NULL;
+  a_template_arg_ptr     last_arg = NULL;
+  a_symbol_ptr           new_sym = NULL;
 
   db_enter(3, "get_template_class_symbol");
 
   /* Save source position for error reporting. */
   copy_source_position(pos_curr_token, start_pos);
+  add_stop_token(tok_gt);
   (void)get_token();
   if (curr_token != tok_lt) {
     pos_sy_error(ec_missing_template_arg_list, &start_pos, template_symbol);
@@ -5335,13 +5340,74 @@ an instance of the class template.
      is not necessary to distinguish between the type and constant case
      because we can use the type of the formal parameter to make this
      selection. */
-  
+  param_ptr = template_symbol->variant.template.extra_info->parameters;
+  do {
+    a_symbol_ptr        sym;
+    a_boolean           is_type_param;
+    a_type_ptr          argument_type;
+    a_constant_ptr      constant;
+    a_template_arg_ptr  arg_ptr;
+
+    add_stop_token(tok_comma);
+    sym = param_ptr->param_symbol;
+    /* Determine whether this argument should be a type or a constant. */
+    is_type_param = (sym->kind == sk_type);
+    arg_ptr = alloc_template_arg(is_type_param);
+    if (is_type_param) {
+      type_name(&argument_type);
+      arg_ptr->variant.type = argument_type;
+    } else {  /* else executed when !is_type_param */
+#if CHECKING
+      if (sym->kind != sk_constant) {
+        internal_error("get_template_class_symbol: constant expected");
+      }  /* if */
+#endif /* CHECKING */
+      constant = alloc_constant((a_constant_repr_kind)ck_error);
+      scan_constant_initializer_expression(sym->variant.constant->type,
+                                           constant);
+      add_to_constants_list(constant);
+      arg_ptr->variant.constant = constant;
+    }  /* if */
+    /* Link this entry on to the argument list. */
+    if (arg_list == NULL) arg_list = arg_ptr;
+    if (last_arg != NULL) last_arg->next = arg_ptr;
+    last_arg = arg_ptr;
+    remove_stop_token(tok_comma);
+    param_ptr = param_ptr->next;
+  } while (param_ptr != NULL && loop_token(tok_comma));
+
+
+  /* All arguments should have been processed and the current token should
+     be the closing angle bracket. */
+  if (param_ptr != NULL) {
+    /* There are still entries on the formal parameters list so the user
+       didn't supply enough actual arguments. */
+    sym_error(ec_too_few_template_args, template_symbol);
+  } else if (curr_token == tok_comma) {
+    /* All of the formal parameters have been accounted for and there are
+       more actuals -- too many arguments were supplied. */
+    sym_error(ec_too_many_template_args, template_symbol);
+  } else if (!required_token(tok_gt, ec_exp_gt)) {
+      /* It looks like the right number of arguments have been processed.
+         but the current token is not a closing angle bracket.  The error
+         is issued by required_token. */
+  } else {
+    /* Everything is OK -- find the instance that matches these arguments.
+       Create a new instance if needed. */
+    new_sym = find_template_class(template_symbol, arg_list, &start_pos);
+  }  /* if */
+
+#if DEBUG
+  if (debug_level >= 4) {
+    db_symbol(new_sym, "Returning: ", 2);
+  }  /* if */
+#endif /* DEBUG */
+
 error_exit:
-
+  remove_stop_token(tok_gt);
   db_exit();
-
-  return NULL;
-}
+  return new_sym;
+}  /* get_template_class_symbol */
 
 
 a_function_instantiation_entry_ptr alloc_function_instantiation_entry(void)

@@ -4731,6 +4731,8 @@ the error on the final identifier not being found on lookup.
 }  /* get_qualified_name */
 
 
+
+
 a_symbol_ptr get_normal_id_or_qualified_name(an_id_lookup_options_set options)
 /*
 The current token is the start of a name, qualified or not.
@@ -4761,6 +4763,13 @@ is TRUE (specifically, that "::new" or "::delete" is not next).
 #endif /* CHECKING */
     /* Normal identifier -- look it up. */
     symbol = normal_id_lookup(&locator_for_curr_id, options);
+    /* If this is the symbol of a class template then this must be a reference
+       to a instance of the class template.  Scan the argument list and
+       get a pointer to the symbol for the specific instance of the template
+       class. */
+    if (symbol != NULL && symbol->kind == (a_symbol_kind)sk_class_template) {
+      symbol = get_template_class_symbol(symbol);
+    }  /* if */
   }  /* if */
   return symbol;
 }  /* get_normal_id_or_qualified_name */

@@ -1665,6 +1665,12 @@ error code.
     case ec_missing_template_arg_list:
       m = "argument list for %nf is missing";
       break;
+    case ec_too_few_template_args:
+      m = "to few arguments for %nf";
+      break;
+    case ec_too_many_template_args:
+      m = "to many arguments for %nf";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
