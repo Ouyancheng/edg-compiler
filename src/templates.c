@@ -1485,11 +1485,9 @@ Do some simple consistency checking on a function template argument list.
 void delayed_scan_for_function_template_default_args
 			 (a_routine_ptr			    templ_rout,
 			  a_routine_ptr			    rout_ptr,
-			  a_template_symbol_supplement_ptr  tssp,
-			  a_boolean			    is_member_function)
+			  a_template_symbol_supplement_ptr  tssp)
 /*
-Rescan the default arguments of a function template that involve
-template parameters in the type of the function parameter.
+Rescan the default arguments of a function template.
 */
 {
   a_def_arg_expr_fixup_ptr	daefp;
@@ -1497,6 +1495,7 @@ template parameters in the type of the function parameter.
   a_param_type_ptr		ptp;
   a_type_ptr			templ_rout_type = templ_rout->type;
   a_type_ptr			rout_type = rout_ptr->type;
+
   daefp = tssp->variant.function.def_arg_expr_list;
   if (daefp != NULL) {
     templ_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
@@ -1513,18 +1512,16 @@ template parameters in the type of the function parameter.
       reactivate_prototype_scope_symbols(
                     tssp->variant.function.func_info.prototype_scope_symbols);
     }  /* if */
-    /* Loop through the list of param_type entries and the default argument
-       expression entries that correspond to the param_type entries
-       for parameters that involve template parameters and have
-       default arguments.  This processing is also done for all default
-       arguments of member functions of template classes. */
+    /* Loop through the two linked lists of param_type entries and the
+       default argument expression fixup entries, and update the default
+       arg expressions in the corresponding the param_type entries. */
     for (; ptp != NULL; ptp = ptp->next, templ_ptp = templ_ptp->next) {
-      if (templ_ptp->has_default_arg &&
-	  (templ_ptp->type_involves_template_param || is_member_function)) {
+      if (templ_ptp->has_default_arg) {
 	check_assertion(daefp != NULL);
         /* Update the default argument expression entry to point to the
            current param type entry. */
 	daefp->param_type = ptp;
+        ptp->has_default_arg = TRUE;
         /* It's a default arg expression that needs to be rescanned. */
         /* Let get_token know about the cache. */
         rescan_reusable_cache(&daefp->token_cache);
@@ -1532,6 +1529,7 @@ template parameters in the type of the function parameter.
         daefp = daefp->next;
       }  /* if */
     }  /* for */
+    check_assertion(daefp == NULL);
     /* Restore the prototype scope symbols pointer in the func_info
        block. It shouldn't have changed, but we do it to be safe. */
     tssp->variant.function.func_info.prototype_scope_symbols =
@@ -1700,7 +1698,7 @@ templ_sym).
                        tssp->declaration_scope, (a_type_ptr)NULL, rp,
                        sym, tip->template_sym, tip->arg_list);
       delayed_scan_for_function_template_default_args
-			(templ_rout, rp, tssp, /*is_member_function=*/FALSE);
+			(templ_rout, rp, tssp);
       /* Pop the template instantiation scope. */
       pop_scope();
     }  /* if */
