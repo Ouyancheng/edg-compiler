@@ -48,7 +48,7 @@ typedef unsigned int a_boolean;
 void __dtors()
 /*
 Walk through the linked list of constructor/destructor function pointers,
-whcih are no in reverse order, and call each termination routine, if
+which are now in reverse order, and call each termination routine, if
 defined.  The global variable __head points to the linked list.
 */
 {
@@ -100,6 +100,9 @@ the order of the linked list.
     link_ptr->next = reverse_ptr;
     reverse_ptr = link_ptr;
   }  /* for */
+
+  /* Point to the new head of the list. */
+  __head = reverse_ptr;
 
   /* Establish that the termination routines should be called when exit()
      is called or when main() returns normally. */
