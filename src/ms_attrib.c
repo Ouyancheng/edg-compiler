@@ -52,6 +52,15 @@ static a_boolean
 			   unrecognized attributes, but a diagnostic is
 			   issued. */
 
+static a_boolean
+		scan_all_attributes_as_unrecognized;
+			/* TRUE if all recognized attributes should be scanned
+			   as "unrecognized" attributes.  This means that the
+			   only a string representation is recorded.  The
+			   individual arguments are not scanned or checked.
+			   No checking is done when the attributes are
+			   applied. */
+
 static an_ms_attribute_kind_descr_ptr
 		unrecognized_attribute;
 			/* A special attribute kind entry that represents
@@ -228,7 +237,13 @@ when specifying the parameters associated with an attribute.
   an_ms_attribute_kind_descr_ptr	msakdp;
 
   msakdp = alloc_ms_attribute_kind_descr();
-  msakdp->kind = kind;
+  if (scan_all_attributes_as_unrecognized) {
+    /* When scanning all attributes as unrecognized, override the specified
+       kind and use the unrecognized kind instead. */
+    msakdp->kind = (an_ms_attribute_kind)msak_unrecognized;
+  } else {
+    msakdp->kind = kind;
+  }  /* if */
   msakdp->target = target;
   if (name != NULL) {
     /* If this is not an unnamed attribute, create a lookup table entry. */
@@ -324,6 +339,7 @@ are accepted.
                              "<unrecognized>", MSAT_ANY);
   /* Save a pointer to the special "unrecognized" attribute kind. */
   unrecognized_attribute = curr_attribute_descr;
+#if RECOGNIZE_MICROSOFT_ATTRIBUTES
   /* [aggregatable] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "aggregatable", MSAT_CLASS | MSAT_STRUCT);
@@ -964,6 +980,7 @@ are accepted.
 			     "wire_marshal", MSAT_TYPEDEF);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "type", /*is_unnamed=*/FALSE, (char*)NULL);
+#endif /* RECOGNIZE_MICROSOFT_ATTRIBUTES */
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   /* These are special attributes included for testing purposes. */
   /* [edg_test_1] */
@@ -2056,7 +2073,9 @@ The per-compilation unit initialization routine for variables related to
 Microsoft attribute processing.
 */
 {
-  accept_unrecognized_attributes = FALSE;
+  accept_unrecognized_attributes = !RECOGNIZE_MICROSOFT_ATTRIBUTES;
+  scan_all_attributes_as_unrecognized =
+                                       SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING;
   unrecognized_attribute = NULL;
   ms_attr_buffer = NULL;
 #if DEBUG

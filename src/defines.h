@@ -513,6 +513,17 @@ Flags to be set when using the KAI inliner.
 #endif /* defined(sun) */
 
 /*
+Enable recognition of Microsoft attributes for internal versions.
+*/
+#ifndef RECOGNIZE_MICROSOFT_ATTRIBUTES
+#define RECOGNIZE_MICROSOFT_ATTRIBUTES 1
+#endif /* ifndef RECOGNIZE_MICROSOFT_ATTRIBUTES */
+
+#ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING
+#define SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING 0
+#endif /* ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING */
+
+/*
 Set ABI-related switches.  This is done late so that individual configurations
 (above) can do something different from the EDG default by setting the
 switches before this point.

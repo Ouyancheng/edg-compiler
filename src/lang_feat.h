@@ -642,6 +642,36 @@ version of the Microsoft compiler that is being emulated (for example,
 #endif /* ifndef DEFAULT_MICROSOFT_VERSION */
 
 /*
+Flag that is TRUE if Microsoft attributes should be considered to be
+recognized.  Microsoft attributes are always parsed in Microsoft mode,
+but if this flag is FALSE an "unrecognized attribute" warning will be
+issued on the use of any attribute.  By default, Microsoft attributes
+are recognized when using the C++-generating back end, so that the
+attributes can be emitted in the generated code.  See
+SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING regarding the processing of
+recognized attributes.
+*/
+#ifndef RECOGNIZE_MICROSOFT_ATTRIBUTES
+#if BACK_END_IS_CP_GEN_BE
+#define RECOGNIZE_MICROSOFT_ATTRIBUTES TRUE
+#else /* !BACK_END_IS_CP_GEN_BE */
+#define RECOGNIZE_MICROSOFT_ATTRIBUTES FALSE
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* ifndef RECOGNIZE_MICROSOFT_ATTRIBUTES */
+
+
+/*
+When Microsoft attributes are recognized (see RECOGNIZE_MICROSOFT_ATTRIBUTES),
+this flag controls whether or not any semantic checking of the attributes
+is done.  When this flag is TRUE, only a string version of the attribute
+is created.  No analysis of the attribute arguments is performed, and no
+verification that the attributes are used in appropriate locations is done.
+*/
+#ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING
+#define SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING TRUE
+#endif /* ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING */
+
+/*
 The global variable gcc_mode is defined here (rather than in cmd_line.h) so
 that it can be available to standalone utilities.
 */
