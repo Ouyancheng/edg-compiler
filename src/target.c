@@ -25,7 +25,7 @@ target.c -- Target configuration support
 #include "fe_common.h"
 
 #if TARG_ALL_POINTERS_SAME_SIZE
-/*ARGSUSED*/ /* Because type_pointed_to is not used. */
+/*ARGSUSED*/ /* Because tp is not used. */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
 a_targ_size_t size_of_pointer_to(a_type_ptr        tp,
                                  a_targ_alignment  *alignment)
@@ -37,21 +37,57 @@ TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
 {
   a_targ_size_t  size;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_16_mode) {
+    /* Microsoft 16-bit mode.  Pointers come in "near" and "far" sizes. */
+    a_boolean            is_far;
+    a_type_qualifier_set qualifiers = get_type_qualifiers(tp);
+
+    /* Determine if this pointer is near or far. */
+    if (qualifiers & TQ_NEAR) {
+      /* Near specified explicitly. */
+      is_far = FALSE;
+    } else if (qualifiers & TQ_FAR) {
+      /* Far specified explicitly. */
+      is_far = TRUE;
+    } else if (far_code_pointers == far_data_pointers) {
+      /* Speed optimization: code and data pointers are the same size so
+         there's no need to determine which we have. */
+      is_far = far_data_pointers;
+    } else {
+      /* Determine if this is a pointer to code or to data and from that
+         whether this should be a near or far pointer. */
+      is_far = (is_function_type(tp)) ? far_code_pointers :
+                                        far_data_pointers;
+    }  /* if */
+    if (is_far) {
+      size = targ_sizeof_far_pointer;
+      *alignment = targ_alignof_far_pointer;
+    } else {
+      size = targ_sizeof_near_pointer;
+      *alignment = targ_alignof_near_pointer;
+    }  /* if */
+  } else {
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Non-Microsoft mode, or Microsoft 32-bit mode. */
 #if TARG_ALL_POINTERS_SAME_SIZE
-  /* All pointers have the same size and alignment. */
-  size = targ_sizeof_pointer;
-  *alignment = targ_alignof_pointer;
+    /* All pointers have the same size and alignment. */
+    size = targ_sizeof_pointer;
+    *alignment = targ_alignof_pointer;
 #else /* !TARG_ALL_POINTERS_SAME_SIZE */
-  /* This obviously needs to be customized to reflect the requirements of
-     the target environment. */
-  tp = skip_typerefs(tp);
-  switch (tp->kind) {
-    /* Fill in details here. */
-    default:
-      size = targ_sizeof_long;
-      *alignment = targ_alignof_long;
-  }  /* switch */
+    /* This obviously needs to be customized to reflect the requirements of
+       the target environment. */
+    tp = skip_typerefs(tp);
+    switch (tp->kind) {
+      /* Fill in details here. */
+      default:
+        size = targ_sizeof_long;
+        *alignment = targ_alignof_long;
+    }  /* switch */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return size;
 }  /* size_of_pointer_to */
 

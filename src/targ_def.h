@@ -472,7 +472,6 @@ errors are still generated for type mismatches.
 /*
 Wide character constant type (wchar_t, see stddef.h and stdlib.h).
 */
-
 #ifndef TARG_WCHAR_T_INT_KIND
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_unsigned_short)
 			/* Default value, used to initialize global variable
@@ -485,9 +484,8 @@ Wide character constant type (wchar_t, see stddef.h and stdlib.h).
 #endif /* !defined(TARG_SIZEOF_WCHAR_T) */
 
 /*
-bool constant type.
+Integral kind to be used for the bool type in C++.
 */
-
 #ifndef TARG_BOOL_INT_KIND
 #define TARG_BOOL_INT_KIND ((an_integer_kind)ik_char)
 			/* Default value, used to initialize global variable
@@ -496,6 +494,9 @@ bool constant type.
 
 /*
 Pointer types:
+
+Note that TARG_ALL_POINTERS_SAME_SIZE is not consulted in 16-bit Microsoft
+mode, where near and far pointers exist.
 */
 #ifndef TARG_ALL_POINTERS_SAME_SIZE
 #define TARG_ALL_POINTERS_SAME_SIZE TRUE
@@ -531,6 +532,25 @@ targ_sizeof_pointer and targ_alignof_pointer will not be declared at all.
  #error -- do not use TARG_ALIGNOF_POINTER if !TARG_ALL_POINTERS_SAME_SIZE
 #endif /* defined(TARG_ALIGNOF_POINTER) */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+Sizes of near/far pointers in 16-bit Microsoft mode.  Note that these values
+are not used in 32-bit Microsoft mode.
+*/
+#ifndef TARG_SIZEOF_FAR_POINTER
+#define TARG_SIZEOF_FAR_POINTER 4
+#endif /* ifndef TARG_SIZEOF_FAR_POINTER */
+#ifndef TARG_ALIGNOF_FAR_POINTER
+#define TARG_ALIGNOF_FAR_POINTER 4
+#endif /* ifndef TARG_ALIGNOF_FAR_POINTER */
+#ifndef TARG_SIZEOF_NEAR_POINTER
+#define TARG_SIZEOF_NEAR_POINTER 4
+#endif /* ifndef TARG_SIZEOF_NEAR_POINTER */
+#ifndef TARG_ALIGNOF_NEAR_POINTER
+#define TARG_ALIGNOF_NEAR_POINTER 4
+#endif /* ifndef TARG_ALIGNOF_NEAR_POINTER */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Indication of whether NULL pointer is like integer zero. */
 #ifndef TARG_NULL_IS_ALL_BITS_ZERO

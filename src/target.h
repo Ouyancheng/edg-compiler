@@ -342,6 +342,46 @@ EXTERN a_targ_alignment
 			/* Alignment of a pointer.  Initialized to the default
 			   value but reconfigurable. */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+EXTERN a_targ_size_t
+		targ_sizeof_far_pointer
+#if VAR_INITIALIZERS
+                                        = TARG_SIZEOF_FAR_POINTER
+#endif /* VAR_INITIALIZERS */
+                                                                 ;
+			/* Size of a far pointer.  Initialized to the default
+			   value but reconfigurable.  Used only in 16-bit
+			   Microsoft mode. */
+
+EXTERN a_targ_alignment
+		targ_alignof_far_pointer
+#if VAR_INITIALIZERS
+                                         = TARG_ALIGNOF_FAR_POINTER
+#endif /* VAR_INITIALIZERS */
+                                                                   ;
+			/* Alignment of a far pointer.  Initialized to the
+			   default value but reconfigurable.  Used only in
+			   16-bit Microsoft mode. */
+EXTERN a_targ_size_t
+		targ_sizeof_near_pointer
+#if VAR_INITIALIZERS
+                                         = TARG_SIZEOF_NEAR_POINTER
+#endif /* VAR_INITIALIZERS */
+                                                                   ;
+			/* Size of a near pointer.  Initialized to the default
+			   value but reconfigurable.  Used only in 16-bit
+			   Microsoft mode. */
+
+EXTERN a_targ_alignment
+		targ_alignof_near_pointer
+#if VAR_INITIALIZERS
+                                          = TARG_ALIGNOF_NEAR_POINTER
+#endif /* VAR_INITIALIZERS */
+                                                                     ;
+			/* Alignment of a near pointer.  Initialized to the
+			   default value but reconfigurable.  Used only in
+			   16-bit Microsoft mode. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_targ_ptrdiff_t
 		targ_ptrdiff_t_max
@@ -692,6 +732,12 @@ EXTERN an_integer_kind
 #undef TARG_SIZEOF_POINTER
 #undef TARG_ALIGNOF_POINTER
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#undef TARG_SIZEOF_FAR_POINTER
+#undef TARG_ALIGNOF_FAR_POINTER
+#undef TARG_SIZEOF_NEAR_POINTER
+#undef TARG_ALIGNOF_NEAR_POINTER
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #undef TARG_PTRDIFF_T_MAX
 #undef TARG_PTRDIFF_T_MIN
 #undef TARG_PTRDIFF_T_INT_KIND
@@ -763,6 +809,12 @@ EXTERN an_integer_kind
 #define TARG_SIZEOF_POINTER targ_sizeof_pointer
 #define TARG_ALIGNOF_POINTER targ_alignof_pointer
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define TARG_SIZEOF_FAR_POINTER targ_sizeof_far_pointer
+#define TARG_ALIGNOF_FAR_POINTER targ_alignof_far_pointer
+#define TARG_SIZEOF_NEAR_POINTER targ_sizeof_near_pointer
+#define TARG_ALIGNOF_NEAR_POINTER targ_alignof_near_pointer
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define TARG_PTRDIFF_T_MAX targ_ptrdiff_t_max
 #define TARG_PTRDIFF_T_MIN targ_ptrdiff_t_min
 #define TARG_PTRDIFF_T_INT_KIND targ_ptrdiff_t_int_kind
