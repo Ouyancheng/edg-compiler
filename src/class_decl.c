@@ -5049,7 +5049,7 @@ specified by decl_scope_level.
            public. */
         sym->variant.field.ptr->source_corresp.access = assoc_object_access;
 #if RECORD_HIDDEN_NAMES_IN_IL
-        /* Determine whether a hidden name entry needs to be entered for
+        /* Determine whether a hidden name entry needs to be entered for the
            name being promoted. */
         if (!C_mode()) check_for_defeatable_name_hiding(sym);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
@@ -5132,7 +5132,7 @@ specified by decl_scope_level.
         remove_anonymous_union_member_from_inactive_symbols_list(sym);
         reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
 #if RECORD_HIDDEN_NAMES_IN_IL
-        /* Determine whether a hidden name entry needs to be entered for
+        /* Determine whether a hidden name entry needs to be entered for the
            name being promoted. */
         check_for_defeatable_name_hiding(sym);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
@@ -5152,7 +5152,7 @@ specified by decl_scope_level.
         remove_anonymous_union_member_from_inactive_symbols_list(sym);
         reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
 #if RECORD_HIDDEN_NAMES_IN_IL
-        /* Determine whether a hidden name entry needs to be entered for
+        /* Determine whether a hidden name entry needs to be entered for the
            name being promoted. */
         check_for_defeatable_name_hiding(sym);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
