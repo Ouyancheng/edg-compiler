@@ -1156,8 +1156,10 @@ layout block used to track the layout of the current class.
       if (bcp->complete_subobject) {
         alignment = bcp->type->alignment;
         size = bcp->type->size;
-      } else {
+      } else
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+      /* Do not insert code here. */
+      {
         /* For a nonvirtual base classes reserve space for all the base
            class except what is required for its own virtual base classes.
            The latter will be added at the end of the storage. */
@@ -1165,9 +1167,7 @@ layout block used to track the layout of the current class.
                                       alignment_without_virtual_base_classes;
         size = bcp->type->variant.class_struct_union.extra_info->
                                       size_without_virtual_base_classes;
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
       }  /* if */
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
       bcp->offset = set_offset_and_alignment(lob, size, alignment);
 #if DEBUG
       if (debug_level >= 4) {
