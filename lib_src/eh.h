@@ -160,8 +160,8 @@ typedef a_byte a_region_descr_flag_set;
 
 #define NULL_REGION_NUMBER ((a_region_number)-1)
 			/* The value used when there is no active EH
-			   region.  Also the value used as the previous
-			   region number when there is no previous region. */
+			   region.  Also the value used as the next
+			   region number when there is no next region. */
 
 
 /* Supplement to a region description entry for array entries and for
@@ -204,9 +204,9 @@ typedef struct an_eh_region_descr {
 			   parameter to get the address of a base
 			   class. */
   a_region_number
-	        index_of_previous_region;
+	        index_of_next_region;
 			/* Index of the region description of the
-			   previous region.  This region will be
+			   next region.  This region will be
 			   processed after the processing for this
 			   region has been completed. */
   a_region_descr_flag_set

@@ -459,7 +459,7 @@ Print the contents of a region description entry.
   }  /* if */
 #endif /* 0 */
   fprintf(__f_debug, "  handle=%d\n", ehrdp->handle);
-  fprintf(__f_debug, "  prev region=%d\n", ehrdp->index_of_previous_region);
+  fprintf(__f_debug, "  next region=%d\n", ehrdp->index_of_next_region);
 } /* db_eh_region_descr */
 
 
@@ -640,7 +640,7 @@ requires cleanup.
   an_object_ptr	                *obj_addr_array;
   an_eh_region_descr_ptr	ehrdp;
   obj_addr_array = ehsep->variant.function.object_address_table;
-  for (; region != stop_at_region; region = ehrdp->index_of_previous_region) {
+  for (; region != stop_at_region; region = ehrdp->index_of_next_region) {
     an_object_ptr	        obj_addr;
     a_conditional_flag*	        flag_addr;
     char			*temp_addr;
