@@ -1329,6 +1329,10 @@ write out the precompiled header file.
                      &large_mem_block_error_pos);
     }  /* if */
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  } else if (!next_token_is_top_level_decl_start) {
+    /* We are in the middle of a construct.  We must be between top level
+       declarations in order to generate a precompiled header. */
+    db_cannot_generate_reason("not between top level declarations");
   } else if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
     /* Don't save the header files if we are not currently at file scope. */
     db_cannot_generate_reason("not at file scope");
