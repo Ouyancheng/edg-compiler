@@ -8338,9 +8338,11 @@ TRUE if the declaration following this one is such a continuation.
       /* The function is not defined (here), so use "extern" instead of
          no storage class.  Also use "extern" for file-scope static routines
          declared extern inside functions.  Again, Microsoft member
-         redeclarations are an exception (storage class should be omitted). */
+         redeclarations are an exception (storage class should be omitted).
+         Also out of line declarations of templates, when prototype
+         instantiations are preserved in the IL. */
       if (microsoft_out_of_class_redecl) {
-        check_assertion(microsoft_mode);
+        check_assertion(microsoft_mode || rout->is_prototype_instantiation);
         storage_class = (a_storage_class)sc_unspecified;
       } else if (storage_class == (a_storage_class)sc_unspecified ||
                  (storage_class == (a_storage_class)sc_static &&
