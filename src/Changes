@@ -1,5 +1,16 @@
 Version 2.06
 
+5/19/92  Fixed bugs in interaction between mulitple inheritance and abstract
+         base classes.
+
+For the following case class D is not treated as abstract and the virtual
+function tables for the base classes of D are constructed properly:
+
+  struct V { virtual void f() =0; };
+  struct B : public virtual V { void f() { } };
+  struct C : public virtual V { };
+  struct D : public B, public C { };
+
 5/18/92  Empty macro argument now gives warning only in strict ANSI mode.
 
 5/18/92  Fixed bugs with copy constructors and virtual base classes.
