@@ -4367,9 +4367,9 @@ classes or explicitly specialized classes.
        depends on a template parameter it should be ignored for unqualified
        lookups. */
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct) {
-        bcp->ignore_during_dependent_lookup =
-                                      is_or_contains_template_param(bcp->type);
+      if (bcp->direct && is_or_contains_template_param(bcp->type)) {
+        bcp->ignore_during_dependent_lookup = TRUE;
+        cssp->any_dependent_base_classes = TRUE;
       }  /* if */
     }  /* for */
   } else {
@@ -7760,6 +7760,16 @@ and it is legal for virtual member functions only.
                   rout_sym->variant.template_info->
                                   variant.function.routine->is_virtual :
                   rout_sym->variant.routine.ptr->is_virtual;
+    if (!pure_specifier_allowed &&
+        class_type->variant.class_struct_union.is_prototype_instantiation) {
+      /* If class_type has a template-dependent base, the routine might
+         be an overrider of a virtual function in that base, which means
+         the routine would be virtual too.  In such cases we must also
+         allow the pure specifier. */
+      a_class_symbol_supplement_ptr  cssp =
+                                      symbol_supplement_for_class(class_type);
+      pure_specifier_allowed = cssp->any_dependent_base_classes;
+    }  /* if */
   }  /* if */
   if (!pure_specifier_allowed && !decl_info->invalid_virtual_specifier) {
     pos_error(ec_pure_specifier_on_nonvirtual_function, &pos_curr_token);

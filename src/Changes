@@ -1,5 +1,20 @@
 Version 3.4
 
+9/16/03  Pure specifier in templates
+
+The front end used to issue an error on a pure specifier ("= 0") whenever
+it couldn't ascertain that the routine on which the specifier appeared was
+virtual.  In particular, it issued an error on the following example:
+
+  template<typename> struct B { virtual void f() = 0; };
+  template<typename T> struct D: B<T> {
+    void f() = 0;  // Used to be an error because D<T>::f() is not known to
+  };               // be virtual.  Now accepted.
+
+Now such errors are inhibited while parsing class templates with dependent
+base classes because a virtual member function of a dependent base could
+match the member with the pure specifier.
+
 9/15/03  Spurious naming of unnamed enum and class types during instantiation
 
 An unnamed enum or class type can acquire a name for linkage purposes
