@@ -239,7 +239,7 @@ the file-scope IL entry at ptr.
               SPACE_FOR_IL_ENTRY_PREFIX - SPACE_FOR_FS_ORPHAN_POINTER))
 #else /* !ORPHAN_PROCESSING_NEEDED */
 /* SPACE_FOR_FS_ORPHAN_POINTER is also used to compute the location of the
-   canonical entry pointer (even if no orphan pointers are allocated). */
+   copy address pointer (even if no orphan pointers are allocated). */
 #define SPACE_FOR_FS_ORPHAN_POINTER 0
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
