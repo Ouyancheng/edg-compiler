@@ -51,7 +51,9 @@ Set the test version flags to FALSE for demo versions.
 /*
 Flags to be set for any version that uses the C++ generating back end.
 */
+#ifndef CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
 #define CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT 1
+#endif /* ifndef CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT */
 #define BACK_END_IS_C_GEN_BE 0
 #define BACK_END_IS_CP_GEN_BE 1
 #define DEFAULT_EXCEPTIONS_ENABLED 0
