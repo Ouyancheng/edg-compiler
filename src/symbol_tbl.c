@@ -7066,20 +7066,20 @@ Should "R" be changed to "U"?
 
 void mark_variable_value_set(a_symbol_ptr  sym)
 /*
+Set the "value_has_been_set" flag of the variable symbol pointed to by sym.
 */
 {
-  if (sym->kind == (a_symbol_kind)sk_variable) {
-    if (sym->variant.variable.value_has_been_set) {
-      /* Variable has already been set. */
-      if (sym->variant.variable.ptr->is_parameter) {
-        /* Since parameters are by definition initialized (by the actual
-           argument), any subsequent modification is a change to the initial
-           value.  Knowning this can be useful for inlining. */
-        sym->variant.variable.ptr->param_value_has_been_changed = TRUE;
-      }  /* if */
-    } else {
-      sym->variant.variable.value_has_been_set = TRUE;
+  check_assertion(sym->kind == (a_symbol_kind)sk_variable);
+  if (sym->variant.variable.value_has_been_set) {
+    /* Variable has already been set. */
+    if (sym->variant.variable.ptr->is_parameter) {
+      /* Since parameters are by definition initialized (by the actual
+         argument), any subsequent modification is a change to the initial
+         value.  Knowning this can be useful for inlining. */
+      sym->variant.variable.ptr->param_value_has_been_changed = TRUE;
     }  /* if */
+  } else {
+    sym->variant.variable.value_has_been_set = TRUE;
   }  /* if */
 }  /* mark_variable_value_set */
 
@@ -7108,16 +7108,18 @@ for the symbol.
 void reference_to_symbol(a_symbol_reference_kind  kind,
                          a_symbol_ptr             sym_ptr,
                          a_source_position        *source_position,
-                         a_boolean                update_il_referenced)
+                         a_boolean                update_il_entry)
 /*
 Record a reference of the indicated kind to the indicated symbol.  Set the
-reference flag in the symbol entry.  If update_il_referenced is TRUE, also
+reference flag in the symbol entry.  If update_il_entry is TRUE, also
 set the referenced flag in the associated IL entry, if any, and mark the
 symbol "used" or "set", if appropriate.
 */
 {
   a_source_correspondence *scptr;
+  a_boolean               suppress_warning;
 
+ 
   if (f_xref_info != NULL) {
     /* If writing cross-reference information, write an entry for this
        declaration. */
@@ -7125,7 +7127,7 @@ symbol "used" or "set", if appropriate.
   }  /* if */
   /* Set the referenced flag in the symbol. */
   sym_ptr->referenced = TRUE;
-  if (update_il_referenced) {
+  if (update_il_entry) {
     /* Set the referenced flag in the associated intermediate language entry,
        if there is one.  Note that more than one symbol can point to the same
        IL entry.  Use the fact that all the IL tables begin with
@@ -7141,11 +7143,16 @@ symbol "used" or "set", if appropriate.
       scptr = source_corresp_entry_for_symbol(sym_ptr);
       if (scptr != NULL) scptr->referenced = TRUE;
     }  /* if */
-    if (kind == srk_modification || kind == srk_address_taken) {
-      mark_variable_value_set(sym_ptr);
-    }  /* if */
-    if (kind == srk_use || kind == srk_address_taken) {
-      if (sym_ptr->kind == (a_symbol_kind)sk_variable) {
+    if (sym_ptr->kind == (a_symbol_kind)sk_variable) {
+      /* If this reference involves a modification or, by taking the variable's
+         address, a potential modification, mark the variable as having its
+         value set. */
+      if (kind == srk_modification || kind == srk_address_taken) {
+        mark_variable_value_set(sym_ptr);
+      }  /* if */
+      /* If this reference is a use or, by taking the variable's address, a
+         potential use, mark the variable has having been used. */
+      if (kind == srk_use || kind == srk_address_taken) {
         if (sym_ptr->variant.variable.used) {
           /* This is not the first use. */
           if (sym_ptr->variant.variable.ptr->is_parameter) {
@@ -7155,8 +7162,12 @@ symbol "used" or "set", if appropriate.
           }  /* if */
         } else {
           /* This is the first use of the variable. */
-          a_boolean  suppress_warning = FALSE;
-
+#if 0
+/* Suppress the warning if warranted by the state of the structured statement
+   stack. */
+#else
+          suppress_warning = FALSE;
+#endif  /* if 0 */
           if (!sym_ptr->variant.variable.value_has_been_set &&
               !suppress_warning) {
             /* But its value has not been set yet.  Issue a warning. */
