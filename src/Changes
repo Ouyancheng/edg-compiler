@@ -1,5 +1,19 @@
 Version 3.6
 
+3/11/05  C99 mode: void type parameter
+
+In C89 and C++, an empty parameter list can be written as "(void)".  In non-
+strict modes, the end also accepts "(T)" where T is a typedef for "void" as
+an equivalent construct (with a warning).  The front end applied the same
+rules in C99 mode, but the C99 standard actually permits the form using the
+typedef too.  We therefore now silently accept that form in all C99 modes.
+For example:
+
+  typedef void V;
+  void f(V) {}  // Now silently accepted in all C99 modes.  (Previously a
+                // warning in nonstrict C99 mode, and an error in strict C99
+                // mode.)
+
 3/11/05  Microsoft compatibility: memory allocation problem with
 	 Microsoft attributes
 

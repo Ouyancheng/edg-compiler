@@ -1571,11 +1571,15 @@ if this is the function declarator in a friend function declaration.
                      !is_qualified_type(param_type_ptr) &&
                      param_storage_class == (a_storage_class)sc_unspecified) {
             /* A type name is bound to void type -- this construct is treated
-               as a nonstandard way of signifying an empty param list.  Issue
-               an error in strict mode; a warning otherwise. */
-            pos_diagnostic(strict_ansi_mode ?
-                              strict_ansi_discretionary_severity : es_warning,
-                           ec_nonstd_void_param_list, &param_type_pos);
+               as a (possibly nonstandard) way of signifying an empty param
+               list.  In C99 mode, this is a standard form and no diagnostic
+               is needed.  Otherwise, issue an error (in strict mode) or a
+               warning. */
+            if (!c99_mode) {
+              pos_diagnostic(strict_ansi_mode ?
+                               strict_ansi_discretionary_severity : es_warning,
+                             ec_nonstd_void_param_list, &param_type_pos);
+            }  /* if */
             remove_stop_token(tok_comma);
             break;
           }  /* if */
