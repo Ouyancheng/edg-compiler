@@ -284,9 +284,8 @@ This is now fixed.
 
 An internal error could occur if a partial specialization was
 (incorrectly) declared within the definition of the primary template.
-This has been fixed.  Note: This example aborts only in a version
-configured to include prototype instantiations in the IL, and then only
-when parsing non-class templates.
+This has been fixed.  Note: This example aborts only when parsing
+non-class templates.
 
   struct A {};
   struct B : A {};
