@@ -3894,6 +3894,55 @@ Return a type that is the unqualified version of the type given by type.
 }  /* make_unqualified_type */
 
 
+void skip_common_type_qualifiers(a_type_ptr  *type1,
+                                 a_type_ptr  *type2)
+/*
+If both *type1 and *type2 have any of the same type qualifiers, strip off
+the common qualifiers but leave any other type qualifiers in place.  Both
+types may be modified, or neither, or only one of the two.  If both original
+types have qualifiers, skip_typerefs is called to get down to the base
+types, and then new types may be built up from them; this may result in
+discarding typedefs.
+*/
+{
+  a_boolean  type1_is_const, type1_is_volatile;
+  a_boolean  type2_is_const, type2_is_volatile;
+  a_boolean  is_const, is_volatile;
+  a_type_ptr  tp1 = *type1, tp2 = *type2;
+
+  if (is_qualified_type(tp1) && is_qualified_type(tp2)) {
+    /* Both types are have type qualifiers.  Record exactly how they are
+       qualified. */
+    type1_is_const = is_const_qualified_type(tp1);
+    type1_is_volatile = is_volatile_qualified_type(tp1);
+    type2_is_const = is_const_qualified_type(tp2);
+    type2_is_volatile = is_volatile_qualified_type(tp2);
+    if (type1_is_const == type2_is_const &&
+        type1_is_volatile == type2_is_volatile) {
+      /* Either both are const, both are volatile, or both are const volatile.
+         Return both types with all qualifiers stripped off. */
+    } else {
+      /* The are differently qualified.  Strip off the qualifiers and then
+         add them back on as approriate. */
+      tp1 = skip_typerefs(tp1);
+      tp2 = skip_typerefs(tp2);
+      is_const = type1_is_const && !type2_is_const;
+      is_volatile = type1_is_volatile && !type2_is_volatile;
+      if (is_const || is_volatile) {
+        tp1 = make_qualified_type(tp1, is_const, is_volatile);
+      }  /* if */
+      is_const = !type1_is_const && type2_is_const;
+      is_volatile = !type1_is_volatile && type2_is_volatile;
+      if (is_const || is_volatile) {
+        tp2 = make_qualified_type(tp2, is_const, is_volatile);
+      }  /* if */
+    }  /* if */
+    *type1 = tp1;
+    *type2 = tp2;
+  }  /* if */
+}  /* skip_common_qualifiers */
+
+
 void set_routine_calling_method_flag(a_type_ptr routine_type)
 /*
 Set the calling-method flag in the indicated routine type; that flag

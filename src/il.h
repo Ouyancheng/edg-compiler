@@ -246,6 +246,9 @@ extern a_type_ptr type_plus_qualifiers_from_second_type(a_type_ptr type,
 
 extern a_type_ptr make_unqualified_type(a_type_ptr old_type);
 
+extern void skip_common_type_qualifiers(a_type_ptr  *type1,
+                                        a_type_ptr  *type2);
+
 extern void set_routine_calling_method_flag(a_type_ptr routine_type);
 
 extern void copy_type(a_type_ptr from,
