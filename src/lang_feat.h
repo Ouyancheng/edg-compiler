@@ -452,6 +452,15 @@ this flag defaults to TRUE.
 #endif /* ifndef GNU_X86_ASM_EXTENSIONS_ALLOWED */
 
 /*
+Flag that is TRUE if unrecognized extended asm operands should be
+accepted.  This lets the front end process source files with asm
+directives intended for an architecture for which specific asm support
+is not provided.
+*/
+#ifndef ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
+#define ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS FALSE
+#endif /* ifndef ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
+/*
 Flag that is TRUE if x86-specific attributes should be recognized (and
 recorded in the IL).  This includes the stdcall and cdecl attributes.
 */

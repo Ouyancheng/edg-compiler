@@ -2662,6 +2662,10 @@ enum a_named_register_tag {
   anr_f12, anr_f13, anr_f14, anr_f15,
   anr_flags, anr_fpsr, anr_dirflag,   /* control registers */
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
+#if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
+  anr_unrecognized,		      /* used to represent an unrecognized
+                                         register. */
+#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
   anr_last
 };
 typedef a_byte a_named_register;
@@ -2728,6 +2732,10 @@ EXTERN char *named_register_names[(int)anr_last + 1]
   /* anr_fpsr */    "fpsr",
   /* anr_dirflag */ "dirflag",
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
+#if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
+  /* anr_unrecognized */
+                     "unrecognized",
+#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
   /* anr_last */    "last"
 }
 #endif /* VAR_INITIALIZERS */

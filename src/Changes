@@ -1,5 +1,12 @@
 Version 3.1
 
+1/02/03  GNU mode: Unrecognized registers in GNU extended asms
+
+A configuration flag (ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS) has been added
+to indicate that unrecognized extended asm operands should be accepted.
+This lets the front end process source files with asm directives intended
+for an architecture for which specific asm support is not provided.
+
 12/31/02 Microsoft compatibility: explicit instantiation without definition
 
 The Microsoft compiler allows the explicit instantiation of an entity

@@ -101,6 +101,9 @@ static struct name_to_reg extra_reg_names[] = {
   { "st6", (a_named_register)anr_st6 },
   { "st7", (a_named_register)anr_st7 },
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
+#if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
+  { "", (a_named_register)anr_unrecognized },
+#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
   { "", (a_named_register)anr_last }
 };
 
@@ -141,6 +144,11 @@ In the latter case, issues an error.
       break;
     }  /* if */
   }  /* while */
+#if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
+  if (result == (a_named_register)anr_invalid) {
+    result = (a_named_register)anr_unrecognized;
+  }  /* if */
+#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
   if (result == (a_named_register)anr_invalid) {
     pos_st_error(ec_bad_reg_name, name_pos, name);
   }  /* if */
