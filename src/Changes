@@ -58,6 +58,8 @@ to 0/1.
     b += 2;  // Yields 1, not 3
   }
 
+This processing is also now done in C99 lowering.
+
 7/24/01  Value-initialization
 
 Value-initialization, a refinement of default-initialization

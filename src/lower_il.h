@@ -854,6 +854,9 @@ extern an_expr_operator_kind lowered_assignment_operator(a_type_ptr type);
 
 extern void transform_bool_cast(an_expr_node_ptr expr);
 
+extern void lower_bool_compound_assignment(an_expr_node_ptr expr,
+                                           a_boolean        is_lvalue);
+
 extern void eliminate_assignment_if_empty_class(an_expr_node_ptr expr);
 
 extern void lower_virtual_function_call(an_expr_node_ptr expr);

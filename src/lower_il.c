@@ -6752,8 +6752,8 @@ Those operations set the lvalue to true instead of incrementing.
 #if !LOWER_LVALUE_RETURNING_OPERATIONS
 /*ARGSUSED*/ /* <-- is_lvalue is not used in that case. */
 #endif /* !LOWER_LVALUE_RETURNING_OPERATIONS */
-static void lower_bool_compound_assignment(an_expr_node_ptr expr,
-                                           a_boolean        is_lvalue)
+void lower_bool_compound_assignment(an_expr_node_ptr expr,
+                                    a_boolean        is_lvalue)
 /*
 Lower a compound assignment operator that assigns to a bool.  They are
 special in that the computed value must be reduced to 0/1 before the

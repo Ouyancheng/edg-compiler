@@ -894,6 +894,26 @@ Otherwise, do nothing.
     case eok_bool_cast:
       lower_c99_cast(expr);
       break;
+    case eok_iadd_assign:
+    case eok_isubtract_assign:
+    case eok_imultiply_assign:
+    case eok_idivide_assign:
+    case eok_remainder_assign:
+    case eok_shiftl_assign:
+    case eok_shiftr_assign:
+    case eok_and_assign:
+    case eok_or_assign:
+    case eok_xor_assign:
+    case eok_fadd_assign:
+    case eok_fsubtract_assign:
+    case eok_fmultiply_assign:
+    case eok_fdivide_assign:
+      /* Compound assignments to bool don't exist in C89, and
+         must be lowered to get the value reduced to 0/1. */
+      if (is_bool_type(expr->type)) {
+        lower_bool_compound_assignment(expr, /*is_lvalue=*/FALSE);
+      }  /* if */
+      break;
     default:
       /* Nothing needs to be done. */
       break;
