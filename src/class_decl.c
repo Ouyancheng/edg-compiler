@@ -224,7 +224,7 @@ entry onto a list in the current routine fixup entry.
   } else {
     list = &curr_routine_fixup->def_arg_expr_fixup_list;
   }  /* if */
-  prescan_default_arg_expr(ptp, list);
+  prescan_default_function_arg_expr(ptp, list);
 }  /* prescan_member_function_default_arg_expr */
 
 

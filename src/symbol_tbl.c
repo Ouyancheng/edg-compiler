@@ -672,11 +672,21 @@ and indentation is the indentation desired.
               break;
             case sk_constant:
               fprintf(f_debug, "%*sparameter constant: ", indentation + 4, "");
-              if (tplep->variant.param_constant != NULL) {
-                db_constant(tplep->variant.param_constant);
+              if (tplep->variant.param_constant.ptr != NULL) {
+                db_constant(tplep->variant.param_constant.ptr);
               } else {
                 fprintf(f_debug, "NULL");
               }  /* if */
+              if (tplep->variant.param_constant.has_default_arg) {
+		if (!tplep->
+			variant.param_constant.type_involves_template_param) {
+		  put_string("= ");
+		  db_constant(tplep->variant.param_constant.
+							default_arg.constant);
+		} else {
+		  put_string("= <token cache>");
+		}  /* if */
+	      }  /* if */
               break;
             default:
               fprintf(f_debug, "<BAD TEMPLATE PARAM SYMBOL KIND>");
@@ -5135,7 +5145,7 @@ declaration is scanned and are used as placeholders between instantiations.
     if (param_symbol->kind == (a_symbol_kind)sk_type) {
       param_symbol->variant.type = tpp->variant.param_type;
     } else {
-      param_symbol->variant.constant = tpp->variant.param_constant;
+      param_symbol->variant.constant = tpp->variant.param_constant.ptr;
     }  /* if */
     tpp = tpp->next;
   }  /* while */
@@ -6712,7 +6722,13 @@ and return a pointer to it.
     ptr->variant.param_type     = sym->variant.type;
   } else {
     check_assertion(sym->kind == (a_symbol_kind)sk_constant);
-    ptr->variant.param_constant = sym->variant.constant;
+    ptr->variant.param_constant.ptr = sym->variant.constant;
+    ptr->variant.param_constant.has_default_arg = FALSE;
+    ptr->variant.param_constant.type_involves_template_param = FALSE;
+    ptr->variant.param_constant.default_arg.constant = NULL;
+#if CHECKING
+    ptr->variant.param_constant.dummy = 0;
+#endif /* CHECKING */
   }  /* if */
   db_exit();
   return ptr;

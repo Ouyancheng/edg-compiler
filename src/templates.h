@@ -24,6 +24,11 @@ extern a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
                                         a_template_arg_ptr  *template_arg_list,
                                         a_source_position   *source_pos);
 
+extern a_type_ptr copy_type_with_substitution
+				      (a_type_ptr          type,
+                                       a_template_arg_ptr  templ_arg_list,
+                                       a_source_position   *source_pos);
+
 extern a_boolean matches_template_type(a_type_ptr          type,
                                        a_type_ptr          templ_type,
                                        a_template_arg_ptr  *templ_arg_list);

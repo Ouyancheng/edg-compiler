@@ -4715,47 +4715,6 @@ These look like qualified names but aren't.
 }  /* is_global_new_or_delete */
 
 
-
-static void get_actual_arg_type_for_param_type
-			(a_template_param_ptr	tpp,
-			 a_template_arg_ptr	arg_ptr,
-			 a_type_ptr		*type)
-/*
-Used to handle cases where a template type parameter is used as the type
-of a template constant parameter.  For example:
-
-	template <class T, T t> class A {};
-
-This routine will be called before the second argument is scanned.  "type"
-contains a pointer to the template parameter type of "T".  This routine
-scan through the symbol pointers for the parameters and finds a symbol
-points to "T".  We then return the type associated with the corresponding
-actual argument.
-*/
-{
-  a_boolean    found = FALSE;
-  while (tpp != NULL && arg_ptr != NULL) {
-    register a_symbol_ptr param_sym = tpp->param_symbol;
-    /* Does the parameter type match the type passed by the caller? */
-    if (param_sym->kind == (a_symbol_kind)sk_type) {
-      if (tpp->variant.param_type == *type) {
-        *type = arg_ptr->variant.type;
-        found = TRUE;
-        break;
-      }  /* if */
-    }  /* if */
-    tpp = tpp->next;
-    arg_ptr = arg_ptr->next;
-  }  /* while */
-#if CHECKING
-  if (!found) {
-    internal_error("get_actual_arg_type_for_param_type: matching parameter not found");
-  }  /* if */
-#endif  /* CHECKING */
-}  /* get_actual_arg_type_for_param_type */
-
-
-
 a_symbol_ptr coalesce_template_class_reference
 			(a_symbol_ptr		   template_symbol,
 			 an_identifier_options_set options,
@@ -4781,6 +4740,11 @@ a routine to lookup the appropriate instance (or generate one if needed).
   a_symbol_ptr                    new_sym = NULL;
   a_boolean                       any_errors = FALSE;
   a_memory_region_number          region_to_switch_back_to;
+  a_symbol_ptr                    sym;
+  a_boolean                       is_type_param;
+  a_type_ptr                      argument_type;
+  a_constant_ptr                  constant;
+  a_template_arg_ptr              arg_ptr;
 
   db_enter(3, "coalesce_template_class_reference");
 
@@ -4831,12 +4795,9 @@ a routine to lookup the appropriate instance (or generate one if needed).
   param_ptr = template_symbol->variant.template_info->parameters;
   first_param_ptr = param_ptr;
   do {
-    a_symbol_ptr        sym;
-    a_boolean           is_type_param;
-    a_type_ptr          argument_type;
-    a_constant_ptr      constant;
-    a_template_arg_ptr  arg_ptr;
-
+    /* If the current token is a ">" then exit the loop.  This should only be
+       possible on the first iteration if we have an empty argument list. */
+    if (curr_token == tok_gt) break;
     add_stop_token(tok_comma);
     sym = param_ptr->param_symbol;
     /* Determine whether this argument should be a type or a constant. */
@@ -4862,11 +4823,11 @@ a routine to lookup the appropriate instance (or generate one if needed).
         internal_error("coalesce_template_class_reference: constant expected");
       }  /* if */
 #endif /* CHECKING */
-      /* If the type of a constant is a template parameter type, find the
-         actual argument type given for the parameter. */
-      if (is_template_param_type(constant_type)) {
-        get_actual_arg_type_for_param_type(first_param_ptr, arg_list,
-                                           &constant_type);
+      /* If the type of a constant involves a template parameter type,
+	 replace the actual argument types given for the parameters. */
+      if (param_ptr->variant.param_constant.type_involves_template_param) {
+	constant_type = copy_type_with_substitution(constant_type, arg_list,
+						    &start_position);
       }  /* if */
       constant = fs_constant((a_constant_repr_kind)ck_error);
       scan_template_argument_constant_expression(constant_type, constant);
@@ -4883,10 +4844,62 @@ a routine to lookup the appropriate instance (or generate one if needed).
   /* All arguments should have been processed and the current token should
      be the closing angle bracket. */
   if (param_ptr != NULL) {
-    /* There are still entries on the formal parameters list so the user
-       didn't supply enough actual arguments. */
-    sym_error(ec_too_few_template_args, template_symbol);
-    any_errors = TRUE;
+    /* There are still entries on the formal parameters list -- see if
+       the remaining parameters have default values. */
+    if (param_ptr->param_symbol->kind == (a_symbol_kind)sk_constant &&
+	param_ptr->variant.param_constant.has_default_arg) {
+      /* The template has parameters with default values.  Fill in the
+         remainder of the parameter list with the defaults. */
+      while (param_ptr != NULL) {
+        sym = param_ptr->param_symbol;
+        /* Determine whether this argument should be a type or a constant. */
+        is_type_param = (sym->kind == (a_symbol_kind)sk_type);
+        arg_ptr = alloc_template_arg(is_type_param);
+	if (is_type_param) {
+	  /* A type parameter.  This can only occur in error cases because
+             type parameters cannot have default values.  Use an error type
+	     as the template parameter. */
+	  arg_ptr->variant.type = error_type();
+	} else if (!param_ptr->variant.param_constant.has_default_arg) {
+	  /* A nontype constant without a default argument.  This also only
+	     occurs in error cases.  Use an error constant. */
+          constant = fs_constant((a_constant_repr_kind)ck_error);
+          arg_ptr->variant.constant = constant;
+        } else {
+          a_type_ptr  constant_type = sym->variant.constant->type;
+          /* A constant parameter.  The default value can be either a
+	     constant value or a token cache that needs to be scanned. */
+	  if (param_ptr->variant.param_constant.type_involves_template_param) {
+            /* If the type of a constant involves a template parameter type,
+               replace the actual argument types given for the parameters. */
+            if (param_ptr->variant.param_constant.
+						type_involves_template_param) {
+              constant_type = copy_type_with_substitution(constant_type,
+							  arg_list,
+						          &start_position);
+            }  /* if */
+	    rescan_cached_tokens(&param_ptr->variant.param_constant.
+						default_arg.token_cache);
+            constant = fs_constant((a_constant_repr_kind)ck_error);
+	    delayed_scan_of_template_default_arg_expr(constant_type, constant);
+	    arg_ptr->variant.constant = constant;
+          } else {
+	    arg_ptr->variant.constant =
+		      param_ptr->variant.param_constant.default_arg.constant;
+          }  /* if */
+        }  /* if */
+        /* Link this entry on to the argument list. */
+        if (arg_list == NULL) arg_list = arg_ptr;
+        if (last_arg != NULL) last_arg->next = arg_ptr;
+        last_arg = arg_ptr;
+	param_ptr = param_ptr->next;
+      }  /* while */
+    } else {
+      /* The next parameter doesn't have a default value (note that
+	 nontype parameters cannot have defaults).  Issue an error. */
+      sym_error(ec_too_few_template_args, template_symbol);
+      any_errors = TRUE;
+    }  /* if */
   } else if (curr_token == tok_comma) {
     /* All of the formal parameters have been accounted for and there are
        more actuals -- too many arguments were supplied. */

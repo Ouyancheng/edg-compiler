@@ -1,5 +1,24 @@
 Version 2.15
 
+2/19/93  Default values for template parameters
+
+Default values may now be provided for template parameters.  Defaults
+may be specified for any nontype parameter, including those whose types
+involve other template parameters.
+
+2/19/93  Use of template parameter as the type of a nontype parameter
+
+A template parameter could be used as the type of a nontype parameter,
+but could not be used as part of a type expression.  For example,
+
+	template <class T, T i> struct A {};   // Allowed
+	template <class T, T* i> struct A {};  // Not allowed
+
+The second example caused an internal error.
+
+This feature has been generalized to allow use of template type parameters
+in the declaration of template nontype parameters.
+
 2/19/93  Reachability of code following "while" and "for" loops
 
 The reachability of code following "while" and "for" loops was

@@ -765,10 +765,9 @@ no need to actually instantiate X<int> in the example above.
 }  /* find_template_class */
 
 
-static a_type_ptr copy_type_with_substitution(
-                                        a_type_ptr          type,
-                                        a_template_arg_ptr  templ_arg_list,
-                                        a_source_position   *source_pos)
+a_type_ptr copy_type_with_substitution(a_type_ptr          type,
+                                       a_template_arg_ptr  templ_arg_list,
+                                       a_source_position   *source_pos)
 /*
 If "type", a pointer to a type entry, is a template-parameter type, return
 the corresponding real type, based on the template argument list.  If "type"
@@ -2357,7 +2356,7 @@ pointed to by the template symbol supplement.
 {
   a_def_arg_expr_fixup_ptr	*list;
   list = &curr_default_args;
-  prescan_default_arg_expr(ptp, list);
+  prescan_default_function_arg_expr(ptp, list);
 }  /* prescan_function_template_default_arg_expr */
 
 
@@ -2377,6 +2376,8 @@ to represent the template parameters.
   a_template_param_ptr end_of_template_param_list = NULL;
   a_type_ptr           template_param_type;
   int                  template_param_list_pos = 0;
+  a_boolean	       any_default_args = FALSE;
+  a_boolean	       default_arg_not_at_end = FALSE;
 
   db_enter(3, "scan_template_param_list");
   /* Check for an bypass the "<". */
@@ -2391,6 +2392,10 @@ to represent the template parameters.
   /* Loop through the comma-separated list of template parameter
      declarations. */
   do {
+    a_boolean      has_default_arg = FALSE;
+    a_boolean	   const_type_involves_template_param = FALSE;
+    a_token_cache  token_cache;
+    a_constant_ptr default_arg_constant;
     add_stop_token(tok_comma);
     copy_source_position(pos_curr_token, param_pos);
     ++template_param_list_pos;
@@ -2425,6 +2430,11 @@ to represent the template parameters.
       sym->variant.type = template_param_type;
       /* Bypass the identifier. */
       (void)get_token();
+      if (curr_token == tok_assign) {
+        /* A default value is not allowed for a type parameter. */
+        error(ec_default_arg_expr_not_allowed);
+	flush_tokens();
+      }  /* if */
     } else if (curr_token != tok_template) {
       /* Not a type-argument, so treat it as an arg-declaration.  If this
          template declaration happens to be of a function rather than a class,
@@ -2475,6 +2485,25 @@ to represent the template parameters.
       sym->variant.constant->type = param_type_ptr;
       sym->variant.constant->variant.list_position = template_param_list_pos;
       set_source_corresp(&sym->variant.constant->source_corresp, sym);
+      if (curr_token == tok_assign) {
+        /* Scan the default value. */
+	has_default_arg = TRUE;
+	/* Skip past the equals sign. */
+        (void)get_token();
+        if (is_or_contains_template_param(param_type_ptr)) {
+	  const_type_involves_template_param = TRUE;
+	  /* The type of the constant parameter involve a template parameter
+	     type so we can't scan the expression now.  Cache the tokens
+	     that comprise the default argument. */
+	  prescan_default_arg_expr(&token_cache, /*is_template_param=*/TRUE);
+        } else {
+	  /* The type doesn't involve a template parameter type.  Scan the
+	     default argument expression. */
+          default_arg_constant = fs_constant((a_constant_repr_kind)ck_error);
+          scan_template_argument_constant_expression(param_type_ptr,
+						     default_arg_constant);
+        }  /* if */
+      }  /* if */
     } else {
       /* Error case, but scan it as a template declaration anyway. */
       a_boolean  defines_something;
@@ -2503,6 +2532,27 @@ to represent the template parameters.
     }  /* if */
     /* Allocate a template parameter and set its fields based on sym. */
     template_param = alloc_template_param(sym);
+    if (has_default_arg) {
+      /* Update the default argument information in the template parameter. */
+      template_param->variant.param_constant.has_default_arg = TRUE;
+      if (const_type_involves_template_param) {
+        template_param->
+	    variant.param_constant.type_involves_template_param = TRUE;
+        template_param->
+	    variant.param_constant.default_arg.token_cache = token_cache;
+      } else {
+        template_param->
+            variant.param_constant.default_arg.constant = default_arg_constant;
+      }  /* if */
+      any_default_args = TRUE;
+    } else {
+      /* If a previous argument had a default value and this one does not,
+         issue an error.  Only do this for the first instance of the error. */
+      if (any_default_args && !default_arg_not_at_end) {
+        default_arg_not_at_end = TRUE;
+        error(ec_default_arg_not_at_end);
+      }  /* if */
+    }  /* if */
     /* Add the template param to the end of the list. */
     if (template_param_list == NULL) {
       template_param_list = template_param;

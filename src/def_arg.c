@@ -69,20 +69,17 @@ available-list.
 }  /* free_def_arg_expr_fixup */
 
 
-void prescan_default_arg_expr(a_param_type_ptr 		ptp,
-			      a_def_arg_expr_fixup_ptr	*list)
+void prescan_default_arg_expr(a_token_cache	*token_cache,
+			      a_boolean		is_template_param)
 /*
 Place the tokens for a default argument expression into a token cache, to
-await actual processing at a later point.  Link the default argument
-entry onto the list provided by the caller.
+await actual processing at a later point.
 */
 {
-  a_def_arg_expr_fixup_ptr  new_daefp, daefp;
   a_stop_token_array        save_stop_token_array;
-  a_token_cache             token_cache;
 
   db_enter(3, "prescan_default_arg_expr");
-  clear_token_cache(&token_cache);
+  clear_token_cache(token_cache);
   /* Save the current stop token state, and reinitialize it. */
   copy_stop_tokens(stop_token_array, save_stop_token_array);
   clear_stop_tokens();
@@ -94,14 +91,36 @@ entry onto the list provided by the caller.
   add_stop_token(tok_semicolon);
   add_stop_token(tok_lbrace);
   add_stop_token(tok_rbrace);
-  cache_token_stream(&token_cache);
+  /* When scanning a template default argument add ">" to the stop tokens. */
+  if (is_template_param) {
+    add_stop_token(tok_gt);
+  }  /* if */
+  cache_token_stream(token_cache);
   /* Note that the terminating token (comma, rparen, etc.) is not added to
      the cache. */
   /* Add an end-of-source token to the end of the token cache.  This assures
      that we won't scan past the end of the cache in the actual scan. */
-  terminate_token_cache(&token_cache);
+  terminate_token_cache(token_cache);
   /* Restore the original stop token state. */
   copy_stop_tokens(save_stop_token_array, stop_token_array);
+  db_exit();
+}  /* prescan_default_arg_expr */
+
+
+void prescan_default_function_arg_expr(a_param_type_ptr 	ptp,
+			               a_def_arg_expr_fixup_ptr	*list)
+/*
+Place the tokens for a default argument expression into a token cache, to
+await actual processing at a later point.  Link the default argument
+entry onto the list provided by the caller.
+*/
+{
+  a_def_arg_expr_fixup_ptr  new_daefp, daefp;
+  a_token_cache             token_cache;
+
+  db_enter(3, "prescan_default_function_arg_expr");
+  /* Scan the default argument expression. */
+  prescan_default_arg_expr(&token_cache, /*is_template_param=*/FALSE);
   /* Allocate a default arg expr fixup entry. */
   new_daefp = alloc_def_arg_expr_fixup();
   new_daefp->param_type = ptp;
@@ -122,7 +141,7 @@ entry onto the list provided by the caller.
     }  /* if */
   }  /* if */
   db_exit();
-}  /* prescan_default_arg_expr */
+}  /* prescan_default_function_arg_expr */
 
 
 void delayed_scan_of_default_arg_expr(a_param_type_ptr param_type_entry)
@@ -170,6 +189,31 @@ been declared for all successor arguments.
   (void)get_token();
   db_exit();
 }  /* delayed_scan_of_default_arg_expr */
+
+
+void delayed_scan_of_template_default_arg_expr(a_type_ptr	type,
+					       a_constant_ptr   constant)
+/*
+Do the delayed scan of the default argument expression for a template
+parameter.  The cache has just been reactivated, so curr_token should
+represent the first token in the cache.
+*/
+{
+  db_enter(3, "delayed_scan_of_template_default_arg_expr");
+  scan_template_argument_constant_expression(type, constant);
+  /* In the normal case the current token should be end_of_source,
+     which was inserted to mark the end of the cached token
+     stream. */
+  if (curr_token != tok_end_of_source) {
+    pos_error(ec_exp_comma, &pos_curr_token);
+    /* If necessary, keep flushing until end-of-source is found. */
+    while (curr_token != tok_end_of_source) (void)get_token();
+  }  /* if */
+  /* Advance past the end-of-source token, which was added in
+     the prescan routine. */
+  (void)get_token();
+  db_exit();
+}  /* delayed_scan_of_template_default_arg_expr */
 
 
 void def_arg_init(void)

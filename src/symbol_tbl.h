@@ -651,11 +651,43 @@ typedef struct a_template_param {
                            entry is created for each template type
                            parameter. */
     /* When param_symbol->kind = sk_constant. */
-    a_constant_ptr
-		param_constant;
+    struct {
+      a_constant_ptr
+		ptr;
 			/* Constant entry for a formal parameter.  A unique
 			   constant entry is created for each template constant
 			   parameter. */
+      unsigned int
+		has_default_arg:1;
+			/* TRUE if a default argument has been declared for
+			   this parameter. */
+      unsigned int
+		type_involves_template_param:1;
+			/* TRUE if the type entry associated with the
+			   parameter constant involves (anywhere in its
+			   type tree) a tk_template_param type entry. */
+#if CHECKING
+      unsigned int
+		dummy:2;
+			/* Extra field that can be initialized to prevent
+			   spurious reference to uninitialized data warnings
+			   from CodeCenter. */
+      union {
+        /* When type_involves_template_param is FALSE. */
+        a_constant_ptr
+		constant;
+			/* Constant containing the default value
+			   to be used as the actual argument of an
+		           instantiation when the actual argument
+			   corresponding to this parameter is omitted. */
+        /* When type_involves_template_param is TRUE. */
+        a_token_cache
+		token_cache;
+			/* Header of the token cache that contains the
+			   tokens of the default argument expression. */
+      } default_arg;
+    } param_constant;
+#endif /* CHECKING */
   } variant;
 } a_template_param;
 
