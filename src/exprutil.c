@@ -5287,7 +5287,7 @@ TRUE; that allows a different error message.
     if (param != NULL) {
       /* Fewer arguments than required.  No match unless there are default
          argument values. */
-      if (param->default_arg_expr == NULL) goto reject_function;
+      if (!param->has_default_arg) goto reject_function;
 #if DEBUG
       if (debug_level >= 4) {
         fprintf(f_debug, "try_overloaded_function_match: default arg match\n");
@@ -5801,7 +5801,7 @@ template has the right number of parameters.
   } else if (ptp != NULL) {
     /* We ran out of arguments, but we still have parameters.  The parameter
        should have a default argument expression. */
-    if (ptp->default_arg_expr == NULL) {
+    if (!ptp->has_default_arg) {
       internal_error(
            "function_template_matches_operand_list: missing default arg expr");
     }  /* if */
