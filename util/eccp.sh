@@ -6,7 +6,7 @@
 #
 # Predefined preprocessing variables.
 #
-defines="-Dsparc -Dunix -Dsun"
+defines=${EDG_DEFAULT_DEFINES-"-Dsparc -Dunix -Dsun"}
 EDG_BASE=${EDG_BASE-/edg/cpfe}
 EDG_CBASE=${EDG_CBASE-/edg/cfe}
 #
