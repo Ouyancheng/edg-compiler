@@ -100,8 +100,9 @@ sizeof(int) -- to an incompletely defined enum type.
 
 4/11/95  Initialization of incomplete-array fields in Microsoft C mode
 
-If a struct is declared with a final field that is of incomplete array type,
-that field can now be initialized in Microsoft C mode:
+If a struct is the top-level type of an object being initialized and was
+declared with a final field that is of incomplete array type, that field
+can now be initialized in Microsoft C mode:
 
   struct S {
     int i, j;
