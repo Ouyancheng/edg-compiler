@@ -618,7 +618,7 @@ must be -1 for that case.
 {
   int                   i;
   void                  *arr_ptr;
-  size_t		array_size;
+  size_t		array_size = 0;
 
   /* If the address of the array is NULL, do nothing. */
   if (array_ptr != NULL ) {
