@@ -4303,7 +4303,8 @@ translation unit).
       entries = entries->next;
       switch (entry->kind) {
         case iek_constant:
-          (void)verify_constant_correspondence((a_constant_ptr)entry->il_entry);
+          (void)verify_constant_correspondence(
+                                              (a_constant_ptr)entry->il_entry);
           break;
         case iek_field:
           (void)verify_field_correspondence((a_field_ptr)entry->il_entry);
@@ -4316,13 +4317,15 @@ translation unit).
           (void)verify_routine_correspondence((a_routine_ptr)entry->il_entry);
           break;
         case iek_template:
-          (void)verify_template_correspondence((a_template_ptr)entry->il_entry);
+          (void)verify_template_correspondence(
+                                              (a_template_ptr)entry->il_entry);
           break;
         case iek_type:
           (void)verify_type_correspondence((a_type_ptr)entry->il_entry);
           break;
         case iek_variable:
-          (void)verify_variable_correspondence((a_variable_ptr)entry->il_entry);
+          (void)verify_variable_correspondence(
+                                              (a_variable_ptr)entry->il_entry);
           break;
         default:
           unexpected_condition();
