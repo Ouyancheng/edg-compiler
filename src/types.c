@@ -6656,7 +6656,8 @@ has been used in an exception handling or RTTI construct.
     /* Add the type to the nontag_types_used_in_exception_or_rtti list,
        unless it will be on another list. */
     if (!has_name(type_ptr) &&
-        !is_immediate_class_type(type_ptr)) {
+        !is_immediate_class_type(type_ptr) &&
+        !is_or_contains_template_param(type_ptr)) {
       check_assertion(type_ptr->next == NULL);
       type_ptr->next = il_header.nontag_types_used_in_exception_or_rtti;
       il_header.nontag_types_used_in_exception_or_rtti = type_ptr;
