@@ -6450,7 +6450,8 @@ no_get_token:
       /* We are only interested in scanning type qualifiers in a
          pointer declarator. */
       if (is_type_qualifier() or_is_near_or_far() ||
-          (microsoft_mode && curr_token == tok_inline)) {
+          (microsoft_mode && (curr_token == tok_inline ||
+                              curr_token == tok_microsoft_w64))) {
         /* Keep looping. */
       } else {
         /* Did we see tok_inline used as a qualifier? */
