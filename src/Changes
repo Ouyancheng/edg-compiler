@@ -1,5 +1,21 @@
 Version 2.42
 
+3/16/99  Microsoft compatibility: loss of __declspec attributes on class
+         redeclaration
+
+In Microsoft compatibility mode __declspec attributes were lost on a class
+redeclaration in certain cases.  Now fixed.
+
+  class __declspec(dllimport) A { };
+  class A;                              // "dllimport" no longer lost
+
+In addition, the front end now puts out a diagnostic when the __declspec
+attributes on a class declaration are incompatible with those of a
+previous declaration:
+
+  class __declspec(dllexport) A;
+  class __declspec(dllimport) A { };    // diagnostic is now issued
+
 3/16/99  printf argument checking and const string literals
 
 The argument checking done for printf (when #pragma __printf_args is

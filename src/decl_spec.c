@@ -601,8 +601,60 @@ is a pointer to a source position used for diagnostics.
 #if NEAR_AND_FAR_ALLOWED
   ctsp->qualifiers = extended_decl_info->qualifiers;
 #endif /* NEAR_AND_FAR_ALLOWED */
+  if (extended_decl_info->decl_modifiers.flags != DM_NONE) {
+    /* The following processing is more complicated that it needs to be so as
+       to allow for the easy addition of decl-modifiers. */
+    a_boolean        any_invalid_redecl = FALSE;
+    a_boolean        invalid_modifier, invalid_redecl;
+    int              bit_number;
+    a_decl_modifier  modifier_value;
+
+    for (bit_number = 0; bit_number < (int)dmt_last; ++bit_number) {
+      modifier_value = (1 << bit_number);
+      if ((extended_decl_info->decl_modifiers.flags & modifier_value) != 0) {
+        /* This bit is set. */
+        invalid_modifier = FALSE;
+        invalid_redecl = FALSE;
+        switch (bit_number) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  ctsp->decl_modifiers = extended_decl_info->decl_modifiers.flags;
+          case dmt_dllimport:
+            if (ctsp->decl_modifiers & DM_DLLEXPORT) {
+              invalid_redecl = TRUE;
+            }  /* if */
+            break;
+          case dmt_dllexport:
+            if (ctsp->decl_modifiers & DM_DLLIMPORT) {
+              invalid_redecl = TRUE;
+            }  /* if */
+            break;
+          case dmt_novtable:
+            break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          default:
+            invalid_modifier = TRUE;
+            break;
+        }  /* switch */
+        /* If this modifier is invalid, reset the bit in the new modifiers. */
+        if (invalid_modifier || invalid_redecl) {
+          extended_decl_info->decl_modifiers.flags &= (~modifier_value);
+        }  /* if */
+        if (invalid_modifier) {
+          pos_st_diagnostic(es_discretionary_error,
+                            ec_decl_modifiers_invalid_for_this_decl,
+                            err_pos, decl_modifier_names[bit_number]);
+        }  /* if */
+        any_invalid_redecl |= invalid_redecl;
+      }  /* if */
+    }  /* for */
+    if (any_invalid_redecl) {
+      pos_diagnostic(es_discretionary_error,
+                     ec_decl_modifiers_incompatible_with_previous_decl,
+                     err_pos);
+    }  /* if */
+    /* Update the routine entry with any valid modifiers that were found. */
+    ctsp->decl_modifiers |= extended_decl_info->decl_modifiers.flags;
+  }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (extended_decl_info->inheritance_kind != (an_inheritance_kind)ihk_none) {
     /* Set the specified inheritance kind, unless a different inheritance
        kind has already been locked in -- either explicitly through a prior
