@@ -457,7 +457,8 @@ region if at_file_scope is TRUE.
 
   if (at_file_scope) {
     pinfep = (a_per_instantiation_needed_flags_entry_ptr)
-                     alloc_il(sizeof(a_per_instantiation_needed_flags_entry));
+                     alloc_primary_file_scope_il(
+                               sizeof(a_per_instantiation_needed_flags_entry));
   } else {
     pinfep = (a_per_instantiation_needed_flags_entry_ptr)
                      alloc_cil(sizeof(a_per_instantiation_needed_flags_entry));
