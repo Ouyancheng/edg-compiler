@@ -2552,14 +2552,15 @@ or struct definition.  The syntax is
       syntax_error(ec_exp_identifier);
     } else {
       /* Scan the base class name. */
-      a_boolean gid_err;
-
       base_class_decl_pos = pos_curr_token;
-      sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
-                                                       ilm_normal, &gid_err);
+      sym = curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/FALSE);
+      /* Be sure a type symbol was found and that it is identifies a class. */
       if (sym == NULL || !is_class_symbol(sym)) {
+        /* Not a class symbol.  In most cases, issue and error and skip it.
+           When a template param is involved, just skip it. */
         if (sym != NULL && sym->kind == (a_symbol_kind)sk_type &&
-            sym->variant.type->kind == (a_type_kind)tk_template_param) {
+            (skip_typedefs(type_symbol_type(sym)))->kind ==
+                                         (a_type_kind)tk_template_param) {
           /* No diagnostic on template parameters, which will only show
              up during prototype instantiations.  Set the flag that
              indicates that this prototype instantiation has a nonreal
