@@ -954,6 +954,8 @@ the file scope, do not process it (but record an orphan in the latter case).
             /* Certain operators on pointers require that the type pointed
                to be complete. */
             { a_type_ptr optype;
+              a_type_ptr op1_type = ptr->variant.operation.operands->type;
+
               switch (ptr->variant.operation.kind) {
                 case eok_ppost_incr:
                 case eok_ppost_decr:
@@ -962,8 +964,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                 case eok_padd_assign:
                 case eok_psubtract_assign:
                   /* First operand is an lvalue for a pointer. */
-                  optype = type_pointed_to(type_pointed_to(
-                                       ptr->variant.operation.operands->type));
+                  optype = type_pointed_to(type_pointed_to(op1_type));
                   goto do_definition_needed_if_class;
                 case eok_subscript:
                 case eok_padd:
@@ -971,8 +972,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                 case eok_psubtract:
                 case eok_pdiff:
                   /* First operand is a pointer. */
-                  optype = type_pointed_to(
-                                        ptr->variant.operation.operands->type);
+                  optype = type_pointed_to(op1_type);
 do_definition_needed_if_class:
                   definition_needed_if_class(optype);
                   break;
@@ -987,8 +987,7 @@ do_definition_needed_if_class:
                 case eok_base_class_cast:
 cast_source_type_must_be_pointer_to_complete_class:
                   /* First operand is a pointer to class. */
-                  optype = type_pointed_to(
-                                        ptr->variant.operation.operands->type);
+                  optype = type_pointed_to(op1_type);
                   goto do_set_proper_definition_needed_flag;
                 case eok_derived_class_cast:
                   /* Destination class (pointed to by result type) must be
@@ -997,8 +996,7 @@ cast_source_type_must_be_pointer_to_complete_class:
                   goto do_set_proper_definition_needed_flag;
                 case eok_pm_base_class_cast:
                   /* First operand is a pointer to member. */
-                  optype = pm_class_type(
-                                        ptr->variant.operation.operands->type);
+                  optype = pm_class_type(op1_type);
                   goto do_set_proper_definition_needed_flag;
                 case eok_pm_derived_class_cast:
                   /* Destination class (pointed to by result type) must be
