@@ -3746,9 +3746,7 @@ The syntax is:
   a_type_qualifier_set  unbound_qualifiers;
   a_boolean             disallow_default_args, disallow_exception_spec;
   a_func_info_block     *local_func_info;
-#if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr      *last_attribute_ptr = NULL;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "r_declarator");
   set_err_pos_to_curr_token();
