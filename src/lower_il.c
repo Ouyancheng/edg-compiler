@@ -5536,9 +5536,7 @@ yet.
   }  /* if */  
   entry_routine->source_corresp.name_linkage = 
                               overriding_function->source_corresp.name_linkage;
-  if (entry_routine->storage_class != (a_storage_class)sc_extern) {
-    entry_routine->is_inline = overriding_function->is_inline;
-  }  /* if */
+  entry_routine->is_inline = overriding_function->is_inline;
 #if ONE_INSTANTIATION_PER_OBJECT
   /* Use the needed bit number from the overriding function.  This is needed
      when instantiating inline functions. */

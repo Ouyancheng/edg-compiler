@@ -2797,7 +2797,12 @@ definition.
                   rout->assoc_scope != NULL_region_number);
   /* If the routine is external (but not extern inline), mark it as needed. */
   if (rout->storage_class == (a_storage_class)sc_unspecified &&
-      !rout->is_inline) {
+      (!rout->is_inline ||
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+       /* extern inline thunks are needed too. */
+       rout->overriding_function_for_covariant_return_type != NULL
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+                                                                  )) {
     a_routine_ptr assoc_rout = NULL;
     /* If this is an entry point of some other routine, it's needed only
        if the primary routine is needed. */
@@ -11764,7 +11769,6 @@ The overriding function must have a definition in the current compilation.
   /* The overriding function must have a definition in this compilation. */
   check_assertion(overriding_function->assoc_scope != NULL_region_number &&
                   !overriding_function->suppress_inline_body);
-  if (overriding_function->is_inline) routine->is_inline = TRUE;
   /* Make an expression that is an enk_result_of_overriding_function cast
      to the right base class pointer. */
   expr = alloc_expr_node((an_expr_node_kind)enk_result_of_overriding_function);
@@ -11874,13 +11878,6 @@ The overriding function must have a definition in the current compilation.
   }  /* if */
 #endif /* IA64_ABI */
   pop_generated_routine_context(scope, region_number, &grcontext);
-#if MAINTAIN_NEEDED_FLAGS
-  /* Mark the routine as needed.  External routines other than extern inline
-     were marked as needed in pop_generated_routine_context. */
-  if (instantiate_extern_inline && treat_as_extern_inline(routine)) {
-    mark_as_needed((char *)routine, iek_routine);
-  }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* add_body_for_covariant_return_type_entry_routine */
 
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
