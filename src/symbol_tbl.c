@@ -260,6 +260,7 @@ putting line-feeds at more or less the right places.
       case tk_routine:
         /* Should be fixed. */
         s = "<routine>";
+        break;
       case tk_class:
       case tk_struct:
       case tk_union:
