@@ -3785,6 +3785,22 @@ changed if there is no error.
         *err = TRUE;
       }  /* if */
     }  /* if */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  /* If appropriate, set a flag in the symbol header to indicate that at
+     least one declaration with this name was a tag name and/or appeared in
+     the file scope or a namespace scope.  The information is used in
+     building the hidden name table. */
+    if (!sym_ptr->is_error &&
+        sym_ptr->kind != (a_symbol_kind)sk_undefined &&
+        sym_ptr->kind != (a_symbol_kind)sk_macro) {
+      if (ssep->kind == (a_scope_kind)sck_file ||
+          ssep->kind == (a_scope_kind)sck_namespace ||
+          ssep->kind == (a_scope_kind)sck_namespace_extension) {
+        sym_ptr->header->any_decl_in_file_or_namespace_scope = TRUE;
+      }  /* if */
+    }  /* if */
+    if (is_tag_symbol(sym_ptr)) sym_ptr->header->any_tag_decl = TRUE;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   }  /* if */
   sym_ptr->next_in_scope = NULL;
   if (sym_ptr->is_error) {
@@ -5304,11 +5320,6 @@ declaration of the namespace was encountered in the source.
   /* Add the symbol to the symbol table. */
   link_symbol_into_symbol_table(sym, DEPTH_OF_FILE_SCOPE,
                                 suppress_error);
-#if RECORD_HIDDEN_NAMES_IN_IL
-  /* In some cases, this symbol is predeclared.  Make sure this flag is
-     set in case this is such an implicit declaration. */
-  sym->header->any_decl_in_file_or_namespace_scope = TRUE;
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 }  /* enter_symbol_for_namespace */
 
 
@@ -5457,11 +5468,6 @@ and global namespaces.
            namespace must be created.  This can't be done until the type
            is created below. */
       }  /* if */
-#if RECORD_HIDDEN_NAMES_IN_IL
-      /* Set the flag directly, since record_symbol_declaration is not
-         called. */
-      sym->header->any_decl_in_file_or_namespace_scope = TRUE;
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
     }  /* if */
     /* Build a typedef for va_list.  This is done even when there is
        an existing symbol, because we need a declaration at the right

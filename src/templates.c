@@ -11480,12 +11480,6 @@ declaration of a partial specialization declared outside of its class.
   } else {
     if (!decl_state->in_prototype_instantiation) {
       mark_declared(sym, &locator.source_position);
-#if RECORD_HIDDEN_NAMES_IN_IL
-    } else if (decl_state->is_template_friend) {
-      /* Set the flag directly, since record_symbol_declaration is not
-         called. */
-      sym->header->any_decl_in_file_or_namespace_scope = TRUE;
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
     }  /* if */
     /* This is not a class template definition, so we have no need to
        cache the tokens. */

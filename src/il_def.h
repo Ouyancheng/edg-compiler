@@ -1519,8 +1519,12 @@ typedef struct a_using_decl {
 			   is a using-declaration. */
   a_bit_field	is_class_member:1;
 			/* When is_using_directive is FALSE, this flag is TRUE
-			   if this is a class member using-declaration and
-			   FALSE if it is a nonmember using-declaration. */
+			   if this using-declaration refers to a class member
+			   and FALSE if it refers to a non-class member.
+			   This usually corresponds with whether or not the
+			   using-declaration appeared as a class member, but
+			   in Microsoft bugs mode a nonmember using-declaration
+			   can refer to a type that is a class member. */
   a_bit_field	hidden:1;
 			/* For class member using-declarations only, TRUE if
 			   a base class member brought into a derived class

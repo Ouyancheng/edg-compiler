@@ -8342,8 +8342,13 @@ Generate code for a class member or nonmember using-declaration.
   if (udp->is_class_member) {
     /* A class member using-declaration. */
     /* Put out an access specifier if necessary to change the current
-       access. */
-    gen_member_access_specifier(udp->access);
+       access.  Note that this is done based on the current name context
+       and not based on the is_class_member flag of the using-declaration
+       because in Microsoft bugs mode a nonmember using-declaration can refer
+       to a class member. */
+    if (curr_name_context_is_a_class()) {
+      gen_member_access_specifier(udp->access);
+    }  /* if */
 #if USING_DECLARATIONS_IN_GENERATED_CODE
     /* Older compilers may not accept class member using-declarations and
        will accept access declarations instead.  For such target compilers

@@ -1,5 +1,18 @@
 Version 3.4
 
+10/6/03  Microsoft compatibility: nonmember using-declaration of class member
+
+The Microsoft compiler accepts a nonmember using-declaration that refers
+to a type member of a class.  We now emulate this behavior in Microsoft
+bugs mode.
+
+  class A { typedef int I; };
+  using A::I;
+  int main () {
+    I i = 1;
+    return ++i;
+  }
+
 10/3/03  GNU compatibility: not-evaluated parts of constant expressions
          can be non-constant
 

@@ -8762,17 +8762,6 @@ nonstandard anonymous unions is_nonstd is TRUE.
         internal_error("check_anonymous_union_symbols: unexpected sym kind");
 #endif /* CHECKING */
     }  /* switch */
-#if RECORD_HIDDEN_NAMES_IN_IL
-    if (class_type == NULL &&
-        (sym->decl_scope == file_scope_number ||
-         sym->parent.namespace_ptr != NULL)) {
-      /* Set a flag in the symbol header to indicate that at least one
-         declaration with this name appeared in the file scope or a
-         namespace scope.  The information is used in building the hidden
-         name table. */
-      sym->header->any_decl_in_file_or_namespace_scope = TRUE;
-    }  /* if */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if DEBUG
     if (debug_level >= 4) {
       if (is_function_symbol(sym)) {

@@ -1416,38 +1416,6 @@ created for this entity; otherwise, it is NULL.
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if RECORD_HIDDEN_NAMES_IN_IL
-  /* If appropriate, set a flag in the symbol header to indicate that at
-     least one declaration with this name was a tag name and/or appeared in
-     the file scope or a namespace scope.  The information is used in
-     building the hidden name table.  Command-line macro definitions should
-     not be considered as appearing in file scope. */
-  if (!sym_ptr->is_error &&
-      sym_ptr->kind != (a_symbol_kind)sk_undefined &&
-      sym_ptr->kind != (a_symbol_kind)sk_macro) {
-    a_symbol_header_ptr  hdr = sym_ptr->header;
-
-    if (is_tag_symbol(sym_ptr)) hdr->any_tag_decl = TRUE;
-    if (!sym_ptr->is_class_member) {
-      if (sym_ptr->decl_scope == file_scope_number ||
-          sym_ptr->parent.namespace_ptr != NULL) {
-        hdr->any_decl_in_file_or_namespace_scope = TRUE;
-      } else if (is_template_symbol(sym_ptr)) {
-        hdr->any_decl_in_file_or_namespace_scope = TRUE;
-      } else if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
-                 scope_stack[depth_scope_stack].kind ==
-                                      (a_scope_kind)sck_class_struct_union) {
-        /* We're in the context of a function definition or a friend function
-           in a local class.  Does sym_ptr represent a block extern
-           declaration?  Check the IL entry. */
-        if (scptr == NULL) scptr = source_corresp_entry_for_symbol(sym_ptr);
-        if (scptr != NULL && !scptr->is_local_to_function) {
-          hdr->any_decl_in_file_or_namespace_scope = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */        
-  }  /* if */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 }  /* record_symbol_declaration */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED

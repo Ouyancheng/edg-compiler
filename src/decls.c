@@ -7541,15 +7541,6 @@ NULL.
         set_source_corresp(&(tp->source_corresp), sym);
         tp->source_corresp.referenced = saved_referenced_flag;
         suppress_redecl_error = TRUE;
-#if RECORD_HIDDEN_NAMES_IN_IL
-        /* Set the flags directly, since record_symbol_declaration is not
-           called. */
-        sym->header->any_tag_decl = TRUE;
-        if (sym->decl_scope == file_scope_number ||
-            (!sym->is_class_member && sym->parent.namespace_ptr != NULL)) {
-          sym->header->any_decl_in_file_or_namespace_scope = TRUE;
-        }  /* if */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
         /* Note that we do not look for conflicts between the class's new
            name and the names of its members.  This is an area where the
            wording of the ARM (7.1.3) has been clarified and/or amended by
@@ -9993,17 +9984,20 @@ static void create_nonmember_using_declaration(
                                        a_symbol_ptr     *overload_sym_ptr,
                                        a_symbol_ptr     other_decl,
                                        a_namespace_ptr  nsp,
+                                       a_type_ptr       class_type,
                                        a_using_decl_ptr *prev_udp,
                                        a_boolean        is_list,
                                        a_boolean        suppress_redecl_error)
 /*
-Create a projection for symbol "sym" from namespace "nsp".  If this is part
-of an overload set being imported, "is_list" will be TRUE and
-"*overload_sym_ptr" will point to the overload symbol.  Even when it is not
-part of an overload set, we may need to create such a set because existing
-declarations in the scope are being overloaded.  "*prev_udp" is the previous
-using-declaration structure for the using-declaration construct that is
-currently being processed (NULL if none).
+Create a projection for symbol "sym" from namespace "nsp" (or, in
+Microsoft bugs mode, from the class "class_type").  If this is part of
+an overload set being imported, "is_list" will be TRUE and
+"*overload_sym_ptr" will point to the overload symbol.  Even when it
+is not part of an overload set, we may need to create such a set
+because existing declarations in the scope are being overloaded.
+"*prev_udp" is the previous using-declaration structure for the
+using-declaration construct that is currently being processed (NULL if
+none).
 */
 {
   a_symbol_locator   locator;
@@ -10073,9 +10067,16 @@ currently being processed (NULL if none).
        the IL. */
     a_using_decl_ptr  udp = make_using_decl(fund_sym, &decl_pos,
                                             depth_scope_stack);
-    /* Record the class that was actually specified in the qualified
-       name in the source. */
-    udp->qualifier.namespace_ptr = nsp;
+    /* Record the namespace (or class) that was actually specified in the
+       qualified name in the source.  Nonmember using-declarations generally
+       refer to nonmember entities, but in Microsoft bugs mode a nonmember
+       using-declaration can refer to a member type. */
+    if (class_type != NULL) {
+      udp->is_class_member = TRUE;
+      udp->qualifier.class_type = class_type;
+    } else {
+      udp->qualifier.namespace_ptr = nsp;
+    }  /* if */
     /* Update cross-reference and source-sequence info, if
        required. */
     record_using_decl(fund_sym, &decl_pos, udp, *prev_udp);
@@ -10130,8 +10131,8 @@ only if a redeclaration error is issued.
       /* We found a tag that was masked by another declaration (sym),
          and importing it is not just a redeclaration. */
       create_nonmember_using_declaration(tag_sym, &null_sym_ptr,
-                                         other_decl, nsp, prev_udp,
-                                         /*is_list=*/FALSE,
+                                         other_decl, nsp, (a_type_ptr)NULL,
+                                         prev_udp, /*is_list=*/FALSE,
                                          /*suppress_redecl_error=*/FALSE);
       *redecl_error = (curr_scope_id_lookup(
                           &locator, IDL_MUST_BE_TAG | IDL_PROJ_SYMBOL_ALLOWED)
@@ -10186,8 +10187,11 @@ current scope.
          name in a using-declaration. */
       error(ec_namespace_qualified_name_required);
       err = TRUE;
-    } else if (locator_for_curr_id.is_class_member) {
-      /* A class-qualified name is not allowed here. */
+    } else if (locator_for_curr_id.is_class_member &&
+               !(microsoft_bugs && is_type_symbol(sym))) {
+      /* A class-qualified name is not allowed here.  Such a name is permitted
+         in Microsoft bugs mode if it refers to a type.  The Microsoft
+         compilers (through at least 7.1) permit such using-declarations. */
       error(ec_class_qualified_name_not_allowed);
       err = TRUE;
     } else if (locator_for_curr_id.is_template_id) {
@@ -10205,9 +10209,12 @@ current scope.
       discard_curr_construct_pragmas();
     } else {
       a_namespace_ptr  nsp;
+      a_type_ptr       class_type;
       /* Pragmas cannot bind to a using declaration. */
       cannot_bind_to_curr_construct();
-      if ((nsp = qualifier_namespace_ptr(locator_for_curr_id)) != NULL &&
+      nsp = qualifier_namespace_ptr(locator_for_curr_id);
+      class_type = qualifier_class_type(locator_for_curr_id);
+      if (nsp != NULL &&
           ssep->il_scope != NULL &&
           ssep->il_scope->kind == (a_scope_kind)sck_namespace &&
           ssep->il_scope->variant.assoc_namespace ==
@@ -10217,7 +10224,8 @@ current scope.
              namespace N { int i; using N::i; }
            Issue a warning and ignore the using-declaration. */
         warning(ec_useless_using_declaration);
-      } else if (depth_scope_stack == DEPTH_OF_FILE_SCOPE && nsp == NULL) {
+      } else if (depth_scope_stack == DEPTH_OF_FILE_SCOPE && nsp == NULL &&
+                 class_type == NULL) {
         /* Attempting a using declaration at file scope with name already
            declared in the file scope -- e.g.,
              int i; using ::i;
@@ -10230,7 +10238,8 @@ current scope.
           warning(ec_useless_using_declaration);
         }  /* if */
       } else {
-        check_assertion(qualifier_namespace_ptr(locator_for_curr_id) != NULL ||
+        check_assertion(nsp != NULL ||
+                        class_type != NULL || 
                         locator_for_curr_id.is_global_qualified_name ||
                         nonstandard_using_decl_allowed ||
                         ignore_std_namespace);
@@ -10311,7 +10320,8 @@ current scope.
           }  /* if */
           for (; sym != NULL; sym = is_list ? sym->next : NULL) {
             create_nonmember_using_declaration(sym, &overload_sym, other_decl,
-                                               nsp, &prev_udp, is_list,
+                                               nsp, class_type,
+                                               &prev_udp, is_list,
                                                suppress_redecl_error);
           }  /* for */
         }  /* if */
