@@ -1801,7 +1801,7 @@ Display the indicated routine.
   if (ptr->is_virtual) {
     disp_boolean("is_virtual", (a_boolean)ptr->is_virtual);
   }  /* if */
-  if (ptr->is_pure_virtual) {
+  if (ptr->pure_virtual) {
     disp_boolean("pure_virtual", (a_boolean)ptr->pure_virtual);
   }  /* if */
   if (ptr->is_inline) {
@@ -2998,7 +2998,7 @@ Display the indicated class type supplement entry.
                (char *)ptr->virtual_function_info_base_class, iek_base_class);
     }  /* if */
   }  /* if */
-  if (ptr_anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
+  if (ptr->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     disp_name("anonymous_union_kind");
     switch (ptr->anonymous_union_kind) {
       case auk_none:
