@@ -1765,9 +1765,9 @@ headed by goto_cfdp.
        with this label. */
     label_olp = innermost_block_object_lifetime(curr_object_lifetime);
     label->variant.exec_stmt->variant.label.lifetime = label_olp;
-    /* For each branch that has this label as a target, record in the the
-       goto statement the common object lifetime (the one embracing both
-       the label and the goto). */
+    /* For each branch that has this label as a target, record in the goto
+       statement the common object lifetime (the one embracing both the label
+       and the goto). */
     for (; goto_cfdp != NULL;
            goto_cfdp = goto_cfdp->variant.goto_statement.prev_goto) {
       goto_olp_addr = &goto_cfdp->variant.goto_statement.ptr->
