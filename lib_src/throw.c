@@ -767,6 +767,11 @@ Rethrow the current thrown obejct.
 #if 0
   /* Additional memory management stuff needs to go here. */
 #else
+  if (thrown_typeinfo == NULL) {
+    /* This is a trivial version of the test that is eventually needed.
+       We need to determine whether a handler is currently active. */
+    __call_terminate();
+  }  /* if */
   __throw();
 #endif /* 0 */
 }  /* __rethrow */
