@@ -645,6 +645,24 @@ left operand, which matched the ARM.
 This change fixes an abort when the left operand creates a destructible
 temporary.
 
+In a related change, a static selection referring to a set of overloaded
+functions, all of which are static, can no longer be used in a context
+where a function is selected from the overload set based on the
+destination type.  We think cases like that should get an error according
+to 13.4 of the standard.
+
+  struct A {
+    static void f();
+    static void f(int);
+  } a;
+  void (*pf)() = a.f;  // Formerly accepted, now an error
+
+(8/3/98:) IL CHANGE: in the unlowered IL, static selections are now
+represented by new operators eok_points_to_static, eok_lvalue_dot_static,
+and eok_rvalue_dot_static.  IL lowering rewrites them as eok_comma
+nodes (or as simply the static member reference, if the selector
+expression has no side effects).
+
 5/27/98   Microsoft anonymous structs and generated copy assignment function
 
 The code generated for default copy assignment of a class that contains
