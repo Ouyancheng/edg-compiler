@@ -1,5 +1,16 @@
 Version 2.30
 
+1/24/96  New predefined macros used for region number type and null
+         region value
+
+The runtime has been changed to use new macros, defined by the front
+end when the --building_runtime option is used, as the type of the
+EH region number and the null region number value.  In addition to
+making the runtime automatically adapt to the values used by the
+front end this also fixes a problem on one's complement machines
+caused by the previous method used to initialize NULL_REGION_NUMBER
+in the runtime.
+
 1/22/96  Dynamically allocated array without destructor not destroyed by
          EH mechanism
 
