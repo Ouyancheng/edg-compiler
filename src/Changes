@@ -80,7 +80,7 @@ Now fixed.
 
 Lookups during the instantiation of default argument expressions of
 friends of class templates would, in certain circumstances, incorrectly
-find names from the prototype instantiation of enclosing class instead
+find names from the prototype instantiation of the enclosing class instead
 of names from a real instantiation.  This could result in an internal
 error or other incorrect behavior.  This has been fixed.
 
