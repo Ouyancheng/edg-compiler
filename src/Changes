@@ -1,5 +1,10 @@
 Version 2.30
 
+6/15/95  Complete object type of a typeid
+
+node_complete_object_type has been changed so it can deal with an enk_typeid
+node.
+
 6/15/95  Conditional flag for temporary created by conversion from class
          type in conditional operand
 

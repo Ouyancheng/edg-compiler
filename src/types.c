@@ -1544,6 +1544,7 @@ base class casts and virtual function calls.
   switch (node->kind) {
     case enk_error:
     case enk_address_of_ellipsis:
+    case enk_routine_address:
       /* Complete object type is not known. */
       break;
     case enk_variable:
@@ -1623,10 +1624,21 @@ base class casts and virtual function calls.
         /* Not easy to tell the type for delete, and probably not worth it. */
       }  /* if */
       break;
-#if CHECKING
+    case enk_object_lifetime:
+      complete_object_type =
+                  node_complete_object_type(node->variant.object_lifetime.expr,
+                                            call_case);
+      break;
+    case enk_typeid:
+      /* For a typeid, the complete object type is type_info. */
+      complete_object_type = type_pointed_to(node->type);
+      break;
+    case enk_throw:
+    case enk_field:
+    case enk_condition:
     default:
-      internal_error("node_complete_object_type: bad expression kind");
-#endif /* CHECKING */
+      unexpected_condition_str(
+                             "node_complete_object_type: bad expression kind");
   }  /* switch */
   return complete_object_type;
 }  /* node_complete_object_type */
