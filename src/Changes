@@ -1,5 +1,13 @@
 Version 3.5
 
+10/21/04 GNU compatibility: interaction of --restrict and --gcc/--g++
+
+When the --restrict or --c99 option was used in conjunction with the --gcc
+option, only the "__restrict" keyword (not the "restrict" form) was accepted.
+Likewise, when --restrict was combined with --g++, only the "--restrict"
+form was accepted.  In such cases, both "restrict" and "__restrict" should
+be accepted.  This is now done correctly.
+
 10/21/04 Microsoft/GNU C++ compatibility: spurious error on static
          data member initialization
 

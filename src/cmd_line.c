@@ -2582,10 +2582,8 @@ exclude the GNU modes already.  Hence those are not checked again here.)
      __builtin_... entities may be predefined to accommodate it (if
      GCC_BUILTIN_VARARGS is TRUE). */
   pass_stdarg_references_to_generated_code = FALSE;
-  if (!(option_kind_used[(int)optk_restrict])) {
-    /* Enable the use of __restrict__ in GNU mode. */
-    restrict_enabled = TRUE;
-  }  /* if */
+  /* Enable the use of __restrict__ in GNU mode. */
+  gnu_restrict_enabled = TRUE;
   /* Enable flexible array member support. */
   flexible_array_members_allowed = TRUE;
   /* Enable // comments. */

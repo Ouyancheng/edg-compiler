@@ -1012,6 +1012,11 @@ EXTERN a_boolean
 			   as a keyword. */
 
 EXTERN a_boolean
+		gnu_restrict_enabled /* = FALSE */;
+			/* TRUE if the GNU __restrict variant of the restrict
+			   keyword is recognized. */
+
+EXTERN a_boolean
 		long_lifetime_temps
 #if VAR_INITIALIZERS
                                     = FALSE
