@@ -2895,6 +2895,7 @@ should be put out.
 }  /* mangled_full_class_name */
 
 
+#if !IA64_ABI
 /*
 Interface to mangled_full_class_name for the case where
 show_partial_spec_args, show_template_specialization, show_specialization and
@@ -2903,6 +2904,8 @@ should be put out).
 */
 #define mangled_basic_class_name(type, mctl)                          \
   mangled_full_class_name((type), FALSE, FALSE, FALSE, FALSE, (mctl))
+
+#endif /* !IA64_ABI */
 
 
 static void mangled_class_encoding(
