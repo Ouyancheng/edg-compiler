@@ -2258,6 +2258,7 @@ bound with the function in *bound_function_selector.
     qualified_member_position = pos_curr_token;
     if (locator_for_curr_id.is_vacuous_destructor_reference) {
       /* We have something like p->int::~int, a reference to a vacuous
+         destructor.  Also p->A::~A(), where A is a class without a
          destructor. */
       is_vacuous_destructor_reference = TRUE;
       need_operand_1_type_check = FALSE;
@@ -2267,8 +2268,6 @@ bound with the function in *bound_function_selector.
       dtor_type = qualifier_class_type(locator_for_curr_id);
       if (is_error_locator(locator_for_curr_id) || dtor_type == NULL) {
         err = TRUE;
-      } else {
-        dtor_type = skip_typerefs(dtor_type);
       }  /* if */
     } else {
       /* Not a vacuous destructor case, i.e., normal case. */
@@ -2464,20 +2463,37 @@ qualified_name_check:
       take_address_of_lvalue(operand_1);
       is_arrow_operator = TRUE;
     }  /* if */
-    if (operand_1_is_complete_class && class_struct_union_type != dtor_type) {
-      /* Cast to a base class in a case like
-           struct A {};
-           struct B : public A {};
-           B *p;
-           p->A::~A();
-      */
-      a_base_class_ptr bcp =
+    if (!is_class_struct_union_type(dtor_type)) {
+      /* For a non-class case, make sure the operand type reflects the
+         type used to refer to the "destructor".  This allows the
+         C++-generating back end to deal with a case like
+           typedef int T;
+           int *p;
+           p->T::~T();
+         and get the name "T" in the output. */
+      cast_operand(make_pointer_type(dtor_type), operand_1,
+                   /*check_cast_access=*/FALSE,
+                   /*is_implicit_cast=*/FALSE,
+                   /*is_reinterpret_cast=*/FALSE);
+    } else {
+      /* Class case. */
+      dtor_type = skip_typerefs(dtor_type);
+      if (operand_1_is_complete_class &&
+          class_struct_union_type != dtor_type) {
+        /* Cast to a base class in a case like
+             struct A {};
+             struct B : public A {};
+             B *p;
+             p->A::~A();
+        */
+        a_base_class_ptr bcp =
                         find_base_class_of(class_struct_union_type, dtor_type);
-      check_assertion(bcp != NULL);
-      base_class_cast_operand(operand_1, bcp, &is_arrow_operator,
-                              /*check_cast_access=*/TRUE,
-                              /*is_implicit_cast=*/TRUE,
-                              /*implicit_in_naming=*/FALSE);
+        check_assertion(bcp != NULL);
+        base_class_cast_operand(operand_1, bcp, &is_arrow_operator,
+                                /*check_cast_access=*/TRUE,
+                                /*is_implicit_cast=*/TRUE,
+                                /*implicit_in_naming=*/FALSE);
+      }  /* if */
     }  /* if */
     /* Make an eok_vacuous_destructor_call node and an operand for it.
        This is a pretty weird representation for this case, but it's a pretty

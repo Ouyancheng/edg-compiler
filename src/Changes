@@ -1,5 +1,18 @@
 Version 2.35
 
+1/30/97 C++-generating back end: typedef name on vacuous destructor call
+
+The C++-generating back end now puts the original typedef name in a non-class
+vacuous destructor call, not the underlying type.  This is important because
+a recent change to the language makes such destructor calls invalid if
+they use a type keyword instead of a type name.
+
+  typedef int T;
+  int main() {
+    int i;
+    i.T::~T();  // Comes out as i.T::~T(), not the now-invalid i.int::~int()
+  }
+
 1/30/97 Partial ordering of function templates
 
 Partial ordering of function templates is now implemented.  When several
