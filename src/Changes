@@ -5366,7 +5366,7 @@ caused an abort.  Now fixed.
 6/14/99  Classes always contain a copy assignment operator
 
 Formerly, not all classes were considered to have copy assignment
-operators.  An implicitly declaration of a copy assignment operator
+operators.  An implicit declaration of a copy assignment operator
 was only created for classes that could not be copied with a bitwise
 copy, or for classes with other (non-copy) assignment operators.  The
 standard specifies that all classes have copy assignment operators, so
