@@ -5696,7 +5696,7 @@ is a template specialization declaration.
       set_to_error_locator(*locator);
     }  /* if */
   }  /* if */
-  if (curr_token == tok_lbrace ||
+  if (curr_token == tok_lbrace || curr_token == tok_try ||
       (curr_token == tok_colon && sym != NULL && is_constructor_symbol(sym))) {
     /* This is a defining declaration of the function template. */
     func_info->is_definition = TRUE;
