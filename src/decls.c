@@ -5995,7 +5995,14 @@ A using-directive entry is created and activated for the current scope.
       /* A diagnostic has already been issued. */
     } else if (sym == NULL || sym->kind != (a_symbol_kind)sk_namespace) {
       error(ec_missing_namespace_name);
+    } else if (locator_for_curr_id.specific_symbol->kind ==
+                     (a_symbol_kind)sk_namespace_projection &&
+               locator_for_curr_id.specific_symbol->ambiguous) {
+      /* Note: the lookup returns the projection symbol, if there is one,
+         in the locator, so that's what needed to be tested for ambiguity. */
+      sym_error(ec_ambiguous_name, locator_for_curr_id.specific_symbol);
     } else {
+      mark_referenced(sym, &locator_for_curr_id.source_position);
       /* Allocate a using-directive entry specifying this namespace and
          activate it. */
       make_using_directive(sym->variant.namespace_info.ptr, &decl_start_pos);
