@@ -177,6 +177,10 @@ extern an_instantiation_directive_ptr alloc_instantiation_directive(void);
 extern a_hidden_name_ptr alloc_hidden_name(void);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
+extern a_template_parameter_ptr alloc_template_parameter(void);
+
+extern a_template_decl_ptr alloc_template_decl(void);
+
 extern a_template_ptr alloc_template(void);
 
 #if RECORD_MACROS_IN_IL
