@@ -1,5 +1,18 @@
 Version 2.46
 
+7/27/01  Microsoft/Cfront compatibility: visibility of variable declarations
+
+In Cfront mode, a variable declaration is now invisible in its own initializer.
+In Microsoft mode, the declaration is only invisible in parenthesized
+initializers.  For example:
+
+  int x = 7, y = 8;
+  void f() {
+    int x = x;  // Equivalent to "int x = ::x" in Cfront mode; undefined
+                //   value otherwise.
+    int y(y);   // Same as "int y(::y)" in Microsoft and Cfront modes,
+  }
+
 7/27/01  Change in a_template entries for members of class templates
 
 When a member template is declared in a class template, there is now a
