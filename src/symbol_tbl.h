@@ -641,7 +641,7 @@ typedef struct a_function_instantiation_entry {
 /* Used to track the number of pending instantiations of a given class
    or function template. */
 typedef short a_pending_instantiation_count;
-#define MAX_PENDING_INSTANTIATONS 100
+#define MAX_PENDING_INSTANTIATIONS 100
 
 typedef struct a_template_symbol_supplement *a_template_symbol_supplement_ptr;
 typedef struct a_template_symbol_supplement {
