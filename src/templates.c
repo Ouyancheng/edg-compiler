@@ -2801,10 +2801,14 @@ list of a template function.  Returns TRUE if a match is found.
      must be at the same level to participate in deduction.  A template
      parameters from a different nesting depth can be present when
      templ_constant is used in the parent class of a type that is passed
-     to matches_template_type. */
+     to matches_template_type.  Nesting depths are only checked for
+     declared template parameters (i.e., of kind tpck_param).  Other
+     template parameters do not have nesting depths. */
   if (templ_constant->kind == (a_constant_repr_kind)ck_template_param &&
-      nesting_depth_of_template_param(templ_param_list) ==
-            templ_constant->variant.template_param.variant.coordinates.depth) {
+      (templ_constant->variant.template_param.kind != 
+                             (a_template_param_constant_kind)tpck_param ||
+        nesting_depth_of_template_param(templ_param_list) ==
+           templ_constant->variant.template_param.variant.coordinates.depth)) {
     if (is_deducible_constant_param(templ_constant)) {
       a_template_arg_ptr        tap;
       /* This is a template parameter from the original source program
