@@ -2056,7 +2056,8 @@ ambiguous or inaccessible base classes.
                                                 operand);
             /* If the pointer to member is to a related class, adjust it. */
             copy_constant(&operand->variant.constant, &local_constant);
-            type_change_constant(&local_constant, new_type, is_implicit_cast,
+            type_change_constant(&local_constant, new_type,
+                                 !access_error_reported,
                                  curr_expr_kind_is_const(),
                                  curr_expr_is_evaluated(),
                                (a_boolean)expr_stack->fold_constant_addr_exprs,
