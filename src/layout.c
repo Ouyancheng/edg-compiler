@@ -1573,14 +1573,15 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
        a conflict with bases that are going to be allocated as part of
        this base.  (This code is structured to reduce the number of calls
        to corresp_base_class, because those can be expensive.) */
-    /* Some GNU C++ compilers do not consider bases of nonprimary virtual
-       bases. */
-    if (bcp->primary_base_class != NULL &&
-        base_subobject_conflict(bcp->primary_base_class, offset)) {
+    if (emulate_gnu_abi_bugs && offset != 0 && bcp->is_virtual &&
+        !is_empty_class_type(bcp->type)) {
+      /* Some GNU C++ compilers do not consider bases of nonprimary virtual
+         bases. */
+    } else if (bcp->primary_base_class != NULL &&
+               base_subobject_conflict(bcp->primary_base_class, offset)) {
       /* The primary base is always at offset zero. */
       result = TRUE;
-    } else if (!(emulate_gnu_abi_bugs && offset != 0 && bcp->is_virtual &&
-                 !is_empty_class_type(bcp->type))) {
+    } else {
       for (base_bcp = base_classes_of(base_type); 
            base_bcp != NULL; 
            base_bcp = base_bcp->next) {
