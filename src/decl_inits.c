@@ -900,7 +900,7 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
 
 static a_boolean designator_coming(void)
 /*
-A proposed ANSI C extension allows aggregate initializers to be preceded by
+A C99 language feature allows aggregate initializers to be preceded by
 a "designation" that indicates which field or element is initialized. The
 syntax looks like:
    X x = { .a = 1, .b.c = 2, { [3] = { 0 }, [4][0] = { 4 } }, .d[2].d = 0 };
@@ -1255,7 +1255,7 @@ otherwise TRUE is returned and *subscript is set to the scanned value.
     } break;
     default: {
       unexpected_condition_str(
-                        "array initialization designator: bad constant kind");
+                            "scan_array_element_subscript: bad constant kind");
     }
   }  /* switch */
   return all_OK;
@@ -1266,12 +1266,12 @@ static a_boolean scan_array_element_init_designator(
                                     an_aggregate_init_context  *context, 
                                     a_targ_size_t              *start_pos)
 /*
-Proposed C language extension:
+A C99 language feature:
    int a[20][40] = { [1] = { 7, 8, 9 }, [3][4] = 11 };
 When extended_designators_allowed is TRUE, we also accept:
    int b[20][40] = { [1] { 7, 8, 9 }, [3 ... 7][4] = 11 };
 This routine scans a single '[' <expr> ']' (or '[' <expr> '...' <expr> ']'
-designator. Designations consisting of multiple designators are handled by
+designator.  Designations consisting of multiple designators are handled by
 the recursion in get_initializer.
 
 The state of this initialization is described by context. If a valid
@@ -1280,8 +1280,8 @@ if a valid extended designator of the form '[' <expr> '...' <expr> ']' is
 found, context->repeat is set to a newly created ck_init_repeat constant.
 */
 {
-  a_boolean found_array_designator = FALSE;
-  a_boolean all_OK = TRUE;
+  a_boolean     found_array_designator = FALSE;
+  a_boolean     all_OK = TRUE;
   a_targ_size_t start_el, last_el = 0;
 
   if (designators_allowed && curr_token == tok_lbracket) {
@@ -1324,16 +1324,16 @@ found, context->repeat is set to a newly created ck_init_repeat constant.
 static a_boolean scan_field_init_designator(a_type_ptr   dest_type,
                                             a_field_ptr  *field)
 /*
-C language extension (C99):
+C99 language feature:
    typedef struct X { int a, b, c; } X;
    struct Y { X p, q, r; } y = { .p = { 12, 13, 14 }, .q.b = 42 };
 Some compilers also accept the following extended form:
    X x = { b: 71 }; // Only one extended designator per designation
-This routine field designator. Designations consisting of multiple designators
-are handled by the recursion in get_initializer. dest_type is the aggregate
-type for which an initializer is being scanned. If a valid field designator
-is found, *field is set to point to it; if no errors occurred, TRUE is
-returned, else FALSE.
+This routine scans a single field designator.  Designations consisting of
+multiple designators are handled by the recursion in get_initializer.
+dest_type is the aggregate type for which an initializer is being scanned.
+If a valid field designator is found, *field is set to point to it; if no
+errors occurred, TRUE is returned, else FALSE.
 */
 {
   a_boolean found_field_designator = FALSE;
@@ -1412,7 +1412,7 @@ should be TRUE in that case.
   } else if (curr_token != tok_period && curr_token != tok_lbracket) {
     /* A designator should be followed by '=' or another designator.
        When extended field designators are allowed, the '=' is optional on
-       array element designators; otherwise, it we have an error and we'll
+       array element designators; otherwise, we have an error and we'll
        assume the token was forgotten. */
     if (!assign_optional) {
       error(ec_exp_assign);
@@ -1449,7 +1449,7 @@ static void get_array_element_init_info(
 /*
 We're scanning the initializer for an array whose type is context->type.
 Adjust *curr_array_element if a designator is encountered (and record the
-designator in the active list of constants). The parameter context is a
+designator in the active list of constants).  The parameter context is a
 pointer to a structure that keeps track of the initializer for the current
 subaggregate (see get_initializer), while init_info tracks the whole
 initializer.  If a designator was scanned, *designator_scanned is set to TRUE;
@@ -1497,10 +1497,10 @@ static a_type_ptr get_field_init_info(
 /*
 This function adjusts the current field (*field) in an initializer for the
 aggregate type context->type (if a field designator is present) and returns the
-type of adjusted current field. Any field designator is added to the active
-list of constants. The parameter context is a pointer to a structure that
+type of adjusted current field.  Any field designator is added to the active
+list of constants.  The parameter context is a pointer to a structure that
 keeps track of the initializer for the current subaggregate (see
-get_initializer), while init_info tracks the whole initializer. In case of
+get_initializer), while init_info tracks the whole initializer.  In case of
 error NULL is returned.  If a field designator was scanned, *designator_scanned
 is set to TRUE; otherwise it is set to FALSE.
 */
@@ -1581,7 +1581,7 @@ trying to determine if the expression could initialize a class type member
 (see process_whole_object_init): in that case, the constant is pending in the
 context structure.  init_info describes the state of the complete initializer
 and context describes the state of the initialization of the current
-subaggregate. The function returns a pointer to IL a_constant entity.
+subaggregate.  The function returns a pointer to an IL a_constant entity.
 */
 {
   a_constant_ptr      constant; /* Result of this function */
@@ -2997,7 +2997,7 @@ returned set to TRUE.
       if (designators_allowed &&
           (init_dip->kind == (a_dynamic_init_kind)dik_constant ||
            init_dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate)) {
-        /* Rewrite designated initializers into standard C. */
+        /* Rewrite designated initializers into standard C89. */
         lower_designated_initializers(init_dip->variant.constant);
       }  /* if */
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
@@ -3047,7 +3047,7 @@ returned set to TRUE.
 #if DO_IL_LOWERING
 #if LOWER_DESIGNATED_INITIALIZERS
         if (designators_allowed) {
-          /* Rewrite designated initializers into standard C. */
+          /* Rewrite designated initializers into standard C89. */
           lower_designated_initializers(init_con);
         }  /* if */
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
@@ -3861,7 +3861,7 @@ initialized.  These are addressed in the course of the processing.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           else if (microsoft_mode && (field->get_property_name != NULL ||
                                       field->put_property_name != NULL)) {
-            /* Property fields can not be mentioned in a constructor
+            /* Property fields cannot be mentioned in a constructor
                initializer list. */
             pos_error(ec_property_name_not_allowed,
                       &locator_for_curr_id.source_position);
