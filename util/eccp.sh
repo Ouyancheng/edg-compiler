@@ -100,7 +100,7 @@ cc_command="$EDG_C_TO_OBJ_COMPILER $EDG_C_TO_OBJ_DEFAULT_OPTIONS"
 #
 # Flag that indicates that the generated C file should always be created
 # in the current directory.  This provides compatibility with earlier
-# versions of the front and that don't support then --gen_c_file_name
+# versions of the front and that don't support the --gen_c_file_name
 # option.
 #
 gen_c_in_curr_dir=${EDG_GEN_C_IN_CURR_DIR-0}
@@ -258,7 +258,7 @@ driver_debug=0
 #
 pch_test_mode=0
 #
-# Go through every argument, identify it, and add it a list if appropriate.
+# Go through every argument, identify it, and add it to a list if appropriate.
 #
 while [ -n "$1" ]
 do
@@ -426,13 +426,13 @@ do
       old_ii_format=1
       ;;
     *\.a)
-#     Collect a list of library archive names (.a) files.
+#     Collect a list of library archive (.a) files.
       object_files=$object_files" "$1
       any_l_or_o_files=1
       add_to_instantiation_command=0
       ;;
     *\.so | *\.so\.*)
-#     Collect a list of library shared object names (.so) files.
+#     Collect a list of library shared object (.so) files.
       object_files=$object_files" "$1
       any_l_or_o_files=1
       add_to_instantiation_command=0
@@ -803,7 +803,7 @@ do
   fi
   #
   # If we are doing automatic instantiation and if the program involves
-  # templates then the a .ii file will exist after the compilation.
+  # templates then a .ii file will exist after the compilation.
   # If a .ii file exists that means that the compilation used templates in
   # some way.  Generate a new .ii file using the current command line.
   # The front end only generates the .ii file when the back end is run
