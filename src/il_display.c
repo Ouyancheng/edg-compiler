@@ -622,6 +622,16 @@ Display a_source_file entry.
 }  /* disp_source_file */
 
 
+static void disp_template_param_coordinate(a_template_param_coordinate *ptr)
+/*
+Display the indicated template parameter coordinate.
+*/
+{
+  disp_unsigned_long("coordinates.position", (unsigned long)ptr->position);
+  disp_unsigned_long("coordinates.depth", (unsigned long)ptr->depth);
+}  /* disp_template_param_coordinate */
+
+
 static void disp_template_param_constant(a_constant *ptr)
 /*
 Display a ck_template_param constant.
@@ -637,22 +647,24 @@ Display a ck_template_param constant.
       break;
     case tpck_expression:
       (void)printf("tpck_expression\n");
-      disp_ptr("expr", (char *)ptr->variant.template_param.expr, iek_expr);
+      disp_ptr("expr", (char *)ptr->variant.template_param.variant.expr,
+               iek_expr_node);
       break;
     case tpck_member:
       (void)printf("tpck_member\n");
       disp_boolean("is_address",
-                   (a_boolean)ptr->variant.template_param.is_address);
+                   (a_boolean)ptr->variant.template_param.variant.is_address);
       break;
     case tpck_unknown_function:
       (void)printf("tpck_unknown_function\n");
       disp_ptr("conversion_type",
-               (char *)ptr->variant.template_param.conversion_type,
+               (char *)ptr->variant.template_param.variant.conversion_type,
                iek_type);
       break;
     case tpck_cast:
       (void)printf("tpck_cast\n");
-      disp_ptr("constant", (char *)ptr->variant.template_param.constant,
+      disp_ptr("constant",
+               (char *)ptr->variant.template_param.variant.constant,
                iek_constant);
       break;
     case tpck_sizeof:
@@ -664,7 +676,8 @@ Display a ck_template_param constant.
     case tpck_uuidof:
       (void)printf("tpck_uuidof\n");
 do_type_cases:
-      disp_ptr("type", (char *)ptr->variant.template_param.type, iek_type);
+      disp_ptr("type", (char *)ptr->variant.template_param.variant.type,
+               iek_type);
       break;
     default:
       (void)printf("**BAD TEMPLATE PARAM CONSTANT KIND**\n");
@@ -1045,6 +1058,17 @@ Display the indicated based type list.
     }  /* for */
   }  /* if */
 }  /* disp_based_type_list */
+
+
+static void disp_template_param_type_supplement(
+                                      a_template_param_type_supplement_ptr ptr)
+/*
+Display the indicated template parameter type supplement.
+*/
+{
+  disp_ptr("class_type", (char *)ptr->class_type, iek_type);
+  disp_template_param_coordinate(&ptr->coordinates);
+}  /* disp_template_param_type_supplement */
 
 
 static void disp_type(a_type_ptr ptr)
@@ -3922,27 +3946,6 @@ Display the indicated class type supplement entry.
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
 }  /* disp_class_type_supplement */
-
-
-static void disp_template_param_coordinate(a_template_param_coordinate *ptr)
-/*
-Display the indicated template parameter coordinate.
-*/
-{
-  disp_unsigned_long("coordinates.position", (unsigned long)ptr->position);
-  disp_unsigned_long("coordinates.depth", (unsigned long)ptr->depth);
-}  /* disp_template_param_coordinate */
-
-
-static void disp_template_param_type_supplement(
-                                      a_template_param_type_supplement_ptr ptr)
-/*
-Display the indicated template parameter type supplement.
-*/
-{
-  disp_ptr("class_type", (char *)ptr->class_type, iek_type);
-  disp_template_param_coordinate(&ptr->coordinates);
-}  /* disp_template_param_type_supplement */
 
 
 static void disp_constructor_init(a_constructor_init_ptr ptr)
