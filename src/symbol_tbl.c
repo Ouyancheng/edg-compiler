@@ -7199,8 +7199,8 @@ C and C++.
                                             must_be_class_or_namespace,
                                             must_be_tag,
                                             inactive_symbol_list, locator);
-            if (sym != NULL) goto end_lookup;
           }  /* if */
+          if (sym != NULL) goto end_lookup;
 	  if (kind == (a_scope_kind)sck_class_reactivation) {
             /* There is no inactive symbol that is in this class. */
             /* Look for a symbol projected (inherited) into this class. */
@@ -7247,8 +7247,8 @@ C and C++.
                                             must_be_class_or_namespace,
                                             must_be_tag,
                                             inactive_symbol_list, locator);
-            if (sym != NULL) goto end_lookup;
           }  /* if */
+          if (sym != NULL) goto end_lookup;
           if (kind == (a_scope_kind)sck_class_struct_union) {
             /* For class scopes, look for a symbol projected (inherited)
                into the class scope. */
