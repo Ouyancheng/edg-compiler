@@ -712,10 +712,17 @@ if there's no overflow TRUE is returned.
       overflow = !do_alignment(p_byte_offset, p_bit_offset, field_alignment);
     }  /* if */
     if (!overflow) {
-      /* Remember the most stringent alignment requirement as the alignment
-         requirement for the overall struct. */
-      if (field_alignment > *p_alignment) {
-        *p_alignment = field_alignment;
+      if (field->source_corresp.assoc_info == NULL &&
+          (C_dialect != C_dialect_cplusplus || !is_union_type(field->type))) {
+        /* This is an unnamed bit field (or unnamed non-bit field).  The
+           alignment it forces should not affect the alignment of the struct
+           as a whole. */
+      } else {
+        /* Remember the most stringent alignment requirement as the alignment
+           requirement for the overall struct. */
+        if (field_alignment > *p_alignment) {
+          *p_alignment = field_alignment;
+        }  /* if */
       }  /* if */
       /* Save the current byte_offset and bit_offset values.  The bit_offset
          value for the field is not updated until after increment_field_offsets
