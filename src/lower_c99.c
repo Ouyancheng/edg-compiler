@@ -2082,14 +2082,15 @@ storage for the given VLA variable.
 */
 {
   an_expr_node_ptr  result = var_lvalue_expr(vla_var), size_expr;
-  a_type_ptr        ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
+  a_type_ptr        size_type = integer_type(targ_size_t_int_kind);
 
   result = add_c99_lowered_cast_if_necessary(result, void_star_type());
   size_expr = vla_size_expr(vla_var->type, /*byte_count=*/TRUE);
+  size_expr = add_c99_lowered_cast_if_necessary(size_expr, size_type);
   result->next = size_expr;
   result = make_prototyped_runtime_call("__vla_alloc", &vla_alloc_routine,
                                         void_type(), void_star_type(),
-                                        ptrdiff_type, result);
+                                        size_type, result);
   return result;
 }  /* make_vla_allocation_expr */
 
@@ -2407,8 +2408,7 @@ on the scope types list.
 */
 {
 #if REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING
-  /* As of now, the only reason types are lowered is to handle UCNs
-     in names, so if there are no UCNs avoid some processing. */
+  /* If there are no UCNs avoid some processing. */
   if (il_header.UCN_identifiers_used) {
     lower_c99_source_correspondence(&type->source_corresp);
     if (type->kind == (a_type_kind)tk_struct ||
