@@ -2007,7 +2007,8 @@ bound with the function in *bound_function_selector.
   a_boolean             need_operand_1_type_check = FALSE;
   a_boolean             need_member_sym_check;
   a_ref_entry_ptr       rep;
-  a_routine_ptr         routine_ptr;
+  a_type_ptr            routine_type;
+  a_symbol_ptr          first_func_sym;
   a_boolean             is_qualified_name;
   a_boolean             is_vacuous_destructor_reference = FALSE;
   a_source_position     member_position, qualified_member_position;
@@ -2362,7 +2363,6 @@ bound with the function in *bound_function_selector.
          which means we do not know whether x is really used. */
       change_operand_refs_to_error(operand_1);
     } else {
-      projection_member_sym = locator_for_curr_id.specific_symbol;
       /* See what kind of member we have. */
       switch (member_sym->kind) {
         case sk_field:
@@ -2390,8 +2390,8 @@ bound with the function in *bound_function_selector.
           break;
         case sk_member_function:
           /* Member function (static or non-static). */
-          routine_ptr = member_sym->variant.routine.ptr;
-          if (routine_type_is_nonstatic_member_function(routine_ptr->type)) {
+          routine_type = member_sym->variant.routine.ptr->type;
+          if (routine_type_is_nonstatic_member_function(routine_type)) {
             /* Nonstatic member function. */
             /* Also continue here for an overloaded function. */
 nonstatic_member_function:
@@ -2438,10 +2438,24 @@ nonstatic_member_function:
                   "scan_field_selection_operator: overloaded func not member");
           }  /* if */
 #endif /* CHECKING */
-          /* We don't know yet whether or not we will need a selector
-             object, so save the selector.  It will be discarded later
-             if it is not needed. */
-          goto nonstatic_member_function;
+          first_func_sym = member_sym->variant.overloaded_function.symbols;
+          routine_type = routine_symbol_type(first_func_sym);
+          if (member_sym->variant.overloaded_function.mixed_static_nonstatic ||
+              routine_type_is_nonstatic_member_function(routine_type)) {
+            /* At least one function is nonstatic.  We don't (necessarily)
+               know yet whether or not we will need a selector object, so
+               save the selector.  It will be discarded later if it is
+               not needed. */
+            goto nonstatic_member_function;
+          }  /* if */
+          /* All the functions are static, so the selector can be discarded
+             right away. */
+          discard_operand(operand_1);
+          make_indefinite_function_operand(
+                              locator_for_curr_id.specific_symbol,
+                              (a_boolean)locator_for_curr_id.is_qualified_name,
+                              result);
+          break;
         case sk_constant:
           /* Member constant (e.g., an enumerator). */
           discard_operand(operand_1);
