@@ -4120,6 +4120,42 @@ The routine body is not generated until it is known to be needed.
 }  /* check_special_member_functions */
 
 
+static void project_base_class_conversion_functions(a_type_ptr class_type)
+{
+  a_base_class_ptr               bcp;
+  a_class_symbol_supplement_ptr  cssp;
+  a_conversion_list_entry_ptr    clep, bcclep;
+  a_symbol_locator               loc;
+
+  bcp = class_type->variant.class_struct_union.extra_info->base_classes;
+  cssp = symbol_supplement_for_class(class_type);
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct) {
+      bcclep = (symbol_supplement_for_class(bcp->type))->conversion_list;
+      for (; bcclep != NULL; bcclep = bcclep->next) {
+        for (clep = cssp->conversion_list; clep != NULL; clep = clep->next) {
+          if (clep->symbol->header == bcclep->symbol->header) break;
+        }  /* for */
+        if (clep == NULL) {
+          clep = alloc_conversion_list_entry();
+          make_locator_for_symbol(bcclep->symbol, &loc);
+          loc.specific_symbol = NULL;
+          clep->symbol = make_projected_conversion_symbol(class_type, &loc);
+#if CHECKING
+          if (clep->symbol == NULL) {
+            internal_error(
+                     "project_base_class_conversion_functions: no projection");
+          }  /* if */
+#endif /* CHECKING */
+          clep->next = cssp->conversion_list;
+          cssp->conversion_list = clep;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* project_base_class_conversion_functions */
+
+
 static an_access_adjustment_ptr new_access_adjustment(
                                                  a_symbol_ptr         sym,
                                                  an_access_specifier  access)
@@ -5043,6 +5079,8 @@ next_declaration:
       /* Create compiler-generated default constructor, copy constructor, and
          destructor, if any is needed. */
       check_special_member_functions(class_type);
+      /* Check for inherited conversion functions. */
+      project_base_class_conversion_functions(class_type);
     }  /* if */
     /* Save a pointer to the list of member symbols in the tag symbol.  Note
        that there may be symbols even if there there were no declarations,
