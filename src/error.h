@@ -457,8 +457,8 @@ typedef enum /*an_error_code*/ {
   ec_inline_main,
   ec_class_and_member_function_name_conflict,
   ec_nested_class_anachronism,
-  ec_too_many_args_for_destructor,
-  ec_bad_constructor_arg,
+  ec_too_many_params_for_destructor,
+  ec_bad_constructor_param,
   ec_incomplete_return_type_not_allowed
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
@@ -511,6 +511,8 @@ extern void pos_st_remark(an_error_code     error_code,
                           char              *error_string);
 extern void pos_remark(an_error_code     error_code,
                        a_source_position *error_pos);
+extern void str_remark(an_error_code error_code,
+                       char          *error_string);
 extern void remark(an_error_code error_code);
 extern void pos_st_warning(an_error_code     error_code,
                            a_source_position *error_pos,
