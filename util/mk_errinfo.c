@@ -15,7 +15,6 @@ the error text.
 
 */
 
-#include <stdlib.h>
 #include "basics.h"
 #include "host_envir.h"
 
@@ -47,6 +46,11 @@ typedef sizeof_t qsort_nmemb_type;
 #endif /* __BSD__ */
 
 EXTERN_C void exit(int status);
+#if __BSD__
+EXTERN_C char *malloc(unsigned size);
+#else /* !__BSD__ */
+#include <malloc.h>
+#endif /* __BSD__ */
 #endif /* __ANSIC__ || USING_ISO_C */
 
 
