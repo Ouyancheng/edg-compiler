@@ -7233,6 +7233,7 @@ functions befriending_list_test and class_scope_test.
   a_scope_stack_entry_ptr ssep;
   a_routine_ptr           scope_routine;
   a_scope_depth           scope_depth;
+  a_type_ptr              skip_to_class = NULL;
 
   /* Consider each scope on the scope stack that affects access control.
      They are linked together on a list. */
@@ -7257,18 +7258,41 @@ functions befriending_list_test and class_scope_test.
         have_member_privilege = TRUE;
         break;
       }  /* if */
+      if (!scope_routine->source_corresp.is_class_member) {
+        /* For a non-member function, in particular a friend function
+           defined inside a class, we're done.  Being a friend of a class
+           doesn't make one a friend of any enclosing classes. */
+        break;
+      }  /* if */
+      /* Ignore class scopes until we get to the class of which this
+         function is a member. */
+      skip_to_class = scope_routine->source_corresp.parent.class_type;
     } else if (kind == (a_scope_kind)sck_template_instantiation) {
       /* Nothing required for template instantiation scopes. */
     } else {
       check_assertion_str(kind == (a_scope_kind)sck_class_struct_union ||
                           kind == (a_scope_kind)sck_class_reactivation,
                    "have_particular_member_access_privilege: bad stack entry");
-      /* A class or class reactivation.  Check for access granted by
-         being a member of the class. */
-      if (class_scope_test(class_type, ssep)) {
-        /* We are inside a class that gives us member access. */
-        have_member_privilege = TRUE;
-        break;
+      /* A class or class reactivation. */
+      if (skip_to_class != NULL &&
+          !same_entities(class_type, skip_to_class)) {
+        /* We're skipping to the class skip_to_class, so ignore this entry. */
+      } else {
+        /* Check for access granted by being a member of the class. */
+        if (class_scope_test(class_type, ssep)) {
+          /* We are inside a class that gives us member access. */
+          have_member_privilege = TRUE;
+          break;
+        }  /* if */
+        if (class_type->source_corresp.is_class_member) {
+          /* Ignore class scopes until we get to the class of which this
+             class is a member. */
+          skip_to_class = class_type->source_corresp.parent.class_type;
+        } else {
+          /* For a non-nested class, keep going to check any enclosing
+             function. */
+          skip_to_class = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
