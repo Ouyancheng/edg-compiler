@@ -6902,35 +6902,40 @@ a_source_sequence_entry_ptr add_empty_source_sequence_entry(
                                                    a_boolean  alloc_in_fs,
                                                    a_boolean  proxy_allowed)
 /*
+Create an "empty" source sequence entry (one with a null entity pointer and
+an entity kind of iek_none) -- it will be allocated in the file scope
+memory region if alloc_in_fs is TRUE and in the current memory region if
+it is FALSE.  Then add it to the appropriate source sequence list.  If
+the current memory region is not the file scope memory region and
+alloc_in_fs is TRUE, then a proxy pointer will be added to the list of
+the current memory region only if proxy_allowed is TRUE.
 */
 {
   a_source_sequence_entry_ptr  ssep;
   a_memory_region_number       region_to_switch_back_to;
 
   db_enter(4, "add_empty_source_sequence_entry");
-  if (alloc_in_fs) {
-    switch_to_file_scope_region(&region_to_switch_back_to);
-#if CHECKING
-  } else {
-    check_assertion(proxy_allowed == FALSE);
-#endif /* CHECKING */
-  }  /* if */
-  ssep = alloc_source_sequence_entry();
-  ssep->entity.kind = (a_byte_il_entry_kind)iek_none;
-  /* Note that the entity.ptr field is left NULL. */
-  if (alloc_in_fs) switch_back_to_original_region(region_to_switch_back_to);
-  ssep = add_to_source_sequence_list(ssep, proxy_allowed);
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    /* Do not put out an empty source sequence entry during class or function
+       instantiation. */
 #if 0
-  if (proxy_allowed && depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-    a_source_sequence_entry_ptr  local_ssep;
-    check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
-    local_ssep = scope_stack[depth_innermost_function_scope].
-                                               last_source_sequence_entry;
-    check_assertion(ss_is_proxy(local_ssep));
-    check_assertion(ss_assoc_with_proxy(local_ssep) == ssep);
-    ssep = local_ssep;
-  }  /* if */
+    /* We may need to change this for prototype instantiations, however. */
 #endif /* if 0 */
+    ssep = NULL;
+  } else {
+    if (alloc_in_fs) {
+      switch_to_file_scope_region(&region_to_switch_back_to);
+#if CHECKING
+    } else {
+      check_assertion(proxy_allowed == FALSE);
+#endif /* CHECKING */
+    }  /* if */
+    ssep = alloc_source_sequence_entry();
+    ssep->entity.kind = (a_byte_il_entry_kind)iek_none;
+    /* Note that the entity.ptr field is left NULL. */
+    if (alloc_in_fs) switch_back_to_original_region(region_to_switch_back_to);
+    ssep = add_to_source_sequence_list(ssep, proxy_allowed);
+  }  /* if */
   db_exit();
   return ssep;
 }  /* add_empty_source_sequence_entry */
@@ -6941,7 +6946,9 @@ void remove_from_source_sequence_list(a_source_sequence_entry_ptr  *ssep_ptr,
 /*
 Remove the source sequence entry pointed to by ssep from the list to which
 it belongs and place it on the appropriate available list (depending on the
-memory region in which it was allocated).
+memory region in which it was allocated).  If class_type is non-NULL, it
+identifies the type on whose list the source sequence entry was originally
+placed but whose scope has since been popped from the scope stack.
 */
 {
   a_source_sequence_entry_ptr  ssep = *ssep_ptr, *avail_list_ptr;
@@ -6968,6 +6975,11 @@ memory region in which it was allocated).
                &scope_stack[depth_innermost_file_scope_region_ss_list_scope];
       sp = scope_stack_ptr->il_scope;
     } else {
+      /* The scope for the class has been popped off the scope stack, so
+         there's no scope stack entry any longer.  This happens member and
+         friend functions defined inline within the class definition; the
+         class scope stack entry was popped off and then reactivated -- but
+         reactivation scopes are not useful. */
       scope_stack_ptr = NULL;
       sp = class_type->variant.class_struct_union.extra_info->assoc_scope;
     }  /* if */
@@ -6979,6 +6991,8 @@ memory region in which it was allocated).
     avail_list_ptr = &scope_stack_ptr->source_sequence_avail_list;
   }  /* if */
 #if CHECKING
+  /* Be sure the source sequence entry is actually on the list it's supposed
+     to be on. */
   {
   a_source_sequence_entry_ptr tmp;
 
@@ -6990,17 +7004,6 @@ memory region in which it was allocated).
   }  /* if */
   }
 #endif /* if CHECKING */
-#if 0
-  /* This source sequence entry should be returned to an available list --
-     either that of the file scope or that of the current function scope.
-     The difference is what memory region the entity was allocated in. */
-  if (in_file_scope(ssep)) {
-    avail_list_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE].
-                                                 source_sequence_avail_list;
-  } else {
-    avail_list_ptr = &scope_stack_ptr->source_sequence_avail_list;
-  }  /* if */
-#endif /* if 0 */
   /* Modify the precedessor on the list (or the list pointer itself) to
      point to ssep's successor. */
   if (ssep->prev != NULL) {
@@ -7017,8 +7020,10 @@ memory region in which it was allocated).
     /* There is a successor on the list. */
     ssep->next->prev = ssep->prev;
   } else {
-    /* No successor.  Change the tail pointer. */
-    if (scope_stack_ptr != NULL) {
+    /* No successor.  Change the tail pointer, if still available. */
+    if (scope_stack_ptr == NULL) {
+      /* No scope stack entry, so no tail pointer. */
+    } else {
 #if CHECKING
       if (scope_stack_ptr->last_source_sequence_entry != ssep) {
         internal_error("remove_from_source_sequence_list: bad last entry");
