@@ -3371,9 +3371,9 @@ Return TRUE is sym is a symbol for an operator delete() function.
     } else {
       rp = sym->variant.routine.ptr;
     }  /* if */
-    is_operator_delete =
-               (rp->special_kind == (a_special_function_kind)sfk_operator &&
-                rp->opname_kind == (an_opname_kind)onk_delete);
+    is_operator_delete = (rp->special_kind ==
+                                   (a_special_function_kind)sfk_operator &&
+                          is_delete_operator(rp->opname_kind));
   }  /* if */
   return is_operator_delete;
 }  /* is_operator_delete_symbol */
@@ -6722,10 +6722,8 @@ Scan the body of a class definition, including the base classes list.
                 } else if (member_storage_class ==
                                          (a_storage_class)sc_static ||
                            (locator.is_operator_name &&
-                            (locator.variant.opname ==
-                                             (an_opname_kind)onk_new ||
-                             locator.variant.opname ==
-                                             (an_opname_kind)onk_delete))) {
+                            (is_new_operator(locator.variant.opname) ||
+                             is_delete_operator(locator.variant.opname)))) {
                   /* Only nonstatic member functions may be specified as
                      virtual.  This applies to operators new and delete
                      since they are always static (ARM 12.5). */

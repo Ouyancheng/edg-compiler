@@ -1208,8 +1208,8 @@ scope is that of a class definition.
           if (last_param_type == extra_info->param_type_list) {
             /* The first parameter on the list has just been processed. */
             if (locator != NULL && locator->is_operator_name &&
-                (locator->variant.opname == (an_opname_kind)onk_new ||
-                 locator->variant.opname == (an_opname_kind)onk_delete)) {
+                (is_new_operator(locator->variant.opname) ||
+                 is_delete_operator(locator->variant.opname))) {
               /* Default argument expressions are permitted on the second and
                  subsequent parameters of an operator new and delete
                  declarations. */
@@ -1435,8 +1435,8 @@ scope is that of a class definition.
          function is illegal (ARM 8.2.5)..  However, qualifiers on a pointer
          to member function are permitted. */
       if (locator != NULL && locator->is_operator_name &&
-          (locator->variant.opname == (an_opname_kind)onk_new ||
-           locator->variant.opname == (an_opname_kind)onk_delete)) {
+          (is_new_operator(locator->variant.opname) ||
+           is_delete_operator(locator->variant.opname))) {
         /* Operator new and delete can never be qualified. */
         qualifier_err = TRUE;
       } else if (member_function_parent_type == NULL) {
@@ -2281,8 +2281,8 @@ to FALSE if the entity being declared is not initializable.
       if (locator->specific_symbol != NULL) {
         /* This must be a redeclaration. */
       } else if (!(input_flags & DI_NONSTATIC_MEMBER) &&
-                 locator->variant.opname != (an_opname_kind)onk_new &&
-                 locator->variant.opname != (an_opname_kind)onk_delete) {
+                 !is_new_operator(locator->variant.opname) &&
+                 !is_delete_operator(locator->variant.opname)) {
         pos_error(ec_static_member_operator_not_allowed,
                   &locator->source_position);
         set_to_error_locator(*locator);
@@ -2672,9 +2672,9 @@ function_lparen:
         } else {
           if (input_flags & DI_NONSTATIC_MEMBER) {
             if (locator->is_operator_name &&
-                (locator->variant.opname == (an_opname_kind)onk_new ||
-                 locator->variant.opname == (an_opname_kind)onk_delete)) {
-              /* operator new and operator delete are always nonstatic, even
+                (is_new_operator(locator->variant.opname) ||
+                 is_delete_operator(locator->variant.opname))) {
+              /* operator new and operator delete are always static, even
                  if "static" was not specified in the declaration. */
             } else {
               is_nonstatic_member_function = TRUE;
