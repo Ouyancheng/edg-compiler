@@ -1,5 +1,19 @@
 Version 2.41
 
+3/1/99   Microsoft compatibility: bug introduced by change to make
+         template parameters visible in class specializations
+
+In version 2.40, a change was made in Microsoft mode to make template
+parameters visible within a specialization.  This change resulted in
+spurious errors in cases where a member template of a specialization
+was defined outside of the class.  This has been fixed.
+
+  template <class T> struct A {};
+  struct A<int> {
+    template <class T2> void f(A<T2>); 
+  };
+  template <class T2> void A<int>::f(A<T2>) {}  
+
 2/26/99  Microsoft compatibility: string in parentheses as initializer
 
 Microsoft mode now accepts a string literal in parentheses as the
