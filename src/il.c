@@ -12430,10 +12430,8 @@ need initialization for every (primary and secondary) translation unit.
   curr_object_lifetime = NULL;
   /* remove_unneeded_entities is the value, settable from the command line,
      to which okay_to_eliminate_unneeded_il_entries should be initialized
-     with each new compilation unit (unneeded IL is not eliminated in
-     secondary translation units). */
-  okay_to_eliminate_unneeded_il_entries = is_primary_translation_unit ?
-                                             remove_unneeded_entities : FALSE;
+     with each new compilation unit. */
+  okay_to_eliminate_unneeded_il_entries = remove_unneeded_entities;
   /* Not conditional because it's also used by trans_copy.c: */
   initial_value_for_il_lowering_flag = 0;
 #if ONE_INSTANTIATION_PER_OBJECT
