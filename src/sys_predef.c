@@ -157,8 +157,7 @@ Enter the standard predeclared functions for GCC.
   if (builtin_function_kind_names[(int)bfk_last] == NULL ||
       strcmp(builtin_function_kind_names[(int)bfk_last], "last") != 0) {
     internal_error(
-     "enter_gnu_predeclared_functions: initialization of "
-     "builtin_function_kind_names is not correct");
+           "enter_gnu_predecl...: init of builtin_function_kind_names is bad");
   }  /* if */
 #endif /* CHECKING */
 
