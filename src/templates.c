@@ -13110,9 +13110,14 @@ that follows.
       if (already_specialized) first_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
       if (scp->referenced && !already_specialized) {
-        pos_sy_error(ec_specialization_of_referenced_entity,
-                     &locator.source_position, sym);
-        sym = NULL;
+        /* The entity has already been referenced and cannot be specialized.
+           This is accepted for class members in Microsoft bugs mode. */
+        an_error_severity	severity;
+        severity = microsoft_bugs && sym->is_class_member ? es_warning
+                                                          : es_error;
+        pos_sy_diagnostic(severity, ec_specialization_of_referenced_entity,
+                          &locator.source_position, sym);
+        if (severity == es_error) sym = NULL;
       } else if (is_definition && sym->defined) {
         /* The entity has already been defined. */
         pos_sy_error(ec_already_defined, &locator.source_position, sym);

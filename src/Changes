@@ -1,5 +1,13 @@
 Version 2.45
 
+9/21/00  Microsoft compatibility: specialization allowed after use
+
+The Microsoft compiler allows a member function template or a member
+function of a template class to be explicitly specialized after it
+has been used.  This is not allowed by the standard.  The front end
+now allows such specializations in Microsoft bugs mode, a warning
+is issued.
+
 9/21/00  IL memory corruption when
          NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE
 
