@@ -514,6 +514,17 @@ those containing source correspondence information.)
 */
 #define has_name(entry) ((entry)->source_corresp.name != NULL)
 
+
+/*
+Clear the parent information in the indicated entity to remove the entity
+from any class or namespace of which it might be a member.
+*/
+#define clear_parent(entity) \
+{ (entity)->source_corresp.is_class_member = FALSE; \
+  (entity)->source_corresp.parent.namespace_ptr = NULL; \
+}  /* clear_parent */
+
+
 /*
 Return TRUE if a constant is an error constant.
 */
