@@ -146,6 +146,7 @@ severity explicitly included in the message.
 #ifndef ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES
 #define ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES TRUE
 #endif /* ifndef ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES */
+
 /*
 The flag STANDALONE_IL_DISPLAY is set to TRUE when compiling the standalone
 IL display utility.  It should be set on the command line if needed;
