@@ -287,9 +287,10 @@ parenthesis of the property list as the current token.
         break;
       }  /* if */
       /* Allocate a copy of the name specified. */
-      name = alloc_il(len_of_curr_token+1);
-      (void)memcpy(name, start_of_curr_token, size_t_arg(len_of_curr_token));
-      name[len_of_curr_token] = '\0';
+      { a_symbol_header_ptr hdr = locator_for_curr_id.symbol_header;
+        name = alloc_il(hdr->identifier_length+1);
+        (void)strcpy(name, hdr->identifier);
+      }
       if (is_get) {
         if (decl_modifiers->get_property_name != NULL) {
           /* "get" specified more than once. */

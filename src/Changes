@@ -1,6 +1,23 @@
 Version 3.5
 
-9/15/04  Abort on output of GNU address-of-label cast to integral type
+9/16/04  Microsoft property fields did not work right in templates
+
+Microsoft fields declared with __declspec(property) did not work
+right when the field declaration is in a template.  Now fixed.
+
+  template <class T> class A {
+  public:
+    int  GetSize() {return 0;}
+    void SetSize(int){}
+    __declspec(property(get=GetSize,put=SetSize)) int Size;
+    void    IncSize(int i=1) { Size=Size+i; }
+  };
+  A<int> a;
+  void v() {
+    a.IncSize();
+ }
+
+9/16/04  Abort on output of GNU address-of-label cast to integral type
 
 The il_to_str routines aborted ("type_pointed_to: not a pointer type")
 when trying to output a GNU address-of-label (e.g., &&L) that has been
