@@ -2598,7 +2598,8 @@ or not the parameter should be passed using a copy constructor.
     if (is_class_struct_union_type(param_type)) {
       /* The parameter is a class passed by value.  See if the class
          has a "real" copy constructor. */
-      if (!symbol_supplement_for_class(param_type)->
+      if (!is_incomplete_type(param_type) &&
+          !symbol_supplement_for_class(param_type)->
                                         construction_by_bitwise_copy_allowed) {
         /* Yes. */
         ptp->passed_via_copy_constructor = TRUE;
@@ -3597,7 +3598,8 @@ declaration of the function and must be completed by the point of call.
     return_type = routine_type->variant.routine.return_type;
     return_type = skip_typerefs(return_type);
     if (is_class_struct_union_type(return_type)) {
-      if (!symbol_supplement_for_class(return_type)->
+      if (!is_incomplete_type(return_type) &&
+          !symbol_supplement_for_class(return_type)->
                                         construction_by_bitwise_copy_allowed) {
         rtsp->caller_provides_place_to_put_return_value = TRUE;
       }  /* if */
