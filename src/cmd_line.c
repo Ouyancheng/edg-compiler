@@ -1554,6 +1554,12 @@ common_cfront_mode_settings:
       command_line_error(
                         ec_cl_special_subscript_cost_option_only_in_cplusplus);
     }  /* if */
+    if (option_kind_used[(int)optk_typename]) {
+      command_line_error(ec_cl_typename_option_only_in_cplusplus);
+    }  /* if */
+    if (option_kind_used[(int)optk_implicit_typename]) {
+      command_line_error(ec_cl_implicit_typename_option_only_in_cplusplus);
+    }  /* if */
     /* Turn on features implied by SVR4 C mode. */
     if (SVR4_C_mode) {
       address_of_ellipsis_allowed = TRUE;

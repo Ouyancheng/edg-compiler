@@ -810,6 +810,8 @@ ec_bad_scope_for_explicit_instantiation;;"%n cannot be explicitly instantiated i
 ec_multiple_explicit_instantiations;;"%n explicitly instantiated more than once"
 ec_typename_not_in_template;;"typename may only be used within a template"
 ec_cl_special_subscript_cost_option_only_in_cplusplus;;"special_subscript_cost option can be used only when compiling C++"
+ec_cl_typename_option_only_in_cplusplus;;"typename option can be used only when compiling C++"
+ec_cl_implicit_typename_option_only_in_cplusplus;;"implicit typename option can be used only when compiling C++"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
