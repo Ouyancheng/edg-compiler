@@ -853,10 +853,11 @@ extern a_boolean f_get_opname(void);
 /* Test for ":: new" and ":: delete". */
 extern a_boolean is_global_new_or_delete(void);
 /* Get a C++ class-qualifier, like "A::". */
-extern a_boolean get_class_qualifier(a_type_ptr *class_type,
-                                     a_boolean  *is_file_scope_qualifier,
-                                     a_boolean  *has_global_qualifier,
-                                     a_boolean  *err);
+extern a_boolean get_class_qualifier(a_token_cache *cache,
+                                     a_type_ptr    *class_type,
+                                     a_boolean     *is_file_scope_qualifier,
+                                     a_boolean     *has_global_qualifier,
+                                     a_boolean     *err);
 /* Get a C++ qualified name, like "A::x". */
 /* See symbol_tbl.h for the options set definition. */
 extern a_boolean get_qualified_name(an_id_lookup_options_set options);

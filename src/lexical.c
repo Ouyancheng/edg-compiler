@@ -4330,10 +4330,11 @@ These look like qualified names but aren't.
 }  /* is_global_new_or_delete */
 
 
-a_boolean get_class_qualifier(a_type_ptr *class_type,
-                              a_boolean  *is_file_scope_qualifier,
-                              a_boolean  *has_global_qualifier,
-                              a_boolean  *err)
+a_boolean get_class_qualifier(a_token_cache *cache,
+                              a_type_ptr    *class_type,
+                              a_boolean     *is_file_scope_qualifier,
+                              a_boolean     *has_global_qualifier,
+                              a_boolean     *err)
 /*
 Scan an optional class qualifier, e.g., "A::B::" (note that the final
 identifier of a qualified name is not scanned here; see get_qualified_name).
@@ -4404,8 +4405,12 @@ mode.
         check_ambiguity_and_verify_access(&locator_for_curr_id);
         *class_type = class_symbol->variant.class_struct_union.type;
       }  /* if */
+      /* Cache the identifier, if required. */
+      if (cache != NULL) cache_curr_token(cache);
       /* Skip over the class-name, and the "::". */
       (void)get_token();
+      /* Cache the "::", if required. */
+      if (cache != NULL) cache_curr_token(cache);
       if (get_token() != tok_identifier || next_token() != tok_colon_colon) {
         /* Not an identifier followed by "::", so end the loop. */
         break;
@@ -4454,6 +4459,7 @@ the error on the final identifier not being found on lookup.
   an_error_code	err_code;
   a_symbol_header_ptr
 		class_symbol_header;
+  a_token_cache token_cache, *cache_ptr;
 
 #if CHECKING
   if (options & IDL_CONSTRAINTS) {
@@ -4467,9 +4473,16 @@ the error on the final identifier not being found on lookup.
         /* The current token is already a qualified name or specific symbol. */
         is_qualified_name = locator_for_curr_id.is_qualified_name;
       } else {
+        if (options & IDL_PTR_TO_MEMBER_ALLOWED) {
+          clear_token_cache(&token_cache);
+          cache_ptr = &token_cache;
+        } else {
+          cache_ptr = NULL;
+        }  /* if */
         /* See if there is a class qualifier (the "A::" part of "A::x"), and
            if so, get it and determine the class it represents. */
-        if (get_class_qualifier(&class_type, &is_file_scope_qualifier,
+        if (get_class_qualifier(cache_ptr, &class_type,
+                                &is_file_scope_qualifier,
                                 &has_global_qualifier, &qualifier_err)) {
           /* This is a qualified name. */
           /* Save the start position of the qualified name (get_class_qualifier
@@ -4477,6 +4490,11 @@ the error on the final identifier not being found on lookup.
           start_position = error_position;
           set_err_pos_to_curr_token();
           okay = FALSE;
+          if ((options & IDL_PTR_TO_MEMBER_ALLOWED) &&
+              curr_token == tok_star) {
+            rescan_cached_tokens(cache_ptr);
+            goto done;
+          }  /* if */
           if (!is_file_scope_qualifier) {
             /* The name can be a destructor name like "~A". */
             (void)get_destructor_name(&class_symbol_header);
@@ -4545,6 +4563,7 @@ the error on the final identifier not being found on lookup.
 #endif /* DEBUG */
     }  /* if */
   }  /* if */
+done:
   return is_qualified_name;
 }  /* get_qualified_name */
 
