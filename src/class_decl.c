@@ -780,129 +780,6 @@ for the class to which they belong.
 }  /* insert_in_virtual_function_override_list */
 
 
-a_base_class_ptr find_direct_base_class_of(a_type_ptr  base_class_type,
-                                           a_type_ptr  derived_class)
-/*
-Find the direct base class of derived_class with a type identical to
-base_class_type.
-*/
-{
-  a_base_class_ptr  bcp;
-
-  db_enter(4, "find_direct_base_class_of");
-  bcp = base_classes_of(derived_class);
-  for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct && bcp->type == base_class_type) break;
-  }  /* for */
-  db_exit();
-  return bcp;
-}  /* find_direct_base_class_of */
-
-
-a_base_class_ptr corresponding_base_class(a_base_class_ptr base_class,
-                                          a_type_ptr       new_class)
-/*
-Find the base class under new_class that is the same as the base class
-indicated by base_class, and return a pointer to it.  The base class must
-be found.
-*/
-{
-  a_base_class_ptr       new_base_class, bcp;
-  a_derivation_step_ptr  step;
-
-  db_enter(4, "corresponding_base_class");
-#if DEBUG
-  if (debug_level >= 4) {
-    fputs("looking in \"", f_debug);
-    db_type_name(new_class);
-    fputs("\" for a base class corresponding to:\n  ", f_debug);
-    db_base_class(base_class, FALSE);
-  }  /* if */
-#endif /* DEBUG */
-  if (base_class->derived_class == new_class) {
-    /* base_class is aleady a base class of new_class.  Just return it. */
-    new_base_class = base_class;
-    goto done;
-  }  /* if */
-  /* Look for a match among the base classes of new_class. */
-  for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
-    if (bcp->type == base_class->type) {
-      /* The types match. */
-      if (base_class->is_virtual && bcp->is_virtual) {
-        /* Both are virtual, so they match. */
-        new_base_class = bcp;
-        goto done;
-      } else if (base_class->direct) {
-        for (step = bcp->derivation; step != NULL; step = step->next) {
-          if (step->base_class->type == base_class->derived_class) {
-            new_base_class = bcp;
-            goto done;
-          }  /* if */
-        }  /* for */
-      } else if (!bcp->ambiguous && !base_class->ambiguous) {
-        new_base_class = bcp;
-        goto done;
-      } else {
-        /* One or both of the base classes is ambiguous.  That means there
-           is more than one instance of the base class in the base classes
-           list.  Check the derivations to resolve the ambiguity. */
-        if (equivalent_paths(bcp->derivation, base_class->derivation)) {
-          new_base_class = bcp;
-          goto done;
-        } else {
-#if 0
-          for (step = bcp->derivation; step != NULL; step = step->next) {
-            if (step->base_class->type ==
-                               base_class->derivation->base_class->type &&
-                congruent_paths(step, base_class->derivation)) {
-              new_base_class = bcp;
-              goto done;
-            }  /* if */
-          }  /* for */
-#endif /* if 0 */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* for */
-#if CHECKING
-#if DEBUG
-  if (debug_level > 0) {
-    if (base_class != NULL) {
-      fputs("cannot find base class", f_debug);
-      db_base_class(base_class, FALSE);
-    }  /* if */
-    fputs("new_class = ", f_debug);
-    db_type_name(new_class);
-    fputs(" with base classes:\n", f_debug);
-    for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
-      fputs("  ", f_debug);
-      db_base_class(bcp, FALSE);
-    }  /* for */
-  }  /* if */
-#endif /* DEBUG */
-  internal_error("corresponding_base_class: base class not found");
-#else /* CHECKING */
-  new_base_class = NULL;
-#endif /* CHECKING */
-done:
-#if CHECKING
-  if (new_base_class != NULL && base_class != NULL &&
-      new_base_class->is_virtual != base_class->is_virtual) {
-    /* Virtual and nonvirtual base classes shouldn't match. */
-    internal_error("corresponding_base_class: virtual-nonvirtual mismatch");
-  }  /* if */
-#endif /* CHECKING */
-#if DEBUG
-  if (debug_level >= 4) {
-    fputs("found base class: ", f_debug);
-    db_base_class(new_base_class, FALSE);
-  }  /* if */
-#endif /* DEBUG */
-  db_exit();
-  return new_base_class;
-}  /* corresponding_base_class */
-
-
 static a_boolean overriding_virtual_function_lists_correspond(
                                     an_overriding_virtual_function_ptr  list1,
                                     an_overriding_virtual_function_ptr  list2)
@@ -982,8 +859,8 @@ new_bcp is the base class being created in new_class.
         /* The base class of the overriding function must be translated into
            the new class. */
         if (ovfp->base_class == NULL) {
-          new_ovfp->base_class = find_direct_base_class_of(old_class,
-                                                           new_class);
+          new_ovfp->base_class = find_direct_base_class_of(new_class,
+                                                           old_class);
         } else {
           new_ovfp->base_class = corresponding_base_class(ovfp->base_class,
                                                           new_class);
@@ -1127,7 +1004,7 @@ required.
       tp2 = type_pointed_to(tp2);
       if (is_class_struct_union_type(tp1) && is_class_struct_union_type(tp2)) {
         /* The types referenced/pointed to are both classes.  See if the
-           class associated with the the overridden function is a base class
+           class associated with the overridden function is a base class
            of the class associated with the overriding function. */
         bcp = find_base_class_of(tp1, tp2);
         if (bcp != NULL) {
