@@ -36,7 +36,6 @@ typedef int	a_scope_depth;
 error -- DEPTH_OF_FILE_SCOPE is not defined correctly.
 #endif /* DEPTH_OF_FILE_SCOPE != 0 */
 #endif /* ifndef DEPTH_OF_FILE_SCOPE */
-#define DEPTH_OF_FUNCTION_SCOPE 1
 
 /*
 Numbering for scopes.  Each new scope is given a number by incrementing
@@ -59,13 +58,16 @@ typedef short a_scope_number;
 #endif /* ifndef LEXICAL_H */
 #ifndef IL_H
 #include "il.h"
-#endif /* IL_H */
+#endif /* ifndef IL_H */
 #ifndef TRANS_LIMS_H
 #include "trans_lims.h"
 #endif /* ifndef trans_lims.h */
 #ifndef MEM_TABLES_H
 #include "mem_tables.h"
-#endif /* MEM_TABLES_H */
+#endif /* ifndef MEM_TABLES_H */
+#ifndef TYPES_H
+#include "types.h"
+#endif /* ifndef TYPES_H */
 
 /*
 Kinds of symbols in the symbol table.
@@ -614,6 +616,11 @@ EXTERN a_scope_depth
 			   would then contain the real scope level rather than
 			   the struct/union pseudo-scope level. */
 EXTERN a_scope_depth
+		depth_innermost_function_scope;
+			/* Level in the scope stack that contains the innermost
+			   function scope, or NO_SCOPE_DEPTH if there isn't
+			   one. */
+EXTERN a_scope_depth
 		num_current_class_reactivations;
 			/* Current count of sck_class_reactivation entries
 			   in scope_stack.  When non-zero, name lookup is
@@ -664,8 +671,19 @@ extern void remove_symbol(a_symbol_ptr sym_ptr);
 extern a_symbol_ptr find_external_symbol(a_symbol_locator *location,
                                          a_boolean        is_static,
                                          a_symbol_locator *ext_location);
-extern a_symbol_ptr normal_id_lookup(a_symbol_locator *locator,
-                                     a_boolean        must_be_class);
+
+/*
+Options for normal_id_lookup, represented as a bit set:
+*/
+typedef int an_id_lookup_options_set;
+#define IDL_MUST_BE_CLASS 0x1	/* The symbol must be a class, struct, or
+				   union name, or a typedef of one of those. */
+#define IDL_MUST_BE_TAG 0x2	/* The symbol must be a class, struct, union,
+				   or enum (not a typedef of one of those). */
+#define IDL_NO_OPTIONS 0	/* No special lookup options. */
+
+extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
+                                     an_id_lookup_options_set options);
 
 extern a_symbol_ptr scope_qualified_id_lookup(a_symbol_locator *locator,
                                               a_scope_number   scope_number,
@@ -719,10 +737,28 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 #define inactive_symbol_list_from_locator(loc)                        \
   ((loc).symbol_header->inactive_symbols)
 
-/* Return TRUE if a symbol is a class symbol. */
+/* Return TRUE if a symbol is a class symbol.   A class symbol is
+   one defined as a class, struct, or union, or a typedef of one of
+   those. */
 #define is_class_symbol(sym)                                          \
   ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
-   (sym)->kind == (a_symbol_kind)sk_union_tag)
+   (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
+   ((sym)->kind == (a_symbol_kind)sk_type &&                          \
+                                 is_struct_or_union_type((sym)->variant.type)))
+
+/* Return TRUE if a symbol is a tag symbol.   A tag symbol is
+   one defined as a class, struct, union, or enum (but not as a typedef
+   of one of those). */
+#define is_tag_symbol(sym)                                            \
+  ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
+   (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
+   (sym)->kind == (a_symbol_kind)sk_enum_tag)
+
+/* Return a pointer to the current routine entry (only usable when within
+   a routine definition). */
+#define current_routine_entry()                                       \
+  (scope_stack[depth_innermost_function_scope].il_scope->assoc_routine)
+
 
 #if DEBUG
 /* Show and return the amount of memory used by symbol table entries. */
