@@ -270,7 +270,7 @@ void reset_pack_alignment_state(a_targ_alignment            alignment,
 Called in C++ when entering a (non-prototype) class template instantiation
 or a function definition.  The default pack alignment is reset to the
 indicated alignment and the pack alignment stack is temporarily suspended
-(i.e., it's pointer is cleared).
+(i.e., its pointer is cleared).
 */
 {
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
