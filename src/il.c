@@ -11128,7 +11128,7 @@ entry into one representing a nondefining declaration.
   }  /* if */
 #endif /* if DEBUG */
 #if CHECKING
-  if (class_type->variant.class_struct_union.definition_needed) {
+  if (class_definition_needed_flag_is_set(class_type)) {
 #if DEBUG
     fprintf(f_debug, "Class type: ");
     db_abbreviated_type(class_type);
@@ -12142,11 +12142,12 @@ eliminated, if appropriate.
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
 
-a_boolean instantiation_needed_flag_is_set(a_source_correspondence *scp)
+a_boolean instantiation_needed_flag_is_set(a_source_correspondence *scp,
+                                           int                     bit_offset)
 /*
 Fetch and return the value of the per-instantiation "needed" flag
 associated with source correspondence entry *scp and with the bit
-number given by global variable needed_flag_bit_number.
+number given by global variable needed_flag_bit_number plus bit_offset.
 */
 {
   a_boolean     flag_value;
@@ -12154,7 +12155,7 @@ number given by global variable needed_flag_bit_number.
                 ptr;
   unsigned long first_bit_this_segment;
   unsigned long byte_number;
-  unsigned int  bit_number;
+  unsigned long bit_number = needed_flag_bit_number + bit_offset;
 #define BITS_PER_ENTRY (BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY*CHAR_BIT)
 
   /* Loop through the list of entries to find the one containing the
@@ -12162,7 +12163,7 @@ number given by global variable needed_flag_bit_number.
   for (ptr = scp->per_instantiation_needed_flags,
          first_bit_this_segment = 1;
        ptr != NULL &&
-         (first_bit_this_segment + BITS_PER_ENTRY) <= needed_flag_bit_number;
+         (first_bit_this_segment + BITS_PER_ENTRY) <= bit_number;
        ptr = ptr->next,
          first_bit_this_segment += BITS_PER_ENTRY) {
   }  /* for */
@@ -12171,7 +12172,7 @@ number given by global variable needed_flag_bit_number.
        to be zero. */
     flag_value = FALSE;
   } else {
-    bit_number = needed_flag_bit_number - first_bit_this_segment;
+    bit_number -= first_bit_this_segment;
     byte_number = bit_number / CHAR_BIT;
     bit_number  = bit_number % CHAR_BIT;
     flag_value = (ptr->bytes[byte_number] >> bit_number) & 1;
@@ -12182,18 +12183,21 @@ number given by global variable needed_flag_bit_number.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-void set_instantiation_needed_flag(a_source_correspondence *scp)
+void set_instantiation_needed_flag(a_source_correspondence *scp,
+                                   int                     bit_offset,
+                                   int                     new_value)
 /*
-Set to TRUE the per-instantiation "needed" flag associated with source
+Set to new_value the per-instantiation "needed" flag associated with source
 correspondence entry *scp and with the bit number given by global variable
-needed_flag_bit_number.
+needed_flag_bit_number plus bit_offset.
 */
 {
   a_per_instantiation_needed_flags_entry_ptr
                 ptr, prev_ptr;
   unsigned long first_bit_this_segment;
   unsigned long byte_number;
-  unsigned int  bit_number;
+  unsigned long bit_number = needed_flag_bit_number + bit_offset;
+  a_byte        bit;
 #define BITS_PER_ENTRY (BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY*CHAR_BIT)
 
   /* Loop through the list of entries to find the one containing the
@@ -12214,15 +12218,22 @@ needed_flag_bit_number.
         prev_ptr->next = ptr;
       }  /* if */
     }  /* if */
-    if ((first_bit_this_segment + BITS_PER_ENTRY) > needed_flag_bit_number) {
+    if ((first_bit_this_segment + BITS_PER_ENTRY) > bit_number) {
       /* This segment contains the bit we want. */
       break;
     }  /* if */
   }  /* for */
-  bit_number = needed_flag_bit_number - first_bit_this_segment;
+  bit_number -= first_bit_this_segment;
   byte_number = bit_number / CHAR_BIT;
   bit_number  = bit_number % CHAR_BIT;
-  ptr->bytes[byte_number] |= ((unsigned)1 << bit_number);
+  bit = (unsigned char)1 << bit_number;
+  if (new_value != 0) {
+    /* Set the bit. */
+    ptr->bytes[byte_number] |= bit;
+  } else {
+    /* Clear the bit. */
+    ptr->bytes[byte_number] &= ~bit;
+  }  /* if */
 #undef BITS_PER_ENTRY
 }  /* set_instantiation_needed_flag */
 

@@ -447,11 +447,16 @@ definition of the class is needed, and not just the declaration.
 */
 {
   /* Set the flag if it is not set already. */
-  if (!type->variant.class_struct_union.definition_needed) {
-    type->variant.class_struct_union.definition_needed = TRUE;
+  if (!class_definition_needed_flag_is_set(type)) {
+    set_class_definition_needed_flag(type);
 #if DEBUG
     if (db_flag_is_set("needed_flags")) {
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+      fprintf(f_debug, "Setting definition_needed (%ld) on ",
+                       needed_flag_bit_number);
+#else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
       fprintf(f_debug, "Setting definition_needed on ");
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
       db_abbreviated_type(type);
       fprintf(f_debug, "\n");
     }  /* if */
@@ -459,7 +464,7 @@ definition of the class is needed, and not just the declaration.
     /* If the class is already marked as needed, redo the sweep for that,
        because before the definition_needed flag is set the subtree of
        the class is not swept when the class needed flag is set. */
-    if (type->source_corresp.needed) {
+    if (needed_flag_is_set(&type->source_corresp)) {
       /* walk_tree_and_set_needed is not used here so that this routine can
          be callable from outside of the needed flag walk. */
       remark_as_needed((char *)type, iek_type);
@@ -536,7 +541,7 @@ as needed.
             entry_kind == iek_routine ||
             entry_kind == iek_namespace) {
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-          fprintf(f_debug, "Setting needed (%d) on ", needed_flag_bit_number);
+          fprintf(f_debug, "Setting needed (%ld) on ", needed_flag_bit_number);
 #else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
           fprintf(f_debug, "Setting needed on ");
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
@@ -606,15 +611,15 @@ expected to be defined already, so that its definition can be swept.
   mark_as_needed(entry_ptr, entry_kind);
   if (entry_kind == iek_routine) {
     /* Sweep the definition of a routine. */
-    a_scope_ptr   scope;
     a_routine_ptr rout = (a_routine_ptr)entry_ptr;
 
-    check_assertion_str(rout->defined,
-                     "set_per_instantiation_needed_flag: routine not defined");
-    check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
-                     "set_per_instantiation_needed_flag: memory region gone");
-    scope = il_header.region_scope_entry[rout->assoc_scope];
-    mark_as_needed((char *)scope, iek_scope);
+    if (rout->defined) {
+      a_scope_ptr scope;
+      check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
+                      "set_per_instantiation_needed_flag: memory region gone");
+      scope = il_header.region_scope_entry[rout->assoc_scope];
+      mark_as_needed((char *)scope, iek_scope);
+    }  /* if */
   }  /* if */
   needed_flag_bit_number = save_needed_flag_bit_number;
 }  /* set_per_instantiation_needed_flag */
@@ -676,7 +681,7 @@ references.
     if (entry_kind == (an_il_entry_kind)iek_routine) {
       a_routine_ptr rout = (a_routine_ptr)entry_ptr;
       if (rout->storage_class == (a_storage_class)sc_unspecified &&
-          !rout->is_inline && rout->defined) {
+          !rout->is_inline) {
         set_per_instantiation_needed_flag(entry_ptr, entry_kind,
                                         rout->instantiation_needed_bit_number);
       }  /* if */
@@ -700,7 +705,28 @@ set it again.  This is used when the subtree of the entity may have changed,
 to make sure the entities in the subtree are marked as needed.
 */
 {
-  ((a_source_correspondence *)entry_ptr)->needed = FALSE;
+  clear_needed_flag((a_source_correspondence *)entry_ptr);
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  if (one_instantiation_per_object && needed_flag_bit_number == 0) {
+    /* If we're maintaining a separate set of "needed" flags for each
+       instantiation, and this is an instantiation whose associated flag
+       is set, clear it so it can be set again. */
+    unsigned long saved_needed_flag_bit_number = needed_flag_bit_number;
+    needed_flag_bit_number = 0;
+    if (entry_kind == (an_il_entry_kind)iek_routine) {
+      a_routine_ptr rout = (a_routine_ptr)entry_ptr;
+      needed_flag_bit_number = rout->instantiation_needed_bit_number;
+    } else if (entry_kind == (an_il_entry_kind)iek_variable) {
+      a_variable_ptr var = (a_variable_ptr)entry_ptr;
+      needed_flag_bit_number = var->instantiation_needed_bit_number;
+    }  /* if */
+    if (needed_flag_bit_number != 0) {
+      set_instantiation_needed_flag((a_source_correspondence *)entry_ptr,
+                                    0, 0);
+    }  /* if */
+    needed_flag_bit_number = saved_needed_flag_bit_number;
+  }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
   mark_as_needed(entry_ptr, entry_kind);
 }  /* remark_as_needed */
 
@@ -929,7 +955,7 @@ keep_in_il walk.
 
   for (clep = befriending_classes; clep != NULL; clep = clep->next) {
     befriending_class = clep->class_type;
-    if (!befriending_class->variant.class_struct_union.definition_needed &&
+    if (!class_definition_needed_flag_is_set(befriending_class) &&
         !befriending_class->variant.class_struct_union.keep_definition_in_il &&
         !class_is_function_local(befriending_class)
 #if GENERATE_SOURCE_SEQUENCE_LISTS

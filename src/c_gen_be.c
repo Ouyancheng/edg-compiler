@@ -2100,7 +2100,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
          second pass (if the struct/union is defined). */
       output_defn = (type->size != 0);
 #if MAINTAIN_NEEDED_FLAGS
-      if (!type->variant.class_struct_union.definition_needed) {
+      if (!class_definition_needed_flag_is_set(type)) {
         output_defn = FALSE;
       }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -6500,7 +6500,11 @@ routine or variable has the given source correspondence field and
      for the whole mangled name. */
 #define MAX_LEN_WITHOUT_SUFFIX \
                 (MAX_C_OUTPUT_FILE_LEN-sizeof(GEN_C_FILE_SUFFIX)-8)
-  check_assertion(MAX_LEN_WITHOUT_SUFFIX > 0);
+#if CHECKING
+  { int max_len = MAX_LEN_WITHOUT_SUFFIX;
+    check_assertion(max_len > 0);
+  }
+#endif /* CHECKING */
   (void)strncpy(buffer, scp->name, MAX_LEN_WITHOUT_SUFFIX);
   buffer[MAX_LEN_WITHOUT_SUFFIX] = '\0';
   (void)sprintf(buffer+strlen(buffer), "_%08lx", crc_32(scp->name));

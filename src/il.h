@@ -123,22 +123,60 @@ EXTERN unsigned long
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
 #define needed_flag_is_set(scp) \
   (needed_flag_bit_number == 0 ? (scp)->needed : \
-                                 instantiation_needed_flag_is_set(scp))
+                                 instantiation_needed_flag_is_set(scp,0))
 extern a_boolean instantiation_needed_flag_is_set(
-                                                 a_source_correspondence *scp);
+                                           a_source_correspondence *scp,
+                                           int                     bit_offset);
 #else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #define needed_flag_is_set(scp) ((scp)->needed)
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 
 #if !STANDALONE_UTILITY_PROGRAM
-/* Macro to set the value of the needed flag. */
+
+/* Macro to set the needed flag. */
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
 #define set_needed_flag(scp) \
   (needed_flag_bit_number == 0 ? ((scp)->needed = TRUE) : \
-                                 (set_instantiation_needed_flag(scp), 0))
-extern void set_instantiation_needed_flag(a_source_correspondence *scp);
+                                 (set_instantiation_needed_flag(scp,0,1), 0))
+extern void set_instantiation_needed_flag(a_source_correspondence *scp,
+                                          int                     bit_offset,
+                                          int                     new_value);
 #else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #define set_needed_flag(scp) ((scp)->needed = TRUE)
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+
+/* Macro to clear the needed flag. */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#define clear_needed_flag(scp) \
+  (needed_flag_bit_number == 0 ? ((scp)->needed = FALSE) : \
+                                 (set_instantiation_needed_flag(scp,0,0), 0))
+#else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#define clear_needed_flag(scp) ((scp)->needed = FALSE)
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+/* Macro to fetch the value of the class definition_needed flag. */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#define class_definition_needed_flag_is_set(tp) \
+  (needed_flag_bit_number == 0 ? \
+                   (tp)->variant.class_struct_union.definition_needed : \
+                   instantiation_needed_flag_is_set(&(tp)->source_corresp,1))
+#else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#define class_definition_needed_flag_is_set(tp) \
+                  ((tp)->variant.class_struct_union.definition_needed)
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+
+#if !STANDALONE_UTILITY_PROGRAM
+/* Macro to set the class definition_needed flag. */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#define set_class_definition_needed_flag(tp) \
+  (needed_flag_bit_number == 0 ? \
+                ((tp)->variant.class_struct_union.definition_needed = TRUE) : \
+                (set_instantiation_needed_flag(&(tp)->source_corresp,1,1), 0))
+#else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#define set_class_definition_needed_flag(tp) \
+                ((tp)->variant.class_struct_union.definition_needed = TRUE)
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 

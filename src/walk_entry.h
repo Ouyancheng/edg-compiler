@@ -716,11 +716,11 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             /* The field list is part of the definition and is walked only if
                the definition should be walked. */
-            if (ptr->variant.class_struct_union.
+            if (
 #if NEEDED_FLAG_WALK
-                                                definition_needed
+                class_definition_needed_flag_is_set(ptr)
 #else /* !NEEDED_FLAG_WALK (i.e., KEEP_IN_IL_WALK) */
-                                                keep_definition_in_il
+                ptr->variant.class_struct_union.keep_definition_in_il
 #endif /* NEEDED_FLAG_WALK */
                                                                      )
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
@@ -2024,10 +2024,11 @@ after_entry_from_class:
 #endif /* !NEEDED_FLAG_WALK */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* During these walks, visit the definition only if necessary. */
-        if (((a_type_ptr)entry_ptr)->variant.class_struct_union.
+        if (
 #if NEEDED_FLAG_WALK
-                                                   definition_needed
+            class_definition_needed_flag_is_set((a_type_ptr)entry_ptr)
 #else /* !NEEDED_FLAG_WALK (i.e., KEEP_IN_IL_WALK) */
+            ((a_type_ptr)entry_ptr)->variant.class_struct_union.
                                                    keep_definition_in_il
 #endif /* NEEDED_FLAG_WALK */
                                                                         )

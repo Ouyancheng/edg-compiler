@@ -3425,6 +3425,47 @@ been completed.
 }  /* set_needed_flags_at_end_of_file_scope */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+
+static void set_per_instantiation_needed_flags_at_end_of_file_scope(void)
+/*
+Repeat the processing done by set_needed_flags_at_end_of_file_scope for each
+"needed" flags bit number assigned to an instantiation.
+*/
+{
+  a_routine_ptr  rout;
+  a_variable_ptr var;
+
+  /* Note that this routine works only when IL lowering has been done,
+     because it doesn't visit definitions of classes etc. */
+  check_assertion(needed_flag_bit_number == 0);
+  /* Do one sweep for bit 1, which is used for the things needed in the
+     compilation when all instantiations are removed. */
+  needed_flag_bit_number = 1;
+  set_needed_flags_at_end_of_file_scope(il_header.primary_scope);
+  /* Look through the list of routines to find all instantiated functions. */
+  for (rout = il_header.primary_scope->routines;
+       rout != NULL;
+       rout = rout->next) {
+    if (rout->instantiation_needed_bit_number != 0) {
+      needed_flag_bit_number = rout->instantiation_needed_bit_number;
+      set_needed_flags_at_end_of_file_scope(il_header.primary_scope);
+    }  /* if */
+  }  /* for */
+  /* Look through the list of variables to find all instantiated static
+     data members. */
+  for (var = il_header.primary_scope->variables;
+       var != NULL;
+       var = var->next) {
+    if (var->instantiation_needed_bit_number != 0) {
+      needed_flag_bit_number = var->instantiation_needed_bit_number;
+      set_needed_flags_at_end_of_file_scope(il_header.primary_scope);
+    }  /* if */
+  }  /* for */
+  needed_flag_bit_number = 0;
+}  /* set_per_instantiation_needed_flags_at_end_of_file_scope */
+
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 
 void pop_scope(void)
 /*
@@ -3801,6 +3842,11 @@ End a name scope by popping an entry off the scope stack.
        both in the file scope and in each of the namespace scopes. */
     end_of_file_scope_needed_flags_phase = TRUE;
     set_needed_flags_at_end_of_file_scope(il_scope);
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+    if (one_instantiation_per_object) {
+      set_per_instantiation_needed_flags_at_end_of_file_scope();
+    }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
     end_of_file_scope_needed_flags_phase = FALSE;
     /* Don't bother pruning the IL of unneeded entries if errors were seen. */
     if (total_errors != 0) okay_to_eliminate_unneeded_il_entries = FALSE;
