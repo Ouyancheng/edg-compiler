@@ -1,5 +1,17 @@
 Version 3.6
 
+3/30/05  GNU compatibility: Extended asm memory operands can have class type
+
+In GNU mode, the front end previously did not accept extended asm operands
+with array types.  Now any type is accepted.  For example:
+
+  void f() {
+    unsigned char x[6];
+    __asm__ __volatile__("lidt %0\n" : "=m"(x));  // Now accepted.
+  }
+
+(See also the Changes entry of 10/9/02.)
+
 3/30/05  Calling the front end from other programs / reinitializing the
          front end
 
