@@ -116,20 +116,23 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,find_assoc_pragma)*/
 /*lint -esym(759,add_base_class_casts)*/
 /*lint -esym(765,add_base_class_casts)*/
+/*lint -esym(714,add_to_end_of_destructions_list)*/
 /*lint -esym(759,add_to_end_of_destructions_list)*/
 /*lint -esym(765,add_to_end_of_destructions_list)*/
 /*lint -esym(759,alloc_node_for_allocated_constant)*/
 /*lint -esym(765,alloc_node_for_allocated_constant)*/
-/*lint -esym(759,new_or_delete_type_requires_special_handling)*/
-/*lint -esym(765,new_or_delete_type_requires_special_handling)*/
-/*lint -esym(759,int_kind_for_size_or_alignment)*/
-/*lint -esym(765,int_kind_for_size_or_alignment)*/
+/*lint -esym(759,new_or_delete_type_requires_array_handling)*/
+/*lint -esym(765,new_or_delete_type_requires_array_handling)*/
+/*lint -esym(759,int_kind_for_size_and_alignment)*/
+/*lint -esym(765,int_kind_for_size_and_alignment)*/
+/*lint -esym(714,rout_is_inline_template_function)*/
 /*lint -esym(759,rout_is_inline_template_function)*/
 /*lint -esym(765,rout_is_inline_template_function)*/
 /*lint -esym(759,copy_list_of_expr_trees)*/
 /*lint -esym(765,copy_list_of_expr_trees)*/
 /*lint -esym(759,copy_node)*/
 /*lint -esym(765,copy_node)*/
+/*lint -esym(714,copy_statement)*/
 /*lint -esym(759,copy_statement)*/
 /*lint -esym(765,copy_statement)*/
 /*lint -esym(759,copy_unshared_constant_full)*/
@@ -148,6 +151,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,require_definitions_of_virtual_functions_in_class)*/
 /*lint -esym(759,is_default_operator_delete)*/
 /*lint -esym(765,is_default_operator_delete)*/
+/*lint -esym(714,num_array_elements)*/
 /*lint -esym(759,num_array_elements)*/
 /*lint -esym(765,num_array_elements)*/
 #endif /* !DO_IL_LOWERING */
