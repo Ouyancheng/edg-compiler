@@ -197,7 +197,7 @@ a try block with a catch that matches the type of the object thrown.
 
   if (destination_ehsep == NULL) {
     /* If no handler was found call the terminate function. */
-    __default_terminate_routine();
+   __call_terminate();
   }  /* if */
 
   ehsep = __curr_eh_stack_entry;

@@ -285,6 +285,8 @@ EXTERN_C void* __throw_alloc(a_typeinfo_ptr	typeinfo,
 
 EXTERN void terminate(void);
 
+EXTERN_C void __call_terminate(void);
+
 extern a_void_function_ptr set_terminate(a_void_function_ptr);
 
 EXTERN a_void_function_ptr
@@ -292,6 +294,8 @@ EXTERN a_void_function_ptr
 			/* Pointer to the terminate routine to be used. */
 
 EXTERN void unexpected(void);
+
+EXTERN_C void __call_unexpected(void);
 
 extern a_void_function_ptr set_unexpected(a_void_function_ptr);
 

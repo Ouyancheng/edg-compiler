@@ -29,6 +29,17 @@ The default terminate routine.
 }  /* terminate */
 
 
+EXTERN_C void __call_terminate(void)
+/*
+Used by the EH runtime when terminate needs to be called.  Ensures
+that terminate does not return.
+*/
+{
+  __default_terminate_routine();
+  abort();
+}  /* __call_terminate */
+
+
 a_void_function_ptr set_terminate(a_void_function_ptr new_func)
 /*
 Set the terminate routine pointer to the value passed by the caller
@@ -48,6 +59,18 @@ The default unexpected routine.
 {
   abort();
 }  /* unexpected */
+
+
+
+EXTERN_C void __call_unexpected(void)
+/*
+Used by the EH runtime when unexpected needs to be called.  Ensures
+that unexpected does not return.
+*/
+{
+  __default_unexpected_routine();
+  abort();
+}  /* __call_unexpected */
 
 
 a_void_function_ptr set_unexpected(a_void_function_ptr new_func)
