@@ -5132,14 +5132,21 @@ When single_operand is TRUE, the <varargs.h> form is expected:
     /* va_start is not allowed in constant expressions. */
     pos_error(ec_bad_va_start, &start_position);
     err = TRUE;
-  } else if (depth_innermost_function_scope == NO_SCOPE_DEPTH ||
-             (!scope_stack[depth_innermost_function_scope].assoc_routine
-                            ->type->variant.routine.extra_info->has_ellipsis &&
-              (gcc_mode ||
-               scope_stack[depth_innermost_function_scope].assoc_routine
-                            ->type->variant.routine.extra_info->prototyped))) {
-    diagnostic(gcc_mode ? es_error : es_warning,
-               ec_va_start_requires_ellipsis_function);
+  } else {
+    /* Check if we are in a valid function for the use of va_start.
+       GNU C is a little stricter about this than our default mode. */
+    a_boolean  bad_scope = TRUE;
+    if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      a_routine_ptr  routine =
+                     scope_stack[depth_innermost_function_scope].assoc_routine;
+      a_type_ptr     routine_type = skip_typerefs(routine->type);
+      if (routine_type->variant.routine.extra_info->has_ellipsis ||
+          (!gcc_mode &&
+           !routine_type->variant.routine.extra_info->prototyped)) {
+        diagnostic(gcc_mode ? es_error : es_warning,
+                   ec_va_start_requires_ellipsis_function);
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* Advance past va_start. */
   (void)get_token();
