@@ -1057,11 +1057,6 @@ type is legal.
         } else if (is_array_type(new_type_ptr)) {
           error(ec_function_returning_array);
           err = TRUE;
-        } else if (C_dialect == C_dialect_cplusplus &&
-                   is_illegal_abstract_class_type(new_type_ptr)) {
-          /* Function return type may not be an abstract class (ARM 10.3). */
-          error(ec_function_returning_abstract_class);
-          err = TRUE;
         } else if (C_dialect == C_dialect_pcc) {
           /* In pcc mode, promote float functions to double functions.
              Any type qualifiers or typedef information on the new type
@@ -1084,7 +1079,7 @@ type is legal.
         (*bottom_derived_type)->variant.routine.return_type = new_type_ptr;
         /* Check whether the routine needs special support for returning a
            class object by value. */
-        set_routine_calling_method_flag(*bottom_derived_type);
+        set_routine_calling_method_flag(*bottom_derived_type, &error_position);
       }  /* if */
       temp_type = *bottom_derived_type;
       *bottom_derived_type = new_type_ptr;
@@ -2212,13 +2207,8 @@ scope is that of a class definition.
         /* Adjust the type if necessary (for example, "array of x"
            becomes "pointer to x"). */
         adjust_parameter_type(&param_type_ptr);
-        if (C_dialect == C_dialect_cplusplus &&
-                   is_illegal_abstract_class_type(param_type_ptr)) {
-          /* Abstract class may not be used as an arg type (ARM 10.3). */
-          pos_error(ec_abstract_class_object_not_allowed,
-                    is_error_locator(param_locator) ?
-                           &param_type_pos : &param_locator.source_position);
-        } else if (is_void_type(param_type_ptr)) {
+        /* Disallow "void" as a parameter type. */
+        if (is_void_type(param_type_ptr)) {
           pos_error(ec_void_param_not_allowed, &param_type_pos);
           param_type_ptr = error_type();
         }  /* if */
@@ -2231,7 +2221,7 @@ scope is that of a class definition.
         }  /* if */
         /* Put the parameter type on the type list attached to the function
            type, and the name (if present) on the id list. */
-        ptp = alloc_param_type(param_type_ptr);
+        ptp = make_param_type(param_type_ptr, &param_type_pos);
         if (last_param_type == NULL) {
           extra_info->param_type_list = ptp;
         } else {
@@ -9003,7 +8993,7 @@ specified (rather than defaulted to "int").
         }  /* if */
         /* The param_type entry must be allocated in the file-scope
            region. */
-        ptp = alloc_param_type(param_id->type);
+        ptp = make_param_type(param_id->type, &param_id->type_pos);
         /* Now build the list of parameter types that is attached to the 
            routine type (needed for checking type compatibility -- see
            types_are_compatible). */
@@ -10257,33 +10247,33 @@ continue_with_declaration:
           if (local_storage_class != (a_storage_class)sc_static) {
             local_storage_class = (a_storage_class)sc_extern;
           }  /* if */
-        } else if (is_static_data_member) {
-	  /* A static data member (or, illegally, a qualified name referring
-	     to another kind of member).  Leave the storage class set to
-	     sc_unspecified even if we are not at file scope. */
         } else {
-          /* Not a function, not a typedef, therefore a variable or 
-             parameter.  If the storage class is unspecified, and
-             we are not at file scope, use a storage class of auto. */
-          if (local_storage_class == (a_storage_class)sc_unspecified) {
-            if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
-              /* We are not at file scope, so an unspecified storage class
-                 means auto. */
-              local_storage_class = (a_storage_class)sc_auto;
-            } else if (extern_implied) {
-              /* This must be part of an linkage specification declaration.
-                 An "extern" storage class is implied (ARM 7.4, comment on
-                 p. 118). */
-              local_storage_class = (a_storage_class)sc_extern;
+          if (is_static_data_member) {
+            /* A static data member (or, illegally, a qualified name referring
+               to another kind of member).  Leave the storage class set to
+               sc_unspecified even if we are not at file scope. */
+          } else {
+            /* Not a function, not a typedef, therefore a variable or 
+               parameter.  If the storage class is unspecified, and
+               we are not at file scope, use a storage class of auto. */
+            if (local_storage_class == (a_storage_class)sc_unspecified) {
+              if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
+                /* We are not at file scope, so an unspecified storage class
+                   means auto. */
+                local_storage_class = (a_storage_class)sc_auto;
+              } else if (extern_implied) {
+                /* This must be part of an linkage specification declaration.
+                   An "extern" storage class is implied (ARM 7.4, comment on
+                   p. 118). */
+                local_storage_class = (a_storage_class)sc_extern;
+              }  /* if */
             }  /* if */
           }  /* if */
-        }  /* if */
-        if (!is_function) {
-          if (C_dialect == C_dialect_cplusplus) {
-            if (is_illegal_abstract_class_type(local_type_ptr)) {
-              /* Abstract class objects are prohibited (ARM 10.3). */
-              error(ec_abstract_class_object_not_allowed);
-            }  /* if */
+          if (local_is_old_style_param_decl) {
+            /* The check is made elsewhere for parameters. */
+          } else if (is_abstract_class_type(local_type_ptr)) {
+            /* Abstract class objects are prohibited (ARM 10.3). */
+            error(ec_abstract_class_object_not_allowed);
           }  /* if */
         }  /* if */
       }  /* if */
