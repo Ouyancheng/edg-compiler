@@ -3,9 +3,9 @@ Version 2.09
 9/8/92 Fixed bug in generating body for default assignment operator
 
 When a base class had assignment operators for both const and nonconst
-objects, the compiler-generated assignment operator for a const object
-was not invoking the correct base class assignment operator.  It's now
-fixed, so that this works correctly now:
+objects, the compiler-generated assignment operator for a const object in
+the derived class was not invoking the correct base class assignment
+operator.  It's now fixed, so that this example works correctly:
 
   struct B {
     B& operator=(const B&);
