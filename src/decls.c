@@ -8196,13 +8196,16 @@ continue_with_declaration:
       if (symbol_ptr->kind == (a_symbol_kind)sk_variable && !is_parameter) {
         /* Set a flag marking this as a defining declaration, if that's
            appropriate. */
-        if (C_dialect == C_dialect_cplusplus) {
-          /* In C++ all variable declarations are definitions, except those
-             with a storage class of extern. */
+        if (has_initializer) {
+          /* An declaration involving an initializer is always considered to
+             be a definition. */
+          is_definition = TRUE;
+        } else if (C_dialect == C_dialect_cplusplus) {
+          /* In C++ all other variable declarations are definitions, except
+             those with a storage class of extern. */
           is_definition = (local_storage_class != (a_storage_class)sc_extern);
-        } else if (linkage == idl_none || has_initializer) {
-          /* In C all local variable declarations are definitions, as are
-             all initializations. */
+        } else if (linkage == idl_none) {
+          /* In C all local variable declarations are definitions. */
           is_definition = TRUE;
         }  /* if */
       } else if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
@@ -8211,7 +8214,9 @@ continue_with_declaration:
         is_definition = TRUE;
       }  /* if */
       if (is_definition) {
-        check_for_uninstantiated_template_class(local_type_ptr);
+        a_type_ptr  tp = local_type_ptr;
+        if (is_reference_type(tp)) tp = type_pointed_to(tp);
+        check_for_uninstantiated_template_class(tp);
       }  /* if */
       incomplete_type_error_reported = FALSE;
       if (has_initializer) {
