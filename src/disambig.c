@@ -549,6 +549,12 @@ function_lparen:
        as the token following the initializer (usually a comma or
        a semicolon). */
     prescan_initializer(token_cache_ptr);
+  } else {
+    /* A condition is required to have an "=" style initialization.
+       If the initialization is missing, don't consider this to be
+       a condition.  This causes things like "int(i)" to be treated as
+       expressions, not conditions. */
+    if (is_top_level && is_condition(flags)) *may_be_decl = FALSE;
   }  /* if */
 done:;
 }  /* prescan_declarator */
@@ -588,9 +594,11 @@ evidence to the contrary.
                          paren_initializer_allowed,
 			 is_top_level && is_first_declarator, may_be_decl);
       if (!*may_be_decl) goto done;
-      /* If we are not processing real declarators, don't look for
-         additional declarators. */
-      if (abstract_declarator_allowed(flags) || curr_token != tok_comma) break;
+      /* If we are not processing real declarators, or if we are processing
+         a condition, don't look for additional declarators. */
+      if (abstract_declarator_allowed(flags) ||
+          is_condition(flags) ||
+          curr_token != tok_comma) break;
       /* Advance past the comma then scan the next declarator. */
       cache_curr_token(token_cache_ptr);
       (void)get_token_and_coalesce_if_identifier();
