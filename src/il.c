@@ -3925,6 +3925,7 @@ for making NULL pointer constants.
                        &did_not_fold, &error_position);
 }  /* make_zero_of_proper_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 void make_uuidof_constant(a_type_ptr     uuidof_type,
                           a_constant_ptr uuidof_con)
@@ -3943,6 +3944,7 @@ Microsoft extension.
   uuidof_con->type = make_pointer_type(const_guid_type);
 }  /* make_uuidof_constant */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_enum_constant(a_constant_ptr con)
@@ -7108,11 +7110,15 @@ in doing substitution on a type), set *copy_error to TRUE.
             /* No longer a template parameter type, so the sizeof/alignof
                or uuidof is known. */
             new_type = skip_typerefs(new_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
             if (con->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_uuidof) {
               /* __uuidof. */
               make_uuidof_constant(new_type, constant);
-            } else {
+            } else 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            /* Do not insert code here. */
+            {
               /* sizeof/alignof. */
               a_boolean is_sizeof = (con->variant.template_param.kind ==
                                   (a_template_param_constant_kind)tpck_sizeof);
