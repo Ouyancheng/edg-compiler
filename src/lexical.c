@@ -3812,6 +3812,83 @@ involve macro expansion or scanning of a preprocessing directive.
 }  /* next_token */
 
 
+a_boolean get_qualified_name(void)
+/*
+If the current token is an identifier, see if it is the start of a
+qualified name of the form
+
+   A::x
+   A::B::x
+   etc.
+
+If a qualified name is next, scan it and look up the qualified name.
+Set qualified_name_symbol to point to the symbol for the qualified
+identifier, set curr_token to tok_qualified_name, and return TRUE.
+This is allowed only in C++ mode.  If a qualified name is not next,
+leave the current token and return FALSE.
+*/
+{
+  a_boolean      is_qualified_name = FALSE;
+  a_symbol_ptr   class_symbol, name_symbol;
+  a_scope_number class_scope;
+
+  if (C_dialect == C_dialect_cplusplus) {
+    if (curr_token == tok_identifier) {
+      /* Look up the symbol to see if it could be a class name.  Note that
+         we don't consider the normal eclipsing rules.  A class can be found
+         even when hidden by something else:
+           class A {int i;};
+           int f() {
+             int A;
+             A::i = 1;   // The class A is found.
+           }
+      */
+      for (class_symbol = symbol_list_for_curr_id;
+           class_symbol != NULL;
+           class_symbol = class_symbol->next) {
+        if (class_symbol->kind == (a_symbol_kind)sk_class_or_struct_tag ||
+            class_symbol->kind == (a_symbol_kind)sk_union_tag) break;
+      }  /* for */
+      if (class_symbol != NULL) {
+        /* The identifier could be a class name.  See if it is followed by
+           a "::". */
+        if (next_token() == tok_colon_colon) {
+          /* Skip over the "class-name ::". */
+          (void)get_token();
+          (void)get_token();
+#if 0
+#else
+          /* Temporary code to get scope number. */
+          class_scope = ((a_symbol_ptr)class_symbol->
+                         variant.class_struct_union.type->
+                         variant.class.field_list->source_corresp.assoc_info)->
+                         decl_scope;
+#endif /* 0 */
+          if (curr_token != tok_identifier) {
+            syntax_error(ec_exp_identifier);
+          } else {
+            /* Search for the identifier in the given scope. */
+            for (name_symbol = symbol_list_for_curr_id;
+                 name_symbol != NULL;
+                 name_symbol = name_symbol->next) {
+              if (name_symbol->decl_scope == class_scope) {
+                is_qualified_name = TRUE;
+                curr_token = tok_qualified_name;
+                break;
+              }  /* if */
+            }  /* for */
+            if (name_symbol == NULL) {
+              internal_error("get_qualified_name: not implemented");
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_qualified_name;
+}  /* get_qualified_name */
+
+
 #if DEBUG
 unsigned long show_lexical_space_used(void)
 /*
@@ -3972,7 +4049,6 @@ of the front end.
     }  /* if */
   }  /* for */
 }  /* lexical_init */
-
 
 
 /******************************************************************************

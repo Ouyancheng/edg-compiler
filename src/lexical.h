@@ -101,6 +101,9 @@ typedef enum /*a_token_kind*/ {
   tok_private,                      tok_protected,
   tok_public,                       tok_this,
   tok_virtual,
+  /* Pseudo-token to represent a C++ qualified name, like A::x.
+     Returned from get_qualified_name, not from get_token. */
+  tok_qualified_name,
   /* Error token. */
   tok_error,
   /* Place-holder for last position in enumeration. */
@@ -128,7 +131,7 @@ EXTERN char	*db_token_names[(int)tok_last+1]
    "while", "__ALIGNOF__", "__INTADDR__",
    "::", ".*", "->*",
    "class", "delete", "friend", "inline", "new", "operator", "private",
-   "protected", "public", "this", "virtual",
+   "protected", "public", "this", "virtual", "qual::name",
    "error",
    "last" /* used to check that initialization is right. */
   }
@@ -627,6 +630,8 @@ extern a_boolean required_token(a_token_kind  token,
 extern a_boolean loop_token(a_token_kind token);
 /* Look ahead at the token following the current one. */
 extern a_token_kind next_token(void);
+/* Get a C++ qualified name, like A::x. */
+extern a_boolean get_qualified_name(void);
 
 /* Push a file onto the input stack. */
 extern void push_input_stack (char                       *file_name,
