@@ -3678,10 +3678,13 @@ lookup.
       for (; sym != NULL; sym = sym->next) {
         a_type_ptr   func_type;
         a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
-        check_assertion(fund_sym->kind == (a_symbol_kind)sk_routine ||
-                        fund_sym->kind == (a_symbol_kind)sk_member_function);
-        func_type = routine_symbol_type(fund_sym);
-        add_to_arg_dependent_lookup_list(func_type, type_list);
+        /* Ignore templates. */
+        if (fund_sym->kind != (a_symbol_kind)sk_function_template) {
+          check_assertion(fund_sym->kind == (a_symbol_kind)sk_routine ||
+                          fund_sym->kind == (a_symbol_kind)sk_member_function);
+          func_type = routine_symbol_type(fund_sym);
+          add_to_arg_dependent_lookup_list(func_type, type_list);
+        }  /* if */
       }  /* for */
     }  /* if */
   } else {
