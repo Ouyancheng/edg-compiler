@@ -1867,25 +1867,9 @@ evaluated (but not checked to see if the match is good enough).
     /* Try to match up the parameter type and the argument type. */
     if (!ptp->type_involves_template_param) {
       /* A parameter not involving a template parameter type.  The argument
-         is already known to match the parameter to some extent, but we
-         need to check that the match is good enough.  The ARM requires
-         an exact match without even trivial conversions, but we allow
-         the usual "exact" match of overload resolution (determined already)
-         and a cast to a base class (handled here, as an extension). */
-      if (arg_match->match_level == aml_exact) {
-        /* "Exact" match.  Okay. */
-      } else if (arg_match->match_level == aml_error) {
-        /* Error match.  Okay. */
-      } else if (!strict_ansi_mode &&
-                 arg_match->match_level == aml_std_conversion &&
-                 (arg_match->conversion.std.cast_base_class != NULL ||
-                  !is_null_user_conv_descr(&arg_match->conversion))) {
-        /* A cast to a base class, or an object of a derived class passed
-           to a parameter of a base class.  Okay as an extension. */
-      } else {
-        /* Other match: the template cannot be used. */
-        goto done;
-      }  /* if */
+         is already known to match the parameter.  The ARM requires
+         an exact match without even trivial conversions, but later the
+         language was changed to eliminate that restriction. */
     } else {
       /* A parameter involving a template parameter type. */
       /* The ARM says the match must be exact, without even trivial
