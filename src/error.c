@@ -1850,6 +1850,9 @@ error code.
     case ec_no_match_for_type_of_overloaded_function:
       m = "no instance of %n matches the specified type";
       break;
+    case ec_nonstd_void_param_list:
+      m = "declaring a void parameter list with a typedef is nonstandard";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
