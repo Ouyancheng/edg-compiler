@@ -585,7 +585,8 @@ a structured statement has ended.
   kind = sssep->kind;
   sp = sssep->statement;
   /* Close the final clause of the statement, if any. */
-  if (kind != ssk_switch || sssep->curr_switch_clause != NULL) {
+  if ((kind != ssk_switch || sssep->curr_switch_clause != NULL) &&
+      kind != ssk_try_block) {
     term_stmt_clause(sssep);
   }  /* if */
   /* Determine whether or not the code following the statement is reachable,
@@ -1015,13 +1016,14 @@ Scan a C++ try-block statement.  Its form is:
 
 */
 {
-  a_statement_ptr  sp;
+  a_statement_ptr                sp;
 
   db_enter(3, "try_block_statement");
-
   check_for_unreachable_code();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_try_block);
+  /* Push an entry on the structured statement stack. */
+  push_stmt_stack(ssk_try_block, sp);
 #if CHECKING
   if (curr_token != tok_try) {
     internal_error("try_block_statement: expected try");
@@ -1034,14 +1036,20 @@ Scan a C++ try-block statement.  Its form is:
                                                /*at_function_level=*/FALSE,
                                                /*explicit_return_type=*/FALSE,
                                                /*is_catch_clause=*/FALSE);
+  term_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
   /* The next token should be a "catch" introducing the first handler. */
   if (required_token(tok_catch, ec_missing_handler)) {
     /* Loop through the (1 or more) handler declarations, adding each to
        the linked list of handlers pointed to by sp. */
-    do handler_declaration(sp); while (loop_token(tok_catch));
+    do {
+      start_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
+      handler_declaration(sp);
+      term_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
+    } while (loop_token(tok_catch));
   }  /* if */
   /* Pop the structured statement stack. */
-  
+  pop_stmt_stack();
+
   db_exit();
 }  /* try_block_statement */
 
