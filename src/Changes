@@ -120,10 +120,9 @@ Here are a few examples:
 
 An exception specification that appears other than on a function
 definition is now permitted to be an incomplete type or a pointer or
-reference to incomplete type.  By default a warning is put out, but since
-the standard requires the type to be complete in all cases, a
-discretionary error is issued in -A mode.  On a function definition a
-complete type continues to be required.
+reference to incomplete type.  Except in strict mode no diagnostic is
+issued; a discretionary error is put out in -A mode.  On a function
+definition a complete type continues to be required in all modes.
 
   class E;
   void f() throw(E);           // forward declaration -- E need not be

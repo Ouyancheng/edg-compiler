@@ -851,35 +851,20 @@ specification is handled later (see check_exception_specification).
       if (exceptions_enabled && !is_error_type(estp->type)) {
         /* Check the type to be sure it's not an incomplete type or a pointer
            to an incomplete type. */
-        a_type_ptr         tp = estp->type;
-        an_error_severity  severity;
+        a_type_ptr     tp = estp->type;
+        an_error_code  error_code = es_none;
 
-        /* Force instantiation of template class. */
-        complete_type_is_needed(tp);
         /* Issue a diagnostic if an incomplete type is indicated in the
            exception specification.  According to the standard, this is always
            an error, but it really only makes a difference on a function
            definition.  We don't know at this point whether a top-level
            declarator belongs to a function definition or not, so we defer
            issuing the diagnostic in that case. */
-        if (ignoring_exception_spec) {
-          severity = es_remark;
-        } else if (is_top_level_declarator && !is_void_type(tp)) {
-          severity = es_none;
-        } else {
-          severity = strict_ansi_mode ? strict_ansi_discretionary_severity :
-                                        es_warning;
-        }  /* if */
+        /* Force instantiation of template class. */
+        complete_type_is_needed(tp);
         if (is_incomplete_type(tp)) {
-          /* An exception specification type must be complete. */
-          if (severity == es_none) {
-            defer_exception_spec_error(func_info,
-                                       ec_incomplete_type_not_allowed,
-                                       &type_pos);
-          } else {
-            pos_diagnostic(severity, ec_incomplete_type_not_allowed,
-                           &type_pos);
-          }  /* if */                                       
+          /* Incomplete type (including possibly void type). */
+          error_code = ec_incomplete_type_not_allowed;
         } else if (is_ptr_or_ref_type(tp)) {
           tp = type_pointed_to(tp);
           if (is_void_type(tp)) {
@@ -888,17 +873,24 @@ specification is handled later (see check_exception_specification).
             /* Force instantiation of template class. */
             complete_type_is_needed(tp);
             if (is_incomplete_type(tp)) {
-              /* An exception specification type cannot be a pointer or
-                 reference to incomplete type. */
-              if (severity == es_none) {
-                defer_exception_spec_error(func_info,
-                                           ec_ptr_or_ref_to_incomplete_type,
-                                           &type_pos);
-              } else {
-                pos_diagnostic(severity, ec_ptr_or_ref_to_incomplete_type,
-                               &type_pos);
-              }  /* if */
+              error_code = ec_ptr_or_ref_to_incomplete_type;
             }  /* if */
+          }  /* if */
+        }  /* if */
+        if (!ignoring_exception_spec && error_code != es_none) {
+          /* Defer a diagnostic if this is a top-level declarator and the
+             type is something other than "void"; in strict mode or if the
+             type is "void", issue a diagnostic.  Otherwise, suppress the
+             diagnostic -- that is, silently allow a non-top-level declaration
+             that throws an incomplete type (or pointer thereto) */
+          if (is_top_level_declarator && !is_void_type(tp)) {
+            defer_exception_spec_error(func_info, error_code, &type_pos);
+          } else if (strict_ansi_mode) {
+            pos_diagnostic(strict_ansi_discretionary_severity, error_code,
+                           &type_pos);
+          } else if (is_void_type(tp)) {
+            pos_diagnostic(is_top_level_declarator ? es_warning : es_remark,
+                           error_code, &type_pos);
           }  /* if */
         }  /* if */
       }  /* if */

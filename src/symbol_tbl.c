@@ -8169,12 +8169,13 @@ indicate the particular diagnostic required and the error position.
     end_of_list->next = esedp;
   }  /* if */
   db_exit();
-}  /* alloc_exception_spec_error_descr */
+}  /* defer_exception_spec_error */
 
 
 void report_exception_spec_errors(a_func_info_block  *func_info)
 /*
-Report one or more deferred exception-specification errors.
+Report one or more deferred exception-specification errors.  Suppress the
+diagnostic if this is not a definition and not in strict conformance mode.
 */
 {
   an_exception_spec_error_descr_ptr  esedp;
@@ -8183,17 +8184,25 @@ Report one or more deferred exception-specification errors.
   esedp = func_info->exception_spec_errors;
   if (esedp != NULL) {
     if (func_info->is_definition) {
+      /* Always an error on a definition. */
       severity = es_error;
     } else if (strict_ansi_mode) {
+      /* Always some diagnostic in strict mode. */
       severity = strict_ansi_discretionary_severity;
     } else {
-      severity = es_warning;
+      /* Except in strict mode, suppress the diagnostic on a declaration that
+         does not define a function. */
+      severity = es_none;
     }  /* if */
-    for (; esedp != NULL; esedp = esedp->next) {
-      pos_diagnostic(severity, esedp->error_code, &esedp->position);
-    }  /* for */
+    if (severity != es_none) {
+      /* Note that a diagnostic may have been deferred for more than one
+         type. */
+      for (; esedp != NULL; esedp = esedp->next) {
+        pos_diagnostic(severity, esedp->error_code, &esedp->position);
+      }  /* for */
+    }  /* if */
   }  /* if */
-}  /* report_exception_specE_errors */
+}  /* report_exception_spec_errors */
 
 
 void clear_func_info(a_func_info_block *func_info)
