@@ -1953,7 +1953,13 @@ all types, but for structs/unions put out only a forward reference.
       dump_union(type, bodies);
       break;
     case tk_typeref:
-      if (!bodies) dump_typedef(type);
+      if (!bodies) {
+        /* Do not dump typerefs that are there only to project structs/unions
+           into a local scope. */
+        if (!type->variant.typeref.is_function_scope_tag) {
+          dump_typedef(type);
+        }  /* if */
+      }  /* if */
       break;
 #if CHECKING
     default:
