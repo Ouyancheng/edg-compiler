@@ -6153,7 +6153,7 @@ Set the operator, type, and operand list in an operator expression node.
 {
   node->type = type;
   node->variant.operation.kind = kind;
-  node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+  node->returns_lvalue_instead_of_usual_rvalue = FALSE;
   node->variant.operation.operands = operands;
   if (kind == (an_expr_operator_kind)eok_comma) {
     /* The value of the first operand of a comma operator is not used. */
