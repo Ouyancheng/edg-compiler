@@ -3769,6 +3769,13 @@ from the front end to the runtime.
 			   "__EDG_ABI_CHANGES_FOR_PLACEMENT_DELETE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
+  /* Are the ABI changes for handling virtual function tables during
+     construction of classes with virtual base classes implemented? */
+  (void)enter_predef_macro(conv_unsigned_long_to_str
+                         ((unsigned long)ABI_CHANGES_FOR_CONSTRUCTION_VTBLS),
+			   "__EDG_ABI_CHANGES_FOR_CONSTRUCTION_VTBLS",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
   /* Pass the library dialect flags to the runtime (__BSD__, __SYSV__, and
      __ANSIC__). */
   (void)enter_predef_macro(conv_unsigned_long_to_str((unsigned long)__BSD__),
