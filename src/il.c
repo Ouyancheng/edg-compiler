@@ -1359,7 +1359,6 @@ Dump a statement kind, for debug purposes.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     default:                   s = "**BAD STMT KIND**"; break;
   }  /* switch */
-#endif /* DEBUG */
   fputs(s, f_debug);
 }  /* db_statement_kind */
 
@@ -1522,6 +1521,7 @@ the dump (this one counts as the first).
   }  /* if */
 }  /* db_statement_list */
 
+#endif /* DEBUG */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #define TEMP_TEXT_BUFFER_INCREMENTAL_ALLOCATION 2000
