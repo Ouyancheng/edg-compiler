@@ -4790,14 +4790,6 @@ class or a derived class thereof (except for error cases).
   a_type_ptr ptr_selector_type, const_this_param_type;
 
   db_enter(4, "selector_match_with_this_param");
-  /* Get the "this" parameter type. */
-  this_param_type =
-            routine_type->variant.routine.extra_info->implicit_this_param_type;
-#if CHECKING
-  if (this_param_type == NULL) {
-    internal_error("selector_match_with_this_param: this_param_type NULL");
-  }  /* if */
-#endif /* CHECKING */
   if (rout != NULL &&
       (rout->special_kind == (a_special_function_kind)sfk_constructor ||
        rout->special_kind == (a_special_function_kind)sfk_destructor)) {
@@ -4805,8 +4797,15 @@ class or a derived class thereof (except for error cases).
        suppressed. */
     clear_arg_match_summary(this_match_summary);
     this_match_summary->match_level = aml_exact;
-    this_match_summary->base_param_type = this_param_type;
   } else {
+    /* Get the "this" parameter type. */
+    this_param_type =
+            routine_type->variant.routine.extra_info->implicit_this_param_type;
+#if CHECKING
+    if (this_param_type == NULL) {
+      internal_error("selector_match_with_this_param: this_param_type NULL");
+    }  /* if */
+#endif /* CHECKING */
     this_param_base_type = type_pointed_to(this_param_type);
     this_param_class_type = skip_typerefs(this_param_base_type);
     /* Determine the effective selector type. */
@@ -5200,50 +5199,53 @@ have_cmp:
     if (cmp == 0) {
       a_type_ptr param_type1 = arg_match1->base_param_type;
       a_type_ptr param_type2 = arg_match2->base_param_type;
-      if (type_qualifiers_match(param_type1, param_type2)) {
-        /* The two types have the same qualifiers, so one cannot be different
-           than the other on the basis of qualifiers. */
-      } else {
-        /* The qualifiers are different, so it's worth checking further. */
-        if (types_are_compatible(skip_typerefs(param_type1),
-                                 skip_typerefs(param_type2))) {
-          /* The underlying types are the same, so it's possible than
-             one has a subset of the other's qualifiers. */
-          if (!any_qualifier_missing(param_type1, param_type2)) {
-            /* param_type2 has a proper subset of the qualifiers in
-               param_type1, so arg_match2 is the better match. */
-            cmp = -1;
-          } else if (!any_qualifier_missing(param_type2, param_type1)) {
-            /* param_type1 has a proper subset of the qualifiers in
-               param_type2, so arg_match1 is the better match. */
-            cmp = 1;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      /* More subsequence checking: check for differences of type qualifiers
-         at the end of conversions to pointer types, like char*->void*
-         versus char*->void*->const void*. */
-      if (cmp == 0 &&
-          is_pointer_type(param_type1) && is_pointer_type(param_type2)) {
-        a_type_ptr under_type1 = type_pointed_to(param_type1);
-        a_type_ptr under_type2 = type_pointed_to(param_type2);
-        if (type_qualifiers_match(under_type1, under_type2)) {
+      /* Some cases (e.g., ellipsis) have no base param type. */
+      if (param_type1 != NULL && param_type2 != NULL) {
+        if (type_qualifiers_match(param_type1, param_type2)) {
           /* The two types have the same qualifiers, so one cannot be different
              than the other on the basis of qualifiers. */
         } else {
           /* The qualifiers are different, so it's worth checking further. */
-          if (types_are_compatible(skip_typerefs(under_type1),
-                                   skip_typerefs(under_type2))) {
+          if (types_are_compatible(skip_typerefs(param_type1),
+                                   skip_typerefs(param_type2))) {
             /* The underlying types are the same, so it's possible than
                one has a subset of the other's qualifiers. */
-            if (!any_qualifier_missing(under_type1, under_type2)) {
-              /* under_type2 has a proper subset of the qualifiers in
-                 under_type1, so arg_match2 is the better match. */
+            if (!any_qualifier_missing(param_type1, param_type2)) {
+              /* param_type2 has a proper subset of the qualifiers in
+                 param_type1, so arg_match2 is the better match. */
               cmp = -1;
-            } else if (!any_qualifier_missing(under_type2, under_type1)) {
-              /* under_type1 has a proper subset of the qualifiers in
-                 under_type2, so arg_match1 is the better match. */
+            } else if (!any_qualifier_missing(param_type2, param_type1)) {
+              /* param_type1 has a proper subset of the qualifiers in
+                 param_type2, so arg_match1 is the better match. */
               cmp = 1;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        /* More subsequence checking: check for differences of type qualifiers
+           at the end of conversions to pointer types, like char*->void*
+           versus char*->void*->const void*. */
+        if (cmp == 0 &&
+            is_pointer_type(param_type1) && is_pointer_type(param_type2)) {
+          a_type_ptr under_type1 = type_pointed_to(param_type1);
+          a_type_ptr under_type2 = type_pointed_to(param_type2);
+          if (type_qualifiers_match(under_type1, under_type2)) {
+            /* The two types have the same qualifiers, so one cannot be
+               different than the other on the basis of qualifiers. */
+          } else {
+            /* The qualifiers are different, so it's worth checking further. */
+            if (types_are_compatible(skip_typerefs(under_type1),
+                                     skip_typerefs(under_type2))) {
+              /* The underlying types are the same, so it's possible than
+                 one has a subset of the other's qualifiers. */
+              if (!any_qualifier_missing(under_type1, under_type2)) {
+                /* under_type2 has a proper subset of the qualifiers in
+                   under_type1, so arg_match2 is the better match. */
+                cmp = -1;
+              } else if (!any_qualifier_missing(under_type2, under_type1)) {
+                /* under_type1 has a proper subset of the qualifiers in
+                   under_type2, so arg_match1 is the better match. */
+                cmp = 1;
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
