@@ -2330,21 +2330,24 @@ typedef struct a_type {
                            to the file scope unless the name is already
                            used as a type name at the file scope. */
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+#if BACK_END_IS_C_GEN_BE
+  unsigned int	prototype_scope_types_if_any_promoted:1;
+			/* On function types, TRUE if the type has been
+			   examined for prototype scopes, and the types
+			   in those scopes promoted out to the file scope. */
+#endif /* BACK_END_IS_C_GEN_BE */
+#if BACK_END_IS_CP_GEN_BE
   unsigned int	definition_put_out:1;
 			/* Used in some cases to record whether the definition
 			   of a type has been put out by the
-			   C++/C-generating back end. */
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
-#if BACK_END_IS_CP_GEN_BE
+			   C++-generating back end. */
   unsigned int	definition_delayed:1;
 			/* Used in some cases to indicate the definition of
 			   a type is required and should be put out at the
 			   first opportunity. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      unsigned int
-		autonomous_primary_tag_decl:1;
+   unsigned int	autonomous_primary_tag_decl:1;
 			/* TRUE if this type entry represents a class, struct,
 			   union, or enum and its the primary source sequence
 			   entry refers to a declaration (usually the
@@ -2354,7 +2357,8 @@ typedef struct a_type {
                              class B { int i; } b;  // Not "autonomous"
 			   The flag would be set TRUE for A but not for B
 			   since the latter's definition is part of the
-			   declaration of variable b. */
+			   declaration of variable b.  Also TRUE for
+			   anonymous unions. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   bitfield_to_avoid_codecenter_warnings();
 #if DO_IL_LOWERING
@@ -4880,7 +4884,7 @@ typedef struct a_scope {
 			   the scope stack of the entry corresponding to this
 			   IL scope entry; NO_SCOPE_DEPTH once it has been
 			   popped off the scope stack.  Reactivating a class
-			   scopes does not affect this value. */
+			   scope does not affect this value. */
 #ifdef FIL
   an_entry_description_ptr
                 entries;
