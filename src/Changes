@@ -2,9 +2,11 @@ Version 2.19
 
 6/27/93  Command line option to disable support for exception handling
 
-A command line options ("-x") has been added to disable the support
-that is provided by default in C++ for exception handling; the global
-flag exceptions_disabled is set to TRUE when -x is used.
+A command line option ("-x") has been added to control whether support for
+C++ exception handling is enabled.  The default behavior is set by
+configuation constant DEFAULT_EXCEPTIONS_DISABLED (which would typically
+be FALSE).  When "-x" is used the global flag exceptions_disabled is set
+to the opposite value.
 
 6/22/93  Type qualifiers on a cast to pointer to qualified class type
 
