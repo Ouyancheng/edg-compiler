@@ -327,6 +327,20 @@ they are in order to recognize them for special handling.
 #endif /* DO_IL_LOWERING */
 
 /*
+Flag that is TRUE to cause support for orphaned file scope IL entries to 
+be part of the compiler.  This flag is automatically TRUE if either
+DO_IL_LOWERING or IL_WALK_NEEDED is TRUE.
+*/
+#ifdef ORPHAN_PROCESSING_NEEDED
+#undef ORPHAN_PROCESSING_NEEDED
+#define ORPHAN_PROCESSING_NEEDED TRUE
+#else /* !defined(ORPHAN_PROCESSING_NEEDED) */
+#ifdef DO_IL_LOWERING || IL_WALK_NEEDED
+#define ORPHAN_PROCESSING_NEEDED TRUE
+#else /* !(DO_IL_LOWERING || IL_WALK_NEEDED) */
+#define ORPHAN_PROCESSING_NEEDED FALSE
+#endif /* ORPHAN_PROCESSING_NEEDED */
+/*
 Default temporary file directory.
 */
 #ifndef DEFAULT_TMPDIR
