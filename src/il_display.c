@@ -248,6 +248,30 @@ Display an unsigned long value along with a name.
 }  /* disp_unsigned_long */
 
 
+static void disp_host_large_integer(char			*name,
+                                     a_host_large_integer	value)
+/*
+Display a host large unsigned value along with a name.
+*/
+{
+  disp_name(name);
+  (void)printf(PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER, value);
+  (void)printf("\n");
+}  /* disp_host_large_integer */
+
+
+static void disp_host_large_unsigned(char			*name,
+                                     a_host_large_unsigned	value)
+/*
+Display a host large unsigned value along with a name.
+*/
+{
+  disp_name(name);
+  (void)printf(PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED, value);
+  (void)printf("\n");
+}  /* disp_host_large_unsigned */
+
+
 static void disp_boolean(char      *name,
                          a_boolean value)
 /*
@@ -645,7 +669,8 @@ display_constant_value:
       break;
     case ck_string:
       (void)printf("ck_string\n");
-      disp_unsigned_long("length", ptr->variant.string.length);
+      disp_host_large_unsigned(
+                  "length", (a_host_large_unsigned)ptr->variant.string.length);
       disp_name("value");
       goto display_constant_value;
     case ck_float:
@@ -686,7 +711,8 @@ display_constant_value:
         default:
           (void)printf("**BAD ADDRESS CONSTANT KIND**\n");
       }  /* switch */
-      disp_long("address.offset", ptr->variant.address.offset);
+      disp_host_large_integer(
+          "address.offset", (a_host_large_integer)ptr->variant.address.offset);
       break;
     case ck_ptr_to_member:
       (void)printf("ck_ptr_to_member\n");
@@ -732,7 +758,8 @@ display_constant_value:
       (void)printf("ck_init_repeat\n");
       disp_ptr("constant", (char *)ptr->variant.init_repeat.constant,
                iek_constant);
-      disp_unsigned_long("count", ptr->variant.init_repeat.count);
+      disp_host_large_unsigned(
+               "count", (a_host_large_unsigned)ptr->variant.init_repeat.count);
       break;
     case ck_designator:
       (void)printf("ck_designator\n");
@@ -744,16 +771,19 @@ display_constant_value:
                         (sizeof_t)0);
       } else {
         /* An array element designator: */
-        disp_unsigned_long("array_element",
-                           ptr->variant.designator.array_element);
+        disp_host_large_unsigned(
+                 "array_element",
+                 (a_host_large_unsigned)ptr->variant.designator.array_element);
       }  /* if */
       break;
 #ifdef FFE
     case ck_init_position:
       (void)printf("ck_init_position\n");
-      disp_long("offset", ptr->variant.init_position.offset);
-      disp_unsigned_long("segment_size",
-                         ptr->variant.init_position.segment_size);
+      disp_host_large_integer(
+            "offset", (a_host_large_integer)ptr->variant.init_position.offset);
+      disp_host_large_unsigned(
+               "segment_size",
+               (a_host_large_unsigned)ptr->variant.init_position.segment_size);
       break;
     case ck_hex_octal: /* Front end only. */
 #endif /* ifdef FFE */
@@ -964,7 +994,7 @@ Display the indicated type entry.
   disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
   disp_ptr("next", (char *)ptr->next, iek_type);
   disp_based_type_list(ptr->based_types);
-  disp_unsigned_long("size", (unsigned long)ptr->size);
+  disp_host_large_unsigned("size", (a_host_large_unsigned)ptr->size);
   disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
   if (ptr->used_in_exception) {
     disp_boolean("used_in_exception", TRUE);
@@ -1092,8 +1122,8 @@ do_float_complex:
                    iek_expr_node);
         }  /* if */
       } else {
-        disp_unsigned_long("number_of_elements",
-                           (unsigned long)ptr->
+        disp_host_large_unsigned("number_of_elements",
+                                 (a_host_large_unsigned)ptr->
                                     variant.array.variant.number_of_elements);
       }  /* if */
       break;
@@ -1205,12 +1235,15 @@ do_struct_union:
 #ifdef FFE
     case tk_fcharacter:
       (void)printf("tk_fcharacter\n");
-      disp_unsigned_long("length", ptr->variant.fcharacter.length);
+      disp_host_large_unsigned(
+              "length", (a_host_large_unsigned)ptr->variant.fcharacter.length);
       disp_boolean("star_star", (a_boolean)ptr->variant.fcharacter.star_star);
       break;
     case tk_hollerith:
       (void)printf("tk_hollerith\n");
-      disp_unsigned_long("hollerith_length", ptr->variant.hollerith_length);
+      disp_host_large_unsigned("hollerith_length",
+                               (a_host_large_unsigned)ptr->
+                                                     variant.hollerith_length);
       break;
     case tk_farray:
       (void)printf("tk_farray\n");
@@ -1475,7 +1508,8 @@ Display the indicated variable.
     disp_ptr("base_var", (char *)ptr->base_var, iek_variable);
   }  /* if */
   if (ptr->storage_class == (a_storage_class)sc_associated) {
-    disp_unsigned_long("association_offset", ptr->association_offset);
+    disp_host_large_unsigned("association_offset",
+                             (a_host_large_unsigned)ptr->association_offset);
   }  /* if */
   if (ptr->function_result_var_function != NULL) {
     disp_ptr("function_result_var_function",
@@ -1494,7 +1528,7 @@ Display the indicated field.
   disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
   disp_ptr("next", (char *)ptr->next, iek_field);
   disp_ptr("type", (char *)ptr->type, iek_type);
-  disp_unsigned_long("offset", (unsigned long)ptr->offset);
+  disp_host_large_unsigned("offset", (a_host_large_unsigned)ptr->offset);
   if (ptr->is_bit_field) {
     disp_boolean("is_bit_field", TRUE);
     disp_unsigned_long("offset_bit_remainder",
@@ -3565,14 +3599,15 @@ Display the indicated base class entry.
   disp_boolean("ambiguous", (a_boolean)ptr->ambiguous);
   disp_boolean("shares_virtual_function_info",
                (a_boolean)ptr->shares_virtual_function_info);
-  disp_unsigned_long("offset", (unsigned long)ptr->offset);
+  disp_host_large_unsigned("offset", (a_host_large_unsigned)ptr->offset);
   if (ptr->is_virtual) {
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
     disp_ptr("data_section_base_class", (char *)ptr->data_section_base_class,
              iek_base_class);
     disp_boolean("complete_subobject", (a_boolean)ptr->complete_subobject);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-    disp_unsigned_long("pointer_offset", (unsigned long)ptr->pointer_offset);
+    disp_host_large_unsigned("pointer_offset",
+                             (a_host_large_unsigned)ptr->pointer_offset);
     disp_ptr("pointer_base_class", (char *)ptr->pointer_base_class,
              iek_base_class);
   }  /* if */
@@ -3598,17 +3633,17 @@ Display the indicated class type supplement entry.
 */
 {
   disp_ptr("base_class", (char *)ptr->base_classes, iek_base_class);
-  disp_unsigned_long("size_without_virtual_base_classes",
-                     (unsigned long)ptr->size_without_virtual_base_classes);
+  disp_host_large_unsigned("size_without_virtual_base_classes",
+                (a_host_large_unsigned)ptr->size_without_virtual_base_classes);
   disp_unsigned_long("alignment_without_virtual_base_classes",
                    (unsigned long)ptr->alignment_without_virtual_base_classes);
-  disp_unsigned_long("highest_virtual_function_number",
-                     (unsigned long)ptr->highest_virtual_function_number);
+  disp_host_large_unsigned("highest_virtual_function_number",
+                  (a_host_large_unsigned)ptr->highest_virtual_function_number);
   /* virtual_function_info_offset and virtual_function_info_base_class are
      undefined if highest_virtual_function_number is zero. */
   if (ptr->highest_virtual_function_number > 0) {
-    disp_unsigned_long("virtual_function_info_offset",
-                       (unsigned long)ptr->virtual_function_info_offset);
+    disp_host_large_unsigned("virtual_function_info_offset",
+                     (a_host_large_unsigned)ptr->virtual_function_info_offset);
     if (ptr->virtual_function_info_base_class != NULL) {
       disp_ptr("virtual_function_info_base_class",
                (char *)ptr->virtual_function_info_base_class, iek_base_class);
