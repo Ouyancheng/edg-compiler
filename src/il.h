@@ -282,10 +282,6 @@ extern void empty_shareable_constants_table(void);
 
 extern void empty_func_shareable_constants_table(void);
 
-extern void set_integer_constant(a_constant      *cp,
-                                 long            value,
-                                 an_integer_kind kind);
-
 extern void make_zero_of_proper_type(a_type_ptr desired_type,
                                      a_constant *zero_constant);
 

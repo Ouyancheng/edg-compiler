@@ -2590,22 +2590,6 @@ end of compilation) for shareable constants.
 }  /* add_to_constants_list */
 
 
-void set_integer_constant(a_constant      *cp,
-                          long            value,
-                          an_integer_kind kind)
-/*
-Set the constant entry *cp to the integer constant given by value.
-Its integer kind is as given by kind.
-*/
-{
-  db_enter(5, "set_integer_constant");
-  clear_constant(cp, (a_constant_repr_kind)ck_integer);
-  cp->type = integer_type(kind);
-  cp->variant.integer_value = value;
-  db_exit();
-}  /* set_integer_constant */
-
-
 void make_zero_of_proper_type(a_type_ptr desired_type,
                               a_constant *zero_constant)
 /*
