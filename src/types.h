@@ -141,8 +141,8 @@ on the underlying element type of an array.
 #define is_volatile_qualified_type(tp)                                \
   ((get_type_qualifiers(tp) & TQ_VOLATILE) != 0)
 #if RESTRICT_ALLOWED
-#define typeref_is_restrict_qualified(tp)                             \
- (((tp)->variant.typeref.qualifiers & TQ_RESTRICT) != 0)
+#define is_restrict_qualified_type(tp)                                \
+  ((get_type_qualifiers(tp) & TQ_RESTRICT) != 0)
 #endif /* RESTRICT_ALLOWED */
 
 /*
@@ -156,8 +156,8 @@ type if tp is an array.
 #define is_top_level_volatile_qualified_type(tp)                      \
   ((get_top_level_type_qualifiers(tp) & TQ_VOLATILE) != 0)
 #if RESTRICT_ALLOWED
-#define typeref_is_restrict_qualified(tp)                             \
- (((tp)->variant.typeref.qualifiers & TQ_RESTRICT) != 0)
+#define is_top_level_restrict_qualified_type(tp)                      \
+  ((get_top_level_type_qualifiers(tp) & TQ_RESTRICT) != 0)
 #endif /* RESTRICT_ALLOWED */
 
 /*
@@ -169,12 +169,12 @@ type that is checked for qualifiers.
   (get_type_qualifiers(tp1) == get_type_qualifiers(tp2))
 
 /*
-Return TRUE if tp1 does not have some top-level type qualifiers that
-tp2 has.  Note that this macro does not check that the underlying
-types are compatible.
+Return TRUE if tp1 does not have some type qualifiers that tp2 has.  Note
+that this macro does not check that the underlying types are compatible.
 */
 #define any_qualifier_missing(tp1, tp2)                               \
-  ((tp2)->kind == (a_type_kind)tk_typeref ?                           \
+  (((tp2)->kind == (a_type_kind)tk_typeref |                          \
+    (tp2)->kind == (a_type_kind)tk_array) ?                           \
           f_any_qualifier_missing(tp1, tp2) : FALSE)
 
 extern a_boolean f_any_qualifier_missing(a_type_ptr  tp1,
