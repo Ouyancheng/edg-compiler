@@ -15,11 +15,11 @@ il_read.c -- Read the intermediate language.
 
 #include "basic_hdrs.h"
 
-#if HDRSTOP_RECOGNIZED
+#ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
    processing. */
 #pragma hdrstop
-#endif /* HDRSTOP_RECOGNIZED */
+#endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Everything in this file has to do with reading the IL file. */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE

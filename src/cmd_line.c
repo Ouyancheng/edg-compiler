@@ -16,11 +16,11 @@ cmd_line.c -- Command-line parsing.
 /* Header files common to all files. */
 #include "fe_common.h"
 
-#if HDRSTOP_RECOGNIZED
+#ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
    processing. */
 #pragma hdrstop
-#endif /* HDRSTOP_RECOGNIZED */
+#endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
 #include "pch.h"

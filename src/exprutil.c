@@ -18,11 +18,11 @@ exprutil.c -- Expression scanning utility routines.
 /* Header files used by files involved in expression processing. */
 #include "expr_hdrs.h"
 
-#if HDRSTOP_RECOGNIZED
+#ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
    processing. */
 #pragma hdrstop
-#endif /* HDRSTOP_RECOGNIZED */
+#endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
 #include "preproc.h"

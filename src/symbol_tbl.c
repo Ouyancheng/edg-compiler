@@ -19,11 +19,11 @@ symbol_tbl.c - Symbol table management routines.
    it turns out that most of the header files it needs are in decl_hdrs.h. */
 #include "decl_hdrs.h"
 
-#if HDRSTOP_RECOGNIZED
+#ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
    processing. */
 #pragma hdrstop
-#endif /* HDRSTOP_RECOGNIZED */
+#endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
 #if DO_IL_LOWERING

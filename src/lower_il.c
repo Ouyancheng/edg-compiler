@@ -21,11 +21,11 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 #include "lower_hdrs.h"
 #endif /* DO_IL_LOWERING */
 
-#if HDRSTOP_RECOGNIZED
+#ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
    processing. */
 #pragma hdrstop
-#endif /* HDRSTOP_RECOGNIZED */
+#endif /* ifdef PCH_PRAGMA_GUARD */
 
 #if DO_IL_LOWERING
 /* Additional header files. */

@@ -18,11 +18,11 @@ overload.c -- Expression processing overload resolution.
 /* Header files used by files involved in expression processing. */
 #include "expr_hdrs.h"
 
-#if HDRSTOP_RECOGNIZED
+#ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
    processing. */
 #pragma hdrstop
-#endif /* HDRSTOP_RECOGNIZED */
+#endif /* ifdef PCH_PRAGMA_GUARD */
 
 
 /* Forward declarations required because of out-of-order references. */
