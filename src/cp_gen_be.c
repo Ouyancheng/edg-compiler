@@ -8679,9 +8679,11 @@ Return whether the given initializer was explicitly specified in the source.
 }  /* is_explicit_initializer */
 
 
-static void gen_initializer(a_variable_ptr var)
+static void gen_initializer(a_variable_ptr var,
+                            a_boolean      is_condition)
 /*
-Output the initializer, if any, for the indicated variable.
+Output the initializer, if any, for the indicated variable.  The
+initialization is in a condition declaration if is_condition is TRUE.
 */
 {
   a_boolean          parenthesized_init;
@@ -8690,7 +8692,8 @@ Output the initializer, if any, for the indicated variable.
 
   get_variable_initializer(var, curr_name_context->assoc_scope,
                            &init_kind, &initializer);
-  if (is_explicit_initializer(init_kind, initializer)) {
+  /* A condition always has an initializer. */
+  if (is_condition || is_explicit_initializer(init_kind, initializer)) {
     /* Push the name context for a class/namespace member. */
     push_name_context_if_member(&var->source_corresp);
     if (var->source_corresp.is_class_member &&
@@ -8995,7 +8998,7 @@ declaration following this one is such a continuation.
      the definition. */
   consider_initialization = is_definition;
   if (var->is_member_constant) consider_initialization = !is_definition;
-  if (consider_initialization) gen_initializer(var);
+  if (consider_initialization) gen_initializer(var, is_condition);
   /* Output the semicolon or comma at the end of the declaration, but not
      for a condition. */
   if (!is_condition) {

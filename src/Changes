@@ -1,5 +1,20 @@
 Version 3.0
 
+4/28/02  C++-generating back end: condition declaration must always
+         have initializer
+
+A condition declaration must always have an initializer, even when the
+initialization is default initialization.  Now fixed.
+
+  struct A {
+    A();
+    ~A();
+    operator bool() const;
+  };
+  int main() {
+    if (const A a = A()) {}
+  }
+
 4/28/02  Spurious error regarding casting away const in prototype instantiation
 
 The front end gave a spurious error regarding casting away const
