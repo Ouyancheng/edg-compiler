@@ -3936,6 +3936,7 @@ Return TRUE if the indicated constant is a wide string constant (L"abc").
   a_type_ptr con_type, elem_type;
 
   if (constant->kind == (a_constant_repr_kind)ck_string) {
+    check_assertion(!constant->implicit_cast);
     con_type = skip_typerefs(constant->type);
     elem_type = con_type->variant.array.element_type;
     elem_type = skip_typerefs(elem_type);
