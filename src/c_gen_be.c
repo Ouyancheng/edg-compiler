@@ -7382,7 +7382,7 @@ statement expression, i.e., ({...}).
     case stmk_vla_decl:
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
       unexpected_condition_str("VLA statement unexpected");
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#else /* !(VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS) */
       if (statement->variant.vla.is_typedef_decl) {
         /* Dump out the declaration of a typedef for a variably-modified type
            at the point where it occurs in the executable code sequence. */
@@ -7396,6 +7396,7 @@ statement expression, i.e., ({...}).
                            /*dump_vars_without_initializers=*/TRUE,
                            /*dump_initializers=*/TRUE);
       }  /* if */
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
       break;
     case stmk_vla_dealloc:
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
