@@ -640,24 +640,28 @@ supplement already associated with ct_symbol.
         break;
       }  /* if */
     }  /* for */
-    check_assertion_str2(sym != NULL, "find_class_template_member:",
+    check_assertion_str2(sym != NULL || total_errors != 0,
+                         "find_class_template_member:",
                          "no corresponding template");
-    /* sym is the template symbol with which ct_symbol is associated.
-       Update the template supplement of ct_symbol to point to the
-       cache information from the original template.  The NULL template
-       declaration information pointer that is passed in causes the template
-       to retain its existing template declaration information. */
-    tssp = ct_symbol->variant.template_info;
-    orig_tssp = sym->variant.template_info;
-    /* Create the pointer back to the original template. */
-    tssp->prototype_template = sym;
-    tssp->variant.class_template.prototype_instantiation_complete = TRUE;
-    /* Add the new template to the list of templates based on the original
-       template. */
-    slep = alloc_symbol_list_entry();
-    slep->symbol = ct_symbol;
-    slep->next = orig_tssp->subordinate_templates;
-    orig_tssp->subordinate_templates = slep;
+    /* The symbol can be NULL in some error cases. */
+    if (sym != NULL) {
+      /* sym is the template symbol with which ct_symbol is associated.
+         Update the template supplement of ct_symbol to point to the
+         cache information from the original template.  The NULL template
+         declaration information pointer that is passed in causes the template
+         to retain its existing template declaration information. */
+      tssp = ct_symbol->variant.template_info;
+      orig_tssp = sym->variant.template_info;
+      /* Create the pointer back to the original template. */
+      tssp->prototype_template = sym;
+      tssp->variant.class_template.prototype_instantiation_complete = TRUE;
+      /* Add the new template to the list of templates based on the original
+         template. */
+      slep = alloc_symbol_list_entry();
+      slep->symbol = ct_symbol;
+      slep->next = orig_tssp->subordinate_templates;
+      orig_tssp->subordinate_templates = slep;
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* find_class_template_member */
@@ -4233,7 +4237,7 @@ static a_template_symbol_supplement_ptr
 /*
 Given a class symbol for a nested class within a class template,
 create the template symbol supplement for the class and return the
- pointer to the newly created template symbol supplement.
+pointer to the newly created template symbol supplement.
 */
 {
   a_template_symbol_supplement_ptr	tssp = NULL;
