@@ -11654,6 +11654,19 @@ instantiation.
     free_def_arg_expr_fixup(curr_default_args);
     curr_default_args = proto_tssp->variant.function.def_arg_expr_list;
   }  /* if */
+  /* Link the default argument list from the template supplement
+     onto the end of the list of current default arguments.  The
+     list in the supplement must be for arguments that follow the
+     new list (otherwise it would be an error).  Find the end
+     of the current list and link the existing list to the end. */
+  daefp = curr_default_args;
+  if (daefp != NULL) {
+    while (daefp->next != NULL) {
+      daefp = daefp->next;
+    }  /* if */
+    daefp->next = tssp->variant.function.def_arg_expr_list;
+    tssp->variant.function.def_arg_expr_list = curr_default_args;
+  } /* if */
   if (proto_sym == NULL) {
     /* We are using the newly specified default arguments.  Do a prototype
        instantiation of the new defaults.  For declarations within classes
@@ -11671,19 +11684,6 @@ instantiation.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Link the default argument list from the template supplement
-     onto the end of the list of current default arguments.  The
-     list in the supplement must be for arguments that follow the
-     new list (otherwise it would be an error).  Find the end
-     of the current list and link the existing list to the end. */
-  daefp = curr_default_args;
-  if (daefp != NULL) {
-    while (daefp->next != NULL) {
-      daefp = daefp->next;
-    }  /* if */
-    daefp->next = tssp->variant.function.def_arg_expr_list;
-    tssp->variant.function.def_arg_expr_list = curr_default_args;
-  } /* if */
 }  /* update_function_template_default_args */
 
 
