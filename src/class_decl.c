@@ -3940,7 +3940,7 @@ of assoc_field_object and assoc_var_object is defined.
            specifier of the anonymous union itself; the fields of a variable
            anonymous union should be (i.e., should remain) public. */
         sym->variant.field.ptr->source_corresp.access = assoc_object_access;
-        remove_from_inactive_symbols_list(sym);
+        remove_anonymous_union_member_from_inactive_symbols_list(sym);
         reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
         if (assoc_var_object != NULL) {
           /* Update the IL. */
@@ -3983,7 +3983,7 @@ of assoc_field_object and assoc_var_object is defined.
            specifier of the anonymous union itself; the members of a variable
            anonymous union should be (i.e., should remain) public. */
         tp->source_corresp.access = assoc_object_access;
-        remove_from_inactive_symbols_list(sym);
+        remove_anonymous_union_member_from_inactive_symbols_list(sym);
         reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
         break;
       case sk_constant:
@@ -3992,7 +3992,7 @@ of assoc_field_object and assoc_var_object is defined.
            symbol is promoted, but the type remains nested. */
         sym->class_of_which_a_member = class_type;
         sym->variant.constant->source_corresp.access = assoc_object_access;
-        remove_from_inactive_symbols_list(sym);
+        remove_anonymous_union_member_from_inactive_symbols_list(sym);
         reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
         break;
       case sk_static_data_member:

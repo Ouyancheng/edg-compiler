@@ -1711,7 +1711,8 @@ for the scope it's in.
 }  /* remove_symbol */
 
 
-void remove_from_inactive_symbols_list(a_symbol_ptr sym_ptr)
+void remove_anonymous_union_member_from_inactive_symbols_list
+                                                       (a_symbol_ptr sym_ptr)
 /*
 Remove the indicated symbol from its header's inactive symbol list.
 This is used in removing symbols inside unnamed unions before re-entering
@@ -1721,7 +1722,7 @@ them up one level.
   a_symbol_header_ptr hdr_ptr = sym_ptr->header;
   a_symbol_ptr        prev_sym;
 
-  db_enter(4, "remove_from_inactive_symbol_list");
+  db_enter(4, "remove_anonymous_union_member_from_inactive_symbol_list");
   
   if (sym_ptr == hdr_ptr->inactive_symbols) {
     /* The symbol is the first one on the list. */
@@ -1731,17 +1732,33 @@ them up one level.
     for (prev_sym = hdr_ptr->inactive_symbols;
          prev_sym->next != sym_ptr;
          prev_sym = prev_sym->next) {
-#if CHECKING
-      if (prev_sym->next == NULL) {
-        internal_error("remove_from_inactive_symbols_list: symbol not found");
-      }  /* if */
-#endif /* CHECKING */
+         check_assertion_str(prev_sym->next != NULL,
+                             "remove_anonymous_union...: symbol_not_found");
     }  /* for */
     prev_sym->next = sym_ptr->next;
   }  /* if */
   sym_ptr->next = NULL;
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+  if (cfront_compatibility_mode) {
+    /* If the is a type symbol that has previously been designated as the
+       symbol receiving special transitional nested type name mangling, then
+       reset that flag now that it has been promoted to another scope.  The
+       flag will be restored, if appropriate, when this symbol is popped
+       from the scope in which it will be reentered. */
+    if (sym_ptr->header->has_cfront_transitional_nested_type_mangled_name) {
+      if (is_type_symbol(sym_ptr)) {
+        a_type_ptr	tp = type_symbol_type(sym_ptr);
+        if (tp->use_cfront_transitional_nested_type_name_mangling) {
+          tp->use_cfront_transitional_nested_type_name_mangling = FALSE;
+          sym_ptr->header->has_cfront_transitional_nested_type_mangled_name
+                                                                      = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   db_exit();
-}  /* remove_from_inactive_symbols_list */
+}  /* remove_anonymous_union_member_from_inactive_symbols_list */
 
 
 a_boolean symbols_may_coexist_in_curr_scope(a_symbol_ptr  old_sym,
@@ -5424,7 +5441,8 @@ member function is defined.
                                       &last_ctor_or_dtor_sym->
                                                        decl_position) < 0)) {
           sym = file_scope_sym;
-         pos_sy2_warning(ec_cfront_name_lookup_bug, &locator->source_position,
+          pos_sy2_warning(ec_cfront_name_lookup_bug,
+                          &locator->source_position,
                           sym, new_sym);
         }  /* if */
       }  /* if */

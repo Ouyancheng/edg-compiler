@@ -1941,7 +1941,8 @@ extern void set_symbol_kind(a_symbol_ptr  sym_ptr,
 
 extern void remove_symbol(a_symbol_ptr sym_ptr);
 
-extern void remove_from_inactive_symbols_list(a_symbol_ptr sym_ptr);
+extern void remove_anonymous_union_member_from_inactive_symbols_list
+                                                       (a_symbol_ptr sym_ptr);
 
 extern a_boolean symbols_may_coexist_in_curr_scope
 					(a_symbol_ptr  old_sym,
