@@ -341,6 +341,16 @@ is TRUE.
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
 /*
+Flag that is TRUE to cause source-sequence lists to be generated.  These
+lists are attached to scope entries and represent the sequence in which
+declarations, statements, comments, macros, and pragmas appear in the
+source program.
+*/
+#ifndef GENERATE_SOURCE_SEQUENCE_LISTS
+#define GENERATE_SOURCE_SEQUENCE_LISTS TRUE
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+/*
 Flag that is TRUE to cause IL lowering to be done, to lower C++ intermediate
 language to C intermediate language, allowing the C++ front end to be used
 with a C back end.
