@@ -5012,6 +5012,7 @@ static void decl_nonstatic_data_member(
                        a_boolean                    unnamed_field,
                        a_boolean                    is_anonymous_union,
                        a_boolean                    is_nonstd_anonymous_union,
+                       a_boolean                    is_mutable,
                        a_source_sequence_entry_ptr  ssep,
                        a_field_ptr                  *end_of_list)
 /*
@@ -5089,8 +5090,11 @@ class, struct, or union.
     member_sym->class_of_which_a_member = class_type;
     member_sym->variant.field.ptr = field;
   }  /* if */
-  field->source_corresp.class_of_which_a_member = class_type;
-  field->source_corresp.access = access;
+  if (C_dialect == C_dialect_cplusplus) {
+    field->source_corresp.class_of_which_a_member = class_type;
+    field->source_corresp.access = access;
+    field->is_mutable = is_mutable;
+  }  /* if */
   if (member_sym != NULL && !is_anonymous_union) {
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
                               &locator->source_position, ssep);
@@ -6254,6 +6258,7 @@ Scan the body of a class definition, including the base classes list.
         a_boolean            type_explicitly_specified, inline_specified;
         a_boolean            is_destructor, is_constructor;
         a_boolean            is_anonymous_union, is_nonstd_anonymous_union;
+        a_boolean            mutable_specified;
 
         /* Move cached #pragma declarations (if any) to the current scope
            stack entry so they can be examined and acted upon in subsequent
@@ -6423,6 +6428,7 @@ Scan the body of a class definition, including the base classes list.
         inline_specified = (dso_flags & DSO_INLINE) != 0;
         is_constructor = dso_flags & DSO_CONSTRUCTOR;
         is_destructor = dso_flags & DSO_DESTRUCTOR;
+        mutable_specified = (dso_flags & DSO_MUTABLE) != 0;
         remove_stop_token(tok_colon);
         if (dangling_type_specifier) {
           /* A malformed declaration was detected by decl_specifiers.  Issue
@@ -6460,6 +6466,10 @@ Scan the body of a class definition, including the base classes list.
             member_type->source_corresp.referenced = TRUE;
           } else if (!C_mode()) {
             /* C++ mode. */
+            if (mutable_specified) {
+              /* "mutable" is only allowed on nonstatic data member decls. */
+              pos_error(ec_mutable_not_allowed, &decl_start_pos);
+            }  /* if */
             if (friend_specified) {
               if ((dso_flags & DSO_ELABORATED_TYPE_SPECIFIER) &&
                   !is_enum_type(member_type)) {
@@ -6804,6 +6814,10 @@ Scan the body of a class definition, including the base classes list.
                 }  /* if */
               }  /* if */
             }  /* if */
+            if (mutable_specified) {
+              /* "mutable" is only allowed on nonstatic data member decls. */
+              pos_error(ec_mutable_not_allowed, &decl_start_pos);
+            }  /* if */
             if (!type_explicitly_specified) {
               /* No type specifier. */
               if (is_constructor || is_destructor ||
@@ -7086,6 +7100,11 @@ Scan the body of a class definition, including the base classes list.
                  been scanned). */
               curr_routine_fixup->symbol = typedef_sym_ptr;
             }  /* if */
+          } else if (mutable_specified &&
+                     get_type_qualifiers(local_type) == TQ_CONST) {
+            /* "mutable" and top-level const "const" are not allowed
+               together. */
+            pos_error(ec_mutable_not_allowed, &decl_start_pos);
           } else if (curr_token == tok_assign &&
                      is_scalar_type(local_type) &&
                      (get_type_qualifiers(local_type) == TQ_CONST) &&
@@ -7231,7 +7250,8 @@ Scan the body of a class definition, including the base classes list.
                                          access, unnamed_field,
                                          is_anonymous_union,
                                          is_nonstd_anonymous_union,
-                                         declarator_ssep, &end_of_field_list);
+                                         mutable_specified, declarator_ssep,
+                                         &end_of_field_list);
               if (!class_aggregate_ruled_out) {
                 if (access != (an_access_specifier)as_public) {
                   if (unnamed_field) {
