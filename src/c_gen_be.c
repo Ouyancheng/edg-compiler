@@ -351,6 +351,18 @@ Write any common code needed in all C output files.
                                                                    f_C_output);
     startline((a_seq_number)0);
     fputs("#define __trunc(i,n) (i&((1<<n)-1))", f_C_output);
+    /* Definition of __inline__ depending on whether or not compiler
+       supports "inline". */
+    startline((a_seq_number)0);
+    fputs("#if __GNUC__ || __SUPPORTS_INLINE__", f_C_output);
+    startline((a_seq_number)0);
+    fputs("#define __inline__ inline", f_C_output);
+    startline((a_seq_number)0);
+    fputs("#else", f_C_output);
+    startline((a_seq_number)0);
+    fputs("#define __inline__ static", f_C_output);
+    startline((a_seq_number)0);
+    fputs("#endif", f_C_output);
   }  /* if */
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -8506,8 +8518,18 @@ routine has a body (dump nothing if it has no body).
   /* Dump the routine interface. */
   startline(routine->source_corresp.decl_position.seq);
     
-  dump_storage_class(routine->storage_class);
+#ifdef CFE
+  if (routine->is_inline &&
+      routine->storage_class == (a_storage_class)sc_static) {
+    /* Put out "inline" in a special way so it can be supported if the
+       underlying C compiler recognizes it. */
+    (void)fprintf(f_C_output, "__inline__ ");
+  } else {
+    dump_storage_class(routine->storage_class);
+  }  /* if */
+#endif /* ifdef CFE */
 #ifdef FFE
+  dump_storage_class(routine->storage_class);
   if (fortran_main) {
     /* Fortran main programs are put out as returning "int" even though
        the routine type says it returns void. */
