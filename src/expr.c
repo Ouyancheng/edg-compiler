@@ -1967,7 +1967,7 @@ bound with the function in *bound_function_selector.
     if (!err) {
       /* Drop any qualifiers or typedefs on the class/struct/union type. */
       class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
-      /* Instantiate the underlying class if it is a template class. */
+      /* Instantiate the class if it is a template class. */
       check_for_uninstantiated_template_class(class_struct_union_type);
       if (!is_complete_class_struct_union_type(class_struct_union_type)) {
         /* Not (a pointer to) a complete class, struct, or union. */
@@ -2926,7 +2926,7 @@ See section 3.3.3.2 of the standard.
          is legal, although *p is not an lvalue. */
       if (check_pointer_operand(&operand, ec_bad_indirection_operand)) {
         operand.type = type_pointed_to(operand.type);
-        /* Instantiate the underlying class if it is a template class. */
+        /* Instantiate the underlying type if it is a template class. */
         check_for_uninstantiated_template_class(operand.type);
         if (is_function_type(operand.type)) {
           /* This will become a function designator. */
@@ -3188,7 +3188,7 @@ Syntax:
   }  /* if */
 
   sizeof_type = skip_typerefs(sizeof_type);
-  /* Instantiate the underlying class if it is a template class. */
+  /* Instantiate the type if it is a template class. */
   check_for_uninstantiated_template_class(sizeof_type);
   /* The operand of a sizeof may not have function type or incomplete type. */
   if (is_function_type(sizeof_type)) {
@@ -3265,6 +3265,8 @@ be inappropriate, because the feature is probably used to implement
     alignof_type = operand.type;
   }  /* if */
   alignof_type = skip_typerefs(alignof_type);
+  /* Instantiate the type if it is a template class. */
+  check_for_uninstantiated_template_class(alignof_type);
   /* The result of __ALIGNOF__ is an integer indicating the alignment of
      the operand, of type size_t. */
   if (is_error_type(alignof_type)) {
@@ -3487,7 +3489,7 @@ specification allow a variable-sized array as the top type.
   /* Scan the new-type-name or ( type-name ). */
   new_type_name(trapped_left_paren, &new_type, &new_array_dimension);
   new_type = skip_typerefs(new_type);
-  /* Instantiate the underlying class if it is a template class. */
+  /* Instantiate the type if it is a template class. */
   check_for_uninstantiated_template_class(new_type);
   /* The operand of a new must be an object type. */
   if (!is_object_type(new_type) &&
@@ -3840,7 +3842,7 @@ As an anachronism, allow an expression inside the [ ].
       /* See if the object needs destruction. */
       dtor_routine = NULL;
       if (is_class_struct_union_type(base_delete_type)) {
-        /* Instantiate the underlying class if it is a template class. */
+        /* Instantiate the class if it is a template class. */
         check_for_uninstantiated_template_class(base_delete_type);
         if (is_incomplete_type(base_delete_type)) {
           /* Deleting a pointer to an incomplete class.  Give a warning,
@@ -4002,6 +4004,8 @@ for both C-style casts and C++ functional-notation type conversions.
   *int_to_ptr_case = FALSE;
   *cast_to_reference = FALSE;
   *cast_to_func_ptr = FALSE;
+  /* Instantiate the type if it is a template class. */
+  check_for_uninstantiated_template_class(type_cast_to);
   /* Check the type to see if it's permissible. */
   if (is_error_type(type_cast_to)) {
     err = TRUE;
