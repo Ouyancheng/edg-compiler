@@ -6211,8 +6211,12 @@ typedef struct a_scope {
 			/* Used during front end processing, the depth in
 			   the scope stack of the entry corresponding to this
 			   IL scope entry; NO_SCOPE_DEPTH once it has been
-			   popped off the scope stack.  Reactivating a class
-			   scope does not affect this value. */
+			   popped off the scope stack.   If the scope is on the
+			   stack more than once, this contains the depth of
+			   the first entry pushed (this only occurs for
+			   namespace and namespace extension scopes).
+			   Reactivating a class or namespace scope does
+			   not affect this value. */
 #ifdef FIL
   an_entry_description_ptr
                 entries;

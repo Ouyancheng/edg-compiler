@@ -3344,8 +3344,10 @@ caller is responsible for sorting that out.)
       sp->variant.assoc_type = routine_type;
     }  /* if */
     if (sp != NULL) {
-      /* Set the scope-stack-entry depth. */
-      sp->depth_in_scope_stack = (scope_stack - ssep);
+      /* Set the scope-stack-entry depth if not already set. */
+      if (sp->depth_in_scope_stack == NO_SCOPE_DEPTH) {
+        sp->depth_in_scope_stack = (scope_stack - ssep);
+      }  /* if */
     } else {
       check_assertion_str(ssep->kind == (a_scope_kind)sck_pragma,
                           "ensure_il_scope_exists: NULL IL scope");
