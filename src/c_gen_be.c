@@ -923,11 +923,11 @@ end it here.
 */
 {
   if (annotate) {
-    if (!source_corresp->
+    if (
 #if MAINTAIN_NEEDED_FLAGS
-                         needed
+        !needed_flag_is_set(source_corresp)
 #else /* !MAINTAIN_NEEDED_FLAGS */
-                         referenced
+        !source_corresp->referenced
 #endif /* MAINTAIN_NEEDED_FLAGS */
                                    ) {
       write_endif_0_directive();
@@ -4726,6 +4726,8 @@ parameters.
 #if !C_GEN_BE_GENERATES_ANSI_C
   a_boolean      forced_static;
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
+  a_storage_class
+                 storage_class = variable->storage_class;
 
   /* Determine whether or not the variable has a constant initializer.
      Non-constant initializers are handled by dump_dynamic_init. */
@@ -4735,16 +4737,12 @@ parameters.
     /* We're generating separate files for each instantiation, so do not
        put instantiation definitions into the primary output file, or
        primary-file variable definitions into the instantiation files. */
-    if (variable->instantiation_needed_bit_number != 0) {
-      /* This variable is an instantiation and goes out only it its own
-         file. */
-      if (needed_flag_bit_number != variable->instantiation_needed_bit_number){
-        init_con = NULL;
-      }  /* if */
-    } else {
-      /* This variable belongs in the primary output file.  Don't put it out
-         if the current output file is for an instantiation. */
-      if (needed_flag_bit_number != 1) init_con = NULL;
+    if ((variable->instantiation_needed_bit_number != 0) ?
+                            (needed_flag_bit_number !=
+                                   variable->instantiation_needed_bit_number) :
+                            (needed_flag_bit_number != 1)) {
+      init_con = NULL;
+      storage_class = (a_storage_class)sc_extern;
     }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -4791,18 +4789,18 @@ parameters.
       }  /* if */
       set_output_position(&variable->source_corresp.decl_position);
       if (init_con != NULL &&
-	  variable->storage_class == (a_storage_class)sc_unspecified &&
+	  storage_class == (a_storage_class)sc_unspecified &&
 	  dump_vars_without_initializers && !dump_initializers) {
 	/* Initialized file-scope variable definitions with initializers,
 	   will be emitted twice, once as a declaration without an
 	   initializer, and once with the initializer.  On the first
 	   emit an "extern" before the declaration. */
-	write_tok_str("extern ");
+        storage_class = (a_storage_class)sc_extern;
 #if !C_GEN_BE_GENERATES_ANSI_C
       } else if (init_con != NULL &&
-          variable->storage_class == (a_storage_class)sc_static &&
-          !forced_static &&
-          (!dump_vars_without_initializers || !dump_initializers)) {
+                 storage_class == (a_storage_class)sc_static &&
+                 !forced_static &&
+                 (!dump_vars_without_initializers || !dump_initializers)) {
         /* For initialized file-scope static variables, suppress the
            storage class on both declarations of the variable.  This
            is because pcc will not allow two declarations of a static
@@ -4810,7 +4808,12 @@ parameters.
            variable, dump_variable_name must modify the names of static
            non-external variables so that they will not conflict with
            like-named static variables in separately-compiled modules. */
+        storage_class = (a_storage_class)sc_unspecified;
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
+      }  /* if */
+      if (storage_class != variable->storage_class) {
+        /* The storage class to be put out is not the one in the variable. */
+        dump_storage_class(storage_class);
       } else {
         dump_variable_storage_class(variable);
       }  /* if */
@@ -6465,13 +6468,14 @@ routine or variable has the given source correspondence field and
   char *C_output_file_name;
 
   /* Determine the output file name. */
+  C_output_file_name = scp->name;
+  /* Write the generated file name to the file passed back to the driver. */
+  (void)fprintf(f_C_file_list, "%s\n", C_output_file_name);
 #if 0
   /* Need to make something shorter than just the mangled name. */
 #else /* !0 */
-  C_output_file_name = derived_name(scp->name, GEN_C_FILE_SUFFIX);
+  C_output_file_name = derived_name(C_output_file_name, GEN_C_FILE_SUFFIX);
 #endif /* 0 */
-  /* Write the generated file name to the file passed back to the driver. */
-  (void)fprintf(f_C_file_list, "%s\n", C_output_file_name);
   /* Add the directory name specified. */
   C_output_file_name = combine_dir_and_file_name(
                                               il_header.instantiation_dir_name,
