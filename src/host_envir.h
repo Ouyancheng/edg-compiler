@@ -1802,9 +1802,9 @@ extern char *generate_instantiation_output_file_name(char *mangled_name);
 EXTERN a_boolean
 		prototype_instantiations_in_il
 #if VAR_INITIALIZERS
-                                    = PROTOTYPE_INSTANTIATIONS_IN_IL
+                                     = PROTOTYPE_INSTANTIATIONS_IN_IL
 #endif /* VAR_INITIALIZERS */
-                                                                          ;
+                                                                     ;
 			/* If TRUE, prototype instantiations are recorded
 			   in the IL tree. */
 
