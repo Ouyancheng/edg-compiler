@@ -4215,7 +4215,7 @@ End a name scope by popping an entry off the scope stack.
   }  /* for */
   if (!old_region_still_needed) {
     /* The old memory region is no longer needed. */
-#if DO_IL_LOWERING || SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+#if DO_IL_LOWERING
     a_boolean  function_body_will_be_discarded =
                  (kind == (a_scope_kind)sck_function &&
                   (curr_routine->is_trivial_default_constructor
@@ -4224,7 +4224,7 @@ End a name scope by popping an entry off the scope stack.
                       (curr_routine->decl_modifiers & DM_DLLIMPORT))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                     ));
-#endif /* DO_IL_LOWERING || SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#endif /* DO_IL_LOWERING */
 #if DEBUG
     if (db_flag_is_set("dump_type_lists")) {
       db_type_lists(il_scope, 0);
@@ -4245,7 +4245,7 @@ End a name scope by popping an entry off the scope stack.
 #endif /* DO_IL_LOWERING */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
     if (kind == (a_scope_kind)sck_function &&
-        !function_body_will_be_discarded) {
+        !curr_routine->is_trivial_default_constructor) {
       /* If a function or block scope has local types or static variables,
          make a special entry to record those orphan lists on the il_header
          scope_orphaned_list_headers list so they can be found when processing
