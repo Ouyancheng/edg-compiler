@@ -3924,7 +3924,7 @@ be local the the current compilation even if the class is externally linked.
      was created for this variable and is known not to be shared. */
   /* The "+1" is to skip the [0] entry, for cfront compatibility. */
   vtbl_var->type->variant.array.number_of_elements =
-                                              ctsp->virtual_function_count + 1;
+                                    ctsp->highest_virtual_function_number + 1;
   set_type_size(vtbl_var->type);
   if (class_type->source_corresp.name_linkage ==
                                  (a_name_linkage_kind)nlk_cplusplus_external &&
@@ -3947,7 +3947,7 @@ be local the the current compilation even if the class is externally linked.
   add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL, aggr_con);
   /* Merge the list of virtual functions under class_whose_vtbl_is_being_made
      and the overrides to create each entry of the table. */
-  entry_count = ctsp->virtual_function_count;
+  entry_count = ctsp->highest_virtual_function_number;
   primary_function = NULL;
   for (entry_number = 1; entry_number <= entry_count; entry_number++) {
     /* Find the virtual function with the number "entry_number". */

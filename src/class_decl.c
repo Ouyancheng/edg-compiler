@@ -1205,12 +1205,13 @@ next_base_class:;
          enter it in the routine entry.  It is used by the front end in
          managing virtual function override entries and can be used by the
          back end for indexing into a virtual function table. */
-      if (ctsp->virtual_function_count >= MAX_VIRTUAL_FUNCTIONS_PER_CLASS) {
+      if (ctsp->highest_virtual_function_number >=
+                                         MAX_VIRTUAL_FUNCTIONS_PER_CLASS) {
         pos_error(ec_too_many_virtual_functions, source_pos);
         /* Reset to zero, to avoid more such messages. */
-        ctsp->virtual_function_count = 0;
+        ctsp->highest_virtual_function_number = 0;
       }  /* if */
-      virtual_function_number = ++(ctsp->virtual_function_count);
+      virtual_function_number = ++(ctsp->highest_virtual_function_number);
     }  /* if */
     rout_sym->variant.routine->virtual_function_number =
                                                     virtual_function_number;
@@ -2587,21 +2588,24 @@ or struct definition.  The syntax is
            their associated pointers) between the base class and the
            derived class. */
         a_class_type_supplement_ptr  base_ctsp;
+
         base_ctsp = base_class_type->variant.class_struct_union.extra_info;
-        /* Check virtual_function_count instead of the any_virtual_functions
-           flag, since the latter will be TRUE only if the base class actually
-           declared its own virtual functions, but the count is "inherited"
-           when it itself was eligible to share with a base class of its own.
-           For example:
-                  class A { virtual void f() };  // flag is TRUE, count is 1
-                  class B : public A {};         // flag is FALSE, count is 1
+        /* Check highest_virtual_function_number instead of the
+           any_virtual_functions flag, since the latter will be TRUE only if
+           the base class actually declared its own virtual functions, but
+           the highest number is "inherited" when it itself was eligible to
+           share with a base class of its own. For example:
+                  class A { virtual void f() };  // flag is TRUE, highest is 1
+                  class B : public A {};         // flag is FALSE, highest is 1
                   class C : public B { ...
            The virtual function table for C and the one for A-in-C can be
            shared, even though B doesn't have a virtual function table.  B's
            virtual_function_info_base_class will, however, still refer to A. */
-        if (base_ctsp->virtual_function_count > 0) {
+        if (base_ctsp->highest_virtual_function_number > 0) {
           bcp = base_ctsp->virtual_function_info_base_class;
           if (bcp == NULL) {
+            /* The base class does not share virtual function info with its
+               own base classes. */
             ctsp->virtual_function_info_base_class = new_direct_bcp;
           } else {
             /* Refer to the same virtual_function_info_base_class as the
@@ -2614,7 +2618,8 @@ or struct definition.  The syntax is
              functions will be tacked on at the end of the shared virtual
              function info block.  (Redeclarations will use the slot
              already reserved for the function.) */
-          ctsp->virtual_function_count = base_ctsp->virtual_function_count;
+          ctsp->highest_virtual_function_number =
+                                   base_ctsp->highest_virtual_function_number;
         }  /* if */
         first_direct_nonvirtual_base_class = FALSE;
       }  /* if */

@@ -1096,9 +1096,20 @@ typedef struct a_class_type_supplement {
                            virtual base classes from which it derives are
                            omitted. */
   a_virtual_function_number
-		virtual_function_count;
-			/* The number of virtual member functions declared in
-			   in the current class. */
+		highest_virtual_function_number;
+			/* The highest virtual function number assigned to
+			   any virtual member function actually declared in
+			   (not just inherited by) the current class.  However,
+			   if virtual_function_info_base_class is non-NULL,
+			   it may be that no virtual function declared in this
+			   class actually was assigned the number; in that
+			   case it is the highest virtual function number of
+			   the shared virtual functions, including those
+			   declared in the base class.  It follows that a
+			   class could have *no* directly declared virtual
+			   functions yet have a non-zero value in this field.
+			   (Incidentally, this number also corresponds to
+			   the size of a virtual function table.) */
   a_targ_size_t	virtual_function_info_offset;
 			/* The offset within the class object to a field
 			   containing information about the virtual functions
@@ -1106,8 +1117,9 @@ typedef struct a_class_type_supplement {
 			   be the offset to a pointer to a virtual function
 			   table.)  If virtual_function_info_base_class is
 			   non-NULL, this is still the offset within the
-			   current class.  If virtual_function_count is zero
-			   this field is undefined.  */
+			   current class.  If any_virtual_functions in the
+			   associated type entry is FALSE, this field is
+			   undefined.  */
   a_base_class_ptr
 		virtual_function_info_base_class;
 			/* If virtual function info is shared between the
@@ -1381,8 +1393,11 @@ typedef struct a_type {
 			   (C++ only, ARM 10.3). */
       unsigned int
 		any_virtual_functions:1;
-			/* TRUE if one or more member functions of the class,
-			   struct, or union is virtual (C++ only). */
+			/* TRUE if one or more member functions declared in
+			   the class, struct, or union is virtual (C++ only).
+			   (Inherited virtual functions that are not
+			   redeclared in the current class do not affect
+			   this flag.) */
     } class_struct_union;
     /* When kind == tk_typeref: */
     struct {

@@ -854,7 +854,7 @@ layout block used to track the layout of the current class.
 
   db_enter(4, "set_offset_for_virtual_function_info");
   ctsp = lob->class_type->variant.class_struct_union.extra_info;
-  if (ctsp->virtual_function_count > 0) {
+  if (lob->class_type->variant.class_struct_union.any_virtual_functions) {
     if (ctsp->virtual_function_info_base_class == NULL) {
       size = (a_targ_size_t)TARG_SIZEOF_VIRTUAL_FUNCTION_INFO;
       alignment = (a_targ_alignment)TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO;
@@ -862,6 +862,12 @@ layout block used to track the layout of the current class.
                                set_offset_and_alignment (lob, size, alignment);
     } else {
       bcp = ctsp->virtual_function_info_base_class;
+#if CHECKING
+      if (bcp->offset != 0) {
+        internal_error(
+                  "set_offset_for_virtual_function_info: non-zero bcp offset");
+      }  /* if */
+#endif /* CHECKING */
       bcp_ctsp = bcp->type->variant.class_struct_union.extra_info;
       ctsp->virtual_function_info_offset = 
                           bcp->offset + bcp_ctsp->virtual_function_info_offset;

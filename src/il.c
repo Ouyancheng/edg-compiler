@@ -716,8 +716,9 @@ class_struct_union:
             for (; vp != NULL; vp = vp->next) db_static_data_member(vp);
           }  /* if */
           if (rp != NULL) {
-            fprintf(f_debug, "\n  member functions (%d virtual):",
-                             ctsp->virtual_function_count);
+            fprintf(f_debug,
+                    "\n  member functions (highest virtual func number = %d):",
+                    ctsp->highest_virtual_function_number);
             for (; rp != NULL; rp = rp->next) db_member_function(rp);
           }  /* if */
           if (aap != NULL) {
@@ -2768,7 +2769,7 @@ a pointer to it.
   ctsp->base_classes                      = NULL;
   ctsp->size_without_virtual_base_classes = 0;
   ctsp->alignment_without_virtual_base_classes = 1;
-  ctsp->virtual_function_count            = 0;
+  ctsp->highest_virtual_function_number   = 0;
   ctsp->virtual_function_info_offset      = 0;
   ctsp->virtual_function_info_base_class  = NULL;
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;

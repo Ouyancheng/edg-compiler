@@ -2589,11 +2589,11 @@ Display the indicated class type supplement entry.
                      (unsigned long)ptr->size_without_virtual_base_classes);
   disp_unsigned_long("alignment_without_virtual_base_classes",
                    (unsigned long)ptr->alignment_without_virtual_base_classes);
-  disp_unsigned_long("virtual_function_count",
-                     (unsigned long)ptr->virtual_function_count);
+  disp_unsigned_long("highest_virtual_function_number",
+                     (unsigned long)ptr->highest_virtual_function_number);
   /* virtual_function_info_offset and virtual_function_info_base_class are
-     undefined if virtual_function_count is zero. */
-  if (ptr->virtual_function_count > 0) {
+     undefined if highest_virtual_function_number is zero. */
+  if (ptr->highest_virtual_function_number > 0) {
     disp_unsigned_long("virtual_function_info_offset",
                        (unsigned long)ptr->virtual_function_info_offset);
     if (ptr->virtual_function_info_base_class != NULL) {
