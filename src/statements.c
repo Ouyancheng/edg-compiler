@@ -911,9 +911,7 @@ the label are promoted to the lifetime of the function scope.
       /* Don't promote the lifetime of an inner block if it has destructions
          associated with it. */
       keep_block_object_lifetime = TRUE;
-    } else if (block_cfdp->variant.block.is_catch_block ||
-               block_olp->entity.kind ==
-                              (a_byte_il_entry_kind)iek_try_supplement) {
+    } else if (block_cfdp->variant.block.is_catch_block) {
       /* The lifetime of a try block or catch clause is retained in the IL,
          even if it has no destructions. */
       keep_block_object_lifetime = TRUE;
@@ -950,9 +948,14 @@ the label are promoted to the lifetime of the function scope.
     }  /* while */
     /* At this point all the promotions have been done for the subblocks
        created by label declarations.  Now do the top-level lifetime of the
-       block -- it required. */
+       block -- if required. */
     if (!keep_block_object_lifetime) {
-      promote_to = innermost_block_object_lifetime(block_olp->parent_lifetime);
+      promote_to = block_olp->parent_lifetime;
+      check_assertion_str2(
+                     block_olp->kind == (an_object_lifetime_kind)olk_block ||
+                     block_olp->kind == (an_object_lifetime_kind)olk_try_block,
+                     "fixup_curr_block_labels_and_gotos:",
+                     "bad parent of curr block lifetime");
       promote_label_and_goto_lifetimes(block_cfdp, block_olp, promote_to);
       /* Null out the lifetime pointer in the block control frow entry.  "NULL"
          means that the lifetimes of any labels or statements within are
