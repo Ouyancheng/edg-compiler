@@ -772,6 +772,21 @@ created for this entity; otherwise, it is NULL.
      label is always defined by an stmk_label statement, for which a source
      sequence entry will be put out.  Putting out both would be redundant. */
   if (sym_ptr->kind != (a_symbol_kind)sk_label) {
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    if (is_definition && !C_mode() &&
+        (sym_ptr->kind == (a_symbol_kind)sk_member_function ||
+         sym_ptr->kind == (a_symbol_kind)sk_routine) &&
+        scope_stack[depth_scope_stack].kind ==
+                                  (a_scope_kind)sck_class_struct_union &&
+        !scope_stack[depth_scope_stack].inside_local_class) {
+      /* This is a member or friend function definition inside the definition
+         of a nonlocal class.  When template instantiations are put out in the
+         source sequence list, it is necessary to move the member or friend
+         definition outside the class definition (i.e., just after it).  That
+         means a secondary-source-sequence entry should be put out here. */
+      is_primary_decl = FALSE;
+    }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     if (is_definition) {
       /* If this is a primary declaration (or a tentative definition that
          is the first definition of the variable), erase the previous

@@ -1021,6 +1021,19 @@ nested class.
           if (rp->storage_class == (a_storage_class)sc_extern) {
             rp->storage_class = (a_storage_class)sc_unspecified;
           }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+          if (rfp->func_info.is_movable_member_or_friend_def) {
+            /* Within the class definition a secondary-decl source sequence
+               entry was put out for the member or friend function
+               definition.  The primary source sequence entry was deferred
+               till now, when the class definition is complete. */
+            update_source_sequence_list((char *)rp,
+                                        (an_il_entry_kind)iek_routine,
+                                        (a_source_sequence_entry_ptr)NULL);
+          }  /* if */
+#endif NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           /* Let get_token know about the cache. */
           rescan_cached_tokens(&rfp->function_body_token_cache);
           /* Scan the function body. */
@@ -4312,6 +4325,15 @@ of the function, and again overloading is a possibility.
           sym = NULL;
           clear_qualifier_from_locator(locator);
           set_to_named_error_locator(*locator);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+        } else {
+          /* The primary source sequence entry will be deferred until the
+             class definition has been completed; a secondary-decl entry
+             will be put out here. */
+          func_info->is_movable_member_or_friend_def = TRUE;
+#endif NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
       } else if (sym != NULL &&
                  sym->kind == (a_symbol_kind)sk_namespace_projection) {
@@ -5313,7 +5335,26 @@ declared member functions.
     record_symbol_declaration(srk_flags, sym, &locator->source_position,
                               declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (!func_info->is_definition) {
+    if (func_info->is_definition) {
+      /* For a definition enter the function type as the "declared_type" in
+         the routine entry itself. */
+      rtn->declared_type = member_type;
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      /* Unless this is a member of a local class, this inline member
+         function definition will be represented in the source-sequence
+         list as a non-defining declaration, and the source-sequence entry
+         for its definition will be put out after the class definition
+         is terminated.  This is to solve a problem in generated C++ when
+         function template instantiations are represented as explicit
+         specializations and where, at the point of instantiation, the
+         class is required to be complete. */
+      if (!class_type->source_corresp.is_local_to_function) {
+        func_info->is_movable_member_or_friend_def = TRUE;
+      }  /* if */
+#endif NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    }  /* if */
+    if (!func_info->is_definition ||
+        func_info->is_movable_member_or_friend_def) {
       /* Since this is a non-defining entry, it is represented by a
          secondary-decl entry in the source sequence list.  Enter the
          current function type. */
@@ -5324,10 +5365,6 @@ declared member functions.
       /* A member function declaration within a class definition is always
          the initial declaration. */
       if (sssdp != NULL) sssdp->first_declaration = TRUE;
-    } else {
-      /* For a definition enter the function type as the "declared_type" in
-         the routine entry itself. */
-      rtn->declared_type = member_type;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (func_info->is_definition) {

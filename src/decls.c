@@ -4415,9 +4415,14 @@ skip_overloading:;
       check_assertion(!is_friend_decl);
       routine_ptr->defined_outside_of_parent = TRUE;
     }  /* if */
-  } else {
-    /* A function declaration but not a definition.  Set the type in the
-       secondary declaration entry. */
+  }  /* if */
+  if (!is_function_def || func_info->is_movable_member_or_friend_def) {
+    /* Set the type in the secondary declaration entry. */
+    /* Note that the is_movable_member_or_friend_friend_def flag is set for
+       non-member friend function definitions where the source-sequence
+       entry that is put out within the class definition is a secondary-decl;
+       the primary source sequence entry is put out after the class definition
+       is complete. */
     a_src_seq_secondary_decl_ptr  sssdp;
     sssdp = set_src_seq_secondary_decl_type((char *)routine_ptr, declared_type,
                                             /*is_specialization=*/FALSE);
