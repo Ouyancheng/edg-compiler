@@ -6711,14 +6711,6 @@ something_unexpected:
         goto exit_loop;
     }  /* switch */
     (void)get_token();
-    if (C_dialect == C_dialect_cplusplus) {
-      /* If this declaration appears in the immediate context of a class
-         definition and the current token is an identifier representing the
-         name of the current class, see if this is a qualified name and if
-         so change it into a simple name (e.g., A::x becomes x, its equivalent
-         in A's scope). */
-      (void)simplify_curr_class_qualified_name();
-    }  /* if */
 no_get_token:
     num_specifiers++;
     determined_curr_token_type_symbol = FALSE;
