@@ -2424,6 +2424,7 @@ See also 3.6.6.3.
     dest_label = alloc_temp_label();
   } else {
     if (sssep->kind == ssk_switch &&
+        sssep->curr_switch_clause != NULL &&
         sssep->curr_switch_clause ==
                       struct_stmt_stack[depth_stmt_stack].curr_switch_clause) {
       /* This break statement exits a switch clause in a way that can
