@@ -3153,11 +3153,21 @@ C mode.
 {
   a_type_ptr arg_type;
 
-  /* Convert the operand to an rvalue if necessary. */
-  do_operand_transformations(argument_operand, TOPT_NO_OPTIONS);
-  /* Catch array rvalues in pre-C99 C.  In strict mode they are not allowed.
-     Otherwise, do the special array --> pointer decay as an extension. */
-  handle_nonstandard_array_rvalue(argument_operand);
+  if (microsoft_bugs && is_ellipsis &&
+      !curr_expr_is_evaluated() && is_an_lvalue(argument_operand) &&
+      is_incomplete_type(argument_operand->type) &&
+      is_class_struct_union_type(argument_operand->type)) {
+    /* MSVC++ (7.1 at least) allows an lvalue of an incomplete class type
+       as an argument to an ellipsis in a call in an unevaluated context.
+       Note that MSVC++ does not instantiate a template class in that case
+       so we don't call complete_type_is_needed here. */
+  } else {
+    /* Convert the operand to an rvalue if necessary. */
+    do_operand_transformations(argument_operand, TOPT_NO_OPTIONS);
+    /* Catch array rvalues in pre-C99 C.  In strict mode they are not allowed.
+       Otherwise, do the special array --> pointer decay as an extension. */
+    handle_nonstandard_array_rvalue(argument_operand);
+  }  /* if */
   arg_type = argument_operand->type;
   /* Do the integral promotions part of the default argument promotions
      directly on the operand because of the special case with 
