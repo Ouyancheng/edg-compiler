@@ -2640,24 +2640,6 @@ NULL, in which case the padding starts at offset zero.
 }  /* dump_field_padding */
 
 
-static a_boolean has_leading_padding(a_type_ptr  type)
-/*
-Return TRUE if and only if this class type has a first field that is
-preceded by some padding.  This only occurs in the context of empty
-base class optimization.
-*/
-{
-  a_boolean    result = FALSE;
-  a_field_ptr  first_field = type->variant.class_struct_union.field_list;
-
-  if (first_field != NULL &&
-      field_padding((a_field_ptr)NULL, first_field, type) > 0) {
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* has_leading_padding */
-
-
 static void dump_field_annotation_comment(a_field_ptr  field)
 /*
 Emit a comment describing the layout of the given field.
@@ -5743,27 +5725,17 @@ block with state information for the processing.
         break;
       case tk_struct:
       case tk_union:
-        if (has_leading_padding(type)) {
-          /* A struct that starts off with some padding.  This can only occur
-             as a result of empty base class optimizations.  Therefore, this
-             cannot be a union and this cannot involve an aggregate
-             initializer. */
-          check_assertion(elem_con == NULL &&
-                          type->kind != (a_type_kind)tk_union);
-          elem_type = NULL;
-        } else {
-          /* Find the first field in the struct or union, skipping those that
-             are ignored by initialization. */
-          ipdp->curr_field = next_initializable_field(
+        /* Find the first field in the struct or union, skipping those that
+           are ignored by initialization. */
+        ipdp->curr_field = next_initializable_field(
                                   type->variant.class_struct_union.field_list);
-          if (ipdp->curr_field != NULL) {
-            elem_type = ipdp->curr_field->type;
-          } else {
-            /* The struct or union contains no initializable fields, e.g.,
-               "struct {int :0;}", but a dummy field will have been put out
-               to avoid that problem.  It will be initialized below. */
-            elem_type = NULL;
-          }  /* if */
+        if (ipdp->curr_field != NULL) {
+          elem_type = ipdp->curr_field->type;
+        } else {
+          /* The struct or union contains no initializable fields, e.g.,
+             "struct {int :0;}", but a dummy field will have been put out
+             to avoid that problem.  It will be initialized below. */
+          elem_type = NULL;
         }  /* if */
         break;
       default:
@@ -5803,6 +5775,7 @@ block with state information for the processing.
          through the type until a non-aggregate is found, and initialize
          it to zero.  An exception is caused by initializers for zero-length
          arrays in GNU C mode (handled above). */
+      a_field_ptr  prev_field = NULL;
       for (;;) {
         if (elem_con != NULL &&
             elem_con->kind == (a_constant_repr_kind)ck_designator) {
@@ -5822,6 +5795,17 @@ block with state information for the processing.
           elem_con = elem_con->next;
           check_assertion(elem_con != NULL &&
                           elem_con->kind!=(a_constant_repr_kind)ck_designator);
+        } else if (!*gen_assignments && type->kind != (a_type_kind)tk_array) {
+          /* Check if we added some padding before this field, and if so
+             generate initializers for that padding. */
+          a_targ_size_t  padding, p;
+          padding = field_padding(prev_field, ipdp->curr_field, type);
+          if (padding != 0) {
+            start_initializer_constants(icbp);
+            for (p = 0; p < padding; ++p) {
+              write_tok_str("'\\0',");
+            }  /* for */
+          }  /* if */
         } else if (annotate && !*gen_assignments &&
                    type->kind == (a_type_kind)tk_array) {
           /* Display element numbers in arrays. */
@@ -5885,7 +5869,13 @@ block with state information for the processing.
           } else {
             check_assertion_str(type->kind == (a_type_kind)tk_struct,
                                 "dump_initializer_part: bad entity kind (2)");
+            prev_field = ipdp->curr_field;
             ipdp->curr_field= next_initializable_field(ipdp->curr_field->next);
+            while (prev_field->next != ipdp->curr_field) {
+              /* Adjust prev_field if next_initializable_field skipped some
+                 non-initializable fields. */
+              prev_field = prev_field->next;
+            }  /* while */
           }  /* if */
         }  /* if */
       }  /* for */
