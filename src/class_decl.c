@@ -2883,6 +2883,7 @@ or struct definition.  The syntax is
       /* Scan the base class name. */
       a_boolean	err = FALSE;
       base_class_decl_pos = pos_curr_token;
+      base_class_type = NULL;
       /* Look up the identifier for the base class.  Only identifiers
          that could be classes (including typedefs to classes and template
          parameters) are considered in the lookup. */
@@ -2892,19 +2893,22 @@ or struct definition.  The syntax is
       if (sym == NULL || !is_class_symbol(sym)) {
         /* Not a class symbol.  In most cases, issue and error and skip it.
            When a template param is involved, just skip it. */
-        if (sym != NULL && sym->kind == (a_symbol_kind)sk_type &&
-            (skip_typedefs(type_symbol_type(sym)))->kind ==
-                                         (a_type_kind)tk_template_param) {
-          /* No diagnostic on template parameters, which will only show
-             up during prototype instantiations.  Set the flag that
-             indicates that this prototype instantiation has a nonreal
-             base class. */
-          cssp->any_nonreal_base_classes = TRUE;
-        } else {
+        if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
+          a_type_ptr  tp = skip_typedefs(type_symbol_type(sym));
+          if (tp->kind == (a_type_kind)tk_template_param) {
+            /* No diagnostic on template parameters, which will only show
+               up during prototype instantiations.  Set the flag that
+               indicates that this prototype instantiation has a nonreal
+               base class. */
+            cssp->any_nonreal_base_classes = TRUE;
+            base_class_type = proxy_class_for_template_param(tp);
+          }  /* if */
+        } /* if */
+        if (base_class_type == NULL) {
           error(ec_not_a_class_or_struct_name);
           reference_to_invalid_name(&locator_for_curr_id);
+          goto skip_base_class;
         }  /* if */
-        goto skip_base_class;
       } else if (locator_for_curr_id.is_semivisible_nested_type) {
         /* The symbol in the locator is a nested class that is not visible
            according to the ARM lookup rules but is returned in support of
@@ -2922,21 +2926,23 @@ or struct definition.  The syntax is
       mark_referenced(sym, &pos_curr_token);
       /* Do ambiguity and access control checking for the symbol. */
       check_ambiguity_and_verify_access(&locator_for_curr_id);
-      /* Get the type entry for the base class name. */
-      base_class_type = type_symbol_type(sym);
-      base_class_type->source_corresp.referenced = TRUE;
-      /* If it is a const or volatile qualified type name (where in the ARM is
-         this required?) or if it is the class now being defined or if
-         it is a union or if it has been declared but not yet defined (ARM
-         10, p. 196), issue an error and skip over this class: it is not a
-         valid base class name. */
-      complete_class_type_is_needed(base_class_type);
-      if (is_qualified_type(base_class_type) ||
-          (base_class_type = skip_typerefs(base_class_type)) == type_ptr ||
-          base_class_type->kind == (a_type_kind)tk_union ||
-          !is_complete_class_struct_union_type(base_class_type)) {
-        error(ec_bad_base_class);
-        goto skip_base_class;
+      if (base_class_type == NULL) {
+        /* Get the type entry for the base class name. */
+        base_class_type = type_symbol_type(sym);
+        base_class_type->source_corresp.referenced = TRUE;
+        /* If it is a const or volatile qualified type name (where in the
+           ARM is this required?) or if it is the class now being defined or
+           if it is a union or if it has been declared but not yet defined
+           (ARM 10, p. 196), issue an error and skip over this class: it is
+           not a valid base class name. */
+        complete_class_type_is_needed(base_class_type);
+        if (is_qualified_type(base_class_type) ||
+            (base_class_type = skip_typerefs(base_class_type)) == type_ptr ||
+            base_class_type->kind == (a_type_kind)tk_union ||
+            !is_complete_class_struct_union_type(base_class_type)) {
+          error(ec_bad_base_class);
+          goto skip_base_class;
+        }  /* if */
       }  /* if */
       /* Issue a diagnostic if an explicit access specifier was not provided
          (as per the recommendation on p. 243 of the ARM). */
@@ -5795,7 +5801,7 @@ matching function, set *ambiguous to TRUE.
                                           ambiguous, &pass_by_value);
       break;
     default:
-      unexpected_condition_str2("form_exception_spec...:",
+      unexpected_condition_str2("special_function_symbol:",
                                 "bad special function kind");
   }  /* switch */
   return sym;
@@ -5806,7 +5812,7 @@ static a_boolean merge_exception_specifications(a_func_info_block  *func_info,
                                                 a_symbol_ptr       sym)
 /*
 Look up the exception specification associated with the member function
-indicated by sym and record it in func_info, merging it with exception
+indicated by sym and record it in func_info, merging it with the exception
 specification already there, if any.  If sym can throw any exception, return
 TRUE.
 */
