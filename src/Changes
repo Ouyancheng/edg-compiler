@@ -109,8 +109,8 @@ aborted.
 Various syntax errors in class definitions occuring in the scope of a template
 declaration could lead the front end to abort compilation.  For example:
 
-  template <class T> class struct A { 
-    typename T::X<short> T2;
+  template<class T> volatile struct A {
+    static int f() { return sizeof(T); }
   };
 
 Many such cases are now fixed (i.e., an ordinary error message is issued).
