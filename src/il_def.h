@@ -267,8 +267,8 @@ enum a_name_linkage_kind_tag {
 #endif /* ifdef CUSTOM_NAME_LINKAGE_KINDS */
   nlk_last
 };
-/* If CUSTOM_NAME_LINKAGE_KINDS is TRUE, a few other macros should be defined
-   as well. */
+/* If CUSTOM_NAME_LINKAGE_KINDS is defined, a few other macros should be
+   defined as well. */
 #ifdef CUSTOM_NAME_LINKAGE_KINDS
 #ifndef NUM_BITS_FOR_NAME_LINKAGE
  #error -- NUM_BITS_FOR_NAME_LINKAGE must be defined when \
