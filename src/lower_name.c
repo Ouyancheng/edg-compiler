@@ -66,6 +66,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_OPERATOR_DELETE "dl"
 #define MANGLING_STRING_FOR_OPERATOR_ARRAY_NEW "na"
 #define MANGLING_STRING_FOR_OPERATOR_ARRAY_DELETE "da"
+#define MANGLING_STRING_FOR_OPERATOR_UNARY_PLUS "ps"
 #define MANGLING_STRING_FOR_OPERATOR_PLUS "pl"
 #define MANGLING_STRING_FOR_OPERATOR_NEGATE "ng"
 #define MANGLING_STRING_FOR_OPERATOR_MINUS "mi"
@@ -2136,11 +2137,7 @@ arguments, and as dimensions of arrays in template signatures.
          (expr->variant.operation.kind == (an_expr_operator_kind)eok_lvalue ||
           expr->variant.operation.kind == (an_expr_operator_kind)eok_rvalue
 #if IA64_ABI
-          /* Also drop unary plus in the IA-64 ABI.  There's no representation
-             for it. */
-                                                                            ||
-          expr->variant.operation.kind == (an_expr_operator_kind)eok_unary_plus
-          /* Also drop implicit casts. */
+          /* Also drop implicit casts in the IA-64 ABI. */
                                                                             ||
           (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
            expr->variant.operation.compiler_generated)
@@ -3582,7 +3579,15 @@ binary versions of operators are mangled differently.
       name = MANGLING_STRING_FOR_OPERATOR_ARRAY_DELETE;
       break;
     case onk_plus:              /* "+" */
-      name = MANGLING_STRING_FOR_OPERATOR_PLUS;
+#ifdef MANGLING_STRING_FOR_OPERATOR_UNARY_PLUS
+      if (num_operands == 1) {
+        name = MANGLING_STRING_FOR_OPERATOR_UNARY_PLUS;
+      } else 
+#endif /* ifdef MANGLING_STRING_FOR_OPERATOR_UNARY_PLUS */
+      /* Do not add code here. */
+      {
+        name = MANGLING_STRING_FOR_OPERATOR_PLUS;
+      }
       break;
     case onk_minus:             /* "-" */
 #ifdef MANGLING_STRING_FOR_OPERATOR_NEGATE
@@ -3750,12 +3755,8 @@ expressions on nontype template parameters in function signatures.
       num_operands = 1;
       break;
     case eok_unary_plus:
-#if !IA64_ABI
       opkind = (an_opname_kind)onk_plus;
       num_operands = 1;
-#else /* IA64_ABI */
-      unexpected_condition();
-#endif /* IA64_ABI */
       break;
     case eok_not:
       opkind = (an_opname_kind)onk_not;
