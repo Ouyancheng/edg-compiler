@@ -1072,10 +1072,11 @@ In such cases, charize is TRUE.
   register char     ch;
   a_boolean         within_char_literal = FALSE;
   a_boolean         start_of_token = TRUE;
+  char              quote_char = (charize ? '\'' : '"');
 
   /* Put out initial quote. */
   len++;
-  if (src_loc != NULL) *(*src_loc)++ = charize ? '\'' : '"';
+  if (src_loc != NULL) *(*src_loc)++ = quote_char;
   /* Scan through the raw text of the argument, stopping at the end.
      Delete end of token markers.  Keep track of when we are inside of
      a character constant or string literal, and put out a "\" in front
@@ -1111,7 +1112,7 @@ In such cases, charize is TRUE.
          to a single blank so that is all we have to check for. */
       if (ch != ' ') start_of_token = FALSE;
       if (within_char_literal &&
-          (ch == (charize ? '\'' : '"') || ch == '\\')) {
+          (ch == quote_char || ch == '\\')) {
         /* Escape " and \ within a character constant or string literal.
            Note that the quotes delimiting string literals are
            replaced too.  (When charizing, the single quote rather than the
@@ -1126,7 +1127,7 @@ In such cases, charize is TRUE.
   }  /* for */
   /* Put out final quote. */
   len++;
-  if (src_loc != NULL) *(*src_loc)++ = charize ? '\'' : '"';
+  if (src_loc != NULL) *(*src_loc)++ = quote_char;
 
   return (len);
 }  /* stringized_arg */
