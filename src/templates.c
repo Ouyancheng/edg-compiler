@@ -13907,10 +13907,10 @@ data member is a member of an unnamed namespace.
   if (is_inline_template_function(tip)) {
     result = TRUE;
   } else if (sym->kind != (a_symbol_kind)sk_static_data_member &&
-             sym->variant.routine.ptr->storage_class ==
+             (sym->variant.routine.ptr->storage_class ==
                                                  (a_storage_class)sc_static ||
-             is_or_contains_unnamed_namespace_type(
-                                             sym->variant.routine.ptr->type)) {
+              is_or_contains_unnamed_namespace_type(
+                                            sym->variant.routine.ptr->type))) {
     /* Return TRUE if the function is marked as static, or if the routine type
        contains a type from an unnamed namespace. */
     result = TRUE;
