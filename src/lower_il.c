@@ -34,6 +34,7 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 #include "layout.h"
 #include "il_walk.h"
 #include "templates.h"
+#include "fe_wrapup.h"
 #endif /* DO_IL_LOWERING */
 
 /* Only include this code if it is needed.  The first few routines are
@@ -11691,6 +11692,22 @@ with the outermost enclosing class, for later promotion out of the class
 }  /* promote_types_out_of_function */
 
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#if LOWER_EXTERN_INLINE
+
+static a_boolean is_or_will_be_extern_inline(a_routine_ptr routine)
+/*
+Return TRUE if the indicated function is or will be extern inline.
+It might become extern inline because it's potentially referenced
+from an exported template.  See externalize_statics_for_exported_templates.
+*/
+{
+  a_boolean is_extern_inline =
+              (treat_as_extern_inline(routine) ||
+               routine_should_be_externalized_for_exported_templates(routine));
+  return is_extern_inline;
+}  /* is_or_will_be_extern_inline */
+
+#endif /* LOWER_EXTERN_INLINE */
 
 #if !LOWER_EXTERN_INLINE
 /*ARGSUSED*/ /* <-- scope_with_block is only used with LOWER_EXTERN_INLINE. */
@@ -11730,7 +11747,7 @@ block -- scopes for "for" init blocks do not have one.
                                   routine, scope);
       variable->source_corresp.is_local_to_function = FALSE;
 #if LOWER_EXTERN_INLINE
-      if (treat_as_extern_inline(routine)) {
+      if (is_or_will_be_extern_inline(routine)) {
         /* An extern inline routine.  Make the promoted variable externally
            visible.  This uses the relaxed ref/def model for externals. */
         variable->storage_class = (a_storage_class)sc_unspecified;
@@ -11901,7 +11918,7 @@ part of the lowering of the file scope memory region.
   a_boolean     do_type_promotion = FALSE, do_static_promotion = FALSE;
 
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 4 || db_has_traced_name(routine, iek_routine)) {
     (void)fprintf(f_debug, "Promoting local entities out of ");
     db_scope(scope);
     (void)fprintf(f_debug, "\n");
@@ -11915,7 +11932,7 @@ part of the lowering of the file scope memory region.
   }  /* if */
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #if LOWER_EXTERN_INLINE
-  if (treat_as_extern_inline(routine)) {
+  if (is_or_will_be_extern_inline(routine)) {
     /* Promote static variables out of an extern inline routine, making
        them external so the same ones are accessed from all copies of the
        function. */
