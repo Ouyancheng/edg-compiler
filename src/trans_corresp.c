@@ -1176,8 +1176,8 @@ is in fact valid.
   a_boolean      match = TRUE;
 
   if (has_correspondence(routine)) {
-    a_routine_ptr  corresp_routine =
-                                 (a_routine_ptr)canonical_il_entry_of(routine);
+    a_routine_ptr  corresp_routine = (a_routine_ptr)
+                               checked_trans_unit_corresp_pointer_of(routine);
     a_source_correspondence_ptr
                    scp = &routine->source_corresp,
                    corresp_scp = &corresp_routine->source_corresp;
@@ -1230,7 +1230,8 @@ is in fact valid.
   a_boolean       match = TRUE;
 
   if (has_correspondence(var)) {
-    a_variable_ptr  corresp_var = (a_variable_ptr)canonical_il_entry_of(var);
+    a_variable_ptr  corresp_var = (a_variable_ptr)
+                                   checked_trans_unit_corresp_pointer_of(var);
     a_source_correspondence_ptr
                     scp = &var->source_corresp,
                     corresp_scp = &corresp_var->source_corresp;
@@ -3283,7 +3284,7 @@ translation unit correspondence pointer if one is found.
 */
 {
   a_symbol_ptr  routine_sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
-  a_symbol_ptr  sym;
+  a_symbol_ptr  sym, corresp_sym = NULL;
 
   check_assertion(routine_sym != NULL);
   sym = corresp_symbol_list(routine_sym);
@@ -3309,9 +3310,11 @@ translation unit correspondence pointer if one is found.
                  copied over. */
               scp->same_name_as_external_entity_in_secondary_trans_unit = TRUE;
             }  /* if */
-          } else if (has_correspondence(routine)) {
-            /* We've found the correspondence already; only look for
-               conflicts. */
+          } else if (corresp_sym != NULL &&
+                     (!routine_sym->defined || corresp_sym->defined)) {
+            /* We've found the correspondence already; only look for conflicts.
+               If routine is defined while corresp_sym does not correspond to
+               a definition, continue to look for a definition. */
           } else {
             /* Two different declarations in the same namespace or class, and
                with the same name: they should probably match up. */
@@ -3331,9 +3334,7 @@ translation unit correspondence pointer if one is found.
                              /* The function ::main doesn't overload. */
                              (is_main_function(routine) &&
                               is_main_function(corresp_routine))) {
-                    /* Record the correspondence. */
-                    record_trans_unit_corresp(routine,
-                                              sub_sym->variant.routine.ptr);
+                    corresp_sym = sub_sym;
                   } else if (routine->source_corresp.name_linkage ==
                                           (a_name_linkage_kind)nlk_external &&
                              corresp_routine->source_corresp.name_linkage ==
@@ -3361,7 +3362,10 @@ translation unit correspondence pointer if one is found.
       }  /* if */
     }  /* for */
   }  /* if */
-  if (checked_trans_unit_corresp_pointer_of(routine) == NULL) {
+  if (corresp_sym != NULL) {
+    /* Record the correspondence. */
+    record_trans_unit_corresp(routine, corresp_sym->variant.routine.ptr);
+  } else {
     /* Mark this routine as visited. */
     set_no_trans_unit_corresp(routine);
   }  /* if */
@@ -3375,7 +3379,7 @@ translation unit correspondence pointer if one is found.
 */
 {
   a_symbol_ptr  var_sym = (a_symbol_ptr)var->source_corresp.assoc_info;
-  a_symbol_ptr  sym;
+  a_symbol_ptr  sym, corresp_var_sym = NULL;
 
   if (has_name(var) &&
       var_sym != NULL && may_have_correspondence(var_sym)) {
@@ -3394,32 +3398,19 @@ translation unit correspondence pointer if one is found.
              conflict in generated C code when var is copied over. */
           scp->same_name_as_external_entity_in_secondary_trans_unit = TRUE;
         }  /* if */
-      } else if (has_correspondence(var)) {
-        /* We've found the correspondence already; only look for conflicts. */
       } else {
         /* Two different declarations in the same namespace or class, and
            with the same name: they should probably match up. */
         switch (sym->kind) {
           case sk_variable:
             {
-              a_variable_ptr  corresp_var = sym->variant.variable.ptr;
-              if (var != corresp_var) {
-                /* Record the correspondence. */
-                record_trans_unit_corresp(var, corresp_var);
-                /* If the variable has an anonymous type, assume it matches
-                   that of the corresponding entity. */
-                if (!has_correspondence(var->type) &&
-                    !has_name(var->type) && !has_name(corresp_var->type) &&
-                    (is_immediate_class_type(var->type) ||
-                     is_immediate_enum_type(var->type))) {
-                  record_trans_unit_corresp(var->type, corresp_var->type);
-                  if (var->type->kind != corresp_var->type->kind) {
-                    /* An error: will be caught later. */
-                  } else if (is_immediate_class_type(var->type)) {
-                    establish_trans_unit_correspondences_for_class(var->type);
-                  } else {
-                    establish_trans_unit_correspondences_for_enum(var->type);
-                  }  /* if */
+              if (var != sym->variant.variable.ptr) {
+                if (corresp_var_sym == NULL ||
+                    (sym->defined && !corresp_var_sym->defined)) {
+                  /* If var is defined (in addition to being declared), prefer
+                     a definition over a declaration.  This will allow us to
+                     consistently diagnose multiple definitions. */
+                  corresp_var_sym = sym;
                 }  /* if */
               }  /* if */
             }
@@ -3438,7 +3429,26 @@ translation unit correspondence pointer if one is found.
       }  /* if */
     }  /* for */
   }  /* if */
-  if (checked_trans_unit_corresp_pointer_of(var) == NULL) {
+  if (corresp_var_sym != NULL) {
+    a_variable_ptr  corresp_var = corresp_var_sym->variant.variable.ptr;
+    /* Record the correspondence. */
+    record_trans_unit_corresp(var, corresp_var);
+    /* If the variable has an anonymous type, assume it matches
+       that of the corresponding entity. */
+    if (!has_correspondence(var->type) &&
+        !has_name(var->type) && !has_name(corresp_var->type) &&
+        (is_immediate_class_type(var->type) ||
+         is_immediate_enum_type(var->type))) {
+      record_trans_unit_corresp(var->type, corresp_var->type);
+      if (var->type->kind != corresp_var->type->kind) {
+        /* An error: will be caught later. */
+      } else if (is_immediate_class_type(var->type)) {
+        establish_trans_unit_correspondences_for_class(var->type);
+      } else {
+        establish_trans_unit_correspondences_for_enum(var->type);
+      }  /* if */
+    }  /* if */
+  } else {
     /* Mark this variable as visited. */
     set_no_trans_unit_corresp(var);
   }  /* if */
