@@ -5147,7 +5147,8 @@ specification allow a variable-sized array as the top type.
          looking for a non-array operator new.  Do a tentative match
          on the array new, and if that fails fall back to the non-array
          new.*/
-      if (!overloaded_function_match_possible(
+      if (operator_new_symbol == NULL ||
+          !overloaded_function_match_possible(
                                       operator_new_symbol,
                                       /*is_template_id=*/FALSE,
                                       (a_template_arg_ptr)NULL,
