@@ -1503,6 +1503,7 @@ by id_linkage.
       }  /* for */
       if (other_decl == NULL && function_template_seen &&
           (guiding_decls_allowed ||
+           (microsoft_mode && is_friend_decl) ||
            locator->is_template_id ||
            locator->is_qualified_name)) {
         a_partial_order_candidate_ptr	candidates_list = NULL;
@@ -1510,9 +1511,10 @@ by id_linkage.
            template.  See if it either provides a match with an
            existing instance of the template or if a new instance can
            be created based on the current type.  This is done if
-           guiding declarations are recognized, or if the declaration is
-           known to refer to a previously declared template.  The latter
-	   is the case when the name was specified as a qualified name or
+           guiding declarations are recognized, in Microsoft mode for
+           friend declarations, or if the declaration is known to
+           refer to a previously declared template.  The latter is the
+           case when the name was specified as a qualified name or
            includes an explicit template argument list. */
         a_symbol_ptr sym, match = NULL;
 
@@ -3750,7 +3752,8 @@ on for use in generating cross-reference output describing this declaration.
       } else if (!locator->is_qualified_name) {
         /* This is not actually a redeclaration -- linked_symbol refers to a
            function template instantiation. */
-        check_assertion(guiding_decls_allowed);
+        check_assertion(guiding_decls_allowed ||
+                        (microsoft_mode && is_friend_decl));
         template_function_specific_decl = TRUE;
       }  /* if */
     }  /* if */

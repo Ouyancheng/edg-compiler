@@ -1,5 +1,23 @@
 Version 2.37
 
+8/20/97   Microsoft compatibility: friend declaration treated as guiding
+          declaration
+
+Although the Microsoft compiler does not consider a global scope declaration
+of a function to be a guiding declaration, the same declaration used as
+a friend declaration is considered to be a guiding declaration.  We now
+duplicate this behavior in Microsoft mode.
+
+  template <class T> class A {
+    friend void f(A<T>);  // now treated as a guiding decl. in Microsoft mode
+  };
+  template <class T> void f(A<T>){}
+  int main ()
+  {
+      A<int> a;
+      f(a);
+  }
+
 8/20/97   Incorrect linkage for members of specialized classes in -tlocal mode
 
 The linkage of specialized classes was incorrecting being affected
