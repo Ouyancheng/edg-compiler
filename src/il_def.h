@@ -1502,8 +1502,8 @@ Data structures related to routines:
    class is assigned a unique number.  Although no specific implementation
    of virtual function calls is predetermined by the front end, this number
    can be used as a virtual function table index value. */
-typedef short a_virtual_function_number;
-#define MAX_VIRTUAL_FUNCTIONS_PER_CLASS SHRT_MAX
+typedef unsigned short a_virtual_function_number;
+#define MAX_VIRTUAL_FUNCTIONS_PER_CLASS USHRT_MAX
 
 typedef struct a_routine {
   /* Description of a routine.  Note that this is pointed to from a scope
