@@ -1,10 +1,10 @@
 /******************************************************************************
 *                                                             \  ___  /       *
-*                                                               /   \         *
-* Edison Design Group C++/C Front End                        - | \^/ | -      *
-*                                                               \   /         *
-* Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2000-2001 Edison Design Group Inc.                   [_]          *
+* Edison Design Group C++ Runtime                               /   \         *
+*                                                            - | \^/ | -      *
+* Copyright 1992-2004 Edison Design Group, Inc.                 \   /         *
+* All rights reserved.  Consult your license                  /  | |  \       *
+* regarding permissions and restrictions.                        [_]          *
 *                                                                             *
 ******************************************************************************/
 
@@ -495,11 +495,10 @@ Real part of a complex value.
 
 /******************************************************************************
 *                                                             \  ___  /       *
-*                                                               /   \         *
-* Edison Design Group C++/C Front End                        - | \^/ | -      *
-*                                                               \   /         *
-* Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2000-2001 Edison Design Group Inc.                   [_]          *
+* Edison Design Group C++ Runtime                               /   \         *
+*                                                            - | \^/ | -      *
+* Copyright 1992-2004 Edison Design Group, Inc.                 \   /         *
+* All rights reserved.  Consult your license                  /  | |  \       *
+* regarding permissions and restrictions.                        [_]          *
 *                                                                             *
 ******************************************************************************/
-

@@ -1,5 +1,11 @@
 Version 3.4
 
+2/12/04  Change in proprietary status of runtime source
+
+The runtime source code is copyrighted but no longer confidential.  This
+permits distribution of the source code under certain conditions.  Refer
+to your license agreement for additional information.
+
 12/9/03  Missing exception specification on uncaught_exception
 
 A change in the TC1 version of the standard added an exception specification
