@@ -1684,6 +1684,18 @@ template resulted in a spurious error.  This has been fixed.
   };
   template <> template <class U> struct A<int>::B;
 
+10/17/01 Change in handling of constructor vs. injected class name in lookup
+
+The standard, as amended by core issue 147, says that the lookup of a name
+such as A::A always names the constructor.  We believe this rule to be
+incorrect in lookups for which the constructor is not visible (such as
+when a name is followed by :: as in the example below).  A new core issue
+will be opened to address this problem.  Pending clarification by the
+committee, the front end now accepts examples like this one.
+
+  struct A { struct B {}; };
+  A::A::B ab;
+
 10/17/01 Spurious error when injected class name follows a field selection
 
 The front end produced an incorrect lookup result when the lookup of
