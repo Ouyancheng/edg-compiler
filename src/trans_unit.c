@@ -310,6 +310,33 @@ pointed to by the translation unit entry.
   }  /* if */
 }  /* restore_translation_unit_state */
 
+#if DEBUG
+
+void db_translation_unit(a_translation_unit_ptr	tup)
+/*
+Display a translation unit, for debugging purposes.
+*/
+{
+  fprintf(f_debug, "Translation unit %s\n", tup->source_file->file_name);
+}  /* db_translation_unit */
+
+
+void db_translation_unit_stack(void)
+/*
+Display the translation unit stack, for debugging purposes.
+*/
+{
+  a_translation_unit_stack_entry_ptr	tusep;
+  int					count = 0;
+
+  fprintf(f_debug, "Translation unit stack:\n");
+  for (tusep = curr_translation_unit_stack_entry;
+       tusep != NULL; tusep = tusep->next, count++) {
+    fprintf(f_debug, "  %d: %s\n", count,
+            tusep->translation_unit->source_file->file_name);
+  }  /* for */
+}  /* db_translation_unit_stack */
+#endif /* DEBUG */
 
 void switch_translation_unit(a_translation_unit_ptr	tup)
 /*
@@ -334,6 +361,9 @@ it the current translation unit.
 {
   a_translation_unit_stack_entry_ptr	tusep;
 
+  check_assertion(curr_translation_unit_stack_entry == NULL ||
+                  curr_translation_unit_stack_entry->translation_unit ==
+                  curr_translation_unit);
   tusep = alloc_translation_unit_stack_entry();
   tusep->next = curr_translation_unit_stack_entry;
   tusep->translation_unit = tup;
@@ -355,6 +385,7 @@ new top entry the current translation unit.
   a_translation_unit_stack_entry_ptr	tusep;
 
   tusep = curr_translation_unit_stack_entry;
+  check_assertion(tusep->translation_unit == curr_translation_unit);
   /* Unlink this entry from the stack. */
   curr_translation_unit_stack_entry = tusep->next;
   /* Add the old entry to the list of available stack entries. */
