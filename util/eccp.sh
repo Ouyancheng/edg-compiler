@@ -385,7 +385,7 @@ do
       instantiation_mode_specified=1
       ;;
     -T)
-#     Supress automatic template instantiation processing
+#     Suppress automatic template instantiation processing
       feoptions=$feoptions" "$1;
       ;;
     -B)
