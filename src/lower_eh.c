@@ -3253,10 +3253,7 @@ Do IL lowering for an stmk_try_block statement.
                     ehse_try_region_number_field);
   (void)insert_assignment_statement(try_frame_region_number,
                                     (an_expr_operator_kind)eok_iassign,
-                                    node_for_integer_constant(
-                                                  (long)cleanup_region_number(
-                                                           curr_cleanup_state),
-                                                  TARG_REGION_NUMBER_INT_KIND),
+                                    var_rvalue_expr(make_eh_curr_region_var()),
                                     &insert_location);
   /* Change the original stmk_try_block statement into an if statement
      that looks like

@@ -1,5 +1,13 @@
 Version 2.31
 
+1/17/96   IL Lowering: exception handling code for "try" within constructor
+
+The code generated for a "try" block within a constructor, where the
+constructor is configured to do allocation at the beginning if the "this"
+parameter passed in is NULL, saved the wrong region number in the
+try block, with the consequence that the runtime could not find the
+region number when unwinding.
+
 1/17/96   IL lowering: exception handling code for blocks ending with transfer
 
 Two bugs have been fixed in the IL lowering's handling of exception
