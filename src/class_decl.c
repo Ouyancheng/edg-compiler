@@ -7781,6 +7781,15 @@ next_declaration:
            midst of a class definition, to enable il-lowering to get the
            ordering right when it promotes the nested types to file scope. */
         create_placeholder_for_class_instantiation(class_type);
+      } else if (cssp->partial_instantiation_placeholder != NULL) {
+        /* This must be a specialization of a template class that was
+           partially instantiated before the definition was seen.  Clear out
+           unneeded placeholder information. */
+        remove_from_types_list(cssp->partial_instantiation_placeholder,
+                               NO_SCOPE_DEPTH);
+        class_type->variant.class_struct_union.
+              referenced_by_class_instantiation_placeholder_typeref = FALSE;
+        cssp->partial_instantiation_placeholder = NULL;
       }  /* if */
     }  /* if */
     /* Save a pointer to the list of member symbols in the tag symbol.  Note
