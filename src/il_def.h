@@ -3532,6 +3532,11 @@ typedef struct a_type {
 			/* TRUE if this type is a typedef and its definition
 			   has been put out.  Used only within the
 			   C++-generating back end. */
+  a_bit_field	replace_by_generated_typedef:1;
+			/* TRUE if references to this type should be replaced
+			   by references to a generated typedef.  This is used
+			   in the C++-generating end, to deal with a Microsoft
+			   bug. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	autonomous_primary_tag_decl:1;

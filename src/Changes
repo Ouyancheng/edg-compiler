@@ -1,5 +1,21 @@
 Version 2.39
 
+7/21/98   C++-generating back end, Microsoft compatibility: typedefs to
+          circumvent MSVC++ 5.0 bug
+
+The MSVC++ 5.0 compiler gets an internal error on ceratin uses of
+template classes with arguments in default argument expressions, e.g.,
+a member function declaration like
+
+  virtual int f(int = X<char>::eof());
+
+The C++-generating back end now generates a typedef and uses it, producing
+something like
+
+  typedef x<char> __T12345; virtual int f(int = __T12345::eof());
+
+which does not provoke the abort from MSVC++ 5.0.
+
 7/21/98   IL lowering: no null test for base-class cast under cast
           used as lvalue
 

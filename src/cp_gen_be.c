@@ -1579,6 +1579,11 @@ reference to a bound function.
                                     == (an_anonymous_union_kind)auk_variable) {
     /* Put out no name for the topmost level in a non-field anonymous union. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (class_type->replace_by_generated_typedef) {
+    /* Replace the reference to this class type by a reference to a
+       generated typedef. */
+    gen_temp_name((char *)class_type);
+    write_tok_str("::");
   } else if (bound_function && microsoft_mode &&
              (class_type->source_corresp.is_class_member ||
               class_type->source_corresp.parent.namespace_ptr != NULL)) {
@@ -6594,6 +6599,61 @@ a constructor.
 }  /* gen_ctor_initializers */
 
 
+static a_boolean gen_typedefs_for_template_classes_in_default_arguments(
+                                              a_param_type_ptr param_type_list,
+                                              a_boolean        set)
+/*
+Examine the indicated parameter type list (for a member function declaration)
+and put out typedefs for certain template class types referenced in the
+default arguments.  Set a flag in the class type entries for those to
+indicate that references to the classes should be replaced by references
+to the typedefs.  This is used to circumvent a bug in Microsoft VC++.
+If any typedefs are set up, return TRUE.  If set is FALSE, reset the
+flags on the classes found on an earlier call.
+*/
+{
+  a_boolean        any_found = FALSE;
+  a_param_type_ptr ptp;
+
+  for (ptp = param_type_list; ptp != NULL; ptp = ptp->next) {
+    an_expr_node_ptr expr = ptp->default_arg_expr;
+    if (expr != NULL) {
+      if (expr->kind == (an_expr_node_kind)enk_operation &&
+          expr->variant.operation.kind == (an_expr_operator_kind)eok_call) {
+        an_expr_node_ptr op1 = expr->variant.operation.operands;
+        if (op1->kind == (an_expr_node_kind)enk_routine_address) {
+          a_routine_ptr rout = op1->variant.routine;
+          if (rout->source_corresp.is_class_member) {
+            a_type_ptr rout_class = rout->source_corresp.parent.class_type;
+            if (rout_class->variant.class_struct_union.extra_info->
+                                                   template_arg_list != NULL) {
+              any_found = TRUE;
+              if (set) {
+                /* Found a template class name used in a particular way in
+                   a default argument expression.  Generate a typedef and
+                   use it in place of the template class name. */
+                if (!rout_class->replace_by_generated_typedef) {
+                  rout_class->replace_by_generated_typedef = TRUE;
+                  write_tok_str("typedef ");
+                  gen_name(&rout_class->source_corresp,
+                           iek_type, /*force_qualified_name=*/FALSE);
+                  write_space();
+                  gen_temp_name((char *)rout_class);
+                  write_tok_str("; ");
+                }  /* if */
+              } else {
+                rout_class->replace_by_generated_typedef = FALSE;
+              }  /* if */
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return any_found;
+}  /* gen_typedefs_for_template_classes_in_default_arguments */
+
+
 static void gen_routine_decl(a_boolean suppress_specifiers,
                              a_boolean *another_decl_in_comma_list)
 /*
@@ -6621,6 +6681,7 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     decl_within_function =
                                             (innermost_function_scope != NULL);
   a_boolean                     force_unqualified_name;
+  a_boolean                     need_to_unset_typedefs = FALSE;
 
   *another_decl_in_comma_list = FALSE;
   /* Note that compiler-generated routines don't appear on the source sequence
@@ -6772,6 +6833,15 @@ TRUE if the declaration following this one is such a continuation.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (microsoft_mode && decl_within_class) {
+    /* Avoid a bug in the Microsoft VC++ 5.0 compiler on uses of
+       template arguments in a default argument. */
+    if (gen_typedefs_for_template_classes_in_default_arguments(
+                                                      rtsp->param_type_list,
+                                                      /*set=*/TRUE)) {
+      need_to_unset_typedefs = TRUE;
+    }  /* if */
+  }  /* if */
   if (!suppress_specifiers) {
     /* Check for `extern "C"'.  This applies even on a definition. */
     if (il_header.source_language == sl_Cplusplus &&
@@ -6891,6 +6961,11 @@ TRUE if the declaration following this one is such a continuation.
       form_type_second_part_simple(rout_type->variant.routine.return_type,
                                    /*under_lhs_declarator=*/FALSE, &octl);
     }  /* if */
+  }  /* if */
+  if (need_to_unset_typedefs) {
+    (void)gen_typedefs_for_template_classes_in_default_arguments(
+                                                      rtsp->param_type_list,
+                                                      /*set=*/FALSE);
   }  /* if */
   if (!is_definition) {
     /* A declaration of the routine. */

@@ -1063,6 +1063,7 @@ variant fields to default values.
   pte->definition_delayed = FALSE;
   pte->elaborated_type_specifier_needed = FALSE;
   pte->typedef_definition_has_been_put_out = FALSE;
+  pte->replace_by_generated_typedef = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   pte->autonomous_primary_tag_decl = FALSE;
