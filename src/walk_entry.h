@@ -601,10 +601,6 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
 #endif /* ifdef FFE */
           case ck_template_param:
-            if (ptr->source_corresp.is_class_member) {
-              a_type_ptr  parent_type = ptr->source_corresp.parent.class_type;
-              walk_ptr(parent_type, a_type_ptr, iek_type);
-            }  /* if */
             switch (ptr->variant.template_param.kind) {
               case tpck_param:
               case tpck_member:
