@@ -1797,6 +1797,7 @@ TARG_MINIMUM_STRUCT_ALIGNMENT is larger than one.
 A flag that is TRUE when tail-padding from base classes should be reused for
 other purposes in the derived class.  The IA64 ABI requires that tail-padding
 be reused, but the C-generating back end cannot yet handle tail-padding reuse.
+This is the initial value of the global variable targ_reuse_tail_padding.
 */
 #ifndef TARG_REUSE_TAIL_PADDING
 #define TARG_REUSE_TAIL_PADDING (IA64_ABI && !BACK_END_IS_C_GEN_BE)

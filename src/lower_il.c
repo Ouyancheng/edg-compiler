@@ -6601,10 +6601,11 @@ this routine to do a relatively simple copy of the all the fields.
       || !class_has_independently_allocated_virtual_base_classes(class_type)
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
                                                                             )
-#if TARG_REUSE_TAIL_PADDING
-      && ctsp->size_without_virtual_base_classes == class_type->size
-#endif /* TARG_REUSE_TAIL_PADDING */
-                                                                    ) {
+#if IA64_ABI
+      && (!targ_reuse_tail_padding ||
+          ctsp->size_without_virtual_base_classes == class_type->size)
+#endif /* IA64_ABI */
+                                                                      ) {
     /* There are no virtual base classes, so the type to use as a subobject
        is the same as the class type itself. */
     subobject_type = class_type;

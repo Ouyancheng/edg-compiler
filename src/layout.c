@@ -3837,15 +3837,11 @@ Reserve space at the end of the class object for virtual base classes.
          "sizeof(C)" as used in the ABI specification equals
          lob->curr_base_extent+1 when the latter expression is larger than
          lob->byte_offset. */
-#if TARG_REUSE_TAIL_PADDING
-      if (emulate_gnu_abi_bugs) {
+      if (emulate_gnu_abi_bugs && targ_reuse_tail_padding) {
         /* GNU reuses the tail padding of nonvirtual base classes. */
         ctsp->size_without_virtual_base_classes = lob->byte_offset;
         lob->byte_offset = lob->curr_base_extent + 1;
-      } else
-#endif /* TARG_REUSE_TAIL_PADDING */
-      /* Do not insert code here. */
-      {
+      } else {
         ctsp->size_without_virtual_base_classes = lob->curr_base_extent + 1;
       }  /* if */
     } else
@@ -3867,39 +3863,44 @@ Reserve space at the end of the class object for virtual base classes.
       }  /* if */
       adjust_size_for_empty_bases(lob);
     }  /* if */
-#endif /* IA64_ABI */
-#if !TARG_REUSE_TAIL_PADDING
-    /* Note that the current size may not be consistent (according to the
-       rules for C structs) with the current alignment.  Modify
-       size-without-virtual-base-classes in such a case, but without changing
-       lob->byte_offset (i.e., without introducing unwanted padding in the
-       current class before the data sections for the virtual base classes
-       are put out.  This assures that size-without-virtual-base-classes will
-       correspond to the actual size of an incomplete subobject. */
-    if (!do_alignment(&ctsp->size_without_virtual_base_classes, &zero,
-                      ctsp->alignment_without_virtual_base_classes)) {
-      if (!lob->any_overflow) {
-        error(struct_too_large_error());
-        lob->any_overflow = TRUE;
-      }  /* if */
-    } else {
-      /* Propagate the rounded size without virtual base classes to the
-         layout state block (since that is what will be used to track the
-         layout of virtual bases). */
-      lob->byte_offset = ctsp->size_without_virtual_base_classes;
-    }  /* if */
-#else /* TARG_REUSE_TAIL_PADDING */
-    if (warn_about_tail_padding_use) {
-      a_targ_size_t size = ctsp->size_without_virtual_base_classes;
-      if (do_alignment(&size, &zero,
-                       ctsp->alignment_without_virtual_base_classes)) {
-        if (size != ctsp->size_without_virtual_base_classes) {
-          pos_warning(ec_size_affected_by_tail_padding,
-                      &lob->class_type->source_corresp.decl_position);
+    if (targ_reuse_tail_padding) {
+      /* This is an IA-64 ABI configuration that allowed tail padding of base
+         classes to be reused for other subobjects. */
+      if (warn_about_tail_padding_use) {
+        a_targ_size_t size = ctsp->size_without_virtual_base_classes;
+        if (do_alignment(&size, &zero,
+                         ctsp->alignment_without_virtual_base_classes)) {
+          if (size != ctsp->size_without_virtual_base_classes) {
+            pos_warning(ec_size_affected_by_tail_padding,
+                        &lob->class_type->source_corresp.decl_position);
+          }  /* if */
         }  /* if */
       }  /* if */
+    } else
+#endif /* IA64_ABI */
+    /* Do not insert code here. */
+    {
+      /* Do not reuse tail padding. */
+      /* Note that the current size may not be consistent (according to the
+         rules for C structs) with the current alignment.  Modify
+         size-without-virtual-base-classes in such a case, but without changing
+         lob->byte_offset (i.e., without introducing unwanted padding in the
+         current class before the data sections for the virtual base classes
+         are put out.  This assures that size-without-virtual-base-classes will
+         correspond to the actual size of an incomplete subobject. */
+      if (!do_alignment(&ctsp->size_without_virtual_base_classes, &zero,
+                        ctsp->alignment_without_virtual_base_classes)) {
+        if (!lob->any_overflow) {
+          error(struct_too_large_error());
+          lob->any_overflow = TRUE;
+        }  /* if */
+      } else {
+        /* Propagate the rounded size without virtual base classes to the
+           layout state block (since that is what will be used to track the
+           layout of virtual bases). */
+        lob->byte_offset = ctsp->size_without_virtual_base_classes;
+      }  /* if */
     }  /* if */
-#endif /* !TARG_REUSE_TAIL_PADDING */
     /* Now see if there are any virtual base class data sections that need to
        be added to the layout for the current class. */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
@@ -4279,9 +4280,9 @@ for handling virtual bases and functions.
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_targ_alignment            alignment;
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-#if TARG_REUSE_TAIL_PADDING
+#if IA64_ABI
   a_boolean                   is_POD;
-#endif /* TARG_REUSE_TAIL_PADDING */
+#endif /* IA64_ABI */
 
   db_enter(3, "do_class_layout");
   if (class_type->variant.class_struct_union.is_prototype_instantiation) {
@@ -4390,24 +4391,24 @@ for handling virtual bases and functions.
   if (C_dialect == C_dialect_cplusplus) {
     adjust_size_for_empty_bases(&lob);
   }  /* if */
-#endif /* IA64_ABI */
-#if TARG_REUSE_TAIL_PADDING
-  pad_bit_field(&lob);
-  /* If this class is a POD, tail-padding cannot be reused. */
-  is_POD = (class_type->source_corresp.assoc_info != NULL &&
-            symbol_supplement_for_class(class_type)->is_POD);
-  /* If the class has virtual base classes, the size and alignment without
-     virtual base classes will already have been recorded; otherwise, record
-     it now. */
-  if (!C_mode() &&
-      !lob.class_type->variant.class_struct_union.any_virtual_base_classes &&
-      !is_POD) {
-    a_class_type_supplement_ptr	ctsp = lob.class_type->
-                                        variant.class_struct_union.extra_info;
-    ctsp->size_without_virtual_base_classes = lob.byte_offset;
-    ctsp->alignment_without_virtual_base_classes = lob.alignment;
+  if (targ_reuse_tail_padding) {
+    pad_bit_field(&lob);
+    /* If this class is a POD, tail-padding cannot be reused. */
+    is_POD = (class_type->source_corresp.assoc_info != NULL &&
+              symbol_supplement_for_class(class_type)->is_POD);
+    /* If the class has virtual base classes, the size and alignment without
+       virtual base classes will already have been recorded; otherwise, record
+       it now. */
+    if (!C_mode() &&
+        !lob.class_type->variant.class_struct_union.any_virtual_base_classes &&
+        !is_POD) {
+      a_class_type_supplement_ptr  ctsp = lob.class_type->
+                                         variant.class_struct_union.extra_info;
+      ctsp->size_without_virtual_base_classes = lob.byte_offset;
+      ctsp->alignment_without_virtual_base_classes = lob.alignment;
+    }  /* if */
   }  /* if */
-#endif /* TARG_REUSE_TAIL_PADDING */
+#endif /* IA64_ABI */
   /* Adjust the total size of the class to be consistent with the
      overall alignment required for the class. */
   if (!do_alignment(&lob.byte_offset, &lob.bit_offset, lob.alignment)) {
@@ -4471,10 +4472,10 @@ for handling virtual bases and functions.
      it now. */
   if (!C_mode() &&
       !lob.class_type->variant.class_struct_union.any_virtual_base_classes
-#if TARG_REUSE_TAIL_PADDING
-      && is_POD
-#endif /* TARG_REUSE_TAIL_PADDING */
-                                                                          ) {
+#if IA64_ABI
+      && (!targ_reuse_tail_padding || is_POD)
+#endif /* IA64_ABI */
+                                             ) {
     a_class_type_supplement_ptr	ctsp = lob.class_type->
                                         variant.class_struct_union.extra_info;
     ctsp->size_without_virtual_base_classes = class_type->size;
