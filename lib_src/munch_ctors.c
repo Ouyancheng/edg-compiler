@@ -18,7 +18,7 @@ munch_ctors.c -- Provides the definition of the _ctors variable that is
 #include "basics.h" 
 #include "runtime.h" 
 
-typedef int (*PFV)();
+typedef void (*PFV)();
 PFV _ctors[] = {0};
 
 /******************************************************************************

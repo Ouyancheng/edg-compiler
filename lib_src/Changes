@@ -1,3 +1,14 @@
+Version 2.40
+
+11/18/98 Conflicting return types for sti and std functions
+
+The runtime files munch_ctor.c and munch_dtor.c provide definitions
+of the arrays of function pointers that would be supplied by edg_munch.
+These definitions are linked in when edg_munch is not being used.  The
+function pointer type used as the element type of the array differed
+between the definitions in these files and the reference in main.h.
+This has been fixed.
+-------------------------------------------------------------------------------
 Version 2.39, August 10, 1998
 
 No changes.
