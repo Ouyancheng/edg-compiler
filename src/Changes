@@ -13,7 +13,8 @@ an assignment.
 When an exception is thrown in a constructor, the base classes
 of the object are destroyed.  Virtual base classes should be destroyed
 only if they are constructed at this level, i.e., only if the object
-being constructed is a complete object.
+being constructed is a complete object.  Similar processing is
+also needed in destructors.
 
 2/22/99  IL file reading problem in one-instantiation-per-object mode
 

@@ -6604,7 +6604,7 @@ static void initialize_dtor_init_for_cleanup(a_dynamic_init_ptr dip)
 /*
 Do cleanup initialization for the indicated destruction (from
 the constructor_inits list of a destructor) and to its successors.
-The is done early so the information is available when each entry
+This is done early so the information is available when each entry
 is processed.  Called only when exceptions are enabled.
 */
 {
@@ -6624,9 +6624,12 @@ is processed.  Called only when exceptions are enabled.
        recursive call above reverses the entries, which gives entry
        numbers in the desired order. */
     if (next_dip != NULL) {
-      /* Note that these entries cannot require a conditional flag.  Otherwise,
-         we would have to count an entry for it too. */
+      a_destructible_entity_descr_ptr next_dedp =
+                                           next_dip->destructible_entity_descr;
       region_number = cleanup_region_number(next_dip) + 1;
+      /* Add one more if there is a conditional flag (e.g., for a virtual
+         base class). */
+      if (next_dedp->conditional_flag_var != NULL) region_number++;
     } else {
       region_number = 0;  /* That is, the first region number. */
     }  /* if */
@@ -6647,8 +6650,6 @@ Use recursion to put out the list backwards.  Any required code
 is inserted at *insert_location.
 */
 {
-  a_destructible_entity_descr_ptr
-                          dedp = dip->destructible_entity_descr;
   a_dynamic_init_ptr      next_dip = dip->next_in_destruction_list;
 #if CHECKING
   a_cleanup_region_number old_region_number = cleanup_region_number(dip);
@@ -6661,8 +6662,6 @@ is inserted at *insert_location.
   /* Do the first entry on the list. */
   make_dyn_init_region_table_entry(dip, next_dip, insert_location);
 #if CHECKING
-  check_assertion_str(dedp->conditional_flag_var == NULL,
-                      "make_dtor_init_region_table_entries: cond flag used");
   /* The region number assigned should be the one we pre-assigned in
      initialize_dtor_init_for_cleanup. */
   check_assertion_str(old_region_number == cleanup_region_number(dip),
@@ -6713,7 +6712,7 @@ destructor scope, and also lower the user code.
   a_type_ptr             class_type, int_type;
   a_class_type_supplement_ptr
                          ctsp;
-  a_constructor_init_ptr ctor_init;
+  a_constructor_init_ptr ctor_init, ctor_init_list;
   an_insert_location     insert_location, insert_location2;
   an_insert_location     prologue_insert_location;
   a_statement_ptr        user_code_stmts, epilogue_block;
@@ -6962,7 +6961,7 @@ destructor scope, and also lower the user code.
      base class and member that requires a destructor appears, in the
      order (1) data members, (2) normal base classes, (3) virtual base
      classes.  The order within each section is source declaration order. */
-  ctor_init = scope->variant.routine.constructor_inits;
+  ctor_init = ctor_init_list = scope->variant.routine.constructor_inits;
   scope->variant.routine.constructor_inits = NULL;
   if (ctor_init == NULL) {
     /* No constructor_init entries, so no epilogue block is needed. */
@@ -6974,9 +6973,46 @@ destructor scope, and also lower the user code.
     epilogue_block = alloc_statement((a_statement_kind)stmk_block);
     set_block_start_insert_location(epilogue_block, &insert_location);
     if (exceptions_enabled) {
+#if DO_FULL_PORTABLE_EH_LOWERING
+      a_handle_number complete_obj_param_handle;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
       /* Assign cleanup region numbers to the destructions.  This is done
          early so that we will know the right value to set __eh_curr_region
          to when beginning each destruction. */
+      /* See whether there are any virtual base classes. */
+      if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+        /* The added parameter indicating a complete object will be used
+           as a conditional flag for the destructions of the virtual base
+           classes (we don't destroy the virtual base classes unless we
+           are working on a complete object). */
+#if DO_FULL_PORTABLE_EH_LOWERING
+        an_init_pos_descr ipd;
+        /* Assign the object address table slot for the conditional
+           variable. */
+        complete_obj_param_handle = object_addr_table_index();
+        /* Put the address of the variable into the object address table. */
+        set_var_init_pos_descr(complete_obj_param_var, &ipd);
+        init_object_addr_table_entry(&ipd, complete_obj_param_handle,
+                                     &prologue_insert_location);
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+        /* Process the ctor-inits for virtual base classes. */
+        for (; ctor_init != NULL; ctor_init = ctor_init->next) {
+          if (ctor_init->kind ==
+                             (a_constructor_init_kind)cik_virtual_base_class) {
+            /* Add complete_obj_param_var as a conditional flag. */
+            a_destructible_entity_descr_ptr dedp = 
+                             ctor_init->initializer->destructible_entity_descr;
+            check_assertion(dedp != NULL);
+            dedp->conditional_flag_var = complete_obj_param_var;
+#if DO_FULL_PORTABLE_EH_LOWERING
+            if (exceptions_enabled) {
+              dedp->conditional_flag_handle = complete_obj_param_handle;
+            }  /* if */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+          }  /* if */
+        }  /* for */
+        ctor_init = ctor_init_list;
+      }  /* if */
       /* Find the first destruction in the epilogue. */
       first_epilogue_destruction = ctor_init->initializer;
       /* Watch out for the case of an array initialization; the top-level
