@@ -2587,13 +2587,13 @@ Clear the pointer stored in "var" if it is used.
                     are not used. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void collect_pointer_declarator_extended_qualifiers(
-                                        a_type_qualifier_set *qualifiers,
-                                        a_source_position    *qual_pos,
-                                        a_call_conv_descr    *call_conv,
-                                        a_variable_ptr       *based_var,
-                                        a_source_position    *based_pos,
-                                        a_boolean            *microsoft_w64_seen,
-                                        a_decl_pos_block_ptr decl_pos_block)
+                                      a_type_qualifier_set *qualifiers,
+                                      a_source_position    *qual_pos,
+                                      a_call_conv_descr    *call_conv,
+                                      a_variable_ptr       *based_var,
+                                      a_source_position    *based_pos,
+                                      a_boolean            *microsoft_w64_seen,
+                                      a_decl_pos_block_ptr decl_pos_block)
 /*
 Collect a set of pointer declarator qualifiers provided as an extension
 (e.g., for Microsoft compatibility).  Aside from the standard const/volatile,
