@@ -7829,11 +7829,14 @@ enum an_expr_operator_kind_tag {
 			   UNARY_PLUS_IN_IL. */
   eok_not,              /* Logical complement ("!" operator).  Operand has been
                            standardized to integer/logical. */
-  eok_cast,             /* Type cast.  The type of the expression indicates
-                           the type to cast to.  Casts to void can occur,
-                           in rare cases.  In C++, this is also the code used
-                           for classic-syntax casts involving parameterized
-                           types (prototype instantiations). */
+  eok_cast,		/* Type cast.  The type of the expression indicates
+			   the type to cast to.	 The type can be void.
+			   Also note that C++ reinterpret_casts to pointer-to-
+			   class types and pointer-to-member types are
+			   represented as eok_cast operations.	In C++, this
+			   is also the code used for classic-syntax casts
+			   involving parameterized types (in prototype
+			   instantiations). */
 #ifdef CIL
   eok_base_class_cast,	/* C++ cast of a pointer to a class to a pointer to
 			   a direct base class.  The type of the expression
