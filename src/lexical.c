@@ -7877,19 +7877,19 @@ scanned is, in fact, an identifier).
     /* Translate the general identifier options into ID lookup options. */
     idl_options = idl_options_for_lookup_mode[(int)ilm];
     symbol = normal_id_lookup(&locator_for_curr_id, idl_options);
-    /* If this is the symbol of a class template then this must be a reference
-       to a instance of the class template.  Scan the argument list and
-       get a pointer to the symbol for the specific instance of the template
-       class. */
-    if (symbol != NULL && symbol->kind == (a_symbol_kind)sk_class_template) {
-      symbol = coalesce_template_class_reference(symbol, options, &templ_err);
-    }  /* if */
-    *err |= templ_err;
-    /* If an error occurred while scanning the template argument list,
-       return a NULL symbol.  The locator will already be set to an error
-       locator. */
-    if (templ_err) symbol = NULL;
   }  /* if */
+  /* If this is the symbol of a class template then this must be a reference
+     to a instance of the class template.  Scan the argument list and
+     get a pointer to the symbol for the specific instance of the template
+     class. */
+  if (symbol != NULL && symbol->kind == (a_symbol_kind)sk_class_template) {
+    symbol = coalesce_template_class_reference(symbol, options, &templ_err);
+  }  /* if */
+  *err |= templ_err;
+  /* If an error occurred while scanning the template argument list,
+     return a NULL symbol.  The locator will already be set to an error
+     locator. */
+  if (templ_err) symbol = NULL;
   /* Perform error checks as specified in "options". */
   *err |= check_for_generalized_identifier_errors(options, &error_position);
   return symbol;
