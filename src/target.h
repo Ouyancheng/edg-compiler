@@ -542,6 +542,9 @@ EXTERN an_integer_kind
 #undef TARG_MINIMUM_STRUCT_ALIGNMENT
 #undef TARG_JMP_BUF_NUM_ELEMENTS
 #undef TARG_JMP_BUF_ELEMENT_INT_KIND
+
+void check_target_configuration(void);
+
 #endif /* CHECKING */
 
 #endif /* ifndef TARGET_H */
