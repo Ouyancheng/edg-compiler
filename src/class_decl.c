@@ -4957,6 +4957,27 @@ done:
 }  /* access_adjustment_decl */
 
 
+static a_symbol_ptr curr_scope_tag_symbol(a_symbol_kind kind)
+/*
+The current token is an identifier.  If it represents a tag of the indicated
+kind from the current scope, return a pointer to the corresponding symbol.
+Otherwise, return NULL.
+*/
+{
+  a_symbol_ptr  sym = symbol_list_from_locator(locator_for_curr_id);
+
+  /* Look for a symbol in the current scope for which the kind matches that
+     specified by the caller. */
+  for (; sym != NULL; sym = sym->next) {
+    if (sym->decl_scope == decl_scope_level && sym->kind == kind) {
+      /* Found it. */
+      break;
+    }  /* if */
+  }  /* for */
+  return sym;
+}  /* curr_scope_tag_symbol */
+
+
 a_boolean class_specifier(a_boolean  first_specifier,
                           a_boolean  is_friend_decl,
                           a_type_ptr *type_ptr,
@@ -5018,7 +5039,7 @@ class/struct/union is actually defined.
   an_access_specifier     access;
   a_symbol_kind           tag_kind;
   a_type_kind             type_kind;
-  a_symbol_ptr            assoc_symbol;
+  a_token_kind            next_tok;
   a_symbol_locator        locator;
   a_symbol_ptr            tag_sym;
   a_boolean               tag_id_present;
@@ -5096,52 +5117,95 @@ class/struct/union is actually defined.
     tag_id_present = TRUE;
   }  /* if */
   if (tag_id_present) {
-    /* Find any current definition of this tag. */
-    assoc_symbol = curr_tag_symbol(tag_kind);
+    /* Find a declaration of this tag in the current scope.  (We only look
+       in the current scope for now, but we may have to do a complete lookup
+       later.) */
+    tag_sym = curr_scope_tag_symbol(tag_kind);
     /* Save the symbol locator for this identifier before doing the
        get_token. */
     locator = locator_for_curr_id;
-    (void)get_token();
     /* It seems that appearance of a tag name is a declaration of the
        tag, even if it just repeats a previous name.  At least, there's
        a Plum Hall test that implies that. */
     *declares_something = TRUE;
+    next_tok = next_token();
+    if (next_tok == tok_lbrace ||
+        (C_dialect == C_dialect_cplusplus && next_tok == tok_colon)) {
+      /* The token following the tag marks the start of a class/struct/union
+         definition.  Determine whether it is the resolution of a previous
+         incomplete declaration. */
+      if (tag_sym != NULL) {
+        /* The tag has already appeared in the current scope. */
+        if (is_incomplete_type(tag_sym->variant.class_struct_union.type)) {
+          /* Resolution of a previous incomplete declaration. */
+          tag_resolution = TRUE;
+          /* If the tag was declared in a prototype scope and is now being
+             resolved within the function, as in
+               int f(struct f p) {struct f{int a;};  ... }
+             we must switch into the file scope for the duration of the
+             definition. */
+          if (scope_stack[decl_scope_level].kind ==
+                                             (a_scope_kind)sck_function &&
+              in_file_scope(tag_sym->variant.class_struct_union.type)) {
+            prototype_tag_resolution = TRUE;
+          }  /* if */
+        } else {
+          /* Redeclaration of a tag that has already been defined.  Set
+             tag_sym to NULL and let enter_symbol issue an error. */
+          tag_sym = NULL;
+        }  /* if */
+      }  /* if */
+    } else if (tag_sym == NULL) {
+      /* This is the first appearance of the tag in the current scope.  This
+         is not its definition, so it is either a reference or a "vacuous
+         declaration" (e.g. "struct S;") whose effect (unless we are in
+         pcc mode) is to establish the name in the current scope, even if
+         the tag name exists in a containing scope or is inherited from a
+         base class. */
+      if (next_tok == tok_semicolon && first_specifier && !is_friend_decl &&
+          C_dialect != C_dialect_pcc) {
+        /* This is indeed a vacuous declaration.  Leave tag_sym set to NULL
+           to force the creation of a new symbol in the current scope. */
+      } else {
+        /* This may be a reference to an existing tag from a containing
+           scope or a base class.  This can be ascertained by doing a full
+           lookup of the tag name (before it was done just for the current
+           scope). */
+        tag_sym = curr_tag_symbol(tag_kind);
+        if (tag_sym == NULL) {
+          /* We will need to enter an incomplete tag that may be resolved
+             later.  Just leave tag_sym NULL.  In C it will be entered at
+             the scope level indicated by decl_scope_level.  In C++ we need
+             to pop out to the innermost non-class/non-prototype scope.
+             (For example, to introduce class name B in a parameter
+             declaration of a member function within the definition of class
+             A does not introduce the name of nested class A::B; rather, B
+             is entered in the same scope as A.) */
+          if (C_dialect == C_dialect_cplusplus) {
+            /* Pop out to the containing scope -- file scope, function
+               scope, or block scope.  effective_decl_level has
+               already been initialized to decl_scope_level. */
+            while (scope_stack[effective_decl_level].kind ==
+                                   (a_scope_kind)sck_class_struct_union ||
+                   scope_stack[effective_decl_level].kind ==
+                                   (a_scope_kind)sck_func_prototype) {
+              effective_decl_level--;
+            }  /* while */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* Now that we have completed the lookup on the tag identifier we can
+       advance past it. */
+    (void)get_token();
   } else {
     /* No tag identifier present. */
-    assoc_symbol = NULL;
+    tag_sym = NULL;
     set_to_error_locator(locator);
-  }  /* if */
-  /* Is the tag declared in an outer scope (if it exists)? */
-  outer_scope_tag = (assoc_symbol != NULL &&
-            assoc_symbol->decl_scope != scope_stack[decl_scope_level].number);
-  /* See if a "{" or (in C++) a ":" is next, in which case this is a
-     declaration of a class, structure, or union. */
-  tag_sym = NULL;
-  if (curr_token == tok_lbrace ||
-      (C_dialect == C_dialect_cplusplus && curr_token == tok_colon)) {
-    /* This must be a declaration of a class, structure, or union.  It might
-       also be the resolution of a previous incomplete declaration. */
-    if (assoc_symbol != NULL && !outer_scope_tag &&
-        is_incomplete_type(assoc_symbol->variant.class_struct_union.type)) {
-      /* Resolution of a previous incomplete declaration. */
-      tag_sym = assoc_symbol;
-      tag_resolution = TRUE;
-      /* If the tag was declared in a prototype scope and is now being
-         resolved within the function, as in
-           int f(struct f p) {struct f{int a;};  ... }
-         we must switch into the file scope for the duration of the
-         definition. */
-      if (scope_stack[decl_scope_level].kind == (a_scope_kind)sck_function &&
-          in_file_scope(assoc_symbol->variant.class_struct_union.type)) {
-        prototype_tag_resolution = TRUE;
-      }  /* if */
+    if (curr_token == tok_lbrace ||
+        (C_dialect == C_dialect_cplusplus && curr_token == tok_colon)) {
+      /* This is a tagless class definition. */
     } else {
-      /* Declaration of a new type.  tag_sym stays NULL to force entry
-         of the new tag. */
-    }  /* if */
-  } else {
-    /* No "{" or ":", so this should be a reference to an existing tag. */
-    if (!tag_id_present) {
       /* Neither the tag id nor the {...} is present.  This is an error. */
       add_stop_token(tok_lbrace);
       if (C_dialect == C_dialect_cplusplus) add_stop_token(tok_colon);
@@ -5149,41 +5213,6 @@ class/struct/union is actually defined.
       err = TRUE;
       if (C_dialect == C_dialect_cplusplus) remove_stop_token(tok_colon);
       remove_stop_token(tok_lbrace);
-    } else if (assoc_symbol != NULL) {
-      /* Use the existing tag.  If this is actually a use in a declaration
-         of the form "struct name ;" to establish the name, do that even
-         if the name exists in an outer scope.  Do not do this in pcc mode. */
-      if (is_friend_decl) {
-        tag_sym = assoc_symbol;
-      } else if (first_specifier && curr_token == tok_semicolon &&
-          outer_scope_tag && C_dialect != C_dialect_pcc) {
-        /* Part of an empty declaration, and there is no declaration
-           of the tag in the current scope.  Do not use the previous
-           (outer-scope) declaration, but rather declare a new incomplete
-           type in the current scope.  See 3.5.2.3. */
-      } else {
-        /* Use the previous declaration. */
-        tag_sym = assoc_symbol;
-      }  /* if */
-    } else {
-      /* Enter an incomplete tag that may be resolved later.  This is
-         indicated by leaving tag_sym NULL.  In C this is entered at the
-         scope level indicated by decl_scope_level.  In C++ we need to pop
-         out to the innermost non-class/non-prototype scope.  (For example,
-         to introduce class name B in a parameter declaration of a member
-         function within the definition of class A does not introduce the name
-         of nested class A::B; rather, B is entered in the same scope as A.) */
-      if (C_dialect == C_dialect_cplusplus) {
-        /* Pop out to the containing scope -- file scope, function scope, or
-           block scope.  effective_decl_level has already been initialized to
-           decl_scope_level. */
-        while (scope_stack[effective_decl_level].kind ==
-                                     (a_scope_kind)sck_class_struct_union ||
-               scope_stack[effective_decl_level].kind ==
-                                     (a_scope_kind)sck_func_prototype) {
-          effective_decl_level--;
-        }  /* while */
-      }  /* if */
     }  /* if */
   }  /* if */
   if (tag_sym == NULL) {
@@ -5216,7 +5245,6 @@ class/struct/union is actually defined.
                                            (a_name_linkage_kind)nlk_internal;
         }  /* if */
       }  /* if */
-      *declares_something = TRUE;
       if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
           scope_stack[decl_scope_level].kind !=
                                      (a_scope_kind)sck_class_struct_union) {
