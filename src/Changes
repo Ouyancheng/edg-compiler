@@ -1,5 +1,22 @@
 Version 3.1
 
+6/20/02  GNU C compatibility: Redeclaration of a transparent union parameter
+
+In GNU C mode, a parameter first declared as a transparent union can be
+redeclared with the type of a member of that union and vice versa.
+For example:
+
+  typedef union {
+    void *vp;
+    double *dp;
+  } U __attribute__((__transparent_union__));
+  void f(U);
+  void f(void*);  // OK in GNU C mode
+  void g(double*);
+  void g(U);      // OK in GNU C mode
+
+In such cases, the resulting composite parameter type is the union type.
+
 6/20/02  GNU C mode: last line of file can end with backslash
 
 In GNU C mode, the last line of a file is not allowed to end with a
