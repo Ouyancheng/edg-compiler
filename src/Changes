@@ -1,5 +1,19 @@
 Version 2.16
 
+4/26/93  Pointer-to-member constant IL representation changed
+
+Pointer-to-member constants in the intermediate language now have
+a base class pointer instead of a class pointer to indicate casts
+that have been applied to the pointer to member.  The former
+representation could not provide full information in the presence
+of ambiguous base classes.  This change is invisible to those
+using IL lowering.
+
+4/26/93  Pointer-to-member and null pointer constants in diagnostics
+
+Pointer-to-member and null pointer constants as arguments of templates
+are now displayed correctly when shown in diagnostic messages.
+
 4/26/93  Default argument on declaration of operator new()
 
 Default argument expressions are now allowed for the second and
