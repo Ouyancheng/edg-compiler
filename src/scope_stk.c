@@ -86,6 +86,7 @@ Put out a scope kind name (for debugging).
     case sck_pragma:		     s = "pragma";		     break;
     case sck_function_access:	     s = "function access";	     break;
     case sck_condition:              s = "condition";                break;
+    case sck_instantiation_context:  s = "instantiation context";    break;
     default:                         s = "***UNKNOWN SCOPE KIND***"; break;
   }  /* switch */
   fputs(s, f_debug);
