@@ -1737,21 +1737,21 @@ EXTERN an_integer_kind
 		unsigned_int_kind_of[(int)ik_last+1]
 #if VAR_INITIALIZERS
 = {
-  ik_unsigned_char,		/* ik_char */
-  ik_unsigned_char,		/* ik_signed_char */
-  ik_unsigned_char,		/* ik_unsigned_char */
-  ik_unsigned_short,		/* ik_short */
-  ik_unsigned_short,		/* ik_unsigned_short */
-  ik_unsigned_int,		/* ik_int */
-  ik_unsigned_int,		/* ik_unsigned_int */
-  ik_unsigned_long,		/* ik_long */
-  ik_unsigned_long,		/* ik_unsigned_long */
+  (an_integer_kind)ik_unsigned_char,		/* ik_char */
+  (an_integer_kind)ik_unsigned_char,		/* ik_signed_char */
+  (an_integer_kind)ik_unsigned_char,		/* ik_unsigned_char */
+  (an_integer_kind)ik_unsigned_short,		/* ik_short */
+  (an_integer_kind)ik_unsigned_short,		/* ik_unsigned_short */
+  (an_integer_kind)ik_unsigned_int,		/* ik_int */
+  (an_integer_kind)ik_unsigned_int,		/* ik_unsigned_int */
+  (an_integer_kind)ik_unsigned_long,		/* ik_long */
+  (an_integer_kind)ik_unsigned_long,		/* ik_unsigned_long */
 #if LONG_LONG_ALLOWED
-  ik_unsigned_long_long,	/* ik_long_long */
-  ik_unsigned_long_long,	/* ik_unsigned_long_long */
+  (an_integer_kind)ik_unsigned_long_long,	/* ik_long_long */
+  (an_integer_kind)ik_unsigned_long_long,	/* ik_unsigned_long_long */
 #endif /* LONG_LONG_ALLOWED */
 #ifdef FIL
-  ik_unsized,			/* ik_unsized */
+  (an_integer_kind)ik_unsized,			/* ik_unsized */
 #endif /* ifdef FIL */
   111		/* ik_last ("111" is just an unusual value used to check the
 		   correctness of the initialization order) */
