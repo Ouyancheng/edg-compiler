@@ -1,5 +1,12 @@
 Version 2.13
 
+1/6/93 Static data members that are anonymous unions
+
+Static data members that are anonymous unions are disallowed.  They are
+not prohibited by the ARM, but neither is there an obvious way to
+implement them at is consistent with the requirement that static data
+members be defined outside the class declaration.
+
 1/6/93 Improved access checking of declarators
 
 The routines that scan and coalesce generalized identifiers have
