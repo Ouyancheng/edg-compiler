@@ -1207,6 +1207,9 @@ error code.
     case ec_ambiguous_assignment_operator:
       m = "ambiguous default assignment operator for class \"%s\"";
       break;
+    case ec_const_volatile_not_allowed:
+      m = "const or volatile qualifier is not allowed";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
