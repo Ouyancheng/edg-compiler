@@ -200,15 +200,6 @@ EXTERN an_integer_kind
 			   to ik_none and reset later. */
 
 EXTERN an_integer_kind
-		targ_unsigned_int8_int_kind
-#if VAR_INITIALIZERS
-                                            = ((an_integer_kind)ik_none)
-#endif /* VAR_INITIALIZERS */
-                                                                        ;
-			/* Integer kind associated with unsigned __int8.
-			   Initialized to ik_none and reset later. */
-
-EXTERN an_integer_kind
 		targ_int16_int_kind
 #if VAR_INITIALIZERS
                                     = ((an_integer_kind)ik_none)
