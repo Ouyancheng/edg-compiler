@@ -1696,19 +1696,19 @@ template classes.
 
 #if IA64_ABI
 
-static void mangled_address_of_member(a_source_correspondence  *scp,
-                                      a_boolean                is_routine,
-                                      a_mangling_control_block *mctl)
+static void mangled_member_reference(a_source_correspondence  *scp,
+                                     a_boolean                is_routine,
+                                     a_mangling_control_block *mctl)
 /*
-Add to the mangled name the encoding for the address of a member, for
+Add the encoding for a reference to a member in an expression, for
 the IA-64 ABI.  scp is the source correspondence of the member, which
 is a routine if is_routine is TRUE.
 */
 {
   a_type_ptr parent_class = scp->parent.class_type;
  
-  /* Unary "&" encoding "ad" followed by scope resolution operator "sr". */
-  add_str_to_mangled_name("adsr", mctl);
+  /* Scope resolution operator "sr". */
+  add_str_to_mangled_name("sr", mctl);
   /* First operand is the parent class type. */
   mangled_encoding_for_type(parent_class, mctl);
   /* Second operand is an unqualified name, more or less. */
@@ -1721,6 +1721,21 @@ is a routine if is_routine is TRUE.
   } else {
     mangled_name_with_length(unmangled_name_of(scp), mctl);
   }  /* if */
+}  /* mangled_member_reference */
+
+
+static void mangled_address_of_member(a_source_correspondence  *scp,
+                                      a_boolean                is_routine,
+                                      a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding for the address of a member, for
+the IA-64 ABI.  scp is the source correspondence of the member, which
+is a routine if is_routine is TRUE.
+*/
+{
+  /* Unary "&" encoding "ad". */
+  add_str_to_mangled_name("ad", mctl);
+  mangled_member_reference(scp, is_routine, mctl);
 }  /* mangled_address_of_member */
 
 #endif /* IA64_ABI */
@@ -2046,22 +2061,19 @@ do_unknown_function:
           break;
         case tpck_member:
           /* A member of a template parameter type, e.g., T::x. */
-          { 
 #if !IA64_ABI
-            a_length_reservation length_reservation;
+          { a_length_reservation length_reservation;
             reserve_space_for_length(&length_reservation, mctl);
-#else /* IA64_ABI */
-            add_str_to_mangled_name("L_Z", mctl);
-#endif /* !IA64_ABI */
             mangled_member_name(&con->source_corresp,
                                 /*is_specialization=*/FALSE,
                                 mctl);
-#if !IA64_ABI
             fill_in_length(&length_reservation, mctl);
-#else /* IA64_ABI */
-            add_to_mangled_name('E', mctl);
-#endif /* !IA64_ABI */
           }
+#else /* IA64_ABI */
+          mangled_member_reference(&con->source_corresp,
+                                   /*is_routine=*/FALSE,
+                                   mctl);
+#endif /* !IA64_ABI */
           break;
         case tpck_cast:
           mangled_encoding_for_constant_cast(
