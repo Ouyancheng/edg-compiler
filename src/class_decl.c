@@ -4183,13 +4183,17 @@ specified by decl_scope_level.
              making a copy of it in the new class scope.  Note that there may
              turn out to be a many-to-one mapping between member symbols and
              field-of-assoc-object-type. */
-          a_field_ptr      fp = sym->variant.field.ptr;
+          a_symbol_ptr     new_sym;
           a_symbol_locator loc;
+
           make_locator_for_symbol(sym, &loc);
           loc.source_position = assoc_object_sym->decl_position;
-          sym = enter_local_symbol(sym->kind, &loc, depth_scope_stack,
+          new_sym = enter_local_symbol(sym->kind, &loc, depth_scope_stack,
                                    /*suppress_error=*/FALSE);
-          sym->variant.field.ptr = fp;
+          new_sym->variant.field.ptr = sym->variant.field.ptr;
+          new_sym->variant.field.anonymous_parent_object =
+                                  sym->variant.field.anonymous_parent_object;
+          sym = new_sym;
         }  /* if */
         sym->class_of_which_a_member = class_type;
         /* The members of an anonymous union within a class take on the
