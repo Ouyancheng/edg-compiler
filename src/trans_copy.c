@@ -1577,6 +1577,43 @@ end_of_routine_list_add:;
         if (pointers_block != NULL) pointers_block->last_pragma = last_pragma;
       }  /* for */
     }  /* if */
+    if (scope->asm_entries != NULL) {
+      an_asm_entry_ptr asm_entry, last_asm_entry;
+      /* Merge the asm entries in the scope into the primary IL scope. */
+      /* Get a pointer to the last asm entry in the primary scope. */
+      if (pointers_block != NULL) {
+        last_asm_entry = pointers_block->last_asm_entry;
+      } else {
+        /* Actual last asm entry will be determined below if/when needed. */
+        last_asm_entry = NULL;
+      }  /* if */
+      for (asm_entry = scope->asm_entries;
+           asm_entry != NULL;
+           asm_entry = asm_entry->next) {
+        an_asm_entry_ptr corresp_asm_entry =
+            (an_asm_entry_ptr)checked_trans_unit_corresp_pointer_of(asm_entry);
+        if (is_class_scope && last_asm_entry == NULL) {
+          /* Determine the last asm entry the first time it is needed. */
+          last_asm_entry = primary_scope->asm_entries;
+          if (last_asm_entry != NULL) {
+            while (last_asm_entry->next != NULL) {
+              last_asm_entry = last_asm_entry->next;
+            }  /* while */
+          }  /* if */
+        }  /* if */
+        /* Add the asm entry to the end of the list. */
+        if (last_asm_entry == NULL) {
+          primary_scope->asm_entries = corresp_asm_entry;
+        } else {
+          last_asm_entry->next = corresp_asm_entry;
+        }  /* if */
+        corresp_asm_entry->next = NULL;
+        last_asm_entry = corresp_asm_entry;
+        if (pointers_block != NULL) {
+          pointers_block->last_asm_entry = last_asm_entry;
+        }  /* if */
+      }  /* for */
+    }  /* if */
     /* Merge the object lifetime from "scope" into that from
        "primary_scope". */
     merge_object_lifetimes(scope, primary_scope);
