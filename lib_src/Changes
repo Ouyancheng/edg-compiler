@@ -1,3 +1,15 @@
+12/07/92  More portable means of calling static destructors
+
+The code that invokes static destructors has been made more portable.
+- references to "osfcn.h" have been eliminated
+- on_exit is still used on Suns
+- atexit is the default for non-Sun systems
+- a special version of "exit" is supplied for systems that don't support
+  on_exit or atexit.
+- a configuration file (config.h) is provided to define USE_ATEXIT and the
+  existing flag CFRONT_COMPATIBILITY_MODE
+
+
 Version 2.09, September 15, 1992
 
 09/10/92  Eliminated unneeded files
