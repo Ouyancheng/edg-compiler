@@ -584,9 +584,9 @@ typedef struct a_source_range {
 EXTERN a_source_range
 		null_source_range
 #if VAR_INITIALIZERS
-                                  = { 0, SP_COL_UNKNOWN, 0, SP_COL_UNKNOWN }
+                                  = {{0, SP_COL_UNKNOWN}, {0, SP_COL_UNKNOWN}}
 #endif /* VAR_INITIALIZERS */
-                                                                            ;
+                                                                              ;
 			/* NULL source range, for initialization. */
 
 
