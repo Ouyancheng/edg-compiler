@@ -1,5 +1,24 @@
 Version 3.1
 
+12/19/02 Nontype template arguments in dependent contexts
+
+If a nontype template argument is used in a context in which the
+associated parameter type is not known (e.g., in certain dependent
+contexts as in the template argument list of B below) and that
+template argument requires a conversion to be done when the associated
+parameter type is eventually known, the conversion was not done in
+certain cases.  In addition, if no conversion is possible, deduction
+succeeded when it should have failed.  These problems could result in
+spurious errors.  Now fixed.
+
+  template <class T> struct A {
+    template <int I> struct B { B(int); };
+  };
+  template <class T> void f(typename A<T>::template B<'c'>);
+  int main() {
+    f<int>(1);
+  }
+
 12/18/02 Incorrect handling of escapes in C99 _Pragma operator
 
 Escapes in the string used to specify a C99 _Pragma were not handled

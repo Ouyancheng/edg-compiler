@@ -6018,6 +6018,65 @@ Otherwise, return the original template.
 }  /* copy_template_with_substitution */
 
 
+static a_boolean conv_nontype_arg_to_required_type(
+				a_template_arg_ptr	tap,
+				a_type_ptr		type_required,
+				a_source_position	*source_pos)
+/*
+See if the constant specified by "tap" can be converted to type_required.
+If possible, do the conversion and update the constant in "tap".
+Return TRUE if the conversion was successful.
+*/
+{
+  a_std_conv_descr	conv_descr;
+  a_constant_ptr	orig_constant = tap->variant.constant;
+  a_boolean		result = FALSE;
+
+  clear_std_conv_descr(&conv_descr);
+  /* The types don't match.  See if the constant can be converted
+     to the required type using an implicit conversion. */
+  if (impl_conversion_possible(orig_constant->type,
+                               /*source_is_constant=*/TRUE,
+                               /*source_is_string_literal=*/FALSE,
+                               tap->variant.constant,
+                               type_required,
+                               /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                               /*suppress_extensions=*/FALSE,
+                               ec_no_error,
+                               &conv_descr)) {
+    /* An implicit conversion is possible.  See if the conversion
+       is one of those allowed for template arguments. */
+    if (conversion_allowed_for_nontype_template_argument(&conv_descr)) {
+      a_constant	constant;
+      a_boolean		did_not_fold;
+      clear_constant(&constant, orig_constant->kind);
+      copy_constant(orig_constant, &constant);
+      type_change_constant(&constant, type_required,
+                           /*is_implicit_cast=*/TRUE,
+                           /*constant_context=*/TRUE,
+                           /*evaluated_context=*/TRUE,
+                           /*fold_constant_addr_exprs=*/TRUE,
+                           /*is_reinterpret_cast=*/FALSE,
+                           /*maintain_expression=*/FALSE,
+                           &did_not_fold, source_pos);
+      if (!did_not_fold) {
+        /* The conversion was successful.  Allocate a new constant and
+           copy the updated constant there. */
+        a_constant_ptr	new_constant;
+        a_memory_region_number region_to_switch_back_to;
+        switch_to_file_scope_region(&region_to_switch_back_to);
+        new_constant = alloc_constant(constant.kind);
+        copy_constant(&constant, new_constant);
+        tap->variant.constant = new_constant;
+        switch_back_to_original_region(region_to_switch_back_to);
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* conv_nontype_arg_to_required_type */
+
+
 a_template_arg_ptr copy_template_arg_list_with_substitution(
 			a_template_arg_ptr		arg_list_to_copy,
 			a_template_param_ptr		param_list_for_copy,
@@ -6097,6 +6156,20 @@ set *copy_error to TRUE.
 						   new_const_type,
                                                    source_pos,
                                                    options, copy_error);
+      if (new_const_type != NULL) {
+        /* If the constant does not have the required type, see if it can
+           be converted. */
+        a_type_ptr	type_from_constant = new_tap->variant.constant->type;
+        if (!identical_types(skip_typerefs(new_const_type),
+                             skip_typerefs(type_from_constant))) {
+          /* Attempt to convert the constant. */
+          if (!conv_nontype_arg_to_required_type(new_tap, new_const_type,
+                                                 source_pos)) {
+            /* The conversion failed. */
+            *copy_error = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
     } else {
       /* A template template argument. */
       new_tap->variant.templ = copy_template_with_substitution(
