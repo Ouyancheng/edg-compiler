@@ -4016,6 +4016,8 @@ and return NULL.  This routine is called only in C++ mode.
                overload resolution. */
             overloaded_function_symbol = function_symbol;
             do_arg_dep_lookup = FALSE;
+            is_template_id = FALSE;
+            template_arg_list = NULL;
           }  /* if */
         }  /* if */
       }  /* if */
