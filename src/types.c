@@ -705,7 +705,6 @@ set, leave it alone.  Also compute and set the alignment requirement.
         break;
       case tk_unknown:
       case tk_void:
-      case tk_none:
       case tk_routine:
       case tk_typeref:
       case tk_reference:
@@ -950,7 +949,6 @@ which do the initial test for exact pointer equality.
       switch (type_1->kind) {
         case tk_error:
         case tk_unknown:
-        case tk_none:
         case tk_void:
            /* No further check needed.  The types are identical. */
           identical = TRUE;
@@ -1092,7 +1090,6 @@ types_are_compatible, which does the initial test for exact pointer equality.
       switch (type_1->kind) {
         case tk_error:
         case tk_unknown:
-        case tk_none:
         case tk_void:
           /* No further check needed.  The types are compatible. */
           compat = TRUE;
@@ -1801,7 +1798,6 @@ is allocated, it is allocated in the file scope.
       switch (base_type_1->kind) {
         case tk_error:
         case tk_unknown:
-        case tk_none:
         case tk_void:
         case tk_integer:
         case tk_float:
@@ -2222,7 +2218,6 @@ is returned.
       switch (kind) {
         case tk_error:
         case tk_unknown:
-        case tk_none:
         case tk_void:
         case tk_float:
           /* No extra fields to copy. */
