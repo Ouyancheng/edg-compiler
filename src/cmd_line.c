@@ -256,7 +256,7 @@ Process the arguments on the command line that invoked the compiler.
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
   /* Scan the command-line options. */
-#define COMMAND_LIST "AEPCKMHlnsuvwrmpVI:D:U:e:L:X:S:o:i:d:"
+#define COMMAND_LIST "AEPCKMHNnsuvwrmpVI:D:U:e:L:X:S:o:i:d:"
   while ((optchar = getopt(argc, argv, COMMAND_LIST)) != EOF) {
     switch (optchar) {
       case 'A':
@@ -304,13 +304,13 @@ Process the arguments on the command line that invoked the compiler.
         list_makefile_dependencies = FALSE;
         error_threshold = es_error;
         break;
-      case 'l':
+      case 'N':
 #if DO_IL_LOWERING
 	/* Suppress IL-lowering */
 	suppress_il_lowering = TRUE;
 	break;
 #else
-	optarg = "l";
+	optarg = "N";
         goto unknown_option;
 #define DID_GOTO_UNKNOWN_OPTION
 #endif /* DO_IL_LOWERING */
