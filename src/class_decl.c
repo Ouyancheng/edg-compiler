@@ -6290,8 +6290,7 @@ Scan the body of a class definition, including the base classes list.
               if (virtual_specified ||
                   member_storage_class != (a_storage_class)sc_unspecified) {
                 /* A storage class declaration along with "friend" is not
-                   allowed.  The ARM doesn't disallow it, but that's how
-                   Cfront 2.1 works.  "inline", by the way, is allowed. */
+                   allowed. */
                 pos_error(ec_bad_friend_decl, &decl_start_pos);
                 set_to_error_locator(locator);
                 if (virtual_specified) {
