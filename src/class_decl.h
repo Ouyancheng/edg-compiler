@@ -41,6 +41,22 @@ extern a_boolean class_specifier(a_boolean  first_specifier,
                                  a_boolean  *declares_something,
                                  a_boolean  *defines_something);
 
+extern an_access_specifier compute_access(an_access_specifier access,
+                                          an_access_specifier class_access);
+
+extern a_boolean check_for_dominance(a_symbol_ptr          sym1,
+                                     a_symbol_ptr          sym2,
+                                     a_derivation_step_ptr path_to_sym2);
+
+extern a_derivation_step_ptr make_derivation_step(
+                                            a_base_class       *base_class,
+                                            a_derivation_step  *existing_step);
+
+extern void free_derivation_step(a_derivation_step_ptr  step);
+
+extern a_boolean equivalent_paths(a_derivation_step_ptr  path1,
+                                  a_derivation_step_ptr  path2);
+
 #endif /* CLASS_DECL_H */
 
 /******************************************************************************
