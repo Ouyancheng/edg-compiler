@@ -1683,7 +1683,6 @@ template classes.
     char       *uuid_str;
 
     /* Microsoft __uuidof. */
-    /* FIXME: IA-64 not implemented yet. */
     /* The uuid string attached to the associated type has the format
          hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
        (where "h" is a hexadecimal digit).  The mangled form is
@@ -1691,16 +1690,20 @@ template classes.
        removed.  This is just made up; the Microsoft compiler uses a
        completely different mangling scheme, so compatibility is a moot
        point here. */
+#if IA64_ABI
+    /* Add a length to make this into an identifier. */
+    add_str_to_mangled_name("38", mctl);
+#endif /* IA64_ABI */
     add_str_to_mangled_name("__UUID", mctl);
     uuid_type = con->variant.address.variant.type;
     if (uuid_type == NULL) {
       /* Null GUID case. */
-      uuid_str = "00000000-0000-0000-000000000000";
+      uuid_str = "00000000-0000-0000-0000-000000000000";
     } else {
       uuid_str = uuid_type->variant.class_struct_union.extra_info->uuid_string;
       if (uuid_str == NULL) {
         /* This can happen in error cases. */
-        uuid_str = "00000000-0000-0000-000000000000";
+        uuid_str = "00000000-0000-0000-0000-000000000000";
       }  /* if */
     }  /* if */
     for (; *uuid_str != '\0'; uuid_str++) {
