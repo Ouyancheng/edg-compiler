@@ -3962,7 +3962,7 @@ static a_boolean make_type_correspond(a_type_ptr  type_1,
 /*
 Make type_1 correspond to type_2.  If canonical_changed is non-NULL and type_1
 becomes the canonical entry of the correspondence set as a result of this
-operation, set *canonical_changed to TRUE.  The called is responsible for
+operation, set *canonical_changed to TRUE.  The caller is responsible for
 initializing *canonical_changed.
 */
 {
@@ -3996,18 +3996,20 @@ static a_boolean change_c_type_correspondence(a_type_ptr  type_1,
 /*
 Change the correspondence of type_1 (and its substructure, if any) so that it
 belongs to the same correspondence set as type_2.  Return TRUE if and only if
-the two types are in fact compatible.
+the two types are in fact compatible.  This routine should only be called in
+C mode.
 */
 {
   a_boolean                 match = TRUE;
   a_trans_unit_corresp_ptr  tucp1 = trans_unit_corresp_of(type_1);
   a_trans_unit_corresp_ptr  tucp2 = trans_unit_corresp_of(type_2);
 
+  check_assertion(C_mode());
   /* First change the correspondence of the type entry itself. */
   trace_corresp_check(type_1);
   trans_unit_corresp_of(type_1) = tucp2;
   tucp1->canonical = tucp2->canonical;
-  /* The change the correspondence of the substructure. */
+  /* Then change the correspondence of the substructure. */
   if (type_1->kind != type_2->kind) {
     /* An error: The two types are of a different kind (e.g., and enum vs. a
        class type. */
@@ -4202,7 +4204,6 @@ involved in the declaration of an entity with linkage).
         clear_type_correspondence(type, /*visited=*/TRUE);
       }  /* if */
     } else if (trans_unit_corresp_of_unknown_entry(tucp->canonical) != tucp) {
-      check_assertion(C_mode());
       (void)change_c_type_correspondence(type, (a_type_ptr)tucp->canonical);
     }  /* if */
   }  /* for */
