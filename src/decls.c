@@ -6565,7 +6565,12 @@ block.
       discard_curr_construct_pragmas();
     }  /* if */
     remove_stop_token(tok_semicolon);
-    (void)required_token(tok_semicolon, ec_exp_semicolon);
+    if (curr_token == tok_semicolon) {
+      /* Closing brace -- advance past it in the caller. */
+    } else {
+      /* Error -- semicolon was not found. */
+      error(ec_exp_semicolon);
+    }  /* if */
   } else if (bad_scope_for_namespace_def) {
     /* Attempting to define a namespace within something other than the
        file scope or a namespace scope.  Ignore all the declarations between
@@ -6574,7 +6579,7 @@ block.
     if (curr_token == tok_lbrace) {
       /* Ignore the namespace definition. */
       flush_until_matching_token();
-      if (curr_token == tok_rbrace) (void)get_token();
+      /* The closing right brace will be swallowed by the caller. */
     }  /* if */
   } else {
     /* Namespace definition. */
@@ -6670,8 +6675,14 @@ block.
                                         (a_byte_il_entry_kind)iek_namespace);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       remove_stop_token(tok_rbrace);
-      if (curr_token == tok_rbrace) cannot_bind_to_curr_construct();
-      (void)required_token(tok_rbrace, ec_exp_rbrace);
+      if (curr_token == tok_rbrace) {
+        /* Closing brace -- advance past it in the caller. */
+        cannot_bind_to_curr_construct();
+      } else {
+        /* Error -- closing brace was not found. */
+        error(ec_exp_rbrace);
+        discard_curr_construct_pragmas();
+      }  /* if */
       /* Pop the namespace or namespace-extension scope. */
       pop_scope();
     } else {
@@ -7226,7 +7237,7 @@ of local variables (and types, etc.) of functions and in blocks.
     } else if (curr_token == tok_namespace) {
       /* Process a namespace definition or a namespace alias declaration. */
       namespace_declaration(extern_implied);
-      goto return_point;
+      goto advance_past_final_token;
     } else if (curr_token == tok_using) {
       /* A using-directive (which has the form "using namespace N;") or a
          using-declaration ("using N::x;" or "using ::x;"); */
