@@ -603,7 +603,7 @@ check_label_decl_seq:
         (kind & SRK_ERROR)) {
       mark_variable_value_set(sym_ptr);
       if (exceptions_enabled) {
-        /* If the modification takes places inside a try block and the
+        /* If the modification takes place inside a try block and the
            variable was declared in a (function-local) scope that contains
            the try block, then it may have to be treated as quasi-volatile
            -- it may need to be stored immediately in case an exception is
@@ -623,7 +623,7 @@ check_label_decl_seq:
                    declared outside the try block we're interested in. */
                 break;
               } else if (ssep->is_try_block) {
-                /* We've reach the try block's scope without finding the
+                /* We've reached the try block's scope without finding the
                    scope in which the variable was declared.  Set the flag
                    and break out of the loop. */
                 vp->modified_within_try_block = TRUE;
