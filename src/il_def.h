@@ -1027,12 +1027,13 @@ typedef struct a_source_correspondence {
 #if BACK_END_IS_CP_GEN_BE
   a_bit_field	qualification_needed:1;
 			/* A qualified name should be used when referring to
-			   this entity.  Used within the C++-generating back
-			   end. */
+			   this entity.  Set/used only within the
+			   C++-generating back end. */
   a_bit_field	partially_hidden_by_microsoft_injected_class_name:1;
 			/* Used in Microsoft mode only, for injected class
 			   names.  They require qualification unless used
-			   to the left of "::". */
+			   to the left of "::".  Set/used only within the
+			   C++-generating back end. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if ONE_INSTANTIATION_PER_OBJECT
   a_bit_field	static_used_by_instantiation:1;
