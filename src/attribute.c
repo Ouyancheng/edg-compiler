@@ -1115,15 +1115,24 @@ messages about any invalid attributes.
         rp->is_pure = TRUE;
         break;
       case ak_noreturn:
-        { a_routine_type_supplement_ptr rtsp =
-                                          rp->type->variant.routine.extra_info;
-          rtsp->does_not_return = TRUE;
-        }
-        break;
       case ak_const:
-        { a_routine_type_supplement_ptr rtsp =
-                                          rp->type->variant.routine.extra_info;
-          rtsp->is_const = TRUE;
+        { a_routine_type_supplement_ptr  rtsp;
+          if (rp->type->kind == (a_type_kind)tk_typeref &&
+              typeref_is_typedef(rp->type)) {
+            /* We cannot apply the attribute to the type underlying the
+               typedef.  So make a copy of that type and apply the attribute
+               to that. */
+            rp->type = copy_type_and_apply_attributes(
+                                                (an_attribute_ptr)NULL,
+                                                rp->type->variant.typeref.type,
+                                                /*is_typedef=*/FALSE);
+          }  /* if */
+          rtsp = rp->type->variant.routine.extra_info;
+          if (ap->kind == (an_attribute_kind)ak_const) {
+            rtsp->is_const = TRUE;
+          } else {
+            rtsp->does_not_return = TRUE;
+          }  /* if */
         }
         break;
       case ak_weak:
