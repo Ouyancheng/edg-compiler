@@ -911,6 +911,12 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE */
+#if ENABLE_TRANS_UNIT_TEST_MODE
+  add_option_description(optk_trans_unit_test_mode,
+                         "trans_unit_test",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* ENABLE_TRANS_UNIT_TEST_MODE */
 }  /* initialize_option_descriptions */
 
 
@@ -3133,6 +3139,13 @@ enable_microsoft_mode:
            unchanged. */
         pass_stdarg_references_to_generated_code = opt_value;
         break;
+#if ENABLE_TRANS_UNIT_TEST_MODE
+      case optk_trans_unit_test_mode:
+        /* Enable mode to test the compilation of multiple (possibly identical)
+           translation units. */
+        trans_unit_test_mode = opt_value;
+        break;
+#endif /* ENABLE_TRANS_UNIT_TEST_MODE */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

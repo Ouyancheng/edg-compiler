@@ -992,6 +992,14 @@ front end.
 #endif /* !defined(INCLUDE_EDG_TEST_PRAGMAS) */
 
 /*
+Flag that is TRUE to enable a command-line option to test the compilation
+of multiple (possibly identical) translation units.
+*/
+#ifndef ENABLE_TRANS_UNIT_TEST_MODE
+#define ENABLE_TRANS_UNIT_TEST_MODE FALSE
+#endif /* !defined(ENABLE_TRANS_UNIT_TEST_MODE) */
+
+/*
 Flag that is TRUE to specify that source files should be read in
 binary mode under MS-DOS (or Windows 95, or Windows NT).  In this mode,
 carriage return and control-Z are handled by the front end instead of
