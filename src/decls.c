@@ -3200,8 +3200,9 @@ be issued at the given position.
     }  /* if */
     if (old_dll_flags == new_dll_flags) {
       /* This is a redeclaration and it is compatible with the previous
-         declaration: Nothing to be done. */
-      check_assertion(is_redecl);
+         declaration: Nothing to be done.  (It could also be a full
+         instantiation compatible with a prior partial instantiation.) */
+      check_assertion(is_redecl || routine->is_template_function);
     } else if (old_dll_flags == 0) {
       /* This is the first time a DLL interface is specified: If there was a
          previous declaration, issue an error. */
@@ -3436,8 +3437,9 @@ position. */
     }  /* if */
     if (old_dll_flags == new_dll_flags) {
       /* This is a redeclaration and it is compatible with the previous
-         declaration: Nothing to be done. */
-      check_assertion(is_redecl);
+         declaration: Nothing to be done.  (It could also be a full
+         instantiation compatible with a prior partial instantiation.) */
+      check_assertion(is_redecl || var->is_template_static_data_member);
     } else if (old_dll_flags == 0) {
       /* This is the first time a DLL interface is specified: If there was a
          previous declaration, issue an error. */
