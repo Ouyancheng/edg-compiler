@@ -1,5 +1,19 @@
 Version 3.2
 
+5/1/03   Microsoft mode: Redeclaration of dllexport/dllimport functions
+
+In Microsoft mode, when a function first declared with a dllexport or
+dllimport modifier was redeclared without such a modifier, the front end
+used to issue a warning and removed the modifiers from the IL entry for
+the function.  For example:
+
+  __declspec(dllexport) void f();
+  void f() {} // Used to trigger a warning and "dllexport" was ignored.
+              // Now no longer a warning, and "f" is still marked "dllexport". 
+
+This was changed to no longer issue a warning and to retain the original
+declaration modifier.
+
 4/30/03  Spurious correspondence error with friend name injection
 
 In modes that enable friend name injection (such as Sun compatibility mode)

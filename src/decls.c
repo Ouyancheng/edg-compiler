@@ -3043,7 +3043,8 @@ diagnostics.
                 /* Any previous declaration should have been declared
                    with either dllimport or dllexport.  Issue a warning. */
                 invalid_redecl = TRUE;
-              } else if (!((DM_DLLIMPORT | DM_DLLEXPORT) &
+              } else if (new_modifiers->flags != 0 &&
+                         !((DM_DLLIMPORT | DM_DLLEXPORT) &
                            routine->decl_modifiers &
                            new_modifiers->flags)) {
                 /* The current declaration is inconsistent with a previous
