@@ -55,7 +55,10 @@ test program.
 
 A bug in the disambiguation routines could cause an infinite loop when
 NEAR_AND_FAR_ENABLED is TRUE but MICROSOFT_EXTENSIONS_ALLOWED is FALSE.
-This has been fixed.
+This has been fixed.  The only case known to loop is the following, which
+also happens to be ill-formed:
+
+  template <class T> struct near A {};
 
 10/29/99 IL file reading problem with pragma in certain instantiation contexts
 
