@@ -355,6 +355,20 @@ to the first byte of the number; it is advanced past the number on return.
 }  /* get_macro_repl_text_number */
 
 
+typedef struct a_conversion_list_entry *a_conversion_list_entry_ptr;
+typedef struct a_conversion_list_entry {
+  a_conversion_list_entry_ptr
+		next;
+			/* Next in a linked list of conversion list entries;
+			   NULL for the last on the list. */
+  a_symbol_ptr  symbol;
+			/* Pointer to a symbol entry representing a user-
+			   defined conversion function.  The symbol pointed
+			   to will be an sk_member_function or sk_projection
+			   symbol. */
+} a_conversion_list_entry;
+
+
 typedef struct a_class_symbol_supplement *a_class_symbol_supplement_ptr;
 typedef struct a_class_symbol_supplement {
   /* Additional information about a C++ class, struct, or union, supplementing
@@ -375,6 +389,12 @@ typedef struct a_class_symbol_supplement {
 			   sk_overloaded_function) symbol that identifies
 			   the assignment operator for this class; NULL if
 			   there is none. */
+  a_conversion_list_entry_ptr
+		conversion_list;
+			/* Pointer to a linked list of entries providing
+			   quick access to user-defined conversion functions
+			   declared for this class (i.e., which convert
+			   objects of this class to some type). */
   unsigned int	any_nonpublic_members:1;
 			/* TRUE if the class contains any members declared
 			   private or protected. */
@@ -405,9 +425,10 @@ typedef struct a_class_symbol_supplement {
 			   not user-defined and when the current class has no
 			   virtual base classes and no subobjects for which
 			   bitwise copy is not allowed). */
-  unsigned int  target_of_user_defined_conversion:1
+  unsigned int  target_of_user_defined_conversion:1;
 			/* TRUE if this class is the target of a user-defined
-			   conversion operator. */
+			   conversion function (for conversion from another
+			   class to this class). */
 } a_class_symbol_supplement;
 
 
@@ -1062,8 +1083,9 @@ extern void reference_to_symbol(a_symbol_reference_kind kind,
                                 a_source_position       *source_position);
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
-
+/* Allocation */
 extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
+extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);
 
 /* Examine the list of symbols with a given name, looking for an
    instance with a particular kind. */

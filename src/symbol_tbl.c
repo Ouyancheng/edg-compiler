@@ -49,6 +49,7 @@ static unsigned long
 		num_conversion_headers_allocated,
 		symbol_name_string_space,
 		num_class_symbol_supplements_allocated,
+                num_conversion_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
 		num_extern_type_fixups_allocated,
                 num_projection_descrs_allocated,
@@ -604,6 +605,27 @@ Allocate a new conversion header and return a pointer to it.
   return ptr;
 }  /* alloc_conversion_header */
 
+
+a_conversion_list_entry_ptr alloc_conversion_list_entry(void)
+/*
+Allocate a new conversion list entry and return a pointer to it.
+*/
+{
+  register a_conversion_list_entry_ptr ptr;
+
+  db_enter(5, "alloc_conversion_list_entry");
+  ptr = (a_conversion_list_entry_ptr)alloc_fe(sizeof(a_conversion_list_entry));
+#if DEBUG
+  num_conversion_list_entries_allocated++;
+#endif /* DEBUG */
+  ptr->next    = NULL;
+  ptr->symbol  = NULL;
+  
+  db_exit();
+  return ptr;
+}  /* alloc_conversion_header */
+
+
 a_symbol_ptr find_symbol(char             *identifier,
 			 sizeof_t         length,
 			 a_symbol_locator *location)
@@ -778,6 +800,7 @@ state.
         cssp->constructor = NULL;
         cssp->destructor = NULL;
         cssp->assignment_operator = NULL;
+        cssp->conversion_list = NULL;
         cssp->any_nonpublic_members = FALSE;
         cssp->constructor_required = FALSE;
         cssp->destructor_required = FALSE;
@@ -3921,6 +3944,8 @@ for space tracking purposes.
             an_extern_type_fixup);
   write_one("class symbol supplements", num_class_symbol_supplements_allocated,
             a_class_symbol_supplement);
+  write_one("conversion list entry", num_conversion_list_entries_allocated,
+            a_conversion_list_entry);
   write_one("projection symbol descr", num_projection_descrs_allocated,
             a_projection_descr);
 
@@ -4033,6 +4058,7 @@ to avoid an 8-character external name clash with symbol_table.)
   num_conversion_headers_allocated       = 0;
   symbol_name_string_space               = 0;
   num_class_symbol_supplements_allocated = 0;
+  num_conversion_list_entries_allocated  = 0;
   num_extern_symbol_descrs_allocated     = 0;
   num_extern_type_fixups_allocated       = 0;
   num_projection_descrs_allocated        = 0;
