@@ -1974,6 +1974,11 @@ precedence confusion.  Do the output in the way described by octl.
     output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
     form_cast(constant->type, octl);
   }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+  if (constant->kind == (a_constant_repr_kind)ck_upc_threads) {
+    octl->output_str("(");
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   if (signed_constant && sign_of_integer_constant(constant) < 0) {
     /* Negative value.  Put in parentheses. */
     output_optional_open_paren(&need_parens, &need_negative_close_paren, octl);
@@ -2027,7 +2032,7 @@ precedence confusion.  Do the output in the way described by octl.
   output_optional_close_paren(need_negative_close_paren, octl);
 #if UPC_EXTENSIONS_ALLOWED
   if (constant->kind == (a_constant_repr_kind)ck_upc_threads) {
-    octl->output_str("*THREADS");
+    octl->output_str("*THREADS)");
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
   output_optional_close_paren(need_cast_close_paren, octl);
