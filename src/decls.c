@@ -1480,9 +1480,12 @@ internal linkage).
       }  /* if */
       if (prior_decl != NULL) {
         reduce_projection_symbol_to_fundamental_symbol(prior_decl);
-        if (is_type_symbol(prior_decl)) {
+        if (is_type_symbol(prior_decl) ||
+            prior_decl->kind == (a_symbol_kind)sk_undefined) {
           /* The prior declaration may have been a typedef in an enclosing
-             scope; there is no relationship wrt. name linkage. */
+             scope; there is no relationship wrt. name linkage.  In error
+             situations, we may also pick up undefined identifiers: ignore
+             them. */
           prior_decl = NULL;
         }  /* if */
       }  /* if */
