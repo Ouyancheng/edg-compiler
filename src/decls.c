@@ -5490,9 +5490,9 @@ cv-qualifier).
     }  /* if */
   } else if (!any_decl_specifiers) {
     /* This is a non-function declaration for which the decl-specifiers are
-       missing altogether.  Issue an error in all modes. */
+       missing altogether.  Issue a diagnostic in all modes. */
     error_code = ec_missing_decl_specifiers;
-    if (C_dialect == C_dialect_pcc || microsoft_mode) {
+    if (C_mode() && (microsoft_mode || C_dialect == C_dialect_pcc)) {
       severity = es_warning;
     } else {
       severity = es_discretionary_error;

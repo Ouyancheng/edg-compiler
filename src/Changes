@@ -17,12 +17,12 @@ A fragment of code in lower_il.c wasn't standard C when CHECKING is
 set to FALSE, and therefore might not compile with some C compilers.
 Now fixed.
 
-6/23/97   Microsoft compatibility: allow omission of decl-specifiers
+6/23/97   Microsoft compatibility: allow omission of decl-specifiers in C
 
-A warning is now issued (instead of an error) in Microsoft compatibility
+A warning is now issued (instead of an error) in Microsoft C compatibility
 mode for declarations with no decl-specifiers at all -- for example:
 
-  x;                       // Now accepted with a warning in Microsoft mode
+  x;                  // Now accepted with a warning in Microsoft C mode
 
 6/23/97   Invalid IL if conversion operator declaration is first in comma-list
 
