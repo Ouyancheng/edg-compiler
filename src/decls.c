@@ -2823,6 +2823,20 @@ cross-reference output describing this declaration.
   effective_decl_level =
             compute_effective_decl_level(/*is_function=*/FALSE, storage_class,
                                          /*is_friend_decl=*/FALSE);
+  if (C_dialect == C_dialect_cplusplus) {
+    if (effective_decl_level == depth_innermost_namespace_scope &&
+        depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+      a_namespace_ptr  nsp;
+      check_assertion(scope_stack[effective_decl_level].il_scope->kind ==
+                                               (a_scope_kind)sck_namespace);
+      nsp = scope_stack[effective_decl_level].il_scope->
+                                                   variant.assoc_namespace;
+      if (nsp->source_corresp.name == NULL ||
+          is_member_of_unnamed_namespace(&nsp->source_corresp)) {
+        storage_class = (a_storage_class)sc_static;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (locator->is_qualified_name && locator->specific_symbol != NULL) {
     if (is_variable_def &&
         !namespace_is_enclosed_by_curr_scope(locator->specific_symbol)) {
@@ -3146,16 +3160,16 @@ cross-reference output describing this declaration.
 /* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE */
 void decl_routine(a_symbol_locator             *locator,
-                         a_storage_class              storage_class,
-                         a_type_ptr                   type_ptr,
-                         a_func_info_block_ptr        func_info,
-                         a_source_sequence_entry_ptr  declarator_ssep,
-                         a_symbol_reference_kind      srk_flags,
-                         a_decl_modifier	      decl_modifiers,
-                         a_symbol_ptr                 *symbol_ptr,
-                         an_id_linkage_kind           *linkage_ptr,
-                         a_type_ptr                   *old_type,
-                         a_symbol_ptr                 *ext_sym)
+                  a_storage_class              storage_class,
+                  a_type_ptr                   type_ptr,
+                  a_func_info_block_ptr        func_info,
+                  a_source_sequence_entry_ptr  declarator_ssep,
+                  a_symbol_reference_kind      srk_flags,
+                  a_decl_modifier              decl_modifiers,
+                  a_symbol_ptr                 *symbol_ptr,
+                  an_id_linkage_kind           *linkage_ptr,
+                  a_type_ptr                   *old_type,
+                  a_symbol_ptr                 *ext_sym)
 /*
 Enter the declaration of an identifier for a nonmember routine.  *locator
 gives the symbol locator (and thus its name and its declaration position).
@@ -3212,20 +3226,30 @@ on for use in generating cross-reference output describing this declaration.
     is_function_def = TRUE;
     check_assertion(srk_flags & SRK_DEFINITION);
   }  /* if */
+  effective_decl_level = compute_effective_decl_level(/*is_function=*/TRUE,
+                                                      storage_class,
+                                                      srk_flags & SRK_FRIEND);
   if (C_dialect == C_dialect_cplusplus) {
     if (func_info->is_inline) {
       check_assertion(storage_class == (a_storage_class)sc_unspecified ||
                       storage_class == (a_storage_class)sc_static);
       storage_class = (a_storage_class)sc_static;
+    } else if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+      a_namespace_ptr  nsp;
+      check_assertion(scope_stack[effective_decl_level].il_scope->kind ==
+                                               (a_scope_kind)sck_namespace);
+      nsp = scope_stack[effective_decl_level].il_scope->
+                                                   variant.assoc_namespace;
+      if (nsp->source_corresp.name == NULL ||
+          is_member_of_unnamed_namespace(&nsp->source_corresp)) {
+        storage_class = (a_storage_class)sc_static;
+      }  /* if */
     }  /* if */
     /* If this is an overloaded operator, check for errors in the
        argument list. */
     check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
                                    locator);
   }  /* if */
-  effective_decl_level = compute_effective_decl_level(/*is_function=*/TRUE,
-                                                      storage_class,
-                                                      srk_flags & SRK_FRIEND);
   if (func_info->is_implicit_declaration) {
     check_assertion(srk_flags & SRK_IMPLICIT);
     if (C_dialect != C_dialect_cplusplus) {
