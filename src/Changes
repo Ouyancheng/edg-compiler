@@ -1,5 +1,22 @@
 Version 3.1
 
+10/17/02 C++-generating back end, Microsoft compatibility: Out-of-class
+         definitions of nested classes
+
+The Microsoft MSVC++ 7.0 compiler has a bug that prevents it from correctly
+parsing an out-of-class definition of a nested class that is a member of
+a class template specialization, unless the name of the specialization is
+itself preceded by a qualifier.  For example:
+
+  template<typename T> struct S;
+  template<> struct S<void> { struct N; };
+  struct S<void>::N {};   // Triggers MSVC++ 7.0 error
+  struct ::S<void>::N {}; // Accepted by MSVC++ 7.0
+
+The C++-generating back end has been modified to emit the extra qualifier
+when msvc_is_generated_code_target is TRUE and msvc_target_version_number
+is at least 1300.
+
 10/16/02 Microsoft compatibility: instantiating the type of a static data
          member
 

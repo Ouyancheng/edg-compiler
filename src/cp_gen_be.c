@@ -1995,7 +1995,14 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                                 options & GN_PARENS_IF_GLOBAL_QUALIFIER,
                                 need_closing_paren);
       }  /* if */
-    } else if (scp->qualification_needed) {
+    } else if (scp->qualification_needed ||
+               /* MSVC++ 7.0 does not always correctly parse "class S<x>::N {",
+                  but the problem goes away with a leading global qualifier. */
+               (msvc_is_generated_code_target &&
+                msvc_target_version_number >= 1300 &&
+                (options & GN_QUALIFIER) && !(options & GN_DEPENDENT) &&
+                template_arguments_for_name(scp, entry_kind,
+                                            (a_boolean*)NULL) != NULL)) {
       /* This is a reference to a file-scope entity from within a class
          or function, so add a leading "::". */
       if (options & GN_DECLARATION) {
