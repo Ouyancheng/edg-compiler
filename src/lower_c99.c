@@ -1085,19 +1085,20 @@ operand by the number of elements in that VLA because the first operand will
 be lowered to a pointer to the first element of the VLA.
 */
 {
-  a_type_ptr           array_type = skip_typerefs(type_pointed_to(expr->type));
-  a_type_ptr           ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
-  an_expr_node_ptr     offset = expr->variant.operation.operands->next;
-  an_expr_node_ptr     scale_factor = vla_size_expr(array_type,
-                                                    /*byte_count=*/FALSE);
+  a_type_ptr         array_type = type_pointed_to(expr->type);
+  a_type_ptr        ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
+  an_expr_node_ptr  offset = expr->variant.operation.operands->next;
+  an_expr_node_ptr  scale_factor;
 
   /* Scale the offset according to the (nonconstant) total number of elements
      in the underlying array type. */
+  array_type = skip_typerefs(array_type);
+  scale_factor = vla_size_expr(array_type, /*byte_count=*/FALSE);
   offset = add_c99_lowered_cast_if_necessary(offset, ptrdiff_type);
   scale_factor->next = offset;
-  expr->variant.operation.operands->next = make_operator_node(eok_imultiply,
-                                                              ptrdiff_type,
-                                                              scale_factor);
+  expr->variant.operation.operands->next =
+                      make_operator_node((an_expr_operator_kind)eok_imultiply,
+                                         ptrdiff_type, scale_factor);
   /* Adjust the type of the expression to be the underlying element type. */
   expr->type = make_pointer_type(underlying_array_element_type(array_type));
   expr->variant.operation.operands->type = expr->type;
@@ -1706,7 +1707,8 @@ when lowering the stmk_vla_decl statement that follows.
   set_statement_kind(stmt, (a_statement_kind)stmk_expr);
   assign_ops = var_lvalue_expr(vla_dim->total_number_of_elements);
   assign_ops->next = expr;
-  stmt->expr = make_operator_node(eok_iassign, ptrdiff_type, assign_ops);
+  stmt->expr = make_operator_node((an_expr_operator_kind)eok_iassign,
+                                  ptrdiff_type, assign_ops);
   /* The result of the assignment is not used. */
   set_expr_result_not_used(stmt->expr);
 }  /* lower_set_vla_size */
@@ -1834,15 +1836,13 @@ storage for the given VLA variable.
 */
 {
   an_expr_node_ptr  result = var_lvalue_expr(vla_var), size_expr;
-  a_type_ptr        return_type = void_type();
-  a_type_ptr        void_star_type = make_pointer_type(return_type);
   a_type_ptr        ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
 
-  result = add_c99_lowered_cast_if_necessary(result, void_star_type);
+  result = add_c99_lowered_cast_if_necessary(result, void_star_type());
   size_expr = vla_size_expr(vla_var->type, /*byte_count=*/TRUE);
   result->next = size_expr;
   result = make_prototyped_runtime_call("__vla_alloc", &vla_alloc_routine,
-                                        return_type, void_star_type,
+                                        void_type(), void_star_type(),
                                         ptrdiff_type, result);
   return result;
 }  /* make_vla_allocation_expr */
@@ -1903,15 +1903,13 @@ well.
 */
 {
   a_variable_ptr    vla_var = stmt->variant.vla_variable;
-  a_type_ptr        return_type = void_type();
-  a_type_ptr        void_star_type = make_pointer_type(return_type);
   an_expr_node_ptr  arg = var_lvalue_expr(vla_var);
 
-  arg = add_c99_lowered_cast_if_necessary(arg, void_star_type);
+  arg = add_c99_lowered_cast_if_necessary(arg, void_star_type());
   set_statement_kind(stmt, (a_statement_kind)stmk_expr);
   stmt->expr = make_prototyped_runtime_call("__vla_dealloc",
                                             &vla_dealloc_routine,
-                                            return_type, void_star_type,
+                                            void_type(), void_star_type(),
                                             (a_type_ptr)NULL, arg);
   /* The result of the statement expression is not used. */
   if (stmt->expr != NULL) {
