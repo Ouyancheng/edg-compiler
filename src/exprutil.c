@@ -4057,7 +4057,8 @@ transformations.
          See section 3.2.2.1 in the ANSI C standard. */
       conv_function_designator_to_ptr_to_function(operand, expression_kind);
     }  /* if */
-  } else if (is_indefinite_function_operand(operand)) {
+  }  /* if */
+  if (is_indefinite_function_operand(operand)) {
     if (!(options & TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION)) {
       /* Issue an error for an indefinite function (i.e., a C++ overloaded
          function that wasn't called, so we were never able to determine
