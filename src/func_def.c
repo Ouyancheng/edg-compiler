@@ -354,6 +354,27 @@ param type entry.
 }  /* fixup_parameters */
 
 
+static a_variable_ptr make_param_variable(a_type_ptr       type_ptr,
+                                          a_storage_class  storage_class)
+/*
+Allocate a variable entry with type type_ptr.  If type_ptr is NULL (as it
+will be in trying to creating an implicit this parameter for static member
+functions) simply return NULL.
+*/
+{
+  a_variable_ptr vp;
+
+  check_assertion(type_ptr != NULL);
+  vp = alloc_variable(storage_class);
+  vp->type = type_ptr;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  vp->declared_type = type_ptr;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  vp->is_parameter = TRUE;
+  return(vp);
+}  /* make_param_variable */
+
+
 static void decl_parameter(a_param_id_ptr    param_id,
                            a_param_type_ptr  ptp,
                            a_boolean         function_instantiation)
@@ -396,6 +417,9 @@ a new symbol is created and entered in the symbol table.
   if (sym == NULL) {
     /* This param_id entry represents an unnamed parameter (which is legal
        in function definitions in C++). */
+    /* Clear the referenced flag, which is set by set_default_source_corresp
+       when the variable is allocated. */
+    vp->source_corresp.referenced = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CHECKING
     if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
