@@ -11402,6 +11402,14 @@ first_op_volatile_test:
       suppress = TRUE;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case eok_cast:
+      if (c99_mode &&
+          (is_floating_type(node->type) ||
+           is_floating_type(node->variant.operation.operands->type))) {
+        /* Floating-point conversions can cause side effects in C99. */
+        goto c99_float_operations;
+      }  /* if */
+      break;
     case eok_fnegate:
     case eok_fadd:
     case eok_fsubtract:
@@ -11415,6 +11423,7 @@ first_op_volatile_test:
     case eok_fle:
     case eok_fgnu_min:
     case eok_fgnu_max:
+c99_float_operations:
       if (c99_mode) {
         /* In C99, the floating-point status flags can be tested, so a
            floating-point operation is considered to have side effects. */
