@@ -1,7 +1,7 @@
 Version 2.42
 
 4/2/99   Microsoft compatibility: incompatible extern "C" declarations
-         allowed in different namespaces
+         in different namespaces
 
 In Microsoft mode incompatible extern "C" function declarations are now
 accepted with a warning if they appear in different namespaces:
@@ -10,7 +10,6 @@ accepted with a warning if they appear in different namespaces:
     extern "C" int f();
   }
   extern "C" int f(int);       // No compiler error in Microsoft mode
-
 
 4/1/99   purify_discard_memory eliminated
 
