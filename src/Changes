@@ -1,5 +1,14 @@
 Version 2.26
 
+9/29/94  Nonstandard pointers-to-member-functions
+
+The ARM and the Working Paper insist that the only way to write a pointer
+to member function is "&A::f", i.e., the "&" must be explicit and a
+qualified name must be used.  Common practice expects "A::f", "&f", and
+"f" to work in appropriate contexts, by analogy with normal functions.
+The front end allowed the cases without the explicit "&" already.  Now,
+it allows the cases without a qualified name.
+
 9/29/94  #pragma hdrstop
 
 Not only has code been added to recognize "#pragma hdrstop", as part of
