@@ -7647,8 +7647,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
 
         pointer_difference = TRUE;
         /* In ANSI C and C++, both operands must be pointers to qualified or
-           unqualified members of compatible object types (ANSI C 3.3.6).
-           The result has type ptrdiff_t (see 3.3.6 and <stddef.h>). */
+           unqualified members of compatible complete object types
+           (ISO C 6.3.6, ISO C++ 5.7).  The result has type ptrdiff_t. */
         if (types_are_compatible_ignoring_qualifiers(type_1, type_2)) {
           operation_type = skip_typerefs(operand_1->type);
         } else if (check_compatibility_of_pointer_operands(
@@ -7658,7 +7658,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                           /*pointers_to_incomplete_standard_in_C=*/FALSE,
                           /*mixed_object_and_incomplete_standard_in_C=*/FALSE,
                           &operation_type)) {
-          /* Traditionally, (ARM C++) certain differences in the types pointed
+          /* Traditionally (ARM C++), certain differences in the types pointed
              to have been accepted. */
           if (!(any_cfront_mode() || microsoft_mode)) {
             pos_ty2_diagnostic(strict_ansi_mode ? strict_ansi_error_severity
@@ -7670,10 +7670,14 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         } else {
           err = TRUE;
         }  /* if */
-        if (!err && check_object_pointer_operand(
-                                 operand_1, ec_expr_not_pointer_to_object) &&
-                    check_object_pointer_operand(
-                                 &operand_2, ec_expr_not_pointer_to_object)) {
+        /* Check that the types pointed to are complete. */
+        if (!err &&
+            /* Note use of "&" rather than "&&" to ensure that both tests
+               are done even if the first detects an error. */
+            (check_object_pointer_operand(
+                                 operand_1, ec_expr_not_pointer_to_object) &
+             check_object_pointer_operand(
+                                 &operand_2, ec_expr_not_pointer_to_object))) {
           result_type = integer_type(targ_ptrdiff_t_int_kind);
         } else {
           /* An error message was already issued. */
