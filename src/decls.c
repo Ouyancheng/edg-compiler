@@ -7025,6 +7025,10 @@ In C++ mode an error is issued if a type definition appears in a type-name
                (a_symbol_locator *)NULL, type_ptr,
                &declarator_ssep, (a_func_info_block_ptr)NULL,
                (a_decl_pos_block_ptr)NULL);
+    if (explicit_cv_qualifiers != NULL && !*explicit_cv_qualifiers) {
+      /* Explicit qualifiers were introduced in the declarator: */
+      *explicit_cv_qualifiers = is_qualified_type(*type_ptr);
+    }  /* if */
     if (di_flags & DI_VLA_ALLOWED) {
       /* VLA checking was done. */
       if (is_array_type(*type_ptr) &&
