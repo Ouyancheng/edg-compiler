@@ -2,7 +2,7 @@ Version 2.30
 
 8/25/95  Incomplete array as final field in Microsoft C++ mode
 
-In C, as an extension, it is allowed to declared the final field of a
+In C, as an extension, it is allowed to declare the final field of a
 struct with zero-length array:
 
   struct S {
