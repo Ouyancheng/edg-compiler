@@ -1413,6 +1413,44 @@ the line number to 0.
   db_exit();
 }  /* conv_seq_to_file_and_line */
 
+#if ORPHAN_PROCESSING_NEEDED
+
+void add_orphaned_file_scope_il_entry (char             *entry_ptr,
+                                       an_il_entry_kind entry_kind)
+/*
+Link the specified file scope IL entry onto the orphaned_file_scope_il_entries
+linked list for the designated IL entry kind.  Only IL entries in the
+file scope memory region have the necessary additional pointer space 
+allocated immediately preceding the entry.
+*/
+{
+  char **last_entry_ptr;
+
+#if CHECKING
+  if (!in_file_scope(entry_ptr)) {
+    internal_error(
+ "add_orphaned_file_scope_il_entry: IL entry not in file scope memory region");
+  }  /* if */
+#endif /* CHECKING */
+  /* Check if this IL entry is already on the orphaned entry list. */
+  last_entry_ptr = &orphaned_file_scope_il_entries[(int)entry_kind].last_entry;
+  if (*(char **)(entry_ptr - sizeof(char *)) == NULL &&
+      entry_ptr != *last_entry_ptr) {
+    /* This entry is not in the existing list; add it to the end of the
+       list. */
+    if (*last_entry_ptr == NULL) {
+      /* This is the first entry on this list */
+      orphaned_file_scope_il_entries[(int)entry_kind].first_entry = 
+                                                               entry_ptr;
+    } else {
+      /* Add to the tail of the existing list. */
+      *(char **)(*last_entry_ptr - sizeof (char *)) = entry_ptr;
+    }  /* if */
+    *last_entry_ptr = entry_ptr;
+  }  /* if */
+}  /* add_orphaned_file_scope_il_entry */
+
+#endif /* ORPHAN_PROCESSING_NEEDED */
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean seq_is_in_include_file(a_seq_number seq_number)
@@ -4537,44 +4575,6 @@ Display and return the amount of space used for various IL tables.
 }  /* show_il_space_used */
 #endif /* DEBUG */
 
-#if ORPHAN_PROCESSING_NEEDED
-
-void add_orphaned_file_scope_il_entry (char             *entry_ptr,
-                                       an_il_entry_kind entry_kind)
-/*
-Link the specified file scope IL entry onto the orphaned_file_scope_il_entries
-linked list for the designated IL entry kind.  Only IL entries in the
-file scope memory region have the necessary additional pointer space 
-allocated immediately preceding the entry.
-*/
-{
-  char **last_entry_ptr;
-
-#if CHECKING
-  if (!in_file_scope(entry_ptr)) {
-    internal_error(
- "add_orphaned_file_scope_il_entry: IL entry not in file scope memory region");
-  }  /* if */
-#endif /* CHECKING */
-  /* Check if this IL entry is already on the orphaned entry list. */
-  last_entry_ptr = &orphaned_file_scope_il_entries[(int)entry_kind].last_entry;
-  if (*(char **)(entry_ptr - sizeof(char *)) == NULL &&
-      entry_ptr != *last_entry_ptr) {
-    /* This entry is not in the existing list; add it to the end of the
-       list. */
-    if (*last_entry_ptr == NULL) {
-      /* This is the first entry on this list */
-      orphaned_file_scope_il_entries[(int)entry_kind].first_entry = 
-                                                               entry_ptr;
-    } else {
-      /* Add to the tail of the existing list. */
-      *(char **)(*last_entry_ptr - sizeof (char *)) = entry_ptr;
-    }  /* if */
-    *last_entry_ptr = entry_ptr;
-  }  /* if */
-}  /* add_orphaned_file_scope_il_entry */
-
-#endif /* ORPHAN_PROCESSING_NEEDED */
 
 void il_init(void)
 /*
