@@ -13,6 +13,16 @@ new.h -- Include file for C++ default operator new (see ARM 12.5).
 #include <exception.h>
 #endif /* _EXCEPTION_H */
 
+#ifndef __EDG_STD_NAMESPACE
+/* If not alread defined, define a macro that expands to the namespace
+   containing the standard library. */
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
+#define __EDG_STD_NAMESPACE std
+#else /* ifndef __EDG_RUNTIME_USES_NAMESPACES */
+#define __EDG_STD_NAMESPACE /* nothing */
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
+
+
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 namespace std {
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
