@@ -1,5 +1,22 @@
 Version 2.32
 
+6/19/96 Determination of which copy constructor was elided for strict-mode
+        check now considers whether copy constructor can copy rvalue
+
+When a copy constructor is elided, the WP requires that the copy constructor
+that is not used be callable anyway.  This check is done only in strict
+mode.  The check has been improved to consider whether a given copy
+constructor can copy an rvalue when determining which copy constructor
+would have been called.
+
+  struct B {
+      B(B&);
+      B(const B&);
+      B(int);
+  };
+  int f(B);
+  int i = f(B(1));  // No error in strict mode -- B(B&) not selected
+
 6/18/96 Conversions for direct reference binding
 
 When binding a reference, using a conversion function to produce an lvalue

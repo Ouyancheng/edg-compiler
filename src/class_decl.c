@@ -4590,7 +4590,9 @@ matching function, set *ambiguous to TRUE.
       } else {
         /* Copy constructor. */
         sym = find_copy_constructor(class_type, qualifiers,
-                                    ambiguous, &class_bitwise_copy);
+                                    /*source_is_rvalue=*/FALSE,
+                                    ambiguous, (a_boolean *)NULL,
+                                    &class_bitwise_copy);
       }  /* if */
       break;
     case sfk_destructor:
