@@ -588,6 +588,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
 */
 {
   a_boolean       paren_initializer_seen = FALSE;
+  a_boolean       pointer_operator_seen = FALSE;
 
   /* Look for one or more instances of a sequence of tokens corresponding
      to ptr-operator.  Syntax:
@@ -601,6 +602,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
       /* Cache and bypass the "*" or "&". */
       cache_curr_token(token_cache_ptr);
       (void)get_token_and_coalesce_if_identifier();
+      pointer_operator_seen = TRUE;
     } else if (curr_token == tok_const || curr_token == tok_volatile) {
       /* Cache and bypass any cv-qualifiers. */
       cache_curr_token(token_cache_ptr);
@@ -651,16 +653,15 @@ part of a declarator is found, may_be_decl is set to FALSE.
            A(x);
          cfront treats this as a constructor call instead of a declaration
          of an object named x. */
-      if (curr_token == tok_rparen) {
-        /* Construct like "int()". */
+      if (curr_token == tok_identifier && next_token() == tok_rparen) {
+        /* Construct like "A(x);". */
         treat_as_expr = TRUE;
-      } else if (curr_token == tok_identifier) {
-        a_token_kind	next_tok = next_token();
-        if (next_tok == tok_rparen) {
-          /* Construct like int(x). */
-          treat_as_expr = TRUE;
-        } else if (next_tok == tok_lbracket) {
-          /* Construct like int(i[x]). */
+      } else if (curr_token == tok_rparen) {
+        /* Construct like "A a(int());". */
+        treat_as_expr = TRUE;
+      } else if (abstract_declarator_allowed && !pointer_operator_seen) {
+        if (is_type_specifier() || curr_token == tok_identifier) {
+          /* Construct like A a(int(x));". */
           treat_as_expr = TRUE;
         }  /* if */
       }  /* if */

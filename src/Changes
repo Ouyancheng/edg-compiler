@@ -1,5 +1,19 @@
 Version 2.24
 
+6/2/94  Cfront compatibility disambiguation regression
+
+In cfront mode, version 2.23 interpreted certain constructs as
+function declarations when they should have been interpreted as 
+variable declarations with parenthesized initializer (as cfront does).
+This has been corrected.
+
+  int f();
+  int main()
+  {
+    int x(char(f()));  // Declares a variable x in cfront mode
+    x = 1;
+  }
+
 -------------------------------------------------------------------------------
 Version 2.23, May 25, 1994
 
