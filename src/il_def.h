@@ -764,7 +764,15 @@ typedef struct a_source_sequence_entry {
 /*
 A "source sequence secondary declaration entry" is pointed to from the
 source sequence list to identify a declaration that is not a "primary"
-declaration -- e.g., a function declaration that is not a definition.
+declaration.  In most cases, definitions are "primary" declarations and
+non-defining declarations are "secondary."  There are a few exceptions:
+(a) namespace extensions are "definitions," but they are associated with
+a secondary source sequence entry; (b) repeated typedefs are "definitions"
+(by convention), but they are also associated with a secondary source
+sequence entry; (c) uninstantiated member functions of class templates
+are not "definitions" in a sense, but they are sometimes associated with
+an ordinary source sequence entry (in configurations where source sequence
+entries are generated for template instantiations).
 */
 typedef struct a_src_seq_secondary_decl *a_src_seq_secondary_decl_ptr;
 typedef struct a_src_seq_secondary_decl {
