@@ -3115,7 +3115,6 @@ extension) a declared class member constant.
   error_position = con->source_corresp.decl_position;
   if (!con->source_corresp.name_has_been_mangled) {
     start_mangling(&mctl);
-    /* Determine how long the mangled name is. */
     mangled_member_name(&con->source_corresp,
                         /*is_specialization=*/FALSE, &mctl);
     (void)end_mangling(&con->source_corresp, /*final=*/TRUE, &mctl);
