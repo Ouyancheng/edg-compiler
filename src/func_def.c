@@ -582,6 +582,24 @@ a new symbol is created and entered in the symbol table.
 }  /* decl_parameter */
 
 
+static void eliminate_body_if_imported(a_routine_ptr  routine,
+                                                a_scope_ptr    scope)
+/*
+Remove any trace of the function definition of "routine" from the IL.
+"scope" is the scope of the routine body.
+*/
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (routine->decl_modifiers & DM_DLLIMPORT) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    eliminate_function_body_source_sequence_entries(scope);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    clear_function_body(routine);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* eliminate_body_if_imported */
+
+
 void scan_function_body(a_routine_ptr     rout_ptr,
                         a_func_info_block *func_info,
                         a_decl_flag_set   flags)
@@ -997,17 +1015,11 @@ and for the instantiation of template functions.
       pos_error(ec_exp_rbrace, &pos_curr_token);
     }  /* if */
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  /* A dllimport routine does not always cause an error (i.e., if it's
-     "inline"), but its body is ignored by the compiler.  Remove any trace
-      of the function definition from the IL. */
-  if (microsoft_mode && rout_ptr->decl_modifiers & DM_DLLIMPORT) {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    eliminate_function_body_source_sequence_entries(scope_ptr);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    clear_function_body(rout_ptr);
+  if (microsoft_mode) {
+    /* A dllimport routine does not always cause an error (i.e., if it's
+      "inline"), but its body is ignored by the compiler. */
+    eliminate_body_if_imported(rout_ptr, scope_ptr);
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (debug_level >= 4) {
     a_symbol_ptr  sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
@@ -2135,6 +2147,11 @@ empty statement block.
          been freed. */
       check_assertion(mem_region_table[rout_ptr->assoc_scope] == NULL);
       rout_ptr->assoc_scope = NULL_region_number;
+    }  /* if */
+    if (microsoft_mode) {
+      /* A dllimport routine does not always cause an error (i.e., if it's
+        "inline"), but its body is ignored by the compiler. */
+      eliminate_body_if_imported(rout_ptr, scope);
     }  /* if */
   }  /* if */
   db_exit();

@@ -1,5 +1,18 @@
 Version 2.43
 
+9/9/99   Abort in C-generating back end when implicitly defined function
+         is marked with dllimport (Microsoft mode)
+
+In Microsoft C++ mode the front end used to abort when an implicitly defined
+member function (e.g., a destructor or constructor) acquired the
+__declspec(dllimport) property:
+
+  struct A { virtual void f(); };
+  struct __declspec(dllimport) B : public A {};
+  B b;
+
+This is now fixed.
+
 9/9/99   Error when "friend class T" refers to a typedef
 
 The front end accepts, as an extension, a friend declaration that names
