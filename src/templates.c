@@ -8377,6 +8377,43 @@ using a qualified name.  Return TRUE if an error was detected.
 }  /* check_qualified_template_redecl_scope */
 
 
+static void skip_illegal_class_template_decl_specifiers(a_boolean  diagnose)
+/*
+A class template declaration cannot have tokens like "volatile" precede the
+class key.  E.g., "template<class T> const struct X;" is not legal.  This
+routine is used to enhance diagnostics on such cases.  While exploring the
+token stream to see if the upcoming construct is a class template declaration,
+diagnostics can be inhibited by setting diagnose to FALSE.
+*/
+{
+  a_boolean  error_issued = FALSE;
+  for (;;) {
+    switch (curr_token) {
+      case tok_class:
+      case tok_struct:
+      case tok_union:
+        /* These are the possible valid tokens: continue normal parsing. */
+        goto done;
+      case tok_const:
+      case tok_volatile:
+      case tok_inline:
+        /* Known illegal tokens: issue an error message if requested and skip
+           the token. */
+        if (diagnose && !error_issued) {
+          error(ec_bad_class_template_decl);
+        }  /* if */
+        break;
+      default:
+        /* Unexpected illegal tokens: continue normal parsing and any errors
+           will be caught downstream. */
+        goto done;
+    }  /* switch */
+    get_token();
+  }  /* for */
+done:;
+}  /* skip_illegal_class_template_decl_specifiers */
+
+
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
 		         a_symbol_ptr          *p_sym_ptr,
@@ -8441,6 +8478,7 @@ instantiation.
     friend_pos = pos_curr_token;
     (void)get_token();
   }  /* if */
+  skip_illegal_class_template_decl_specifiers(/*diagnose=*/TRUE);
   switch (curr_token) {
     case tok_class:  type_kind = (a_type_kind)tk_class;  break;
     case tok_struct: type_kind = (a_type_kind)tk_struct; break;
@@ -11016,6 +11054,7 @@ the declaration token cache.
 
   rescan_reusable_cache(token_cache);
   if (curr_token == tok_friend) (void)get_token();
+  skip_illegal_class_template_decl_specifiers(/*diagnose=*/FALSE);
   if (curr_token == tok_class || curr_token == tok_struct ||
       curr_token == tok_union) {
     (void)get_token();
