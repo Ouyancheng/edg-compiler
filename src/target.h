@@ -652,10 +652,10 @@ EXTERN a_targ_alignment
 EXTERN a_targ_alignment
 		targ_long_long_field_alignment
 #if VAR_INITIALIZERS
-			= TARG_LONG_FIELD_ALIGNMENT
+			= TARG_LONG_LONG_FIELD_ALIGNMENT
 #endif /* VAR_INITIALIZERS */
 			                           ;
-			/* Default alignment for fields of type long_long. */
+			/* Default alignment for fields of type long long. */
 #endif /* LONG_LONG_ALLOWED */
 
 EXTERN a_targ_alignment
