@@ -427,9 +427,11 @@ typedef struct a_symbol {
                            derived class.  All symbols identified in this
                            list have the same name, all may be referenced
                            (though not necessarily unambiguously) by a
-                           qualfied name, not all may be visible with
+                           qualified name, not all may be visible with
                            an unqualified reference, and not all may be
-                           accessible. */
+                           accessible.  The first entry on the list is
+			   the entry to be used for an unqualified
+			   reference. */
       a_byte_boolean
                 access_adjustment_made;
                         /* If TRUE an access declaration has been made for
@@ -736,6 +738,8 @@ extern a_symbol_ptr find_external_symbol(a_symbol_locator *location,
 extern a_derivation_path_ptr alloc_derivation_path(void);
 
 extern a_projection_symbol_descr_ptr alloc_projection_symbol_descr(void);
+
+extern an_access_specifier access_for_symbol(a_symbol_ptr sym_ptr);
 
 /*
 Options for normal_id_lookup, represented as a bit set:
