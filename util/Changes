@@ -1,5 +1,15 @@
 Version 2.27
 
+11/30/94 Fix eccp problem when using -l option and templates
+
+eccp would incorrectly use -tused when a command line like
+
+  eccp x.c -labc
+
+was used.  This could result in multiple definition errors or
+the use of a generated instantiation when a specialization from
+the library should be used.  This has been corrected.
+
 11/4/94  Added support for Gnu binutils nm output to the prelinker
 
 The prelinker now accepts the nm output from the Gnu binutils

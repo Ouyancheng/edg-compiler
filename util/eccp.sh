@@ -313,6 +313,7 @@ do
     -l*)
 #     Collect a list of -l options to pass to the linker.
       loptions=$loptions" "$1
+      any_l_or_o_files=1
       ;;
     -g*)
 #     Generate debugging information
