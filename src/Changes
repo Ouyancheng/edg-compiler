@@ -1,5 +1,10 @@
 Version 2.06
 
+5/8/92   Fixed bug that caused internal error in node_complete_object_type.
+
+Problem appeared when a virtual function was called for a class object
+created by a function call and requiring destruction later.
+
 5/8/92   Fixed bug that resulted in incorrectly built virtual function
          tables.
 
@@ -9,7 +14,7 @@ base class of a virtual base class from which B was derived.
 
 5/7/92   Apply user-defined conversions on 2nd and 3rd operand of "?".
 
-5/7/92   Bug in IL lowering of virtual destructor calls fixed.
+5/7/92   Fixed bug in IL lowering of virtual destructor calls.
 
 Implicitly-generated calls of virtual destructors were not put
 out as virtual calls.
