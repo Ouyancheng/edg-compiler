@@ -1820,6 +1820,9 @@ Expands to nothing when Microsoft extensions are not being used.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* var is used only for Microsoft extensions. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 static a_type_ptr make_possibly_based_pointer_type(a_type_ptr     tp,
                                                    a_variable_ptr *var)
 /*
