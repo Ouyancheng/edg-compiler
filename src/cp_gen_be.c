@@ -3757,9 +3757,6 @@ declaration following this one is such a continuation.
                                      TQ_NONE,
                                      suppress_specifiers,
                                      GDO_NO_OPTIONS);
-#if GNU_EXTENSIONS_ALLOWED
-  write_field_attributes(field);
-#endif /* GNU_EXTENSIONS_ALLOWED */
   if (field->is_bit_field) {
     /* A bit field.  Put out the size. */
     write_tok_ch(':');
@@ -3773,6 +3770,9 @@ declaration following this one is such a continuation.
       write_unsigned_num((unsigned long)field->bit_size);
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  write_field_attributes(field);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* See if there are comma-separated declarations attached to this one. */
   *another_decl_in_comma_list =
              another_declaration_in_comma_list_follows(field->type,
