@@ -7958,6 +7958,16 @@ or implicit) controlling the declaration.
             err = TRUE;
           }  /* if */
         }  /* if */
+        if (!err) {
+          /* Issue an error if a using-declaration introduces a name that is
+             the same as the current class name. */
+          a_symbol_ptr  class_sym = (a_symbol_ptr)class_type->
+                                                    source_corresp.assoc_info;
+          if (locator.symbol_header == class_sym->header) {
+            pos_error(ec_class_and_member_name_conflict, &decl_pos);
+            err = TRUE;
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -8050,7 +8060,7 @@ or implicit) controlling the declaration.
           reenter_symbol(new_sym, depth_scope_stack,
                          /*suppress_error=*/TRUE);
           /* Save new_sym as other_sym, in case is_overloaded is TRUE. */
-          other_sym = new_sym;
+          if (!new_sym->is_error) other_sym = new_sym;
         } else {
           other_sym = add_symbol_to_overload_list(new_sym, other_sym,
                                                   /*use_namespace=*/FALSE,

@@ -1,5 +1,18 @@
 Version 2.36
 
+6/6/97    Using-declarations: abort during error recovery
+
+An abort no longer occurs in the following case, were the name introduced by
+a using-declaration is also the name of the class (which is disallowed):
+
+  struct A {
+    void f(char*);
+    void f(long);
+  };
+  struct f : public A { 
+    using A::f;               // An error is still issued, but an internal
+  };                          //   error no longer results
+
 6/6/97    Microsoft compatibility: __declspec and constructor definition
 
 A spurious error is no longer issued when, in Microsoft compatibility mode,
