@@ -7037,6 +7037,11 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
                                        operand->ref_entries_list);
           current_routine_entry()->assignment_to_this_done = TRUE;
           this_var->param_value_has_been_changed = TRUE;
+          if (exceptions_enabled &&
+              scope_stack[decl_scope_level].within_try_block) {
+            /* Mark the this variable as modified within a try block. */
+            this_var->modified_within_try_block = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
