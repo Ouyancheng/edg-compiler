@@ -4938,7 +4938,9 @@ Generate C for a statement.
       /* Add braces around an "if" without an "else" to avoid the "dangling
          else" problem.  This is necessary only if customer code modifies
          the IL tree. */
-      if (else_stmt == NULL) write_tok_ch('{');
+      if (else_stmt == NULL && !statement->has_empty_else_clause) {
+        write_tok_ch('{');
+      }  /* if */
 #endif /* ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
       write_tok_str("if ");
       dump_boolean_controlling_expression(statement->expr);
@@ -4953,6 +4955,9 @@ Generate C for a statement.
 	indent += 2;
 	dump_statement(else_stmt);
 	indent -= 2;
+      } else if (statement->has_empty_else_clause) {
+        /* Source contained "... else ;". */
+	write_tok_str(" else ;");
 #if ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
       } else {
         /* Close the set of braces begun above. */
