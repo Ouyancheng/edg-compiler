@@ -1165,7 +1165,8 @@ is TRUE.
                                                  &arg_operand->position,
                                                  &arg_summary->match_level,
                                                  &std_conversion,
-                                                 &ambiguous) || ambiguous) {
+                                                 &ambiguous) != NULL ||
+          ambiguous) {
         /* There is a suitable indefinite function, or more than one.
            arg_summary->match_level has been set appropriately. */
         arg_summary->conversion.std = std_conversion;

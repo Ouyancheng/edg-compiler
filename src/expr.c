@@ -5453,7 +5453,7 @@ to select one of the functions in the overload set.  See [over.over].
                                              &operand->position,
                                              &match_level,
                                              &std_conversion,
-                                             &ambiguous)) {
+                                             &ambiguous) != NULL) {
     /* The cast selects one of the overloaded functions and is valid. */
     cast_operand(type_cast_to, operand, /*check_cast_access=*/FALSE,
                  /*is_implicit_cast=*/FALSE);
