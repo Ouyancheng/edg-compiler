@@ -53,6 +53,7 @@ static unsigned long
                 num_access_adjustments_allocated,
                 num_class_list_entries_allocated,
 		num_class_type_supplements_allocated,
+                num_overriding_virtual_functions_allocated,
                 num_derivation_steps_allocated,
                 num_base_classes_allocated,
 		num_types_allocated,
@@ -2059,6 +2060,28 @@ Allocate and initialize a derivation step entry and return a pointer to it.
 }  /* alloc_derivation_step */
 
 
+an_overriding_virtual_function_ptr alloc_overriding_virtual_function(void)
+/*
+Allocate an overriding-virtual-function entry, initialize its fields, and
+return a pointer to it.
+*/
+{
+  an_overriding_virtual_function_ptr ovfp;
+
+  ovfp = (an_overriding_virtual_function_ptr)alloc_cil(
+                                     sizeof(an_overriding_virtual_function));
+#if DEBUG
+  num_overriding_virtual_functions_allocated++;
+#endif /* DEBUG */
+  ovfp->next                = NULL;
+  ovfp->overriding_function = NULL;
+  ovfp->primary_function    = NULL;
+  ovfp->base_class          = NULL;
+
+  return ovfp;
+}  /* alloc_overriding_virtual_function */
+
+
 a_base_class_ptr alloc_base_class(void)
 /*
 Allocate a base class entry, initialize its fields, and return a pointer
@@ -2072,18 +2095,18 @@ to it.
 #if DEBUG
   num_base_classes_allocated++;
 #endif
-  bcp->next           = NULL;
-  bcp->type           = NULL;
-  bcp->is_virtual     = FALSE;
-  bcp->direct	      = FALSE;
-  bcp->ambiguous      = FALSE;
-  bcp->any_virtual_steps_in_derivation
-                      = FALSE;
-  bcp->inaccessible   = FALSE;
-  bcp->access         = (an_access_specifier)as_public;
-  bcp->offset         = 0;
-  bcp->pointer_offset = 0;
-  bcp->derivation     = NULL;
+  bcp->next                            = NULL;
+  bcp->type                            = NULL;
+  bcp->is_virtual                      = FALSE;
+  bcp->direct                          = FALSE;
+  bcp->ambiguous                       = FALSE;
+  bcp->any_virtual_steps_in_derivation = FALSE;
+  bcp->inaccessible                    = FALSE;
+  bcp->access                          = (an_access_specifier)as_public;
+  bcp->offset                          = 0;
+  bcp->pointer_offset                  = 0;
+  bcp->derivation                      = NULL;
+  bcp->overriding_virtual_functions    = NULL;
 
   return bcp;
 }  /* alloc_base_class */
@@ -3008,18 +3031,19 @@ to it.
   num_routines_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(&(rp->source_corresp));
-  rp->next                = NULL;
-  rp->type                = NULL;
-  rp->assoc_scope         = NULL_region_number;
-  rp->storage_class       = (a_storage_class)sc_unspecified;
-  rp->special_kind        = (a_special_function_kind)sfk_none;
-  rp->is_inline           = FALSE;
-  rp->is_virtual          = FALSE;
-  rp->befriending_classes = NULL;
+  rp->next                    = NULL;
+  rp->type                    = NULL;
+  rp->assoc_scope             = NULL_region_number;
+  rp->storage_class           = (a_storage_class)sc_unspecified;
+  rp->special_kind            = (a_special_function_kind)sfk_none;
+  rp->is_inline               = FALSE;
+  rp->is_virtual              = FALSE;
+  rp->befriending_classes     = NULL;
+  rp->virtual_function_number = 0;
 #ifdef FIL
-  rp->is_fortran_entry    = FALSE;
-  rp->local_routine_scope = NULL;
-  rp->intrinsic_func_code = (an_intrinsic_function_code)ifc_none;
+  rp->is_fortran_entry        = FALSE;
+  rp->local_routine_scope     = NULL;
+  rp->intrinsic_func_code     = (an_intrinsic_function_code)ifc_none;
 #endif /* ifdef FIL */
 
   db_exit();
@@ -3577,6 +3601,9 @@ Display and return the amount of space used for various IL tables.
                                  an_access_adjustment);
   write_one("class list entry", num_class_list_entries_allocated,
                                 a_class_list_entry);
+  write_one("overriding virtual func",
+                                num_overriding_virtual_functions_allocated,
+                                an_overriding_virtual_function_ptr);
   write_one("derivation steps", num_derivation_steps_allocated,
                                 a_derivation_step);
   write_one("base class", num_base_classes_allocated, a_base_class);
