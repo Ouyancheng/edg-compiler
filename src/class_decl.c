@@ -6162,9 +6162,25 @@ to indicate whether the class/struct/union is actually defined.
       internal_error("class_specifier: identifier but not friend decl");
     }  /* if */
 #endif /* CHECKING */
-    tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
-    type_kind = (a_type_kind)tk_class;
     tag_id_present = TRUE;
+    tag_sym = curr_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
+                              /*any_class_tag_allowed=*/TRUE);
+    if (tag_sym != NULL) {
+      /* Already declared. */
+      tag_kind = tag_sym->kind;
+      type_kind = tag_sym->variant.class_struct_union.type->kind;
+      /* Now that we have completed the lookup on the tag identifier we can
+         advance past it. */
+      (void)get_token();
+      goto skip_tag_scan;
+    } else {
+      /* Not yet declared. */
+      tag_sym = NULL;
+      /* Default kind is "class" when a class is introduced by a friend
+         declaration. */
+      tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
+      type_kind = (a_type_kind)tk_class;
+    }  /* if */
   }  /* if */
   if (tag_id_present) {
     /* It seems that appearance of a tag name is a declaration of the
