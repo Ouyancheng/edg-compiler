@@ -8469,7 +8469,7 @@ code is needed).
     /* Pass the construction vtable address via the transfer pointer. */
     pass_construction_vtbls_to_subobject_constructor(
                   dedp->construction_vtbls_var,
-                  dedp->construction_vtbls_var_is_array,
+                  (a_boolean)dedp->construction_vtbls_var_is_array,
                   base_class->type,
                   dedp->construction_vtbls_var_is_array ?
                     (a_construction_vtbl_array_index)1 :
@@ -8484,7 +8484,7 @@ code is needed).
     if (dedp->construction_vtbls_var != NULL) {
       *implied_arg_node = vtbl_addr_from_construction_vtbls_array(
                    dedp->construction_vtbls_var,
-                   dedp->construction_vtbls_var_is_array,
+                   (a_boolean)dedp->construction_vtbls_var_is_array,
                    base_class->base_subarray_index_in_construction_vtbl_array);
     } else {
       /* Pass a null VTT pointer. */

@@ -3455,7 +3455,7 @@ The region table variable is created if necessary.
 #else /* !IA64_ABI */
     vtt_addr_node = vtbl_addr_from_construction_vtbls_array(
                              dedp->construction_vtbls_var,
-                             dedp->construction_vtbls_var_is_array,
+                             (a_boolean)dedp->construction_vtbls_var_is_array,
                              dedp->subobject_construction_base_class->
                                base_subarray_index_in_construction_vtbl_array);
 #endif /* IA64_ABI */
