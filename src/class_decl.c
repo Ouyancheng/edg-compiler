@@ -4180,7 +4180,8 @@ operator routine or do bitwise assignment.
 }  /* make_default_assignment_body */
 
 
-void define_special_member_function(a_routine_ptr  rout_ptr)
+void define_special_member_function(a_routine_ptr  rout_ptr,
+                                    a_type_ptr     class_type)
 /*
 Define a compiler generated routine for a member function (constructor or
 destructor).  This entails creating a new memory region, a scope, and an
@@ -4189,6 +4190,7 @@ empty statement block.
 {
   a_scope_ptr               scope;
   a_routine_type_supplement *rtsp = rout_ptr->type->variant.routine.extra_info;
+  a_boolean                 class_reactivation_required = FALSE;
 
   db_enter(4, "define_special_member_function");
   if (rout_ptr->special_kind != (a_special_function_kind)sfk_constructor &&
@@ -4198,6 +4200,10 @@ empty statement block.
     internal_error(
                 "define_special_member_function: expected ctor, dtor, or =");
   }  /* if */
+  /* Push a class symbol reactivation scope, to make class member names
+     visible for processing the function definition. */
+  push_class_reactivation_scope(class_type);
+  /* Push the scope for the new function itself. */
   scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
                      (a_type_ptr)NULL, rout_ptr);
   /* Associate the scope to the routine entry and the routine entry to its
@@ -4222,8 +4228,10 @@ empty statement block.
   }  /* if */
   /* End of statement block is unreachable because of the return statement. */
   scope->assoc_block->variant.block.extra_info->end_of_block_reachable = FALSE;
-  /* Terminate the scope. */
+  /* Terminate the function scope. */
   pop_scope();
+  /* Terminate the class reactivation scope. */
+  pop_class_reactivation_scope();
   db_exit();
 }  /* define_special_member_function */
 
@@ -4274,7 +4282,7 @@ destructors, assignment operators, and conversion functions.
   /* If necessary, create the function body for a compiler generated
      routine. */
   if (rp->compiler_generated && rp->assoc_scope == NULL_region_number) {
-    define_special_member_function(rp);
+    define_special_member_function(rp, sym->class_of_which_a_member);
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
 
