@@ -3361,12 +3361,14 @@ to it.
   bcp->direct                          = FALSE;
   bcp->ambiguous                       = FALSE;
   bcp->any_virtual_steps_in_derivation = FALSE;
+  bcp->is_duplicate                    = FALSE;
   bcp->access                          = (an_access_specifier)as_public;
   bcp->offset                          = 0;
   bcp->pointer_offset                  = 0;
   bcp->pointer_base_class              = NULL;
   bcp->derivation                      = NULL;
   bcp->overriding_virtual_functions    = NULL;
+  bcp->duplicate_entries               = NULL;
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
   bcp->complete_subobject              = FALSE;
   bcp->pointer_offset_is_set           = FALSE;

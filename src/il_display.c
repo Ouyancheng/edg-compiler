@@ -940,8 +940,7 @@ Display a_source_file entry.
   disp_ptr("next", (char *)ptr->next, iek_source_file);
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   if (ptr->related_file_implicit_include_done) {
-    disp_boolean("related_file_implicit_include_done",
-                 (a_boolean)ptr->related_file_implicit_include_done);
+    disp_boolean("related_file_implicit_include_done", TRUE);
   }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 }  /* disp_source_file */
@@ -958,13 +957,13 @@ Display the indicated constant entry.
   disp_ptr("next", (char *)ptr->next, iek_constant);
   disp_ptr("type", (char *)ptr->type, iek_type);
   if (ptr->implicit_cast) {
-    disp_boolean("implicit_cast", (a_boolean)ptr->implicit_cast);
+    disp_boolean("implicit_cast", TRUE);
   }  /* if */
   if (ptr->non_arithmetic) {
-    disp_boolean("non_arithmetic", (a_boolean)ptr->non_arithmetic);
+    disp_boolean("non_arithmetic", TRUE);
   }  /* if */
   if (ptr->is_simple_zero) {
-    disp_boolean("is_simple_zero", (a_boolean)ptr->is_simple_zero);
+    disp_boolean("is_simple_zero", TRUE);
   }  /* if */
 #if DO_IL_LOWERING
   /* Do not print out ptr->assoc_var_assigned, which is used only during IL
@@ -1087,12 +1086,10 @@ Display a_param_type entry.
   disp_ptr("type", (char *)ptr->type, iek_type);
 #ifdef CFE
   if (ptr->passed_via_copy_constructor) {
-    disp_boolean("passed_via_copy_constructor",
-                 (a_boolean)ptr->passed_via_copy_constructor);
+    disp_boolean("passed_via_copy_constructor", TRUE);
   }  /* if */
   if (ptr->type_involves_template_param) {
-    disp_boolean("type_involves_template_param",
-                 (a_boolean)ptr->type_involves_template_param);
+    disp_boolean("type_involves_template_param", TRUE);
   }  /* if */
   if (ptr->default_arg_expr) {
     disp_ptr("default_arg_expr", (char *)ptr->default_arg_expr, iek_expr_node);
@@ -1253,11 +1250,10 @@ Display the indicated type entry.
 #endif /* ifdef FFE */
 #ifdef CFE
       if (ptr->variant.integer.explicitly_signed) {
-        disp_boolean("explicitly_signed",
-                     (a_boolean)ptr->variant.integer.explicitly_signed);
+        disp_boolean("explicitly_signed", TRUE);
       }  /* if */
       if (ptr->variant.integer.enum_type) {
-        disp_boolean("enum_type", (a_boolean)ptr->variant.integer.enum_type);
+        disp_boolean("enum_type", TRUE);
         disp_ptr("enum_info.constant_list",
                  (char *)ptr->variant.integer.enum_info.constant_list,
                  iek_constant);
@@ -1464,36 +1460,34 @@ Display the indicated variable.
   disp_storage_class_name(ptr->storage_class);
   disp_boolean("address_taken", (a_boolean)ptr->address_taken);
   if (ptr->is_parameter) {
-    disp_boolean("is_parameter", (a_boolean)ptr->is_parameter);
+    disp_boolean("is_parameter", TRUE);
   } else if (ptr->is_handler_param) {
-    disp_boolean("is_handler_param", (a_boolean)ptr->is_handler_param);
+    disp_boolean("is_handler_param", TRUE);
   }  /* if */
 #ifdef FFE
   disp_boolean("by_address", (a_boolean)ptr->by_address);
 #endif /*ifdef FFE */
 #ifdef CFE
   if (ptr->referenced_non_locally) {
-    disp_boolean("referenced_non_locally",
-                 (a_boolean)ptr->referenced_non_locally);
+    disp_boolean("referenced_non_locally", TRUE);
   }  /* if */
 #endif /*ifdef CFE */
   if (ptr->is_template_static_data_member) {
-    disp_boolean("is_template_static_data_member",
-                 (a_boolean)ptr->is_template_static_data_member);
+    disp_boolean("is_template_static_data_member", TRUE);
   }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {
-    disp_boolean("can_be_instantiated", (a_boolean)ptr->can_be_instantiated);
+    disp_boolean("can_be_instantiated", TRUE);
   }  /* if */
   if (ptr->do_not_instantiate) {
-    disp_boolean("do_not_instantiate", (a_boolean)ptr->do_not_instantiate);
+    disp_boolean("do_not_instantiate", TRUE);
   }  /* if */
   if (ptr->instance_required) {
-    disp_boolean("instance_required", (a_boolean)ptr->instance_required);
+    disp_boolean("instance_required", TRUE);
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   if (ptr->specific_def) {
-    disp_boolean("specific_def", (a_boolean)ptr->specific_def);
+    disp_boolean("specific_def", TRUE);
   }  /* if */
   if (ptr->is_parameter || ptr->is_handler_param) {
     disp_boolean("param_value_has_been_changed",
@@ -1782,26 +1776,25 @@ Display the indicated routine.
   disp_boolean("called", (a_boolean)ptr->called);
 #if ASSIGNMENT_TO_THIS_ALLOWED
   if (ptr->assignment_to_this_done) {
-    disp_boolean("assignment_to_this_done",
-                 (a_boolean)ptr->assignment_to_this_done);
+    disp_boolean("assignment_to_this_done", TRUE);
   }  /* if */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   if (ptr->is_template_function) {
-    disp_boolean("is_template_function", (a_boolean)ptr->is_template_function);
+    disp_boolean("is_template_function", TRUE);
   }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {
-    disp_boolean("can_be_instantiated", (a_boolean)ptr->can_be_instantiated);
+    disp_boolean("can_be_instantiated", TRUE);
   }  /* if */
   if (ptr->do_not_instantiate) {
-    disp_boolean("do_not_instantiate", (a_boolean)ptr->do_not_instantiate);
+    disp_boolean("do_not_instantiate", TRUE);
   }  /* if */
   if (ptr->instance_required) {
-    disp_boolean("instance_required", (a_boolean)ptr->instance_required);
+    disp_boolean("instance_required", TRUE);
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   if (ptr->specific_def) {
-    disp_boolean("specific_def", (a_boolean)ptr->specific_def);
+    disp_boolean("specific_def", TRUE);
   }  /* if */
   disp_class_list("befriending_classes", ptr->befriending_classes);
   if (ptr->is_virtual) {
@@ -2084,7 +2077,7 @@ Display the indicated expression node.
   disp_ptr("type", (char *)ptr->type, iek_type);
   disp_ptr("next", (char *)ptr->next, iek_expr_node);
   if (ptr->result_is_not_used) {
-    disp_boolean("result_is_not_used", (a_boolean)ptr->result_is_not_used);
+    disp_boolean("result_is_not_used", TRUE);
   }  /* if */
   disp_name("kind");
 #ifdef FFE
@@ -2100,13 +2093,10 @@ Display the indicated expression node.
       disp_expr_operator_name(ptr->variant.operation.kind);
       (void)printf("\n");
       if (ptr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-        disp_boolean("returns_lvalue_instead_of_usual_rvalue",
-                     (a_boolean)ptr->variant.operation.
-                                       returns_lvalue_instead_of_usual_rvalue);
+        disp_boolean("returns_lvalue_instead_of_usual_rvalue", TRUE);
       }  /* if */
       if (ptr->variant.operation.compiler_generated) {
-        disp_boolean("compiler_generated",
-                     (a_boolean)ptr->variant.operation.compiler_generated);
+        disp_boolean("compiler_generated", TRUE);
       }  /* if */
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);
@@ -2270,7 +2260,7 @@ Display the indicated statement.
                             ptr->position);
   disp_ptr("next", (char *)ptr->next, iek_statement);
   if (ptr->dependent_statement) {
-    disp_boolean("dependent_statement", (a_boolean)ptr->dependent_statement);
+    disp_boolean("dependent_statement", TRUE);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ptr->source_sequence_entry != NULL) {
@@ -2789,8 +2779,7 @@ Display the indicated dynamic_init structure.
     disp_ptr("destructor", (char *)ptr->destructor, iek_routine);
   }  /* if */
   if (ptr->follows_an_exec_statement) {
-    disp_boolean("follows_an_exec_statement",
-                 (a_boolean)ptr->follows_an_exec_statement);
+    disp_boolean("follows_an_exec_statement", TRUE);
   }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
@@ -2910,20 +2899,26 @@ Display the indicated base class entry.
   disp_boolean("direct", (a_boolean)ptr->direct);
   disp_boolean("is_virtual", (a_boolean)ptr->is_virtual);
   disp_boolean("ambiguous", (a_boolean)ptr->ambiguous);
-  disp_boolean("any_virtual_steps_in_derivation",
-               (a_boolean)ptr->any_virtual_steps_in_derivation);
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-  disp_boolean("complete_subobject", (a_boolean)ptr->complete_subobject);
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   disp_access("access", ptr->access);
-  disp_unsigned_long("offset", (unsigned long)ptr->offset);
+  if (ptr->is_virtual) {
+    if (ptr->is_duplicate) {
+      disp_boolean("is_duplicate", TRUE);
+    } else {
+      disp_unsigned_long("offset", (unsigned long)ptr->offset);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
-  disp_ptr("data_section_base_class", (char *)ptr->data_section_base_class,
-           iek_base_class);
+      disp_ptr("data_section_base_class", (char *)ptr->data_section_base_class,
+               iek_base_class);
+      disp_boolean("complete_subobject", (a_boolean)ptr->complete_subobject);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-  disp_unsigned_long("pointer_offset", (unsigned long)ptr->pointer_offset);
-  disp_ptr("pointer_base_class", (char *)ptr->pointer_base_class,
-           iek_base_class);
+      disp_unsigned_long("pointer_offset", (unsigned long)ptr->pointer_offset);
+      disp_ptr("pointer_base_class", (char *)ptr->pointer_base_class,
+               iek_base_class);
+      disp_ptr("duplicate_entries", (char *)ptr->duplicate_entries,
+               iek_base_class);
+    }  /* if */
+  } else {
+    disp_unsigned_long("offset", (unsigned long)ptr->offset);
+  }  /* if */
   disp_derivation_step_list(ptr->derivation);
   disp_ptr("overriding_virtual_functions",
            (char *)ptr->overriding_virtual_functions,

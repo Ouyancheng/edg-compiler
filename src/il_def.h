@@ -1569,6 +1569,15 @@ typedef struct a_base_class {
 			   scheme used to emulate cfront's ordering algorithm
 			   involves visiting a base class more than once.) */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+  unsigned int  is_duplicate:1;
+			/* TRUE only if is_virtual is TRUE, this flag is set
+			   for duplicate enties for a given virtual base class.
+			   Such entries appear on the duplicate_entries list
+			   pointed to from the "preferred" virtual base class
+			   entry (preferred because of the access afforded by
+			   its derivation).  Note that the preferred entry
+			   does not have this flag set.  Base classes with
+			   is_duplicate set may be ignored. */
   an_access_specifier
                 access; /* The kind of derivation (public, protected, or
                            private) from this base class to the class directly
@@ -1630,6 +1639,15 @@ typedef struct a_base_class {
                            current base class.  These entries are sorted by
 			   virtual function number of the routine pointed
 			   to by the primary_function field. */
+  a_base_class_ptr
+		duplicate_entries;
+			/* Nonnull only if is_virtual is TRUE, this field
+			   points to a linked list of base class entries that
+			   have is_duplicate set to TRUE and which point to
+			   the same type as the current base class entry.
+			   Such entries are of interest because they describe
+			   alternative paths from the derived class to the
+			   virtual base class. */
 #if DO_IL_LOWERING
   a_variable_ptr
 		virtual_function_table_var;

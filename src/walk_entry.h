@@ -1088,6 +1088,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->overriding_virtual_functions,
                   an_overriding_virtual_function_ptr,
                   iek_overriding_virtual_function);
+        walk_list(ptr->duplicate_entries, a_base_class_ptr, iek_base_class);
 #if DO_IL_LOWERING
         /* ptr->virtual_function_table_var not processed. */
 #endif /* DO_IL_LOWERING */
