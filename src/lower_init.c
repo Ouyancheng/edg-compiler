@@ -52,13 +52,6 @@ static void lower_destructor_dynamic_init(
                                    an_insert_location_ptr insert_location);
 static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
                                        an_insert_location *insert_location);
-static void push_init_expr_lifetime(
-                                  an_object_lifetime_ptr *init_expr_lifetime,
-                                  a_boolean              copy_lifetime,
-                                  a_context              *context,
-                                  an_insert_location     *insert_location,
-                                  an_insert_location     *insert_location2,
-                                  an_insert_location_ptr *eff_insert_location);
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
@@ -1811,9 +1804,8 @@ Pop function corresponding to push_generated_routine_context.
 
 
 static a_routine_ptr default_version_of_routine(
-                                     a_routine_ptr          routine,
-                                     an_expr_node_ptr       default_arg_list,
-                                     an_object_lifetime_ptr init_expr_lifetime)
+                                             a_routine_ptr    routine,
+                                             an_expr_node_ptr default_arg_list)
 /*
 Return a pointer to a routine that does the same thing as "routine" but
 in which the parameters that have default argument expressions have been
@@ -1822,8 +1814,6 @@ by default_arg_list (the expressions are NOT already lowered; this is
 important, since they have to be copied, and you can't successfully copy
 a lowered expression, since it might have temporaries in it).  Implicitly-
 generated parameters of constructors and destructors are also removed.
-init_expr_lifetime, if non-NULL, is an object lifetime that surrounds the
-call of the routine, used for temporaries that appear in default arguments.
 This information is used to generate a version of a constructor or destructor
 that can be called with just a "this" parameter, or of a copy constructor
 that can be called with just a "this" parameter and a source pointer.
@@ -1842,10 +1832,7 @@ routine is returned.
                    rtsp, new_rtsp;
   a_scope_ptr      new_routine_scope;
   an_insert_location
-                   insert_location,
-                   insert_location2;
-  an_insert_location
-                   *eff_insert_location = &insert_location;
+                   insert_location;
   a_memory_region_number
                    new_routine_il_region;
   a_variable_ptr   this_param_var, param_var, last_param_var;
@@ -1853,8 +1840,9 @@ routine is returned.
   a_statement_ptr  return_stmt;
   a_generated_routine_context
                    grcontext;
-  a_context        context;
   a_boolean        any_implied_args, insert_as_statement, void_return;
+  an_object_lifetime_ptr
+                   init_expr_lifetime = NULL;
 
   /* Determine if any implicit arguments are required for a constructor or
      destructor. */
@@ -1865,7 +1853,6 @@ routine is returned.
                                      (a_special_function_kind)sfk_destructor) {
     any_implied_args = dtor_needs_implied_arg_list(routine);
   }  /* if */
-  check_assertion(init_expr_lifetime == NULL || default_arg_list != NULL);
   if (default_arg_list != NULL || any_implied_args) {
     /* There are some implicit or default arguments, so a wrapper routine
        must be created and used in place of the original routine. */
@@ -1902,12 +1889,6 @@ routine is returned.
                                     &insert_location);
     push_generated_routine_context(new_routine_scope, new_routine_il_region,
                                    &grcontext);
-    if (init_expr_lifetime != NULL) {
-      /* Push an object lifetime for temporaries in the default arguments. */
-      push_init_expr_lifetime(&init_expr_lifetime, /*copy_lifetime=*/TRUE,
-                              &context, &insert_location, &insert_location2,
-                              &eff_insert_location);
-    }  /* if */
     /* Make a parameter variable for the "this" parameter (again, in lowered
        form as a normal parameter). */
     new_routine_scope->variant.routine.parameters = this_param_var =
@@ -1969,15 +1950,42 @@ routine is returned.
       last_param_var = param_var;
     }  /* for */
     if (default_arg_list != NULL) {
+      /* There are default arguments for the call, so they have to be
+         copied and lowered. */
+      /* Create an expression temporary lifetime surrounding the copy of
+         the expressions to catch any needed destructions. */
+      a_context              def_arg_context;
+      an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
+      push_object_lifetime(iek_none, (char *)NULL,
+                           (an_object_lifetime_kind)olk_expr_temporary);
+      init_expr_lifetime = curr_object_lifetime;
+      curr_object_lifetime = saved_curr_object_lifetime;
+      /* Push a context for the lifetime.  */
+      push_context(&def_arg_context, (a_scope_ptr)NULL, init_expr_lifetime);
       /* Copy the default argument expressions into the function memory
          region. */
       default_arg_list = copy_list_of_expr_trees(default_arg_list,
                                                  CE_NO_OPTIONS);
-      if (init_expr_lifetime != NULL) {
-        /* Activate the object lifetime for temporaries in default arguments.
-           This must be done after the default argument expressions are
-           copied but before they are lowered. */
-        begin_object_lifetime(init_expr_lifetime, eff_insert_location);
+      if (is_useless_object_lifetime(init_expr_lifetime)) {
+        /* There weren't any temporaries in the default argument expressions,
+           so the lifetime is not needed. */
+        init_expr_lifetime = NULL;
+        pop_context();
+      } else {
+        /* There were some destructible temporaries in the default
+           argument expressions, so the lifetime is needed. */
+        if (keep_object_lifetime_info_in_lowered_il) {
+          /* The object lifetime is to be kept in the IL, so add a block
+             statement and bind the lifetime to it. */
+          a_statement_ptr block_stmt =
+                                 alloc_statement((a_statement_kind)stmk_block);
+          insert_statement(block_stmt, &insert_location);
+          set_block_start_insert_location(block_stmt, &insert_location);
+          bind_object_lifetime(init_expr_lifetime,
+                               (an_il_entry_kind)iek_block,
+                               (char *)block_stmt->variant.block.extra_info);
+        }  /* if */
+        begin_object_lifetime(init_expr_lifetime, &insert_location);
       }  /* if */
       /* Lower the default argument expressions.  Note that this must be done
          after the copy because you can't copy an expression once it has been
@@ -2021,7 +2029,7 @@ routine is returned.
                                   call_node->type, temp_node);
       }  /* if */
       /* Insert the call as a statement. */
-      (void)insert_expr_statement(call_node, eff_insert_location);
+      (void)insert_expr_statement(call_node, &insert_location);
       /* Set up the expression to be used in the return statement (the value
          of the temporary). */
       if (void_return) {
@@ -2032,13 +2040,13 @@ routine is returned.
     }  /* if */
     if (init_expr_lifetime != NULL) {
       /* Generate the destructions. */
-      gen_cleanup_actions(init_expr_lifetime, eff_insert_location);
+      gen_cleanup_actions(init_expr_lifetime, &insert_location);
       pop_context();
     }  /* if */
     /* Add the return statement. */
     return_stmt = alloc_statement((a_statement_kind)stmk_return);
     return_stmt->expr = call_node;
-    insert_statement(return_stmt, eff_insert_location);
+    insert_statement(return_stmt, &insert_location);
     add_to_return_memo_list(return_stmt);
     if (exceptions_enabled) {
       /* Add prologue/epilogue code for exceptions if needed. */
@@ -2080,8 +2088,10 @@ in default_version_of_routine).
 #endif /* CHECKING */
   ctor_routine = dip->variant.constructor.ptr;
   ctor_routine = default_version_of_routine(ctor_routine,
-                                            dip->variant.constructor.args,
-                                            dip->init_expr_lifetime);
+                                            dip->variant.constructor.args);
+  if (dip->init_expr_lifetime != NULL) {
+    unbind_object_lifetime(dip->init_expr_lifetime);
+  }  /* if */
   if (source_node != NULL) {
     /* Copy constructor case. */
     call_node = make_vec_cctor_call(entity_node, source_node,
@@ -4037,8 +4047,10 @@ arrays with class elements.
     /* Note that elem_dip->variant.constructor.args must not be lowered
        before passing it to default_version_of_routine. */
     ctor_routine = default_version_of_routine(ctor_routine,
-                                           elem_dip->variant.constructor.args,
-                                           elem_dip->init_expr_lifetime);
+                                           elem_dip->variant.constructor.args);
+    if (elem_dip->init_expr_lifetime != NULL) {
+      unbind_object_lifetime(elem_dip->init_expr_lifetime);
+    }  /* if */
     /* If exceptions are enabled, a destructor will be specified if
        appropriate. */
     dtor_routine = elem_dip->destructor;
