@@ -331,7 +331,7 @@ error code.
 */
 {
   check_assertion_str2(error_code >= ec_no_error &&
-                       ((int)error_code) < NUMBER_OF_ERROR_CODES,
+                       error_code < ec_last,
                        "error_text: ", "invalid error code");
   return (message_text[(int)error_code]);
 }  /* error_text */
