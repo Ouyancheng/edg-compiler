@@ -5573,6 +5573,25 @@ respectively.
 }  /* decl_nonstd_member_constant */
 
 
+static a_boolean is_or_is_nested_within_unnamed_class(a_type_ptr  tp)
+/*
+Return TRUE if class type tp is an unnamed class or is nested within an
+unnamed class.
+*/
+{
+  a_boolean  unnamed = FALSE;
+
+  check_assertion(is_immediate_class_type(tp));
+  if (tp->variant.class_struct_union.originally_unnamed) {
+    unnamed = TRUE;
+  } else if (tp->source_corresp.is_class_member) {
+    tp = tp->source_corresp.parent.class_type;
+    unnamed = is_or_is_nested_within_unnamed_class(tp);
+  }  /* if */
+  return unnamed;
+}  /* is_or_is_nested_within_unnamed_class */
+    
+
 static void decl_static_data_member(a_symbol_locator        *locator,
                                     a_type_ptr              class_type,
                                     a_type_ptr              member_type,
@@ -5609,6 +5628,11 @@ member declaration, respectively.
     member_type = error_type();
   } else if (is_union_type(class_type)) {
     /* Unions are not allowed to have static data members. */
+    pos_error(ec_static_not_allowed, &decl_info->decl_start_pos);
+  } else if (!any_cfront_mode() &&
+             is_or_is_nested_within_unnamed_class(class_type)) {
+    /* Static data members may not be declared in an unnamed class or a
+       class contained within an unnamed class (9.4.2 [class.static.data]). */
     pos_error(ec_static_not_allowed, &decl_info->decl_start_pos);
   }  /* if */
   if (decl_info->is_member_template) set_to_named_error_locator(*locator);
