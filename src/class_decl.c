@@ -5627,8 +5627,19 @@ declared member functions.
              };
              void A::f(int) { }
         */
-        tp = rtn->declared_type;
-        rtn->declared_type = routine_type_without_default_args(tp);
+        if (rtn->declared_type != rtn->type) {
+          /* There must be default arguments.  Make a new type entry. */
+          tp = copy_routine_type_with_param_types(rtn->declared_type,
+                                                  /*copy_default_args=*/FALSE);
+          /* For the default arg fixup later on, reset the pointer to the
+             declared type that needs to be updated.  (Note that it will be
+             associated with the source-sequence secondary decl entry, not
+             the routine type.) */
+          func_info->declared_type = tp;
+        } else {
+          /* No need to create a new type entry. */
+          tp = rtn->declared_type;
+        }  /* if */
         /* Note: The aforementioned transformation is often better than
            associating the default argument with the out-of-class definition
            (e.g., when the current function is a default constructor or when
@@ -5639,11 +5650,9 @@ declared member functions.
                void f(int);
              };
              void A::f(int = 0) { }
-           then the following can be executed instead, to remove the default
-           arguments from the type associated with the secondary
-           source-sequence entry:
-             tp = routine_type_without_default_args(tp);
-        */
+           then func_info->declared_type should be left pointing at
+           rtn->declared_type; that way default-arg fixup will not affect the
+           declared-type on the source sequence secondary-decl entry. */
       } else {
         /* Normal declaration.  If necessary, update the declared type,
            which was saved during function declarator processing, to make
