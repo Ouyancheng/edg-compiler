@@ -3512,7 +3512,7 @@ in this routine must be FALSE in that case.
     } else if (options & LDIO_EXTERN_INLINE_LOCAL_STATIC) {
      /* Local static variable promoted out of an extern inline function.
         Don't look for the local static variable initialization entry,
-        because the initialization is already directly in the variable.
+        because the initialization is already directly in the variable. */
      /* Don't allow this case to be turned into a simple constant
         initialization, because we want the variable to be a tentative
         definition. */
