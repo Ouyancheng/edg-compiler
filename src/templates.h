@@ -82,6 +82,8 @@ void update_instantiation_required_flag(a_template_instance_ptr tip,
 
 extern void instantiation_wrapup(void);
 
+extern void templates_one_time_init(void);
+
 extern void templates_init(void);
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION

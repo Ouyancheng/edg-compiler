@@ -65,6 +65,8 @@ extern void delayed_scan_of_template_default_arg_expr(a_type_ptr     type,
 
 extern void free_def_arg_expr_fixup(a_def_arg_expr_fixup_ptr  daefp);
 
+extern void def_arg_one_time_init(void);
+
 extern void def_arg_init(void);
 
 #if DEBUG

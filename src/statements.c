@@ -31,6 +31,7 @@ statements.c -- Scanning of statements.
 #include "const_ints.h"
 #include "symbol_tbl.h"
 #include "mem_manage.h"
+#include "pch.h"
 #include "pragma.h"
 
 
@@ -3728,6 +3729,28 @@ Display and return the amount of space used for various statements tables.
   return (grand_total);
 }  /* show_statements_space_used */
 #endif /* DEBUG */
+
+
+void statements_one_time_init(void)
+/*
+One-time initialization for statements.c static variables.
+*/
+{
+  /* Save variables that are needed for precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(avail_control_flow_descrs),
+      pch_saved_var_array_elem(struct_stmt_stack),
+      pch_saved_var_array_elem(struct_stmt_stack_container),
+      pch_saved_var_array_elem(size_struct_stmt_stack_container),
+#if DEBUG
+      pch_saved_var_array_elem(num_control_flow_descrs_allocated),
+#endif /* if DEBUG */
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* statements_one_time_init */
 
 
 void statements_init(void)

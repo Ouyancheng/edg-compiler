@@ -37,6 +37,7 @@ class_decl.c -- Scanning of class declarations.
 #include "templates.h"
 #include "preproc.h"
 #include "const_ints.h"
+#include "pch.h"
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -7453,6 +7454,27 @@ because they were used in declaring an external function or variable.
   generate_required_virtual_destructor_bodies(scope->types);
   db_exit();
 }  /* check_class_linkage */
+
+
+void class_decl_one_time_init(void)
+/*
+One-time initialization for class_decl.c static variables.
+*/
+{
+  /* Save variables that are needed for precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(avail_routine_fixup),
+      pch_saved_var_array_elem(avail_derivation_steps),
+      pch_saved_var_array_elem(avail_override_registry_entries),
+#if DEBUG
+      pch_saved_var_array_elem(num_routine_fixups_allocated),
+#endif /* if DEBUG */
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* class_decl_one_time_init */
 
 
 void class_decl_init(void)

@@ -68,6 +68,8 @@ extern a_boolean congruent_paths(a_derivation_step_ptr  dsp1,
 
 extern void check_class_linkage(void);
 
+extern void class_decl_one_time_init(void);
+
 extern void class_decl_init(void);
 
 #if DEBUG

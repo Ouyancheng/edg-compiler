@@ -25,8 +25,9 @@ templates.c -- Support for C++ templates.
 #include "il.h"
 #include "il_to_str.h"
 #include "lexical.h"
-#include "mem_manage.h"
 #include "lower_name.h"
+#include "mem_manage.h"
+#include "pch.h"
 #include "statements.h"
 #include "symbol_tbl.h"
 #include "symbol_ref.h"
@@ -5589,6 +5590,28 @@ assumed if the return type is omitted.
   wrapup_rescan_of_pragma_tokens(err, save_stop_tokens_array);
   instantiation_mode = saved_instantiation_mode;
 }  /* instantiation_pragma */
+
+
+void templates_one_time_init(void)
+/*
+One-time initialization for templates.c static variables.
+*/
+{
+  /* Save variables that are needed for precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(instantiations_required),
+      pch_saved_var_array_elem(instantiations_required_tail),
+      pch_saved_var_array_elem(can_instantiate_list),
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+      pch_saved_var_array_elem(any_instantiations_required),
+      pch_saved_var_array_elem(instance_lookup_table),
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* templates_one_time_init */
 
 
 void templates_init(void)

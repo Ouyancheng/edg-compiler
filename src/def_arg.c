@@ -19,6 +19,7 @@ def_arg.c -- Processing of default arguments
 #include "debug.h"
 #include "mem_manage.h"
 #include "il.h"
+#include "pch.h"
 #include "symbol_tbl.h"
 
 
@@ -236,6 +237,25 @@ represent the first token in the cache.
   (void)get_token();
   db_exit();
 }  /* delayed_scan_of_template_default_arg_expr */
+
+
+void def_arg_one_time_init(void)
+/*
+One-time initialization for def_arg.c static variables.
+*/
+{
+  /* Save variables that are needed for precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(avail_def_arg_expr_fixup),
+#if DEBUG
+      pch_saved_var_array_elem(num_def_arg_expr_fixups_allocated),
+#endif /* if DEBUG */
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* def_arg_one_time_init */
 
 
 void def_arg_init(void)
