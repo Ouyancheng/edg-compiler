@@ -1,5 +1,10 @@
 Version 3.4
 
+12/15/03 Shareable constants table performance improvement
+
+The size of the shareable constants table has been increased to improve 
+performance when compiling large programs.
+
 12/15/03 Default for HOST_ALIGNMENT_REQUIRED incorrect in some cases
 
 The default value computed for HOST_ALIGNMENT_REQUIRED was too conservative
