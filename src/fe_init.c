@@ -351,6 +351,13 @@ Initialize things related to preprocessing.
   line_macro_symbol    = enter_predef_macro((char *)NULL, "__LINE__");
   file_macro_symbol    = enter_predef_macro((char *)NULL, "__FILE__");
   defined_macro_symbol = enter_predef_macro((char *)NULL, "defined");
+#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
+  /* Define predefined #assert predicates: */
+  /* CAREFUL:  The value string must have an extra blank at the end. */
+  /* For example:
+  enter_assert_predicate("m68k ", "machine");
+  */
+#endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 
   /* Now process command-line defines of symbols (-D). */  
   du_ptr = defs_from_cmd_line;
@@ -614,11 +621,13 @@ Initialize everything that has to do with the front end.
   sym_tbl_init();
   keyword_init();
   expr_init();
+  macro_proc_init();
   /* preproc_init must be called after keyword initialization so that
      macros have priority over keywords.  It also must be called after
-     lexical_init so that is_id_char is set. */
+     lexical_init so that is_id_char is set.  And, it must be called after
+     macro_proc_init so that predefined #assert predicates (if any) are
+     entered after assert_predicates has been cleared. */
   preproc_init();
-  macro_proc_init();
   target_init();
 
   /* Push the file scope for the symbol table.  This is done after

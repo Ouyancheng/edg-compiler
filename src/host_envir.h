@@ -290,6 +290,15 @@ in preprocessing output.  see gen_pp_line_info in lexical.c.
 #endif /* ifndef GEN_EXTRA_LINE_ID_INFO */
 
 /*
+Flag that is TRUE to allow the AT&T extensions to ANSI C preprocessing,
+i.e., #assert, #unassert, and the use of assertions in #if expressions.
+These extensions were added in System V release 4.
+*/
+#ifndef ATT_PREPROCESSING_EXTENSIONS_ALLOWED
+#define ATT_PREPROCESSING_EXTENSIONS_ALLOWED TRUE
+#endif /* ifndef ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
+
+/*
 Flag that is TRUE to include the "asm" statement in the language.
 */
 #ifndef ASM_STATEMENT_ALLOWED
