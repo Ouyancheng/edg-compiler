@@ -1,5 +1,22 @@
 Version 2.32
 
+2/13/96   Error on ambiguous operator delete for virtual destructor
+
+An error is now issued when a virtual destructor is defined (implicitly or
+explicitly) and the inherited member operator delete is ambiguous -- e.g.,
+
+  struct A {
+    void operator delete(void *);
+    virtual ~A();
+  };
+  struct B {
+    void operator delete(void *);
+    virtual ~B();
+  };
+  struct D : public A, public B {
+    virtual ~D() { };              // Error -- ambiguous operator delete
+  };
+
 2/12/96   Spurious access errors on definitions of nested classes
 
 Spurious errors were issued when a nested class was defined outside
