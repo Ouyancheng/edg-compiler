@@ -1057,9 +1057,10 @@ as happens, for example, with function prototype scopes).  For function
 scopes, scope_number_to_reuse is the scope number to be used (it was chosen
 when the function prototype was scanned, or is NO_SCOPE_NUMBER if it hasn't
 been chosen yet); for class reactivation scopes, scope_number_to_reuse is
-the class scope number; for the other cases, a new scope number is generated.
-assoc_type points to an associated type for the cases where that's
-meaningful (function prototype, class, class reactivation, and template
+the class scope number; for the file scope, scope_number_to_reuse is
+file_scope_number assigned earlier; for the other cases, a new scope number
+is generated. assoc_type points to an associated type for the cases where
+that's meaningful (function prototype, class, class reactivation, and template
 instantiation (for class templates only) scopes); it must be NULL in other
 cases.  assoc_routine points to a routine for the function scope case and
 for function access scopes; it must be NULL in other cases.  instance_symbol,
@@ -1098,14 +1099,16 @@ the scope being pushed.
   if ((scope_number_to_reuse != NO_SCOPE_NUMBER &&
        (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_func_prototype)) ||
-      kind == (a_scope_kind)sck_namespace_extension ||
-      kind == (a_scope_kind)sck_namespace_reactivation ||
-      kind == (a_scope_kind)sck_class_reactivation ||
-      kind == (a_scope_kind)sck_template_instantiation) {
+        kind == (a_scope_kind)sck_file ||
+        kind == (a_scope_kind)sck_namespace_extension ||
+        kind == (a_scope_kind)sck_namespace_reactivation ||
+        kind == (a_scope_kind)sck_class_reactivation ||
+        kind == (a_scope_kind)sck_template_instantiation) {
     /* For function scopes, reuse the scope used for the parameters
        in the function declarator. */
     /* For class reactivations, re-establish the class scope and for template
-       instantiations re-establish the template declaration scope. */
+       instantiations re-establish the template declaration scope.
+       For the file scope, use the specified scope number. */
     ssep->number       = scope_number_to_reuse;
   } else {
     /* Assign a new scope number for other kinds of scopes. */
@@ -1549,11 +1552,6 @@ the scope being pushed.
         depth_innermost_namespace_scope =
               ssep->depth_innermost_namespace_scope = depth_scope_stack;
       }  /* if */
-    } else if (kind == (a_scope_kind)sck_file) {
-      /* For the file scope, use the pointers block allocated in the
-         translation unit entry. */
-      ssep->assoc_pointers_block = &curr_translation_unit->
-                                                    file_scope_pointers_block;
     }  /* if */
     if (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_template_instantiation ||
@@ -1561,6 +1559,12 @@ the scope being pushed.
       /* When beginning a nested context, clear the expression stack. */
       expr_stack = NULL;
     }  /* if */
+  }  /* if */
+  if (kind == (a_scope_kind)sck_file) {
+    /* For the file scope, use the pointers block allocated in the
+       translation unit entry. */
+    ssep->assoc_pointers_block = &curr_translation_unit->
+                                                    file_scope_pointers_block;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* The creation of source sequence entries is suppressed in certain
