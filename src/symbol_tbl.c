@@ -2598,6 +2598,18 @@ it is added to the end of the scope entry symbol list for the class.
 }  /* find_projected_symbol */
 
 
+a_symbol_ptr make_projected_conversion_symbol(a_type_ptr        class_type,
+                                              a_symbol_locator  *loc)
+{
+  a_symbol_ptr  sym;
+
+  sym = find_projected_symbol(class_type, loc, /*must_be_tag=*/FALSE,
+                              /*must_be_type_name=*/FALSE,
+                              /*add_to_active_list=*/TRUE, (a_symbol_ptr)NULL);
+  return sym;
+}  /* make_projected_conversion_symbol */
+
+
 a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                               an_id_lookup_options_set options)
 /*
