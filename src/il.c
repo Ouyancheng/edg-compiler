@@ -628,7 +628,8 @@ class_struct_union:
       db_name(&tp->source_corresp);
       fputc('"', f_debug);
       ctsp = tp->variant.class_struct_union.extra_info;
-      if (ctsp != NULL && ctsp->assoc_scope == NULL) {
+      if (tp->variant.class_struct_union.field_list == NULL &&
+          (ctsp == NULL || ctsp->assoc_scope == NULL)) {
         fputs(" (undefined)", f_debug);
       } else {
         a_base_class_ptr  bcp = NULL;
