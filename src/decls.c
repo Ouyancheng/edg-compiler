@@ -9317,6 +9317,8 @@ specified (rather than defaulted to "int").
                         &symbol_ptr, &linkage,
                         &old_type, &ext_sym);
   }  /* if */
+  process_pragmas_bound_to_curr_decl_or_stmt(symbol_ptr,
+                                             (a_statement_ptr)NULL);
   routine_ptr = symbol_ptr->variant.routine.ptr;
   check_assertion(make_unqualified_type(routine_ptr->type) ==
                                                       unqualified_rout_type);
@@ -10786,6 +10788,8 @@ continue_with_declaration:
           var_ptr->type = error_type();
         }  /* if */
       }  /* if */
+      process_pragmas_bound_to_curr_decl_or_stmt(symbol_ptr,
+                                                 (a_statement_ptr)NULL);
       remove_stop_token(tok_comma);
       need_comma_remove_stop_token = FALSE;
       /* Keep scanning the list of declarators. */
