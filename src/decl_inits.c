@@ -318,8 +318,13 @@ that routine.  This routine ignores a closing brace if that is appropriate.
     } else {
       /* Error, the brace is not there.  Change the stop tokens set to
          just skip to a right brace (flush_tokens has some other "hard"
-         tokens wired in), then record an error and flush tokens. */
+         tokens wired in), then record an error and flush tokens.  Always
+         stop at a semicolon, however, if one is already in the stop-token
+         array. */
+      a_boolean  stop_at_semicolon = curr_stop_token_stack_entry->
+                                         stop_tokens[tok_semicolon] != 0;
       push_stop_token_stack();
+      if (stop_at_semicolon) add_stop_token(tok_semicolon);
       (void)required_token(tok_rbrace, ec_exp_rbrace);
       pop_stop_token_stack();
     }  /* if */
