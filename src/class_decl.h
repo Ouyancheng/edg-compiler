@@ -47,6 +47,10 @@ extern a_boolean class_specifier(a_boolean  first_specifier,
 extern an_access_specifier compute_access(an_access_specifier access,
                                           an_access_specifier class_access);
 
+extern an_access_specifier access_to_end_of_path
+                                         (an_access_specifier    sym_access,
+                                          a_derivation_step_ptr  path);
+
 extern a_boolean check_for_dominance(a_symbol_ptr          sym1,
                                      a_symbol_ptr          sym2,
                                      a_derivation_step_ptr path_to_sym2);
