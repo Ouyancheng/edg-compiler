@@ -425,6 +425,8 @@ extern void declarator(a_decl_flag_set   input_flags,
                                          *declarator_ssep,
                        a_func_info_block *func_info);
 
+extern a_boolean is_constructor_decl(a_type_ptr  class_type);
+
 extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 				 a_decl_flag_set      *output_flags,
 				 a_storage_class      *storage_class,
