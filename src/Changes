@@ -1,5 +1,13 @@
 Version 2.46
 
+7/6/01   Exceptions enabled by default in C++-generating back end versions
+
+The value of DEFAULT_EXCEPTIONS_ENABLED, which controls whether
+exception handling is enabled by default, is now taken to be TRUE
+if it's not defined, in versions that use the C++-generating back end.
+This makes sense because exception handling has no associated overhead
+in such versions.
+
 7/6/01   Base classes without destructors
 
 The front end used to issue a remark when deriving from a base class with a
