@@ -1819,6 +1819,8 @@ Display the name of an expression operator.
     case eok_comma:             s = "eok_comma";                  break;
     case eok_virtual_function_ptr:
                                 s = "eok_virtual_function_ptr";   break;
+    case eok_vacuous_destructor_call:
+                                s = "eok_vacuous_destructor_call";break;
 #endif /* ifdef CFE */
     case eok_land:              s = "eok_land";                   break;
     case eok_lor:               s = "eok_lor";                    break;

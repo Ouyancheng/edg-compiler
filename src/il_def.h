@@ -2391,6 +2391,11 @@ enum an_expr_operator_kind_tag {
 			   of a virtual function (NOT a pointer-to-member);
 			   the second is a pointer to a class object.  The
 			   result is a pointer to the selected function. */
+  eok_vacuous_destructor_call,
+			/* Call of a "destructor" for a class or simple type
+			   that does not have one, e.g., p->int::~int().
+			   The operand is the pointer.  The result is
+			   void. */
 #endif /* ifdef CIL */
   eok_land,             /* Logical intersection, with the operand standardized
                            to integer/logical. */
@@ -3588,6 +3593,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "<<", ">>",
    "&", "|", "^", ",",
    "virt func ptr",
+   "vacuous dtor",
 #endif /* ifdef CIL */
    "&&", "||",
 #ifdef FIL
