@@ -2428,7 +2428,7 @@ typedef struct an_overriding_virtual_function {
 			   and B, respectively (where class D is derived from
 			   class B), a pointer to a base class entry for B on
 			   the base_classes list of D.  The entry represents
-			   the adjustment required on the return. The field
+			   the adjustment required on the return.  The field
 			   is NULL when no such adjustment is required (i.e.,
 			   when the return types of the overriding and
 			   overridden functions are identical). */
@@ -3838,7 +3838,7 @@ Data structures related to fields (members) of structs and unions:
 */
 typedef unsigned char an_offset_bit_remainder;
 			/* To represent the excess (relative to the byte
-			   offset) in the offset of a bit field. The value
+			   offset) in the offset of a bit field.  The value
 			   will be >= 0 and < targ_char_bit. */
 
 typedef struct a_field {
