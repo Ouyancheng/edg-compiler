@@ -6559,7 +6559,7 @@ can be avoided.
     } else {
       /* Not one of the special cases.  Call the general skip white space
          routine before further checking. */
-      (void)skip_white_space();
+      skip_white_space();
       ch = *curr_char_loc;
       ch_is_punct = ispunct((unsigned char)ch);
     }  /* if */
