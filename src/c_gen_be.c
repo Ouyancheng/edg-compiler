@@ -5615,7 +5615,8 @@ parameters.
      Non-constant initializers are handled by dump_dynamic_init. */
   init_con = constant_initializer(variable, &init_kind);
 #if ONE_INSTANTIATION_PER_OBJECT
-  if (needed_flag_bit_number != 0
+  if (needed_flag_bit_number != 0 &&
+      !variable->source_corresp.is_local_to_function
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
       && !variable->source_corresp.duplicate_static_in_instantiation_slices
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
@@ -5625,7 +5626,8 @@ parameters.
        primary-file variable definitions into the instantiation files.
        (Some static variables -- like certain type_info objects -- are not
        subject to this constraint and are put out in every slice that
-       references them.) */
+       references them.  Also, local variables do not have slice numbers
+       assigned -- they go out with the function.) */
     if ((variable->instantiation_needed_bit_number != 0) ?
                             (needed_flag_bit_number !=
                                    variable->instantiation_needed_bit_number) :
