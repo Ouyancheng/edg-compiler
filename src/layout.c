@@ -1361,7 +1361,7 @@ place in the overall layout, virtual_base_placement is TRUE.
           eff_bcp->offset_is_set && eff_bcp->offset <= offset &&
           /* Early GNU implementations of the IA-64 ABI do not consider
              empty base conflicts with indirect virtual primary bases when
-             when placing empty virtual bases. */
+             placing empty virtual bases. */
           !(emulate_gnu_abi_bugs && eff_bcp->offset == 0 &&
             virtual_base_placement && !eff_bcp->direct &&
             eff_bcp->is_virtual && eff_bcp->shares_virtual_function_info) &&
