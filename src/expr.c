@@ -10173,14 +10173,17 @@ to the compound literal.
   a_boolean               err = FALSE;
   a_type_ptr              literal_type = *p_literal_type;
   a_dynamic_init_ptr      dip;
-  a_boolean               is_static = (innermost_function_scope == NULL ||
-                                       curr_expr_kind_is_const());
+  a_boolean               is_static;
   an_expr_stack_entry_ptr saved_expr_stack;
   a_memory_region_number  region_to_switch_back_to;
 
   check_assertion((C_mode() || gpp_mode) &&
                   !curr_expr_kind_is(ek_pp) &&
                   !curr_expr_kind_is(ek_template_arg));
+  /* Note: the following doesn't test innermost_function_scope or
+     curr_il_region_number because it has to consider compound literals in
+     function parameter lists as non-static. */
+  is_static = curr_expr_kind_is_const();
   if (curr_expr_kind_is(ek_integral_constant)) {
     /* A compound literal is not allowed in an integral constant expression. */
     pos_error(ec_bad_integral_compound_literal, type_position);
