@@ -17,14 +17,14 @@ String and wide string types with length greater than 80 (actually,
 MAX_TRACKED_STRING_TYPE_LENGTH) are now recorded as potential orphaned
 types.  The failure to record them did not cause any problems in
 versions that either write IL files or do IL lowering (since those
-processes will cause such orphans to be recorded), but it can affect
+processes will cause such orphans to be recorded), but it could affect
 versions that do neither.
 
 1/18/99   is_far_type and arrays, in C mode
 
 The function is_far_type has been changed so that it works correctly
 for arrays in C mode.  is_far_type is used only when "near" and "far"
-are enabled (e.g., Microsoft 16-bit mode).
+are enabled (e.g., in Microsoft 16-bit mode).
 
 1/15/99   Backslashes in macro-expanded header names in #include
 
