@@ -143,7 +143,7 @@ extern void lower_stmk_init(a_statement_ptr statement);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
-extern void lower_microsoft_C_mode_nonstant_aggregate_init(
+extern void lower_microsoft_C_mode_nonconstant_aggregate_init(
                                                     a_variable_ptr  vp,
                                                     a_statement_ptr init_stmt);
 #endif /* LOWER_MICROSOFT_NONCONSTANT_AGGREGATE */

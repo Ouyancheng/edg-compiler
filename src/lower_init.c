@@ -5488,7 +5488,8 @@ Generate code for a stmk_init (dynamic initialization) statement.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
 
-void lower_microsoft_C_mode_nonstant_aggregate_init(a_variable_ptr  vp,
+void lower_microsoft_C_mode_nonconstant_aggregate_init(
+                                                    a_variable_ptr  vp,
                                                     a_statement_ptr init_stmt)
 /*
 In Microsoft C mode, an auto variable is allowed to be initialized with a
@@ -5518,7 +5519,7 @@ init_stmt is the stmk_init statement.
       turn_statement_into_noop(init_stmt);
     }  /* if */
   } /* if */
-}  /* lower_microsoft_C_mode_nonstant_aggregate_init */
+}  /* lower_microsoft_C_mode_nonconstant_aggregate_init */
 
 #endif /* LOWER_MICROSOFT_NONCONSTANT_AGGREGATE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -2703,7 +2703,7 @@ returned set to TRUE.
       if (microsoft_mode && C_mode() &&
           vp->initializer.dynamic->kind ==
                         (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-        lower_microsoft_C_mode_nonstant_aggregate_init(vp, init_stmt);
+        lower_microsoft_C_mode_nonconstant_aggregate_init(vp, init_stmt);
         /* Force re-determination of the last statement of the current
            sequence. */
         struct_stmt_stack[depth_stmt_stack].last_dep_statement = NULL;
