@@ -119,7 +119,6 @@ instruction.
      template body and the setting of fetch_pp_tokens here must match the
      setting used when the tokens were originally cached. */
   if (is_asm_block) {
-    cache_curr_token(&asm_cache);
     (void)get_token();
   }  /* if */
   /* Loop through the tokens and build the string token by token. */
@@ -133,7 +132,6 @@ instruction.
       if (curr_token == tok_rbrace && --nbrace == 0) {
         /* This right brace matches the opening left brace, marking the end of
            the asm function body. */
-        cache_curr_token(&asm_cache);
         break;
       }  /* if */
       /* Special handling for a left brace embedded within the assembler
@@ -143,7 +141,6 @@ instruction.
       /* When it's not a brace-enclosed block of statements terminate the
          scan when end-of-line is reached -- finish the copy, excluding
          the current token. */ 
-      cache_curr_token(&asm_cache);
       break;
     }  /* if */
     /* Copy characters from the source line to the buffer, from
