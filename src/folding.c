@@ -83,13 +83,17 @@ size in bits of the integral type.
 
 static void trunc_and_set_integer(an_integer_value  *result_value,
                                   a_constant        *result,
+                                  a_boolean         check_overflow,
                                   an_error_code     *err_code,
                                   an_error_severity *err_severity)
 /*
 Truncate the integer result_value and store it in *result.  result->type
-is already set to an integer type.  Set *err_code and *err_severity to
-indicate any truncation error.  If *err_code is already set to an error
-code, do not change it.
+indicates the desired result type.  If check_overflow is TRUE and
+*err_code indicates no previous error, check that the value fits in
+the result type; if it does not, set *err_code and *err_severity to
+indicate the error.  Whether or not the check is done, and whether or
+not it succeeds, the value will be adjusted if necessary to ensure
+that it fits.
 */
 {
   an_integer_kind  ikind;
@@ -101,13 +105,16 @@ code, do not change it.
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
   result->variant.integer_value = *result_value;
   get_integer_attributes(result, &ikind, &is_signed, &bit_size);
-  /* Do the error checks only if there's no previous error code. */
-  if (*err_code == ec_no_error) {
-    if (!in_range_for_integer_kind(result, result, ikind)) {
-      /* The value will not fit in the destination integer type. */
-      *err_code = ec_integer_overflow;
-      *err_severity = ES_INT_OVERFLOW;
+  /* Do the overflow check if necessary and if there's been no previous
+     error. */
+  if (check_overflow && *err_code == ec_no_error) {
+    if (in_range_for_integer_kind(result, result, ikind)) {
+      /* The value is in the right range.  No truncation is needed. */
+      goto after_truncation;
     }  /* if */
+    /* The value will not fit in the destination integer type. */
+    *err_code = ec_integer_overflow;
+    *err_severity = ES_INT_OVERFLOW;
   }  /* if */
   /* Truncate the value to the right size. */
   make_integer_value_mask(&mask, bit_size);
@@ -116,6 +123,7 @@ code, do not change it.
   if (is_signed) {
     sign_extend_integer_value(&result->variant.integer_value, bit_size);
   }  /* if */
+after_truncation:;
 }  /* trunc_and_set_integer */
 
 
@@ -240,9 +248,6 @@ in *new_constant, with type as indicated therein.  Return *err_code and
 
   if (int_constant_is_signed(old_constant)) {
     /* The source is a signed integer value. */
-#if 0
-    /* This needs to handle larger integer values. */
-#endif /* 0 */
     old_value = value_of_integer_constant(old_constant, &err);
     if (!err) {
       fp_long_to_float(float_kind, old_value,
@@ -250,9 +255,6 @@ in *new_constant, with type as indicated therein.  Return *err_code and
     }  /* if */
   } else {
     /* The source is an unsigned integer value. */
-#if 0
-    /* This needs to handle larger integer values. */
-#endif /* 0 */
     unsigned_old_value = unsigned_value_of_integer_constant(old_constant,
                                                             &err);
     if (!err) {
@@ -260,6 +262,15 @@ in *new_constant, with type as indicated therein.  Return *err_code and
                                 &new_constant->variant.float_value, &err);
     }  /* if */
   }  /* if */
+#if AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG
+  if (err) {
+    /* Try again with larger precision by converting the integer to a
+       character string then converting the string to a float value. */
+    char *str = str_for_integer_constant(old_constant);
+    fp_string_to_float(float_kind, str, &new_constant->variant.float_value,
+                       &err);
+  }  /* if */
+#endif /* AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG */
   if (err) {
     /* Some error. */
     *err_code = ec_integer_to_float_conversion;
@@ -282,33 +293,37 @@ in *new_constant, with type as indicated therein.  Return *err_code and
   long             int_value;
   unsigned long    unsigned_int_value;
   an_integer_value result_value;
-  a_boolean        err;
+  a_boolean        err, is_signed;
   a_float_kind     float_kind =
                          skip_typerefs(old_constant->type)->variant.float_kind;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  if (int_constant_is_signed(new_constant)) {
+  is_signed = int_constant_is_signed(new_constant);
+  if (is_signed) {
     /* Destination is a signed integer. */
     fp_to_long(float_kind,
                &old_constant->variant.float_value, &int_value, &err);
-#if 0
-    /* This needs to handle larger integers. */
-#endif /* 0 */
     if (!err) set_integer_value(&result_value, int_value);
   } else {
     /* Destination is an unsigned integer. */
     fp_to_unsigned_long(float_kind,
                         &old_constant->variant.float_value,
                         &unsigned_int_value, &err);
-#if 0
-    /* This needs to handle larger integers. */
-#endif /* 0 */
     if (!err) set_unsigned_integer_value(&result_value, unsigned_int_value);
   }  /* if */
+#if AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG
+  if (err) {
+    /* Try again with larger precision by converting the float to a
+       character string then converting the string to an integer value. */
+    char *str = fp_to_string(float_kind, &old_constant->variant.float_value);
+    conv_float_string_to_integer_value(str, &result_value, is_signed, &err);
+  }  /* if */
+#endif /* AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG */
   if (!err) {
-    trunc_and_set_integer(&result_value, new_constant, err_code, err_severity);
+    trunc_and_set_integer(&result_value, new_constant, /*check_overflow=*/TRUE,
+                          err_code, err_severity);
   }  /* if */
   if (err || *err_code != ec_no_error) {
     /* Float value is too big to fit in the integer. */
@@ -1186,7 +1201,8 @@ Do the negate operation on all types of integers.
        twos complement machines; it avoids a warning. */
     result->non_arithmetic = TRUE;
   }  /* if */
-  trunc_and_set_integer(&result_value, result, err_code, err_severity);
+  trunc_and_set_integer(&result_value, result, /*check_overflow=*/is_signed,
+                        err_code, err_severity);
 
 #if DEBUG
   db_unary_operation("i-", constant, result, *err_code);
@@ -1242,7 +1258,8 @@ Do the complement operation on all type of integers.
 
   result_value = constant->variant.integer_value;
   complement_integer_value(&result_value);
-  trunc_and_set_integer(&result_value, result, err_code, err_severity);
+  trunc_and_set_integer(&result_value, result, /*check_overflow=*/FALSE,
+                        err_code, err_severity);
   result->non_arithmetic = TRUE;
 
 #if DEBUG
@@ -1404,7 +1421,8 @@ Do the addition operation on all types of integers.
     *err_code = ec_integer_overflow;
     *err_severity = ES_INT_OVERFLOW;
   }  /* if */
-  trunc_and_set_integer(&result_value, result, err_code, err_severity);
+  trunc_and_set_integer(&result_value, result, /*check_overflow=*/is_signed,
+                        err_code, err_severity);
 
 #if DEBUG
   db_binary_operation("i+", constant_1, constant_2, result, *err_code);
@@ -1435,7 +1453,8 @@ Do the subtract operation on all types of integers.
     *err_code = ec_integer_overflow;
     *err_severity = ES_INT_OVERFLOW;
   }  /* if */
-  trunc_and_set_integer(&result_value, result, err_code, err_severity);
+  trunc_and_set_integer(&result_value, result, /*check_overflow=*/is_signed,
+                        err_code, err_severity);
 
 #if DEBUG
   db_binary_operation("i-", constant_1, constant_2, result, *err_code);
@@ -1466,7 +1485,8 @@ Do the multiply operation on all types of integers.
     *err_code = ec_integer_overflow;
     *err_severity = ES_INT_OVERFLOW;
   }  /* if */
-  trunc_and_set_integer(&result_value, result, err_code, err_severity);
+  trunc_and_set_integer(&result_value, result, /*check_overflow=*/is_signed,
+                        err_code, err_severity);
 
 #if DEBUG
   db_binary_operation("i*", constant_1, constant_2, result, *err_code);
@@ -1504,7 +1524,8 @@ Do the divide operation on all types of integers.
       *err_severity = ES_INT_OVERFLOW;
     }  /* if */
   }  /* if */
-  trunc_and_set_integer(&result_value, result, err_code, err_severity);
+  trunc_and_set_integer(&result_value, result, /*check_overflow=*/is_signed,
+                        err_code, err_severity);
 
 #if DEBUG
   db_binary_operation("i/", constant_1, constant_2, result, *err_code);
@@ -1542,7 +1563,8 @@ Do the remainder operation ("%") on all types of integers.
       *err_severity = ES_INT_OVERFLOW;
     }  /* if */
   }  /* if */
-  trunc_and_set_integer(&result_value, result, err_code, err_severity);
+  trunc_and_set_integer(&result_value, result, /*check_overflow=*/is_signed,
+                        err_code, err_severity);
 
 #if DEBUG
   db_binary_operation("%", constant_1, constant_2, result, *err_code);
@@ -1624,7 +1646,8 @@ everything went fine.
       /* Shift left. */
       shift_left_integer_value(&result_value, value_2, &err);
     }  /* if */
-    trunc_and_set_integer(&result_value, result, err_code, err_severity);
+    trunc_and_set_integer(&result_value, result, /*check_overflow=*/FALSE,
+                          err_code, err_severity);
   }  /* if */
 }  /* do_shift */
 
@@ -2200,7 +2223,8 @@ if everything went fine.
                             /*is_signed=*/TRUE, &err);
     }  /* if */
     if (!err) {
-      trunc_and_set_integer(&difference, result, err_code, err_severity);
+      trunc_and_set_integer(&difference, result, /*check_overflow=*/TRUE,
+                            err_code, err_severity);
     } else {
       *err_code = ec_integer_overflow;
       *err_severity = es_error;
