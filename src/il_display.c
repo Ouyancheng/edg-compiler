@@ -4073,7 +4073,7 @@ static void disp_class_type_supplement(a_class_type_supplement_ptr ptr)
 Display the indicated class type supplement entry.
 */
 {
-  disp_ptr("base_class", (char *)ptr->base_classes, iek_base_class);
+  disp_ptr("base_classes", (char *)ptr->base_classes, iek_base_class);
   disp_host_large_unsigned("size_without_virtual_base_classes",
                 (a_host_large_unsigned)ptr->size_without_virtual_base_classes);
   disp_unsigned_long("alignment_without_virtual_base_classes",
