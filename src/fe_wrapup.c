@@ -105,9 +105,11 @@ and before the back end (if any) is executed.
   /* Pop the file declaration scope off the scope stack. */
   pop_scope();
 
+#if CHECKING
   /* Ensure that unexpected situations did not occur without at least one
      error being issued (otherwise, abort compilation). */
   check_expected_errors();
+#endif /* CHECKING */
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* Finish writing the IL file, if there is one. */
