@@ -2408,6 +2408,12 @@ of a function template.
   } else {
     declarator(di_flags, do_flags, *type, (a_type_ptr)NULL, locator, type,
                (a_decl_modifier_ptr)NULL, &declarator_ssep, func_info);
+    if (invalid_decl_scope_err) {
+      /* Just to be sure a template symbol doesn't get added to a scope that
+         is not equipped to handle it, create an error locator based on the
+         previously reported error. */
+      set_to_named_error_locator(*locator);
+    }  /* if */
     func_info->is_inline = ((*dso_flags & DSO_INLINE) != 0);
     /* Note whether this is a function type that comes from a typedef.  The
        setting is checked later if this turns out to be a function template
