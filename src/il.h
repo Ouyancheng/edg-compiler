@@ -360,7 +360,7 @@ extern a_type_ptr microsoft_sized_signed_integer_type(an_integer_kind kind);
 extern a_type_ptr wchar_t_type(void);
 
 #if C99_IL_EXTENSIONS_SUPPORTED
-extern a_boolean bool_type_used(void);
+extern a_boolean bool_type_used_in_primary_IL(void);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 extern a_type_ptr bool_type(void);
@@ -368,11 +368,11 @@ extern a_type_ptr bool_type(void);
 extern a_type_ptr float_type(a_float_kind kind);
 
 #if C99_IL_EXTENSIONS_SUPPORTED
-extern a_boolean complex_type_used(a_float_kind kind);
+extern a_boolean complex_type_used_in_primary_IL(a_float_kind kind);
 
 extern a_type_ptr complex_type(a_float_kind kind);
 
-extern a_boolean imaginary_type_used(a_float_kind kind);
+extern a_boolean imaginary_type_used_type_in_primary_IL(a_float_kind kind);
 
 extern a_type_ptr imaginary_type(a_float_kind kind);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */

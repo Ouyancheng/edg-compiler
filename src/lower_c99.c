@@ -1700,7 +1700,7 @@ The lowered form is a typedef to one of the floating-point types.
 The lowered type is given the name indicated by "name".
 */
 {
-  if (imaginary_type_used(kind)) {
+  if (imaginary_type_used_in_primary_IL(kind)) {
     a_type_ptr  im_type = imaginary_type(kind);
 
     set_type_kind(im_type, (a_type_kind)tk_typeref);
@@ -1723,7 +1723,7 @@ two floating-point values of the appropriate kind.
 The lowered type is given the name indicated by "name".
 */
 {
-  if (complex_type_used(kind)) {
+  if (complex_type_used_in_primary_IL(kind)) {
     a_type_ptr   cmplx_type = complex_type(kind);
     a_type_ptr   lowered_repr = lowered_complex_type(kind);
 
@@ -1769,7 +1769,7 @@ static void lower_c99_bool_type(void)
 Replace the C99 _Bool type by its lowered representation.
 */
 {
-  if (bool_type_used()) {
+  if (bool_type_used_in_primary_IL()) {
     a_type_ptr type = bool_type();
     /* Clear the bool flag and make this a simple integral type. */
     type->variant.integer.bool_type = FALSE;

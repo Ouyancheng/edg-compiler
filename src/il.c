@@ -5242,13 +5242,27 @@ This is only used when wchar_t is a distinct type.
 
 #if C99_IL_EXTENSIONS_SUPPORTED
 
-a_boolean bool_type_used(void)
+a_boolean bool_type_used_in_primary_IL(void)
 /*
-Return TRUE if the bool type has been used.
+Return TRUE if the bool type has been used in the primary IL so far.  If the
+bool type was used in a secondary translation unit it will probably have been
+copied to the primary IL, but the trans_copy process does not update
+il_bool_type.  Therefore, this routine should be called before calling
+bool_type during IL lowering: it will perform the update if needed.
 */
 {
+  check_assertion(is_primary_translation_unit);
+  if (il_bool_type == NULL && secondary_translation_unit_seen()) {
+    /* We haven't seen a bool type in the primary translation unit, but
+       it might have been copied into the primary IL from a secondary
+       translation unit. */
+    a_type_ptr  canonical_type = canonical_bool_type();
+    if (canonical_type != NULL && !in_secondary_trans_unit(canonical_type)) {
+      il_bool_type = canonical_type;
+    }  /* if */
+  }  /* if */
   return il_bool_type != NULL;
-}  /* bool_type_used */
+}  /* bool_type_used_in_primary_IL */
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
@@ -5307,13 +5321,28 @@ return a pointer to it.
 
 #if C99_IL_EXTENSIONS_SUPPORTED
 
-a_boolean complex_type_used(a_float_kind kind)
+a_boolean complex_type_used_in_primary_IL(a_float_kind kind)
 /*
-Return TRUE if the complex type of the indicated kind was used so far.
+Return TRUE if the complex type of the indicated kind was used in the
+primary IL so far.  If the complex type was used in a secondary translation
+unit it will probably have been copied to the primary IL, but the trans_copy
+process does not update the complex_types array.  Therefore, this routine
+should be called before calling complex_type during IL lowering: it will
+perform the update if needed.
 */
 {
+  check_assertion(is_primary_translation_unit);
+  if (complex_types[kind] == NULL && secondary_translation_unit_seen()) {
+    /* We haven't seen a complex type in the primary translation unit, but
+       it might have been copied into the primary IL from a secondary
+       translation unit. */
+    a_type_ptr  canonical_type = canonical_complex_type(kind);
+    if (canonical_type != NULL && !in_secondary_trans_unit(canonical_type)) {
+      complex_types[kind] = canonical_type;
+    }  /* if */
+  }  /* if */
   return complex_types[kind] != NULL;
-}  /* complex_type_used */
+}  /* complex_type_used_in_primary_IL */
 
 
 a_type_ptr complex_type(a_float_kind kind)
@@ -5343,13 +5372,28 @@ return a pointer to it.
 }  /* complex_type */
 
 
-a_boolean imaginary_type_used(a_float_kind kind)
+a_boolean imaginary_type_used_in_primary_IL(a_float_kind kind)
 /*
-Return TRUE if the imaginary type of the indicated kind was used so far.
+Return TRUE if the imaginary type of the indicated kind was used in the
+primary IL so far.  If the imaginary type was used in a secondary translation
+unit it will probably have been copied to the primary IL, but the trans_copy
+process does not update the imaginary_types array.  Therefore, this routine
+should be called before calling imaginary_type during IL lowering: it will
+perform the update if needed.
 */
 {
+  check_assertion(is_primary_translation_unit);
+  if (imaginary_types[kind] == NULL && secondary_translation_unit_seen()) {
+    /* We haven't seen a complex type in the primary translation unit, but
+       it might have been copied into the primary IL from a secondary
+       translation unit. */
+    a_type_ptr  canonical_type = canonical_imaginary_type(kind);
+    if (canonical_type != NULL && !in_secondary_trans_unit(canonical_type)) {
+      imaginary_types[kind] = canonical_type;
+    }  /* if */
+  }  /* if */
   return imaginary_types[kind] != NULL;
-}  /* imaginary_type_used */
+}  /* imaginary_type_used_in_primary_IL */
 
 
 a_type_ptr imaginary_type(a_float_kind kind)

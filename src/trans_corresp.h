@@ -35,8 +35,8 @@ extern char* f_canonical_il_entry_of(char *il_entry);
   (f_canonical_il_entry_of((char*)(ptr)))
 
 
-void f_report_bad_trans_unit_corresp(char                   *entity1,
-                                     a_source_position_ptr  pos2);
+extern void f_report_bad_trans_unit_corresp(char                   *entity1,
+                                            a_source_position_ptr  pos2);
 
 #define report_bad_trans_unit_corresp(entity)                               \
   f_report_bad_trans_unit_corresp(                                          \
@@ -48,8 +48,19 @@ void f_report_bad_trans_unit_corresp(char                   *entity1,
 /*
 Routine to record builtin type correspondences.
 */
-void record_builtin_type(a_type_ptr  type);
+extern void record_builtin_type(a_type_ptr  type);
 
+#if C99_IL_EXTENSIONS_SUPPORTED
+/*
+Routines to retrieve certain canonical builtin types.
+*/
+extern a_type_ptr canonical_bool_type(void);
+
+extern a_type_ptr canonical_complex_type(a_float_kind  kind);
+
+extern a_type_ptr canonical_imaginary_type(a_float_kind  kind);
+
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 /*
 The following canonical_*_entry_of routines return the canonical entry
