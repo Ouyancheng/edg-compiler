@@ -4976,17 +4976,16 @@ pointed to by dip is lowered.
 }  /* add_init_assignment */
 
 
-static void make_ctor_implied_arg_list(a_type_ptr       ctor_routine_type,
+static void make_ctor_implied_arg_list(a_routine_ptr    ctor_routine,
                                        an_expr_node_ptr *implied_arg_list,
                                        an_expr_node_ptr *end_implied_arg_list)
 /*
 Build and return a list of the implied arguments to be added to a call of
-a constructor whose type is ctor_routine_type.  There is one implied
-argument for each virtual base class of the associated base class, and
-they are used to ensure that each virtual base class is constructed
-only once.  The beginning and end of the list are returned in
-*implied_arg_list and *end_implied_arg_list.  For an empty list, both
-will be set to NULL.
+the constructor ctor_routine.  There is one implied argument for each
+virtual base class of the associated base class, and they are used to
+ensure that each virtual base class is constructed only once.  The
+beginning and end of the list are returned in *implied_arg_list and
+*end_implied_arg_list.  For an empty list, both will be set to NULL.
 */
 {
   an_expr_node_ptr implied_arg_node;
@@ -4996,8 +4995,7 @@ will be set to NULL.
 
   *implied_arg_list = *end_implied_arg_list = NULL;
   /* Get the class type. */
-  class_type = class_type_from_nonstatic_member_function_type(
-                                                            ctor_routine_type);
+  class_type = ctor_routine->source_corresp.class_of_which_a_member;
   prelower_class_type(class_type);
   if (class_type->variant.class_struct_union.any_virtual_base_classes) {
     /* The class has at least one virtual base class. */
@@ -5026,23 +5024,21 @@ will be set to NULL.
 }  /* make_ctor_implied_arg_list */
 
 
-static void make_dtor_implied_arg_list(a_type_ptr       dtor_routine_type,
+static void make_dtor_implied_arg_list(a_routine_ptr    dtor_routine,
                                        a_boolean        have_complete_object,
                                        an_expr_node_ptr *implied_arg_node)
 /*
-Build and return the implied argument to be added to a call of a destructor
-whose type is dtor_routine_type.  A pointer to the argument is returned in
-*implied_arg_node, or NULL if no implied argument is needed.
-If have_complete_object is TRUE, we know we are calling the destructor
-for a complete object.
+Build and return the implied argument to be added to a call of the destructor
+dtor_routine.  A pointer to the argument is returned in *implied_arg_node,
+or NULL if no implied argument is needed.  If have_complete_object is TRUE,
+we know we are calling the destructor for a complete object.
 */
 {
   a_type_ptr class_type;
 
   *implied_arg_node = NULL;
   /* Get the class type. */
-  class_type = class_type_from_nonstatic_member_function_type(
-                                                            dtor_routine_type);
+  class_type = dtor_routine->source_corresp.class_of_which_a_member;
   prelower_class_type(class_type);
 #if ASSIGNMENT_TO_THIS_ALLOWED
   /* Assignment to "this" is allowed, so we always need the implicit
@@ -5092,7 +5088,7 @@ and update *insert_location.
      (because it initializes a class that has virtual base classes), make
      the implied_arg_list (all entries are NULL pointer values). */
   if (implied_arg_list == NULL) {
-    make_ctor_implied_arg_list(constr_routine->type, &implied_arg_list,
+    make_ctor_implied_arg_list(constr_routine, &implied_arg_list,
                                &end_implied_arg_list);
   }  /* if */
   /* Link the entity node, the implied arguments if any, the source node if
@@ -5192,7 +5188,7 @@ static an_expr_node_ptr make_vec_new_call(an_expr_node_ptr entity_node,
                                           an_expr_node_ptr num_elem_node,
                                           a_routine_ptr    ctor_routine)
 /*
-Make a call to a runtime routine (_vec_new) that will allocate an array
+Make a call to a runtime routine (__vec_new) that will allocate an array
 and call a constructor for each element of the array.  entity_node gives
 the address of the array (for cases where the array is already
 allocated).  num_elem_node gives (as an expression) the number of
@@ -5216,13 +5212,13 @@ expression created is returned.
     func_addr_node = alloc_node_for_constant(&null_constant);
   }  /* if */
   /* The call looks like
-       _vec_new(entity_node, num_elems, size_elem, ctor_routine)
+       __vec_new(entity_node, num_elems, size_elem, ctor_routine)
   */
   arg_expr_list = entity_node;
   entity_node->next = num_elem_node;
   num_elem_node->next = size_elem_node;
   size_elem_node->next = func_addr_node;
-  call_node = make_runtime_rout_call("_vec_new", &vec_new_routine,
+  call_node = make_runtime_rout_call("__vec_new", &vec_new_routine,
                                      void_star_type(), arg_expr_list);
   return call_node;
 }  /* make_vec_new_call */
@@ -5234,7 +5230,7 @@ static an_expr_node_ptr make_vec_delete_call(
                                           a_routine_ptr    dtor_routine,
                                           a_boolean        free_storage)
 /*
-Make a call to a runtime routine (_vec_delete) that will call a
+Make a call to a runtime routine (__vec_delete) that will call a
 destructor for each element of an array and then deallocate the array.
 entity_node gives the address of the array.  array_element_count is the
 number of elements in the array, or -1 for a variable-length array.
@@ -5263,9 +5259,9 @@ array is to be freed.  A pointer to the expression created is returned.
     func_addr_node = alloc_node_for_constant(&null_constant);
   }  /* if */
   /* The call looks like
-       _vec_delete(entity_node, num_elems, size_elem, dtor_routine,
-                   free_storage, 0)
-     The final argument is never used.
+       __vec_delete(entity_node, num_elems, size_elem, dtor_routine,
+                    free_storage, 0)
+     The final argument is never used.  It's there for cfront compatibility.
   */
   arg_expr_list = entity_node;
   entity_node->next = num_elem_node;
@@ -5274,7 +5270,7 @@ array is to be freed.  A pointer to the expression created is returned.
   func_addr_node->next = free_storage_node;
   free_storage_node->next = node_for_integer_constant(0L,
                                                       (an_integer_kind)ik_int);
-  call_node = make_runtime_rout_call("_vec_delete", &vec_delete_routine,
+  call_node = make_runtime_rout_call("__vec_delete", &vec_delete_routine,
                                      void_type(), arg_expr_list);
   return call_node;
 }  /* make_vec_delete_call */
@@ -5286,11 +5282,12 @@ static an_expr_node_ptr make_vec_cctor_call(
                                           long             array_element_count,
                                           a_routine_ptr    cctor_routine)
 /*
-Make a call to a runtime routine (_vec_cctor) that will call a copy constructor
-for each element of an array.  entity_node gives the address of the array.
-source_node gives the source for the copy.  array_element_count is the
-number of elements in the array.  cctor_routine is the copy constructor
-routine to be called.  A pointer to the expression created is returned.
+Make a call to a runtime routine (__vec_cctor) that will call a copy
+constructor for each element of an array.  entity_node gives the address
+of the array.  source_node gives the source for the copy.
+array_element_count is the number of elements in the array.
+cctor_routine is the copy constructor routine to be called.
+A pointer to the expression created is returned.
 */
 {
   an_expr_node_ptr call_node, arg_expr_list, num_elem_node, size_elem_node;
@@ -5302,15 +5299,15 @@ routine to be called.  A pointer to the expression created is returned.
   size_elem_node = size_elem_node_from_pointer_type(entity_node->type);
   func_addr_node = function_addr_expr(cctor_routine);
   /* The call looks like
-       _vec_cctor(entity_node, num_elems, size_elem, cctor_routine,
-                  source_node)
+       __vec_cctor(entity_node, num_elems, size_elem, cctor_routine,
+                   source_node)
   */
   arg_expr_list = entity_node;
   entity_node->next = num_elem_node;
   num_elem_node->next = size_elem_node;
   size_elem_node->next = func_addr_node;
   func_addr_node->next = source_node;
-  call_node = make_runtime_rout_call("_vec_cctor", &vec_cctor_routine,
+  call_node = make_runtime_rout_call("__vec_cctor", &vec_cctor_routine,
                                      void_type(), arg_expr_list);
   return call_node;
 }  /* make_vec_cctor_call */
@@ -5353,11 +5350,11 @@ and a source pointer.  The routine must have a "this" parameter.
   /* Determine any implicit arguments required for a constructor or
      destructor. */
   if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
-    make_ctor_implied_arg_list(routine->type, &implied_arg_list,
+    make_ctor_implied_arg_list(routine, &implied_arg_list,
                                &end_implied_arg_list);
   } else if (routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor) {
-    make_dtor_implied_arg_list(routine->type, /*have_complete_object=*/TRUE,
+    make_dtor_implied_arg_list(routine, /*have_complete_object=*/TRUE,
                                &implied_arg_list);
     end_implied_arg_list = implied_arg_list;
   }  /* if */
@@ -5563,7 +5560,7 @@ is TRUE if the entity is a complete object.  Insert the statement at
 #endif /* CHECKING */
   /* If the destructor is for a class that has virtual base classes, add
      the implicit complete-object argument. */
-  make_dtor_implied_arg_list(destr_routine->type, have_complete_object,
+  make_dtor_implied_arg_list(destr_routine, have_complete_object,
                              &implied_arg_node);
   entity_node->next = implied_arg_node;
   /* Make an expression statement containing the call expression. */
@@ -5599,10 +5596,10 @@ in the array.  Insert the statements at *insert_location and update
   }  /* if */
 #endif /* CHECKING */
   dtor_routine = dip->destructor;
-  /* default_version_of_routine is not called on purpose; _vec_delete
+  /* default_version_of_routine is not called on purpose; __vec_delete
      knows about the implicit argument for destructors and generates
      it automatically. */
-  /* Generate the _vec_delete call. */
+  /* Generate the __vec_delete call. */
   call_node = make_vec_delete_call(entity_node, array_element_count,
                                    dtor_routine, /*free_storage=*/FALSE);
   /* Make a statement containing the call. */
@@ -7265,28 +7262,69 @@ used as an lvalue if is_lvalue is TRUE.
 }  /* lower_pm_related_class_cast */
 
 
-static an_expr_node_ptr make_vtbl_entry_node(an_expr_node_ptr func_node,
+static a_routine_ptr routine_from_node(an_expr_node_ptr node)
+/*
+node is an expression node that is the address of a specific routine.
+Extract and return a pointer to the routine entry.
+*/
+{
+  a_routine_ptr routine;
+
+#if CHECKING
+  if (node->kind != (an_expr_node_kind)enk_routine_address) {
+    internal_error("routine_from_node: func node not rout addr");
+  }  /* if */
+#endif /* CHECKING */
+  routine = node->variant.routine;
+  return routine;
+}  /* routine_from_node */
+
+
+static void add_implied_args_to_call(an_expr_node_ptr call_expr,
+                                     a_routine_ptr    rout)
+/*
+call_expr is an expression that calls the routine rout.  If the call
+requires implied arguments (e.g., for a constructor or destructor), add
+them.  The call has already been lowered.
+*/
+{
+  an_expr_node_ptr implied_arg_list, end_implied_arg_list;
+  an_expr_node_ptr func_addr_arg, this_arg;
+
+  implied_arg_list = NULL;
+  if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
+     /* Constructor. */
+     make_ctor_implied_arg_list(rout, &implied_arg_list,
+                                &end_implied_arg_list);
+  } else if (rout->special_kind == (a_special_function_kind)sfk_destructor) {
+    /* Destructor. */
+    make_dtor_implied_arg_list(rout, /*have_complete_object=*/TRUE,
+                               &implied_arg_list);
+    end_implied_arg_list = implied_arg_list;
+  }  /* if */
+  if (implied_arg_list != NULL) {
+    /* The implied arguments go after the "this" argument. */
+    func_addr_arg = call_expr->variant.operation.operands;
+    this_arg = func_addr_arg->next;
+    end_implied_arg_list->next = this_arg->next;
+    this_arg->next = implied_arg_list;
+  }  /* if */
+}  /* add_implied_args_to_call */
+
+
+static an_expr_node_ptr make_vtbl_entry_node(a_routine_ptr    routine_ptr,
                                              an_expr_node_ptr object_node)
 /*
 Create an expression that computes the address of the virtual table entry
-for the function whose address is given by func_node for the object whose
-address is given by object_node.  Return a pointer to the expression
-created.
+for the function indicated by routine_ptr for the object whose address
+is given by object_node.  Return a pointer to the expression created.
 */
 {
-  a_routine_ptr             routine_ptr;
   an_expr_node_ptr          select_vptr_node, vptr_node, vtbl_entry_node;
   an_expr_node_ptr          index_node;
   a_constant_ptr            index_con;
   a_virtual_function_number index;
 
-  /* Find the routine entry. */
-#if CHECKING
-  if (func_node->kind != (an_expr_node_kind)enk_routine_address) {
-    internal_error("make_vtbl_entry_node: func node not rout addr");
-  }  /* if */
-#endif /* CHECKING */
-  routine_ptr = func_node->variant.routine;
   /* Make an expression tree for the value of the virtual function table
      pointer. */
   select_vptr_node = make_vptr_field_lvalue(object_node);
@@ -7315,6 +7353,7 @@ have already been lowered.
   an_expr_node_ptr vtbl_entry_node, vtbl_temp_node;
   an_expr_node_ptr assign_node, padd_node;
   a_variable_ptr   vtbl_temp_var;
+  a_routine_ptr    routine_ptr;
 
   /* The original tree has an eok_virtual_call node with operands as follows:
        (1) an enk_routine_address node for the virtual function.
@@ -7337,7 +7376,8 @@ have already been lowered.
      second by "object_temp". */
   /* Make a node for the address of the virtual table entry for the
      function. */
-  vtbl_entry_node = make_vtbl_entry_node(func_node, object_node);
+  routine_ptr = routine_from_node(func_node);
+  vtbl_entry_node = make_vtbl_entry_node(routine_ptr, object_node);
   /* Make the vtbl_temp temporary and an lvalue for it, and assign the
      virtual function table entry address to it. */
   vtbl_temp_var = make_temporary(vtbl_entry_node->type);
@@ -7379,6 +7419,8 @@ have already been lowered.
   set_node_operator(expr, (an_expr_operator_kind)eok_comma, expr->type,
                     assign_node);
   assign_node->next = func_node;
+  /* If the call is of a destructor, add the implied argument. */
+  add_implied_args_to_call(func_node, routine_ptr);
 }  /* lower_virtual_function_call */
 
 
@@ -7408,7 +7450,8 @@ have already been lowered.
   */
   /* Make a node for the address of the virtual table entry for the
      function, i.e., "(object->__vptr)+index". */
-  vtbl_entry_node = make_vtbl_entry_node(func_node, object_node);
+  vtbl_entry_node = make_vtbl_entry_node(routine_from_node(func_node),
+                                         object_node);
   /* Make an expression that extracts the "f" (function pointer) from the
      virtual table entry, as an lvalue. */
   func_select_node = field_lvalue_selection_expr(vtbl_entry_node,
@@ -7773,13 +7816,7 @@ if the call is of a "new" routine.
   }  /* if */
 #endif /* CHECKING */
   rout_node = expr->variant.operation.operands;
-#if CHECKING
-  if (rout_node->kind != (an_expr_node_kind)enk_routine_address) {
-    internal_error(
-                  "array_new_or_delete_call_is_new_call: not routine address");
-  }  /* if */
-#endif /* CHECKING */
-  rout = rout_node->variant.routine;
+  rout = routine_from_node(rout_node);
 #if CHECKING
   if (rout->special_kind != (a_special_function_kind)sfk_operator) {
     internal_error(
@@ -7827,7 +7864,7 @@ static a_boolean new_or_delete_type_requires_array_handling(a_type_ptr type)
 /*
 type is the pointer type involved in an array new or delete.  Return TRUE
 if the underlying type requires special handling for arrays.  Special
-handling means the _vec_new and _vec_delete routines will be called, so
+handling means the __vec_new and __vec_delete routines will be called, so
 that constructors and destructors will be called, and so that the size of
 the array is recorded for use at the time of the delete of the array pointer.
 */
@@ -7955,19 +7992,19 @@ original expressions have not been lowered yet.
     ctor_routine = NULL;
   }  /* if */
   /* If the "new" routine is the standard one (i.e., there are no extra
-     arguments), _vec_new can do the allocation. */
+     arguments), __vec_new can do the allocation. */
   if (size_node->next == NULL) {
     vec_new_can_do_allocation = TRUE;
   } /* if */
   preserve_size_node = FALSE;
   if (vec_new_can_do_allocation) {
-    /* The _vec_new routine can do the allocation of the array (the normal
+    /* The __vec_new routine can do the allocation of the array (the normal
        case).  The entity_node is therefore a NULL pointer. */
     make_zero_of_proper_type(top_expr->type, &null_constant);
     entity_node = alloc_node_for_constant(&null_constant);
   } else {
     /* The allocation is not standard and must be done before calling
-       the _vec_new routine.  This happens for something like
+       the __vec_new routine.  This happens for something like
          A *p = new (x, y, z) A[3];
        The original "new" call will be evaluated and assigned to a temporary,
        and entity_node will use the temporary. */
@@ -8047,17 +8084,18 @@ check_okay:;
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Construct the call of _vec_new. */
+  /* Construct the call of __vec_new. */
   call_node = make_vec_new_call(entity_node, num_elem_node, ctor_routine);
-  /* Cast the result of _vec_new (of type void *) to the right pointer type. */
+  /* Cast the result of __vec_new (of type void *) to the right pointer
+     type. */
   new_alloc_node = add_cast_if_necessary(call_node, top_expr->type);
   if (!vec_new_can_do_allocation) {
-    /* For the case where the allocation must be done before _vec_new is
+    /* For the case where the allocation must be done before __vec_new is
        called, add the assignment of the allocation pointer to a temporary
-       before the _vec_new call in a comma expression, as in
-         ((temp = (type *)new-routine(...)), (type *)_vec_new(temp, ...))
+       before the __vec_new call in a comma expression, as in
+         ((temp = (type *)new-routine(...)), (type *)__vec_new(temp, ...))
        The comma expression is necessary because we can't count on the
-       order of evaluation of arguments of the _vec_new call and we need to
+       order of evaluation of arguments of the __vec_new call and we need to
        make a reusable copy of the size expression. */
     alloc_temp_node = var_lvalue_expr(alloc_temp_var);
     alloc_temp_node->next = add_cast_if_necessary(alloc_expr,
@@ -8118,7 +8156,7 @@ lowered yet.
   lower_normal_expr(entity_node);
   call_node = make_vec_delete_call(entity_node, /*array_element_count=*/-1L,
                                    dtor_routine, /*free_storage=*/TRUE);
-  /* Overwrite the original node with the _vec_delete call. */
+  /* Overwrite the original node with the __vec_delete call. */
   overwrite_node(expr, call_node);
 }  /* lower_array_delete */
 
@@ -8201,7 +8239,7 @@ for a "new" or destruction for a "delete".
           make_zero_of_proper_type(expr->type, &null_constant);
           null_node = alloc_node_for_constant(&null_constant);
           /* Add any implicit arguments for the constructor. */
-          make_ctor_implied_arg_list(ctor_routine->type, &implied_arg_list,
+          make_ctor_implied_arg_list(ctor_routine, &implied_arg_list,
                                      &end_implied_arg_list);
           if (implied_arg_list != NULL) {
             null_node->next = implied_arg_list;
@@ -8467,8 +8505,6 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   a_boolean             keep_dynamic_init;
   a_dynamic_init_ptr    dip;
   a_variable_ptr        var, temp_var;
-  an_expr_node_ptr      implied_arg_list, end_implied_arg_list;
-  a_type_ptr            function_type;
   unsigned int          is_lvalue_mask;
   a_boolean             is_conditional_operator;
 #if ASSIGNMENT_TO_THIS_ALLOWED
@@ -8596,33 +8632,12 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             break;
           case eok_call:
             /* Call. */
-            function_type = type_pointed_to(operand_node->type);
-            function_type = skip_typerefs(function_type);
-            if (function_type->variant.routine.extra_info->
-                                                   constructor_or_destructor) {
-              /* The routine being called is a constructor or destructor.
-                 Add any implied arguments. */
-#if 0
-              /* Void test here should be improved; there should be a better
-                 way of distinguishing a constructor and a destructor. */
-#endif
-              if (is_void_type(function_type->variant.routine.return_type)) {
-                /* Destructor. */
-                make_dtor_implied_arg_list(function_type,
-                                           /*have_complete_object=*/TRUE,
-                                           &implied_arg_list);
-                end_implied_arg_list = implied_arg_list;
-              } else {
-                /* Constructor. */
-                make_ctor_implied_arg_list(function_type, &implied_arg_list,
-                                           &end_implied_arg_list);
-              }  /* if */
-              if (implied_arg_list != NULL) {
-                /* The implied arguments go after the "this" argument. */
-                an_expr_node_ptr this_arg = operand_node->next;
-                end_implied_arg_list->next = this_arg->next;
-                this_arg->next = implied_arg_list;
-              }  /* if */
+            if (operand_node->kind == (an_expr_node_kind)enk_routine_address) {
+              /* We know the specific routine being called. */
+              a_routine_ptr rout = operand_node->variant.routine;
+              /* If the call is of a constructor or destructor, add the
+                 implied arguments. */
+              add_implied_args_to_call(expr, rout);
             }  /* if */
             /* If the call was for an array new or delete, it's not being
                handled as a special array case, so clear the flag now. */
