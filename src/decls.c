@@ -4527,8 +4527,9 @@ on for use in generating cross-reference output describing this declaration.
       } else if (sym->defined) {
         /* In C++ the defined flag in the symbol may have been set without
            the body having been scanned and bound to the routine yet (e.g.,
-           inline friend function). */
-        check_assertion_str(scope_stack[decl_scope_level].kind ==
+           inline friend function or a dllimport function). */
+        check_assertion_str((routine_ptr->decl_modifiers & DM_DLLIMPORT) ||
+                            scope_stack[decl_scope_level].kind ==
                                         (a_scope_kind)sck_class_struct_union,
                             "decl_routine: defined flag is set wrong");
         old_decl_has_body = TRUE;
