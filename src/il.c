@@ -2144,7 +2144,9 @@ to visit all block scopes attached to this scope and do the same processing.
 #endif /* DEBUG  && !STANDALONE_UTILITY_PROGRAM */
     solhp->orphaned_types = types;
     solhp->orphaned_variables = variables;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     solhp->orphaned_src_seq_sublists = sublists;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     solhp->next = NULL;
     if (il_header.scope_orphaned_list_headers == NULL) {
       il_header.scope_orphaned_list_headers = solhp;
@@ -6821,8 +6823,8 @@ a pointer to it.
   return sssp;
 }  /* alloc_src_seq_sublist */
 
-
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+
 a_comment_ptr alloc_comment(void)
 /*
 Allocate a comment entry, initialize its fields, and return a pointer to it.
@@ -6841,8 +6843,8 @@ Allocate a comment entry, initialize its fields, and return a pointer to it.
 
   return cp;
 }  /* alloc_comment */
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 
 void add_to_src_seq_sublist_list(a_src_seq_sublist_ptr  sublist)
 /*
