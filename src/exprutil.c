@@ -363,9 +363,13 @@ field.
            void m () {
              f(j = 1);  // Modification gets replaced by address taken
            }
-         One really wants both kinds of references. */
+         One really wants both kinds of references.  A similar case is
+             (j = k)++;
+         One wants to record the modification separately and before the
+         use of the value to avoid a diagnostic about using the variable
+         before it is set. */
       if ((old_kind & SRK_MODIFICATION) &&
-          new_kind == SRK_ADDRESS_TAKEN) {
+          (new_kind & (SRK_ADDRESS_TAKEN | SRK_USE))) {
         record_reference(rep);
       }  /* if */
       /* Set the new reference kind. Turn off all old bits, then turn on
