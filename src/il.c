@@ -7900,6 +7900,7 @@ entry.
     check_assertion(vlap->dimension_expr == NULL);
     vlap = vlap->original_dimension;
   }  /* if */
+  check_assertion(vlap->dimension_expr != NULL);
   return vlap;
 }  /* find_vla_dimension */
 
