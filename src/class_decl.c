@@ -2149,7 +2149,7 @@ without it.
   }  /* if */
 #if CHECKING
   if (sym->kind != (a_symbol_kind)sk_member_function) {
-    internal_error("is_member_function_redeclaration: bad sym kind");
+    internal_error("member_function_redecl_sym: bad sym kind");
   }  /* if */
 #endif /* CHECKING */
   /* Make the check without regard to the presence of an implicit "this"
@@ -2221,6 +2221,15 @@ of the function, and again overloading is a possibility.
   if (!is_error_locator(*locator)) {
     is_function_def_with_body = (curr_token == tok_lbrace);
     sym = locator->specific_symbol;
+    if (sym != NULL && sym->class_of_which_a_member != NULL &&
+        !is_member_function_symbol(sym)) {
+      /* sym represents a member of a class, but it is not a member function.
+         Issue an error. */
+      pos_error(ec_not_compatible_with_previous_decl,
+                &locator->source_position);
+      sym = NULL;
+      set_to_error_locator(*locator);
+    }  /* if */
     if (sym == NULL || !is_member_function_symbol(sym)) {
       /* Not a member function.  Get the symbol -- the rest of what's
          returned from decl_var_or_routine is not relevant for processing
@@ -2250,7 +2259,7 @@ of the function, and again overloading is a possibility.
           str_error(ec_overloaded_function_incompatible_type,
                     locator->symbol_header->identifier);
         } else {
-          error(ec_type_must_be_compat_with_prev_def);
+          error(ec_not_compatible_with_previous_decl);
         }  /* if */
         set_to_error_locator(*locator);
       } else {
@@ -5472,6 +5481,9 @@ class/struct/union is actually defined.
                or enum type entry.  It will already have been recorded on the
                types list for the current class.  No need to complain about a
                missing identifier.  Just bypass the semicolon. */
+#if 0
+  /* Check for "inline", "const", "static", etc. here. */
+#endif /* if 0 */
             (void)get_token();
             goto next_declaration;
           } else if (local_defines_something &&
