@@ -5592,27 +5592,34 @@ class/struct/union is actually defined.
               /* Member function. */
               a_boolean suppress_pure_specifier_error = FALSE;
 
-              if (virtual_specified && (friend_specified ||
-                         member_storage_class == (a_storage_class)sc_static)) {
+              if (friend_specified) {
+                if (virtual_specified ||
+                    member_storage_class != (a_storage_class)sc_unspecified) {
+                  /* A storage class declaration along with "friend" is not
+                     allowed.  The ARM doesn't disallow it, but that's how
+                     Cfront 2.1 works.  "inline", by the way, is allowed. */
+                  pos_error(ec_bad_friend_decl, &decl_start_pos);
+                  set_to_error_locator(locator);
+                  if (virtual_specified) {
+                    virtual_specified = FALSE;
+                    suppress_pure_specifier_error = TRUE;
+                  }  /* if */
+                }  /* if */
+              } else if (is_union_type(class_type)) {
+                if (virtual_specified) {
+                  /* Unions may not have virtual member functions. */
+                  pos_error(ec_virtual_function_in_union, &decl_start_pos);
+                  virtual_specified = FALSE;
+                  suppress_pure_specifier_error = TRUE;
+                }  /* if */
+              } else if (virtual_specified &&
+                         member_storage_class == (a_storage_class)sc_static) {
                 /* Only nonstatic member functions may be specified as
                    virtual.  This is a kind of specifiers conflict, so just
                    issue the message once. */
                 pos_error(ec_bad_virtual_decl, &decl_start_pos);
                 virtual_specified = FALSE;
                 suppress_pure_specifier_error = TRUE;
-              } else if (virtual_specified && is_union_type(class_type)) {
-                /* Unions may not have virtual member functions. */
-                pos_error(ec_virtual_function_in_union, &decl_start_pos);
-                virtual_specified = FALSE;
-                suppress_pure_specifier_error = TRUE;
-              } else if (friend_specified &&
-                         member_storage_class !=
-                                          (a_storage_class)sc_unspecified) {
-                /* A storage class declaration along with "friend" is not
-                   allowed.  The ARM doesn't disallow it, but that's how
-                   Cfront 2.1 works.  "inline", by the way, is allowed. */
-                pos_error(ec_bad_friend_decl, &decl_start_pos);
-                set_to_error_locator(locator);
               }  /* if */
               if (local_defines_something && first_declarator) {
                 /* Type definition in function return type. */
@@ -5753,6 +5760,12 @@ class/struct/union is actually defined.
             }  /* if */
             if (member_storage_class == (a_storage_class)sc_static) {
               /* Static data member. */
+              if (is_union_type(class_type)) {
+                /* Issue the error on static member in a union (ARM 9.5) here
+                   rather than in the subroutine so that decl_start_pos can
+                   be used as the error position. */
+                pos_error(ec_static_member_in_union, &decl_start_pos);
+              }  /* if */
               decl_static_data_member(&locator, class_type,
                                       local_type, access);
             } else {
