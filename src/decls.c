@@ -5327,6 +5327,7 @@ Returns TRUE if there is an error in the specifiers.
                support for this syntax in the ARM, we accept it since it is
                widely used in older C++ code. */
             remark(ec_bad_friend_decl);
+            vacuous_decl_allowed = FALSE;
             goto process_class_specifier;
           } else {
             /* Not the special case -- restore the current token and continue
