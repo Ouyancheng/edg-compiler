@@ -897,8 +897,9 @@ may have extra operand at end).
                                 (char *)NULL,  /* Indicates #line entry. */
                                 (char *)NULL,  /* Indicates #line entry. */
                                 &(curr_ise->assoc_il_file),
-                                actual_sfp->is_include_file,
-                                actual_sfp->included_by_system_include);
+                                (a_boolean)actual_sfp->is_include_file,
+                                (a_boolean)actual_sfp->
+                                                   included_by_system_include);
   }
   if (generate_pp_output) {
     /* Generate the line-identifying directive if necessary for preprocessing
