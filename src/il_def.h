@@ -5452,7 +5452,9 @@ enum an_expr_operator_kind_tag {
                            standardized to integer/logical. */
   eok_cast,             /* Type cast.  The type of the expression indicates
                            the type to cast to.  Casts to void can occur,
-                           in rare cases. */
+                           in rare cases.  In C++, this is also the code used
+                           for classic-syntax casts involving parameterized
+                           types (prototype instantiations). */
 #ifdef CIL
   eok_base_class_cast,	/* C++ cast of a pointer to a class to a pointer to
 			   a direct base class.  The type of the expression
@@ -5776,6 +5778,47 @@ enum an_expr_operator_kind_tag {
 			   of the expression node. */
   eok_va_end,		/* va_end macro reference.  First operand is lvalue
 			   address of variable of type va_list. */
+#ifdef CIL
+  /* Operators appearing in prototype instantiations.  The type of the
+     operands is generally not known and after instantiation these operators
+     may correspond to calls to overloaded operator functions.  Note that some
+     of the other operators that do not have different codes for different
+     operand types can also be used with generic types (e.g., eok_call or
+     eok_complement). */
+  eok_negate,           /* Generic negation. */
+  eok_post_incr,        /* Generic post increment. */
+  eok_post_decr,        /* Generic post decrement. */
+  eok_pre_incr,         /* Generic pre increment. */
+  eok_pre_decr,         /* Generic pre decrement. */
+  eok_add,              /* Generic addition. */
+  eok_subtract,         /* Generic subtraction. */
+  eok_multiply,         /* Generic multiplication. */
+  eok_divide,           /* Generic division. */
+  eok_eq,               /* Generic equality. */
+  eok_ne,               /* Generic inequality. */
+  eok_gt,               /* Generic greater than. */
+  eok_lt,               /* Generic less than. */
+  eok_ge,               /* Generic greater than or equal. */
+  eok_le,               /* Generic less than or equal. */
+  eok_assign,           /* Generic assignment. */
+  eok_add_assign,       /* Generic add assign operator. */
+  eok_subtract_assign,  /* Generic subtract assign operator. */
+  eok_multiply_assign,  /* Generic multiply assign operator. */
+  eok_divide_assign,    /* Generic divide assign operator. */
+  eok_address,          /* Generic unary "&" (for known types this needs not
+                           be explicitly encoded). */
+  eok_dot_field,        /* Generic field selection using the dot operator. */
+  eok_arrow_field,      /* Generic field selection using the arrow operator. */
+  eok_pm_dot_field,     /* Generic ".*" field selection. */
+  eok_pm_arrow_field,   /* Generic "->*" field selection. */
+  eok_dot_call,         /* Generic member function call with "." syntax. */
+  eok_arrow_call,       /* Generic member function call with "->" syntax. */
+  eok_pm_dot_call,      /* Generic member function call with ".*" syntax. */
+  eok_pm_arrow_call,    /* Generic member function call with "->*" syntax. */
+  eok_static_cast,      /* Generic static_cast from the source. */
+  eok_const_cast,       /* Generic const_cast from the source. */
+  eok_reinterpret_cast, /* Generic reinterpret_cast from the source. */
+#endif /* ifdef CIL */
   /* Special operators: */
   eok_error,            /* This is a special operator used in the cases when
                            the operator cannot be determined.  This operator
@@ -8060,6 +8103,15 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "()", "v()",
 #endif /* ifdef FIL */
    "va_start", "va_arg", "va_end",
+#ifdef CIL
+   "-T",
+   "T++", "T--", "++T", "--T",
+   "T+", "T-", "T*", "T/", "T==", "T!=", "T>", "T<", "T>=", "T<=",
+   "T=", "T+=", "T-=", "T*=", "T/=",
+   "&T", "T.", "T->", "T.*", "T->*",
+   "T.()", "T->()", "T.*()", "T->*()",
+   "static cast", "const cast", "reinterpret cast",
+#endif /* ifdef CIL */
    "error", "last"
 }
 #endif /* VAR_INITIALIZERS */

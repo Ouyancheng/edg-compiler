@@ -2165,6 +2165,40 @@ Display the name of an expression operator.
     case eok_va_start:          s = "eok_va_start";               break;
     case eok_va_arg:            s = "eok_va_arg";                 break;
     case eok_va_end:            s = "eok_va_end";                 break;
+#ifdef CFE
+    case eok_negate:            s = "eok_negate";                 break;
+    case eok_post_incr:         s = "eok_post_incr";              break;
+    case eok_post_decr:         s = "eok_post_decr";              break;
+    case eok_pre_incr:          s = "eok_pre_incr";               break;
+    case eok_pre_decr:          s = "eok_pre_decr";               break;
+    case eok_add:               s = "eok_add";                    break;
+    case eok_subtract:          s = "eok_subtract";               break;
+    case eok_multiply:          s = "eok_multiply";               break;
+    case eok_divide:            s = "eok_divide";                 break;
+    case eok_eq:                s = "eok_eq";                     break;
+    case eok_ne:                s = "eok_ne";                     break;
+    case eok_gt:                s = "eok_gt";                     break;
+    case eok_lt:                s = "eok_lt";                     break;
+    case eok_ge:                s = "eok_ge";                     break;
+    case eok_le:                s = "eok_le";                     break;
+    case eok_assign:            s = "eok_assign";                 break;
+    case eok_add_assign:        s = "eok_add_assign";             break;
+    case eok_subtract_assign:   s = "eok_subtract_assign";        break;
+    case eok_multiply_assign:   s = "eok_multiply_assign";        break;
+    case eok_divide_assign:     s = "eok_divide_assign";          break;
+    case eok_address:           s = "eok_address";                break;
+    case eok_dot_field:         s = "eok_dot_field";              break;
+    case eok_arrow_field:       s = "eok_arrow_field";            break;
+    case eok_pm_dot_field:      s = "eok_pm_dot_field";           break;
+    case eok_pm_arrow_field:    s = "eok_pm_arrow_field";         break;
+    case eok_dot_call:          s = "eok_dot_call";               break;
+    case eok_arrow_call:        s = "eok_arrow_call";             break;
+    case eok_pm_dot_call:       s = "eok_pm_dot_call";            break;
+    case eok_pm_arrow_call:     s = "eok_pm_arrow_call";          break;
+    case eok_static_cast:       s = "eok_static_cast";            break;
+    case eok_const_cast:        s = "eok_const_cast";             break;
+    case eok_reinterpret_cast:  s = "eok_reinterpret_cast";       break;
+#endif /* ifdef CFE */
     case eok_error:             s = "eok_error";                  break;
     default:                    s = "**BAD EXPR OPERATOR KIND**"; break;
   }  /* switch */
