@@ -2811,7 +2811,7 @@ typedef struct a_routine_type_supplement {
 			/* Calling convention for this routine (e.g.,
 			   __cdecl, __fastcall). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_type_ptr   this_class;
+  a_type_ptr	this_class;
 			/* For nonstatic member functions this is a pointer
 			   to the (unqualified, untypedefed) class type of
 			   which they are a member (i.e., the class of
@@ -4304,7 +4304,7 @@ enum a_storage_class_tag {
   /* Note that this represents the C concept of storage class.  In C++,
      the keyword "static" is also used to indicate static members of
      classes.  That kind of "static" is reflected in things other than
-     the storage class, e.g., the implicit_this_param_type for routines. */
+     the storage class, e.g., the this_class field for routines. */
   sc_extern,            /* External.  This implies a reference to something
                            defined in another compilation unit. */
   sc_static,            /* Static. */
@@ -5046,8 +5046,7 @@ typedef struct a_routine {
 			   class member, for example, is a storage class
 			   syntactically, but has a different effect, which
 			   is represented elsewhere (e.g., in the
-			   implicit_this_param_type field for a routine
-			   type). */
+			   this_class field for a routine type). */
   a_special_function_kind
 		special_kind;
 			/* An enumerator indicating the special member function
