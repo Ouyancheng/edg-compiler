@@ -510,9 +510,7 @@ extern void remove_from_destruction_list(a_dynamic_init_ptr  dip);
 
 extern void mark_object_lifetime_as_useless(an_object_lifetime_ptr  olp);
 
-extern void pop_object_lifetime(void);
-
-extern void pop_object_lifetimes_until(an_object_lifetime_ptr  stop_at);
+extern a_boolean pop_object_lifetime(void);
 
 extern an_object_lifetime_ptr innermost_block_object_lifetime(
                                              an_object_lifetime_ptr  olp);
