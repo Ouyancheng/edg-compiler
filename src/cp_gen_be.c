@@ -5186,7 +5186,9 @@ done_with_operation:
       break;
     case enk_new_delete:
       /* new or delete operation. */
+      if (need_parens) write_tok_ch('(');
       gen_new_delete(expr);
+      if (need_parens) write_tok_ch(')');
       break;
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */

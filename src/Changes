@@ -1,5 +1,12 @@
 Version 2.42
 
+4/21/99  C++-generating back end: parentheses around "new" if needed
+         to avoid ambiguity
+
+The C++-generating back end now puts parentheses around some "new"
+operations if needed to avoid ambiguity, e.g., "(new int)[0]" now
+comes out that way instead of the incorrect "new int[0]".
+
 4/21/99  C++-generating back end: avoid accidental digraph on template
          argument list
 
