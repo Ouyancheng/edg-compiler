@@ -1,5 +1,27 @@
 Version 2.33
 
+9/6/96  IL CHANGE: Representation for using-declarations and using-directives
+
+Data structures a_using_directive and a_class_member_using_declaration have
+been eliminated.  In their place a_using_decl has been added; it is used to
+represent using-directives, class member using-declarations, and nonmember
+using-declarations.  With this change, IL entries are now produced for
+nonmember using-declarations.
+
+The using_decls field in the scope entry for a class points to a linked list
+of class member using-declarations (the class_member_using_decls pointer in
+the class type supplement is no longer used).  In file, namespace, function,
+and block scopes it points to a linked list that can contain both
+using-directives and nonmember using-declarations.
+
+When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, source-sequence entries for
+nonmember using-declarations are now put out; they were already issued for
+class member using-declarations and using-directives.  In addition, when a
+using-declaration (either the member or nonmember case) refers to an
+overload set, only one using-decl entry in the set is pointed to by an
+iek_using_decl source-sequence entry; the rest are on a linked list (see
+next_in_overload_set in a_using_decl).
+
 9/4/96  Ambiguous undefined namespace projection symbol causes internal error
 
 An internal error may result when an ambiguous namespace projection symbol
