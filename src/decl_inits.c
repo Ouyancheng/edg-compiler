@@ -1558,8 +1558,9 @@ multiple designators are handled by the recursion in get_initializer.
   }  /* if */
   /* See whether the designator list ends here. */
   init_info->designation_state =
-       check_for_end_of_designation(/*allow_colon=*/extended_form,
-                                    /*assign_optional=*/FALSE);
+       check_for_end_of_designation(
+                             /*allow_colon=*/extended_form,
+                             /*assign_optional=*/extended_designators_allowed);
 }  /* get_field_designator */
 
 

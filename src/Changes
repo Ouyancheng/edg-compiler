@@ -1,5 +1,15 @@
 Version 3.4
 
+11/7/03  GNU compatibility: Designated initializer syntax
+
+When support for "extended designator" syntax is enabled (e.g., in GNU mode)
+the front end now accepts the normal field designator syntax without the
+trailing equal (=) token.  For example:
+
+  struct S { int i; } s = { .i 20 };  // Normally should be ".i = 20", but
+                                      // accepted as part of support for
+                                      // "extended designator syntax."
+
 11/5/03  GNU C++ compatibility: nonstandard template constructor definition
 
 The g++ compiler accepts a constructor definition in which the template
