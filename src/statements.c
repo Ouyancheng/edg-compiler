@@ -4119,9 +4119,9 @@ statement stack entry pointed to by sssep, for the case value indicated
 by *constant_ptr.  constant_ptr is NULL to indicate the default label.
 */
 {
-  a_switch_clause_ptr scp, prev_scp;
+  a_switch_clause_ptr scp, end_of_switch_clause_list;
   a_constant_ptr      cp, prev_cp;
-  a_boolean           can_add_to_curr_clause, err = FALSE;
+  a_boolean           can_add_to_curr_clause;
   a_boolean           label_directly_in_switch;
   a_statement_ptr     clause_stmts;
   a_reachability_summary
@@ -4131,50 +4131,64 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
 
   db_enter(4, "add_switch_clause");
 
+  check_assertion(constant_ptr == NULL || is_error_constant(constant_ptr) ||
+                  constant_ptr->kind == (a_constant_repr_kind)ck_integer);
   /* Set any_exec_statement_seen manually.  Normally, it is set when a
      statement is added to the IL, but case labels don't have an associated
      IL statement. */
   top_sssep->any_exec_statement_seen = TRUE;
-  /* Check to see if the constant (or default) already appears somewhere
-     in the switch clauses.  Also remember where the last entry is for later
-     addition of a new entry at the end of the list. */
-  for (prev_scp = NULL,
-         scp = sssep->statement->variant.switch_stmt.clause_list;
-       scp != NULL;
-       prev_scp = scp, scp = scp->next) {
-    if (constant_ptr == NULL) {
-      if (scp->constant_list == NULL) {
-        /* "default" appears more than once. */
-        error(ec_default_label_appears_more_than_once);
-        err = TRUE;
-        goto after_check;
-      }  /* if */
-    } else if (!is_error_constant(constant_ptr)) {
-      /* Check the list of constants in this clause to see if the new
-         constant appears thereon. */
-      check_assertion(constant_ptr->kind == (a_constant_repr_kind)ck_integer);
-      cp = scp->constant_list;
-      if (cp == NULL) {
-        /* This case clause must include a default label -- any other values
-           explicitly specified (if any) were discarded, so find them on
-           another list. */
-        cp = sssep->discarded_case_label_constants;
-      }  /* if */
-      for (; cp != NULL; cp = cp->next) {
-        check_assertion(cp->kind == (a_constant_repr_kind)ck_integer);
-        if (cmp_integer_constants(cp, constant_ptr) == 0) {
-          error(ec_case_label_appears_more_than_once);
-          err = TRUE;
-          goto after_check;
+  scp = sssep->statement->variant.switch_stmt.clause_list;
+  if (scp == NULL) {
+    /* This is the first switch clause. */
+    end_of_switch_clause_list = NULL;
+  } else {
+    /* Loop through the switch clauses to see if the constant (or default)
+       has already appeared.  Also record the end of the list in case a new
+       switch clause needs to be added. */
+    a_boolean  err = FALSE;
+
+    for (;; scp = scp->next) {
+      if (!err) {
+        if (constant_ptr == NULL) {
+          if (scp->constant_list == NULL) {
+            /* "default" appears more than once. */
+            error(ec_default_label_appears_more_than_once);
+            err = TRUE;
+          }  /* if */
+        } else if (!is_error_constant(constant_ptr)) {
+          /* Check the list of constants in this clause to see if the new
+             constant appears on it. */
+          cp = scp->constant_list;
+          if (cp == NULL) {
+            /* This case clause must include a default label -- if any other
+               values were explicitly specified, they were discarded, so find
+               them on another list. */
+            cp = sssep->discarded_case_label_constants;
+          }  /* if */
+          for (; cp != NULL; cp = cp->next) {
+            if (!is_error_constant(cp)) {
+              check_assertion(cp->kind == (a_constant_repr_kind)ck_integer);
+              if (cmp_integer_constants(cp, constant_ptr) == 0) {
+                error(ec_case_label_appears_more_than_once);
+                err = TRUE;
+                break;
+              }  /* if */
+            }  /* if */
+          }  /* for */
         }  /* if */
-      }  /* for */
-    }  /* if */
-  }  /* for */
-after_check:
-  if (err) {
-    /* An error case; use an error constant instead. */
-    constant_ptr = alloc_constant((a_constant_repr_kind)ck_error);
-    set_error_constant(constant_ptr);
+      }  /* if */
+      if (scp->next == NULL) {
+        /* Break out of the loop.  First set the end-of-list pointer and do
+           the fixup in case a duplicate was found. */
+        end_of_switch_clause_list = scp;
+        if (err) {
+          /* An error case; use an error constant instead. */
+          constant_ptr = alloc_constant((a_constant_repr_kind)ck_error);
+          set_error_constant(constant_ptr);
+        }  /* if */
+        break;
+      }  /* if */
+    }  /* for */
   }  /* if */
   /* There is a strange case in switches, where case labels appear within
      a structured statement nested within the switch, rather than directly
@@ -4261,10 +4275,10 @@ after_check:
     /* The new value cannot be added to the current switch clause; a new
        clause must be created, and the new value added to it. */
     scp = alloc_switch_clause();
-    if (prev_scp == NULL) {
+    if (end_of_switch_clause_list == NULL) {
       sssep->statement->variant.switch_stmt.clause_list = scp;
     } else {
-      prev_scp->next = scp;
+      end_of_switch_clause_list->next = scp;
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry for the switch clause. */
@@ -4288,29 +4302,41 @@ after_check:
          indicate that the clause includes a default label. */
       scp->constant_list = NULL;
     }  /* if */
-  } else if (!is_error_constant(constant_ptr)) {
-    check_assertion(constant_ptr->kind == (a_constant_repr_kind)ck_integer);
-    if (can_add_to_curr_clause && scp->constant_list == NULL) {
-      /* The clause must include the default case (since constant_list is
-         NULL), so specifying any other case-labels following "default" is
-         redundant.  Put the constant onto the discarded constants list. */
-      if (constant_ptr != NULL) {
-        constant_ptr->next = sssep->discarded_case_label_constants;
-        sssep->discarded_case_label_constants = constant_ptr;
-      }  /* if */
+  } else if (can_add_to_curr_clause && scp->constant_list == NULL) {
+    /* The clause must include the default case (since constant_list is
+       NULL), so specifying any other case-labels following "default" is
+       redundant.  Put the constant onto the discarded constants list. */
+    constant_ptr->next = sssep->discarded_case_label_constants;
+    sssep->discarded_case_label_constants = constant_ptr;
+  } else if (is_error_constant(constant_ptr)) {
+    /* Stick an error constant at the end of the constants list for the
+       switch clause.  This has to be done when the pointer is NULL to keep
+       this switch clause from looking like one with a default-label. */
+    if (scp->constant_list == NULL) {
+      scp->constant_list = constant_ptr;
     } else {
-      /* Add a case value at the right spot on the list of constants. */
-      prev_cp = NULL;
-      for (cp = scp->constant_list;
-           cp != NULL && cmp_integer_constants(cp, constant_ptr) < 0;
-           prev_cp = cp, cp = cp->next) {};
-      if (prev_cp == NULL) {
-        scp->constant_list = constant_ptr;
-      } else {
-        prev_cp->next = constant_ptr;
-      }  /* if */
-      constant_ptr->next = cp;
+      for (cp = scp->constant_list; cp->next != NULL; cp = cp->next) {}
+      cp->next = constant_ptr;
     }  /* if */
+  } else {
+    check_assertion(constant_ptr->kind == (a_constant_repr_kind)ck_integer);
+    /* Add a case value at the right spot on the list of constants. */
+    for (prev_cp = NULL, cp = scp->constant_list;
+         cp != NULL;
+         prev_cp = cp, cp = cp->next) {
+      /* Stop when an error constant is seen (they are accumulated at the
+         end of the list) or when the value exceeds that of the constant
+         being added. */
+      if (is_error_constant(cp) ||
+          cmp_integer_constants(cp, constant_ptr) > 0) break;
+    }  /* for */
+    /* Insert in front of the constant that stopped the loop. */
+    if (prev_cp == NULL) {
+      scp->constant_list = constant_ptr;
+    } else {
+      prev_cp->next = constant_ptr;
+    }  /* if */
+    constant_ptr->next = cp;
   }  /* if */
   if (can_add_to_curr_clause) {
     /* For the case where the value could be added to the current clause, we
