@@ -5850,10 +5850,17 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
             /* This is a free standing declaration of a class, struct, union,
                or enum type entry.  It will already have been recorded on the
                types list for the current class.  No need to complain about a
-               missing identifier.  Just bypass the semicolon. */
-#if 0
-  /* Check for "inline", "const", "static", etc. here. */
-#endif /* if 0 */
+               missing identifier.  Just bypass the semicolon, after checking
+               for some errors. */
+            if (member_storage_class != (a_storage_class)sc_unspecified) {
+              pos_error(ec_storage_class_not_allowed, &decl_start_pos);
+            }  /* if */
+            if (inline_specified) {
+              pos_error(ec_inline_not_allowed, &decl_start_pos);
+            }  /* if */
+            if (is_qualified_type(member_type)) {
+              pos_error(ec_useless_type_qualifiers, &decl_start_pos);
+            }  /* if */
             (void)get_token();
             goto next_declaration;
           } else if (local_defines_something &&
