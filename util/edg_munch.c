@@ -115,7 +115,7 @@ to the number of characters read not including the trailing null character.
 {
   register char*    buffer_pos = &input_line_buffer[0];
   register int      size = 0;
-  register char     ch;
+  register int      ch;
   int               result;
 
   while (ch = getchar(), ch != EOF && ch != '\n') {
@@ -178,7 +178,7 @@ length of the name.
 
   /* Get the type code. */
   type = *pos++;
-  if (!isalpha(type)) goto invalid_input;
+  if (!isalpha((unsigned char)type)) goto invalid_input;
 
   /* Look for blank after type. */
   if (*pos++ != ' ') goto invalid_input;

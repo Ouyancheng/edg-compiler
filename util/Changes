@@ -1,5 +1,11 @@
 Version 2.22
 
+1/17/94  Portability issues
+
+edg_munch incorrectly used a char as the return value of getc.  edg_munch
+and edg_prelink failed to cast the argument of isalpha to unsigned char.
+These have been fixed.
+
 1/5/94   Version of getopt routine now provided
 
 The utility programs now provide their own version of the getopt

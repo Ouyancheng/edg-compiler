@@ -596,7 +596,7 @@ processed further.
     while (*pos == ' ') pos++;
     /* Get the type code. */
     *type = *pos++;
-    if (!isalpha(*type)) pl_invalid_input();
+    if (!isalpha((unsigned char)(*type))) pl_invalid_input();
     /* Look for blank after type. */
     if (*pos++ != ' ') pl_invalid_input();
     /* Note that the Solaris format is not expected to contain
@@ -781,7 +781,7 @@ processed further.
     while (*pos == ' ') pos++;
     /* Get the type code. */
     *type = *pos++;
-    if (!isalpha(*type)) pl_invalid_input();
+    if (!isalpha((unsigned char)(*type))) pl_invalid_input();
     if (nm_format == nmfk_HPUX) {
       /* HP/UX uses lower case letters for some types. */
       switch (*type) {
