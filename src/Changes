@@ -1,5 +1,18 @@
 Version 2.40
 
+11/4/98   Internal error on specialization of member with incomplete array type
+
+An internal error would result if a template static data member, whose type
+is an incomplete array type, was specialized.  This has been fixed.
+
+  struct B {
+    B(int);
+  };
+  template <class T> struct A {
+    static const B b[];
+  };
+  template <> const B A<int>::b [] = { 0 };
+
 11/2/98   Set access in IL template entry for member templates
 
 When RECORD_TEMPLATES_IN_IL is configured to TRUE, the access field of an
