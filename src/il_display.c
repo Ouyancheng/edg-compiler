@@ -1923,7 +1923,7 @@ Display the indicated variable.
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   if (ptr->asm_name_is_valid) {
     if (ptr->asm_name_or_reg.name != NULL) {
-      disp_string_ptr("asm_name", ptr->section, iek_other_text, 
+      disp_string_ptr("asm_name", ptr->asm_name_or_reg.name, iek_other_text, 
                       (sizeof_t)0);
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
@@ -2521,8 +2521,8 @@ Display the indicated routine.
     disp_name("builtin_function_kind");
     disp_builtin_function_kind_name(ptr->variant.builtin_function_kind);
     (void)printf("\n");
-  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
   if (ptr->address_taken) {
     disp_boolean("address_taken", TRUE);
   }  /* if */

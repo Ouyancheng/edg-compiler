@@ -1613,6 +1613,23 @@ Return true if "type" is the same entity as a type_info type.
 }  /* same_entity_as_a_type_info_type */
 
 
+static void duplicate_friend_sym_in_namespace(a_scope_depth  *scope_depth,
+                                              a_symbol_ptr   *sym)
+/*
+The given symbol was created for a friend class declaration during a
+prototype instantiation.  It is therefore associated with a template
+instantiation scope.  Duplicate this symbol in the surrounding namespace
+scope, but keep it hidden in that scope until a visible declaration of
+the class is made.  Update *sym to the duplicated symbol value and
+*scope_depth to the namespace scope in which it was added.
+*/
+{
+  *scope_depth = depth_innermost_namespace_scope;
+  *sym = enter_copy_of_symbol(*sym, *scope_depth, /*suppress_error=*/FALSE);
+  (*sym)->is_invisible = TRUE;
+}  /* duplicate_friend_sym_in_namespace */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -2505,10 +2522,21 @@ new expression and should therefore not be treated as a declaration.
     }  /* if */
   }  /* if */
   if (tag_sym->kind != (a_symbol_kind)sk_type &&
-      !is_redeclaration && !is_template_specific_decl &&
-      may_be_added_to_types_list(class_type, effective_decl_level)) {
+      !is_redeclaration && !is_template_specific_decl) {
     /* This is the initial declaration of this class type. */
-    add_to_types_list(class_type, effective_decl_level);
+    if (is_friend_decl && prototype_instantiations_in_il &&
+        scope_stack[effective_decl_level].kind ==
+                                   (a_scope_kind)sck_template_instantiation &&
+        !is_template_dependent_type(class_type)) {
+      /* Nondependent types named in friend class declarations during a
+         prototype instantiation are associated with two symbols: one in
+         the template instantiation scope (visible) and one in the surrounding
+         namespace scope (invisible). */
+      duplicate_friend_sym_in_namespace(&effective_decl_level, &tag_sym);
+    }  /* if */
+    if (may_be_added_to_types_list(class_type, effective_decl_level)) {
+      add_to_types_list(class_type, effective_decl_level);
+    }  /* if */
   }  /* if */
   if (err ||
       (depth_template_declaration_scope != NO_SCOPE_DEPTH &&

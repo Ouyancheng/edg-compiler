@@ -1,5 +1,18 @@
 Version 3.1
 
+10/9/02  Invalid IL for some friend class declarations in templates
+
+The IL produced for some nondependent friend class declarations appearing in
+class templates was sometimes invalid.  For example:
+
+  template<typename T> struct S {
+    friend class C;
+  };
+
+The IL entry for C was placed in the wrong scope.  This in turn could cause
+the IL display utility to abort with an IL write-read error.  The problem is
+now fixed.
+
 10/9/02  Guiding declarations disabled in default mode
 
 The ARM and early drafts of the C++ standard included feature known as

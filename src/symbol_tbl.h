@@ -2951,9 +2951,9 @@ extern void reenter_symbol(a_symbol_ptr     symbol_to_reenter,
                            a_scope_depth    scope_depth,
                            a_boolean        suppress_error);
 
-extern void enter_copy_of_symbol(a_symbol_ptr     orig_sym,
-				 a_scope_depth    scope_depth,
-		                 a_boolean        suppress_error);
+extern a_symbol_ptr enter_copy_of_symbol(a_symbol_ptr     orig_sym,
+                                         a_scope_depth    scope_depth,
+                                         a_boolean        suppress_error);
 
 extern a_symbol_ptr enter_extern_symbol(a_symbol_kind    sym_kind,
                                         a_symbol_locator *locator);

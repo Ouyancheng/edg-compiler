@@ -4059,9 +4059,9 @@ defined in that scope and name space unless suppress_error is TRUE.
 }  /* reenter_symbol */
 
 
-void enter_copy_of_symbol(a_symbol_ptr     orig_sym,
-			  a_scope_depth    scope_depth,
-	                  a_boolean        suppress_error)
+a_symbol_ptr enter_copy_of_symbol(a_symbol_ptr     orig_sym,
+                                  a_scope_depth    scope_depth,
+                                  a_boolean        suppress_error)
 /*
 Enter a copy of a symbol table entry into the symbol table.  orig_sym
 points to a symbol that is in the symbol table.  scope_depth indicates the
@@ -4088,6 +4088,7 @@ unless suppress_error is TRUE.
   link_symbol_into_symbol_table(new_sym, scope_depth,
                                 suppress_error);
   db_exit();
+  return new_sym;
 }  /* enter_copy_of_symbol */
 
 

@@ -2180,7 +2180,8 @@ symbol table.
   push_template_declaration_scope(decl_info);
   for (tpp = decl_info->parameters; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr	sym = tpp->param_symbol;
-    enter_copy_of_symbol(sym, depth_scope_stack, /*suppress_error=*/TRUE);
+    (void)enter_copy_of_symbol(sym, depth_scope_stack,
+                               /*suppress_error=*/TRUE);
   }  /* for */
 }  /* reactivate_template_declaration_scope */
 
