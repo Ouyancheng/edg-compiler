@@ -1377,22 +1377,23 @@ static void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp)
 Initialize the fields in a scope-pointers-block substructure.
 */
 {
-  spbp->symbols               = NULL;
-  spbp->last_symbol           = NULL;
-  spbp->last_constant         = NULL;
-  spbp->last_type             = NULL;
-  spbp->last_variable         = NULL;
-  spbp->last_routine          = NULL;
-  spbp->last_asm_entry        = NULL;
-  spbp->last_namespace        = NULL;
-  spbp->last_pragma           = NULL;
+  spbp->symbols                      = NULL;
+  spbp->last_symbol                  = NULL;
+  spbp->last_constant                = NULL;
+  spbp->last_type                    = NULL;
+  spbp->last_variable                = NULL;
+  spbp->last_routine                 = NULL;
+  spbp->last_asm_entry               = NULL;
+  spbp->last_namespace               = NULL;
+  spbp->last_pragma                  = NULL;
 #if RECORD_HIDDEN_NAMES_IN_IL
-  spbp->last_hidden_name      = NULL;
+  spbp->last_hidden_name             = NULL;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if RECORD_TEMPLATES_IN_IL
-  spbp->last_template         = NULL;
+  spbp->last_template                = NULL;
 #endif /* RECORD_TEMPLATES_IN_IL */
-  spbp->unnamed_namespace_sym = NULL;
+  spbp->unnamed_namespace_sym        = NULL;
+  spbp->add_symbols_to_inactive_list = FALSE;
 }  /* clear_scope_pointers_block */
 
 
@@ -2118,7 +2119,7 @@ symbol must be added to the inactive list.
   if (sym_ptr->is_error) {
     /* Error symbols are never added to the symbol table. */
   } else {
-    a_boolean	is_namespace_extension = FALSE;
+    a_boolean	add_sym_to_inactive_list = FALSE;
 #if CHECKING
     if (hdr_ptr == NULL || hdr_ptr == error_symbol_header) {
       internal_error("link_symbol_into_symbol_table: NULL or error header");
@@ -2130,9 +2131,17 @@ symbol must be added to the inactive list.
          for keywords and command-line -D options, for example.  No error
          check is done. */
     } else {
-      is_namespace_extension = scope_stack[scope_depth].kind ==
-                                         (a_scope_kind)sck_namespace_extension;
-      if (is_namespace_extension) {
+      if (scope_stack[scope_depth].kind ==
+                                      (a_scope_kind)sck_namespace_extension) {
+        /* Once the initial namespace definition has been closed, additional
+           symbols for the namespace are added to the inactive list.  The
+           flag in the assoc_pointers_block needs to be tested because it
+           is possible for namespace extension scopes to be pushed while the
+           initial namespace definition is still in progress. */
+        add_sym_to_inactive_list = scope_stack[scope_depth].
+                            assoc_pointers_block->add_symbols_to_inactive_list;
+      }  /* if */
+      if (add_sym_to_inactive_list) {
         /* Symbols entered into namespace extension scopes are added
            directly to the inactive list.  The sequence of symbols on the
            inactive list is not significant. */
@@ -2208,9 +2217,9 @@ symbol must be added to the inactive list.
            symbols from the appropriate scope. */
         for (; old_sym_ptr != NULL &&
                (old_sym_ptr->decl_scope == scope_number ||
-                                                       is_namespace_extension);
+                                                     add_sym_to_inactive_list);
              old_sym_ptr = old_sym_ptr->next) {
-          /* If this is a symbols from another scope (which can only occur
+          /* If this is a symbol from another scope (which can only occur
              when adding to a namespace extension scope) skip this symbol. */
           if (old_sym_ptr->decl_scope != scope_number) continue;
           if (name_space_for_symbol_kind[(int)old_sym_ptr->kind] ==
@@ -2261,7 +2270,7 @@ symbol must be added to the inactive list.
         }  /* for */
       }  /* if */
     }  /* if */
-    if (is_namespace_extension) {
+    if (add_sym_to_inactive_list) {
       /* In namespace extension scopes, just add the symbol to the
          inactive list.  The sequence is not significant. */
       add_symbol_to_inactive_list(sym_ptr);
@@ -8739,6 +8748,14 @@ End a name scope by popping an entry off the scope stack.
   check_assertion_str2(ssep->defer_access_checks == FALSE &&
                        ssep->deferred_access_checks == NULL,
                        "pop_scope:", "deferred access checks still on list");
+  /* If a primary definition of a namespace is being popped (i.e., the
+     initial definition of the namespace is complete), set the flag
+     in the namespace's scope_pointers_block to indicate that any
+     symbols that are subsequently added to the scope should be added
+     directly to the inactive list. */
+  if (kind == (a_scope_kind)sck_namespace) {
+    ssep->assoc_pointers_block->add_symbols_to_inactive_list = TRUE;
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
   if (db_active) {
