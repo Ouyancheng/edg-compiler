@@ -1061,15 +1061,20 @@ otherwise, allocate it in the current scope.
 }  /* make_temporary_possibly_at_file_scope */
 
 
-a_variable_ptr make_unnamed_local_static_variable(a_type_ptr type)
+a_variable_ptr make_unnamed_local_static_variable(a_type_ptr type,
+                                                  a_boolean  in_function_scope)
 /*
 Make an unnamed local static variable with the indicated type and return
-a pointer to it.
+a pointer to it.  If in_function_scope is TRUE, add it to the function scope
+instead of the current context (which might be a block scope).
 */
 {
   check_assertion_str(curr_context != NULL,
                    "make_unnamed_local_static_variable: curr_context is NULL");
-  return make_temporary_in_scope(type, curr_context->scope,
+  return make_temporary_in_scope(type,
+                                 in_function_scope ?
+                                              nearest_function_context->scope :
+                                              curr_context->scope,
                                  /*force_static=*/TRUE);
 }  /* make_unnamed_local_static_variable */
 
@@ -6349,6 +6354,7 @@ Do IL lowering of the indicated statement and everything under it.
   a_context          context, dependent_context;
   a_scope_ptr        scope;
   an_insert_location insert_location;
+  a_statement_ptr    statement_list;
   a_statement_ptr    last_statement, body_statement, return_statement;
   a_boolean          make_block;
   an_expr_node_ptr   return_expr;
@@ -6512,11 +6518,28 @@ Do IL lowering of the indicated statement and everything under it.
            topmost block in a function (it has a NULL assoc_scope); the
            push_context has already been done in lower_scope for that case. */
         scope = statement->variant.block.extra_info->assoc_scope;
+        /* Save the statement list pointer early in case code is inserted
+           to initialize the catch handler parameter. */
+        statement_list = statement->variant.block.statements;
         if (scope != NULL) {
           push_context(&context, scope, /*subscope_region=*/FALSE);
+          if (scope->variant.assoc_handler != NULL) {
+            /* This statement is the dependent statement of a catch handler.
+               Generate code to initialize the catch parameter if there
+               is one. */
+            initialize_catch_parameter(scope->variant.assoc_handler);
+          }  /* if */
         }  /* if */
-        lower_statement_list(statement->variant.block.statements,
-                             &last_statement);
+        lower_statement_list(statement_list, &last_statement);
+        if (last_statement == NULL &&
+            statement->variant.block.statements != NULL) {
+          /* If the block was originally empty but some statements were
+             added to initialize the catch handler parameter, find the
+             last statement. */
+          for (last_statement = statement->variant.block.statements;
+               last_statement->next != NULL;
+               last_statement = last_statement->next) {}
+        }  /* if */
         /* Generate any required destructor calls and pop the context. */
         if (scope != NULL) pop_block_scope_context(last_statement);
         break;
