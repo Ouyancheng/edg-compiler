@@ -684,9 +684,11 @@ requires cleanup.
     } else {
       /* A new allocation region.  Call the delete operator to free the
          space. */
-      a_delete_ptr	delete_ptr;
-      delete_ptr = (a_delete_ptr)ehrdp->destructor_or_delete_routine;
-      (delete_ptr)(obj_addr);
+      if (obj_addr != NULL) {
+        a_delete_ptr	delete_ptr;
+        delete_ptr = (a_delete_ptr)ehrdp->destructor_or_delete_routine;
+        (delete_ptr)(obj_addr);
+      }  /* if */
     }  /* if */
     region = ehrdp->index_of_previous_region;
   }  /* for */
