@@ -406,7 +406,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         sym = locator_for_curr_id.specific_symbol;
         if (!type_specifier_seen && 
             (prescan_curr_id_is_type_name() ||
-             sym != NULL && sym->kind == (a_symbol_kind)sk_class_template)) {
+             (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template))) {
           /* A class template will probably result in a "missing template
              argument list" error later.  Consider it as a type name for now
              though. */
@@ -9924,7 +9924,7 @@ an asm "declaration" is actually treated as an executable statement.
   if (!asm_decl_allowed) {
     /* An asm declaration is not allowed in the current scope. */
     error(ec_asm_not_allowed);
-    discard_curr_construct_pragmas;
+    discard_curr_construct_pragmas();
   } else {
     /* Issue diagnostics on pragmas that are trying to bind to an asm
        declaration. */
