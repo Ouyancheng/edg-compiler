@@ -779,7 +779,7 @@ Check the list of array types to be fixed up, to see if any of their element
 types now have a size.  This is used only rarely, when a file-scope variable
 is declared with an array type whose elements are an incomplete struct or
 union type (this is an extension).  The array type size cannot be determined
-when it is declared, so it it put on a list of types to be fixed up.
+when it is declared, so it is put on a list of types to be fixed up.
 This routine is called when a struct or union type is completed; it checks
 to see if any of the types on the list can now be given sizes.
 */
