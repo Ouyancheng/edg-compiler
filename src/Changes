@@ -248,7 +248,7 @@ TYPE_OF_AN_INTEGER_VALUE and TYPE_OF_A_SIGNED_INTEGER_VALUE, respectively.
 2/19/97  Multibyte characters accepted in source
 
 Multibyte character sequences are now accepted in comments, string
-literals, characters constants, and header names.  They are not
+literals, character constants, and header names.  They are not
 supported by default: see MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED.
 When supported, they are enabled according to
 DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED and the --[no_]multibyte_chars
