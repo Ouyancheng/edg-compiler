@@ -2615,7 +2615,7 @@ if no such field was found (always a safe answer).
   for (field = class_type->variant.class_struct_union.field_list;
        field != NULL;
        field = field->next) {
-    a_type_ptr ftype = skip_typerefs(field->type);
+    a_type_ptr ftype = f_skip_typerefs(find_bottom_of_type(field->type));
     if (ftype == type) goto have_number;
     /* Count only fields with unnamed class or enum types. */
     if ((is_immediate_class_type(ftype) &&

@@ -1,5 +1,28 @@
 Version 3.5
 
+9/15/04  Incorrect name mangling for nested unnamed struct
+
+The front end sometimes generated the same mangled name for two
+different unnnamed structs that are nested classes.  The problem
+cases are those where the struct is used as an array element or
+type pointed to, instead of directly as the type of a field.
+Now fixed.
+
+  struct needs_ct {
+    needs_ct();
+  };
+  struct foo {
+    foo();
+    struct {
+      needs_ct x;
+    } mem1;
+    struct {
+      needs_ct y;
+    } mem2[2];
+  };
+  foo::foo() { }
+
+
 9/15/04  C++-generating back end: Abort on nonstandard GNU specialization
 
 Nonstandard out-of-class member specializations (an extension accepted in some
