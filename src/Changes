@@ -1,5 +1,16 @@
 Version 3.5
 
+5/20/04  Spurious warning on conversion of large unsigned constant
+
+Version 3.4 introduced a problem where a spurious out-of-range diagnostic
+was issued if a large unsigned constant was converted to floating-point or
+fixed-point.  The warning was issued if the value fit in a_host_large_unsigned
+but not in a_host_large_integer.  Now fixed.
+
+  bool g(float f) {
+    return f != 0xffffffffffffffffULL;
+  }
+
 5/20/04  Abort in preprocessor with macro call continued on next line
 
 Changes made in 3.4 (see Changes entry of 4/29/04) broke cases

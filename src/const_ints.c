@@ -135,6 +135,11 @@ large unsigned if is_signed is FALSE) otherwise set err to FALSE.
 static char *str_for_integer_value(an_integer_value	*p_value,
 				   a_boolean		is_signed);
 
+static a_host_large_unsigned unsigned_value_of_integer_value(
+					    an_integer_value	*int_value,
+					    a_boolean		is_signed,
+					    a_boolean		*ovflo);
+
 void conv_integer_value_to_float(an_integer_value		*int_value,
 				 a_boolean			is_signed,
 			         an_internal_float_value	*float_value,
@@ -157,7 +162,8 @@ an error occurred during the conversion.
   } else {
     /* The source is an unsigned integer value. */
     a_host_large_unsigned   hlu_temp;
-    hlu_temp = value_of_integer_value(int_value, /*is_signed=*/FALSE, err);
+    hlu_temp = unsigned_value_of_integer_value(int_value, /*is_signed=*/FALSE,
+                                               err);
     if (!*err) {
       fp_host_large_unsigned_to_float(float_kind, hlu_temp, float_value, err);
     }  /* if */
@@ -211,6 +217,33 @@ If the value is not representable as a host large integer, return *ovflo TRUE.
 }  /* value_of_integer_value */
 
 
+static a_host_large_unsigned unsigned_value_of_integer_value(
+					    an_integer_value	*int_value,
+					    a_boolean		is_signed,
+					    a_boolean		*ovflo)
+/*
+Retrieve the value of the int_value and return it as a host large
+unsigned.  is_signed indicates whether int_value should be treated as signed.
+If the value is not representable as a host large unsigned, return *ovflo TRUE.
+*/
+{
+  a_host_large_integer	value;
+  a_boolean		err;
+
+  *ovflo = FALSE;
+  /* Note that the value is returned in a host large integer, but the value
+     is actually unsigned when is_signed is FALSE. */
+  conv_integer_value_to_host_large_integer(int_value, is_signed,
+                                           &value, &err);
+  if (err || (is_signed && sign_of(*int_value))) {
+    /* An integer value that can't be represented as a host large unsigned,
+       or a value is negative. */
+    *ovflo = TRUE;
+  }  /* if */
+  return (a_host_large_unsigned)value;
+}  /* unsigned_value_of_integer_value */
+
+
 a_host_large_integer value_of_integer_constant(a_constant *cp,
                                                a_boolean  *ovflo)
 /*
@@ -235,18 +268,10 @@ large unsigned.  If the value is not representable as a host large unsigned,
 return *ovflo TRUE.
 */
 {
-  a_host_large_integer	value;
-  a_boolean		is_signed = int_constant_is_signed(cp);
-  a_boolean		err;
+  a_host_large_unsigned	value;
 
-  *ovflo = FALSE;
-  conv_integer_value_to_host_large_integer(&cp->variant.integer_value,
-                                           is_signed, &value, &err);
-  if ((value < 0 && is_signed) || err) {
-    /* Signed constant with negative value or an integer value that can't
-       be represented as a host large unsigned. */
-    *ovflo = TRUE;
-  }  /* if */
+  value = unsigned_value_of_integer_value(&cp->variant.integer_value,
+                                          int_constant_is_signed(cp), ovflo);
   return value;
 }  /* unsigned_value_of_integer_constant */
 
