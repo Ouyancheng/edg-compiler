@@ -2183,6 +2183,9 @@ error code.
     case ec_void_throw:
       m = "a throw expression may not have void type";
       break;
+    case ec_cl_tim_local_conflicts_with_auto_instantiation:
+      m = "-tlocal mode is incompatible with automatic instantiation";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

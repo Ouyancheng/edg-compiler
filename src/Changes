@@ -1,5 +1,19 @@
 Version 2.22
 
+2/21/94  Function linkage in -tlocal mode
+
+An interaction between automatic instantiation and -tlocal mode caused
+functions that should have been given static linkage to be given
+external linkage instead.  This has been fixed.
+
+2/21/94  -tlocal mode and automatic instantiation
+
+The prelinker requires that generated instantiations be given external
+linkage.  To prevent prelinker failures, the front end has been
+modified to disable automatic instantiation when -tlocal mode is used.
+If your prelinker works with functions with static linkage you will
+need to undo this change.
+
 2/21/94  throw of expression with void type is an error
 
 A throw of an expression with void type is now diagnosed as an error.
