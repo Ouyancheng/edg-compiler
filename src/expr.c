@@ -7645,26 +7645,39 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         pointer_difference = TRUE;
         /* In ANSI C, both operands must be pointers to qualified or
            unqualified members of compatible object types (ANSI C 3.3.6).
-           In C++, the standard pointer conversions are also done
-           (ARM 4.6, 5.7). */
-        if (check_compatibility_of_pointer_operands(
+           In C++, the standard pointer conversions are also done (ARM 4.6,
+           5.7). Result has type ptrdiff_t (see 3.3.6 and <stddef.h>). */
+        if (!check_object_pointer_operand(operand_1,
+                                          ec_expr_not_pointer_to_object) ||
+            !check_object_pointer_operand(&operand_2,
+                                          ec_expr_not_pointer_to_object)) {
+          err = TRUE;
+        } else {
+          if (identical_types(
+                           skip_typerefs(type_pointed_to(operand_1->type)),
+                           skip_typerefs(type_pointed_to(operand_2.type)))) {
+            result_type = integer_type(targ_ptrdiff_t_int_kind);
+          } else if (check_compatibility_of_pointer_operands(
                            operand_1, &operand_2, &operator_position,
                            /*pointer_normalization_standard_in_C=*/FALSE,
                            /*pointers_to_functions_standard_in_C=*/FALSE,
                            /*pointers_to_incomplete_standard_in_C=*/FALSE,
                            /*mixed_object_and_incomplete_standard_in_C=*/FALSE,
-                           &operation_type) &&
-            check_object_pointer_operand(operand_1,
-                                         ec_expr_not_pointer_to_object) &&
-            check_object_pointer_operand(&operand_2,
-                                         ec_expr_not_pointer_to_object)) {
-          /* Difference between compatible pointers.  Result has type
-             ptrdiff_t (see 3.3.6 and <stddef.h>). */
-          result_type = integer_type(targ_ptrdiff_t_int_kind);
-        } else {
-          /* Difference between incompatible pointers.  Error has already been
-             issued. */
-          err = TRUE;
+                           &operation_type)) {
+            /* Traditionally, certain differences in the types pointed to have
+               been accepted. */
+            if (!(any_cfront_mode() || microsoft_mode)) {
+              pos_ty2_diagnostic(strict_ansi_mode ? strict_ansi_error_severity
+                                                  : es_warning,
+                                 ec_nonstandard_ptr_minus_ptr,
+                                 &operator_position,
+                                 operand_1->type, operand_2.type);
+            }  /* if */
+            result_type = integer_type(targ_ptrdiff_t_int_kind);
+          } else {
+            /* An error message was already issued. */
+            err = TRUE;
+          }  /* if */
         }  /* if */
       } else {
         /* Pointer +- non-integral.  Error. */

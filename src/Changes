@@ -1,5 +1,19 @@
 Version 2.43
 
+9/22/99  Diagnostic on nonstandard subtraction of pointers
+
+The front end now diagnoses subtraction of pointer types that differ in more
+than just their cv-qualification signatures (error in strict ANSI mode,
+warning otherwise).
+
+  struct B {};
+  struct D: B {};
+  void f(B *p1, D const *p2) {
+    p1 - p2; // Used to compile without diagnostic; error or warning now.
+  }
+
+However, no new diagnostics are issued in Microsoft and Cfront modes.
+
 9/22/99  Microsoft compatibility: "asm" not a keyword in C mode
 
 In Microsoft C mode, "asm" is no longer treated as a keyword.

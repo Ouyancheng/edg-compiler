@@ -1040,6 +1040,7 @@ ec_bad_qualified_function_type_parameter;;"a qualified function type cannot be u
 ec_ptr_or_ref_to_qualified_function_type;;"cannot create a pointer or reference to qualified function type"
 ec_nonstd_braces;;"extra braces are nonstandard"
 ec_bad_cmd_line_macro;;"invalid macro definition: "
+ec_nonstandard_ptr_minus_ptr;;"subtraction of pointer types %t1 and %t2 is nonstandard"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
