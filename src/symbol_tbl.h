@@ -220,8 +220,8 @@ Clear a symbol locator.
 
 /*
 Kinds of symbols in the symbol table.
-(If this is changed, the definition for name_space_for_symbol_kind in
-fe_init.c should also be changed.)
+If this is changed, the definitions for name_space_for_symbol_kind (in
+fe_init.c), and symbol_kind_names (below) should also be changed.
 */
 enum a_symbol_kind_tag {
   sk_keyword,    	/* Language keyword. */
@@ -257,23 +257,24 @@ enum a_symbol_kind_tag {
 typedef a_byte a_symbol_kind;
 
 
-#if DEBUG
 /*
-Table of names corresponding to symbol kinds, for debug purposes.
+Table of names corresponding to symbol kinds.
 */
-EXTERN char	*db_sym_names[(int)sk_last + 1]
+EXTERN char	*symbol_kind_names[(int)sk_last + 1]
 #if VAR_INITIALIZERS
 = {
-   "keyword", "macro", "constant", "type", "class-or-struct", "union",
-   "enum", "variable", "field", "static-data-member", "member-function",
-   "routine", "label", "undefined", "extern-variable", "extern-routine",
-   "projection", "overloaded-function", "parameter", "class-template",
-   "function-template", "static-data-member-template",
+   "keyword", "macro", "constant", "type", "class or struct", "union",
+   "enum", "variable", "field", "static data member", "member function",
+   "routine", "label", "undefined", "extern variable", "extern routine",
+   "projection", "overloaded function", "parameter", "class template",
+   "function template", "static data member template",
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
 ;
-#endif /* DEBUG */
+
+/* Macro to return the name of a symbol kind. */
+#define name_of_symbol_kind(kind) symbol_kind_names[(int)(kind)]
 
 
 /*
