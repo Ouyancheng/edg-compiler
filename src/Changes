@@ -1,5 +1,18 @@
 Version 3.2
 
+5/7/03   Internal error on overloaded template with explicit argument list
+
+An internal error (in equiv_template_arg_lists) could occur when using
+an explicit template argument list, but no destination type, to identify
+a unique instance of a function template from an overload set containing
+multiple templates.  Now fixed.
+
+  template <class T, class T2> void f(T);
+  template <class T> void f(T);
+  int main() {
+    f<int>;
+  }
+
 5/7/03   Microsoft compatibility: static in-class specialization
 
 The Microsoft compiler accepts a storage class on a nonstandard

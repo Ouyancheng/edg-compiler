@@ -8999,6 +8999,7 @@ function.  See Core Issue 115.
     a_template_arg_ptr new_arg_list;
     a_symbol_ptr       orig_sym = operand->variant.symbol, base_sym;
     a_symbol_ptr       matching_sym = NULL;
+    a_template_arg_ptr matching_arg_list;
 
     base_sym = fundamental_symbol_of(orig_sym);
     if (base_sym->kind == (a_symbol_kind)sk_function_template) {
@@ -9007,6 +9008,7 @@ function.  See Core Issue 115.
                                                     operand->template_arg_list,
                                                     &new_arg_list)) {
         matching_sym = orig_sym;
+        matching_arg_list = new_arg_list;
       }  /* if */
     } else if (base_sym->kind == (a_symbol_kind)sk_overloaded_function) {
       /* An overload set possibly containing function templates. */
@@ -9025,9 +9027,11 @@ function.  See Core Issue 115.
               /* There's more than one matching function template, so leave
                  the operand as it is. */
               matching_sym = NULL;
+              free_template_arg_list(matching_arg_list);
               break;
             } else {
               matching_sym = proj_sym;
+              matching_arg_list = new_arg_list;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -9041,7 +9045,7 @@ function.  See Core Issue 115.
 
       orig_operand = *operand;
       sym = find_template_function(matching_sym,
-                                   &new_arg_list,
+                                   &matching_arg_list,
                                    /*explicit_arg_list_present=*/TRUE,
                                    &orig_operand.position);
       check_assertion(sym != NULL &&
