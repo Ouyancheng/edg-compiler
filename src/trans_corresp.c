@@ -1149,6 +1149,24 @@ is in fact valid.
 }  /* verify_field_correspondence */
 
 
+static a_boolean is_generated_new_or_delete_operator(a_routine_ptr  routine)
+/*
+Return TRUE if the given routine is a new or delete operator (including
+array variants) and marked as compiler-generated.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (routine->compiler_generated &&
+      routine->special_kind == (a_special_function_kind)sfk_operator &&
+      (is_new_operator(routine->opname_or_builtin.opname_kind) ||
+       is_delete_operator(routine->opname_or_builtin.opname_kind))) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_generated_new_or_delete_operator */
+
+
 static a_boolean verify_routine_correspondence(a_routine_ptr  routine)
 /*
 Check that the recorded translation unit correspondence for the given routine
@@ -1166,7 +1184,9 @@ is in fact valid.
     match = verify_name_correspondence(routine);
     if (match &&
         (!types_are_redecl_compatible(routine->type, corresp_routine->type) ||
-         !same_exception_spec(routine->type, corresp_routine->type) ||
+         (!is_generated_new_or_delete_operator(routine) &&
+          !is_generated_new_or_delete_operator(corresp_routine) &&
+          !same_exception_spec(routine->type, corresp_routine->type)) ||
          routine->is_virtual != corresp_routine->is_virtual ||
          routine->pure_virtual != corresp_routine->pure_virtual ||
          /* The inline attribute isn't set on nonprototype template functions
@@ -2208,7 +2228,8 @@ are not checked.
             /* If this is a defined class or enum type, its correspondence
                should be the "canonical definition".  corresp_mem_type may
                not be a definition at all or it may not be the definition
-               against all others are compared (i.e., the canonical one). */
+               against which all others are compared (i.e., the canonical
+               one). */
             find_type_correspondence(mem_type, /*parent_found=*/TRUE);
           } else {
             record_trans_unit_corresp(mem_type, corresp_mem_type);
