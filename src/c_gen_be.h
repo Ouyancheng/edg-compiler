@@ -25,11 +25,13 @@ c_gen_be.h - Declarations related to c_gen_be.c (C-generating back end
 #if BACK_END_IS_C_GEN_BE
 
 #ifdef CFE
+#if !C_GEN_BE_GENERATES_ANSI_C
 EXTERN char	*module_list_for_union_init /* = NULL */;
 			/* The operand of the command-line "-i" option,
 			   a comma-separated list of modules to be linked
 			   with this one, and for which union initialization
 			   routines should be called. */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
 #endif /* ifdef CFE */
 
 #if !STANDALONE_UTILITY_PROGRAM

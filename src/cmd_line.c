@@ -336,11 +336,11 @@ Initialize the option information table.
   add_option_description(optk_output_file_name, "output", 'o',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
-#if BACK_END_IS_C_GEN_BE
+#if BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C
   add_option_description(optk_module_list_for_union_init, "module_init", 'i',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
-#endif /* !BACK_END_IS_C_GEN_BE */
+#endif /* BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C */
 #if DEBUG
   add_option_description(optk_debug, "db", 'd',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
@@ -1576,7 +1576,7 @@ common_cfront_mode_settings:
         /* Specify output file for preprocessing output or IL. */
         ofile_name = opt_arg;
         break;
-#if BACK_END_IS_C_GEN_BE
+#if BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C
       case optk_module_list_for_union_init:
         /* Save a string of comma-separated module names that will be linked
            with this one.  This is used by c_gen_be to generate calls
@@ -1585,7 +1585,7 @@ common_cfront_mode_settings:
            used to generate C output for testing. */
         module_list_for_union_init = opt_arg;
         break;
-#endif /* BACK_END_IS_C_GEN_BE */
+#endif /* BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C */
 #if DEBUG
       case optk_debug:
         /* Set debug level. */

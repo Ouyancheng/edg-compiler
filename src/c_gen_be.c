@@ -6745,11 +6745,13 @@ from the primary source file name in the IL information.
         }  /* if */
         break;
 #endif /* DEBUG */
+#if !C_GEN_BE_GENERATES_ANSI_C
       case 'i':
         /* -i option -- specifies union initialization routines to be
            called. */
         module_list_for_union_init = argv[optind]+2;
         break;
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
       default:
         str_command_line_error(ec_cl_invalid_option, argv[optind]);
     }  /* switch */
