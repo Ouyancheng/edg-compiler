@@ -1,5 +1,26 @@
 Version 3.4
 
+2/9/04  Sun Compatibility: diagnostic on undefined inline function
+
+The Sun compiler sometimes accepts inline functions that are referenced
+but not defined.  In Sun mode, we now give a warning, instead of an error
+for such functions.
+
+  struct A {
+    friend void f();
+    static void g() { f(); }
+  };
+  inline void f();
+  int main() {
+    A::g();
+  }
+
+2/9/04  Sun compatibility: extern inline functions
+
+Formerly, inline functions were static by default (i.e., extern inline
+was disabled).  As of at least the Workshop 6U2 compiler, extern inline
+should be enabled.  Extern inline is now enabled in Sun mode.
+
 2/5/04  Warning issued on dependent friend function declarations
 
 A warning is now issued if a dependent friend declaration (not a definition)

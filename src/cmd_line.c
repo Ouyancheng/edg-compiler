@@ -2432,8 +2432,8 @@ checked again here.)
   }  /* if */
   if (!(option_kind_used[(int)optk_extern_inline])) {
     /* If extern_inline_allowed was not explicitly set by a command line
-       option, turn it off now. */
-    extern_inline_allowed = FALSE;
+       option, turn it on now. */
+    extern_inline_allowed = TRUE;
   }  /* if */
   /* The Sun compiler suffers from the same problem as the Microsoft
      compiler with respect to making template parameters visible in
