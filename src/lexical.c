@@ -383,15 +383,12 @@ for pp-tokens.
   if (curr_token == tok_identifier) {
     /* Identifier -- save information about it. */
     if (locator_for_curr_id.specific_symbol != NULL) {
-      if (locator_for_curr_id.is_qualified_name) {
-        /* For a qualified name, save the pointer to the qualified name
-           symbol. */
-        ctp->extra_info_kind = (a_token_extra_info_kind)teik_qualified_name;
-      } else {
-        /* For a specific symbol, save the pointer to the symbol. */
-        ctp->extra_info_kind = (a_token_extra_info_kind)teik_specific_symbol;
-      }  /* if */
+      /* For a specific symbol, save the pointer to the symbol. */
+      ctp->extra_info_kind = (a_token_extra_info_kind)teik_specific_symbol;
       ctp->variant.specific_symbol = locator_for_curr_id.specific_symbol;
+      ctp->is_qualified_name = locator_for_curr_id.is_qualified_name;
+      ctp->ambiguity_and_access_control_check_needed = 
+                 locator_for_curr_id.ambiguity_and_access_control_check_needed;
     } else {
       /* For a normal identifier, save a pointer to the symbol header. */
       ctp->extra_info_kind = (a_token_extra_info_kind)teik_identifier;
@@ -498,18 +495,19 @@ current token, and return its token kind.
   a_cached_token_ptr ctp;
 
   db_enter(3, "get_token_from_cached_token_rescan_list");
-take_first_entry:
-  /* Remove the first entry from the list. */
-  ctp = cached_token_rescan_list;
-  cached_token_rescan_list = cached_token_rescan_list->next;
-  /* If it is a special entry indicating a lint comment or pragma,
-     process it and take another entry. */
-  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_lint_and_pragma) {
+  for (;;) {
+    /* Remove the first entry from the list. */
+    ctp = cached_token_rescan_list;
+    cached_token_rescan_list = cached_token_rescan_list->next;
+    /* If it is a special entry indicating a lint comment or pragma,
+       process it and take another entry.  Otherwise, exit the loop. */
+    if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_lint_and_pragma){
+      break;
+    }  /* if */
     set_globals_from_lint_and_pragma_state(
                                           &ctp->variant.lint_and_pragma_state);
     free_cached_token(ctp);
-    goto take_first_entry;
-  }  /* if */
+  }  /* for */
   /* Entry is for a token (normal case). */
   ctoken = (a_token_kind)ctp->token;
   pos_curr_token = ctp->source_position;
@@ -528,12 +526,9 @@ take_first_entry:
     make_locator_for_symbol(ctp->variant.specific_symbol,
                             &locator_for_curr_id);
     locator_for_curr_id.source_position = pos_curr_token;
-  } else if (ctp->extra_info_kind ==
-                                (a_token_extra_info_kind)teik_qualified_name) {
-    /* For a qualified name identifier, restore the locator. */
-    make_locator_for_qualified_name_symbol(ctp->variant.specific_symbol,
-                                           &locator_for_curr_id);
-    locator_for_curr_id.source_position = pos_curr_token;
+    locator_for_curr_id.is_qualified_name = ctp->is_qualified_name;
+    locator_for_curr_id.ambiguity_and_access_control_check_needed =
+                                ctp->ambiguity_and_access_control_check_needed;
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
@@ -4175,7 +4170,8 @@ set specific_symbol in locator_for_curr_id to point to the symbol
 for the qualified identifier, and return TRUE.  This is recognized only
 in C++ mode.  If a qualified name is not next, leave specific_symbol
 set to NULL and return FALSE.  options is a set of special options,
-as a bit set.
+as a bit set; they can include IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL
+and IDL_OKAY_TO_RETURN_PROJECTION_SYMBOL.
 */
 {
   a_boolean         is_qualified_name = FALSE, okay = FALSE;

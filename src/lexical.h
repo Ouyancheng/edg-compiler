@@ -593,8 +593,7 @@ enum a_token_extra_info_kind_tag {
   /* Kind of additional information saved in a cached token entry. */
   teik_none,		/* No extra information, i.e., normal token. */
   teik_identifier,	/* Extra information for an identifier. */
-  teik_specific_symbol,	/* Extra information for a looked-up identifier. */
-  teik_qualified_name,	/* Extra information for a qualified name. */
+  teik_specific_symbol,	/* Extra information for a specific symbol. */
   teik_constant,	/* Extra information for a literal constant. */
   teik_lint_and_pragma	/* Extra information for a lint comment or pragma. */
 };
@@ -630,17 +629,26 @@ typedef struct a_cached_token {
 		token;
 			/* The token kind (e.g., tok_identifier).  Not valid
 			   when extra_info_kind == teik_lint_and_pragma. */
-  a_token_extra_info_kind
-		extra_info_kind;
+  unsigned int /*a_token_extra_info_kind*/
+		extra_info_kind:3;
 			/* Indication of the type of extra information about
 			   the token provided below. */
+  unsigned int	is_qualified_name:1;
+			/* If extra_info_kind == teik_specific_symbol, this
+			   is TRUE to indicate that the symbol is a C++
+			   qualified name (e.g., "A::B::x"). */
+  unsigned int	ambiguity_and_access_control_check_needed:1;
+			/* If extra_info_kind == teik_specific_symbol, this
+			   is TRUE to indicate that ambiguity and access
+			   control checking has not yet been done for the
+			   symbol. */
   union {
     /* When extra_info_kind == teik_normal, no variant fields. */
     /* When extra_info_kind == teik_identifier: */
     a_symbol_header_ptr
 		identifier_header;
 			/* Pointer to the symbol header for the identifier. */
-    /* When extra_info_kind == teik_specific_symbol or teik_qualified_name: */
+    /* When extra_info_kind == teik_specific_symbol: */
     a_symbol_ptr
 		specific_symbol;
 			/* Pointer to the specific symbol or qualified name. */

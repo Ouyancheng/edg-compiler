@@ -489,6 +489,11 @@ typedef struct a_symbol_locator {
   /* Data structure used to store information about an identifier token.
      Can be used to look up the identifier or enter it into the symbol
      table. */
+  /* If you change this structure, be sure to also change:
+       (a) clear_locator, which follows immediately.
+       (b) cache_curr_token and get_token_from_cached_token_rescan_list,
+           in lexical.c.
+  */
   a_symbol_header_ptr
 		symbol_header;
 			/* The symbol header for the list of symbols with the
@@ -498,23 +503,53 @@ typedef struct a_symbol_locator {
 		source_position;
 			/* The source position to be used when this symbol
 			   is entered. */
-  a_symbol_ptr	specific_symbol;
-			/* If the identifier is known to refer to a specific
-			   symbol, this points to that symbol; otherwise, NULL.
-			   This field is set when the identifier is looked up
-			   (e.g., by normal_id_lookup) and when the identifier
-			   is a C++ qualified name (see following). */
-  a_byte_boolean
-		is_qualified_name;
+  unsigned int	is_qualified_name:1;
 			/* TRUE if the "identifier" is a C++ qualified-name
 			   (e.g., "A::x").  specific_symbol points to the
 			   proper symbol. */
+  unsigned int	ambiguity_and_access_control_check_needed:1;
+			/* TRUE if the ambiguity and access control check
+			   for specific_symbol has not yet been done. */
+  a_symbol_ptr	specific_symbol;
+			/* If is_qualified_name is TRUE, this points to the
+			   specific symbol for the qualified name.  Otherwise,
+			   if this pointer is non-NULL, it is the result of
+			   the most recent lookup of this identifier (e.g.,
+			   by normal_id_lookup). */
 } a_symbol_locator;
+
+/*
+Clear a symbol locator.
+*/
+#define clear_locator(locator, position)                              \
+{ (locator)->symbol_header = NULL;                                    \
+  (locator)->source_position = *position;                             \
+  (locator)->is_qualified_name = FALSE;                               \
+  (locator)->ambiguity_and_access_control_check_needed = FALSE;       \
+  (locator)->specific_symbol = NULL;                                  \
+}  /* clear_locator */
+
+/* Return TRUE if two locators indicate the same symbol. */
+#define are_locators_for_same_symbol(loc1, loc2)                      \
+  ((loc1).symbol_header == (loc2).symbol_header)
+
+/* Set a symbol locator to a dummy value indicating an error. */
+#define set_to_error_locator(loc) clear_locator(&loc, &error_position)
+
+/* Test a locator to see if it is an error locator. */
+#define is_error_locator(loc) ((loc).symbol_header == NULL)
+
+/* Retrieve a pointer to the symbol list from a locator. */
+#define symbol_list_from_locator(loc) ((loc).symbol_header->symbol)
+
+/* Retrieve a pointer to the inactive symbol list from a locator. */
+#define inactive_symbol_list_from_locator(loc)                        \
+  ((loc).symbol_header->inactive_symbols)
+
 
 #define SYMBOL_TABLE_SIZE 599
 	  		/* The number of buckets in the symbol table.  This
-			    number must be prime. */
-
+			    number should be prime. */
 EXTERN a_symbol_header_ptr
 		symbol_table[SYMBOL_TABLE_SIZE];
 			/* The actual symbol table.  Each bucket of the array
@@ -767,8 +802,7 @@ extern a_derivation_node_ptr alloc_derivation_node(void);
 extern an_access_specifier access_for_symbol(a_symbol_ptr sym_ptr);
 
 extern void member_check_ambiguity_and_verify_access(
-                                              a_symbol_ptr      symbol,
-                                              a_source_position *err_position);
+                                                    a_symbol_locator *locator);
 
 /*
 Check to see if a symbol found is ambiguous or inaccessible.  Ambiguity
@@ -778,9 +812,12 @@ by inheritance can be ambiguous), and only class members are subject
 to access control.  Therefore, return immediately for non-class-members,
 and call a subroutine for class members.
 */
-#define check_ambiguity_and_verify_access(symbol, err_position)       \
-{ if ((symbol)->class_of_which_a_member != NULL) {                    \
-    member_check_ambiguity_and_verify_access(symbol, err_position);   \
+#define check_ambiguity_and_verify_access(locator)                    \
+{ if ((locator)->ambiguity_and_access_control_check_needed) {         \
+    if ((locator)->specific_symbol->class_of_which_a_member != NULL) {\
+      member_check_ambiguity_and_verify_access(locator);              \
+    }  /* if */                                                       \
+    (locator)->ambiguity_and_access_control_check_needed = FALSE;     \
   }  /* if */                                                         \
 }  /* check_ambiguity_and_verify_access */
 
@@ -837,33 +874,6 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
    instance with a particular kind. */
 #define get_symbol_of_kind(des_kind, ptr)			      \
   while (((ptr) != NULL) && ((ptr)->kind != (des_kind))) (ptr) = (ptr)->next;
-
-/*
-Clear a symbol locator.
-*/
-#define clear_locator(locator, position)                              \
-{ (locator)->symbol_header = NULL;                                    \
-  (locator)->source_position = *position;                             \
-  (locator)->specific_symbol = NULL;                                  \
-  (locator)->is_qualified_name = FALSE;                               \
-}  /* clear_locator */
-
-/* Return TRUE if two locators indicate the same symbol. */
-#define are_locators_for_same_symbol(loc1, loc2)                      \
-  ((loc1).symbol_header == (loc2).symbol_header)
-
-/* Set a symbol locator to a dummy value indicating an error. */
-#define set_to_error_locator(loc) clear_locator(&loc, &error_position)
-
-/* Test a locator to see if it is an error locator. */
-#define is_error_locator(loc) ((loc).symbol_header == NULL)
-
-/* Retrieve a pointer to the symbol list from a locator. */
-#define symbol_list_from_locator(loc) ((loc).symbol_header->symbol)
-
-/* Retrieve a pointer to the inactive symbol list from a locator. */
-#define inactive_symbol_list_from_locator(loc)                        \
-  ((loc).symbol_header->inactive_symbols)
 
 /* Return TRUE if a symbol is a class symbol.   A class symbol is
    one defined as a class, struct, or union, or a typedef of one of
