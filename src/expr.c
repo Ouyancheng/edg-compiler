@@ -13507,7 +13507,7 @@ GNU C statement expression).
   expression = make_node_from_void_expression_operand(&result);
   expression = wrap_up_full_expression(expression);
   /* Indicate that the value of the node is not used. */
-  set_expr_result_not_used(expression);
+  if (!result_used) set_expr_result_not_used(expression);
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
