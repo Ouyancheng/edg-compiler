@@ -16654,6 +16654,13 @@ Assign a master instance entry for the template instance "tip".
       master_instantiations_tail = mip;
     }  /* if */
     canonical_tip->master_instance = mip;
+#if DEBUG
+    if (db_sym_trace("instantiations", tip->instance_sym)) {
+      fprintf(f_debug, "find_or_create_master_instance: symbol: \n");
+      db_symbol_name_trans_unit(tip->instance_sym);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
   /* Save a pointer to the master instance in the template instance. */
   tip->master_instance = mip;
@@ -17568,15 +17575,15 @@ that might be required.
     /* Make sure the is_static_or_inline flag is set (if needed)
        for this entity. */
     (void)is_static_or_inline_template_entity(tip);
-    /* Skip entries that have already been instantiated. */
-    if (mip->already_instantiated) continue;
 #if DEBUG
-    if (db_flag_is_set("dani")) {
+    if (db_sym_trace("instantiations", tip->instance_sym)) {
       fprintf(f_debug, "do_any_needed_instantiations, checking: ");
       db_symbol_name_trans_unit(tip->instance_sym);
       fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
+    /* Skip entries that have already been instantiated. */
+    if (mip->already_instantiated) continue;
     /* See if the entity should be instantiated.  Note that the value
        returned by can_be_instantiated is not used to determine whether
        should_be_instantiated is called because the tests done by
@@ -18021,14 +18028,7 @@ This is used when the template instantiation mechanism is used to provide
 a body (if needed) for extern inline functions.
 */
 {
-  if (instantiation_flags_needed()
-#if MAINTAIN_NEEDED_FLAGS
-      /* Only generate the flags if the definition_needed flag is set.
-         This is done to avoid problems caused by the removal from the IL
-         of the routine entry or an enclosing class entry. */
-      && rout_ptr->definition_needed
-#endif /* MAINTAIN_NEEDED_FLAGS */
-                                    ) {
+  if (instantiation_flags_needed()) {
     /* Generate the instantiation flags used by the prelinker.  These flags
        are placed in either the template information file or in the IL as
        variables.  If the flags are placed in the IL, this is only done if
@@ -18045,25 +18045,49 @@ a body (if needed) for extern inline functions.
         rout_ptr->assoc_scope != NULL_region_number) {
       instance_required = rout_ptr->inline_instance_required;
     }  /* if */
-    if (instantiation_flags_in_template_info_file &&
-        generate_template_files()) {
-      /* The flags are to be placed in the template information file. */
-      char	*name;
-      name = get_mangled_function_name(rout_ptr);
-      write_instantiation_flags_to_template_info_file(
-           name, instance_required, do_not_instantiate, can_be_instantiated,
-           (a_symbol_ptr)NULL);
+#if MAINTAIN_NEEDED_FLAGS
+    /* Only generate the flags if the definition_needed flag is set.
+       This is done to avoid problems caused by the removal from the IL
+       of the routine entry or an enclosing class entry. */
+    if (!rout_ptr->definition_needed) {
+      instance_required = can_be_instantiated = FALSE;
+    }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
+    if (instance_required || can_be_instantiated) {
+      if (instantiation_flags_in_template_info_file &&
+          generate_template_files()) {
+        /* The flags are to be placed in the template information file. */
+        char	*name;
+        name = get_mangled_function_name(rout_ptr);
+        write_instantiation_flags_to_template_info_file(
+             name, instance_required, do_not_instantiate, can_be_instantiated,
+             (a_symbol_ptr)NULL);
 #if DO_IL_LOWERING
-    } else {
-      /* The flags are to be placed in the IL as special variables. */
-      if (il_lowering_needed()) {
-        a_source_correspondence	*scp;
-        scp = &rout_ptr->source_corresp;
-        create_instantiation_flag_variables(
-           scp, instance_required, do_not_instantiate, can_be_instantiated);
+      } else {
+        /* The flags are to be placed in the IL as special variables. */
+        if (il_lowering_needed()) {
+          a_source_correspondence	*scp;
+          scp = &rout_ptr->source_corresp;
+          create_instantiation_flag_variables(
+             scp, instance_required, do_not_instantiate, can_be_instantiated);
       }  /* if */
 #endif /* DO_IL_LOWERING */
+      }  /* if */
     }  /* if */
+#if DEBUG
+    if (db_trace("instantiation", rout_ptr, iek_routine)) {
+      fprintf(f_debug, "create_inst_flags_for_inline_function:\n");
+      db_entity_info((char*)rout_ptr, iek_routine);
+      fprintf(f_debug, "Routine type: ");
+      db_type(rout_ptr->type);
+      fprintf(f_debug, "\n");
+      fprintf(f_debug, " instance_required=%d\n", instance_required);
+      fprintf(f_debug, " can_be_instantiated=%d\n", can_be_instantiated);
+#if MAINTAIN_NEEDED_FLAGS
+      fprintf(f_debug, " definition_needed=%d\n", rout_ptr->definition_needed);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
 }  /* create_instantiation_flags_for_inline_function */
 
