@@ -163,6 +163,16 @@ Constructors return "pointer to class", and destructors return
 #endif /* ifndef IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
 
 /*
+The name of the macro to be defined when constructors and destructors
+return "this".  Used only when IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
+is TRUE.
+*/
+#ifndef MACRO_DEFINED_WHEN_IA64_CTORS_DTORS_RETURN_THIS
+#define MACRO_DEFINED_WHEN_IA64_CTORS_DTORS_RETURN_THIS \
+			"__EDG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS"
+#endif /* ifndef MACRO_DEFINED_WHEN_IA64_CTORS_DTORS_RETURN_THIS */
+
+/*
 TRUE to select the variant rule for determining the key function
 (decider function) for virtual function tables in the IA-64 ABI.
 See 3.1 in the ARM EABI document.

@@ -4844,12 +4844,6 @@ from the front end to the runtime.
 			   "__EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-  /* Do constructors and destructors return "this" for the IA-64 ABI? */
-  (void)enter_predef_macro(conv_unsigned_long_to_str(
-                  (unsigned long)IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS),
-                          "__EDG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
   /* Are we using the variant "int"-sized guard variables? */
   (void)enter_predef_macro(conv_unsigned_long_to_str(
                            (unsigned long)IA64_ABI_USE_INT_STATIC_INIT_GUARD),
@@ -5416,6 +5410,13 @@ command line -D options.
     (void)enter_predef_macro("1", MACRO_DEFINED_WHEN_IA64_ABI,
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
+#if IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
+    /* Do constructors and destructors return "this" for the IA-64 ABI? */
+    (void)enter_predef_macro("1", 
+                             MACRO_DEFINED_WHEN_IA64_CTORS_DTORS_RETURN_THIS,
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+#endif /* IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
 #endif /* IA64_ABI */
   }  /* if */
 #if DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED
