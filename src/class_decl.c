@@ -2208,14 +2208,28 @@ subobject (e.g., C).
   a_boolean              updated = FALSE;
 
   db_enter(4, "set_data_section_base_class");
-  if (base_class->data_section_base_class == NULL) {
+  if (base_class->data_section_base_class != NULL) {
+    /* The data section for base_class is already embedded in the data
+       section of another class. */
+  } else {
+    /* If the first entry on the derivation path is a complete subobject,
+       it may have virtual functions embedded within it. */
     if (dsp->base_class->complete_subobject) {
+      /* Traverse the path. */
       for (;; dsp = dsp->next) {
         if (dsp->base_class->is_virtual &&
             dsp->base_class->data_section_base_class == NULL) {
+          /* There is a virtual base class on the path, and it is not embedded.
+             If it ends up having its own data section, the data section
+             for base_class will be embedded in it. */
           break;
         } else if (dsp->next == NULL ||
                   !dsp->next->base_class->complete_subobject) {
+          /* dsp represents an intermediate base class.  If the next entry
+             on the path is NULL (i.e., if dsp is the last entry before the
+             base_class) or is an incomplete subobject (meaning it cannot
+             have data sections for virtual base classes embedded within it),
+             then this is where base_class may be embedded. */
           bcp = corresponding_base_class(base_class, (a_type_ptr)NULL,
                                          dsp->base_class->type);
           if (bcp->data_section_base_class == NULL) {
@@ -2234,6 +2248,15 @@ subobject (e.g., C).
 
 void fixup_embedded_virtual_base_classes(a_base_class_ptr base_class,
                                          a_type_ptr       class_type)
+/*
+base_class is a virtual base class whose data section is being allocated;
+base_class will be represented as a "complete subobject" of class_type, which
+means space will be reserved for all its own virtual base classes. Therefore,
+if it has any virtual base classes with data sections that have not already
+been associated with some other base class, record the "official" location
+of the latter as its position within base_class.  This is a recursive
+algorithm.
+*/
 {
   a_base_class_ptr  bcp, embedded_base_class;
 
@@ -2242,7 +2265,13 @@ void fixup_embedded_virtual_base_classes(a_base_class_ptr base_class,
     for (bcp = base_classes_of(base_class->type);
          bcp != NULL;
          bcp = bcp->next) {
-      if (bcp->is_virtual && bcp->data_section_base_class == NULL) {
+      if (bcp->is_virtual
+#if 0
+/* Removing this test fixes a bug.  But are other problems introduced by taking
+   it out??  RMA -- 11/24/92. */
+                          && bcp->data_section_base_class == NULL
+#endif /* if 0 */
+                                                                  ) {
         embedded_base_class = corresponding_base_class(bcp, (a_type_ptr)NULL,
                                                        class_type);
         if (embedded_base_class->data_section_base_class == NULL) {
