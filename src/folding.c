@@ -555,6 +555,7 @@ desired derived type.  If there is an error, it is issued at *err_pos.
 static void conv_pointer_to_whatever(a_constant        *old_constant,
 				     a_constant        *new_constant,
                                      a_boolean         is_implicit_cast,
+                                     a_boolean         constant_context,
                                      a_boolean         *did_not_fold,
                                      a_source_position *err_pos,
 				     an_error_code     *err_code,
@@ -562,12 +563,14 @@ static void conv_pointer_to_whatever(a_constant        *old_constant,
 /*
 Convert a pointer constant to a constant of type as specified by
 "new_constant".  If is_implicit_cast is TRUE, the cast is implicit.
-If the cast cannot be folded, return *did_not_fold TRUE.  If there is
-an error, either issue it immediately at *err_pos (if it cannot be
-reduced to a warning in a nonconstant context), or return *err_code
-and *err_severity set appropriately.  Note that this routine is also
-called when the old constant is an address constant that has previously
-been cast to an integral type, and so does not have pointer type.
+If constant_context is TRUE, this conversion is being done in a constant
+context.  If the cast cannot be folded, return *did_not_fold TRUE.
+If there is an error, either issue it immediately at *err_pos (if it
+cannot be reduced to a warning in a nonconstant context), or return
+*err_code and *err_severity set appropriately.  Note that this routine
+is also called when the old constant is an address constant that has
+previously been cast to an integral type, and so does not have pointer
+type.
 */
 {
   a_type_ptr       new_type = new_constant->type;
@@ -605,7 +608,12 @@ been cast to an integral type, and so does not have pointer type.
     /* In C++, a cast of a pointer to a class to a pointer to a base class
        or derived class. */
     related_class_cast = TRUE;
-    if (downward_cast) {
+    /* Do not fold such casts in constant form unless the current expression
+       is a constant expression.  That's to preserve detailed addressing
+       information in the IL. */
+    if (!constant_context) {
+      *did_not_fold = TRUE;
+    } else if (downward_cast) {
       /* Derived --> base.  Valid unless the cast is ambiguous or
          the base class is inaccessible. */
       fold_base_class_cast(old_constant, bcp, new_constant, is_implicit_cast,
@@ -886,6 +894,7 @@ cannot be done.
        would have constant_type->kind == tk_integer and new_type->kind
        == tk_integer, and so would not look like it involves pointers. */
     conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
+                             constant_context,
                              did_not_fold, err_pos, &err_code, &err_severity);
     goto exit;
   }  /* if */
@@ -945,7 +954,7 @@ cannot be done.
     case tk_pointer:
       /* Converting from pointer. */
       conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
-                               did_not_fold, err_pos,
+                               constant_context, did_not_fold, err_pos,
                                &err_code, &err_severity);
       break;
 
