@@ -7497,7 +7497,7 @@ pointer type).
             ambiguous) {
           /* The conversion can be done. */
           set_arg_summary_for_user_conversion(arg_match,
-                                              /*dest_type=*/NULL,
+                                              /*dest_type=*/(a_type_ptr)NULL,
                                               &user_conversion);
         }  /* if */
       } else {
