@@ -44,6 +44,7 @@ extern FILE* popen(char *command, char *mode);
 static char		default_nm_command[] = "/bin/nm -og";
 static char		SVR4_nm_command[] = "/bin/nm -pxR";
 static char		SGI_nm_command[] = "/bin/nm -Bopg";
+static char		CLIX_nm_command[] = "/bin/nm -pxre";
 static char		alternate_nm_command[] = "/bin/nm -pxr";
 static char		nm_command_suffix[] = " 2>/dev/null";
 

@@ -237,8 +237,8 @@ typedef enum /* an_nm_format_kind */ {
 		/* Motorola 88K SVR4. */
         nmfk_HPUX,
 		/* HP/UX. */
-        nmfk_anon1,
-		/* Anonymous. */
+        nmfk_CLIX,
+		/* Clipper (Intergraph). */
 	nmfk_lst
 } an_nm_format_kind;
 
@@ -688,7 +688,7 @@ s.o:
 0000000000 U hack.o:_fcntl
 
 
-For anon1 the nm output is expected to look like:
+For CLIX the nm output is expected to look like:
 
 s.o:
 s.o:                00000000 t _static_func
@@ -766,7 +766,7 @@ processed further.
     *name2 = name2_is_NULL ? NULL : name2_buffer;
     /* On HP/UX and some other systems the file name begins each line,
        skip past this file name. */
-    if (nm_format == nmfk_HPUX || nm_format == nmfk_anon1) {
+    if (nm_format == nmfk_HPUX || nm_format == nmfk_CLIX) {
       rest_of_line = pos + 1;
     } else {
       rest_of_line = pl_input_line;
@@ -793,15 +793,15 @@ processed further.
     }  /* if */
     /* Look for blank after type. */
     if (*pos++ != ' ') pl_invalid_input();
-    if (nm_format == nmfk_anon1) {
+    if (nm_format == nmfk_CLIX) {
       /* Skip passed extra underscore at the start of every symbol if an
-         underscore is present.   This is only done for anon1. */
+         underscore is present.   This is only done for CLIX. */
       if (skip_underscore_prefix && *pos == '_') pos++;
     }  /* if */
     rest_of_line = pos;
     /* If the name was not at the start of the line then it is expected
        to appear here.  Skip past the name. */
-    if (nm_format != nmfk_HPUX && nm_format != nmfk_anon1) {
+    if (nm_format != nmfk_HPUX && nm_format != nmfk_CLIX) {
       pos = strchr(rest_of_line, ':');
       rest_of_line = pos + 1;
     }  /* if */
@@ -991,7 +991,7 @@ or defined in that object file.
                                           &symbol_name);
     } else if (nm_format == nmfk_M88K ||
                nm_format == nmfk_HPUX ||
-               nm_format == nmfk_anon1) {
+               nm_format == nmfk_CLIX) {
       process_line = pl_scan_alternate_nm_line(&name1, &name2, &type,
                                                &symbol_name);
     } else {
@@ -1902,8 +1902,8 @@ int main(int argc, char *argv[])
           nm_format = nmfk_M88K;
         } else if (strcmp(optarg, "HPUX") == 0) {
           nm_format = nmfk_HPUX;
-        } else if (strcmp(optarg, "anon1") == 0) {
-          nm_format = nmfk_anon1;
+        } else if (strcmp(optarg, "CLIX") == 0) {
+          nm_format = nmfk_CLIX;
         } else {
           pl_error("Invalid nm format option");
         }  /* if */
@@ -1949,9 +1949,10 @@ int main(int argc, char *argv[])
     nm_command = SVR4_nm_command;
   } else if (nm_format == nmfk_SGI) {
     nm_command = SGI_nm_command;
+  } else if (nm_format == nmfk_CLIX) {
+    nm_command = CLIX_nm_command;
   } else if (nm_format == nmfk_M88K ||
-             nm_format == nmfk_HPUX ||
-             nm_format == nmfk_anon1) {
+             nm_format == nmfk_HPUX) {
     nm_command = alternate_nm_command;
   } else {
     /* Use the default command. */
