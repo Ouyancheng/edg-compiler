@@ -1,5 +1,10 @@
 Version 2.28
 
+1/24/95  Checking return type of operator-> when taking its address
+
+According to WP 14.3.3, the return type of operator-> must be valid if,
+among other things, the function's address is taken.  Now checked.
+
 1/24/95  Instantiation of left operand of "="
 
 The underlying type of the left operand of a "=" operator, if a template

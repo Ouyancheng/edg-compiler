@@ -3642,6 +3642,12 @@ issue an error.
       /* Force the routine to be instantiated or generated. */
       if_evaluating_mark_routine_referenced(rout);
     }  /* if */
+    if (rout->special_kind == (a_special_function_kind)sfk_operator &&
+        rout->opname_kind == (an_opname_kind)onk_arrow) {
+      /* If the address of operator-> is taken, it must have a proper
+         return type (WP 14.3.3). */
+      check_operator_arrow_return_type(rout, /*is_expr_use=*/TRUE, position);
+    }  /* if */
   }  /* if */
   /* Note that the class of the pointer is always the class in which
      the member was defined, not any derived class.  See ARM 5.3. */
