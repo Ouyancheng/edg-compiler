@@ -1,5 +1,17 @@
 Version 3.1
 
+11/11/02 Cv-qualifiers on function types
+
+The C++ standardization committee has clarified (as a resolution to Core
+Issue 295) that cv-qualifiers on function types are simply ignored when
+they are added through typedef declarations or through template parameter
+substitutions.  Such cases are therefore no longer diagnosed as errors.
+
+  typedef void F();
+  F const *pf;  // OK, but "const" is ignored
+  template<typename T> int f(T const*);
+  int g = f<F>(0);  // OK: f<F> takes a parameter of type "void (*)()"
+
 11/7/02  UPC mode: Diagnostics improved
 
 Various constraints on the use of UPC constructs are now diagnosed.

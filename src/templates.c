@@ -6555,8 +6555,8 @@ a pointer over a reference type or creating an array of references.
           qualifiers = get_type_qualifiers(type);
           if (qualifiers != TQ_NONE && is_function_type(tp)) {
             /* An attempt to place a qualifier on top of a function type.
-               This is not allowed. */
-            *copy_error = TRUE;
+               Ignore it. */
+            new_type = tp;
           } else {
             new_type = make_qualified_type(tp, qualifiers);
           }  /* if */
