@@ -7,7 +7,8 @@ constants, as in
 
   case (int *)2:
 
-These are now accepted by the C++ Front End, with a warning.
+These are now accepted by the C++ Front End in Microsoft mode, with a
+warning.
 
 12/9/01  No function-to-pointer conversion on second operand of comma
          operator
