@@ -1,5 +1,15 @@
 Version 2.13
 
+12/7/92  Error on odd pointer "-" case
+
+An error is now issued for the following case.  It'd odd in that in C
+the types pointed to are compatible even though the second one is
+an incomplete type.
+
+  int (*p)[3];
+  int (*q)[];
+  main () {p - q; return 0;}
+
 12/4/92  Strict ANSI C mode errors on pointer coercions
 
 In strict ANSI C mode (-A), nonstandard cases where a null pointer

@@ -4805,21 +4805,23 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
            unqualified members of compatible object types (ANSI C 3.3.6).
            In C++, the standard pointer conversions are also done
            (ARM 4.6, 5.7). */
-        /* The first operand must be a pointer to an object. */
-        (void)check_object_pointer_operand(operand_1,
-                                           ec_expr_not_pointer_to_object);
         if (check_compatibility_of_pointer_operands(
                            operand_1, &operand_2, &operator_position,
                            /*pointer_normalization_standard_in_C=*/FALSE,
                            /*pointers_to_functions_standard_in_C=*/FALSE,
                            /*pointers_to_incomplete_standard_in_C=*/FALSE,
                            /*mixed_object_and_incomplete_standard_in_C=*/FALSE,
-                           &operation_type)) {
+                           &operation_type) &&
+            check_object_pointer_operand(operand_1,
+                                         ec_expr_not_pointer_to_object) &&
+            check_object_pointer_operand(&operand_2,
+                                         ec_expr_not_pointer_to_object)) {
           /* Difference between compatible pointers.  Result has type
              ptrdiff_t (see 3.3.6 and <stddef.h>). */
           result_type = integer_type((an_integer_kind)TARG_PTRDIFF_T_INT_KIND);
         } else {
-          /* Difference between incompatible pointers. */
+          /* Difference between incompatible pointers.  Error has already been
+             issued. */
           err = TRUE;
         }  /* if */
       } else {
