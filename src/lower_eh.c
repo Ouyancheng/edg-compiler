@@ -158,6 +158,7 @@ scope (which might be a block scope).
   return var;
 }  /* make_init_unnamed_local_static_array_var */
 
+#endif /* GENERATE_EH_TABLES */
 
 static a_targ_size_t incr_nelems_of_array_var(a_variable_ptr var)
 /*
@@ -210,7 +211,6 @@ is uninitialized.
   if (aggr_con != NULL) aggr_con->type = var->type;
 }  /* finish_array_var */
 
-#endif /* GENERATE_EH_TABLES */
 
 /*
 Following is code needed to define typeinfo implementation variables.
