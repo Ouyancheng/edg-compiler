@@ -6360,12 +6360,28 @@ enum a_builtin_function_kind_tag {
   bfk_longjmp,                  /* "__builtin_longjmp" */
   bfk_trap,                     /* "__builtin_trap" */
   bfk_putchar,                  /* "__builtin_putchar" */
+  bfk_putchar_unlocked,         /* "__builtin_putchar_unlocked" */
   bfk_puts,                     /* "__builtin_puts" */
+  bfk_puts_unlocked,            /* "__builtin_puts_unlocked" */
   bfk_printf,                   /* "__builtin_printf" */
+  bfk_printf_unlocked,          /* "__builtin_printf_unlocked" */
   bfk_fputc,                    /* "__builtin_fputc" */
+  bfk_fputc_unlocked,           /* "__builtin_fputc_unlocked" */
   bfk_fputs,                    /* "__builtin_fputs" */
+  bfk_fputs_unlocked,           /* "__builtin_fputs_unlocked" */
   bfk_fwrite,                   /* "__builtin_fwrite" */
+  bfk_fwrite_unlocked,          /* "__builtin_fwrite_unlocked" */
   bfk_fprintf,                  /* "__builtin_fprintf" */
+  bfk_fprintf_unlocked,         /* "__builtin_fprintf_unlocked" */
+  bfk_sprintf,                  /* "__builtin_sprintf" */
+  bfk_snprintf,                 /* "__builtin_snprintf" */
+  bfk_vprintf,                  /* "__builtin_vprintf" */
+  bfk_vsprintf,                 /* "__builtin_vsprintf" */
+  bfk_vsnprintf,                /* "__builtin_vsnprintf" */
+  bfk_scanf,                    /* "__builtin_scanf" */
+  bfk_sscanf,                   /* "__builtin_sscanf" */
+  bfk_vscanf,                   /* "__builtin_vscanf" */
+  bfk_vsscanf,                  /* "__builtin_vsscanf" */
   bfk_unwind_init,              /* "__builtin_unwind_init" */
   bfk_dwarf_cfa,                /* "__builtin_dwarf_cfa" */
   bfk_dwarf_fp_regnum,          /* "__builtin_dwarf_fp_regnum" */
@@ -6404,9 +6420,17 @@ enum a_builtin_function_kind_tag {
   bfk_islessgreater,            /* "__builtin_islessgreater" */
   bfk_isunordered,              /* "__builtin_isunordered" */
   bfk_exp,                      /* "__builtin_exp" */
+  bfk_expf,                     /* "__builtin_expf" */
+  bfk_expl,                     /* "__builtin_expl" */
+  bfk_log,                      /* "__builtin_log" */
+  bfk_logf,                     /* "__builtin_logf" */
+  bfk_logl,                     /* "__builtin_logl" */
   bfk_huge_val,                 /* "__builtin_huge_val" */
   bfk_huge_valf,                /* "__builtin_huge_valf" */
   bfk_huge_vall,                /* "__builtin_huge_vall" */
+  bfk_inf,                      /* "__builtin_inf" */
+  bfk_inff,                     /* "__builtin_inff" */
+  bfk_infl,                     /* "__builtin_infl" */
   bfk_nan,                      /* "__builtin_nan" */
   bfk_nanf,                     /* "__builtin_nanf" */
   bfk_nanl,                     /* "__builtin_nanl" */
@@ -6414,6 +6438,10 @@ enum a_builtin_function_kind_tag {
   bfk_nansf,                    /* "__builtin_nansf" */
   bfk_nansl,                    /* "__builtin_nansl" */
   bfk_prefetch,                 /* "__builtin_prefetch" */
+  bfk_abort,                    /* "__builtin_abort" */
+  bfk_exit,                     /* "__builtin_exit" */
+  bfk__exit,                    /* "__builtin__exit" */
+  bfk__Exit,                    /* "__builtin__Exit" */
   bfk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -6474,12 +6502,28 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_longjmp */                  "__builtin_longjmp",
   /* bfk_trap */                     "__builtin_trap",
   /* bfk_putchar */                  "__builtin_putchar",
+  /* bfk_putchar_unlocked */         "__builtin_putchar_unlocked",
   /* bfk_puts */                     "__builtin_puts",
+  /* bfk_puts_unlocked */            "__builtin_puts_unlocked",
   /* bfk_printf */                   "__builtin_printf",
+  /* bfk_printf_unlocked */          "__builtin_printf_unlocked",
   /* bfk_fputc */                    "__builtin_fputc",
+  /* bfk_fputc_unlocked */           "__builtin_fputc_unlocked",
   /* bfk_fputs */                    "__builtin_fputs",
+  /* bfk_fputs_unlocked */           "__builtin_fputs_unlocked",
   /* bfk_fwrite */                   "__builtin_fwrite",
+  /* bfk_fwrite_unlocked */          "__builtin_fwrite_unlocked",
   /* bfk_fprintf */                  "__builtin_fprintf",
+  /* bfk_fprintf_unlocked */         "__builtin_fprintf_unlocked",
+  /* bfk_sprintf */                  "__builtin_sprintf",
+  /* bfk_snprintf */                 "__builtin_snprintf",
+  /* bfk_vprintf */                  "__builtin_vprintf",
+  /* bfk_vsprintf */                 "__builtin_vsprintf",
+  /* bfk_vsnprintf */                "__builtin_vsnprintf",
+  /* bfk_scanf */                    "__builtin_scanf",
+  /* bfk_sscanf */                   "__builtin_sscanf",
+  /* bfk_vscanf */                   "__builtin_vscanf",
+  /* bfk_vsscanf */                  "__builtin_vsscanf",
   /* bfk_unwind_init */              "__builtin_unwind_init",
   /* bfk_dwarf_cfa */                "__builtin_dwarf_cfa",
   /* bfk_dwarf_fp_regnum */          "__builtin_dwarf_fp_regnum",
@@ -6518,9 +6562,17 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_islessgreater */            "__builtin_islessgreater",
   /* bfk_isunordered */              "__builtin_isunordered",
   /* bfk_exp */                      "__builtin_exp",
+  /* bfk_expf */                     "__builtin_expf",
+  /* bfk_expl */                     "__builtin_expl",
+  /* bfk_log */                      "__builtin_log",
+  /* bfk_logf */                     "__builtin_logf",
+  /* bfk_logl */                     "__builtin_logl",
   /* bfk_huge_val */                 "__builtin_huge_val",
   /* bfk_huge_valf */                "__builtin_huge_valf",
   /* bfk_huge_vall */                "__builtin_huge_vall",
+  /* bfk_inf */                      "__builtin_inf",
+  /* bfk_inff */                     "__builtin_inff",
+  /* bfk_infl */                     "__builtin_infl",
   /* bfk_nan */                      "__builtin_nan",
   /* bfk_nanf */                     "__builtin_nanf",
   /* bfk_nanl */                     "__builtin_nanl",
@@ -6528,6 +6580,10 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_nansf */                    "__builtin_nansf",
   /* bfk_nansl */                    "__builtin_nansl",
   /* bfk_prefetch */                 "__builtin_prefetch",
+  /* bfk_abort */                    "__builtin_abort",
+  /* bfk_exit */                     "__builtin_exit",
+  /* bfk__exit */                    "__builtin__exit",
+  /* bfk__Exit */                    "__builtin__Exit",
   /* bfk_last */                     "last" /* used to check that 
                                                initialization is right. */
 }
