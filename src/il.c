@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2000 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -12161,6 +12161,10 @@ in il_init.)
       pch_array_saved_var_array_elem(microsoft_sized_int_types),
       pch_array_saved_var_array_elem(microsoft_sized_signed_int_types),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+      pch_array_saved_var_array_elem(complex_types),
+      pch_array_saved_var_array_elem(imaginary_types),
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       pch_array_saved_var_array_elem(string_types),
       pch_array_saved_var_array_elem(wide_string_types),
       pch_array_saved_var_array_elem(shareable_constants_table),
@@ -12271,6 +12275,6 @@ when the IL has been read back into memory.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2000 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
