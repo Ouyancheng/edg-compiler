@@ -5185,9 +5185,10 @@ C and C++.
       }  /* if */
     }  /* if */
 #endif /* CHECKING */
-    if ((inactive_symbol_list == NULL &&
+    if (C_dialect != C_dialect_cplusplus ||
+        ((inactive_symbol_list == NULL &&
          !ssep->inactive_symbols_may_be_visible) &&
-        depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+        depth_innermost_instantiation_scope == NO_SCOPE_DEPTH)) {
       /* Fast algorithm: just search the active symbol list. */
 #if DEBUG
       num_fast_id_lookups++;
