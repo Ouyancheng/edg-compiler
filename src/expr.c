@@ -3875,6 +3875,67 @@ of the array pointer.
 }  /* new_or_delete_type_requires_array_handling */
 
 
+static a_dynamic_init_ptr f_determine_deletion_for_throw_before_new_init_done(
+                                             a_type_ptr         base_new_type,
+                                             a_boolean          array_new,
+                                             a_boolean          use_global_new,
+                                             a_source_position  *position)
+/*
+Exceptions are enabled, and a "new" with initialization is being scanned.
+If an exception is thrown between the time that the allocation is done and
+the time the initialization is completed, the allocated storage should be
+freed.  Develop a dynamic initialization entry that describes the
+deallocation and return a pointer to it.  base_new_type is the unqualified
+type of entity being allocated; array_new is TRUE for an array new;
+use_global_new is TRUE for a ::new; and *position gives the position
+to be used for errors.
+*/
+{
+  a_dynamic_init_ptr dyn_init_to_free_storage;
+  /* Select the proper delete routine. */
+  a_routine_ptr      delete_routine = select_delete_routine(base_new_type,
+                                                            use_global_new,
+                                                            array_new,
+                                                            position);
+  /* Mark the routine referenced. */
+  if_evaluating_mark_routine_referenced(delete_routine);
+  /* The deletion is recorded in a dynamic initialization entry.
+     The delete routine is used as the "destructor". */
+  dyn_init_to_free_storage =
+                        alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
+  dyn_init_to_free_storage->destructor = delete_routine;
+  dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
+  dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
+  record_end_of_lifetime_destruction(dyn_init_to_free_storage,
+                                     /*static_lifetime=*/FALSE,
+                                     /*block_lifetime=*/FALSE);
+  return dyn_init_to_free_storage;
+}  /* f_determine_deletion_for_throw_before_new_init_done */
+
+
+/*
+Macro used to call f_determine_deletion_for_throw_before_new_init_done
+from within scan_new_operator.  Sets dyn_init_to_free_storage, if necessary,
+to point to a dynamic init entry that will free the storage allocated by
+the "new" if an exception is thrown before the initialization of the
+storage is completed.  This must be called only after it has been
+determined that the "new" has initialization, but before that
+initialization is scanned (so the cleanup entry gets onto the object
+lifetime list in the right place).
+*/
+/* Do not record the deletion if exceptions are not enabled, if the
+   allocation is folded into a constructor (new_routine == NULL), or
+   for a "placement" new (the storage in that case is not freed
+   automatically when an exception is thrown). */
+#define determine_deletion_for_throw_before_new_init_done()           \
+{ if (exceptions_enabled && new_routine != NULL && !placement_new) {  \
+    dyn_init_to_free_storage =                                        \
+      f_determine_deletion_for_throw_before_new_init_done(            \
+        base_new_type, array_new, use_global_new, &placement_position);\
+  }  /* if */                                                         \
+}  /* determine_deletion_for_throw_before_new_init_done */
+
+
 static void scan_new_operator(an_operand *result)
 /*
 Scan the C++ new operator.  See 5.3.3 in the ARM.
@@ -3917,6 +3978,8 @@ specification allow a variable-sized array as the top type.
   an_arg_match_summary_ptr
                     arg_match_list = NULL;
   a_routine_ptr     new_routine = NULL;
+  a_dynamic_init_ptr
+                    dyn_init_to_free_storage = NULL;
   a_boolean         saved_inside_conditional_expression =
                                      expr_stack->inside_conditional_expression;
 
@@ -4199,6 +4262,11 @@ specification allow a variable-sized array as the top type.
   ctor_routine = NULL;
   if (ctor_sym != NULL) {
     /* Class with a constructor.  Initialization is required. */
+    /* Develop the dynamic init entry, if any, used to free storage
+       if an exception is thrown before the initialization is finished.
+       This must be done after it has been determined that initialization
+       is required, but before the initialization is actually processed. */
+    determine_deletion_for_throw_before_new_init_done();
     if (curr_token == tok_lparen) {
       /* There is a new-initializer.  It's treated as a constructor call. */
       a_source_position  lparen_pos;
@@ -4242,13 +4310,20 @@ specification allow a variable-sized array as the top type.
       }  /* if */
       if (curr_token != tok_rparen) {
         /* The new-initializer is not empty.  Scan it. */
+        /* Develop the dynamic init entry, if any, used to free storage
+           if an exception is thrown before the initialization is finished.
+           This must be done after it has been determined that initialization
+           is required, but before the initialization is actually processed. */
+        determine_deletion_for_throw_before_new_init_done();
         init_val_node = scan_parenthesized_initializer_expression(
                                                       err ? error_type() :
                                                             new_type,
                                                       ec_bad_initializer_type);
         needs_initialization = TRUE;
       } else {
-        /* The initializer is empty, i.e., "()". */
+        /* The initializer is empty, i.e., "()".  This means no initialization.
+           Note that "()" for class types with constructors is handled
+           above. */
         (void)get_token();
       }  /* if */
     } else {
@@ -4312,31 +4387,9 @@ specification allow a variable-sized array as the top type.
         dip->variant.expression = init_val_node;
       }  /* if */
       ndsp->dynamic_init = dip;
-      /* If exceptions are enabled, record the deletion to be used to
-         undo the allocation if an exception is thrown.  Do not do this for
-         a "placement" new; the storage in that case is not freed automatically
-         when an exception is thrown. */
-      if (exceptions_enabled && new_routine != NULL && !placement_new) {
-        a_dynamic_init_ptr dyn_init_to_free_storage = NULL;
-        a_routine_ptr      delete_routine =
-                                    select_delete_routine(base_new_type,
-                                                          use_global_new,
-                                                          array_new,
-                                                          &placement_position);
-        /* Mark the routine referenced. */
-        if_evaluating_mark_routine_referenced(delete_routine);
-        /* The deletion is recorded in a dynamic initialization entry.
-           The delete routine is used as the "destructor". */
-        dyn_init_to_free_storage =
-                        alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
-        dyn_init_to_free_storage->destructor = delete_routine;
-        dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
-        dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
-        record_end_of_lifetime_destruction(dyn_init_to_free_storage,
-                                           /*static_lifetime=*/FALSE,
-                                           /*block_lifetime=*/FALSE);
-        ndsp->freeing_of_storage_on_exception = dyn_init_to_free_storage;
-      }  /* if */
+      /* Remember the dynamic init entry, if any, used to free storage
+         if an exception is thrown before the initialization is finished. */
+      ndsp->freeing_of_storage_on_exception = dyn_init_to_free_storage;
     }  /* if */
     /* Make an operand for the result. */
     make_expression_operand(new_node, ptr_new_type, result);
