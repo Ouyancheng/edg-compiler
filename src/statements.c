@@ -5721,7 +5721,8 @@ Scan a case label definition.  The syntax is:
                         (a_source_position_ptr)NULL,
                         &constant_ptr->source_corresp.decl_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      if (range_end != NULL) {
+      if (range_end != NULL &&
+          cmp_integer_constants(constant_ptr, range_end) < 0) {
         /* Add clauses for each integer constant value between *constant_ptr
            and *range_end. */
         a_constant  in_between;
