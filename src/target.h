@@ -130,7 +130,9 @@ smaller host integers.  The latter form is necessary when the front
 end is used as part of a cross-compiler where the target has larger
 integers than the host.
 */
+#ifndef INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER TRUE
+#endif /*INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 
