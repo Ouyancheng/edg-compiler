@@ -4111,6 +4111,9 @@ instantiation.
         pos_error(ec_template_friend_definition_not_allowed,
                      &locator.source_position);
       }  /* if */
+      /* Adjust the effective declaration level.  Friend declarations
+         are added to the nearest enclosing namespace scope. */
+      effective_decl_level = depth_innermost_namespace_scope;
     } else {
       /* A friend declaration in a nonclass scope. */
       pos_error(ec_bad_specifier_outside_class_decl, &friend_pos);
@@ -4400,11 +4403,7 @@ instantiation.
       discard_token_cache(definition_token_cache);
       definition_token_cache = NULL;
     } else {
-      /* Save the information needed to create an instantiation based
-         on the definition of the template. */
-      set_template_cache_info(&tssp->cache, definition_token_cache,
-                              template_decl_info);
-      if (class_declared_in != NULL &&
+      if (in_prototype_instantiation && class_declared_in != NULL &&
           sym->kind == (a_symbol_kind)sk_class_template) {
         /* This is a member template class definition.  Create a template
            cache segment entry so that the body of this template can
