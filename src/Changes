@@ -1,5 +1,20 @@
 Version 2.16
 
+4/6/93  Constructor name in class template
+
+In class template A<T> a constructor may be designated by A() or A<T>(),
+but A<int>() is disallowed -- it is reported as an invalid constructor
+name.  Similarly, in the body of the specific definition of A<int> a
+constructor may only be designated by A() or A<int>().
+
+4/6/93  File-scope incomplete array with static storage class
+
+In C mode an incomplete array declared at file scope with static storage
+class and never completed (i.e., never provided with a dimension) is now
+treated the way a file-scope incomplete array of unspecified storage
+class is -- it is given a default dimension of 1.  (In C++ mode,
+however, an error is still issued.)
+
 4/6/93  Pointer-to-member operands for "&&", "||", and "!" operands
 
 The operands of the "&&", "||", and "!" operators are now allowed to
