@@ -3575,7 +3575,7 @@ e.g.,
   template <class T> struct A { ... };
                     ^current position is here
 
-Examine the next part of the template declararation to determine whether
+Examine the next part of the template declaration to determine whether
 this is a class template declaration or something else.  If this turns out
 to be a class template declaration, scan it and return TRUE, setting
 *p_sym_ptr to the class template symbol.  If it is not a class template
@@ -3797,7 +3797,7 @@ that make up the declaration and do a prototype instantiation.
       if (!in_prototype_instantiation && sym != NULL) {
         mark_defined(sym, &locator.source_position);
         /* Create the symbol for the prototype instantiation (but don't do
-           the instantation yet). */
+           the instantiation yet). */
         prototype_sym = make_template_class_symbol(sym, &sym->decl_position);
         /* Add the new symbol to the head of the instantiation list. */
         prototype_sym->next = tssp->variant.class_template.instantiations;

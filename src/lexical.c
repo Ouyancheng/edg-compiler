@@ -5033,7 +5033,7 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       } else if ((ch = *(curr_char_loc+1)) == ':' && digraphs_allowed()) {
         if (*(curr_char_loc+2) == ':' && *(curr_char_loc+3) != ':') {
           /* We have a construct like "%::I", which is invalid if we
-             interpret "%:" as a diagraph.  Issue a warning. */
+             interpret "%:" as a digraph.  Issue a warning. */
           warning(ec_probable_inadvertent_sharp_digraph);
         }  /* if */
         goto check_start_of_pp_directive;
@@ -5068,7 +5068,7 @@ start_of_token_scan:  /* Restart here after scanning white space. */
         ctoken = tok_lbracket;
         if (*(curr_char_loc+2) == ':' && *(curr_char_loc+3) != ':') {
           /* We have a construct like "<::I", which is invalid if we
-             interpret "<:" as a diagraph.  Issue a warning. */
+             interpret "<:" as a digraph.  Issue a warning. */
           warning(ec_probable_inadvertent_lbracket_digraph);
         }  /* if */
 	goto two_char_token;

@@ -48,7 +48,7 @@ typedef int an_id_lookup_options_set;
 #define IDL_MUST_BE_CLASS_OR_NAMESPACE  0x1
 				/* The symbol must be a class, struct, or
 				   union name, a typedef of one of those, or
-                                   a namepace.  In other words, one of the
+                                   a namespace.  In other words, one of the
                                    things that, in C++, may precede a ::. */
 #define IDL_MUST_BE_TAG 0x2	/* The symbol must be a class, struct, union,
 				   or enum (not a typedef of one of those). */
