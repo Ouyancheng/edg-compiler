@@ -331,8 +331,8 @@ invalid STDC pragma.
 1/9/01   Internal error when initializing a block extern variable length array
 
 The front end used to abort when encountering a block extern variable with
-a variable length array type (in modes accepting variable length arrays; e.g.,
-C99 mode).
+a variable length array type followed by an initializer (in modes accepting
+variable length arrays; e.g., C99 mode).
 
   void f(int n) {
     extern int a[n] = { 1 };  // Invalid, but used to abort in C99 mode
