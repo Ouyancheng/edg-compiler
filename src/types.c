@@ -377,7 +377,6 @@ to an array of abstract class objects.
 {
   a_boolean                    is_abstract = FALSE;
   a_boolean                    array_type_required = FALSE;
-  a_class_type_supplement_ptr  ctsp;
 
   for (;;) {
     tp = skip_typerefs(tp);
@@ -397,11 +396,8 @@ to an array of abstract class objects.
       case tk_class:
       case tk_struct:
       case tk_union:
-        if (!array_type_required) {
-          ctsp = tp->variant.class_struct_union.extra_info;
-          if (ctsp != NULL && ctsp->abstract) {
-            is_abstract = TRUE;
-          }  /* if */
+        if (tp->variant.class_struct_union.abstract) {
+          is_abstract = !array_type_required;
         }  /* if */
       default:
         goto done;
