@@ -48,12 +48,12 @@ definition has assoc_routine point to the associated routine entry.
          long doubles
 
 When using 128-bit long double floating point (i.e., on Sun systems)
-long double constants were emitted with one fewer digits than would
+long double constants were emitted with one fewer digit than would
 normally be used.  This was done to avoid a problem encountered when
-the Sun compiler is used to compile the generated code (the value emitted
+the Sun C++ compiler is used to compile the generated code (the value emitted
 for LDBL_MIN was rejected by the Sun compiler).  The workaround could
 cause problems because of the reduced precision of the resulting values.
-As a result the workaround is now used only with the C++ generating back.
+As a result the workaround is now used only with the C++ generating back end.
 Of course, this means that precision problems could occur when using the
 C++-generating back end, and the LDBL_MIN problem could occur when using
 the C-generating back end, but this behavior was selected to provide the
