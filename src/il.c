@@ -9444,6 +9444,83 @@ cleared.
 }  /* eliminate_references_from_befriended_entities */
 
 
+static void unlink_from_child_lifetime_list(an_object_lifetime_ptr  olp)
+/*
+Unlink the object lifetime entry pointed to by olp from the child-lifetime
+list of its parent.
+*/
+{
+  an_object_lifetime_ptr  parent, child, prev_child;
+
+  parent = olp->parent_lifetime;
+  check_assertion(parent != NULL);
+  prev_child = NULL;
+  child = parent->child_lifetime;
+  while (child != olp) {
+    check_assertion(child != NULL);
+    prev_child = child;
+    child = child->next;
+  }  /* while */
+  if (prev_child == NULL) {
+    parent->child_lifetime = olp->next;
+  } else {
+    prev_child->next = olp->next;
+  }  /* if */
+}  /* unlink_from_child_lifetime_list */
+
+
+static void eliminate_default_arg_object_lifetimes(a_routine_ptr  rp)
+/*
+A function is being eliminated from the IL.  Be sure that any object lifetimes
+created for its default arguments have been removed, too.
+*/
+{
+  a_param_type_ptr        ptp;
+  an_expr_node_ptr        def_arg_expr;
+  an_object_lifetime_ptr  olp;
+
+  for (ptp = rp->type->variant.routine.extra_info->param_type_list;
+       ptp != NULL;
+       ptp = ptp->next) {
+    def_arg_expr = ptp->default_arg_expr;
+    if (def_arg_expr != NULL &&
+        def_arg_expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+      olp = def_arg_expr->variant.object_lifetime.ptr;
+      check_assertion(olp != NULL);
+      unlink_from_child_lifetime_list(olp);
+#if DEBUG
+      if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
+        fputs("Unlinking default arg object lifetime for ", f_debug);
+        db_name(&rp->source_corresp);
+        fputc('\n', f_debug);
+      }  /* if */
+#endif /* DEBUG */
+    }  /* if */
+  }  /* for */
+}  /* eliminate_default_arg_object_lifetimes */
+
+
+static void eliminate_member_function_default_arg_object_lifetimes(
+                                                   a_type_ptr  class_type)
+/*
+Either class_type itself or its definition is being eliminated.  Be sure
+that any object lifetimes created for default arguments of its member
+functions have been removed from the IL.
+*/
+{
+  a_scope_ptr             sp;
+  a_routine_ptr           rp;
+
+  /* Get the scope associated with this class. */
+  sp = class_type->variant.class_struct_union.extra_info->assoc_scope;
+  check_assertion(sp != NULL);
+  /* Traverse its member function list. */
+  for (rp = sp->routines; rp != NULL; rp = rp->next) {
+    eliminate_default_arg_object_lifetimes(rp);
+  }  /* for */
+}  /* eliminate_member_function_default_arg_object_lifetimes */
+
+
 static void turn_class_definition_into_declaration(a_type_ptr  class_type)
 /*
 class_type identifies a class whose definition is not needed.  Turn the IL
@@ -9479,6 +9556,9 @@ entry into one representing a nondefining declaration.
        befriended classes and routines have pointers back to class_type.
        Those pointers have to be removed. */
     eliminate_references_from_befriended_entities(class_type);
+    /* Remove any object lifetimes that may be associated with default
+       arguments of its member functions. */
+    eliminate_member_function_default_arg_object_lifetimes(class_type);
     /* Clear the pointers in the class_type_supplement, including the
        assoc_scope pointer; however, the template arg list and the list of
        befriending classes should be preserved. */
@@ -10230,6 +10310,9 @@ eliminated, if appropriate.
              befriended classes and routines have pointers back to tp. Those
              pointers have to be removed. */
           eliminate_references_from_befriended_entities(tp);
+          /* Remove any object lifetimes that may be associated with default
+             arguments of its member functions. */
+          eliminate_member_function_default_arg_object_lifetimes(tp);
         }  /* if */
         /* This is a class type that has been removed from the IL (because
            it's not really needed anywhere), but just in case there's a
@@ -10262,6 +10345,11 @@ eliminated, if appropriate.
     }  /* if */
 #endif /* DEBUG */
     if (!il_entry_prefix_of(rp).keep_in_il) {
+      if (!C_mode()) {
+        /* Remove any object lifetimes that may be associated with its default
+           arguments. */
+        eliminate_default_arg_object_lifetimes(rp);
+      }  /* if */
       /* Remove it from the routines list by linking around it. */
       if (prev_rp == NULL) {
         scope->routines = rp->next;
