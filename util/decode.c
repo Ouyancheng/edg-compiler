@@ -2313,7 +2313,7 @@ length returned the second time will be correct).
   if (!dctl->err_in_id && *end_ptr != '\0') bad_mangled_name(dctl);
   *err = dctl->err_in_id;
   *buffer_overflow_err = dctl->output_overflow_err;
-  *required_buffer_size = dctl->output_id_len + 1 /* +1 for final null. */;
+  *required_buffer_size = dctl->output_id_len + 1; /* +1 for final null. */
   /* If the name is compressed, we need room for the uncompressed
      form, and a null, in the buffer. */
   if (dctl->uncompressed_length != 0) {
