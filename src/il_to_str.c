@@ -856,7 +856,7 @@ Do the output in the way described by octl.
 #if SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
 /*ARGSUSED*/ /* <-- Routine does nothing in some cases. */
 #endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
-static void form_calling_convention(
+void form_calling_convention(
                      a_calling_convention                  calling_convention,
                      an_il_to_str_output_control_block_ptr octl)
 /*

@@ -224,6 +224,12 @@ extern void form_type_qualifier(
                      an_il_to_str_output_control_block_ptr octl);
 #endif /* ifdef CFE */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern void form_calling_convention(
+                     a_calling_convention                  calling_convention,
+                     an_il_to_str_output_control_block_ptr octl);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern void form_type_first_part(
                     a_type_ptr                            type,
                     a_boolean                             under_lhs_declarator,

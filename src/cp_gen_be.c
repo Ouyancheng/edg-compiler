@@ -10132,6 +10132,14 @@ declarator (or NULL if it wasn't recorded).
                            suppress_specifiers ? FTO_SUPPRESS_SPECIFIERS :
                                                  FTO_NO_OPTIONS,
                            &octl);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else {
+      /* Even if there is no explicit return type, we may still need to
+         emit the calling convention. */
+      form_calling_convention(rout_type->variant.routine.extra_info->
+                                                            calling_convention,
+                              &octl);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (!instantiation_directive) {
       /* Position the output file to the declaration position (again). */

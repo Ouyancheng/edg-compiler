@@ -1,5 +1,17 @@
 Version 3.5
 
+7/28/04  C++-generating back end: Microsoft calling conventions not emitted
+
+The C++-generating back end failed to emit calling convention specifiers on
+member functions without an explicit return type (constructors, destructors,
+and conversion operators).  For example:
+
+  struct S {
+    __fastcall operator int*();  // Previously rendered without "__fastcall".
+  };
+
+This is now fixed.
+
 7/28/04  C++-generating back end: unbalanced parentheses on member definition
 
 The C++-generating back end put out unbalanced parentheses on the
