@@ -124,7 +124,9 @@ The code is inserted at *insert_location, and *insert_location is updated.
     } else {
       /* The parameter is referenced, so it must be remapped. */
       vrip = alloc_variable_remapping_for_inlining(param_var);
-      if (!param_var->param_value_has_been_changed && is_constant_node(arg)) {
+      if (!param_var->param_value_has_been_changed &&
+          !param_var->address_taken &&
+          is_constant_node(arg)) {
         /* The argument is constant, and the parameter doesn't get changed
            or have its address taken.  The constant can be used directly. */
         vrip->is_constant = TRUE;
