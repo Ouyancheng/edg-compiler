@@ -263,41 +263,41 @@ typedef struct a_return_memo {
 
 
 /*
-Entry used to describe an insert position within a statement or expression
+Entry used to describe an insert location within a statement or expression
 tree.
 */
+typedef enum an_insert_location_kind {
+  /* Kind of insert location: */
+  ilk_after_statement,	/* Insert after a statement. */
+  ilk_block_start,	/* Insert at the start of a block. */
+  ilk_switch_clause_start,
+			/* Insert at the start of a switch clause. */
+  ilk_before_expr,	/* Insert before an expression. */
+  ilk_after_expr	/* Insert after an expression. */
+} an_insert_location_kind;
+/* Test for the insertion kinds for insertions within expressions. */
+#define is_expr_insert_location_kind(kind)                            \
+ ((kind) == ilk_before_expr || (kind) == ilk_after_expr)
 typedef struct an_insert_location *an_insert_location_ptr;
 typedef struct an_insert_location {
-  a_byte_boolean
-		expr_insert;
-			/* If TRUE, the insertion is within an expression
-			   tree; if FALSE, it's within a statement sequence. */
+  an_insert_location_kind
+		kind;	/* Kind of insert location: after expression,
+			   after statements, etc. */
   union {
-    /* When expr_insert == TRUE: */
-    struct {
-      an_expr_node_ptr
-		ptr;	/* The expression relative to which the insertion
-			   is to be done. */
-      a_byte_boolean
-		insert_before;
-			/* If TRUE, the insertion is to be done before the
-			   indicated expression. */
-    } expr;
-    struct {
-      a_statement_ptr
-		ptr;	/* The statement relative to which insertion is to be
-			   done. */
-      a_byte_boolean
-		insert_at_block_start;
-			/* If TRUE, "statement" points to an stmk_block
-			   statement and insertion is to be done before the
-			   first statement (if any) in that block.  If FALSE,
-			   "statement" may be any kind of statement and
-			   insertion is to be done following it.  Note that
-			   in this latter case the statement pointed to must
-			   be part of a statement sequence, not for example
-			   the dependent statement of an "if". */
-    } statement;
+    /* When kind == ilk_after_statement or kind == ilk_block_start: */
+    a_statement_ptr
+		stmt;	/* The statement to insert after, or the block to
+			   insert at the start of.  In the ilk_after_statement
+			   case, the statement must be part of a statement
+			   sequence, not, for example, the dependent statement
+			   of an "if". */
+    /* When kind == ilk_switch_clause_start: */
+    a_switch_clause_ptr
+		switch_clause;
+			/* The switch clause to insert at the start of. */
+    /* When kind == ilk_before_expr or kind == ilk_after_expr: */
+    an_expr_node_ptr
+		expr;	/* The expression to insert before or after. */
   } variant;
 } an_insert_location;
 
@@ -418,6 +418,10 @@ extern void set_insert_location(a_statement_ptr    stmt,
 extern void set_block_start_insert_location(
                                           a_statement_ptr    stmt,
                                           an_insert_location *insert_location);
+
+extern void set_switch_clause_start_insert_location(
+                                         a_switch_clause_ptr scp,
+                                         an_insert_location  *insert_location);
 
 extern void set_expr_insert_location(an_expr_node_ptr   node,
                                      an_insert_location *insert_location);

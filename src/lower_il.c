@@ -133,20 +133,29 @@ static void promote_class_members(a_type_ptr  class_type,
                                   a_type_ptr  *insert_pointer);
 
 
-static void clear_insert_location(an_insert_location *insert_location,
-                                  a_boolean          expr_insert)
+static void clear_insert_location(an_insert_location      *insert_location,
+                                  an_insert_location_kind kind)
 /*
-Clear an insert location and set its expr_insert field to expr_insert.
+Clear an insert location, set its kind to the indicated value, and set
+the associated variant fields to default values.
 */
 {
-  insert_location->expr_insert = expr_insert;
-  if (expr_insert) {
-    insert_location->variant.expr.ptr = NULL;
-    insert_location->variant.expr.insert_before = TRUE;
-  } else {
-    insert_location->variant.statement.ptr = NULL;
-    insert_location->variant.statement.insert_at_block_start = FALSE;
-  }  /* if */
+  insert_location->kind = kind;
+  switch (kind) {
+    case ilk_after_statement:
+    case ilk_block_start:
+      insert_location->variant.stmt = NULL;
+      break;
+    case ilk_switch_clause_start:
+      insert_location->variant.switch_clause = NULL;
+      break;
+    case ilk_before_expr:
+    case ilk_after_expr:
+      insert_location->variant.expr = NULL;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
 }  /* clear_insert_location */
 
 
@@ -159,8 +168,8 @@ block); it may not be a statement in a position that requires a single
 statement rather than a sequence (e.g., the dependent statement of an "if").
 */
 {
-  clear_insert_location(insert_location, FALSE);
-  insert_location->variant.statement.ptr = stmt;
+  clear_insert_location(insert_location, ilk_after_statement);
+  insert_location->variant.stmt = stmt;
 }  /* set_insert_location */
 
 
@@ -171,10 +180,22 @@ Set *insert_location to indicate an insert location at the start of
 the block stmt.
 */
 { 
-  clear_insert_location(insert_location, FALSE);
-  insert_location->variant.statement.ptr = stmt;
-  insert_location->variant.statement.insert_at_block_start = TRUE;
+  clear_insert_location(insert_location, ilk_block_start);
+  insert_location->variant.stmt = stmt;
 }  /* set_block_start_insert_location */
+
+
+void set_switch_clause_start_insert_location(
+                                          a_switch_clause_ptr scp,
+                                          an_insert_location  *insert_location)
+/*
+Set *insert_location to indicate an insert location at the start of
+the indicated switch clause.
+*/
+{ 
+  clear_insert_location(insert_location, ilk_switch_clause_start);
+  insert_location->variant.switch_clause = scp;
+}  /* set_switch_clause_start_insert_location */
 
 
 void set_expr_insert_location(an_expr_node_ptr   node,
@@ -184,9 +205,8 @@ Set *insert_location to indicate an insert location before the indicated
 expression node.
 */
 {
-  clear_insert_location(insert_location, TRUE);
-  insert_location->variant.expr.ptr = node;
-  insert_location->variant.expr.insert_before = TRUE;
+  clear_insert_location(insert_location, ilk_before_expr);
+  insert_location->variant.expr = node;
 }  /* set_expr_insert_location */
 
 
@@ -204,9 +224,8 @@ that an insertion will be made.
   a_variable_ptr   temp_var;
   an_expr_node_ptr assign_node, node_copy, temp_node;
 
-  clear_insert_location(insert_location, TRUE);
-  insert_location->variant.expr.ptr = node;
-  insert_location->variant.expr.insert_before = FALSE;
+  clear_insert_location(insert_location, ilk_after_expr);
+  insert_location->variant.expr = node;
   node_type = node->type;
   if (node->result_is_not_used || is_void_type(node_type)) {
     /* The expression is a void expression.  Nothing special is required. */
@@ -219,6 +238,7 @@ that an insertion will be made.
        is rewritten as
          ((temp = x) , temp)
        and the insert point is set to insert after the assignment. */
+    /* This could be done also for other scalar types, but isn't presently. */
     temp_var = make_lowered_temporary(node_type);
     /* Make a copy of the original node, then assign it to the temporary. */
     node_copy = copy_node(node);
@@ -231,7 +251,7 @@ that an insertion will be made.
     change_node_to_operation(node, (an_expr_operator_kind)eok_comma,
                              node_type, assign_node);
     /* The insert point is after the assignment. */
-    insert_location->variant.expr.ptr = assign_node;
+    insert_location->variant.expr = assign_node;
   }  /* if */
 }  /* set_after_expr_insert_location */
 
@@ -2108,28 +2128,26 @@ location within an expression.  Update *insert_location so the next insertion
 will be after the expression added.
 */
 {
-  an_expr_node_ptr orig_expr, orig_expr_copy;
-  an_expr_node_ptr first_operand, second_operand;
+  an_expr_node_ptr        orig_expr, orig_expr_copy;
+  an_expr_node_ptr        first_operand, second_operand;
+  an_insert_location_kind kind = insert_location->kind;
 
-#if CHECKING
-  if (!insert_location->expr_insert) {
-    internal_error("insert_expr: insert location is not expr insert");
-  }  /* if */
-#endif /* CHECKING */
-  orig_expr = insert_location->variant.expr.ptr;
+  check_assertion_str(is_expr_insert_location_kind(kind),
+                      "insert_expr: insert location is not expr insert");
+  orig_expr = insert_location->variant.expr;
   /* Make a comma node that has the original node and the expression
      being inserted as its operands.  The original node is actually copied
      so that the comma node can be put at the address of the original node. */
   orig_expr_copy = copy_node(orig_expr);
   /* Order the operands of the comma operator depending on whether the
      insertion is supposed to be before or after the original expression. */
-  if (insert_location->variant.expr.insert_before) {
+  if (kind == ilk_before_expr) {
     first_operand = inserted_expr;
     second_operand = orig_expr_copy;
     /* Change the insert location so that it inserts before the second
        expression (the original one).  Note that we cannot make an "after"
        insertion implicitly; they are tricky and must be made explicitly. */
-    insert_location->variant.expr.ptr = second_operand;
+    insert_location->variant.expr = second_operand;
   } else {
     first_operand = orig_expr_copy;
     second_operand = inserted_expr;
@@ -2154,9 +2172,11 @@ Insert the statement "statement" at *insert_location.  Update *insert_location
 so the next insertion will be after the statement added.
 */
 {
-  a_statement_ptr insert_stmt;
+  a_statement_ptr         insert_stmt;
+  a_switch_clause_ptr     scp;
+  an_insert_location_kind kind = insert_location->kind;
 
-  if (insert_location->expr_insert) {
+  if (is_expr_insert_location_kind(kind)) {
     /* Insert within an expression. */
 #if CHECKING
     if (statement->kind != (a_statement_kind)stmk_expr) {
@@ -2166,30 +2186,34 @@ so the next insertion will be after the statement added.
     /* Note that the expression statement is just discarded. */
     insert_expr(statement->expr, insert_location);
   } else {
-    /* Insert within a statement sequence. */
-    insert_stmt = insert_location->variant.statement.ptr;
-#if CHECKING
-    if (insert_stmt == NULL) {
-      internal_error("insert_statement: insert_stmt is NULL");
-    }  /* if */
-#endif /* CHECKING */
-    if (insert_location->variant.statement.insert_at_block_start) {
-      /* Insert at the start of a block. */
-      statement->next = insert_stmt->variant.block.statements;
-      insert_stmt->variant.block.statements = statement;
+    /* Insert in a statement sequence. */
+    if (kind == ilk_switch_clause_start) {
+      /* Insert at the start of a switch clause. */
+      scp = insert_location->variant.switch_clause;
+      statement->next = scp->statements;
+      scp->statements = statement;
     } else {
-      /* Normal case -- insert after insert_stmt. */
-      statement->next = insert_stmt->next;
-      insert_stmt->next = statement;
+      insert_stmt = insert_location->variant.stmt;
+      if (kind == ilk_block_start) {
+        /* Insert at the start of a block. */
+        statement->next = insert_stmt->variant.block.statements;
+        insert_stmt->variant.block.statements = statement;
+      } else {
+        check_assertion_str(kind == ilk_after_statement,
+                            "insert_statement: bad insert location kind");
+        /* Normal case -- insert after insert_stmt. */
+        statement->next = insert_stmt->next;
+        insert_stmt->next = statement;
+      }  /* if */
     }  /* if */
-    /* Set *insert_location for the next insert. */
+    /* Set *insert_location for the next insertion. */
     set_insert_location(statement, insert_location);
-    if (insert_stmt->kind != (a_statement_kind)stmk_init) {
+    if (statement->kind != (a_statement_kind)stmk_init) {
       /* The statement inserted is an executable statement rather than an
          stmk_init.  Any stmk_init statements following this statement
          must have follows_an_exec_statement TRUE. */
       a_statement_ptr foll_stmt;
-      for (foll_stmt = insert_stmt->next;
+      for (foll_stmt = statement->next;
            foll_stmt != NULL && foll_stmt->kind == (a_statement_kind)stmk_init;
            foll_stmt = foll_stmt->next) {
         foll_stmt->variant.dynamic_init->follows_an_exec_statement = TRUE;
@@ -6467,6 +6491,7 @@ Do IL lowering of the indicated statement and everything under it.
         gen_goto_cleanup_actions(statement);
         break;
       case stmk_label:
+        curr_context->latest_label_statement_processed = statement;
         /* Destroy any expression temporaries whose cleanup is pending.
            Note that this may change the value of "statement", but "statement"
            will still point to the label statement. */
