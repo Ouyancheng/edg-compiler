@@ -3005,10 +3005,17 @@ value.  Several fields are cleared or adjusted.
 
   ucp = alloc_constant(cp->kind);
   copy_constant(cp, ucp);
-  /* Clear the source correspondence information.  This version of the
-     constant isn't the one directly associated with the source entity,
-     if any. */
-  break_source_corresp(&ucp->source_corresp);
+  if (cp->kind == (a_constant_repr_kind)ck_template_param &&
+      cp->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_member) {
+    /* Don't destroy parent information in tpck_member constants. */
+    cp->source_corresp.assoc_info = NULL;
+  } else {
+    /* Clear the source correspondence information.  This version of the
+       constant isn't the one directly associated with the source entity,
+       if any. */
+    break_source_corresp(&ucp->source_corresp);
+  }  /* if */
   return ucp;
 }  /* alloc_unshared_constant */
 
