@@ -1765,8 +1765,11 @@ called by id_linkage.
         a_type_ptr  tp;
         a_symbol_ptr	fund_other_decl;
         fund_other_decl = fundamental_symbol_of(other_decl);
-        if (kind == (a_symbol_kind)sk_namespace_projection &&
-            !locator->is_template_id) {
+        if (other_decl->kind == (a_symbol_kind)sk_namespace_projection &&
+            !locator->is_template_id &&
+            !((sun_mode || microsoft_mode) &&
+              source_corresp_entry_for_symbol(fund_other_decl)->name_linkage ==
+                                         (a_name_linkage_kind)nlk_external)) {
           /* Ignore namespace projection symbols that may have gotten into
              this overload set by a using declaration -- e.g.,
                namespace N { void f(int); }
