@@ -5271,9 +5271,6 @@ Scan the body of a class definition, including the base classes list.
      virtual base classes, virtual functions, or base classes or fields
      for which bitwise copy is not allowed. */
   cssp->assignment_by_bitwise_copy_allowed = TRUE;
-  /* Save the current stop token state, and reinitialize it. */
-  copy_stop_tokens(stop_token_array, save_stop_token_array);
-  clear_stop_tokens();
   if (curr_token == tok_colon && C_dialect == C_dialect_cplusplus) {
     /* Scan the list of base specifiers. */
     add_stop_token(tok_lbrace);
@@ -5315,6 +5312,9 @@ Scan the body of a class definition, including the base classes list.
                                       parent_cssp->is_prototype_instantiation;
       }  /* if */
     }  /* if */
+    /* Save the current stop token state, and reinitialize it. */
+    copy_stop_tokens(stop_token_array, save_stop_token_array);
+    clear_stop_tokens();
     /* Advance past the left brace. */
     (void)get_token();
     add_stop_token(tok_rbrace);
@@ -6637,6 +6637,8 @@ next_declaration:
     remove_stop_token(tok_rbrace);
     /* Check for and ignore the closing brace. */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
+    /* Restore the stop token state. */
+    copy_stop_tokens(save_stop_token_array, stop_token_array);
     /* If entities dependent on this class were declared before the class
        was defined, they will have been recorded on a fixup list.  Now
        go through the fixup list and complete the declarations.  (Note that
@@ -6655,8 +6657,6 @@ next_declaration:
       curr_routine_fixup = saved_routine_fixup;
     }  /* if */
   }  /* if */
-  /* Restore the stop token state. */
-  copy_stop_tokens(save_stop_token_array, stop_token_array);
 
   db_exit();
   return !err;
