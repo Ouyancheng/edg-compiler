@@ -344,6 +344,7 @@ extern a_symbol_ptr select_and_prepare_to_call_overloaded_function(
                                  an_error_code      err_none_applies,
                                  an_error_code      err_ambiguous,
                                  a_source_position  *call_position,
+                                 a_source_position  *function_position,
                                  an_operand         *function_operand,
                                  an_expr_node_ptr   *arg_expr_list);
 

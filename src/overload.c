@@ -3596,6 +3596,7 @@ a_symbol_ptr select_and_prepare_to_call_overloaded_function(
                            an_error_code            err_none_applies,
                            an_error_code            err_ambiguous,
                            a_source_position        *call_position,
+                           a_source_position        *function_position,
                            an_operand               *function_operand,
                            an_expr_node_ptr         *arg_expr_list)
 /*
@@ -3619,8 +3620,10 @@ function applies, and err_ambiguous is the error code to use when more
 than one function applies.  If there is no error, an operand for the
 function is built in *function_operand, an expression-form argument
 list is built and returned in *arg_expr_list (with the arguments cast
-to the proper types), and the symbol selected is returned.  This
-routine is called only in C++ mode.
+to the proper types), and the symbol selected is returned.
+function_position is the position of the function name or equivalent
+in the call, usually the same as call_position.  This routine is
+called only in C++ mode.
 */
 {
   an_arg_match_summary_ptr arg_match_list;
@@ -3647,7 +3650,7 @@ routine is called only in C++ mode.
                                               &have_selector,
                                               bound_function_selector,
                                               is_qualified_name,
-                                              call_position,
+                                              function_position,
                                               function_operand);
   }  /* if */
   /* Build an expression-form argument list.  Convert the arguments on

@@ -1456,7 +1456,7 @@ Syntax:
   a_symbol_ptr      function_symbol, member_function_symbol;
   a_boolean         overloaded_function_case = FALSE;
   a_boolean         vacuous_destructor_case = FALSE;
-  a_source_position call_position, first_arg_position;
+  a_source_position call_position, function_position, first_arg_position;
   an_arg_match_summary
                     this_match_summary;
   an_arg_operand_ptr
@@ -1467,6 +1467,7 @@ Syntax:
   db_enter(4, "scan_function_call");
 
   call_position = operand->position;
+  function_position = call_position;
   if (curr_expr_kind_is_const()) {
     /* Routine calls not allowed in constant expressions. */
     error_in_operand(ec_bad_constant_function_call, operand);
@@ -1515,8 +1516,8 @@ Syntax:
                                        /*is_qualified_name=*/FALSE, operand);
       bind_member_function_operand_to_selector(operand,
                                                bound_function_selector);
-      /* The call position is the position of the "(". */
-      call_position = pos_curr_token;
+      /* The function position is the position of the "(". */
+      function_position = pos_curr_token;
     }  /* if */
     /* If the operand is the name of a nonstatic member function
        (e.g., "A::f") convert it to a bound member function
@@ -1525,7 +1526,7 @@ Syntax:
        (that's an extension). */
     if (is_sym_for_member_operand(operand) &&
         is_a_function_designator(operand) &&
-        !operand->bound_function /* probably unnecessary */) {
+        !operand->bound_function) {
       a_symbol_ptr func_sym = operand->variant.symbol;
       if (make_this_pointer_operand(func_sym,
                                     &call_position,
@@ -1627,6 +1628,7 @@ Syntax:
                                                causes aliasing problems in the
                                                subroutines. */
                                             &call_position,
+                                            &function_position,
                                             operand,
                                             &argument_list);
     if (function_symbol == NULL) {
@@ -1684,6 +1686,8 @@ Syntax:
     /* Build the call node and an operand for it. */
     assemble_function_call(operand, bound_function_selector, argument_list,
                            result);
+    /* Adjust the operand position (needed for the operator() case). */
+    result->position = call_position;
   }  /* if */
   copy_source_position(call_position, error_position);
 
