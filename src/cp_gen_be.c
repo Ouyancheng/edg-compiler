@@ -7704,10 +7704,10 @@ on an array, *value_init is returned TRUE, and the function returns FALSE;
       is_default_array_init = TRUE;
       con= con->variant.aggregate.first_constant->variant.init_repeat.constant;
       if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-        a_dynamic_init_ptr dip = con->variant.dynamic_init;
-        if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        a_dynamic_init_ptr dip2 = con->variant.dynamic_init;
+        if (dip2->kind == (a_dynamic_init_kind)dik_constructor) {
           /* Value-initialization is not default-initialization. */
-          if (dip->variant.constructor.value_initialization) {
+          if (dip2->variant.constructor.value_initialization) {
             *is_value_init = TRUE;
             is_default_array_init = FALSE;
           }  /* if */
