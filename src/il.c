@@ -6315,6 +6315,11 @@ Only used in C++.
   dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_none, temp_type,
                                 evaluated, in_return_by_cctor_expression,
                                 position);
+  if (evaluated) {
+    /* Put the destruction (if any) on the list for the current object
+       lifetime. */
+    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE);
+  }  /* if */
   /* Make an enk_temp_init node that points at the dynamic init entry. */
   temp_init_node = alloc_temp_init_node(temp_type, result_is_addr);
   temp_init_node->variant.init.dynamic_init = dip;
@@ -7173,6 +7178,7 @@ void db_object_lifetime_stack(void)
   }  /* for */
 }  /* db_object_lifetime_stack */
 
+
 void db_pending_destructions(a_dynamic_init_ptr      dip,
                              an_object_lifetime_ptr  stop_at)
 /*
@@ -7202,7 +7208,6 @@ void db_pending_destructions(a_dynamic_init_ptr      dip,
 }  /* db_pending_destructions */
 
 #endif /* DEBUG */
-
 
 static void free_object_lifetime(an_object_lifetime_ptr  olp)
 /*
