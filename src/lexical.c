@@ -6642,14 +6642,14 @@ in C99 mode).  See C89 standard, 3.8.1.
 }  /* adjust_pp_int_constant */
 
 
-static void concat_adjacent_string_literals(void)
+void concat_adjacent_string_literals(a_boolean  curr_token_set)
 /*
-The current token (not in curr_token yet, but in const_for_curr_token) is
-a string literal (tok_string_literal), and in the current lexical mode
-normal (not pp) tokens should be fetched, and concatenation of adjacent
-string literals should be done.  Look to see if the next token of input
-is a string literal, and if so, concatenate it with the current token.
-Loop to pick up all the adjacent string literals.
+The current token (not in curr_token yet if curr_token_set is FALSE, but in
+const_for_curr_token) is a string literal (tok_string_literal), and in the
+current lexical mode normal (not pp) tokens should be fetched, and
+concatenation of adjacent string literals should be done.  Look to see if the
+next token of input is a string literal, and if so, concatenate it with the
+current token.  Loop to pick up all the adjacent string literals.
 */
 {
   a_boolean          wide_strings;
@@ -6671,19 +6671,21 @@ Loop to pick up all the adjacent string literals.
   /* Start a token cache in which we will accumulate all the adjacent
      string literals.  Usually, this will be just a single string literal. */
   clear_token_cache(&cache, /*reusable=*/FALSE);
-  /* Set up the first string literal as the current token, so it can be
-     cached.  This routine is called from get_token at a point where
-     there is, in effect, no current token, so we're just anticipating the
-     action that would be done on return from get_token here.
-     const_for_curr_token is already set; start_of_curr_token and
-     end_of_curr_token are already set; len_of_curr_token does not need
-     to be set. */
-  curr_token = tok_string_literal;
+  if (!curr_token_set) {
+    /* Set up the first string literal as the current token, so it can be
+       cached.  This routine is called from get_token at a point where
+       there is, in effect, no current token, so we're just anticipating the
+       action that would be done on return from get_token here.
+       const_for_curr_token is already set; start_of_curr_token and
+       end_of_curr_token are already set; len_of_curr_token does not need
+       to be set. */
+    curr_token = tok_string_literal;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  check_assertion(end_of_curr_token != NULL);
-  /* Determine the source position of the end of the string. */
-  macro_line_loc_to_source_pos(end_of_curr_token, end_pos_curr_token);
+    check_assertion(end_of_curr_token != NULL);
+    /* Determine the source position of the end of the string. */
+    macro_line_loc_to_source_pos(end_of_curr_token, end_pos_curr_token);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
   /* Loop as long as the next token is a string literal. */
   for (;;) {
     /* Save the current token (a string literal) by adding it to the token
@@ -6706,6 +6708,20 @@ Loop to pick up all the adjacent string literals.
     do_string_literal_concatenation = FALSE;
     (void)get_token();
     do_string_literal_concatenation = TRUE;
+    /* In GNU C mode, treat __FUNCTION__ and __PRETTY_FUNCTION__ as string
+       literals (when they appear in function scope).  The case where these
+       appear as the first literal is handled in expression processing. */
+    if (gcc_mode && depth_innermost_function_scope != 0 &&
+        (curr_token == tok_function_name ||
+         curr_token == tok_decorated_function_name)) {
+      /* We should be in C mode.  In C++ mode, we'd have to deal with
+         templates (and perhaps other constructs that may cache tokens). */
+      a_scope_stack_entry_ptr  ssep =
+                                 &scope_stack[depth_innermost_function_scope];
+      check_assertion(C_mode());
+      set_curr_token_to_string_literal(ssep->assoc_routine
+                                                       ->source_corresp.name);
+    }  /* if */
     /* End the loop if the new token is not a string literal. */
     if (curr_token != tok_string_literal) break;
     /* Also end the loop if the new string is wide and the old is not, or
@@ -7646,7 +7662,7 @@ concatenate_adjacent_string_literals:
   /* Do string literal concatenation. */
   check_assertion_str(ctoken == tok_string_literal,
                       "get_token: concatenating string literal, bad token");
-  concat_adjacent_string_literals();
+  concat_adjacent_string_literals(/*curr_token_set=*/FALSE);
   goto return_from_token_scan;
 }  /* get_token */
 

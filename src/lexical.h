@@ -1595,6 +1595,8 @@ a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file,
 extern a_boolean is_nonstandard_character(char ch);
 /* Skip white space. */
 extern void skip_white_space(void);
+/* Concatenate adjacent string literals in the current string constant. */
+extern void concat_adjacent_string_literals(a_boolean  curr_token_set);
 /* Get next token. */
 extern a_token_kind get_token(void);
 /* Generate a line-identifying directive in preprocessing output. */

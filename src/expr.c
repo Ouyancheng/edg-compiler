@@ -29,6 +29,7 @@ expr.c -- Expression scanning routines.
 #include "disambig.h"
 #include "decl_spec.h"
 #include "func_def.h"
+#include "literals.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* The Microsoft-specific predefined identifier __FUNCDNAME__ refers to the
    mangled name of the current function.  Hence, we may need access to the
@@ -12744,76 +12745,85 @@ returned instead of the unqualified function name.
   check_assertion(microsoft_mode || gcc_mode || (c99_mode && !decorated_name));
   check_assertion(depth_innermost_function_scope != 0);
   ssep = &scope_stack[depth_innermost_function_scope];
-  /* Check if this scope already has an associated generated entity block. */
-  if (ssep->generated_entities == NULL) {
-    ssep->generated_entities = (a_generated_entity_block_ptr)
+  if (gcc_mode) {
+    /* In GNU C mode, we create a constant operand. */
+    set_curr_token_to_string_literal(ssep->assoc_routine->source_corresp.name);
+    /* Make sure that e.g. __FUNCTION__ "(postfix)" is accepted. */
+    concat_adjacent_string_literals(/*curr_token_set=*/TRUE);
+    make_string_constant_operand(&const_for_curr_token, result);
+  } else {
+    /* Check if this scope already has an associated generated entity block. */
+    if (ssep->generated_entities == NULL) {
+      ssep->generated_entities = (a_generated_entity_block_ptr)
                                    alloc_fe(sizeof(a_generated_entity_block));
 #if DEBUG
-    ++num_generated_entity_blocks_allocated;
+      ++num_generated_entity_blocks_allocated;
 #endif /* DEBUG */
-    ssep->generated_entities->decorated_function_name = NULL;
-    ssep->generated_entities->function_name = NULL;
-  }  /* if */
-  name_var = decorated_name ?
+      ssep->generated_entities->decorated_function_name = NULL;
+      ssep->generated_entities->function_name = NULL;
+    }  /* if */
+    name_var = decorated_name ?
                            ssep->generated_entities->decorated_function_name :
                            ssep->generated_entities->function_name;
-  if (name_var == NULL) {
-    /* The required constant string variable has not yet been created for this
-       function.  Create it now. */
-    a_routine_ptr          rp = ssep->assoc_routine;
-    char                   *name_ptr =
+    if (name_var == NULL) {
+      /* The required constant string variable has not yet been created for
+         this function.  Create it now. */
+      a_routine_ptr          rp = ssep->assoc_routine;
+      char                   *name_ptr =
 #if MICROSOFT_EXTENSIONS_ALLOWED
                               decorated_name ? get_mangled_function_name(rp) :
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                rp->source_corresp.name;
-    a_constant_ptr         name_string;
-    a_targ_size_t          length = ((a_targ_size_t)strlen(name_ptr))+1;
-    a_memory_region_number region_to_switch_back_to;
-    a_type_ptr             var_type;
-    /* Create the string literal. */
-    /* Make sure the string literal constant is allocated in file scope, so
-       that we can directly point to it as an initializer from the variable. */
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    name_string = alloc_constant((a_constant_repr_kind)ck_string);
-    switch_back_to_original_region(region_to_switch_back_to);
-    name_string->type = string_type(length);
-    name_string->variant.string.length = length;
-    name_string->variant.string.value =
+      a_constant_ptr         name_string;
+      a_targ_size_t          length = ((a_targ_size_t)strlen(name_ptr))+1;
+      a_memory_region_number region_to_switch_back_to;
+      a_type_ptr             var_type;
+      /* Create the string literal. */
+      /* Make sure the string literal constant is allocated in file scope,
+         so that we can directly point to it as an initializer from the
+         variable. */
+      switch_to_file_scope_region(&region_to_switch_back_to);
+      name_string = alloc_constant((a_constant_repr_kind)ck_string);
+      switch_back_to_original_region(region_to_switch_back_to);
+      name_string->type = string_type(length);
+      name_string->variant.string.length = length;
+      name_string->variant.string.value =
                                alloc_text_of_string_literal((sizeof_t)length);
-    (void)memcpy(name_string->variant.string.value, name_ptr,
-                 size_t_arg(length));
-    /* Create the local static const array and initialize it with the
-       string constant. */
-    /* In C99, the variable is an array of const.  In Microsoft mode,
-       it has the same type as the string. */
-    if (microsoft_mode) {
-      var_type = name_string->type;
-    } else {
-      /* Create an array of const char type. */
-      var_type = alloc_type((a_type_kind)tk_array);
-      var_type->variant.array.element_type =
+      (void)memcpy(name_string->variant.string.value, name_ptr,
+                   size_t_arg(length));
+      /* Create the local static const array and initialize it with the
+         string constant. */
+      /* In C99, the variable is an array of const.  In Microsoft mode,
+         it has the same type as the string. */
+      if (microsoft_mode) {
+        var_type = name_string->type;
+      } else {
+        /* Create an array of const char type. */
+        var_type = alloc_type((a_type_kind)tk_array);
+        var_type->variant.array.element_type =
              make_qualified_type(integer_type(plain_char_int_kind), TQ_CONST);
-      var_type->variant.array.variant.number_of_elements = length;
-      set_type_size(var_type);
-    }  /* if */
-    name_var = make_variable(var_type, (a_storage_class)sc_static,
-                             depth_innermost_function_scope);
-    name_var->source_corresp.name =
+        var_type->variant.array.variant.number_of_elements = length;
+        set_type_size(var_type);
+      }  /* if */
+      name_var = make_variable(var_type, (a_storage_class)sc_static,
+                               depth_innermost_function_scope);
+      name_var->source_corresp.name =
                                 locator_for_curr_id.symbol_header->identifier;
-    name_var->source_corresp.is_local_to_function = TRUE;
-    name_var->init_kind = (an_init_kind)initk_static;
-    name_var->initializer.constant = name_string;
-    /* To be sure, always consider the variable's address has been taken. */
-    set_variable_address_taken(name_var);
-    /* Remember the above construct for potential reuse. */
-    if (decorated_name) {
-      ssep->generated_entities->decorated_function_name = name_var;
-    } else {
-      ssep->generated_entities->function_name = name_var;
+      name_var->source_corresp.is_local_to_function = TRUE;
+      name_var->init_kind = (an_init_kind)initk_static;
+      name_var->initializer.constant = name_string;
+      /* To be sure, always consider the variable's address has been taken. */
+      set_variable_address_taken(name_var);
+      /* Remember the above construct for potential reuse. */
+      if (decorated_name) {
+        ssep->generated_entities->decorated_function_name = name_var;
+      } else {
+        ssep->generated_entities->function_name = name_var;
+      }  /* if */
     }  /* if */
+    /* Create an operand that refers to the implicit static variable. */
+    make_lvalue_variable_operand(name_var, result, (a_ref_entry_ptr)NULL);
   }  /* if */
-  /* Create an operand that refers to the implicit static variable. */
-  make_lvalue_variable_operand(name_var, result, (a_ref_entry_ptr)NULL);
 }  /* make_function_name_operand */
 
 

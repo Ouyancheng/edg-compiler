@@ -934,29 +934,28 @@ Put the wide character ch into the string pointed to by *pstr, and increment
 }  /* put_wide_char_into_string */
 
 
-void conv_string_literal(unsigned long num_chars,
-                         an_error_code *err_code,
-                         char          **err_pos)
+static void internalize_string_literal(char          *str,
+                                       a_boolean     is_wide,
+                                       unsigned long num_chars,
+                                       an_error_code *err_code,
+                                       char          **err_pos)
 /*
-Convert a string literal from external form to internal form.
-start_of_curr_token and end_of_curr_token point to the two ends of the
-external form.  The internal form is placed in const_for_curr_token.  If
-there is no error, *err_code is set to ec_no_error (which is 0);
-otherwise, *err_code is set to an appropriate error code and *err_pos
-is set to the character position of the error.  num_chars indicates
-the number of characters contained within the quotes (after escape
-processing, and in wide characters if the string is wide).
+Convert the string pointed to by str from external form to internal form.
+The internal form is placed in const_for_curr_token.  is_wide indicates
+whether the string should be converted to a wide form.  If there is no error,
+*err_code is set to ec_no_error (which is 0); otherwise, *err_code is set to
+an appropriate error code and *err_pos is set to the character position of the
+error.  num_chars indicates the number of characters contained within the
+quotes (after escape processing, and in wide characters if the string is wide).
 */
 {
   unsigned long i;
   unsigned long ch;
-  char          *temp_ptr;
   char          *pstr, *str_start;
-  a_boolean     is_wide = FALSE;
-  sizeof_t      constant_size;
-  a_targ_size_t num_elems;
-  unsigned long centity_mask;
   int           remaining_mbc_char_count = 0;
+  unsigned long centity_mask;
+  a_targ_size_t num_elems;
+  sizeof_t      constant_size;
 
   *err_code = ec_no_error;
   *err_pos = NULL;  /* To make lint happy. */
@@ -966,13 +965,8 @@ processing, and in wide characters if the string is wide).
   /* Build a mask used to mask individual characters. */
   centity_mask = (unsigned long)1 << (targ_host_string_char_bit-1);
   centity_mask = centity_mask | (centity_mask-1);
-  temp_ptr = start_of_curr_token+1;
-  /* See if this is a wide string literal. */
-  if (*start_of_curr_token == 'L') {
+  if (is_wide) {
     /* Wide string literal. */
-    is_wide = TRUE;
-    /* Skip over the "L". */
-    temp_ptr++;
     constant_size = (sizeof_t)(num_elems*targ_sizeof_wchar_t);
     /* Replicate the mask for one character as many times as there are
        characters in the wide character.  This "inefficient" method is used
@@ -998,22 +992,15 @@ processing, and in wide characters if the string is wide).
   for (i = 0; i < num_chars; i++) {
     /* Convert one character of the string literal. */
     if (!is_wide) {
-      conv_single_char(&temp_ptr, &remaining_mbc_char_count, &ch,
+      conv_single_char(&str, &remaining_mbc_char_count, &ch,
                        centity_mask);
       /* Put the character in the right place. */
       *pstr++ = (char)ch;
     } else {
-      conv_single_wide_char(&temp_ptr, &ch, centity_mask);
+      conv_single_wide_char(&str, &ch, centity_mask);
       put_wide_char_into_string(ch, &pstr);
     }  /* if */
   }  /* for */
-#if CHECKING
-  /* Make sure the whole string was taken.  If not, the character count
-     from accum_quoted_string is wrong. */
-  if (temp_ptr != end_of_curr_token) {
-    internal_error("conv_string_literal: length miscalculated");
-  }  /* if */
-#endif /* CHECKING */
   /* Add the final null. */
   if (!is_wide) {
     *pstr = '\0';
@@ -1031,7 +1018,51 @@ processing, and in wide characters if the string is wide).
     /* Return an error constant. */
     set_error_constant(&const_for_curr_token);
   }  /* if */
+}  /* internalize_string_literal */
+
+
+void conv_string_literal(unsigned long num_chars,
+                         an_error_code *err_code,
+                         char          **err_pos)
+/*
+Convert a string literal stored at start_of_curr_token (including quotes and
+any leading "L") from external form to internal form.  The internal form is
+placed in const_for_curr_token.  If there is no error, *err_code is set to
+ec_no_error (which is 0); otherwise, *err_code is set to an appropriate error
+code and *err_pos is set to the character position of the error.  num_chars
+indicates the number of characters contained within the quotes (after escape
+processing, and in wide characters if the string is wide).
+*/
+{
+  char  *temp_ptr = start_of_curr_token+1;
+  a_boolean  is_wide;
+
+  /* See if this is a wide string literal. */
+  if (*start_of_curr_token == 'L') {
+    /* Wide string literal. */
+    is_wide = TRUE;
+    /* Skip over the "L". */
+    ++temp_ptr;
+  } else {
+    is_wide = FALSE;
+  }  /* if */
+  internalize_string_literal(temp_ptr, is_wide, num_chars, err_code, err_pos);
 }  /* conv_string_literal */
+
+
+void set_curr_token_to_string_literal(char  *str)
+/*
+Set curr_token and const_for_curr_token as if a (nonwide) string literal with
+the contents of *str had been scanned.
+*/
+{
+  an_error_code  err_code;
+  char           *err_pos;
+
+  curr_token = tok_string_literal;
+  internalize_string_literal(str, /*is_wide=*/FALSE, strlen(str),
+                             &err_code, &err_pos);
+}  /* set_curr_token_to_string_literal */
 
 
 void concat_string_literals(a_token_cache_ptr cache,
