@@ -893,8 +893,8 @@ or the specific definition flag (if instantiate is FALSE).
       tip->explicit_instantiation = TRUE;
       tip->explicit_instantiation_pos = *pos;
     } else {
+      update_instantiation_required_flag(tip, FALSE);
       tip->specific_def = TRUE;
-      tip->instantiation_required = FALSE;
       tip->explicit_instantiation = FALSE;
     }  /* if */
   }  /* if */
