@@ -4302,7 +4302,7 @@ also set *is_nonstd to TRUE.
                              variant.class_struct_union.originally_unnamed)) {
     /* Not a pseudo-anonymous-union -- either a tag appeared on the current
        declaration, or its a typedef name and a tag was declared originally,
-       or else its a friend declaration. */
+       or else it's a friend declaration. */
   } else {
     /* This may in fact be an anonymous-union-like construct. */
     /* Skip the typedefs but not cv qualifiers. */
