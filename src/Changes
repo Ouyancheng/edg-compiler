@@ -1,5 +1,20 @@
 Version 2.11
 
+10/1/92  Fixed error recovery bug with pointer-to-member types
+
+When there is no class named "A", a declaration like
+
+  int A::* pmi;
+
+used to result in an internal error.  That has been fixed by making the
+type created for pmi an error type (rather than a ptr-to-member type that
+points to an error type).
+
+10/1/92  is_function_scope_tag field removed
+
+The field is_function_scope_tag, a variant field in a_type for
+tk_typeref, is no longer used and has been eliminated from the IL.
+
 10/1/92  Name mangling for unnamed enumerations
 
 For a case like
@@ -62,6 +77,24 @@ has been closed prematurely because of an error.
 
 The referenced flag for virtual function tables (created by IL
 lowering) is now set more correctly.
+
+9/28/92  IL changes to support templates
+
+A new data structure a_template_arg has been added to the IL, and
+a_class_type_supplement contains a pointer to a list of them.  This is
+required by back ends to construct names for template classes.
+
+New scope kinds sck_template_declaration and sck_template_instantiation
+have been introduced for front-end use only; no IL scope entries will be
+created with these kinds.  Similarly, a new type kind, tk_template_param,
+has been introduced, but it is for front-end use only and will not appear
+in the IL.
+
+9/28/92  Duplicate typedef
+
+An error (rather than a warning) is now issued for duplicate typedef
+declarations in C mode when the typedef name remains bound to the same
+type.
 
 9/28/92  Initialization of arrays of C-style structs in C++ mode
 
