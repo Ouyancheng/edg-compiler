@@ -518,6 +518,9 @@ extern an_expr_node_ptr make_reusable_copy(an_expr_node_ptr expr,
 extern void insert_expr(an_expr_node_ptr       inserted_expr,
                         an_insert_location_ptr insert_location);
 
+extern void mark_stmk_inits_as_following_exec_statement(
+                                                    a_statement_ptr statement);
+
 extern void insert_statement(a_statement_ptr        statement,
                              an_insert_location_ptr insert_location);
 

@@ -2184,6 +2184,32 @@ will be after the expression added.
 }  /* insert_expr */
 
 
+void mark_stmk_inits_as_following_exec_statement(a_statement_ptr statement)
+/*
+An executable statement has been inserted preceding the indicated statement.
+If that statement is an stmk_init, set follows_an_exec_statement in it.
+Do the same for any other stmk_inits immediately following it.
+*/
+{
+  a_statement_ptr foll_stmt;
+
+  for (foll_stmt = statement;
+       foll_stmt != NULL;
+       foll_stmt = foll_stmt->next) {
+    if (foll_stmt->kind == (a_statement_kind)stmk_init) {
+      foll_stmt->variant.dynamic_init->follows_an_exec_statement = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    } else if (foll_stmt->kind == (a_statement_kind)stmk_decl) {
+      /* Ignore stmk_decl statements. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    } else {
+      /* Some other kind of statement. */
+      break;
+    }  /* if */
+  }  /* for */
+}  /* mark_stmk_inits_as_following_exec_statement */
+
+
 void insert_statement(a_statement_ptr        statement,
                       an_insert_location_ptr insert_location)
 /*
@@ -2232,24 +2258,9 @@ so the next insertion will be after the statement added.
     /* Set *insert_location for the next insertion. */
     set_insert_location(statement, insert_location);
     if (statement->kind != (a_statement_kind)stmk_init) {
-      /* The statement inserted is an executable statement rather than an
-         stmk_init.  Any stmk_init statements following this statement
-         must have follows_an_exec_statement TRUE. */
-      a_statement_ptr foll_stmt;
-      for (foll_stmt = statement->next;
-           foll_stmt != NULL;
-           foll_stmt = foll_stmt->next) {
-        if (foll_stmt->kind == (a_statement_kind)stmk_init) {
-          foll_stmt->variant.dynamic_init->follows_an_exec_statement = TRUE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        } else if (foll_stmt->kind == (a_statement_kind)stmk_decl) {
-          /* Ignore stmk_decl statements. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        } else {
-          /* Some other kind of statement. */
-          break;
-        }  /* if */
-      }  /* for */
+      /* Set follows_an_exec_statement on any stmk_inits following this
+         insertion. */
+      mark_stmk_inits_as_following_exec_statement(statement->next);
     }  /* if */
   }  /* if */
 }  /* insert_statement */
