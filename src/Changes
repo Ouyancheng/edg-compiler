@@ -1,5 +1,15 @@
 Version 3.4
 
+9/16/03  GNU mode: Exception specifications on assignments and initialization
+
+When assigning or initializing pointers or references to functions, the
+front end no longer issues an error in GNU C++ mode when the exception
+specifications do not match.  Instead, a warning is issued.  For example:
+
+  int f() throw(int);
+  int (&rf)() = f;  // Warning in GNU C++ mode; error in strict mode.
+  int (*pf)() throw() = f;  // Warning in GNU C++ mode; error in strict mode.
+
 9/16/03  Pure specifier in templates
 
 The front end used to issue an error on a pure specifier ("= 0") whenever

@@ -9979,8 +9979,11 @@ source_type to dest_type.
   if (std_conv->exception_spec_incompatibility) {
     /* In assignments and initializations, exception specifications
        under pointers-to-functions and pointers-to-member-functions
-       must obey certain rules, but they don't in this case. */
-    pos_error(ec_incompatible_exception_specs, err_pos);
+       must obey certain rules, but they don't in this case.  (GNU
+       compilers don't diagnose this: We issue a warning when emulating
+       those compilers.) */
+    pos_diagnostic(gpp_mode ? es_warning : es_error,
+                   ec_incompatible_exception_specs, err_pos);
   }  /* if */
   /* Warn on oddball conversions. */
   if (std_conv->warning_suggested != ec_no_error) {
@@ -11841,12 +11844,13 @@ to be acceptable, and *conversion describes it.
       if (exceptions_enabled) {
         /* Check compatibility of exception specifications.  Unlike the
            pointer-to-function case, the reference-to-function case must
-           match exactly. */
+           match exactly.  (GNU compilers don't diagnose this: We issue
+           a warning when emulating those compilers.) */
         if (exception_spec_is_less_restrictive(source_operand->type,
                                                base_dest_type) ||
             exception_spec_is_less_restrictive(base_dest_type,
                                                source_operand->type)) {
-          pos_diagnostic(es_discretionary_error,
+          pos_diagnostic(gpp_mode ? es_warning : es_discretionary_error,
                          ec_incompatible_exception_specs,
                          &source_operand->position);
         }  /* if */
