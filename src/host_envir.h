@@ -333,8 +333,7 @@ if the back end is being called).
 #endif /* ifndef BACK_END_IS_CP_GEN_BE */
 
 #if BACK_END_IS_C_GEN_BE && BACK_END_IS_CP_GEN_BE
-??=error -- BACK_END_IS_C_GEN_BE and BACK_END_IS_CP_GEN_BE cannot both
-            be TRUE.
+??=error -- BACK_END_IS_C_GEN_BE and BACK_END_IS_CP_GEN_BE cannot both be TRUE.
 #endif /* BACK_END_IS_C_GEN_BE && BACK_END_IS_CP_GEN_BE */
 
 /*
