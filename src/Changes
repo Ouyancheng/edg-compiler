@@ -1,5 +1,18 @@
 Version 3.5
 
+6/15/04  Missing diagnostic on empty initializer for array variable
+
+The front end sometimes failed to diagnose an empty initializer on an array
+variable with an unspecified bound.  For example:
+
+  template <class T> struct A { static T a[]; };
+  template <class T> T A<T>::a[] = {};  // Should be an error (except in
+                                        // GNU C++ mode).
+
+A diagnostic is now issued, except in GNU C++ mode where the array is assumed
+to have length zero.  While a diagnostic was missing only on template cases,
+the diagnostic for nontemplate cases has been made clearer.
+
 6/12/04  C++-generating back end: extra parentheses around member function call
 
 A change in 3.4 (see Changes entry of 1/6/04) added parentheses around

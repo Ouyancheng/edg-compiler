@@ -2553,6 +2553,13 @@ vp had an incomplete array type that has been completed by an initializer.
                                             es_error);
     }  /* if */
   }  /* if */
+  /* An empty aggregate initializer ({}) is not valid for an array variable
+     with unspecified bound, except in GNU mode (where the type of the
+     initializer is complete). */
+  if (is_incomplete_type(vp_type)) {
+    pos_error(ec_bad_initializer_for_array_with_unspecified_bound, source_pos);
+    vp_type = error_type();
+  }  /* if */
   /* Put the updated type into the variable. */
   vp->type = vp_type;
   db_exit();
