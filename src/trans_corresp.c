@@ -1218,7 +1218,7 @@ its corresponding primary template supplement will be used instead.
     a_line_number  line;
     char           *file_name, *full_name;
     a_boolean      at_end_of_source;
-    fprintf(f_debug, "! Adding ");
+    fprintf(f_debug, "Adding ");
     db_symbol_name(inst);
     fprintf(f_debug, " (%s) to all_instantiations list for ",
             symbol_kind_names[(int)inst->kind]);
