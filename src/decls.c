@@ -4075,7 +4075,7 @@ a pointer to it in *symbol_ptr.
   sym->variant.type = tp = alloc_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
   set_source_corresp(&(tp->source_corresp), sym);
-  add_to_types_list(tp, decl_scope_level, in_old_style_param_decl_list);
+  add_to_types_list(tp, decl_scope_level);
 
 return_point:
   /* Return the type name symbol to the caller. */
@@ -5550,8 +5550,7 @@ to indicate whether an enumeration is actually defined.
        type list at the end of the prototype scope, so do not add them
        again. */
     if (!prototype_tag_resolution) {
-      add_to_types_list(enum_type, effective_decl_level,
-                        in_old_style_param_decl_list);
+      add_to_types_list(enum_type, effective_decl_level);
     }  /* if */
     /* Switch back from the file scope memory region to whatever region
        was current upon entry. */
@@ -7142,8 +7141,8 @@ explicitly specified (rather than defaulted to "int").
          involving both prototyped and old-style functions. */
       /* Push the name scope for the parameter declarations. */
       scope_ptr = push_scope((a_scope_kind)sck_func_prototype,
-                             func_info->scope_number,
-                             (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                             func_info->scope_number, rout_type,
+                             (a_routine_ptr)NULL,
                              (a_function_instantiation_entry_ptr)NULL);
       if (func_info->param_id_list == NULL) {
         /* No parameters to declare. */
@@ -7151,7 +7150,6 @@ explicitly specified (rather than defaulted to "int").
         a_param_type_ptr   old_style_param_types = NULL;
         a_param_type_ptr   end_old_style_param_types = NULL;
 
-        in_old_style_param_decl_list = TRUE;
 #if CHECKING
         if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
           internal_error("function_definition: bad region number");
@@ -7171,7 +7169,6 @@ explicitly specified (rather than defaulted to "int").
            the function scope later. */
         func_info->prototype_scope_symbols =
                                       scope_stack[depth_scope_stack].symbols;
-        in_old_style_param_decl_list = FALSE;
         /* Scan the list of identifiers, assigning types to any that remain
            undeclared, and create the param type entries. */
         for (param_id = func_info->param_id_list;
