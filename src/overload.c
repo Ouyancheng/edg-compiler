@@ -76,13 +76,13 @@ function pointer.  If more than one function matches, return NULL and
 See ARM 13.3, "Address of Overloaded Function".
 */
 {
-  a_boolean     is_ptr = FALSE, is_ptr_to_member = FALSE;
-  a_boolean     sym_is_list, any_function_templates;
-  a_type_ptr    routine_type, dest_class, ptr_routine_type;
-  a_type_ptr    dest_underlying_type;
-  an_error_code warning_suggested;
-  a_symbol_ptr  sym, match_sym = NULL, instance_sym;
-  unsigned long number_of_matches = 0;
+  a_boolean        is_ptr = FALSE, is_ptr_to_member = FALSE;
+  a_boolean        sym_is_list, any_function_templates;
+  a_type_ptr       routine_type, dest_class, ptr_routine_type;
+  a_type_ptr       dest_underlying_type;
+  a_std_conv_descr std_conv;
+  a_symbol_ptr     sym, match_sym = NULL, instance_sym;
+  unsigned long    number_of_matches = 0;
 
   db_enter(4, "find_addr_of_overloaded_function_match");
   *ambiguous = FALSE;
@@ -193,7 +193,7 @@ See ARM 13.3, "Address of Overloaded Function".
                                        dest_type,
                                        /*suppress_extensions=*/TRUE,
                                        ec_no_error,
-                                       &warning_suggested)) {
+                                       &std_conv)) {
             /* A match. */
             match_sym = sym;
             *match_level = (an_arg_match_level)aml_std_conversion;
@@ -790,7 +790,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   a_boolean         param_is_reference;
   a_boolean         param_is_class_type, arg_is_class_type;
   a_boolean         ref_type_qualifiers_dropped;
-  an_error_code     warning_suggested;
+  a_std_conv_descr  std_conv;
   a_base_class_ptr  bcp;
   a_boolean         ambiguous;
   a_boolean         arg_operand_is_constant;
@@ -1011,13 +1011,14 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                                arg_operand_is_constant,
                                arg_operand_constant,
                                param_type, /*suppress_extensions=*/TRUE,
-                               ec_incompatible_param, &warning_suggested)) {
+                               ec_incompatible_param, &std_conv)) {
     /* Match with standard conversions. */
     arg_summary->match_level = aml_std_conversion;
-    arg_summary->warning_suggested = warning_suggested;
+    arg_summary->warning_suggested = std_conv.warning_suggested;
     /* If the cast is from a pointer to a derived class to a pointer to a
        base class, set cast_base_class. */
-    determine_cast_base_class(arg_type, param_type, arg_summary);
+    arg_summary->cast_base_class = std_conv.cast_base_class;
+    arg_summary->reversed_cast = std_conv.reversed_cast;
     if (cfront_2_1_mode && param_is_reference &&
         arg_summary->cast_base_class == NULL) {
       /* cfront 2.1 has a bug: when a reference parameter is initialized
@@ -3338,7 +3339,7 @@ is only used in C++ mode.
   a_type_ptr                source_type, conv_routine_type, return_type;
   an_arg_match_summary      this_match;
   an_arg_match_summary_ptr  this_match_ptr;
-  an_error_code             warning_suggested;
+  a_std_conv_descr          std_conv;
   a_boolean                 compatible, std_conversion_needed;
   a_boolean                 result_is_an_lvalue;
   a_candidate_function_ptr  candidate;
@@ -3402,7 +3403,7 @@ is only used in C++ mode.
                                           /*source_is_constant=*/FALSE,
                                           (a_constant_ptr)NULL, dest_type,
                                           /*suppress_extensions=*/TRUE,
-                                          ec_no_error, &warning_suggested)) {
+                                          ec_no_error, &std_conv)) {
         /* This conversion function returns a type that can be converted
            via a standard conversion to the type we want. */
         compatible = TRUE;
@@ -4996,11 +4997,10 @@ rewritten that case).  orig_dest_type is the original destination type
 (not rewritten) for use in error messages.
 */
 {
-  a_boolean     okay = FALSE, failed = FALSE, ambiguous;
-  a_type_ptr    source_type;
-  an_error_code warning_suggested;
-  an_arg_match_level
-                match_level;
+  a_boolean          okay = FALSE, failed = FALSE, ambiguous;
+  a_type_ptr         source_type;
+  a_std_conv_descr   std_conv;
+  an_arg_match_level match_level;
 
   db_enter(4, "conversion_possible");
   clear_user_conv_descr(user_conversion);
@@ -5063,14 +5063,14 @@ rewritten that case).  orig_dest_type is the original destination type
                                         dest_type,
                                         /*suppress_extensions=*/FALSE,
                                         incompatible_err,
-                                        &warning_suggested)) {
+                                        &std_conv)) {
       /* An implicit conversion is legal. */
       okay = TRUE;
       /* Warn on oddball conversions. */
-      if (warning_suggested != ec_no_error) {
+      if (std_conv.warning_suggested != ec_no_error) {
         /* The "opt_ty2" routine puts in the types if the specific error
            message has fill-ins for them, and otherwise ignores the types. */
-        pos_opt_ty2_warning(warning_suggested, err_pos,
+        pos_opt_ty2_warning(std_conv.warning_suggested, err_pos,
                             source_type, orig_dest_type);
       }  /* if */
     } else {

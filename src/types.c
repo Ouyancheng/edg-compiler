@@ -2286,7 +2286,7 @@ that is not required to be checked by the ANSI C standard.
         interch = TRUE;
       }  /* if */
     } else {
-      /* When not in strict ANSI mode, consider any integral types that
+      /* When not in strict mode, consider any integral types that
          have the same size and alignment to be interchangeable.  Typically,
          this makes int and long interchangeable. */
       if (type_1->size == type_2->size &&
@@ -2429,8 +2429,8 @@ out to describe the conversion.  In particular, if the conversion is
 suspect and should be flagged with a warning, the warning_suggested field is
 set to an appropriate error code; normally, it is set to ec_no_error.
 default_warning_code will be copied into warning_suggested when no
-specific message applies.  In strict ANSI mode, if a conversion
-flagged with warning_suggested is done, the warning is required.
+specific message applies.  In strict mode, if a conversion flagged
+with warning_suggested is done, the warning is required.
 
 Note that any type qualifiers on the types themselves (rather than the
 types pointed to) are ignored.
@@ -2456,7 +2456,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
   }  /* if */
 #endif /* DEBUG */
   clear_std_conv_descr(std_conv);
-  /* If in strict ANSI mode and nonstandard constructs should be reported as
+  /* If in strict mode and nonstandard constructs should be reported as
      errors, disable extensions. */
   if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
     suppress_extensions = TRUE;
@@ -2913,26 +2913,29 @@ pointers to members).
 }  /* impl_ptr_to_member_conversion */
 
 
-a_boolean impl_conversion_possible(a_type_ptr    source_type,
-                                   a_boolean     source_is_constant,
-                                   a_constant    *source_constant,
-                                   a_type_ptr    dest_type,
-                                   a_boolean     suppress_extensions,
-                                   an_error_code default_warning_code,
-                                   an_error_code *warning_suggested)
+a_boolean impl_conversion_possible(a_type_ptr           source_type,
+                                   a_boolean            source_is_constant,
+                                   a_constant           *source_constant,
+                                   a_type_ptr           dest_type,
+                                   a_boolean            suppress_extensions,
+                                   an_error_code        default_warning_code,
+                                   a_std_conv_descr_ptr std_conv)
 /*
 Return TRUE if it is okay to implicitly convert something of type source_type
 to something of type dest_type.  If source_is_constant is TRUE, the source
 is a constant, and source_constant points to the constant value.  (That's
-needed to check for conversions of a null pointer constant to a pointer type.)
-Any type qualifiers on the types themselves are ignored.  suppress_extensions
-is TRUE if conversions that are extensions should not be allowed (what
-constitutes an extension depends on C_dialect, of course).  If the conversion
-is suspect and should be flagged with a warning, *warning_suggested is
-set to an appropriate error code; normally, it is set to ec_no_error.
-default_warning_code will be copied into *warning_suggested when no
-specific message applies.  In strict ANSI mode, if a conversion flagged with
-*warning_suggested is done, the warning is required.
+needed to check for conversions of a null pointer constant to a pointer
+type.)  suppress_extensions is TRUE if conversions that are extensions
+should not be allowed (what constitutes an extension depends on
+C_dialect, of course).  If the conversion is possible, *std_conv is
+filled out to describe the conversion.  In particular, if the conversion
+is suspect and should be flagged with a warning, the warning_suggested
+field is set to an appropriate error code; normally, it is set to
+ec_no_error.  default_warning_code will be copied into warning_suggested
+when no specific message applies.  In strict mode, if a conversion
+flagged with warning_suggested is done, the warning is required.
+
+Note that any top-level type qualifiers on the types are ignored.
 
 See chapter 4 of the ARM (standard conversions).  Note that integral
 promotions, default argument promotions, the usual arithmetic conversions,
@@ -2949,10 +2952,9 @@ in assignments (for example, struct --> same struct is not handled here).
 See conversion_possible.
 */
 {
-  a_boolean        okay = FALSE;
-  a_boolean        source_is_integral;
-  a_type_ptr       dest_enum_type, source_enum_type;
-  a_std_conv_descr std_conv;
+  a_boolean  okay = FALSE;
+  a_boolean  source_is_integral;
+  a_type_ptr dest_enum_type, source_enum_type;
 
   db_enter(5, "impl_conversion_possible");
 #if DEBUG
@@ -2964,8 +2966,8 @@ See conversion_possible.
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
-  *warning_suggested = ec_no_error;
-  /* If in strict ANSI mode and nonstandard constructs should be reported as
+  clear_std_conv_descr(std_conv);
+  /* If in strict mode and nonstandard constructs should be reported as
      errors, disable extensions. */
   if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
     suppress_extensions = TRUE;
@@ -3008,11 +3010,12 @@ See conversion_possible.
              a warning anyway. */
           if (C_dialect != C_dialect_cplusplus) {
             /* Mixed integral types allowed in C with a warning. */
-            *warning_suggested = ec_mixed_enum_type;
-          } else if (((int)anachronism_error_severity == (int)es_warning) &&
-                      source_is_integral) {
+            std_conv->warning_suggested = ec_mixed_enum_type;
+          } else if (allow_anachronisms &&
+                     ((int)anachronism_error_severity == (int)es_warning) &&
+                     source_is_integral) {
             /* Anachronism warning in C++ mode with anachronisms allowed. */
-            *warning_suggested = ec_mixed_enum_type_anachronism;
+            std_conv->warning_suggested = ec_mixed_enum_type_anachronism;
           } else {
             /* C++ mode and anachronisms not allowed. */
             okay = FALSE;
@@ -3025,7 +3028,7 @@ See conversion_possible.
       /* In pcc mode, allow pointer --> integer (even if the integer is not
          big enough).  Issue a warning. */
       okay = TRUE;
-      *warning_suggested = default_warning_code;
+      std_conv->warning_suggested = default_warning_code;
     } else {
       /* Non-arithmetic --> arithmetic.  Error. */
       okay = FALSE;
@@ -3041,15 +3044,14 @@ See conversion_possible.
                                    /*check_as_operands_not_conversion=*/FALSE,
                                    suppress_extensions,
                                    default_warning_code,
-                                   &std_conv);
-    if (okay) *warning_suggested = std_conv.warning_suggested;
+                                   std_conv);
   } else if (is_ptr_to_member_type(dest_type)) {
     /* Conversion to a C++ pointer-to-member type. */
     okay = impl_ptr_to_member_conversion(source_type,
                                          source_is_constant, source_constant,
                                          dest_type,
                                     /*check_as_operands_not_conversion=*/FALSE,
-                                         &std_conv);
+                                         std_conv);
   } else if (is_error(dest_type)) {
     /* Anything can be converted to an error type. */
     okay = TRUE;
@@ -3091,7 +3093,7 @@ Any type qualifiers on the types themselves are ignored.  If the conversion
 is suspect and should be flagged with a warning, *warning_suggested is
 set to an appropriate error code; normally, it is set to ec_no_error.
 default_warning_code will be copied into *warning_suggested when no
-specific message applies.  In strict ANSI mode, if a conversion flagged with
+specific message applies.  In strict mode, if a conversion flagged with
 *warning_suggested is done, the warning is required.
 
 Any implicit conversion is allowed (see impl_conversion_possible).  Also, the
@@ -3101,8 +3103,8 @@ by the time they get here.  Note that this routine does not handle user-defined
 conversions (constructors and conversion functions).
 */
 {
-  a_boolean     okay = FALSE, impl_okay, suppress_extensions = FALSE;
-  an_error_code impl_warning_suggested;
+  a_boolean        okay = FALSE, impl_okay, suppress_extensions = FALSE;
+  a_std_conv_descr impl_std_conv;
 
   db_enter(5, "expl_conversion_possible");
 #if DEBUG
@@ -3115,7 +3117,7 @@ conversions (constructors and conversion functions).
   }  /* if */
 #endif /* DEBUG */
   *warning_suggested = ec_no_error;
-  /* If in strict ANSI mode and nonstandard constructs should be reported as
+  /* If in strict mode and nonstandard constructs should be reported as
      errors, disable extensions. */
   if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
     suppress_extensions = TRUE;
@@ -3130,8 +3132,8 @@ conversions (constructors and conversion functions).
                                        dest_type,
                                        suppress_extensions,
                                        default_warning_code,
-                                       &impl_warning_suggested);
-  if (impl_okay && impl_warning_suggested == ec_no_error) {
+                                       &impl_std_conv);
+  if (impl_okay && impl_std_conv.warning_suggested == ec_no_error) {
     /* There is an implicit conversion, and it's not questionable. */
     okay = TRUE;
   } else if (is_incomplete(dest_type)) {
@@ -3202,8 +3204,8 @@ conversions (constructors and conversion functions).
         }  /* if */
       }  /* if */
     }  /* if */
-  } else if (is_ptr_to_member_type(source_type) &&
-             is_ptr_to_member_type(dest_type)) {
+  } else if (is_ptr_to_member(source_type) &&
+             is_ptr_to_member(dest_type)) {
     /* Pointer-to-member --> pointer-to-member.  Valid if the classes involved
        are the same or related (ARM 5.4).  Note that the type of thing pointed
        to is not important here, which is different than the implicit
@@ -3232,7 +3234,7 @@ conversions (constructors and conversion functions).
        conversions that aren't allowed as explicit conversions, but this code
        is here in case one is added. */
     okay = TRUE;
-    *warning_suggested = impl_warning_suggested;
+    *warning_suggested = impl_std_conv.warning_suggested;
   }  /* if */
 
 #if DEBUG
