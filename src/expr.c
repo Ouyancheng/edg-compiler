@@ -4253,9 +4253,10 @@ of the array pointer.
 
 
 static a_dynamic_init_ptr f_determine_deletion_for_throw_before_new_init_done(
-                                             a_type_ptr         base_new_type,
-                                             a_symbol_ptr       new_sym,
-                                             a_source_position  *position)
+                                           a_type_ptr        base_new_type,
+                                           a_symbol_ptr      new_sym,
+                                           a_boolean         use_global_delete,
+                                           a_source_position *position)
 /*
 Exceptions are enabled, and a "new" with initialization is being scanned.
 If an exception is thrown between the time that the allocation is done and
@@ -4264,8 +4265,9 @@ freed.  Develop a dynamic initialization entry that describes the
 deallocation and return a pointer to it, or NULL if there is an error.
 base_new_type is the type of entity being allocated (the element type
 if an array is being allocated); new_sym is the "new" routine being
-called to do the allocation, stripped to its fundamental symbol; and
-*position gives the position to be used for errors.
+called to do the allocation, stripped to its fundamental symbol;
+use_global_delete is TRUE if "::new" was used; and *position gives
+the position to be used for errors.
 */
 {
   a_dynamic_init_ptr dyn_init_to_free_storage = NULL;
@@ -4276,7 +4278,7 @@ called to do the allocation, stripped to its fundamental symbol; and
 
   /* Select the delete routine that corresponds to the new routine selected. */
   class_type = NULL;
-  if (is_class_struct_union_type(base_new_type)) {
+  if (!use_global_delete && is_class_struct_union_type(base_new_type)) {
     class_type = skip_typerefs(base_new_type);
   }  /* if */
   delete_sym = find_corresponding_operator_delete_sym(new_sym,
@@ -4343,7 +4345,8 @@ lifetime list in the right place).
 { if (exceptions_enabled && new_routine != NULL) {                    \
     dyn_init_to_free_storage =                                        \
       f_determine_deletion_for_throw_before_new_init_done(            \
-                      base_new_type, function_symbol, &new_position); \
+                      base_new_type, function_symbol, use_global_new, \
+                      &new_position);                                 \
   }  /* if */                                                         \
 }  /* determine_deletion_for_throw_before_new_init_done */
 
