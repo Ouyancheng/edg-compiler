@@ -39,33 +39,51 @@ EXTERN_C int errno;
 EXTERN_C double strtod(char *, char **);
 #endif /* ifndef STDLIB_H_INCLUDED */
 #if TARG_HAS_IEEE_FLOATING_POINT
+/* Define is_NaN and is_finite.  They must work on an argument of type
+   a_host_fp_value (typically double or long double). */
 #if EDG_WIN32
 /* Windows NT, 95, etc. */
+/* Note that MSVC has long double the same size as double so _finite
+   will work for long double also. */
 #include <float.h>
 #define is_NaN(x) (_isnan(x))
 #define is_finite(x) (_finite(x))
 #else /* !EDG_WIN32 */
 #ifdef sun
-/* SunOS, Solaris. */
+/* SunOS, Solaris, including Solaris on Intel X86. */
 extern int isnan(double);
-extern int finite(double);
 #define is_NaN(x) (isnan(x))
+#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+/* The "finite" function takes a double argument, so it doesn't work
+   for long double (the conversion to double could produce an Infinity
+   for a too-large value). */
+extern int finite(double);
 #define is_finite(x) (finite(x))
+#else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#define is_finite(x) (long_double_is_finite(x))  /* See definition below. */
+#define NEED_LONG_DOUBLE_IS_FINITE 1
+#endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #else /* !defined(sun) */
 /* Not Windows, not Solaris, not SunOS. */
 #include <math.h>
 #define is_NaN(x) (isnan(x))
-/* C99 has the "isfinite" function.  If that isn't available, use the
-   older "finite". */
-#ifdef NAN
+/* C99 has the "isfinite" macro.  Linux headers do too. */
+#ifdef isfinite
 #define is_finite(x) (isfinite(x))
-#else /* !defined(NAN) */
+#else /* !defined(isfinite) */
+#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+/* The "finite" function takes a double argument, so it doesn't work
+   for long double (the conversion to double could produce an Infinity
+   for a too-large value). */
 #define is_finite(x) (finite(x))
-#endif /* ifdef NAN */
+#else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#define is_finite(x) (long_double_is_finite(x))  /* See definition below. */
+#define NEED_LONG_DOUBLE_IS_FINITE 1
+#endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* ifdef isfinite */
 #endif /* ifdef sun */
 #endif /* EDG_WIN32 */
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
-
 
 #ifdef FFE
 /*
@@ -94,6 +112,38 @@ static a_boolean
 		long_double_has_no_implicit_bit = FALSE;
 			/* TRUE if the long double floating point type does
 			   not make use of an implicit mantissa bit. */
+
+#ifdef NEED_LONG_DOUBLE_IS_FINITE
+
+a_boolean long_double_is_finite(long double value)
+/*
+Test a long double to see whether it is finite (i.e., not a NaN or Infinity).
+Used only when standard approaches like the C99 macro isfinite are not
+available.
+*/
+{
+  a_boolean     ld_finite;
+  unsigned char *p = (unsigned char *)&value;
+  unsigned int  exponent;
+
+  /* As written, this routine supports only the size of exponent that
+     comes up commonly in long doubles. */
+  check_assertion_str(LDBL_MAX_EXP == 16384,
+                      "long_double_is_finite: unsupported exponent size");
+  if (host_little_endian) {
+    p += sizeof(long double);
+    exponent = (p[-1] << CHAR_BIT) | p[-2];
+  } else {
+    /* Big-endian host. */
+    exponent = (p[0] << CHAR_BIT) | p[1];
+  }  /* if */
+  /* Drop the sign bit, then all ones in the exponent field means a NaN
+     or Infinity. */
+  ld_finite = (exponent & 0x7fff) != 0x7fff;
+  return ld_finite;
+}  /* long_double_is_finite */
+
+#endif /* ifdef NEED_LONG_DOUBLE_IS_FINITE */
 
 #ifdef SUNOS_STRTOD_BUG
 /*
@@ -844,7 +894,7 @@ specified by kind.
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   fp_ptr = (an_fp_value_part*)float_value;
   if (host_little_endian) {
-    /* On big endian systems, we start storing with the last 32-bit value
+    /* On little endian systems, we start storing with the last 32-bit value
        and work backward. */
     offset = -1;
   } else {
