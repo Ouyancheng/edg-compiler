@@ -1840,7 +1840,12 @@ this is not allowed, an error will be issued by the caller.
 {
   a_boolean  err = TRUE;
 
-  if (!C_mode() && is_tag_symbol(fundamental_symbol_of(new_sym))) {
+  if (old_sym->kind == (a_symbol_kind)sk_undefined) {
+    /* The old symbol was created for an undefined symbol that
+       was referenced.  A new symbol can always coexist with
+       an undefined one. */
+    err = FALSE;
+  } else if (!C_mode() && is_tag_symbol(fundamental_symbol_of(new_sym))) {
     /* New symbol is a tag symbol. */
     a_symbol_ptr fund_old_sym = fundamental_symbol_of(old_sym);
     if (!is_type_symbol(fund_old_sym) &&
