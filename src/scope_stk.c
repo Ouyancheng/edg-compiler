@@ -1974,8 +1974,8 @@ they should be used for the outermost instantiation scope.
   /* Push the namespace containing the point of instantiation. */
   if (reference_nsp !=
               scope_stack[depth_innermost_namespace_scope].assoc_namespace) {
-    /* The namespace from which the first reference that requires the
-       instantiation of this template is different than the current
+    /* The namespace that contains the first reference of this template
+       that requires its instantiation is different than the current
        namespace.  Reactivate the namespace associated with that
        reference. */
     if (reference_nsp != NULL) {
