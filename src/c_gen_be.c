@@ -6437,8 +6437,11 @@ Generate C for a statement.
   }  /* if */
   /* Identify the line number except for lines that put out their own
      line info. */
-  if (statement->kind != (a_statement_kind)stmk_init &&
-      statement->kind != (a_statement_kind)stmk_label) {
+  if (statement->kind != (a_statement_kind)stmk_label
+#if CFE
+      && statement->kind != (a_statement_kind)stmk_init
+#endif /* ifdef CFE */
+                                                       ) {
     startline(statement->seq_number);
   }  /* if */
   switch (statement->kind) {
