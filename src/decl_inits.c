@@ -929,7 +929,7 @@ skip_designator; changing one will most likely affect the other.)
 }  /* designator_coming */ 
 
 
-static void skip_designator()
+static void skip_designator(void)
 /*
 The next couple of tokens presumably form a designator and this routine
 discards them.  A caller should check this using the function
