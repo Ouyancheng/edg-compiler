@@ -2180,7 +2180,7 @@ list.  This function performs that task.
 void eliminate_function_body_source_sequence_entries(a_scope_ptr  sp)
 /*
 Remove the source sequence entries that represent the body of the function
-associate with the indicated sck_function scope.
+associated with the indicated sck_function scope.
 */
 {
   a_routine_ptr                 rp;
