@@ -5362,12 +5362,15 @@ token.
   a_boolean     err = FALSE;
   char		*err_pos;
   an_error_code	err_code;
+  a_boolean	is_hex_fp_value = FALSE;
+  a_boolean	any_hex_digits = FALSE;
 
   /* Collect the characters of the constant, and figure out where it
      ends.  In the process, figure out what kind of token it is.
      This is done according to the syntax for integer constants (3.1.3.2)
      and floating constants (3.1.3.1), rather than according to the
      pp-number syntax (3.1.8).  */
+  kind = k_decimal;
   if (*curr_char_loc == '0') {
     /* First digit is a zero.  This is probably an octal constant (like
        0777) or a hex constant (like 0xfff), but it could also be a
@@ -5378,7 +5381,15 @@ token.
       kind = k_hex;
       /* The hex constant stops on a non-hex digit. */
       curr_char_loc++;
-      do {} while (isxdigit((unsigned char)*(++curr_char_loc)));
+      while (isxdigit((unsigned char)*(++curr_char_loc))) {
+        any_hex_digits = TRUE;
+      }  /* while */
+      /* Check for floating point. */
+      if (hex_floating_point_constants_allowed) {
+        /* C99 permits floating point constants specified in hexadecimal. */
+        if ((ch = *curr_char_loc) == '.') goto float_accum_1;
+        if (ch == 'p' || ch == 'P')       goto float_accum_2;
+      }  /* if */
       /* Check for just "0x" by itself.  pcc allows this and interprets
          it as zero. */
       if (curr_char_loc == start_of_curr_token+2 && !fetch_pp_tokens) {
@@ -5459,13 +5470,36 @@ token.
   goto constant_accumulated;
 
 float_accum_1:
-  /* At the decimal point in a floating constant.  Take whatever decimal
-     digits follow it. */
-  do {} while (isdigit((unsigned char)*(++curr_char_loc)));
-  if ((ch = *curr_char_loc) != 'e' && ch != 'E') goto end_float_accum;
+  /* At the decimal point in a floating constant.  Take whatever digits
+     follow it.  The kind variable indicates the kind of digits that
+     are being used (hex or decimal). */
+  if (kind == k_hex) {
+    while (isxdigit((unsigned char)*(++curr_char_loc))) {
+      any_hex_digits = TRUE;
+    }  /* while */
+    if (!any_hex_digits) {
+      /* No hex digits were specified.  Something like "0x.". */
+      error_at_line_pos(ec_bad_float_constant, curr_char_loc);
+      any_hex_digits = TRUE;
+    }  /* if */
+  } else {
+    do {} while (isdigit((unsigned char)*(++curr_char_loc)));
+  }  /* if */
+  /* Check for the presence of an exponent. */
+  if (kind == k_hex) {
+    if ((ch = *curr_char_loc) != 'p' && ch != 'P') goto end_float_accum;
+  } else {
+    if ((ch = *curr_char_loc) != 'e' && ch != 'E') goto end_float_accum;
+  }  /* if */
 float_accum_2:
   /* At the "e" or "E" indicating the start of the exponent of a floating
-     constant.  Take an optional sign, then decimal digits of the exponent. */
+     constant (or the "p" or "P" for a floating point constant specified
+     as a hexadecimal value).  Take an optional sign, then decimal digits
+     of the exponent. */
+  if (kind == k_hex && !any_hex_digits) {
+    /* No hex digits were specified.  Something like "0xp0". */
+    error_at_line_pos(ec_bad_float_constant, curr_char_loc);
+  }  /* if */
   if ((ch = *(curr_char_loc+1)) == '+' || ch == '-') curr_char_loc++;
   if (!isdigit((unsigned char)*(curr_char_loc+1)) && !fetch_pp_tokens) {
     /* No digits of the exponent are present. pcc treats this as an exponent
@@ -5479,6 +5513,7 @@ float_accum_2:
   }  /* if */
   do {} while (isdigit((unsigned char)*(++curr_char_loc)));
 end_float_accum:
+  is_hex_fp_value = kind == k_hex;
   kind = k_float;
   /* Check for a final suffix of "f" or "l", in upper or lower case. */
   if ((ch = *curr_char_loc) == 'f' || ch == 'F' || ch == 'l' || ch == 'L' ) {
@@ -5582,7 +5617,7 @@ constant_accumulated:
         ctoken = tok_int_constant;
         break;
       case k_float:
-        conv_float_literal(&err_code, &err_pos);
+        conv_float_literal(is_hex_fp_value, &err_code, &err_pos);
         ctoken = tok_float_constant;
         break;
 #if CHECKING

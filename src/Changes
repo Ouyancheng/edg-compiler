@@ -431,6 +431,7 @@ C99 mode:
 -- Universal character names
 -- va_copy support
 -- long long is enabled by default
+-- hexadecimal floating-point constants
 
 The following features are disabled:
 

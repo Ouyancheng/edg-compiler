@@ -1093,6 +1093,7 @@ ec_bad_va_copy;;"incorrect use of va_copy"
 ec_only_applies_to_float_types;;"%sq can only be used with floating-point types"
 ec_complex_type_not_allowed;;"complex type is not allowed"
 ec_invalid_designator_kind;;"invalid designator kind"
+ec_inexact_fp_conversion;;"floating-point value cannot be represented exactly"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

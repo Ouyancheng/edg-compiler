@@ -1513,6 +1513,8 @@ Set the various flags appropriate to C99 mode.
   va_copy_macro_allowed = TRUE;
   /* The long long data type is not an extension in C99. */
   long_long_is_standard = TRUE;
+  /* Hexadecimal floating point constants are permitted. */
+  hex_floating_point_constants_allowed = TRUE;
 }  /* set_c99_mode_flags */
 
 

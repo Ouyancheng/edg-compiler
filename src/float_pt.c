@@ -58,6 +58,15 @@ The problem applies to hollerith constants as well.
 */
 #endif /* ifdef FFE */
 
+static a_boolean
+		host_little_endian;
+			/* TRUE if the host system uses little-endian
+			   byte ordering. */
+
+static a_boolean
+		long_double_has_no_implicit_bit = FALSE;
+			/* TRUE if the long double floating point type does
+			   not make use of an implicit mantissa bit. */
 
 #ifdef SUNOS_STRTOD_BUG
 /*
@@ -496,6 +505,440 @@ depends on the rounding mode, *depends_on_rounding_mode is returned TRUE
 }  /* fp_change_kind */
 
 
+/*
+The number of host longs requires to represent the largest possible
+mantissa.
+*/
+#define MANTISSA_PARTS 4
+
+/*
+Structure used to represent an internal value of a mantissa.  Used
+to convert hexadecimal floating point values to internal form.
+*/
+typedef struct a_mantissa *a_mantissa_ptr;
+typedef struct a_mantissa {
+  an_fp_value_part
+		parts[MANTISSA_PARTS];
+			/* The bits that make up the mantissa. */
+  a_boolean	underflow;
+			/* TRUE if bits have been shifted out of the
+			   mantissa. */
+} a_mantissa;
+
+
+static void init_mantissa(a_mantissa_ptr	mp)
+/*
+Clear the fields of a mantissa entry.
+*/
+{
+  memzero((char*)mp->parts, sizeof(mp->parts));
+  mp->underflow = FALSE;
+}  /* init_mantissa */
+
+#if DEBUG
+static void db_mantissa(a_mantissa_ptr	mp)
+/*
+Display a mantissa value, for debugging purposes.
+*/
+{
+  int	i;
+
+  for (i = 0; i < MANTISSA_PARTS; i++) {
+    fprintf(f_debug, "%08lx", mp->parts[i]);
+  }  /* for */
+  fprintf(f_debug, "\n");
+}  /* db_mantissa */
+#endif /* DEBUG */
+
+static void shift_left_mantissa(a_mantissa_ptr	mp,
+				int		bits)
+/*
+Shift the mantissa in "mp" left by "bits".  "bits" must be less than 32.
+*/
+{
+  int	part;
+
+  for (part = 0; part < MANTISSA_PARTS; part++) {
+    int			next_part_number = part + 1;
+    an_fp_value_part	next_part;
+    /* Get the next part value, or use zero if we're on the last part. */
+    next_part = next_part_number == MANTISSA_PARTS ?
+                                               0 : mp->parts[next_part_number];
+    mp->parts[part] = mp->parts[part] << bits | next_part >> (32 - bits);
+  }  /* for */
+}  /* shift_left_mantissa */
+
+
+static void shift_right_mantissa(a_mantissa_ptr	mp,
+				int		bits)
+/*
+Shift the mantissa in "mp" right by "bits".
+*/
+{
+  int	part;
+
+  /* If the shift count is greater than 32, shift entire parts until the
+     shift count is in range. */
+  for (; bits >= 32; bits -= 32) {
+    /* Determine whether any bits are being shifted out of the mantissa. */
+    if (mp->parts[MANTISSA_PARTS - 1] != 0) mp->underflow = TRUE;
+    for (part = MANTISSA_PARTS - 1; part > 0; part--) {
+      mp->parts[part] = mp->parts[part - 1];
+    }  /* for */
+    mp->parts[0] = 0;
+  }  /* for */
+  if (bits != 0) {
+    if ((mp->parts[MANTISSA_PARTS - 1] << (32 - bits)) != 0) {
+      /* Determine whether any bits are being shifted out of the mantissa. */
+      mp->underflow = TRUE;
+    }  /* if */
+    for (part = MANTISSA_PARTS - 1; part >= 0; part--) {
+      an_fp_value_part	prev_part;
+      /* Get the previous part value, or use zero if we're on the first
+         part. */
+      prev_part = part == 0 ? 0 : mp->parts[part - 1];
+      mp->parts[part] = mp->parts[part] >> bits | prev_part << (32 - bits);
+    }  /* for */
+  }  /* if */
+}  /* shift_right_mantissa */
+
+
+static check_and_denormalize_hex_fp_value(
+			  a_mantissa_ptr	mp,
+			  long			*exponent,
+			  a_float_kind		kind,
+	                  a_boolean		*err,
+			  a_boolean		*inexact)
+/*
+mp contains the mantissa of a floating point value.  Exponent is the
+effective exponent to be used (the combination of an explicit exponent
+and the implied exponent based on the position of the decimal point).
+kind specifies the type of floating point value being used.
+
+If the number of mantissa bits exceeds the, set inexact to TRUE.  If
+the exponent is out of range, set err to TRUE.
+*/
+{
+  int	min_exp;
+  int	max_exp;
+  int	mant_dig;
+  int	part;
+  int	bits = 0;
+
+  switch (kind) {
+    case fk_float:
+      min_exp = targ_flt_min_exp;
+      max_exp = targ_flt_max_exp;
+      mant_dig = targ_flt_mant_dig;
+      break;
+    case fk_double:
+      min_exp = targ_dbl_min_exp;
+      max_exp = targ_dbl_max_exp;
+      mant_dig = targ_dbl_mant_dig;
+      break;
+    case fk_long_double:
+      min_exp = targ_ldbl_min_exp;
+      max_exp = targ_ldbl_max_exp;
+      mant_dig = targ_ldbl_mant_dig;
+      break;
+    default:
+      unexpected_condition_str2("check_and_denormalize_hex_fp_value:",
+                                "bad float kind");
+      break;
+  }  /* switch */
+  /* Note that the minimum and maximum exponent values are actually both
+     one greater than the values that should be used.  This is strange, but
+     it is the way those values are specified by the C standard. */
+  min_exp--;
+  max_exp--;
+  /* Compute the number of bits of mantissa that are present. */
+  for (part = MANTISSA_PARTS - 1; part >= 0; part--) {
+    an_fp_value_part	part_val;
+    /* Find the first part with some nonzero bits. */
+    part_val = mp->parts[part];
+    if (part_val == 0) continue;
+    /* Compute the number of bits present in this part. */
+    bits = 32;
+    if ((part_val & 0xffff) == 0) { part_val >>= 16; bits -= 16; }
+    if ((part_val & 0xff) == 0) { part_val >>= 8; bits -= 8; }
+    if ((part_val & 0xf) == 0) { part_val >>= 4; bits -= 4; }
+    if ((part_val & 0x3) == 0) { part_val >>= 2; bits -= 2; }
+    if ((part_val & 0x1) == 0) { bits -= 1; }
+    /* Include the bits represented by the earlier parts of the exponent. */
+    bits += part * 32;
+    /* Exit the loop once we've found a non-zero part. */
+    break;
+  }  /* for */
+  /* If the exponent is too small, see if we can represent the value by
+     denormalizing it. */
+  if (*exponent < min_exp) {
+    int	bits_needed;
+    int	implicit_bits;
+    /* Some long double kinds do not make use of an implicit mantissa bit. */
+    implicit_bits = kind == (a_float_kind)fk_long_double &&
+                    long_double_has_no_implicit_bit ? 0 : 1;
+    /* Compute the number of additional bits needed to represent the value
+       in denormalized form. */
+    bits_needed = min_exp - *exponent;
+    if ((bits_needed + bits + implicit_bits) <= mant_dig) {
+      /* We can denormalize the number without loosing precision.  Do
+         the first shift and make the implicit first bit of the mantissa
+         explicit. */
+      if (implicit_bits != 0) {
+        shift_right_mantissa(mp, 1);
+        mp->parts[0] |= 0x80000000;
+      }  /* if */
+      /* Do the rest of the shift operation. */
+      if (bits_needed > implicit_bits) {
+        shift_right_mantissa(mp, bits_needed - implicit_bits);
+      }  /* if */
+      /* Assign the special exponent used with denormalized values. */
+      *exponent = min_exp - 1;
+    }  /* if */
+  }  /* if */
+  /* Check for a value that cannot be represented.  The "min_exp - 1" is
+     used to permit the special denormalized value. */
+  if (*exponent < (min_exp - 1) || *exponent > max_exp) *err = TRUE;
+  /* See if the number of mantissa bits provided exceeds the mantissa size.
+     mang_dig includes the implicit bit. */
+  {
+    /* Some long double kinds do not make use of an implicit mantissa bit. */
+    int	implicit_bits;
+    implicit_bits = kind == (a_float_kind)fk_long_double &&
+                    long_double_has_no_implicit_bit ? 0 : 1;
+    if ((bits + implicit_bits) > mant_dig) *inexact = TRUE;
+  }
+}  /* check_and_denormalize_hex_fp_value */
+
+
+static void store_hex_fp_value(a_mantissa_ptr		mp,
+			       long			exponent,
+			       a_float_kind		kind,
+			       an_internal_float_value	*float_value)
+/*
+mp contains the hexadecimal digits specified as the mantissa value
+of a floating point value.  Exponent is the effective exponent to
+be used (the combination of an explicit exponent and the implied
+exponent based on the position of the decimal point).  kind specifies
+the type of floating point value being used.
+
+Store the value into "float_value".  The value stored is of the kind
+specified by kind.
+*/
+{
+  int			offset;
+  an_fp_value_part	*fp_ptr;
+  an_fp_value_part	val;
+
+#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+  /* When long double is mapped onto double, store this value as a double. */
+  if (kind == (a_float_kind)fk_long_double) kind = fk_double;
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+  fp_ptr = (an_fp_value_part*)float_value;
+  if (host_little_endian) {
+    /* On big endian systems, we start storing with the last 32-bit value
+       and work backward. */
+    offset = -1;
+  } else {
+    /* On big endian systems, we start storing with the first 32-bit value
+       and work forward. */
+    offset = 1;
+  }  /* if */
+  /* Zero the memory so that comparisons are easy even if we do not
+     fill the whole area reserved for the float value. */
+  memzero((char *)float_value, sizeof(an_internal_float_value));
+  if (kind == (a_float_kind)fk_float) {
+    val = (mp->parts[0] >> 9) | ((exponent + 127) << 23);
+    memcpy((char*)float_value, (char*)&val, sizeof(val));
+  } else if (kind == (a_float_kind)fk_double) {
+    /* On little endian systems, the most significant part of the
+       number is stored in the second four bytes.  Note that when the
+       long value is stored in memory, its byte order will be right for
+       either kind of system. */
+    /* Update the pointer to refer to the last 32-bit word of the value. */
+    if (host_little_endian) fp_ptr += 1;
+    val = ((exponent + 1023) << 20) | (mp->parts[0] >> 12);
+    *fp_ptr = val;
+    val = (mp->parts[0] << 20) | (mp->parts[1] >> 12);
+    fp_ptr += offset;
+    *fp_ptr = val;
+  } else {
+    check_assertion(kind == (a_float_kind)fk_long_double);
+    if (targ_ldbl_mant_dig == 64) {
+      /* Update the pointer to refer to the last 32-bit word of the value. */
+      if (host_little_endian) fp_ptr += 2;
+      val = (exponent + 16383);
+      *fp_ptr = val;
+      fp_ptr += offset;
+      val = mp->parts[0];
+      *fp_ptr = val;
+      fp_ptr += offset;
+      val = mp->parts[1];
+      *fp_ptr = val;
+    } else if (targ_ldbl_mant_dig == 113) {
+      /* Update the pointer to refer to the last 32-bit word of the value. */
+      if (host_little_endian) fp_ptr += 3;
+      val = ((exponent + 16383) << 16) | (mp->parts[0] >> 16);
+      *fp_ptr = val;
+      fp_ptr += offset;
+      val = (mp->parts[0] << 16) | (mp->parts[1] >> 16);
+      *fp_ptr = val;
+      fp_ptr += offset;
+      val = (mp->parts[1] << 16) | (mp->parts[2] >> 16);
+      *fp_ptr = val;
+      fp_ptr += offset;
+      val = (mp->parts[2] << 16) | (mp->parts[3] >> 16);
+      *fp_ptr = val;
+    } else {
+      unexpected_condition_str("store_hex_fp_value: bad long double size");
+    }  /* if */
+  }  /* if */
+}  /* store_hex_fp_value */
+
+
+void fp_hex_string_to_float(a_float_kind		kind,
+	                    char			*str,
+	                    an_internal_float_value	*float_value,
+	                    a_boolean			*err,
+			    a_boolean			*inexact)
+/*
+Convert a hexadecimal floating-point number in the null-terminated
+string str to internal form in *float_value.
+
+The number is known to be syntactically correct, but may not be representable
+(it may be too large or too small); if there's an error, return *err = TRUE.
+The precision of the value is indicated by kind (float, double, long double);
+full precision will be kept, but the value is checked to see that it will
+fit in the indicated type.
+*/
+{
+  long				exponent = 0;
+  a_boolean			after_decimal = FALSE;
+  a_mantissa			mantissa;
+  int				part = 0;
+  int				nibble_in_part = 0;
+  a_boolean			too_many_digits = FALSE;
+  a_boolean			bits_discarded = FALSE;
+
+  *err = FALSE;
+  *inexact = FALSE;
+  /* Start by extracting the hex digits from the string.  An entry of
+     kind a_mantissa is used to hold the mantissa information while
+     building the floating point value.  While copying the hex digits we
+     compute the exponent implied by the position of the decimal point. */
+  check_assertion(*str == '0');
+  str++;
+  check_assertion(*str == 'x'|| *str == 'X');
+  str++;
+  init_mantissa(&mantissa);
+  /* Discard leading zeros. */
+  while (*str == '0') str++;
+  /*  Check for a decimal point. */
+  if (*str == '.') {
+    /* Discard the decimal point any any leading zeros after it.
+       Adjust the implied exponent for zeros discarded after the decimal
+       point. */
+    after_decimal = TRUE;
+    str++;
+    while (*str == '0') {
+      str++;
+      exponent -= 4;
+    }  /* while */
+  }  /* if */
+  for (; isxdigit((unsigned char)*str) || *str == '.'; str++) {
+    if (*str == '.') {
+      after_decimal = TRUE;
+    } else if (too_many_digits) {
+      /* The buffer is already full.  Discard any additional digits.
+         Record whether any non-zero bits were discarded. */
+      if (*str != '0') bits_discarded = TRUE;
+    } else {
+      /* Store the value into the buffer.  first_nibble is used to
+         determine whether to update the first or second 4 bits of the
+         byte. */
+      an_fp_value_part	value;
+      an_fp_value_part	shifted_value;
+      value = hexvalue(*str);
+      /* Shift the value to the appropriate position based on which nibble
+         of the part is being processed. */
+      shifted_value = value << (7 - nibble_in_part) * 4;
+      mantissa.parts[part] |= shifted_value;
+      /* If we've filled this part, move to the next one. */
+      if (++nibble_in_part == 8) {
+        part++;
+        nibble_in_part = 0;
+        if (part >= MANTISSA_PARTS) too_many_digits = TRUE;
+      }  /* if */
+      /* If this character precedes the decimal point, update the implied
+         exponent. */
+      if (!after_decimal) exponent += 4;
+    }  /* if */
+  }  /* for */
+  /* Check for the presence of an exponent. */
+  if (*str == 'p' || *str == 'P') {
+    /* Bypass the 'p' or 'P'. */
+    long	value = 0;
+    a_boolean	is_negative = FALSE;
+    str++;
+    /* Check for a sign on the exponent. */
+    if (*str == '-') {
+      is_negative = TRUE;
+      str++;
+    } else if (*str == '+') {
+      str++;
+    }  /* if */
+    for (; isdigit((unsigned char)*str); str++) {
+      if (value > targ_ldbl_max_exp) {
+        /* The value exceeds the largest possible exponent.  Stop
+           accumulating the exponent at this point.  Note that this
+           assumes that the exponent calculation will not exceed the
+           size of a long, which should be safe given that even an
+	   IEEE 128 bit floating-point value has only a 15 bit
+           exponent. */
+        *err = TRUE;
+      } else {
+        value = value * 10 + (*str - '0');
+      }  /* if */
+    }  /* for */
+    if (is_negative) value = -value;
+    /* Compute the actual exponent using the implied exponent and the
+       explicitly specified one. */
+    exponent += value;
+  }  /* if */
+  if (bits_discarded) {
+    /* More bits were specified than can be represented in a mantissa.
+       Set the underflow bit so that a warning will be issued. */
+    mantissa.underflow = TRUE;
+  }  /* if */
+  /* Normalize the mantissa. */
+  while ((mantissa.parts[0] & 0x80000000) == 0) {
+    shift_left_mantissa(&mantissa, 1);
+    exponent--;
+  }  /* while */
+  if (kind != (a_float_kind)fk_long_double ||
+      !long_double_has_no_implicit_bit) {
+    /* Shift one bit further to have an implied initial one bit.  This is only
+       done for floating point representations that use an implicit bit. */
+    shift_left_mantissa(&mantissa, 1);
+  }  /* if */
+  exponent--;
+#if DEBUG
+  if (db_flag_is_set("fp_hex_string_to_float")) {
+    fprintf(f_debug, "fp hex value: ");
+    db_mantissa(&mantissa);
+    fprintf(f_debug, "exponent=%ld\n", exponent);
+  }  /* if */
+#endif /* DEBUG */
+  /* Check whether the resulting value fits in the type being used. */
+  check_and_denormalize_hex_fp_value(&mantissa, &exponent, kind, err, inexact);
+  /* Store the value in the appropriate kind of floating point value. */
+  store_hex_fp_value(&mantissa, exponent, kind, float_value);
+  /* If an underflow occurred, set the flag that indicates that the resulting
+     value is not an exact representation of the specified value. */
+  if (mantissa.underflow) *inexact = mantissa.underflow;
+}  /* fp_hex_string_to_float */
+
+
 void fp_string_to_float(a_float_kind            kind,
                         char                    *str,
                         an_internal_float_value *float_value,
@@ -860,6 +1303,29 @@ is used in building the hash table for shareable constants.
   return hash;
 }  /* fp_hash */
 
+
+void float_pt_init(void)
+/*
+Initialize static variables related to float_pt.c.
+*/
+{
+  int		i = 1;
+  sizeof_t	size;
+
+  /* Determine whether the host system is big or little endian. */
+  host_little_endian = (*(char *)&i) == 1;
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+  /* At least on Intel implementations, 80-bit floating-point values do not
+     have an implicit mantissa bit. */
+  if (targ_ldbl_mant_dig == 64) {
+    long_double_has_no_implicit_bit = TRUE;
+  } /* if */
+#endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+  /* Make sure that an_fp_value_part is 32 bits. */
+  size = sizeof(an_fp_value_part);
+  check_assertion_str(size == 4,
+                      "const_ints_init: bad size for an_fp_value_part");
+}  /* const_ints_init */
 
 /******************************************************************************
 *                                                             \  ___  /       *

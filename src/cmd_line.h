@@ -1328,6 +1328,12 @@ EXTERN a_boolean
 			   also END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE. */
 
 EXTERN a_boolean
+		mixed_decls_and_statements_allowed /* = FALSE */;
+			/* TRUE in C++ and C99 modes, to allow interspersed
+			   declarations and executable statements within a
+			   block. */
+
+EXTERN a_boolean
 		flexible_array_members_allowed /* = FALSE */;
 			/* TRUE if the final field of a struct may be an
 			   incomplete array type.  This is part of the C99
@@ -1352,6 +1358,12 @@ EXTERN a_boolean
 			/* TRUE if the long long type is should be considered
 			   a standard data type (i.e., not an extension).
 			   This is true in C99 mode. */
+
+EXTERN a_boolean
+		hex_floating_point_constants_allowed /* = FALSE*/;
+			/* TRUE if hexadecimal floating point constants
+			   are allowed (e.g., 0xabc.def).  This is true in
+			   C99 mode. */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

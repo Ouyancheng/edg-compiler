@@ -31,8 +31,9 @@ literals.h -- Declarations relating to lexicals.c (having to do with
 extern void conv_integer_literal(int           radix,
                                  an_error_code *err_code,
                                  char          **err_pos);
-extern void conv_float_literal(an_error_code *err_code,
-                               char          **err_pos);
+extern void conv_float_literal(a_boolean	is_hexadecimal,
+			       an_error_code	*err_code,
+	                       char		**err_pos);
 extern void conv_single_char(char          **temp_ptr,
                              int           *remaining_mbc_char_count,
                              unsigned long *ch,

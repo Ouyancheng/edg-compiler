@@ -720,6 +720,7 @@ source file's compilation.
   /* const_ints_init must be called after target_init so that
      int_kind_is_signed is properly initialized. */
   const_ints_init();
+  float_pt_init();
 #if DO_IL_LOWERING
   /* IL lowering is initialized even when IL lowering is suppressed.  This
      is done because some of the variables that are initialized in

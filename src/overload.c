@@ -5316,6 +5316,8 @@ after_precision:;
           required_type = integer_type((an_integer_kind)ik_unsigned_int);
         }  /* if */
         break;
+      case 'a':
+      case 'A':
       case 'f':
       case 'e':
       case 'E':

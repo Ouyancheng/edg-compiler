@@ -800,6 +800,70 @@ EXTERN an_integer_kind
 #endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
 
+EXTERN int	targ_flt_mant_dig
+#if VAR_INITIALIZERS
+                                  = TARG_FLT_MANT_DIG
+#endif /* VAR_INITIALIZERS */
+                                                     ;
+			/* The number of bits in the mantissa of a float. */
+
+EXTERN int	targ_flt_min_exp
+#if VAR_INITIALIZERS
+                                  = TARG_FLT_MIN_EXP
+#endif /* VAR_INITIALIZERS */
+                                                     ;
+			/* The minimum exponent value of a float. */
+
+EXTERN int	targ_flt_max_exp
+#if VAR_INITIALIZERS
+                                  = TARG_FLT_MAX_EXP
+#endif /* VAR_INITIALIZERS */
+                                                     ;
+			/* The maximum exponent value of a float. */
+
+EXTERN int	targ_dbl_mant_dig
+#if VAR_INITIALIZERS
+                                  = TARG_DBL_MANT_DIG
+#endif /* VAR_INITIALIZERS */
+                                                     ;
+			/* The number of bits in the mantissa of a double. */
+
+EXTERN int	targ_dbl_min_exp
+#if VAR_INITIALIZERS
+                                  = TARG_DBL_MIN_EXP
+#endif /* VAR_INITIALIZERS */
+                                                     ;
+			/* The minimum exponent value of a double. */
+
+EXTERN int	targ_dbl_max_exp
+#if VAR_INITIALIZERS
+                                  = TARG_DBL_MAX_EXP
+#endif /* VAR_INITIALIZERS */
+                                                     ;
+			/* The maximum exponent value of a double. */
+
+EXTERN int	targ_ldbl_mant_dig
+#if VAR_INITIALIZERS
+                                  = TARG_LDBL_MANT_DIG
+#endif /* VAR_INITIALIZERS */
+                                                     ;
+			/* The number of bits in the mantissa of a long
+                           double. */
+
+EXTERN int	targ_ldbl_min_exp
+#if VAR_INITIALIZERS
+                                  = TARG_LDBL_MIN_EXP
+#endif /* VAR_INITIALIZERS */
+                                                     ;
+			/* The minimum exponent value of a long double. */
+
+EXTERN int	targ_ldbl_max_exp
+#if VAR_INITIALIZERS
+                                  = TARG_LDBL_MAX_EXP
+#endif /* VAR_INITIALIZERS */
+                                                     ;
+			/* The maximum exponent value of a long double. */
+
 EXTERN a_boolean
 		remove_qualifiers_from_param_types
 #if VAR_INITIALIZERS
@@ -948,6 +1012,15 @@ EXTERN a_boolean
 #undef TARG_JMP_BUF_ELEMENT_INT_KIND
 #undef TARG_JMP_BUF_ELEMENT_FLOAT_KIND
 #undef TARG_VAR_HANDLE_INT_KIND
+#undef TARG_FLT_MANT_DIG
+#undef TARG_FLT_MIN_EXP
+#undef TARG_FLT_MAX_EXP
+#undef TARG_DBL_MANT_DIG
+#undef TARG_DBL_MIN_EXP
+#undef TARG_DBL_MAX_EXP
+#undef TARG_LDBL_MANT_DIG
+#undef TARG_LDBL_MIN_EXP
+#undef TARG_LDBL_MAX_EXP
 #undef MSVC_IS_GENERATED_CODE_TARGET
 
 #ifndef MAKE_TARG_NAMES_REFER_TO_VARIABLES
@@ -1036,6 +1109,15 @@ EXTERN a_boolean
 #define TARG_JMP_BUF_ELEMENT_INT_KIND targ_jmp_buf_element_int_kind
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND targ_jmp_buf_element_float_kind
 #define TARG_VAR_HANDLE_INT_KIND targ_var_handle_int_kind
+#define TARG_FLT_MANT_DIG targ_flt_mant_dig
+#define TARG_FLT_MIN_EXP targ_flt_min_exp
+#define TARG_FLT_MAX_EXP targ_flt_max_exp
+#define TARG_DBL_MANT_DIG targ_dbl_mant_dig
+#define TARG_DBL_MIN_EXP targ_dbl_min_exp
+#define TARG_DBL_MAX_EXP targ_dbl_max_exp
+#define TARG_LDBL_MANT_DIG targ_ldbl_mant_dig
+#define TARG_LDBL_MIN_EXP targ_ldbl_min_exp
+#define TARG_LDBL_MAX_EXP targ_ldbl_max_exp
 #define MSVC_IS_GENERATED_CODE_TARGET msvc_is_generated_code_target
 #endif /* MAKE_TARG_NAMES_REFER_TO_VARIABLES */
 

@@ -30,6 +30,13 @@ extern void fp_change_kind(an_internal_float_value *old_value,
                            a_boolean               *err,
                            a_boolean               *depends_on_rounding_mode);
 
+extern
+void fp_hex_string_to_float(a_float_kind		kind,
+	                    char			*str,
+	                    an_internal_float_value	*float_value,
+	                    a_boolean			*err,
+			    a_boolean			*inexact);
+
 extern void fp_string_to_float(a_float_kind            kind,
                                char                    *str,
                                an_internal_float_value *float_value,
@@ -111,6 +118,8 @@ extern int fp_compare(a_float_kind            kind,
 
 extern unsigned int fp_hash(an_internal_float_value *value);
 
+extern void float_pt_init(void);
+
 #endif /* ifndef FLOAT_PT_H */
 
 /******************************************************************************
@@ -122,3 +131,4 @@ extern unsigned int fp_hash(an_internal_float_value *value);
 * Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
+

@@ -23,6 +23,8 @@ the compiler is invoked.
 #ifndef TARG_DEF_H
 #define TARG_DEF_H 1
 
+#include <float.h>
+
 #ifndef HOST_ENVIR_H
 #include "host_envir.h"
 #endif /* !defined(HOST_ENVIR_H) */
@@ -923,6 +925,99 @@ typedef struct an_internal_float_value {
   a_byte bytes[sizeof(a_host_fp_value)];
   /*lint -esym(768,an_internal_float_value::bytes)*/
 } an_internal_float_value;
+
+
+/*
+The floating-point manipulation routines require an unsigned 32-bit
+type.  The macro TYPE_FOR_AN_FP_VALUE_PART can be used to specify the
+type to be used.
+*/
+#ifndef TYPE_FOR_AN_FP_VALUE_PART
+#define TYPE_FOR_AN_FP_VALUE_PART unsigned long
+#endif /* ifndef TYPE_FOR_AN_FP_VALUE_PART */
+
+typedef	TYPE_FOR_AN_FP_VALUE_PART an_fp_value_part;
+
+/*
+For each floating point data type, specify the number of bits used to
+represent the mantissa, and the minimum and maximum exponent values.
+
+In each case, use a previously defined TARG_ value if one is specified.
+If none is specified, use the one defined (if any) by the float.h header.
+Otherwise, supply a reasonable default value.
+*/
+#ifndef TARG_FLT_MANT_DIG
+#ifdef FLT_MANT_DIG
+#define TARG_FLT_MANT_DIG FLT_MANT_DIG
+#else /* ifndef FLT_MANT_DIG */
+#define TARG_FLT_MANT_DIG 24
+#endif /* ifdef FLT_MANT_DIG */
+#endif /* ifndef TARG_FLT_MANT_DIG */
+
+#ifndef TARG_FLT_MIN_EXP
+#ifdef FLT_MIN_EXP
+#define TARG_FLT_MIN_EXP FLT_MIN_EXP
+#else /* ifndef FLT_MIN_EXP */
+#define TARG_FLT_MIN_EXP (-125)
+#endif /* ifdef FLT_MIN_EXP */
+#endif /* ifndef TARG_FLT_MIN_EXP */
+
+#ifndef TARG_FLT_MAX_EXP
+#ifdef FLT_MAX_EXP
+#define TARG_FLT_MAX_EXP FLT_MAX_EXP
+#else /* ifndef FLT_MAX_EXP */
+#define TARG_FLT_MAX_EXP (128)
+#endif /* ifdef FLT_MAX_EXP */
+#endif /* ifndef TARG_FLT_MAX_EXP */
+
+#ifndef TARG_DBL_MANT_DIG
+#ifdef DBL_MANT_DIG
+#define TARG_DBL_MANT_DIG DBL_MANT_DIG
+#else /* ifndef DBL_MANT_DIG */
+#define TARG_DBL_MANT_DIG 53
+#endif /* ifdef DBL_MANT_DIG */
+#endif /* ifndef TARG_DBL_MANT_DIG */
+
+#ifndef TARG_DBL_MIN_EXP
+#ifdef DBL_MIN_EXP
+#define TARG_DBL_MIN_EXP DBL_MIN_EXP
+#else /* ifndef DBL_MIN_EXP */
+#define TARG_DBL_MIN_EXP (-1021)
+#endif /* ifdef DBL_MIN_EXP */
+#endif /* ifndef TARG_DBL_MIN_EXP */
+
+#ifndef TARG_DBL_MAX_EXP
+#ifdef DBL_MAX_EXP
+#define TARG_DBL_MAX_EXP DBL_MAX_EXP
+#else /* ifndef DBL_MAX_EXP */
+#define TARG_DBL_MAX_EXP (1024)
+#endif /* ifdef DBL_MAX_EXP */
+#endif /* ifndef TARG_DBL_MAX_EXP */
+
+#ifndef TARG_LDBL_MANT_DIG
+#ifdef LDBL_MANT_DIG
+#define TARG_LDBL_MANT_DIG LDBL_MANT_DIG
+#else /* ifndef LDBL_MANT_DIG */
+#define TARG_LDBL_MANT_DIG 64
+#endif /* ifdef LDBL_MANT_DIG */
+#endif /* ifndef TARG_LDBL_MANT_DIG */
+
+#ifndef TARG_LDBL_MIN_EXP
+#ifdef LDBL_MIN_EXP
+#define TARG_LDBL_MIN_EXP LDBL_MIN_EXP
+#else /* ifndef LDBL_MIN_EXP */
+#define TARG_LDBL_MIN_EXP (-16381)
+#endif /* ifdef LDBL_MIN_EXP */
+#endif /* ifndef TARG_LDBL_MIN_EXP */
+
+#ifndef TARG_LDBL_MAX_EXP
+#ifdef LDBL_MAX_EXP
+#define TARG_LDBL_MAX_EXP LDBL_MAX_EXP
+#else /* ifndef LDBL_MAX_EXP */
+#define TARG_LDBL_MAX_EXP (16384)
+#endif /* ifdef LDBL_MAX_EXP */
+#endif /* ifndef TARG_LDBL_MAX_EXP */
+
 
 /*
 C++ pointer-to-member type.

@@ -406,15 +406,19 @@ wrapup:
 }  /* conv_integer_literal */
 
 
-void conv_float_literal(an_error_code *err_code,
-                        char          **err_pos)
+void conv_float_literal(a_boolean	is_hexadecimal,
+			an_error_code	*err_code,
+                        char		**err_pos)
 /*
 Convert a floating constant from external form to internal form.
 start_of_curr_token and end_of_curr_token point to the two ends of the
-external form.  The internal form is placed in const_for_curr_token.  If
-there is no error, *err_code is set to ec_no_error (which is 0);
-otherwise, *err_code is set to an appropriate error code and *err_pos
-is set to the character position of the error.
+external form.  is_hexadecimal is TRUE if the external form is specified
+in as a hexadecimal value.
+
+The internal form is placed in const_for_curr_token.  If there is no
+error, *err_code is set to ec_no_error (which is 0); otherwise,
+*err_code is set to an appropriate error code and *err_pos is set to
+the character position of the error.
 */
 {
   a_float_kind kind;
@@ -423,6 +427,7 @@ is set to the character position of the error.
   char         *actual_end;
   char         old_next_char, old_next2_char;
   a_boolean    err;
+  a_boolean    inexact = FALSE;
 
   *err_code = ec_no_error;
   /* See if there is a suffix. */
@@ -457,7 +462,12 @@ is set to the character position of the error.
     *(actual_end+1) = '\0';
   }  /* if */
   /* Do the conversion. */
-  fp_string_to_float(kind, start_of_curr_token, &number, &err);
+  if (is_hexadecimal) {
+    fp_hex_string_to_float(kind, start_of_curr_token, &number, &err,
+                           &inexact);
+  } else {
+    fp_string_to_float(kind, start_of_curr_token, &number, &err);
+  }  /* if */
   *(actual_end+1) = old_next_char;
   *(actual_end+2) = old_next2_char;
   if (err) {
@@ -468,6 +478,13 @@ is set to the character position of the error.
     clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_float);
     const_for_curr_token.type = float_type(kind);
     const_for_curr_token.variant.float_value = number;
+    if (inexact) {
+      /* The hex value could not be exactly represented in the specified
+         floating point format. */
+      a_source_position	pos;
+      conv_line_loc_to_source_pos(start_of_curr_token, &pos);
+      pos_warning(ec_inexact_fp_conversion, &pos);
+    }  /* if */
   }  /* if */
   if (*err_code != ec_no_error) {
     /* Return an error constant. */
