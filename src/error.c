@@ -1277,6 +1277,9 @@ error code.
     case ec_bad_access_adjustment_with_overloading:
       m = "access adjustment not allowed -- mixed accessibility for %s";
       break;
+    case ec_missing_user_defined_assignment_for_copy:
+      m = "implicitly defined operator=() is not allowed for class \"%s\"";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
