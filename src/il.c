@@ -3628,6 +3628,25 @@ and return a pointer to it.
 }  /* function_addr_expr */
 
 
+an_expr_node_ptr add_indirection_to_node(an_expr_node_ptr node)
+/*
+Add an indirection on top of the given node (or make a change that produces
+the same effect), and return a pointer to the new expression.
+*/
+{
+  if (node->kind == (an_expr_node_kind)enk_variable_address) {
+    /* Address of variable becomes value of variable. */
+    node->kind = (an_expr_node_kind)enk_variable;
+    node->type = node->variant.variable->type;
+  } else {
+    /* For other cases, add an indirection operator. */
+    node = make_operator_node((an_expr_operator_kind)eok_indirect,
+                              make_pointer_type(node->type), node);
+  }  /* if */
+  return node;
+}  /* add_indirection_to_node */
+
+
 an_expr_node_ptr this_param_value_expr(void)
 /*
 Return an expression for the value of the "this" parameter of the current

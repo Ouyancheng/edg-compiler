@@ -218,6 +218,8 @@ extern an_expr_node_ptr var_rvalue_expr(a_variable_ptr var);
 
 extern an_expr_node_ptr function_addr_expr(a_routine_ptr rout);
 
+extern an_expr_node_ptr add_indirection_to_node(an_expr_node_ptr node);
+
 extern an_expr_node_ptr this_param_value_expr(void);
 
 extern an_expr_node_ptr field_lvalue_selection_expr(an_expr_node_ptr node,
