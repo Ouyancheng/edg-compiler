@@ -10262,7 +10262,7 @@ continue_with_declaration:
             (is_tentative_definition &&
              (local_storage_class == (a_storage_class)sc_static ||
               is_void_type(local_type_ptr)))) {
-          if (!incomplete_type_error_reported) {
+          if (!incomplete_type_error_reported && !symbol_ptr->is_error) {
             pos_error(ec_incomplete_type_not_allowed,
                       &locator.source_position);
           }  /* if */
