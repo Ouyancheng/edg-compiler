@@ -1875,7 +1875,7 @@ static void form_constant(a_constant_ptr     cp,
 Add a string representing a constant value to a string being formed.
 */
 {
-#define LOCAL_BUFFER_LEN 100
+#define LOCAL_BUFFER_LEN 30
   char                     buffer[LOCAL_BUFFER_LEN], *p_char;
   a_source_correspondence  *scp;
   int                      i;
@@ -1887,27 +1887,53 @@ Add a string representing a constant value to a string being formed.
       add_string_to_segment(buffer, seg_ptr);
       break;
     case ck_string:
+      /* Opening quote. */
       buffer[0] = '"';
-      p_char = cp->variant.string.value;
-      for (i = 1; i < LOCAL_BUFFER_LEN; ++i, ++p_char) {
-        if (*p_char == 0) {
-          break;
+      i = 1;
+      for (p_char = cp->variant.string.value; *p_char != 0; ++p_char) {
+        if (*p_char == '"') {
+          buffer[i++] = '\\';
+          buffer[i++] = '"';
         } else if (isprint(*p_char)) {
-          buffer[i] = *p_char;
+          buffer[i++] = *p_char;
         } else {
-          /* Print non-printable character in octal form.  Truncate
-             to right number of bits to avoid problems with signed chars. */
-          sprintf(&buffer[i], "\\%03o",
-                  (unsigned int)(*p_char & ((1<<TARG_CHAR_BIT)-1)));
-          i += 3;
+          /* A nonprintable character.  Use the language defined escape
+             sequence if appropriate, and otherwise an octal value. */
+          char c;
+
+          switch (*p_char) {
+            case TARG_ALERT_CHAR:       c = 'a'; break;
+            case TARG_BACKSPACE_CHAR:   c = 'b'; break;
+            case TARG_FORM_FEED_CHAR:   c = 'f'; break;
+            case TARG_NEWLINE_CHAR:     c = 'n'; break;
+            case TARG_CARR_RETURN_CHAR: c = 'r'; break;
+            case TARG_HORIZ_TAB_CHAR:   c = 't'; break;
+            case TARG_VERT_TAB_CHAR:    c = 'v'; break;
+            /* Default case:  no escape sequence is defined. */
+            default:                    c = 0;
+          }  /* switch */
+          buffer[i++] = '\\';
+          if (c != 0) {
+            /* Print the escaped value. */
+            buffer[i++] = c;
+          } else {
+            /* Print non-printable character in octal form.  Truncate
+               to right number of bits to avoid problems with signed chars. */
+            sprintf(&buffer[i], "%03o",
+                    (unsigned int)(*p_char & ((1<<TARG_CHAR_BIT)-1)));
+            i += 3;
+          }  /* if */
         }  /* if */
-        if (i > 20) {
+        /* We'll only put out part of the string if it's too long. */
+        if (i > LOCAL_BUFFER_LEN-10) {
           sprintf(&buffer[i], "...");
           i += 3;
           break;
         }  /* if */
       }  /* for */
-      sprintf(&buffer[i], "\"");
+      /* Terminating quote plus NULL character. */
+      buffer[i++] = '"';
+      buffer[i] = 0;
       add_string_to_segment(buffer, seg_ptr);
       break;
     case ck_float:
@@ -2211,19 +2237,27 @@ Add the parameter list of a function to the type string being formatted.
 static void form_template_args(a_template_arg_ptr  template_arg,
                                a_msg_segment_ptr   seg_ptr)
 /*
+Add to the message string a comma separated list of template arguments,
+surrounded by "<" and ">".
 */
 {
   if (template_arg != NULL) {
+    /* One or more template arguments.  First put out the "<", then loop
+       through the arguments. */
     add_string_to_segment("<", seg_ptr);
     for (;;) {
       if (template_arg->is_type) {
+        /* Type argument. */
         form_type_first_part(template_arg->variant.type,
                              /*need_parens=*/FALSE, seg_ptr);
         form_type_second_part(template_arg->variant.type,
                               /*need_parens=*/FALSE, seg_ptr);
       } else {
+        /* Constant argument */
         form_constant(template_arg->variant.constant, seg_ptr);
       }  /* if */
+      /* Advance to the next argument.  If it's NULL, put out the terminating
+         ">"; otherwise, put out a comma and continue looping. */
       template_arg = template_arg->next;
       if (template_arg == NULL) {
         add_string_to_segment(">", seg_ptr);
@@ -2259,6 +2293,8 @@ has no user name.
       s = "<unnamed>";
     }  /* if */
     add_string_to_segment(s, seg_ptr);
+    /* If a class is an instantiation of a class template, put out the
+       template arguments. */
     if (ctsp != NULL) form_template_args(ctsp->template_arg_list, seg_ptr);
     add_string_to_segment("::", seg_ptr);
   }  /* if */
