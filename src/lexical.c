@@ -28,14 +28,12 @@ and parsing of them into tokens.
 /* Additional header files. */
 #include "class_decl.h"
 #include "decls.h"
-#include "def_arg.h"
 #include "disambig.h"
 #include "literals.h"
 #include "macro.h"
 #include "pch.h"
 #include "pragma.h"
 #include "preproc.h"
-#include "statements.h"
 #include "symbol_ref.h"
 #include "templates.h"
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
