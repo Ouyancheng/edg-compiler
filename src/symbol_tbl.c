@@ -4729,7 +4729,9 @@ End a name scope by popping an entry off the scope stack.
       switch_il_region(new_memory_region_number);
     }  /* if */
   }  /* if */
-  /* Maintain the depth of the innermost function scope. */
+  /* Maintain the depth of the innermost function scope.  Note that
+     NO_SCOPE_DEPTH does not mean that there's no function scope on the
+     stack; one might be there hidden by a local class scope. */
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
       depth_innermost_function_scope <= depth_scope_stack) {
     /* Value doesn't have to be recomputed. */
