@@ -6415,6 +6415,14 @@ Scan the body of a class definition, including the base classes list.
                   }  /* if */
                 }  /* if */
               }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+              /* The source sequence entry marking the end of the function
+                 prototype scope was set in function_declarator before
+                 the routine pointer was available.  Add the pointer now. */
+              fixup_end_of_func_prototype_ss_entry(&func_info,
+                                                   rout_sym->
+                                                         variant.routine.ptr);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
               if (!function_def_present) {
                 if (func_info.param_id_list != NULL) {
                   /* After updating xref information on each symbol, free the

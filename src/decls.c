@@ -1964,6 +1964,26 @@ function scope source sequence list -- see scan_function_body.
   }  /* if */
 }  /* terminate_param_source_sequence_sublist */
 
+
+void fixup_end_of_func_prototype_ss_entry(a_func_info_block *func_info,
+                                          a_routine_ptr     rp)
+/*
+If func_info points to a source sequence entry marking the end of the function
+prototype scope, update the end-of-construct entry to point to rp.
+*/
+{
+  a_source_sequence_entry_ptr     ssep;
+  a_src_seq_end_of_construct_ptr  sseocp;
+
+  ssep = func_info->prototype_scope_ss_entry_end;
+  if (ssep != NULL &&
+      ss_entry_kind(ssep) == (an_il_entry_kind)iek_src_seq_end_of_construct) {
+    sseocp = (a_src_seq_end_of_construct_ptr)ssep->entity.ptr;
+    check_assertion(sseocp->entity.ptr == NULL);
+    sseocp->entity.ptr = (char *)rp;
+  }  /* if */
+}  /* fixup_end_of_func_prototype_ss_entry */
+    
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 static void function_declarator(a_type_ptr        *new_type_ptr,
@@ -2472,7 +2492,9 @@ scope is that of a class definition.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Add a source sequence entry marking the end of the function
            prototype scope. */
-        add_end_of_type_source_sequence_entry(*new_type_ptr);
+        add_end_of_construct_source_sequence_entry(
+                                           (char *)NULL,
+                                           (a_byte_il_entry_kind)iek_routine);
         /* Record the start and end of the prototype scope. */
         terminate_param_source_sequence_sublist(func_info,
                                                 ss_entry_start_prev);
@@ -9007,6 +9029,12 @@ specified (rather than defaulted to "int").
   if (!prototyped) {
      flags |= SFB_OLD_STYLE_PARAM_DECL;
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* The source sequence entry marking the end of the function prototype scope
+     was set in function_declarator before the routine pointer was available.
+     Add the pointer now. */
+  fixup_end_of_func_prototype_ss_entry(func_info, routine_ptr);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   scan_function_body(routine_ptr, func_info, flags);
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   /* Save the symbol associated with the most recent constructor or
@@ -10283,6 +10311,13 @@ continue_with_declaration:
                             &func_info, declarator_ssep,
                             /*is_variable_def=*/FALSE, &symbol_ptr,
                             &linkage, &old_type, &ext_sym);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* The source sequence entry marking the end of the function prototype
+           scope was set in function_declarator before the routine pointer was
+           available.  Add the pointer now. */
+        fixup_end_of_func_prototype_ss_entry(&func_info,
+                                             symbol_ptr->variant.routine.ptr);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       } else {
         /* A variable declaration. */
         /* Set a flag marking this as a defining declaration, if that's

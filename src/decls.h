@@ -443,6 +443,11 @@ extern void scan_function_body(a_routine_ptr      rout_ptr,
                                a_func_info_block  *func_info,
                                a_decl_flag_set    flags);
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+extern void fixup_end_of_func_prototype_ss_entry(a_func_info_block *func_info,
+                                                 a_routine_ptr     rp);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
 #endif /* DECLS_H */
 
 /******************************************************************************
