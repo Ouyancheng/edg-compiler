@@ -37,7 +37,7 @@ typedef struct an_instance_lookup_entry *an_instance_lookup_entry_ptr;
 typedef struct an_instance_lookup_entry {
   /* Structure used to represent entries in the hash table of template
      instantiation names.  This is used to match entries from the
-     instantiation list file with entries on the compilers instantiation
+     instantiation list file with entries on the compiler's instantiation
      required list. */
   an_instance_lookup_entry_ptr
 		next;
@@ -9068,8 +9068,10 @@ to it.
 static an_instance_lookup_entry_ptr find_instance(char		*name,
 				                  a_boolean	add)
 /*
-Find a symbol entry with the specified name.  Add the name to the
-list if an entry does not already exist.
+Find an entry in the instance lookup table with the specified name.  Add
+the name to the list if an entry does not already exist.  This is used to
+build a list of instances found in the instantiation information file and
+later check whether a specified name was included in that list.
 */
 {
   register unsigned            hash_value = 0;

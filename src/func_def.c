@@ -97,10 +97,11 @@ in a token cache.  When the block is in the cache,
 add_token_cache_to_string is used to convert the token cache into a
 string.  When the entire text of the asm block has been created, a
 string of appropriate size is allocated in the memory region of the
-asm function and the buffer is copied to it.  When is_asm_block is
-TRUE the current token upon entry to the routine is the opening brace;
-when it is FALSE the current token is the first token of the asm
-instruction.
+asm function and the buffer is copied to it.  A pointer to the resulting
+string, which is null terminated, is returned to the caller.  When
+is_asm_block is TRUE the current token upon entry to the routine is
+the opening brace; when it is FALSE the current token is the first token
+of the asm instruction.
 */
 {
   unsigned int     nbrace = 1;
