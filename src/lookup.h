@@ -145,7 +145,7 @@ represented as a bit set:
 				/* If a name is found in a base class, return
 			           that name but do not create a projection
 				   symbol. */
-#define IDL_SUPPRESS_DECL_SEQ_CHECK 0x20000
+#define IDL_SUPPRESS_DECL_SEQ_CHECK 0x200000
 				/* For namespace and file-scope qualified
 				   lookups, suppress the check of the
 				   declaration sequence number during
