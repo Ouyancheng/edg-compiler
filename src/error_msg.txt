@@ -1074,6 +1074,7 @@ ec_nonstd_const_member_decl_not_allowed;;"nonstandard member constant declaratio
 ec_cl_ignore_std_option_only_in_cplusplus;;"option \"ignore_std\" can be used only when compiling C++"
 ec_cl_parse_nonclass_templates_option_only_in_cplusplus;;"option \"parse_templates\" can be used only when compiling C++"
 ec_cl_dep_name_requires_parse_nonclass_templates;;"option \"dep_name\" cannot be used with \"no_parse_templates\""
+ec_cl_incompatible_language_modes;;"language modes specified are incompatible"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

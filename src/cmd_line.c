@@ -876,6 +876,14 @@ Initialize the option information table.
                          "no_parse_templates",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_c99_mode,
+                         "c99",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_c99_mode,
+                         "no_c99",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1326,36 +1334,28 @@ by a command line option.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void set_cfront_mode_flags(an_option_kind	kind)
+static void set_cfront_mode_flags(void)
 /*
 Set other options whose values should be changed when cfront mode
 is enabled.  Only set the option values if they were not already set
-by a command line option.  "kind" is either optk_cfront_2_1_mode or
-optk_cfront_3_0_mode.
+by a command line option.
 */
 {
-  if (kind == optk_cfront_2_1_mode) {  
-    /* cfront 2.1 compatibility mode.  If both 2.1 and 3.0 modes are
-       selected, only the most recent applies. */
-    cfront_2_1_mode = TRUE;
-    cfront_3_0_mode = FALSE;
+  check_assertion(any_cfront_mode());
+  if (cfront_2_1_mode) {
+    /* cfront 2.1 compatibility mode. */
     if (!(option_kind_used[(int)optk_special_subscript_cost])) {
       special_subscript_cost = FALSE;
     }  /* if */
     allow_nonconst_call_anachronism = TRUE;
   } else {
-    /* cfront 3.0 compatibility mode.  If both 2.1 and 3.0 modes are
-       selected, only the most recent applies. */
-    cfront_3_0_mode = TRUE;
-    cfront_2_1_mode = FALSE;
+    /* cfront 3.0 compatibility mode. */
     if (!(option_kind_used[(int)optk_special_subscript_cost])) {
       special_subscript_cost = TRUE;
     }  /* if */
     allow_nonconst_call_anachronism = FALSE;
   }  /* if */
   /* Processing common to both cfront modes. */
-  /* This option implies C++ dialect. */
-  C_dialect = C_dialect_cplusplus;
   /* Set flags to the appropriate mode unless they have been explicitly
      set by other command line options. */
   if (!(option_kind_used[(int)optk_cplusplus_anachronisms])) {
@@ -1462,11 +1462,39 @@ Set the various flags appropriate for the specific C mode we are going to
 process.
 */
 {
-  /* Turn on features implied by SVR4 C mode. */
   if (SVR4_C_mode) {
+    /* Turn on features implied by SVR4 C mode. */
     address_of_ellipsis_allowed = TRUE;
     allow_ellipsis_only_param_in_C_mode = TRUE;
-  }  /* if */
+  } else if (c99_mode) {
+    /* Turn on features implied by C99 mode. */
+#if VLA_ALLOWED
+    if (!vla_enabled && !(option_kind_used[(int)optk_vla])) {
+      /* Support for VLAs is turned on by default in C99 mode. */
+      vla_enabled = TRUE;
+    }  /* if */
+#endif /* VLA_ALLOWED */
+    if (!extended_designators_allowed &&
+        !(option_kind_used[(int)optk_extended_designators])) {
+      /* Support for extended designators is turned on by default in
+         C99 mode. */
+      extended_designators_allowed = TRUE;
+      if (!designators_allowed &&
+          !(option_kind_used[(int)optk_designators])) {
+        /* Support for designators is turned on by default in C99 mode. */
+        designators_allowed = TRUE;
+      }  /* if */
+    }  /* if */
+#if COMPOUND_LITERAL_ENABLING_POSSIBLE
+    if (!compound_literals_allowed &&
+        !(option_kind_used[(int)optk_compound_literals])) {
+      /* Support for compound literals is turned on by default in C99 mode. */
+      compound_literals_allowed = TRUE;
+    }  /* if */
+#endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
+    /* Support for alternative tokens is turned on by default in C99 mode. */
+    alternative_tokens_allowed = TRUE;
+  } /* if */
   /* Turn off language features that must not be on in C mode, in case
      the default value is on. */
   exceptions_enabled = FALSE;
@@ -1637,6 +1665,8 @@ setting is used, and to set various unmentioned settings as needed.
   /* Reset the SVR4 C compatibility flag just in case it is set by
      default. */
   SVR4_C_mode = FALSE;
+  /* Likewise for C99 mode. */
+  c99_mode = FALSE;
   /* Set global flags having to do with potential size of enum types. */
   enum_types_can_be_smaller_than_int =
                           targ_enum_types_can_be_smaller_than_int;
@@ -1717,29 +1747,72 @@ otherwise implicitly enabled Microsoft mode.
 }  /* exclude_microsoft_mode */
 
 
+static void exclude_sun_mode(an_error_code  error_code)
+/*
+Sun mode is incompatible with other settings.  Either issue the given
+diagnostic (error_code) if the conflict is explicit, or silently turn off
+an otherwise implicitly enabled Sun mode.
+*/
+{
+  if (sun_mode) {
+    if (option_kind_used[(int)optk_sun_mode]) {
+      /* Sun mode was enabled by a command line option. */
+      command_line_error(error_code);
+    } else {
+      /* Sun mode was enabled by default.  Silently disable it since an
+         explicit mode setting on the command line overrides it. */
+      sun_mode = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* exclude_sun_mode */
+
+
+static void exclude_SVR4_C_mode(an_error_code  error_code)
+/*
+SVR4-C mode is incompatible with other settings.  Either issue the given
+diagnostic (error_code) if the conflict is explicit, or silently turn off
+an otherwise implicitly enabled SVR4-C mode.
+*/
+{
+  if (SVR4_C_mode) {
+    if (option_kind_used[(int)optk_SVR4_C_mode]) {
+      /* SVR4-C mode was enabled by a command line option. */
+      command_line_error(error_code);
+    } else {
+      /* SVR4-C mode was enabled by default.  Silently disable it since an
+         explicit mode setting on the command line overrides it. */
+      SVR4_C_mode = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* exclude_SVR4_C_mode */
+
+
+static void exclude_c99_mode(an_error_code  error_code)
+/*
+C99 mode is incompatible with other settings.  Either issue the given
+diagnostic (error_code) if the conflict is explicit, or silently turn off
+an otherwise implicitly enabled C99 mode.
+*/
+{
+  if (c99_mode) {
+    if (option_kind_used[(int)optk_c99_mode]) {
+      /* C99 mode was enabled by a command line option. */
+      command_line_error(error_code);
+    } else {
+      /* C99 mode was enabled by default.  Silently disable it since an
+         explicit mode setting on the command line overrides it. */
+      c99_mode = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* exclude_c99_mode */
+
+
 static void check_and_set_ansi_mode_options(void)
 /*
 Both for strict ANSI C and C++ modes, check that no command-line setting
 conflicts with the ANSI mode and set various unmentioned settings as needed.
 */
 {
-  /* Strict ANSI mode is incompatible with K&R/pcc mode. */
-  if (C_dialect == C_dialect_pcc) {
-    command_line_error(ec_cl_strict_ansi_incompatible_with_pcc);
-  }  /* if */
-  /* Strict ANSI mode is incompatible with cfront compatibility mode. */
-  exclude_cfront_mode(ec_cl_strict_ansi_incompatible_with_cfront);
-  exclude_microsoft_mode(ec_cl_strict_ansi_incompatible_with_microsoft);
-  if (sun_mode) {
-    if (option_kind_used[(int)optk_sun_mode]) {
-      /* Explicit Sun and ANSI options cannot coexist on the command line. */
-      command_line_error(ec_cl_strict_ansi_incompatible_with_sun);
-    } else {
-      /* The Sun mode is on by default, but the explicit ANSI mode option
-         overrides it. */
-      sun_mode = FALSE;
-    }  /* if */
-  }  /* if */
 #if NEAR_AND_FAR_ALLOWED
   /* If near and far were enabled by default, turn off support. */
   il_header.near_and_far_are_enabled = FALSE;
@@ -1766,14 +1839,6 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
       allow_nonconst_ref_anachronism = FALSE;
     }  /* if */
   }  /* if */
-  if (SVR4_C_mode) {
-    if (option_kind_used[(int)optk_SVR4_C_mode]) {
-      command_line_error(ec_cl_strict_ansi_incompatible_with_SVR4);
-    } else {
-      /* SVR4 C mode enabled by default.  Silently disable it. */
-	SVR4_C_mode = FALSE;
-    }  /* if */
-  }  /* if */
   if (long_preserving_rules) {
     if (option_kind_used[(int)optk_long_preserving_rules]) {
       command_line_error(
@@ -1787,26 +1852,28 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     /* Set optional features to standard settings for strict C mode. */
     /* Enable recognition of digraphs. */
     alternative_tokens_allowed = TRUE;
+    if (!c99_mode) {
 #if VLA_ALLOWED
-    if (!(option_kind_used[(int)optk_vla])) {
-      /* Support for VLAs is turned off by default in strict C mode. */
-      vla_enabled = FALSE;
-    }  /* if */
-#endif /* VLA_ALLOWED */
-    if (!(option_kind_used[(int)optk_extended_designators])) {
-      /* Support for extended designators is turned off by default in
-         strict C mode. */
-      extended_designators_allowed = FALSE;
-      if (!(option_kind_used[(int)optk_designators])) {
-        /* Support for designators is turned off by default in strict C
-           mode. */
-        designators_allowed = FALSE;
+      if (!(option_kind_used[(int)optk_vla])) {
+        /* Support for VLAs is turned off by default in strict C mode. */
+        vla_enabled = FALSE;
       }  /* if */
-    }  /* if */
-    if (!(option_kind_used[(int)optk_compound_literals])) {
-      /* Support for compound literals is turned off by default in strict
-         C mode. */
-      compound_literals_allowed = FALSE;
+#endif /* VLA_ALLOWED */
+      if (!(option_kind_used[(int)optk_extended_designators])) {
+        /* Support for extended designators is turned off by default in
+           strict C mode. */
+        extended_designators_allowed = FALSE;
+        if (!(option_kind_used[(int)optk_designators])) {
+          /* Support for designators is turned off by default in strict C
+             mode. */
+          designators_allowed = FALSE;
+        }  /* if */
+      }  /* if */
+      if (!(option_kind_used[(int)optk_compound_literals])) {
+        /* Support for compound literals is turned off by default in strict
+           C mode. */
+        compound_literals_allowed = FALSE;
+      }  /* if */
     }  /* if */
   } else {
     /* Set optional features to standard settings for strict C++ mode. */
@@ -1983,11 +2050,6 @@ some modes, like ANSI, exclude the Sun mode already.  Hence those are not
 checked again here.)
 */
 {
-  if (C_mode()) {
-    command_line_error(ec_cl_sun_mode_only_in_cplusplus);
-  }  /* if */
-  exclude_microsoft_mode(ec_cl_sun_incompatible_with_microsoft);
-  exclude_cfront_mode(ec_cl_sun_incompatible_with_cfront);
   if (!(option_kind_used[(int)optk_guiding_decls])) {
     /* If guiding_decls_allowed was not set on the command line, turn it
        off now. */
@@ -2004,6 +2066,103 @@ checked again here.)
     extern_inline_allowed = FALSE;
   }  /* if */
 }  /* check_and_set_sun_mode_options */
+
+
+static void check_dialect_and_language_modes(void)
+/*
+Check for consistent specification of dialects and language modes.  Dialect
+inconsistencies are allowed -- the last specified is operative -- but
+language modes that are specified are required to be consistent with the
+operative dialect.
+
+Here is a summary of the dialects and modes, along with the associated
+command line switches.
+
+    dialect/mode         associated global variable       option
+    ============         ==========================       ======
+  C                                                      --c, -m
+    pcc mode            C_dialect == C_dialect_pcc       --old_c, -K
+    "ANSI" [= not pcc]  C_dialect == C_dialect_ANSI      (default)
+      SVR4 mode         SVR4_C_mode                      --svr4
+      microsoft mode    microsoft_mode                   --microsoft
+        bugs mode       microsoft_bugs                   --microsoft_bugs
+        16-bit mode     il_header.near_and_far_allowed   --microsoft_16
+      C99               c99_mode                         --c99
+        strict          strict_ansi_mode                 -A, -a, etc.
+      "normal"            
+        strict          strict_ansi_mode                 -A, -a, etc.
+
+  C++                   C_dialect == C_dialect_cplusplus --c++, -p
+    cfront mode
+      2.1 mode          cfront_2_1_mode                  --cfront_2.1
+      3.0 mode          cfront_3_0_mode                  --cfront_3.0
+    microsoft mode      microsoft_mode                   --microsoft
+      bugs mode         microsoft_bugs                   --microsoft_bugs
+      16-bit mode       il_header.near_and_far_allowed   --microsoft_16
+    sun mode            sun_mode                         --sun
+    "normal"
+      strict            strict_ansi_mode                 -A, -a, etc.
+
+The major C dialect (K&R, ANSI, or C++) is determined by the last command line
+option that selects a major dialect, either implicitly or explicitly. (For
+example, --old_c, --c, and --c++ select a major dialect explicitly, and --svr4,
+--cfront_3.0, and --c99 select a major dialect implicitly.)  No major dialect
+is implicitly specified with --microsoft et al. or --strict et al.
+
+Whatever major dialect is selected, all language modes specified have to be
+consistent with it.  For example, --old_c --c99 is permitted, since the
+major dialect implied by --c99 overrides the major dialect specified by -K.
+On the other hand, --c99 --old_c produces an error, since the final major
+dialect is inconsistent with C99 mode.
+
+Note that the fact that K&R C is its own major dialect, rather than
+being a minor dialect under C mode, is a historical accident of the
+order of development of this front end, and is inconsistent and strange.
+*/
+{
+  if (C_dialect != C_dialect_ANSI) {
+    /* Issue an error for specifying a language mode that is valid only
+       when the dialect is ANSI C. */
+    exclude_SVR4_C_mode(ec_cl_SVR4_C_option_only_in_ansi_C);
+    exclude_c99_mode(ec_cl_incompatible_language_modes);
+  }  /* if */
+  if (C_dialect != C_dialect_cplusplus) {
+    /* Issue an error for specifying a language mode that is valid only
+       when the dialect is C++. */
+    exclude_cfront_mode(ec_cl_incompatible_language_modes);
+    exclude_sun_mode(ec_cl_sun_mode_only_in_cplusplus);
+  }  /* if */
+  if (C_dialect == C_dialect_pcc) {
+    /* Issue an error for specifying a language mode that is valid only
+       in ANSI C or C++ modes. */
+    exclude_microsoft_mode(ec_cl_incompatible_language_modes);
+  }  /* if */
+  if (strict_ansi_mode) {
+    /* Strict ANSI mode is incompatible with K&R/pcc mode. */
+    if (C_dialect == C_dialect_pcc) {
+      command_line_error(ec_cl_strict_ansi_incompatible_with_pcc);
+    }  /* if */
+    /* Strict ANSI mode is incompatible with cfront compatibility mode. */
+    exclude_cfront_mode(ec_cl_strict_ansi_incompatible_with_cfront);
+    exclude_microsoft_mode(ec_cl_strict_ansi_incompatible_with_microsoft);
+    exclude_sun_mode(ec_cl_strict_ansi_incompatible_with_sun);
+    exclude_SVR4_C_mode(ec_cl_strict_ansi_incompatible_with_SVR4);
+  }  /* if */
+  if (any_cfront_mode()) {
+    /* Issue an error for specifying any other language mode.  Strict mode
+       has already been checked for. */
+    check_assertion(C_dialect == C_dialect_cplusplus);
+    exclude_sun_mode(ec_cl_sun_incompatible_with_cfront);
+    exclude_microsoft_mode(ec_cl_cfront_incompatible_with_microsoft);
+  }  /* if */
+  if (microsoft_mode) {
+    /* Issue an error for specifying any other language mode.  Strict mode,
+       K&R mode, and cfront mode have already been checked for. */
+    exclude_SVR4_C_mode(ec_cl_incompatible_language_modes);
+    exclude_c99_mode(ec_cl_incompatible_language_modes);
+    exclude_sun_mode(ec_cl_sun_incompatible_with_microsoft);
+  }  /* if */
+}  /* check_dialect_and_language_modes */
 
 
 void proc_command_line(int argc, char *argv[])
@@ -2176,9 +2335,22 @@ Process the arguments on the command line that invoked the compiler.
         allow_anachronisms = opt_value;
         break;
       case optk_cfront_2_1_mode:
+        /* cfront 2.1 compatibility mode.  If both 2.1 and 3.0 modes are
+           selected, only the most recent applies. */
+        check_assertion(opt_value == TRUE);
+        cfront_2_1_mode = TRUE;
+        cfront_3_0_mode = FALSE;
+        /* This option implies C++ dialect. */
+        C_dialect = C_dialect_cplusplus;
+        break;
       case optk_cfront_3_0_mode:
         check_assertion(opt_value == TRUE);
-        set_cfront_mode_flags(kind);
+        /* cfront 3.0 compatibility mode.  If both 2.1 and 3.0 modes are
+           selected, only the most recent applies. */
+        cfront_3_0_mode = TRUE;
+        cfront_2_1_mode = FALSE;
+        /* This option implies C++ dialect. */
+        C_dialect = C_dialect_cplusplus;
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
@@ -2583,7 +2755,9 @@ enable_microsoft_mode:
 #endif /* MINIMAL_INLINING */
       case optk_SVR4_C_mode:
         /* SVR4 C compatibility mode should or should not be used.  This
-           option implies ANSI C mode. */
+           option implies ANSI C mode, even in the "--no_svr4" form.
+           In other words, --[no_]svr4 is short for --c --[no_]svr4.
+           See --c99 and --sun for similar behavior. */
         SVR4_C_mode = opt_value;
         C_dialect = C_dialect_ANSI;
         break;
@@ -2805,8 +2979,12 @@ enable_microsoft_mode:
         allow_copy_assignment_op_with_base_class_param = opt_value;
         break;
       case optk_sun_mode:
-        /* Enable various extensions/bugs of the Sun CC 5.0 compiler. */
+        /* Compatibility with Sun CC 5.0 (various extensions/bugs) should or
+           should not be provided.  This option implies C++ mode, even in
+           the "--no_sun" form.  In other words, --[no_]sun is short for
+           --c++ --[no_]_sun. See --c99 and --svr4 for similar behavior. */
         sun_mode = opt_value;
+        C_dialect = C_dialect_cplusplus;
         break;
       case optk_dependent_name_processing:
         /* Enable dependent name processing for templates. */
@@ -2820,6 +2998,14 @@ enable_microsoft_mode:
       case optk_parse_nonclass_templates:
         /* Enable prototype instantiation of nonclass templates. */
         nonclass_prototype_instantiations = opt_value;
+        break;
+      case optk_c99_mode:
+        /* C99 mode should or should not be used.  This option implies
+           ANSI C mode, even in the "--no_c99" form. In other words,
+           --[no_]c99 is short for --c --[no_]c99.  See --svr4 and --sun
+           for similar behavior. */
+        c99_mode = opt_value;
+        C_dialect = C_dialect_ANSI;
         break;
       default:
         /* It should not be possible to get here. */
@@ -2835,19 +3021,20 @@ enable_microsoft_mode:
     }  /* if */
   }  /* if */
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  /* Check for the use of ANSI C options when the dialect being compiled
-     is not ANSI C. */
-  if (C_dialect != C_dialect_ANSI) {
-    if (option_kind_used[(int)optk_SVR4_C_mode]) {
-      command_line_error(ec_cl_SVR4_C_option_only_in_ansi_C);
-    }  /* if */
-  }  /* if */
-  /* Check for the use of C++ options when the dialect being compiled
-     is not C++. */
+  /* Check for consistent specification of dialects and language modes. */
+  check_dialect_and_language_modes();
+  /* Based on dialect and language mode settings, check for consistency of
+     other options, and set global variables as appropriate. */
   if (C_dialect != C_dialect_cplusplus) {
+    /* Check for the use of C++ options when the dialect being compiled
+       is not C++. */
     check_and_set_c_mode_options();
   } else {
     /* The dialect is C++. */
+    if (any_cfront_mode()) {
+      /* Turn on cfront features. */
+      set_cfront_mode_flags();
+    }  /* if */
     check_and_set_cplusplus_mode_options();
   }  /* if */
   if (strict_ansi_mode) {
@@ -2857,10 +3044,6 @@ enable_microsoft_mode:
   if (microsoft_mode) {
     /* Turn on features implied by Microsoft mode. */
     set_microsoft_mode_flags();
-    /* cfront mode is incompatible with Microsoft mode. */
-    if (any_cfront_mode()) {
-      command_line_error(ec_cl_cfront_incompatible_with_microsoft);
-    }  /* if */
   } else {
     /* Microsoft mode is not being used. */
     microsoft_bugs = FALSE;

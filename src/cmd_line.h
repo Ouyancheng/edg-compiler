@@ -192,6 +192,7 @@ typedef enum /*an_option_kind*/ {
   optk_dependent_name_processing,
   optk_ignore_namespace_std,
   optk_parse_nonclass_templates,
+  optk_c99_mode,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -225,6 +226,14 @@ Macro that is TRUE if any cfront mode has been selected.
 */
 #define any_cfront_mode() (cfront_2_1_mode || cfront_3_0_mode)
 
+EXTERN a_boolean
+		c99_mode
+#if VAR_INITIALIZERS
+                         = DEFAULT_C99_MODE
+#endif /* VAR_INITIALIZERS */
+                                           ;
+			/* When TRUE accept language features defined by the
+			   C99 standard. */
 EXTERN a_boolean
 		pcc_preprocessing_mode /* = FALSE */;
 			/* TRUE if old-style (Reiser cpp) preprocessing

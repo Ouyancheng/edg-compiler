@@ -859,6 +859,15 @@ command line options.
 #endif /* ifndef DEFAULT_SVR4_C_MODE */
 
 /*
+Flag that is TRUE if, in ANSI C mode, support for the C99 standard is
+provided.  This is the default value for the global flag C99_mode, the
+value of which may be modified using command line options.
+*/
+#ifndef DEFAULT_C99_MODE
+#define DEFAULT_C99_MODE FALSE
+#endif /* ifndef DEFAULT_C99_MODE */
+
+/*
 Flag that is TRUE if support for bool can be enabled.
 */
 #ifndef BOOL_ENABLING_POSSIBLE
