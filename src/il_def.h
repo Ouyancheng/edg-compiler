@@ -4500,12 +4500,15 @@ enum a_lowered_eh_construct_kind_tag {
   leck_exception_caught,
 			/* Point after entry/copy of catch, where exception
 			   has actually been caught. */
-  leck_exception_started
+  leck_exception_started,
 			/* Point before throw where the throw expression is
 			   considered fully evaluated, but the copy constructor
 			   to copy the object has not yet been called.  Marks
 			   the point after which the exception is considered
 			   started. */
+  leck_internal_try	/* Internal "try" block, used to get cleanup code
+			   executed if an exception is thrown while executing
+			   an expression. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_lowered_eh_construct_kind;
@@ -5154,6 +5157,18 @@ typedef struct an_expr_node {
 		epilogue_try_block;
         /* When kind == leck_exception_caught, no variant fields. */
         /* When kind == leck_exception_started, no variant fields. */
+        /* When kind == leck_internal_try: */
+        /* Note that an leck_internal_try expression has a void type,
+           i.e., it does not pass through the value of the try_expr. */
+        struct {
+          an_expr_node_ptr
+		try_expr;
+			/* Expression to evaluate. */
+          an_expr_node_ptr
+		catch_expr;
+			/* Expression to execute if an exception is thrown
+			   while evaluating try_expr. */
+        } internal_try;
       } variant;
     } lowered_eh;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */

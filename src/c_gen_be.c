@@ -3499,6 +3499,15 @@ done_with_operation:
         case leck_exception_started:
           write_tok_str("exception_started");
           break;
+        case leck_internal_try:
+          write_tok_str("internal_try(");
+          dump_expr(expr->variant.lowered_eh.variant.internal_try.try_expr,
+                    /*need_parens=*/TRUE);
+          write_tok_str(", ");
+          dump_expr(expr->variant.lowered_eh.variant.internal_try.catch_expr,
+                    /*need_parens=*/TRUE);
+          write_tok_ch(')');
+          break;
         default:
           unexpected_condition_str("dump_expr: bad lowered EH construct kind");
       }  /* switch */

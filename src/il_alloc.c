@@ -1655,6 +1655,10 @@ to kind, and set dependent variant fields to default values.
     case leck_exception_started:
       /* No variant fields. */
       break;
+    case leck_internal_try:
+      node->variant.lowered_eh.variant.internal_try.try_expr = NULL;
+      node->variant.lowered_eh.variant.internal_try.catch_expr = NULL;
+      break;
     default:
       unexpected_condition_str(
           "set_lowered_eh_construct_node_kind: bad lowered eh construct kind");

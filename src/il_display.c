@@ -2092,6 +2092,17 @@ do_variable:
         case leck_exception_started:
           (void)printf("leck_exception_started\n");
           break;
+        case leck_internal_try:
+          (void)printf("leck_internal_try\n");
+          disp_ptr("  try_expr",
+                   (char *)ptr->variant.lowered_eh.variant.
+                                                         internal_try.try_expr,
+                   iek_expr_node);
+          disp_ptr("  catch_expr",
+                   (char *)ptr->variant.lowered_eh.variant.
+                                                       internal_try.catch_expr,
+                   iek_expr_node);
+          break;
         default:
           (void)printf("**BAD LOWERED EH CONSTRUCT KIND**\n");
       }  /* switch */

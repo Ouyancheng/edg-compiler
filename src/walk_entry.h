@@ -1043,6 +1043,14 @@ do_set_proper_definition_needed_flag:
               case leck_exception_started:
                 /* No pointers. */
                 break;
+              case leck_internal_try:
+                walk_ptr(ptr->variant.lowered_eh.variant.
+                                                         internal_try.try_expr,
+                          an_expr_node_ptr, iek_expr_node);
+                walk_ptr(ptr->variant.lowered_eh.variant.
+                                                       internal_try.catch_expr,
+                          an_expr_node_ptr, iek_expr_node);
+                break;
               default:
                 unexpected_condition_str(
                       "walk_entry_and_subtree: bad lowered eh construct kind");

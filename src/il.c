@@ -1251,6 +1251,9 @@ Dump the contents of the indicated expression node for debug purposes.
         case leck_exception_started:
           fputs("exception started\n", f_debug);
           break;
+        case leck_internal_try:
+          fputs("internal try\n", f_debug);
+          break;
         default:
           fputs("<bad lowered eh construct kind>\n", f_debug);
       }  /* switch */
