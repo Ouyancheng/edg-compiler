@@ -159,7 +159,7 @@ if the macro definition is given by a command-line option.
 
 A spurious assertion failure (when GENERATE_SOURCE_SEQUENCE_LISTS and
 CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS were configured to
-TRUE) has be fixed in scan_base_specifier_list.  The problem could appear
+TRUE) has been fixed in scan_base_specifier_list.  The problem could appear
 when a base specifier reference triggered two or more template class
 instantiations, one of which had a template argument involving a class
 currently being defined.
