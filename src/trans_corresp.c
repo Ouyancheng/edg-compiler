@@ -6052,6 +6052,10 @@ for each compilation.
   memzero((char *)canonical_microsoft_sized_signed_int_types,
           sizeof(canonical_microsoft_sized_signed_int_types));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if FIXED_POINT_ALLOWED
+  memzero((char *)canonical_fixed_point_types,
+          sizeof(canonical_fixed_point_types));
+#endif /* FIXED_POINT_ALLOWED */
   memzero((char *)canonical_float_types, sizeof(canonical_float_types));
 #if C99_IL_EXTENSIONS_SUPPORTED
   memzero((char *)canonical_complex_types, sizeof(canonical_complex_types));
