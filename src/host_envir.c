@@ -374,10 +374,13 @@ The space is allocated in general (not IL or FE) memory.
 }  /* alloc_directory_name_entry */
 
 
-void add_to_include_search_path(char		*dir_name,
-				a_boolean	system_include_dir)
+void add_to_specified_include_search_path(
+			char				*dir_name,
+			a_boolean			system_include_dir,
+			a_directory_name_entry_ptr	*search_path,
+			a_directory_name_entry_ptr	*end_search_path)
 /*
-Add the indicated directory to the end of the include file search
+Add the indicated directory to the end of the specified include file search
 path.  If system_include_dir is TRUE the directory should be marked as
 a "system" include directory.  The directory name string should be
 allocated in general memory.
@@ -389,12 +392,26 @@ allocated in general memory.
   new_search_path->dir_name = dir_name;
   new_search_path->system_include_dir = system_include_dir;
   new_search_path->next     = NULL;
-  if (incl_search_path == NULL) {
-    incl_search_path = new_search_path;
+  if (*search_path == NULL) {
+    *search_path = new_search_path;
   } else {
-    end_incl_search_path->next = new_search_path;
+    (*end_search_path)->next = new_search_path;
   }  /* if */
-  end_incl_search_path = new_search_path;
+  *end_search_path = new_search_path;
+}  /* add_to_specified_include_search_path */
+
+
+void add_to_include_search_path(char		*dir_name,
+				a_boolean	system_include_dir)
+/*
+Add the indicated directory to the end of the include file search
+path.  If system_include_dir is TRUE the directory should be marked as
+a "system" include directory.
+*/
+{
+  add_to_specified_include_search_path(dir_name, system_include_dir,
+                                       &incl_search_path,
+                                       &end_incl_search_path);
 }  /* add_to_include_search_path */
 
 
@@ -2998,6 +3015,12 @@ is done after command line processing.
 */
 {
 #if !STANDALONE_UTILITY_PROGRAM
+  /* Note that these are translation unit variables, but they are not
+     reinitialized for each translation unit.  They retain the value set
+     for the primary translation unit, but are overwritten when loading
+     exported template files. */
+  register_trans_unit_variable(incl_search_path);
+  register_trans_unit_variable(sys_incl_search_path);
 #if MODULE_ID_NEEDED
   register_trans_unit_variable(module_id);
 #endif /* MODULE_ID_NEEDED */

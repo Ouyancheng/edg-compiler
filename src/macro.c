@@ -4870,6 +4870,12 @@ Do one-time initialization of variables related to macro processing.
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
   register_trans_unit_variable(assert_predicates);
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
+  /* Note that these are translation unit variables, but they are not
+     reinitialized for each translation unit.  They retain the value set
+     for the primary translation unit, but are overwritten when loading
+     exported template files. */
+  register_trans_unit_variable(defs_from_cmd_line);
+  register_trans_unit_variable(undefs_from_cmd_line);
 }  /* macro_one_time_init */
 
 

@@ -1152,9 +1152,9 @@ end_of_routine:
 }  /* get_option */
 
 
-static void add_to_def_undef_list(char *str,
-                                  a_def_undef_string_ptr *du_list,
-                                  a_def_undef_string_ptr *du_list_end)
+void add_to_def_undef_list(char                   *str,
+                           a_def_undef_string_ptr *du_list,
+                           a_def_undef_string_ptr *du_list_end)
 /*
 Add the string pointed to by str (which comes from a command-line -D
 or -U macro define/undefine option) to the list of def/undef strings

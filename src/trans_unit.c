@@ -89,6 +89,12 @@ static a_boolean
 			/* Set to TRUE once the first translation unit
 			   entry has been allocated.  Variable registrations
 			   are not permitted after this point. */
+
+static a_boolean
+		any_exported_template_files_loaded;
+			/* Set to TRUE once the first translation unit is
+			   loaded for the purpose of defining an exported
+			   template. */
 #endif /* CHECKING */
 
 #if DEBUG
@@ -420,6 +426,15 @@ treated as separate translation units of a single compilation.
 {
   a_translation_unit_ptr	trans_unit;
 
+#if CHECKING
+  if (!is_primary && exported_file == NULL) {
+    /* We can't load a normal secondary translation unit after an exported
+       file has been loaded because the command-line macro definition
+       information and include search paths will not be correct. */
+    check_assertion(!any_exported_template_files_loaded);
+  }  /* if */
+  if (exported_file != NULL) any_exported_template_files_loaded = TRUE;
+#endif /* CHECKING */
   if (curr_translation_unit != NULL) {
     /* Save the currently active set of translation unit specific variables. */
     save_translation_unit_state(curr_translation_unit);
@@ -451,6 +466,16 @@ treated as separate translation units of a single compilation.
   }  /* if */
   translation_units_tail = trans_unit;
   curr_translation_unit = trans_unit;
+  if (exported_file != NULL) {
+    /* Set the include search path and macro define/undefines to be used for
+       this exported template file.  For secondary translation units loaded
+       from the command-line, these variables retain the values used for the
+       primary translation unit. */
+    defs_from_cmd_line = exported_file->define_list;
+    undefs_from_cmd_line = exported_file->undefine_list;
+    incl_search_path = exported_file->incl_search_path;
+    sys_incl_search_path = exported_file->sys_incl_search_path;
+  }  /* if */
   fe_translation_unit_init();
 #if MODULE_ID_NEEDED
   if (exported_file != NULL) {
@@ -568,6 +593,7 @@ of the front end are called.
 #endif /* DEBUG */
 #if CHECKING
   any_translation_units_allocated = FALSE;
+  any_exported_template_files_loaded = FALSE;
 #endif /* CHECKING */
 }  /* trans_unit_early_init */
 

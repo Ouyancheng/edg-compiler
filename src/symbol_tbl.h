@@ -1281,6 +1281,22 @@ typedef struct an_exported_template_file {
 			   things like static entities that were promoted to
 			   be external so that they could be referenced from
 			   instantiations. */
+  a_directory_name_entry_ptr
+		incl_search_path;
+			/* The include search path to be used when loading this
+			   file. */
+  a_directory_name_entry_ptr
+		sys_incl_search_path;
+			/* The system include search path to be used when
+			   loading this file. */
+  a_def_undef_string_ptr
+		define_list;
+			/* A list of command-line macro definitions to be used
+			   when loading this file. */
+  a_def_undef_string_ptr
+		undefine_list;
+			/* A list of command-line macro undefines to be used
+			   when loading this file. */
 } an_exported_template_file;
 
 

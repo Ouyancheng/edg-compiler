@@ -1428,6 +1428,10 @@ extern void proc_secondary_translation_units(void);
 
 extern void cmd_line_early_init(void);
 
+extern void add_to_def_undef_list(char                   *str,
+                                  a_def_undef_string_ptr *du_list,
+                                  a_def_undef_string_ptr *du_list_end);
+
 #endif /* ifndef CMD_LINE_H */
 
 /******************************************************************************

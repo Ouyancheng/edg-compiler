@@ -101,7 +101,7 @@ typedef enum /* a_template_info_line_type */ {
 The template information line type string to be written to the
 file for the various line type kinds.
 */
-static char	*template_info_line_type_namess[(int)tilt_last+1] = {
+static char	*template_info_line_type_names[(int)tilt_last+1] = {
   /* tilt_command_line */		"cmd",
   /* tilt_curr_dir */			"dir",
   /* tilt_file_name */			"fnm",
@@ -139,20 +139,31 @@ Enumeration used to specify the kind of template information file line to
 be written.
 */
 typedef enum /* an_exported_template_line_type */ {
+  etlt_none,
   etlt_file_name,
   etlt_template_name,
   etlt_module_id,
+  etlt_macro_def,
+  etlt_macro_undef,
+  etlt_include,
+  etlt_sys_include,
   etlt_last
 } an_exported_template_line_type;
 
 /*
 The template information line type string to be written to the
-file for the various line type kinds.
+file for the various line type kinds.  The routines that read the
+exported template file require that the names be three characters long.
 */
-static char	*exported_template_line_type_namess[(int)etlt_last+1] = {
+static char	*exported_template_line_type_names[(int)etlt_last+1] = {
+  /* etlt_none */			NULL,
   /* etlt_file_name */			"fnm",
   /* etlt_template_name */		"tnm",
   /* etlt_module_id */			"mid",
+  /* etlt_macro_def */			"def",
+  /* etlt_macro_undef */		"und",
+  /* etlt_include */			"inc",
+  /* etlt_sys_include */		"sys",
   /* etlt_last */			NULL
 };
 
@@ -870,7 +881,7 @@ NULL or is symbol of the template from which the instance was generated.
     open_template_info_file();
   }  /* if */
   fprintf(f_template_info, "%s:%s",
-          template_info_line_type_namess[(int)line_type], string);
+          template_info_line_type_names[(int)line_type], string);
   is_exported = template_sym != NULL && template_is_exported(template_sym);
   if (flags_string || is_exported) {
     /* If we need to output the exported template name, we have to
@@ -979,7 +990,7 @@ be written.
     open_exported_template_file_for_output();
   }  /* if */
   fprintf(f_exported_template, "%s:%s",
-          exported_template_line_type_namess[(int)line_type],
+          exported_template_line_type_names[(int)line_type],
           string);
   fputs("\n", f_exported_template);
 }  /* write_to_exported_template_file */
@@ -15366,6 +15377,10 @@ to it.
   etfp->source_file_name = NULL;
   etfp->translation_unit = NULL;
   etfp->module_id = NULL;
+  etfp->incl_search_path = NULL;
+  etfp->sys_incl_search_path = NULL;
+  etfp->define_list = NULL;
+  etfp->undefine_list = NULL;
   return etfp;
 }  /* alloc_exported_template_file */
 
@@ -15514,6 +15529,30 @@ on the command line.
 }  /* check_for_already_loaded_trans_unit */
 
 
+static an_exported_template_line_type get_exported_line_type(char *line)
+/*
+Determine the type of "line" that was read from an exported template file.
+*/
+{
+  an_exported_template_line_type	result = etlt_none;
+  an_exported_template_line_type	type;
+
+  for (type = (an_exported_template_line_type)(etlt_none + 1);
+       type < etlt_last; type++) {
+    char	*type_name;
+    type_name = exported_template_line_type_names[(int)type];
+    /* This routine requires that all type names be three characters. */
+    check_assertion(type_name[3] == '\0');
+    if (strncmp(type_name, line, 3) == 0) {
+      check_assertion(line[3] == ':');
+      result = type;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* get_exported_line_type */
+
+
 static void read_exported_template_file(
 				char				*file_name,
 				a_directory_name_entry_ptr	dnep)
@@ -15526,6 +15565,13 @@ templates defined in the file.
   FILE				*f_file;
   char				*line;
   an_exported_template_file_ptr	etfp;
+  a_directory_name_entry_ptr	search_path = NULL;
+  a_directory_name_entry_ptr	end_search_path = NULL;
+  a_directory_name_entry_ptr	sys_include_boundary = NULL;
+  a_def_undef_string_ptr	def_list = NULL;
+  a_def_undef_string_ptr	def_end = NULL;
+  a_def_undef_string_ptr	undef_list = NULL;
+  a_def_undef_string_ptr	undef_end = NULL;
 
   /* Create an entry that describes this exported template file. */
   etfp = alloc_exported_template_file();
@@ -15534,11 +15580,14 @@ templates defined in the file.
                                                dnep->dir_name);
   f_file = open_exported_template_file_for_input(file_name, dnep);
   while ((line = read_line_from_file(f_file)) != NULL) {
-    if (strncmp(line, "fnm:", 4) == 0) {
+    an_exported_template_line_type	line_type;
+    /* Identify the line type. */
+    line_type = get_exported_line_type(line);
+    if (line_type == etlt_file_name) {
       char	*name = &line[4];
       etfp->source_file_name = copy_string_to_region(
                                            FRONT_END_REGION_NUMBER, name);
-    } else if (strncmp(line, "tnm:", 4) == 0) {
+    } else if (line_type == etlt_template_name) {
       a_template_lookup_entry_ptr	tlp;
       char				*name = &line[4];
       tlp = find_exported_template(name, /*add=*/TRUE);
@@ -15549,11 +15598,35 @@ templates defined in the file.
 
       }  /* if */
 #if MODULE_ID_NEEDED
-    } else if (strncmp(line, "mid:", 4) == 0) {
+    } else if (line_type == etlt_module_id) {
       char	*new_module_id = &line[4];
       etfp->module_id = copy_string_to_region(
                                        FRONT_END_REGION_NUMBER, new_module_id);
 #endif /* MODULE_ID_NEEDED */
+    } else if (line_type == etlt_macro_def) {
+      /* Add a command-line macro definition. */
+      char	*macro_text = &line[4];
+      macro_text = copy_string_to_region(FRONT_END_REGION_NUMBER, macro_text);
+      add_to_def_undef_list(macro_text, &def_list, &def_end);
+    } else if (line_type == etlt_macro_undef) {
+      /* Add a command-line macro undefine. */
+      char	*macro_text = &line[4];
+      macro_text = copy_string_to_region(FRONT_END_REGION_NUMBER, macro_text);
+      add_to_def_undef_list(macro_text, &undef_list, &undef_end);
+    } else if (line_type == etlt_include || line_type == etlt_sys_include) {
+      /* An include search path entry.  Add this to the search path list
+         for this file. */
+      char	*dir_name = &line[4];
+      if (strcmp(dir_name, "-") == 0) {
+        /* Record the boundary between the normal search path and the system
+           include search path. */
+        sys_include_boundary = search_path;
+      } else {
+        dir_name = copy_string_to_region(FRONT_END_REGION_NUMBER, dir_name);
+        add_to_specified_include_search_path(dir_name,
+                                             line_type == etlt_sys_include,
+                                             &search_path, &end_search_path);
+      }  /* if */
     } else {
       unexpected_condition_str("read_exported_template_file: bad line kind");
     }  /* if */
@@ -15563,6 +15636,15 @@ templates defined in the file.
        an error. */
     str_catastrophe(ec_corrupted_export_template_file, file_name);
   }  /* if */
+  /* Set the include search path information in the exported template file
+     entry based on the information read from the file. */
+  etfp->incl_search_path = search_path;
+  if (sys_include_boundary != NULL) {
+    etfp->sys_incl_search_path = sys_include_boundary->next;
+  }  /* if */
+  /* Set the command-line macro information. */
+  etfp->define_list = def_list;
+  etfp->undefine_list = undef_list;
   /* See if the translation unit associated for this exported template file
      has already been loaded. */
   check_for_already_loaded_trans_unit(etfp);
@@ -16013,11 +16095,12 @@ file.
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-static void generate_exported_template_information(void)
+static void write_templates_to_exported_template_file(void)
 /*
-Output information about exported templates.  Information is written
-to both the exported template file and the template information file
-(when template information files are being used).
+Output information about the exported templates that were defined in this
+translation unit.  Information is written to both the exported template
+file and the template information file (when template information files
+are being used).
 */
 {
   a_symbol_list_entry_ptr	slep;
@@ -16036,6 +16119,55 @@ to both the exported template file and the template information file
                                   (char*)NULL, (a_symbol_ptr)NULL);
     }  /* if */
   }  /* for */
+} /* write_templates_to_exported_template_file */
+
+
+static void write_macro_information_to_exported_template_file(
+				a_def_undef_string_ptr		du_list,
+				an_exported_template_line_type	line_type)
+/*
+Output the command-line macro definitions and undefines to the exported
+template file.  "du_list" points to a list of def/undef entries.  "line_type"
+is the line type to be used for the entries written to the file.
+*/
+{
+  a_def_undef_string_ptr	dusp;
+
+  for (dusp = du_list; dusp != NULL; dusp = dusp->next) {
+    write_to_exported_template_file(line_type, dusp->text);
+  }  /* for */
+}  /* write_macro_information_to_exported_template_file */
+
+
+static void write_include_search_path_to_exported_template_file(void)
+/*
+Write the entries on the include search path list to the exported template
+file.
+*/
+{
+  a_directory_name_entry_ptr		dnep;
+  an_exported_template_line_type	line_type;
+
+  for (dnep = incl_search_path; dnep != NULL; dnep = dnep->next) {
+    line_type = dnep->system_include_dir ? etlt_sys_include : etlt_include;
+    write_to_exported_template_file(line_type, dnep->dir_name);
+    /* If this is the boundary between the normal include path and the
+       system include path, write a special entry to the file to mark
+       it. */
+    if (sys_incl_search_path == dnep->next) {
+      write_to_exported_template_file(etlt_include, "-");
+    }  /* if */
+  }  /* for */
+}  /* write_include_search_path_to_exported_template_file */
+
+
+static void generate_exported_template_information(void)
+/*
+Create the exported template information file.
+*/
+{
+  /* Write the information about any exported template that were defined. */
+  write_templates_to_exported_template_file();
   /* Only write the other information to the exported template file if
      some template names were written above. */
   if (f_exported_template != NULL) {
@@ -16045,6 +16177,13 @@ to both the exported template file and the template information file
     /* Write the module ID. */
     write_to_exported_template_file(etlt_module_id, make_module_id());
 #endif /* MODULE_ID_NEEDED */
+    /* Output information about command-line macro definitions. */
+    write_macro_information_to_exported_template_file(defs_from_cmd_line,
+                                                      etlt_macro_def);
+    write_macro_information_to_exported_template_file(undefs_from_cmd_line,
+                                                      etlt_macro_undef);
+    /* Output information about the include search directory to be used. */
+    write_include_search_path_to_exported_template_file();
   }  /* if */
 }  /* generate_exported_template_information */
 
