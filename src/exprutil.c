@@ -1098,7 +1098,7 @@ Overloaded Function".
                 "find_addr_of_overloaded_function_match: not overloaded func");
     }  /* if */
 #endif /* CHECKING */
-    /* Check each function in the overload set to see it its type matches
+    /* Check each function in the overload set to see if its type matches
        the one desired. */
     for (sym = sym->variant.overloaded_function.symbols;
          sym != NULL;
@@ -4530,17 +4530,19 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
        qualifiers above the reference type, but that's okay; they don't really
        mean anything ("int &const a" is meaningless). */
     param_type = type_pointed_to(param_type);
-    if (fewer_qualifiers(arg_type, param_type)) {
+    if (type_qualifiers_match(arg_type, param_type)) {
+      /* The qualifiers are the same: okay. */
+    } else if (any_qualifier_missing(param_type, arg_type)) {
+      /* There are some type qualifiers on the argument type that do not
+         appear on the parameter type, so an exact match even with trivial
+         conversions is not possible.  Skip the simple matches, and try user
+         conversions. */
+      goto user_conversions;
+    } else {
       /* This is the "T --> (qualified T)& case, which is less desirable.
          We don't actually know yet that the underlying types are compatible,
          but we'll find out soon. */
       less_desirable_case = TRUE;
-    } else if (fewer_qualifiers(param_type, arg_type)) {
-      /* There are more type qualifiers on the argument type than on the
-         parameter type, so an exact match even with trivial conversions
-         is not possible.  Skip the simple matches, and try user
-         conversions. */
-      goto user_conversions;
     }  /* if */
   } else {
     /* The parameter type is not a reference, which means the argument would
@@ -4596,7 +4598,7 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
     if (is_pointer_type(arg_type)) {
       a_type_ptr arg_type_pointed_to = type_pointed_to(arg_type);
       a_type_ptr param_type_pointed_to = type_pointed_to(param_type);
-      if (fewer_qualifiers(arg_type_pointed_to, param_type_pointed_to)) {
+      if (any_qualifier_missing(arg_type_pointed_to, param_type_pointed_to)) {
         /* arg_type and param_type are pointer types, and param_type has
            some type qualifier that arg_type does not.  Check to see if
            the types pointed to are the same.  This has to be checked here
@@ -7572,14 +7574,14 @@ case in terms of the equivalent pointer case).
                              TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                              TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION,
                              expression_kind);
-  /* Drop any type qualifiers and typedefs on the types. */
-  dest_type = skip_typerefs(dest_type);
 #if CHECKING
   if (is_reference_type(dest_type)) {
     internal_error("conversion_possible: dest_type is reference");
   }  /* if */
 #endif /* CHECKING */
-  source_type = skip_typerefs(source_operand->type);
+  source_type = source_operand->type;
+  /* Note that we do not drop type qualifiers on the source and destination
+     types yet, because we may still be dealing with lvalue cases. */
   if (is_error_type(source_type) || is_error_type(dest_type)) {
     /* An error type is compatible with anything. */
     okay = TRUE;
@@ -7587,8 +7589,12 @@ case in terms of the equivalent pointer case).
     conv_lvalue_to_rvalue(source_operand, expression_kind);
   } else if (C_dialect != C_dialect_cplusplus &&
              is_class_struct_union_type(dest_type) &&
-             types_are_compatible(source_type, dest_type)) {
-    /* In C, a struct or union is compatible with the same struct or union. */
+             types_are_compatible(f_skip_typerefs(source_type),
+                                  f_skip_typerefs(dest_type))) {
+    /* In C, a struct or union is compatible with the same struct or union.
+       Type qualifiers are ignored because they will be dropped on the source
+       type in the conversion to an rvalue, and any qualifiers on the
+       destination type can be added after that. */
     *class_bitwise_copy = TRUE;
     okay = TRUE;
     /* If the source is an lvalue, convert it to an rvalue. */
@@ -7618,8 +7624,9 @@ case in terms of the equivalent pointer case).
     /* If the source is an lvalue, convert it to an rvalue. */
     conv_lvalue_to_rvalue(source_operand, expression_kind);
     /* Re-fetch source type in case of an error in the lvalue --> rvalue
-       conversion. */
-    source_type = skip_typerefs(source_operand->type);
+       conversion, and also because any type qualifiers on the source type
+       have been dropped in the conversion to an rvalue. */
+    source_type = source_operand->type;
     /* See if there is a valid implicit conversion from the source type to
        the destination type. */
     if (impl_conversion_possible(source_type,
@@ -8147,7 +8154,8 @@ prep_elision_initializer_operand.
     ref_to_nonconst = !is_const_qualified_type(base_dest_type);
     /* The destination type must have no fewer type qualifiers than the source
        type to be usable without conversion (ARM 8.4.3). */
-    dropping_qualifiers = fewer_qualifiers(base_dest_type, base_source_type);
+    dropping_qualifiers = any_qualifier_missing(base_dest_type,
+                                                base_source_type);
     if (dropping_qualifiers && type_is_correct_or_derived) {
       /* There are fewer qualifiers on the destination than on the source,
          so the initialization would involve dropping qualifiers. */
