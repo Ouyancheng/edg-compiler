@@ -2173,6 +2173,10 @@ error code.
     case ec_void_template_parameter:
       m = "a template parameter may not have a type of void";
       break;
+    case ec_too_many_unused_instantiations:
+      m =
+        "excessive recursive instantiation of %n due to instantiate-all mode";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

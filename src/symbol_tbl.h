@@ -877,6 +877,10 @@ typedef struct a_template_instance {
 /* Used to track the number of pending instantiations of a given class. */
 typedef short a_pending_instantiation_count;
 
+/* Used to track the number of instantiations performed in tim_all mode that
+   were not actually required. */
+typedef short an_unused_instantiation_count;
+
 
 typedef struct a_template_symbol_supplement {
   /* Additional information about a C++ class or function template
@@ -988,6 +992,22 @@ typedef struct a_template_symbol_supplement {
 			   spurious reference to uninitialized data warnings
 			   from CodeCenter. */
 #endif /* CHECKING */
+    an_unused_instantiation_count
+		unused_instantiations;
+			/* When a function is added to the instantiations
+			   required list in tim_all mode but is not actually
+			   required, it is not instantiated until instantiation
+			   wrapup is done, even if it is an inline function.
+			   This is done because these functions may be put
+			   on the list before they can actually be
+			   instantiated.  Consequently, the runaway recursive
+			   instantiation check will not detect a loop in which
+			   new "unused" entries get added while instantiating
+			   earlier "unused" entries.  To prevent such loops
+			   we set an arbitrary limit to the number of unused
+			   instantiations that can be generated for a given
+			   function.  This field records the number of unused
+			   instantiations that have been performed so far. */
     } function;
     /* When symbol kind = sk_static_data_member: */
     struct {

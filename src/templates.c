@@ -3795,6 +3795,42 @@ template entities.
 }  /* should_be_instantiated */
 
 
+static a_boolean too_many_unused_instantiations
+                              (a_symbol_ptr                     template_sym,
+                               a_template_symbol_supplement_ptr tssp)
+/*
+When a function is added to the instantiations required list in
+tim_all mode but is not actually required, it is not instantiated
+until instantiation wrapup is done, even if it is an inline function.
+This is done because these functions may be put on the list before
+they can actually be instantiated.  Consequently, the runaway
+recursive instantiation check will not detect a loop in which new
+"unused" entries get added while instantiating earlier "unused"
+entries.  To prevent such loops we set an arbitrary limit to the
+number of unused instantiations that can be generated for a given
+function.
+*/
+{
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    /* We are instantiating a function that is not needed.  Update the count
+       of unused instantiations.  The count is only incremented for entries
+       added in the process of generating other instantiations in an
+       attempt to only detect truly recursive instantiations.  It is still
+       possible to cause this error to occur in nonrecursive contexts but
+       it is very unlikely. */
+    tssp->variant.function.unused_instantiations++;
+    if (tssp->variant.function.unused_instantiations ==
+                                        MAX_UNUSED_ALL_MODE_INSTANTIATIONS) {
+      sym_error(ec_too_many_unused_instantiations, template_sym);
+    }  /* if */
+  }  /* if */
+  /* Return TRUE if there have been too many instantiations.  This prevents
+     additional instantiations from being generated. */
+  return tssp->variant.function.unused_instantiations >=
+                                           MAX_UNUSED_ALL_MODE_INSTANTIATIONS;
+}  /* too_many_unused_instantiations */
+
+
 void update_instantiation_required_flag(a_template_instance_ptr tip,
                                         a_boolean               value)
 /*
@@ -3804,9 +3840,13 @@ instantiation is required.  If the flag is set to FALSE the entry is simply
 updated but not removed from the list.
 */
 {
-  a_symbol_ptr   sym;
+  a_symbol_ptr			   sym;
+  a_template_symbol_supplement_ptr tssp;
+  a_boolean			   add_to_list = TRUE;
 
   db_enter(5, "update_instantiation_required_flag");
+  sym = tip->instance_sym;
+  tssp = template_supplement_for_symbol(tip->template_sym);
 #if DEBUG
   if (debug_level >= 5) {
     a_symbol_ptr sym = tip->instance_sym;
@@ -3822,10 +3862,14 @@ updated but not removed from the list.
 #endif /* DEBUG */
   if (instantiation_mode == tim_can_instantiate) {
     /* Leave the instantiation_required flag unchanged in this mode. */
+  } else if (instantiation_mode == tim_all && !value) {
+    /* An "unused" instantiation is being added to the list. */
+    if (too_many_unused_instantiations(tip->template_sym, tssp)) {
+      /* Don't add this entry to the list.  This prevents infinite
+         instantiation loops. */
+      add_to_list = FALSE;
+    }  /* if */
   } else if (value) {
-    a_template_symbol_supplement_ptr tssp;
-    sym = tip->instance_sym;
-    tssp = template_supplement_for_symbol(tip->template_sym);
     if (sym == tip->template_sym) {
       /* Somehow a member function of a nonreal class (e.g., a prototype
          instantiation of a class template) has been referenced.  (This
@@ -3876,10 +3920,13 @@ updated but not removed from the list.
   } else {
     tip->instantiation_required = FALSE;
   }  /* if */
-  /* The entry is always added to the instantiations list because certain
-     entries for which instantiation is not required need to be processed
-     for automatic instantiation processing. */
-  add_to_instantiations_required_list(tip);
+  if (add_to_list) {
+    /* The entry is added to the instantiations list even if the instantiation
+       required flag is FALSE because certain entries for which instantiation
+       is not required need to be processed for automatic instantiation
+       processing. */
+    add_to_instantiations_required_list(tip);
+  }  /* if */
   db_exit();
 }  /* update_instantiation_required_flag */
 

@@ -1365,6 +1365,7 @@ and return a pointer to it.
       clear_token_cache(&tssp->variant.function.decl_token_cache,
                         /*reusable=*/TRUE);
       tssp->variant.function.cannot_be_called = FALSE;
+      tssp->variant.function.unused_instantiations = 0;
 #if CHECKING
       tssp->variant.function.dummy = FALSE;
 #endif /* CHECKING */

@@ -121,13 +121,27 @@ are those of Appendix A, section 17 of K&R I:
 #endif /* ifndef C_ANACHRONISMS_ALLOWED */
 
 /*
-The maximum number of pending instantiations of a given template class
+The maximum number of pending instantiations of a given template
 that may be in process at a given time.  This is used to detect
 runaway recursive instantiations.
 */
 #ifndef MAX_PENDING_INSTANTIATIONS
 #define MAX_PENDING_INSTANTIATIONS 15
 #endif /* ifndef MAX_PENDING_INSTANTIATIONS */
+
+/*
+The maximum number of unused instantiations of a given template function
+that may be generated.  Unused instantiations can be generated in tim_all.
+For example, in tim_all mode uncalled member functions, and functions
+for which only a declaration is seen, are instantiated.  This number
+should be fairly large because, unlike true recursive instantiations,
+some number of unused instantiations will be generated in normal use
+of tim_all mode.
+*/
+#ifndef MAX_UNUSED_ALL_MODE_INSTANTIATIONS
+#define MAX_UNUSED_ALL_MODE_INSTANTIATIONS 200
+#endif /* ifndef MAX_UNUSED_INSTANTIATIONS */
+
 
 /*
 TRUE if code that exploits a cfront 2.1 bug that causes a global name to be
