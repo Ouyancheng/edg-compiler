@@ -3587,11 +3587,7 @@ Reserve space at the end of the class object for virtual base classes.
        current class before the data sections for the virtual base classes
        are put out.  This assures that size-without-virtual-base-classes will
        correspond to the actual size of an incomplete subobject. */
-    if (
-#if IA64_ABI
-        !emulate_gnu_abi_bugs &&
-#endif /* IA64_ABI */
-        !do_alignment(&ctsp->size_without_virtual_base_classes, &zero,
+    if (!do_alignment(&ctsp->size_without_virtual_base_classes, &zero,
                       ctsp->alignment_without_virtual_base_classes)) {
       if (!lob->any_overflow) {
         error(struct_too_large_error());
