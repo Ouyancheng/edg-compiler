@@ -5663,20 +5663,22 @@ a_boolean is_assignment_operator_for_copy(
                                    a_type_qualifier_set  *qualifiers,
                                    a_boolean             *is_base_class_match)
 /*
-Return TRUE if sym qualifies as an assignment operator that can copy a
-class object (ARM 12.8).  It qualifies if its first parameter has a type of
-"A", "A&", or "const A&", where "A" is the class of which it is a member.
-(In cfront compatibility mode, sym also qualifies if the first parameter
-involves type B where B is a base class of A.)  Set *is_ref_arg to TRUE if
-the first parameter is a reference type.  Set *qualifiers based on how the
-first parameter is qualified.  Return *is_base_class_match set to TRUE
-for the cfront compatibility case.
+Return TRUE if sym, an sk_member_function symbol for an operator= function,
+qualifies as a "copy assignment operator" (WP 12.8) that can copy a class
+object.  It qualifies if its first parameter has a type of "A", "A&", or
+"const A&", where "A" is the class of which it is a member.  (In cfront
+compatibility mode, sym also qualifies if the first parameter involves type
+B where B is a base class of A.)  Set *is_ref_arg to TRUE if the first
+parameter is a reference type.  Set *qualifiers based on how the first
+parameter is qualified.  Return *is_base_class_match set to TRUE for the
+cfront compatibility case.
 */
 {
   a_boolean         found = FALSE;
   a_param_type_ptr  ptp;
   a_type_ptr        tp;
 
+  check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
   ptp = routine_symbol_type(sym)->variant.routine.extra_info->param_type_list;
   check_assertion(ptp != NULL);
   tp = skip_typerefs(ptp->type);
