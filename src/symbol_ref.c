@@ -425,18 +425,36 @@ Return TRUE if sym1 and sym2 point to the same IL entries.
 static a_boolean matches_member_of_overload_set(a_symbol_ptr  sym_ptr,
                                                 a_symbol_ptr  overload_sym)
 /*
-Return TRUE if sym_ptr is a member of the overload set headed by
-overload_sym or if the routine entry pointed to by sym_ptr is pointed also
-to by a member of the overload set.
+Return TRUE if sym_ptr refers to the same routine as overload_sym or
+refers to the same entity as a member of the overload set headed by
+overload_sym.  Also, return TRUE if sym_ptr is an instance of a template
+pointed to by overload_sym or a template that is a member of the overload
+set pointed to by overload_sym.
 */
 {
   a_boolean     found = FALSE;
-  a_symbol_ptr  other_sym = overload_sym->variant.overloaded_function.symbols;
+  a_boolean	is_list;
+  a_symbol_ptr  other_sym;
 
-  check_assertion(overload_sym->kind == (a_symbol_kind)sk_overloaded_function);
-  for (; other_sym != NULL; other_sym = other_sym->next) {
+  if (overload_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    is_list = TRUE;
+    other_sym = overload_sym->variant.overloaded_function.symbols;
+  } else {
+    is_list = FALSE;
+    other_sym = overload_sym;
+  }  /* if */
+  for (; other_sym != NULL; other_sym = is_list ? other_sym->next : NULL) {
     if (other_sym == sym_ptr ||
         il_entries_are_identical(sym_ptr, other_sym)) {
+      found = TRUE;
+      break;
+    } else if (other_sym->kind == (a_symbol_kind)sk_function_template &&
+               (sym_ptr->kind == (a_symbol_kind)sk_routine ||
+                sym_ptr->kind == (a_symbol_kind)sk_member_function) &&
+               sym_ptr->variant.routine.instance_ptr != NULL &&
+               sym_ptr->variant.routine.instance_ptr->template_sym ==
+                                                                   other_sym) {
+      /* The function is an instance of the template specified by other_sym. */
       found = TRUE;
       break;
     }  /* if */
@@ -537,10 +555,6 @@ hiding.
     /* Ignore template instantiation scopes. */
   } else if (is_template_class_symbol(sym_ptr)) {
     /* Ignore template class specializations. */
-  } else if ((sym_ptr->kind == (a_symbol_kind)sk_routine ||
-              sym_ptr->kind == (a_symbol_kind)sk_member_function) &&
-             sym_ptr->variant.routine.instance_ptr != NULL) {
-    /* Ignore function template instances. */
   } else if (!sym_ptr->is_class_member &&
              ssep->kind == (a_scope_kind)sck_class_struct_union &&
              sym_ptr->decl_scope != FILE_SCOPE_NUMBER &&
@@ -662,9 +676,7 @@ hiding.
         old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
         if (old_sym_ptr != NULL) {
           if (old_sym_ptr == sym_ptr ||
-              (old_sym_ptr->kind == (a_symbol_kind)sk_overloaded_function ?
-                matches_member_of_overload_set(sym_ptr, old_sym_ptr) :
-                il_entries_are_identical(sym_ptr, old_sym_ptr))) {
+              matches_member_of_overload_set(sym_ptr, old_sym_ptr)) {
             /* There is no intervening declaration of this name, or if there
                is it is a block-extern declaration that refers to the same
                entity. */
