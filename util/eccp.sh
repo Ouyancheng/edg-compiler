@@ -444,6 +444,7 @@ check_abbreviation()
 --command
 --comments
 --compile
+--const_string_literals
 --cpfe_only
 --create_pch
 --db
@@ -503,6 +504,7 @@ check_abbreviation()
 --no_bool
 --no_brief_diagnostics
 --no_code_gen
+--no_const_string_literals
 --no_definition_list_file
 --no_distinct_template_signatures
 --no_enum_overloading
@@ -965,6 +967,8 @@ process_option()
          --one_instantiation_per_object | \
          --early_tiebreaker | \
          --late_tiebreaker | \
+         --const_string_literals | \
+         --no_const_string_literals | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
