@@ -1505,8 +1505,7 @@ already been lowered.
       insert_call_to_helper_routine_to_zero_entity(
                   class_type,
                   entity_node,
-                  node_for_integer_constant(1L,
-                                            (an_integer_kind)ik_unsigned_int),
+                  node_for_integer_constant(1L, targ_size_t_int_kind),
                   insert_location);
     } else 
 #endif /* IA64_ABI */
@@ -4996,7 +4995,7 @@ C99 mode for the same reason.
                    entity_node,
                    node_for_host_large_integer(
                                             (a_host_large_integer)num_elements,
-                                            (an_integer_kind)ik_unsigned_int),
+                                            targ_size_t_int_kind),
                    eff_insert_location);
         } else
 #endif /* IA64_ABI */
