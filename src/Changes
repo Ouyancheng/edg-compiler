@@ -35,7 +35,7 @@ has been adjusted for --microsoft_version=1200.
 
 10/7/04  GNU compatibility: __builtin_classify_type and __builtin_constant_p
 
-In addition to being constant-folded calls to the GNU built-in functions
+In addition to being constant-folded, calls to the GNU built-in functions
 __builtin_classify_type and __builtin_constant_p are now parsed differently
 from other function calls.  In particular, an argument to such a call does
 not undergo the usual transformations for function call arguments (like

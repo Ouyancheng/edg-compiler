@@ -1026,7 +1026,7 @@ of gcc and g++ return slightly different values for some expression types.
           /* A pointer to data member. */
           tck = (a_type_class_kind)tck_offset;
         } else {
-          /* g++ 3.4 treats a pointer to function member as a struct type. */
+          /* A pointer to function member is treated as a struct type. */
           tck = (a_type_class_kind)tck_struct;
         }  /* if */
       }  /* if */
@@ -1208,11 +1208,11 @@ given operand by a constant operand if appropriate.
 static void scan_gnu_builtin_pseudo_call(an_operand  *operand,
                                          an_operand  *result_op)
 /*
-Operand represents a built-in function that needs special treatment when
+Operand represents a GNU built-in function that needs special treatment when
 called (e.g., the arguments cannot be evaluated).  This function parses and
-evaluates the pseudo-call it introduces.  *result_op is set to an operand
-representing the entire pseudo-call.  Currently, only __builtin_constant_p
-and __builtin_classify_type are processed by this function.
+evaluates a pseudo-call to the built-in function.  *result_op is set to an
+operand representing the entire pseudo-call.  Currently, only
+__builtin_constant_p and __builtin_classify_type are processed here.
 */
 {
   an_operand           arg;
@@ -1232,11 +1232,12 @@ and __builtin_classify_type are processed by this function.
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.evaluated = FALSE;
   expr_stack_entry.potentially_evaluated = FALSE;
-  /* Parse the pseudo-call argument.  GNU compiler accept multiple arguments
+  /* Parse the pseudo-call argument.  GNU compilers accept multiple arguments
      and no argument, but that does not seem a useful thing to emulate.  So
      we'll issue a syntax error in those cases. */
   scan_expr(&arg, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  /* Now evaluate it (the result is a constant). */
+  /* Now determine the constant result of the pseudo-call by examining the
+     (unevaluated) argument expression. */
   check_assertion(rp != NULL && is_gnu_builtin_function(rp));
   result_type = return_type_of(rp->type);
   check_assertion(is_integral_type(result_type));
