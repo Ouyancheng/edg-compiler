@@ -8122,7 +8122,8 @@ following the member declaration.
         check_complete_member_type(&local_type, &locator,
                                    member_storage_class, &decl_start_pos,
                                    &return_type_def_err, dso_flags,
-                                   status_ptr->is_nonreal_instantiation);
+                                   (a_boolean)status_ptr->
+                                                 is_nonreal_instantiation);
       }  /* if */
     }  /* if */
     remove_stop_token(tok_colon);
@@ -8484,7 +8485,8 @@ following the member declaration.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         decl_static_data_member(&locator, class_type, local_type,
                                 status_ptr->access,
-                                status_ptr->is_nonreal_instantiation,
+                                (a_boolean)status_ptr->
+                                               is_nonreal_instantiation,
                                 status_ptr->corresp_prototype_tag_sym,
                                 declarator_ssep, decl_modifiers);
         if (status_ptr->access != (an_access_specifier)as_public) {
@@ -8501,9 +8503,10 @@ following the member declaration.
           pos_error(ec_function_type_not_allowed, &locator.source_position);
           local_type = error_type();
         } else {
-          check_field_type(&locator, &local_type, status_ptr->is_first_field,
+          check_field_type(&locator, &local_type,
+                           (a_boolean)status_ptr->is_first_field,
                            unnamed_field, status_ptr->access,
-                           status_ptr->class_aggregate_ruled_out,
+                           (a_boolean)status_ptr->class_aggregate_ruled_out,
                            &decl_start_pos);
         }  /* if */
         /* Set the flag to record that at least one named field was
