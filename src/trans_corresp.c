@@ -1005,7 +1005,9 @@ type is in fact valid.
     }  /* for */
     if ((field != NULL && corresp_field == NULL) ||
         (corresp_field != NULL && field == NULL)) {
-      report_error = C_mode();
+      /* In C mode, we simply ignore the correspondence.  In C++ mode, this
+         is an error. */
+      report_error = !C_mode();
       match = FALSE;
       goto done;
     }  /* if */
