@@ -507,7 +507,7 @@ routine is one that requires two arguments.
   return (array_new_general((void*)NULL, number_of_elements, element_size,
                             (void*)NULL, ctor, dtor, new_routine,
                             delete_routine, is_two_arg,
-                            /*record_array_info=*/FALSE, /*zero_init*/FALSE));
+                            /*record_array_info=*/FALSE, /*zero_init=*/FALSE));
 }  /* __array_new */
 #endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 
@@ -529,7 +529,7 @@ information and to call the constructor for each array element.
   return (array_new_general(array_ptr, number_of_elements, element_size,
                             (void*)NULL, ctor, dtor, (a_new_ptr)NULL,
                             (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
-                            /*record_array_info=*/TRUE, /*zero_init*/FALSE));
+                            /*record_array_info=*/TRUE, /*zero_init=*/FALSE));
 }  /* __placement_array_new */
 #endif /* ABI_COMPATIBILITY_VERSION >= 234 */
 
@@ -549,7 +549,7 @@ operator new.
   return (array_new_general(array_ptr, number_of_elements, element_size,
                             (void*)NULL, ctor, dtor, (a_new_ptr)NULL,
                             (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
-                            /*record_array_info=*/FALSE, /*zero_init*/FALSE));
+                            /*record_array_info=*/FALSE, /*zero_init=*/FALSE));
 }  /* __vec_new_eh */
 
 
@@ -567,7 +567,7 @@ no destructor pointer is provided.
                             (void*)NULL, ctor, /*a_destructor_ptr*/NULL,
                             (a_new_ptr)NULL, (a_delete_ptr)NULL,
                             /*is_two_arg=*/FALSE,
-                            /*record_array_info=*/FALSE, /*zero_init*/FALSE));
+                            /*record_array_info=*/FALSE, /*zero_init=*/FALSE));
 }  /* __vec_new */
 
 
@@ -590,7 +590,7 @@ can never be zero.
                           src_array_ptr, (a_constructor_ptr)ctor, dtor,
                           (a_new_ptr)NULL, (a_delete_ptr)NULL,
                           /*is_two_arg=*/FALSE,
-                          /*record_array_info=*/FALSE, /*zero_init*/FALSE);
+                          /*record_array_info=*/FALSE, /*zero_init=*/FALSE);
 }  /* __vec_ctor_eh */
 
 
@@ -631,7 +631,7 @@ the array size information and to call the constructor for each array element.
   return (array_new_general(array_ptr, number_of_elements, element_size,
                             (void*)NULL, ctor, dtor, (a_new_ptr)NULL,
                             (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
-                            /*record_array_info=*/TRUE, /*zero_init*/TRUE));
+                            /*record_array_info=*/TRUE, /*zero_init=*/TRUE));
 }  /* __placement_array_new_zero */
 
 
@@ -650,7 +650,7 @@ constructor is called.
   return (array_new_general(array_ptr, number_of_elements, element_size,
                             (void*)NULL, ctor, dtor, (a_new_ptr)NULL,
                             (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
-                            /*record_array_info=*/FALSE, /*zero_init*/TRUE));
+                            /*record_array_info=*/FALSE, /*zero_init=*/TRUE));
 }  /* __vec_new_eh_zero */
 #endif /* ABI_COMPATIBILITY_VERSION >= 300 */
 
