@@ -1616,6 +1616,14 @@ the default constructor (if one exists) is called.
         if (var_type != tp) {
           /* The object has an array type.  We need to build an aggregate
              initialization on top of the other dynamic init entry. */
+          /* Since the destructor may have been added to a dynamic init entry
+             that will not be "on top" when gen_dynamic_initalizer is called,
+             record the destruction, if needed, with the appropriate
+             object-lifetime entry. */
+          record_end_of_lifetime_destruction(init_dip,
+                                             has_static_storage_duration(
+                                                           var->storage_class),
+                                             /*scope_lifetime=*/TRUE);
           /* Copy the dynamic init entry. */
           dip = init_dip;
           /* Create a new one to represent a nonconstant aggregate
