@@ -992,6 +992,13 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
    (sym)->kind == (a_symbol_kind)sk_member_function ||                \
    (sym)->kind == (a_symbol_kind)sk_overloaded_function)
 
+/* Return TRUE if a symbol is a member function symbol. */
+#define is_member_function_symbol(sym)                                \
+  ((sym)->kind == (a_symbol_kind)sk_member_function ||                \
+   ((sym)->kind == (a_symbol_kind)sk_overloaded_function &&           \
+    (sym)->variant.overloaded_function.symbols->kind ==               \
+                                (a_symbol_kind)sk_member_function))
+
 /* Return TRUE if an sk_routine or sk_member_function symbol "sym" is marked
    as being of special function kind "kind". */
 #define is_special_kind_function_symbol(sym, kind)                    \
