@@ -1,5 +1,17 @@
 Version 2.36
 
+6/6/97    Microsoft compatibility: __declspec and constructor definition
+
+A spurious error is no longer issued when, in Microsoft compatibility mode,
+a __declspec modifier appears on the out-of-class definition of a
+constructor or destructor.  For example:
+
+  class C {
+  public:
+     __declspec(dllexport) C();
+  };
+  __declspec(dllexport) C::C() { }     // Spurious error no longer issued
+
 6/6/97    Spurious error on overloaded friend template functions
 
 A spurious error is no longer issued during the initial scan of a template

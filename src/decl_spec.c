@@ -4045,7 +4045,8 @@ process_class_specifier:
           decl_specifiers_seen |= DS_TYPE;
           break;
         }  /* if */
-        if (!(decl_specifiers_seen & ~(DS_FRIEND | DS_INLINE))) {
+        if (!(decl_specifiers_seen &
+              ~(DS_FRIEND | DS_INLINE | DS_DECLSPEC | DS_MICROSOFT_INLINE))) {
           /* A function declaration without declaration specifiers is
              permitted. */
           if (!any_decl_specifiers_seen) {
