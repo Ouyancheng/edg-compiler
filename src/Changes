@@ -164,10 +164,10 @@ defined.  This has been fixed.
 
 When MAINTAIN_NEEDED_FLAGS is TRUE, the IL tree can be pruned of unneeded
 entries.  This is partially under the control of a new command-line option,
---[no_]remove_unneeded_entities, which is used to set global variable
-remove_unneeded_entities (initialized to DEFAULT_REMOVE_UNNEEDED_ENTITIES).
-By default, the IL tree is not pruned when the C++-generating back end is
-used.
+--[no_]remove_unneeded_entities, which is used to set global variables
+remove_unneeded_entities (initialized to DEFAULT_REMOVE_UNNEEDED_ENTITIES)
+and okay_to_eliminate_unneeded_il_entries.  By default, the IL tree is not
+pruned when the C++-generating back end is used.
 
 11/20/95  C-generating back end: obscure problems with qualified array
           typedefs
