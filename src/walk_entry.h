@@ -1152,8 +1152,6 @@ the file scope, do not process it (but record an orphan in the latter case).
                        iek_dynamic_init);
         remap_ptr(ptr->dynamic_inits_unordered_with_respect_to_this_one,
                   a_dynamic_init_ptr, iek_dynamic_init);
-        remap_ptr(ptr->entity.ptr, a_char_ptr,
-                  (an_il_entry_kind)ptr->entity.kind);
         remap_ptr(ptr->init_expr_lifetime, an_object_lifetime_ptr,
                   iek_object_lifetime);
         switch (ptr->kind) {

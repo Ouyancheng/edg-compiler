@@ -876,25 +876,6 @@ typedef struct a_dynamic_init {
 			   unordered set.  NULL if the dynamic initialization
 			   is not part of an unordered set.  NULL if the
 			   lifetime field is NULL. */
-  a_tagged_pointer
-		entity;
-			/* Pointer to the entity that points to this dynamic
-			   initialization.  Possible kinds are:
-			     iek_variable  for a variable with dynamic
-			                     initialization;
-			     iek_constant  for a ck_dynamic_init constant;
-			     iek_expr_node for an enk_temp_init expression;
-			     iek_throw_supplement
-			                   for a throw;
-			     iek_new_delete_supplement
-			                   for a new;
-			     iek_handler   for a handler (catch clause);
-			     iek_statement for a return statement or an
-			                     stmk_init statement;
-			     iek_constructor_init
-			                   for a constructor or destructor
-			                     constructor_init.
-			*/
   an_object_lifetime_ptr
 		init_expr_lifetime;
 			/* If non-NULL, defines the object lifetime for the

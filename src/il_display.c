@@ -2624,8 +2624,6 @@ Display the indicated dynamic_init structure.
                (char *)ptr->dynamic_inits_unordered_with_respect_to_this_one,
                iek_dynamic_init);
     }  /* if */
-    disp_ptr("entity", (char *)ptr->entity.ptr,
-             (an_il_entry_kind)ptr->entity.kind);
   }  /* if */
   if (ptr->init_expr_lifetime != NULL) {
     disp_ptr("init_expr_lifetime", (char *)ptr->init_expr_lifetime,
