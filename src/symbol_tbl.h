@@ -480,12 +480,9 @@ typedef struct a_projection_descr {
      a derived class.  Pointed to by an sk_projection symbol. */
   a_symbol_ptr  fundamental_symbol;
 			/* The fundamental base class member to which this
-			   projection symbol refers.  It will be different
-			   from the progenitor_symbol when the latter is a
-			   projection symbol.  Referring to the previous
-			   example, B::i is the progenitor symbol for C::i,
-			   but A::i is the fundamental symbol.  If ambiguous
-			   is TRUE, this symbol is one of several possible. */
+			   projection symbol refers, i.e., the symbol for
+			   the definition of the entity rather than any
+			   an inherited instance of it. */
   a_base_class_ptr
 		fundamental_base_class;
 			/* This field is a pointer to the base class entry for
@@ -607,7 +604,7 @@ typedef struct a_symbol {
 			   class. */
       unsigned int
 		ambiguous:1;
-			/* TRUE if progenitor_symbol's name is ambiguous in
+			/* TRUE if the symbol name is ambiguous in
 			   the current scope, i.e., another symbol with the
 			   same name is visible, and there is no reason to
 			   prefer one over the other. */
