@@ -295,9 +295,7 @@ extern void free_pending_pragma_list(a_pending_pragma_ptr ppp);
 
 extern void add_to_curr_token_pragma_list(a_pending_pragma_ptr ppp);
 
-extern
-a_boolean select_curr_construct_pragmas(a_boolean  is_decl,
-					a_boolean  add_to_list);
+extern a_boolean select_curr_construct_pragmas(a_boolean  add_to_list);
 
 extern
 a_pending_pragma_ptr add_curr_token_pseudo_pragma(a_pragma_kind      kind,

@@ -444,8 +444,7 @@ pbk_immediate pragmas are processed here.
 }  /* process_curr_token_pragmas */
 
 
-a_boolean select_curr_construct_pragmas(a_boolean	is_decl,
-					a_boolean	add_to_list)
+a_boolean select_curr_construct_pragmas(a_boolean	add_to_list)
 /*
 This routine scans the current token pragma list for any pbk_next_construct
 pragmas.  If the binding kind matches the flags passed by the caller,
@@ -493,14 +492,14 @@ return FALSE.
     a_pending_pragma_ptr	next_ppp = ppp->next;
     a_boolean			remove_from_curr_list = FALSE;
     a_boolean			add_to_new_list = FALSE;
-    a_boolean			issue_diagnostic = FALSE;
     a_pragma_kind_description_ptr
 				pkdp = ppp->descr_ptr;
     a_pragma_binding_kind	binding_kind = pkdp->binding_kind;
-    an_error_code		error_code;
     if (binding_kind == pbk_next_construct) {
       /* All pbk_next_construct pragmas will be removed from the list. */
       remove_from_curr_list = TRUE;
+      add_to_new_list = TRUE;
+#if 0
       if ((is_decl && pkdp->may_bind_to_decl) ||
           (!is_decl && pkdp->may_bind_to_stmt)) {
         /* The pragma binding matches the kind of construct being processed. */
@@ -516,6 +515,7 @@ return FALSE.
           error_code = ec_pragma_must_precede_statement;
         }  /* if */
       }  /* if */
+#endif
     }  /* if */
     /* An entry can't be on both lists. */
     check_assertion(!(add_to_new_list == TRUE &&
@@ -549,11 +549,13 @@ return FALSE.
         list_end = ppp;
       }  /* if */
     }  /* if */
+#if 0
     if (issue_diagnostic) {
       if (pkdp->error_severity != es_none) {
         pos_diagnostic(pkdp->error_severity, error_code, &ppp->id_position);
       }  /* if */
     }  /* if */
+#endif
     ppp = next_ppp;
   }  /* while */
   *curr_list_of_curr_construct_pragmas() = list_start;
