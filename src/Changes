@@ -1,5 +1,23 @@
 Version 2.31
 
+10/31/95  cfront compatibility overload resolution changes
+
+Several changes to provide greater compatibility with cfront in overload
+resolution.  These apply only in cfront mode.
+
+(a)  A null pointer constant must be spelled "0" to be convertible to
+     a pointer or pointer member type.  This replaces the change made
+     on 4/5/95 ("conversions of class operands to pointer type when
+     they are operands of builtin operators").  This change applies only
+     in overload resolution determination of the best function;
+     elsewhere, null pointer constants with other forms are still accepted.
+(b)  In cfront 3.0 mode, when attempting conversions on operands of a
+     builtin operator, no attempt is made to convert to pointer or
+     pointer to member types if the other operand is a null pointer
+     constant and the operator is a relational operator (<, >, <=, or >=).
+(c)  Dropping type qualifiers when binding a reference (an anachronism)
+     is considered a tiebreaker in overload resolution.
+
 10/31/95  Default on SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
 
 The default for SAME_REPR_INTS_INTERCHANGEABLE_IN_IL in targ_def.h has
