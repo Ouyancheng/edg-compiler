@@ -1,5 +1,26 @@
 Version 2.13
 
+1/13/93 member function typedef (cfront compatibility)
+
+Cfront supports the following declarations:
+
+  struct A { void f(int); };
+  typedef void A::T(int);    // nonstandard typedef declaration
+  T *pmf = &A::f;            // nonstandard ptr-to-member declaration
+
+where "T" is construed to name a routine type for a nonstatic member
+function of A that takes an int argument and returns void.  Its use is
+restricted to a nonstandard pointer-to-member declaration.  The last two
+declarations are thus equivalent to a single standard pointer-to-member
+declaration:
+
+  void (A::* pmf)(int) = &A::f;
+
+Support for this construct has been added in cfront compatibility mode.  A
+warning is always issued on the typedef declaration.  An error is issued on
+an attempt to use the "member function typedef" name in a function
+declaration.
+
 1/13/93 Loosening of matching on function template overload resolution
 
 Two cases:
