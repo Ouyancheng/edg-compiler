@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1993 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -271,8 +271,9 @@ static an_expr_node_ptr make_call_node(a_routine_ptr    routine,
                                        a_boolean        honor_virtual)
 /*
 Make an expression that calls routine "routine" with arguments "arg_list",
-and return a pointer to it.  A virtual call is generated if the routine
-is virtual and honor_virtual is TRUE.  The virtual call is *not* lowered.
+and return a pointer to it.  arg_list is assumed to be lowered already.
+A virtual call is generated if the routine is virtual and honor_virtual
+is TRUE.  The virtual call is *not* lowered.
 */
 {
   an_expr_node_ptr      call_node, rout_node;
@@ -314,6 +315,11 @@ is virtual and honor_virtual is TRUE.  The virtual call is *not* lowered.
   rout_type = skip_typerefs(routine->type);
   rout_return_type = rout_type->variant.routine.return_type;
   call_node = make_operator_node(op, rout_return_type, rout_node);
+#if MINIMAL_INLINING
+  if (inlining_enabled && op == (an_expr_operator_kind)eok_call) {
+    do_inlining_of_call(call_node, (a_statement_ptr)NULL);
+  }  /* if */
+#endif /* MINIMAL_INLINING */
   return call_node;
 }  /* make_call_node */
 
@@ -322,7 +328,7 @@ a_statement_ptr make_call_statement(a_routine_ptr    routine,
                                     an_expr_node_ptr arg_list)
 /*
 Make a statement that calls routine "routine" with arguments "arg_list",
-and return pointer to it.
+and return a pointer to it.  arg_list is assumed to be lowered already.
 */
 {
   an_expr_node_ptr call_node;
@@ -344,7 +350,8 @@ an_expr_node_ptr make_runtime_rout_call(char             *name,
 Make an expression node that calls the runtime routine "name" with the
 arguments given by arg_expr_list.  *routine is set to point to the runtime
 routine entry; if it is non-NULL on entry, it is used.  The routine has
-unprototyped arguments and its return type is return_type.
+unprototyped arguments and its return type is return_type.  arg_expr_list
+is assumed to be lowered already.
 */
 {
   an_expr_node_ptr node;
@@ -2885,7 +2892,7 @@ do_assignment:;
          via a copy constructor. */
       /* The address of the temporary being initialized is added as an
          implicit argument of the call. */
-      lower_call(dip->variant.expression, ipdp);
+      lower_call(dip->variant.expression, ipdp, (a_statement_ptr)NULL);
       expr_stmt = insert_expr_statement(dip->variant.expression,
                                         eff_insert_location);
       set_stmt_pos_to_code_pos_for_lowering(expr_stmt);
@@ -5272,7 +5279,7 @@ are handled in il_lower_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
-}  /* one_time_init_lower_init */
+}  /* init_lower_one_time_init */
 
 
 void init_lower_init(void)
@@ -5301,6 +5308,6 @@ of the front end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1993 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
