@@ -708,6 +708,7 @@ routine.
   /* Get the scope number from the symbol supplement.  The scope depth
      will be the scope depth of the class plus one. */
   cssp = symbol_supplement_for_class(class_type);
+  check_assertion(cssp->member_decl_scope != NO_SCOPE_NUMBER);
   sym->decl_scope = cssp->member_decl_scope;
   sym->is_nonreal_member = TRUE;
 #if RECORD_SCOPE_DEPTH_IN_IL
