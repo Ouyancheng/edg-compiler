@@ -511,6 +511,16 @@ fields).
               diagnostic(strict_ansi_error_severity,
                          ec_array_of_incomplete_type);
               if (strict_ansi_error_severity == es_error) err = TRUE;
+            } else if (!(parameter_type && (sun_mode || gpp_mode))) {
+              /* The type may still end up being abstract.  Add it to a fixup
+                 list to verify the constraint when the class is complete. */
+              add_to_dependent_type_fixup_list(
+                                     temp_type,
+                                     (a_dependent_type_fixup_kind)
+                                            dtfk_array_of_abstract_class_check,
+                                     (char*)(*bottom_derived_type),
+                                     (a_byte_il_entry_kind)iek_type,
+                                     &error_position);
             }  /* if */
           }  /* if */
         } else if (is_immediate_enum_type(temp_type)) {

@@ -10550,6 +10550,21 @@ can be completed for the dependent types, too.
               }  /* if */
             }  /* if */
             break;
+          case dtfk_array_of_abstract_class_check:
+            check_assertion(dtfp->entity.kind ==
+                                    (a_byte_il_entry_kind)iek_type);
+            tp = (a_type_ptr)dtfp->entity.ptr;
+            if (!is_error_type(tp)) {
+              /* Check if this was an array of an incomplete class type and
+                 that class type has turned out to be an abstract class. */
+              check_assertion(is_array_type(tp));
+              if (is_abstract_class_type(tp->variant.array.element_type)) {
+                report_abstract_class_error(ec_array_of_abstract_class,
+                                            tp->variant.array.element_type,
+                                            &dtfp->decl_position);
+              }  /* if */
+            }  /* if */
+            break;
           case dtfk_routine_calling_method:
             check_assertion(dtfp->entity.kind ==
                                     (a_byte_il_entry_kind)iek_type);

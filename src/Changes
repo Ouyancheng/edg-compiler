@@ -1,5 +1,20 @@
 Version 3.6
 
+11/23/04 Array of abstract class error not always reported
+
+A change made in version 3.5 to allow arrays of abstract class types as
+parameter types in GNU C++ mode (see Changes entry of 10/7/04) introduced
+a bug causing the front end to report no error in any mode on certain
+arrays of abstract class types.  For example:
+
+  struct S {
+    void f(S[1]);  // Version 3.5 of the front end never diagnosed this
+                   // nonstandard "array of abstract class".
+    virtual ~S() = 0;
+  };
+
+This is now fixed: An error is diagnosed except in GNU and Sun modes.
+
 11/23/04 Microsoft C++ compatibility: cast to abstract class and warning on
          call of pure virtual function
 
