@@ -995,7 +995,8 @@ is TRUE.
     /* The reference can bind to an rvalue if it is a reference to const. */
     /* Note that, as of Feb. 1995, the WP does not require the test for
        const volatile here.  It's not clear whether that's an oversight or
-       not. */
+       not.  (A core working group discussed it in Austin in March 1995
+       and decided it didn't care to bring it up in full committee.) */
     if (!any_cfront_mode() && !allow_anachronisms) {
       source_can_be_rvalue = ((param_type_qualifiers & TQ_CONST) != 0);
     }  /* if */
@@ -1265,7 +1266,13 @@ have_level:;
       /* You can't bind a reference to non-const to an rvalue.  This was a
          post-ARM change (in the ARM, the binding would be okay in overload
          resolution and would get an error later if chosen). */
-      arg_summary->match_level = aml_none;
+      if (allow_nonconst_ref_anachronism && param_is_class_type) {
+        /* The anachronism of binding a reference to nonconst to a class
+           rvalue is enabled.  Leave this alone.  A warning will be issued
+           is this binding is actually used. */
+      } else {
+        arg_summary->match_level = aml_none;
+      }  /* if */
     }  /* if */
   }  /* if */
 #if DEBUG
@@ -6921,9 +6928,9 @@ initializer has previously been found to be acceptable, and
           /* The reference to const volatile case gets only a warning in cfront
              or anachronisms mode (it's a recent change to the language). */
           err_severity = es_warning;
-        } else if (!strict_ansi_mode) {
-          /* Because this shows up in a lot of code, issue a warning during
-             a transitional period. */
+        } else if (allow_nonconst_ref_anachronism) {
+          /* Because this shows up in a lot of code, there's a separate
+             anachronism to allow this. */
           err_severity = es_warning;
         }  /* if */
         pos_diagnostic(err_severity,
