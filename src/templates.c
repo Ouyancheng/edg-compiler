@@ -596,7 +596,6 @@ might not be able to if the template itself has not yet been defined.
   a_token_cache                     *p_token_cache;
   a_class_symbol_supplement_ptr     cssp;
   a_template_arg_ptr                template_arg_list;
-  a_scope_stack_entry_ptr           ssep;
 
   db_enter(3, "f_instantiate_template_class");
 #if CHECKING
@@ -708,38 +707,71 @@ might not be able to if the template itself has not yet been defined.
          class template. */
       cssp->instantiation_in_progress = FALSE;
       --(tssp->pending_instantiations);
-      /* If this instantiation occurred in the midst of a class definition,
-         the instantiation may be dependent upon nested types from the class.
-         The instantiation was put out on the file scope types list, but
-         the types upon which it is possibly dependent have been recorded on
-         the class scope types list.  To enable il-lowering to get the
-         ordering right when it promotes the nested types to file scope,
-         enter a placeholder type in the class scope to mark the declaration
-         position of the instantiation.  This is not an issue when the class
-         is a local class, since a template cannot legally be defined in terms
-         of local classes or types that are local class members.  Also, don't
-         do it for class template prototypes, since the class types created
-         for them don't appear in the IL. */
-      ssep = &scope_stack[decl_scope_level];
-      if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
-          !ssep->inside_local_class &&
-          !symbol_supplement_for_class(ssep->assoc_type)->is_nonreal_class) {
-        a_type_ptr  tp;
-
-        /* Allocate the placeholder type, set its fields, and add it to the
-           types list of the class.  Note that this typeref has no name
-           or symbol associated with it. */
-        tp = alloc_type((a_type_kind)tk_typeref);
-        tp->variant.typeref.type = class_type;
-        tp->variant.typeref.is_placeholder_for_file_scope_type = TRUE;
-        class_type->variant.class_struct_union.
-                             referenced_by_placeholder_typeref = TRUE;
-        add_to_types_list(tp, decl_scope_level);
-      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
 }  /* f_instantiate_template_class */
+
+
+void create_placeholder_for_class_instantiation(a_type_ptr class_type)
+/*
+If an instantiation occurred in the midst of a class definition, the
+instantiation may be dependent upon nested types from the class.  The
+instantiation was put out on the file scope types list, but the types
+upon which it is possibly dependent have been recorded on the class
+scope types list.  To enable il-lowering to get the ordering right
+when it promotes the nested types to file scope, enter a placeholder
+type in the class scope to mark the declaration position of the
+instantiation.  This is not an issue when the class is a local class,
+since a template cannot legally be defined in terms of local classes
+or types that are local class members.  Also, don't do it for class
+template prototypes, since the class types created for them don't
+appear in the IL.  When finding the scope to which the placeholder
+type should be added, we scan backwards through the scope stack
+looking for a class scope for a real class (i.e., not a prototype
+instantiation).  This search is unusual in that it doesn't stop at the
+first instantiation scope.  This is done so that we can find the
+innermost class scope, even if there are other instantiations (e.g.,
+function instantiations) below that on the scope stack.
+
+This routine is called by scan_class_definition after the class has been
+scanned but before the class scope has been popped.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_scope_depth			scope_depth = decl_scope_level;
+
+  ssep = &scope_stack[scope_depth];
+  check_assertion_str2(ssep->assoc_type == class_type,
+                       "create_placeholder_for_class_instantiation:",
+                       "invalid current scope");
+  /* Skip to the scope prior to the current class scope. */
+  ssep--;
+  scope_depth--;
+  /* Find the nearest enclosing class scope, if any. */
+  while (ssep->kind != (a_scope_kind)sck_class_struct_union ||
+         symbol_supplement_for_class(ssep->assoc_type)->is_nonreal_class) {
+    if (ssep->kind == (a_scope_kind)sck_file) {
+      ssep = NULL;
+      break;
+    }  /* if */
+    scope_depth--;
+    ssep--;
+  }  /* while */
+  /* At this point, ssep is either NULL or points to a real class scope. */
+  if (ssep != NULL && !ssep->inside_local_class) {
+    a_type_ptr  tp;
+    /* Allocate the placeholder type, set its fields, and add it to the
+       types list of the class.  Note that this typeref has no name
+       or symbol associated with it. */
+    tp = alloc_type((a_type_kind)tk_typeref);
+    tp->variant.typeref.type = class_type;
+    tp->variant.typeref.is_placeholder_for_file_scope_type = TRUE;
+    class_type->variant.class_struct_union.
+                                    referenced_by_placeholder_typeref = TRUE;
+    add_to_types_list(tp, scope_depth);
+  }  /* if */
+}  /* create_placeholder_for_class_instantiation */
 
 
 void f_check_for_uninstantiated_template_class(a_type_ptr  tp)
