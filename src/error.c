@@ -986,6 +986,13 @@ error code.
       break;
     case ec_no_matching_function:
       m = "none of the overloaded functions matches this argument list";
+#if 0
+      m =
+        "no instance of overloaded function \"%s\" matches this argument list";
+#endif /* if 0 */
+      break;
+    case ec_type_def_not_allowed_in_func_type_decl:
+      m = "type definition not allowed in function return type declaration";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
