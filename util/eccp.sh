@@ -406,7 +406,6 @@ if [ $cmode -eq 0 -a $more_than_one_c_file -eq 0 -a $cc_only -eq 0 -a	\
      $fe_only -eq 0 -a $instantiation_mode_specified -eq 0 ] ; then
   feoptions=$feoptions" -tused"
 fi
-set -x
 #
 # Run through the list of .c files and compile.
 #
