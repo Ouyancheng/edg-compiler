@@ -844,14 +844,12 @@ to point to the lifetime promote_to.
         sp = cfdp->variant.goto_statement.ptr;
         break;
       case cfdk_block:
-        if (cfdp->variant.block.object_lifetime == NULL &&
-            (cfdp->variant.block.goto_count > 0 ||
-             cfdp->variant.block.any_labels)) {
+        if (cfdp->variant.block.goto_count > 0 ||
+            cfdp->variant.block.any_labels) {
           /* Find the gotos and labels in the nested block and promote
              their object lifetime pointers, too. */
         } else {
-          /* Skip over the nested block.  Either it has no gotos or
-             labels or the lifetime associated with it is not useless. */
+          /* Skip over the nested block. */
           cfdp = cfdp->variant.block.end_of_block;
         }  /* if */
       default:
