@@ -677,6 +677,10 @@ typedef int a_type_tree_traversal_flag_set;
 typedef a_boolean a_type_predicate_function(a_type_ptr tp, a_boolean *flag);
 typedef a_type_predicate_function *a_type_predicate_function_ptr;
 
+extern a_boolean ttt_is_variably_modified_type(
+                                        a_type_ptr  type_ptr,
+                                        a_boolean   *force_end_of_traversal);
+
 a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
                              a_type_predicate_function_ptr  func,
                              a_type_tree_traversal_flag_set flags);
