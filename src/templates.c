@@ -13324,7 +13324,12 @@ that follows.
                                          /*compiler_generated=*/FALSE);
             }  /* if */
           } else {
-            scan_function_body(sym->variant.routine.ptr, &func_info,
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+            if (rp->source_corresp.is_class_member) {
+              rp->defined_outside_of_parent = TRUE;
+            }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+            scan_function_body(rp, &func_info,
                                SFB_NEW_STRUCT_STMT_STACK_REQUIRED);
           }  /* if */
           /* Leave it to the caller to advance past the closing right brace. */

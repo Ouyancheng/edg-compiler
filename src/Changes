@@ -1,5 +1,18 @@
 Version 2.45
 
+9/11/00  defined_outside_of_parent flag for member function specializations
+
+The flag defined_outside_of_parent in a_routine entries (present when
+GENERATE_SOURCE_SEQUENCE_LISTS is TRUE) was not set when a member function
+was explicitly specialized (outside of its parent class template).
+
+  template<typename T> struct S {
+    void f() {}
+  };
+  template<> void A<int>::f() {}  // Should have defined_outside_of_parent
+                                  // set to TRUE
+This is now fixed.
+
 9/11/00  Error recovery on invalid partial specialization
 
 An internal error could occur if a partial specialization was (incorrectly)
