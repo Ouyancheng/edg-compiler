@@ -1,5 +1,8 @@
 Version 2.06
 
+5/8/92   Changed name mangling of virtual function tables to more closely
+         match cfront.
+
 5/8/92   Fixed bug that caused internal error in node_complete_object_type.
 
 Problem appeared when a virtual function was called for a class object
