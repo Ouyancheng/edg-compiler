@@ -3618,7 +3618,7 @@ to NULL.
   a_symbol_ptr      linked_symbol, homonym_symbol, overload_symbol = NULL;
   a_boolean         redecl_error_already_issued = FALSE;
   a_boolean         linked_redecl_error = FALSE;
-  a_boolean         old_decl_has_body;
+  a_boolean         old_decl_has_body = FALSE;
   a_boolean         redeclaration = FALSE;
   a_variable_ptr    variable_ptr = NULL;
   a_routine_ptr     routine_ptr = NULL;
@@ -3733,19 +3733,20 @@ to NULL.
       sym = linked_symbol;
       routine_ptr = linked_symbol->variant.routine.ptr;
       check_assertion(routine_ptr != NULL);
-      old_decl_has_body = (sym->defined
+      if (routine_ptr->assoc_scope != NULL_region_number
 #if ASM_FUNCTION_ALLOWED
-                     || routine_ptr->storage_class == (a_storage_class)sc_asm
+          || routine_ptr->storage_class == (a_storage_class)sc_asm
 #endif /* ASM_FUNCTION_ALLOWED */
-                          );
-#if CHECKING
-      /* In C++ the defined flag may have been set without the body having
-         been scanned and bound to the routine yet (e.g., inline friend
-         function).  However, if the body has been scanned, defined should
-         be set. */
-      check_assertion(routine_ptr->assoc_scope != NULL_region_number ?
-                        old_decl_has_body : TRUE);
-#endif /* CHECKING */
+                                                        ) {
+        old_decl_has_body = TRUE;
+      } else if (sym->defined) {
+        /* In C++ the defined flag may have been set without the body having
+           been scanned and bound to the routine yet (e.g., inline friend
+           function). */
+        check_assertion(scope_stack[decl_scope_level].kind ==
+                                        (a_scope_kind)sck_class_struct_union);
+        old_decl_has_body = TRUE;
+      }  /* if */
       if (is_function_def && old_decl_has_body) {
         /* Previous routine already has a body, and new one does (or will)
            too. */
