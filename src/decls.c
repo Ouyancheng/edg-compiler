@@ -2839,13 +2839,14 @@ position of the identifier.
 
 
 static a_symbol_ptr namespace_member_redecl_sym(
-                                       a_symbol_locator   *locator,
-                                       a_type_ptr         type_ptr,
-                                       a_scope_depth      effective_decl_level,
-                                       a_boolean          is_definition,
-                                       a_boolean          is_friend_decl,
-                                       an_id_linkage_kind *linkage,
-                                       a_symbol_ptr       *overload_symbol)
+                               a_symbol_locator   *locator,
+                               a_type_ptr         type_ptr,
+                               a_scope_depth      *effective_decl_level,
+                               a_boolean          is_definition,
+                               a_boolean          is_friend_decl,
+                               an_id_linkage_kind *linkage,
+                               a_symbol_ptr       *overload_symbol,
+                               a_boolean          *namespace_reactivated)
 /*
 This routine is called from decl_variable and decl_routine for cases in which
 a namespace-qualified identifier is being defined -- *locator should point to
@@ -2856,7 +2857,10 @@ be FALSE when is_friend_decl is TRUE, the latter being set if this
 declaration appears as a friend function declaration.  When the symbol is a
 member of an overloaded function set, *overload_symbol is returned with a
 pointer to the sk_overloaded_function symbol.  *linkage is returned with a
-value reflecting the linkage of the original symbol.
+value reflecting the linkage of the original symbol.  *namespace_reactivated
+is returned TRUE when the caller needs to pop the namespace scope, which
+for friend declarations is a namespace-reactivation scope and for other
+declarations is a namespace-extension scope.
 */
 {
   a_symbol_ptr     linked_symbol, prior_decl;
@@ -2870,7 +2874,7 @@ value reflecting the linkage of the original symbol.
     err = TRUE;
   } else if (is_definition &&
              !namespace_is_enclosed_by_scope(locator->specific_symbol,
-                                        &scope_stack[effective_decl_level])) {
+                                        &scope_stack[*effective_decl_level])) {
     /* This declaration appears within a namespace scope in which the name
        cannot be defined -- it is a member (directly or indirectly) of a
        namespace that is not enclosed by the current namespace scope
@@ -2879,7 +2883,21 @@ value reflecting the linkage of the original symbol.
     err = TRUE;
   } else {
     /* This is a valid location for such a declaration. */
-    linked_symbol = find_linked_symbol(locator, effective_decl_level,
+    /* It's assumed to be a definition of a namespace member appearing
+       in a scope other than that of the namespace to which it belongs, so
+       extend the original namespace scope. */
+    a_namespace_ptr  nsp = qualifier_namespace_ptr(*locator);
+    /* Push a namespace-reactivation scope scope for friend declarations
+       (the scope is "read-only" -- no injections allowed), and a
+       namespace-extension scope otherwise. */
+    if (is_friend_decl) {
+      push_namespace_reactivation_scope(nsp);
+    } else {
+      push_namespace_extension_scope(nsp);
+    }  /* if */
+    *namespace_reactivated = TRUE;
+    /* Look up the name. */
+    linked_symbol = find_linked_symbol(locator, depth_scope_stack,
                                        type_ptr, /*is_main=*/FALSE,
                                        is_friend_decl,
                                        /*is_function_template=*/FALSE,
@@ -2895,6 +2913,10 @@ value reflecting the linkage of the original symbol.
       } else {
         *linkage = idl_external;
       }  /* if */
+      *effective_decl_level = depth_scope_stack;
+    } else if (is_friend_decl) {
+      /* Set the scope into which the function will be injected. */
+      *effective_decl_level = depth_scope_stack;
     } else {
       /* The lookup failed. */
       pos_sy_error(locator->specific_symbol->kind ==
@@ -2903,6 +2925,8 @@ value reflecting the linkage of the original symbol.
                       ec_not_compatible_with_previous_decl,
                    &locator->source_position, locator->specific_symbol);
       err = TRUE;
+      pop_namespace_extension_scope();
+      *namespace_reactivated = FALSE;
     }  /* if */
   }  /* if */
   if (err) {
@@ -2964,7 +2988,7 @@ cross-reference output describing this declaration.
   a_boolean                suppress_ext_sym_lookup = FALSE;
   a_boolean                is_variable_def = FALSE;
   a_symbol_ptr             homonym_symbol;
-  a_namespace_ptr          orig_nsp = NULL;
+  a_boolean                namespace_reactivated = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr               declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2976,25 +3000,17 @@ cross-reference output describing this declaration.
   effective_decl_level =
             compute_effective_decl_level(/*is_function=*/FALSE, storage_class,
                                          /*is_friend_decl=*/FALSE);
-  if (!C_mode() && qualifier_namespace_ptr(*locator) != NULL &&
-      locator->specific_symbol != NULL) {
+  if (!C_mode() && locator->specific_symbol != NULL &&
+      qualifier_namespace_ptr(*locator) != NULL) {
     /* This identifier is a namespace-qualified name that was previously
        declared.  Be sure this is a valid scope in which to define it
        (7.3.1.4). */
     linked_symbol = namespace_member_redecl_sym(locator, type_ptr,
-                                                effective_decl_level,
+                                                &effective_decl_level,
                                                 is_variable_def,
                                                 /*is_friend_decl=*/FALSE,
-                                                &linkage, &homonym_symbol);
-    /* orig_nsp is set for redeclarations of a namespace member in a
-       containing scope. */
-    if (linked_symbol != NULL) {
-      orig_nsp = linked_symbol->parent.namespace_ptr;
-      /* This is a definition of a namespace member appearing in a scope
-         other than that of the namespace to which it belongs, so push
-         an extension scope for the original namespace. */
-      push_namespace_extension_scope(orig_nsp);
-    }  /* if */
+                                                &linkage, &homonym_symbol,
+                                                &namespace_reactivated);
   } else {
     /* Determine the linkage of this symbol. */
     linkage = id_linkage(locator, &storage_class, effective_decl_level,
@@ -3278,7 +3294,7 @@ cross-reference output describing this declaration.
     sym->variant.variable.value_has_been_set = TRUE;
   }  /* if */
   /* Restore the scope stack. */
-  if (orig_nsp != NULL) pop_namespace_extension_scope();
+  if (namespace_reactivated) pop_namespace_extension_scope();
   /* Return symbol and linkage pointers. */
   *symbol_ptr = sym;
   *linkage_ptr = linkage;
@@ -3350,7 +3366,7 @@ on for use in generating cross-reference output describing this declaration.
   a_boolean                is_function_def = FALSE;
   a_boolean                changed_to_inline = FALSE;
   a_boolean                is_friend_decl = (srk_flags & SRK_FRIEND) != 0;
-  a_namespace_ptr          orig_nsp = NULL;
+  a_boolean                namespace_reactivated = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr               declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -3408,32 +3424,17 @@ on for use in generating cross-reference output describing this declaration.
     linked_symbol = NULL;
     sym = *symbol_ptr;
   } else if (!C_mode() && locator->specific_symbol != NULL &&
-             (orig_nsp = qualifier_namespace_ptr(*locator)) != NULL) {
+             qualifier_namespace_ptr(*locator) != NULL) {
     /* This identifier is a namespace-qualified name that was previously
        declared.  Be sure this is a valid scope in which to define it
        (7.3.1.4). */
-    if (!is_friend_decl) {
-      /* This is assumed to be a definition of a namespace member appearing
-         in a scope other than that of the namespace to which it belongs, so
-         extend the original namespace scope. */
-      push_namespace_extension_scope(orig_nsp);
-    }  /* if */
     /* Look up the name. */
     linked_symbol = namespace_member_redecl_sym(locator, type_ptr,
-                                                decl_scope_level,
+                                                &effective_decl_level,
                                                 is_function_def,
                                                 is_friend_decl, &linkage,
-                                                &homonym_symbol);
-    if (!is_friend_decl) {
-      if (linked_symbol == NULL) {
-        /* The lookup failed, for whatever reason, so restore scope stack
-           to its previous state. */
-        pop_namespace_extension_scope();
-        orig_nsp = NULL;
-      } else {
-        effective_decl_level = decl_scope_level;
-      }  /* if */
-    }  /* if */
+                                                &homonym_symbol,
+                                                &namespace_reactivated);
   } else {
     /* Determine the linkage of this symbol. */
     linkage = id_linkage(locator, &storage_class, effective_decl_level,
@@ -3955,7 +3956,13 @@ skip_overloading:;
      bound to the current declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   /* Restore the scope stack. */
-  if (orig_nsp != NULL) pop_namespace_extension_scope();
+  if (namespace_reactivated)  {
+    if (is_friend_decl) {
+      pop_namespace_reactivation_scope();
+    } else {
+      pop_namespace_extension_scope();
+    }  /* if */
+  }  /* if */
   /* Return symbol and linkage pointers. */
   *symbol_ptr = sym;
   *linkage_ptr = linkage;
