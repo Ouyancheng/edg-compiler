@@ -247,7 +247,7 @@ error code.
       m = "integer conversion resulted in truncation";
       break;
     case ec_incomplete_type_not_allowed:
-      m = "incomplete type not allowed";
+      m = "incomplete type is not allowed";
       break;
     case ec_sizeof_bit_field:
       m = "operand of sizeof may not be a bit field";
@@ -1264,6 +1264,9 @@ error code.
       break;
     case ec_member_function_redeclaration:
       m = "member function may not be redeclared outside its class";
+      break;
+    case ec_ptr_to_incomplete_class_type_not_allowed:
+      m = "pointer to incomplete class type is not allowed";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
