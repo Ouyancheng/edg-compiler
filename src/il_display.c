@@ -1578,7 +1578,8 @@ Display the indicated field.
   disp_ptr("type", (char *)ptr->type, iek_type);
   disp_unsigned_long("bit_offset", ptr->bit_offset);
   disp_unsigned_long("bit_size", (unsigned long)ptr->bit_size);
-  if (ptr->bit_size != 0) {
+  if (ptr->is_bit_field) {
+    disp_boolean("is_bit_field", TRUE);
     disp_boolean("bit_field_is_signed", (a_boolean)ptr->bit_field_is_signed);
   }  /* if */
 }  /* disp_field */
