@@ -1135,6 +1135,7 @@ issue an error if a default argument expression is encountered.
           a_boolean     is_member_function;
           a_boolean     cache_default_arg;
           a_boolean     ignore_default_arg_expr;
+          a_boolean	invalid_default_arg = FALSE;
 
           if (!default_arg_expr_allowed) {
             pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
@@ -1191,10 +1192,14 @@ issue an error if a default argument expression is encountered.
               ignore_default_arg_expr = TRUE;
             }  /* if */
           }  /* if */
-          if (cache_default_arg &&
-              curr_token != tok_comma && curr_token != tok_rparen &&
-              curr_token != tok_semicolon && curr_token != tok_rbrace && 
-              curr_token != tok_lbrace) {
+          if (curr_token == tok_comma || curr_token == tok_rparen ||
+              curr_token == tok_semicolon || curr_token == tok_rbrace || 
+              curr_token == tok_lbrace) {
+            /* There was an "=" sign, but the following token is not one
+               that can begin a default argument. */
+            invalid_default_arg = TRUE;
+          }  /* if */
+          if (cache_default_arg) {
             /* The default argument should be cached because it is either
                in a member function declaration inside a class or in
                a function template declaration.  The defaults arguments
@@ -1205,6 +1210,12 @@ issue an error if a default argument expression is encountered.
                section 8.2.6, para 3).  Function template whose arguments
                involve template parameters are cached here and scanned
                when an instance of the function template is created. */
+            if (invalid_default_arg && is_member_function &&
+                scope_stack[depth_scope_stack].in_prototype_instantiation) {
+              /* During a prototype instantiation default arguments are
+                 cached, but not rescanned.  Issue the syntax error here. */
+              pos_error(ec_exp_primary_expr, &pos_curr_token);
+            }  /* if */
             if (is_member_function) {
               /* Scan the default arguments for a member function. */
               prescan_member_function_default_arg_expr(ptp, &decl_token_cache);
