@@ -237,7 +237,6 @@ That is what the remap function does.
   walk_list(il_header.macros, a_macro_ptr, iek_macro);
 #endif /* RECORD_MACROS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
-  walk_string_ptr(il_header.template_info_file_name, iek_other_text, 0);
   walk_string_ptr(il_header.instantiation_dir_name, iek_other_text, 0);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Restore the state of global variables. */

@@ -553,6 +553,33 @@ EXTERN char	*ii_file_name /* = NULL */;
 			/* Name of the instantiation information file to
 			   be used, or NULL if the default file name
 			   should be used. */
+
+EXTERN a_boolean
+		instantiation_flags_in_template_info_file
+#if VAR_INITIALIZERS
+                          = INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE
+#endif /* VAR_INITIALIZERS */
+                                                                             ;
+			/* TRUE if the flags used by automatic instantiation
+			   should be placed in the template information file
+			   instead of in the object file as variables. */
+
+EXTERN a_boolean
+		use_template_info_file
+#if VAR_INITIALIZERS
+                          = USE_TEMPLATE_INFO_FILE
+#endif /* VAR_INITIALIZERS */
+                                                                             ;
+			/* TRUE if a template information file should be
+			   created for information such as the names of
+			   instantiation files created in one instantiation
+			   per object mode, and for instantiation flags when
+			   they are not put in the object file. */
+
+EXTERN char	*template_info_file_name /* = NULL*/;
+			/* The name of a file into which the front end should
+			   write a list of files that were created that contain
+			   instantiations. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
@@ -949,11 +976,6 @@ EXTERN a_boolean
 			   file. */
 
 #if ONE_INSTANTIATION_PER_OBJECT
-EXTERN char	*template_info_file_name /* = NULL*/;
-			/* The name of a file into which the front end should
-			   write a list of files that were created that contain
-			   instantiations. */
-
 EXTERN char	*instantiation_dir_name /* = NULL*/;
 			/* The name of the directory in which the instantiation
 			   files should be created when one instantiation is

@@ -1375,6 +1375,9 @@ common_cfront_mode_settings:
         /* Enable or disable automatic instantiation processing. */
         suppress_instantiation_flags = opt_value;
         break;
+      case optk_template_info_file:
+        template_info_file_name = opt_arg;
+        break;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
       case optk_implicit_template_inclusion:
@@ -1831,9 +1834,6 @@ enable_microsoft_mode:
                                  instantiation_dir_name);
         }  /* if */
         break;
-      case optk_template_info_file:
-        template_info_file_name = opt_arg;
-        break;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
       default:
         /* It should not be possible to get here. */
@@ -2206,16 +2206,15 @@ enable_microsoft_mode:
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (one_instantiation_per_object) {
-    /* If "one instantiation per object" mode is being used, supply defaults
-       for the instantiation directory and instantiation file list, if values
-       were not supplied by command line options.  These options should always
-       be supplied by the driver.  These default values are primarily to
-       for testing purposes to simplify the process of invoking the front
-       end directly. */
+    /* If "one instantiation per object" mode is being used, supply a default
+       for the instantiation directory.  This should always be specified
+       the driver.  The default value is primarily for testing purposes. */
     if (instantiation_dir_name == NULL) instantiation_dir_name = ".";
-    if (template_info_file_name == NULL) {
-      template_info_file_name = "default.ti";
-    }  /* if */
+  } else {
+    /* If one instantiation per object mode is not being used, set the
+       instantiation directory to NULL just in case one was specified on
+       the command line. */
+    instantiation_dir_name = NULL;
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Determine whether enum types are considered to be integral. This global

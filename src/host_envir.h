@@ -37,6 +37,21 @@ Vertical tab character.
 #endif /* USING_ISO_C */
 
 /*
+Flag used to retain compatibility with a certain driver interface.
+This is primarily used to control the files that are created to pass
+information between the front end, driver, and prelinker.  The value is
+the version number of the EDG C++ front end, e.g., 237 for version 2.37, for
+which compatibility should be maintained.  Driver interface changes
+made after that version will be suppressed.  Of course, that may suppress
+certain language features that cannot be implemented without the
+corresponding driver changes.  For example, features that use the template
+information file cannot be used with driver versions prior to 2.37.
+*/
+#ifndef DRIVER_COMPATIBILITY_VERSION
+#define DRIVER_COMPATIBILITY_VERSION 9999
+#endif /* ifndef DRIVER_COMPATIBILITY_VERSION */
+
+/*
 Return codes to be used when the highest error severity is as given:
 */
 #if __VMS__
@@ -493,7 +508,11 @@ Flag that is TRUE if the processing required to generate one instantiation
 per object file should be included.
 */
 #ifndef ONE_INSTANTIATION_PER_OBJECT
+#if DRIVER_COMPATIBILITY_VERSION >= 237
 #define ONE_INSTANTIATION_PER_OBJECT TRUE
+#else /* DRIVER_COMPATIBILITY_VERSION >= 237 */
+#define ONE_INSTANTIATION_PER_OBJECT FALSE
+#endif /* !DRIVER_COMPATIBILITY_VERSION >= 237 */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 /*
@@ -931,12 +950,79 @@ input file to get the instantiation list file name.
 #endif /* ifndef INSTANTIATION_FILE_SUFFIX */
 
 /*
+Template information file suffix.  This is added to the base name of
+the primary input file to get the template information file name.
+*/
+#ifndef TEMPLATE_INFO_FILE_SUFFIX
+#define TEMPLATE_INFO_FILE_SUFFIX ".ti"
+#endif /* ifndef TEMPLATE_INFO_FILE_SUFFIX */
+
+/*
+Flag that is TRUE if a template information file should be created for
+information such as instantiation files (in one instantiation per object
+file mode), or to contain template instantiation flags. 
+*/
+#ifndef USE_TEMPLATE_INFO_FILE
+#if DRIVER_COMPATIBILITY_VERSION >= 237
+#define USE_TEMPLATE_INFO_FILE TRUE
+#else /* DRIVER_COMPATIBILITY_VERSION >= 237 */
+#define USE_TEMPLATE_INFO_FILE TRUE
+#endif /* !DRIVER_COMPATIBILITY_VERSION >= 237 */
+#endif /* ifndef USE_TEMPLATE_INFO_FILE */
+
+#if ONE_INSTANTIATION_PER_OBJECT && !USE_TEMPLATE_INFO_FILE
+ #error -- USE_TEMPLATE_INFO_FILE must be TRUE when \
+           ONE_INSTANTIATION_PER_OBJECT is TRUE.
+#endif /* ONE_INSTANTIATION_PER_OBJECT && !USE_TEMPLATE_INFO_FILE */
+
+/*
+Flags that is TRUE if the instantiation flags should be written to the
+template information file instead of being put in the object file.
+This defaults to TRUE when a template information file is being used,
+or to FALSE otherwise.
+*/
+#ifndef INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE
+#if USE_TEMPLATE_INFO_FILE
+#define INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE TRUE
+#else /* USE_TEMPLATE_INFO_FILE */
+#define INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE FALSE
+#endif /* USE_TEMPLATE_INFO_FILE */
+#endif /* ifndef INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE */
+
+#if INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE && !USE_TEMPLATE_INFO_FILE
+ #error -- USE_TEMPLATE_INFO_FILE must be TRUE when \
+           INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE is TRUE.
+#endif /* INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE ... */
+
+/*
 The number of lines of the instantiation request file that are reserved
 and do not contain instantiation list entries.
+
+If a template information file is being used, the command line, etc.
+are placed in that file and are no longer in the instantiation request
+file, so no lines are reserved.
+
+Otherwise, if no value is defined for INSTANTIATION_REQUEST_LINES_RESERVED
+we check for a definition of the former name of this flag, which is
+INSTANTIATION_INFO_LINES_RESERVED, and use that value if it is defined.
+
+Otherwise, we reserve 3 lines.
 */
 #ifndef INSTANTIATION_REQUEST_LINES_RESERVED
+
+#if USE_TEMPLATE_INFO_FILE
+#define INSTANTIATION_REQUEST_LINES_RESERVED 0
+#else /* !USE_TEMPLATE_INFO_FILE */
+
+#ifdef INSTANTIATION_INFO_LINES_RESERVED
+#define INSTANTIATION_REQUEST_LINES_RESERVED INSTANTIATION_INFO_LINES_RESERVED
+#else /* ifndef INSTANTIATION_INFO_LINES_RESERVED */
 #define INSTANTIATION_REQUEST_LINES_RESERVED 3
+#endif /* ifdef INSTANTIATION_INFO_LINES_RESERVED */
+
+#endif /* !USE_TEMPLATE_INFO_FILE */
 #endif /* ifndef INSTANTIATION_REQUEST_LINES_RESERVED */
+
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION

@@ -803,10 +803,6 @@ source file's compilation.
      initialized in fe_early_init and changed if necessary in cmd_line.c. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if ONE_INSTANTIATION_PER_OBJECT
-  il_header.template_info_file_name =
-                                 template_info_file_name == NULL ? NULL :
-          strcpy(alloc_il((sizeof_t)(strlen(template_info_file_name)+1)),
-                 template_info_file_name);
   il_header.instantiation_dir_name = instantiation_dir_name == NULL ? NULL :
           strcpy(alloc_il((sizeof_t)(strlen(instantiation_dir_name)+1)),
                  instantiation_dir_name);

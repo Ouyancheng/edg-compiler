@@ -152,12 +152,6 @@ static FILE	*f_primary;
 static FILE	*f_C_output;
 			/* File to which the generated C is currently being
 			   written. */
-#if ONE_INSTANTIATION_PER_OBJECT
-static FILE	*f_C_file_list = NULL;
-			/* When each instantiation is written to a separate
-			   file, this file contains the list of file names
-			   generated. */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
 /* Current output position -- file, line, sequence number, column: */
 static a_source_file_ptr
 		curr_output_file;
@@ -6484,27 +6478,8 @@ routine or variable has the given source correspondence field and
 {
   char *C_output_file_name;
 
-  if (f_C_file_list == NULL) {
-    a_boolean cannot_open, bad_name;
-
-    /* Open a file in which the list of generated file names will be
-       returned. */
-    f_C_file_list = open_output_file(il_header.template_info_file_name,
-                                     /*binary_file=*/FALSE,
-                                     /*update_mode=*/FALSE,
-                                     &cannot_open, &bad_name);
-    if (bad_name) {
-      str_command_line_error(ec_cl_invalid_output_file,
-                             il_header.template_info_file_name);
-    } else if (cannot_open) {
-      str_command_line_error(ec_cl_cannot_open_output_file,
-                             il_header.template_info_file_name);
-    }  /* if */
-  }  /* if */
   /* Generate a file name based on the mangled name of the entity. */
   C_output_file_name = generate_instantiation_output_file_name(scp->name);
-  /* Write the generated file name to the file passed back to the driver. */
-  (void)fprintf(f_C_file_list, "%s\n", C_output_file_name);
   /* Add the right suffix for a generated C file. */
   C_output_file_name = derived_name(C_output_file_name, GEN_C_FILE_SUFFIX);
   /* Add the directory name specified. */
@@ -6604,9 +6579,6 @@ The IL is already available when this routine is called.
          "double and long double must be the same size when generating K&R C");
   }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-#if ONE_INSTANTIATION_PER_OBJECT
-  f_C_file_list = NULL;
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
 }  /* c_gen_be_one_time_init */
 
 
@@ -6642,14 +6614,10 @@ Generate C from the intermediate language.
   }  /* if */
 
 #if ONE_INSTANTIATION_PER_OBJECT
-  if (il_header.template_info_file_name != NULL) {
+  if (il_header.instantiation_dir_name != NULL) {
     /* Generating one C file per instantiation.  For the primary file, use
        bit number 1 in the per-instantiation "needed" bit vector. */
     needed_flag_bit_number = 1;
-    /* Delete any old version of the list file. */
-    if (is_regular_file(il_header.template_info_file_name)) {
-      delete_file(il_header.template_info_file_name);
-    }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Do initialization. */
@@ -6658,17 +6626,8 @@ Generate C from the intermediate language.
   generate_C_output_file(C_output_file_name);
 
 #if ONE_INSTANTIATION_PER_OBJECT
-  if (il_header.template_info_file_name != NULL) {
+  if (il_header.instantiation_dir_name != NULL) {
     generate_instantiation_C_output_files();
-    if (f_C_file_list != NULL) {
-      /* Close the file containing the list of generated file names, checking
-         for previous errors. */
-      if (fflush(f_C_file_list) ||
-          ferror(f_C_file_list) ||
-          fclose(f_C_file_list)) {
-        str_catastrophe(ec_file_write_error, "generated C output file list");
-      }  /* if */
-    }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 }  /* c_gen_be */

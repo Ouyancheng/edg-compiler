@@ -61,6 +61,34 @@ typedef struct an_instance_lookup_entry {
 			   data member. */
 } an_instance_lookup_entry;
 
+/*
+Enumeration used to specify the kind of template information file line to
+be written.
+*/
+typedef enum /* a_template_info_line_type */ {
+  tilt_command_line,		/* Used by driver. */
+  tilt_curr_dir,		/* Used by driver. */
+  tilt_file_name,		/* Used by driver. */
+  tilt_instantiation_flag,
+  tilt_instantiation_dir_name,	/* Used by driver. */
+  tilt_instantiation_file_name,
+  tilt_last
+} a_template_info_line_type;
+
+/*
+The template information line type string to be written to the
+file for the various line type kinds.
+*/
+static char	*line_type_names[tilt_last+1] = {
+  /* tilt_command_line */		"cmd",
+  /* tilt_curr_dir */			"dir",
+  /* tilt_file_name */			"fnm",
+  /* tilt_instantiation_flag */		"flg",
+  /* tilt_instantiation_dir_name */	"idn",
+  /* tilt_instantiation_file_name */	"ifn",
+  /* tilt_last */			NULL
+};
+
 #define INSTANCE_LOOKUP_TABLE_SIZE 127
 			/* The number of buckets in the instance lookup table.
 			   This number should be prime. */
@@ -109,6 +137,10 @@ static a_boolean
 			   is necessary to compare the instances in this
 			   translation unit with the list of assigned
 			   instantiations. */
+
+static FILE	*f_template_info;
+			/* File variable associated with the template
+			   information file. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 typedef struct a_can_instantiate_entry *a_can_instantiate_entry_ptr;
@@ -504,6 +536,102 @@ as the decl_position of the template declaration as a whole.
 }  /* make_il_template_entry */
 
 #endif /* RECORD_TEMPLATES_IN_IL */
+
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+
+/* Declaration needed because of forward references. */
+static void write_to_template_info_file(
+				a_template_info_line_type	line_type,
+				char				*string,
+				char				*flags_string);
+
+
+static void open_template_info_file(void)
+/*
+Open the template information file.
+*/
+{
+  a_boolean	cannot_open;
+  a_boolean	bad_name;
+
+  check_assertion_str2(use_template_info_file, "open_template_info_file:",
+                      "use_template_info_file is FALSE");
+  /* Generate a name for the template information file if one was not
+     specified. */
+  if (template_info_file_name == NULL) {
+    if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
+      /* A file name was specified on the command line, but no template
+         information file was specified on the command line.  Use a name
+         based on the primary source file name. */
+      template_info_file_name = 
+            derived_name(primary_source_file_name, TEMPLATE_INFO_FILE_SUFFIX);
+    } else {
+      /* If the input is coming from standard input and no template information
+         file name was specified, use a default value.  This should be
+         supplied by the driver, so this is only intended for testing
+         purposes. */
+      template_info_file_name = "default.ti";
+    }  /* if */
+  }  /* if */
+  /* Open a file in which the list of generated file names will be
+     returned. */
+  f_template_info = open_output_file(template_info_file_name,
+                                     /*binary_file=*/FALSE,
+                                     /*update_mode=*/FALSE,
+                                     &cannot_open, &bad_name);
+  if (bad_name) {
+    str_catastrophe(ec_invalid_output_file, template_info_file_name);
+  } else if (cannot_open) {
+    str_catastrophe(ec_cannot_open_output_file, template_info_file_name);
+  }  /* if */
+}  /* open_template_info_file */
+
+
+static void write_to_template_info_file(
+				a_template_info_line_type	line_type,
+				char				*string,
+				char				*flags_string)
+/*
+Write a line to the template information file.  line_type specifies
+the kind of line to be written.  string specifies the value to
+be written.  flags_string is either NULL or points to a string of flags
+associated with this information file line.
+*/
+{
+  if (f_template_info == NULL) {
+    open_template_info_file();
+  }  /* if */
+  fprintf(f_template_info, "%s:%s", line_type_names[line_type], string);
+  if (flags_string) {
+    fprintf(f_template_info, ":%s", flags_string);
+  }  /* if */
+  fputs("\n", f_template_info);
+}  /* write_to_template_info_file */
+
+
+static void close_or_remove_template_info_file(void)
+/*
+If this compilation made use of any entities that could be instantiated,
+ensure that the template information file has been created, and then
+close the file.  If this compilation did not make use of any entities that
+could be instantiated, remove the template information  file if one
+already exists.
+*/
+{
+  if (any_instantiations_required) {
+    check_assertion_str2(f_template_info != NULL,
+                         "close_or_remove_template_info_file:",
+                         "tempate info file not opened");
+  } else {
+    /* Delete any old version of the template information file. */
+    if (is_regular_file(template_info_file_name)) {
+      delete_file(template_info_file_name);
+    }  /* if */
+  }  /* if */
+  f_template_info = NULL;
+}  /* close_or_remove_template_info_file */
+
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 static void set_instantiation_required_for_template_class_members
 						(a_type_ptr	class_type)
@@ -11148,7 +11276,7 @@ make use of any entities that could be instantiated, remove the .ii file
 if one already exists.
 */
 {
-  FILE		*f_ii_file;
+  FILE		*f_ii_file = NULL;
 
   if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
     /* The name of the instantiation request file should have already
@@ -11161,23 +11289,32 @@ if one already exists.
        that the file will have been closed after all input was read so
        it must be reopened now. */
     f_ii_file = fopen(instantiation_request_file_name, "r");
-    if (f_ii_file != NULL) (void)fclose(f_ii_file);
     if (any_instantiations_required) {
-      /* If the file does not exist, create it. */
-      if (f_ii_file == NULL) {
-        f_ii_file = fopen(instantiation_request_file_name, "a");
+      if (!use_template_info_file) {
+        /* If the file does not exist, create it.  The file is only
+           created when not using a template information file, because
+           the existence of the file is used as a signal to the driver. */
         if (f_ii_file == NULL) {
-          str_catastrophe(ec_cannot_create_instantiation_request_file,
-                          instantiation_request_file_name);
+          f_ii_file = fopen(instantiation_request_file_name, "a");
+          if (f_ii_file == NULL) {
+            str_catastrophe(ec_cannot_create_instantiation_request_file,
+                            instantiation_request_file_name);
+          }  /* if */
         }  /* if */
-        (void)fclose(f_ii_file);
       }  /* if */
     } else {
       /* No instantiation request needed.  Delete the file if it
-         already exits. */
+         already exits.  This is done even when using a template
+         information file so that unused .ii files will be cleaned up. */
       if (f_ii_file != NULL) {
         delete_file(instantiation_request_file_name);
+        f_ii_file = NULL;
       }  /* if */
+    }  /* if */
+  }  /* if */
+  if (f_ii_file != NULL) {
+    if (fclose(f_ii_file)) {
+      str_catastrophe(ec_file_write_error, "instantiation requst file");
     }  /* if */
   }  /* if */
 }  /* create_or_remove_instantiation_request_file */
@@ -11202,9 +11339,10 @@ void wrapup_auto_instantiation_information(void)
 /*
 Do any processing that is needed to finalize the mechanism used to
 handle tracking of automatic instantiation information.  The default
-version of this routine simply creates or removes the instantiation
-request file, depending on whether or not this translation unit
-contains instantiatable entities.
+version of this routine creates or removes the instantiation
+request file, and closes or removed the template information file.
+If the translation unit contains templates the files are created,
+otherwise they are removed.
 */
 {
   /* Create or remove the instantiation request file if necessary. */
@@ -11216,7 +11354,13 @@ contains instantiatable entities.
        front end only.  By not calling this routine we keep the old version
        if one was present and don't create one if one did not already exist. */
     create_or_remove_instantiation_request_file();
+    if (use_template_info_file) {
+      close_or_remove_template_info_file();
+    }  /* if */
   }  /* if */
+  check_assertion_str2(f_template_info == NULL,
+                       "wrapup_auto_instantiation_information:",
+                       "tempate info file not closed");
 }  /* wrapup_auto_instantiation_information */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
@@ -11468,6 +11612,65 @@ previously computed value is returned.
                               : f_entity_can_be_instantiated(tip))
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
+
+#if DO_IL_LOWERING
+
+static void create_instantiation_flag_variables(
+				a_source_correspondence *scp,
+				a_template_instance_ptr	tip,
+				a_boolean		can_instantiate)
+/*
+For automatic instantiation, generate a variable or variables with
+names that encode instantiation information.  Note that this is done
+only if IL lowering is done.
+*/
+{
+  if (tip->instantiation_required) {
+    /* This routine or variable is template-based. */
+    make_instantiation_info_var("__TIR__", scp);
+  }  /* if */
+  if (tip->explicit_do_not_instantiate) {
+    /* This routine or variable cannot be instantiated. */
+    make_instantiation_info_var("__DNI__", scp);
+  }  /* if */
+  if (can_instantiate) {
+    /* This routine or variable can be instantiated. */
+    make_instantiation_info_var("__CBI__", scp);
+  }  /* if */
+}  /* create_instantiation_flag_variables */
+
+#endif /* DO_IL_LOWERING */
+
+
+static void write_instantiation_flags_to_template_info_file(
+				a_source_correspondence *scp,
+				a_template_instance_ptr	tip,
+				a_boolean		can_instantiate)
+/*
+For automatic instantiation, write an entry to the template information
+file that specifies the instantiation flags associated with the entity.
+*/
+{
+  char	flags[4];
+  char	*flag_ptr = flags;
+
+  if (tip->instantiation_required) {
+    /* This routine or variable is template-based. */
+    *flag_ptr++ = 'T';
+  }  /* if */
+  if (tip->explicit_do_not_instantiate) {
+    /* This routine or variable cannot be instantiated. */
+    *flag_ptr++ = 'D';
+  }  /* if */
+  if (can_instantiate) {
+    /* This routine or variable can be instantiated. */
+    *flag_ptr++ = 'C';
+  }  /* if */
+  *flag_ptr = '\0';
+  write_to_template_info_file(tilt_instantiation_flag, scp->name, flags);
+}  /* write_instantiation_flags_to_template_info_file */
+
+
 void update_auto_instantiation_flags(void)
 /*
 Go through the instantiations_required list and set the fields in the
@@ -11477,13 +11680,9 @@ and "do not instantiate" flags are set here.
 */
 {
   a_template_instance_ptr	tip;
-#if DO_IL_LOWERING
-  a_boolean			instantiation_request_vars_needed =
+  a_boolean			instantiation_flags_needed =
 				    (automatic_instantiation_mode &&
-                                     !suppress_instantiation_flags &&
-				     il_lowering_needed());
-  a_source_correspondence	*scp;
-#endif /* DO_IL_LOWERING */
+                                     !suppress_instantiation_flags);
 
   db_enter(3, "update_auto_instantiation_flags");
   /* Make a pass through all of the instantiations to set the
@@ -11531,27 +11730,52 @@ and "do not instantiate" flags are set here.
       routine->do_not_instantiate = tip->explicit_do_not_instantiate;
       routine->instance_required = tip->instantiation_required;
     }  /* if */
-#if DO_IL_LOWERING
-    if (instantiation_request_vars_needed) {
-      /* For automatic instantiation, generate a variable or variables with
-         names that encode instantiation information.  Note that this is
-         done only if IL lowering is done. */
+    if (instantiation_flags_needed) {
+      /* For automatic instantiation, generate the instantiation flags
+         used by the prelinker.  These flags are placed in either the
+         template information file or in the IL as variables.  If the
+         flags are placed in the IL, this is only done if IL lowering is
+         being done. */
+      a_source_correspondence	*scp;
       scp = is_static_data_member ?
                 &variable->source_corresp : &routine->source_corresp;
-      if (tip->instantiation_required) {
-        /* This routine or variable is template-based. */
-        make_instantiation_info_var("__TIR__", scp);
-      }  /* if */
-      if (tip->explicit_do_not_instantiate) {
-        /* This routine or variable cannot be instantiated. */
-        make_instantiation_info_var("__DNI__", scp);
-      }  /* if */
-      if (can_instantiate) {
-        /* This routine or variable can be instantiated. */
-        make_instantiation_info_var("__CBI__", scp);
+      if (instantiation_flags_in_template_info_file) {
+        /* The flags are to be placed in the template information file. */
+        write_instantiation_flags_to_template_info_file(scp, tip,
+                                                        can_instantiate);
+#if DO_IL_LOWERING
+      } else {
+        /* The flags are to be placed in the IL as special variables. */
+        if (il_lowering_needed()) {
+          create_instantiation_flag_variables(scp, tip, can_instantiate);
+        }  /* if */
+#endif /* DO_IL_LOWERING */
       }  /* if */
     }  /* if */
-#endif /* DO_IL_LOWERING */
+#if ONE_INSTANTIATION_PER_OBJECT
+    /* In one instantiation per object mode, check whether an instantiation
+       for this entity was generated in a separate file.  This is determined
+       by checking whether an instantiation needed bit number was assigned
+       to the entity.  If a file was generated, write the name of the
+       generated file to the template information file. */
+    if (one_instantiation_per_object) {
+      a_boolean		instantiation_file_generated;
+      instantiation_file_generated = is_static_data_member
+                                   ? variable->instantiation_needed_bit_number
+                                   : routine->instantiation_needed_bit_number;
+      if (instantiation_file_generated) {
+        a_source_correspondence	*scp;
+        char			*file_name;
+        scp = is_static_data_member ?
+                  &variable->source_corresp : &routine->source_corresp;
+        /* Generate a file name based on the mangled name of the entity. */
+        file_name = generate_instantiation_output_file_name(scp->name);
+        /* Write the generated file name to the template info file. */
+        write_to_template_info_file(tilt_instantiation_file_name,
+                                    file_name, (char*)NULL);
+      }  /* if */
+    }  /* if */
+#endif /*  ONE_INSTANTIATION_PER_OBJECT */
   }  /* for */
   db_exit();
 }  /* update_auto_instantiation_flags */
@@ -11723,6 +11947,10 @@ specific definition that made it unnecessary.
        tip = tip->next_in_instantiation_list) {
     check_if_entity_should_be_automatically_instantiated(tip);
   }  /* for */
+  if (any_instantiations_required && use_template_info_file) {
+    /* Make sure the template information file has been created. */
+    if (f_template_info == NULL) open_template_info_file();
+  }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   /* Go through the instantiations required list and generated any
      instantiations that are needed or were assigned to this file by
@@ -12638,6 +12866,7 @@ Initializations for template.
   any_instantiations_required = FALSE;
   instantiation_request_file_name = NULL;
   f_instantiation_request = NULL;
+  f_template_info = NULL;
   memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
   any_instantiations_assigned_to_this_translation_unit = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */

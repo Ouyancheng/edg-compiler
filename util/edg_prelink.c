@@ -107,18 +107,6 @@ typedef struct a_pl_symbol {
 			   points to the global symbol for the symbol to which
 			   the special symbol refers (e.g., __CBI__xxx points
 			   to the global symbol for xxx). */
-  long		number_of_references;
-			/* The number of object files that have been linked
-			   into the executable that reference the symbol.
-			   A reference can be either an undefined entry
-			   from the object file or a TIR entry. */
-  a_pl_input_file_ptr
-		last_referenced_from;
-			/* Pointer to the last input file that referenced the
-			   symbol.  This is used to prevent the referenced flag
-			   from being updated more than once in cases where
-			   the input file has both an undefined symbol
-			   entry and a TIR flag. */
   char		*name;
 			/* Name of the symbol. */
   int		name_length;
@@ -233,6 +221,24 @@ typedef struct a_pl_input_file {
 			/* Name of the template information file
 			   associated with this file.  This field is set
 			   whether or not the file exists. */
+
+  char		*command_line;
+			/* The command line to used to recompile the file. */
+  char		*compilation_directory;
+			/* The directory from which the file should be
+			   recompiled. */
+  char		*compilation_file_name;
+			/* The file name to be recompiled, relative to the
+			   directory in which the compilation is done. */
+  char		*instantiation_directory;
+			/* The directory containing instantiations associated
+			   with this file when one instantiation per object
+			   mode is being used. */
+  char		*reserved_lines[INSTANTIATION_REQUEST_LINES_RESERVED + 1];
+			/* A buffer used to read the reserved lines of
+			   an instantiation request file.  We add one to
+			   the size because the number of reserved lines
+			   could be zero. */
   a_pl_object_file_ptr
 		objects;
 			/* When is_archive is FALSE this points to a single
@@ -360,11 +366,9 @@ static a_boolean
 			/* TRUE if one instantiation per object file mode is
 			   being used. */
 
-static char	*instantiation_dir = ".";
-			/* The name of the directory containing the
-			   instantiation object and instantiation list files
-			   when one instantiation per object mode is used. */
-
+static a_boolean
+		use_template_info_file = USE_TEMPLATE_INFO_FILE;
+			/* TRUE if a template information file is used. */
 
 typedef enum /* an_nm_format_kind */ {
 	nmfk_default,
@@ -456,7 +460,7 @@ Prints an internal error message and exits with a catastrophic error
 exit status.
 */
 {
-  fprintf(stderr, "%s: %s\n", message_prefix, error_string);
+  fprintf(stderr, "%s: internal error: %s\n", message_prefix, error_string);
   exit (RC_CATASTROPHE);
 }  /* pl_internal_error */
 
@@ -764,7 +768,11 @@ reset between iterations of the prelinker.
   pifp->is_archive = FALSE;
   pifp->request_file_updated = FALSE;
   pifp->recompile = FALSE;
-  pifp->is_local_file = FALSE;
+  pifp->is_local_file = TRUE;
+  pifp->command_line = NULL;
+  pifp->compilation_directory = NULL;
+  pifp->compilation_file_name = NULL;
+  pifp->instantiation_directory = NULL;
 }  /* reset_pl_input_file */
 
 
@@ -838,9 +846,7 @@ Allocate a symbol, initialize it, and return a pointer to it.
   psp->next_in_request_file = NULL;
   psp->next_in_specialization_list = NULL;
   psp->global_sym = NULL;
-  psp->number_of_references = 0;
   psp->instantiation_file = NULL;
-  psp->last_referenced_from = NULL;
   psp->possible_instantiation_sites = NULL;
   psp->referenced = FALSE;
   psp->defined = FALSE;
@@ -924,18 +930,6 @@ to the number of characters read not including the trailing null character.
 
   return (result);
 }  /* pl_read_input_line */
-
-
-static void pl_write_output_line(FILE *f_output,
-				 char *line)
-/*
-Write "line" to "f_output" followed by a newline character.
-*/
-{
-  fputs(line, f_output);
-  fputs("\n", f_output);
-}  /* pl_write_output_line */
-
 
 
 static char *pl_copy_string(char *source)
@@ -1888,13 +1882,6 @@ symbol.
                              psp, /*add=*/TRUE, (a_boolean*)NULL);
         sym->is_template = TRUE;
         sym->referenced = TRUE;
-        if (sym->last_referenced_from != input_file) {
-          /* Keep track of the number of references.  Only update the counter
-             for the first reference in this file.  There can be multiple
-             references as a result of the special symbols. */
-          sym->last_referenced_from = input_file;
-          sym->number_of_references++;
-        }  /* if */
       } else if (strncmp(psp->name, PL_DO_NOT_INSTANTIATE_PREFIX,
                   PL_DO_NOT_INSTANTIATE_PREFIX_LEN) == 0) {
         /* The "do not instantiate" (DNI) symbol is generated as a result
@@ -1933,13 +1920,6 @@ symbol.
       sym = pl_find_symbol(psp->name, psp, /*add=*/TRUE, (a_boolean*)NULL);
       if (psp->referenced) {
         sym->referenced = TRUE;
-        if (sym->last_referenced_from != input_file) {
-          /* Keep track of the number of references.  Only update the counter
-             for the first reference in this file.  There can be multiple
-             references as a result of the special symbols. */
-          sym->last_referenced_from = input_file;
-          sym->number_of_references++;
-        }  /* if */
       }  /* if */
       if (psp->defined) {
         if (sym->defined) {
@@ -2073,43 +2053,149 @@ is used again.
 static void pl_read_template_info_file(a_pl_input_file_ptr pifp)
 /*
 Read the template information file associated with pifp.
+
+Each line is made up of a line type code followed by the information for
+that line type.
 */
 {
-  sizeof_t	instantiation_dir_length;
+  sizeof_t	instantiation_dir_length = 0;
   sizeof_t	instantiation_suffix_length;
   sizeof_t	extra_space;
   FILE		*f_template_info;
-  if (pifp->template_info_file_name == NULL) {
-    pifp->template_info_file_name =
-        pl_copy_string(pl_derived_name(pifp->file_name, TEMPLATE_INFO_SUFFIX));
-  }  /* if */
+  a_boolean	instantiation_dir_set = FALSE;
+
   f_template_info = fopen(pifp->template_info_file_name, "r");
   if (f_template_info != NULL) {
-    /* Read the list of file names from the template information file.
-       Append the ".int.o" suffix, create an object file entry, and add it
-       to the list of object file entries for this input file. */
-    instantiation_dir_length = strlen(instantiation_dir);
     instantiation_suffix_length = strlen(INSTANTIATION_OBJECT_SUFFIX);
-    /* The file name created is dir/file:suffix.  The extra_space variable
-       accounts for the space needed for the "/" and the trailing null
-       terminator. */
-    extra_space = 2;
     while (pl_read_input_line(f_template_info)) {
-      a_pl_object_file_ptr	pofp;
-      pofp = alloc_pl_object_file();
-      pofp->file_name = pl_malloc_with_check(strlen(pl_input_line) +
-					     instantiation_dir_length +
-					     instantiation_suffix_length +
-					     extra_space);
-      /* Construct the name of the instantiation object file. */
-      sprintf(pofp->file_name, "%s/%s%s", instantiation_dir,
-              pl_input_line, INSTANTIATION_OBJECT_SUFFIX);
-      pofp->next = pifp->objects;
-      pofp->is_related_file = TRUE;
-      pifp->objects = pofp;
+      char		*line_type = pl_input_line;
+      char		*info = line_type + 4;
+      a_pl_symbol_ptr	sym;
+
+      if (strncmp(line_type, "flg:", 4) == 0) {
+        /* An instantiation flag lines of the form "flg:name:flags".  Where
+           "flags" may be one or more of "C", "D", and "T", which
+           correspond to CBI, DNI, and TIR. */
+        char	*flag_pos;
+        flag_pos = strchr(info, ':');
+        if (flag_pos == NULL) pl_internal_error("bad template info file");
+        /* Replace the ":" with a NULL so that the name is null terminated. */
+        *flag_pos++ = '\0';
+        /* Update the symbol information for this name. */
+        sym = pl_find_symbol(info, (a_pl_symbol_ptr)NULL, /*add=*/TRUE,
+                             (a_boolean*)NULL);
+        for (; *flag_pos != '\0'; flag_pos++) {
+          switch (*flag_pos) {
+            case 'C':
+              sym->can_be_instantiated = TRUE;
+              sym->is_template = TRUE;
+              add_possible_instantiation_site(sym, pifp);
+              break;
+            case 'D':
+              sym->do_not_instantiate = TRUE;
+              break;
+            case 'T':
+              sym->is_template = TRUE;
+              sym->referenced = TRUE;
+              break;
+            default:
+             pl_internal_error("bad template info file");
+          };
+        }  /* for */
+      } else if (strncmp(line_type, "ifn:", 4) == 0) {
+        /* An instantiation file name.  Create the full path name by
+           adding in the instantiation directory name.  The "extra_space"
+           variable accounts for the space needed for the "/" and the
+           trailing null terminator. */
+        a_pl_object_file_ptr	pofp;
+        extra_space = 2;
+        if (!instantiation_dir_set) {
+          /* If the file does not contain an instantiation directory name,
+             use "Template.dir" as the default. */
+          pifp->instantiation_directory = pl_copy_string("Template.dir");
+          instantiation_dir_length = strlen(pifp->instantiation_directory);
+          instantiation_dir_set = TRUE;
+        }  /* if */
+        pofp = alloc_pl_object_file();
+        pofp->file_name = pl_malloc_with_check(strlen(info) +
+					       instantiation_dir_length +
+					       instantiation_suffix_length +
+					       extra_space);
+        /* Construct the name of the instantiation object file. */
+        sprintf(pofp->file_name, "%s/%s%s", pifp->instantiation_directory,
+                info, INSTANTIATION_OBJECT_SUFFIX);
+        pofp->next = pifp->objects;
+        pofp->is_related_file = TRUE;
+        pifp->objects = pofp;
+      } else if (strncmp(line_type, "cmd:", 4) == 0) {
+        /* The compilation command line. */
+        pifp->command_line = pl_copy_string(info);
+      } else if (strncmp(line_type, "dir:", 4) == 0) {
+        /* The compilation directory. */
+        pifp->compilation_directory = pl_copy_string(info);
+        /* See if the .ii file was built in the current directory. */
+        pifp->is_local_file = strcmp(pifp->compilation_directory,
+                                     curr_dir_name) == 0;
+      } else if (strncmp(line_type, "fnm:", 4) == 0) {
+        /* The file name of the file to be used to recompile the file. */
+        pifp->compilation_file_name = pl_copy_string(info);
+      } else if (strncmp(line_type, "idn:", 4) == 0) {
+        /* The instantiation directory containing the instantiation object
+           files. */
+        if (instantiation_dir_set) {
+          pl_internal_error("instantiation_dir already set");
+        }  /* if */
+        pifp->instantiation_directory = pl_copy_string(info);
+        instantiation_dir_length = strlen(pifp->instantiation_directory);
+        instantiation_dir_set = TRUE;
+      } else {
+        pl_internal_error("invalid template info line type");
+      }  /* if */
     }  /* while */
+    fclose(f_template_info);
   }  /* if */
 }  /* pl_read_template_info_file */
+
+
+static void pl_read_command_info_from_request_file(
+					a_pl_input_file_ptr	pifp,
+					FILE*			f_request)
+/*
+Read the command line, etc. from the instantiation request file.
+*/
+{
+  int	i;
+  /* Read the reserved lines and save them to be rewritten later. */
+  for (i = 0; i < reserved_request_file_lines; ++i) {
+    pl_read_input_line(f_request);
+    pifp->reserved_lines[i] = pl_copy_string(pl_input_line);
+  }  /* for */
+  /* Copy the command line information, etc. from the reserved lines that
+     were just read.  If any of the first three lines is reserved, it
+     is assumed to contain the expected information. */
+  if (reserved_request_file_lines >= 1) {
+    pifp->command_line = pl_copy_string(pifp->reserved_lines[0]);
+  }  /* if */
+  if (!use_template_info_file) {
+    /* If not using a template information file, extract the driver-supplied
+       information from the request file. */
+    if (reserved_request_file_lines >= 2) {
+      pifp->compilation_directory = pl_copy_string(pifp->reserved_lines[1]);
+      /* See if the .ii file was built in the current directory. */
+      pifp->is_local_file = strcmp(pifp->compilation_directory,
+                                   curr_dir_name) == 0;
+    }  /* if */
+    if (reserved_request_file_lines >= 3) {
+      pifp->compilation_file_name = pl_copy_string(pifp->reserved_lines[2]);
+    }  /* if */
+  }  /* if */
+  /* If the number of effective reserved lines is less than the
+     number in the configuration file, set the remaining lines
+     to null strings. */
+  for (; i < INSTANTIATION_REQUEST_LINES_RESERVED; ++i) {
+    pifp->reserved_lines[i] = "";
+  }  /* for */
+}  /* pl_read_command_info_from_request_file */
 
 
 static void pl_read_instantiation_request_files(void)
@@ -2132,25 +2218,7 @@ Read the existing instantiation assignment information from the
       }  /* if */
 #endif /* DEBUG */
       if (f_request != NULL) {
-        int	lines_read = 0;
-        /* Read the command line. */
-        pl_read_input_line(f_request);
-        lines_read++;
-        if (lines_read < reserved_request_file_lines) {
-          /* Read the directory name. */
-          pl_read_input_line(f_request);
-          lines_read++;
-          /* See if the .ii file was built in the current directory. */
-          pifp->is_local_file = strcmp(pl_input_line, curr_dir_name) == 0;
-        } else {
-          /* If we are using the old .ii format with no directory name,
-             assume this to be a local file. */
-          pifp->is_local_file = TRUE;
-        }  /* if */
-        /* Skip over any additional reserved lines. */
-        for (; lines_read < reserved_request_file_lines; ++lines_read) {
-          pl_read_input_line(f_request);
-        }  /* for */
+        pl_read_command_info_from_request_file(pifp, f_request);
         /* Read the instantiation list. */
         while (pl_read_input_line(f_request)) {
           a_pl_symbol_ptr	sym;
@@ -2179,24 +2247,34 @@ Read the existing instantiation assignment information from the
 }  /* pl_read_instantiation_request_files */
 
 
-static a_boolean pl_check_for_ii_file(a_pl_input_file_ptr pifp)
+static a_boolean pl_check_for_template_file(a_pl_input_file_ptr pifp)
 /*
-Check for the existence of a .ii file.  Update the request_file_name field
-of pifp if the file exists.
+Check for the existence of a .ti or .ii file.  The name of the .ii file
+is generated.  The name of the .ti file is generated if they are being used.
 */
 {
-  FILE			*f_request;
+  FILE			*f_test;
   char			*request_file_name;
+  char			*template_info_file_name;
+  char			*file_to_test;
 
-  request_file_name = pl_derived_name(pifp->file_name,
-                                      INSTANTIATION_REQUEST_SUFFIX);
-  f_request = fopen(request_file_name, "r");
-  if (f_request != NULL) {
-    fclose(f_request);
-    pifp->request_file_name = pl_copy_string(request_file_name);
+  request_file_name = pl_copy_string(pl_derived_name(pifp->file_name,
+                                                INSTANTIATION_REQUEST_SUFFIX));
+  pifp->request_file_name = request_file_name;
+  if (use_template_info_file) {
+    template_info_file_name = pl_copy_string(pl_derived_name(pifp->file_name,
+                                                        TEMPLATE_INFO_SUFFIX));
+    pifp->template_info_file_name = template_info_file_name;
+    file_to_test = template_info_file_name;
+  } else {
+    file_to_test = request_file_name;
   }  /* if */
-  return (f_request != NULL);  
-}  /* pl_check_for_ii_file */
+  f_test = fopen(file_to_test, "r");
+  if (f_test != NULL) {
+    fclose(f_test);
+  }  /* if */
+  return (f_test != NULL);  
+}  /* pl_check_for_template_file */
 
 
 static a_boolean pl_can_instantiate(a_pl_input_file_ptr	pifp,
@@ -2308,7 +2386,8 @@ the file is flagged as requiring recompilation.
             /* In one instantiation per object mode, remove the file
                associated with the instantiation that is no longer
                needed. */
-            sprintf(pl_file_name_buffer, "%s/%s%s", instantiation_dir,
+            sprintf(pl_file_name_buffer, "%s/%s%s",
+                    pifp->instantiation_directory,
                     generate_instantiation_output_file_name(psp->name),
                     INSTANTIATION_OBJECT_SUFFIX);
             unlink(pl_file_name_buffer);
@@ -2399,6 +2478,7 @@ hold the command.
 
   /* Allocate the command line with twice the space needed to make room
      for added escape characters. */
+  if (part3 == NULL) part3 = "";
   length = (strlen(part1) + strlen(part2) + strlen(part3)) * 2;
   command = (char *)pl_malloc_with_check(length);
   to = command;
@@ -2426,12 +2506,12 @@ hold the command.
 }  /* build_command_line */
 
 
-static int pl_recompile_file(char	*command_line,
-			     char	*dir_name,
-                             char	*file_name,
-                             char	*extra_command_args)
+static int pl_recompile_file(a_pl_input_file_ptr	pifp,
+                             char			*extra_command_args)
 /*
-Execute the command to recompile a file.
+Execute the command to recompile the file specified by pifp.  The
+string specified by extra_command_args is added to the command line
+found in pifp.
 */
 {
   char		*command;
@@ -2439,19 +2519,16 @@ Execute the command to recompile a file.
   a_boolean	chdir_needed;
 
   /* If the specified directory is different than the current
-     one (and is not a null string), then we need to switch directories
+     one (and is not NULL), then we need to switch directories
      before doing the compilation. */
-  if (dir_name == NULL || file_name == NULL) {
-    /* The pointers may point to empty strings, but must not be null. */
-    pl_internal_error("dir_name or file_name NULL in pl_recompile_file");
-  }  /* if */
-  chdir_needed = strcmp(dir_name, curr_dir_name) != 0 &&
-                 strcmp(dir_name, "") != 0;
+  chdir_needed = pifp->compilation_directory != NULL &&
+                 strcmp(pifp->compilation_directory, curr_dir_name) != 0;
   if (chdir_needed) {
     /* Go to the appropriate directory before doing the compilation. */
-    pl_change_directory(dir_name);
+    pl_change_directory(pifp->compilation_directory);
   }  /* if */
-  command = build_command_line(command_line, extra_command_args, file_name);
+  command = build_command_line(pifp->command_line, extra_command_args,
+                               pifp->compilation_file_name);
   fprintf(stdout, pl_error_text(pl_ec_executing), message_prefix, command);
   fflush(stdout);
   result = system(command);
@@ -2495,83 +2572,80 @@ in file_name.  Returns NULL if file_name contains no directory name.
 }  /* last_dir_separator */
 
 
-static void move_nonlocal_file(a_pl_input_file_ptr pifp)
+static void prepare_to_move_nonlocal_file(a_pl_input_file_ptr pifp)
 /*
-The instantiation request file for pifp was not built from the
-current directory, make a copy of the file in the current directory
-and update pifp to point to the new file.
+An instantiation is being assigned to an object file from another
+directory in "copy if nonlocal" mode.  Update the driver information
+so that the file can be recompiled from the current directory.  Note
+that the .ii file is not actually rewritten here.  We just update
+the information so that when the caller writes a new .ii file it
+will be in the current directory and will contain the appropriate
+information.
 */
 {
-  char		*new_file_name;
-  char		*new_request_file_name;
+  char		*orig_file_name;
+  char		*orig_request_file_name;
+  char		*orig_template_info_file_name;
   char		*ptr;
-  FILE		*f_old_request;
-  FILE		*f_new_request;
-  char		*orig_dir;
 
   /* Construct new file names with the directory name removed. */
+  orig_file_name = pifp->file_name;
   ptr = last_dir_separator(pifp->file_name);
   if (ptr == NULL) {
     fprintf(stderr, "Expected %s to include a directory name\n",
             pifp->file_name);
     pl_internal_error("Directory name missing");
   }  /* if */
-  new_file_name = pl_copy_string(ptr+1);
-  ptr = last_dir_separator(pifp->request_file_name);
-  if (ptr == NULL) pl_internal_error("Request file missing directory name");
-  new_request_file_name = pl_copy_string(ptr+1);
-#if DEBUG
-  if (pl_debug_level >= 2) {
-    fprintf(stderr, "Moving %s to %s\n", pifp->request_file_name,
-            new_request_file_name);
-    fprintf(stderr, "Moving %s instead of %s\n", pifp->file_name,
-            new_file_name);
-  }  /* if */
-#endif /* DEBUG */
-  /* Copy the old request file to the new location.  Replace the
-     directory name line with the current directory name. */
-  f_old_request = fopen(pifp->request_file_name, "r");
-  if (f_old_request == NULL) {
-    fprintf(stderr, "File %s is missing\n", pifp->request_file_name);
-    pl_internal_error("Instantiation request file is missing");
-  }  /* if */
-  f_new_request = fopen(new_request_file_name, "w");
-  if (f_new_request == NULL) {
-    pl_error(pl_ec_cannot_open_request_file, new_request_file_name);
-  }  /* if */
-  /* Copy the command line. */
-  pl_read_input_line(f_old_request);
-  pl_write_output_line(f_new_request, pl_input_line);
-  /* Write the new current directory. */
-  pl_read_input_line(f_old_request);
-  orig_dir = pl_copy_string(pl_input_line);
-  pl_write_output_line(f_new_request, curr_dir_name);
-  /* Write a possibly updated file name.  If the path name is
+  pifp->file_name = pl_copy_string(ptr+1);
+  orig_request_file_name = pifp->request_file_name;
+  orig_template_info_file_name = pifp->template_info_file_name;
+  /* Use the pl_check_for_template_file routine to create the new request
+     file and template info file names.  Note that a new template
+     information file name must be created even though this routine doesn't
+     copy the file because it will be used during the next iteration of the
+     prelinker to read the template information file. */
+  (void)pl_check_for_template_file(pifp);
+  /* Construct a possibly updated file name.  If the path name is
      absolute, just keep the original name.  Otherwise, add the
      original directory name and write out the updated path name.*/
-  pl_read_input_line(f_old_request);
-  if (pl_is_absolute_file_name(pl_input_line)) {
-    /* Write the original absolute path name. */
-    pl_write_output_line(f_new_request, pl_input_line);
+  if (pl_is_absolute_file_name(pifp->compilation_file_name)) {
+    /* Keep the original compilation file name. */
   } else {
-    /* Write a path name consisting of the original directory and the
+    /* Create a path name consisting of the original directory and the
        file name. */
-    fprintf(f_new_request, "%s/%s\n", orig_dir, pl_input_line);
+    free(pifp->compilation_file_name);
+    sprintf(pl_file_name_buffer, "%s/%s\n", pifp->compilation_directory,
+            pifp->compilation_file_name);
+    pifp->compilation_file_name = pl_copy_string(pl_file_name_buffer);
   }  /* if */
-  (void)free(orig_dir);
-  /* Copy any remaining lines. */
-  while (pl_read_input_line(f_old_request)) {
-    pl_write_output_line(f_new_request, pl_input_line);
-  }  /* while */
-  fclose(f_old_request);
-  fclose(f_new_request);
-  /* Update the pointers in the input file record to point to the
-     new file names.  The original names are not freed because they
-     point to command line arguments. */
-  pifp->file_name = new_file_name;
-  pifp->request_file_name = new_request_file_name;
+  /* Construct the new compilation directory and compilation file name. */
+  free(pifp->compilation_directory);
+  pifp->compilation_directory = pl_copy_string(curr_dir_name);
+#if DEBUG
+  if (pl_debug_level >= 2) {
+    fprintf(stderr, "Moving %s to %s\n", orig_request_file_name,
+           pifp->request_file_name);
+    fprintf(stderr, "Using %s instead of %s\n", pifp->file_name,
+            orig_file_name);
+    if (use_template_info_file) {
+      fprintf(stderr, "Using %s instead of %s\n",
+              pifp->template_info_file_name, orig_template_info_file_name);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+  free(orig_file_name);
+  free(orig_request_file_name);
+  if (orig_template_info_file_name != NULL) free(orig_template_info_file_name);
+  if (!use_template_info_file) {
+    /* Copy the driver information from the input file structure to the
+       reserved line information that will be written to the file. */
+    pifp->reserved_lines[0] = pl_copy_string(pifp->command_line);
+    pifp->reserved_lines[1] = pl_copy_string(pifp->compilation_directory);
+    pifp->reserved_lines[2] = pl_copy_string(pifp->compilation_file_name);
+  }  /* if */
+  /* Indicate that this is now a local file. */
   pifp->is_local_file = TRUE;
-}  /* move_nonlocal_file */
+}  /* prepare_to_move_nonlocal_file */
 
 
 static int pl_update_request_files(void)
@@ -2584,16 +2658,6 @@ has changed then write the updated list of instantiations to the file.
   a_pl_input_file_ptr		pifp;
   int				return_status = 0;
   int				i;
-
-/* Macro that returns a line from the reserved lines array, if the line
-   number is valid, and returns a NULL string otherwise. */
-#define get_reserved_line(number) 					\
-  (((number) > (INSTANTIATION_REQUEST_LINES_RESERVED - 1))			\
-                                                ? ""			\
-                                                : reserved_lines[(number)])
-  /* We allocate one additional array element because it is possible
-     for there to be zero reserved lines. */
-  char *reserved_lines[INSTANTIATION_REQUEST_LINES_RESERVED + 1];
 
   pifp = pl_input_files;
   while (pifp != NULL) {
@@ -2609,27 +2673,10 @@ has changed then write the updated list of instantiations to the file.
       }  /* if */
       if (move_nonlocal_objects_to_curr_dir && !pifp->is_local_file) {
         /* If the instantiation request file is in a different
-           directory, copy it to the local directory and update the
-           copy of the file. */
-        move_nonlocal_file(pifp);
+           directory, update the information so that it can be written
+           to a copy of the file in the current directory. */
+        prepare_to_move_nonlocal_file(pifp);
       }  /* if */
-      f_request = fopen(pifp->request_file_name, "r");
-      if (f_request == NULL) {
-        fprintf(stderr, "File %s is missing\n", pifp->request_file_name);
-        pl_internal_error("Instantiation request file is missing");
-      }  /* if */
-      /* Read the reserved lines and save them to be rewritten later. */
-      for (i = 0; i < reserved_request_file_lines; ++i) {
-        pl_read_input_line(f_request);
-        reserved_lines[i] = pl_copy_string(pl_input_line);
-      }  /* for */
-      /* If the number of effective reserved lines is less than the
-         number in the configuration file, set the remaining lines
-         to null strings. */
-      for (; i < INSTANTIATION_REQUEST_LINES_RESERVED; ++i) {
-        reserved_lines[i] = "";
-      }  /* for */
-      fclose(f_request);
       /* Truncate the original file so that it can be rewritten. */
       f_request = fopen(pifp->request_file_name, "w");
       if (f_request == NULL) {
@@ -2637,7 +2684,7 @@ has changed then write the updated list of instantiations to the file.
       }  /* if */
       /* Rewrite the reserved lines. */
       for (i = 0; i < reserved_request_file_lines; ++i) {
-        fprintf(f_request, "%s\n", reserved_lines[i]);
+        fprintf(f_request, "%s\n", pifp->reserved_lines[i]);
       }  /* for */
       /* Write the instantiation list to the file. */
       psp = pifp->request_list;
@@ -2655,22 +2702,14 @@ has changed then write the updated list of instantiations to the file.
 	/* Suppress CodeCenter warnings because get_reserved_line contains
 	   a test that evaluates to a constant when its argument is a
 	   constant. */
-	/*SUPPRESS 622*/
-        return_status = pl_recompile_file(get_reserved_line(0),/*SUPPRESS 622*/
-                                          get_reserved_line(1),/*SUPPRESS 622*/
-                                          get_reserved_line(2), "");
+        return_status = pl_recompile_file(pifp, "");
         /* Stop if an error occurs. */
         if (return_status != 0) break;
       }  /* if */
-      /* Free the space occupied by the reserved lines. */
-      for (i = 0; i < reserved_request_file_lines; ++i) {
-        free(reserved_lines[i]);
-      }  /* for */
     }  /* if */
     pifp = pifp->next;
   }  /* while */
   return return_status;
-#undef get_reserved_lines
 }  /* pl_update_request_files */
 
 
@@ -2684,17 +2723,6 @@ flags will be removed.
   a_pl_input_file_ptr		pifp;
   int				return_status = 0;
   int				max_return_status = 0;
-  int				i;
-
-/* Macro that returns a line from the reserved lines array, if the line
-   number is valid, and returns a NULL string otherwise. */
-#define get_reserved_line(number) 					\
-  (((number) > (INSTANTIATION_REQUEST_LINES_RESERVED - 1))			\
-                                                ? ""			\
-                                                : reserved_lines[(number)])
-  /* We allocate one additional array element because it is possible
-     for there to be zero reserved lines. */
-  char *reserved_lines[INSTANTIATION_REQUEST_LINES_RESERVED + 1];
 
   pifp = pl_input_files;
   while (pifp != NULL) {
@@ -2702,48 +2730,18 @@ flags will be removed.
        instantiation request files and that are also local. */
     if (!pifp->is_archive && pifp->request_file_name != NULL &&
          pifp->is_local_file) {
-      FILE		*f_request;
-      /* Open the input file in read mode to read the header information. */
-      f_request = fopen(pifp->request_file_name, "r");
-      if (f_request == NULL) {
-        fprintf(stderr, "File %s is missing\n", pifp->request_file_name);
-        pl_internal_error("Instantiation request file is missing");
-      }  /* if */
-      /* Read the reserved lines. */
-      for (i = 0; i < reserved_request_file_lines; ++i) {
-        pl_read_input_line(f_request);
-        reserved_lines[i] = pl_copy_string(pl_input_line);
-      }  /* for */
-      /* If the number of effective reserved lines is less than the
-         number in the configuration file, set the remaining lines
-         to null strings. */
-      for (; i < INSTANTIATION_REQUEST_LINES_RESERVED; ++i) {
-        reserved_lines[i] = "";
-      }  /* for */
-      fclose(f_request);
       /* This depends on the command line being in the first reserved
          line. */
 #if PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION
       (void)unlink(pifp->file_name);
 #endif /* PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION */
-      /* Suppress CodeCenter warnings because get_reserved_line contains
-	 a test that evaluates to a constant when its argument is a
-	 constant. */
-      /*SUPPRESS 622*/
-      return_status = pl_recompile_file(get_reserved_line(0),/*SUPPRESS 622*/
-                                        get_reserved_line(1),/*SUPPRESS 622*/
-                                        get_reserved_line(2),
+      return_status = pl_recompile_file(pifp,
                                         "--suppress_instantiation_flags");
       if (return_status > max_return_status) max_return_status = return_status;
-      /* Free the space occupied by the reserved lines. */
-      for (i = 0; i < reserved_request_file_lines; ++i) {
-        free(reserved_lines[i]);
-      }  /* for */
     }  /* if */
     pifp = pifp->next;
   }  /* while */
   return max_return_status;
-#undef get_reserved_lines
 }  /* pl_remove_instantiation_flags */
 
 
@@ -2914,8 +2912,16 @@ Free all dynamically allocated data.
       free(last_pofp->file_name);
       free_pl_object_file(last_pofp);
     }  /* while */
-    pifp = pifp->next;
     /* The input file structure should not be freed. */
+    /* The file name, request file name, and template info file name should
+       not be freed. */
+    if (pifp->command_line != NULL) free(pifp->command_line);
+    if (pifp->compilation_directory != NULL) free(pifp->compilation_directory);
+    if (pifp->compilation_file_name != NULL) free(pifp->compilation_file_name);
+    if (pifp->instantiation_directory != NULL) {
+      free(pifp->instantiation_directory);
+    }  /* if */
+    pifp = pifp->next;
   }  /* while */
 
   psp = pl_symbol_table_head;
@@ -3000,6 +3006,9 @@ static char *pl_find_library_name(char *lib_name)
 Look for the library name specified by lib_name in the list of
 library directories in L_directories.  lib_name is converted to
 a library file name (e.g., -lxxx is converted to libxxx.a).
+Return a pointer to the name found.  The pointer returned points
+into the pl_input_line buffer, so the string must be copied upon
+return.
 */
 {
   /* Use pl_input_line as a buffer in which to build file names used when
@@ -3020,7 +3029,7 @@ a library file name (e.g., -lxxx is converted to libxxx.a).
     if ((f_lib = fopen(string_buffer, "r")) != NULL) {
       /* Replace the original library file name string with a pointer to
 	 the complete path name. */
-      result = pl_copy_string(string_buffer);
+      result = string_buffer;
       found = TRUE;
       fclose(f_lib);
       break;
@@ -3071,7 +3080,7 @@ int main(int argc, char *argv[])
   int		         arg;
   int		         return_status = 0;
   a_boolean	         done = FALSE;
-  a_boolean	         any_ii_files = FALSE;
+  a_boolean	         any_template_files = FALSE;
   extern char	         *optarg;
   extern int	         optind;
   int		         optchar;
@@ -3082,16 +3091,6 @@ int main(int argc, char *argv[])
 
   /* This must be done before any messages are issued. */
   message_prefix = pl_error_text(pl_ec_message_prefix);
-
-  /* The prelinker now expects there to be at least three reserved lines.
-     Suppress the CodeCenter warning because the if test contains a
-     constant expression. */
-  /*SUPPRESS 622*/
-  if (INSTANTIATION_REQUEST_LINES_RESERVED < 3) {
-    /*SUPPRESS 569*/
-    pl_internal_error("INSTANTIATION_REQUEST_LINES_RESERVED set incorrectly");
-  }  /* if */
-
   /* Allocate arrays to hold pointers to -L directory names and library
      names specified by -l options.  We don't know how many of these will
      appear on the command line so we will simply use the argument count
@@ -3103,7 +3102,7 @@ int main(int argc, char *argv[])
   /* Process command-line options. */
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
-#define OPTION_LIST "imnqrs:vuB:c:d:Df:l:L:No:O:R:SW:"
+#define OPTION_LIST "imnqrs:vuB:c:d:Df:l:L:No:OR:SW:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
       case 'c':
@@ -3170,11 +3169,8 @@ int main(int argc, char *argv[])
         }
         break;
       case 'O':
-        /* "One instantiation per object" mode.  The option argument
-           specifies the name of the directory containing the
-           instantiation files. */
+        /* "One instantiation per object" mode. */
         one_instantiation_per_object = TRUE;
-        instantiation_dir = optarg;
         break;
       case 'W':
         /* Alternate form of the library directory name option (e.g.,
@@ -3309,17 +3305,17 @@ end_of_options:
         file_name = orig_name;
       }  /* if */
       pifp = alloc_pl_input_file();
-      pifp->file_name = file_name;
+      pifp->file_name = pl_copy_string(file_name);
       /* Add this entry to the list of input files. */
       if (pl_input_files == NULL) pl_input_files = pifp;
       pl_add_cmd_line_arg((char *)NULL, pifp);
       if (list_tail != NULL) list_tail->next = pifp;
       list_tail = pifp;
-      any_ii_files |= pl_check_for_ii_file(pifp);
+      any_template_files |= pl_check_for_template_file(pifp);
     }  /* for */
   }
 
-  if (any_ii_files) {
+  if (any_template_files) {
     do {
       a_pl_input_file_ptr	pifp;
       a_boolean			no_local_changes;
@@ -3331,6 +3327,11 @@ end_of_options:
       for (pifp = pl_input_files; pifp != NULL; pifp = pifp->next) {
         reset_pl_input_file(pifp);
       }  /* for */
+
+      pl_symbol_table_head = NULL;
+      specialization_list = NULL;
+      memzero((char *)pl_symbol_table, sizeof(pl_symbol_table));
+
       /* Construct the nm command. */
       pl_init_temp_string();
       pl_add_to_temp_string(nm_command);
@@ -3338,7 +3339,9 @@ end_of_options:
       for (pifp = pl_input_files; pifp != NULL; pifp = pifp->next) {
         a_pl_object_file_ptr	pofp;
         pl_add_two_to_temp_string(" ", pifp->file_name);
-        pl_read_template_info_file(pifp);
+        if (use_template_info_file) {
+          pl_read_template_info_file(pifp);
+        }  /* if */
         if (one_instantiation_per_object) {
           /* Add each of the template object files to the command line. */
           for (pofp = pifp->objects; pofp != NULL; pofp = pofp->next) {
@@ -3350,10 +3353,6 @@ end_of_options:
 #if DEBUG
       if (pl_debug_level >= 2) fprintf(stderr, "%s\n", temp_string);
 #endif /* DEBUG */
-
-      pl_symbol_table_head = NULL;
-      specialization_list = NULL;
-      memzero((char *)pl_symbol_table, sizeof(pl_symbol_table));
 
       /* Execute the nm command. */
       f_command_output = popen(temp_string, "r");

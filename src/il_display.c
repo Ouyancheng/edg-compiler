@@ -4002,11 +4002,6 @@ Display the IL for the file scope in human-readable form.
   disp_long("microsoft_version", (a_boolean)il_header.microsoft_version);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if ONE_INSTANTIATION_PER_OBJECT
-  if (il_header.template_info_file_name != NULL) {
-    disp_string_ptr("template_info_file_name",
-                    il_header.template_info_file_name,
-                    iek_other_text, (sizeof_t)0);
-  }  /* if */
   if (il_header.instantiation_dir_name != NULL) {
     disp_string_ptr("instantiation_dir_name",
                     il_header.instantiation_dir_name,

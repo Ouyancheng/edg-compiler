@@ -20,6 +20,11 @@ fi
 defines=${EDG_DEFAULT_DEFINES-"-Dsparc -Dunix -Dsun"}
 EDG_CBASE=${EDG_CBASE-/edg/cpfe}
 #
+# EDG_DRIVER_VERSION is used to disable driver features that are incompatible
+# with earlier versions of the front end.
+#
+driver_version=${EDG_DRIVER_VERSION-999}
+#
 # Default include directories.  The default directories are specified by
 # EDG_DEFAULT_INCLUDE_DIRS.  If this variable is not set, then we
 # select either INCLDIR or CINCLDIR depending on the language being
@@ -1147,7 +1152,7 @@ do
   fi
 done
 
-# Remove the temporar file used by command line processing.
+# Remove the temporary file used by command line processing.
 rm -f $cmd_tmp_file
 
 if [ $any_l_or_o_files -eq 0 -a $any_c_files -eq 0 ] ; then
@@ -1162,6 +1167,12 @@ if [ $use_default_instantiation_dir -eq 0 ] ; then
     echo "eccp: instantiation directory \"$instantiation_dir\" does not exist"
     error=1
   fi
+fi
+
+# One instantiation per object mode requires driver versions >= 2.37
+if [ $one_instantiation_per_object -ne 0 -a $driver_version -lt 237 ] ; then
+  echo "eccp: one instantiation per object not supported in driver version $driver_version"
+  error=1
 fi
 
 # If we are in C mode then disable automatic instantiation just for
@@ -1258,7 +1269,7 @@ fi
 if [ $one_instantiation_per_object -ne 0 -a \
      $prelink_copy_if_nonlocal -eq 0 ] ; then
   prelink_local_only=1
-  prelink_options=$prelink_options" -O $instantiation_dir"
+  prelink_options=$prelink_options" -O"
 fi
 #
 # The old .ii format cannot be used with the new prelinker nonlocal file
@@ -1346,6 +1357,7 @@ do
     output_basename=`expr $output_file : '\(.*\)\.'`  # Get basename
     ii_file_name=$output_basename.ii
     ii_file_specified=1
+    ti_file_name=$output_basename.ti
   else
     output_file=$basefile.o
   fi
@@ -1356,9 +1368,13 @@ do
   if [ $ii_file_specified -eq 0 ] ; then
     # No file name was specified -- construct the default name.
     ii_file_name=$basefile.ii
+    ti_file_name=$basefile.ti
   else
     # A name was specified -- pass it to the front end.
     ii_file_option="--ii_file=$ii_file_name"
+    if [ $driver_version -ge 237 ] ; then
+      ti_file_option="--template_info_file_name=$ti_file_name"
+    fi
   fi
   instantiation_dir_option=
   remove_instantiation_gen_c_dir=0
@@ -1368,7 +1384,6 @@ do
   # instantiations directory, otherwise they go into a temporary directory.
   # When the "keep" option is used, the instantiations list goes into the
   # current directory, otherwise it goes in the temporary directory.
-  instantiation_list=$basefile.ti
   if [ $one_instantiation_per_object -ne 0 ] ; then
     if [ $keep_int_file -ne 0 ] ; then
       instantiation_gen_c_dir=$instantiation_dir
@@ -1387,7 +1402,7 @@ do
         exit 1
       fi
     fi
-    instantiation_dir_option="--instantiation_dir=$instantiation_gen_c_dir --template_info_file=$instantiation_list"
+    instantiation_dir_option="--instantiation_dir=$instantiation_gen_c_dir"
     if [ $use_default_instantiation_dir -ne 0 -a \
          ! -d $instantiation_dir ] ; then
       mkdir $instantiation_dir
@@ -1419,32 +1434,63 @@ do
   fi
   #
   # If we are doing automatic instantiation and if the program involves
-  # templates then a .ii file will exist after the compilation.
-  # If a .ii file exists that means that the compilation used templates in
-  # some way.  Generate a new .ii file using the current command line.
-  # The front end only generates the .ii file when the back end is run
-  # (i.e., no "fe-only" options were specified and no errors occurred.
+  # templates then a .ii or .ti file will exist after the compilation,
+  # depending on the driver version being used.
+  # If a .ii or .ti file exists that means that the compilation used
+  #  templates in some way.  The front end only generates the .ii and
+  # .ti files when the back end is run (i.e., no "fe-only" options were
+  #  specified and no errors occurred.
   #
   if [ $automatic_instantiation -ne 0 -a $preprocessor_only -eq 0 \
        -a $fe_only -eq 0 -a $status -eq 0 ] ; then
-    if [ -f $ii_file_name ] ; then
-      # An instantiation file exists which means the compilation involves
-      # templates.  Construct the new .ii file.
-      ii_tmp_file=$TMPDIR/$$edgII
-      if [ $old_ii_format -ne 1 ] ; then
-#       New format
-        sed -e "1,3 d" $ii_file_name >$ii_tmp_file
-        echo $instantiation_command_line $instantiation_command_suffix >$ii_file_name
-        pwd >>$ii_file_name
-	echo $cfile >>$ii_file_name
-      else
-#       Old format
-        sed -e "1,1 d" $ii_file_name >$ii_tmp_file
-        echo $instantiation_command_line $cfile >$ii_file_name
+    if [ $driver_version -ge 237 ] ; then
+      # Create a new .ti file containing the driver-supplied information
+      # followed by the information that was output by the front end.
+      # The main reason this is done is that the instantiation directory
+      # must come before any of the instantiation file name entries.
+      if [ -f $ti_file_name ] ; then
+        ti_tmp=$TMPDIR/ti$$
+        echo "cmd:$instantiation_command_line" >$ti_tmp
+        echo "dir:$curr_dir" >>$ti_tmp
+        echo "fnm:$cfile" >>$ti_tmp
+        if [ $one_instantiation_per_object -ne 0 ] ; then
+          echo "idn:$instantiation_dir" >>$ti_tmp
+        fi
+        cat $ti_file_name >>$ti_tmp
+        rm -f $ti_file_name
+        cp $ti_tmp $ti_file_name
+        rm -f $ti_tmp
       fi
-      cat $ii_tmp_file >>$ii_file_name
-      rm -f $ii_tmp_file
+    else
+      if [ -f $ii_file_name ] ; then
+        # An instantiation file exists which means the compilation involves
+        # templates.  Construct the new .ii file.
+        ii_tmp_file=$TMPDIR/$$edgII
+        if [ $old_ii_format -ne 1 ] ; then
+  #       New format
+          sed -e "1,3 d" $ii_file_name >$ii_tmp_file
+          echo $instantiation_command_line $instantiation_command_suffix >$ii_file_name
+          pwd >>$ii_file_name
+          echo $cfile >>$ii_file_name
+        else
+#         Old format
+          sed -e "1,1 d" $ii_file_name >$ii_tmp_file
+          echo $instantiation_command_line $cfile >$ii_file_name
+        fi
+        cat $ii_tmp_file >>$ii_file_name
+        rm -f $ii_tmp_file
+      fi
     fi
+  fi
+#
+# In one instantiation per object mode, extract the instantiation file
+# list from the template information file.
+#
+  instantiation_list_exists=0
+  if [ $one_instantiation_per_object -ne 0 -a -f $ti_file_name ] ; then
+    instantiation_list=$TMPDIR/il$$
+    fgrep "ifn:" $ti_file_name | sed -e "s/ifn://" >$instantiation_list
+    instantiation_list_exists=1
   fi
 #
 # If front end successfully compiled the file, pass it to cc.
@@ -1469,8 +1515,7 @@ do
 #
 #   Compile the .int.c files for instantiation files that were generated
 #
-    if [ $one_instantiation_per_object -ne 0 -a \
-         -f $instantiation_list ] ; then
+    if [ $instantiation_list_exists -ne 0 ] ; then
       for inst_base in `cat $instantiation_list`
       do
         inst_file=$inst_base$gen_c_suffix
@@ -1493,12 +1538,13 @@ do
 #
 #     Remove the .int.c files in the instantiation directory.
 #
-  if [ $one_instantiation_per_object -ne 0 -a \
-       -f $instantiation_list ] ; then
-    for inst_file in `cat $instantiation_list`
+  if [ $instantiation_list_exists -ne 0 ] ; then
+    for inst_base in `cat $instantiation_list`
     do
       rm -f $instantiation_gen_c_dir/$inst_file
     done
+    # Remove the instantiation list temporary file
+    rm -f $instantiation_list
   fi
 #
 # Remove the instantiation generated C directory, if needed.
@@ -1515,28 +1561,6 @@ then
   then
     if [ $cc_only -ne 1 ]
     then
-#
-#     If one instantiation per object mode is used, rebuild the list
-#     of object files to include those generated by the instantiation
-#     process.
-#
-      if [ $one_instantiation_per_object -ne 0 ] ; then
-        new_object_files=
-        for obj_file in $object_files
-        do
-          new_object_files=$new_object_files" "$obj_file
-          obj_base=`expr $obj_file : '\(.*\)'.o`
-          instantiation_list=$instantiation_dir/$obj_base.ti
-          if [ -f $instantiation_list ] ; then
-            for inst_base in `cat $instantiation_list`
-            do
-              inst_obj=$inst_base$gen_o_suffix
-              new_object_files=$new_object_files" "$instantiation_dir/$inst_obj
-            done
-          fi
-        done
-        object_files=$new_object_files
-      fi
 #
 #     If automatic instantiation is enabled, run the prelink phase to
 #     determine if any additional instantiations need to be generated

@@ -2516,8 +2516,6 @@ The subtree is not processed.
   remap_ptr(il_header.macros, a_macro_ptr, iek_macro);
 #endif /* RECORD_MACROS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
-  remap_ptr(il_header.template_info_file_name, a_char_ptr,
-            iek_other_text);
   remap_ptr(il_header.instantiation_dir_name, a_char_ptr, iek_other_text);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* region_scope_entry should not be changed; it's not a pointer into
