@@ -809,13 +809,13 @@ decision whether to generate a PCH is made.
 #endif /* DEBUG */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #if !STANDALONE_UTILITY_PROGRAM
-  if (!header_stop_position_pending) {
+  if (!may_be_building_new_pch()) {
     /* Communication with the back end is via a file.  Write the region and
        then free its storage. */
     write_memory_region(region_number);
   }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-  if (!header_stop_position_pending) {
+  if (!may_be_building_new_pch()) {
     /* Only free the memory region if we know that we won't need to save
        it in a PCH file. */
     free_memory_region(region_number);
