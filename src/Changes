@@ -18,14 +18,6 @@ expression (due to a bug in those compilers).  Adding two levels of
 parentheses in such cases (which we now do) makes the code acceptable to
 Microsoft compilers.
 
-8/5/04   Unneeded template constructors put out in IA-64 ABI with -tused
-
-In the IA-64 ABI, in -tused mode, in some cases constructors of class
-templates were instantiated and kept in the IL even though they
-were referenced only from code that was later removed.  Now fixed,
-i.e., the constructors are correctly removed from the IL.  This
-was most visible when INSTANTIATE_EXTERN_INLINE is FALSE.
-
 8/4/04   Performance improvement in handling of type lists
 
 Some changes were made to accelerate the routine move_to_end_of_types_list
