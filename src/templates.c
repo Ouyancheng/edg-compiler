@@ -3298,6 +3298,7 @@ in one-instantiation-per-object mode.
       is_primary_translation_unit &&
       routine->storage_class == (a_storage_class)sc_unspecified &&
       !is_member_of_unnamed_namespace(&routine->source_corresp) &&
+      !routine->is_prototype_instantiation &&
       ((routine->is_template_function &&
         !routine->is_specialized) ||
        (instantiate_extern_inline &&
