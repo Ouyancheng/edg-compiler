@@ -4387,6 +4387,8 @@ Do lowering on the file-scope dynamic initializations list.
        containing them. */
     scope = file_scope_init_insert_location(&insert_location);
     push_context(&context, scope, /*subscope_region=*/FALSE);
+    /* Initialize for exception handling lowering. */
+    eh_function_lower_init();
     switch_il_region(file_scope_init_routine_il_region);
     processing_file_scope_init_routine = TRUE;
     for (; dip != NULL; dip = dip->next) {
@@ -4429,6 +4431,8 @@ Do lowering on the file-scope dynamic initializations list.
        routine containing them. */
     scope = file_scope_term_insert_location(&insert_location);
     push_context(&context, scope, /*subscope_region=*/FALSE);
+    /* Initialize for exception handling lowering. */
+    eh_function_lower_init();
     switch_il_region(file_scope_term_routine_il_region);
     gen_required_destructor_calls(file_scope_context, &insert_location);
     pop_context();
