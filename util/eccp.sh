@@ -619,6 +619,8 @@ do
          --no_implicit_extern_c_type_conversion | \
          --long_preserving_rules | \
          --no_long_preserving_rules | \
+         --extern_inline | \
+         --no_extern_inline | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Options that require additional processing
