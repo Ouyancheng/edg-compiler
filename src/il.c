@@ -6757,7 +6757,7 @@ value of at_file_scope.
   a_scope_ptr              sp;
   a_scope_stack_entry_ptr  ssep = NULL;
 
-  if (class_type != NULL) {
+  if (depth_scope_stack == DEPTH_OF_FILE_SCOPE && class_type != NULL) {
     /* Get the scope pointer from the class type supplement. */
     sp = class_type->variant.class_struct_union.extra_info->assoc_scope;
   } else {
