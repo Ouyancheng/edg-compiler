@@ -1929,7 +1929,7 @@ Return a string that describes the tag kind for the indicated type (i.e.,
 {
   char *result;
 
-  switch (kind) {
+  switch (type->kind) {
     case tk_enum:
       result = "enum";
       break;
