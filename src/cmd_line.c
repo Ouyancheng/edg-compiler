@@ -610,6 +610,16 @@ Initialize the option information table.
 			 "no_wrap_diagnostics",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_none);
+#if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
+  add_option_description(optk_implicit_extern_c_type_conversion,
+			 "implicit_extern_c_type_conversion",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_implicit_extern_c_type_conversion,
+			 "no_implicit_extern_c_type_conversion",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_none);
+#endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
 }  /* initialize_option_descriptions */
 
 
@@ -1148,6 +1158,9 @@ common_cfront_mode_settings:
         use_nonstandard_for_init_scope = TRUE;
         allow_copy_assignment_op_with_base_class_param = TRUE;
         old_specializations_allowed = TRUE;
+#if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
+        impl_conv_between_c_and_cpp_function_ptrs_allowed = TRUE;
+#endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
@@ -1589,6 +1602,13 @@ common_cfront_mode_settings:
         /* Enable/disable old-style specialization declarations. */
         old_specializations_allowed = opt_value;
         break;
+#if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
+      case optk_implicit_extern_c_type_conversion:
+        /* Enable/disable conversions between extern "C" and extern "C++"
+           function pointers. */
+        impl_conv_between_c_and_cpp_function_ptrs_allowed = opt_value;
+        break;
+#endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1671,6 +1691,9 @@ common_cfront_mode_settings:
     }  /* if */
     if (option_kind_used[(int)optk_old_specializations]) {
       command_line_error(ec_cl_old_specializations_option_only_in_cplusplus);
+    }  /* if */
+    if (option_kind_used[(int)optk_implicit_extern_c_type_conversion]) {
+      command_line_error(ec_cl_impl_extern_c_conv_option_only_in_cplusplus);
     }  /* if */
     /* Turn on features implied by SVR4 C mode. */
     if (SVR4_C_mode) {
@@ -1770,10 +1793,6 @@ common_cfront_mode_settings:
       /* Enable recognition of operator keywords and digraphs. */
       alternative_tokens_allowed = TRUE;
       allow_copy_assignment_op_with_base_class_param = FALSE;
-      /* In case it is allowed by default, disallow implicit conversion
-         between pointer-to-function types that differ only in their routine
-         linkage (extern "C" vs. extern "C++"). */
-      impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
       if (!(option_kind_used[(int)optk_wchar_t_is_keyword])) {
         /* If wchar_t_is_keyword was not explicitly set by a command line
            option, set it now. */
@@ -1833,6 +1852,17 @@ common_cfront_mode_settings:
            turn it off now. */
         old_specializations_allowed = FALSE;
       }  /* if */
+#if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
+      if (!(option_kind_used[(int)optk_implicit_extern_c_type_conversion])) {
+        /* If impl_conv_between_c_and_cpp_function_ptrs_allowed was not set
+           on the command line, turn it off now. */
+        impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
+      }  /* if */
+#else /* !IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
+      /* Set it FALSE in case the implicit conversion between extern "C" and
+         extern "C++" function pointers is allowed by default. */
+      impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
+#endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the
        error threshold was set at a higher level. */

@@ -142,6 +142,9 @@ typedef enum /*an_option_kind*/ {
 #endif /* NEED_NAME_MANGLING */
   optk_old_specializations,
   optk_wrap_diagnostics,
+#if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
+  optk_implicit_extern_c_type_conversion,
+#endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
   optk_last		/* Must be last. */
 } an_option_kind;
 
