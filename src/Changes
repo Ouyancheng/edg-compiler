@@ -728,6 +728,11 @@ anonymous_union_field.
 In a_src_seq_end_of_construct "source_position" is now "position"
 (relevant only if GENERATE_SOURCE_SEQUENCE_LISTS is configured to TRUE).
 
+5/3/96  IL CHANGE: an_instantiation_directive
+
+an_instantiation_directive has been added to the IL to represent
+instantiation directives in source sequence lists.
+
 5/3/96  Template parameters in elaborated type specifiers
 
 X3J16/WG21 has made two decisions regarding the use of template
