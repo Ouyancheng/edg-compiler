@@ -1339,9 +1339,13 @@ considered; otherwise, they are ignored.
           field_offset = field->offset + elt * field_type->size;
 #if IA64_ABI
           /* Check if we can discard the field (or an element thereof) from
-             consideration based of positions alone. */
+             consideration based on positions alone. */
           if (field_offset > offset) break;
-          if (offset >= field_offset + field_type->size) continue;
+          if (offset >= field_offset + field_type->size) {
+            /* There might be a conflict with a subsequent element.  Therefore,
+               use "continue" rather than "break." */
+            continue;
+          }  /* if */
 #else /* !IA64_ABI */
           if (field_offset != 0) break;
 #endif /* !IA64_ABI */
