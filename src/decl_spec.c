@@ -959,6 +959,15 @@ the template.
               }  /* if */
             }  /* if */
           }  /* if */
+        } else if (is_class_definition && tag_sym->is_class_member &&
+                   !is_explicit_instantiation) {
+          /* This is a definition of a member template instance -- apparently
+             an attempt at old-style specialization, but only the "template<>"
+             syntax is allowed for member template specializations. */
+          pos_error(ec_old_specialization_of_member_template, &tag_position);
+          tag_sym = NULL;
+          set_to_named_error_locator(locator);
+          err = TRUE;
         } else if (is_class_definition ||
             (curr_token == tok_semicolon &&
              !is_friend_decl && !is_explicit_instantiation)) {
