@@ -2856,7 +2856,7 @@ thereunder.
 }  /* do_type_list_other_name_mangling */
 
 
-static void mangle_function_name(a_routine_ptr routine)
+void mangle_function_name(a_routine_ptr routine)
 /*
 Mangle the name of the indicated function, if necessary.
 */

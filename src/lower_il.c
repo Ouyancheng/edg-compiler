@@ -12411,11 +12411,9 @@ flag).
   clear_parent_info_on_types();
 }  /* clear_parent_information */
 
-#if ONE_INSTANTIATION_PER_OBJECT
 
-static void externalize_source_correspondence(
-                                           a_source_correspondence *scp,
-                                           a_boolean               is_variable)
+void externalize_source_correspondence(a_source_correspondence *scp,
+                                       a_boolean               is_variable)
 /*
 Change the source correspondence information for a static variable
 (is_variable TRUE) or routine (is_variable FALSE) to make it external with
@@ -12459,7 +12457,6 @@ files can reference it.
   scp->name_linkage = (a_name_linkage_kind)nlk_external;
 }  /* externalize_source_correspondence */
 
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if ONE_INSTANTIATION_PER_OBJECT
 
 void make_statics_referenced_from_instantiations_external(void)

@@ -30,6 +30,10 @@ trans_copy.c -- Copy IL from secondary translation units to the
 #include "trans_corresp.h"
 #include "il_walk.h"
 #include "scope_stk.h"
+#if DO_IL_LOWERING
+#include "lower_il.h"
+#include "lower_name.h"
+#endif /* DO_IL_LOWERING */
 
 
 static a_boolean f_has_corresp(char *ptr)
@@ -471,13 +475,17 @@ set to TRUE if the body of a routine is eliminated.
           if (variable->init_kind != (an_init_kind)initk_none) {
             clear_variable_initialization(variable);
           }  /* if */
+#if DO_IL_LOWERING
           if (variable->storage_class == (a_storage_class)sc_static) {
             /* A static variable referenced from a template is changed to an
                external declaration and copied over. */
-#if 0
-            /* FIXME */
-#endif /* 0 */
+            /* The name must be processed now because we want to use
+               the module id from the secondary translation unit. */
+            externalize_source_correspondence(&variable->source_corresp,
+                                              /*is_variable=*/TRUE);
+            variable->storage_class = (a_storage_class)sc_extern;
           }  /* if */
+#endif /* DO_IL_LOWERING */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -552,13 +560,18 @@ set to TRUE if the body of a routine is eliminated.
              time (the definition will be put out when the file is compiled
              as a primary file). */
           check_assertion(routine->assoc_scope == NULL_region_number);
+#if DO_IL_LOWERING
           if (routine->storage_class == (a_storage_class)sc_static) {
             /* A static function referenced from a template is changed to an
                external declaration and copied over. */
-#if 0
-            /* FIXME */
-#endif /* 0 */
+            /* The name must be processed now because we want to use
+               the module id from the secondary translation unit. */
+            mangle_function_name(routine);
+            externalize_source_correspondence(&routine->source_corresp,
+                                              /*is_variable=*/FALSE);
+            routine->storage_class = (a_storage_class)sc_extern;
           }  /* if */
+#endif /* DO_IL_LOWERING */
         }  /* if */
       }  /* if */
     }  /* if */
