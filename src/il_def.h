@@ -5307,7 +5307,7 @@ enum an_expr_operator_kind_tag {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   eok_assume,		/* Microsoft __assume(expr).  Note that the
 			   operand is not evaluated in the traditional
-			   sendse of the word. */
+			   sense of the word. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
 #ifdef FIL
