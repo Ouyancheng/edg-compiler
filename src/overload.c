@@ -2097,7 +2097,8 @@ if the deduction succeeds, FALSE if it fails.
                                                  &arg_type,
                                                  template_sym)) goto done;
     arg_operand = NULL;
-    if (routine_type_is_nonstatic_member_function(arg_type) &&
+    if (is_function_type(arg_type) &&
+        routine_type_is_nonstatic_member_function(arg_type) &&
         !strict_ansi_mode) {
       /* The routine is a member function, so convert to a pointer to
          member function.  This comes up with the extension that allows
