@@ -13395,11 +13395,12 @@ classes.
                                  &saved_pack_alignment_state);
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-    if (use_microsoft_specialization_scope &&
+    if (use_microsoft_specialization_scope && !is_in_class_specialization &&
         is_real_template_instance_specific_def_symbol(tag_sym)) {
       /* The Microsoft compiler permits a class specialization to reference
          template parameters of the template.  Push an instantiation scope
-         if this is a specialization definition. */
+         if this is a specialization definition.  (This is not allowed for
+         in-class specializations.) */
       a_scope_depth  depth;
 
       push_instantiation_scope_for_class(

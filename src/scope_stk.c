@@ -6281,6 +6281,9 @@ the class symbol supplement points to the partial specialization).
                                             parent_class,
                                             /*reactivate_template_param=*/TRUE,
                                             /*entend_namespace=*/FALSE);
+    /* Template parameters are never reactivated for in-class specializations
+       (a Microsoft extension applicable to other specializations). */
+    check_assertion(!is_microsoft_specialization_scope);
   } else {
     /* Get the symbol associated with the class. */
     class_sym = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
@@ -6392,6 +6395,7 @@ extend_namespace).
                   (!is_template_instance_specific_def_symbol(class_sym) ||
                    is_prototype_instantiation_symbol(class_sym));
     if (use_microsoft_specialization_scope &&
+        !class_type->variant.class_struct_union.is_in_class_specialization &&
         is_real_class_symbol(class_sym)) {
       /* Determine whether the instantiation scope is being pushed only
          because we are in Microsoft mode. */
