@@ -9324,16 +9324,21 @@ next_declaration:
       if (is_template_instantiation) {
         /* The class reactivation scope is popped along with the template
            instantiation scope. */
+      } else {
+        /* Restore the scope stack to its original state.  For template
+           instantiations this is done when the instantiation scope is
+           popped. */
+        pop_class_reactivation_scope();
+      }  /* if */
+      if (is_template_class_type(class_type) ||
+          class_type->variant.class_struct_union.
+                    referenced_by_class_instantiation_placeholder_typeref) {
         /* No nested class placeholders are put out for instances of member
            templates -- instantiation placeholders are used where needed (see
            add_to_types_list). */
       } else {
         a_type_ptr  placeholder;
 
-        /* Restore the scope stack to its original state.  For template
-           instantiations this is done when the instantiation scope is
-           popped. */
-        pop_class_reactivation_scope();
         /* Enter a typedef entry that points at the nested class just
            defined.  It will serve to indicate just where (in the sequence
            of type declarations) the delayed nested type definition
