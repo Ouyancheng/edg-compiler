@@ -1659,15 +1659,16 @@ pointer can be examined.
                    object_addr_table_entry(&cap->variant.object.init_pos_descr,
                                            insert_location);
   }  /* if */
+  /* Assign a region number to this entry. */
+  cap->region_number = next_region_number++;
   if (cap->variant.object.first_time_test_var != NULL) {
     /* This entry needs a conditional flag.  More on this below. */
     an_init_pos_descr ipd;
     set_var_init_pos_descr(cap->variant.object.first_time_test_var, &ipd);
     conditional_handle_number = object_addr_table_entry(&ipd, insert_location);
     flags_value |= RDF_CONDITIONAL_FLAG;
+    next_region_number++;
   }  /* if */
-  /* Assign a region number to this entry. */
-  cap->region_number = next_region_number++;
   /* Insert an assignment statement that sets the global variable
      __eh_curr_region to the region number for this entry.  Don't do
      this in destructor wrappers (the assignment gets done explicitly
