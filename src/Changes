@@ -26,6 +26,20 @@ In Microsoft bugs mode, the following is accepted and prints "bxd".
 When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the source positions associated
 with an explicit specialization of a template are now recorded properly.
 
+6/22/99  Microsoft compatibility, C++-generating back end: explicit template
+         specialization appearing within a class definition
+
+In Microsoft mode and with TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+configured to TRUE, the source sequence representation of an explicit
+template specialization that is a definition and that appears inside a
+class definition was incorrect, and consequently the generated C++ was
+also incorrect.  Now fixed.
+
+  struct S {
+    template <class T> void f(T) { }
+    template<> void f(int) { }        // Permitted in Microsoft mode
+  };
+
 6/22/99  Abort on unprototyped definition in C mode
 
 In C mode, the front end used to abort on the following code:
