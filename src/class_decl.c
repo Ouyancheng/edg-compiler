@@ -6348,15 +6348,7 @@ Scan the body of a class definition, including the base classes list.
                 error(ec_incomplete_type_not_allowed);
                 local_type = error_type();
               }  /* if */
-              if (is_anonymous_union) {
-                /* This static data member is an anonymous union.  Because
-                   of the impossibility of an explicitly defining such things
-                   (and despite the ARM's silence on the issue), they are
-                   disallowed.  Our approach does not involve promoting the
-                   names to the current scope, so some error recovery problems
-                   are bound to show up. */
-                pos_error(ec_static_data_member_anon_union, &decl_start_pos);
-              } else if (is_local_class) {
+              if (is_local_class) {
                 /* Static data members are not allowed in local classes. */
                 pos_error(ec_static_not_allowed, &decl_start_pos);
                 /* Set the type for this invalid static member to error type.

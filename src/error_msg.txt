@@ -512,7 +512,7 @@ ec_nonconst_ref_init_from_rvalue;;"initial value of reference to non-const must 
 ec_implicit_static_data_member_definition;INTERNAL;"%simplicit definition of %nf %p"
 ec_template_not_allowed;;"\"template\" is not allowed"
 ec_not_a_class_template;;"%t is not a class template"
-ec_static_data_member_anon_union;;"static data member may not be an anonymous union"
+REMOVED;ec_static_data_member_anon_union;;"static data member may not be an anonymous union"
 ec_function_template_named_main;;"\"main\" is not a valid name for a function template"
 ec_union_nonunion_mismatch;;"invalid reference to %n (union/nonunion mismatch)"
 ec_local_type_in_template_arg;;"a template argument may not reference a local type"
