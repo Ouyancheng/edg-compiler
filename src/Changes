@@ -1,5 +1,18 @@
 Version 2.32
 
+6/20/96 Pointer-to-member-function using typedef
+
+An error is now issued for declaring a pointer-to-member-function using a
+typedef for the member type (since the typedef has no implicit-this-param
+type).  Here's an example:
+
+  typedef void FC(void);
+  struct S;
+  FC S::* pmf;             // Error in now issued
+
+This fixes an abort that occurred when attempting to call a function via
+the pointer-to-member object.
+
 6/19/96 Determination of which copy constructor was elided for strict-mode
         check now considers whether copy constructor can copy rvalue
 
