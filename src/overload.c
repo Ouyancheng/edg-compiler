@@ -2260,7 +2260,28 @@ are ignored.
            selector.  We would discard it if this function is chosen,
            but we still need a match entry for it.  It counts as an
            exact match. */
-        this_match->match_level = aml_exact;
+        if (surrogate_function_conv_sym != NULL) {
+          /* For a surrogate function, the match on the "this" parameter
+             includes the conversion. */
+          a_symbol_ptr  base_conv_sym;
+          a_routine_ptr conv_rout;
+          a_type_ptr    conv_rout_type;
+          this_match->match_level = aml_user_conversion;
+          base_conv_sym = fundamental_symbol_of(surrogate_function_conv_sym);
+          conv_rout = base_conv_sym->variant.routine.ptr;
+          this_match->conversion.routine = conv_rout;
+          this_match->conversion.routine_symbol = surrogate_function_conv_sym;
+          conv_rout_type = conv_rout->type;
+          conv_rout_type = skip_typerefs(conv_rout_type);
+          if (is_reference_type(conv_rout_type->variant.routine.return_type)) {
+            /* A conversion function returning a reference type creates
+               an lvalue. */
+            this_match->conversion.result_is_an_lvalue = TRUE;
+          }  /* if */
+        } else {
+          /* Normal case (not surrogate function). */
+          this_match->match_level = aml_exact;
+        }  /* if */
         this_match->is_match_for_this_param = TRUE;
       } else {
         /* The function requires a selector, and we have one. */
@@ -5495,26 +5516,17 @@ routine is called only in C++ mode.
     /* A surrogate function was selected.  Convert the class object to
        a pointer to function using the conversion function, then call
        the function pointed to. */
-    a_symbol_ptr base_conv_sym;
-    a_boolean    ref_type_conv;
-    a_type_ptr   conversion_type;
-    a_conv_descr conversion;
-    clear_conv_descr(&conversion);
-    base_conv_sym = fundamental_symbol_of(surrogate_function_conv_sym);
-    conversion.routine = base_conv_sym->variant.routine.ptr;
-    conversion_type = return_type_of(conversion.routine->type);
-    conversion.routine_symbol = surrogate_function_conv_sym;
+    a_type_ptr conversion_type =
+                      return_type_of(arg_match_list->conversion.routine->type);
     copy_operand(bound_function_selector, function_operand);
     conv_object_pointer_to_lvalue(function_operand);
-    /* See whether the conversion function returns a reference type. */
-    ref_type_conv = !is_pointer_type(conversion_type);
-    if (ref_type_conv) conversion.result_is_an_lvalue = TRUE;
     user_convert_operand(function_operand,
                          conversion_type,
-                         &conversion,
+                         &arg_match_list->conversion,
                          (a_conv_descr *)NULL,
                          /*force_temp_for_class_bitwise_copy=*/FALSE);
-    if (ref_type_conv) {
+    /* See whether the conversion function returns a reference type. */
+    if (arg_match_list->conversion.result_is_an_lvalue) {
       routine_type = conversion_type;
     } else {
       routine_type = type_pointed_to(conversion_type);
