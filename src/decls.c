@@ -10805,6 +10805,11 @@ continue_with_declaration:
            parameters because some source sequence entries might have been
            created (e.g., for pragmas inside the empty parameter list). */
         record_param_id_list_declarations(&func_info);
+#if GNU_EXTENSIONS_ALLOWED
+        /* Verify any parameter attributes.  Some might not be valid when
+           the function is not being defined. */
+        check_function_param_attributes(&func_info);
+#endif /* GNU_EXTENSIONS_ALLOWED */
       }  /* if */
       /* Do some checking of storage classes, but not for typedefs. */
       if (local_storage_class != (a_storage_class)sc_typedef) {

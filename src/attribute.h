@@ -213,6 +213,8 @@ extern void copy_class_struct_or_union_definition(a_type_ptr to,
 extern void check_for_invalid_param_attributes(a_symbol_ptr     sym,
                                                an_attribute_ptr attributes);
 
+extern void check_function_param_attributes(a_func_info_block_ptr func_info);
+
 extern a_boolean check_transparent_union(a_type_ptr        tp,
                                          a_source_position *pos);
 

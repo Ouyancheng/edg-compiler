@@ -1421,6 +1421,21 @@ for a parameter.
 }  /* check_for_invalid_param_attributes */
 
 
+void check_function_param_attributes(a_func_info_block_ptr func_info)
+/*
+The function with which func_info is associated has been declared but not
+defined.  Check for invalid attributes in that context.  (The attributes
+should not be associated with the parameter, but with its type.)
+*/
+{
+  a_param_id_ptr  pid = func_info->param_id_list;
+
+  for (; pid != NULL; pid = pid->next) {
+    check_for_invalid_param_attributes(pid->symbol, pid->attributes);
+  }  /* if */
+}  /* check_function_param_attributes */
+
+
 void attribute_one_time_init(void)
 /*
 Do one-time initialization of variables related to the processing of
