@@ -121,8 +121,17 @@ call the static initializer functions.
      pointers to static constructors and destructors.  Munch generates
      an array of pointers to constructors and destructors.  The array
      is linked into the executable. */
-  
   use_patch_info = (__head != NULL);
+  /* Establish that the termination routines should be called when exit()
+     is called or when main() returns normally.  This needs to be done
+     before any of the constructor routines are called so that if
+     exit is called during static initialization, any constructed objects
+     will be destroyed. */
+#if USE_ATEXIT
+  atexit(__call_dtors);
+#elif defined(sun)
+  on_exit(__call_dtors, (char *)NULL);
+#endif /* USE_ATEXIT */
   if (use_patch_info) {
     /* Walk through the linked list of constructor/destructor function
        pointers and call each initialization (constructor) function.
@@ -155,14 +164,6 @@ call the static initializer functions.
     int   pos = 0;
     while (_ctors[pos]) (*_ctors[pos++])();
   }  /* if */
-
-  /* Establish that the termination routines should be called when exit()
-     is called or when main() returns normally. */
-#if USE_ATEXIT
-  atexit(__call_dtors);
-#elif defined(sun)
-  on_exit(__call_dtors, (char *)NULL);
-#endif /* USE_ATEXIT */
 }  /* __call_ctors */
 
 /******************************************************************************
