@@ -2749,6 +2749,27 @@ describing this declaration.
     linked_symbol = NULL;
     homonym_symbol = NULL;
     sym = *symbol_ptr;
+  } else if (locator->is_qualified_name && locator->specific_symbol != NULL) {
+    if ((is_function_def || is_variable_def) &&
+        !namespace_is_enclosed_by_curr_scope(locator->specific_symbol)) {
+      /* This declaration appears within a namespace scope in which the name
+         cannot be defined -- it is a member (directly or indirectly) of a
+         namespace that is not enclosed by the current namespace scope
+         (see WP 7.3.1.4). */
+      sym_error(ec_bad_scope_for_definition, locator->specific_symbol);
+      set_to_named_error_locator(*locator);
+      linked_redecl_error = TRUE;
+      linkage = idl_none;
+      linked_symbol = NULL;
+      homonym_symbol = NULL;
+    } else {
+#if 0
+      /* This is temporary. */
+#endif /* if 0 */
+      linkage = idl_external;
+      linked_symbol = locator->specific_symbol;
+      homonym_symbol = NULL;
+    }  /* if */
   } else {
     /* Determine the linkage of this symbol. */
     linkage = id_linkage(locator, &storage_class, effective_decl_level,
@@ -2799,6 +2820,17 @@ describing this declaration.
            message, set the referenced flag in the linked symbol. */
         suppress_ext_sym_lookup = TRUE;
         mark_symbol_to_suppress_warnings(linked_symbol);
+#if 0
+      } else if (is_variable_def && !C_mode() &&
+                 !namespace_is_enclosed_by_curr_scope(linked_symbol)) {
+        /* This declaration appears within a namespace scope in which the
+           variable cannot be defined -- it is a member (directly or
+           indirectly) of a namespace that is not enclosed by the current
+           namespace scope (see WP 7.3.1.4). */
+        sym_error(ec_bad_scope_for_definition, linked_symbol);
+        set_to_named_error_locator(*locator);
+        linked_redecl_error = TRUE;
+#endif /* if 0 */
       } else {
         /* Linked symbol and new symbol are both variables.  See if they
            are compatible. */
@@ -2850,6 +2882,17 @@ describing this declaration.
            in the linked symbol. */
         suppress_ext_sym_lookup = TRUE;
         mark_symbol_to_suppress_warnings(linked_symbol);
+#if 0
+      } else if (is_function_def && !C_mode() &&
+                 !namespace_is_enclosed_by_curr_scope(linked_symbol)) {
+        /* This declaration appears within a namespace scope in which the
+           variable cannot be defined -- it is a member (directly or
+           indirectly) of a namespace that is not enclosed by the current
+           namespace scope (see WP 7.3.1.4). */
+        sym_error(ec_bad_scope_for_definition, linked_symbol);
+        set_to_named_error_locator(*locator);
+        linked_redecl_error = TRUE;
+#endif /* if 0 */
       } else {
         /* Check that the routine types are compatible. */
         a_boolean routines_compat = FALSE;
@@ -3050,18 +3093,6 @@ describing this declaration.
                                     homonym_symbol, &overload_symbol);
     }  /* if */
 skip_overloading:;
-  }  /* if */
-  if (!C_mode() && sym != NULL && (is_function_def || is_variable_def)) {
-    if (!namespace_is_enclosed_by_curr_scope(sym)) {
-      /* This declaration appears within a namespace scope in which sym
-         cannot be defined -- it is a member (directly or indirectly) of a
-         namespace that is not enclosed by the current namespace scope
-         (see WP 7.3.1.4). */
-      sym_error(ec_bad_scope_for_definition, sym);
-      sym  = NULL;
-      set_to_named_error_locator(*locator);
-      linked_redecl_error = TRUE;
-    }  /* if */
   }  /* if */
   if (linked_redecl_error) {
     /* There is a linked symbol, but it is not compatible with the new
@@ -3329,6 +3360,10 @@ skip_overloading:;
       }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
       if (is_function_def) {
+#if 0
+        /* This is temporary. */
+#endif /* if 0 */
+        if (routine_ptr->source_corresp.parent.namespace_ptr == NULL) {
         a_boolean saved_referenced_flag;
         /* If this is a definition, unlink the routine entry and relink it
            at the end of the routines list, so that routines appear in the
@@ -3350,6 +3385,10 @@ skip_overloading:;
       }  /* if */
       if (func_info->is_inline && !routine_ptr->is_inline) {
         changed_to_inline = TRUE;
+      }  /* if */
+#if 0
+      /* This is temporary. */
+#endif /* if 0 */
       }  /* if */
     }  /* if */
     if (func_info->is_inline) routine_ptr->is_inline = TRUE;
