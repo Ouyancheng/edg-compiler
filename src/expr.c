@@ -530,6 +530,8 @@ Syntax:
   if (err) {
     /* Subscripting is not allowed in this kind of expression. */
     make_error_operand(result);
+    change_operand_refs_to_error(operand_1);
+    change_operand_refs_to_error(&operand_2);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         is_class_or_error_operand(operand_1)) {
@@ -1930,6 +1932,10 @@ bound with the function in *bound_function_selector.
     /* Field selection not allowed in a template argument expression. */
     pos_error(ec_bad_templ_arg_expr_operator, &pos_curr_token);
     err = TRUE;
+  }  /* if */
+  if (err) {
+    /* Operation is not allowed in this kind of expression. */
+    change_operand_refs_to_error(operand_1);
   } else {
     /* In C++, the first operand of "->" may be a class object that is
        converted to a class pointer via an operator->() function.  The operator
@@ -2185,7 +2191,6 @@ bound with the function in *bound_function_selector.
        if there was an error in the first operand, make an error operand out
        of the result. */
     make_error_operand(result);
-    change_refs_to_error(operand_1->ref_entries_list);
   } else if (is_vacuous_destructor_reference) {
     an_expr_node_ptr node;
     /* A reference to a destructor for a class or simple type that does not
@@ -2239,7 +2244,7 @@ bound with the function in *bound_function_selector.
          This is necessary because with something like x.y where y is
          ambiguous, some versions of y might be nonstatic and some static,
          which means we do not know whether x is really used. */
-      change_refs_to_error(operand_1->ref_entries_list);
+      change_operand_refs_to_error(operand_1);
     } else {
       projection_member_sym = locator_for_curr_id.specific_symbol;
       /* See what kind of member we have. */
@@ -2408,6 +2413,8 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
   if (err) {
     /* Operator is not allowed in this kind of expression. */
     make_error_operand(result);
+    change_operand_refs_to_error(operand_1);
+    change_operand_refs_to_error(&operand_2);
   } else {
     if (is_arrow_operator &&
         (is_class_or_error_operand(operand_1) ||
@@ -2575,6 +2582,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
     /* Postfix ++/-- not allowed in constant expressions. */
     pos_error(ec_bad_constant_operator, &pos_curr_token);
     make_error_operand(result);
+    change_operand_refs_to_error(operand);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         is_class_or_error_operand(operand)) {
@@ -2771,6 +2779,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
   if (err) {
     /* Operator not allowed in this kind of expression. */
     make_error_operand(result);
+    change_operand_refs_to_error(&operand);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         is_class_or_error_operand(&operand)) {
@@ -2912,6 +2921,7 @@ operation is a pointer-to-member (see ARM 5.3).
   if (err) {
     /* Operator is not allowed in this kind of expression. */
     make_error_operand(result);
+    change_operand_refs_to_error(&operand);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         is_class_or_error_operand(&operand)) {
@@ -3034,6 +3044,7 @@ See section 3.3.3.2 of the standard.
   if (err) {
     /* Operator is not allowed in this kind of expression. */
     make_error_operand(result);
+    change_operand_refs_to_error(&operand);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         is_class_or_error_operand(&operand)) {
@@ -3135,6 +3146,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &start_position);
     make_error_operand(result);
+    change_operand_refs_to_error(&operand);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              is_class_or_error_operand(&operand)) {
@@ -4644,10 +4656,7 @@ type conversions.
        from a reference. */
     if (cast_to_reference) operand->came_from_reference = TRUE;
   }  /* if */
-  if (err) {
-    conv_to_error_operand(operand);
-    change_refs_to_error(operand->ref_entries_list);
-  }  /* if */
+  if (err) conv_to_error_operand(operand);
   operand->position = *start_position;
 }  /* do_cast */
 
@@ -4960,6 +4969,8 @@ be of integral type.  See section 3.3.5 of the standard.
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
+    change_operand_refs_to_error(operand_1);
+    change_operand_refs_to_error(&operand_2);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              (is_class_or_error_operand(operand_1) ||
@@ -5053,6 +5064,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
+    change_operand_refs_to_error(operand_1);
+    change_operand_refs_to_error(&operand_2);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              (is_class_or_error_operand(operand_1) ||
@@ -5231,6 +5244,8 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
+    change_operand_refs_to_error(operand_1);
+    change_operand_refs_to_error(&operand_2);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              (is_class_or_error_operand(operand_1) ||
@@ -5400,6 +5415,8 @@ standard.
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
+    change_operand_refs_to_error(operand_1);
+    change_operand_refs_to_error(&operand_2);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              (is_class_or_error_operand(operand_1) ||
@@ -5541,6 +5558,8 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
+    change_operand_refs_to_error(operand_1);
+    change_operand_refs_to_error(&operand_2);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              (is_class_or_error_operand(operand_1) ||
@@ -5681,6 +5700,8 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
+    change_operand_refs_to_error(operand_1);
+    change_operand_refs_to_error(&operand_2);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              (is_class_or_error_operand(operand_1) ||
@@ -5834,6 +5855,8 @@ standard.
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
+    change_operand_refs_to_error(operand_1);
+    change_operand_refs_to_error(&operand_2);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              (is_class_or_error_operand(operand_1) ||
@@ -6161,6 +6184,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
+    change_operand_refs_to_error(operand_1);
+    change_operand_refs_to_error(&operand_2);
+    change_operand_refs_to_error(&operand_3);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus) {
     if (types_are_compatible(operand_2.type, operand_3.type)) {
@@ -6506,6 +6532,8 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
   if (err) {
     /* Operator is not allowed in this kind of expression. */
     make_error_operand(result);
+    change_operand_refs_to_error(operand_1);
+    change_operand_refs_to_error(&operand_2);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         is_class_struct_union_type(operand_1->type)) {
@@ -6609,6 +6637,8 @@ See section 3.3.16 of the standard.
   if (err) {
     /* Operator is not allowed in this kind of expression. */
     make_error_operand(result);
+    change_operand_refs_to_error(operand_1);
+    change_operand_refs_to_error(&operand_2);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         (is_class_or_error_operand(operand_1) ||
@@ -6773,6 +6803,7 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
   if (err) {
     /* Operator not allowed in this kind of expression. */
     make_error_operand(result);
+    if (expr_present) change_operand_refs_to_error(&operand);
   } else {
     /* Build the throw node. */
     throw_node = alloc_expr_node((an_expr_node_kind)enk_throw);
@@ -6829,7 +6860,7 @@ EOPT_DISALLOW_COMMA_OPERATOR).
 {
   an_operand        operand_2;
   a_source_position operator_position;
-  a_type_ptr        result_type;
+  a_type_ptr        result_type, operation_type;
   a_boolean         err = FALSE, processed = FALSE;
   a_boolean         result_is_an_lvalue = FALSE;
 
@@ -6855,6 +6886,8 @@ EOPT_DISALLOW_COMMA_OPERATOR).
   if (err) {
     /* Operator is not allowed in this kind of expression. */
     make_error_operand(result);
+    change_operand_refs_to_error(operand_1);
+    change_operand_refs_to_error(&operand_2);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         (is_class_or_error_operand(operand_1) ||
@@ -6880,25 +6913,25 @@ EOPT_DISALLOW_COMMA_OPERATOR).
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
       /* Simplify the void expression. */
       simplify_void_operand(operand_1);
-      /* The result type is the type of the second operand. */
-      result_type = operand_2.type;
       /* In C++ mode, an lvalue in the second operand is preserved.  In C
          mode, an lvalue is converted to an rvalue. */
       if (C_dialect == C_dialect_cplusplus) {
         result_is_an_lvalue = is_an_lvalue(&operand_2);
-        if (result_is_an_lvalue) result_type = make_pointer_type(result_type);
       } else {
         conv_lvalue_to_rvalue(&operand_2);
       }  /* if */
+      /* The result type is the type of the second operand. */
+      operation_type = result_type = operand_2.type;
+      if (result_is_an_lvalue) operation_type = make_pointer_type(result_type);
       /* Make a comma operator expression. */
       build_binary_result_operand(operand_1, &operand_2,
                                   (an_expr_operator_kind)eok_comma,
-                                  result_type, result);
+                                  operation_type, result);
       /* In C++ mode, the result is an lvalue if the second operation
          is an lvalue. */
       if (result_is_an_lvalue) {
         result->state = operand_2.state;
-        result->type = operand_2.type;
+        result->type = result_type;
         result->came_from_reference = operand_2.came_from_reference;
         result->variant.expression->variant.operation.
                                  returns_lvalue_instead_of_usual_rvalue = TRUE;
@@ -7193,6 +7226,8 @@ variable:
               } else {
                 /* The identifier is const and has a known constant value. */
                 make_constant_operand(con_val, result);
+                /* The value of the variable is used. */
+                change_ref_kinds(rep, srk_use);
               }  /* if */
             } else {
               /* All other cases are not allowed. */
@@ -7407,6 +7442,7 @@ normal_function:
                expression, which is an error (ARM 8.2.6); or, any reference
                except in a sizeof. */
             error_and_make_error_operand(ec_param_not_allowed, result);
+            change_refs_to_error(rep);
           } else {
             /* Use of a parameter in a sizeof expression, something like
                  void f(a, int b[sizeof(a)]);
