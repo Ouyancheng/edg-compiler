@@ -3206,6 +3206,7 @@ caller is responsible for sorting that out.)
       routine_type = ssep->assoc_type;
       check_assertion_str(routine_type != NULL,
                           "ensure_il_scope_exists: routine_type is NULL");
+      routine_type = skip_typerefs(routine_type);
       routine_type->variant.routine.extra_info->prototype_scope = sp;
       sp->variant.assoc_type = routine_type;
     }  /* if */
@@ -4385,6 +4386,7 @@ return the original member type.
       /* Make a new function type with the right "this" class.  Note that
          there is no sharing of types going on here, so this may be
          wasteful if called a lot. */
+      a_type_qualifier_set	old_qualifiers;
       /* Build a type for the new "this" parameter.  Start with the new class
          and build up, adding the qualifiers (both under and over the
          pointer type) from the old "this" type. */
@@ -4393,12 +4395,19 @@ return the original member type.
       new_this_type = make_pointer_type(new_this_type);    
       new_this_type = make_identically_qualified_type(new_this_type,
                                                       old_this_type);
+      /* Strip any qualifiers off of the original type.  These will be
+         added back to the new type later. */
+      old_qualifiers = get_type_qualifiers(member_type);
+      member_type = skip_typerefs(member_type);
       /* Allocate the new function type and copy into it. */
       new_member_type = alloc_type((a_type_kind)tk_routine);
       copy_type(member_type, new_member_type);
       /* Insert the new "this" parameter type. */
       new_member_type->variant.routine.extra_info->implicit_this_param_type =
                                                                  new_this_type;
+      if (old_qualifiers != TQ_NONE) {
+        make_qualified_type(new_member_type, old_qualifiers);
+      }  /* if */
       member_type = new_member_type;
     }  /* if */
   }  /* if */
@@ -4697,6 +4706,7 @@ Copy the type entry "from" to "to".
   a_dependent_type_fixup_kind   dtf_kind;
 
   from_kind = from->kind;
+  check_assertion(from_kind == to->kind);
   if (from_kind == (a_type_kind)tk_routine) {
     /* For a routine type, preserve the type supplement pointer for the
        copy below. */
@@ -4747,6 +4757,8 @@ type in a function definition is based on a typedef).
   a_param_type_ptr  old_ptp, new_ptp, prev_new_ptp;
 
   copy_type(from_type, to_type);
+  from_type = skip_typerefs(from_type);
+  to_type = skip_typerefs(to_type);
   old_ptp = from_type->variant.routine.extra_info->param_type_list;
   prev_new_ptp = NULL;
   for (; old_ptp != NULL; old_ptp = old_ptp->next) {
@@ -4783,7 +4795,8 @@ points to a default constructor routine entry.
 
   check_assertion(ctor_rout->special_kind ==
                                   (a_special_function_kind)sfk_constructor);
-  ptp = ctor_rout->type->variant.routine.extra_info->param_type_list;
+  ptp = skip_typerefs(ctor_rout->type)->
+                                  variant.routine.extra_info->param_type_list;
   /* There are no parameters or if the first (and therefore its successors,
      if any) has a default argument expression, then this is a default
      constructor. */
@@ -4811,7 +4824,8 @@ this will show what restrictions are placed on the object being copied.
      parameter is reference-to-class or reference-to-qualified-class where
      "class" is the class of which it is a member function, and
      (2) the function can be called with only one argument. */
-  ptp = ctor_rout->type->variant.routine.extra_info->param_type_list;
+  ptp = skip_typerefs(ctor_rout->type)->
+                                  variant.routine.extra_info->param_type_list;
   /* If the param type entry is non-NULL there is at least one argument.  If
      there is a second argument and it has a default expression, the function
      call need not explicitly mention the second argument. */
