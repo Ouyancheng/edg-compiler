@@ -1984,14 +1984,20 @@ checking instead of equivalence checking).
            equivalent to anything. */
         if ((cssp_1->is_nonreal_class && cssp_2->is_nonreal_class) ||
             error_matches_anything) {
+          an_equiv_templ_arg_options_set    eta_options = ETA_NO_OPTIONS;
+          if (error_matches_anything) {
+            eta_options |= ETA_ERROR_MATCHES_ANYTHING;
+          }  /* if */
+          if (cssp_1->class_template->
+                                   variant.template_info->is_nonreal_member) {
+            eta_options |= ETA_IS_NONREAL_MEMBER;
+          }  /* if */
           if (equiv_template_arg_lists(
                              type_1->variant.class_struct_union.extra_info->
                                                             template_arg_list,
                              type_2->variant.class_struct_union.extra_info->
                                                             template_arg_list,
-                             error_matches_anything,
-                             (a_boolean)cssp_1->class_template->
-                                   variant.template_info->is_nonreal_member)) {
+                             eta_options)) {
             equiv = TRUE;
           }  /* if */
         }  /* if */

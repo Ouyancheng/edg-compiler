@@ -2307,26 +2307,27 @@ and the class instantiation will detect the runaway case.
 }  /* define_template_static_data_member */
 
 
-a_boolean equiv_template_arg_lists(a_template_arg_ptr list1,
-                                   a_template_arg_ptr list2,
-                                   a_boolean          error_matches_anything,
-				   a_boolean	      is_nonreal_member)
+a_boolean equiv_template_arg_lists(
+				a_template_arg_ptr list1,
+				a_template_arg_ptr list2,
+				an_equiv_templ_arg_options_set	options)
 /*
 Return TRUE if the two linked lists of template arguments for a given template
 class or template function are equivalent -- that is, if corresponding type
 arguments refer to the same type and corresponding constant arguments refer to
-the same constant.  If error_matches_anything is TRUE, an error type
-or constant will match anything (this is used for compatibility checking
-instead of equivalence checking).  is_nonreal_member indicates that the
-template is a member of a nonreal class and has no template parameter
-list.  In such cases, a NULL argument list, and argument lists of different
-lengths are permitted. 
+the same constant.
 */
 {
-  a_boolean           equiv;
-  a_template_arg_ptr  arg1 = list1, arg2 = list2;
+  a_boolean		equiv;
+  a_template_arg_ptr	arg1 = list1, arg2 = list2;
+  a_boolean		is_nonreal_member;
+  a_boolean		error_matches_anything;
+  a_boolean		ignore_unknown_arg_values;
 
   db_enter(4, "equiv_template_arg_lists");
+  is_nonreal_member = (options & ETA_IS_NONREAL_MEMBER) != 0;
+  error_matches_anything = (options & ETA_ERROR_MATCHES_ANYTHING) != 0;
+  ignore_unknown_arg_values = (options & ETA_IGNORE_UNKNOWN_ARG_VALUES) != 0;
   /* There is no way to produce a NULL template argument list, so the real
      code doesn't need to check for that. */
   check_assertion_str2(is_nonreal_member || (list1 != NULL && list2 != NULL),
@@ -2353,7 +2354,10 @@ lengths are permitted.
       /* Argument in the form of an operand cannot be compared. */
       check_assertion(!arg1->constant_is_an_arg_operand &&
                       !arg2->constant_is_an_arg_operand);
-      if (eq_constants(con1, con2) ||
+      if (ignore_unknown_arg_values &&
+          (con1 == NULL || con2 == NULL)) {
+        /* An argument with no specified value.  Treat this as a match. */
+      } else if (eq_constants(con1, con2) ||
           (error_matches_anything &&
            (is_error_constant(con1) || is_error_constant(con2)))) {
         /* Okay. */
@@ -2366,7 +2370,10 @@ lengths are permitted.
          mismatch. */
       a_type_ptr type1 = arg1->variant.type;
       a_type_ptr type2 = arg2->variant.type;
-      if (identical_types(type1, type2) ||
+      if (ignore_unknown_arg_values &&
+          (type1 == NULL || type2 == NULL)) {
+        /* An argument with no specified value.  Treat this as a match. */
+      } else if (identical_types(type1, type2) ||
           (error_matches_anything &&
            (is_error_type(type1) || is_error_type(type2)))) {
         /* Okay. */
@@ -2461,11 +2468,13 @@ included in the search.
   a_type_ptr                        class_type;
   a_template_symbol_supplement_ptr  tssp;
   a_template_arg_ptr                tap;
+  an_equiv_templ_arg_options_set    eta_options = ETA_NO_OPTIONS;
 
   db_enter(3, "find_template_class");
   check_assertion(class_template_sym->kind ==
                                             (a_symbol_kind)sk_class_template);
   tssp = class_template_sym->variant.template_info;
+  if (tssp->is_nonreal_member) eta_options |= ETA_IS_NONREAL_MEMBER;
   sym = NULL;
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
   if (prototype_allowed) {
@@ -2475,9 +2484,7 @@ included in the search.
          in matches it. */
       old_list = prototype_sym->variant.class_struct_union.type->
                      variant.class_struct_union.extra_info->template_arg_list;
-      if (equiv_template_arg_lists(old_list, *new_list,
-                                   /*error_matches_anything=*/FALSE,
-                                   (a_boolean)tssp->is_nonreal_member)) {
+      if (equiv_template_arg_lists(old_list, *new_list, eta_options)) {
         /* A match.  Set sym which will suppress any further search. */
         sym = prototype_sym;
       }  /* if */
@@ -2498,9 +2505,7 @@ included in the search.
            the list passed in matches it. */
         old_list = ps_prototype_sym->variant.class_struct_union.type->
                       variant.class_struct_union.extra_info->template_arg_list;
-        if (equiv_template_arg_lists(old_list, *new_list,
-                                     /*error_matches_anything=*/FALSE,
-                                     (a_boolean)tssp->is_nonreal_member)) {
+        if (equiv_template_arg_lists(old_list, *new_list, eta_options)) {
 #if DEBUG
           if (debug_level >= 3) db_symbol(sym, "found: ", 2);
 #endif /* DEBUG */
@@ -2524,9 +2529,7 @@ included in the search.
          already been created.  See if the list passed in matches it. */
       old_list = sym->variant.type->
                      variant.class_struct_union.extra_info->template_arg_list;
-      if (equiv_template_arg_lists(old_list, *new_list,
-                                   /*error_matches_anything=*/FALSE,
-                                   (a_boolean)tssp->is_nonreal_member)) {
+      if (equiv_template_arg_lists(old_list, *new_list, eta_options)) {
         /* We've found a match.  Remove the found symbol from its current
            position in the instantiation list and add it to the front. */
         if (prev_sym != NULL) {
@@ -4488,6 +4491,7 @@ type should not be used in the matching process.
   for (tip = tssp->variant.function.instantiations;
        tip != NULL;
        tip = tip->next) {
+    a_routine_ptr	rout;
     /* We used to skip entries that represent specific declarations.
        This is no longer done because these entries must be examined this
        routine is called during instantiation pragma processing. */
@@ -4495,7 +4499,16 @@ type should not be used in the matching process.
     /* Ignore symbols for which instance_sym has not yet been set.  This
        happens when verify_routine_type_matches_template is called. */
     if (sym == NULL) continue;
-    rout_type = skip_typerefs(sym->variant.routine.ptr->type);
+    rout = sym->variant.routine.ptr;
+    rout_type = skip_typerefs(rout->type);
+    if (explicit_arg_list != NULL) {
+      if (!equiv_template_arg_lists(*templ_arg_list, rout->template_arg_list,
+                                    ETA_IGNORE_UNKNOWN_ARG_VALUES)) {
+        /* The explicitly specified template argument list does not match
+           the one associated with this instance. */
+        continue;
+      }  /* if */
+    }  /* if */
     if (is_decl_context) {
       /* In declaration contexts we do not yet know whether the type
          has an implicit this type.  Consequently, a NULL implicit this
@@ -5069,9 +5082,7 @@ structure.
   for (; tip != NULL; tip = tip->next) {
     a_template_arg_ptr	arg_list;
     arg_list = tip->instance_sym->variant.routine.ptr->template_arg_list;
-    if (equiv_template_arg_lists(arg_list, *new_list,
-                                 /*error_matches_anything=*/FALSE,
-                                 /*is_nonreal_member=*/FALSE)) {
+    if (equiv_template_arg_lists(arg_list, *new_list, ETA_NO_OPTIONS)) {
       /* We've found a match.  Remove the found function instantiation entry
          from its current position in the instantiation list and add it to
          the front. */

@@ -31,8 +31,34 @@ typedef int a_template_decl_options_set;
 
 #define TDO_NO_OPTIONS		0x0
 #define TDO_EXTERN		0x1
-				/* TRUE if the "extern" keyword was specified
-				   before the "template" keyword. */
+			/* TRUE if the "extern" keyword was specified
+			   before the "template" keyword. */
+
+/*
+Flags used to specify options to equiv_template_arg_lists.
+*/
+typedef int an_equiv_templ_arg_options_set;
+
+#define ETA_NO_OPTIONS			0x0
+#define ETA_ERROR_MATCHES_ANYTHING	0x1
+			/* TRUE if an error type or constant will match
+			   anything (this is used for compatibility checking
+			   instead of equivalence checking). */
+#define ETA_IS_NONREAL_MEMBER		0x2
+			/* TRUE if the template is a member of a nonreal
+			   class and has no template parameter list.  In such
+			   cases, a NULL argument list, and argument lists of
+			   different lengths are permitted.  */
+#define ETA_IGNORE_UNKNOWN_ARG_VALUES	0x4
+			/* TRUE if some of the arguments may have NULL type
+			   or constant pointers and should be ignored
+			   (i.e., be considered to match) for purposes
+			   of this comparison.  This is used when
+			   comparing an incomplete argument list specified
+			   as an explicit function template argument list
+			   with a complete list.  The unspecified arguments
+			   will be represented in the list with NULL type
+			   or constant pointers. */
 
 /*
 Structure used to keep track of the class template partial specializations
@@ -186,10 +212,9 @@ extern void check_for_uninstantiated_template_class(a_type_ptr  type);
 extern void f_instantiate_template_class(a_type_ptr  type);
 
 extern a_boolean equiv_template_arg_lists(
-                                    a_template_arg_ptr list1,
-                                    a_template_arg_ptr list2,
-                                    a_boolean          error_matches_anything,
-                                    a_boolean          is_nonreal_member);
+				a_template_arg_ptr list1,
+				a_template_arg_ptr list2,
+				an_equiv_templ_arg_options_set	options);
 
 extern void prescan_function_template_default_arg_expr(a_param_type_ptr  ptp);
 
