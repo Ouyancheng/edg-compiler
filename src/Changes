@@ -1,5 +1,29 @@
 Version 2.32
 
+3/21/96   Default initialization of fields in aggregate initialization
+
+A bug has been fixed in aggregate initialization: implicit default
+initialization of fields is now done in accord with recent changes to 8.5.1
+[dcl.init.aggr].  There are two changes in behavior related to this change.
+One is that default initializers are now called where they weren't before
+-- for example:
+
+  struct S { S(); };
+  struct T {
+    int i, j;
+    S s;
+  };
+  T t = { 1 , 2 };    // S::S() is now called for initialization of t.s
+
+The other is that an error is no longer issued on a const member that is
+default-initialized -- for instance:
+
+  struct S {
+    const int i, j;
+  };
+  S s = { 1 };        // spurious error is no longer issued -- s.j is
+                      //   default-initialized to zero
+
 3/8/96    cv-qualifiers retained on class rvalues in C++
 
 In C++, unlike in C, class rvalues may have cv-qualified types.  These
