@@ -92,10 +92,13 @@ Determine if this is a WIN32 (e.g., Windows NT or Windows 95) system.
 /*
 Determine if this is MS-DOS and if this is Turbo-C or Microsoft C.  No
 other MS-DOS compilers are considered at this time.  If this is MS-DOS
-(or, more likely, Windows) set EDG_MSDOS.  if this is Windows, EDG_WIN32
-will also be set.  Note that EDG_MSDOS will be set for DOS and Windows
-3.1, but will also be set for Windows 95/98/NT.  EDG_WIN32 will only
-be set for 95/98/NT.
+(or, more likely, an early version of Windows) set EDG_MSDOS.  If this is
+Windows 95 or later, EDG_WIN32 will also be set.  Note that EDG_MSDOS
+will be set for DOS and Windows 3.1, and may also be set for Windows
+95/98/NT for older versions of the Microsoft compiler.  EDG_MSDOS is
+not set for newer versions of the Microsoft compiler (it is not set in
+version 6.x, and may not be set in some earlier versions).  EDG_WIN32
+will only be set for 95/98/NT.
 */
 #ifndef EDG_MSDOS
 #if defined(MSDOS) || defined(__MSDOS__)
