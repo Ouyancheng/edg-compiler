@@ -565,6 +565,12 @@ and indentation is the indentation desired.
           if (debug_level >= 4) put_string("has ptr for proxy");
         }  /* if */
       }
+      if (temp_type->variant.class_struct_union.any_const_member) {
+        put_string("has const member");
+      }  /* if */
+      if (temp_type->variant.class_struct_union.any_mutable_member) {
+        put_string("has mutable member");
+      }  /* if */
       if (temp_type->declared_in_function_prototype) {
         put_string("in func prototype");
       }  /* if */
@@ -582,6 +588,9 @@ and indentation is the indentation desired.
         a_field_ptr  fp = sym->variant.field.ptr;
         if (C_dialect == C_dialect_cplusplus) {
           put_access(fp->source_corresp.access);
+        }  /* if */
+        if (fp->is_mutable) {
+          put_string("mutable");
         }  /* if */
         (void)sprintf(buffer, "offset");
         apo_sym = sym->variant.field.anonymous_parent_object;
