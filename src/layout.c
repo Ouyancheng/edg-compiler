@@ -2121,6 +2121,36 @@ virtual base class pointer is shared with some other base class.
 }  /* fixup_shared_virtual_base_class_offsets */
 
 
+static void check_base_class_offsets(a_layout_block *lob)
+/*
+Issue an error if any base class offset exceeds the maximum that is allowed.
+*/
+{
+  a_base_class_ptr  bcp;
+
+  if (lob->byte_offset <= targ_max_base_class_offset) {
+    /* The entire class is within the limit, so no base class offset can
+       exceed it. */
+  } else if (lob->any_overflow) {
+    /* An error has already been issued for the class.  Don't bother with
+       another (possibly redundant) error. */
+  } else {
+    /* Check the base classes. */
+    bcp = base_classes_of(lob->class_type);
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (bcp->offset > targ_max_base_class_offset) {
+        /* Issue an error only on the first base class that exceeds the
+           limit. */
+        pos_sy2_error(ec_base_class_offset_too_large, &bcp->decl_position,
+                     (a_symbol_ptr)bcp->type->source_corresp.assoc_info,
+                     (a_symbol_ptr)lob->class_type->source_corresp.assoc_info);
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* check_base_class_offsets */
+
+    
 void do_class_layout(a_type_ptr  class_type)
 /*
 Allocate the subobjects defined for class_type -- its nonvirtual and
@@ -2156,7 +2186,10 @@ for handling virtual bases and functions.
   /* Adjust the total size of the class to be consistent with the
      overall alignment required for the class. */
   if (!do_alignment(&lob.byte_offset, &lob.bit_offset, lob.alignment)) {
-    if (!lob.any_overflow) error(struct_too_large_error());
+    if (!lob.any_overflow) {
+      error(struct_too_large_error());
+      lob.any_overflow = TRUE;
+    }  /* if */
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     /* Go through all the indirect base classes and compute their
@@ -2166,6 +2199,9 @@ for handling virtual bases and functions.
        fixup on their pointer offsets and (in cfront compatibility mode)
        their data section offsets. */
     fixup_shared_virtual_base_class_offsets(class_type);
+    /* Issue a diagnostic any the offset assignment to any base class
+       is too large. */
+    check_base_class_offsets(&lob);
   }  /* if */
   /* Record the overall size and alignment in the class's type entry. */
   class_type->size = lob.byte_offset;
