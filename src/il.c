@@ -3073,10 +3073,7 @@ put it on a list of constants).
       scp = NULL;
     }  /* if */
     if (scp == NULL) {
-      /* No identical constant exists in the table, so create one.  Note that
-         in fe_wrapup shareable constants are moved onto the file-scope
-         constant list.  Here, they cannot be, since the "next" field is needed
-         to link them in the shareable constants table. */
+      /* No identical constant exists in the table, so create one. */
       if (alloc_in_function_scope) {
         scp = alloc_constant(cp->kind);
       } else {
