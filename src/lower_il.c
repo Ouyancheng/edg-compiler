@@ -12482,7 +12482,8 @@ the needed-flag walk for the file scope.
     for (rout = il_header.primary_scope->routines;
          rout != NULL;
          rout = rout->next) {
-      if (any_exports &&
+      if (any_exports && is_primary_translation_unit &&
+          !rout->source_corresp.copied_from_secondary_trans_unit &&
           rout->storage_class == (a_storage_class)sc_static) {
         /* When exported templates are present, any static is potentially
            referenced (directly or indirectly) from an instantiation and
@@ -12508,11 +12509,7 @@ the needed-flag walk for the file scope.
           }  /* if */
           externalize_source_correspondence(&rout->source_corresp,
                                             /*is_variable=*/FALSE);
-          if (translation_unit_needed_only_for_exported_templates) {
-            rout->storage_class = (a_storage_class)sc_extern;
-          } else {
-            rout->storage_class = (a_storage_class)sc_unspecified;
-          }  /* if */
+          rout->storage_class = (a_storage_class)sc_unspecified;
 #if MAINTAIN_NEEDED_FLAGS
           mark_as_needed((char *)rout, (an_il_entry_kind)iek_routine);
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -12526,7 +12523,8 @@ the needed-flag walk for the file scope.
       char *var_name = var->source_corresp.name;
 #endif /* !USE_INIT_SECTION_IN_GENERATED_C */
 
-      if (any_exports &&
+      if (any_exports && is_primary_translation_unit &&
+          !var->source_corresp.copied_from_secondary_trans_unit &&
           var->storage_class == (a_storage_class)sc_static) {
         /* When exported templates are present, any static is potentially
            referenced (directly or indirectly) from an instantiation and
@@ -12555,11 +12553,7 @@ the needed-flag walk for the file scope.
         } else {
           externalize_source_correspondence(&var->source_corresp,
                                             /*is_variable=*/TRUE);
-          if (translation_unit_needed_only_for_exported_templates) {
-            var->storage_class = (a_storage_class)sc_extern;
-          } else {
-            var->storage_class = (a_storage_class)sc_unspecified;
-          }  /* if */
+          var->storage_class = (a_storage_class)sc_unspecified;
 #if MAINTAIN_NEEDED_FLAGS
           mark_as_needed((char *)var, (an_il_entry_kind)iek_variable);
 #endif /* MAINTAIN_NEEDED_FLAGS */
