@@ -382,14 +382,16 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
             hnp->partially_hidden_by_microsoft_injected_class_name = TRUE;
           }  /* if */
           check_assertion(in_file_scope(entity));
-          if (!(is_type_symbol(fund_hidden_sym) &&
-                is_type_symbol(fund_hiding_sym)) ||
+          if (fund_hiding_sym == NULL ||
+              !(is_type_symbol(fund_hidden_sym) &&
+                is_type_symbol(fund_hiding_sym) &&
+                fund_hiding_sym->variant.type.is_injected_class_name) ||
               !f_identical_types(type_symbol_type(fund_hidden_sym),
                                  type_symbol_type(fund_hiding_sym),
                                  ITF_NO_FLAGS)) {
-            /* It is possible that the hiding symbol is a typedef for the
-               hidden symbol (e.g., the injected class name could be such a
-               typedef).  In that case, no qualification is needed. */
+            /* It is possible that an injected class name hides another type
+               symbol that refers to the same IL entity.  In that case, no
+               qualification is needed. */
             hnp->qualification_needed = TRUE;
           }  /* if */
         }  /* if */
