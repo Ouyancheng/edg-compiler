@@ -126,6 +126,8 @@ extern void update_instantiation_required_flag(
                                         a_boolean               value,
 				        a_boolean	        defer_linline);
 
+extern void process_deferred_instantiation_requests(void);
+
 extern void instantiation_wrapup(void);
 
 extern void templates_one_time_init(void);

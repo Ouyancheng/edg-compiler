@@ -66,19 +66,58 @@ typedef struct a_routine_fixup {
 			   function body. */
 } a_routine_fixup;
 
+
+/*
+Structure for keeping track of classes for which fixup processing
+must still be done.  The fixups are deferred until the outermost
+class definition is complete.
+*/
+typedef struct a_class_fixup *a_class_fixup_ptr;
+typedef struct a_class_fixup {
+  a_class_fixup_ptr
+		next;
+			/* Next in a linked list of class fixup blocks,
+			   each of which is associated with a particular
+			   class definition.  Note that only the outermost
+			   class is included on this list.  Nested classes
+			   defined within another class definition are not
+			   included on the list. */
+  a_type_ptr	class_type;
+			/* Pointer to the class type to be fixed-up. */
+  a_boolean	is_template_instantiation;
+			/* TRUE if the class is a generated class template
+                           instance. */
+} a_class_fixup;
+
+static a_class_fixup_ptr
+		class_fixup_list;
+			/* Pointer to a list of class fixup entries for
+			   class definitions for which delayed scan
+			   fixup must be done. */
+
+static a_class_fixup_ptr
+		class_fixup_list_tail;
+			/* End of the class_fixup_list. */
+
 /* The routine fixup entry for the current class member declaration. */
 static a_routine_fixup_ptr curr_routine_fixup;
 
 /* Previously allocated fixup entries available for reuse. */
 static a_routine_fixup_ptr avail_routine_fixup;
 
+/* Previously allocated fixup entries available for reuse. */
+static a_class_fixup_ptr avail_class_fixup;
+
 
 #if DEBUG
 /*
-Counter to track total use of memory.
+Counters to track total use of memory.
 */
 static unsigned long
 		num_routine_fixups_allocated;
+
+static unsigned long
+		num_class_fixups_allocated;
 
 unsigned long db_show_routine_fixups_used(unsigned long grand_total)
 {
@@ -88,6 +127,16 @@ unsigned long db_show_routine_fixups_used(unsigned long grand_total)
                      num_routine_fixups_allocated, a_routine_fixup);
   return grand_total;
 }  /* db_show_routine_fixups_used */
+
+
+unsigned long db_show_class_fixups_used(unsigned long grand_total)
+{
+  unsigned long  num, size, total;
+
+  db_space_used_lost("class fixups", avail_class_fixup,
+                     num_class_fixups_allocated, a_class_fixup);
+  return grand_total;
+}  /* db_show_class_fixups_used */
 #endif /* DEBUG */
 
 
@@ -157,6 +206,63 @@ with the indicated scope stack entry.
   }  /* if */
   ssep->last_routine_fixup = rfp;
 }  /* add_to_routine_fixup_list */
+
+
+static a_class_fixup_ptr alloc_class_fixup(void)
+/*
+Allocate (or take from the available-list) a class fixup entry and
+initialize it.
+*/
+{
+  a_class_fixup_ptr  cfp;
+  
+  if (avail_class_fixup != NULL) {
+    /* Reuse a previously allocated entity. */
+    cfp = avail_class_fixup;
+    avail_class_fixup = cfp->next;
+  } else {
+    /* Allocate memory for a new entity. */
+    cfp = (a_class_fixup_ptr)alloc_fe(sizeof(a_class_fixup));
+#if DEBUG
+    num_class_fixups_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  /* Clear the entity. */
+  cfp->next = NULL;
+  cfp->class_type = NULL;
+  cfp->is_template_instantiation = FALSE;
+  return cfp;
+}  /* alloc_class_fixup */
+
+
+static void free_class_fixup(a_class_fixup_ptr  cfp)
+/*
+Return a class fixup entry to the available list.
+*/
+{
+  cfp->next = avail_class_fixup;
+  avail_class_fixup = cfp;
+}  /* free_class_fixup */
+
+
+static
+void add_to_class_fixup_list(a_type_ptr		class_type,
+ 			     a_boolean 		is_template_instantiation)
+/*
+Add a class fixup entry for class_type to the class fixup list.
+*/
+{
+  a_class_fixup_ptr	cfp;
+
+  cfp = alloc_class_fixup();
+  cfp->class_type = class_type;
+  cfp->is_template_instantiation = is_template_instantiation;
+  if (class_fixup_list == NULL) class_fixup_list = cfp;
+  if (class_fixup_list_tail != NULL) {
+    class_fixup_list_tail->next = cfp;
+  }  /* if */
+  class_fixup_list_tail = cfp;
+}  /* add_to_class_fixup_list */
 
 
 /*
@@ -784,6 +890,26 @@ routine recursively for each nested class.
   cssp->routine_fixup_list = NULL;
   db_exit();
 }  /* delayed_scan_fixup_for_class */
+
+
+void process_deferred_class_fixups(void)
+/*
+Call delayed_scan_fixup_for_class for any classes defined while another
+class definition was already pending.
+*/
+{
+  a_class_fixup_ptr	cfp;
+  a_class_fixup_ptr	next_cfp;
+
+  for (cfp = class_fixup_list; cfp != NULL; cfp = next_cfp) {
+    delayed_scan_fixup_for_class(cfp->class_type,
+                                 cfp->is_template_instantiation);
+    next_cfp = cfp->next;
+    free_class_fixup(cfp);
+  }  /* for */
+  class_fixup_list = NULL;
+  class_fixup_list_tail = NULL;
+}  /* process_deferred_class_fixups */
 
 
 #if DEBUG
@@ -8632,6 +8758,8 @@ completed (C++ only).
   db_enter(3, "scan_class_definition");
   initialize_class_def_state(&class_state);
   class_state.is_local_class = is_local_class;
+  /* Increment the counter of class definitions currently in progress. */
+  pending_class_definitions++;
   /* Set a flag to indicate whether we scanning a class template declaration
      for the sake of producing a "prototype instantiation" of the template.
      Note that this is only set for the outermost class, not for classes
@@ -9122,9 +9250,12 @@ next_declaration:
       /* Rescan tokens that were cached (inline function definitions, default
          arguments). */
       if (!tag_sym->is_class_member || delayed_nested_class_def) {
-        /* For non-nested classes do delayed processing for default argument
-           declarations and inline member function definitions. */
-        delayed_scan_fixup_for_class(class_type, is_template_instantiation);
+        /* For non-nested classes add the class to the list of classes for
+           which delayed processing for default argument declarations and
+           inline member function definitions must be done.  The actual
+           processing will be done when all pending class definitions have
+           been completed. */
+        add_to_class_fixup_list(class_type, is_template_instantiation);
       }  /* if */
       curr_routine_fixup = saved_routine_fixup;
       if (cssp->is_prototype_instantiation) {
@@ -9150,6 +9281,24 @@ next_declaration:
         }  /* if */
       }  /* if */
     }  /* if */
+  }  /* if */
+  /* Decrement the counter of class definitions currently in progress. */
+  pending_class_definitions--;
+#if 0
+#else
+  /* This is currently done unconditionally until the revised class
+     reactivation facility is provided. */
+    process_deferred_class_fixups();
+#endif
+  if (pending_class_definitions == 0) {
+    /* While one or more class definitions are pending, the fixup of
+       member function bodies and default arguments is deferred until
+       all class definitions have been complete.  Nonclass template
+       definitions are also deferred.  When the count of pending class
+       definitions is zero, all class definitions have been completed
+       and any deferred class fixups and instantiations may now be done. */
+    process_deferred_class_fixups();
+    process_deferred_instantiation_requests();
   }  /* if */
 
   db_exit();
@@ -9680,15 +9829,19 @@ void class_decl_init(void)
 Initializations for class declaration processing.
 */
 {
-  /* Initialize the list of freed delayed-scan-fixup entries. */
+  /* Global variables in class_decl.h. */
+  pending_class_definitions = 0;
+  /* Static variables in class_decl.c. */
   avail_routine_fixup = NULL;
+  avail_class_fixup = NULL;
   curr_routine_fixup = NULL;
-  /* Initialize the list of freed derivation-step entries. */
   avail_derivation_steps = NULL;
-  /* Initialize the list of freed override-registry entries. */
   avail_override_registry_entries = NULL;
+  class_fixup_list = NULL;
+  class_fixup_list_tail = NULL;
 #if DEBUG
   num_routine_fixups_allocated = 0;
+  num_class_fixups_allocated = 0;
 #endif /* DEBUG */
   return;
 }  /* class_decl_init */

@@ -141,6 +141,17 @@ static a_boolean
 			   has its instantiation required flag updated
 			   while processing an entry later on the list. */
 
+static a_symbol_list_entry_ptr
+		deferred_instantiations;
+			/* A list of symbol entries for instantiations that
+			   were deferred while a class definition was
+			   pending.  These entities are instantiated when
+			   a class definition is no longer pending. */
+
+static a_symbol_list_entry_ptr
+		deferred_instantiations_tail;
+			/* The end of the deferred_instantiations list. */
+
 
 #if RECORD_TEMPLATES_IN_IL
 /*
@@ -7001,6 +7012,20 @@ defer_inline is TRUE.
 #endif /* DEBUG */
   if (instantiation_mode == tim_can_instantiate) {
     /* Leave the instantiation_required flag unchanged in this mode. */
+  } else if (pending_class_definitions != 0) {
+    /* A class definition is in progress.  Any nonclass instantiations
+       must be deferred until all class definitions are complete.
+       Add this instantiation request to the list of deferred
+       instantiations. */
+    a_symbol_list_entry_ptr	slep;
+    slep = alloc_symbol_list_entry();
+    slep->symbol = sym;
+    /* Add this entry to the end of the deferred instantiations list. */
+    if (deferred_instantiations == NULL) deferred_instantiations = slep;
+    if (deferred_instantiations_tail != NULL) {
+      deferred_instantiations_tail->next = slep;
+    }  /* if */
+    deferred_instantiations_tail = slep;
   } else if (instantiation_mode == tim_all && !value) {
     /* An "unused" instantiation is being added to the list. */
     if (too_many_unused_instantiations(tip->template_sym, tssp)) {
@@ -7092,6 +7117,36 @@ defer_inline is TRUE.
   }  /* if */
   db_exit();
 }  /* update_instantiation_required_flag */
+
+
+void process_deferred_instantiation_requests(void)
+/*
+When a class definition is pending, any requests to have functions or
+static data members instantiated are deferred until all class definitions
+have been completed.  This routine is called when the last class definition
+has been completed.  It checks for deferred instantiations and calls
+update_instantiation_required_flag to do the appropriate processing.
+*/
+{
+  a_symbol_list_entry_ptr	slep;
+
+  for (slep = deferred_instantiations; slep != NULL; slep = slep->next) {
+    a_template_instance_ptr	tip;
+    a_symbol_ptr		sym = slep->symbol;
+    if (is_function_symbol(sym)) {
+      tip = sym->variant.routine.instance_ptr;
+    } else {
+      check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
+      tip = sym->variant.static_data_member.instance_ptr;
+    }  /* if */
+    update_instantiation_required_flag(tip, /*value=*/TRUE,
+                                       /*defer_inline=*/FALSE);
+  }  /* for */
+  /* Free any list entries that were used. */
+  free_list_of_symbol_list_entries(deferred_instantiations);
+  deferred_instantiations = NULL;
+  deferred_instantiations_tail = NULL;
+}  /* process_deferred_instantiation_requests */
 
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -8206,6 +8261,8 @@ Initializations for template.
   in_instantiation_wrapup = FALSE;
   entries_updated_during_instantiation_wrapup = FALSE;
   can_instantiate_list = NULL;
+  deferred_instantiations = NULL;
+  deferred_instantiations_tail = NULL;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   any_instantiations_required = FALSE;
   instantiation_info_file_name = NULL;

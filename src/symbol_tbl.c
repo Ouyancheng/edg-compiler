@@ -7326,6 +7326,7 @@ for space tracking purposes.
                      num_active_using_directives_allocated,
                      an_active_using_directive);
   grand_total = db_show_routine_fixups_used(grand_total);
+  grand_total = db_show_class_fixups_used(grand_total);
   grand_total = db_show_def_arg_expr_fixups_used(grand_total);
 
   db_space_used_total();

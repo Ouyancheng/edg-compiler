@@ -112,8 +112,18 @@ extern void define_type_info_pragma(a_pending_pragma_ptr    ppp,
 				    a_symbol_ptr            sym,
 				    a_statement_ptr         stmt);
 
+typedef unsigned long a_pending_class_definition_count;
+
+EXTERN a_pending_class_definition_count
+		pending_class_definitions;
+			/* The number of class definitions currently in
+			   process.  This includes normal class definitions
+			   and template class instantiations. */
+
 #if DEBUG
 extern unsigned long db_show_routine_fixups_used(unsigned long grand_total);
+
+extern unsigned long db_show_class_fixups_used(unsigned long grand_total);
 
 extern void db_path(a_derivation_step_ptr dsp,
                     a_boolean             show_offset);
