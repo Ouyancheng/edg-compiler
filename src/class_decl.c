@@ -2513,7 +2513,13 @@ function symbols.
          name.  The routine overload_distinguishable returns TRUE if the
          routine types are candidates for overloading; if it returns FALSE
          it also returns the error code for a diagnostic explaining why. */
-      if (!overload_distinguishable(sym, type, &error_code)) {
+      a_routine_ptr  rp = sym->variant.routine;
+      if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+          rp->opname_kind == (an_opname_kind)onk_delete) {
+        /* Overloading is not allowed for operator delete() (ARM 12.5). */
+        pos_error(ec_delete_already_declared, &locator->source_position);
+        suppress_redecl_error = TRUE;
+      } else if (!overload_distinguishable(sym, type, &error_code)) {
         pos_error(error_code, &locator->source_position);
         suppress_redecl_error = TRUE;
       } else {

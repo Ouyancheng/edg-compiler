@@ -2713,7 +2713,14 @@ otherwise, set *ext_sym to NULL.
          same name but a different type signature from that of the current
          declaration.  We may have an instance of function overloading. */
       an_error_code  error_code;
-      if (!overload_distinguishable(homonym_symbol, type_ptr, &error_code)) {
+      a_routine_ptr  rp = homonym_symbol->variant.routine;
+      if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+          rp->opname_kind == (an_opname_kind)onk_delete) {
+        /* Overloading is not allowed for operator delete() (ARM 12.5). */
+        pos_error(ec_delete_already_declared, &locator->source_position);
+        redecl_error_already_issued = TRUE;
+      } else if (!overload_distinguishable(homonym_symbol, type_ptr,
+                                           &error_code)) {
         /* The previous declaration and the current one are not "overload
            distinguishable" for a reason given by the error code returned. */
         pos_error(error_code, &locator->source_position);
