@@ -1192,7 +1192,7 @@ typedef a_host_large_integer a_targ_ptrdiff_t;  /* Must be
    representation of ptrdiff_t constants; the range they define can be equal
    to or smaller than the integer size implied by TARG_PTRDIFF_T_INT_KIND.
    Except when the target ptrdiff_t is smaller than the host
-   a_targ_ptrdiff_t, they should be the maximum and mininum values
+   a_targ_ptrdiff_t, they should be the maximum and minimum values
    of the host a_targ_ptrdiff_t. */
 #ifndef TARG_PTRDIFF_T_MAX
 #define TARG_PTRDIFF_T_MAX ((a_targ_ptrdiff_t)LONG_MAX)
