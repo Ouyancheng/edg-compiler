@@ -44,41 +44,107 @@ static void lower_c99_cast(an_expr_node_ptr expr);
 
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
 
-static void lower_vla_types(a_scope_ptr  func_scope)
+static a_type_list_entry_ptr
+		vla_types;
+			/* A list of all the VLA type entries.  The types are
+			   collected as we traverse the IL for lowering.  The
+			   actual lowering occurs later when we no longer need
+			   the VLA expression information. */
+
+
+static void record_vla_type_for_lowering(a_type_ptr  tp)
 /*
-Lower all VLA types in the given function scope and discard the VLA dimension
-entries.  This also requires that all the variables and typedef entries marked
-as having variably-modified types be unmarked.
+The given type must be a VLA type.  Add it to the list of types to be lowered
+later on.
 */
 {
-  a_vla_dimension_ptr  vdp;
-  a_variable_ptr       var;
-  a_type_ptr           tp;
+  a_type_list_entry_ptr  entry = alloc_type_list_entry();
 
-  /* All VLA types will be replaced by pointers to the underlying element
-     type.  The VLA types are found through the list of associated VLA
-     dimension entries for this scope.  Since the types may point to each
-     other, we use two passes through the list: One to find the underlying
-     element type, and one to turn the array into a pointer. */
-  for (vdp = func_scope->vla_dimensions; vdp != NULL; vdp = vdp->next) {
-    vdp->type->variant.array.element_type =
-                                     underlying_array_element_type(vdp->type);
-  }  /* for */
-  for (vdp = func_scope->vla_dimensions; vdp != NULL; vdp = vdp->next) {
-    *vdp->type = *make_pointer_type(vdp->type->variant.array.element_type);
-  }  /* for */
-  for (var = func_scope->nonstatic_variables; var != NULL; var = var->next) {
-    if (var->has_variably_modified_type) {
-      var->has_variably_modified_type = FALSE;
-      var->is_vla = FALSE;
+  entry->type = tp;
+  entry->next = vla_types;
+  vla_types = entry;
+}  /* record_vla_type_for_lowering */
+
+
+static a_boolean ttt_record_vla_type_for_lowering(a_type_ptr  tp,
+                                                  a_boolean   *end_traversal)
+/*
+If the given type is a VLA type, record it for later lowering.  This is a
+routine meant to be used with traverse_type_tree.  It always returns FALSE
+and it never sets *end_traversal (so the whole type tree is traversed).
+*/
+{
+  if (tp->kind == (a_type_kind)tk_array && tp->variant.array.is_vla) {
+    /* VLA types will be lowered to pointers to the underlying element type. */
+    record_vla_type_for_lowering(tp);
+  } else if (tp->kind == (a_type_kind)tk_pointer) {
+    /* Pointers to VLA types must be lowered to pointers to the element type
+       of the VLA. */
+    a_type_ptr  tptp = type_pointed_to(tp);
+    if (is_vla_type(tptp)) {
+      record_vla_type_for_lowering(tp);
+    }  /* if */
+  }  /* if */
+  return FALSE;
+}  /* ttt_record_vla_type_for_lowering */
+
+
+static void record_vla_component_types_for_lowering(a_type_ptr  tp)
+/*
+Go through the types underlying the given type and record any VLA components
+for later lowering.  Stop at typedefs since variably modified typedefs should
+have been treated separately.
+*/
+{
+  a_type_tree_traversal_flag_set  tt_flags = TTT_STOP_AT_TYPEDEFS |
+                                             TTT_RETURN_TYPE |
+                                             TTT_PARAM_TYPES |
+                                             TTT_THIS_PARAM_TYPE |
+                                             TTT_TEMPLATE_ARGS |
+                                             TTT_EXCEPTION_SPECS |
+                                             TTT_VLA_LOWERING;
+
+  (void)traverse_type_tree(tp, ttt_record_vla_type_for_lowering, tt_flags);
+}  /* record_vla_component_types_for_lowering */
+
+
+static void lower_vla_types(a_scope_ptr  file_scope)
+/*
+Lower all VLA types that were recorded by record_vla_type_for_lowering.
+*/
+{
+  a_type_list_entry_ptr  entry;
+
+  /* VLAs and pointer to VLAs must be lowered to pointers to the underlying
+     element type.  To avoid ordering problem due to two type being lowered
+     depending on one another, this is done in two passes.  In the first
+     pass the underlying element type is brought up.  In the second pass,
+     array types are turned into pointer types. */
+  for (entry = vla_types; entry != NULL; entry = entry->next) {
+    if (entry->type->kind == (a_type_kind)tk_array) {
+      /* A VLA type to be lowered. */
+      entry->type->variant.array.element_type =
+                                    underlying_array_element_type(entry->type);
+    } else if (entry->type->kind == (a_type_kind)tk_pointer) {
+      /* This should be a pointer-to-VLA type: Make it point to the underlying
+         element type.  That is all that is needed for this case: The second
+         pass will not further transform the type. */
+      a_type_ptr  tp = type_pointed_to(entry->type);
+      check_assertion(is_vla_type(tp));
+      entry->type->variant.pointer.type = underlying_array_element_type(tp);
     }  /* if */
   }  /* for */
-  for (tp = func_scope->types; tp != NULL; tp = tp->next) {
-    if (tp->kind == (a_type_kind)tk_typeref &&
-        tp->variant.typeref.has_variably_modified_type) {
-      tp->variant.typeref.has_variably_modified_type = FALSE;
+  for (entry = vla_types; entry != NULL; entry = entry->next) {
+    if (entry->type->kind == (a_type_kind)tk_array) {
+      /* The previous pass made sure the element type of this array is not
+         itself an array and conversely that no other array types have this
+         array type as element type.  We can now safely turn the array into
+         a pointer type. */
+      *entry->type =
+                   *make_pointer_type(entry->type->variant.array.element_type);
     }  /* if */
   }  /* for */
+  free_list_of_type_list_entries(vla_types);
 }  /* lower_vla_types */
 
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
@@ -1051,7 +1117,7 @@ The given expression is a GNU-style binary conditional expression of the form
 static an_expr_node_ptr vla_size_expr(a_type_ptr  vla_type,
                                       a_boolean   byte_count)
 /*
-Return an expression describing the (nonconstant) size of the give VLA type.
+Return an expression describing the (nonconstant) size of the given VLA type.
 If byte_count is TRUE, the expression should reflect the size as a number of
 bytes; otherwise, the size should be the number of elements.
 */
@@ -1082,7 +1148,7 @@ bytes; otherwise, the size should be the number of elements.
   if (constant_factor != 1) {
     /* For an array_type like T[4][5][expr][7] constant_factor is 20 and
        result is an expression representing expr*7.  Multiply the
-       two factors to obtain to total scaling. */
+       two factors to obtain the total scaling. */
     result->next =
             node_for_host_large_integer((a_host_large_integer)constant_factor,
                                         targ_ptrdiff_t_int_kind);
@@ -1121,6 +1187,40 @@ be lowered to a pointer to the first element of the VLA.
 }  /* lower_vla_pointer_arithmetic */
 
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+
+static void lower_runtime_sizeof(an_expr_node_ptr  expr)
+/*
+Replace the given enk_runtime_sizeof node by an expression representing the
+number of bytes of the VLA type underlying the sizeof expression.
+*/
+{
+  an_expr_node_ptr  byte_count;
+  a_type_ptr        vla_type;
+
+  if (!expr->variant.runtime_sizeof.is_type) {
+    lower_c99_expr(expr->variant.runtime_sizeof.variant.expr,
+                   /*used_as_lvalue=*/FALSE);
+  }  /* if */
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+  if (expr->variant.runtime_sizeof.is_type) {
+    vla_type = expr->variant.runtime_sizeof.variant.type;
+  } else {
+    vla_type = expr->variant.runtime_sizeof.variant.expr->type;
+    if (expr->variant.runtime_sizeof.is_lvalue) {
+      vla_type = type_pointed_to(vla_type);
+    }  /* if */
+  }  /* if */
+  byte_count = vla_size_expr(vla_type, /*byte_count=*/TRUE);
+  byte_count = add_cast_if_necessary(byte_count,
+                                     integer_type(targ_size_t_int_kind));
+  if (!expr->variant.runtime_sizeof.is_type) {
+    byte_count = make_comma_node(expr->variant.runtime_sizeof.variant.expr,
+                                 byte_count);
+  }  /* if */
+  overwrite_node(expr, byte_count);
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+}  /* lower_runtime_sizeof */
+
 
 static void lower_c99_operator(an_expr_node_ptr  expr)
 /*
@@ -1553,10 +1653,7 @@ second parameter.
       /* Nothing to be done. */
       break;
     case enk_runtime_sizeof:
-      if (!expr->variant.runtime_sizeof.is_type) {
-        lower_c99_expr(expr->variant.runtime_sizeof.variant.expr,
-                       /*used_as_lvalue=*/FALSE);
-      }  /* if */
+      lower_runtime_sizeof(expr);
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
@@ -1581,6 +1678,11 @@ second parameter.
       unexpected_condition_str("Invalid C99 IL expression kind");
       break;
   }  /* switch */
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+  if (vla_enabled && !expr->type->visited_for_vla_lowering) {
+    record_vla_component_types_for_lowering(expr->type);
+  }  /* if */
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_expr_full */
 
 
@@ -2159,6 +2261,12 @@ Do C99 lowering on the indicated variable and its subtree.
     var->init_kind = (an_init_kind)initk_zero;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+  if (var->has_variably_modified_type) {
+    var->has_variably_modified_type = FALSE;
+    record_vla_component_types_for_lowering(var->type);
+  }  /* if */
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
   error_position = saved_error_position;
 }  /* lower_c99_variable */
 
@@ -2185,6 +2293,12 @@ on the scope types list.
     }  /* if */
   }  /* if */
 #endif /* REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING */
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+  if (vla_enabled &&
+      type->kind == (a_type_kind)tk_typeref && typeref_is_typedef(type)) {
+    record_vla_component_types_for_lowering(type->variant.typeref.type);
+  }  /* if */
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_type */
 
 
@@ -2194,6 +2308,11 @@ Do C99 lowering on the indicated routine (the header, not the body).
 */
 {
   lower_c99_source_correspondence(&routine->source_corresp);
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+  if (vla_enabled) {
+    record_vla_component_types_for_lowering(routine->type);
+  }  /* if */
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_routine */
 
 
@@ -2298,9 +2417,6 @@ Do C99 lowering for all entities in and under the given scope.
   if (scope->kind == (a_scope_kind)sck_function) {
     /* Lower the function block statement. */
     lower_c99_statement(scope->assoc_block);
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-    lower_vla_types(scope);
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 #if MINIMAL_INLINING
     if (inlining_enabled && scope->variant.routine.ptr->is_inline) {
       /* For an inline routine, set the inlinable flag now that the body has
@@ -2309,6 +2425,9 @@ Do C99 lowering for all entities in and under the given scope.
     }  /* if */
 #endif /* MINIMAL_INLINING */
   } else if (scope->kind == (a_scope_kind)sck_file) {
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+    lower_vla_types(scope);
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 #if MINIMAL_INLINING
     if (inlining_enabled) {
       /* For any inline routines for which all calls were expanded inline,
@@ -2527,7 +2646,9 @@ for each translation unit.
   lowered_complex_double = NULL;
   lowered_complex_long_double = NULL;
 #endif /* LOWER_COMPLEX */
-
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+  vla_types = NULL;
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
   temp_init_statements = NULL;
 #if MINIMAL_INLINING
   /* Do inline.c initialization. */

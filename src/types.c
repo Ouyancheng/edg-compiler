@@ -7276,7 +7276,7 @@ a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
                              a_type_predicate_function_ptr  func,
                              a_type_tree_traversal_flag_set flags)
 /*
-Traverse the type tree indicated type type_ptr and for each type in the
+Traverse the type tree indicated by type_ptr and for each type in the
 tree call func, which returns a boolean value.  Terminate the traversal as
 soon as TRUE is returned by func, or as soon as func returns a flag forcing
 the end of the traversal.  This function returns TRUE if func has returned
@@ -7304,6 +7304,19 @@ its parameters?).
     status = FALSE;
     goto done;
   }  /* if */
+#if DO_IL_LOWERING && VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+  if (flags & TTT_VLA_LOWERING) {
+    /* VLA lowering requires all types to be traversed, but only one visit of
+       any type node is needed.  A dedicated flag in a_type entries therefore
+       allows the process to be optimized. */
+    if (type_ptr->visited_for_vla_lowering) {
+      status = FALSE;
+      goto done;
+    } else {
+      type_ptr->visited_for_vla_lowering = TRUE;
+    }  /* if */
+  }  /* if */
+#endif /* DO_IL_LOWERING && VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
   if (type_ptr->kind == (a_type_kind)tk_typeref) {
     if (flags & TTT_SKIP_TYPEREFS) {
       if (flags & TTT_STOP_AT_TYPEDEFS) {

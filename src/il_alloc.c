@@ -1582,6 +1582,9 @@ variant fields to default values.
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
   pte->type_processed_for_ordering = FALSE;
   pte->type_processed_as_complete_for_ordering = FALSE;
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+  pte->visited_for_vla_lowering = FALSE;
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
 #if DO_IL_LOWERING
   pte->typeinfo_var = NULL;

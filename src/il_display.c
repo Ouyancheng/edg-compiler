@@ -1386,6 +1386,11 @@ Display the indicated type entry.
   }  /* if */
 #endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
 #if DO_IL_LOWERING
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+  if (ptr->visited_for_vla_lowering) {
+    disp_boolean("visited_for_vla_lowering", TRUE);
+  }  /* if */
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
   if (ptr->typeinfo_var != NULL) {
     disp_ptr("typeinfo_var", (char *)ptr->typeinfo_var, iek_variable);
   }  /* if */
