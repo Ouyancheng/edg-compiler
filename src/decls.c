@@ -11428,8 +11428,9 @@ continue_with_declaration:
         if (is_variable_def) srk_flags |= SRK_DEFINITION;
         if (is_variable_def || is_tentative_definition) {
           /* In C++ mode, check whether a template class type needs to be
-             instantiated.  If appropriate, record that a complete type is
-             required in this context (both C and C++). */
+             instantiated.  This test is done here so that any instantiations
+             that may result are done before the variable is actually
+             entered into the symbol table. */
           complete_type_is_needed(local_type_ptr);
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -11466,6 +11467,13 @@ continue_with_declaration:
              suppress subsequent "declared and not referenced" warnings. */
           mark_symbol_to_suppress_warnings(symbol_ptr);
         }  /* if */
+      }  /* if */
+      if (is_variable_def || is_tentative_definition) {
+        /* In C++ mode, check whether a template class type needs to be
+           instantiated.  If appropriate, record that a complete type is
+           required in this context (both C and C++).  This test may
+           already have been done for certain variable declarations. */
+        complete_type_is_needed(local_type_ptr);
       }  /* if */
       incomplete_type_error_reported = FALSE;
       if (!C_mode() && var_ptr != NULL) {
