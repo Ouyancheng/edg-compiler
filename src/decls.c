@@ -4913,12 +4913,6 @@ is an error, return NULL.
       /* This is the first appearance of the tag in the current scope.  This
          is not its definition, so it is either a reference to an existing
          tag or a declaration of a new (incomplete) tag. */
-      if (strict_ansi_mode && tag_kind == (a_symbol_kind)sk_enum_tag) {
-        /* Incomplete enum declarations are nonstandard in C and C++. */
-        pos_diagnostic(strict_ansi_error_severity,
-                       ec_nonstd_forward_def_enum,
-                       &locator->source_position);
-      }  /* if */
       /* Check for a "vacuous declaration" (e.g. "struct S;" or "enum E;").
          The effect of a vacuous declaration (unless we are in pcc mode) is
          to establish the name in the current scope, even if the tag name
@@ -4930,7 +4924,7 @@ is an error, return NULL.
       } else {
         /* This may be a reference to an existing tag from a containing
            scope or a base class.  This can be ascertained by doing a full
-           lookup of the tag name (before it was done just for the current
+           lookup of the tag name (before, it was done just for the current
            scope). */
         tag_sym = curr_tag_symbol(tag_kind);
         if (tag_sym == NULL) {
@@ -4952,6 +4946,12 @@ is an error, return NULL.
                                    (a_scope_kind)sck_func_prototype) {
               (*effective_decl_level)--;
             }  /* while */
+          }  /* if */
+          if (strict_ansi_mode && tag_kind == (a_symbol_kind)sk_enum_tag) {
+            /* Incomplete enum declarations are nonstandard in C and C++. */
+            pos_diagnostic(strict_ansi_error_severity,
+                           ec_nonstd_forward_def_enum,
+                           &locator->source_position);
           }  /* if */
         }  /* if */
       }  /* if */
