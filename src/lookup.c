@@ -3413,7 +3413,7 @@ associated namespaces and classes to "namespace_list" and "class_list".
       add_parent = TRUE;
       break;
     case tk_integer:
-      /* Enums are represted using a tk_integer. */
+      /* Enums are represented using a tk_integer. */
       if (type->variant.integer.enum_type) {
         /* The enclosing class (if any) and namespace should be included. */
         add_parent = TRUE;
