@@ -775,6 +775,8 @@ extern void cast_node(an_expr_node_ptr  *node,
 
 extern void integral_promote_node(an_expr_node_ptr *node);
 
+extern a_type_ptr operand_type_after_integral_promotion(an_operand *operand);
+
 
 #if DEBUG
 extern unsigned long show_expr_space_used(void);

@@ -2207,7 +2207,7 @@ if an error is issued.
 }  /* integral_promote_node */
 
 
-static a_type_ptr operand_type_after_integral_promotion(an_operand *operand)
+a_type_ptr operand_type_after_integral_promotion(an_operand *operand)
 /*
 Determine the type that would result from applying the integral promotions
 (3.2.1.1) to *operand.  Return the promoted type, which may be
