@@ -3901,6 +3901,12 @@ type based on the template argument list and the template parameter list
   } else {
     tssp = templ_sym->variant.template_info;
   }  /* if */
+  /* Create the associated function instantiation entry and link it
+     onto the front of the instantiation list for the template. */
+  tip = alloc_template_instance();
+  tip->template_sym = templ_sym;
+  tip->next = tssp->variant.function.instantiations;
+  tssp->variant.function.instantiations = tip;
   templ_rout = tssp->variant.function.routine;
   /* All IL routines must be at the file scope level, so switch to that
      memory region if necessary to allocate the routine entry. */
@@ -4016,12 +4022,6 @@ type based on the template argument list and the template parameter list
     perform_deferred_access_checks_for_function(rp);
     end_deferral_of_access_checks();
   }
-  /* Create the associated function instantiation entry and link it
-     onto the front of the instantiation list for the template. */
-  tip = alloc_template_instance();
-  tip->template_sym = templ_sym;
-  tip->next = tssp->variant.function.instantiations;
-  tssp->variant.function.instantiations = tip;
   /* Make the function instantiation entry and its associated symbol
      point at each other. */
   tip->instance_sym = sym;
