@@ -1562,15 +1562,6 @@ Returns TRUE if there is an error in the specifiers.
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-#if 0
-/* The ARM requires the following check, but Stroustrup has stated that that
-   is probably an error.  We expect this to be changed. */
-#endif /* if 0 */
-          if (input_flags & DSI_IS_NEW_TYPE_NAME && strict_ansi_mode) {
-            /* const may not appear in a new-type-name -- ARM 5.3.3. */
-            diagnostic(strict_ansi_error_severity, 
-                       ec_const_volatile_not_allowed);
-          }  /* if */
           is_const_qualified = TRUE;
           /* Set the output_flags bit, for the case where only type qualifiers
 	     are acceptable, and therefore there is no type entry in which to
@@ -1588,15 +1579,6 @@ Returns TRUE if there is an error in the specifiers.
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-#if 0
-/* The ARM requires the following check, but Stroustrup has stated that that
-   is probably an error.  We expect this to be changed. */
-#endif /* if 0 */
-          if (input_flags & DSI_IS_NEW_TYPE_NAME && strict_ansi_mode) {
-            /* volatile may not appear in a new-type-name -- ARM 5.3.3. */
-            diagnostic(strict_ansi_error_severity, 
-                       ec_const_volatile_not_allowed);
-          }  /* if */
           is_volatile_qualified = TRUE;
           /* Set the output_flags bit, for the case where only type qualifiers
 	     are acceptable, and therefore there is no type entry in which to
