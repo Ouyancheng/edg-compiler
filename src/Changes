@@ -684,7 +684,9 @@ When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, source range information is now
 put out for templates (when RECORD_TEMPLATES_IN_IL is TRUE) and for
 template instantiation directives (when GENERATE_SOURCE_SEQUENCE_LISTS is
 TRUE).  (3/19/98:) The information for template definitions includes
-separate range information for the template body.
+separate range information for the template body.  (4/7/98:) The source
+range information is now provided for template function members of template
+classes.
 
 2/27/98   Param-type information clobbered on declarations preceding
           routine definition

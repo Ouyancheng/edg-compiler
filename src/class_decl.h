@@ -47,8 +47,9 @@ void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp,
 					      a_token_cache_ptr decl_cache);
 
 extern a_symbol_ptr class_member_template_declaration(
-				a_type_ptr  class_type,
-                                a_template_param_ptr	templ_param_list);
+                                     a_type_ptr            class_type,
+                                     a_template_param_ptr  templ_param_list,
+                                     a_decl_pos_block_ptr  decl_pos_block_ptr);
 
 extern a_type_ptr rescan_member_template_declaration(a_type_ptr  class_type);
 

@@ -5932,6 +5932,9 @@ in-class member function declarations.)
     } else {
       mark_declared(sym, &locator->source_position);
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    update_decl_pos_info(&rtn->source_corresp, &decl_info->decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   if (locator->is_operator_name) {
     /* Overloaded operator function. */
@@ -9268,14 +9271,17 @@ static a_symbol_ptr class_member_declaration(
                         a_boolean              is_member_template,
 			a_template_param_ptr   templ_param_list,
                         a_boolean              *skip_semicolon_check,
-                        a_type_ptr             *member_template_instance_type)
+                        a_type_ptr             *member_template_instance_type,
+                        a_decl_pos_block_ptr   decl_pos_block_ptr)
 /*
 Scan a member declaration appearing inside a class definition.  class_type
 is the type of the class.  class_state points to a block of information
 tracking general information about the class.  *skip_semicolon_check is
 returned TRUE if the caller should suppress the check for a semicolon
 following the member declaration.  templ_param_list is non-NULL for
-function template declarations.
+function template declarations.  decl_pos_block_ptr is non-NULL when then
+extra source position information collected during this declaration needs
+to be returned to the caller.
 */
 {
   a_source_position    decl_start_pos;
@@ -9898,14 +9904,20 @@ next_declaration:;
        among the decl-specifiers. */
     if (dso_flags & DSO_LINKAGE_SPEC_DECL) pop_name_linkage();
   }  /* if */
+  if (decl_pos_block_ptr != NULL) {
+    /* Return to the caller the extra source position information collected
+       for this declaration. */
+    *decl_pos_block_ptr = decl_info.decl_pos_block;
+  }  /* if */
   db_exit();
   return decl_info.member_sym;
 }  /* class_member_declaration */
 
 
 a_symbol_ptr class_member_template_declaration(
-				a_type_ptr		class_type,
-				a_template_param_ptr	templ_param_list)
+                                     a_type_ptr            class_type,
+                                     a_template_param_ptr  templ_param_list,
+                                     a_decl_pos_block_ptr  decl_pos_block_ptr)
 /*
 Scan a template function declaration that appears inside a class (or class
 template) definition.  class_type is the parent type, which may be a nonreal
@@ -9928,8 +9940,8 @@ is the template parameter list for the function template.
   class_state_ptr = scope_stack[scope_level].class_def_state;
   sym = class_member_declaration(class_type, class_state_ptr,
                                  /*is_member_template=*/TRUE,
-                                 templ_param_list,
-                                 &skip_semicolon_check, &dummy_type);
+                                 templ_param_list, &skip_semicolon_check,
+                                 &dummy_type, decl_pos_block_ptr);
   if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
   if (sym == NULL) {
     /* An error has already been issued. */
@@ -9969,7 +9981,8 @@ decl_specifiers and declarator) is returned.
                                  /*is_member_template=*/FALSE,
                                  (a_template_param_ptr)NULL,
                                  &skip_semicolon_check,
-                                 &member_template_instance_type);
+                                 &member_template_instance_type,
+                                 (a_decl_pos_block *)NULL);
   curr_routine_fixup = saved_routine_fixup;
   db_exit();
   return member_template_instance_type;
@@ -10385,7 +10398,8 @@ nested classes when their definition appears outside of the class template.
         (void)class_member_declaration(class_type, &class_state,
                                        /*is_template_member=*/FALSE,
                                        (a_template_param_ptr)NULL,
-                                       &skip_semicolon_check, &dummy_type);
+                                       &skip_semicolon_check, &dummy_type,
+                                       (a_decl_pos_block *)NULL);
         if (!skip_semicolon_check) {
           /* Check for and ignore the semicolon following the member
              declaration.  It's optional after the last declaration (that's

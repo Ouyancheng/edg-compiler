@@ -10134,8 +10134,10 @@ any non-empty template parameter lists that were scanned.
       /* A member template declaration. */
       a_source_position	decl_start_pos;
       decl_start_pos = pos_curr_token;
-      sym = class_member_template_declaration(
-             decl_state->class_declared_in, decl_state->decl_info->parameters);
+      sym = class_member_template_declaration(decl_state->class_declared_in,
+                                              decl_state->
+                                                     decl_info->parameters,
+                                              &decl_state->decl_pos_block);
       complete_function_template_decl(decl_state, sym,
                                       (a_func_info_block *)NULL,
                                       &tssp, &decl_start_pos);
