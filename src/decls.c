@@ -749,11 +749,6 @@ type is legal.
       /* The bottom derived type is an error, and nothing can be attached
          to it.  Therefore, the new type is thrown away. */
     } else {
-      if (ptr_to_member_in_derived_type(*derived_type, *bottom_derived_type)) {
-        /* Since ptr-to-member types are always allocated in the file scope
-           memory region, be sure the type it points to is there, too. */
-        new_type_ptr = make_file_scope_type(new_type_ptr);
-      }  /* if */
       if (tkind == (a_type_kind)tk_array) {
         /* Array.  See if the element type is proper.  3.1.2.5: the 
            elements must have an object type.  If the element type is
@@ -2548,8 +2543,6 @@ created; the caller must set it.
     ext_sym = enter_symbol(ext_sym_kind, &ext_locator, DEPTH_OF_FILE_SCOPE,
                            /*suppress_error=*/TRUE);
     esdp = ext_sym->variant.extern_symbol_descr;
-    /* The type must be at the file scope. */
-    esdp->type = make_file_scope_type(type_ptr);
     /* The pointer to the variable or routine IL entry is filled in later,
        by the caller of this routine. */
   }  /* if */
@@ -2905,11 +2898,6 @@ otherwise, set *ext_sym to NULL.
      allocated in the file scope memory region.  This is always true
      of routines, and also true of variables with linkage. */
   at_file_scope = (is_function || linkage != idl_none);
-  /* Make a file-scope copy of the entity type.  This does nothing if the
-     type is already at the file scope. */
-  if (at_file_scope && /*for speed:*/decl_scope_level != DEPTH_OF_FILE_SCOPE) {
-    type_ptr = make_file_scope_type(type_ptr);
-  }  /* if */
   if (linkage != idl_none && linked_symbol != NULL) {
     /* There is a previous identifier of this name in the same scope,
        to which this declaration is linked.  The new declaration must be
@@ -3940,12 +3928,7 @@ Only the first form is accepted in C.
       /* A class qualifier is present.  This is a pointer-to-member
          declarator if the current token is a "*". */
       if (curr_token == tok_star && !is_file_scope_qualifier) {
-        /* It is a pointer-to-member declarator.  Construct the type entry.
-           Since ptr-to-member types are always allocated in the file scope
-           memory region, be sure the type it points to is there, too. */
-        if (complete_type != NULL) {
-          complete_type = make_file_scope_type(complete_type);
-        }  /* if */
+        /* It is a pointer-to-member declarator.  Construct the type entry. */
         complete_type = ptr_to_member_type(complete_type, class_type);
       } else {
         /* The class qualifier is not followed by a "*", so back up to the
@@ -5517,15 +5500,6 @@ process_class_specifier:
             /* Save the type. */
             basic_type = bt_typedef;
             *type_ptr = type_symbol_type(curr_token_type_symbol);
-            if (curr_il_region_number == FILE_SCOPE_REGION_NUMBER &&
-                decl_scope_level != DEPTH_OF_FILE_SCOPE) {
-              /* The current declaration is in the file scope memory region,
-                 so the type entry referred to by the typedef name should
-                 also appear in the file scope memory region (to assure that
-                 no file scope type points to a non-file-scope type).  Copy
-                 *type_ptr to the file scope if necessary. */
-              *type_ptr = make_file_scope_type(*type_ptr);
-            }  /* if */
           }  /* if */
           break;
         }  /* if */
