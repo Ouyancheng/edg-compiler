@@ -4088,6 +4088,12 @@ static a_routine_ptr
 
 #if IA64_ABI
 
+#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+static a_routine_ptr
+		guard_acquire_routine,
+		guard_release_routine;
+#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
+
 /*
 Pointer to the variable entry for __dso_handle.
 */
@@ -4378,6 +4384,11 @@ location is the insert_location2 value (after the assignment statement).
   an_expr_node_ptr   test_var_node, compare_node;
   an_integer_kind    int_kind;
   a_type_ptr         int_type;
+#if IA64_ABI
+#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+  a_statement_ptr    outer_then;
+#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
+#endif /* IA64_ABI */
 
   /* Make the static first-time-test variable in the current scope. */
 #if !IA64_ABI
@@ -4440,7 +4451,17 @@ location is the insert_location2 value (after the assignment statement).
                                     int_type, test_var_node);
   /* Make an "if" statement and insert it into the program. */
   insert_if_statement(compare_node, /*is_initialization_guard=*/TRUE,
-                      insert_location, block_stmt, insert_location2,
+                      insert_location,
+#if IA64_ABI
+#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+                                       &outer_then,
+#else /* !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
+                                       block_stmt,
+#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
+#else /* !IA64_ABI */
+                                       block_stmt,
+#endif /* IA64_ABI */
+                                                   insert_location2,
                       (an_insert_location *)NULL);
   /* Make "test_var = 1" and insert it inside the "if" statement. */
 #if !IA64_ABI
@@ -4450,12 +4471,45 @@ location is the insert_location2 value (after the assignment statement).
                                                       (an_integer_kind)ik_int),
                                         insert_location2);
 #else /* IA64_ABI */
+#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+  {
+    /* To support multi-threading, make an inner
+         "if (__cxa_guard_acquire(&test_var)) {
+            ...
+            __cxa_guard_release(&test_var);
+          }"
+       statement as the "then" part of the outer "if" above. Leave
+       *insert_location2 ready for insertion at the ...
+       This is done as two "if"s so that once the variable is
+       initialized one doesn't pay the cost of calling the runtime
+       routine. */
+    an_expr_node_ptr acquire_node =
+      make_runtime_rout_call("__cxa_guard_acquire", &guard_acquire_routine,
+                             integer_type((an_integer_kind)ik_int),
+                             var_lvalue_expr(*test_var));
+    an_insert_location outer_block_insert_location,
+                       release_insert_location;
+    an_expr_node_ptr release_node =
+       make_runtime_rout_call("__cxa_guard_release", &guard_release_routine,
+                             void_type(),
+                             var_lvalue_expr(*test_var));
+    set_block_start_insert_location(outer_then, &outer_block_insert_location);
+    insert_if_statement(acquire_node, /*is_initialization_guard=*/TRUE,
+                        &outer_block_insert_location, block_stmt,
+                        insert_location2, (an_insert_location *)NULL);
+    /* Avoid moving "insert_location2" which is now the right place to
+       put the initialization code. */
+    release_insert_location = *insert_location2;
+    (void)insert_expr_statement(release_node, &release_insert_location);
+  }
+#else /* !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
   (void)insert_assignment_statement(add_cast_to_char_star(
                                                    var_lvalue_expr(*test_var)),
                                     (an_expr_operator_kind)eok_iassign,
                                     node_for_integer_constant(1L,
                                                      (an_integer_kind)ik_char),
                                     insert_location2);
+#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
 #endif /* IA64_ABI */
 }  /* add_first_time_test */
 
@@ -10863,6 +10917,10 @@ Do one-time initialization of static variables declared in lower_init.c.
       pch_saved_var_array_elem(needed_destruction_object_field),
       pch_saved_var_array_elem(array_new_prefix_size_var),
 #else /* IA64_ABI */
+#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+      pch_saved_var_array_elem(guard_acquire_routine),
+      pch_saved_var_array_elem(guard_release_routine),
+#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
       pch_saved_var_array_elem(dso_handle_var),
 #endif /* IA64_ABI */
 #if !USE_INIT_SECTION_IN_GENERATED_C
@@ -10910,7 +10968,11 @@ Do one-time initialization of static variables declared in lower_init.c.
   register_trans_unit_variable(needed_destruction_type);
   register_trans_unit_variable(needed_destruction_object_field);
   register_trans_unit_variable(array_new_prefix_size_var);
-#else /* !IA64_ABI */
+#else /* IA64_ABI */
+#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+  register_trans_unit_variable(guard_acquire_routine);
+  register_trans_unit_variable(guard_release_routine);
+#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
   register_trans_unit_variable(dso_handle_var);
 #endif /* IA64_ABI */
 #if !USE_INIT_SECTION_IN_GENERATED_C
@@ -10962,6 +11024,10 @@ for each translation unit.
   needed_destruction_object_field = NULL;
   array_new_prefix_size_var = NULL;
 #else /* IA64_ABI */
+#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+  guard_acquire_routine = NULL;
+  guard_release_routine = NULL;
+#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
   dso_handle_var = NULL;
 #endif /* IA64_ABI */
 #if !USE_INIT_SECTION_IN_GENERATED_C

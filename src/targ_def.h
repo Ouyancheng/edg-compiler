@@ -124,19 +124,6 @@ of 3.x versions of g++).  See www.codesourcery.com/cxx-abi/.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #endif /* ifndef IA64_ABI */
 
-/*
-The original GNU implementation of the IA-64 ABI has several bugs.  Set the
-following FLAG to TRUE if those bugs should be emulated by our implementation.
-This is the initial value of the global variable emulate_gnu_abi_bugs.
-*/
-#ifndef DEFAULT_EMULATE_GNU_ABI_BUGS
-#if IA64_ABI && GNU_EXTENSIONS_ALLOWED
-#define DEFAULT_EMULATE_GNU_ABI_BUGS TRUE
-#else /* !(IA64_ABI && GNU_EXTENSIONS_ALLOWED) */
-#define DEFAULT_EMULATE_GNU_ABI_BUGS FALSE
-#endif /* IA64_ABI && GNU_EXTENSIONS_ALLOWED */
-#endif /* ifndef DEFAULT_EMULATE_GNU_ABI_BUGS */
-
 #if CFRONT_OBJECT_CODE_COMPATIBILITY && IA64_ABI
  #error -- Cfront and IA-64 ABIs are mutually exclusive.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY && IA64_ABI */
@@ -150,6 +137,31 @@ This is only used when IA64_ABI is TRUE.
 #define MACRO_DEFINED_WHEN_IA64_ABI "__EDG_IA64_ABI"
 #endif /* ifndef MACRO_DEFINED_WHEN_IA64_ABI */
 #endif /* IA64_ABI */
+
+/*
+TRUE if code should be generated to call the runtime guard
+acquire/release/abort routines in initializations of local
+static variables.  If the flag is FALSE, the guard variables
+are tested/set by inline code.  TRUE allows a thread-safe
+solution in the runtime.
+*/
+#ifndef IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+#define IA64_ABI_USE_GUARD_ACQUIRE_RELEASE TRUE
+#endif /* ifndef IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
+
+/*
+The original GNU implementation of the IA-64 ABI (specifically, version 3.2)
+has several bugs.  Set the following FLAG to TRUE if those bugs should be
+emulated by this implementation.  This is the initial value of the global
+variable emulate_gnu_abi_bugs.
+*/
+#ifndef DEFAULT_EMULATE_GNU_ABI_BUGS
+#if GNU_EXTENSIONS_ALLOWED
+#define DEFAULT_EMULATE_GNU_ABI_BUGS TRUE
+#else /* !GNU_EXTENSIONS_ALLOWED */
+#define DEFAULT_EMULATE_GNU_ABI_BUGS FALSE
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* ifndef DEFAULT_EMULATE_GNU_ABI_BUGS */
 
 /*
 Certain C99 features require IL constructs not otherwise present.
