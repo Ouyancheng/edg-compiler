@@ -4634,7 +4634,7 @@ C++ mode.
 {
   a_variable_ptr   this_var;
   a_type_ptr       member_class, this_class;
-  a_boolean        okay;
+  a_boolean        okay, template_case = FALSE;
   a_base_class_ptr bcp;
 
   /* This routine is similar to cast_pointer_for_field_selection. */
@@ -4667,6 +4667,12 @@ C++ mode.
            are unrelated. */
         bcp = find_base_class_of(this_class, member_class);
         okay = (bcp != NULL);
+        if (!okay && is_template_dependent_context()) {
+          /* In a prototype instantiation, there might be some unknown
+             relationship between the classes. */
+          okay = TRUE;
+          template_case = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (!okay) {
@@ -4683,27 +4689,48 @@ C++ mode.
       make_this_variable_operand(this_var, result);
       /* Get position right in case of errors below. */
       result->position = *member_pos;
-      if (bcp != NULL) {
-        /* Cast the pointer to the base class of the member. */
-        base_class_cast_operand(result, bcp, (a_boolean *)NULL,
-                                check_cast_access,
-                                /*is_implicit_cast=*/TRUE,
-                                /*implicit_in_naming=*/FALSE,
-                                /*is_object_pointer=*/TRUE);
-      }  /* if */
-      /* If the member symbol is a projection symbol (i.e., it's inherited
-         into the class where it is being referenced), cast the left operand
-         down to the base class in which the fundamental symbol is defined.
-         There's no access check on this part of the cast because the access
-         to the fundamental base class was checked as part of determining
-         access to the symbol. */
-      if (member_sym->kind == (a_symbol_kind)sk_projection) {
-        bcp= member_sym->variant.projection.extra_info->fundamental_base_class;
-        base_class_cast_operand(result, bcp, (a_boolean *)NULL,
-                                /*check_cast_access=*/FALSE,
-                                /*is_implicit_cast=*/TRUE,
-                                /*implicit_in_naming=*/TRUE,
-                                /*is_object_pointer=*/TRUE);
+      if (template_case) {
+        /* For the template case, just do a direct cast. */
+        a_symbol_ptr fund_sym = fundamental_symbol_of(member_sym);
+        a_type_ptr   member_ptr, underlying_this_type;
+        check_assertion(fund_sym->is_class_member);
+        /* The pointer type has to be qualified the same as the "this"
+           pointer type (e.g., if the function is "const", the pointer type
+           must be pointer to const). */
+        underlying_this_type = type_pointed_to(this_var->type);
+        member_ptr = make_identically_qualified_type(
+                                                   fund_sym->parent.class_type,
+                                                   underlying_this_type);
+        member_ptr = make_pointer_type(member_ptr);
+        cast_operand(member_ptr, result,
+                     /*check_cast_access=*/FALSE,
+                     /*is_implicit_cast=*/TRUE,
+                     /*is_reinterpret_cast=*/FALSE,
+                     /*reinterpret_sementics=*/FALSE);
+      } else {
+        if (bcp != NULL) {
+          /* Cast the pointer to the base class of the member. */
+          base_class_cast_operand(result, bcp, (a_boolean *)NULL,
+                                  check_cast_access,
+                                  /*is_implicit_cast=*/TRUE,
+                                  /*implicit_in_naming=*/FALSE,
+                                  /*is_object_pointer=*/TRUE);
+        }  /* if */
+        /* If the member symbol is a projection symbol (i.e., it's inherited
+           into the class where it is being referenced), cast the left operand
+           down to the base class in which the fundamental symbol is defined.
+           There's no access check on this part of the cast because the access
+           to the fundamental base class was checked as part of determining
+           access to the symbol. */
+        if (member_sym->kind == (a_symbol_kind)sk_projection) {
+          bcp = member_sym->variant.projection.extra_info->
+                                                        fundamental_base_class;
+          base_class_cast_operand(result, bcp, (a_boolean *)NULL,
+                                  /*check_cast_access=*/FALSE,
+                                  /*is_implicit_cast=*/TRUE,
+                                  /*implicit_in_naming=*/TRUE,
+                                  /*is_object_pointer=*/TRUE);
+        }  /* if */
       }  /* if */
       /* Check for errors on the casts. */
       if (is_error_operand(result)) okay = FALSE;
