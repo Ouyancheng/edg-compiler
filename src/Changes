@@ -1,5 +1,10 @@
 Version 2.30
 
+9/3/95   Omission of decl-specifiers in C++ function declaration
+
+In C++ (except in cfront mode) an error (discretionary) is now issued
+when no decl-specifiers are specified on a function declaration.
+
 9/2/95   Argument type information in overload resolution diagnostics
 
 Diagnostics produced for overload resolution problems now include the types
