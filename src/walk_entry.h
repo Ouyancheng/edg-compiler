@@ -864,8 +864,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         an_object_lifetime_ptr ptr = (an_object_lifetime_ptr)entry_ptr;
         remap_ptr(ptr->entity.ptr, a_char_ptr,
                   (an_il_entry_kind)ptr->entity.kind);
-        /* The dynamic_inits list is linked on the field "prev_in_lifetime"
-           because the usual "next" is used for a different list. */
+        /* The destructors list is linked on the field
+           "next_in_destruction_list" because the usual "next" is used for
+           a different list. */
         walk_list_on_link_field(ptr->destructions, a_dynamic_init_ptr,
                                 iek_dynamic_init, next_in_destruction_list);
         remap_ptr(ptr->parent_lifetime, an_object_lifetime_ptr,
