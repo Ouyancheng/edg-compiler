@@ -11943,6 +11943,12 @@ cleared.
       for (; clep != NULL; clep = next_clep) {
         next_clep = clep->next;
         if (clep->class_type == class_type) {
+          /* A match -- link around it. */
+          if (prev_clep == NULL) {
+            friend_ctsp->befriending_classes = next_clep;
+          } else {
+            prev_clep->next = next_clep;
+          }  /* if */
 #if DEBUG
           if (debug_level >= 4 ||
               db_trace("dump_elim", friend_class, iek_type) ||
@@ -11957,12 +11963,6 @@ cleared.
             }  /* if */
           }  /* if */
 #endif /* DEBUG */
-          /* A match -- link around it. */
-          if (prev_clep == NULL) {
-            friend_ctsp->befriending_classes = next_clep;
-          } else {
-            prev_clep->next = next_clep;
-          }  /* if */
           /* Break out of the inner loop and continue the outer loop,
              moving to the next class declared as a friend of class_type. */
           break;
