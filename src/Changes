@@ -1,5 +1,11 @@
 Version 2.38
 
+11/22/97  --preinclude comand-line option
+
+The --preinclude=filename command-line option can now be used to specify
+the name of a file to be included at the beginning of the compilation.
+This can be used to set system-dependent macros and types, etc.
+
 11/20/97  Setting __STDC__ to zero in nonstrict mode
 
 A configuration flag (STDC_ZERO_IN_NONSTRICT_MODE) has been added to

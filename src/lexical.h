@@ -1605,16 +1605,16 @@ expression.
      (tok) == tok_arrow))
 
 /* Push a file onto the input stack. */
-extern void open_file_and_push_input_stack
-                                (char                       *file_name,
-                                 a_directory_name_entry_ptr search_path,
-				 a_boolean		    is_include_file,
-				 a_boolean                  is_system_include);
-extern FILE *open_file_for_input(char                       *file_name,
-                                 a_directory_name_entry_ptr search_path,
-                                 a_boolean                  replace_suffix,
-                                 char                       **full_file_name,
-                                 char                       **display_name);
+extern void open_file_and_push_input_stack (char      *file_name,
+                                            a_boolean use_search_path,
+                                            a_boolean is_include_file,
+                                            a_boolean is_system_include);
+extern FILE *open_file_for_input(char      *file_name,
+                                 a_boolean use_search_path,
+                                 a_boolean is_system_include,
+                                 a_boolean replace_suffix,
+                                 char      **full_file_name,
+                                 char      **display_name);
 extern void push_input_stack (FILE      		  *new_input_file,
                               char      		  *name_as_written,
                               char      		  *display_name,

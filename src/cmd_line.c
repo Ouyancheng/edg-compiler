@@ -717,6 +717,9 @@ Initialize the option information table.
                          "early_tiebreaker",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_preinclude, "preinclude", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1472,6 +1475,10 @@ common_cfront_mode_settings:
           /* Normal -I directive. */
           add_to_include_search_path(opt_arg);
         }  /* if */
+        break;
+      case optk_preinclude:
+        /* File to include at the beginning of compilation. */
+        preinclude_file_name = opt_arg;
         break;
       case optk_define_macro:
         /* Define a macro symbol.  Just save the string for later

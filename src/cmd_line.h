@@ -164,6 +164,7 @@ typedef enum /*an_option_kind*/ {
   optk_instantiation_dir,
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   optk_late_tiebreaker,
+  optk_preinclude,
   optk_last		/* Must be last. */
 } an_option_kind;
 

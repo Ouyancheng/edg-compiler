@@ -789,10 +789,9 @@ static void proc_include(void)
 Scan and process a #include directive.
 */
 {
-  char                       *name_start_pos;
-  a_directory_name_entry_ptr search_path;
-  a_boolean		     is_system_include;
-  a_byte		     ifg_state;
+  char      *name_start_pos;
+  a_boolean is_system_include;
+  a_byte    ifg_state;
 
   /* The syntax is one of the following (see standard, 3.8.2):
 
@@ -820,14 +819,7 @@ Scan and process a #include directive.
     catastrophe(ec_exp_file_name);
   } else {
     /* A header name was scanned. */
-    /* Pick the appropriate search path of directories for "name" vs.
-       <name>. */
     is_system_include = *start_of_curr_token == '<';
-    if (is_system_include) {
-      search_path = sys_incl_search_path;
-    } else {
-      search_path = incl_search_path;
-    }  /* if */
     /* Allocate space for and copy the name. */
     /* Escapes are not processed.  That's an implementation choice; you
        can change this if you'd rather have it the other way. */
@@ -846,7 +838,8 @@ Scan and process a #include directive.
     } else {
       /* Push the name and associated search directory onto the input stack,
          thus starting input from that file. */
-      open_file_and_push_input_stack(name_start_pos, search_path,
+      open_file_and_push_input_stack(name_start_pos,
+                                     /*use_search_path=*/TRUE,
                                      /*is_include_file=*/TRUE,
                                      is_system_include);
     }  /* if */

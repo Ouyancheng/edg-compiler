@@ -2717,6 +2717,7 @@ This is done before command line processing.
   ptr = get_curr_dir_name();
   current_directory_name = (char *)alloc_general((sizeof_t)strlen(ptr) + 1);
   (void)strcpy(current_directory_name, ptr);
+  preinclude_file_name = NULL;
 }  /* host_envir_early_init */
 
 

@@ -1264,7 +1264,7 @@ storage, not IL storage.
 */
 EXTERN char	*primary_source_file_name;
 
-EXTERN char	*dir_name_of_primary_source_file /* NULL */;
+EXTERN char	*dir_name_of_primary_source_file /* = NULL */;
 			/* The directory name of the primary source file.
                            This is set by the command line processing routines
                            when the primary source file is set. */
@@ -1274,6 +1274,15 @@ EXTERN a_boolean
 			/* TRUE if more than one primary source file appears
 			   on the command line. */
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+
+/*
+If non-NULL, the name of a file to include at the beginning of
+the compilation.  This can be used to set predefined macros, etc.
+When multiple source files are compiled, this is included at the
+beginning of each compilation.  This string is allocated in general
+storage, not IL storage.
+*/
+EXTERN char	*preinclude_file_name;
 
 /*
 Object file name, usually derived from the primary source file name.

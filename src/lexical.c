@@ -2840,17 +2840,16 @@ static void db_include_guard_info(void)
 #endif /* DEBUG */
 
 
-void open_file_and_push_input_stack
-                                (char                       *file_name,
-                                 a_directory_name_entry_ptr search_path,
-				 a_boolean		    is_include_file,
-				 a_boolean	            is_system_include)
+void open_file_and_push_input_stack (char      *file_name,
+                                     a_boolean use_search_path,
+				     a_boolean is_include_file,
+                                     a_boolean is_system_include)
 /*
 Push the indicated file onto the input stack, so that the next time a line
 is read, it will come from that file.  If the file cannot be opened,
-generate a catastrophic error and do not return.  search_path gives the
-list of directories to be tried, in order, or is NULL if there is no
-search path.  file_name must be allocated in IL storage.
+generate a catastrophic error and do not return.  use_search_path
+is TRUE if the search path of include directories should be used
+when trying the open.  file_name must be allocated in IL storage.
 is_include_file is TRUE if the file is being read as the result of a
 #include directive.  It is FALSE for implicitly included files.
 is_system_include is TRUE for files included with the #include <file.h>
@@ -2863,7 +2862,8 @@ notation and FALSE for all other files.
   an_include_file_history_ptr	ifhp;
 
   db_enter(2, "open_file_and_push_input_stack");
-  input_file = open_file_for_input(file_name, search_path,
+  input_file = open_file_for_input(file_name, use_search_path,
+                                   is_system_include,
                                    /*replace_suffix=*/FALSE, &full_file_name,
                                    &display_name);
   check_assertion(input_file != NULL);
@@ -2901,23 +2901,23 @@ done:
 /*ARGSUSED*/ /* <-- replace_suffix is used only if instantiation may use
                     implicit inclusion. */
 #endif /* !INSTANTIATION_BY_IMPLICIT_INCLUSION */
-FILE *open_file_for_input(char                       *file_name,
-                          a_directory_name_entry_ptr search_path,
-                          a_boolean                  replace_suffix,
-                          char                       **full_file_name,
-                          char                       **display_name)
+FILE *open_file_for_input(char      *file_name,
+                          a_boolean use_search_path,
+                          a_boolean is_system_include,
+                          a_boolean replace_suffix,
+                          char      **full_file_name,
+                          char      **display_name)
 /*
-Try to open file_name, and return a pointer to the file if the open is
-successful.  file_name must be allocated in IL storage.  If suffixes is
-non-NULL, the suffix currently on file_name will be replaced by each
-suffix in turn, in the specified order.  If search_path is non-NULL,
-the search begins in the first directory on the path (for each suffix, if
-appropriate), and proceeds until a file is found;  if search_path is NULL,
-only the current directory is checked.  If the open is successful, the full
-name of the file that is opened is returned in *full_file_name and the name
-intended for use in diagnostics and other output is returned in *display_name.
-If replace_suffix is FALSE, the open must be successful and a catastrophic
-error will be issued if it is not; otherwise, a NULL file pointer will be
+Try to open file_name, and return a pointer to the file if the open
+is successful.  file_name must be allocated in IL storage.
+use_search_path is TRUE if the search path of include directories
+should be used when trying the open.  is_system_include is TRUE
+if the included file name was specified in <...>.  If the open is
+successful, the full name of the file that is opened is returned
+in *full_file_name and the name intended for use in diagnostics
+and other output is returned in *display_name.  If replace_suffix
+is FALSE, the open must be successful and a catastrophic error will
+be issued if it is not; otherwise, a NULL file pointer will be
 returned.
 */
 {
@@ -2931,8 +2931,16 @@ returned.
      names will bypass the buffer and be allocated directly via alloc_il. */
 #define BUFFER_SIZE 130
   char                        buffer[BUFFER_SIZE];
+  a_directory_name_entry_ptr  search_path;
 
   db_enter(2, "open_file_for_input");
+  search_path = NULL;
+  if (use_search_path) {
+    /* Determine the list of directories to be searched when opening
+       the file. */
+    search_path = is_system_include ? sys_incl_search_path :
+                                      incl_search_path;
+  }  /* if */
   new_input_file = NULL;
   *full_file_name = NULL;
   check_assertion((curr_ise == NULL) == (depth_input_stack == -1));
@@ -3011,7 +3019,7 @@ returned.
     }  /* for */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   } else {
-    if (curr_ise == NULL || is_absolute_file_name(file_name)) {
+    if (!use_search_path || is_absolute_file_name(file_name)) {
       /* File name is absolute, so search path is not used. */
       /* Also used for primary source input file; search current directory. */
       temp_file_name = file_name;
@@ -3450,9 +3458,8 @@ at the next level down.
       FILE		*f_source;
       a_source_file_ptr	sfp = prev_ise->assoc_actual_il_file;
       f_source = open_file_for_input(sfp->name_as_written,
-                                     sfp->included_by_system_include ?
-                                                         sys_incl_search_path :
-                                                         incl_search_path,
+                                     /*use_search_path=*/TRUE,
+                                    (a_boolean)sfp->included_by_system_include,
  				     /*replace_suffix=*/TRUE,
 				     &full_file_name, &display_name);
       if (f_source != NULL) {

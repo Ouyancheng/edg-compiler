@@ -865,9 +865,19 @@ first line of the file.
   open_file_and_push_input_stack(
                strcpy(alloc_il((sizeof_t)(strlen(primary_source_file_name)+1)),
                       primary_source_file_name),
-               (a_directory_name_entry_ptr)NULL,
+               /*use_search_path=*/FALSE,
                /*is_include_file=*/FALSE,
                /*is_system_include=*/FALSE);
+  if (preinclude_file_name != NULL) {
+    /* There is a preinclude file to be included at the beginning of
+       compilation. */
+    open_file_and_push_input_stack(
+               strcpy(alloc_il((sizeof_t)(strlen(preinclude_file_name)+1)),
+                      preinclude_file_name),
+               /*use_search_path=*/FALSE,
+               /*is_include_file=*/TRUE,
+               /*is_system_include=*/FALSE);
+  }  /* if */
   /* Read the first line. */
   (void)read_logical_source_line(TRUE);
 }  /* open_primary_source_file */

@@ -10966,8 +10966,8 @@ file we simply return.
       is_system_include = sfp->included_by_system_include;
       /* Call a routine to search for a file with an appropriate suffix. */
       f_source = open_file_for_input(sfp->name_as_written, 
-                                     is_system_include ? sys_incl_search_path :
-                                                         incl_search_path,
+                                     /*use_search_path=*/TRUE,
+                                     is_system_include,
 				     /*replace_suffix=*/TRUE,
 				     &full_file_name, &display_name);
       if (f_source != NULL) {
