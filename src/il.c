@@ -3435,7 +3435,7 @@ scope depth.
     }  /* if */
 #endif /* CHECKING */
     if (sp->nonstatic_variables == NULL) {
-      sp->variables = var_ptr;
+      sp->nonstatic_variables = var_ptr;
     } else {
       ssep->last_nonstatic_variable->next = var_ptr;
     }  /* if */
