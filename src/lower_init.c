@@ -4553,11 +4553,11 @@ constructor scope, and also lower the user code.
                                                             curr_cleanup_state;
         set_var_indirect_init_pos_descr(this_param_var,
                                         &dedp->init_pos_descr);
+#if GENERATE_EH_TABLES
         /* Set the conditional_flag variable to nonzero.  The code to
            initialize it to zero is inserted later in this routine. */
         set_conditional_flag_var(dedp->conditional_flag_var,
                                  &expr_insert_location);
-#if GENERATE_EH_TABLES
         /* Add the cleanup region table entry. */
         make_dyn_init_region_table_entry(dyn_init_to_free_storage,
                                          (a_dynamic_init_ptr)NULL,
@@ -4608,6 +4608,7 @@ constructor scope, and also lower the user code.
          As mentioned above, this must be done after the user code is
          lowered. */
       enclose_routine_in_if(scope, if_node, this_param_var);
+#if GENERATE_EH_TABLES
       if (exceptions_enabled) {
         /* Initialize the conditional flag to zero.  This must be done after
            enclose_routine_in_if is called so that the initialization is
@@ -4615,6 +4616,7 @@ constructor scope, and also lower the user code.
         set_block_start_insert_location(scope->assoc_block, &insert_location);
         init_conditional_flag_var(dedp, &insert_location);
       }  /* if */
+#endif /* GENERATE_EH_TABLES */
     }  /* if */
   }
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
