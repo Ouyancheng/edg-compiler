@@ -971,11 +971,14 @@ bcp.
   a_targ_size_t      size;
   a_targ_alignment   alignment;
 
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
 #if CHECKING
   if (bcp->pointer_offset_is_set) {
     internal_error("pointer_offset_for_virtual_base_class: already set");
   }  /* if */
 #endif /* CHECKING */
+  bcp->pointer_offset_is_set = TRUE;
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #if TARG_ALL_POINTERS_SAME_SIZE
   /* All pointers are the same size. */
   alignment = (a_targ_alignment)TARG_ALIGNOF_POINTER;
@@ -984,7 +987,6 @@ bcp.
 ??=error pointer_offset_for_virtual_base_class: different sized pointers
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
   bcp->pointer_offset = set_offset_and_alignment(lob, size, alignment);
-  bcp->pointer_offset_is_set = TRUE;
 }  /* pointer_offset_for_virtual_base_class */
 
 
