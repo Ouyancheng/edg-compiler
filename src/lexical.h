@@ -186,10 +186,12 @@ typedef enum /*a_token_kind*/ {
   tok_microsoft_w64,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_microsoft_asm,
-  /* Special named string constants available in C99 and Microsoft modes
-     (the "decorated" variant is only available in Microsoft mode). */
-  tok_function_name,
-  tok_decorated_function_name,
+  /* Special constants for various versions of the name of the current
+     function, e.g., __func__ from C99, __FUNCTION__ from GNU and Microsoft. */
+  tok_func_name,		/* __func__ */
+  tok_function_name,		/* __FUNCTION__ */
+  tok_pretty_function_name,	/* __PRETTY_FUNCTION__ */
+  tok_decorated_function_name,	/* Microsoft __FUNCDNAME__ */
 #if NEAR_AND_FAR_ALLOWED
   tok_near,
   tok_far,
@@ -300,6 +302,8 @@ EXTERN char	*token_names[(int)tok_last+1]
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__asm",
    "__func__",
+   "__FUNCTION__",
+   "__PRETTY_FUNCTION__",
    "__FUNCDNAME__",
 #if NEAR_AND_FAR_ALLOWED
     "__near", "__far",
@@ -666,7 +670,9 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_microsoft_w64 */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_microsoft_asm */
+   (an_opname_kind)onk_none,          /* tok_func_name */
    (an_opname_kind)onk_none,          /* tok_function_name */
+   (an_opname_kind)onk_none,          /* tok_pretty_function_name */
    (an_opname_kind)onk_none,          /* tok_decorated_function_name */
 #if NEAR_AND_FAR_ALLOWED
    (an_opname_kind)onk_none,          /* tok_near */
