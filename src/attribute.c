@@ -349,9 +349,11 @@ pointed to be "pos" can be freed when this routine returns.
       ap->variant.ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
       break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     case ak_init_priority:
       ap->variant.init_priority = 0;
       break;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
     default:
       unexpected_condition_str("alloc_attribute: bad kind");
   }  /* switch */
@@ -423,9 +425,11 @@ Return a copy of the complete attribute list.
         (*end)->variant.ELF_visibility = attributes->variant.ELF_visibility;
         break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
       case ak_init_priority:
         (*end)->variant.init_priority = attributes->variant.init_priority;
         break;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
       default:
         unexpected_condition_str("copy_attribute_list: bad kind");
         break;
@@ -713,6 +717,7 @@ that do take arguments.
       }
       break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     case ak_init_priority:
       { a_host_large_integer  priority;
         a_boolean             error_occurred;
@@ -737,6 +742,7 @@ that do take arguments.
         result = TRUE;
       }
       break;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
     default:
       unexpected_condition();
   }  /* switch */
@@ -767,11 +773,13 @@ attribute, set *kind to ak_last.
         *kind = (an_attribute_kind)ak_last;
       }  /* if */
       break;
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     case ak_init_priority:
-      if (gcc_mode) {
+      if (gcc_mode || !gnu_init_priority_attribute_enabled) {
         *kind = (an_attribute_kind)ak_last;
       }  /* if */
       break;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     case ak_visibility:
       if (gnu_visibility_attribute_enabled) break;
@@ -888,7 +896,9 @@ function returns the address of the last attribute.
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
           case ak_visibility:
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
           case ak_init_priority:
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
             /* Bypass the lparen. */
             (void)get_token();
             if (!scan_attribute_arguments(attribute)) {
@@ -1318,6 +1328,7 @@ invalid attributes.
         vp->ELF_visibility = ap->variant.ELF_visibility;
         break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
       case ak_init_priority:
         if (is_file_or_namespace_scope(&scope_stack[depth_scope_stack]) &&
             is_class_struct_union_type(vp->type)) {
@@ -1326,6 +1337,7 @@ invalid attributes.
           pos_error(ec_bad_variable_for_init_priority, &ap->position);
         }  /* if */
         break;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
       default:
         /* This attribute is not applicable to variables. */
         pos_sy_warning(ec_attribute_does_not_apply,

@@ -5589,11 +5589,15 @@ typedef struct a_vla_dimension {
 
 #if GNU_EXTENSIONS_ALLOWED
 
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+
 /*
 The type of the integer values used to represent the priority of dynamic
 initialization using GNU attributes.
 */
 typedef unsigned short a_gnu_init_priority;
+
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
@@ -5690,12 +5694,14 @@ typedef struct a_variable {
 			/* The explicit alignment specified for the
 			   variable, or zero if there was no explicit
 			   alignment. */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   a_gnu_init_priority
 		init_priority;
 			/* The initialization priority specified by the GNU
 			   attribute "init_priority."  This value should lie
 			   between 101 and 65535 inclusive, or should be zero
 			   if the attribute was not specified. */
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   a_bit_field   ELF_visibility:2;
 			/* The visibility of the variable in the generated

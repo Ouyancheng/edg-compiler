@@ -1720,7 +1720,9 @@ to it.
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if GNU_EXTENSIONS_ALLOWED
   vp->alignment                   = 0;
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   vp->init_priority               = 0;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   vp->ELF_visibility              = (an_ELF_visibility_kind)evk_unspecified;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */

@@ -481,7 +481,20 @@ recorded in the IL).
 #endif /* ifndef GNU_NAKED_ATTRIBUTE_ALLOWED */
 
 /*
-Flag that is TRUE if the GNU C "visibility" attribute should be 
+Flag that is TRUE if the GNU "init_priority" attribute should be 
+recognized (and recorded in the IL).
+*/
+#ifndef GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+#define GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED FALSE
+#endif /* ifndef GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+
+#ifndef DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED
+#define DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED \
+	  GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+#endif /* ifndef DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED */
+
+/*
+Flag that is TRUE if the GNU "visibility" attribute should be 
 recognized (and recorded in the IL).
 */
 #ifndef GNU_VISIBILITY_ATTRIBUTE_ALLOWED

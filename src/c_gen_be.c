@@ -1575,11 +1575,13 @@ Write out attributes that apply to the indicated variable.
     /* Output the alignment attribute. */
     write_alignment_attribute(var->alignment);
   }  /* if */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   if (var->init_priority != 0) {
     write_tok_str(" __attribute__((__init_priority__(");
     write_unsigned_num((a_host_large_unsigned)var->init_priority);
     write_tok_str(")))");
   }  /* if */
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   write_ELF_visibility_attribute(var->ELF_visibility);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */

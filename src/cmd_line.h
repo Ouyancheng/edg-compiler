@@ -1525,6 +1525,17 @@ EXTERN a_host_large_integer
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+EXTERN a_boolean
+		gnu_init_priority_attribute_enabled
+#if VAR_INITIALIZERS
+			= DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED
+#endif /* VAR_INITIALIZERS */
+			                                             ;
+			/* TRUE if the GNU "init_priority" attribute should be
+			   accepted. */
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 EXTERN a_boolean
 		gnu_visibility_attribute_enabled

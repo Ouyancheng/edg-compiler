@@ -508,6 +508,10 @@ Flags to be set when using the KAI inliner.
 #endif /* defined(_WIN32) */
 #endif /* defined(sun) */
 
+#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET
+#define GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED 1
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
+
 /*
 Set ABI-related switches.  This is done late so that individual configurations
 (above) can do something different from the EDG default by setting the
