@@ -1,5 +1,19 @@
 Version 3.5
 
+7/28/04  GNU C++ compatibility: Conflicting extern "C" declarations
+
+In GNU C++ mode, the front end now accepts conflicting extern "C" declarations
+if they appear in different namespaces.  (Linker errors may result if the
+declarations are definitions.)  For example:
+
+  extern "C" int x;
+  namespace N {
+    extern "C" int x;  // Normally an error, but accepted in GNU C++ mode.
+  }
+
+(Microsoft compilers suffer a similar bug which our front end already
+emulated in Microsoft bugs mode.  See Changes entry of 10/6/99.)
+
 7/27/04  Embedded C: Conversions on fixed-point compound assignments
 
 In compound assignments with a fixed-point result the front end erroneously

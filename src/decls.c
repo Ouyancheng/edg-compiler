@@ -2861,9 +2861,9 @@ created; the caller must set it.
               !routine_types_are_compatible(
                                           type_ptr, rp->type, TCF_NO_FLAGS)) {
             /* Illegal overloading involving two extern "C" functions with
-               the same name.  Microsoft compilers let this through if the
-               two declarations are in different namespaces. */
-            err = !(microsoft_bugs &&
+               the same name.  Microsoft and GNU C++ compilers let this
+               through if the two declarations are in different namespaces. */
+            err = !((microsoft_bugs || gpp_mode) &&
                     depth_scope_stack == depth_innermost_namespace_scope &&
                     sym->parent.namespace_ptr !=
                               scope_stack[depth_scope_stack].assoc_namespace);
@@ -4547,15 +4547,16 @@ declaration.
        keeps track of the full composite type behind the scenes.
        If we do not already have an IL entry, and the external symbol entry
        points to one, get a pointer to it and use it.
-       Note that in Microsoft compilers, an extern "C" declaration in one
-       namespace scope does not link up with an extern "C" declaration of the
-       same name in another scope (though the linker will catch redefinitions
-       of such names). */
+       Note that in Microsoft and GNU compilers, an extern "C" declaration in
+       one namespace scope does not link up with an extern "C" declaration of
+       the same name in another scope (though the linker will catch
+       redefinitions of such names). */
     a_routine_ptr  dummy_rp;
     suppress_ext_sym_lookup =
-        suppress_ext_sym_lookup ||
-        (microsoft_bugs && depth_innermost_function_scope == NO_SCOPE_DEPTH &&
-         idlb.name_linkage == (a_name_linkage_kind)nlk_external);
+                     suppress_ext_sym_lookup ||
+                     ((microsoft_bugs || gpp_mode) &&
+                      depth_innermost_function_scope == NO_SCOPE_DEPTH &&
+                      idlb.name_linkage == (a_name_linkage_kind)nlk_external);
     *ext_sym = 
         create_external_symbol_for_linked_entity(locator, type_ptr,
                                                  idlb.name_linkage,
@@ -5235,13 +5236,13 @@ to point to a routine entry attached to an existing compatible external symbol
     /* Create an external symbol for the present linkable declaration.
        Ordinarily, this may involve some lookup to find a declaration in a
        previous scope to which the present one is linked.  However, in
-       Microsoft compilers, an extern "C" declaration (or a declaration with
-       external linkage in C mode) in one scope does not link up with an
-       extern "C" declaration of the same name in another scope (though the
-       linker will catch redefinitions of such names). */
+       Microsoft and GNU C++ compilers, an extern "C" declaration (or a
+       declaration with external linkage in C mode) in one scope does not
+       link up with an extern "C" declaration of the same name in another
+       scope (though the linker will catch redefinitions of such names). */
     a_variable_ptr  dummy_vp;
     suppress_ext_sym_lookup = suppress_ext_sym_lookup ||
-                              (microsoft_bugs &&
+                              ((microsoft_bugs || gpp_mode) &&
                                idlbp->name_linkage ==
                                            (a_name_linkage_kind)nlk_external);
     result = create_external_symbol_for_linked_entity(
