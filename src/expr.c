@@ -5208,7 +5208,7 @@ this routine is called.
       err = TRUE;
     }  /* if */
   } else if (curr_expr_kind_is(ek_template_arg)) {
-    /* Only casts to arithmetic types are allowed in nontype template
+    /* Only casts between arithmetic types are allowed in nontype template
        arguments. */
     if (is_arithmetic_type(dest_type)) {
       /* Destination is arithmetic.  Source should be also. */
