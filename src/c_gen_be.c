@@ -1121,7 +1121,7 @@ Output the indicated constant.
         /* Wide string constant has been stored in a static variable;
            the variable is used here.  That's to ensure that the alignment
            is right. */
-        dump_constant_name(constant);
+        dump_temp_name((char *)constant);
       } else {
         a_targ_size_t a;
         char          ch;
