@@ -1256,28 +1256,30 @@ nested class.
       a_src_seq_end_of_construct_ptr  sseocp;
 
       /* Check the end of the source sequence list. */
-      /* Unless the last entry on the source sequence list is an
-         end-of-construct entry that corresponds to the end of the
-         definition of class_type, back up until it's found. */
-      for (tail = scope_stack[scope_depth].end_of_source_sequence_list;;
-           tail = tail->prev) {
-        check_assertion(tail != NULL);
-        if (ss_entry_kind(tail) ==
+      if (class_type->source_corresp.source_sequence_entry != NULL) {
+        /* Unless the last entry on the source sequence list is an
+           end-of-construct entry that corresponds to the end of the
+           definition of class_type, back up until it's found. */
+        for (tail = scope_stack[scope_depth].end_of_source_sequence_list;;
+             tail = tail->prev) {
+          check_assertion(tail != NULL);
+          if (ss_entry_kind(tail) ==
                   (an_il_entry_kind)iek_src_seq_end_of_construct) {
-          sseocp = (a_src_seq_end_of_construct_ptr)tail->entity.ptr;
-          if (sseocp->entity.ptr == (char *)class_type) {
+            sseocp = (a_src_seq_end_of_construct_ptr)tail->entity.ptr;
+            if (sseocp->entity.ptr == (char *)class_type) {
 #if DEBUG
-            if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-              fputs("adding fixup entries following body of class \"",
-                    f_debug);
-              db_type_name(class_type);
-              fputs("\"\n", f_debug);
-            }  /* if */
+              if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+                fputs("adding fixup entries following body of class \"",
+                      f_debug);
+                db_type_name(class_type);
+                fputs("\"\n", f_debug);
+              }  /* if */
 #endif /* DEBUG */
-            insert_point = tail->next;
-            break;
-          }  /* if */
-        }  /* for */
+              insert_point = tail->next;
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
       }  /* if */
     }  /* if */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
