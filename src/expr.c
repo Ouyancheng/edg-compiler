@@ -3664,7 +3664,7 @@ Syntax:
      in bytes, of type size_t (see 3.3.3.4 and <stddef.h>). */
   if (is_error_type(sizeof_type)) {
     set_error_constant(&constant);
-  } else if (is_or_contains_template_param(sizeof_type)) {
+  } else if (!C_mode() && is_or_contains_template_param(sizeof_type)) {
     /* For the size of a template type, use a ck_template_param. */
     clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
     set_template_param_constant_kind(&constant,
@@ -3742,7 +3742,7 @@ be inappropriate, because the feature is probably used to implement
      the operand, of type size_t. */
   if (is_error_type(alignof_type)) {
     set_error_constant(&constant);
-  } else if (is_or_contains_template_param(alignof_type)) {
+  } else if (!C_mode() && is_or_contains_template_param(alignof_type)) {
     /* For __ALIGNOF__ of a template type, use a ck_template_param. */
     clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
     set_template_param_constant_kind(&constant,
