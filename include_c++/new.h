@@ -39,7 +39,10 @@ namespace std {
 
   typedef void (*__new_handler)();
   __new_handler set_new_handler(__new_handler);
-  struct nothrow {};
+  struct nothrow_t {};
+  // Declaration of object nothrow to permit the use of the placement new
+  // syntax: new (nothrow) T;
+  const nothrow_t nothrow;
 
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace std */
@@ -60,7 +63,7 @@ void *operator new(size_t) /* throw(__EDG_STD_NAMESPACE::bad_alloc) */;
 /*
 Nothrow version of operator new.
 */
-void *operator new(size_t, const __EDG_STD_NAMESPACE::nothrow&) /* throw()*/;
+void *operator new(size_t, const __EDG_STD_NAMESPACE::nothrow_t&) /* throw()*/;
 
 /*
 Placement new.  This was not in the ARM, but it is now standard in
@@ -91,7 +94,8 @@ void operator delete[](void*, void*);
 /*
 Nothrow version of array new.
 */
-void *operator new[](size_t, const __EDG_STD_NAMESPACE::nothrow&) /* throw()*/;
+void *operator new[](size_t,
+                     const __EDG_STD_NAMESPACE::nothrow_t&) /* throw()*/;
 #endif /* __ARRAY_OPERATORS */
 
 #endif
