@@ -1,5 +1,22 @@
 Version 2.46
 
+2/2/02   Problem with unnamed enums and list of nontag types used in
+         exception handling
+
+The front end builds a list of nontag types used in exception handling
+and RTTI contexts, so it knows what type_info structures to generate.
+The construction of this list did the wrong thing with unnamed enums,
+which could have disastrous consequences later.  A throw of a variable
+whose type is an unnamed enum, for example, could cause an abort.
+Now fixed.
+
+  enum { e1 } e;
+  struct A { int i; } a;
+  int main () {
+    a.i = 1;
+    throw e;
+  }  
+
 2/1/02   Mangled names for type-as-subobject structs, possible abort
 
 The generation of mangled names for the type-as-subobject structs
