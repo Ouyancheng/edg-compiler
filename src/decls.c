@@ -9627,11 +9627,14 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
       } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
-                 local_storage_class == (a_storage_class)sc_extern) {
-        /* This is not a definition of a variable but rather an extern
+                 (local_storage_class == (a_storage_class)sc_extern ||
+                  is_tentative_definition)) {
+        /* Either:  This is not a definition of a variable but rather an extern
            declaration.  Such variables may be assumed to be initialized
            at the point of definition, flag them as "set" (even if it is not
            at the current declaration). */
+        /* Or else:  This is a tentative definition (C mode only), which should
+           be treated as though it were a definition. */
         mark_variable_value_set(symbol_ptr);
       }  /* if */
       copy_source_position(locator.source_position, error_position);
