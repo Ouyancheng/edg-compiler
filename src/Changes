@@ -1,5 +1,10 @@
 Version 2.33
 
+9/18/96 Microsoft C compatibility: predeclaration of _alloca
+
+In Microsoft C mode _alloca is now predeclared (i.e., a symbol and routine
+entry are generated for it).
+
 9/18/96 Overload resolution tiebreaker as applied to inherited conversion
         function
 

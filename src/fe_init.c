@@ -819,6 +819,12 @@ source file's compilation.
     make_global_operator_new_or_delete_symbol(
                                            (an_opname_kind)onk_array_delete);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && C_mode()) {
+    /* Add a symbol for predeclared _alloca. */
+    make_predeclared_alloca_symbol();
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* The primary source file pointer is updated when the file is opened. */
   il_header.primary_source_file = NULL;
 

@@ -2220,6 +2220,10 @@ extern a_symbol_ptr extract_default_operator_new_sym(a_symbol_ptr sym);
 
 extern void make_global_operator_new_or_delete_symbol(an_opname_kind  opname);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern void make_predeclared_alloca_symbol(void);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern a_symbol_ptr find_default_constructor(a_type_ptr  class_type,
                                              a_boolean   *ambiguous);
 

@@ -3985,22 +3985,78 @@ new(), and therefore might be a projection symbol.
 }  /* extract_default_operator_new_sym */
 
 
+static a_symbol_ptr make_predeclared_function_symbol(
+                                              a_symbol_locator  *locator,
+                                              a_type_ptr        return_type,
+                                              a_type_ptr        param1_type,
+                                              a_type_ptr        param2_type,
+                                              a_type_ptr        param3_type)
+/*
+Create a symbol and routine entry for a predeclared function.  locator points
+the a symbol locator created to represent the entity's name.  return_type
+(which must be non-NULL) and the parameter types (which may be NULL) indicate
+how to form the function's signature.
+*/
+{
+  a_symbol_ptr                   sym = NULL, ext_sym;
+  a_type_ptr                     rout_type, old_type;
+  a_routine_type_supplement_ptr  extra_info;
+  an_id_linkage_kind             linkage;
+  a_func_info_block              func_info;
+
+  /* Create a routine type. */
+  rout_type = alloc_type((a_type_kind)tk_routine);
+  extra_info = rout_type->variant.routine.extra_info;
+  /* Return type. */
+  rout_type->variant.routine.return_type = return_type;
+  if (param1_type != NULL) {
+    /* Set the first parameter. */
+    extra_info->param_type_list = alloc_param_type(param1_type);
+    /* Set the first parameter, if any. */
+    if (param2_type != NULL) {
+      a_param_type_ptr  ptp = extra_info->param_type_list;
+      ptp->next = alloc_param_type(param2_type);
+      /* Set the third parameter, if any. */
+      if (param3_type != NULL) {
+        ptp = ptp->next;
+        ptp->next = alloc_param_type(param3_type);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  extra_info->prototyped = TRUE;
+  set_routine_calling_method_flag(rout_type, &null_source_position);
+  clear_func_info(&func_info);
+  /* Create the symbol and routine entry.  Note that the routine entry
+     is given a storage class of sc_extern since there is no definition
+     in the current translation unit. */
+  decl_routine(locator, (a_storage_class)sc_extern, rout_type, &func_info,
+               (a_source_sequence_entry_ptr)NULL, SRK_DECLARATION, DM_NONE,
+               &sym, &linkage, &old_type, &ext_sym);
+  sym->variant.routine.ptr->compiler_generated = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    /* Predeclared functions should use __cdecl calling convention.  If that's
+       not the default for the compilation, set it now. */
+    if (default_calling_convention != (a_calling_convention)cc_cdecl) {
+      extra_info->calling_convention = (a_calling_convention)cc_cdecl;
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return sym;
+}  /* make_predeclared_function_symbol */
+
 void make_global_operator_new_or_delete_symbol(an_opname_kind  opname)
 /*
 Create a symbol and routine entry for ::operator new, ::operator new[],
 ::operator delete, or ::operator delete[].  These are entered into the
 symbol table as part of initialization, so the locator has a default value
 (as used with keywords).  The routine entry is marked as compiler generated;
-f a user declaration appears later, the compiler-generated flag should be
+if a user declaration appears later, the compiler-generated flag should be
 cleared.
 */
 {
   a_symbol_locator               locator;
-  a_symbol_ptr                   sym = NULL, ext_sym;
-  a_type_ptr                     tp, rout_type, old_type;
-  a_routine_type_supplement_ptr  extra_info;
-  an_id_linkage_kind             linkage;
-  a_func_info_block              func_info;
+  a_type_ptr                     return_type, param1_type;
 
   db_enter(5, "make_global_operator_new_or_delete_symbol");
   check_assertion_str(is_new_operator(opname) || is_delete_operator(opname),
@@ -4008,44 +4064,49 @@ cleared.
   /* Create a locator for the symbol that is to be created. This will also
      create the symbol header. */
   make_opname_locator(opname, &locator, &null_source_position);
-  /* Create a routine type. */
-  rout_type = alloc_type((a_type_kind)tk_routine);
-  extra_info = rout_type->variant.routine.extra_info;
   if (is_new_operator(opname)) {
-    /* Return type for operator new and new[] is void *. */
-    rout_type->variant.routine.return_type = make_pointer_type(void_type());
-    /* One parameter -- the size. */
-    tp = integer_type(targ_size_t_int_kind);
+    /* Return type for operator new is void *. */
+    return_type = make_pointer_type(void_type());
+    /* Type of the one parameter for operator new is size_t. */
+    param1_type = integer_type(targ_size_t_int_kind);
   } else {
-    /* Return type for operator delete and delete[] is void. */
-    rout_type->variant.routine.return_type = void_type();
-    /* One parameter -- void *. */
-    tp = make_pointer_type(void_type());
+    /* Return type of operator delete is void. */
+    return_type = void_type();
+    /* Type of the one parameter for operator delete is void *. */
+    param1_type = make_pointer_type(void_type());
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
-    /* The predeclared new and delete should use __cdecl calling convention.
-       If that's not the default for the compilation, set it now. */
-    if (default_calling_convention != (a_calling_convention)cc_cdecl) {
-      extra_info->calling_convention = (a_calling_convention)cc_cdecl;
-    }  /* if */
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  extra_info->param_type_list = alloc_param_type(tp);
-  extra_info->prototyped = TRUE;
-  set_routine_calling_method_flag(rout_type, &null_source_position);
-  clear_func_info(&func_info);
-  /* Create the symbol and routine entry.  Note that the routine entry
-     is given a storage class of sc_extern since there is no definition
-     in the current translation unit. */
-  decl_routine(&locator, (a_storage_class)sc_extern, rout_type,
-                      &func_info, (a_source_sequence_entry_ptr)NULL,
-                      SRK_DECLARATION, DM_NONE, &sym, &linkage, &old_type,
-                      &ext_sym);
-  sym->variant.routine.ptr->compiler_generated = TRUE;
+  (void)make_predeclared_function_symbol(&locator, return_type, param1_type,
+                                         (a_type_ptr)NULL, (a_type_ptr)NULL);
   db_exit();
 }  /* make_global_operator_new_or_delete_symbol */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void make_predeclared_alloca_symbol(void)
+/*
+Create a symbol and routine entry for predeclared _alloca (only in Microsoft
+C compatibility mode).
+*/
+{
+  a_symbol_locator               locator;
+  a_type_ptr                     return_type, param1_type;
+
+  db_enter(5, "make_predeclared_alloca_symbol");
+  check_assertion(microsoft_mode && C_mode());
+  /* Create a locator for the symbol that is to be created.  This will also
+     create the symbol header. */
+  clear_locator(&locator, &null_source_position);
+  (void)find_symbol("_alloca", (sizeof_t)7, &locator);
+  /* Return type for _alloca is void *. */
+  return_type = make_pointer_type(void_type());
+  /* One parameter -- the size. */
+  param1_type = integer_type(targ_size_t_int_kind);
+  (void)make_predeclared_function_symbol(&locator, return_type, param1_type,
+                                         (a_type_ptr)NULL, (a_type_ptr)NULL);
+  db_exit();
+}  /* make_predeclared_alloca_symbol */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr find_default_constructor(a_type_ptr  class_type,
                                       a_boolean   *ambiguous)
