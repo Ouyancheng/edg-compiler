@@ -11349,7 +11349,7 @@ is modified to indicate that is affiliated with the enum type.
           } else {
             /* Make the needed type. */
             a_type_ptr new_type = alloc_type((a_type_kind)tk_integer);
-            *new_type = **result_type;
+            copy_type(*result_type, new_type);
             new_type->variant.integer.enum_type = FALSE;
             new_type->variant.integer.enum_info.affiliated_type = op1_enum;
             *result_type = new_type;

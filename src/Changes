@@ -1,5 +1,20 @@
 Version 3.3
 
+6/5/03   IL structure error (based types list), C mode enum operation
+
+The result type constructed for a C-mode enum operation sometimes
+was a copy of another type, and the based_types list in the copy
+was not cleared, which could cause IL traversal aborts later
+(two IL entries had the same based_types list).  Now fixed.
+
+  extern int foo (unsigned int *a) ;
+  extern int bar (const unsigned int a);
+  typedef enum { DECL_NONE } declType;
+  static void addOtherFields ()
+  {
+    (0 ? DECL_NONE : (declType)0);  // Aborted in --gcc --no_remove mode
+  }
+
 6/5/03   GNU C++ mode: lookup of injected class name vs. constructor
 
 g++ finds the injected class name in certain contexts where, according
