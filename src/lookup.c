@@ -503,12 +503,16 @@ as the class type, and use as a base class.
 }  /* proxy_class_for_template_param */
 
 
-static a_symbol_ptr create_unknown_function_symbol(a_symbol_ptr	orig_sym)
+static a_symbol_ptr create_unknown_function_symbol(
+				a_symbol_header_ptr	sym_hdr,
+				a_type_ptr		parent_class,
+				a_namespace_ptr		parent_namespace)
 /*
 Create a ck_constant entry of kind tpck_unknown_function, and an sk_constant
 symbol that points to the constant.  These constants are used during
 prototype instantiations to represent functions in dependent calls.
-The symbol is created using the symbol header information from orig_sym.
+The symbol is created using the symbol header information from sym_hdr
+and the parent information specified by parent_class and parent_namespace.
 */
 {
   /* Create a ck_template_param constant.  We don't know the type of the
@@ -518,14 +522,7 @@ The symbol is created using the symbol header information from orig_sym.
   a_scope_depth			depth = NO_SCOPE_DEPTH;
   a_symbol_ptr			sym;
   a_source_correspondence	*scp;
-  a_type_ptr			parent_class = NULL;
-  a_namespace_ptr		parent_namespace = NULL;
 
-  if (orig_sym->is_class_member) {
-    parent_class = orig_sym->parent.class_type;
-  } else {
-    parent_namespace = orig_sym->parent.namespace_ptr;
-  }  /* if */
 #if RECORD_SCOPE_DEPTH_IN_IL
   {
     a_source_correspondence	*parent_scp = NULL;
@@ -545,7 +542,7 @@ The symbol is created using the symbol header information from orig_sym.
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
   /* Create a symbol for the member.  mark_declared is not called
      because this symbol is not visible to the user. */
-  sym = alloc_symbol((a_symbol_kind)sk_constant, orig_sym->header,
+  sym = alloc_symbol((a_symbol_kind)sk_constant, sym_hdr,
                      &null_source_position);
   constant = fs_constant((a_constant_repr_kind)ck_template_param);
   set_template_param_constant_kind(
@@ -595,11 +592,18 @@ of the symbol header.
     }  /* if */
   } /* for */
   if (sym == NULL) {
-    a_symbol_header_ptr	hdr;
     /* No symbol was found -- create one now. */
-    sym = create_unknown_function_symbol(orig_sym);
-    /* Link this symbol onto the other symbols list. */
+    a_symbol_header_ptr		hdr;
+    a_type_ptr			parent_class = NULL;
+    a_namespace_ptr		parent_namespace = NULL;
     hdr = sym->header;
+    if (orig_sym->is_class_member) {
+      parent_class = orig_sym->parent.class_type;
+    } else {
+      parent_namespace = orig_sym->parent.namespace_ptr;
+    }  /* if */
+    sym = create_unknown_function_symbol(hdr, parent_class, parent_namespace);
+    /* Link this symbol onto the other symbols list. */
     sym->next = hdr->other_symbols;
     hdr->other_symbols = sym;
   }  /* if */
@@ -1993,7 +1997,7 @@ that do normal id lookup processing.
 }  /* look_for_projected_symbol */
 
 
-static a_symbol_ptr lookup_conversion_template_instance(
+static a_symbol_ptr find_conversion_template_instance(
 			a_symbol_locator		*locator,
                         a_type_ptr			class_type,
 			a_symbol_list_entry_ptr		conversion_templates)
@@ -2087,6 +2091,58 @@ ambiguous symbol and return a pointer.  If no match is found, return NULL.
                                      result_sym->variant.routine.instance_ptr;
       result_sym = new_sym;
     }  /* if */
+  }  /* if */
+  return result_sym;
+}  /* find_conversion_template_instance */
+
+
+static a_symbol_ptr create_unknown_conversion_symbol(
+					a_symbol_locator	*locator,
+					a_type_ptr		class_type)
+/*
+Create an unknown function symbol that is a member of class_type.  Use the
+symbol header information from the locator.  Return the symbol created.
+*/
+{
+  a_symbol_ptr		sym;
+  a_constant_ptr	constant;
+  a_type_ptr		conv_result;
+
+  sym = create_unknown_function_symbol(locator->symbol_header,
+                                       class_type, (a_namespace_ptr)NULL);
+  /* Update the constant associated with this symbol to reflect the
+     result type of the conversion function. */
+  constant = sym->variant.constant;
+  conv_result = locator->variant.conversion_result_type;
+  check_assertion(conv_result != NULL);
+  constant->variant.template_param.variant.conversion_type = conv_result;
+  return sym;
+}  /* create_unknown_conversion_symbol */
+
+
+static a_symbol_ptr lookup_conversion_template_instance(
+			a_symbol_locator		*locator,
+                        a_type_ptr			class_type,
+			a_symbol_list_entry_ptr		conversion_templates)
+/*
+Find the conversion template instance that matches the type specified
+by the conversion type in the locator.
+
+If we are in a prototype instantiation context, return an unknown function
+symbol that has the result type recorded in the ck_template_param constant.
+*/
+{
+  a_symbol_ptr	result_sym;
+
+  if (is_template_dependent_context()) {
+    /* A template context.  Create an unknown function symbol to
+       represent the conversion function. */
+    result_sym = create_unknown_conversion_symbol(locator, class_type);
+  } else {
+    /* A normal (nondependent) context.  Try to find a matching
+       template conversion instance. */
+    result_sym = find_conversion_template_instance(locator, class_type,
+                                                   conversion_templates);
   }  /* if */
   return result_sym;
 }  /* lookup_conversion_template_instance */

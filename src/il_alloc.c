@@ -381,6 +381,7 @@ ck_template_param constant.
       cp->variant.template_param.variant.is_address = FALSE;
       break;
     case tpck_unknown_function:
+      cp->variant.template_param.variant.conversion_type = NULL;
       break;
     case tpck_cast:
       cp->variant.template_param.variant.constant = NULL;

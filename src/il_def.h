@@ -1869,6 +1869,12 @@ typedef struct a_constant {
 			/* TRUE if the constant represents the address of
 			   the member.  FALSE if it represents the value
 			   of the member. */
+        /* When template param constant kind == tpck_unknown_function: */
+        a_type_ptr
+		conversion_type;
+			/* If the unknown function represents a conversion
+			   function, this is the result type; NULL
+			   otherwise. */
         /* When template param constant kind == tpck_cast: */
         a_constant_ptr
 		constant;
