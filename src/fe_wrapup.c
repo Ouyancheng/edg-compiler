@@ -229,6 +229,11 @@ already been copied over.
   a_scope_ptr il_scope = curr_translation_unit->primary_scope;
 
   if (is_primary_translation_unit) {
+    if (total_errors == 0 && !trans_unit_test_mode) {
+      /* Finish processing of any functions moved from secondary translation
+         units.  This includes lowering of the function bodies. */
+      process_functions_moved_from_secondary_trans_units();
+    }  /* if */
     /* Sweep the primary translation unit IL tree and look for any
        pointers to entities in secondary translation units that it uses,
        and rewrite the pointers as the corresponding primary IL entities. */

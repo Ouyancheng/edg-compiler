@@ -44,11 +44,10 @@ in the primary IL.
 */
 {
   /* Make the correspondence pointer go directly to the canonical
-     entry if it is currently a multi-step chain.  This is needed
-     to allow adding an intervening step on the chain to indicate
-     the location where the entry should be copied (more precisely,
-     to make it possible to tell whether the intervening step has
-     been added). */
+     entry if it is currently a multi-step chain.  This makes it
+     convenient to deal with in the later processing, because the
+     original entry points to the copy which points to the
+     corresponding primary IL entry, with no extra steps. */
   char *canonical = canonical_il_entry_of(ptr);
   checked_trans_unit_corresp_pointer_of(ptr) = canonical;
   /* The IL lowering flag is borrowed for this process because IL
@@ -221,14 +220,14 @@ pointer of the entry pointed to by ptr, of kind "kind".
          the end of the list).  Note that the copy is in the
          secondary translation unit file scope memory region. */
       char *copy = alloc_il(sizeof_il_entry[(int)kind]);
+      check_assertion(!is_string_entry_kind(kind));
       checked_trans_unit_corresp_pointer_of(ptr) = copy;
       checked_trans_unit_corresp_pointer_of(copy) = corresp;
-      check_assertion(!is_string_entry_kind(kind));
-      /* Set the flag to request copying. */
-      set_entry_needs_copy_flag(ptr);
       /* Set the flag to indicate that a copy address has been assigned.
          Note that that prevents us from getting to the code here again. */
       entry_copy_address_assigned(ptr) = TRUE;
+      /* Set the flag to request copying. */
+      set_entry_needs_copy_flag(ptr);
     }  /* if */
   } else {
     /* The entry has no correspondence.  Allocate space for it in the primary
@@ -247,16 +246,19 @@ pointer of the entry pointed to by ptr, of kind "kind".
         /* Check for the weird case where the canonical entry is in the
            current translation unit (presumably, ptr is from some
            other secondary translation unit).  In that case, do the
-           copy from the canonical entry. */
+           copy from the canonical entry.  If we didn't do that, the
+           copy wouldn't get done at all in the current translation
+           unit, and we will need to look at the copied entry
+           to link it into the primary IL. */
         if (!in_other_secondary_trans_unit(canonical, kind, &known) &&
             known) {
           ptr = canonical;
         }  /* if */
       }  /* if */
-      /* Set the flag to request copying. */
-      set_entry_needs_copy_flag(ptr);
       /* Set the flag to indicate that a copy address has been assigned. */
       entry_copy_address_assigned(ptr) = TRUE;
+      /* Set the flag to request copying. */
+      set_entry_needs_copy_flag(ptr);
       if (!walking_file_scope) {
         /* A reference from a function scope to the file scope.  Make sure
            we come back to this entry if it's an orphan. */
@@ -307,16 +309,8 @@ pruned at the entry pointed to by ptr, of kind "kind".
       prune = TRUE;
     } else {
       /* This entry still needs to be processed (i.e., copied and remapped). */
-      a_boolean known;
-      if (in_other_secondary_trans_unit(ptr, kind, &known)) {
-        /* This entity is from a different secondary translation unit.
-           Leave it to be processed when that translation unit is
-           copied. */
-        prune = TRUE;
-      } else {
-        reset_entry_needs_copy_flag(ptr);
-        prune = FALSE;
-      }  /* if */
+      reset_entry_needs_copy_flag(ptr);
+      prune = FALSE;
     }  /* if */
   }  /* if */
   return prune;
@@ -371,6 +365,8 @@ correspondence pointer to point to the copy.
 
     check_assertion(in_file_scope(ptr));
     checked_trans_unit_corresp_pointer_of(ptr) = copy;
+    /* Set the flag to indicate that a copy address has been assigned. */
+    entry_copy_address_assigned(ptr) = TRUE;
     (void)memcpy(copy, ptr, size_t_arg(length));
   }  /* if */
 }  /* copy_string_entry */
@@ -416,27 +412,6 @@ and remap the pointers in the copy by calling remap_function.
     walk_remap_func = saved_walk_remap_func;
     scp = source_corresp_for_il_entry(copy, kind);
     if (scp != NULL) scp->copied_from_secondary_trans_unit = TRUE;
-    if (kind == iek_routine) {
-      a_routine_ptr rout = (a_routine_ptr)ptr;
-      if (rout->assoc_scope != NULL_region_number) {
-        /* For a routine with a body, the code in the function scope memory
-           region needs to be processed too.  It doesn't need to be
-           copied, but the pointers need to be remapped. */
-        a_scope_ptr scope = il_header.region_scope_entry[rout->assoc_scope];
-        check_assertion(scope != NULL);
-        /* This shouldn't happen in the
-           rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary
-           phase. */
-        check_assertion(remap_function == remap_secondary_ptr_to_primary);
-        walk_routine_scope_il(rout->assoc_scope,
-                              copy_entry,
-                              copy_string_entry,
-                              (a_remap_function_ptr)NULL,
-                              copy_termination_test,
-                              /*clear_fe_pointers=*/FALSE);
-        scope->function_body_processing_finished = FALSE;
-      }  /* if */
-    }  /* if */
   }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   /* Clear the needed and keep_in_il flags in the copy (or original,
@@ -490,6 +465,86 @@ primary translation unit IL.
                      /*clear_fe_pointers=*/FALSE);
   db_exit();
 }  /* copy_from_secondary_to_primary_IL */
+
+
+static void move_routine_body_to_primary(a_routine_ptr routine)
+/*
+Move the body of the indicated routine to the primary IL by walking
+it and remapping pointers.
+*/
+{
+  a_scope_ptr scope = il_header.region_scope_entry[routine->assoc_scope];
+
+  check_assertion(scope != NULL);
+  walk_routine_scope_il(routine->assoc_scope,
+                        copy_entry,
+                        copy_string_entry,
+                        (a_remap_function_ptr)NULL,
+                        copy_termination_test,
+                        /*clear_fe_pointers=*/FALSE);
+  scope->function_body_processing_finished = FALSE;
+}  /* move_routine_body_to_primary */
+
+
+static void copy_function_bodies_from_secondary_to_primary_IL(
+                                                            a_scope_ptr scope);
+
+
+static void copy_type_list_function_bodies_from_secondary_to_primary_IL(
+                                                          a_type_ptr type_list)
+/*
+Copy the bodies of any functions on the indicated type list to the
+primary translation unit IL.
+*/
+{
+  a_type_ptr type;
+
+  if (!C_mode()) {
+    for (type = type_list; type != NULL; type = type->next) {
+      if (is_immediate_class_type(type)) {
+        a_scope_ptr class_scope =
+                      type->variant.class_struct_union.extra_info->assoc_scope;
+        if (class_scope != NULL) {
+          copy_function_bodies_from_secondary_to_primary_IL(class_scope);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* copy_type_list_function_bodies_from_secondary_to_primary_IL */
+
+
+static void copy_function_bodies_from_secondary_to_primary_IL(
+                                                             a_scope_ptr scope)
+/*
+Copy the bodies of any functions in the indicated scope (a file,
+namespace, or class scope in a secondary translation unit) to the
+primary translation unit IL.
+*/
+{
+  a_routine_ptr   routine;
+  a_namespace_ptr nsp;
+
+  for (routine = scope->routines; routine != NULL; routine = routine->next) {
+    if (routine->assoc_scope != NULL_region_number) {
+      /* Move the routine body to the primary IL. */
+      a_scope_ptr rout_scope =
+                            il_header.region_scope_entry[routine->assoc_scope];
+      check_assertion_str(rout_scope != NULL,
+            "copy_function_bodies_from_secondary_to_primary_IL: body missing");
+      /* Handle local classes (and their member functions). */
+      copy_type_list_function_bodies_from_secondary_to_primary_IL(
+                                                            rout_scope->types);
+      move_routine_body_to_primary(routine);
+    }  /* if */
+  }  /* for */
+  copy_type_list_function_bodies_from_secondary_to_primary_IL(scope->types);
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      copy_function_bodies_from_secondary_to_primary_IL(
+                                                     nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+}  /* copy_function_bodies_from_secondary_to_primary_IL */
 
 
 static void remove_dynamic_initialization(a_dynamic_init_ptr dip)
@@ -591,7 +646,8 @@ and therefore require merging.
     for (;
          list1 != NULL && list2 != NULL;
          list1 = list1->next, list2 = list2->next) {
-      if (!identical_types(list1->class_type, list2->class_type)) break;
+      if (canonical_il_entry_of(list1->class_type) !=
+          canonical_il_entry_of(list2->class_type)) break;
     }  /* for */
     if (list1 == NULL && list2 == NULL) {
       /* The lists matched up in the same order. */
@@ -600,7 +656,8 @@ and therefore require merging.
       /* Try the match in any order on the remaining entries. */
       for (clep1 = list1; clep1 != NULL; clep1 = clep1->next) {
         for (clep2 = list2; clep2 != NULL; clep2 = clep2->next) {
-          if (identical_types(clep1->class_type, clep2->class_type)) break;
+          if (canonical_il_entry_of(clep1->class_type) ==
+              canonical_il_entry_of(clep2->class_type)) break;
         }  /* for */
         if (clep2 == NULL) {
           need_merge = TRUE;
@@ -2059,6 +2116,48 @@ into the primary translation unit il_header.
 }  /* merge_il_headers */
 
 
+void copy_secondary_trans_unit_IL_to_primary(void)
+/*
+Copy IL from the current translation unit, which is a secondary translation
+unit, to the primary translation unit IL.  If needed flag processing
+is configured in, unneeded entities have already been removed from the
+secondary translation unit IL and therefore will not be copied.
+*/
+{
+  a_scope_ptr top_scope = il_header.primary_scope;
+  a_boolean   any_removed_function_bodies = FALSE;
+
+  db_enter(1, "copy_secondary_trans_unit_IL_to_primary");
+#if DEBUG
+  if (debug_level >= 1) {
+    fprintf(f_debug, "Beginning copy from secondary translation unit %s:\n",
+            curr_translation_unit->source_file->name_as_written);
+  }  /* if */
+#endif /* DEBUG */
+  check_assertion(total_errors == 0 && !is_primary_translation_unit);
+  /* This code doesn't handle source sequence lists, so the result won't
+     work with the C++-generating back end. */
+  { a_boolean okay = !BACK_END_IS_CP_GEN_BE;
+    check_assertion(okay);
+  }
+  check_assertion(!il_entry_prefix_of(top_scope).
+                  il_lowering_flag);/*lint !e527*/
+  initial_value_for_il_lowering_flag = FALSE;
+  (void)prepare_for_trans_unit_copy(top_scope, &any_removed_function_bodies);
+  copy_from_secondary_to_primary_IL();
+  copy_function_bodies_from_secondary_to_primary_IL(top_scope);
+  finish_trans_unit_copy(top_scope);
+  merge_il_headers();
+#if DEBUG
+  if (debug_level >= 1) {
+    fprintf(f_debug, "Done with copy from secondary translation unit %s\n",
+            curr_translation_unit->source_file->name_as_written);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+}  /* copy_secondary_trans_unit_IL_to_primary */
+
+
 static void copy_info_for_inline_routine(a_routine_ptr routine)
 /*
 The indicated routine has been copied from the secondary translation
@@ -2119,7 +2218,8 @@ functions of local classes, where it points to the primary IL copy.
   /* If the routine is an extern inline function, copy instantiation
      information. */
   copy_info_for_inline_routine(rout);
-  if (primary_rout->assoc_scope != NULL_region_number) {
+  /* Note use of rout here instead of primary_rout. */
+  if (rout->assoc_scope != NULL_region_number) {
     /* The routine body was moved. */
     a_scope_ptr scope= il_header.region_scope_entry[primary_rout->assoc_scope];
     check_assertion_str(scope != NULL, "wrap_up_moved_function: body missing");
@@ -2254,60 +2354,29 @@ The current translation unit is the primary translation unit.
 
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
-void copy_secondary_trans_unit_IL_to_primary(void)
+void process_functions_moved_from_secondary_trans_units(void)
 /*
-Copy IL from the current translation unit, which is a secondary translation
-unit, to the primary translation unit IL.  If needed flag processing
-is configured in, unneeded entities have already been removed from the
-secondary translation unit IL and therefore will not be copied.
+Do final processing on any functions moved from secondary translation
+units when copy_secondary_trans_unit_IL_to_primary was called.  This
+includes lowering of the function bodies.  This routine is called when in
+the primary translation unit, after all copying from secondary
+translation units has been done.
 */
 {
-  a_scope_ptr            top_scope = il_header.primary_scope;
-  a_boolean              any_removed_function_bodies = FALSE;
-  a_translation_unit_ptr saved_translation_unit = curr_translation_unit;
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  a_scope_orphaned_list_header_ptr
-                         saved_solh_list=il_header.scope_orphaned_list_headers;
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+  a_translation_unit_ptr tup;
 
-  db_enter(1, "copy_secondary_trans_unit_IL_to_primary");
-#if DEBUG
-  if (debug_level >= 1) {
-    fprintf(f_debug, "Beginning copy from secondary translation unit %s:\n",
-            curr_translation_unit->source_file->name_as_written);
-  }  /* if */
-#endif /* DEBUG */
-  check_assertion(total_errors == 0 && !is_primary_translation_unit);
-  /* This code doesn't handle source sequence lists, so the result won't
-     work with the C++-generating back end. */
-  { a_boolean okay = !BACK_END_IS_CP_GEN_BE;
-    check_assertion(okay);
-  }
-  check_assertion(!il_entry_prefix_of(top_scope).
-                  il_lowering_flag);/*lint !e527*/
-  initial_value_for_il_lowering_flag = FALSE;
-  (void)prepare_for_trans_unit_copy(top_scope, &any_removed_function_bodies);
-  copy_from_secondary_to_primary_IL();
-  finish_trans_unit_copy(top_scope);
-  /* Do final processing on moved function bodies.  This must be
-     done in the context of the primary translation unit. */
-  switch_translation_unit(translation_units);
-  /* Do inline functions first, to allow more chances for inlining. */
-  finish_moved_function_processing(top_scope, /*do_inlines=*/TRUE);
-  finish_moved_function_processing(top_scope, /*do_inlines=*/FALSE);
+  db_enter(1, "process_functions_moved_from_secondary_trans_units");
+  check_assertion(is_primary_translation_unit);
+  for (tup = translation_units->next; tup != NULL; tup = tup->next) {
+    finish_moved_function_processing(tup->primary_scope, /*do_inlines=*/TRUE);
+    finish_moved_function_processing(tup->primary_scope, /*do_inlines=*/FALSE);
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  finish_scope_orphaned_list_processing(saved_solh_list);
+    finish_scope_orphaned_list_processing(
+                                   tup->il_header.scope_orphaned_list_headers);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-  switch_translation_unit(saved_translation_unit);
-  merge_il_headers();
-#if DEBUG
-  if (debug_level >= 1) {
-    fprintf(f_debug, "Done with copy from secondary translation unit %s\n",
-            curr_translation_unit->source_file->name_as_written);
-  }  /* if */
-#endif /* DEBUG */
+  }  /* for */
   db_exit();
-}  /* copy_secondary_trans_unit_IL_to_primary */
+}  /* process_functions_moved_from_secondary_trans_units */
 
 
 #if !MAINTAIN_NEEDED_FLAGS
@@ -2442,6 +2511,8 @@ with linkage.
       /* Make a copy of the entry in the primary IL. */
       new_ptr = alloc_il(sizeof_il_entry[(int)kind]);
       trans_unit_corresp_pointer_of(old_ptr) = new_ptr;
+      /* Set the flag to indicate that a copy address has been assigned. */
+      entry_copy_address_assigned(old_ptr) = TRUE;
       copy_entry_basic(old_ptr, kind, remap_secondary_pointer);
       /* Make sure the copy is processed. */
       il_entry_prefix_of(new_ptr).il_walk_flag = !flag_value_meaning_visited;
