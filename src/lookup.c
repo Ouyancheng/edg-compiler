@@ -1443,13 +1443,13 @@ In Sun compatibility mode, the symbols need not be from the same scope.
 
 #if DEBUG
 
-static long functions_represented_by_symbol(a_symbol_ptr	sym)
+static unsigned long functions_represented_by_symbol(a_symbol_ptr	sym)
 /*
 Return the number of function symbols represented by "sym".  Actually,
 it also returns a value of 1 for non-function symbols too.
 */
 {
-  long	result = 0;
+  unsigned long	result = 0;
 
   if (sym == NULL) {
   } else if (sym->kind != (a_symbol_kind)sk_overloaded_function) {
@@ -1459,7 +1459,7 @@ it also returns a value of 1 for non-function symbols too.
       for (; sym != NULL; sym = sym->next) result++;
   }  /* if */
   return result;
-}  /* function_represented_by_symbol */
+}  /* functions_represented_by_symbol */
 
 #endif /* DEBUG */
 
@@ -1514,7 +1514,7 @@ be in the set.
 #if DEBUG
   if (db_flag_is_set("lookup_set")) {
     fprintf(f_debug,
-            "add_symbol_to_lookup_set: symbols at start - curr=%d, new=%d\n",
+            "add_symbol_to_lookup_set: symbols at start - curr=%lu, new=%lu\n",
             functions_represented_by_symbol(curr_sym),
             functions_represented_by_symbol(new_sym));
     fprintf(f_debug, "  decl_seq_of_symbol=%ld, starting_decl_seq=%ld\n",
