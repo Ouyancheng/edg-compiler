@@ -64,12 +64,31 @@ static a_reachability_summary
 
 static a_control_flow_descr_ptr
 		control_flow_descr_list;
-
+			/* A linked list that represents that part of the
+			   static control flow pattern of a given function
+			   that is relevant to detecting transfers of control
+			   that bypass declarations with explicit or implicit
+			   initializers.  The list represents labels, gotos,
+			   blocks, and initializing declarations.  Note that
+			   the list is dynamically pruned -- it has only
+			   enough information on it for the checking that is
+			   required.  For instance, once a block is closed,
+			   it may be removed from the list entirely if it is
+			   not relevant to subsequent analysis.  Similarly,
+			   once a forward goto has been checked, it is no
+			   longer interesting and is removed.  Some of the
+			   entries on the list point to IL entries, but the
+			   IL does not point back.  It is for front-end use
+			   only. */
 static a_control_flow_descr_ptr
 		end_of_control_flow_descr_list;
-
+			/* Pointer to the tail of control_flow_descr_list;
+			   NULL only when control_flow_descr_list itself is
+			   NULL. */
 static a_control_flow_descr_ptr
 		avail_control_flow_descrs;
+			/* Linked list of a_control_flow_descr entries that
+			   have been freed for reuse. */
 
 /*
 Set var to indicate that the associated code is reachable.
@@ -128,6 +147,8 @@ Merge the reachability information from "reachability" into
 #if DEBUG
 static void db_cfd(a_control_flow_descr_ptr cfdp)
 /*
+Routine to display an entry of type a_control_flow_descr, for debugging
+purposes.
 */
 {
   a_variable_ptr  vp;
@@ -182,6 +203,10 @@ static void db_cfd_list(a_control_flow_descr_ptr cfdp,
                         int                      back,
                         int                      forward)
 /*
+Routine to display a sublist of linked list of entries of type
+a_control_flow_descr, for debugging purposes.  cfdp is a pointer to some
+entry on the list; back and forward represent the number of entries
+preceding and following cfdp that should be displayed.
 */
 {
   int   count;
@@ -202,9 +227,10 @@ static void db_cfd_list(a_control_flow_descr_ptr cfdp,
 }  /* db_cfd_list */
 
 
-
 static void db_cfd_and_parents(a_control_flow_descr_ptr cdfp)
 /*
+Routine to display an entry of type a_control_flow_descr along with its
+parent entries (i.e., the blocks which contain it), for debugging purposes.
 */
 {
   if (cdfp != NULL) {
@@ -280,6 +306,10 @@ to it.
 
 static void free_control_flow_descr(a_control_flow_descr_ptr cfdp)
 /*
+Return an entry of type a_control_flow_descr to the available list for reuse.
+It will already have been removed from any other lists.  Note that the
+available list does not make use of the prev pointer, which (like all fields
+except "next" of entries on this list) is likely to be invalid.
 */
 {
   cfdp->next = avail_control_flow_descrs;
@@ -343,6 +373,8 @@ pointers) and move the list as a whole to the available list.
 static void remove_control_flow_descr(a_control_flow_descr_ptr  cfdp)
 /*
 Remove cfdp from the control_flow_descr_list and put it on the available list.
+If a goto is removed, the goto-counts of its parent, grandparent, and so
+forth, are decremented.
 */
 {
   a_control_flow_descr_ptr  parent_cfdp = NULL, grandparent_cfdp;
@@ -375,10 +407,18 @@ Remove cfdp from the control_flow_descr_list and put it on the available list.
   }  /* if */
   free_control_flow_descr(cfdp);
   if (parent_cfdp != NULL) {
-    /* Must have been a goto -- decrement the counters. */
+    /* Must have been a goto -- decrement the counters in the parent, the
+       parent's parent, etc. */
     do {
+      /* Save the pointer to the parent's parent, in case the parent becomes
+         irrelevant and is removed from the list. */
       grandparent_cfdp = parent_cfdp->parent;
-      if (--(parent_cfdp->variant.block.goto_count) == 0 &&
+      /* Decrement the goto count in the parent. */
+      --(parent_cfdp->variant.block.goto_count);
+      /* If there are no labels and no more gotos in the block, it can be
+         removed.  Note that there may be initializations, but there are not
+         interesting if there is no way to jump into the block. */
+      if (parent_cfdp->variant.block.goto_count == 0 &&
           !parent_cfdp->variant.block.any_labels &&
           parent_cfdp->variant.block.end_of_block != NULL) {
         remove_list_of_flow_control_descrs(
@@ -392,6 +432,16 @@ Remove cfdp from the control_flow_descr_list and put it on the available list.
 
 static void add_to_control_flow_descr_list(a_control_flow_descr_ptr  new_cfdp)
 /*
+Add new_cfdp to the end of control_flow_descr_list.  This typically involves
+setting its prev and parent pointers (its next pointer will be NULL), and
+setting end_of_control_flow_descr_list to point to it.  If it is a goto or
+label entry, its addition may produce changes to fields of parent (and
+grandparent, etc.) entries.  In some cases it will not be added to the list
+at all and will even cause other entries to be removed -- for instance, if
+appending an end-of-block entry will result in an empty block, or if the
+completed block would have no labels or gotos, the block can be eliminated,
+because such blocks are not relevant to detecting transfer of control past
+initializing declarations.
 */
 {
   a_control_flow_descr_ptr  cfdp, prev_cfdp, prev_parent_cfdp, parent_cfdp;
@@ -417,15 +467,21 @@ static void add_to_control_flow_descr_list(a_control_flow_descr_ptr  new_cfdp)
         goto done;
       } else if (!prev_parent_cfdp->variant.block.any_labels &&
                  prev_parent_cfdp->variant.block.goto_count == 0) {
-        /* Remove the block. */
+        /* A block with no labels and no forward gotos is being closed.  It
+           can be removed from the list -- even it it has initializations,
+           it can't be jumped into. */
         remove_list_of_flow_control_descrs(prev_parent_cfdp,
                                            end_of_control_flow_descr_list);
         free_control_flow_descr(new_cfdp);
         goto done;
       }  /* if */
+      /* Set the association between the end-of-block and the block -- they
+         each point to the other. */
       new_cfdp->variant.start_of_block = prev_parent_cfdp;
-      new_cfdp->parent = prev_parent_cfdp->parent;
       prev_parent_cfdp->variant.block.end_of_block = new_cfdp;
+      /* The parent of an end-of-block entry is the same as the parent of the
+         block entry it's associated with. */
+      new_cfdp->parent = prev_parent_cfdp->parent;
       /* Remove all init entries in the block that trail the last label
          statement in the block; if there is no label statement remove *all*
          the init entries. */
@@ -444,26 +500,42 @@ static void add_to_control_flow_descr_list(a_control_flow_descr_ptr  new_cfdp)
         }  /* if */
       }  /* for */
     } else {
+      /* This is not an end-of-block entry.  Determine it's parent. */      
       if (end_of_control_flow_descr_list->kind ==
                                    (a_control_flow_descr_kind)cfdk_block) {
+        /* Immediate successors of a block entry have that block as a
+           parent. */
         parent_cfdp = end_of_control_flow_descr_list;
       } else {
+        /* Immediate successors of a nonblock have the same parent as the
+           entry they follow. */
         parent_cfdp = prev_parent_cfdp;
       }  /* if */
       new_cfdp->parent = parent_cfdp;
       if (new_cfdp->kind == (a_control_flow_descr_kind)cfdk_init) {
+        /* Initialization entries in the outermost block (the function scope)
+           can simply be ignored when no forward goto has been seen. */
         if (parent_cfdp->parent == NULL &&
-            !parent_cfdp->variant.block.any_labels &&
             parent_cfdp->variant.block.goto_count == 0) {
           free_control_flow_descr(new_cfdp);
           goto done;
         }  /* if */
       } else if (new_cfdp->kind == (a_control_flow_descr_kind)cfdk_label) {
+        /* Set the any_labels flag of the parent of a new label entry (and
+           of the parent's parent, etc.). */
         do {
-          parent_cfdp->variant.block.any_labels = TRUE;
-          parent_cfdp = parent_cfdp->parent;
+          if (parent_cfdp->variant.block.any_labels) {
+            /* The flag will already have been set further up the parent
+               chain. */
+            break;
+          } else {
+            parent_cfdp->variant.block.any_labels = TRUE;
+            parent_cfdp = parent_cfdp->parent;
+          }  /* if */
         } while (parent_cfdp != NULL);
       } else if (new_cfdp->kind == (a_control_flow_descr_kind)cfdk_goto) {
+        /* Increment the goto_count field of the parent of a new goto entry
+           (and of the parent's parent, etc.). */
         do {
           ++(parent_cfdp->variant.block.goto_count);
           parent_cfdp = parent_cfdp->parent;
@@ -476,9 +548,11 @@ static void add_to_control_flow_descr_list(a_control_flow_descr_ptr  new_cfdp)
       db_cfd_and_parents(new_cfdp);
     }  /* if */
 #endif /* DEBUG */
+    /* Actually append it to the list. */
     end_of_control_flow_descr_list->next = new_cfdp;
     new_cfdp->prev = end_of_control_flow_descr_list;
   }  /* if */
+  /* Set the tail pointer to point to the new entry. */
   end_of_control_flow_descr_list = new_cfdp;
 done:;
 #if DEBUG
@@ -491,29 +565,23 @@ done:;
 }  /* add_to_control_flow_descr_list */
 
 
-static a_struct_stmt_stack_entry_ptr find_enclosing_block_struct_stmt(void)
+static a_statement_ptr nearest_enclosing_compound_statement(void)
 /*
-Return a pointer to the structure statement stack entry corresponding to the
-nearest enclosing compound statement.
+Return a pointer to the nearest enclosing compound statement.
 */
 {
   a_struct_stmt_stack_entry_ptr sssep;
+  a_statement_ptr               stmt;
 
   for (sssep = &struct_stmt_stack[depth_stmt_stack]; ; sssep--) {
     if (sssep->kind == ssk_compound) {
       /* The structured statement is a compound statement. */
+      stmt = sssep->statement;
       break;
     }  /* if */
-    check_assertion(sssep != &struct_stmt_stack[0]);
   }  /* for */
-  return sssep;
-}  /* find_enclosing_block_struct_stmt */
-
-/*
-Return a pointer to the nearest enclosing compound statement.
-*/
-#define nearest_enclosing_compound_statement()                        \
-    find_enclosing_block_struct_stmt()->statement;
+  return stmt;
+}  /* nearest_enclosing_compound_statement */
 
 
 a_statement_ptr add_statement(a_statement_kind kind)
@@ -529,6 +597,8 @@ the current statement sequence.
   a_boolean                     statement_list_allowed;
   a_statement_ptr               extra_block;
   a_statement_ptr               temp_stmt;
+  a_control_flow_descr_ptr      cfdp;
+
 
   db_enter(4, "add_statement");
 
@@ -678,7 +748,10 @@ the current statement sequence.
   if (kind != (a_statement_kind)stmk_init) {
     struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen = TRUE;
   } else {
-    a_control_flow_descr_ptr cfdp;
+    /* An stmk_init statement is being added to the IL.  Add an entry to
+       the control_flow_descr_list to point to it.  This will constitute part
+       of the information used to diagnose transfers of control over
+       initializing declarations. */
     cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_init);
     cfdp->variant.init_statement = sp;
     add_to_control_flow_descr_list(cfdp);
@@ -824,6 +897,8 @@ algorithmic limit on the number of levels of nesting supported.
   struct_stmt_stack = &struct_stmt_stack[depth_stmt_stack+1];
   depth_stmt_stack = -1;
   saved_state->code_reachability = curr_reachability;
+  saved_state->control_flow_list = control_flow_descr_list;
+  saved_state->end_of_control_flow_list = end_of_control_flow_descr_list;
 }  /* new_struct_stmt_stack */
 
 
@@ -848,6 +923,8 @@ statement stack.
   struct_stmt_stack = &struct_stmt_stack_container[saved_state->container_pos];
   depth_stmt_stack = saved_state->depth_stmt_stack;
   curr_reachability = saved_state->code_reachability;
+  control_flow_descr_list = saved_state->control_flow_list;
+  end_of_control_flow_descr_list = saved_state->end_of_control_flow_list;
 }  /* restore_struct_stmt_stack */
 
 
@@ -901,6 +978,8 @@ the associated il statement.
        appears. */
     set_unreachable(curr_reachability);
   } else if (kind == ssk_compound) {
+    /* Represent this compound statement by adding a block entry to the
+       control_flow_descr_list. */
     add_to_control_flow_descr_list(alloc_control_flow_descr(cfdk_block));
   }  /* if */
   db_exit();
@@ -1026,6 +1105,9 @@ a structured statement has ended.
     sssep[-1].any_exec_statement_seen = sssep->any_exec_statement_seen;
   }  /* if */
   if (kind == ssk_compound) {
+    /* When this compound statement was pushed onto the statement stack, a
+       block entry was added to the control_flow_descr_list.  Now add an
+       end-of-block entry to close the block off. */
     add_to_control_flow_descr_list(
                           alloc_control_flow_descr(cfdk_end_of_block));
   }  /* if */
@@ -1579,17 +1661,23 @@ either an expression statement or a declaration statement.
 }  /* for_statement */
 
 
-static void check_for_init(a_control_flow_descr_ptr  start_cfdp,
-                           a_control_flow_descr_ptr  end_cfdp,
-                           a_source_position         *error_pos,
-                           a_boolean                 *stmk_init_seen)
+static a_boolean issue_diagnostic_for_jump_over_init(
+                                        a_control_flow_descr_ptr  start_cfdp,
+                                        a_control_flow_descr_ptr  end_cfdp,
+                                        a_source_position         *error_pos)
 /*
+This routine moves from entry start_cfdp to entry end_cfdp on the
+control_flow_descr_list looking for init entries, which point to stmk_init
+statements and represent initializing declarations.  For any that are found,
+issue a diagnostic (an error in C++, a warning otherwise) complaining about
+skipping over an initialization.  Return TRUE is a diagnostic is issued.
 */
 {
   a_control_flow_descr_ptr  cfdp;
   a_variable_ptr            vp;
+  a_boolean                 err = FALSE;
 
-  db_enter(4, "check_for_init");
+  db_enter(4, "issue_diagnostic_for_jump_over_init");
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, "start_cfdp = ");
@@ -1599,8 +1687,9 @@ static void check_for_init(a_control_flow_descr_ptr  start_cfdp,
   }  /* if */
 #endif /* DEBUG */
   if (end_cfdp->parent != start_cfdp->parent) {
-    check_for_init(start_cfdp, end_cfdp->parent->prev, error_pos,
-                   stmk_init_seen);
+    err = issue_diagnostic_for_jump_over_init(start_cfdp,
+                                              end_cfdp->parent->prev,
+                                              error_pos);
     start_cfdp = end_cfdp->parent->next;
   }  /* if */
   cfdp = start_cfdp;
@@ -1615,16 +1704,17 @@ static void check_for_init(a_control_flow_descr_ptr  start_cfdp,
         fprintf(f_debug, "end_cfdp = ");
         db_cfd_and_parents(end_cfdp);
       }  /* if */
-      internal_error("check_for_init: start > end or parent mismatch");
+      internal_error(
+        "issue_diagnostic_for_jump_over_init: start > end or parent mismatch");
     }  /* if */
 #endif /* CHECKING */
 #endif /* DEBUG */
     if (cfdp->kind == (a_control_flow_descr_kind)cfdk_init) {
       vp = cfdp->variant.init_statement->variant.dynamic_init->variable;
-      if (!*stmk_init_seen) {
+      if (!err) {
         /* This is the first initializing declaration seen.  Issue the
            header diagnostic. */
-        *stmk_init_seen = TRUE;
+        err = TRUE;
         pos_start_diagnostic(C_dialect == C_dialect_cplusplus ?
                                             es_error : es_warning,
                              ec_jumping_over_init, error_pos);
@@ -1647,13 +1737,15 @@ static void check_for_init(a_control_flow_descr_ptr  start_cfdp,
     }  /* if */
   }  /* for */
   db_exit();
-}  /* check_for_init */
+  return err;
+}  /* issue_diagnostic_for_jump_over_init */
 
-static a_boolean is_on_parent_list(a_control_flow_descr_ptr cfdp,
+
+static a_boolean is_on_cfd_parent_list(a_control_flow_descr_ptr cfdp,
                                    a_control_flow_descr_ptr cfdp2)
 /*
-Return TRUE if the block statement "block" is on the list of parent blocks
-of block2. */
+Return TRUE if cfdp (a block entry) is on the list of parent blocks of
+cfdp2. */
 {
   a_control_flow_descr_ptr  parent;
   a_boolean                 on_list = FALSE;
@@ -1665,27 +1757,32 @@ of block2. */
     }  /* if */
   }  /* for */
   return on_list;
-}  /* is_on_parent_list */
+}  /* is_on_cfd_parent_list */
 
 
-static void check_goto(a_control_flow_descr_ptr  label_cfdp,
-                       a_control_flow_descr_ptr  goto_cfdp,
-                       a_boolean                 is_forwards)
+static void check_goto_and_label(a_control_flow_descr_ptr  label_cfdp,
+                                 a_control_flow_descr_ptr  goto_cfdp,
+                                 a_boolean                 is_forwards)
 /*
-A forward goto was recorded in the goto-entry pointed to gep, and now
-that the label it referenced has been encountered (in label_statement)
-it can be determined whether the goto entailed jumping over an
-initializing declaration.  This routine does that check, issuing an error
-if appropriate.
+If is_forwards is TRUE, a goto was previously recorded in goto_cfdp and now
+that the label it referenced has been encountered (represented by label_cfdp)
+we can determine whether the goto entailed jumping over an initializing
+declaration.  If is_forwards is FALSE, a label was encountered previously.
+we are now at the goto, and the same determination has to be made.  This
+routine sets up the terms for scanning the control_flow_descr_list to
+diagnose the condition.
 */
 {
   a_control_flow_descr_ptr  cfdp, start_cfdp, common_parent;
-  a_boolean                 stmk_init_seen = FALSE;
 
-  db_enter(4, "check_goto");
+  db_enter(4, "check_goto_and_label");
   if (is_forwards && goto_cfdp->variant.goto_statement.prev_goto != NULL) {
-    check_goto(label_cfdp, goto_cfdp->variant.goto_statement.prev_goto,
-               /*is_forwards=*/TRUE);
+    /* All forwards gotos to a given label are linked together by the
+       prev_goto field of the control-flow-descr entries.  Follow the list
+       up to process them in the order they appear in the program. */
+    check_goto_and_label(label_cfdp,
+                         goto_cfdp->variant.goto_statement.prev_goto,
+                         /*is_forwards=*/TRUE);
   }  /* if */
   start_cfdp = NULL;
 #if DEBUG
@@ -1698,40 +1795,103 @@ if appropriate.
   }  /* if */
 #endif /* DEBUG */
   if (label_cfdp->parent == goto_cfdp->parent) {
+    /* Label and goto are in the same block:
+
+           goto L;             // forwards goto
+               : FFFFF         
+               : FFFFF
+               : FFFFF
+           L:
+               :
+           goto L;             // backwards goto
+
+       In this case the region marked "FFFFF" needs to be searched for
+       forward gotos, but backwards gotos are always allowed. */
     if (is_forwards) {
-      /* A forwards goto within the same block.  Look for initializations
-         between the goto and the label. */
+      /* Start looking for initializing declarations at the point immediately
+         following the goto statement. */
       start_cfdp = goto_cfdp->next;
-    } else {
-      /* Backwards within the same block should is always okay. */
     }  /* if */
-  } else if (is_on_parent_list(goto_cfdp->parent, label_cfdp)) {
-    /* A goto from an outer block to a label in a nested block. */
+  } else if (is_on_cfd_parent_list(goto_cfdp->parent, label_cfdp)) {
+    /* A goto from an outer block to a label in a nested block:
+
+           goto L;             // forwards goto
+               : FFFFF
+           {     FFFFF         // start of inner block
+               : FFFFF BBBBB
+               : FFFFF BBBBB
+           L:
+               :
+           }                   // end of inner block
+           goto L;             // backwards goto
+
+       The region marked "FFFFF" is searched for forward gotos, and the
+       region marked "BBBBB" is searched for backward gotos. */
     if (is_forwards) {
+      /* Start looking for initializing declarations at the point immediately
+         following the goto statement. */
       start_cfdp = goto_cfdp->next;
     } else {
+      /* Start looking for initializing declarations at the top of the
+         outermost block that both contains the label and is contained by
+         the block to which the goto belongs. */
       cfdp = label_cfdp->parent;
       while (cfdp->parent != goto_cfdp->parent) {
         cfdp = cfdp->parent;
       }  /* while */
       start_cfdp = cfdp->next;
     }  /* if */
-  } else if (is_on_parent_list(label_cfdp->parent, goto_cfdp)) {
+  } else if (is_on_cfd_parent_list(label_cfdp->parent, goto_cfdp)) {
+    /* A goto from an inner block to a label in an outer block:
+
+           {                     // start of inner block
+             goto L;             // forwards goto
+           }                     // end of inner block
+               : FFFFF
+               : FFFFF
+               : FFFFF
+           L:
+               :
+           {                     // start of inner block
+             goto L;             // backwards goto
+           }                     // end of inner block
+
+       The region marked "FFFFF" is searched for forward gotos, but
+       backwards gotos are always allowed. */
     if (is_forwards) {
-      /* A forwards goto from an inner block to a label in an enclosing
-         block. */
+      /* Start looking for initializing declarations at the point immediately
+         following the outermost block that both contains the goto and is
+         contained by the block to which the label belongs. */
       cfdp = goto_cfdp->parent;
       while (cfdp->parent != label_cfdp->parent) {
         cfdp = cfdp->parent;
       }  /* while */
       start_cfdp = cfdp->variant.block.end_of_block->next;
-    } else {
-      /* Backwards from an inner block to an outer block is always okay. */
     }  /* if */
   } else {
-    /* goto from an inner block to a label in an inner block. */
+    /* goto from an inner block to a label in an inner block.
+
+           {                     // start of inner block
+             goto L;             // forwards goto
+           }                     // end of inner block
+               : FFFFF
+           {     FFFFF           // start of inner block
+               : FFFFF BBBBB
+               : FFFFF BBBBB
+           L:
+               :
+           }                     // end of inner block
+
+           {                     // start of inner block
+             goto L;             // forwards goto
+           }                     // end of inner block
+
+       The region marked "FFFFF" is searched for forward gotos, and the
+       region marked "BBBBB" is searched for backward gotos. */
+    /* Find the block that is the "common parent" -- the innermost block
+       containing both the goto and the label. */
     common_parent = label_cfdp->parent;
-    while (!is_on_parent_list(common_parent, goto_cfdp->parent)) {
+    while (!is_on_cfd_parent_list(common_parent, goto_cfdp->parent)) {
       common_parent = common_parent->parent;
     }  /* while */
 #if DEBUG
@@ -1740,6 +1900,11 @@ if appropriate.
       db_cfd(common_parent);
     }  /* if */
 #endif /* DEBUG */
+    /* For forwards gotos, start looking for initializing declarations at the
+       point immediately following the outermost block that both contains the
+       goto and is immediately contained by the common parent.  For backwards
+       gotos, start looking at the top of the outermost block that both
+       contains the label and is immediately contained by the common parent. */
     cfdp = is_forwards ? goto_cfdp->parent : label_cfdp->parent;
     check_assertion(cfdp != common_parent);
     while (cfdp->parent != common_parent) {
@@ -1751,34 +1916,43 @@ if appropriate.
   if (start_cfdp == NULL) {
     /* No checking is required. */
   } else {
+    /* If the above algorithm indicates starting at a block that contains
+       the label, enter that block and start at its first statement.
+       (Otherwise the search will try to skip the block.) */
     while (start_cfdp->kind == (a_control_flow_descr_kind)cfdk_block &&
-           is_on_parent_list(start_cfdp, label_cfdp)) {
+           is_on_cfd_parent_list(start_cfdp, label_cfdp)) {
       start_cfdp = start_cfdp->next;
     }  /* if */
-    check_for_init(start_cfdp, label_cfdp,
-                   &goto_cfdp->variant.goto_statement.source_pos,
-                   &stmk_init_seen);
-    if (stmk_init_seen) end_error();
+    /* Now do the search for an initializing declaration.  On the path
+       between the starting entry, as determined above, and the entry for the
+       label.  The routine will return TRUE if a diagnostic was issued, in
+       which case terminate the multi-line message. */
+    if (issue_diagnostic_for_jump_over_init(
+                            start_cfdp, label_cfdp,
+                            &goto_cfdp->variant.goto_statement.source_pos)) {
+      end_error();
+    }  /* if */
   }  /* if */
   if (is_forwards) {
+    /* The goto entry for a forwards declaration is no longer needed, so it
+       can be removed from the control_flow_descr_list. */
     remove_control_flow_descr(goto_cfdp);
   }  /* if */
   db_exit();
-}  /* check_goto */
+}  /* check_goto_and_label */
 
 
 static void check_for_jump_over_initialization(a_statement_ptr  sp)
 /*
 sp is either a label statement or a goto statement.  If this is a goto
 statement and the label it references has not yet been seen (i.e., if it
-is a "forward goto"), record some information about it on a goto-entry,
-for later use in detecting illegal jumps over initializing declarations.
-If this is a "backward goto" statement, issue an error if it jumps over
-any initializing declarations.  If this is a label statement, check the
-associated goto-entries to see if any of the forward gotos jumped over any
-initializing declarations.  Diagnostics are put out at the point of the goto
-statement, even for forward gotos, where the condition is not recognized
-till the label statement is reached.
+is a "forward goto"), record some information about it for later use in
+detecting jumps over initializing declarations. If this is a "backward goto"
+statement, issue a diagnostic if it jumps over any initializing declarations.
+If this is a label statement, check the associated forward gotos to see if
+any of them jumped over initializing declarations.  Diagnostics are put out
+at the point of the goto statement, even for forward gotos, where the
+condition is not recognized till the label statement is reached.
 */
 {
   a_symbol_ptr              label_sym;
@@ -1799,7 +1973,7 @@ till the label statement is reached.
     if (goto_cfdp != NULL) {
       /* There was at least one forward goto referencing this label.  For
          each check whether it jumped over any initializing declarations. */
-      check_goto(label_cfdp, goto_cfdp, /*is_forwards=*/TRUE);
+      check_goto_and_label(label_cfdp, goto_cfdp, /*is_forwards=*/TRUE);
     }  /* if */
   } else {
     /* Allocate and fill in a goto entry. */
@@ -1811,9 +1985,12 @@ till the label statement is reached.
     if (label_sym->defined) {
       /* This is a backwards goto -- i.e., it references a label that has
          already been defined.  Check whether it jumps over any initializing
-         declarations. */
+         declarations.  Note that the goto entry has been added to the
+         flow_control_descr_list; once the checking has been done it is
+         taken off again, since only forward gotos need to remain on the
+         list (and then only till the label is seen). */
       label_cfdp = label_sym->variant.label.assoc_control_flow_descr;
-      check_goto(label_cfdp, goto_cfdp, /*is_forwards=*/FALSE);
+      check_goto_and_label(label_cfdp, goto_cfdp, /*is_forwards=*/FALSE);
       remove_control_flow_descr(goto_cfdp);
     } else {
       /* This is a forwards goto -- i.e., it references a label that has not
