@@ -19,14 +19,14 @@ not match the tag kind of the primary template.
 1/31/97 Recognition of predeclared class type_info
 
 A new configuration flag, PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED, has been
-added (see host_envir.h) to indicate whether "#pragma define_typo_info"
+added (see host_envir.h) to indicate whether "#pragma define_type_info"
 must precede a declaration of class type_info that is meant to match the
 predeclared name.  By default the flag is TRUE unless the C++-generating
 back end is being used.
 
-1/31/97 Psuedo destructor calls using type keywords now nonstandard
+1/31/97 Pseudo destructor calls using type keywords now nonstandard
 
-The Working Paper no longer permits type keywords to be used in psuedo
+The Working Paper no longer permits type keywords to be used in pseudo
 destructor calls.  Consequently, an error is now issued on such usage in
 strict mode.
 
