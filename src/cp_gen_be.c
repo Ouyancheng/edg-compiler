@@ -1750,6 +1750,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            (scp->partially_hidden_by_microsoft_injected_class_name &&
             !(options & GN_QUALIFIER))) &&
           (scp->visible_as_unqualified_name ||
+           class_type->variant.class_struct_union.is_nonreal_class ||
            scope_is_in_name_context_stack(class_type->variant.
                                 class_struct_union.extra_info->assoc_scope))) {
         /* A qualified name is not needed, because we're inside a name context
