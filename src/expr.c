@@ -13498,12 +13498,14 @@ for the __PRETTY_FUNCTION__ keyword.
   if (gpp_mode &&
       rp->source_corresp.is_class_member &&
       rp->type->variant.routine.extra_info->this_class == NULL) {
-    /* A static member function: Display the "static" prefix. */
+    /* A static member function: Display the "static" prefix in g++ mode. */
     put_str_to_temp_text_buffer("static ");
   }  /* if */
-  if (rp->is_template_function && rp->assoc_template != NULL) {
+  if (!microsoft_mode &&
+      rp->is_template_function && rp->assoc_template != NULL) {
     /* For template specializations (explicit or implicit), render the
-       generic form, followed by the parameter substitutions. */
+       generic form, followed by the parameter substitutions.
+       Don't do this in Microsoft mode (something else is done below). */
     a_template_ptr  rtp = rp->assoc_template;
     a_symbol_ptr    rt_sym;
     if (rtp->prototype_template != NULL) {
@@ -13534,6 +13536,18 @@ for the __PRETTY_FUNCTION__ keyword.
                                 &octl);
   }  /* if */
   form_name(scp, (an_il_entry_kind)iek_routine, &octl);
+  if (microsoft_mode && rp->is_template_function) {
+    /* Put out Microsoft-form template arguments:
+         void f<double>(double)
+    */
+    a_template_arg_ptr tap;
+    put_ch_to_temp_text_buffer('<');
+    for (tap = rp->template_arg_list; tap != NULL; tap = tap->next) {
+      form_a_template_arg(tap, &octl);
+      if (tap->next != NULL) put_str_to_temp_text_buffer(", ");
+    }  /* for */
+    put_ch_to_temp_text_buffer('>');
+  }  /* if */
   if (render_return_type) {
     form_type_second_part_simple(type_to_render,
                                  /*under_lhs_declarator=*/FALSE,
@@ -13542,7 +13556,7 @@ for the __PRETTY_FUNCTION__ keyword.
     form_function_declarator(type_to_render, &octl);
   }  /* if */
   if (templ_info != NULL) {
-    /* Render the template arguments.  For example:
+    /* Render the non-Microsoft form template arguments.  For example:
          void f5(T) [with T = const char*, TT = float]
     */
     a_template_arg_ptr    tap;
