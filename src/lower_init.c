@@ -42,12 +42,6 @@ static a_memory_region_number
 		file_scope_term_routine_il_region;
 			/* IL memory region numbers for the above routines,
 			   once they are created. */
-static an_insert_location
-		file_scope_init_routine_insert_location,
-		file_scope_term_routine_insert_location;
-			/* Insert locations in file_scope_init_routine and
-			   file_scope_term_routine.  Only defined if the
-			   corresponding routine pointers are non-NULL. */
 static a_cleanup_action_ptr
 		cleanup_actions_for_local_static_variables,
 		end_cleanup_actions_for_local_static_variables;
@@ -2045,19 +2039,17 @@ pointer to the routine.
 static a_scope_ptr file_scope_init_insert_location(
                                         an_insert_location_ptr insert_location)
 /*
-Determine the insert location for a file-scope initialization statement.
+Create the file-scope initialization routine.  Set *insert location so it
+can be used to insert code in that routine.  Return the scope for the routine.
 */
 {
   a_scope_ptr scope;
 
-  if (file_scope_init_routine == NULL) {
-    file_scope_init_routine = make_file_scope_init_or_term_routine(
+  file_scope_init_routine = make_file_scope_init_or_term_routine(
                                       IL_LOWERING_INIT_ROUTINE_PREFIX,
-                                      &file_scope_init_routine_insert_location,
+                                      insert_location,
                                       &scope,
                                       &file_scope_init_routine_il_region);
-  }  /* if */
-  *insert_location = file_scope_init_routine_insert_location;
   return scope;
 }  /* file_scope_init_insert_location */
 
@@ -2065,19 +2057,17 @@ Determine the insert location for a file-scope initialization statement.
 static a_scope_ptr file_scope_term_insert_location(
                                         an_insert_location_ptr insert_location)
 /*
-Determine the insert location for a file-scope termination statement.
+Create the file-scope termination routine.  Set *insert location so it
+can be used to insert code in that routine.  Return the scope for the routine.
 */
 {
   a_scope_ptr scope;
 
-  if (file_scope_term_routine == NULL) {
-    file_scope_term_routine = make_file_scope_init_or_term_routine(
+  file_scope_term_routine = make_file_scope_init_or_term_routine(
                                       IL_LOWERING_TERM_ROUTINE_PREFIX,
-                                      &file_scope_term_routine_insert_location,
+                                      insert_location,
                                       &scope,
                                       &file_scope_term_routine_il_region);
-  }  /* if */
-  *insert_location = file_scope_term_routine_insert_location;
   return scope;
 }  /* file_scope_term_insert_location */
 
@@ -2420,7 +2410,8 @@ do_assignment:;
   if (dip->destructor != NULL) {
     a_cleanup_action_ptr cap;
     cap = alloc_cleanup_action(cak_destruction,
-                               /*applies_on_block_exit=*/TRUE,
+                               /*applies_on_block_exit=*/
+                                           !processing_file_scope_init_routine,
                                /*applies_on_exception_cleanup=*/TRUE);
     /* Copy the entire dynamic init entry because it may be modified below
        to make it a valid C dynamic initialization. */
