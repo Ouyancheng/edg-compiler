@@ -3453,13 +3453,13 @@ empty base class is virtual and indirect.
         /* Under some fairly strange circumstances, some GNU C++ compilers
            will not perform this adjustment.  The conditions for this bug
            include the requirements that the base class be on a virtual
-           derivation path, that the class be indirect (though it can be
-           both direct and indirect), and that the derived class have no
-           significant fields. */
+           derivation path and that the class be indirect.  If the base
+           class is both direct and indirect the derived class must have no
+           significant fields for the bug to manifest itself. */
         !(emulate_gnu_abi_bugs && any_virtual_steps_in_derivation(bcp) &&
-          get_gnu_first_field(lob->class_type) != NULL &&
-          (!bcp->direct || (bcp->derivation != NULL &&
-                            bcp->derivation->next != NULL)))) {
+          (!bcp->direct ||
+           (bcp->derivation != NULL && bcp->derivation->next != NULL &&
+            get_gnu_first_field(lob->class_type) != NULL)))) {
       lob->byte_offset = bcp->offset + bcp->type->size;
       lob->bit_offset = 0;
     }  /* if */
