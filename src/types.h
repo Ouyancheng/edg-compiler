@@ -185,8 +185,15 @@ type that is checked for qualifiers.
 Return TRUE if tp1_qualifiers does not have some type qualifier that
 tp2_qualifiers has.
 */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* The "near" qualifier is backwards in that it's okay to remove it
+   (producing "far") but not okay to add it, so flip it in the test. */
 #define any_qualifier_in_set_missing(tp1_qualifiers, tp2_qualifiers)  \
-  (((tp1_qualifiers) & (tp2_qualifiers)) != (tp2_qualifiers))
+  ((~((tp1_qualifiers) ^ TQ_NEAR) & ((tp2_qualifiers) ^ TQ_NEAR)) != 0)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define any_qualifier_in_set_missing(tp1_qualifiers, tp2_qualifiers)  \
+  ((~(tp1_qualifiers) & (tp2_qualifiers)) != 0)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Return TRUE if tp1 does not have some type qualifiers that tp2 has.  Note
