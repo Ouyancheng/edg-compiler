@@ -1735,7 +1735,8 @@ Dump a statement, for debug purposes.
       default:;
     }  /* switch */
 #if EXTRA_SOURCE_POSITIONS_IN_IL && FULL_SOURCE_POS_IN_IL_STATEMENT
-    fprintf(f_debug, ", at %lu/%lu", sp->position.seq, sp->position.column);
+    fprintf(f_debug, ", at %lu/%lu", sp->position.seq,
+            (unsigned long)sp->position.column);
     if (sp->end_position.seq != 0) {
       fprintf(f_debug, " -- %lu/%lu", sp->end_position.seq,
               (unsigned long)sp->end_position.column);
