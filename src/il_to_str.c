@@ -784,17 +784,19 @@ by octl.
                                          type->variant.hollerith_length, octl);
       break;
     case tk_farray:
-      form_type_specifier(type->variant.farray.element_type, octl);
-      octl->output_str(" array(");
-      for (i = 0; i < type->variant.farray.number_of_dimensions; i++) {
-        a_bound_info_entry_ptr bound_info = type->variant.farray.bound_info;
-        if (i > 0) octl->output_str(", ");
-        form_bound(&bound_info[i], octl);
-        octl->output_str(":");
-        form_bound(&bound_info[i+type->variant.farray.number_of_dimensions],
-                   octl);
-      }  /* for */
-      octl->output_str(")");
+      { int i;
+        form_type_specifier(type->variant.farray.element_type, octl);
+        octl->output_str(" array(");
+        for (i = 0; i < type->variant.farray.number_of_dimensions; i++) {
+          a_bound_info_entry_ptr bound_info = type->variant.farray.bound_info;
+          if (i > 0) octl->output_str(", ");
+          form_bound(&bound_info[i], octl);
+          octl->output_str(":");
+          form_bound(&bound_info[i+type->variant.farray.number_of_dimensions],
+                     octl);
+        }  /* for */
+        octl->output_str(")");
+      }
       break;
     case tk_complex:
       form_float_kind_name(type->variant.float_kind, octl);
@@ -2714,9 +2716,11 @@ confusion.  Do the output in the way described by octl.
       /* Complex constant. */
       fkind = con_type->variant.float_kind;
       octl->output_str("(");
-      octl->output_str(fp_to_string(fkind, &cp->variant.complex_value->real),
+      octl->output_str(fp_to_string(fkind,
+                                    &constant->variant.complex_value->real));
       octl->output_str(", ");
-      octl->output_str(fp_to_string(fkind, &cp->variant.complex_value->imag),
+      octl->output_str(fp_to_string(fkind,
+                                    &constant->variant.complex_value->imag));
       octl->output_str(")");
       break;
 #endif /* ifdef FFE */
