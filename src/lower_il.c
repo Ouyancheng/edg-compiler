@@ -227,6 +227,13 @@ static a_boolean
 			/* TRUE while generating the file-scope initialization
 			   routine. */
 
+static a_variable_ptr
+		return_value_pointer_variable;
+			/* While processing a routine that returns its
+			   value via a copy constructor, this points to
+			   the parameter variable for the implicit parameter
+			   through which the caller sends the address
+			   at which the result will be stored. */
 
 /*
 Access the il_lowering_flag in an IL entry.
@@ -436,8 +443,8 @@ static void lower_destructor_dynamic_init(
                                        a_dynamic_init_ptr     dip,
                                        an_init_pos_descr_ptr  ipdp,
                                        an_insert_location_ptr insert_location);
-static void lower_call(an_expr_node_ptr expr,
-                       a_variable_ptr   temp_var);
+static void lower_call(an_expr_node_ptr      expr,
+                       an_init_pos_descr_ptr ipdp);
 static void add_constructor_wrapper_code(a_scope_ptr        scope,
                                          an_insert_location *insert_location);
 static void gen_required_destructor_calls(
@@ -7590,7 +7597,7 @@ do_assignment:;
          via a copy constructor. */
       /* The address of the temporary being initialized is added as an
          implicit argument of the call. */
-      lower_call(dip->variant.expression, variable);
+      lower_call(dip->variant.expression, ipdp);
       expr_stmt = insert_expr_statement(dip->variant.expression,
                                         insert_location);
       transfer_seq_from_var_to_statement(variable, expr_stmt);
@@ -9045,11 +9052,11 @@ the expression have already been lowered.
 }  /* lower_pm_call */
 
 
-static void lower_call(an_expr_node_ptr expr,
-                       a_variable_ptr   temp_var)
+static void lower_call(an_expr_node_ptr      expr,
+                       an_init_pos_descr_ptr ipdp)
 /*
 Lower a call (normal, virtual, or pointer-to-member).  expr points to the
-call node.  temp_var, if non-NULL, indicates a temporary into which the
+call node.  ipdp, if non-NULL, indicates an entity into which the
 call should return its value.
 */
 {
@@ -9084,11 +9091,11 @@ call should return its value.
      dik_call_returning_class_via_cctor dynamic initialization entry. */
   if (rtsp->value_returned_by_cctor) {
 #if CHECKING
-    if (temp_var == NULL) {
-      internal_error("lower_call: missing temp_var for result");
+    if (ipdp == NULL) {
+      internal_error("lower_call: missing location for result");
     }  /* if */
 #endif /* CHECKING */
-    temp_node = var_lvalue_expr(temp_var);
+    temp_node = make_init_entity_node(ipdp);
     temp_node->next = arg_node;
     prev_arg_node->next = temp_node;
     /* Change the result type of the call to "void". */
@@ -9885,7 +9892,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                  op == (an_expr_operator_kind)eok_virtual_call ||
                  op == (an_expr_operator_kind)eok_pm_call) {
         /* Calls of various kinds. */
-        lower_call(expr, (a_variable_ptr)NULL);
+        lower_call(expr, (an_init_pos_descr_ptr)NULL);
       } else {
         /* Determine which operands if any are lvalues, and whether or not
            the operand has conditional operands. */
@@ -10086,11 +10093,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL,
                          &insert_location, &keep_dynamic_init);
-#if CHECKING
-      if (keep_dynamic_init) {
-        internal_error("lower_expr: keep_dynamic_init unexpected");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion(!keep_dynamic_init);
       break;
     case enk_new_delete:
       lower_new_delete(expr);
@@ -10640,6 +10643,7 @@ Do IL lowering of the indicated statement and everything under it.
   a_boolean          make_block;
   an_expr_node_ptr   return_expr;
   a_variable_ptr     temp_var;
+  a_dynamic_init_ptr dip;
 
   if (statement != NULL) {
     /* Track the source position for internal errors. */
@@ -10683,14 +10687,44 @@ Do IL lowering of the indicated statement and everything under it.
         }  /* if */
         break;
       case stmk_return:
+        dip = statement->variant.return_dynamic_init;
+        return_expr = statement->expr;
+        /* Keep track of whether or not we have already turned the return
+           statement into a block.  We haven't so far. */
+        make_block = TRUE;
+        set_insert_location(statement, &insert_location);
         curr_routine = nearest_function_scope->variant.routine.ptr;
         if (curr_routine->special_kind ==
                                     (a_special_function_kind)sfk_destructor) {
           /* In a destructor, change returns into gotos to the epilogue
              label. */
           set_statement_kind(statement, (a_statement_kind)stmk_goto);
+          statement->expr = NULL;
           statement->variant.label = destructor_epilogue_label;
           count_of_refs_to_destructor_epilogue_label++;
+        } else {
+          if (dip != NULL) {
+            /* This routine returns its value via a copy constructor.
+               The dynamic initialization entry indicates the operation to
+               be done. */
+            an_init_pos_descr ipd;
+            a_boolean         keep_dynamic_init;
+            statement->variant.return_dynamic_init = NULL;
+            set_var_indirect_init_pos_descr(return_value_pointer_variable,
+                                            &ipd);
+            /* Put the return statement under a block so we can insert in
+               front of it. */
+            turn_statement_into_block(statement);
+            make_block = FALSE;
+            set_block_start_insert_location(statement, &insert_location);
+            lower_dynamic_init(dip, &ipd,
+                               /*first_time_test_var=*/(a_variable_ptr)NULL,
+                               /*is_expr_temporary=*/FALSE,
+                               (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
+                               (a_constructor_init_ptr)NULL,
+                               &insert_location, &keep_dynamic_init);
+            check_assertion(!keep_dynamic_init);
+          }  /* if */
         }  /* if */
         if (any_required_destructor_calls(nearest_function_scope)) {
           /* Generate any destructor calls required on exit from the
@@ -10700,7 +10734,6 @@ Do IL lowering of the indicated statement and everything under it.
              into
                {temp = expr; destructor-calls; return temp;}
           */
-          return_expr = statement->expr;
           if (return_expr != NULL) {
             /* There is a return expression, so use a temporary.  Note that
                the return type cannot call for a copy constructor, or the
@@ -10710,6 +10743,10 @@ Do IL lowering of the indicated statement and everything under it.
             statement->expr = var_rvalue_expr(temp_var);
             /* Put the return statement under a block so we can insert in
                front of it. */
+            /* Note that if we executed the similar code above we wouldn't
+               be executing the code here, because a return can have either
+               a dynamic init entry or an expression, but not both. */
+            check_assertion(make_block);
             turn_statement_into_block(statement);
             make_block = FALSE;
             set_block_start_insert_location(statement, &insert_location);
@@ -10718,10 +10755,6 @@ Do IL lowering of the indicated statement and everything under it.
                                    temp_var,
                                    lowered_assignment_operator(temp_var->type),
                                    return_expr, &insert_location);
-          } else {
-            /* No return expression, so a temporary is not needed. */
-            make_block = TRUE;
-            set_insert_location(statement, &insert_location);
           }  /* if */
           gen_required_destructor_calls(nearest_function_scope,
                                         &insert_location, make_block);
@@ -11920,8 +11953,10 @@ Do IL lowering of the indicated scope and everything under it.
 {
   a_context        context;
   a_routine_ptr    routine;
-  a_type_ptr       routine_class_type;
+  a_type_ptr       routine_class_type, routine_type, return_type;
   a_variable_ptr   param_var, var;
+  a_routine_type_supplement_ptr
+                   rtsp;
 
   db_enter(2, "lower_scope");
   /* Add a context entry for the scope. */
@@ -11937,6 +11972,21 @@ Do IL lowering of the indicated scope and everything under it.
       } /* if */
     }  /* if */
 #endif /* DEBUG */
+    routine_type = routine->type;
+    routine_type = skip_typerefs(routine_type);
+    rtsp = routine_type->variant.routine.extra_info;
+    if (rtsp->value_returned_by_cctor) {
+      /* If there is an implicit parameter for the return value address,
+         add it as an explicit first parameter.  Note that the variable is
+         then lowered as part of the parameters below. */
+      /* The variable is saved in a global variable for use in processing
+         return statements. */
+      return_type = routine_type->variant.routine.return_type;
+      return_value_pointer_variable =
+                           make_param_variable(make_pointer_type(return_type));
+      return_value_pointer_variable->next = scope->variant.routine.parameters;
+      scope->variant.routine.parameters = return_value_pointer_variable;
+    }  /* if */
     if (scope->variant.routine.this_param_variable != NULL) {
       /* If there is an implicit "this" parameter, add it as an explicit
          first parameter.  Note that the variable is then lowered as
