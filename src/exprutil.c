@@ -3681,7 +3681,7 @@ if possible.
         if (is_expression_operand(result)) {
           if (!valid_node_if_subscript(result->variant.expression,
                                        &just_past_end)) {
-            pos_warning(ec_subscript_out_of_range, &operand_2->position);
+            pos_warning(ec_subscript_out_of_range, operator_position);
           }  /* if */
         }  /* if */
       }  /* if */
