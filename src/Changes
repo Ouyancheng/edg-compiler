@@ -34,6 +34,11 @@ overload set, only one using-decl entry in the set is pointed to by an
 iek_using_decl source-sequence entry; the rest are on a linked list (see
 next_in_overload_set in a_using_decl).
 
+9/4/96  Compilation error eliminated
+
+A compilation syntax error could result in class_decl.c when both CHECKING
+and RECORD_TEMPLATES_IN_IL were FALSE.  Now fixed.
+
 9/4/96  Spurious assertion failure -- globally qualified name on friend decl
 
 An internal error is no longer triggered by the following:
