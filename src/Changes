@@ -1,5 +1,21 @@
 Version 2.13
 
+12/4/92  Referencing template class member type in function template
+
+Template support has been enhanced to permit references to member types
+of template classes in the declaration of a function templates, for
+example:
+
+  template <class T> class A {
+    class B {
+      class C { /* ... */ };
+    };
+    enum E { /* ... * };
+  };
+  template <class T> void f(A<T>::B &b) { /* ... */ }
+  template <class T> void f(A<T>::B::C &c) { /* ... */ }
+  template <class T> void f(A<T>::E e) { /* ... */ }
+
 12/4/92  Strict ANSI C mode error on cast between function and data pointers
 
 In strict ANSI C mode (-A), an error instead of a warning is now issued
