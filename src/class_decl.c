@@ -6175,11 +6175,25 @@ to indicate whether the class/struct/union is actually defined.
       goto skip_tag_scan;
     } else {
       /* Not yet declared. */
-      tag_sym = NULL;
       /* Default kind is "class" when a class is introduced by a friend
          declaration. */
       tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
       type_kind = (a_type_kind)tk_class;
+      if (cfront_compatibility_mode) {
+        /* This is accepted as a forward declaration of a class or struct
+           name.  (In fact, there is a slight incompatibility here, since in
+           cfront 2.1 this can also be turned into a union declaration.) */
+      } else {
+        /* The forward declaration is not allowed. */
+        if (strict_ansi_mode) {
+          /* An error has already been issued. */
+        } else {
+          error(ec_not_a_class_or_struct_name);
+        }  /* if */
+        set_to_error_locator(locator);
+        (void)get_token();
+        goto skip_tag_scan;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (tag_id_present) {
