@@ -272,7 +272,7 @@ So we support only the simple extension (as in the first example) for now.
     class_sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
     if (locator_for_curr_id.symbol_header == class_sym->header) {
       /* We are inside a class declaration and the name is a qualified
-         name starting the the name of the class being declared.  Advance
+         name starting with the name of the class being declared.  Advance
          to the member name, but cache the tokens so they are not lost. */
       clear_token_cache(&cache);
       /* Put the class name token in the cache. */
