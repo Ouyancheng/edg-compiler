@@ -1789,62 +1789,68 @@ this case and add it to the list for the current scope.
   char                     *entity;
   an_il_entry_kind         kind;
 
-  switch (hidden_sym->kind) {
-    case sk_label:
-    case sk_keyword:
-    case sk_macro:
-      /* Not in the same name space. */
-      break;
-    case sk_projection:
-      /* Ignore projection symbols. */
-      break;
-    case sk_overloaded_function:
-      /* Enter members of an overload set separately. */
-      for (hidden_sym = hidden_sym->variant.overloaded_function.symbols;
-           hidden_sym != NULL;
-           hidden_sym = hidden_sym->next) {
-        record_defeatable_name_hiding(hidden_sym, tag_hidden_by_nontag);
-      }  /* for */
-      break;
-    default:
-      /* The normal case.  First find the entity associated with the symbol. */
-      entity = il_entry_for_symbol(hidden_sym, &kind);
-      if (entity != NULL) {
-        /* Get pointer to current scope entry. */
-        ssep = &scope_stack[decl_scope_level];
-        /* Create the IL scope if necessary (for block scopes). */
-        sp = ensure_il_scope_exists(ssep);
-        check_assertion_str(sp != NULL,
-                            "record_defeatable_name_hiding: NULL IL scope");
-        /* If there is already a hidden name entry for this entity in this
-           scope, reuse it. */
-        for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
-          if (hnp->entity.ptr == entity) break;
+  if (depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+    switch (hidden_sym->kind) {
+      case sk_label:
+      case sk_keyword:
+      case sk_macro:
+      case sk_undefined:
+      case sk_extern_variable:
+      case sk_extern_routine:
+        /* Not in the same name space. */
+        break;
+      case sk_projection:
+        /* Ignore projection symbols. */
+        break;
+      case sk_overloaded_function:
+        /* Enter members of an overload set separately. */
+        for (hidden_sym = hidden_sym->variant.overloaded_function.symbols;
+             hidden_sym != NULL;
+             hidden_sym = hidden_sym->next) {
+          record_defeatable_name_hiding(hidden_sym, tag_hidden_by_nontag);
         }  /* for */
-        if (hnp == NULL) {
-          /* No new entry.  Allocate a new one. */
-          hnp = alloc_hidden_name();
-          hnp->entity.ptr = entity;
-          hnp->entity.kind = (a_byte_il_entry_kind)kind;
-          /* Append it to the hidden_names list of the current scope. */
-          if (sp->hidden_names == NULL) {
-            sp->hidden_names = hnp;
-          } else {
-            ssep->last_hidden_name->next = hnp;
+        break;
+      default:
+        /* The normal case.  First find the entity associated with the
+           symbol. */
+        entity = il_entry_for_symbol(hidden_sym, &kind);
+        if (entity != NULL) {
+          /* Get pointer to current scope entry. */
+          ssep = &scope_stack[decl_scope_level];
+          /* Create the IL scope if necessary (for block scopes). */
+          sp = ensure_il_scope_exists(ssep);
+          check_assertion_str(sp != NULL,
+                              "record_defeatable_name_hiding: NULL IL scope");
+          /* If there is already a hidden name entry for this entity in this
+             scope, reuse it. */
+          for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
+            if (hnp->entity.ptr == entity) break;
+          }  /* for */
+          if (hnp == NULL) {
+            /* No existing entry.  Allocate a new one. */
+            hnp = alloc_hidden_name();
+            hnp->entity.ptr = entity;
+            hnp->entity.kind = (a_byte_il_entry_kind)kind;
+            /* Append it to the hidden_names list of the current scope. */
+            if (sp->hidden_names == NULL) {
+              sp->hidden_names = hnp;
+            } else {
+              ssep->last_hidden_name->next = hnp;
+            }  /* if */
+            ssep->last_hidden_name = hnp;
           }  /* if */
-          ssep->last_hidden_name = hnp;
+          /* Set the appropriate flag. */
+          if (tag_hidden_by_nontag) {
+            check_assertion(kind == (an_il_entry_kind)iek_type);
+            hnp->elaborated_type_specifier_needed = TRUE;
+          } else {
+            check_assertion(in_file_scope(entity));
+            check_assertion(decl_scope_level != DEPTH_OF_FILE_SCOPE);
+            hnp->global_qualification_needed = TRUE;
+          }  /* if */
         }  /* if */
-        /* Set the appropriate flag. */
-        if (tag_hidden_by_nontag) {
-          check_assertion(kind == (an_il_entry_kind)iek_type);
-          hnp->elaborated_type_specifier_needed = TRUE;
-        } else {
-          check_assertion(in_file_scope(entity));
-          check_assertion(decl_scope_level != DEPTH_OF_FILE_SCOPE);
-          hnp->global_qualification_needed = TRUE;
-        }  /* if */
-      }  /* if */
-  }  /* switch */
+    }  /* switch */
+  }  /* if */
 }  /* record_defeatable_name_hiding */
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
