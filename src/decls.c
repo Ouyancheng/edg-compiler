@@ -2164,7 +2164,9 @@ declaration of this symbol.
       }  /* if */
 #endif /* CHECKING */
       if (C_dialect == C_dialect_cplusplus) {
-        /* An error will already have been issued. */
+        /* We can't get here in C++ in a legal program.  If there was some
+           sort of error, just go ahead and enter the symbol in the current
+           scope. */
       } else if (C_dialect == C_dialect_pcc) {
         /* In pcc a type declared in a parameter declaration belongs to the
            file scope.  For example:
@@ -7969,7 +7971,7 @@ continue_with_declaration:
   if (curr_token == tok_semicolon && !decl_specifiers_omitted) {
     if (err) {
       /* There was a previous error, so do not check further. */
-    } else if (is_parameter && C_dialect == C_dialect_ANSI) {
+    } else if (is_parameter && C_dialect != C_dialect_pcc) {
       /* ANSI C does not allow freestanding declarations (as of structs)
          within an old-style parameter list.  pcc, on the other hand,
          will allow something like
