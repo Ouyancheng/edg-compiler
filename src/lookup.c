@@ -1091,7 +1091,7 @@ In Sun compatibility mode, the symbols need not be from the same scope.
            namespace projection symbol to point to the new symbol. */
         check_assertion_str2((*curr_sym)->kind ==
                                    (a_symbol_kind)sk_namespace_projection,
-                             "add_symbol_to_lookup_set:",
+                             "check_for_tag_hiding:",
                              "expected a namespace projection symbol");
         /* Reset the namespace projection to NULL, then recall this routine
            to add the new symbol.  This is done to handle cases where
