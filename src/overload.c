@@ -2035,12 +2035,13 @@ that are marked "explicit" are ignored.
   unsigned long            narg;
 #endif /* DEBUG */
 
-  reduce_projection_symbol_to_fundamental_symbol(overloaded_function_symbol);
+  function_symbol = fundamental_symbol_of(overloaded_function_symbol);
   /* Determine whether or not the symbol is an overloaded function. */
-  overloaded_function_case = (overloaded_function_symbol->kind ==
+  overloaded_function_case = (function_symbol->kind ==
                                         (a_symbol_kind)sk_overloaded_function);
   if (overloaded_function_case) {
     /* Overloaded functions. */
+    overloaded_function_symbol = function_symbol;
     proj_function_symbol =
                overloaded_function_symbol->variant.overloaded_function.symbols;
   } else {
