@@ -491,6 +491,7 @@ extern unsigned long show_il_space_used(void);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
 extern void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep);
+extern void db_source_sequence_list(a_source_sequence_entry_ptr  ssep);
 #endif /* DEBUG */
 
 extern a_source_sequence_entry_ptr alloc_source_sequence_entry(void);
@@ -500,8 +501,6 @@ extern a_src_seq_secondary_decl_ptr alloc_src_seq_secondary_decl(void);
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
 extern a_comment_ptr alloc_comment(void);
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
-
-extern void add_to_source_sequence_list(a_source_sequence_entry_ptr  ssep);
 
 extern void update_source_sequence_list(char               *entity_ptr,
                                         an_il_entry_kind   kind,
