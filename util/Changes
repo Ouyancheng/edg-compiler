@@ -1,5 +1,26 @@
 Version 2.30
 
+7/21/95  eccp and prelinker support for -Bstatic and -Bdynamic
+
+The -Bstatic and -Bdynamic options are now supported by eccp and
+edg_prelink.  This support consists of passing the options along to the
+linker retaining their position relative to the object files and
+libraries specified on the command line.
+
+7/21/95  eccp and the -G option
+
+eccp now supports the -G option for building shared libraries.  This
+option is passed to the linker and causes eccp to suppress the
+patch/munch phase when created the linked output file.
+
+7/21/95  eccp and reporting prelinker failures
+
+Formerly, a prelinker failure (returning a nonzero status) would not
+by itself cause eccp to return a failure status (the assumption was
+that a prelinker error would also result in a linker error).  Now,
+to be sure that an error will not go unnoticed, eccp will always return
+an failure status if the prelinker fails.
+
 5/30/95  eccp bug using expr command
 
 The eccp script contained two expr commands that were not properly formed.

@@ -180,6 +180,10 @@ Loptions=
 #
 ldoptions=
 #
+# Should the patch/munch phase be suppressed
+#
+suppress_patch_munch=0
+#
 # Options to be passed to the underlying C compiler
 #
 c_to_obj_options=
@@ -362,6 +366,11 @@ do
 #     Keep generated C file
       keep_int_file=1;
       ;;
+    -G)
+#     Linker mode used to build shared libraries
+      suppress_patch_munch=1
+      ldoptions=$ldoptions" "$1
+      ;;
     -munch | --munch)
 #     Use "munch" for handling static constructors and destructors
       patch_mode=0
@@ -384,9 +393,10 @@ do
       shift;
       used_two_params=1
       ;;
-    -Bstatic)
-#     Pass through to linker.
-      ldoptions=$ldoptions" "$1
+    -Bstatic | -Bdynamic)
+#     Pass through to linker in the object file list.  This is needed
+#     because the position of these options is significant
+      object_files=$object_files" "$1
       ;;
     -purify | --purify)
 #     Link using the purify command
@@ -933,6 +943,10 @@ then
           echo $command
         fi
         eval $command
+        status=$?
+        if [ $status -gt $max_status ] ; then
+          max_status=$status
+        fi
       fi
 #
 #     When the --prelink_copy_if_nonlocal option is used, the prelinker outputs
@@ -978,10 +992,16 @@ then
       $link_command $link_command_suffix >$link_error_file 2>&1
       status=$?
       $EDG_DECODE <$link_error_file 1>&2
+      if [ $status -gt $max_status ] ; then
+        max_status=$status
+      fi
       if [ $status = 0 -a $c_mode -eq 0 ]
       then
 #       Do processing to handle calling static constructors and destructors.
-        if [ $patch_mode = 1 ] ; then
+        if [ $suppress_patch_munch -eq 1 ] ; then
+#         Skip the patch/munch phase
+          dummy=1   # Shell does not like an empty if
+        elif [ $patch_mode = 1 ] ; then
 #         Do "patch" processing.
           chmod 664 $executable
           command="$PATCH $executable"
@@ -990,6 +1010,9 @@ then
           fi
           $command
           status=$?
+          if [ $status -gt $max_status ] ; then
+            max_status=$status
+          fi
           if [ $status = 0 ]
           then
             chmod 775 $executable
@@ -1025,6 +1048,9 @@ then
           $command >$link_error_file 2>&1
           status=$?
           $EDG_DECODE <$link_error_file 1>&2
+          if [ $status -gt $max_status ] ; then
+            max_status=$status
+          fi
           rm -f $tmpfile.c $tmpfile.o
         fi
       fi
@@ -1034,7 +1060,5 @@ then
       rm -f $link_error_file
     fi
   fi
-else
-  status=$max_status
 fi
-exit $status
+exit $max_status

@@ -218,6 +218,30 @@ typedef struct a_pl_input_file {
   
 } a_pl_input_file;
 
+
+/* Structure that represents a mixture of command line arguments and
+   pointers to input file entries. */
+typedef struct a_pl_cmd_line_arg *a_pl_cmd_line_arg_ptr;
+typedef struct a_pl_cmd_line_arg {
+  a_pl_cmd_line_arg_ptr
+		next;
+			/* Pointer to the next argument in the list. */
+  a_boolean	is_string;
+			/* TRUE if the command line argument is a represented
+			   as a string. */
+  union {
+    /* When is_string is TRUE. */
+    char	*arg_string;
+			/* The character string used as the argument. */
+    /* When is_string is FALSE. */
+    a_pl_input_file_ptr
+		input_file_entry;
+			/* When the argument is a file name, this points to
+			   the input file entry associated with the file. */
+  } variant;
+} a_pl_cmd_line_arg;
+
+
 /* Available lists for dynamically allocated structures. */
 static a_pl_object_file_ptr		avail_pl_object_files = NULL;
 static a_pl_symbol_ptr			avail_pl_symbols = NULL;
@@ -2437,22 +2461,52 @@ a library file name (e.g., -lxxx is converted to libxxx.a).
 }  /* pl_find_library_name */
 
 
+static a_pl_cmd_line_arg_ptr
+		cmd_line_head = NULL;
+			/* Start of a list of command line information. */
+
+static a_pl_cmd_line_arg_ptr
+		cmd_line_tail = NULL;
+			/* End of a list of command line information. */
+
+static void pl_add_cmd_line_arg(char			*str,
+                                a_pl_input_file_ptr	pifp)
+/*
+Add a command line argument to the list.  Allocate a new entry, initialize
+its fields, and add it to the list.  Either str or pifp will be non-NULL.
+*/
+{
+  a_pl_cmd_line_arg_ptr	pclap;
+  pclap = (a_pl_cmd_line_arg_ptr)pl_malloc_with_check
+                                                   (sizeof(a_pl_cmd_line_arg));
+  pclap->is_string = (str != NULL);
+  pclap->next = NULL;
+  if (pclap->is_string) {
+    pclap->variant.arg_string = str;
+  } else {
+    pclap->variant.input_file_entry = pifp;
+  }  /* if */
+  if (cmd_line_head == NULL) cmd_line_head = pclap;
+  if (cmd_line_tail != NULL) cmd_line_tail->next = pclap;
+  cmd_line_tail = pclap;
+}  /* pl_add_cmd_line_arg */
+
 
 int main(int argc, char *argv[])
 {
-  char		       *command = NULL;
-  int		       arg;
-  sizeof_t	       cmd_line_size;
-  sizeof_t             prev_cmd_line_size = 0;
-  int		       return_status = 0;
-  a_boolean	       done = FALSE;
-  a_boolean	       any_ii_files = FALSE;
-  extern char	       *optarg;
-  extern int	       optind;
-  int		       optchar;
-  long		       number_of_iterations = 0;
-  char		       *nm_command = NULL;
-  a_pl_input_file_ptr  last_file_to_reemit = 0;
+  char		         *command = NULL;
+  int		         arg;
+  sizeof_t	         cmd_line_size;
+  sizeof_t               prev_cmd_line_size = 0;
+  int		         return_status = 0;
+  a_boolean	         done = FALSE;
+  a_boolean	         any_ii_files = FALSE;
+  extern char	         *optarg;
+  extern int	         optind;
+  int		         optchar;
+  long		         number_of_iterations = 0;
+  char		         *nm_command = NULL;
+  a_pl_cmd_line_arg_ptr  last_arg_to_reemit = 0;
 
   /* This must be done before any messages are issued. */
   message_prefix = pl_error_text(pl_ec_message_prefix);
@@ -2477,7 +2531,7 @@ int main(int argc, char *argv[])
   /* Process command-line options. */
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
-#define OPTION_LIST "imnrvuc:d:Df:l:L:N:R:W:"
+#define OPTION_LIST "imnrvuB:c:d:Df:l:L:N:R:W:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
       case 'c':
@@ -2513,11 +2567,18 @@ int main(int argc, char *argv[])
         /* Ignore nm output lines that are not formatted properly. */
         ignore_invalid_nm_output = TRUE;
         break;
+      case 'B':
+        /* A -Bstatic or -Bdynamic that appears in the option list.
+           Treated as the start of the file list. */
+        /* Fall through into processing below. */
       case 'l':
         /* Library names (e.g., -lstd).  This is interpreted as the start
 	   of a list of file names because -l options may be intermixed
 	   with other object names. */
-	break;
+        /* Decrement optind so that this option will be processed
+           again below. */
+        optind--;
+        goto end_of_options;
       case 'L':
         /* Library directory names (e.g., -L/edg/cpfe/lib). */
         L_directories[num_of_L_directories++] = optarg;
@@ -2592,6 +2653,7 @@ int main(int argc, char *argv[])
         break;
     }  /* switch */
   }  /* while */
+end_of_options:
   /* Determine the nm command to be used. */
   if (nm_command != NULL) {
     /* A command was specified on the command line. */
@@ -2613,7 +2675,10 @@ int main(int argc, char *argv[])
 
   {
     /* Create input file records for each of the input files on the
-       command line. */
+       command line.  Also create a list of command line arguments for
+       the "file list" section of the command line.  This list of arguments
+       may be used later (if needed) to build an updated file list if any
+       of the input files were renamed. */
     a_pl_input_file_ptr	list_tail = NULL;
     for (arg = optind; arg < argc; ++arg) {
       a_pl_input_file_ptr	pifp;
@@ -2621,13 +2686,17 @@ int main(int argc, char *argv[])
       char                      *file_name;
       orig_name = argv[arg];
       if (strcmp(orig_name, "--") == 0) {
-        /* The "--" option marks the end of the list of object files
+        /* The "--" option marks the end of the list of command line arguments
            that should be re-emitted when the "copy nonlocal objects"
 	   option is used. */
-	last_file_to_reemit = list_tail;
+	last_arg_to_reemit = cmd_line_tail;
 	continue;
       }  /* if */
-      if (strncmp(orig_name, "-l", 2) == 0) {
+      if (strncmp(orig_name, "-B", 2) == 0) {
+        /* A -Bstatic or -Bdynamic option.  Save the option as a string. */
+        pl_add_cmd_line_arg(orig_name, (a_pl_input_file_ptr)NULL);
+        continue;
+      } else if (strncmp(orig_name, "-l", 2) == 0) {
 	/* Bypass the "-l" when searching for the library. */
         char  *lib_name = orig_name + 2;
         file_name = pl_find_library_name(lib_name);
@@ -2638,6 +2707,7 @@ int main(int argc, char *argv[])
       pifp->file_name = file_name;
       /* Add this entry to the list of input files. */
       if (pl_input_files == NULL) pl_input_files = pifp;
+      pl_add_cmd_line_arg((char *)NULL, pifp);
       if (list_tail != NULL) list_tail->next = pifp;
       list_tail = pifp;
       any_ii_files |= pl_check_for_ii_file(pifp);
@@ -2728,13 +2798,19 @@ int main(int argc, char *argv[])
     } while (!done);
   }  /* if */
   if (move_nonlocal_objects_to_curr_dir) {
-    /* Generate a list of file names.  This may be different from
-       the list of object files passed to the driver if one of the
-       files was moved as a consequence of a recompilation. */
-    a_pl_input_file_ptr	pifp;
-    for (pifp = pl_input_files; pifp != NULL; pifp = pifp->next) {
-      fprintf(f_obj_file_list, " %s", pifp->file_name);
-      if (pifp == last_file_to_reemit) break;
+    /* Generate a list of file names and associated command line options.
+       This may be different from the list of object files passed to the
+       driver if one of the files was moved as a consequence of a
+       recompilation. */ 
+    a_pl_cmd_line_arg_ptr	pclap;
+    for (pclap = cmd_line_head; pclap != NULL; pclap = pclap->next) {
+      if (pclap->is_string) {
+        fprintf(f_obj_file_list, " %s", pclap->variant.arg_string);
+      } else {
+        fprintf(f_obj_file_list, " %s",
+                pclap->variant.input_file_entry->file_name);
+      }  /* if */
+      if (pclap == last_arg_to_reemit) break;
     }  /* for */
     fprintf(f_obj_file_list, "\n");
     fclose(f_obj_file_list);
