@@ -539,6 +539,7 @@ char *name_of_symbol(a_symbol_ptr  sym)
   char              *str, buffer[1000];
   a_param_type_ptr  ptp;
   a_boolean         has_ellipsis;
+  a_type_ptr        tp;
 
   buffer[0] = '\0';
   switch (sym->kind) {
@@ -546,10 +547,9 @@ char *name_of_symbol(a_symbol_ptr  sym)
       (void)sprintf(buffer, "%s::%s(",
                     sym->class_of_which_a_member->source_corresp.name,
                     sym->header->identifier);
-      has_ellipsis = sym->variant.routine->type->
-                              variant.routine.extra_info->has_ellipsis;
-      ptp = sym->variant.routine->type->
-                              variant.routine.extra_info->param_type_list;
+      tp = routine_symbol_type(sym);
+      has_ellipsis = tp->variant.routine.extra_info->has_ellipsis;
+      ptp = tp->variant.routine.extra_info->param_type_list;
       for (; ptp != NULL; ptp = ptp->next) {
         add_name_of_type(ptp->type, buffer);
         if (ptp->next != NULL || has_ellipsis) {
