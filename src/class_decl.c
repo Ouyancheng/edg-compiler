@@ -9925,7 +9925,7 @@ moreover, several fields of *decl_info may be updated by this routine.
       a_symbol_ptr  sym;
 
       sym = (a_symbol_ptr)(member_type)->source_corresp.assoc_info;
-      if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
+      if (sym != NULL && has_name(member_type)) {
         record_symbol_declaration(SRK_DECLARATION, sym, err_pos,
                                   (a_source_sequence_entry_ptr)NULL);
       }  /* if */
