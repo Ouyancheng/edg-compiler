@@ -1,5 +1,30 @@
 Version 2.22
 
+2/17/94  Detection of instantiation loops in -tall mode
+
+In -tall mode it is possible for the compiler to be required to generate
+a very large or possibly infinite set of instantiations even though
+the program does not actually require the instantiations.  This kind
+of instantiation loop was not detected by the compilers existing
+checks for recursive instantiations.  An error is now issued for
+programs such as this one.  A new configuration parameter called
+MAX_UNUSED_ALL_MODE_INSTANTIATIONS has been added to lang_feat.h to
+control this feature.
+
+template <int i> class A {
+public:
+  void f() {
+    A<i+1> a;
+  };
+};
+
+void g()
+{
+  A<1> a;
+}
+
+
+
 2/16/94  Separate file for system specific predefined macros and assertions
 
 To simplify the maintenance of versions of the compiler targeted for
