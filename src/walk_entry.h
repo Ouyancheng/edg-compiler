@@ -1380,6 +1380,7 @@ the file scope, do not process it (but record an orphan in the latter case).
     case iek_asm_entry:
       {
         an_asm_entry_ptr ptr = (an_asm_entry_ptr)entry_ptr;
+        walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, an_asm_entry_ptr, iek_asm_entry);
         if (ptr->is_asm_func_body) {
           walk_string_ptr(ptr->variant.asm_func_body.value, iek_string_text,
