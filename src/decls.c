@@ -2623,6 +2623,7 @@ symbol sym.
   if (sym != NULL) {
     sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);
+    mark_variable_value_set(sym);
   }  /* if */
   add_to_parameters_list(vp);
   return(vp);
@@ -4011,7 +4012,7 @@ skip_overloading:;
   } else if (!redeclaration && !template_function_specific_decl) {
     /* Record a reference to the outer-scope symbol of the same name,
        but do not set the IL entity referenced flag. */
-    mark_symbol_referenced(srk_reference, 
+    mark_symbol_referenced(srk_use,
                            (a_symbol_ptr)source_corresp_ptr->assoc_info,
                            &locator->source_position);
   }  /* if */
@@ -4784,6 +4785,7 @@ a new symbol is created and entered in the symbol table.
     sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);
     sym->defined = TRUE;
+    mark_variable_value_set(sym);
 #if DEBUG
     if (debug_level >= 3) {
       db_symbol(sym, "Changed from parameter symbol: ", 4);
@@ -9571,6 +9573,7 @@ continue_with_declaration:
              may have already been set based on storage class and scope
              level. */
           symbol_ptr->defined = TRUE;
+          mark_variable_value_set(symbol_ptr);
         }  /* if */
       } else if (is_definition && !is_error_locator(locator) &&
                  var_ptr->init_kind == (an_init_kind)initk_none) {
@@ -9579,10 +9582,23 @@ continue_with_declaration:
            if appropriate (e.g., if a default constructor exists). */
         if (def_initializer(symbol_ptr, &locator.source_position)) {
           /* Default initialization was successful. */
+          mark_variable_value_set(symbol_ptr);
         } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
           /* No default initialization, so do some additional checking. */
           check_for_missing_initializer(symbol_ptr, local_type_ptr);
+          if (!var_ptr->source_corresp.is_local_to_function ||
+              var_ptr->storage_class == (a_storage_class)sc_static) {
+            mark_variable_value_set(symbol_ptr);
+          }  /* if */
         }  /* if */
+      } else if (C_dialect == C_dialect_cplusplus &&
+                 symbol_ptr->kind == (a_symbol_kind)sk_variable &&
+                 local_storage_class == (a_storage_class)sc_extern) {
+        /* This is not a definition of a variable but rather an extern
+           declaration.  Such variables may be assumed to be initialized
+           at the point of definition, flag them as "set" (even if it is not
+           at the current declaration). */
+        mark_variable_value_set(symbol_ptr);
       }  /* if */
       copy_source_position(locator.source_position, error_position);
       if (is_incomplete_type(local_type_ptr)) {
