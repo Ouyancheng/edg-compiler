@@ -22,7 +22,7 @@ default operator new() when memory cannot be allocated.
 #define NULL 0
 #endif /* ifndef NULL */
 
-extern "C" STD_NAMESPACE::__new_handler _new_handler = NULL;
+extern "C" STD_NAMESPACE::new_handler _new_handler = NULL;
 
 /*
 If the runtime should be defined in the std namespace, open
@@ -32,13 +32,13 @@ the std namespace.
 namespace std {
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
-__new_handler set_new_handler(__new_handler handler)
+new_handler set_new_handler(new_handler handler)
 /*
 Set _new_handler to the new function pointer provided and return the
 previous value of _new_handler.
 */
 {
-  __new_handler rr = _new_handler;
+  new_handler rr = _new_handler;
   _new_handler = handler;
   return rr;
 }  /* set_new_handler */

@@ -1,3 +1,10 @@
+Version 2.33
+
+7/22/96 Use standard name for the new handler type
+
+__new_handler was changed to new_handler as specified in the
+working paper.
+-------------------------------------------------------------------------------
 Version 2.32, June 28, 1996
 
 5/24/96 Restarting initialization of local static when exception thrown

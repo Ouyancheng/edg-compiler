@@ -19,7 +19,7 @@ C++ operator new();
 #include "runtime.h"
 #include "new.h"
 
-extern "C" STD_NAMESPACE::__new_handler _new_handler;
+extern "C" STD_NAMESPACE::new_handler _new_handler;
 
 /* Note that operator new is not in the std namespace. */
 
