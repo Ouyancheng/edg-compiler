@@ -375,6 +375,9 @@ extern a_boolean equiv_template_param_lists(
 			an_equiv_templ_param_options_set	options,
 			a_source_position			*error_pos);
 
+extern a_boolean identical_templates_given_symbol(a_symbol_ptr	sym1,
+					          a_symbol_ptr	sym2);
+
 extern a_boolean equiv_templates(a_template_ptr	templ1,
 				 a_template_ptr	templ2);
 

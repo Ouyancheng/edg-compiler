@@ -4061,8 +4061,8 @@ nothing).
 }  /* equiv_templates */
 
 
-static a_boolean identical_templates_given_symbol(a_symbol_ptr	sym1,
-				 	          a_symbol_ptr	sym2)
+a_boolean identical_templates_given_symbol(a_symbol_ptr	sym1,
+			 	           a_symbol_ptr	sym2)
 /*
 Return TRUE if the templates specified by symbol sym1 and sym2 are identical.
 sym1 and sym2 must be class template symbols, or may be NULL.  Note that

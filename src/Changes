@@ -1,5 +1,11 @@
 Version 3.1
 
+12/26/02 Spurious correspondence error on class template instances
+
+When using multiple translation units, spurious correspondence errors
+could be issued on certain class template instances.  This has been
+fixed.
+
 12/23/02 Multiple translation units, abort in trans_copy.c
 
 An abort in trans_copy.c (line 1126 in the 3.0 source) has been

@@ -2550,11 +2550,13 @@ checking instead of equivalence checking).
                             cssp_2->template_param_for_proxy_class)) {
           equiv = TRUE;
         }  /* if */
-      } else if (cssp_1->class_template != NULL &&
-                 cssp_2->class_template != NULL) {
-        if (cssp_1->class_template == cssp_2->class_template ||
-            primary_template_of(cssp_1->class_template) ==
-                                 primary_template_of(cssp_2->class_template) ||
+     } else if (cssp_1->class_template != NULL &&
+                cssp_2->class_template != NULL) {
+        if (identical_templates_given_symbol(cssp_1->class_template,
+                                             cssp_2->class_template) ||
+            identical_templates_given_symbol(
+                                primary_template_of(cssp_1->class_template),
+                                primary_template_of(cssp_2->class_template)) ||
             equiv_nonreal_templates(type_1, cssp_1->class_template,
                                     type_2, cssp_2->class_template) ||
             equiv_template_template_params(cssp_1->class_template,
