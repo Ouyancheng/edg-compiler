@@ -864,33 +864,39 @@ static void gen_constant(a_constant_ptr constant)
 Output the indicated constant.
 */
 {
-  an_integer_kind  ikind;
-  a_float_kind     fkind;
-  a_type_ptr       con_type = NULL, orig_type;
-  a_boolean        need_cast_close_paren = FALSE, need_close_paren;
-  a_boolean        ptr_implicit_cast_case, scaled_offset_cast;
-  a_boolean        need_ampersand;
-  a_type_ptr       underlying_object_type;
-  a_targ_ptrdiff_t offset;
-  a_constant_ptr   sub_con;
+  a_constant_repr_kind kind = constant->kind;
+  an_integer_kind      ikind;
+  a_float_kind         fkind;
+  a_type_ptr           con_type = NULL, orig_type;
+  a_boolean            need_cast_close_paren = FALSE, need_close_paren;
+  a_boolean            need_second_ptr_cast, need_scaling_cast;
+  a_boolean            need_ptr_cast, need_ampersand;
+  a_type_ptr           underlying_object_type;
+  a_targ_ptrdiff_t     offset;
+  a_constant_ptr       sub_con;
 
   orig_type = constant->type;
   /* Watch out for constants (like aggregates) that have no type. */
   if (orig_type != NULL) {
     con_type = skip_typerefs(orig_type);
-    if (constant->implicit_cast ||
-        (il_header.source_language == sl_C &&
-         con_type->kind == (a_type_kind)tk_integer &&
-         con_type->variant.integer.enum_type)) {
-      /* If the constant is implicitly cast to another type, or if it's
-         an integer value or enumerator constant cast to an enum type in
-         C mode, put out the requisite cast. */
-      write_tok_str("(");
-      gen_cast(orig_type);
-      need_cast_close_paren = TRUE;
+    /* See if we need a cast to the constant result type. */
+    if (kind == (a_constant_repr_kind)ck_address) {
+      /* Don't do this here for address constants (they're handled below). */
+    } else {
+      if (constant->implicit_cast ||
+          (il_header.source_language == sl_C &&
+           con_type->kind == (a_type_kind)tk_integer &&
+           con_type->variant.integer.enum_type)) {
+        /* If the constant is implicitly cast to another type, or if it's
+           an integer value or enumerator constant cast to an enum type in
+           C mode, put out the requisite cast. */
+        write_tok_str("(");
+        gen_cast(orig_type);
+        need_cast_close_paren = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
-  switch (constant->kind) {
+  switch (kind) {
     case ck_integer:
       if (is_enum_constant(constant)) {
         /* An enum constant. */
@@ -956,6 +962,11 @@ Output the indicated constant.
       break;
     case ck_address:
       /* Address constant. */
+      /* We need a cast to the result type if the constant is implicitly
+         cast to another type (but we may be able to optimize it away). */
+      need_ptr_cast = constant->implicit_cast;
+      need_second_ptr_cast = FALSE;
+      need_scaling_cast = FALSE;
       /* Extract the underlying type. */
       need_ampersand = TRUE;
       switch (constant->variant.address.kind) {
@@ -987,30 +998,21 @@ Output the indicated constant.
         need_ampersand = FALSE;
         underlying_object_type =
                             underlying_object_type->variant.array.element_type;
+        /* If the constant type desired is exactly the type that results from
+           the type decay, we don't need a cast.  Otherwise, we do. */
+        need_ptr_cast = TRUE;
+        if (orig_type->kind == (a_type_kind)tk_pointer) {
+          if (orig_type->variant.pointer.type == underlying_object_type) {
+            need_ptr_cast = FALSE;
+          }  /* if */
+        }  /* if */
         underlying_object_type = skip_typerefs(underlying_object_type);
       }  /* if */
-      /* Look for cases where a pointer is implicitly cast to a strange type
-         (e.g., "char").  The original code probably did this conversion
-         as two casts, but the implicit_cast mechanism only retains information
-         on the final type.  In such cases, go by way of a cast to unsigned
-         long. */
-      ptr_implicit_cast_case = FALSE;
-      if (constant->implicit_cast) {
-        if (is_pointer_type(con_type) ||
-            (is_integral_type(con_type) &&
-                                      con_type->size >= TARG_SIZEOF_POINTER)) {
-          /* Okay. */
-        } else {
-          ptr_implicit_cast_case = TRUE;
-          write_tok_str("((unsigned long)");
-        }  /* if */
-      }  /* if */
+      /* Look at the offset. */
       offset = constant->variant.address.offset;
       if (offset != 0) {
         a_targ_size_t underlying_object_size = underlying_object_type->size;
         /* Non-zero offset.  Deal with scaling issues. */
-        write_tok_str("(");
-        scaled_offset_cast = FALSE;
         /* See if the size of the underlying object is such that scaling
            can be done implicitly instead of playing tricks with casting
            to "char *" and back. */
@@ -1021,14 +1023,33 @@ Output the indicated constant.
           offset /= underlying_object_size;
         } else {
           /* The offset is not evenly divisible by the object size, so
-             cast to "char *" and back again.  If the implicit_cast flag
-             is set, the final type cast was already generated above and
-             need not be repeated here. */
-          if (!constant->implicit_cast) {
-            gen_cast(orig_type);
-            write_tok_str("(");
-            scaled_offset_cast = TRUE;
-          }  /* if */
+             we need to cast to "char *" and back again. */
+          need_scaling_cast = TRUE;
+          need_ptr_cast = TRUE;  /* To get cast back. */
+        }  /* if */
+      }  /* if */
+      if (need_ptr_cast) {
+        /* Start with a cast to the desired result type. */
+        write_tok_str("(");
+        dump_cast(orig_type);
+        /* Look for cases where a pointer is implicitly cast to a strange type
+           (e.g., "char").  The original code probably did this conversion
+           as two casts, but the implicit_cast mechanism only retains
+           information on the final type.  In such cases, go by way of a
+           cast to unsigned long. */
+        if (is_pointer_type(con_type) ||
+            (is_integral_type(con_type) &&
+             con_type->size >= TARG_SIZEOF_POINTER)) {
+          /* Okay. */
+        } else {
+          need_second_ptr_cast = TRUE;
+          write_tok_str("((unsigned long)");
+        }  /* if */
+      }  /* if */
+      if (offset != 0) {
+        write_tok_str("(");
+        if (need_scaling_cast) {
+          /* Need a cast to "char *" to get the offset scaling right. */
           write_tok_str("(char *)");
         }  /* if */
       }  /* if */
@@ -1057,10 +1078,10 @@ Output the indicated constant.
         /* Add in the (signed) offset. */
         write_tok_str(" + ");
         write_num((long)offset);
-        if (scaled_offset_cast) write_tok_str(")");
         write_tok_str(")");
       }  /* if */
-      if (ptr_implicit_cast_case) write_tok_str(")");
+      if (need_second_ptr_cast) write_tok_str(")");
+      if (need_ptr_cast) write_tok_str(")");
       break;
     case ck_ptr_to_member:
       /* Pointer-to-member constant. */
