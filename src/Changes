@@ -1,5 +1,26 @@
 Version 2.44
 
+7/18/00  Nested types in nonstandard anonymous unions
+
+Microsoft compilers accept named nested types in nonstandard anonymous unions
+that are not introduced with a typedef name.  The front end now emulates this
+extension in Microsoft mode.
+
+  struct A {
+    struct {  // Nonstandard "anonymous union" (with --microsoft)
+      int i;
+      union U { float f; double d; } u;  // Named nested type
+    };
+  };
+  typedef struct X {
+    int i;
+    union U { float f; double d; } u;  // Named nested type
+  };
+  struct B {
+    X;  // Not a nonstandard "anonymous union" because X has a named nested
+  };    // type and the anonymous member is introduced with a typedef name
+
+
 7/17/00  Name linkage of implicitly declared functions in C mode
 
 Recent versions of the front end recorded implicitly declared functions in C

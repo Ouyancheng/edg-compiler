@@ -7482,7 +7482,7 @@ ones are allocated in the scope specified by decl_scope_level.
     db_symbol(assoc_object_sym, ":\n  ", 4);
   }  /* if */
 #endif /* DEBUG */
-  if (reuse_symbol && !C_mode() && !is_nonstd) {
+  if (reuse_symbol && !C_mode()) {
     ctsp = assoc_object_type->variant.class_struct_union.extra_info;
     if (assoc_object_sym->kind == (a_symbol_kind)sk_field) {
       ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_field;
@@ -7855,9 +7855,8 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
         /* In C mode that's all we need to know. */
         decl_info->is_anonymous_union = TRUE;
       } else {
-        /* In C++ it's required that the class have only C features -- i.e.,
-           no member functions, no static data members, and no nested types
-           that have names (i.e., nested anonymous unions are okay). */
+        /* Some C++ features cannot appear in nonstandard anonymous unions
+           (e.g., member functions, static data members). */
         a_class_symbol_supplement_ptr  cssp;
         a_symbol_ptr                   sym;
 
@@ -7871,6 +7870,9 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
                 /* Okay. */
               } else if (sym == cssp->trivial_default_constructor) {
                 /* Okay. */
+              } else if (is_type_symbol(sym) && tp == member_type) {
+                /* Okay if the nonstandard anonymous union is not of the
+                   variety introduced with a typedef. */
               } else if (is_compiler_generated_member_function(sym)) {
                 /* A compiler generated function -- most likely a default
                    assignment operator.  This is okay. */
