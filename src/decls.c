@@ -6183,9 +6183,11 @@ continue_with_declaration:
                parameter.  If the storage class is unspecified, and
                we are not at file scope, use a storage class of auto. */
             if (local_storage_class == (a_storage_class)sc_unspecified) {
-              if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-                /* We are inside a function body, so an unspecified storage
-                   class means auto. */
+              if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
+                  local_is_old_style_param_decl) {
+                /* We are inside a function body or this is an old-style
+                   parameter declaration, so an unspecified storage class
+                   means auto. */
                 local_storage_class = (a_storage_class)sc_auto;
               } else if (extern_implied) {
                 /* This must be part of an linkage specification declaration.
