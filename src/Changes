@@ -1,5 +1,12 @@
 Version 2.08
 
+7/15/92  Correct check for suppression of IL lowering.
+
+All checks for suppresion of IL lowering should not be conditioned
+by IL_SHOULD_BE_WRITTEN_TO_FILE.  In an optimized version which does
+not write the IL to a file, suppression of IL lowering had no effect
+as it was coded.
+
 7/11/92  Reread source lines for diagnostics.
 
 Support was added to print source lines that are not in the current logical

@@ -4750,13 +4750,9 @@ End a name scope by popping an entry off the scope stack.
   if (!old_region_still_needed) {
     /* The old memory region is no longer needed. */
 #if DO_IL_LOWERING
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
     if (!suppress_il_lowering) {
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
       lower_il_memory_region(old_memory_region_number);
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
     }  /* if */
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* DO_IL_LOWERING */
     /* Clear out the shareable constants table for the file scope or a
        function scope. */
