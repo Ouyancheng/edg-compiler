@@ -1,5 +1,10 @@
 Version 3.1
 
+9/11/02  Demangling for IA-64 ABI
+
+The demangler now understands the name mangling of the IA-64 ABI
+when IA64_ABI is set to TRUE.
+
 7/9/02   eccp: eliminated use of "match" option
 
 eccp made use of the "match" option of the expr command.  This option is

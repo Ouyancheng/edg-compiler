@@ -94,10 +94,12 @@ is the one following the identifier.
     } else {
       /* Add the character to the current identifier. */
       orig_id[orig_id_len] = ch;
+#if !IA64_ABI
       /* Keep track of whether "__" appears in the name. */
       if (ch == '_' && orig_id_len > 0 && orig_id[orig_id_len-1] == '_') {
         is_mangled_name = TRUE;
       }  /* if */
+#endif /* !IA64_ABI */
       orig_id_len++;
     }  /* if */
   }  /* for */
@@ -118,6 +120,12 @@ is the one following the identifier.
         is_mangled_name = FALSE;
       }  /* if */
     }  /* if */
+#if IA64_ABI
+    /* An IA-64 mangled name begins with "_Z". */
+    if (id[0] == '_' && id[1] == 'Z') {
+      is_mangled_name = TRUE;
+    }  /* if */
+#endif /* IA64_ABI */
     if (is_mangled_name) {
       a_boolean err, buffer_overflow_err;
       sizeof_t  required_buffer_size;
