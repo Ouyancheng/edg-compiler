@@ -28,6 +28,7 @@ expr.c -- Expression scanning routines.
 #include "decl_inits.h"
 #include "disambig.h"
 #include "decl_spec.h"
+#include "func_def.h"
 
 
 /* Forward declarations. */
@@ -5013,6 +5014,12 @@ Syntax:
         complete_class_type_is_needed(underlying_cast_type);
         if (!is_incomplete_type(underlying_cast_type)) {
           cast_type_okay = TRUE;
+#if DO_IL_LOWERING
+          /* Marking the virtual functions as required will ensure that the
+	     typeinfo for the class is defined. */
+          require_definitions_of_virtual_functions_in_class(
+                                                        underlying_cast_type);
+#endif /*  DO_IL_LOWERING */
         }  /* if */
       } else if (!reference_case && is_void_type(underlying_cast_type)) {
         /* Casting to void * is okay. */

@@ -72,6 +72,10 @@ extern void force_definition_of_compiler_generated_routine(a_routine_ptr rp);
 
 extern void generate_required_virtual_destructor_bodies(a_scope_ptr  scope);
 
+extern void require_definitions_of_virtual_functions_in_class(
+							a_type_ptr class_type);
+
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern char *scan_asm_block(a_boolean  is_asm_block);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

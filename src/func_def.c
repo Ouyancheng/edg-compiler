@@ -470,8 +470,7 @@ next_function:;
 }  /* require_definitions_of_virtual_functions_on_routine_list */
 
 
-static void require_definitions_of_virtual_functions_in_class(
-                                                         a_type_ptr class_type)
+void require_definitions_of_virtual_functions_in_class(a_type_ptr class_type)
 /*
 Require definitions for all virtual functions in class_type (including
 those from its base classes that are not overridden).  This includes
