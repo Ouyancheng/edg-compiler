@@ -3224,9 +3224,34 @@ precedence confusion.
       processed = TRUE;
     } else if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue){
       /* An operation that returns an lvalue, e.g., an lvalue-returning
-         assignment.  Just put the expression out. */
-      gen_expr_with_parens(node);
-      processed = TRUE;
+         assignment. */
+      if (op == (an_expr_operator_kind)eok_question) {
+        /* Lvalue-returning "?".  Put out the second and third operands as
+           lvalues. */
+        write_tok_ch('(');
+        gen_boolean_controlling_expression(operand_1);
+        write_tok_str(" ? ");
+        gen_lvalue(operand_2);
+        write_tok_str(" : ");
+        gen_lvalue(operand_2->next);
+        write_tok_ch(')');
+        processed = TRUE;
+      } else if (op == (an_expr_operator_kind)eok_comma) {
+        /* Lvalue-returning ",".  Put out the second operand as an lvalue. */
+        write_tok_ch('(');
+        gen_expr_with_parens(operand_1);
+        write_tok_str(", ");
+        gen_lvalue(operand_2);
+        write_tok_ch(')');
+        processed = TRUE;
+      } else {
+        /* Other case (e.g., lvalue-returning assignment).  Just put the
+           expression out. */
+        node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+        gen_expr_with_parens(node);
+        node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+        processed = TRUE;
+      }  /* if */
     }  /* if */
   } else if (kind == (an_expr_node_kind)enk_temp_init &&
              node->variant.init.result_is_addr) {
@@ -3624,6 +3649,12 @@ there's some possibility of precedence confusion and need_parens is TRUE.
     case enk_operation:
       /* Expression operation. */
       if (need_parens) m_write_tok_ch('(');
+      if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+        /* Lvalue-returning version, used as an rvalue.  Need "&" in front. */
+        gen_ampersand(type_pointed_to(expr->type));
+        gen_lvalue(expr);
+        goto done_with_operation;
+      }  /* if */
       operand_1 = expr->variant.operation.operands;
       operand_2 = operand_1->next;
       switch (expr->variant.operation.kind) {
@@ -3901,11 +3932,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_comma:
           gen_expr_with_parens(operand_1);
           write_tok_str(", ");
-          if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-            gen_lvalue(operand_2);
-          } else {
-            gen_expr_with_parens(operand_2);
-          }  /* if */
+          gen_expr_with_parens(operand_2);
           goto done_with_operation;
         case eok_land:
           gen_boolean_controlling_expression(operand_1);
@@ -3921,17 +3948,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* Three operand operator. */
           gen_boolean_controlling_expression(operand_1);
           write_tok_str(" ? ");
-          if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-            gen_lvalue(operand_2);
-          } else {
-            gen_expr_with_parens(operand_2);
-          }  /* if */
+          gen_expr_with_parens(operand_2);
           write_tok_str(" : ");
-          if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-            gen_lvalue(operand_2->next);
-          } else {
-            gen_expr_with_parens(operand_2->next);
-          }  /* if */
+          gen_expr_with_parens(operand_2->next);
           goto done_with_operation;
         case eok_call:
           /* Call (nonvirtual). */
