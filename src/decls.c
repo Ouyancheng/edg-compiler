@@ -1370,7 +1370,7 @@ will be involved in overloading.
               tssp = other_decl->variant.template_info;
               if (is_function_template_decl) {
                 tp = tssp->variant.function.routine->type;
-                if (routine_types_are_compatible(tp, type)) {
+                if (routine_types_are_compatible(tp, type, TCF_NO_FLAGS)) {
                   /* The other_decl template function matches the current
                      declaration. */
                   *linked_symbol = other_decl;
@@ -1388,7 +1388,7 @@ will be involved in overloading.
                 /* No match. */
               } else {
                 tp = other_decl->variant.routine.ptr->type;
-                if (routine_types_are_compatible(tp, type)) {
+                if (routine_types_are_compatible(tp, type, TCF_NO_FLAGS)) {
                   /* Other_decl matches the current declaration.  Null out
                      *overload_symbol in case it was set. */
                   *overload_symbol = NULL;
@@ -1578,7 +1578,12 @@ issued a similar error).  Return FALSE if there is some error.
   /* If the old and new types are the same, no checking or processing is
      required. */
   if (old_type != type_ptr) {
-    if (is_routine ? !routine_types_are_compatible(old_type, type_ptr) :
+    /* Use a special comparison for routine types, to ignore calling
+       convention differences.  In C mode, overloading is not possible, so
+       allow error type mismatches on routine types. */
+    if (is_routine ? !routine_types_are_compatible(old_type, type_ptr,
+                           C_mode() ? TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING :
+                                      TCF_NO_FLAGS) :
                      !types_are_compatible(old_type, type_ptr)) {
       /* The old and new types are incompatible.  Error. */
       if (!suppress_incompatible_error) {
