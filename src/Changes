@@ -15,12 +15,13 @@ must be searched for (see find_local_static_variable_init in il.c).
 
 11/14/94 Fixed name lookup bug in friend processing
 
-In the following case, the lookup on the friend declaration used to be
-confused by the presence of "f" in the scope of A; now it works correctly:
+In the following case, the lookup on the friend declaration (with implicit
+return type) used to be confused by the presence of "f" in the scope of A ;
+now it works correctly:
 
   class A {
-    void f(void);            // Declares A::f()
-    friend void f(int);      // Declares ::f(int)
+    int f(void);          // Declares A::f() 
+    friend f(int);        // Declares ::f(int) with implicit return type
   };
 
 11/14/94 Computing virtual function overrides when base class is ambiguous
