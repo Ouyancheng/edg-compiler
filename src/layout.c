@@ -1089,9 +1089,11 @@ targ_microsoft_bit_field_allocation is FALSE.)
       }  /* if */
     } else {
       /* targ_bit_field_container_size < 0 */
-      /* Always use the base type size and alignment. */
+      /* Always use the base type size.  For the alignment use the base type
+         before skip_typerefs in case a GNU typedef attribute must be picked
+         up. */
       container_size      = base_type->size;
-      container_alignment = field_alignment_for(base_type);
+      container_alignment = field_alignment_for(field->type);
 #if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
       if (field->alignment != 0) {
         /* Honor the "packed" or "alignment" attribute, even on bit
@@ -2020,7 +2022,7 @@ there's no overflow TRUE is returned.
            proceeding. */
         pad_ms_bit_field_container(lob);
       }  /* if */
-      field_alignment = field_alignment_for(field_type);
+      field_alignment = field_alignment_for(field->type);
 #if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED
       /* If the alignment of this field was explicitly specified,
