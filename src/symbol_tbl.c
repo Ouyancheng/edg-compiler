@@ -6410,7 +6410,7 @@ NULL.
         if ((sym->kind == (a_symbol_kind)sk_enum_tag ||
 	     is_real_class_symbol(sym)) &&
 	    !sym->reentered_from_prototype_scope) {
-          add_to_types_list(type_ptr, DEPTH_OF_FILE_SCOPE);
+          add_to_types_list(type_ptr, depth_scope_stack);
         }  /* if */
       }  /* if */
 #if CHECKING
