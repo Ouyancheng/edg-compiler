@@ -622,7 +622,8 @@ typedef enum /*a_printf_scan_state*/ {
 static a_type_ptr next_printf_scanf_arg_type(
                                           a_boolean           is_scanf,
                                           char                **fmt_string_ptr,
-                                          a_printf_scan_state *pss_ptr)
+                                          a_printf_scan_state *pss_ptr,
+                                          a_boolean           *indirect)
 /*
 Return the type that the next argument to a printf or scanf call should have,
 by finding the next thing in the format string that consumes an argument.
@@ -631,7 +632,9 @@ scanf/FALSE for printf; *fmt_string_ptr points to the current position
 in the format string (it will be updated); and *pss_ptr is maintained
 to handle resuming the scan after a "*" field width or precision.
 If there is an error in the format string, issue a warning and set
-*fmt_string_ptr to NULL.
+*fmt_string_ptr to NULL.  *indirect is returned TRUE if the type returned
+has an added pointer level relative to the type indicated in the formatting
+string, e.g., for scanf.
 
 See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
 */
@@ -645,6 +648,7 @@ See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
 #endif /* LONG_LONG_ALLOWED */
   a_boolean           suppress_assignment = FALSE;
 
+  *indirect = FALSE;
   /* Pick up in the middle if the previous call returned a field width
      or precision. */
   if (pss == pss_after_field_width) goto after_field_width;
@@ -735,7 +739,7 @@ after_precision:;
     /* The next character indicates the conversion type, e.g., "d" for
        decimal.  Determine the required type.  For most (but not all)
        scanf cases, "pointer to" will be added afterwards. */
-    add_pointer = is_scanf;
+    *indirect = add_pointer = is_scanf;
     switch (*fmt_string++) {
       case 'd':
       case 'i':
@@ -810,6 +814,7 @@ after_precision:;
            "char" into "char *", for both printf and scanf. */
         required_type = integer_type((an_integer_kind)ik_char);
         add_pointer = TRUE;
+        /* *indirect is not set on purpose. */
         break;
       case 'p':
         /* Pointer conversion.  Basic type is "void *". */
@@ -826,7 +831,7 @@ after_precision:;
         } else {
           required_type = integer_type((an_integer_kind)ik_int);
         }  /* if */
-        add_pointer = TRUE;
+        *indirect = add_pointer = TRUE;
         break;
       case '[':
         /* For scanf only, a scanset.  Skip to the corresponding "]".
@@ -876,11 +881,12 @@ for printf, and *fmt_string_ptr and *pss_ptr give the current position in the
 format string (they are updated on return).
 */
 {
-  a_type_ptr required_type;
+  a_type_ptr required_type, eff_required_type, eff_argument_type;
+  a_boolean  indirect;
 
   /* Find the next formatting specifier in the string. */
   required_type = next_printf_scanf_arg_type(is_scanf, fmt_string_ptr,
-                                             pss_ptr);
+                                             pss_ptr, &indirect);
   /* If *fmt_string_ptr was set to NULL there was an error in the format
      string. */
   if (*fmt_string_ptr != NULL) {
@@ -893,9 +899,23 @@ format string (they are updated on return).
       /* Check that the argument type matches the specifier type.  Note
          the use of "interchangeable" rather than "compatible", because
          we want to allow things like "printf("%lx", (long)i);". */
-      if (!interchangeable_types(required_type, argument_operand->type)) {
+      eff_required_type = required_type;
+      eff_argument_type = argument_operand->type;
+      if (indirect) {
+        /* In cases where an extra indirection is added to the required
+           type so that a value can be returned from the routine, remove
+           the extra level of pointer type.  That allows matching things
+           like "int *" and "unsigned int *".  This is slightly looser
+           matching than is allowed without warning for normal function
+           calls, but here we know what the runtime routine is doing. */
+        if (!is_pointer_type(eff_argument_type)) goto mismatch;
+        eff_argument_type = type_pointed_to(eff_argument_type);
+        eff_required_type = type_pointed_to(eff_required_type);
+      }  /* if */
+      if (!interchangeable_types(eff_required_type, eff_argument_type)) {
         /* The argument type does not match the required type. */
-        if (!is_error_type(argument_operand->type)) {
+mismatch:
+        if (!is_error_type(eff_argument_type)) {
           pos_warning(ec_printf_arg_mismatch, &argument_operand->position);
         }  /* if */
       }  /* if */
@@ -934,7 +954,7 @@ build an argument operand list and return a pointer to it in
   an_expr_node_ptr    argument_head;
   an_expr_node_ptr    argument_tail;
   an_expr_node_ptr    curr_node;
-  a_boolean           do_default_promotion;
+  a_boolean           do_default_promotion, indirect;
   a_type_ptr          formal_type;
   a_boolean           is_scanf = FALSE;  /* Initialized to make lint happy. */
   a_constant_ptr      con_ptr;
@@ -1191,7 +1211,8 @@ build an argument operand list and return a pointer to it in
     } else if (fmt_string != NULL) {
       /* For a printf- or scanf-like function, check that all the formatting
          specifiers were used. */
-      if (next_printf_scanf_arg_type(is_scanf, &fmt_string, &pss) != NULL) {
+      if (next_printf_scanf_arg_type(is_scanf, &fmt_string, &pss, &indirect)
+                                                                     != NULL) {
         /* There are no more arguments, but the format string has more
            formatting specifiers. */
         warning(ec_too_few_printf_args);
