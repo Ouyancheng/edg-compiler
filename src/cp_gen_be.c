@@ -1906,15 +1906,12 @@ will be put out when they are encountered when generating the parameter types.
     advance_past_preprocessing_directives();
     found_decl = FALSE;
     if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
-      /* In C mode, we know all the types will be in the prototype scope,
-         so it's easy to find the end of the list.  In C++, there can be
-         declarations that appear in the function declarator but get entered
-         in the file scope.  To skip those, we just skip non-autonomous tag
-         declarations.  Of course, some of the types we skip might be from
-         whatever follows the function declaration, but they would just get
-         skipped in this same way, so it's harmless to skip them now. */
+      /* There is a type declaration.  See if it is part of the prototype
+         scope. */
       if (il_header.source_language == sl_Cplusplus) {
-        if (!is_autonomous_decl(type, sec_decl)) found_decl = TRUE;
+        if (sec_decl != NULL && sec_decl->declared_in_func_prototype) {
+          found_decl = TRUE;
+        }  /* if */
       } else {
         if (type->declared_in_function_prototype) found_decl = TRUE;
       }  /* if */
