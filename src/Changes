@@ -1,5 +1,25 @@
 Version 2.36
 
+3/8/97   Generated operator= calling base-class operator= that takes
+         parameter by value and requires destructor
+
+An internal error has been eliminated for cases where a generated
+derived-class operator= function calls a base class operator= function,
+and the base class operator= takes its parameter by value and the parameter
+is a class type that has a destructor.
+
+  template <class T> struct A {
+    ~A();
+    void operator=(A<T>);
+  };
+  struct B {
+    A<int> id;
+  };
+  void foo() {
+    B obj1,obj2;
+    obj1 = obj2;
+  }
+
 3/7/97   Setting "referenced" on static data member specialization
 
 The "referenced" flag was not be set properly on a template static data

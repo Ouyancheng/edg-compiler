@@ -4359,6 +4359,23 @@ routine is intended to be called from outside of the expression routines.
   expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE);
+  if (source->kind == (an_expr_node_kind)enk_object_lifetime) {
+    /* The source expression already has an object lifetime on top, so
+       use that as the lifetime for the entire expression.  This happens
+       when a call is generated to an operator= that takes its parameter
+       by value, for a class that has a destructor. */
+    an_object_lifetime_ptr lifetime = source->variant.object_lifetime.ptr;
+    if (expr_stack->lifetime != NULL) {
+      /* Get rid of the empty object lifetime just created by
+         push_expr_stack. */
+      (void)pop_object_lifetime();
+    }  /* if */
+    unbind_object_lifetime(lifetime);
+    lifetime->parent_lifetime = curr_object_lifetime;
+    curr_object_lifetime = lifetime;
+    expr_stack->lifetime = lifetime;
+    source = source->variant.object_lifetime.expr;
+  }  /* if */
   /* Make a node for the address of the function. */
   func_addr_node = function_addr_expr(rout, /*set_address_taken_flag=*/FALSE);
   /* Link the operands to the function address node. */
