@@ -2816,7 +2816,6 @@ be kept, FALSE if it should be deleted.
       bind_object_lifetime(init_expr_lifetime, iek_block,
                            (char *)block_stmt->variant.block.extra_info);
     }  /* if */
-    begin_object_lifetime(init_expr_lifetime, eff_insert_location);
   }  /* if */
   if (processing_file_scope_init_routine) {
     /* When processing an initialization in the file-scope initialization
@@ -2834,6 +2833,13 @@ be kept, FALSE if it should be deleted.
       dip->variant.constructor.args =
                         copy_list_of_expr_trees(dip->variant.constructor.args);
     }  /* if */
+  }  /* if */
+  if (init_expr_lifetime != NULL) {
+    /* Begin the object lifetime defined by this initialization.  Note that
+       this is done late so that when processing the file-scope initialization
+       routine (a) the lifetime has been copied and (b) any lifetimes under
+       this one have been copied and attached to it. */
+    begin_object_lifetime(init_expr_lifetime, eff_insert_location);
   }  /* if */
   switch (dip->kind) {
     case dik_none:
