@@ -1851,6 +1851,8 @@ symbol supplement.
                     sym_entry = NULL;
     corresp_tssp = ((a_symbol_ptr)corresp_templ->source_corresp.assoc_info)
                          ->variant.template_info;
+    /* Mark the type as visited to avoid infinite recursion. */
+    set_no_trans_unit_corresp(class_type);
     if (has_correspondence(templ)) {
       a_template_arg_ptr
                     templ_args = class_type
@@ -1862,6 +1864,9 @@ symbol supplement.
                                        ->variant.class_struct_union.extra_info
                                        ->template_arg_list,
                                      templ_args, ETA_NO_OPTIONS)) {
+          /* Restore the type to an unvisited state before setting the
+             correspondence (which will effectively remark it as visited). */
+          trans_unit_corresp_pointer_of(class_type) = NULL;
           record_trans_unit_corresp(class_type, corresp_type);
           establish_trans_unit_correspondences_for_class(class_type);
           break;
@@ -1872,7 +1877,6 @@ symbol supplement.
       /* The instantiation was not found on the canonical list.  Add it now. */
       add_instantiation(corresp_tssp, inst);
       set_no_class_type_correspondence(class_type);
-      set_no_trans_unit_corresp(class_type);
     }  /* if */
   }  /* if */
 }  /* record_class_template_instantiation */
