@@ -6967,7 +6967,7 @@ enum an_expr_operator_kind_tag {
 			/* Same as eok_va_start, but without the second operand.
 			   This is typically used to implement the <varargs.h>
 			   variant of va_start (as opposed to the variant from
-			   <stdarg.h>. */
+			   <stdarg.h>). */
 #ifdef CIL
   /* Operators appearing in prototype instantiations.  The type of the
      operands is generally not known and after instantiation these operators
