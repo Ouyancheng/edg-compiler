@@ -1,5 +1,13 @@
 Version 3.2
 
+4/29/03  Expression and statement traversal routines
+
+New routines to traverse expression and statement trees have been
+added in il_walk.c.  These routines, traverse_expr and traverse_statement,
+allow us to remove a lot of duplicated custom code that walks those
+trees and instead use a single set of generic routines with
+user-supplied callback functions.
+
 4/28/03  Statement expressions in GNU C++ mode
 
 Statement expressions, i.e., ({ ... }), are now accepted in GNU C++
