@@ -109,9 +109,9 @@ the associated name space.
 */
 typedef enum /*a_name_space_kind*/ {
   nsk_label,		/* Code labels. */
-  nsk_tag,		/* Struct, union, and enum tags. */
-  nsk_member,		/* Members (fields) of structs and unions; members
-			   of C++ classes. */
+  nsk_tag,		/* Struct, union, and enum tags, in C.  (In C++,
+			   those have kind nsk_other, and this kind is
+			   not used.) */
   nsk_other,		/* The primary case: types, constants, variables,
 			   functions. */
   nsk_macro,		/* Macros. */
