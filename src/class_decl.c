@@ -8315,7 +8315,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
     /* Note that one reason for err to be TRUE is if the constant is
        less than zero. */
     if (err || bit_field_size > max_size_allowed) {
-      if (err || C_mode()) {
+      if (err || (C_mode() && !gcc_mode)) {
         error(ec_bad_bit_field_size);
       } else if (bit_field_size > max_size_allowed) {
         /* A warning in C++. */
