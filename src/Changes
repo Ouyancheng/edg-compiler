@@ -1,5 +1,13 @@
 Version 2.28
 
+2/20/95  Weighting of conversions between builtins in overload matching
+
+In overload resolution, any conversions required to convert operands
+of a builtin operator from one builtin type to another were always given
+a weight of "standard conversion" (this is what cfront 2.1 seems to do).
+Now, they are given the proper weight -- exact, promotion, or standard
+conversion.  The old behavior continues in cfront 2.1 mode.
+
 2/17/95  Digraph and operator keyword support
 
 The front end now supports C++ digraphs (e.g., <&%, %>, etc.), and
