@@ -3608,6 +3608,31 @@ address of the temporary is returned.  This routine is only used in C++ mode.
 }  /* conv_class_operand_to_object_pointer */
 
 
+a_constant_ptr value_of_constant_var_lvalue_expr(an_expr_node_ptr node)
+/*
+node is an expression for the address of an lvalue.  If it is an lvalue
+for a constant-valued variable, return a pointer to the constant that is
+the variable's value.  Otherwise, return NULL.
+*/
+{
+  a_constant_ptr con_var_value = NULL;
+
+  if (is_constant_node(node)) {
+    a_constant_ptr con = node->variant.constant;
+    if (con_is_exact_addr_of_variable(con)) {
+      /* There is an underlying variable.  See if it has a constant value
+         known at compile time. */
+      con_var_value= var_constant_value(con->variant.address.variant.variable);
+    }  /* if */
+  } else if (is_variable_address_node(node)) {
+    /* The lvalue address is given by an enk_variable_address node.  See
+       if the variable is constant-valued. */
+    con_var_value = var_constant_value(node->variant.variable);
+  }  /* if */
+  return con_var_value;
+}  /* value_of_constant_var_lvalue_expr */
+
+
 static an_expr_node_ptr conv_lvalue_expr_to_rvalue(
                                                an_expr_node_ptr node,
                                                a_boolean        *constant_case)
@@ -3623,30 +3648,19 @@ replaced by its value, return *constant_case TRUE.
   an_expr_node_ptr      op1, op2, op3;
   a_type_ptr            orig_type = node->type;
   a_boolean             constant_case2, constant_case3;
-  a_constant_ptr        var_value = NULL;
+  a_constant_ptr        con_var_value = NULL;
 
  *constant_case = FALSE;
   if (C_dialect == C_dialect_cplusplus) {
     /* Look for constant-valued variables in C++. */
-    if (is_constant_node(node)) {
-      a_constant_ptr con = node->variant.constant;
-      if (con_is_exact_addr_of_variable(con)) {
-        /* There is an underlying variable.  See if it has a constant value
-           known at compile time. */
-        var_value = var_constant_value(con->variant.address.variant.variable);
-      }  /* if */
-    } else if (is_variable_address_node(node)) {
-      /* The lvalue address is given by an enk_variable_address node.  See
-         if the variable is constant-valued. */
-      var_value = var_constant_value(node->variant.variable);
-    }  /* if */
+    con_var_value = value_of_constant_var_lvalue_expr(node);
   }  /* if */
-  if (var_value != NULL) {
+  if (con_var_value != NULL) {
     /* The lvalue address is the address of a constant-valued
        variable.  Substitute the constant value. */
     optimized_case = TRUE;
     *constant_case = TRUE;
-    node = alloc_node_for_constant(var_value);
+    node = alloc_node_for_constant(con_var_value);
   } else if (is_variable_address_node(node)) {
     /* A variable address node.  Change to the value of the variable. */
     optimized_case = TRUE;
@@ -3764,10 +3778,10 @@ not an lvalue, it is left alone.
           /* The constant is the address of a variable. */
           /* See if the variable is constant-valued. */
           a_variable_ptr variable = con->variant.address.variant.variable;
-          a_constant_ptr var_value = var_constant_value(variable);
-          if (var_value != NULL) {
+          a_constant_ptr con_var_value = var_constant_value(variable);
+          if (con_var_value != NULL) {
             /* Replace a constant-valued variable by its value. */
-            make_constant_operand(var_value, operand);
+            make_constant_operand(con_var_value, operand);
             constant_case = TRUE;
           } else {
             /* Not constant-valued; the rvalue is the value of the variable. */

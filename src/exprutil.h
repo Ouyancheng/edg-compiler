@@ -435,6 +435,8 @@ extern void conv_object_pointer_to_lvalue(an_operand *operand);
 
 extern void conv_class_operand_to_object_pointer(an_operand *operand);
 
+extern a_constant_ptr value_of_constant_var_lvalue_expr(an_expr_node_ptr node);
+
 extern void conv_lvalue_to_rvalue(an_operand *operand);
 
 extern void make_function_call(an_expr_node_ptr  function_node,
