@@ -939,7 +939,7 @@ Process the default argument expressions for the indicated class.
           if (daefp != NULL && nonclass_prototype_instantiations) {
             default_arg_prototype_instantiation(
                                      sym, daefp, rfp->prototype_scope_symbols,
-                                     /*update_declared_type=*/FALSE);
+                                     /*update_declared_type=*/TRUE);
           }  /* if */
         }  /* if */
       } else if (daefp != NULL) {
