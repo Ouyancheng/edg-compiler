@@ -4475,8 +4475,16 @@ implement <stdarg.h>, a standard feature.
   } else {
     a_targ_alignment  alignof_value = alignof_type->alignment;
     if (is_incomplete_type(alignof_type)) {
-      pos_diagnostic((gnu_mode || strict_ansi_mode) ? es_error : es_warning,
-                      ec_alignof_incomplete_type, &start_position);
+      an_error_severity  severity;
+      if ((gnu_mode && is_type && !is_void_type(alignof_type)) ||
+          strict_ansi_mode) {
+        /* Issue an error in strict ANSI mode.  GNU compilers issue an error
+           if the argument was not an expression and was not a void type. */
+        severity = (an_error_severity)es_error;
+      } else {
+        severity = (an_error_severity)es_warning;
+      }  /* if */
+      pos_diagnostic(severity, ec_alignof_incomplete_type, &start_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode) {
         /* In Microsoft mode, the alignment-of operator sometimes returns

@@ -1,5 +1,28 @@
 Version 3.3
 
+7/17/03  alignment-of operator for incomplete types
+
+Previously, the front end silently accepted alignment-of operators (e.g.,
+__alignof__) with an argument of incomplete type and the result of the
+operator was 1.  Now, the following changes were made:
+  - In strict ANSI modes, an error is issued.
+  - In GNU modes, and error is issued if the argument is not an expression
+    and not a void type.
+  - In Microsoft C and C++ mode, the result of the operator is zero for
+    incomplete class types (and arrays thereof).
+  - In Microsoft C mode, the result of the operator is zero for void types.
+
+In cases that do not elicit an error, a warning is issued instead.
+For example:
+
+  extern struct S x;         // Incomplete struct type.
+  int a1 = __alignof(S);     // a1 == 0 in Microsoft C and C++ modes.
+                             // Error in GNU and strict ANSI modes.
+  int a2 = __alignof(x);     // a2 == 0 in Microsoft C and C++ modes.
+                             // Error in strict ANSI modes only.
+  int a3 = __alignof(void);  // a2 == 0 in Microsoft C mode only.
+                             // Error in strict ANSI modes only.
+
 7/17/03  GNU C compatibility: comma expression as lvalue
 
 gcc considers a comma expression to be an lvalue if its second
@@ -61,18 +84,6 @@ substitutions for certain types when they appeared in virtual
 function table names.  Now fixed.  This is an ABI change, so
 the old behavior is preserved when ABI_COMPATIBILITY_VERSION is
 less than 303.
-
-7/16/03  Microsoft mode: __alignof for incomplete types
-
-In Microsoft modes, the result of applying the __alignof operator to an
-incomplete class type is zero.  (Previously, it was one.)  Furthermore,
-in Microsoft C mode (but not Microsoft C++ mode), the __alignof operator
-also results in zero for void types.
-For example:
-
-  struct S;                  // Incomplete struct type.
-  int a1 = __alignof(S);     // a1 == 0 in Microsoft C and C++ modes.
-  int a2 = __alignof(void);  // a2 == 0 in Microsoft C mode only.
 
 7/16/03  GNU C++ mode: __cplusplus defined to 1
 
