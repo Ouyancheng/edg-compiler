@@ -3581,18 +3581,29 @@ specification allow a variable-sized array as the top type.
   }  /* if */
   copy_source_position(pos_curr_token, type_position);
   /* Scan the new-type-name or ( type-name ). */
-  new_type_name(trapped_left_paren, &new_type, &new_array_dimension);
+  new_type_name(trapped_left_paren, &new_type);
   unqual_new_type = skip_typerefs(new_type);
   /* Instantiate the type if it is a template class. */
   check_for_uninstantiated_template_class(new_type);
   /* Determine the type of pointer returned from "new". */
   base_new_type = new_type;
+  new_array_dimension = NULL;
   if (is_array_type(new_type)) {
     /* A "new" of an array returns a pointer to the initial element.
       Note that this is only done for one level, e.g., new int [i][10]
       returns int (*)[10] not int * (ARM 5.3.3). */
     base_new_type = array_element_type(new_type);
     array_new = TRUE;
+    /* Check for a variable size on the first dimension.  Extract the
+       expression for the dimension. */
+    if (unqual_new_type->variant.array.is_variable_size_array) {
+      new_array_dimension =
+                     unqual_new_type->variant.array.variant.element_count_expr;
+      /* Change the array type to a simple incomplete array type so
+         that the variable-size type does not escape from the front end. */
+      unqual_new_type->variant.array.is_variable_size_array = FALSE;
+      unqual_new_type->variant.array.variant.number_of_elements = 0;
+    }  /* if */
   }  /* if */
   ptr_new_type = make_pointer_type(base_new_type);
   /* The operand of a new must be an object type. */
@@ -3697,7 +3708,6 @@ specification allow a variable-sized array as the top type.
       /* Variable-length array; count is deferred to runtime. */
       effective_num_of_elements = 0;
     } else {
-      check_assertion(!unqual_new_type->variant.array.is_variable_size_array);
       effective_num_of_elements =
                     unqual_new_type->variant.array.variant.number_of_elements;
     }  /* if */
