@@ -2047,7 +2047,7 @@ bound with the function in *bound_function_selector.
        in "p->A::x". */
     is_qualified_name = coalesce_and_lookup_qualified_name
                           (GID_DTOR_RECOGNIZED | GID_DISALLOW_GLOBAL_QUALIFIER,
-                           &err);
+                           ilm_normal, &err);
     /* If the member is something like "A::x", member_position will give
        the position of the "x" and qualified_member_position will give the
        position of the "A". */

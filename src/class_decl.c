@@ -5706,7 +5706,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
           if (curr_token == tok_identifier &&
               !simplify_curr_class_qualified_name() &&
               coalesce_and_lookup_qualified_name
-                  (GID_DTOR_RECOGNIZED, &err) &&
+                  (GID_DTOR_RECOGNIZED, ilm_normal, &err) &&
               next_token() == tok_semicolon) {
             /* This looks syntactically like an access adjustment declaration.
                Be sure the semantics are correct. */
