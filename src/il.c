@@ -467,6 +467,16 @@ base class itself), for debug purposes.
 
 static void db_virtual_base_class(a_base_class *bcp,
                                   int          depth);
+static a_base_class_derivation_ptr direct_virtual_derivation_of(
+                                                        a_base_class_ptr  bcp);
+
+/* bcp is assumed to point to a base class for which direct is set to TRUE.
+   If it is a virtual base class, return a pointer to the virtual derivation
+   entry associated with its direct path; otherwise return a pointer to
+   whatever derivation entry it points to. */
+#define direct_derivation_of(bcp)                                    \
+  ((bcp)->is_virtual ? direct_virtual_derivation_of(bcp) :           \
+                       (bcp)->derivation)
 
 static void db_direct_base_class(a_base_class *bcp,
                                  int          depth)
@@ -4003,7 +4013,8 @@ There must be a derivation so marked.
 
 
 #if DEBUG
-a_base_class_derivation_ptr direct_virtual_derivation_of(a_base_class_ptr  bcp)
+static a_base_class_derivation_ptr direct_virtual_derivation_of(
+                                                         a_base_class_ptr  bcp)
 /*
 bcp is virtual base class assumed to have its direct flag set to TRUE.  Return
 a pointer to the associated base class derivation entry that also has direct
