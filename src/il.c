@@ -7548,6 +7548,7 @@ with it.  Entries associated with scopes must also have no child entries.
 */
 {
   a_boolean    is_useless = FALSE;
+  a_boolean    do_child_check;
 
   if (olp->destructions != NULL) {
     /* is_useless = FALSE. */
@@ -7562,12 +7563,14 @@ with it.  Entries associated with scopes must also have no child entries.
             !any_function_scope_lifetime_entries) is_useless = TRUE;
         break;
       case olk_block:
+        do_child_check = TRUE;
         if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
           a_scope_ptr  sp = (a_scope_ptr)olp->entity.ptr;
           if (sp->kind == (a_scope_kind)sck_block &&
               sp->variant.assoc_handler != NULL) {
             /* The lifetime associated with a catch clause is retained in
                the IL even if it has no destructions and no children. */
+            do_child_check = FALSE;
 #if DO_IL_LOWERING
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
           } else if (exceptions_enabled &&
@@ -7581,15 +7584,25 @@ with it.  Entries associated with scopes must also have no child entries.
             /* When exceptions are enabled, a constructor with the allocation
                folded in needs an object lifetime so an entry for the
                deletion of the storage can be added. */
+            do_child_check = FALSE;
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #endif /* DO_IL_LOWERING */
           } else if (olp->child_lifetime == NULL) {
             /* No children, no destructions. */
             is_useless = TRUE;
+            do_child_check = FALSE;
           } else if (sp->kind == (a_scope_kind)sck_function) {
             /* A function lifetime with children is retained in the IL even
                if it has no destructions. */
-          } else if (olp->has_block_after_label_child_lifetime) {
+            do_child_check = FALSE;
+          }  /* if */
+        }  /* if */
+        if (do_child_check) {
+          /* A block lifetime bound to a scope but not covered by the
+             preceding tests, or else a block lifetime bound to a block
+             statement (the cfront dependent statement case), or else an
+             unbound object lifetime. */
+          if (olp->has_block_after_label_child_lifetime) {
             /* A lifetime is kept in the IL even if it has no destructions of
                its own if it has a block-after-label child lifetime. */
           } else if (has_child_with_temporary_lifetime(olp)) {
@@ -7597,24 +7610,6 @@ with it.  Entries associated with scopes must also have no child entries.
                that represents an expression temporary.  This is to keep
                such a temporary from "floating up" the lifetime tree because
                its parent was deemed useless. */
-          } else {
-            is_useless = TRUE;
-          }  /* if */
-        } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_block) {
-          if (has_child_with_temporary_lifetime(olp)) {
-            /* Lifetime is bound to a block entry (cfront dependent statement
-               case) and has one or more children.  As with the normal
-               olk_block case, we don't want expression temporary object
-               lifetimes "floating up". */
-          } else {
-            is_useless = TRUE;
-          }  /* if */
-        } else {
-          /* An unbound object lifetime. */
-          if (olp->has_block_after_label_child_lifetime ||
-              has_child_with_temporary_lifetime(olp)) {
-            /* Treat it as useful.  (This may be a condition for its being
-               bound.) */
           } else {
             is_useless = TRUE;
           }  /* if */
