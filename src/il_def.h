@@ -3560,8 +3560,7 @@ typedef struct a_local_static_variable_init {
   an_initializer
 		initializer;
 			/* Union discriminated by init_kind and indicating the
-			   initializer.  When init_kind == initk_static, the
-			   constant's kind will be ck_aggregate. */
+			   initializer. */
   an_object_lifetime_ptr
 		lifetime;
 			/* An object lifetime that surrounds the initialization
