@@ -2064,7 +2064,7 @@ source sequence entry (NULL if no such reference was recorded).
        was used for the primary declaration (if any). */
     a_source_correspondence_ptr  scp;
     if (curr_source_sequence_entry->entity.kind ==
-                              (an_il_entry_kind)iek_instantiation_directive) {
+                           (a_byte_il_entry_kind)iek_instantiation_directive) {
       /* For an explicit template instantiation, we need the source
          correspondence of the entry pointed to. */
       an_instantiation_directive_ptr  idp =
