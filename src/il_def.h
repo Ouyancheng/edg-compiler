@@ -149,7 +149,8 @@ typedef struct a_source_correspondence {
                            source name, to indicate the place where the
                            entity appeared without being named. */
 #ifdef CIL
-  unsigned int  access:2;
+  unsigned int /* an_access_specifier */
+		access:2;
                         /* The access control specified at the point of
                            declaration.  Restricted access may be indicated
                            for class members only; all other entities are
@@ -714,14 +715,6 @@ typedef struct a_class_list_entry {
   a_type_ptr    class;  /* The tk_class, tk_struct, or tk_union type entry. */
 } a_class_list_entry;
 
-/* Minimal definition of template argument entries.  Additional fields are
-   to be determined. */
-typedef struct a_template_arg *a_template_arg_ptr;
-typedef struct a_template_arg {
-  a_template_arg_ptr
-                next;   /* Next entry in a linked list of template args. */
-} a_template_arg;
-
 /* Entry containing additional information about a class type (tk_class,
    tk_struct, or tk_union). The list of nonstatic data members (i.e.,
    "fields") is kept in the type entry. */
@@ -764,10 +757,6 @@ typedef struct a_class_type_supplement {
   a_type_ptr    types;  /* A linked list of type entries representing local
                            types defined within the scope of the current
                            class, including nested classes. */
-  a_template_arg_ptr
-                template_args;
-                        /* A linked list of template argument entries; NULL
-                           if the current class is not a template. */
 } a_class_type_supplement;
 
 #endif /* ifdef CIL */
