@@ -3862,7 +3862,7 @@ typedef long a_decl_specifiers_set;
 			/* "void" was scanned as the very first specifier. */
 
 
-static void report_bad_type_name()
+static void report_bad_type_name(void)
 /*
 locator_for_curr_id describes a source name that was expected to name a valid
 type, but it does not.  Report different errors depending on whether the name
