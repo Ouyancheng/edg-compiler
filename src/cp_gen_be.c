@@ -3276,16 +3276,27 @@ precedence confusion.
         /* Explicit cast.  In C++, handle as a reference cast.  In C, leave
            to be done in the general way. */
         if (!C_mode()) {
-          a_type_ptr con_type = node->type;
-          a_type     type_copy;
-          check_assertion(con_type->kind == (a_type_kind)tk_pointer);
-          type_copy = *con_type;
-          type_copy.variant.pointer.is_reference = TRUE;
-          write_tok_ch('(');
-          gen_cast(&type_copy);
-          gen_lvalue(operand_1);
-          write_tok_ch(')');
-          processed = TRUE;
+          /* Only use the reference cast form if the underlying type is
+             a class.  It may be necessary in that case, to avoid putting
+             a "&" in front of a class object that has operator&
+             overloaded.  For other cases, it's not necessary, it might
+             prod weak areas in compilers, and it's in fact wrong for
+             cases where the original source casts a "void *" pointer
+             to another pointer type and then dereferences it. */
+          a_type_ptr source_type = node->variant.operation.operands->type;
+          if (is_pointer_type(source_type) &&
+              is_class_struct_union_type(type_pointed_to(source_type))) {
+            a_type_ptr con_type = node->type;
+            a_type     type_copy;
+            check_assertion(con_type->kind == (a_type_kind)tk_pointer);
+            type_copy = *con_type;
+            type_copy.variant.pointer.is_reference = TRUE;
+            write_tok_ch('(');
+            gen_cast(&type_copy);
+            gen_lvalue(operand_1);
+            write_tok_ch(')');
+            processed = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue){
