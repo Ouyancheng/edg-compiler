@@ -22,9 +22,13 @@ const_ints.h -- Declarations related to manipulation of target integer
 #include "il.h"
 #endif /* ifndef IL_H */
 
+/*
+Arrays containing the minimum and maximum values for each integer kind.
+*/
+EXTERN an_integer_value
+		min_integer_value_of_kind[(int)ik_last],
+		max_integer_value_of_kind[(int)ik_last];
 
-extern void set_integer_value(an_integer_value *intval,
-                              long             value);
 
 extern void set_unsigned_integer_value(an_integer_value *intval,
                                        unsigned long    value);
@@ -72,6 +76,66 @@ extern void write_integer_constant(FILE       *f_output,
                                    a_constant *cp);
 
 extern void const_ints_init(void);
+
+extern void set_integer_value(an_integer_value *intval,
+                              long             value);
+
+extern int compare_integer_values(an_integer_value *op_1,
+				  a_boolean	    op_1_unsigned,
+				  an_integer_value *op_2,
+				  a_boolean	    op_2_unsigned);
+
+extern void add_integer_values(an_integer_value *op_1,
+			       an_integer_value *op_2,
+			       a_boolean	 is_signed,
+			       a_boolean	 *err);
+
+extern void or_integer_values(an_integer_value *op_1,
+		              an_integer_value *op_2);
+
+extern void and_integer_values(an_integer_value *op_1,
+		               an_integer_value *op_2);
+
+extern void make_integer_value_mask(an_integer_value *mask,
+				    int	      	     bits);
+
+extern void shift_left_integer_value(an_integer_value *op_1,
+				     int	      op_2,
+				     a_boolean	       *err);
+
+extern void shift_right_integer_value(an_integer_value *op_1,
+				      int	       op_2,
+				      a_boolean	       is_signed);
+
+extern void subtract_integer_values(an_integer_value *op_1,
+			            an_integer_value *op_2,
+			            a_boolean	      is_signed,
+			            a_boolean	      *err);
+
+extern void compliment_integer_value(an_integer_value *op_1);
+
+extern void negate_integer_value(an_integer_value *op_1,
+			         a_boolean	    *err);
+
+extern void multiply_integer_values(an_integer_value *orig_op_1,
+			            an_integer_value *orig_op_2,
+			            a_boolean	      is_signed,
+			            a_boolean	      *err);
+
+extern void divide_integer_values(an_integer_value *op_1,
+				  an_integer_value *op_2,
+				  a_boolean	   is_signed,
+				  a_boolean	   *err);
+
+extern void remainder_integer_values(an_integer_value *op_1,
+				     an_integer_value *op_2,
+				     a_boolean	      is_signed);
+
+#if DEBUG
+extern char* db_format_integer_value(an_integer_value  *value);
+
+extern void db_integer_value(an_integer_value *value);
+#endif
 
 #endif /* ifndef CONST_INTS_H */
 
