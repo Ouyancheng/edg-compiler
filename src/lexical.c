@@ -7370,7 +7370,7 @@ to speed in some cases.
           /* A Microsoft __if_exists or __if_not_exists directive.
              upon return from this routine the current token will
              be either the first token of the conditional text
-	     or then token following the closing brace of the
+	     or the token following the closing brace of the
 	     directive. */
           scan_microsoft_if_exists(ctoken);
           ctoken = curr_token;
