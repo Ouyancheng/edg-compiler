@@ -4340,10 +4340,18 @@ determined that the "new" has initialization, but before that
 initialization is scanned (so the cleanup entry gets onto the object
 lifetime list in the right place).
 */
+/* When placement delete is not enabled, do not record the deletion
+   if the new was a placement new. */
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+#define and_placement_new_test() /* Nothing */
+#else /* !ABI_CHANGES_FOR_PLACEMENT_DELETE */
+#define and_placement_new_test() && !placement_new
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
 /* Do not record the deletion if exceptions are not enabled or if the
    allocation is folded into a constructor (new_routine == NULL). */
 #define determine_deletion_for_throw_before_new_init_done()           \
-{ if (exceptions_enabled && new_routine != NULL) {                    \
+{ if (exceptions_enabled && new_routine != NULL                       \
+      and_placement_new_test()) {                                     \
     dyn_init_to_free_storage =                                        \
       f_determine_deletion_for_throw_before_new_init_done(            \
                       base_new_type, function_symbol, use_global_new, \

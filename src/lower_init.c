@@ -1477,9 +1477,9 @@ Return TRUE if the indicated delete routine is of the two-argument form.
 }  /* is_two_argument_delete */
 
 
-#if ABI_COMPATIBILITY_VERSION < 234
+#if !ABI_CHANGES_FOR_PLACEMENT_DELETE
 /*ARGSUSED*/ /* <-- record_size_for_delete is not used in that case. */
-#endif /* ABI_COMPATIBILITY_VERSION < 234 */
+#endif /* !ABI_CHANGES_FOR_PLACEMENT_DELETE */
 static an_expr_node_ptr make_vec_new_call(
                                        an_expr_node_ptr entity_node,
                                        a_type_ptr       entity_type,
@@ -1533,7 +1533,7 @@ and record_size_for_delete is TRUE.
          __vec_new_eh(entity_node, num_elems, size_elem, ctor_routine,
                                                          dtor_routine)
     */
-#if ABI_COMPATIBILITY_VERSION >= 234
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
     /* Or, placement array new: the allocation has already been done
        (entity_node points to it), and the size must be recorded for
        use at the time of delete.  The call looks like
@@ -1542,7 +1542,7 @@ and record_size_for_delete is TRUE.
     */
     a_boolean placement_array_new = (entity_node != NULL &&
                                      record_size_for_delete);
-#endif /* ABI_COMPATIBILITY_VERSION >= 234 */
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     if (entity_node == NULL) {
       /* If the runtime routine is supposed to do the allocation, pass a
          null pointer to the routine. */
@@ -1553,7 +1553,7 @@ and record_size_for_delete is TRUE.
     entity_node->next = num_elem_node;
     num_elem_node->next = size_elem_node;
     size_elem_node->next = ctor_addr_node;
-#if ABI_COMPATIBILITY_VERSION >= 234
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
     if (placement_array_new) {
       /* Placement array new. */
       dtor_addr_node = expr_for_pointer_to_routine(exceptions_enabled ?
@@ -1564,7 +1564,7 @@ and record_size_for_delete is TRUE.
                                          &placement_array_new_routine,
                                          void_star_type(), arg_expr_list);
     } else
-#endif /* ABI_COMPATIBILITY_VERSION >= 234 */
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     /* Do not insert code here; this is the "else" of an "if". */
     if (exceptions_enabled && dtor_routine != NULL) {
       /* __vec_new_eh call, with destructor. */
@@ -4037,7 +4037,7 @@ the dynamic init entry that applies to each element and return a pointer to it.
 /*
 Variable entry for the runtime global variable __array_new_prefix_size,
 which gives the size in bytes of the array allocation prefix.  NULL until
-created.  Used only with ABI_COMPATIBILITY_VERSION >= 234.
+created.  Used only with ABI_CHANGES_FOR_PLACEMENT_DELETE set to TRUE.
 */
 static a_variable_ptr
 		array_new_prefix_size_var;
@@ -4108,7 +4108,7 @@ arrays with class elements.
     lower_arg_expr_list(ndsp->arg, new_routine->type,
                         (a_param_type_ptr)NULL);
     size_node = ndsp->arg;
-#if ABI_COMPATIBILITY_VERSION >= 234
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
     /* Add the size of the runtime prefix used to keep track of the array
        size. */
     { an_expr_node_ptr size_node_next = size_node->next;
@@ -4131,7 +4131,7 @@ arrays with class elements.
                                      size_node->type, size_node);
       size_node->next = size_node_next;
     }
-#endif /* ABI_COMPATIBILITY_VERSION >= 234 */
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     new_node = make_call_node(new_routine, size_node,
                               /*honor_virtual=*/FALSE,
                               (an_insert_location *)NULL);
@@ -4144,7 +4144,7 @@ arrays with class elements.
                                      ptr_elem_type, temp_var_node);
     /* Start the insert list with the assignment. */
     insert_expr(assign_node, &insert_location);
-#if ABI_COMPATIBILITY_VERSION >= 234
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
     /* Add the array prefix size to get from the address returned to
        the actual starting address of the array.  Put a "?" guard around
        the increment to avoid incrementing temp if it is NULL. */
@@ -4176,7 +4176,7 @@ arrays with class elements.
                                          assign_node->type, compare_node);
       insert_expr(question_node, &insert_location);
     }
-#endif /* ABI_COMPATIBILITY_VERSION >= 234 */
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     entity_node = var_rvalue_expr(temp_var);
     /* The size node is used in the "new" call, so it cannot be destroyed. */
     preserve_size_node = TRUE;
