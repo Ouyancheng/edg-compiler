@@ -21,12 +21,9 @@ macro.h -- Declarations relating to macro.c (having to do with macro
 EXTERN a_symbol_ptr
 	       	line_macro_symbol,
 		file_macro_symbol,
-		alignof_macro_symbol,
-		intaddr_macro_symbol,
 		defined_macro_symbol;
 			/* Pointers to the symbol entries for the special
-			   macros "__LINE__", "__FILE__", "__ALIGNOF__",
-			   "__INTADDR__", and "defined". */
+			   macros "__LINE__", "__FILE__", and "defined". */
 
 extern a_macro_def_ptr alloc_macro_def(void);
 
