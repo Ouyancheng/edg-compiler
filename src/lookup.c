@@ -1302,7 +1302,7 @@ Macro that initializes a lookup state variable.
 /* symbol_may_precede_qualifier checks for a symbol that is a class,
    class template, namespace, or template type parameter. */
 #define is_acceptable_symbol(sym, fund_sym, lookup_state)               \
-  (!(fund_sym->is_invisible) &&						\
+  ((!(fund_sym->is_invisible) || (lookup_state).is_linkage_lookup) &&	\
    (!(lookup_state).must_be_class_or_namespace ||			\
     symbol_may_precede_qualifier(fund_sym)) &&                          \
    (!(lookup_state).must_be_tag   ||				        \
@@ -2958,10 +2958,12 @@ namespace_qualified_id_lookup.
   a_boolean    	must_be_class = (options & IDL_MUST_BE_CLASS);
   a_boolean	is_linkage_or_friend_lookup =
                          (options & (IDL_LINKAGE_LOOKUP | IDL_FRIEND_LOOKUP));
+  a_boolean	direct_namespace_members_only = 
+                         (options & IDL_DIRECT_NAMESPACE_MEMBERS_ONLY) != 0;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
-  (!(fund_sym->is_invisible) &&					      \
+  ((!(fund_sym->is_invisible) || is_linkage_or_friend_lookup) &&      \
    (!(sym)->is_class_member) &&                                       \
    (sym)->parent.namespace_ptr == ns_ptr &&                           \
    (!must_be_class_or_namespace ||				      \
@@ -3010,7 +3012,8 @@ namespace_qualified_id_lookup.
     }  /* if */
   }  /* for */
 end_lookup:
-  if (sym == NULL && !is_linkage_or_friend_lookup) {
+  if (sym == NULL && !is_linkage_or_friend_lookup &&
+      !direct_namespace_members_only) {
      /* If the symbol was not found in this namespace, look in namespaces
         visible because of using directives.  Skip this process for a
         linkage lookup.  A linkage or friend lookup should only find names
@@ -3092,6 +3095,8 @@ file scope.
   a_boolean	any_errors = FALSE;
   a_boolean	is_linkage_or_friend_lookup =
                          (options & (IDL_LINKAGE_LOOKUP | IDL_FRIEND_LOOKUP));
+  a_boolean	direct_namespace_members_only = 
+                         (options & IDL_DIRECT_NAMESPACE_MEMBERS_ONLY) != 0;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 /* symbol_may_precede_qualifier checks for a symbol that is a class,
@@ -3099,7 +3104,7 @@ file scope.
    space test is needed when searching the file scope so that macro symbols
    are not found. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
-  (!(fund_sym->is_invisible) &&				              \
+  ((!(fund_sym->is_invisible) || is_linkage_or_friend_lookup) &&      \
    (sym)->decl_scope == FILE_SCOPE_NUMBER &&                          \
    (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) &&       \
    (!must_be_class_or_namespace ||				      \
@@ -3119,7 +3124,8 @@ file scope.
       a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
       if (is_acceptable_symbol(sym, fund_sym)) break;
     }  /* for */
-    if (sym == NULL && !is_linkage_or_friend_lookup) {
+    if (sym == NULL && !is_linkage_or_friend_lookup &&
+        !direct_namespace_members_only) {
        /* If the symbol was not found in this namespace, look in namespaces
           visible because of using directives.  Skip this process for a
           linkage lookup.  A linkage or friend lookup should only find names
@@ -3470,9 +3476,10 @@ If a match is found, add the entry to to symbol_list.
      A linkage lookup is used to prevent other namespaces from being searched
      if the specified namespace includes using-directives. */
   if (nsp != NULL) {
-    sym = namespace_qualified_id_lookup(locator, nsp, IDL_LINKAGE_LOOKUP);
+    sym = namespace_qualified_id_lookup(locator, nsp,
+                                        IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
   } else {
-    sym = file_scope_id_lookup(locator, IDL_LINKAGE_LOOKUP);
+    sym = file_scope_id_lookup(locator, IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
   }  /* if */
   if (sym != NULL) {
     a_symbol_ptr	fund_sym;

@@ -136,6 +136,11 @@ represented as a bit set:
 #define IDL_SKIP_TEMPLATE_DECL_SCOPES 0x40000
 				/* Skip any template declaration scopes before
 				   doing other processing. */
+#define IDL_DIRECT_NAMESPACE_MEMBERS_ONLY 0x80000
+				/* For namespace-qualified and file scope
+				   lookups, indicates that only members of the
+				   namespace, and not members made visible by
+				   using-directives, should be found. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
