@@ -1452,7 +1452,7 @@ error code.
       m = "assignment to \"this\" (anachronism)";
       break;
     case ec_overload_anachronism:
-      m = "\"overload\" ignored (anachronism)";
+      m = "\"overload\" keyword used (anachronism)";
       break;
     case ec_anon_union_member_access:
       m = "invalid anonymous union -- nonpublic member is not allowed";
