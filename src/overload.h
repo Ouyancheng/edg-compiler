@@ -432,6 +432,11 @@ extern void prep_initializer_operand(
                                   a_boolean     try_user_conversions,
                                   an_error_code incompatible_err);
 
+extern void prep_arg_passed_via_copy_constructor(an_operand    *source_operand,
+                                                 a_type_ptr    param_type,
+                                                 a_conv_descr  *conversion,
+                                                 an_error_code err_code);
+
 extern void prep_argument_operand(an_operand       *source_operand,
                                   a_param_type_ptr formal_param,
                                   a_conv_descr     *conversion,

@@ -975,6 +975,16 @@ to targ_size_t_max.
 #endif /* ifndef TARG_MAX_BASE_CLASS_OFFSET */
 
 /*
+When a class with a copy constructor is passed to an ellipsis, does the
+copy constructor get called?  If this is TRUE, what is passed as the argument
+is the address of a temporary into which the class object has been copied.
+This falls under undefined behavior.
+*/
+#ifndef USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS
+#define USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS FALSE
+#endif /* ifndef USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS */
+
+/*
 If this is TRUE, dead expressions under conditional operators "&&", "||",
 and "?" are eliminated.  For example, "1 ? i : j" becomes simply "i".
 */

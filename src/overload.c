@@ -7605,6 +7605,48 @@ initializer has previously been found to be acceptable, and
 }  /* prep_initializer_operand */
 
 
+void prep_arg_passed_via_copy_constructor(an_operand    *source_operand,
+                                          a_type_ptr    param_type,
+                                          a_conv_descr  *conversion,
+                                          an_error_code err_code)
+/*
+*source_operand is the actual argument for a formal parameter of type
+param_type (a possibly-qualified class type).  A copy constructor is to
+be used to pass the argument.  Generate an initialization of a temporary
+via a copy constructor call, and set *source_operand to the address of
+the temporary, which is what is passed as the argument.  If the copy
+constructor call cannot be generated, issue the error err_code.  If
+conversion is non-NULL, the copy construction has previously been
+found to be acceptable, and *conversion describes it.
+*/
+{
+  a_conv_descr       local_conversion;
+  an_expr_node_ptr   temp_init_node;
+  a_dynamic_init_ptr dip;
+
+  /* See if the conversion is possible. */
+  if (conversion_usable_or_possible(source_operand, param_type,
+                                    param_type,
+                                    /*is_initialization=*/TRUE,
+                                    /*try_user_conversions=*/TRUE,
+                                    /*need_lvalue_result=*/FALSE,
+                                    /*is_reference_binding=*/FALSE,
+                                    err_code, &source_operand->position,
+                                    &conversion,
+                                    &local_conversion)) {
+    /* Yes.  Build an enk_temp_init node and a dynamic init entry that
+       will initialize the temporary.  The temporary's address is passed
+       to the called routine. */
+    determine_dynamic_init_for_class_init(source_operand, param_type,
+                                          conversion,
+                                          /*fill_in_dtor=*/TRUE,
+                                          &dip, &temp_init_node);
+    make_expression_operand(temp_init_node, temp_init_node->type,
+                            source_operand);
+  }  /* if */
+}  /* prep_arg_passed_via_copy_constructor */
+
+
 void prep_argument_operand(an_operand       *source_operand,
                            a_param_type_ptr formal_param,
                            a_conv_descr     *conversion,
@@ -7617,32 +7659,10 @@ If conversion is non-NULL, the argument has previously been found
 to be acceptable, and *conversion describes it.
 */
 {
-  a_conv_descr       local_conversion;
-  an_expr_node_ptr   temp_init_node;
-  a_dynamic_init_ptr dip;
-
   if (formal_param->passed_via_copy_constructor) {
     /* Argument is initialized by a copy constructor. */
-    /* See if the conversion is possible. */
-    if (conversion_usable_or_possible(source_operand, formal_param->type,
-                                      formal_param->type,
-                                      /*is_initialization=*/TRUE,
-                                      /*try_user_conversions=*/TRUE,
-                                      /*need_lvalue_result=*/FALSE,
-                                      /*is_reference_binding=*/FALSE,
-                                      err_code, &source_operand->position,
-                                      &conversion,
-                                      &local_conversion)) {
-      /* Yes.  Build an enk_temp_init node and a dynamic init entry that
-         will initialize the temporary.  The temporary's address is passed
-         to the called routine. */
-      determine_dynamic_init_for_class_init(source_operand, formal_param->type,
-                                            conversion,
-                                            /*fill_in_dtor=*/TRUE,
-                                            &dip, &temp_init_node);
-      make_expression_operand(temp_init_node, temp_init_node->type,
-                              source_operand);
-    }  /* if */
+    prep_arg_passed_via_copy_constructor(source_operand, formal_param->type,
+                                         conversion, err_code);
   } else {
     /* Normal argument. */
     prep_initializer_operand(source_operand, formal_param->type,
