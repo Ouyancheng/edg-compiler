@@ -121,6 +121,14 @@ static unsigned long
 static unsigned long
 		num_hidden_names_allocated;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if RECORD_TEMPLATES_IN_IL
+static unsigned long
+		num_templates_allocated;
+#endif /* RECORD_TEMPLATES_IN_IL */
+#if RECORD_MACROS_IN_IL
+static unsigned long
+		num_macros_allocated;
+#endif /* RECORD_MACROS_IN_IL */
 
 /*
 Number of times the based_types lists of types are searched for related types.
@@ -136,6 +144,12 @@ static a_scope_orphaned_list_header_ptr
 			/* End of list for
 			   il_header.scope_orphaned_list_headers. */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+
+#if RECORD_MACROS_IN_IL
+static a_macro_ptr
+		last_macro;
+			/* End of list of il_header.macros. */
+#endif /* RECORD_MACROS_IN_IL */
 
 /*
 Data structure used to save information about the last source sequence
@@ -7008,6 +7022,9 @@ points to the associated routine if the kind is sck_function.
 #if RECORD_HIDDEN_NAMES_IN_IL
   sp->hidden_names         = NULL;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if RECORD_TEMPLATES_IN_IL
+  sp->templates            = NULL;
+#endif /* RECORD_TEMPLATES_IN_IL */
 
   db_exit();
   return sp;
@@ -8196,6 +8213,88 @@ fields, and return a pointer to it.
 }  /* alloc_hidden_name */
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if RECORD_TEMPLATES_IN_IL
+
+a_template_ptr alloc_template(void)
+/*
+Allocate a template entry in the file-scope memory region, initialialize its
+fields, and return a pointer to it.
+*/
+{
+  a_template_ptr  tp;
+
+  tp = (a_template_ptr)alloc_il(sizeof(a_template));
+#if DEBUG
+  num_templates_allocated++;
+#endif /* DEBUG */
+  set_default_source_corresp(tp->source_corresp);
+  tp->next = NULL;
+  tp->kind = templk_none;
+  tp->text = NULL;
+
+  return tp;
+}  /* alloc_template */
+
+
+void add_to_templates_list(a_template_ptr  tp)
+/*
+Add the IL template entry pointed to by tp to the list for the file scope.
+*/
+{
+  a_scope_stack_entry_ptr  ssep;
+  a_scope_ptr              sp;
+
+  ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+  sp = ssep->il_scope;
+#if CHECKING
+  if (sp == NULL) internal_error("add_to_templates_list: NULL IL scope");
+#endif /* CHECKING */
+  if (sp->templates == NULL) {
+    sp->templates = tp;
+  } else {
+    ssep->last_template->next = tp;
+  }  /* if */
+  ssep->last_template = tp;
+  tp->next = NULL;
+}  /* add_to_templates_list */
+
+#endif /* RECORD_TEMPLATES_IN_IL */
+#if RECORD_MACROS_IN_IL
+
+a_macro_ptr alloc_macro(void)
+/*
+Allocate a macro entry in the file-scope memory region, initialialize its
+fields, and return a pointer to it.
+*/
+{
+  a_macro_ptr  mp;
+
+  mp = (a_macro_ptr)alloc_il(sizeof(a_macro));
+#if DEBUG
+  num_macros_allocated++;
+#endif /* DEBUG */
+  set_default_source_corresp(mp->source_corresp);
+  mp->next = NULL;
+  mp->text = NULL;
+
+  return mp;
+}  /* alloc_macro */
+
+
+void add_to_macros_list(a_macro_ptr  mp)
+/*
+Add the IL macro entry pointed to by mp to the list for the file scope.
+*/
+{
+  if (il_header.macros == NULL) {
+    il_header.macros = mp;
+  } else {
+    last_macro->next = mp;
+  }  /* if */
+  last_macro = mp;
+}  /* add_to_macros_list */
+
+#endif /* RECORD_TEMPLATES_IN_IL */
 
 #if DEBUG
 unsigned long show_il_space_used(void)
@@ -8286,6 +8385,12 @@ Display and return the amount of space used for various IL tables.
 #if RECORD_HIDDEN_NAMES_IN_IL
   db_space_used("hidden names", num_hidden_names_allocated, a_hidden_name);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if RECORD_TEMPLATES_IN_IL
+  db_space_used("templates", num_templates_allocated, a_template);
+#endif /* RECORD_TEMPLATES_IN_IL */
+#if RECORD_MACROS_IN_IL
+  db_space_used("macros", num_macros_allocated, a_macro);
+#endif /* RECORD_MACROS_IN_IL */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   db_space_used("orphaned list headers",
                 num_scope_orphaned_list_headers_allocated,
@@ -8398,6 +8503,9 @@ of the front end.
   il_error_type = il_unknown_type = il_void_type = NULL;
   memzero((char *)shareable_constants_table,
           sizeof(shareable_constants_table));
+#if RECORD_MACROS_IN_IL
+  last_macro = NULL;
+#endif /* RECORD_MACROS_IN_IL */
 
   /* Set the default source correspondence variable to default values. */
   def_source_corresp.assoc_info = NULL;
@@ -8496,6 +8604,12 @@ of the front end.
 #if RECORD_HIDDEN_NAMES_IN_IL
   num_hidden_names_allocated             = 0;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if RECORD_TEMPLATES_IN_IL
+  num_templates_allocated                = 0;
+#endif /* RECORD_TEMPLATES_IN_IL */
+#if RECORD_MACROS_IN_IL
+  num_macros_allocated                   = 0;
+#endif /* RECORD_MACROS_IN_IL */
 #endif /* DEBUG */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   last_scope_orphaned_list_header = NULL;

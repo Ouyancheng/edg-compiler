@@ -318,6 +318,12 @@ typedef enum /*an_il_entry_kind*/ {
   iek_hidden_name,	/* a_hidden_name */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   iek_pragma,		/* a_pragma */
+#if RECORD_TEMPLATES_IN_IL
+  iek_template,		/* a_template */
+#endif /* RECORD_TEMPLATES_IN_IL */
+#if RECORD_MACROS_IN_IL
+  iek_macro,		/* a_macro */
+#endif /* RECORD_MACROS_IN_IL */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -409,6 +415,12 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_hidden_name */			"hidden-name",
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 /* iek_pragma */			"pragma",
+#if RECORD_TEMPLATES_IN_IL
+/* iek_template */			"template",
+#endif /* RECORD_TEMPLATES_IN_IL */
+#if RECORD_MACROS_IN_IL
+/* iek_macro */				"macro",
+#endif /* RECORD_MACROS_IN_IL */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -4763,6 +4775,71 @@ typedef struct a_hidden_name {
 } a_hidden_name;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
+#if RECORD_TEMPLATES_IN_IL
+
+/*
+The kind of template that is recorded in the IL template representation
+(C++ only).
+*/
+enum a_template_kind_tag {
+  templk_none,		/* Undefined. */
+  templk_class,		/* Class template. */
+  templk_function,	/* (Non-member) function template. */
+  templk_member_function,
+			/* Member function template. */
+  templk_static_data_member
+			/* Static data member template. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_template_kind;
+
+
+/*
+An entry containing the text of a template declaration.  Ordinarily this
+information is not needed outside the front end (which maintains comparable
+information as a token cache).  (C++ only).
+*/
+typedef struct a_template *a_template_ptr;
+typedef struct a_template {
+  /* The source_corresp field must be first. */
+  a_source_correspondence
+                source_corresp;
+                        /* Information on the source entity that corresponds
+                           to this entity. */
+  a_template_ptr
+		next;
+			/* Next in a linked list of template declarations for
+			   the current scope; NULL for the last on the list. */
+  a_template_kind
+		kind;
+			/* The kind of template represented. */
+  char		*text;
+			/* A null-terminated string representing the text of
+			   the template declaration, starting with the
+			   keyword "template". */
+} a_template;
+
+#endif /* RECORD_TEMPLATES_IN_IL */
+#if RECORD_MACROS_IN_IL
+
+typedef struct a_macro *a_macro_ptr;
+typedef struct a_macro {
+  /* The source_corresp field must be first. */
+  a_source_correspondence
+                source_corresp;
+                        /* Information on the source entity that corresponds
+                           to this entity. */
+  a_macro_ptr
+		next;
+			/* Next in a linked list of macro declarations; NULL
+			   for the last on the list. */
+  char		*text;
+			/* A null-terminated string representing the text of
+			   the macro declaration, starting with the keyword
+			   "macro". */
+} a_macro;
+
+#endif /* RECORD_MACROS_IN_IL */
 
 enum a_scope_kind_tag {
   /* Kinds of scopes. */
@@ -5008,6 +5085,13 @@ typedef struct a_scope {
 			   qualification (a preceding "::") is used.  Only
 			   used in C++. */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if RECORD_TEMPLATES_IN_IL
+  a_template_ptr
+		templates;
+			/* Linked list of template entries, each containing
+			   the text representation of a template declaration.
+			   Only used in C++. */
+#endif /* RECORD_TEMPLATES_IN_IL */
 } a_scope;
 
 /*
@@ -5088,6 +5172,11 @@ EXTERN struct il_header {
 			/* TRUE if the source program was compiled as old-style
 			   (pcc-compatible) C. */
 #endif /* ifdef CIL */
+#if RECORD_MACROS_IN_IL
+  a_macro_ptr	macros;
+			/* Pointer to a list of entries containing the text
+			   of all macros declared in the translation unit. */
+#endif /* RECORD_MACROS_IN_IL */
 } il_header;
 
 

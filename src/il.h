@@ -416,6 +416,18 @@ extern a_constructor_init_ptr alloc_ctor_init(a_constructor_init_kind  kind);
 extern a_hidden_name_ptr alloc_hidden_name(void);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
+#if RECORD_TEMPLATES_IN_IL
+extern a_template_ptr alloc_template(void);
+
+extern void add_to_templates_list(a_template_ptr  tp);
+#endif /* RECORD_TEMPLATES_IN_IL */
+
+#if RECORD_MACROS_IN_IL
+extern a_macro_ptr alloc_macro(void);
+
+extern void add_to_macros_list(a_macro_ptr  mp);
+#endif /* RECORD_TEMPLATES_IN_IL */
+
 extern a_pragma_ptr alloc_pragma(a_pragma_kind  kind);
 
 extern void add_to_pragma_list(a_pragma_ptr   pragma,

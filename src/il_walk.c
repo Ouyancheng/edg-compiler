@@ -294,6 +294,10 @@ That is what the remap function does.
   /* Walk through the orphaned IL entries referenced from 
      function scopes, but in the file scope memory region. */
   walk_orphaned_file_scope_il_entries();
+#if RECORD_MACROS_IN_IL
+  /* Walk the list of entries representing macros. */
+  walk_list(il_header.macros, a_macro_ptr, iek_macro);
+#endif /* RECORD_MACROS_IN_IL */
   db_exit();
 }  /* walk_file_scope_il */
 

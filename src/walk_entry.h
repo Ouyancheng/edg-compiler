@@ -802,6 +802,24 @@ the file scope, do not process it (but record an orphan in the latter case).
       }
       break;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if RECORD_TEMPLATES_IN_IL
+    case iek_template:
+      {
+        a_template_ptr ptr = (a_template_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_template_ptr, iek_template);
+        walk_string_ptr(ptr->text, iek_other_text, 0);
+      }
+      break;
+#endif /* RECORD_TEMPLATES_IN_IL */
+#if RECORD_MACROS_IN_IL
+    case iek_macro:
+      {
+        a_macro_ptr ptr = (a_macro_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_macro_ptr, iek_macro);
+        walk_string_ptr(ptr->text, iek_other_text, 0);
+      }
+      break;
+#endif /* RECORD_MACROS_IN_IL */
     case iek_scope:
       {
         a_scope_ptr ptr = (a_scope_ptr)entry_ptr;
@@ -886,6 +904,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->dynamic_inits, a_dynamic_init_ptr, iek_dynamic_init);
 #endif /* ifdef CFE */
         walk_list(ptr->pragmas, a_pragma_ptr, iek_pragma);
+#if RECORD_TEMPLATES_IN_IL
+        walk_list(ptr->templates, a_template_ptr, iek_template);
+#endif /* RECORD_TEMPLATES_IN_IL */
 #ifdef FFE
         walk_list(ptr->entries, an_entry_description_ptr,
                   iek_entry_description);
@@ -1404,6 +1425,9 @@ The subtree is not processed.
   remap_ptr(il_header.time_of_compilation, a_char_ptr, iek_other_text);
   remap_ptr(il_header.scope_orphaned_list_headers,
             a_scope_orphaned_list_header_ptr, iek_scope_orphaned_list_header);
+#if RECORD_MACROS_IN_IL
+  remap_ptr(il_header.macros, a_macro_ptr, iek_macro);
+#endif /* RECORD_MACROS_IN_IL */
   /* region_scope_entry should not be changed; it's not a pointer into
      IL memory in the usual way.  It's changed explicitly as needed. */
 }  /* remap_il_header_pointers. */

@@ -2610,6 +2610,50 @@ Display the indicated hidden-name entry.
 }  /* disp_hidden_name */
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if RECORD_TEMPLATES_IN_IL
+
+static void disp_template(a_template_ptr  ptr)
+/*
+Display the indicated hidden-name entry.
+*/
+{
+  disp_source_corresp(&ptr->source_corresp);
+  disp_ptr("next", (char *)ptr->next, iek_template);
+  disp_name("kind");
+  switch (ptr->kind) {
+    case (templk_none):
+      (void)printf("templk_none\n");
+      break;
+    case (templk_class):
+      (void)printf("templk_class\n");
+      break;
+    case (templk_function):
+      (void)printf("templk_function\n");
+      break;
+    case (templk_member_function):
+      (void)printf("templk_member_function\n");
+      break;
+    case (templk_static_data_member):
+      (void)printf("templk_static_data_member\n");
+      break;
+  }  /* switch */
+  disp_string_ptr("text", ptr->text, iek_other_text, (sizeof_t)0);
+}  /* disp_template */
+
+#endif /* RECORD_TEMPLATES_IN_IL */
+#if RECORD_MACROS_IN_IL
+
+static void disp_macro(a_macro_ptr  ptr)
+/*
+Display the indicated hidden-name entry.
+*/
+{
+  disp_source_corresp(&ptr->source_corresp);
+  disp_ptr("next", (char *)ptr->next, iek_macro);
+  disp_string_ptr("text", ptr->text, iek_other_text, (sizeof_t)0);
+}  /* disp_macro */
+
+#endif /* RECORD_MACROS_IN_IL */
 
 static void disp_scope(a_scope_ptr ptr)
 /*
@@ -2695,6 +2739,9 @@ do_assoc_type:
 #if RECORD_HIDDEN_NAMES_IN_IL
   disp_ptr("hidden_names", (char *)ptr->hidden_names, iek_hidden_name);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if RECORD_TEMPLATES_IN_IL
+  disp_ptr("templates", (char *)ptr->templates, iek_template);
+#endif /* RECORD_TEMPLATES_IN_IL */
 #ifdef FFE
   disp_ptr("entries", (char *)ptr->entries, iek_entry_description);
   disp_ptr("namelist_groups", (char *)ptr->namelist_groups,
@@ -3414,6 +3461,16 @@ This routine is called during IL walking.
           disp_hidden_name((a_hidden_name_ptr)entry_ptr);
           break;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if RECORD_TEMPLATES_IN_IL
+        case iek_template:
+          disp_template((a_template_ptr)entry_ptr);
+          break;
+#endif /* RECORD_TEMPLATES_IN_IL */
+#if RECORD_MACROS_IN_IL
+        case iek_macro:
+          disp_macro((a_macro_ptr)entry_ptr);
+          break;
+#endif /* RECORD_MACROS_IN_IL */
 #ifdef FFE
         case iek_label_list_entry:
           disp_label_list_entry((a_label_list_entry_ptr)entry_ptr);
@@ -3555,6 +3612,9 @@ Display the IL for the file scope in human-readable form.
   disp_boolean("pcc_compatibility_mode",
                (a_boolean)il_header.pcc_compatibility_mode);
 #endif /* ifdef CFE */
+#if RECORD_MACROS_IN_IL
+  disp_ptr("macros", (char *)ptr->macros, iek_macro);
+#endif /* RECORD_MACROS_IN_IL */
 
   walk_file_scope_il(disp_entry, (a_string_entry_process_function_ptr)NULL,
                      (a_remap_function_ptr)NULL);
