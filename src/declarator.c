@@ -2219,6 +2219,7 @@ to FALSE if the entity being declared is not initializable.
   a_symbol_ptr              sym;
   a_namespace_ptr           nsp;
 
+  db_enter(3, "scan_real_declarator_id");
   declarator_pos = pos_curr_token;
   /* Process the identifier.  This is done if we are at the beginning of a
      qualified name.  A special test is done to exclude a destructor name
@@ -2330,10 +2331,12 @@ to FALSE if the entity being declared is not initializable.
         } else {
           /* This must be a namespace-qualified name. */
           nsp = qualifier_namespace_ptr(locator_for_curr_id);
-          /* Push the namespace extension scope.  It will be popped when
-             scanning the declarator has been completed. */
-          push_namespace_reactivation_scope(nsp);
-          *output_flags |= DO_SCOPE_DEACTIVATION_REQUIRED;
+          if (nsp != NULL) {
+            /* Push the namespace extension scope.  It will be popped when
+               scanning the declarator has been completed. */
+            push_namespace_reactivation_scope(nsp);
+            *output_flags |= DO_SCOPE_DEACTIVATION_REQUIRED;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -2495,6 +2498,7 @@ to FALSE if the entity being declared is not initializable.
     check_assertion(is_unknown_type(*p_complete_type));
     *p_complete_type = void_type();
   }  /* if */
+  db_exit();
 }  /* scan_real_declarator_id */
 
 
