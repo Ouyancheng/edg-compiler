@@ -1033,8 +1033,11 @@ error code.
     case ec_pure_specifier_on_nonvirtual_function:
       m = "pure specifier (\"= 0\") allowed only on virtual functions";
       break;
-    case ec_exp_zero:
-      m = "expected a \"0\"";
+    case ec_bad_pure_specifier:
+      m = "badly-formed pure specifier (only \"= 0\" is allowed)";
+      break;
+    case ec_bad_data_member_initialization:
+      m = "data member initializer is not allowed";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
