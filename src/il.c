@@ -9168,8 +9168,8 @@ static void eliminate_references_from_befriended_entities(
 /*
 class_type is a class whose definition is being eliminated or that is being
 removed from the IL altogether.  In either case, if it has any friend
-declarations (classes or funtions), those entities will have pointers back
-to class type.  Those back-pointers should be cleared.  In the process, the
+declarations (classes or functions), those entities will have pointers back
+to class_type.  Those back-pointers should be cleared.  In the process, the
 friend_classes and friend_routines pointers in class_type will also be
 cleared.
 */
