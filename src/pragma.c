@@ -672,7 +672,6 @@ there is additional processing to be done.
           switch (ssep->kind) {
             /* Scopes for which a pragma entry may be added to the IL. */
             case sck_file:
-            case sck_func_prototype:
             case sck_block:
             case sck_namespace:
             case sck_namespace_extension:
@@ -682,7 +681,11 @@ there is additional processing to be done.
               /* Convert the scope stack entry back to a scope depth. */
               scope_depth = scope_depth_of(ssep);
               break;
-            /* Scopes for which a pragma entry may not be added to the IL. */
+            /* Scopes for which a pragma entry may not be added to the IL.
+               Function prototypes do, in a way, have an associated IL scope,
+               but pragmas are not expected to be bound to function prototype
+               scopes. */
+            case sck_func_prototype:
             case sck_condition:
             case sck_function_access:
             case sck_pragma:
