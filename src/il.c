@@ -2620,7 +2620,7 @@ Allocate and initialize an expression node.
 }  /* alloc_expr_node */
 
 
-void set_operator_node(an_expr_node_ptr      node,
+void set_node_operator(an_expr_node_ptr      node,
                        an_expr_operator_kind kind,
 	   	       a_type_ptr            type,
 		       an_expr_node_ptr      operands)
@@ -2631,7 +2631,7 @@ Set the operator, type, and operand list in an operator expression node.
   node->type = type;
   node->variant.operation.kind = kind;
   node->variant.operation.operands = operands;
-}  /* set_operator_node */
+}  /* set_node_operator */
 
 
 an_expr_node_ptr make_operator_node(an_expr_operator_kind kind,
@@ -2645,7 +2645,7 @@ an operands list to it.
   register an_expr_node_ptr node;
 
   node = alloc_expr_node((an_expr_node_kind)enk_operation);
-  set_operator_node(node, kind, type, operands);
+  set_node_operator(node, kind, type, operands);
 
   return (node);
 }  /* make_operator_node */
