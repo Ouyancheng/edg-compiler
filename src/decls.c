@@ -2452,13 +2452,13 @@ scope is that of a class definition.
                                             /*is_volatile=*/FALSE);
       extra_info->implicit_this_param_type = this_param_type;
     }  /* if */
-    if (curr_token == tok_throw) {
-      if (func_info == &local_func_info_block) {
 #if 0
-        /* Error?  Warning? */
-#endif /* if 0 */
-      }  /* if */
+    /* Should a diagnostic be issued if a throw specification appears other
+       than on a top-level declaration? */
+    if (curr_token == tok_throw && func_info == &local_func_info_block) {
+      /* Error?  Warning? */
     }  /* if */
+#endif /* if 0 */
     scan_throw_specification(func_info);
   }  /* if */
   copy_source_position(start_pos, error_position);
@@ -4360,11 +4360,8 @@ class template.
     if (locator->is_operator_name) {
       rout_ptr->special_kind = (a_special_function_kind)sfk_operator;
       rout_ptr->opname_kind = locator->variant.opname;
-#if 0
-    } else if (locator->is_conversion_name) {
-      ...locator->variant.conversion_result_type...
-#endif /* if 0 */
     }  /* if */
+    check_assertion(!locator->is_conversion_name);
     set_source_corresp(&rout_ptr->source_corresp, sym);
     rout_ptr->source_corresp.name_linkage =
                           (storage_class == (a_storage_class)sc_extern) ?
