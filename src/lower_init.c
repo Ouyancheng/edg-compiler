@@ -6548,7 +6548,7 @@ destructor scope, and also lower the user code.
 }  /* lower_destructor_code */
 
 
-void b_lower_file_scope_dynamic_inits(unsigned long needed_bit_number)
+static void b_lower_file_scope_dynamic_inits(unsigned long needed_bit_number)
 /*
 Do lowering on the file-scope dynamic initializations list.  Generate
 an initialization routine and make sure it will get called at program

@@ -541,7 +541,7 @@ entries are used to hold arguments of function calls.
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /* ARGSUSED */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-void free_attachments_to_operand(an_operand *operand)
+static void free_attachments_to_operand(an_operand *operand)
 /*
 Free any dynamically-allocated attachments to the indicated operand.
 The operand will not be used further.
