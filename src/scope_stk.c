@@ -1594,7 +1594,8 @@ body.  Only called in C++ mode.
          inline or is a local class member, it may need a diagnostic. */
       if (rp->source_corresp.referenced &&
           rp->assoc_scope == NULL_region_number &&
-          (is_function_local || rp->is_inline)) {
+          (is_function_local || rp->is_inline ||
+           rp->storage_class == sc_static)) {
         /* Referenced but never defined. */
         if (rp->compiler_generated || (rp->is_virtual && !rp->pure_virtual)) {
           /* These cases are handled elsewhere. */
@@ -2281,6 +2282,9 @@ unit.
       }  /* if */
     }  /* for */
     if (kind == (a_scope_kind)sck_namespace) {
+      /* Synthesized namespace projections are not removed from namespace
+         scopes because they may be reused if an extension scope is
+         opened. */
     } else {
       /* Remove any synthesized namespace projection symbols from the
          others_symbols list of the symbol header. */
@@ -2308,6 +2312,18 @@ unit.
           prev_sym->next = sym->next;
         }  /* if */
       }  /* for */
+    }  /* if */
+    if (C_dialect == C_dialect_cplusplus && scope_ptr != NULL) {
+      if (kind == (a_scope_kind)sck_function ||
+          kind == (a_scope_kind)sck_block ||
+          kind == (a_scope_kind)sck_file ||
+          (kind == (a_scope_kind)sck_namespace && is_namespace_wrapup)) {
+        /* Issue a diagnostic on non-extern member functions that have been
+           referenced but not defined. */
+        check_referenced_member_functions(scope_ptr,
+                                          kind != (a_scope_kind)sck_file &&
+                                          kind != (a_scope_kind)sck_namespace);
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
@@ -2431,17 +2447,10 @@ End a name scope by popping an entry off the scope stack.
   il_scope = ssep->il_scope;
   if (C_dialect == C_dialect_cplusplus && il_scope != NULL) {
     if (kind == (a_scope_kind)sck_function ||
-        kind == (a_scope_kind)sck_block ||
-        kind == (a_scope_kind)sck_file) {
-      if (kind != (a_scope_kind)sck_file) {
-        /* If there are any local classes, check for compiler-generated
-           virtual destructors for which bodies should be put out. */
-        generate_required_virtual_destructor_bodies(il_scope->types);
-      }  /* if */
-      /* Issue a diagnostic on non-extern member functions that have been
-         referenced but not defined. */
-      check_referenced_member_functions(il_scope,
-                                        kind != (a_scope_kind)sck_file);
+        kind == (a_scope_kind)sck_block) {
+      /* If there are any local classes, check for compiler-generated
+         virtual destructors for which bodies should be put out. */
+      generate_required_virtual_destructor_bodies(il_scope->types);
     }  /* if */
   }  /* if */
   if (ssep->curr_construct_pragmas != NULL && total_errors != 0) {
