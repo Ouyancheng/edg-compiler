@@ -4988,15 +4988,16 @@ to the version of the GNU compiler being emulated.  The caller is responsible
 to deallocate the buffer using free_general.
 */
 {
-  unsigned long  major = (unsigned long)(gnu_version/10000),
-                 minor = (unsigned long)((gnu_version%10000)/100),
-                 patch = (unsigned long)(gnu_version%100);
+  unsigned long  major = (unsigned long)(gnu_version/10000);
+  unsigned long  minor = (unsigned long)((gnu_version%10000)/100);
+  unsigned long  patch = (unsigned long)(gnu_version%100);
   char           *version_string_pattern = GCC_VERSION_STRING,
                  *version_string, *src, *dst;
   a_boolean      percent_m_seen = FALSE, percent_v_seen = FALSE;
 
   check_assertion(gnu_mode && major < 100 && minor < 100 && patch < 100);
-  version_string = (char*)alloc_general(strlen(version_string_pattern) + 50);
+  version_string = (char*)alloc_general(
+                                 (size_t)strlen(version_string_pattern) + 50);
   src = version_string_pattern;
   dst = version_string;
   for (; *src != '\0'; ++src, ++dst) {
