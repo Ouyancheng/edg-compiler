@@ -8400,26 +8400,34 @@ entry, if there is one.
 a_source_sequence_entry_ptr find_end_of_tag_construct(
                                            a_source_sequence_entry_ptr  ssep)
 /*
-ssep points to a source sequence entry for a tag -- a class type or an enum
-type.  Find and return a pointer to the associated end-of-construct entry.
+If ssep points to a primary source sequence entry for a tag (a class or enum
+type), find and return a pointer to the associated end-of-construct entry.
+If not, return the indicated source sequence entry.
 */
 {
   a_type_ptr  tp = (a_type_ptr)ssep->entity.ptr;
 
-  check_assertion(ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
-                  (is_immediate_class_type(tp) || is_immediate_enum_type(tp)));
-  /* Start from the entry immediately following ssep and scan until the
-     associated end-of-construct entry is found. */
-  for (ssep = ssep->next;; ssep = ssep->next) {
-    if (ssep->entity.kind ==
-              (a_byte_il_entry_kind)iek_src_seq_end_of_construct) {
-      /* This is an end-of-construct entry -- be sure it corresponds.  (It
-         might not, since constructs can nest.) */
-      a_src_seq_end_of_construct_ptr  sseocp =
-                            (a_src_seq_end_of_construct_ptr)ssep->entity.ptr;
-      if (sseocp->entity.ptr == (char *)tp) break;
-    }  /* if */
-  }  /* for */
+  if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_type) {
+    check_assertion(is_immediate_class_type(tp) || is_immediate_enum_type(tp));
+    /* Start from the entry immediately following ssep and scan until the
+       associated end-of-construct entry is found. */
+    for (ssep = ssep->next;; ssep = ssep->next) {
+      if (ss_entry_kind(ssep) ==
+                   (an_il_entry_kind)iek_src_seq_end_of_construct) {
+        /* This is an end-of-construct entry -- be sure it corresponds.  (It
+           might not, since constructs can nest.) */
+        if ((ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr))->
+                                              entity.ptr == (char *)tp) {
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+#if CHECKING
+  } else {
+    check_assertion(ss_entry_kind(ssep) ==
+                              (an_il_entry_kind)iek_src_seq_secondary_decl);
+#endif /* CHECKING */
+  }  /* if */
   return ssep;
 }  /* find_end_of_tag_construct */
 
