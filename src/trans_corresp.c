@@ -1717,8 +1717,6 @@ is in fact valid.
                                  TCF_REDECLARATION |
                                  TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) ||
          !same_exception_spec(field->type, corresp_field->type) ||
-         field->offset != corresp_field->offset ||
-         field->offset_bit_remainder != corresp_field->offset_bit_remainder ||
          field->bit_size != corresp_field->bit_size ||
          field->is_bit_field != corresp_field->is_bit_field ||
          field->bit_field_is_signed != corresp_field->bit_field_is_signed ||
@@ -1747,6 +1745,15 @@ is in fact valid.
         }  /* if */
       }  /* if */
     }  /* if */
+#if CHECKING
+    if (match &&
+        (field->offset != corresp_field->offset ||
+         field->offset_bit_remainder != corresp_field->offset_bit_remainder)) {
+      /* A mismatch in the offset attributes normally reflects a mismatch in
+         another area.  Hence we don't issue an additional error on this. */
+      expect_error();
+    }  /* if */
+#endif /* CHECKING */
   }  /* if */
 done:
   return match;
