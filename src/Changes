@@ -1,6 +1,24 @@
 Version 2.31
 
-1/8/95    Using copy constructor in passing class to ellipsis
+1/8/96    --special_subscript_cost
+
+A new command-line option --special_subscript_cost restores the old
+weighting of conversions for the integral operand of the [] operator,
+to "standard conversion".  This weighting is nonstandard, but it
+avoids the ambiguity on code like the following, which has shown up in
+many libraries:
+
+  struct A {
+    A();
+    operator int *();
+    int operator[](unsigned);  // No problem if this is a signed type
+  };
+  void main() {
+    A a;
+    a[0];  // Ambiguous according to standard, but okay with this option
+  }
+
+1/8/96    Using copy constructor in passing class to ellipsis
 
 A new configuration switch USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS has been
 added to control whether a copy constructor is used in passing a class

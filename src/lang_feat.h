@@ -516,6 +516,27 @@ Flag that is TRUE if support for wchar_t can be enabled.
 #define WCHAR_T_ENABLING_POSSIBLE TRUE
 #endif /* ifndef WCHAR_T_ENABLING_POSSIBLE */
 
+/*
+Flag that is TRUE to enable a special nonstandard weighting of the
+conversion for the integral operand of the [] operator in overload resolution.
+Deals with cases like
+  struct A {
+    A();
+    operator int *();
+    int operator[](unsigned);
+  };
+  void main() {
+    A a;
+    a[0];  // Ambiguous according to standard, but okay with this option
+  }
+These are fairly common in existing code.  This is the initial value for
+the global variable special_subscript_cost, which can be changed via the
+--special_subscript_cost and --no_special_subscript_cost options.
+*/
+#ifndef DEFAULT_SPECIAL_SUBSCRIPT_COST
+#define DEFAULT_SPECIAL_SUBSCRIPT_COST FALSE
+#endif /* ifndef DEFAULT_SPECIAL_SUBSCRIPT_COST */
+
 #endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************

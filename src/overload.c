@@ -4519,7 +4519,8 @@ match, promotion, etc.) for the operand and record it in arg_match.
     /* cfront 2.1 considers all matches like this for builtins to be standard
        conversions. */
     match_level = aml_std_conversion;
-  } else if (cfront_3_0_mode && kind == (an_opname_kind)onk_subscript &&
+  } else if (special_subscript_cost &&
+             kind == (an_opname_kind)onk_subscript &&
              type_code == PROMOTED_INTEGRAL_TYPE_CODE) {
     /* The subscript operator's integral operand is treated as a
        standard conversion always in cfront 3.0.2.  Who knows why,

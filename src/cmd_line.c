@@ -539,6 +539,14 @@ Initialize the option information table.
                          "no_implicit_typename", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_special_subscript_cost,
+                         "special_subscript_cost", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_special_subscript_cost,
+                         "no_special_subscript_cost", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1051,6 +1059,7 @@ Process the arguments on the command line that invoked the compiler.
         check_assertion(opt_value == TRUE);
         cfront_2_1_mode = TRUE;
         cfront_3_0_mode = FALSE;
+        special_subscript_cost = FALSE;
         goto common_cfront_mode_settings;
       case optk_cfront_3_0_mode:
         /* cfront 3.0 compatibility mode.  If both 2.1 and 3.0 modes are
@@ -1058,6 +1067,7 @@ Process the arguments on the command line that invoked the compiler.
         check_assertion(opt_value == TRUE);
         cfront_3_0_mode = TRUE;
         cfront_2_1_mode = FALSE;
+        special_subscript_cost = TRUE;
 common_cfront_mode_settings:
         /* This option implies C++ dialect. */
         C_dialect = C_dialect_cplusplus;
@@ -1471,6 +1481,11 @@ common_cfront_mode_settings:
            dependent name is a type or nontype. */
         implicit_typename_enabled = opt_value;
         break;
+      case optk_special_subscript_cost:
+        /* Enable/disable a special weighting for the conversion to the
+           integral operand of [] in overload resolution. */
+        special_subscript_cost = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1535,6 +1550,10 @@ common_cfront_mode_settings:
     if (option_kind_used[(int)optk_alternative_tokens]) {
       command_line_error(ec_cl_alternative_token_option_only_in_cplusplus);
     }  /* if */
+    if (option_kind_used[(int)optk_special_subscript_cost]) {
+      command_line_error(
+                        ec_cl_special_subscript_cost_option_only_in_cplusplus);
+    }  /* if */
     /* Turn on features implied by SVR4 C mode. */
     if (SVR4_C_mode) {
       address_of_ellipsis_allowed = TRUE;
@@ -1549,6 +1568,7 @@ common_cfront_mode_settings:
     wchar_t_is_keyword = FALSE;
     bool_is_keyword = FALSE;
     alternative_tokens_allowed = FALSE;
+    special_subscript_cost = FALSE;  /* Not really needed. */
   } else {
     /* The dialect is C++. */
     /* Reset the SVR4 C compatibility flag just in case it is set by
@@ -1644,6 +1664,11 @@ common_cfront_mode_settings:
         /* If typename_enabled was not explicitly set by a command line
            option, set it now. */
         typename_enabled = TRUE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_special_subscript_cost])) {
+        /* If special_subscript_cost was not explicitly set by a command line
+           option, turn it off now. */
+        special_subscript_cost = FALSE;
       }  /* if */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the

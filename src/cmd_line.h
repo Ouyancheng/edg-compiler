@@ -131,6 +131,7 @@ typedef enum /*an_option_kind*/ {
   optk_remove_unneeded_entities,
   optk_typename,
   optk_implicit_typename,
+  optk_special_subscript_cost,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -342,6 +343,18 @@ EXTERN a_boolean
 			/* TRUE if the front end should determine from context
 			   whether a template parameter dependent name is a
 			   type or nontype.  Significant only in C++ mode. */
+
+EXTERN a_boolean
+		special_subscript_cost
+#if VAR_INITIALIZERS
+                                       = DEFAULT_SPECIAL_SUBSCRIPT_COST
+#endif /* VAR_INITIALIZERS */
+                                                                       ;
+			/* TRUE if the cost of the subscript operator []'s
+			   integral operand is always considered a standard
+			   conversion in overload resolution.  This is
+			   nonstandard, but a fair number of programs
+			   depend on it. */
 
 EXTERN an_integer_kind
 		plain_char_int_kind;
