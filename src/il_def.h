@@ -1590,6 +1590,9 @@ enum a_pragma_kind_tag {
 			   PCH prefix scanning. */
   pk_no_pch,            /* Suppresses generation of PCH file.
 			   Ignored except during PCH prefix scanning. */
+  pk_define_type_info,  /* The following class definition provides the
+			   definition of the type_info type returned
+			   by typeid. */
 #if INCLUDE_EDG_TEST_PRAGMAS
   /* For testing purposes. */
   pk_test_next_statement,
@@ -1644,6 +1647,7 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 /* pk_once */                   "once",
 /* pk_hdrstop */                "hdrstop",
 /* pk_no_pch */                 "no_pch",
+/* pk_define_type_info */       "define_type_info",
 #if INCLUDE_EDG_TEST_PRAGMAS
 /* For testing purposes. */
 /* pk_test_next_statement */	"test_next_statement",

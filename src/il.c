@@ -7587,6 +7587,7 @@ pointer to it.
     case pk_instantiate:
     case pk_do_not_instantiate:
     case pk_can_instantiate:
+    case pk_define_type_info:
       break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if CHECKING

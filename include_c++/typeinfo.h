@@ -19,6 +19,9 @@ typedef int _bool;
 #if 0
 namespace std {
 #endif /* 0 */
+/* The following pragma is used so that the compiler knows that this definition
+   of type_info is the one that corresponds to the type returned by typeid. */
+#pragma define_type_info
   class type_info {
   public:
     virtual ~type_info();

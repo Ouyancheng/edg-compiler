@@ -15,6 +15,8 @@ pragma.c -- Routines to support #pragma directives
 
 /* Header files common to all files. */
 #include "fe_common.h"
+/* Header files used by files involved in declaration processing. */
+#include "decl_hdrs.h"
 
 #ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -23,11 +25,7 @@ pragma.c -- Routines to support #pragma directives
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
-#include "decls.h"
-#include "pch.h"
-#include "pragma.h"
 #include "statements.h"
-#include "templates.h"
 #if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -324,6 +322,7 @@ possible.
 #if PRAGMA_WEAK_ALLOWED
     case pk_weak:
 #endif /* PRAGMA_WEAK_ALLOWED */
+    case pk_define_type_info:
       break;
     default:
       unexpected_condition_str2("alloc_pending_pragma:", "bad pragma kind");
@@ -1370,6 +1369,18 @@ Initialize the pragma description table.
                 ((a_pragma_kind)pk_hdrstop, hdrstop_or_no_pch_pragma);
   (void)add_preproc_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_no_pch, hdrstop_or_no_pch_pragma);
+  (void)add_next_construct_pragma_kind_description
+		((a_pragma_kind)pk_define_type_info,
+		 define_type_info_pragma,
+		 /*is_pseudo_pragma=*/FALSE,
+		 /*may_bind_to_decl=*/TRUE,
+		 /*may_bind_to_stmt=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+                 es_error);
 #if INCLUDE_EDG_TEST_PRAGMAS
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_test_next_decl,

@@ -700,6 +700,7 @@ Print the name of a pragma kind.
 #if PRAGMA_WEAK_ALLOWED
     case pk_weak:                 s = "pk_weak";                break;
 #endif /* PRAGMA_WEAK_ALLOWED */
+    case pk_define_type_info:     s = "pk_define_type_info";    break;
 #if INCLUDE_EDG_TEST_PRAGMAS
     /* For testing purposes. */
     case pk_test_next_statement:  s = "pk_test_next_statement"; break;

@@ -7979,6 +7979,38 @@ because they were used in declaring an external function or variable.
 }  /* check_class_linkage */
 
 
+/* ARGSUSED */ /* stmt is not used. */
+void define_type_info_pragma(a_pending_pragma_ptr    ppp,
+			     a_symbol_ptr            sym,
+			     a_statement_ptr         stmt)
+/*
+Called when a define_type_info pragma is encountered.  This pragma must
+immediately precede a class definition.  Save a pointer to the class being
+defined in the global variable type_of_type_info.
+
+We don't check for extra tokens after the pragma name.  They are simply
+ignored.
+*/
+{
+  a_boolean          err = TRUE;
+
+  if (sym != NULL) {
+    if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag) {
+      a_type_ptr tp = sym->variant.class_struct_union.type;
+      if (tp != NULL) {
+        type_of_type_info = tp;
+        err = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* If the pragma cannot be applied because it is being bound to the wrong
+     kind of entity, issue an error. */
+  if (err) {
+    pos_error(ec_pragma_may_not_be_used_here, &ppp->id_position);
+  }  /* if */
+}  /* define_type_info_pragma */
+
+
 void class_decl_one_time_init(void)
 /*
 One-time initialization for class_decl.c static variables.
@@ -7990,6 +8022,7 @@ One-time initialization for class_decl.c static variables.
       pch_saved_var_array_elem(avail_routine_fixup),
       pch_saved_var_array_elem(avail_derivation_steps),
       pch_saved_var_array_elem(avail_override_registry_entries),
+      pch_saved_var_array_elem(type_of_type_info),
 #if DEBUG
       pch_saved_var_array_elem(num_routine_fixups_allocated),
 #endif /* if DEBUG */
@@ -8012,6 +8045,7 @@ Initializations for class declaration processing.
   avail_derivation_steps = NULL;
   /* Initialize the list of freed override-registry entries. */
   avail_override_registry_entries = NULL;
+  type_of_type_info = NULL;
 #if DEBUG
   num_routine_fixups_allocated = 0;
 #endif /* DEBUG */
