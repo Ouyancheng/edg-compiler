@@ -3279,6 +3279,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
   a_boolean    direct_class_members_only =
                                 (options & IDL_DIRECT_CLASS_MEMBERS_ONLY) != 0;
   a_boolean    dependent_conversion_operator = FALSE;
+  a_boolean    is_prototype_instantiation_lookup = FALSE;
 
 /* Local macro that tests whether or not a symbol is acceptable.  An
    injected class name symbol is only acceptable when the injected symbol
@@ -3287,11 +3288,12 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
    symbol will be returned later.  An injected class name is accepted
    when doing a class-or-namespace or tag lookup, because such a lookup
    could never find the constructor.  An injected class name is also
-   accepted in g++ mode. */
+   accepted in g++ mode, but not in prototype instantiation contexts to
+   avoid a problem with names like A<T>::A<T>. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((sym)->is_class_member &&					      \
    (!is_injected_class_symbol(sym) ||				      \
-    gpp_mode ||							      \
+    (gpp_mode  && !is_prototype_instantiation_lookup) ||	      \
     is_field_selection_operand ||				      \
     must_be_class_or_namespace ||				      \
     must_be_class ||						      \
@@ -3328,10 +3330,13 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
        assoc_scope check is used to exclude the prototype
        instantiation from being considered nonreal for lookup
        purposes. */
-    if (class_type->variant.class_struct_union.is_nonreal_class &&
-        class_type->
+    if (class_type->variant.class_struct_union.is_nonreal_class) {
+      if (class_type->
                   variant.class_struct_union.extra_info->assoc_scope == NULL) {
-      is_proxy_or_nonreal_class_lookup = TRUE;
+        is_proxy_or_nonreal_class_lookup = TRUE;
+      } else {
+        is_prototype_instantiation_lookup = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
