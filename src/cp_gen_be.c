@@ -278,6 +278,8 @@ static void gen_lvalue_full(an_expr_node_ptr node,
                             a_boolean        need_parens);
 #define gen_lvalue(node) gen_lvalue_full(node, /*need_parens=*/TRUE)
 #define gen_lvalue_no_parens(node) gen_lvalue_full(node, /*need_parens=*/FALSE)
+static void gen_initializer_constant(a_constant_ptr constant,
+                                     a_type_ptr     type);
 static void gen_initializer_expr(an_expr_node_ptr expr,
                                  a_type_ptr       type,
                                  a_boolean        need_parens);
@@ -1710,6 +1712,32 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is set in options.
   gen_unqualified_name(&(field)->source_corresp, iek_field)
 
 
+static void gen_compound_literal(a_constant_ptr literal_con)
+/*
+Generate code for a compound literal (a C9X feature).  literal_con is
+the literal value.
+*/
+{
+  a_boolean  is_scalar;
+  a_type_ptr literal_type = literal_con->type;
+
+  /* An example of the form of a compound literal:
+       (int []){1, 2, 3}
+  */
+  write_tok_ch('(');
+  gen_cast(literal_type);
+  is_scalar = !is_aggregate_or_union_type(literal_type);
+  if (is_scalar) {
+    /* Scalar initialization.  Put an extra set of braces around the
+       initializer. */
+    write_tok_ch('{');
+  }  /* if */
+  gen_initializer_constant(literal_con, literal_type);
+  if (is_scalar) write_tok_ch('}');
+  write_tok_ch(')');
+}  /* gen_compound_literal */
+
+
 static void gen_variable_name(a_variable_ptr var)
 /*
 Output the name of the indicated variable, qualified if necessary.
@@ -1718,6 +1746,10 @@ Output the name of the indicated variable, qualified if necessary.
   if (var->is_this_parameter) {
     /* "this" parameter in C++. */
     m_write_tok_str("this");
+  } else if (var->is_compound_literal) {
+    /* Compound literal, e.g., (int []){1, 2, 3}. */
+    check_assertion(var->init_kind == (an_init_kind)initk_static);
+    gen_compound_literal(var->initializer.constant);
   } else {
     gen_name(&var->source_corresp, iek_variable, GN_NO_OPTIONS);
   }  /* if */
@@ -2246,10 +2278,12 @@ static void gen_name_reference(char             *entry,
 Routine to be called by the il_to_str routines to output a name.
 */
 {
-  /* Types get handled specially; everything else goes through the normal
-     gen_name. */
+  /* Types and variables get handled specially; everything else goes
+     through the normal gen_name. */
   if (kind == iek_type) {
     gen_type_reference((a_type_ptr)entry);
+  } else if (kind == iek_variable) {
+    gen_variable_name((a_variable_ptr)entry);
   } else {
     a_gen_name_options_set options = GN_NO_OPTIONS;
     if (octl.force_qualified_name) options |= GN_FORCE_QUALIFIED_NAME;
@@ -3860,9 +3894,13 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
   if (expr->variant.init.result_is_addr) {
     temp_type = type_pointed_to(temp_type);
   }  /* if */
-  if (is_class_struct_union_type(temp_type) &&
-      /* Don't use copy-initialization for dik_expression and
-         dik_call_returning_class_via_cctor cases. */
+  if (C_mode()) {
+    /* In C mode, a temp-init node represents a compound literal. */
+    check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant);
+    gen_compound_literal(dip->variant.constant);
+  } else if (is_class_struct_union_type(temp_type) &&
+             /* Don't use copy-initialization for dik_expression and
+             dik_call_returning_class_via_cctor cases. */
       (dip->kind == (a_dynamic_init_kind)dik_constructor ||
        dip->kind == (a_dynamic_init_kind)dik_zero ||
        dip->kind == (a_dynamic_init_kind)dik_none)) {
