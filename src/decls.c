@@ -4245,8 +4245,8 @@ on for use in generating cross-reference output describing this declaration.
         suppress_ext_sym_lookup = TRUE;
         mark_symbol_to_suppress_warnings(linked_symbol);
         set_to_named_error_locator(*locator);
-      }  /* if */
-      if (func_info->is_inline && !is_friend_decl) {
+      } else if (func_info->is_inline &&
+                 (!is_friend_decl || !microsoft_mode)) {
         /* A declaration that is an explicit reference of a template cannot
            include the inline specifier. */
         pos_diagnostic(strict_ansi_discretionary_severity,
