@@ -3058,6 +3058,13 @@ diagnostics.
                    with dllexport.  Issue a warning. */
                 invalid_redecl = TRUE;
               }  /* if */
+              if (routine->decl_modifiers & DM_DLLIMPORT) {
+                /* A previous declaration was marked dllimport, but this
+                   redeclaration does not.  Issue a warning and clear the
+                   previous dllimport state. */
+                invalid_redecl = TRUE;
+                routine->decl_modifiers &= ~DM_DLLIMPORT;
+              }  /* if */
             }  /* if */
             break;
           case dmt_naked:
