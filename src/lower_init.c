@@ -2269,6 +2269,7 @@ in the tree.  Do nothing if dip == NULL.
   if (dip != NULL) {
     switch (dip->kind) {
       case dik_none:
+      case dik_zero:
       case dik_constant:
         break;
       case dik_expression:
@@ -2658,6 +2659,11 @@ be kept, FALSE if it should be deleted.
   switch (dip->kind) {
     case dik_none:
       break;
+    case dik_zero:
+      check_assertion_str(variable != NULL,
+                          "lower_dynamic_init: dik_zero variable missing");
+      /* Do nothing here.  Processing is below. */
+      break;
     case dik_constant:
       /* Assign a constant to the entity to be initialized. */
       lower_constant(dip->variant.constant);
@@ -2950,6 +2956,9 @@ do_assignment:;
         set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
         dip->variant.constant = simple_constant;
       }  /* if */
+    } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+      /* Initialization to zero. */
+      variable->init_kind = (an_init_kind)initk_zero;
     } else {
       /* The initialization is handled entirely by the generated code.
          It would seem that the variable should no longer be marked as
@@ -3922,6 +3931,9 @@ Generate code for a stmk_init (dynamic initialization) statement.
   }  /* if */
   switch (dip->kind) {
     case dik_none:
+      break;
+    case dik_zero:
+      non_C_case = TRUE;
       break;
     case dik_constant:
       break;

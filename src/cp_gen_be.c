@@ -2559,9 +2559,10 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
 {
   a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
 
-  if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+  if (dip->kind == (a_dynamic_init_kind)dik_constructor ||
+      dip->kind == (a_dynamic_init_kind)dik_zero) {
     /* For a class temporary requiring a constructor, use the form
-       A(arg1, arg2, ...). */
+       A(arg1, arg2, ...).  dik_zero is for cases like "A()". */
     /* Note that parentheses are not put around this, because that would
        make the expression look like a cast. */
     gen_type_name(dip->variant.constructor.ptr->
@@ -4385,6 +4386,12 @@ TRUE, "()" is put out.
       /* No initialization. */
       if (force_parens) write_tok_str("()");
       break;
+    case dik_zero:
+      /* Zero initialization, as in "A()" when A has no constructor. */
+      check_assertion_str(parenthesized_init,
+                          "gen_dynamic_init: zero init not parenthesized");
+      write_tok_str("()");
+      break;
     case dik_constant:
       /* Constant (simple or aggregate). */
       con = dip->variant.constant;
@@ -4506,10 +4513,11 @@ Output the initializer, if any, for the indicated variable.
       }  /* if */
       /* Use the parenthesized initialization form, e.g.,
            A x(y);
-         For classes with constructors, and the "=" form, e.g.,
+         for classes with constructors, and the "=" form, e.g.,
            A x = y;
          Otherwise. */
-      if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+      if (dip->kind == (a_dynamic_init_kind)dik_constructor ||
+          dip->kind == (a_dynamic_init_kind)dik_zero) {
         parenthesized_init = TRUE;
       } else {
         write_tok_str(" = ");

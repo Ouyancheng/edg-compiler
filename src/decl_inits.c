@@ -932,6 +932,7 @@ should be suppressed.
   } else {
     switch (dip->kind) {
       case dik_none:
+      case dik_zero:
       case dik_constant:
         /* No side effects. */
         break;
