@@ -486,9 +486,9 @@ symbol "used" or "set", if appropriate.
   if (update_il_entry && (kind & SRK_ADDRESS_TAKEN)) {
     /* Set the address_taken flag in variables and routines. */
     if (sym_kind == (a_symbol_kind)sk_variable) {
-      sym_ptr->variant.variable.ptr->address_taken = TRUE;
+      set_variable_address_taken(sym_ptr->variant.variable.ptr);
     } else if (sym_kind == (a_symbol_kind)sk_static_data_member) {
-      sym_ptr->variant.static_data_member.variable->address_taken = TRUE;
+      set_variable_address_taken(sym_ptr->variant.static_data_member.variable);
     } else if (sym_kind == (a_symbol_kind)sk_routine ||
                sym_kind == (a_symbol_kind)sk_member_function) {
       sym_ptr->variant.routine.ptr->address_taken = TRUE;

@@ -2567,6 +2567,19 @@ the address of the routine, e.g., a call).
 }  /* set_routine_address_constant */
 
 
+a_boolean set_variable_address_taken(a_variable_ptr variable)
+/*
+Set the address_taken flag on the indicated variable.
+*/
+{
+  variable->address_taken = TRUE;
+  /* For a parameter, set param_value_has_been_changed. */
+  if (variable->is_parameter || variable->is_handler_param) {
+    variable->param_value_has_been_changed = TRUE;
+  }  /* if */
+}  /* set_variable_address_taken */
+
+
 void set_variable_address_constant(a_variable_ptr variable,
                                    a_constant     *con,
                                    a_boolean      set_address_taken_flag)
@@ -2583,9 +2596,7 @@ the address of the variable, e.g., an lvalue).
   con->variant.address.variant.variable = variable;
   con->type = make_pointer_type(variable->type);
   if (set_address_taken_flag) {
-    variable->address_taken = TRUE;
-    /* For a parameter, set param_value_has_been_changed. */
-    if (variable->is_parameter) variable->param_value_has_been_changed = TRUE;
+    set_variable_address_taken(variable);
   }  /* if */
 }  /* set_variable_address_constant */
 

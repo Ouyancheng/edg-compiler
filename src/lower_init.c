@@ -504,18 +504,18 @@ block.
 }  /* make_routine_definition */
 
 
-static void set_variable_address_taken(a_variable_ptr variable)
+static void set_lowering_variable_address_taken(a_variable_ptr variable)
 /*
 Set the address_taken flag in the indicated variable.
 */
 {
-  variable->address_taken = TRUE;
+  set_variable_address_taken(variable);
   /* If the storage class is "register", change it to "auto", because
      C doesn't allow taking the address of a register variable (C++ does). */
   if (variable->storage_class == (a_storage_class)sc_register) {
     variable->storage_class = (a_storage_class)sc_auto;
   }  /* if */
-}  /* set_variable_address_taken */
+}  /* set_lowering_variable_address_taken */
 
 
 static void clear_init_pos_modifier(an_init_pos_modifier_ptr ipmp)
@@ -840,7 +840,7 @@ cannot be a bitfield selection.
        here is conservative -- it sets the flag in all cases, which
        guarantees it will work. */
     if (!ipdp->indirect_through_variable && ipdp->variable != NULL) {
-      set_variable_address_taken(ipdp->variable);
+      set_lowering_variable_address_taken(ipdp->variable);
     }  /* if */
   }  /* if */
   return entity_node;
@@ -939,7 +939,7 @@ TRUE, the entity is the destination of an initialization operation.
     entity_node = var_lvalue_expr(ipdp->variable);
     /* If we will be using this expression as an address, set the address-taken
        flag in the variable. */
-    if (using_as_address) set_variable_address_taken(ipdp->variable);
+    if (using_as_address) set_lowering_variable_address_taken(ipdp->variable);
   }  /* if */
   if (using_as_dest) {
     /* The entity will be used as the destination of an initialization, so
@@ -3785,7 +3785,7 @@ Do IL lowering of an enk_temp_init expression node.
     set_expr_node_kind(expr, (an_expr_node_kind)enk_variable_address);
     /* The address of the temporary escapes (or might escape) into the
        surrounding context, so set its address_taken flag. */
-    set_variable_address_taken(dip->variable);
+    set_lowering_variable_address_taken(dip->variable);
   } else {
     set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
   }  /* if */
@@ -4382,7 +4382,7 @@ constructor, but may instead be after an assignment to "this".
     /* Assign the primary virtual table address to the virtual table pointer
        in the current class. */
     vtbl_addr_node = make_vtbl_address_node(primary_vtbl_var);
-    set_variable_address_taken(primary_vtbl_var);
+    set_lowering_variable_address_taken(primary_vtbl_var);
     primary_vtbl_var->source_corresp.referenced = TRUE;
     vptr_node = make_vptr_field_lvalue_from_var(this_param_var);
     (void)insert_assignment_statement(vptr_node,
@@ -4401,7 +4401,7 @@ constructor, but may instead be after an assignment to "this".
          reflect the fact that it exists as a subobject inside the current
          class. */
       vtbl_addr_node = make_vtbl_address_node(vtbl_var);
-      set_variable_address_taken(vtbl_var);
+      set_lowering_variable_address_taken(vtbl_var);
       vtbl_var->source_corresp.referenced = TRUE;
       if (!bcp->is_virtual) {
         /* For non-virtual base classes, use the usual code.  Note that if
@@ -4850,7 +4850,7 @@ destructor scope, and also lower the user code.
     /* Assign the primary virtual table address to the virtual table pointer
        in the current class. */
     vtbl_addr_node = make_vtbl_address_node(primary_vtbl_var);
-    set_variable_address_taken(primary_vtbl_var);
+    set_lowering_variable_address_taken(primary_vtbl_var);
     primary_vtbl_var->source_corresp.referenced = TRUE;
     vptr_node = make_vptr_field_lvalue_from_var(this_param_var);
     (void)insert_assignment_statement(vptr_node,
@@ -4895,7 +4895,7 @@ destructor scope, and also lower the user code.
          to reflect the fact that it exists as a subobject inside the
          current class. */
       vtbl_addr_node = make_vtbl_address_node(vtbl_var);
-      set_variable_address_taken(vtbl_var);
+      set_lowering_variable_address_taken(vtbl_var);
       vtbl_var->source_corresp.referenced = TRUE;
       /* Build a node to address the virtual table pointer in the base
          class.   The base class may be virtual or may be inside a virtual

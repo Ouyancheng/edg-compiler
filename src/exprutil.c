@@ -320,13 +320,13 @@ address taken, and if not issue an error.
          address_taken flag here anyway for those), since the address_taken
          flag might be used to decide whether to allocate storage
          for those variables. */
-      var->address_taken = TRUE;
+      set_variable_address_taken(var);
     }  /* if */
   } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
     /* For simple interpretation of address_taken, set address_taken
         on static data members here.  This can be removed.  See comments
         above. */
-    sym->variant.static_data_member.variable->address_taken = TRUE;
+    set_variable_address_taken(sym->variant.static_data_member.variable);
   }  /* if */
 }  /* f_check_address_taken_ref */
 
@@ -4439,7 +4439,7 @@ the expression.
     possible = TRUE;
     if (!see_if_possible) {
       node->kind = (an_expr_node_kind)enk_variable_address;
-      node->variant.variable->address_taken = TRUE;
+      set_variable_address_taken(node->variant.variable);
       node->implicit_reference_indirection = FALSE;
     }  /* if */
   } else if (node->kind == (an_expr_node_kind)enk_temp_init &&
