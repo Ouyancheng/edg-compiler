@@ -1759,6 +1759,11 @@ new expression and should therefore not be treated as a declaration.
        is a nested class declaration within a local class.  In either case,
        it is a local class. */
     is_local_class = TRUE;
+    if (inside_statement_expression() && !C_mode() &&
+        depth_innermost_function_scope != NO_SCOPE_NUMBER) {
+      /* Class definitions are not allowed inside statement expressions. */
+      pos_error(ec_class_def_in_statement_expr, &decl_start_pos);
+    }  /* if */
   }  /* if */
   if (curr_token == tok_class ||
       curr_token == tok_struct ||
