@@ -3776,8 +3776,8 @@ implements an array-to-pointer decay; return FALSE otherwise.
       a_type_ptr source_element_type =
                                     array_element_type(source_type_pointed_to);
       a_type_ptr dest_type_pointed_to = type_pointed_to(dest_type);
-      if (types_are_compatible_ignoring_qualifiers(source_element_type,
-                                                   dest_type_pointed_to)) {
+      if (skip_typerefs(source_element_type) ==
+          skip_typerefs(dest_type_pointed_to)) {
         is_array_decay = TRUE;
       }  /* if */
     }  /* if */

@@ -1,5 +1,11 @@
 Version 2.40
 
+12/2/98   Standalone C++-generating back end
+
+The C++-generating back end has been changed not to call
+f_types_are_compatible.  This was the only thing standing in the way of
+building a standalone C++-generating back end.
+
 11/29/98  Microsoft mode: user-defined conversions on relational operators
 
 The MSVC++ compiler does not look for user-defined conversions to pointer
