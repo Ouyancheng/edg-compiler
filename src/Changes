@@ -1,3 +1,20 @@
+Version 2.32
+
+1/23/96   Spurious masked-handler warning
+
+A spurious warning is no longer issued when handler for a derived class
+follows a handler for an ambiguous base class:
+
+  struct B { };
+  struct X: public B { };
+  struct Y: public B { };
+  struct D: public X, public Y { };
+  void f() {
+    try { throw D(); }
+    catch (B) { }       // B is an ambiguous base class of D
+    catch (D) { }       // Spurious masked-handler warning no longer issued
+  }
+
 1/23/96   Bug in creating overload set for assignment operator
 
 A bug has been fixed in how assignment operators are managed; an entry for
