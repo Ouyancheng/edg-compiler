@@ -18,6 +18,9 @@ configurations.  Such pointer types are now diagnosed as errors.
     int __based(bp) *p;  // Used to generate invalid IL.
   }                      // Now diagnosed as an error.
 
+Note that Microsoft compilers do accept such code though it is believed to
+be too rare in practical code to warrant an expensive implementation.
+
 5/15/01  Microsoft compatibility: definitions of members of in-class
          specializations not emitted
 
