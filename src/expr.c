@@ -3678,6 +3678,9 @@ operation is a pointer-to-member (see ARM 5.3).
 {
   an_operand        operand;
   a_source_position start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean         err = FALSE, processed = FALSE;
   a_symbol_ptr      member_proj_sym, member_sym;
 
@@ -3720,6 +3723,9 @@ operation is a pointer-to-member (see ARM 5.3).
         diagnostic(strict_ansi_error_severity, ec_nonstd_address_of_ellipsis);
       }  /* if */
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Advance past the "...". */
     (void)get_token();
   } else {
@@ -3805,9 +3811,12 @@ operation is a pointer-to-member (see ARM 5.3).
         }  /* if */
       }  /* if */
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
 
-  set_operand_position(result, &start_position, &operand.end_position,
+  set_operand_position(result, &start_position, &end_position,
                        &start_position);
   db_exit();
 }  /* scan_ampersand_operator */

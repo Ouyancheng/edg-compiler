@@ -202,6 +202,7 @@ information when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.  They involved:
   -- identifier of a conversion function
   -- a "vacuous" class declaration that follows the class's definition
   -- a typedef redeclaration (2/27/98)
+  -- address of ellipsis (e.g., &...) (3/9/98)
 
 2/16/98   Access check on elided constructor in strict mode
 
