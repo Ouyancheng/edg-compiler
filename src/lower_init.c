@@ -2710,8 +2710,7 @@ be kept, FALSE if it should be deleted.
   an_insert_location insert_location2;
   an_insert_location *eff_insert_location = insert_location;
   an_object_lifetime_ptr
-                     lifetime = dip->init_expr_lifetime,
-                     saved_curr_object_lifetime = curr_object_lifetime;
+                     lifetime, saved_curr_object_lifetime;
 
   *keep_dynamic_init = FALSE;
   saved_code_pos = code_pos_for_lowering;
@@ -2743,6 +2742,31 @@ be kept, FALSE if it should be deleted.
   /* Initializations of static variables (whether global or function-local)
      require some special processing. */
   static_var_init = init_pos_is_static(ipdp);
+  /* If this dynamic init is part of an object lifetime, it may be that it
+     is the first encountered since a label, and it is therefore in a
+     different lifetime section than what we've been thinking of as the
+     current object lifetime.  Update the current lifetime accordingly.
+     This comes up because there is no explicit indication in the IL tree
+     that an olk_block_after_label lifetime has begun. */
+  lifetime = dip->lifetime;
+  if (lifetime != NULL) {
+#if CHECKING
+    /* Check that the new lifetime is a successor-after-label of the
+       lifetime we've been considering the current one, if it's different
+       than the current one. */
+    an_object_lifetime_ptr olp;
+    for (olp = lifetime;
+         olp != curr_object_lifetime;
+         olp = olp->parent_lifetime) {
+      check_assertion_str(olp->kind ==
+                                (an_object_lifetime_kind)olk_block_after_label,
+                          "lower_dynamic_init: unexpected object lifetime");
+    }  /* for */
+#endif /* CHECKING */
+    curr_object_lifetime = lifetime;
+  }  /* if */
+  saved_curr_object_lifetime = curr_object_lifetime;
+  lifetime = dip->init_expr_lifetime;
   if (lifetime != NULL) {
     /* The dynamic init defines a lifetime that surrounds the initialization.
        Make it the current object lifetime (and restore the old one later). */
