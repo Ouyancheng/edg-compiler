@@ -1011,7 +1011,9 @@ common_cfront_mode_settings:
         allow_anachronisms = TRUE;
         long_lifetime_temps = TRUE;
         bool_is_keyword = FALSE;
+#if !RUNTIME_USES_NAMESPACES
         namespaces_enabled = FALSE;
+#endif /* !RUNTIME_USES_NAMESPACES */
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
