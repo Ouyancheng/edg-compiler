@@ -43,13 +43,17 @@ EXTERN a_memory_region_number
 
 EXTERN a_boolean
 		curr_initial_il_walk_flag_setting,
-		curr_func_initial_il_walk_flag_setting;
-			/* Value currently to be used as the initial value for
-			   il_walk_flag when entries are created, for entries
-			   in the file scope and function scope,
-			   respectively.  In the front end proper (i.e., not
-			   in IL lowering and not in IL walk/write) these
-			   will have the same value. */
+		curr_fs_initial_il_walk_flag_setting;
+			/* Value to be used as the initial value for
+			   il_walk_flag when entries are created.  The
+			   second variable is the value for entities created
+			   explicitly in the file scope memory region.  The
+			   first variable is for entities created in a
+			   function scope memory region or in a local variable
+			   outside of any memory region.  In the front end
+			   proper (i.e., not in IL lowering and not in IL
+			   walk/write) the two variables will have the same
+			   value. */
 
 #if ORPHAN_PROCESSING_NEEDED
 /*
@@ -174,9 +178,6 @@ extern a_base_class_ptr alloc_base_class(void);
 extern void set_type_kind(a_type_ptr  pte,
                           a_type_kind kind);
 
-extern void clear_type(a_type_ptr  pte,
-                       a_type_kind kind);
-
 extern a_type_ptr alloc_type(a_type_kind kind);
 
 extern void add_to_types_list(a_type_ptr     type_ptr,
@@ -250,6 +251,9 @@ extern a_scope_ptr new_il_region(a_scope_kind   kind,
 extern a_constant_ptr alloc_constant(a_constant_repr_kind kind);
 
 extern a_constant_ptr fs_constant(a_constant_repr_kind kind);
+
+extern void copy_constant(a_constant *from,
+                          a_constant *to);
 
 extern a_constant_ptr alloc_unshared_constant(a_constant *cp);
 
@@ -392,9 +396,6 @@ extern void conv_seq_to_file_and_line(a_seq_number  seq_number,
 extern a_boolean seq_is_in_include_file(a_seq_number seq_number);
 
 extern void break_source_corresp(a_source_correspondence *sc);
-
-/* Copy a constant entry. */
-#define copy_constant(from, to) (*(to) = *(from))
 
 /*
 Return TRUE if a constant is an error constant.
