@@ -3337,7 +3337,7 @@ value is used).
                 if (sign_of_integer_constant(rhs_con) < 0) {
                   /* Negative subscript. */
                   valid = FALSE;
-                } else if (is_vla_type(underlying_type)) {
+                } else if (vla_enabled && is_vla_type(underlying_type)) {
                   /* Variable-length arrays cannot be checked for non-negative
                      subscripts. */
                 } else {
