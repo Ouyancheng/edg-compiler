@@ -7558,7 +7558,12 @@ of local variables (and types, etc.) of functions and in blocks.
     if (function_definition_allowed) {
       dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
       /* "inline" is allowed only on function declarations at file scope. */
-      if (!extern_implied) dsi_flags |= DSI_INLINE_ALLOWED;
+      if (extern_implied && !microsoft_mode) {
+        /* Except in Microsoft mode, "inline" is not allowed if a
+           linkage specification is directly present. */
+      } else {
+        dsi_flags |= DSI_INLINE_ALLOWED;
+      }  /* if */
 #if ASM_FUNCTION_ALLOWED
       /* "asm" is allowed only on function definitions at file scope. */
       dsi_flags |= DSI_ASM_ALLOWED;

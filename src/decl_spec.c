@@ -2799,8 +2799,8 @@ Returns TRUE if there is an error in the specifiers.
           error(ec_bad_member_storage_class);
           err = TRUE;
         } else if (input_flags & DSI_HAS_DIRECT_LINKAGE_SPECIFICATION &&
-                   curr_token != tok_typedef) {
-          /* We disallow
+                   (curr_token != tok_typedef && !microsoft_mode)) {
+          /* Except in Microsoft mode, we disallow
                extern "C" static void f();
              but in order to support association between a name linkage and a
              function type we do allow

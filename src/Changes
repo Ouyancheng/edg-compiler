@@ -1,5 +1,20 @@
 Version 2.35
 
+1/23/97 Microsoft compatibility: linkage specification and storage class
+
+In Microsoft compatibility mode a declaration with a direct linkage
+specification (i.e., not part of brace enclosed list of declarations) is
+now allowed to have a storage class or "inline".
+
+  extern "C" static void f();          // Now accepted in Microsoft mode
+  extern "C" inline void g();          // Now accepted in Microsoft mode
+
+Such cases are now handled as though they had been written with braces --
+e.g., the examples are regarded as equivalent, respectively, to
+
+  extern "C" { static void f(); }
+  extern "C" { inline void g(); }
+
 1/23/97 Microsoft compatibility: static data member in unnamed class
 
 In Microsoft compatibility mode no diagnostic is issued on a static data
