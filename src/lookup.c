@@ -4053,11 +4053,14 @@ as follows:
 strong_only is TRUE in g++ mode if a symbol was found in a given
 namespace and that symbol can overload with symbols from namespaces
 named in strong using-directives.
+
+If no symbol is found in the specified namespace, NULL is returned.
 */
 {
   a_using_decl_ptr			udp;
   a_symbol_ptr				sym;
   a_namespace_symbol_supplement_ptr	nssp = NULL;
+  a_symbol_ptr				result_sym = NULL;
 
   /* Get the list of using directives from the scope in which the lookup
      is being done. */
@@ -4106,12 +4109,12 @@ named in strong using-directives.
                                               orig_ns_ptr, options,
                                               any_errors);
       }  /* if */
+      result_sym = *synth_sym;
     }  /* if */
   }  /* for */
   /* Clear the flag that indicates this namespace is being processed. */
   if (nssp != NULL) nssp->visited_by_qualified_lookup = FALSE;
-  sym = *synth_sym;
-  return sym;
+  return result_sym;
 }  /* qualified_using_directive_lookup */
 
 
