@@ -68,7 +68,8 @@ LOWER_EXTERN_INLINE set to TRUE.  Now fixed.
 3/11/02  Checking of exception specifications on function templates
 
 The front end now diagnoses nonmatching exception specifications when
-redeclaring a function template.  For example:
+redeclaring a function template (in strict mode).  For example:
+
   template<typename T> void g();
   template<typename T> void g() throw (T) {} // Used to be accepted;
                                              // now an error
