@@ -28,7 +28,8 @@ extern a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
 
 extern a_symbol_ptr find_template_function
                                   (a_symbol_ptr        function_template_sym,
-                                   a_template_arg_ptr  template_arg_list,
+                                   a_type_ptr          curr_type,
+                                   a_param_type_ptr    param_type_list,
                                    a_source_position   *source_pos);
 
 extern void instantiate_template_class(a_type_ptr  type);
