@@ -1589,6 +1589,11 @@ Display the indicated label.
   if (ptr->continue_label) {
     disp_boolean("continue_label", (a_boolean)ptr->continue_label);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->leave_label) {
+    disp_boolean("leave_label", (a_boolean)ptr->leave_label);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef FFE
   disp_boolean("used_in_assign", (a_boolean)ptr->used_in_assign);
   disp_name("kind");

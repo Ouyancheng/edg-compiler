@@ -3840,6 +3840,11 @@ typedef struct a_label {
   unsigned int	continue_label:1;
 			/* TRUE if this is a compiler-generated label that
 			   is the target of a "continue" statement. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  unsigned int	leave_label:1;
+			/* TRUE if this is a compiler-generated label that
+			   is the target of a "__leave" statement. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings();
 #ifdef FIL
   a_byte_boolean

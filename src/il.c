@@ -6104,6 +6104,9 @@ to it.
   lp->reachable_by_fall_through = TRUE;
   lp->break_label = FALSE;
   lp->continue_label = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  lp->leave_label = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
   lp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
