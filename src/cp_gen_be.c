@@ -6549,7 +6549,7 @@ is the one associated with the pragma.
       /* Don't escape tab characters. */
       octl.gen_raw_tab_in_literals = TRUE;
       gen_constant(pp->variant.ident_string, /*need_parens=*/FALSE);
-      octl.gen_raw_tab_in_literals = TRUE;
+      octl.gen_raw_tab_in_literals = FALSE;
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
     } else {
       check_assertion_str(pp->pragma_text != NULL,

@@ -1785,7 +1785,7 @@ Dump a single #pragma from the IL entry.
       /* Don't escape tab characters. */
       octl.gen_raw_tab_in_literals = TRUE;
       dump_constant(pp->variant.ident_string);
-      octl.gen_raw_tab_in_literals = TRUE;
+      octl.gen_raw_tab_in_literals = FALSE;
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
     } else {
       check_assertion_str(pp->pragma_text != NULL,
