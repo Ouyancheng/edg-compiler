@@ -6401,7 +6401,7 @@ Scan the body of a class definition, including the base classes list.
             typedef_sym_ptr->variant.type->
                           source_corresp.class_of_which_a_member = class_type;
           } else if (curr_token == tok_assign &&
-                     is_integral_type(local_type) &&
+                     is_scalar_type(local_type) &&
                      is_const_qualified_type(local_type) &&
                      !is_volatile_qualified_type(local_type) &&
                      member_storage_class == (a_storage_class)sc_unspecified &&
