@@ -1,5 +1,11 @@
 Version 3.5
 
+10/4/04  __WCHAR_TYPE__ defined by default on Linux
+
+The __WCHAR_TYPE__ macro is now defined (to "long int") by default on
+Linux systems.  This is needed for the Linux header files to work
+properly in C mode.
+
 10/1/04  Warning instead of error on fixed-point folding overflow
 
 Overflow during folding of constant fixed-point operations is now

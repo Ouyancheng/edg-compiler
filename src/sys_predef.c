@@ -46,6 +46,9 @@ Linux using the gcc/g++ header files.
   (void)enter_predef_macro("unsigned int", "__SIZE_TYPE__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro("long int", "__WCHAR_TYPE__",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
   (void)enter_predef_macro("1", "__linux__", /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #if defined(__i386) || defined(__i386__)
