@@ -5950,8 +5950,9 @@ functions could still apply).
             arg_operand_list_not_used = TRUE;
           }  /* if */
         } else if (candidate_functions->next != NULL ||
-                   is_ambiguous_by_inheritance(
-                                       candidate_functions->function_symbol)) {
+                   (candidate_functions->function_symbol != NULL &&
+                    is_ambiguous_by_inheritance(
+                                      candidate_functions->function_symbol))) {
           /* More than one function applies and is a best match --
              ambiguity. */
           *processed = TRUE;
