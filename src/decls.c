@@ -1071,7 +1071,8 @@ current scope.
 */
 {
   a_variable_ptr vp;
-  a_boolean      at_file_scope = (decl_scope_level == DEPTH_OF_FILE_SCOPE);
+  a_boolean      at_file_scope =
+                      (decl_scope_level == depth_innermost_namespace_scope);
   a_symbol_ptr   assoc_object_sym;
 
   /* Check the storage class.  At file scope, only static is allowed. */
@@ -5285,6 +5286,12 @@ void namespace_declaration(a_boolean  extern_implied)
         /* Original definition. */
         nsp = alloc_namespace(/*is_alias=*/FALSE);
         set_source_corresp(&nsp->source_corresp, sym);
+        if (is_unnamed_namespace) nsp->source_corresp.name = NULL;
+        if (depth_scope_stack != DEPTH_OF_FILE_SCOPE &&
+            depth_scope_stack == depth_innermost_namespace_scope) {
+          nsp->source_corresp.parent.namespace_ptr =
+             scope_stack[depth_scope_stack].il_scope->variant.assoc_namespace;
+        }  /* if */
         sym->variant.namespace_info.ptr = nsp;
         sym->variant.namespace_info.extra_info =
                                        alloc_namespace_symbol_supplement();
@@ -6165,9 +6172,9 @@ continue_with_declaration:
                parameter.  If the storage class is unspecified, and
                we are not at file scope, use a storage class of auto. */
             if (local_storage_class == (a_storage_class)sc_unspecified) {
-              if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
-                /* We are not at file scope, so an unspecified storage class
-                   means auto. */
+              if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+                /* We are inside a function body, so an unspecified storage
+                   class means auto. */
                 local_storage_class = (a_storage_class)sc_auto;
               } else if (extern_implied) {
                 /* This must be part of an linkage specification declaration.
