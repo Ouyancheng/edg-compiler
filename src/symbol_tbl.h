@@ -1719,25 +1719,6 @@ typedef int a_symbol_reference_kind;
 			/* All types of references.  Used to mask off those
 			   bits. */
 
-/*
-Entry used to keep track of stacking in processing virtual steps on
-a derivation path.  These are allocated as stack (auto) variables and
-chained together.
-*/
-typedef struct a_virtual_step_stack_entry *a_virtual_step_stack_entry_ptr;
-typedef struct a_virtual_step_stack_entry {
-  a_virtual_step_stack_entry_ptr
-		next;	/* Next entry on the list. */
-  a_derivation_step_ptr
-		virtual_step;
-			/* Derivation step for a virtual base class, being
-			   expanded. */
-  a_base_class_derivation_ptr
-		derivation;
-			/* The base class derivation of whose path virtual_step
-			   is a step. */
-} a_virtual_step_stack_entry;
-
 
 extern a_symbol_ptr find_symbol(char             *identifier,
 			        sizeof_t         identifier_length,
