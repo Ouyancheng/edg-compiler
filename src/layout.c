@@ -268,11 +268,12 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
 *p_is_signed is set to indicate whether or not the bit field is signed.
 */
 {
-  unsigned long bit_field_size, max_size_allowed;
-  a_type_ptr    base_type = *p_base_type;
-  a_boolean     err = FALSE, is_signed = FALSE;
-  a_constant    constant;
-  a_type_ptr    bit_field_type;
+  unsigned long    bit_field_size, max_size_allowed;
+  a_type_ptr       base_type = *p_base_type;
+  a_boolean        err = FALSE, is_signed = FALSE;
+  a_constant       constant;
+  a_type_ptr       bit_field_type;
+  an_integer_kind  int_kind;
 
   db_enter(3, "scan_bit_field_size");
   /* ANSI C says the type of a bit-field must be int, unsigned int,
@@ -354,62 +355,62 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
        enumeration's constants will not fit in the bit field, and determine
        whether the bit field should be signed or unsigned. */
     check_enum_type_for_bit_field(bit_field_type, bit_field_size, &is_signed);
-  } else if (bit_field_type->variant.integer.explicitly_signed ||
-             (C_dialect != C_dialect_pcc &&
-              bit_field_type->variant.integer.int_kind ==
-                                          (an_integer_kind)ik_signed_char)) {
-    /* The integral type was explicitly signed in the source, e.g.,
-       "signed int" instead of just "int".  (This information comes
-       from the type entry itself.)  That forces the bit field to
-       be signed.  The integral type already has the right kind and
-       signedness.  Note that this won't happen in pcc mode because "signed"
-       is not part of the pcc language. */
-    is_signed = TRUE;
-  } else if (!int_kind_is_signed[bit_field_type->variant.integer.int_kind]) {
-    /* The integral type must have been explicitly declared "unsigned", or else
-       it's a plain "char" that is treated as unsigned. */
-    is_signed = FALSE;
   } else {
-    /* The integral type is "plain" (i.e., plain "int", "char", "short",
-       "long", or "long long") -- it's not explicitly signed or unsigned and
-       it's not an enum type. */
-    if (bit_field_size > 1 && !TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED) {
-      /* Keep the default signedness of the plain integral type. */
+    int_kind = bit_field_type->variant.integer.int_kind;
+    if (bit_field_type->variant.integer.explicitly_signed ||
+        (C_dialect != C_dialect_pcc &&
+         int_kind == (an_integer_kind)ik_signed_char)) {
+      /* The integral type was explicitly signed in the source, e.g.,
+         "signed int" instead of just "int".  (This information comes from
+         the type entry itself.)  That forces the bit field to be signed.
+         The integral type already has the right kind and signedness.  Note
+         that this won't happen in pcc mode because "signed" is not part of
+         the pcc language. */
       is_signed = TRUE;
-    } else {
-      /* The default for plain integral types in bit fields is unsigned -- or
-         else this is a one-bit bit field, for which anything but unsigned
-         may not make much sense.  Change the type to an unsigned version of
-         the same integral type. */
-      an_integer_kind  new_int_kind;
-
+    } else if (!int_kind_is_signed[int_kind]) {
+      /* The integral type must have been explicitly declared "unsigned", or
+          else it's a plain "char" that is treated as unsigned. */
       is_signed = FALSE;
-      switch (bit_field_type->variant.integer.int_kind) {
-        case ik_signed_char:
-          /* Possible in pcc mode only. */
-        case ik_char:
-          new_int_kind = (an_integer_kind)ik_unsigned_char;
-          break;
-        case ik_short:
-          new_int_kind = (an_integer_kind)ik_unsigned_short;
-          break;
-        case ik_int:
-          new_int_kind = (an_integer_kind)ik_unsigned_int;
-          break;
-        case ik_long:
-          new_int_kind = (an_integer_kind)ik_unsigned_long;
-          break;
+    } else {
+      /* The integral type is "plain" (i.e., plain "int", "char", "short",
+         "long", or "long long") -- it's not explicitly signed or unsigned and
+         it's not an enum type. */
+      if (bit_field_size > 1 && !TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED) {
+        /* Keep the default signedness of the plain integral type. */
+        is_signed = TRUE;
+      } else {
+        /* The default for plain integral types in bit fields is unsigned -- or
+           else this is a one-bit bit field, for which anything but unsigned
+           may not make much sense.  Change the type to an unsigned version of
+           the same integral type. */
+        is_signed = FALSE;
+        switch (int_kind) {
+          case ik_signed_char:
+            /* Possible in pcc mode only. */
+          case ik_char:
+            int_kind = (an_integer_kind)ik_unsigned_char;
+            break;
+          case ik_short:
+            int_kind = (an_integer_kind)ik_unsigned_short;
+            break;
+          case ik_int:
+            int_kind = (an_integer_kind)ik_unsigned_int;
+            break;
+          case ik_long:
+            int_kind = (an_integer_kind)ik_unsigned_long;
+            break;
 #if LONG_LONG_ALLOWED
-        case ik_long_long:
-          new_int_kind = (an_integer_kind)ik_unsigned_long_long;
-          break;
+          case ik_long_long:
+            int_kind = (an_integer_kind)ik_unsigned_long_long;
+            break;
 #endif /* LONG_LONG_ALLOWED */
 #if CHECKING
-        default:
-          internal_error("scan_bit_field_size: bad plain int kind");
+          default:
+            internal_error("scan_bit_field_size: bad plain int kind");
 #endif /* CHECKING */
-      }  /* switch */
-      bit_field_type = integer_type(new_int_kind);
+        }  /* switch */
+        bit_field_type = integer_type(int_kind);
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Give a warning for a signed one-bit field; ANSI C allows it, but it's
