@@ -1495,6 +1495,75 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
   return result;
 }  /* base_subobject_conflict */
 
+
+static a_boolean type_has_nonarray_subobject_of_empty_type(
+                                                   a_type_ptr  type,
+                                                   a_type_ptr  subobject_type)
+/*
+Return TRUE if and only if "type" contains a (direct or indirect) base or
+field whose type is the empty class subobject_type.  Ignore fields of array
+types (and their subobjects).
+*/
+{
+  a_boolean  result = FALSE;
+  a_field_ptr  field;
+
+  if (!symbol_supplement_for_class(type)->has_empty_class_subobject) {
+    goto done;
+  }  /* if */
+  field = type->variant.class_struct_union.field_list;
+  for (; field != NULL; field = field->next) {
+    if (is_immediate_class_type(field->type)) {
+      if (identical_types(field->type, subobject_type) ||
+          type_has_nonarray_subobject_of_empty_type(field->type,
+                                                    subobject_type)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (!result) {
+    a_base_class_ptr  bcp = base_classes_of(type);
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (identical_types(bcp->type, subobject_type) ||
+          type_has_nonarray_subobject_of_empty_type(bcp->type,
+                                                    subobject_type)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+done:
+  return result;
+}  /* type_has_nonarray_subobject_of_empty_type */
+
+
+static a_boolean gnu_first_field_conflict(a_type_ptr     class_type,
+                                          a_field_ptr    field,
+                                          a_targ_size_t  offset)
+/*
+If field is the first field of class_type, and it contains (at any offset)
+a subobject of the same type as an empty base class at the given offset
+in class type, then return TRUE.  Otherwise, return FALSE.  This is used
+to emulate a layout bug in early GNU implementation of the IA-64 ABI.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (class_type->variant.class_struct_union.field_list == field) {
+    a_base_class_ptr  bcp = base_classes_of(class_type);
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (bcp->offset == offset &&
+          bcp->type->variant.class_struct_union.is_empty_class &&
+          type_has_nonarray_subobject_of_empty_type(field->type, bcp->type)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* gnu_first_field_conflict */
+
 #endif /* !IA64_ABI */
 
 static a_boolean set_field_size_and_offset(a_field_ptr         field,
@@ -1633,7 +1702,10 @@ there's no overflow TRUE is returned.
           while (subobject_conflict(lob->class_type, field_type,
                                     save_byte_offset,
                                     /*consider_bases=*/TRUE,
-                                    /*consider_virtual_bases=*/TRUE)) {
+                                    /*consider_virtual_bases=*/TRUE) ||
+                 (emulate_gnu_abi_bugs &&
+                  gnu_first_field_conflict(lob->class_type, field,
+                                           save_byte_offset))) {
             /* The field can't go at this offset.  Advance by the field
                alignment. */
             if (!increment_field_offsets(&lob->byte_offset,
