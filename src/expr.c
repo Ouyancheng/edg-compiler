@@ -7497,55 +7497,6 @@ class type if necessary.
 }  /* process_boolean_controlling_expression */
 
 
-static void reference_cast(an_operand       *operand,
-                           a_base_class_ptr bcp)
-/*
-Convert operand (an lvalue that came from a reference) to the type
-of the base class indicated by bcp.  It remains an lvalue.  This is an
-implicit conversion.
-*/
-{
-  /* Convert to a pointer to the object. */
-  take_address_of_lvalue(operand);
-  /* Cast the pointer to a pointer to the new type. */
-  base_class_cast_operand(operand, bcp, (a_boolean *)NULL,
-                          /*check_cast_access=*/TRUE,
-                          /*is_implicit_cast=*/TRUE,
-                          /*implicit_in_naming=*/FALSE);
-  /* Make an address (an lvalue) for the base class object. */
-  conv_object_pointer_to_lvalue(operand);
-}  /* reference_cast */
-
-
-static a_boolean check_reference_conversions(an_operand *operand_1,
-                                             an_operand *operand_2)
-/*
-operand_1 and operand_2 are the second and third operands of a "?" operator,
-and they are class lvalues that came from references.  Check to see if the
-reference conversions of ARM 4.7 can be used to bring bring them to a
-common type.  If so, apply the conversion and return TRUE; otherwise,
-return FALSE.  The reference conversions were deleted from later versions
-of the Working Paper, but the processing is still applicable.
-*/
-{
-  a_boolean        ref_conversions_apply = FALSE;
-  a_type_ptr       type_1 = operand_1->type;
-  a_type_ptr       type_2 = operand_2->type;
-  a_base_class_ptr bcp;
-
-  if ((bcp = find_base_class_of(type_1, type_2)) != NULL) {
-    /* type_2 is a base class of type_1, so cast operand_1 to type_2. */
-    ref_conversions_apply = TRUE;
-    reference_cast(operand_1, bcp);
-  } else if ((bcp = find_base_class_of(type_2, type_1)) != NULL) {
-    /* type_1 is a base class of type_2, so cast operand_2 to type_1. */
-    ref_conversions_apply = TRUE;
-    reference_cast(operand_2, bcp);
-  }  /* if */
-  return ref_conversions_apply;
-}  /* check_reference_conversions */
-
-
 /*
 Macro that returns TRUE if the given operand is an operand for a throw
 expression.
@@ -7692,31 +7643,27 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       types_are_the_same = TRUE;
     } else {
       /* Check for cases where the operands are classes. */
-      a_boolean operand_2_is_class =is_class_struct_union_type(operand_2.type);
-      a_boolean operand_3_is_class =is_class_struct_union_type(operand_3.type);
-      if (operand_2_is_class || operand_3_is_class) {
-        /* If both operands are classes, see if they are related class
-           types. */
-        if (operand_2_is_class && operand_3_is_class &&
-            is_an_lvalue(&operand_2) && is_an_lvalue(&operand_3) &&
-            check_reference_conversions(&operand_2, &operand_3)) {
-          /* The reference conversions do apply.  The subroutine has done
-             them already and brought the operands to a common type. */
+      if (is_class_struct_union_type(operand_2.type) ||
+          is_class_struct_union_type(operand_3.type)) {
+        /* Look for C++ operator overloading cases.  The operator itself
+           cannot be overloaded, but this also checks for cases where
+           conversion functions can be used to convert the operands to
+           types suitable for the built-in meaning of the operator. */
+        check_for_operator_overloading((an_opname_kind)onk_question,
+                                       /*unary_operator=*/FALSE,
+                                       /*must_be_member_function=*/FALSE,
+                                       /*try_conversions=*/TRUE,
+                                       /*has_predef_meaning=*/TRUE,
+                                       &operand_2, &operand_3,
+                                       &operator_position,
+                                       result, &processed);
+        /* processed TRUE means an error has been detected. */
+        if (processed) {
+          err = TRUE;
         } else {
-          /* Look for C++ operator overloading cases.  The operator itself
-             cannot be overloaded, but this also checks for cases where
-             conversion functions can be used to convert the operands to
-             types suitable for the built-in meaning of the operator. */
-          check_for_operator_overloading((an_opname_kind)onk_question,
-                                         /*unary_operator=*/FALSE,
-                                         /*must_be_member_function=*/FALSE,
-                                         /*try_conversions=*/TRUE,
-                                         /*has_predef_meaning=*/TRUE,
-                                         &operand_2, &operand_3,
-                                         &operator_position,
-                                         result, &processed);
-          /* processed TRUE means an error has been detected. */
-          if (processed) err = TRUE;
+          /* Determine if the types are the same after any conversions.*/
+          types_are_the_same = types_are_compatible(operand_2.type,
+                                                    operand_3.type);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -7745,9 +7692,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     }  /* if */
     result_type = operand_2.type;  /* Assume. */
     /* Note that here types_are_the_same is TRUE if the mode is C++ and
-       the operand types are the same after any transformations, or
-       (when result_is_an_lvalue is also TRUE) if the types were the same
-       before any transformations and both operands were lvalues. */
+       the operand types are the same after any transformations. */
     if (types_are_the_same) {
       /* If the types are the same in C++ mode, no further checking of types
          is needed. */

@@ -496,7 +496,7 @@ Print a candidate function entry for debugging purposes.
     fprintf(f_debug, "Built-in %s", cfp->operand_type_pattern);
     if (cfp->specific_type != NULL) {
       fprintf(f_debug, ", specific_type = ");
-      db_type(cfp->specific_type);
+      db_abbreviated_type(cfp->specific_type);
     }  /* if */
     fprintf(f_debug, "\n");
   }  /* if */
@@ -790,6 +790,11 @@ for overload resolution.
 			/* Pointer to member. */
 #define BOOL_TYPE_CODE 'B'
 			/* bool. */
+#define CLASS_TYPE_CODE 'C'
+			/* Class, struct, or union.  Note that this is used
+			   for the "?" operator, and the operands are dealt
+			   with in a special way, to preserve the original
+			   class object if possible. */
 
 
 static char *name_for_type_code(char type_code)
@@ -822,6 +827,9 @@ Return a printable string describing a type code.
       break;
     case BOOL_TYPE_CODE:
       str = "bool";
+      break;
+    case CLASS_TYPE_CODE:
+      str = "class";
       break;
     default:
       str = "?";
@@ -1378,6 +1386,7 @@ is TRUE.
          so the conversion can be done. */
       arg_summary->match_level = aml_std_conversion;
       arg_summary->conversion.std.cast_base_class = bcp;
+      arg_summary->conversion.std.nontrivial_conversion = TRUE;
       if (param_is_reference) {
         /* This case falls under the reference standard conversions
            (ARM 4.7). */
@@ -2402,6 +2411,7 @@ evaluated (but not checked to see if the match is good enough).
            a base class was used. */
         arg_match->match_level = aml_std_conversion;
         arg_match->conversion.std.cast_base_class = base_class_conv_needed;
+        arg_match->conversion.std.nontrivial_conversion = TRUE;
         /* Save information needed to check whether or not a copy
            constructor is needed. */
         class_copy_case = TRUE;
@@ -4532,9 +4542,9 @@ as its first operand.
       case onk_question:
         /* "?" (which shows up here as a two-operand operator) takes
            two operands (really the second and third) of arithmetic,
-           pointer, or pointer-to-member type (the void and class cases
+           pointer, pointer-to-member, or class type (the void cases
            are handled outside of this routine). */
-        operand_type_pattern = "AA;=PP;=MM";
+        operand_type_pattern = "AA;=PP;=MM;=CC";
         break;
 #if CHECKING
       default:
@@ -4586,6 +4596,9 @@ it fits that type description or can be converted to it.
                 is_enum_type(type) || is_pointer_type(type) ||
                 is_ptr_to_member_type(type);
       break;
+    case CLASS_TYPE_CODE:
+      matches = is_class_struct_union_type(type);
+      break;
     default:
       unexpected_condition_str("type_matches_type_code: bad type code");
   }  /* switch */
@@ -4624,6 +4637,10 @@ type_code.
       break;
     case BOOL_TYPE_CODE:
       builtin_types_allowed = BTK_BOOL;
+      break;
+    case CLASS_TYPE_CODE:
+      /* Class types are not built-in types. */
+      builtin_types_allowed = BTK_NONE;
       break;
     default:
       unexpected_condition_str(
@@ -4827,9 +4844,63 @@ the target type to be used).
     } else {
       /* A specific type is required.  Check that the operand can be
          converted to the type passed in. */
-      if (is_class_struct_union_type(operand_type)) {
+      if (type_code == CLASS_TYPE_CODE) {
+        /* See if the operand can be converted to the specific type (which
+           is a class type).  This is used for the operands of the "?"
+           operator, and because that operator doesn't copy its operands,
+           the analysis here treats the operands specially. */
+        a_base_class_ptr bcp = NULL;
+        check_assertion(is_class_struct_union_type(specific_type));
+        if (types_are_compatible_ignoring_qualifiers(operand_type,
+                                                     specific_type) ||
+            (is_class_struct_union_type(operand_type) &&
+             (bcp = find_base_class_of(operand_type,
+                                       specific_type)) != NULL)) {
+          /* Same class, or derived --> base: preserves the identity of
+             the class object. */
+          if (any_qualifier_missing(specific_type, operand_type)) {
+            /* Some qualifier is dropped, so we can't do this.  Presumably
+               we will be doing this test again on another call of this
+               routine with specific_type the same as the (present)
+               operand_type, and that will be viable. */
+          } else {
+            /* The operand can be made to match up. */
+            if (!type_qualifiers_match(specific_type, operand_type)) {
+              arg_match->conversion.class_object_adjustment_required = TRUE;
+            }  /* if */
+            if (bcp == NULL) {
+              /* A class used as the same class type. */
+              arg_match->match_level = aml_exact;
+            } else {
+              /* A derived class used as the base class. */
+              arg_match->match_level = aml_std_conversion;
+              arg_match->conversion.std.cast_base_class = bcp;
+              arg_match->conversion.std.nontrivial_conversion = TRUE;
+              arg_match->conversion.class_object_adjustment_required = TRUE;
+            }  /* if */
+            arg_match->conversion.result_is_an_lvalue =
+                                           is_an_lvalue(&arg_operand->operand);
+          }  /* if */
+        } else if (conversion_to_class_possible(
+                                         &arg_operand->operand,
+                                         specific_type,
+                                         /*is_copy_initialization=*/TRUE,
+                                         /*try_bitwise_copy=*/FALSE,
+                                         /*is_reference_binding=*/FALSE,
+                                         &conversion,
+                                         (a_conv_descr *)NULL,
+                                         &ambiguous,
+                                         (a_candidate_function_ptr *)NULL) ||
+            ambiguous) {
+          /* The conversion can be done as a conversion that doesn't preserve
+             the identity of the class object. */
+          arg_match->match_level = aml_user_conversion;
+          arg_match->conversion = conversion;
+          arg_match->param_type = specific_type;
+        }  /* if */
+      } else if (is_class_struct_union_type(operand_type)) {
         /* The operand has a class type, so see if it can be converted to
-           the specific type. */
+           the specific type (which is a non-class type). */
         /* If this operand is the one that suggested this specific type,
            we already know it is compatible.  However, we still have to
            call conversion_from_class_possible to get the conversion field
@@ -5040,6 +5111,41 @@ in some way, e.g., two pointers that must have the same type.
       if (any_approp_conversion_function_this_operand) {
         previous_class_type_considered = class_type;
       }  /* if */
+      if (*type_pattern_position == CLASS_TYPE_CODE) {
+        /* A class type is allowed for this operand, so try the match also with
+           the original type. */
+        a_type_ptr other_operand_type;
+        specific_type = operand_type;
+        /* Get the type of the other operand. */
+        if (arg_operand == arg_operand_list) {
+          other_operand_type = arg_operand_list->next->operand.type;
+        } else {
+          other_operand_type = arg_operand_list->operand.type;
+        }  /* if */
+        if (is_class_struct_union_type(other_operand_type) &&
+            find_base_class_of(other_operand_type, operand_type)) {
+          /* The other operand has a type that's a derived class of the
+             current operand type.  Add the cv-qualifiers of the other
+             operand type to the specific type to be considered.
+             For a case like "x ? Base : const Derived" this allows
+             us to try "const Base". */
+          specific_type = type_plus_qualifiers_from_second_type(specific_type,
+                                                           other_operand_type);
+        }  /* if */
+        /* If the type has been previously handled, ignore it. */
+        if (!specific_type_previously_handled(
+                                          specific_type, (a_type_ptr)NULL,
+                                          previous_class_type_considered,
+                                          previous_specific_type_considered)) {
+          previous_specific_type_considered = specific_type;
+          /* Try matching the operands, with the chosen specific type. */
+          try_builtin_operands_match(kind, operand_type_pattern,
+                                     first_operand_must_be_lvalue,
+                                     arg_operand_list,
+                                     candidate_functions,
+                                     specific_type);
+        }  /* if */
+      }  /* if */
     } else {
       /* The operand does not have a class type.  See if standard conversions
          can be used to get to the desired type. */
@@ -5101,11 +5207,12 @@ can be used, it is added to the candidate_functions list.
   if (*operand_type_pattern == LVALUE_FIRST_OPERAND_TYPE_CODE) {
     /* The operator requires an lvalue as its first operand.  Check that.
        If the operand has a class type it might be convertible to an lvalue
-       via a conversion function returning a reference.  Note that we need not
-       check for a modifiable lvalue, because the processing for the
-       built-in operator will do that if necessary.  In fact, the
-       processing for the built-in operator will do full checking, so
-       the checking here is just looking for obvious mismatches. */
+       via a conversion function returning a reference, but that's
+       checked later.  Note that we need not check for a modifiable
+       lvalue, because the processing for the built-in operator will do
+       that if necessary.  In fact, the processing for the built-in
+       operator will do full checking, so the checking here is just
+       looking for obvious mismatches. */
     /* In cfront 2.1 mode, do not require that conversions from class types
        yield lvalues; the error check gets done by the builtin operator. */
     if (!cfront_2_1_mode) first_operand_must_be_lvalue = TRUE;
@@ -5217,6 +5324,45 @@ gives the type of the routine being called.
 }  /* prep_special_selector_operand */
 
 
+static void do_class_object_adjustment(an_operand       *operand,
+                                       a_type_ptr       dest_type,
+                                       a_conv_descr_ptr conversion)
+/*
+operand is a class object (lvalue or rvalue).  It may need to be adjusted
+by changing it to refer to a base class and/or adjusting the cv-qualifiers.
+These adjustments are similar to standard conversions, but they're
+not standard conversions, so they get their own routine.  dest_type
+is the new type desired.  conversion->std.cast_base_class, if non-NULL,
+indicates the base class to be referred to.  On return, the operand
+is an rvalue or lvalue as required by conversion->result_is_an_lvalue.
+*/
+{
+  if (conversion->class_object_adjustment_required) {
+    /* Convert to a pointer to the object. */
+    conv_class_operand_to_object_pointer(operand);
+    if (conversion->std.cast_base_class != NULL) {
+      /* Cast the pointer to the proper base class. */
+      base_class_cast_operand(operand, conversion->std.cast_base_class,
+                              (a_boolean *)NULL,
+                              /*check_cast_access=*/TRUE,
+                              /*is_implicit_cast=*/TRUE,
+                              /*implicit_in_naming=*/FALSE);
+    }  /* if */
+    /* Adjust cv-qualifiers. */
+    cast_operand(make_pointer_type(dest_type), operand,
+                 /*check_cast_access=*/TRUE,
+                 /*is_implicit_cast=*/TRUE,
+                 /*is_reinterpret_cast=*/FALSE);
+    /* Make an address (an lvalue) for the adjusted class object. */
+    conv_object_pointer_to_lvalue(operand);
+  }  /* if */
+  /* If an rvalue is wanted, convert to an rvalue. */
+  if (!conversion->result_is_an_lvalue) {
+    conv_lvalue_to_rvalue(operand);
+  }  /* if */
+}  /* do_class_object_adjustment */
+
+
 static void adjust_operand_for_builtin_operator(
                                    an_operand               *operand,
                                    a_candidate_function_ptr candidate_function,
@@ -5233,8 +5379,12 @@ Adjust the operand type to match the type requirement.
 {
   a_boolean  processed;
   a_type_ptr specific_type;
+  /* Get the type code for this operand (see
+     operand_type_pattern_for_operator). */
+  char       type_code=candidate_function->operand_type_pattern[operand_num-1];
 
-  if (!is_class_struct_union_type(operand->type)) {
+  if (!is_class_struct_union_type(operand->type) &&
+      type_code != CLASS_TYPE_CODE) {
     /* Non-class operands need not be adjusted here; the built-in operator
        processing will do it. */
   } else {
@@ -5250,8 +5400,8 @@ Adjust the operand type to match the type requirement.
     }  /* if */
     specific_type = candidate_function->specific_type;
     if (specific_type == NULL) {
-      /* Non-pointer or non-specific pointer case.  The conversion function
-         result type is the right type. */
+      /* Non-specific type case.  The conversion function result type is the
+         right type. */
       if (conv_usable(&arg_match->conversion)) {
         /* The conversion is usable.  Do it. */
         prep_for_known_possible_conversion(operand, &arg_match->conversion);
@@ -5261,10 +5411,6 @@ Adjust the operand type to match the type requirement.
         /* The conversion is not usable, e.g., because the conversion
            is ambiguous.  Redo the analysis of the conversion to get
            a detailed error message. */
-        /* Get the type code for this operand (see
-           operand_type_pattern_for_operator). */
-        char type_code =
-                       candidate_function->operand_type_pattern[operand_num-1];
         try_to_convert_class_operand_to_builtin_type(operand,
                                      builtin_type_set_for_type_code(type_code),
                                      &processed);
@@ -5276,14 +5422,22 @@ Adjust the operand type to match the type requirement.
 #endif /* CHECKING */
       }  /* if */
     } else {
-      /* Pointer cases.  Convert to the pointer type indicated in
-         candidate_function. */      
-      prep_conversion_operand(operand, specific_type,
-                              &arg_match->conversion,
-                              /*is_copy_initialization=*/TRUE,
-                              /*try_user_conversions=*/TRUE,
-                              ec_no_error,
-                              &operand->position);
+      /* A specific type is wanted.  Convert to the type indicated in
+         candidate_function. */
+      if (type_code == CLASS_TYPE_CODE &&
+          arg_match->conversion.routine == NULL) {
+        /* Conversion to a class type that preserves the identity of the
+           class object. */
+        do_class_object_adjustment(operand, specific_type,
+                                   &arg_match->conversion);
+      } else {
+        prep_conversion_operand(operand, specific_type,
+                                &arg_match->conversion,
+                                /*is_copy_initialization=*/TRUE,
+                                /*try_user_conversions=*/TRUE,
+                                ec_no_error,
+                                &operand->position);
+      }  /* if */
     }  /* if */
     if (inside_conditional) {
       /* Restore inside_conditional_expression. */
@@ -5834,6 +5988,7 @@ error.  This routine is used only in C++ mode.
       /* Yes, this is a bitwise copy from a derived class to a base class. */
       conversion->class_identity_or_bitwise_copy = TRUE;
       conversion->std.cast_base_class = bcp;
+      conversion->std.nontrivial_conversion = TRUE;
       okay = TRUE;
     }  else {
       /* The candidate_functions list now contains all the viable functions.
@@ -6584,36 +6739,18 @@ be a constructor call.
                        (a_boolean)conversion_routine->is_virtual,
                        /*virtual_suppressed=*/FALSE,
                        &orig_operand.position, operand);
-    if (is_class_struct_union_type(operand->type)) {
-      /* Class types get special handling: they can involve derived --> base
-         conversions, and class rvalues retain their cv-qualifiers. */
-      if (dest_type != NULL) {
-        check_assertion(is_class_struct_union_type(dest_type));
-        if (conversion->class_object_adjustment_required) {
-          /* The operand requires some adjustment. */
-          /* Convert to a pointer to the object. */
-          conv_class_operand_to_object_pointer(operand);
-          if (conversion->std.cast_base_class != NULL) {
-            /* Cast the pointer to the proper base class. */
-            base_class_cast_operand(operand, conversion->std.cast_base_class,
-                                    (a_boolean *)NULL,
-                                    /*check_cast_access=*/TRUE,
-                                    /*is_implicit_cast=*/TRUE,
-                                    /*implicit_in_naming=*/FALSE);
-          }  /* if */
-          /* Adjust cv-qualifiers. */
-          cast_operand(make_pointer_type(dest_type), operand,
-                       /*check_cast_access=*/TRUE,
-                       /*is_implicit_cast=*/TRUE,
-                       /*is_reinterpret_cast=*/FALSE);
-          /* Make an address (an lvalue) for the adjusted class object. */
-          conv_object_pointer_to_lvalue(operand);
-        }  /* if */
-      }  /* if */
+    if (dest_type == NULL) {
+      /* No specified destination type.  The result type of the conversion
+         function is what we want. */
       /* If an rvalue is wanted, convert to an rvalue. */
       if (!conversion->result_is_an_lvalue) {
         conv_lvalue_to_rvalue(operand);
       }  /* if */
+    } else if (is_class_struct_union_type(operand->type)) {
+      /* Class types get special handling: they can involve derived --> base
+         conversions, and class rvalues retain their cv-qualifiers. */
+      check_assertion(is_class_struct_union_type(dest_type));
+      do_class_object_adjustment(operand, dest_type, conversion);
     } else {
       /* Nonclass case. */
       if (!conversion->result_is_an_lvalue || 
@@ -6625,7 +6762,7 @@ be a constructor call.
         conv_lvalue_to_rvalue(operand);
       }  /* if */
       /* Do any necessary standard or trivial conversion. */
-      if (dest_type != NULL && is_an_rvalue(operand)) {
+      if (is_an_rvalue(operand)) {
         cast_operand(dest_type, operand, /*check_cast_access=*/TRUE,
                      /*is_implicit_cast=*/TRUE,
                      /*is_reinterpret_cast=*/FALSE);
