@@ -1,5 +1,15 @@
 Version 3.3
 
+6/25/03  Internal error on invalid class definition in member of class template
+
+If a class definition appeared in an unexpected place within a class template
+(in the parameter list of a function declaration, in this example) an
+internal error could result.  This has been fixed.
+
+  template <class T> struct A {
+    void a(struct B { T f() {return f;} });
+  };
+
 6/24/03  Incorrect virtual function tables with no RTTI, no Cfront
          compatibility
 

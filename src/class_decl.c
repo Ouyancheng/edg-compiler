@@ -290,6 +290,36 @@ with the indicated scope stack entry.
 }  /* add_to_routine_fixup_list */
 
 
+static a_boolean is_invalid_scope_for_class(void)
+/*
+Determine whether the current scope is valid for a class definition.  This
+is used to suppress the fixup of routines declared in the class for classes
+found in unexpected locations.
+*/
+{
+  a_boolean	result = FALSE;
+  a_scope_stack_entry  *ssep = &scope_stack[depth_scope_stack];
+
+  while (ssep->kind == (a_scope_kind)sck_template_declaration) {
+    /* Skip any template declaration scopes (for member template declarations)
+       to find the enclosing class. */
+    --ssep;
+  }  /* while */
+  check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
+  --ssep;
+  switch (ssep->kind) {
+    case sck_template_declaration:
+    case sck_func_prototype:
+      /* An invalid scope for a class definition. */
+      result = TRUE;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* is_invalid_scope_for_class */
+
+
 static void dispose_of_curr_routine_fixup(void)
 /*
 If the currently active routine fixup entry has been modified such that a
@@ -300,7 +330,9 @@ the current class.  Otherwise free it for later use.
   a_symbol_ptr  sym = curr_routine_fixup->symbol;
   a_boolean     needed = FALSE;
 
-  if (sym != NULL && !sym->is_error) {
+  if (is_invalid_scope_for_class()) {
+    /* A class definition in an unexpected place.  Don't fixup the routines. */
+  } else if (sym != NULL && !sym->is_error) {
     if (curr_routine_fixup->function_body_token_cache.first_token != NULL  ||
         curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
       needed = TRUE;
