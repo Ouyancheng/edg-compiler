@@ -384,6 +384,10 @@ static a_boolean
 static char	*temporary_file_name = NULL;
 			/* The name to be used as a temporary file for
 			   the creation of a definition list file. */
+
+static FILE	*f_informational = stderr;
+			/* The file to be used when displaying informational
+			   messages. */
 			
 
 typedef enum /* an_nm_format_kind */ {
@@ -2535,7 +2539,7 @@ the file is flagged as requiring recompilation.
           }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
           if (verbose) {
-            fprintf(stdout, pl_error_text(pl_ec_no_longer_needed),
+            fprintf(f_informational, pl_error_text(pl_ec_no_longer_needed),
                     message_prefix, pl_decoded_name(psp->name),
                     pifp->file_name);
           }  /* if */
@@ -2575,7 +2579,7 @@ the file is flagged as requiring recompilation.
           pifp->recompile = TRUE;
           done = FALSE;
           if (verbose) {
-            fprintf(stdout, pl_error_text(pl_ec_assigned_to_file),
+            fprintf(f_informational, pl_error_text(pl_ec_assigned_to_file),
                     message_prefix, pl_decoded_name(sym->name),
                     pifp->file_name);
           }  /* if */
@@ -2691,9 +2695,9 @@ to be used when displaying the command line.
   } else {
     display_command = command;
   }  /* if */
-  fprintf(stdout, pl_error_text(pl_ec_executing), message_prefix,
+  fprintf(f_informational, pl_error_text(pl_ec_executing), message_prefix,
           display_command);
-  fflush(stdout);
+  fflush(f_informational);
   result = system(command);
   /* The return value from the system command is usually the return value of
      the command executed shifted left by 8 bits.  If the return value is
@@ -2908,7 +2912,7 @@ the entries to the instantiation request file.
         fputs(pl_input_line, f_request);
         fputs("\n", f_request);
         if (verbose) {
-          fprintf(stdout, pl_error_text(pl_ec_adopted_by_file),
+          fprintf(f_informational, pl_error_text(pl_ec_adopted_by_file),
                   message_prefix, pl_decoded_name(pl_input_line),
                   pifp->file_name);
         }  /* if */

@@ -1,5 +1,11 @@
 Version 2.42
 
+7/28/99  Prelinker: informational messages now directed to stderr
+
+Formerly, information messages (e.g., "f(int) assigned to t.c") were
+directed to standard output.  They are now directed to the standard
+error device instead.
+
 7/2/99   Prelinker: error output of "nm" command no longer discarded
 
 Formerly, any error output of the "nm" command was discarded.  It
