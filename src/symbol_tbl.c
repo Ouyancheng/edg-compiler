@@ -1283,17 +1283,20 @@ Allocate a new symbol list entry and return a pointer to it.
 
 void free_list_of_symbol_list_entries(a_symbol_list_entry_ptr slep)
 /*
-Add a list of symbol list entries to the available list.
+Add a list of symbol list entries to the available list.  slep may
+be NULL, in which case nothing is done.
 */
 {
   a_symbol_list_entry_ptr	slep_tail;
-  check_assertion(slep != NULL);
-  /* Find the last entry on the list. */
-  for (slep_tail = slep; slep_tail->next != NULL; slep_tail = slep_tail->next);
-  /* Add the current available list to the end of the list passed by the
-     caller. */
-  slep_tail->next = avail_symbol_list_entries;
-  avail_symbol_list_entries = slep_tail;
+  if (slep != NULL) {
+    /* Find the last entry on the list. */
+    for (slep_tail = slep;
+         slep_tail->next != NULL; slep_tail = slep_tail->next);
+    /* Add the current available list to the end of the list passed by the
+       caller. */
+    slep_tail->next = avail_symbol_list_entries;
+    avail_symbol_list_entries = slep_tail;
+  }  /* if */
 }  /* free_list_of_symbol_list_entries */
 
 
@@ -8190,66 +8193,76 @@ Specifically, it produces the set of nonmember candidates by doing
 a normal lookup (but excluding member functions) and combining the
 result of that lookup with a lookup in the namespaces of the classes
 pointed to by type_1 and type_2 including the namespaces of their base
-classes.  For unary operators, type_2 will be NULL.
+classes.  type_1 and type_2 may point to any kind of type or may be
+NULL.  If the type pointed to by type_1 or type_2 is not a class
+type, that type is ignored by this routine.
 */
 {
-  a_namespace_list_entry_ptr	nlep_1;
+  a_namespace_list_entry_ptr	nlep_1 = NULL;
   a_namespace_list_entry_ptr	nlep_2 = NULL;
   a_symbol_header_ptr		sym_hdr;
   a_symbol_list_entry_ptr	symbol_list = NULL;
 
   db_enter(4, "nonmember_operator_function_lookup");
   /* Get a pointer to the namespace list associated with each class. */
-  nlep_1 = symbol_supplement_for_class(type_1)->operator_lookup_namespaces;
-  if (type_2 != NULL) {
+  if (type_1 != NULL && is_class_struct_union_type(type_1)) {
+    type_1 = skip_typerefs(type_1);
+    nlep_1 = symbol_supplement_for_class(type_1)->operator_lookup_namespaces;
+  }  /* if */
+  if (type_2 != NULL && is_class_struct_union_type(type_2)) {
+    type_2 = skip_typerefs(type_2);
     nlep_2 = symbol_supplement_for_class(type_2)->operator_lookup_namespaces;
   }  /* if */
   /* See if there are any functions for this operator. */
   sym_hdr = opname_symbol_table[kind];
   if (sym_hdr != NULL) {
-    int pass;
-    for (pass = 0; pass < 2; pass++) {
-      /* Look at active symbols on the first pass, inactive symbols on the
-         second pass. */
-      a_symbol_ptr	sym;
-      sym = pass == 0 ? sym_hdr->symbol : sym_hdr->inactive_symbols;
-      for (; sym != NULL; sym = sym->next) {
-        a_namespace_ptr	nsp;
-        a_namespace_list_entry_ptr	nlep;
-        /* Ignore member function symbols. */
-        if (sym->is_class_member) continue;
-        /* Ignore symbols that are not functions or function templates. */
-        if (!is_function_symbol(sym) ||
-            sym->kind != (a_symbol_kind)sk_function_template) continue;
-        /* Get the namespace associated with this function. */
-        nsp = sym->parent.namespace_ptr;
-        /* See if the namespace of this function is on the namespace list of
-           either of the operands.  Note that a NULL namespace pointer
-           still needs to be searched for.  There can be a list entry that
-           points to a NULL namespace. */
-        /* Look on the list associated with the first type. */
-        for (nlep = nlep_1; nlep != NULL; nlep = nlep->next) {
-          if (nlep->ptr == nsp) break;
-        }  /* for */
-        if (nlep == NULL) {
-          /* The namespace was not found on the first list, look on the
-             list associated with the second type. */
-          for (nlep = nlep_2; nlep != NULL; nlep = nlep->next) {
+    if (nlep_1 != NULL || nlep_2 != NULL) {
+      /* Only look for symbols in the namespaces associated with type_1 and
+         type_2 if they are classes (with namespace lists). */
+      int pass;
+      for (pass = 0; pass < 2; pass++) {
+        /* Look at active symbols on the first pass, inactive symbols on the
+           second pass. */
+        a_symbol_ptr	sym;
+        sym = pass == 0 ? sym_hdr->symbol : sym_hdr->inactive_symbols;
+        for (; sym != NULL; sym = sym->next) {
+          a_namespace_ptr	nsp;
+          a_namespace_list_entry_ptr	nlep;
+          /* Ignore member function symbols. */
+          if (sym->is_class_member) continue;
+          /* Ignore symbols that are not functions or function templates. */
+          if (!is_function_symbol(sym) &&
+              sym->kind != (a_symbol_kind)sk_function_template) continue;
+          /* Get the namespace associated with this function. */
+          nsp = sym->parent.namespace_ptr;
+          /* See if the namespace of this function is on the namespace list of
+             either of the operands.  Note that a NULL namespace pointer
+             still needs to be searched for.  There can be a list entry that
+             points to a NULL namespace. */
+          /* Look on the list associated with the first type. */
+          for (nlep = nlep_1; nlep != NULL; nlep = nlep->next) {
             if (nlep->ptr == nsp) break;
           }  /* for */
-        }  /* if */
-        if (nlep != NULL) {
-          /* The namespace was found on one of the lists.  Create a symbol
-             list entry that points to this symbol and add it so the list. */
-          a_symbol_list_entry_ptr	slep;
-          slep = alloc_symbol_list_entry();
-          slep->symbol = sym;
-          /* Add the new entry to the front of the list. */
-          slep->next = symbol_list;
-          symbol_list = slep;
-        }  /* if */
+          if (nlep == NULL) {
+            /* The namespace was not found on the first list, look on the
+               list associated with the second type. */
+            for (nlep = nlep_2; nlep != NULL; nlep = nlep->next) {
+              if (nlep->ptr == nsp) break;
+            }  /* for */
+          }  /* if */
+          if (nlep != NULL) {
+            /* The namespace was found on one of the lists.  Create a symbol
+               list entry that points to this symbol and add it so the list. */
+            a_symbol_list_entry_ptr	slep;
+            slep = alloc_symbol_list_entry();
+            slep->symbol = sym;
+            /* Add the new entry to the front of the list. */
+            slep->next = symbol_list;
+            symbol_list = slep;
+          }  /* if */
+        }  /* for */
       }  /* for */
-    }  /* for */
+    }  /* if */
     { /* Now do a normal lookup of the operator function.  See if the
          symbol that is looked up is on the list that has already been
          built.  If not, add it. */
