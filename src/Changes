@@ -82,14 +82,16 @@ easy for those who want a command-line option to add one.
 
 12/15/94 Generation of unique externally visible names
 
-Unique external names are generated for the "sti" and "std" routines
-used to static initialization and destruction, and for "fake statics"
-(static variables that need to be put out in K&R mode as external).
+Unique external names are generated for the routines used to do
+static initialization and destruction, and for "fake statics"
+(static variables that need to be put out as extern in K&R mode).
 
 Formerly, the encoding included the compilation date and time,
 causing the external name to change from one compilation to the next.
-The encoding has been changed so that the generated names will no
-longer change between multiple compilations of the same file.
+The encoding has been changed (to something based on the file name and
+the name of the first defined external entity in the compilation)
+so that the generated names will no longer change between multiple
+compilations of the same file.
 
 12/15/94 Address-taken references on pointer-to-member of overloaded
          member function
