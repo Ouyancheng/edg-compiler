@@ -2272,6 +2272,7 @@ the symbol table, this routine is not called for them.
                      ec_class_and_member_name_conflict,
                 &member_sym->decl_position);
       err = TRUE;
+      member_sym->is_error = TRUE;
     }  /* if */
   }  /* if */
   return err;
