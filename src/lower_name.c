@@ -2469,7 +2469,7 @@ given by tap.
     }  /* if */
     fill_in_length(&length_reservation, mctl);
 #else /* IA64_ABI */
-    if (!add_substitution((char *)temp, iek_template, mctl)) {
+    if (!add_substitution_if_available((char *)temp, iek_template, mctl)) {
       a_boolean need_nested_name_close = FALSE;
       /* Add a parent qualifier if needed. */
       mangled_ia64_parent_qualifier(scp, iek_template,
@@ -2477,6 +2477,7 @@ given by tap.
       /* Add the name for the template itself. */
       mangled_name_with_length(scp->name, mctl);
       close_ia64_nested_name(need_nested_name_close, mctl);
+      alloc_substitution((char *)temp, iek_template, mctl);
     }  /* if */
 #endif /* IA64_ABI */
   }  /* if */
