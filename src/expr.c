@@ -4310,10 +4310,12 @@ Syntax:
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode && !C_mode()) {
     /* Microsoft allows "sizeof T" without parentheses in C++ mode,
-       where T is a type-name (not a keyword like "int"). */
-    if (is_expr_qualified_name_start() &&
-        is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                         DFS_SINGLE_TYPE_REQUIRED)) {
+       where T is a type-name (not a keyword like "int").  If we have
+       a type name that is not followed by a left parenthesis, assume this
+       to be the size of the type. */
+    if (is_generalized_identifier_start(GID_IS_EXPR_CONTEXT) &&
+        next_token() != tok_lparen &&
+        curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/FALSE)) {
       /* Something like
            typedef int I;
            sizeof I;
