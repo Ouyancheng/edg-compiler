@@ -18815,6 +18815,29 @@ are instantiated using a mechanism like the template instantiation mechanism.
 
 #if IA64_ABI
 
+static void write_thunk_entry_points_to_template_info_file(
+						a_routine_ptr	rout_ptr)
+/*
+Write out "entry point" template information file entries for any thunks
+associated with the given routine.
+*/
+{
+  a_routine_ptr trout;
+  char          *name;
+
+  for (trout = rout_ptr->next;
+       trout != NULL &&
+         trout->overriding_function_for_covariant_return_type == rout_ptr;
+       trout = trout->next) {
+    name = get_mangled_function_name_full(trout,
+                                          /*force_primary_name=*/FALSE,
+                                          /*externalize_if_necessary=*/TRUE);
+    write_to_template_info_file(tilt_entry_point, name,
+                                (char*)NULL, (a_symbol_ptr)NULL);
+  }  /* for */
+}  /* write_thunk_entry_points_to_template_info_file */
+    
+
 static void write_alternate_entry_points_to_template_info_file(
 						a_routine_ptr	rout_ptr)
 /*
@@ -18848,6 +18871,7 @@ previous instantiation flag entry.
       write_to_template_info_file(tilt_entry_point, name,
                                  (char*)NULL, (a_symbol_ptr)NULL);
     }  /* if */
+    write_thunk_entry_points_to_template_info_file(rlep->routine);
   }  /* for */
 }  /* write_alternate_entry_points_to_template_info_file */
 
@@ -18983,6 +19007,7 @@ a body (if needed) for extern inline functions.
              name, instance_required, do_not_instantiate, can_be_instantiated,
              (a_symbol_ptr)NULL);
 #if IA64_ABI
+        write_thunk_entry_points_to_template_info_file(rout_ptr);
         /* Check for alternate entry points that must be output. */
         if (rout_ptr->special_kind ==
                                     (a_special_function_kind)sfk_constructor ||
