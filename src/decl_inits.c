@@ -3935,6 +3935,8 @@ initialized.  These are addressed in the course of the processing.
           init_type = error_type();
           goto scan_paren;
         }  /* if */
+        /* Make sure the symbol found is accessible and not ambiguous. */
+        check_ambiguity_and_verify_access(&locator_for_curr_id);
         record_symbol_reference(SRK_REFERENCE | SRK_INITIALIZATION,
                                 member_or_base_sym, &error_position,
                                 /*update_il_entry=*/FALSE);

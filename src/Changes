@@ -1,5 +1,17 @@
 Version 3.1
 
+6/19/02  Missing ambiguity error on ctor-initializer
+
+The front end failed to diagnose an ambiguous name used as a base class
+in a ctor-initializer.  This has been fixed.
+
+  struct D { struct X {};};
+  struct C { struct X {};};
+  struct A : C::X, D::X {
+     A() : X() {}  // X should be ambiguous
+  };
+  A a;
+
 6/19/02  UPC Extensions
 
 The front end can now accept the Unified Parallel C (UPC 1.0) core language
