@@ -1,5 +1,15 @@
 Version 2.33
 
+9/30/96 Dynamic initialization of local static variable
+
+In C++, when the initializer of a local static variable is a non-integral
+constant, the initialization is now represented as dynamic rather than
+static, as required by section 6.7 paragraph 4 of the Working Paper.
+
+  void f() {
+    static float x = 1.5;    // dynamic initialization in C++
+  }
+
 9/30/96 Removing front-end-only types from based-types lists
 
 The based-types lists that are passed to a back end (or to IL lowering) no
