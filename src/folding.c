@@ -64,9 +64,9 @@ constant is an address that is not known until link time.)
 }  /* constant_bool_value_known_at_compile_time */
 
 
-static void make_template_param_cast_constant(a_constant  *old_constant,
-                                              a_constant  *new_constant,
-                                              a_type_ptr  new_type)
+void make_template_param_cast_constant(a_constant  *old_constant,
+                                       a_constant  *new_constant,
+                                       a_type_ptr  new_type)
 /*
 Make, in *new_constant, a ck_template_param/tpck_cast constant that
 represents *old_constant cast to the type new_type.

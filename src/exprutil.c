@@ -4477,21 +4477,55 @@ is inserted only for the unexpected case.
 }  /* prep_generic_operand */
 
 
-void generic_cast_operand(an_operand *operand,
-                          a_type_ptr dest_type)
+void generic_cast_operand(an_operand            *operand,
+                          a_type_ptr            dest_type,
+                          an_expr_operator_kind op,
+                          a_boolean             is_implicit_cast)
 /*
 Add a generic cast that casts the given operand to dest_type.  This is used
 in prototype instantiations to represent conversions to unknown types.
+op is the expression operator to be used (e.g., eok_cast, eok_static_cast).
+is_implicit_cast is TRUE if the cast is implicit.  Note that the cast
+can be bizarre in a number of ways, e.g., the source operand is an lvalue.
 */
 {
-  prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
-  if (!il_identical_types(operand->type, dest_type)) {
-    an_expr_node_ptr expr = make_node_from_operand(operand);
-    expr = make_operator_node((an_expr_operator_kind)eok_cast, dest_type,
-                              expr);
-    expr->variant.operation.compiler_generated = TRUE;
-    make_expression_operand(expr, dest_type, operand);
+  an_operand orig_operand;
+
+  orig_operand = *operand;
+  check_assertion(!is_reference_type(dest_type));
+  if (curr_expr_kind_is_const()) {
+    /* In a constant expression, cast the constant rather than building
+       an expression tree.  Note that we don't use cast_operand or
+       type_change_constant, because this conversion might be highly
+       invalid. */
+    check_assertion_str(is_constant_operand(operand) ||
+                        is_error_operand(operand),
+                        "generic_cast_operand: non-const operand");
+    if (!il_identical_types(operand->type, dest_type)) {
+      a_constant orig_constant;
+      orig_constant = operand->variant.constant;
+      make_template_param_cast_constant(&orig_constant,
+                                        &operand->variant.constant,
+                                        dest_type);
+      if (operand->state == (an_operand_state)os_lvalue ||
+          operand->state == (an_operand_state)os_function_designator) {
+        if (operand->type != type_of_unknown_templ_param_nontype) {
+          operand->type = type_pointed_to(operand->type);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else {
+    /* Non-constant expression.  Generate a cast expression. */
+    prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
+    if (!il_identical_types(operand->type, dest_type)) {
+      an_expr_node_ptr expr = make_node_from_operand(operand);
+      expr = make_operator_node(op, dest_type, expr);
+      if (is_implicit_cast) expr->variant.operation.compiler_generated = TRUE;
+      make_expression_operand(expr, dest_type, operand);
+      restore_operand_details_incl_ref(operand, &orig_operand);
+    }  /* if */
   }  /* if */
+  restore_operand_details_incl_ref(operand, &orig_operand);
 }  /* generic_cast_operand */
 
 
@@ -4598,7 +4632,9 @@ position.
       /* Other operators (not unary "+"). */
       did_not_fold = TRUE;
       template_constant = FALSE;
-      if (is_constant_operand(operand)) {
+      if (is_constant_operand(operand) &&
+          /* "&" isn't handled by unary_operation. */
+          op != (an_expr_operator_kind)eok_address) {
         /* Fold the operation if the operand is constant.  In a nonconstant
            context, reduce any error to a warning and leave the operation
            to be done at runtime. */
@@ -4677,11 +4713,22 @@ be used (e.g., eok_negate, not eok_inegate).
     prep_generic_operand(operand, operator_takes_lvalue_operand(op));
   }  /* if */
   if (op == (an_expr_operator_kind)eok_address &&
-      is_constant_operand(operand)) {
-    /* "&" operator, which cannot be folded the usual way. */
-    copy_operand(operand, result);
-    if (is_an_lvalue(operand)) take_address_of_lvalue(result);
+      curr_expr_kind_is_const()) {
+    /* "&" operator in a constant expression, which cannot be folded
+       the usual way. */
+    if (is_an_lvalue(operand)) {
+      copy_operand(operand, result);
+      take_address_of_lvalue(result);
+    } else if (is_a_function_designator(operand)) {
+      copy_operand(operand, result);
+      conv_function_designator_to_ptr_to_function(result,
+                                                  /*allow_ctor=*/FALSE);
+    } else {
+      check_assertion(is_error_operand(operand));
+      make_error_operand(result);
+    }  /* if */
   } else {
+    /* Normal case. */
     do_unary_operation(op, op_token, operand,
                        type_of_unknown_templ_param_nontype,
                        result, start_position);

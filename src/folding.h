@@ -23,6 +23,10 @@ folding.h -- Declarations relating to folding operations.
 
 extern a_boolean constant_bool_value_known_at_compile_time(a_constant_ptr con);
 
+extern void make_template_param_cast_constant(a_constant  *old_constant,
+                                              a_constant  *new_constant,
+                                              a_type_ptr  new_type);
+
 extern void implicit_cast(a_constant_ptr cp,
                           a_type_ptr     new_type);
 

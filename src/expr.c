@@ -3335,6 +3335,22 @@ operation is a pointer-to-member (see ARM 5.3).
          make an lvalue for the member instead of the previous assumption
          that it is a constant. */
       change_nonreal_member_constant_operand_to_lvalue(&operand);
+      if (is_sym_for_member_operand(&operand)) {
+        /* Replace something like &A::x by a pointer-to-member constant. */
+        conv_sym_for_member_operand_to_ptr_to_member(&operand);
+      }  /* if */
+      if (curr_expr_kind_is_const()) {
+        /* In a constant expression, we can check that the entity is
+           an lvalue.  (In non-constant expressions in prototype
+           instantiations, the lvalue-ness of operands is sometimes
+           unknowable.) */
+        if (!is_an_lvalue(&operand) &&
+            !is_a_function_designator(&operand) &&
+            !is_error_operand(&operand)) {
+          error_in_operand(ec_expr_not_an_lvalue_or_function_designator,
+                           &operand);
+        }  /* if */
+      }  /* if */
       template_unary_operation((an_expr_operator_kind)eok_address,
                                tok_ampersand, &operand,
                                result, &start_position);
@@ -4675,17 +4691,20 @@ Syntax:
     /* Check the type of the operand. */
     operand_type = operand.type;
     operand_type_okay = FALSE;
+    operation_type = cast_type;
     if (is_template_dependent_context() &&
         is_or_contains_template_param(operand_type)) {
       /* An operand of unknown type, in a prototype instantiation. */
       operand_type_okay = TRUE;
       template_param_case = TRUE;
+      if (reference_case) {
+        operation_type = make_pointer_type(underlying_cast_type);
+      }  /* if */
     } else if (!reference_case) {
       /* When casting to a pointer type, the operand is treated as an
          rvalue. */
       do_operand_transformations(&operand, TOPT_NO_OPTIONS);
       operand_type = operand.type;
-      operation_type = cast_type;
       /* The source operand must be a pointer to a complete class type. */
       underlying_operand_type = NULL;
       if (is_pointer_type(operand_type)) {
@@ -4751,11 +4770,10 @@ Syntax:
   } else if (template_param_case) {
     /* The source operand type or the destination type is unknown, so
        generate a generic operation. */
-    prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
-    expr = make_operator_node((an_expr_operator_kind)eok_dynamic_cast,
-                              cast_type,
-                              make_node_from_operand(&operand));
-    make_expression_operand(expr, expr->type, result);
+    generic_cast_operand(&operand, operation_type, 
+                         (an_expr_operator_kind)eok_dynamic_cast,
+                         /*is_implicit_cast=*/FALSE);
+    copy_operand(&operand, result);
   } else if (same_type_with_added_qualifiers(operand_type, operation_type,
                                              /*ignore_qualifiers=*/TRUE,
                                              (a_boolean *)NULL)) {
@@ -7129,12 +7147,10 @@ Syntax:
     if (template_param_case) {
       /* Put out a generic operator for a case involving template parameter
          types. */
-      an_expr_node_ptr expr;
-      prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
-      expr = make_operator_node((an_expr_operator_kind)eok_const_cast,
-                                operation_type,
-                                make_node_from_operand(&operand));
-      make_expression_operand(expr, expr->type, result);
+      generic_cast_operand(&operand, operation_type, 
+                           (an_expr_operator_kind)eok_const_cast,
+                           /*is_implicit_cast=*/FALSE);
+      copy_operand(&operand, result);
     } else {
       /* The types are already the same except for qualifiers.  The result
          is just the source cast to the destination type. */
@@ -7269,12 +7285,9 @@ Syntax:
                is_or_contains_template_param(type_cast_to))) {
             /* Put out a generic operator for a case involving template
                parameter types. */
-            an_expr_node_ptr expr;
-            prep_generic_operand(result, /*lvalue_expected=*/FALSE);
-            expr = make_operator_node((an_expr_operator_kind)eok_static_cast,
-                                      type_cast_to,
-                                      make_node_from_operand(result));
-            make_expression_operand(expr, expr->type, result);
+            generic_cast_operand(result, type_cast_to,
+                                 (an_expr_operator_kind)eok_static_cast,
+                                 /*is_implicit_cast=*/FALSE);
           } else {
             /* Do the actual cast. */
             cast_operand(type_cast_to, result, /*check_cast_access=*/TRUE,
@@ -7396,12 +7409,9 @@ Syntax:
              is_or_contains_template_param(type_cast_to))) {
           /* Put out a generic operator for a case involving template parameter
              types. */
-          an_expr_node_ptr expr;
-          prep_generic_operand(result, /*lvalue_expected=*/FALSE);
-          expr =make_operator_node((an_expr_operator_kind)eok_reinterpret_cast,
-                                   type_cast_to,
-                                   make_node_from_operand(result));
-          make_expression_operand(expr, expr->type, result);
+          generic_cast_operand(result, type_cast_to,
+                               (an_expr_operator_kind)eok_reinterpret_cast,
+                               /*is_implicit_cast=*/FALSE);
         } else {
           /* Do the actual cast. */
           cast_operand(type_cast_to, result, /*check_cast_access=*/TRUE,

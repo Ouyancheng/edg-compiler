@@ -8986,7 +8986,9 @@ in that case.
   } else if (conversion->unknown_dependent_conversion) {
     /* Conversion from or to a template-dependent type in a prototype
        instantiation.  Render as a cast. */
-    generic_cast_operand(operand, dest_type);
+    generic_cast_operand(operand, dest_type,
+                         (an_expr_operator_kind)eok_cast,
+                         /*is_implicit_cast=*/TRUE);
   } else if (conversion_routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
     /* Conversion function. */
@@ -9958,12 +9960,14 @@ direct binding is "possible" and not whether it is "valid".
   }  /* if */
   if (type_is_correct_or_derived && !*binding_to_rvalue_allowed &&
       source_operand != NULL && is_an_rvalue(source_operand) &&
-      !template_case) {
+      /* With template-dependent cases, we can only be sure about
+         lvalue-ness in constant expressions. */
+      (!template_case || curr_expr_kind_is_const())) {
     /* The reference may not be bound to an rvalue, and the source_operand
        is an rvalue.  The binding is still possible, though not allowed,
        if the operand has a class type, and using that interpretation
        allows for clearer error messages later. */
-    if (!is_class_struct_union_type(unqual_source_type)) {
+    if (!is_class_struct_union_type(unqual_source_type) && !template_case) {
       direct_binding_possible = FALSE;
     }  /* if */
   }  /* if */
@@ -10184,7 +10188,26 @@ to be acceptable, and *conversion describes it.
   } else if (template_case) {
     /* Some unknown types in a prototype instantiation.  Assume the binding
        can be done. */
-    generic_cast_operand(source_operand, result_ptr_type);
+    if (curr_expr_kind_is_const()) {
+      /* In a constant expression (i.e., nontype template argument),
+         we can check that the source operand is an lvalue.  Elsewhere,
+         the lvalue-ness of some operands is not knowable. */
+      if (is_an_lvalue(source_operand)) {
+        take_address_of_lvalue(source_operand);
+      } else if (is_a_function_designator(source_operand)) {
+        conv_function_designator_to_ptr_to_function(source_operand,
+                                                    /*allow_ctor=*/FALSE);
+      } else {
+        /* Binding a reference to an rvalue in a constant expression. */
+        if (!is_error_operand(source_operand)) {
+          error_in_operand(ec_expr_not_an_lvalue_or_function_designator,
+                           source_operand);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    generic_cast_operand(source_operand, result_ptr_type,
+                         (an_expr_operator_kind)eok_cast,
+                         /*is_implicit_cast=*/TRUE);
   } else if (direct_binding_conversion_possible) {
     /* The initial value can be converted to an lvalue of the right type
        through use of a conversion function returning a reference. */
@@ -10368,10 +10391,6 @@ to be acceptable, and *conversion describes it.
                     &source_operand->position,
                     orig_dest_type, orig_source_type);
       conv_to_error_operand(source_operand);
-    } else if (curr_expr_kind_is_const()) {
-      /* In a constant context (e.g., a nontype template argument),
-         a temporary is not allowed. */
-      error_in_operand(ec_init_needing_temp_not_allowed, source_operand);
     } else if (!binding_to_rvalue_allowed &&
                !allow_anachronisms && !any_cfront_mode()) {
       /* A temporary cannot be used when binding a reference to non-const,
@@ -10391,6 +10410,10 @@ to be acceptable, and *conversion describes it.
                       orig_dest_type, orig_source_type);
         conv_to_error_operand(source_operand);
       }  /* if */
+    } else if (curr_expr_kind_is_const()) {
+      /* In a constant context (e.g., a nontype template argument),
+         a temporary is not allowed. */
+      error_in_operand(ec_init_needing_temp_not_allowed, source_operand);
     } else {
       /* Allocate a temporary and copy the operand into it, converting
          if necessary.  source_operand is set to the address of the
