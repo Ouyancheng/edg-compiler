@@ -63,7 +63,7 @@ duplicate this behavior in Microsoft mode.
 
 8/20/97   Incorrect linkage for members of specialized classes in -tlocal mode
 
-The linkage of specialized classes was incorrecting being affected
+The linkage of specialized classes was incorrectly being affected
 by -tlocal mode.  This has been fixed.
 
   template <class T> struct A {
