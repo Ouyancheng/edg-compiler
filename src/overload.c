@@ -755,8 +755,8 @@ required to do that (a bitwise copy or a copy constructor call).  Note that
 arg_match->conversion is already cleared and
 arg_match->conversion.std.cast_base_class is already set, with a value
 of NULL indicating a same-class copy.  If the copy cannot be done (because
-of an incomplete class or a copy constructor with a nonconst reference for
-the input), set arg_match->match_level to aml_none.
+of a copy constructor with a nonconst reference for the input), set
+arg_match->match_level to aml_none.
 */
 {
   if (arg_match->conversion.std.cast_base_class == NULL &&
