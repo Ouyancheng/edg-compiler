@@ -1205,6 +1205,9 @@ by a command line option.
     if (!option_kind_used[(int)optk_friend_injection]) {
       friend_injection_enabled = TRUE;
     }  /* if */
+    if (!option_kind_used[(int)optk_nonstandard_using_decl]) {
+      nonstandard_using_decl_allowed = FALSE;
+    }  /* if */
     if (!option_kind_used[(int)optk_late_tiebreaker]) {
       do_late_ovl_res_tiebreaker = microsoft_bugs;
     }  /* if */
