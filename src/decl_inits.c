@@ -913,18 +913,19 @@ static a_constant_ptr scan_initializer_of_simple_object(
                                   a_type_ptr          type,
                                   a_dynamic_init_ptr  *dip_ptr)
 /*
-Scan a nonaggregate initializer.  If nonconst_allowed is TRUE (always the case
-in C++, sometimes otherwise) a nonconstant expression is allowed; if not,
-a constant is required.  If static_lifetime is TRUE, the underlying entity
-has static storage duration.  force_object_lifetime is TRUE only in C++ mode
-and only when this function is called in scanning a entry in a ctor
-initializer list; it is passed on to scan_initializer_expression to force
-creation of an object lifetime for expression temporaries even if
-long_lifetime_temps is TRUE.  Conversely, suppress_object_lifetime is TRUE
-when no object lifetime entry should be generated (used when parsing
-compound literals in C++ mode).  If is_copy_initialization is TRUE, this
-is copy-initialization ("="-form); otherwise, it's direct-initialization
-("()"-form).  type is the data type of the object being initialized.
+Scan a nonaggregate initializer (i.e., not a brace-enclosed expression list).
+If nonconst_allowed is TRUE (always the case in C++, sometimes otherwise) a
+nonconstant expression is allowed; if not, a constant is required.
+If static_lifetime is TRUE, the underlying entity has static storage duration.
+force_object_lifetime is TRUE only in C++ mode and only when this function is
+called in scanning a entry in a ctor initializer list; it is passed on to
+scan_initializer_expression to force creation of an object lifetime for
+expression temporaries even if long_lifetime_temps is TRUE.  Conversely,
+suppress_object_lifetime is TRUE when no object lifetime entry should be
+generated (used when parsing compound literals in C++ mode).
+If is_copy_initialization is TRUE, this is copy-initialization ("="-form);
+otherwise, it's direct-initialization ("()"-form).  type is the data type of
+the object being initialized.
 dip_ptr is a pointer to a dynamic init pointer; if the latter is NULL,
 a dynamic init entry may be allocated and returned, but if *dip_ptr is
 non-NULL, build the initialization information into the object it
