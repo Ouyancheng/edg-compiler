@@ -229,6 +229,8 @@ extern a_candidate_function_ptr alloc_candidate_function(void);
 
 extern void free_candidate_function_list(a_candidate_function_ptr cfp);
 
+extern void clear_argument_match_summary(an_argument_match_summary_ptr amsp);
+
 extern an_argument_match_summary_ptr alloc_argument_match_summary(void);
 
 extern void free_argument_match_summary_list(
