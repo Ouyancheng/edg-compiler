@@ -3704,7 +3704,6 @@ source sequence entry points to the switch clause.
 */
 {
   a_statement_ptr stmt;
-  a_boolean       need_break;
 
   /* Generate the case label and advance past the source sequence entry. */
   gen_case_label(scp);
