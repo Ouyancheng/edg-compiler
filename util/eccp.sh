@@ -375,7 +375,7 @@ do
     -t)
 #     Template instantiation mode
       shift;
-      fe_options=$feoptions" "$1;
+      feoptions=$feoptions" "$1;
       instantiation_mode_specified=1
       used_two_params=1
       ;;
