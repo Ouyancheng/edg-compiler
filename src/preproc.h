@@ -250,9 +250,9 @@ void record_pragma(a_pragma_kind_description_ptr	pkdp,
 		   a_source_position			*start_of_dir_position,
 		   a_source_position			*id_position);
 
-extern void process_stdc_pragma(a_pending_pragma_ptr	ppp);
-
 extern void stdc_pragma(a_pending_pragma_ptr	ppp);
+
+extern void check_for_stdc_pragmas(void);
 
 extern void once_pragma(a_pragma_kind kind);
 

@@ -10827,6 +10827,9 @@ In C++, however, the declaration list is optional (3.4):
     }  /* if */
   } else {
     while (curr_token != tok_end_of_source) {
+      /* A C99 predefined pragma in the file scope must appear between
+         top-level declarations. */
+      if (c99_mode) check_for_stdc_pragmas();
       declaration(/*function_definition_allowed=*/TRUE,
                   /*is_old_style_param_decl=*/FALSE,
                   /*is_top_level_declaration=*/TRUE,
@@ -10840,6 +10843,9 @@ In C++, however, the declaration list is optional (3.4):
   /* First reset the point for instantiations to NULL. */
   reset_ss_list_instantiation_insert_point();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* A C99 predefined pragma in the file scope must appear between
+     top-level declarations. */
+  if (c99_mode) check_for_stdc_pragmas();
   process_pragmas_at_end_of_source();
 }  /* translation_unit */
 

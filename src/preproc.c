@@ -16,6 +16,8 @@ preproc.c -- Preprocessing directives.
 
 /* Header files common to all files. */
 #include "fe_common.h"
+/* Header files used by files involved in declaration processing. */
+#include "decl_hdrs.h"
 
 #ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -26,10 +28,6 @@ preproc.c -- Preprocessing directives.
 /* Additional header files. */
 #include "expr.h"
 #include "macro.h"
-#include "pragma.h"
-#include "pch.h"
-#include "preproc.h"
-#include "symbol_ref.h"
 #include "literals.h"
 
 typedef struct a_pp_if_stack_entry *a_pp_if_stack_entry_ptr;
@@ -1683,7 +1681,7 @@ where <string> is a quoted character string (not wide chars).
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 
 
-void process_stdc_pragma(a_pending_pragma_ptr	ppp)
+static void process_stdc_pragma(a_pending_pragma_ptr	ppp)
 /*
 Process a predefined C99 STDC pragma.  These pragmas have the following form:
 
@@ -1760,19 +1758,42 @@ pragmas, and by stdc_pragma for pragmas that appear in the file scope.
 void stdc_pragma(a_pending_pragma_ptr	ppp)
 /*
 Process a predefined C99 STDC pragma.  This is the routine that is
-registered with the pragma processing routines.  It calls process_stdc_pragma
-for file scope pragmas.  Pragmas that appear elsewhere result in diagnostics.
-For block scope pragmas that appear in a valid location, process_std_pragma
-is called directly by compound_statement.
+registered with the pragma processing routines.  When a STDC pragma
+appears in a valid location, process_stdc_pragma is called (via
+check_for_stdc_pragmas).  Pragmas that appear elsewhere result in diagnostics.
 */
 {
-  if (scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_file) {
-    process_stdc_pragma(ppp);
-  } else {
-    pos_diagnostic(strict_ansi_error_severity,
-                   ec_stdc_pragma_not_allowed_here, &ppp->pragma_position);
-  }  /* if */
+  pos_diagnostic(strict_ansi_error_severity,
+                 ec_stdc_pragma_not_allowed_here, &ppp->pragma_position);
 }  /* stdc_pragma */
+
+
+void check_for_stdc_pragmas(void)
+/*
+If there are any current token pragmas that are C99 predefined
+pragmas, process them now.
+*/
+{
+  a_pending_pragma_ptr	ppp;
+  a_pending_pragma_ptr	prev_ppp = NULL;
+  a_pending_pragma_ptr	next_ppp;
+
+  for (ppp = curr_token_pragmas; ppp != NULL; ppp = next_ppp) {
+    next_ppp = ppp->next;
+    if (ppp->descr_ptr->kind == (a_pragma_kind)pk_stdc) {
+      process_stdc_pragma(ppp);
+      /* Unlink this entry from the list of current token pragmas. */
+      if (prev_ppp == NULL) {
+        curr_token_pragmas = ppp->next;
+      } else {
+        prev_ppp->next = ppp->next;
+      }  /* if */
+      free_pending_pragma(ppp);
+    } else {
+      prev_ppp = ppp;
+    }  /* if */
+  }  /* for */
+}  /* check_for_stdc_pragmas */
 
 
 #if ALIAS_DIRECTIVE
