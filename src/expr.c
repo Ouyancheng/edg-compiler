@@ -7156,7 +7156,10 @@ As an anachronism, allow an expression inside the [ ].
   /* Scan the pointer expression. */
   scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
   if (is_template_dependent_context() &&
-      is_template_param_or_nonreal_class_type(operand.type)) {
+      (is_template_param_or_nonreal_class_type(operand.type) ||
+       (is_pointer_type(operand.type) &&
+        is_template_param_or_nonreal_class_type(
+                                            type_pointed_to(operand.type))))) {
     /* A template parameter type or nonreal class type in a prototype
        instantiation. */
     template_case = TRUE;
