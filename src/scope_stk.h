@@ -83,6 +83,12 @@ typedef struct a_scope_pointers_block {
 		last_hidden_name;
 			/* End of the list of hidden-name entries entered on
 			   the corresponding IL scope entry; NULL if none. */
+  struct a_symbol_list_entry
+		*hidden_name_fixup_list;
+			/* Linked list of entries pointing to symbols for
+			   which hidden name checking has been deferred (e.g.,
+			   for friend declarations of local classes); NULL
+			   if none. */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if RECORD_TEMPLATES_IN_IL
   a_template_ptr

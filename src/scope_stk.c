@@ -656,6 +656,7 @@ Initialize the fields in a scope-pointers-block substructure.
   spbp->last_pragma                  = NULL;
 #if RECORD_HIDDEN_NAMES_IN_IL
   spbp->last_hidden_name             = NULL;
+  spbp->hidden_name_fixup_list       = NULL;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if RECORD_TEMPLATES_IN_IL
   spbp->last_template                = NULL;
@@ -3357,6 +3358,12 @@ End a name scope by popping an entry off the scope stack.
     a_scope_kind skind = scope_stack[decl_scope_level].kind;
     if (is_scope_kind_that_affects_declarative_level(skind)) break;
   }  /* for */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  if (depth_scope_stack != NO_SCOPE_DEPTH) {
+    pointers_block = assoc_pointers_block_of(&scope_stack[depth_scope_stack]);
+    check_hidden_name_fixup_list(&pointers_block->hidden_name_fixup_list);
+  }  /* if */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   db_exit();
 }  /* pop_scope */
 
