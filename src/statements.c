@@ -132,8 +132,6 @@ Set var to indicate that the associated code is unreachable.
 Declarations needed because of forward references:
 */
 static void statement(a_boolean is_dependent_statement);
-static a_statement_ptr start_block_statement(a_boolean generated_statement);
-static void finish_block_statement(a_statement_ptr block_stmt);
 
 
 static void check_lint_notreached_state(void)
@@ -2480,15 +2478,6 @@ statement stack.
 }  /* restore_struct_stmt_stack */
 
 
-/*
-Macro that returns TRUE if the statement kind given is for an
-iteration or selection statement.
-*/
-#define is_iteration_or_selection_statement_kind(kind)                \
-  ((kind) == ssk_if    || (kind) == ssk_switch ||                     \
-   (kind) == ssk_while || (kind) == ssk_do     || (kind) == ssk_for)
-
-
 static void push_stmt_stack(a_struct_stmt_kind      kind,
                             a_statement_ptr         sp,
                             an_object_lifetime_ptr  olp)
@@ -2505,13 +2494,6 @@ current structured statement.
 
 
   db_enter(4, "push_stmt_stack");
-  if (c99_mode) {
-    /* In C99, iteration and selection statements have an associated
-       scope.  Push a generated block statement. */
-    if (is_iteration_or_selection_statement_kind(kind)) {
-      (void)start_block_statement(/*generated_statement=*/TRUE);
-    }  /* if */
-  }  /* if */
   /* Expand the structured statement stack if necessary. */
   ensure_struct_stmt_stack_space();
   /* Push the stack and initialize the new entry. */
@@ -2911,15 +2893,6 @@ a structured statement has ended.
     check_assertion(depth_stmt_stack > -1);
     define_implicit_label(break_label, break_statements);
   }  /* if */
-  if (c99_mode) {
-    /* In C99, iteration and selection statements have an associated
-       scope.  Pop the scope. */
-    if (is_iteration_or_selection_statement_kind(kind)) {
-      a_statement_ptr block_stmt =
-                                 struct_stmt_stack[depth_stmt_stack].statement;
-      finish_block_statement(block_stmt);
-    }  /* if */
-  }  /* if */
   db_exit();
 }  /* pop_stmt_stack */
 
@@ -3212,6 +3185,33 @@ in C++.
 }  /* scan_condition */
 
 
+static void push_c99_statement_scope(void)
+/*
+In C99, iteration and selection statements are surrounded by an implicit
+scope.  This routine is called at the beginning of such statements,
+and pushes a generated block statement.
+*/
+{
+  if (c99_mode) {
+    (void)start_block_statement(/*generated_statement=*/TRUE);
+  }  /* if */
+}  /* push_c99_statement_scope */
+
+
+static void pop_c99_statement_scope(void)
+/*
+In C99, iteration and selection statements are surrounded by an implicit
+scope.  This routine is called at the end of such statements, and pops
+the generated block statement pushed by push_c99_statement_scope.
+*/
+{
+  if (c99_mode) {
+    a_statement_ptr block_stmt = struct_stmt_stack[depth_stmt_stack].statement;
+    finish_block_statement(block_stmt);
+  }  /* if */
+}  /* pop_c99_statement_scope */
+
+
 static void if_statement(void)
 /*
 Scan an "if" statement (with or without else) and add it to the current
@@ -3231,6 +3231,8 @@ See also 3.6.4.1.
   db_enter(3, "if_statement");
 
   check_for_unreachable_code();
+  /* Push a scope in C99 mode. */
+  push_c99_statement_scope();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_if);
   stmt_update_source_sequence_list(sp);
@@ -3292,6 +3294,8 @@ See also 3.6.4.1.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Pop a scope in C99 mode. */
+  pop_c99_statement_scope();
 
   db_exit();
 }  /* if_statement */
@@ -3316,6 +3320,8 @@ See also 3.6.4.2.
   db_enter(3, "switch_statement");
 
   check_for_unreachable_code();
+  /* Push a scope in C99 mode. */
+  push_c99_statement_scope();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_switch);
   stmt_update_source_sequence_list(sp);
@@ -3397,6 +3403,8 @@ See also 3.6.4.2.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Pop a scope in C99 mode. */
+  pop_c99_statement_scope();
 
   db_exit();
 }  /* switch_statement */
@@ -3419,6 +3427,8 @@ See also 3.6.5.1.
   db_enter(3, "while_statement");
 
   check_loop_unreachable_code();
+  /* Push a scope in C99 mode. */
+  push_c99_statement_scope();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_while);
   stmt_update_source_sequence_list(sp);
@@ -3458,6 +3468,8 @@ See also 3.6.5.1.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Pop a scope in C99 mode. */
+  pop_c99_statement_scope();
   db_exit();
 }  /* while_statement */
 
@@ -3478,6 +3490,8 @@ See also 3.6.5.2.
   db_enter(3, "do_statement");
 
   check_loop_unreachable_code();
+  /* Push a scope in C99 mode. */
+  push_c99_statement_scope();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_end_test_while);
   stmt_update_source_sequence_list(sp);
@@ -3524,6 +3538,8 @@ See also 3.6.5.2.
      the scope being resumed. */
   reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
                                    (char *)sp);
+  /* Pop a scope in C99 mode. */
+  pop_c99_statement_scope();
 
   db_exit();
 }  /* do_statement */
@@ -4030,6 +4046,8 @@ either an expression statement or a declaration statement.
 
   db_enter(3, "for_statement");
   check_loop_unreachable_code();
+  /* Push a scope in C99 mode. */
+  push_c99_statement_scope();
   /* Allocate the for statement. */
   sp = add_statement((a_statement_kind)stmk_for);
   stmt_update_source_sequence_list(sp);
@@ -4095,6 +4113,8 @@ either an expression statement or a declaration statement.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Pop a scope in C99 mode. */
+  pop_c99_statement_scope();
   db_exit();
 }  /* for_statement */
 
