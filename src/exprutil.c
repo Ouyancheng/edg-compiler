@@ -5898,6 +5898,9 @@ reference entry, or is NULL if none is needed.
 }  /* make_lvalue_variable_operand */
 
 
+#if !RECORD_CONSTANT_EXPRESSIONS_IN_IL
+/* ARGSUSED */  /* var is only used when constant-expressions are recorded. */
+#endif /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 void make_constant_variable_operand(a_constant *constant,
                                     a_variable *var,
                                     an_operand *operand)
