@@ -16588,8 +16588,8 @@ One-time initialization for templates.c static variables.
   register_trans_unit_variable(inline_function_list);
   register_trans_unit_variable(entries_updated_during_instantiation_wrapup);
   register_trans_unit_variable(can_instantiate_list);
-  register_trans_unit_variable(any_instantiations_required);
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
+  register_trans_unit_variable(any_instantiations_required);
   register_trans_unit_variable(request_file_check_needed);
   register_trans_unit_variable(instantiation_request_file_name);
   register_trans_unit_variable(f_instantiation_request);
@@ -16617,7 +16617,6 @@ given translation unit.
   inline_function_list = NULL;
   entries_updated_during_instantiation_wrapup = FALSE;
   can_instantiate_list = NULL;
-  any_instantiations_required = FALSE;
 #if CHECKING
   any_friend_state_changed = FALSE;
   after_instantiation_wrapup = FALSE;
@@ -16631,6 +16630,7 @@ given translation unit.
   type_of_unknown_templ_param_nontype->variant.template_param.kind = 
                                       (a_template_param_type_kind)tptk_unknown;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
+  any_instantiations_required = FALSE;
   request_file_check_needed = FALSE;
   instantiation_request_file_name = NULL;
   f_instantiation_request = NULL;
