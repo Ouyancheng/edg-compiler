@@ -5767,7 +5767,13 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
               /* This is a friend class declaration, of the form:
                          friend class A;
                  (which is the only form the ARM (see 11.4) allows. */
-              (void)decl_friend_class(class_type, member_type);
+              if (is_unreal_instantiation) {
+                /* The friend declaration is not processed during prototype
+                   instantiation -- it`s meaningless until a real instantiation
+                   is done. */
+              } else {
+                (void)decl_friend_class(class_type, member_type);
+              }  /* if */
             } else if (!is_error_type(member_type)) {
               /* Invalid friend declaration. */
               pos_error(ec_bad_friend_decl, &decl_start_pos);
