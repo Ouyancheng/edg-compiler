@@ -19,14 +19,17 @@ NIH libraries.
 
 7/29/92  Optionally allow dollar signs in identifiers
 
-Allow dollar signs in identifiers if the -$ option is specified on
-the command line.  Provide a default value for the option in lang_feat.h
-(see below).  Modified lexical.h to accept the dollar sign.  In strict
-ANSI mode issue a warning the first time a dollar sign is seen.
+Dollar signs are now allowed in identifiers when the -$ option is
+specified on the command line.  The default value for the option is
+specified in a new configuration file named lang_feat.h.  The lexical
+routines in lexical.h have been modified to accept the dollar sign.
+In strict ANSI mode a warning is issued the first time a dollar sign
+used in an identifier.
 
-Added a new include file called lang_feat.h.  Moved 
-ASSIGNMENT_TO_THIS_ALLOWED from target.h to lang_feat.h.  Updated files
-to include lang_feat.h as needed.
+As described above, a new configuration include file called lang_feat.h
+has been provided to define parameters that define the source language
+accepted.  ASSIGNMENT_TO_THIS_ALLOWED has been moved from target.h to
+lang_feat.h. 
 
 
 7/27/92  Accept function scope declarations of static functions
