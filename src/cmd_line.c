@@ -1897,6 +1897,7 @@ enable_microsoft_mode:
           max_pending_instantiations = ULONG_MAX;
         }  /* if */
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
       case optk_import_dir:
         import_dir_name = opt_arg;
         if (!is_directory(import_dir_name)) {
@@ -1904,6 +1905,7 @@ enable_microsoft_mode:
                                  import_dir_name);
         }  /* if */
         break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
