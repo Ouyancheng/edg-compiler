@@ -3267,8 +3267,7 @@ those template entries.
     a_template_ptr  templ = tssp->il_template_entry;
     a_template_ptr  corresp_templ = corresp_tssp->il_template_entry;
     if (templ != NULL && corresp_templ != NULL &&
-        templ->kind == corresp_templ->kind &&
-        is_template_symbol((a_symbol_ptr)templ->source_corresp.assoc_info)) {
+        templ->kind == corresp_templ->kind) {
       set_trans_unit_corresp(iek_template, templ, corresp_templ);
     }  /* if */
   }  /* if */
