@@ -1961,20 +1961,21 @@ fields, and return a pointer to it.
 }  /* alloc_nondependent_call_info */
 
 
-a_symbol_ptr get_symbol_if_nondependent_call(
+a_nondependent_call_info_ptr get_nondependent_call_info(
 				a_token_sequence_number		tsn)
 /*
 If "tsn" is the token sequence number of a nondependent call in the
-nondependent call list pointed to by "list_ptr", return the associated
-symbol, otherwise return NULL.  The list is maintained in token sequence
-number order.  The current position on the list is maintained in the
+nondependent call list of the current template, return a pointer to
+the associated information block.  Otherwise (i.e., if the call is
+dependent), return NULL.  The list is maintained in token sequence
+number order, and is pointed to from the template decl info block for
+the template.  The current position on the list is maintained in the
 next_nondependent_call field of the scope stack entry for the innermost
 instantiation scope.
 */
 {
-  a_symbol_ptr			result = NULL;
   a_scope_stack_entry_ptr	ssep;
-  a_nondependent_call_info_ptr	list_ptr;
+  a_nondependent_call_info_ptr	list_ptr, result = NULL;
 
   check_assertion(depth_innermost_instantiation_scope != NO_SCOPE_DEPTH);
   ssep = &scope_stack[depth_innermost_instantiation_scope];
@@ -1988,15 +1989,15 @@ instantiation scope.
   if (list_ptr != NULL) {
     if (tsn == list_ptr->token_sequence_number) {
       /* The token sequence number matches the next entry on the list.
-         Return the symbol and move to the next entry on the list. */
-      result = list_ptr->symbol;
+         Return the entry and move to the next entry on the list. */
+      result = list_ptr;
       list_ptr = list_ptr->next;
     }  /* if */
   }  /* if */
   /* Save the updated list pointer back into the scope stack entry. */
   ssep->next_nondependent_call = list_ptr;
   return result;
-}  /* get_symbol_if_nondependent_call */
+}  /* get_nondependent_call_info */
 
 
 void record_nondependent_call(a_symbol_ptr		symbol,

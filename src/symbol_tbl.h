@@ -1043,7 +1043,7 @@ typedef struct a_template_decl_info {
   a_nondependent_call_info_ptr
 		nondependent_calls;
 			/* A list of entries that describe the nondependent
-			   calls within this template.  NULL is no such list
+			   calls within this template.  NULL if no such list
 			   exists.  The list is maintained in token sequence
 			   number order.  For class templates, this includes
 			   the nondependent calls for default argument
@@ -1081,7 +1081,9 @@ typedef struct a_nondependent_call_info {
 			   position of the operator. */
   a_symbol_ptr	symbol;
 			/* Pointer to the symbol of the function to be
-			   called. */
+			   called.  NULL for nondependent calls for which
+			   overload resolution must be deferred to the
+			   real instantiation. */
 } a_nondependent_call_info;
 
 
@@ -2574,7 +2576,7 @@ extern void free_template_cache_segment(a_template_cache_segment_ptr tcsp);
 
 extern a_template_decl_info_ptr alloc_template_decl_info(void);
 
-extern a_symbol_ptr get_symbol_if_nondependent_call(
+extern a_nondependent_call_info_ptr get_nondependent_call_info(
 				a_token_sequence_number		tsn);
 
 extern void record_nondependent_call(a_symbol_ptr		symbol,
