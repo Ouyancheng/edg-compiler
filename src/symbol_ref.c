@@ -391,15 +391,9 @@ This allows the following example to work:
                                      "A::i" fails.
 */
 {
-  a_base_class_derivation_ptr  preferred_derivation;
-
   /* First check if we have access to public members of this base class.
      If so, there is no problem and no need for extra work. */
-  preferred_derivation = preferred_derivation_of(bcp);
-  if (access_to_end_of_path((an_access_specifier)as_public,
-                            preferred_derivation->path,
-                            preferred_derivation) ==
-                                       (an_access_specifier)as_inaccessible) {
+  if (!is_accessible_base_class(bcp)) {
     /* This base is inaccessible because of private inheritance. */
     a_symbol_ptr            hidden_sym;
     a_scope_ptr             scope;
