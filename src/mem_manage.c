@@ -913,7 +913,6 @@ of the front end.
   okay_to_free_mem_blocks = FALSE;
   page_size = get_page_size();
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  may_be_building_new_pch = FALSE;
   /* Initialize the memory region for general front end storage. */
   init_memory_region(NULL_region_number, (sizeof_t)0);
   /* Initialize the memory region for file scope IL information. */

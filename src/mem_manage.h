@@ -202,8 +202,6 @@ written.
 #define may_be_building_new_pch() (header_stop_position_pending)
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-EXTERN a_boolean
-		may_be_building_new_pch;
 /*
 Macro that is TRUE if two memory allocation history entries are equivalent.
 */
