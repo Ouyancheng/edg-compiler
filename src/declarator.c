@@ -765,7 +765,7 @@ specification is handled later (see check_exception_specification).
         /* Force instantiation of template class. */
         complete_type_is_needed(tp);
         if (is_incomplete_type(tp)) {
-          /* A exception specification type must be complete. */
+          /* An exception specification type must be complete. */
           pos_diagnostic(ignoring_exception_spec ? es_warning : es_error,
                          ec_incomplete_type_not_allowed, &type_pos);
         } else if (is_ptr_or_ref_type(tp)) {
@@ -776,7 +776,7 @@ specification is handled later (see check_exception_specification).
             /* Force instantiation of template class. */
             complete_type_is_needed(tp);
             if (is_incomplete_type(tp)) {
-              /* A exception specification type cannot be a pointer or
+              /* An exception specification type cannot be a pointer or
                  reference to incomplete type. */
               pos_diagnostic(ignoring_exception_spec ? es_warning : es_error,
                              ec_ptr_or_ref_to_incomplete_type, &type_pos);
