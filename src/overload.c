@@ -448,7 +448,20 @@ param_type.
         explicit_arg_list_identifies_specialization(operand->variant.symbol,
                                                     operand->template_arg_list,
                                                     &new_arg_list);
-      if (matching_arg_type != NULL) can_be_arg = TRUE;
+      if (matching_arg_type != NULL) {
+        can_be_arg = TRUE;
+        if (!is_a_function_designator(operand)) {
+          /* The operand is not a function designator, so make a pointer or
+             pointer to member as the argument type. */
+          if (routine_type_is_nonstatic_member_function(matching_arg_type)) {
+            matching_arg_type = ptr_to_member_type(
+                    matching_arg_type,
+                    matching_arg_type->variant.routine.extra_info->this_class);
+          } else {
+            matching_arg_type = make_pointer_type(matching_arg_type);
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
   } else {
     a_template_symbol_supplement_ptr	tssp;
@@ -2083,6 +2096,17 @@ if the deduction succeeds, FALSE if it fails.
                                                  param_type,
                                                  &arg_type,
                                                  template_sym)) goto done;
+    arg_operand = NULL;
+    if (routine_type_is_nonstatic_member_function(arg_type) &&
+        !strict_ansi_mode) {
+      /* The routine is a member function, so convert to a pointer to
+         member function.  This comes up with the extension that allows
+         A::x<int>, without the standard preceding "&", to be used as
+         a pointer to member. */
+      arg_type = ptr_to_member_type(
+                             arg_type,
+                             arg_type->variant.routine.extra_info->this_class);
+    }  /* if */
   }  /* if */
   if (param_is_reference) {
     /* The parameter has a reference type. */

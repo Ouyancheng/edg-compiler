@@ -1,5 +1,24 @@
 Version 3.1
 
+9/26/02  Member function template with template args as pointer to member
+
+When a reference to a member function template includes explicit
+template arguments that select a specific instance of the template,
+the reference can be preceded by "&" to make a pointer to member
+of the specific instance.  That didn't work previously, but now
+it does.
+
+  struct Foo {
+    template<class T> T square(T x) const { return x*x; }
+    template<class T> T fold(T (Foo::*f)(T) const) const {
+      return 0;
+    }
+  };
+  int main() {
+    Foo foo;
+    foo.fold(&Foo::square<float>);  // Got error previously
+ }
+
 9/26/02  typeid of member function
 
 The typeid operator applied to a member function now gets an
