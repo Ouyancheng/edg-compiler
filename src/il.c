@@ -4274,14 +4274,6 @@ nonidentical.
     same_types = f_types_are_compatible(eff_cp1_type,
                                         eff_cp2_type,
                                         TCF_REDECLARATION);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  } else if (cp1->expr != cp2->expr) {
-    /* Do not attempt to share constants if they are the result of different
-       expressions. */
-    /* eq = FALSE; */
-    unexpected_condition_str("compare_constants");
-    goto end_of_routine;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   } else {
     /* strictly_identical is TRUE. */
     /* The types must be pointer-identical. */
