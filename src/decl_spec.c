@@ -4867,6 +4867,7 @@ check_missing_declarator_in_member_declaration.
   return result;
 }  /* unelaborated_cfront_friend_class */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void microsoft_specific_decl_specifiers(
                                 a_decl_flag_set         input_flags,
@@ -4972,8 +4973,9 @@ of an error.
   }  /* if */
   /* Closing rparen of "__declspec(...)" has already been taken. */
   *no_remaining_token = is_declspec;
-}
+}  /* microsoft_specific_decl_specifiers */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !GNU_EXTENSIONS_ALLOWED || !UPC_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- attributes is only used when GNU extension are allowed.
