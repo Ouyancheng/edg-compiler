@@ -167,6 +167,9 @@ Flags to be set when using the KAI inliner.
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #endif /* ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES */
 #define DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS TRUE
+#ifndef FIXED_POINT_ALLOWED
+#define FIXED_POINT_ALLOWED 1
+#endif /* FIXED_POINT_ALLOWED */
 
 #ifdef SOLARIS
 #ifdef __SUNPRO_C
