@@ -1,5 +1,13 @@
 Version 2.46
 
+6/13/01  Combining Microsoft mode and C99 mode
+
+Microsoft mode and C99 mode may now be used together.  Previously, the
+--c99 and --microsoft options could not be used together.  In addition,
+if --microsoft was the default, --c99 would silently turn off Microsoft
+mode.  Now, if --microsoft is the default, --c99 enables C99 features
+but Microsoft mode is still enabled.
+
 6/12/01  Lookup of unqualified names in template contexts
 
 In default mode, when doing a lookup in a class with a dependent base

@@ -2224,6 +2224,10 @@ example, --old_c, --c, and --c++ select a major dialect explicitly, and --svr4,
 --cfront_3.0, and --c99 select a major dialect implicitly.)  No major dialect
 is implicitly specified with --microsoft et al. or --strict et al.
 
+C99 mode is in some ways considered both a dialect and a mode.  C_dialect
+is still C_dialect_ANSI, but C99 is permitted to be used in conjunction with
+Microsoft mode.
+
 Whatever major dialect is selected, all language modes specified have to be
 consistent with it.  For example, --old_c --c99 is permitted, since the
 major dialect implied by --c99 overrides the major dialect specified by -K.
@@ -2270,15 +2274,10 @@ order of development of this front end, and is inconsistent and strange.
     exclude_sun_mode(ec_cl_sun_incompatible_with_cfront);
     exclude_microsoft_mode(ec_cl_cfront_incompatible_with_microsoft);
   }  /* if */
-  if (c99_mode) {
-    /* Issue an error for specifying any other language mode. */
-    exclude_microsoft_mode(ec_cl_incompatible_language_modes);
-  }  /* if */
   if (microsoft_mode) {
     /* Issue an error for specifying any other language mode.  Strict mode,
        K&R mode, and cfront mode have already been checked for. */
     exclude_SVR4_C_mode(ec_cl_incompatible_language_modes);
-    exclude_c99_mode(ec_cl_incompatible_language_modes);
     exclude_sun_mode(ec_cl_sun_incompatible_with_microsoft);
   }  /* if */
 }  /* check_dialect_and_language_modes */
