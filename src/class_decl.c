@@ -6173,8 +6173,10 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                      the current member function symbol to the function
                      template symbol established during prototype
                      instantiation. */
-                  find_member_function_template(rout_sym,
-                                                corresp_prototype_tag_sym);
+                  if (!is_error_locator(locator)) {
+                    find_member_function_template(rout_sym,
+                                                  corresp_prototype_tag_sym);
+                  }  /* if */
                 }  /* if */
               }  /* if */
               if (curr_routine_fixup != NULL) {
@@ -6248,17 +6250,6 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                      virtual functions. */
                   scan_pure_specifier(rout_sym, class_type,
                                       suppress_pure_specifier_error);
-#if 0
-                } else if (!friend_specified &&
-                           corresp_prototype_tag_sym != NULL) {
-                  /* The class must be the instantiation of a class template
-                     (or a class nested within such an instantiation). Bind
-                     the current member function symbol to the function
-                     template symbol established during prototype
-                     instantiation. */
-                  find_member_function_template(rout_sym,
-                                                corresp_prototype_tag_sym);
-#endif /* if 0 */
                 }  /* if */
                 if (curr_token == tok_comma &&
                          (is_destructor || is_constructor)) {
