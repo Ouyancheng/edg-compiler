@@ -2849,13 +2849,8 @@ and (always) return the length of the literal representation.  This is
 used to encode constants as part of the mangled names of template classes.
 */
 {
-  sizeof_t       literal_length, str_length, digits, temp;
+  sizeof_t       literal_length, str_length, digits;
   char           *str;
-  a_constant_ptr str_con;
-  an_address_base_kind
-                 abkind;
-  a_targ_ptrdiff_t
-                 offset;
   char           buffer[50];
 
   switch (con->kind) {
@@ -2914,69 +2909,25 @@ used to encode constants as part of the mangled names of template classes.
       }  /* if */
       break;
     case ck_address:
-      /* Address.  For the address of a constant string, put out an encoded
-         version of the string itself.  For other cases, put out the
-         name of the entity whose address is involved. */
-      abkind = con->variant.address.kind;
-      if (abkind == (an_address_base_kind)abk_constant) {
-        str_con = con->variant.address.variant.constant;
+      /* Address.  Put out the name of the entity whose address is involved. */
+      { a_variable_ptr       variable;
+        a_type_ptr           class_type;
+        a_routine_ptr        routine;
+        an_address_base_kind abkind;
+        a_targ_ptrdiff_t     offset;
+
+        abkind = con->variant.address.kind;
 #if CHECKING
-        if (str_con->kind != (a_constant_repr_kind)ck_string) {
-          internal_error("literal_representation: addr of non-string const");
+        if (abkind == (an_address_base_kind)abk_constant) {
+          internal_error("literal_representation: addr of const");
         }  /* if */
 #endif /* CHECKING */
-        /* String: the encoding is like
-             S5a056b <-- encoding for "a.b"
-               ^^^^^---- Literal value (non-alphabetic characters changed to
-                         octal).
-              ^--------- Length of the literal.
-             ^---------- "S" indicates a string.
-           cfront 3.0.1 does not implement this, so we made it up. */
-        str_length = str_con->variant.string.length;
-        str = str_con->variant.string.value;
-        /* Drop the final null if there is one. */
-        if (str_length != 0 && str[str_length-1] == '\0') str_length--;
-        /* Count two extra characters for the octal form for each
-           non-alphanumeric character. */
-        for (temp = str_length; temp > 0; temp--) {
-          if (!isalpha(str[temp-1])) str_length += 2;
-        }  /* for */
-        digits = digits_to_represent((unsigned long)str_length);
-        literal_length = 1 + digits + str_length;
-        if (store_at != NULL) {
-          *store_at++ = 'S';
-          (void)sprintf(store_at, "%lu", (unsigned long)str_length);
-          store_at += digits;
-          for (;str_length > 0; str_length--) {
-            /* Move the string and recode non-alphabetic characters. */
-            char c = *str++;
-            if (!isalpha(c)) {
-              /* Convert to octal.  Drop sign extension if any. */
-              int i = c & ((1<<TARG_CHAR_BIT)-1);
-#if TARG_CHAR_BIT > 9
-??=error -- code here does not handle TARG_CHAR_BIT > 9
-#endif /* TARG_CHAR_BIT > 9 */
-              *store_at++ = '0' + i/64;
-              i %= 64;
-              *store_at++ = '0' + i/8;
-              i %= 8;
-              *store_at++ = '0' + i;
-              str_length -= 2;
-            } else {
-              *store_at++ = c;
-            }  /* if */
-          }  /* for */
-        }  /* if */
-      } else {
         /* Address of something other than a constant, i.e., a variable or
            routine.  The encoding is like
              4abcd <-- encoding for address of "abcd"
               ^^^^---- Name of entity.
              ^-------- Length of the name.
            This is compatible with cfront 3.0.1. */
-        a_variable_ptr variable;
-        a_type_ptr     class_type;
-        a_routine_ptr  routine;
         if (abkind == (an_address_base_kind)abk_variable) {
           variable = con->variant.address.variant.variable;
           class_type = variable->source_corresp.class_of_which_a_member;
@@ -3028,27 +2979,27 @@ used to encode constants as part of the mangled names of template classes.
           }  /* if */
           store_at += str_length;
         }  /* if */
-      }  /* if */
-      /* If the offset is non-zero, add it at the end, in a form similar
-         to the integer constant form, except using "O", e.g., O3n12
-         for -12.  This convention is not used by cfront; we invented it. */
-      offset = con->variant.address.offset;
-      if (offset != 0) {
-        (void)sprintf(buffer, "%ld", (long)offset);
-        str = buffer;
-        str_length = strlen(str);  /* Includes "-" sign if any. */
-        digits = digits_to_represent((unsigned long)str_length);
-        literal_length += 1 + digits + str_length;
-        if (store_at != NULL) {
-          *store_at++ = 'O';
-          (void)sprintf(store_at, "%lu", (unsigned long)str_length);
-          store_at += digits;
-          (void)memcpy(store_at, str, (int)str_length);
-          /* Use "n" to represent a minus sign. */
-          if (*store_at == '-') *store_at = 'n';
-          store_at += str_length;
+        /* If the offset is non-zero, add it at the end, in a form similar
+           to the integer constant form, except using "O", e.g., O3n12
+           for -12.  This convention is not used by cfront; we invented it. */
+        offset = con->variant.address.offset;
+        if (offset != 0) {
+          (void)sprintf(buffer, "%ld", (long)offset);
+          str = buffer;
+          str_length = strlen(str);  /* Includes "-" sign if any. */
+          digits = digits_to_represent((unsigned long)str_length);
+          literal_length += 1 + digits + str_length;
+          if (store_at != NULL) {
+            *store_at++ = 'O';
+            (void)sprintf(store_at, "%lu", (unsigned long)str_length);
+            store_at += digits;
+            (void)memcpy(store_at, str, (int)str_length);
+            /* Use "n" to represent a minus sign. */
+            if (*store_at == '-') *store_at = 'n';
+            store_at += str_length;
+          }  /* if */
         }  /* if */
-      }  /* if */
+      }
       break;
     case ck_ptr_to_member:
       /* Pointer to member:
