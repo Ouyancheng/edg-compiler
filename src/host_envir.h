@@ -505,38 +505,24 @@ processing cannot be done reliably on template bodies.
 
 /*
 Flag that is TRUE if the processing required to generate one instantiation
-per object file should be included.
+per object file should be included.  This involves maintaining a separate
+"needed" flag for each instantiation so that each file that is output
+contains only what is required.  That takes extra space and, if the
+feature is enabled (via --one_instantiation_per_object), extra time.
+However, it's useful bordering on essential for building libraries.
 */
 #ifndef ONE_INSTANTIATION_PER_OBJECT
 #if DRIVER_COMPATIBILITY_VERSION >= 237
 #define ONE_INSTANTIATION_PER_OBJECT TRUE
-#else /* DRIVER_COMPATIBILITY_VERSION >= 237 */
+#else /* DRIVER_COMPATIBILITY_VERSION < 237 */
 #define ONE_INSTANTIATION_PER_OBJECT FALSE
-#endif /* !DRIVER_COMPATIBILITY_VERSION >= 237 */
+#endif /* DRIVER_COMPATIBILITY_VERSION >= 237 */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-/*
-Flag that is TRUE if a separate "needed" flag should be maintained for
-each instantiation, so that multiple output files can be produced,
-each containing only the things needed for one instantiation.
-*/
-#ifndef MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-#if ONE_INSTANTIATION_PER_OBJECT
-#define MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS TRUE
-#else /* !ONE_INSTANTIATION_PER_OBJECT */
-#define MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS FALSE
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
-#endif /* ifndef MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
-
-#if !MAINTAIN_NEEDED_FLAGS && MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
- #error -- MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS must be FALSE \
-           when MAINTAIN_NEEDED_FLAGS is FALSE.
+#if ONE_INSTANTIATION_PER_OBJECT && !MAINTAIN_NEEDED_FLAGS
+ #error -- MAINTAIN_NEEDED_FLAGS must be TRUE \
+           when ONE_INSTANTIATION_PER_OBJECT is TRUE
 #endif /* !MAINTAIN_NEEDED_FLAGS && ... */
-
-#if ONE_INSTANTIATION_PER_OBJECT && !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
- #error -- MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS must be TRUE \
-           when ONE_INSTANTIATION_PER_OBJECT is TRUE.
-#endif /* ONE_INSTANTIATION_PER_OBJECT && !... */
 
 /*
 The flag IL_WALK_NEEDED controls the compilation of the routines required
