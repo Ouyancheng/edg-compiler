@@ -6261,8 +6261,9 @@ conflicts with a different construct or a previous declaration, issue an error
 at the given position.  If we're processing a redeclaration, is_redecl is TRUE.
 Also check that the type of the variable is appropriate for the named register
 and issue an error if not.  This function is also called for variable
-declarations without named-register storage class specifiers so that conflicts
-with previous declarations of that variable can be diagnosed.
+declarations without named-register storage class specifiers (in which case
+register_id is zero) so that conflicts with previous declarations of that
+variable can be diagnosed.
 */
 {
   a_symbol_ptr  sym = (a_symbol_ptr)var->source_corresp.assoc_info;
