@@ -8777,6 +8777,29 @@ lowering or a back end to do the rewriting.
 }  /* check_return_value_optimization */
 
 
+static void bind_curr_expr_lifetime_to_dynamic_init(a_dynamic_init_ptr dip)
+/*
+If the current expression (in the expr_stack) has an associated object
+lifetime, bind that lifetime to the dynamic initialization pointed to
+by dip.  The lifetime is one that wraps around the initialization,
+typically to envelop the "full expression" that is an implied constructor
+call.  If dip is NULL, there was an error; the lifetime is discarded.
+*/
+{
+  an_object_lifetime_ptr lifetime = expr_stack->lifetime;
+
+  if (lifetime != NULL) {
+    if (dip != NULL) {
+      bind_object_lifetime(lifetime, iek_dynamic_init, (char *)dip,
+                           /*ctor_init=*/FALSE);
+    } else {
+      /* Error. */
+      make_object_lifetime_useless(lifetime);
+    }  /* if */      
+  }  /* if */
+}  /* bind_curr_expr_lifetime_to_dynamic_init */
+
+
 an_expr_node_ptr scan_return_expression(a_type_ptr         required_type,
                                         an_error_code      err_code,
                                         a_dynamic_init_ptr *dip)
@@ -8815,12 +8838,10 @@ the appropriate dynamic initialization entry and return NULL.
     check_return_value_optimization(&result);
     /* Build a dynamic initialization entry for the return statement. */
     prep_return_by_cctor_operand(&result, required_type, err_code, dip);
+    bind_curr_expr_lifetime_to_dynamic_init(*dip);
     /* Fix up destructor references in the overall expression. */
     fix_up_dynamic_init_dtors();
     expression = NULL;
-#if 0
-???? object lifetime?
-#endif /* 0 */
   } else {
     /* Normal case. */
     /* The required type can be void if we are in cfront mode.  If it is
@@ -9273,6 +9294,7 @@ appropriate.
   /* Find out whether or not the conversion is possible, and
      build a dynamic initialization entry to describe the initialization. */
   prep_elision_initializer_operand(&result, required_type, dip);
+  bind_curr_expr_lifetime_to_dynamic_init(*dip);
   /* *dip == NULL means there was an error. */
   if (*dip == NULL) okay = FALSE;
   pop_expr_stack();
