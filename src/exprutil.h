@@ -390,7 +390,7 @@ extern void make_field_operand(a_field_ptr field,
 			       an_operand  *result);
 
 extern void make_function_call(an_expr_node_ptr function_node,
-                               a_type_ptr       return_type,
+                               a_type_ptr       function_type,
                                a_boolean        is_virtual,
                                an_operand       *result);
 
@@ -475,9 +475,9 @@ extern void cast_node(an_expr_node_ptr  *node,
 
 extern void integral_promote_node(an_expr_node_ptr *node);
 
-extern void make_constructor_call(a_routine_ptr      ctor_routine,
-                                  an_expr_node_ptr   arg_expr_list,
-                                  an_operand         *result);
+extern void make_constructor_call(a_routine_ptr    ctor_routine,
+                                  an_expr_node_ptr arg_expr_list,
+                                  an_operand       *result);
 
 extern void prep_elision_initializer_operand(
                                       an_operand       *source_operand,
@@ -489,6 +489,15 @@ extern void prep_initializer_operand(an_operand         *source_operand,
                                      a_type_ptr         dest_type,
                                      an_expression_kind expression_kind,
                                      an_error_code      incompatible_err);
+
+extern void prep_argument_operand(an_operand         *source_operand,
+                                  a_param_type_ptr   formal_param,
+                                  an_expression_kind expression_kind);
+
+extern void prep_return_operand(an_operand         *source_operand,
+                                a_type_ptr         required_type,
+                                an_expression_kind expression_kind,
+                                an_error_code      err_code);
 
 extern void prep_assignment_operand(an_operand         *source_operand,
                                     a_type_ptr         dest_type,
