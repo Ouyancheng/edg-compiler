@@ -12113,6 +12113,9 @@ not be returned.
   a_boolean	     try_found = FALSE;
 
   db_enter(3, "cache_function_body");
+  /* Set a flag that indicates that the tokens being scanned are to be
+     cached. */
+  caching_tokens = TRUE;
   if (first_tsn != NULL) *first_tsn = NO_TOKEN_SEQUENCE_NUMBER;
   if (last_tsn != NULL) *last_tsn = NO_TOKEN_SEQUENCE_NUMBER;
   if (missing_end != NULL) *missing_end = FALSE;
@@ -12167,6 +12170,9 @@ not be returned.
        scan. */
     terminate_token_cache(p_token_cache);
   }  /* if */
+  /* Clear the flag that indicates that the tokens being scanned are to be
+     cached. */
+  caching_tokens = FALSE;
   db_exit();
   return result;
 }  /* cache_function_body */
