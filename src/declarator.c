@@ -833,7 +833,6 @@ scope is that of a class definition.
                           ss_entry_start_prev;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_symbol_locator        param_locator;
-  a_type_ptr              bottom_derived_type;
   a_boolean               done;
   a_boolean               any_params;
   a_source_position       start_pos, param_type_pos;
@@ -1040,8 +1039,8 @@ scope is that of a class definition.
                        DI_ABSTRACT_DECLARATOR_ALLOWED,
                      &do_flags, param_type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL,
-                     &param_locator, &param_type_ptr, &bottom_derived_type,
-                     (a_call_conv_descr_ptr)NULL, &param_ssep,
+                     &param_locator, &param_type_ptr,
+                     &decl_modifiers, &param_ssep,
                      (a_func_info_block_ptr)NULL);
 #if RESTRICT_ALLOWED
           restrict_qualified = 
@@ -2536,17 +2535,17 @@ to FALSE if the entity being declared is not initializable.
 }  /* scan_real_declarator_id */
 
 
-void declarator(a_decl_flag_set          input_flags,
-                a_decl_flag_set          *output_flags,
-                a_type_ptr               specifiers_type,
-                a_type_ptr               member_parent_type,
-                a_symbol_locator         *locator,
-                a_type_ptr               *p_complete_type,
-                a_type_ptr               *p_bottom_derived_type,
-                a_call_conv_descr_ptr     p_calling_convention,
-                a_source_sequence_entry_ptr
-                                         *declarator_ssep,
-                a_func_info_block        *func_info)
+void r_declarator(a_decl_flag_set             input_flags,
+                  a_decl_flag_set             *output_flags,
+                  a_type_ptr                  specifiers_type,
+                  a_type_ptr                  member_parent_type,
+                  a_symbol_locator            *locator,
+                  a_type_ptr                  *p_complete_type,
+                  a_type_ptr                  *p_bottom_derived_type,
+                  a_call_conv_descr_ptr       p_calling_convention,
+                  a_decl_modifier             *decl_modifiers,
+                  a_source_sequence_entry_ptr *declarator_ssep,
+                  a_func_info_block           *func_info)
 /*
 Scan a declarator (3.5.4) or an abstract declarator (3.5.5), depending
 on the values of real_declarator_allowed and abstract_declarator_allowed
@@ -2563,19 +2562,28 @@ entry, *p_complete_type points to just the declarator derived type list
 (with nothing attached to the bottom), or is NULL if there is no derived
 type list.  *p_bottom_derived_type is set to point to the bottom type in
 the declarator derived type list, or NULL if there is no derived type
-list.  If the top type in the declarator derived type list is a
-function, *func_info is filled with extra information about the
-parameter list, for use if a function body follows.  For declarators
-that may turn out to be member functions, member_parent_type is
-a pointer to the class (or struct or union) type of which it is a member;
+list.  Any declaration modifiers encountered (these are extensions,
+e.g., near/far) are added to the set already in *decl_modifiers.
+decl_modifiers can be NULL if the caller is not willing to handle
+declaration modifiers.  If source sequence entries are enabled,
+*declarator_ssep is set to point to a source sequence entry for the
+declaration.  If the top type in the declarator derived type list
+is a function, *func_info is filled with extra information about
+the parameter list, for use if a function body follows.  For declarators
+that may turn out to be member functions, member_parent_type is a
+pointer to the class (or struct or union) type of which it is a member;
 otherwise it is NULL.
+
+The routine "declarator" is called at the top level, and it calls
+this routine to do the actual work.  This routine can call itself
+recursively to handle nested declarators.
 
 p_calling_convention is used when scanning nested declarators.  If
 a nested declarator contains a calling convention that could not be
 processed at that level, it is returned to the caller in
 p_calling_convention, otherwise the value returned in p_calling_convention
-is cc_default.  When declarator is called from elsewhere in the
-front end, p_calling_convention should be NULL.
+is cc_default.  When a nested declarator is not involved,
+p_calling_convention should be NULL.
 
 The syntax is:
 
@@ -2629,7 +2637,7 @@ The syntax is:
   a_call_conv_descr
 		  unbound_call_conv;
 
-  db_enter(3, "declarator");
+  db_enter(3, "r_declarator");
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, declarator_pos);
   *output_flags = DO_NO_OUTPUT_FLAGS;
@@ -2695,11 +2703,11 @@ The syntax is:
     /* Get the nested declarator, removing the flag allowing parenthesized
        initializers from the input_flags bit vector.  (The other flags are
        passed on in the recursive call.) */
-    declarator(~(~input_flags | DI_PARENTHESIZED_INITIALIZER_ALLOWED),
-               &local_do_flags, /*specifiers_type=*/(a_type_ptr)NULL,
-               member_parent_type, locator, &derived_type,
-               &bottom_derived_type, &unbound_call_conv,
-               declarator_ssep, func_info);
+    r_declarator(~(~input_flags | DI_PARENTHESIZED_INITIALIZER_ALLOWED),
+                 &local_do_flags, /*specifiers_type=*/(a_type_ptr)NULL,
+                 member_parent_type, locator, &derived_type,
+                 &bottom_derived_type, &unbound_call_conv,
+                 decl_modifiers, declarator_ssep, func_info);
     if (local_do_flags & DO_REAL_DECLARATOR_SCANNED) {
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
     } else {
@@ -3047,6 +3055,31 @@ function_lparen:
   }  /* if */
 #endif /* DEBUG */
   db_exit();
+}  /* r_declarator */
+
+
+void declarator(a_decl_flag_set             input_flags,
+                a_decl_flag_set             *output_flags,
+                a_type_ptr                  specifiers_type,
+                a_type_ptr                  member_parent_type,
+                a_symbol_locator            *locator,
+                a_type_ptr                  *p_complete_type,
+                a_decl_modifier             *decl_modifiers,
+                a_source_sequence_entry_ptr *declarator_ssep,
+                a_func_info_block           *func_info)
+/*
+Scan a declarator.  This is an interface routine for r_declarator, provided
+so that parameters needed only on recursive calls for nested declarators
+need not be supplied on other calls.  See r_declarator for the meaning of
+the parameters.
+*/
+{
+  a_type_ptr bottom_derived_type;
+
+  r_declarator(input_flags, output_flags, specifiers_type,
+               member_parent_type, locator, p_complete_type,
+               &bottom_derived_type, (a_call_conv_descr_ptr)NULL,
+               decl_modifiers, declarator_ssep, func_info);
 }  /* declarator */
 
 

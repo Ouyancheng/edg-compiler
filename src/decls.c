@@ -4822,7 +4822,6 @@ In C++ mode an error is issued if a type definition appears in a type-name
   a_decl_flag_set              dso_flags, do_flags;
   a_type_qualifier_set         qualifiers;
   a_decl_modifier	       decl_modifiers;
-  a_type_ptr                   bottom_derived_type;
   a_source_position            start_pos;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
 
@@ -4847,8 +4846,7 @@ In C++ mode an error is issued if a type definition appears in a type-name
   if (is_abstract_declarator_start()) {
     declarator(DI_ABSTRACT_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED,
                &do_flags, *type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
-	       (a_symbol_locator *)NULL,
-               type_ptr, &bottom_derived_type, (a_call_conv_descr_ptr)NULL,
+	       (a_symbol_locator *)NULL, type_ptr, &decl_modifiers,
                &declarator_ssep, (a_func_info_block_ptr)NULL);
   }  /* if */
   if (any_cfront_mode() &&
@@ -4866,8 +4864,9 @@ void new_type_name(a_boolean         is_parenthesized,
                    a_type_ptr        *type_ptr)
 /*
 Scan a C++ new-type-name or a parenthesized type-name that may appear in a
-"new" expression (ARM 5.3.3), and return a pointer to the type.  The
-syntax is:
+"new" expression (ARM 5.3.3), and return a pointer to the type in *type_ptr.
+The syntax is:
+
    new-type-name:
               type-specifier-list new-declarator
                                                 opt
@@ -4879,13 +4878,20 @@ syntax is:
               new-declarator    [ expression ]
                             opt
 
+This syntax allows only a restricted form of types, but you can specify
+an arbitrary type by enclosing a type-name in parentheses:
+
    type-name:
               type-specifier-list abstract-declarator
                                                      opt
+
+If is_parenthesized is TRUE, the caller has already trapped the left
+parenthesis for such a construct.  The parenthesis is also checked for
+within this routine if is_parenthesized comes in FALSE.
 */
 {
   a_type_ptr            complete_type, new_type_ptr;
-  a_type_ptr            derived_type, bottom_derived_type = NULL;
+  a_type_ptr            derived_type, bottom_derived_type;
   a_decl_flag_set       dso_flags, do_flags;
   a_type_qualifier_set  qualifiers;
   a_decl_modifier	decl_modifiers;
@@ -4895,6 +4901,7 @@ syntax is:
                         declarator_ssep = NULL;
 
   db_enter(3, "new_type_name");
+  /* Check for the parenthesized form. */
   if (!is_parenthesized && curr_token == tok_lparen) {
     is_parenthesized = TRUE;
     (void)get_token();
@@ -4926,21 +4933,23 @@ syntax is:
     (skip_typerefs(*type_ptr))->source_corresp.referenced = TRUE;
   }  /* if */
   /* Note -- the check for dangling_type_specifier is not relevant here. */
-  bottom_derived_type = NULL;
   if (is_parenthesized) {
+    /* In the parenthesized form, the full declarator syntax is allowed. */
     if (is_abstract_declarator_start()) {
       declarator(DI_ABSTRACT_DECLARATOR_ALLOWED |
                     DI_QUALIFIED_NAME_ALLOWED |
                     DI_DIMENSION_EXPRESSION_ALLOWED,
                  &do_flags, *type_ptr,
                  /*member_parent_type=*/(a_type_ptr)NULL,
-                 (a_symbol_locator *)NULL, type_ptr,
-                 &bottom_derived_type, (a_call_conv_descr_ptr)NULL,
+                 (a_symbol_locator *)NULL, type_ptr, &decl_modifiers,
                  &declarator_ssep, (a_func_info_block_ptr)NULL);
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
   } else {
+    /* In the non-parenthesized form, a limited declarator syntax is
+       allowed. */
+    /* Scan pointer declarators. */
     complete_type = pointer_declarator(*type_ptr,
                                        /*reference_allowed=*/FALSE,
                                        /*call_conv_allowed=*/FALSE,
@@ -4951,7 +4960,8 @@ syntax is:
     add_stop_token(tok_lbracket);
     if (curr_token == tok_lbracket) {
       a_boolean  restrict_seen;
-
+      /* Scan array declarators.  The first one allows an expression
+         as the size; the others require a constant size. */
       array_declarator(&new_type_ptr, /*nonconstant_allowed=*/TRUE,
                        /*top_level_field_decl=*/FALSE,
                        /*restrict_allowed=*/FALSE, &restrict_seen);
@@ -5371,7 +5381,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
 */
 {
   a_handler_ptr                handler, prev_handler;
-  a_type_ptr                   type_ptr = NULL, bottom_derived_type;
+  a_type_ptr                   type_ptr = NULL;
   a_storage_class              storage_class;
   a_decl_flag_set              dso_flags, do_flags;
   a_type_qualifier_set         qualifiers;
@@ -5432,8 +5442,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
                        DI_ABSTRACT_DECLARATOR_ALLOWED,
                      &do_flags, type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL, &locator,
-                     &type_ptr, &bottom_derived_type,
-                     (a_call_conv_descr_ptr)NULL, &declarator_ssep,
+                     &type_ptr, &decl_modifiers, &declarator_ssep,
                      (a_func_info_block_ptr)NULL);
           if (do_flags & DO_REAL_DECLARATOR_SCANNED) {
             sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
@@ -5739,7 +5748,7 @@ Return a pointer to the variable that is declared.
 */
 {
   a_storage_class              storage_class;
-  a_type_ptr                   type_ptr = NULL, bottom_derived_type;
+  a_type_ptr                   type_ptr = NULL;
   a_decl_flag_set              dsi_flags, dso_flags, do_flags;
   a_type_qualifier_set         qualifiers;
   a_decl_modifier	       decl_modifiers;
@@ -5776,8 +5785,7 @@ Return a pointer to the variable that is declared.
        array. */
     declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, type_ptr,
                /*member_parent_type=*/(a_type_ptr)NULL, &locator, &type_ptr,
-               &bottom_derived_type, (a_call_conv_descr_ptr)NULL,
-               &declarator_ssep, (a_func_info_block_ptr)NULL);
+               &decl_modifiers, &declarator_ssep, (a_func_info_block_ptr)NULL);
   } else {
     /* No declarator.  Issue a single diagnostic on this malformed
        condition declaration. */
@@ -6547,7 +6555,6 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean                    is_static_data_member;
   a_symbol_locator             locator;
   a_param_id_ptr               param_id;
-  a_type_ptr                   bottom_derived_type;
   a_func_info_block            func_info;
   a_boolean                    top_declarator_type_is_function;
   an_id_linkage_kind           linkage;
@@ -6807,8 +6814,7 @@ continue_with_declaration:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       declarator(di_flags, &do_flags, type_ptr, 
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
-                 &local_type_ptr, &bottom_derived_type,
-                 (a_call_conv_descr_ptr)NULL, &declarator_ssep,
+                 &local_type_ptr, &decl_modifiers, &declarator_ssep,
                  &func_info);
       is_function = (storage_class != (a_storage_class)sc_typedef &&
                      is_function_type(local_type_ptr));

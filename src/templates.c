@@ -2367,7 +2367,6 @@ of a function template.
 {
   a_decl_flag_set              dsi_flags;
   a_decl_flag_set              di_flags;
-  a_type_ptr                   bottom_derived_type = NULL;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
   a_type_qualifier_set         qualifiers;
 
@@ -2408,8 +2407,7 @@ of a function template.
     *do_flags = 0;
   } else {
     declarator(di_flags, do_flags, *type, (a_type_ptr)NULL, locator, type,
-               &bottom_derived_type, (a_call_conv_descr_ptr)NULL,
-               &declarator_ssep, func_info);
+               decl_modifiers, &declarator_ssep, func_info);
     func_info->is_inline = ((*dso_flags & DSO_INLINE) != 0);
     /* Note whether this is a function type that comes from a typedef.  The
        setting is checked later if this turns out to be a function template
@@ -4117,7 +4115,6 @@ Scan the declaration of a single template nontype parameter.
   a_type_qualifier_set         qualifiers;
   a_decl_modifier              decl_modifiers;
   a_storage_class              param_storage_class;
-  a_type_ptr                   bottom_derived_type;
   a_source_position            param_pos;
   a_source_sequence_entry_ptr  declarator_ssep;
   a_type_ptr                   tp;
@@ -4139,8 +4136,7 @@ Scan the declaration of a single template nontype parameter.
   /* Scan the declarator. */
   declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags,
              *param_type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
-             param_locator, param_type_ptr, &bottom_derived_type,
-             (a_call_conv_descr_ptr)NULL, &declarator_ssep,
+             param_locator, param_type_ptr, &decl_modifiers, &declarator_ssep,
              (a_func_info_block_ptr)NULL);
   /* Adjust the type if necessary (for example, "array of x"
      becomes "pointer to x"). */
@@ -6667,7 +6663,6 @@ assumed if the return type is omitted.
     a_decl_flag_set              do_flags, dso_flags;
     a_type_qualifier_set         qualifiers;
     a_decl_modifier		 decl_modifiers;
-    a_type_ptr                   bottom_derived_type = NULL;
     a_symbol_ptr                 orig_sym;
     a_symbol_ptr                 new_sym;
     a_source_sequence_entry_ptr  declarator_ssep;
@@ -6686,8 +6681,7 @@ assumed if the return type is omitted.
       declarator((DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED |
                   DI_OPERATOR_NAME_ALLOWED),
                  &do_flags, type, (a_type_ptr)NULL, &locator, &type,
-                 &bottom_derived_type, (a_call_conv_descr_ptr)NULL,
-                 &declarator_ssep, &func_info);
+                 &decl_modifiers, &declarator_ssep, &func_info);
       done_with_func_info(func_info);
 #if 0
       /* Presumably, declarator_ssep will often be returned pointing at an

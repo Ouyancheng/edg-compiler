@@ -6928,7 +6928,6 @@ completed (C++ only).
             /* Named member -- we need to call declarator. */
             a_decl_flag_set    		declarator_input_flags;
             a_decl_flag_set    		declarator_output_flags;
-            a_type_ptr         		bottom_derived_type;
 
             if (!C_mode()) {
               /* C++ mode */
@@ -6984,8 +6983,7 @@ completed (C++ only).
             declarator(declarator_input_flags, &declarator_output_flags,
                        member_type,
                        friend_specified ? (a_type_ptr)NULL : class_type,
-                       &locator, &local_type, &bottom_derived_type,
-                       (a_call_conv_descr_ptr)NULL,
+                       &locator, &local_type, &decl_modifiers,
                        &declarator_ssep, &func_info);
             if (!C_mode()) {
               /* Check whether this is a non-standard typedef declaration. */

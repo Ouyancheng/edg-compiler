@@ -164,17 +164,15 @@ typedef struct a_call_conv_descr {
 } a_call_conv_descr;
 
 extern
-void declarator(a_decl_flag_set          input_flags,
-                a_decl_flag_set          *output_flags,
-                a_type_ptr               specifiers_type,
-                a_type_ptr               member_parent_type,
-                a_symbol_locator         *locator,
-                a_type_ptr               *p_complete_type,
-                a_type_ptr               *p_bottom_derived_type,
-                a_call_conv_descr_ptr     p_calling_convention,
-                a_source_sequence_entry_ptr
-                                         *declarator_ssep,
-                a_func_info_block        *func_info);
+void declarator(a_decl_flag_set             input_flags,
+                a_decl_flag_set             *output_flags,
+                a_type_ptr                  specifiers_type,
+                a_type_ptr                  member_parent_type,
+                a_symbol_locator            *locator,
+                a_type_ptr                  *p_complete_type,
+                a_decl_modifier             *decl_modifiers,
+                a_source_sequence_entry_ptr *declarator_ssep,
+                a_func_info_block           *func_info);
 
 extern
 a_type_ptr pointer_declarator(
