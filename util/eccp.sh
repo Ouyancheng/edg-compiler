@@ -623,6 +623,8 @@ do
          --no_extern_inline | \
          --guiding_decls | \
          --no_guiding_decls | \
+         --distinct_template_signatures | \
+         --no_distinct_template_signatures | \
          --multibyte_chars | \
          --no_multibyte_chars | \
          --embedded_c++ | \
