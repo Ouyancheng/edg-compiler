@@ -3352,6 +3352,7 @@ Do IL lowering of the indicated constant and everything under it.
       case ck_string:
       case ck_float:
       case ck_designator:
+      case ck_init_repeat:
         /* No handling required. */
         break;
       case ck_address:

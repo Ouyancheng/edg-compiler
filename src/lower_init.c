@@ -4703,13 +4703,16 @@ If the dynamic initialization is the top-level one for a throw,
 others_follow_in_aggr is TRUE if this constant is followed by others in
 an aggregate initialization (i.e., it's not the last).
 
-This routine is only called for non-C cases, and therefore it will always
-generate some executable code.  (Well, almost always: a dynamic initialization
-that contains a destructor but that could otherwise be rendered as a static
-initialization will be turned into the static initialization, which means
-no code will be generated.)  The code will be inserted at *insert_location.
-*insert_location will be updated to indicate a location after the inserted
-code.
+
+This routine will always generate some executable code (well, almost always: 
+A dynamic initialization that contains a destructor but that could otherwise 
+be rendered as a static initialization will be turned into the static
+initialization, which means no code will be generated).  The code will be
+inserted at *insert_location.  *insert_location will be updated to indicate 
+a location after the inserted code.  This code is usually only called for
+non-C code, but in C99 mode it may also be called to handle compound literals:
+The caller should then make sure that this only happens in function scope
+(where executable statements can be added in C mode).
 
 On return, *keep_dynamic_init is TRUE if the dynamic init entry is to
 be kept, FALSE if it should be deleted.  If the caller passes in
@@ -6480,6 +6483,7 @@ Do IL lowering of an enk_temp_init expression node.
   an_insert_location insert_location;
   a_boolean          is_constructor_init;
   a_variable_ptr     temp_var;
+  a_boolean          keep_dynamic_init;
 
   dip = expr->variant.init.dynamic_init;
   result_is_addr = expr->variant.init.result_is_addr;
@@ -6513,6 +6517,13 @@ Do IL lowering of an enk_temp_init expression node.
                                                expr->variant.init.static_temp);
     }  /* if */
     dip->variable = temp_var;
+    if (dip->is_partially_initialized_compound_literal) {
+      /* Note that compound literals created
+         outside of functions do not use enk_temp_init so they are not
+         seen here (the front end creates an initialized static variable
+         for them). */
+      temp_var->is_partially_initialized = TRUE;
+    }  /* if */
     /* Change the enk_temp_init to a reference to the value or address
        of the temporary. */
     if (result_is_addr) {
@@ -6532,12 +6543,22 @@ Do IL lowering of an enk_temp_init expression node.
     /* Any code generated for the dynamic initialization will be
        inserted before the (modified) original expression. */
     set_expr_insert_location(expr, &insert_location);
+    /* Lower the initialization. */
+    if (dip->kind == (a_dynamic_init_kind)dik_constant ||
+        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+      lower_designated_initializers(dip->variant.constant);
+    }  /* if */
     lower_dynamic_init(dip, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_NONE,
                        /*others_follow_in_aggr=*/FALSE,
-                       &insert_location, (a_boolean *)NULL,
+                       &insert_location, &keep_dynamic_init,
                        (a_constant **)NULL);
+    if (keep_dynamic_init) {
+      /* Record any dynamic initialization that might have been created
+         while lowering a compound literal. */
+      add_stmk_init_for_compound_literal(temp_var, dip);
+    }  /* if */
     if (temp_var->init_kind == (an_init_kind)initk_zero &&
         !has_static_storage_duration(temp_var->storage_class)) {
       /* We need to zero an automatic temporary, which can't be done by
@@ -6786,6 +6807,67 @@ Generate code for a stmk_init (dynamic initialization) statement.
     }  /* switch */
   }  /* if */
 }  /* lower_stmk_init */
+
+
+extern void insert_temp_init_statements(a_statement_ptr  statement)
+/*
+If there are any pending statements (as the result of lowering an enk_temp_init
+node), insert them before the given statement.  (This happens when lowering
+compound literals.)
+*/
+{
+  if (temp_init_statements != NULL) {
+    /* Insert statements before the given statement. */
+    an_insert_location insert_location;
+    a_statement_ptr    orig_stmt;
+    change_statement_into_block(statement, &orig_stmt);
+    set_block_start_insert_location(statement, &insert_location);
+    while (temp_init_statements != NULL) {
+      a_statement_ptr stmt = temp_init_statements;
+      temp_init_statements = stmt->next;
+      stmt->next = NULL;
+      insert_statement(stmt, &insert_location);
+    }  /* while */
+  }  /* if */
+}  /* insert_temp_init_statements */
+
+
+void add_stmk_init_for_compound_literal(a_variable_ptr      var,
+                                        a_dynamic_init_ptr  dip)
+/*
+var represents a temporary variable created to hold the value of compound
+literal, while dip describes the required dynamic initialization.  Create
+the stmk_init statement required for this initialization, and add it to the
+temp_init_statements list.
+*/
+{
+  a_statement_ptr  stmk_init_stmt =
+                                 alloc_statement((a_statement_kind)stmk_init);
+
+  stmk_init_stmt->variant.dynamic_init = dip;
+  /* Put the statement on a list to be inserted when we get back to
+     statement level. */
+  add_to_end_of_temp_init_statements_list(stmk_init_stmt);
+  /* Reflect the initialization method in the variable entry. */
+  var->init_kind = (an_init_kind)initk_dynamic;
+  var->initializer.dynamic = dip;
+}  /* add_stmk_init_for_compound_literal */
+
+
+void add_to_end_of_temp_init_statements_list(a_statement_ptr stmt)
+/*
+Add the indicated statement to the end of the temp_init_statements list.
+*/
+{
+  if (temp_init_statements == NULL) {
+    temp_init_statements = stmt;
+  } else {
+    a_statement_ptr end_of_list = temp_init_statements;
+    while (end_of_list->next != NULL) end_of_list = end_of_list->next;
+    end_of_list->next = stmt;
+  }  /* if */
+  stmt->next = NULL;
+}  /* add_to_end_of_temp_init_statements_list */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
@@ -7625,7 +7707,7 @@ designated initializers, rewrite them as standard C.  Note that this is
 called in C mode.
 */
 {
-  check_assertion(C_mode());
+  check_assertion(C_mode() || gpp_mode);
   if (!suppress_il_lowering && total_errors == 0) {
     if (init_con->kind == (a_constant_repr_kind)ck_aggregate) {
       lower_aggregate_designated_initializers(init_con,

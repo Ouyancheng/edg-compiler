@@ -2379,19 +2379,13 @@ checked again here.)
 }  /* check_and_set_sun_mode_options */
 
 
-static void check_and_set_gcc_mode_options(void)
+static void check_and_set_gnu_mode_options(void)
 /*
-Set the options needed to emulate GNU C compilers, and check that no other
-modes conflict with this one.  (The processing of some modes, like ANSI,
-exclude the GNU C mode already.  Hence those are not checked again here.)
+Set the options common to both GNU C and C++ modes, making sure that no other
+options conflict with them.  (The processing of some modes, like ANSI,
+exclude the GNU modes already.  Hence those are not checked again here.)
 */
 {
-#if VLA_ALLOWED
-  if (!(option_kind_used[(int)optk_vla])) {
-    /* Support for VLAs is turned on by default in gcc mode. */
-    vla_enabled = TRUE;
-  }  /* if */
-#endif /* VLA_ALLOWED */
 #if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
   if (!(option_kind_used[(int)optk_extended_designators])) {
     /* If extended designators were not enabled or disabled on the command
@@ -2437,11 +2431,28 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
   /* Treat "long long" as a standard feature. */
   long_long_is_standard = TRUE;
   long_long_promotion_allowed = FALSE;
-  /* The underlying type for an enum could be long long. */
-  enum_types_can_be_larger_than_int = TRUE;
   /* Hexadecimal floating point constants are permitted. */
   hex_floating_point_constants_allowed = TRUE;
   null_chars_allowed_in_source = TRUE;
+}  /* check_and_set_gnu_mode_options */
+
+
+static void check_and_set_gcc_mode_options(void)
+/*
+Set the options needed to emulate GNU C compilers, and check that no other
+modes conflict with this one.  (The processing of some modes, like ANSI,
+exclude the GNU C mode already.  Hence those are not checked again here.)
+*/
+{
+  check_and_set_gnu_mode_options();
+#if VLA_ALLOWED
+  if (!(option_kind_used[(int)optk_vla])) {
+    /* Support for VLAs is turned on by default in gcc mode. */
+    vla_enabled = TRUE;
+  }  /* if */
+#endif /* VLA_ALLOWED */
+  /* The underlying type for an enum could be long long. */
+  enum_types_can_be_larger_than_int = TRUE;
 }  /* check_and_set_gcc_mode_options */
 
 
@@ -2452,43 +2463,13 @@ modes conflict with this one.  (The processing of some modes, like ANSI,
 exclude the GNU C++ mode already.  Hence those are not checked again here.)
 */
 {
-  if (!(option_kind_used[(int)optk_extended_variadic_macros])) {
-    /* If extended variadic macros were not enabled or disabled on the command
-       line, enable them now. */
-    variadic_macros_allowed = TRUE;
-    extended_variadic_macros_allowed = TRUE;
-  }  /* if */
-  if (!(option_kind_used[(int)optk_allow_dollar_in_id_chars])) {
-    /* If identifiers with dollar signs were not enabled or disabled on the
-       command line, enable them now. */
-    allow_dollar_in_id_chars = TRUE;
-  }  /* if */
-  if (!(option_kind_used[(int)optk_stdarg_builtin])) {
-    /* <stdarg.h> should be included as a normal header file.  Various
-       __builtin_... entities may be predefined to accommodate it (if
-       GCC_BUILTIN_VARARGS is TRUE). */
-    pass_stdarg_references_to_generated_code = FALSE;
-  }  /* if */
+  check_and_set_gnu_mode_options();
   if (!option_kind_used[(int)optk_exception_handling]) {
     /* Enable exceptions by default in GNU C++ mode. */
     exceptions_enabled = TRUE;
   }  /* if */
-  if (!(option_kind_used[(int)optk_restrict])) {
-    /* Enable the use of __restrict__ in GNU mode. */
-    restrict_enabled = TRUE;
-  }  /* if */
-  /* Enable flexible array member support. */
-  flexible_array_members_allowed = TRUE;
-  /* Enable // comments. */
-  end_of_line_comments_allowed = TRUE;
   /* Enable recognition of digraphs. */
   alternative_tokens_allowed = TRUE;
-  /* Treat "long long" as a standard feature. */
-  long_long_is_standard = TRUE;
-  long_long_promotion_allowed = FALSE;
-  /* Hexadecimal floating point constants are permitted. */
-  hex_floating_point_constants_allowed = TRUE;
-  null_chars_allowed_in_source = TRUE;
   /* GNU C++ doesn't look unqualified names up in dependent base classes. */
   gpp_dependent_base_class_lookup = TRUE;
   /* We will presumably want to pick std::type_info from the GNU headers.

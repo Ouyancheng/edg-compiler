@@ -1109,30 +1109,6 @@ constructs.
 }  /* lower_c99_constant_expr */
 
 
-/*
-A list of statements that initialize temporaries for lowered
-compound literals, to be inserted once we get back up to statement
-level.
-*/
-static a_statement_ptr temp_init_statements;
-
-
-static void add_to_end_of_temp_init_statements_list(a_statement_ptr stmt)
-/*
-Add the indicated statement to the end of the temp_init_statements list.
-*/
-{
-  if (temp_init_statements == NULL) {
-    temp_init_statements = stmt;
-  } else {
-    a_statement_ptr end_of_list = temp_init_statements;
-    while (end_of_list->next != NULL) end_of_list = end_of_list->next;
-    end_of_list->next = stmt;
-  }  /* if */
-  stmt->next = NULL;
-}  /* add_to_end_of_temp_init_statements_list */
-
-
 static void lower_c99_temp_init(an_expr_node_ptr expr)
 /*
 Lower the given enk_temp_init expression.  An enk_temp_init is used
@@ -1207,16 +1183,7 @@ in C99 mode to represent a compound literal.
     add_to_end_of_temp_init_statements_list(stmk_vla_decl_stmt);
   }  /* if */
   if (keep_dynamic_init) {
-    /* Add an stmk_init statement for the constant part of the temporary
-       initialization. */
-    a_statement_ptr stmk_init_stmt =
-                                  alloc_statement((a_statement_kind)stmk_init);
-    stmk_init_stmt->variant.dynamic_init = dip;
-    /* Put the statement on a list to be inserted when we get back to
-       statement level. */
-    add_to_end_of_temp_init_statements_list(stmk_init_stmt);
-    var->init_kind = (an_init_kind)initk_dynamic;
-    var->initializer.dynamic = dip;
+    add_stmk_init_for_compound_literal(var, dip);
   }  /* if */
 }  /* lower_c99_temp_init */
 
@@ -1224,6 +1191,10 @@ in C99 mode to represent a compound literal.
 static void lower_c99_expr_list(an_expr_node_ptr  list,
                                 unsigned int      lvalue_mask)
 /*
+Lower the given (short) list of expressions (normally, the operands of an
+operator).  lvalue_mask is a bit set indicating which of these expressions
+are used as lvalues (the least significant bit corresponds to the first
+expression).
 */
 {
   an_expr_node_ptr  expr;
@@ -1563,20 +1534,7 @@ Do C99 lowering on the indicated statement.
       default:
         unexpected_condition_str("lower_c99_statement: bad statement kind");
     }  /* switch */
-    if (temp_init_statements != NULL) {
-      /* Insert statements generated for lowering of compound literals.
-         They are inserted preceding the current statement. */
-      an_insert_location insert_location;
-      a_statement_ptr    orig_stmt;
-      change_statement_into_block(statement, &orig_stmt);
-      set_block_start_insert_location(statement, &insert_location);
-      while (temp_init_statements != NULL) {
-        a_statement_ptr stmt = temp_init_statements;
-        temp_init_statements = stmt->next;
-        stmt->next = NULL;
-        insert_statement(stmt, &insert_location);
-      }  /* while */
-    }  /* if */
+    insert_temp_init_statements(statement);
     temp_init_statements = saved_temp_init_statements;
     error_position = saved_error_position;
   }  /* if */

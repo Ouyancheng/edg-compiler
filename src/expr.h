@@ -120,13 +120,14 @@ an_expr_node_ptr scan_asm_operand_expression(a_boolean output);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern void scan_initializer_expression(
-                                       a_type_ptr       required_type,
-                                       a_boolean        static_lifetime,
-                                       a_boolean        force_object_lifetime,
-                                       a_boolean        is_copy_initialization,
-                                       a_boolean        *is_constant,
-                                       an_expr_node_ptr *expression,
-                                       a_constant       *constant);
+                                     a_type_ptr       required_type,
+                                     a_boolean        static_lifetime,
+                                     a_boolean        force_object_lifetime,
+                                     a_boolean        suppress_object_lifetime,
+                                     a_boolean        is_copy_initialization,
+                                     a_boolean        *is_constant,
+                                     an_expr_node_ptr *expression,
+                                     a_constant       *constant);
 
 extern an_expr_node_ptr prep_rvalue_arg_expr(an_expr_node_ptr  expr,
                                              a_param_type_ptr  param,
@@ -137,12 +138,13 @@ extern a_boolean scan_class_initializer_expression(
                                               a_dynamic_init_ptr *dip);
 
 extern a_boolean scan_aggregate_initializer_expression(
-                                            a_type_ptr         required_type,
-                                            a_boolean          static_lifetime,
-                                            unsigned long      *levels_down,
-                                            a_boolean          *is_constant,
-                                            a_dynamic_init_ptr *dip,
-                                            a_constant         *constant);
+                                   a_type_ptr         required_type,
+                                   a_boolean          static_lifetime,
+                                   a_boolean          suppress_object_lifetime,
+                                   unsigned long      *levels_down,
+                                   a_boolean          *is_constant,
+                                   a_dynamic_init_ptr *dip,
+                                   a_constant         *constant);
 
 extern void scan_class_parenthesized_initializer(
                                       a_type_ptr         class_type,

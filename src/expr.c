@@ -9200,7 +9200,7 @@ to the compound literal.
   an_expr_stack_entry_ptr saved_expr_stack;
   a_memory_region_number  region_to_switch_back_to;
 
-  check_assertion(C_mode() &&
+  check_assertion((C_mode() || gpp_mode) &&
                   !curr_expr_kind_is(ek_pp) &&
                   !curr_expr_kind_is(ek_template_arg));
   if (curr_expr_kind_is(ek_integral_constant)) {
@@ -9240,13 +9240,12 @@ to the compound literal.
   restore_expr_stack(saved_expr_stack);
   if (err) {
     make_error_operand(result);
-  } else if (is_static) {
+  } else if (is_static && dip->kind == (a_dynamic_init_kind)dik_constant) {
     /* Static case.  Allocate an unnamed static variable and initialize it
        with the compound literal. */
     a_constant_ptr literal_con;
-    check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant);
     literal_con = dip->variant.constant;
-    if (gcc_mode && !(local_options & EOPT_OPERAND_OF_ADDRESS_OF)) {
+    if (gnu_mode && !(local_options & EOPT_OPERAND_OF_ADDRESS_OF)) {
       /* In GNU C mode, the compound literal is treated as a constant-
          expression.  In some cases, the constant may later be used to
          initialize a variable (if an lvalue is needed after all). */
@@ -15411,7 +15410,7 @@ nonstandard class member constants.  Assumes copy-initialization
         string_con = string_con->variant.address.variant.constant;
       }  /* if */
     }  /* if */
-    check_assertion(gcc_mode || is_string_type(result.type));
+    check_assertion(gnu_mode || is_string_type(result.type));
     if ((string_literal_case &&
          !check_string_constant_initializer(&required_type, string_con)) ||
         (!string_literal_case &&
@@ -15461,6 +15460,7 @@ nonstandard class member constants.  Assumes copy-initialization
 void scan_initializer_expression(a_type_ptr       required_type,
                                  a_boolean        static_lifetime,
                                  a_boolean        force_object_lifetime,
+                                 a_boolean        suppress_object_lifetime,
                                  a_boolean        is_copy_initialization,
                                  a_boolean        *is_constant,
                                  an_expr_node_ptr *expression,
@@ -15470,7 +15470,8 @@ Scan an initializer expression.  See sections 3.4 and 3.5.7 in the standard.
 The expression is converted to required_type; an error is issued if it
 is incompatible with that type.  The entity being initialized has static
 lifetime if static_lifetime is TRUE.  Force an object lifetime around the
-expression if force_object_lifetime is TRUE.  This initialization is
+expression if force_object_lifetime is TRUE; inhibit the generation of the
+object lifetime if suppress_object_lifetime is TRUE.  This initialization is
 copy-initialization ("="-form) if is_copy_initialization is TRUE; otherwise,
 it is direct_initialization ("()"-form).  The expression can be constant
 or nonconstant; on return, *is_constant is set accordingly, and the result
@@ -15488,7 +15489,7 @@ and scan_aggregate_initializer_expression.
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   force_object_lifetime,
-                  /*suppress_object_lifetime=*/FALSE);
+                  suppress_object_lifetime);
   if (static_lifetime) {
     /* In initializations of static variables, fold constant addressing
        expressions to constants so that constant initialization can be
@@ -15651,12 +15652,13 @@ As indicated, this is initialization with the "=" semantics
 
 
 a_boolean scan_aggregate_initializer_expression(
-                                            a_type_ptr         required_type,
-                                            a_boolean          static_lifetime,
-                                            unsigned long      *levels_down,
-                                            a_boolean          *is_constant,
-                                            a_dynamic_init_ptr *dip,
-                                            a_constant         *constant)
+                                   a_type_ptr         required_type,
+                                   a_boolean          static_lifetime,
+                                   a_boolean          suppress_object_lifetime,
+                                   unsigned long      *levels_down,
+                                   a_boolean          *is_constant,
+                                   a_dynamic_init_ptr *dip,
+                                   a_constant         *constant)
 /*
 Scan an expression that is the initial value of an entity of
 aggregate type.  required_type indicates the type (it may have some
@@ -15704,7 +15706,7 @@ This routine is also called in C99 and GNU C modes.
   }  /* if */
   push_expr_stack(expr_kind, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
+                  suppress_object_lifetime);
   if (static_lifetime) {
     /* In initializations of static variables, fold constant addressing
        expressions to constants so that constant initialization can be
@@ -15760,7 +15762,7 @@ This routine is also called in C99 and GNU C modes.
                    types_are_compatible(result.type, required_type)) {
           /* In GNU C mode a compound literal may initialize an element of
              array type. */
-          check_assertion(gcc_mode);
+          check_assertion(gnu_mode);
           goto required_type_determined;
         } else {
           /* Normal case: initialize the first member of the array. */

@@ -75,6 +75,9 @@ typedef struct an_aggregate_init_info {
 			/* Set to TRUE when a comma was skipped while looking
 			   ahead to find that there are no more initializers
 			   for the current aggregate. */
+  a_boolean	compound_literal;
+			/* Set to TRUE when get_initializer is called to parse
+			   a compound literal. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
 		init_end_position;
@@ -97,6 +100,7 @@ Initialize an entry of type an_aggregrate_init_info.
   init_info->any_uninitialized_member = FALSE;
   init_info->any_uninitialized_const_or_ref_member = FALSE;
   init_info->comma_seen = FALSE;
+  init_info->compound_literal = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   init_info->init_end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -856,12 +860,13 @@ This routine is called in C++ mode only.
 
 
 static a_constant_ptr scan_initializer_of_simple_object(
-                                    a_boolean           nonconst_allowed,
-                                    a_boolean           static_lifetime,
-                                    a_boolean           force_object_lifetime,
-                                    a_boolean           is_copy_initialization,
-                                    a_type_ptr          type,
-                                    a_dynamic_init_ptr  *dip_ptr)
+                                  a_boolean           nonconst_allowed,
+                                  a_boolean           static_lifetime,
+                                  a_boolean           force_object_lifetime,
+                                  a_boolean           suppress_object_lifetime,
+                                  a_boolean           is_copy_initialization,
+                                  a_type_ptr          type,
+                                  a_dynamic_init_ptr  *dip_ptr)
 /*
 Scan a initializer for a non-aggregate object (i.e., not an array and not
 a class/struct/union object).  If nonconst_allowed is TRUE (always the case
@@ -871,7 +876,9 @@ has static storage duration.  force_object_lifetime is TRUE only in C++ mode
 and only when this function is called in scanning a entry in a ctor
 initializer list; it is passed on to scan_initializer_expression to force
 creation of an object lifetime for expression temporaries even if
-long_lifetime_temps is TRUE.  If is_copy_initialization is TRUE, this
+long_lifetime_temps is TRUE.  Conversely, suppress_object_lifetime is TRUE
+when no object lifetime entry should be generated (used when parsing
+compound literals in C++ mode).  If is_copy_initialization is TRUE, this
 is copy-initialization ("="-form); otherwise, it's direct-initialization
 ("()"-form).  type is the data type of the object being initialized.
 dip_ptr is a pointer to a dynamic init pointer; if the latter is NULL,
@@ -901,6 +908,7 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
        of the scan is a constant if the expression is constant, and an
        expression node if not. */
     scan_initializer_expression(type, static_lifetime, force_object_lifetime,
+                                suppress_object_lifetime,
                                 is_copy_initialization,
                                 &is_constant, &expression, &constant);
   } else {
@@ -1026,7 +1034,7 @@ In C99 mode, the processing is similar to that in C++.
 
   if ((!C_mode() || c99_mode || gcc_mode) &&
       (is_class_struct_union_type(context->type) ||
-       (gcc_mode && is_array_type(context->type))) &&
+       (gnu_mode && is_array_type(context->type))) &&
       (curr_token != tok_lbrace || context->pending_init_con != NULL) &&
       !top_level && !designator_coming((a_boolean *)NULL)) {
     /* If this is an aggregate, whole object initialization is possible but
@@ -1034,7 +1042,7 @@ In C99 mode, the processing is similar to that in C++.
        the first initializable member of an aggregate, then that should be
        done instead of whole aggregate initialization.
        scan_aggregate_initializer_expression will determine this.
-       In GNU C mode, compound literals could have array type and can be
+       In GNU modes, compound literals could have array type and can be
        valid whole-object initializers. */
     is_whole_object_init = TRUE;
     if (!is_array_type(context->type)) {
@@ -1059,8 +1067,9 @@ In C99 mode, the processing is similar to that in C++.
         }  /* if */
       }  /* if */
     } else if (!scan_aggregate_initializer_expression(
-                              context->type, init_info->static_lifetime,
-                              &levels_down, &is_constant, &dip, &constant)) {
+                                    context->type, init_info->static_lifetime,
+                                    init_info->compound_literal, &levels_down,
+                                    &is_constant, &dip, &constant)) {
       /* No appropriate initializer was found. */
       err = TRUE;
     } else {
@@ -1640,6 +1649,7 @@ subaggregate.  The function returns a pointer to an IL a_constant entity.
                                      nonconst_allowed,
                                      (a_boolean)init_info->static_lifetime,
                                      /*force_object_lifetime=*/FALSE,
+                                     (a_boolean)init_info->compound_literal,
                                      /*is_copy_initialization=*/TRUE,
                                      required_type, &dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -2218,8 +2228,9 @@ function get_initializer does all the hard work.
   a_boolean              no_token_consumed, any_dynamic_init;
   a_boolean		 err = FALSE;
 
-  check_assertion(C_mode() && (curr_token == tok_lbrace));
+  check_assertion((C_mode() || gpp_mode) && (curr_token == tok_lbrace));
   initialize_init_info(&info, is_static);
+  info.compound_literal = TRUE;
   compound_constant = get_initializer(type, &info,
                                       (an_aggregate_init_context_ptr)NULL,
                                       &no_token_consumed,
@@ -2676,6 +2687,7 @@ the type of that entity.
           scan_initializer_of_simple_object(nonconstant_allowed,
                                             static_lifetime,
                                             /*force_object_lifetime=*/FALSE,
+                                            /*suppress_object_lifetime=*/FALSE,
                                             /*is_copy_initialization=*/TRUE,
                                             vp_type, init_dip);
   if (microsoft_bugs) {
@@ -2975,12 +2987,12 @@ returned set to TRUE.
          a dynamic init entry representing an expression. */
       nonconstant_allowed = (!C_mode() || !static_lifetime);
       init_con =
-            scan_initializer_of_simple_object(nonconstant_allowed,
-                                              static_lifetime,
-                                              /*force_object_lifetime=*/FALSE,
-                                              /*is_copy_initialization=*/
-                                                                        FALSE,
-                                              vp_type, &init_dip);
+          scan_initializer_of_simple_object(nonconstant_allowed,
+                                            static_lifetime,
+                                            /*force_object_lifetime=*/FALSE,
+                                            /*suppress_object_lifetime=*/FALSE,
+                                            /*is_copy_initialization=*/FALSE,
+                                            vp_type, &init_dip);
       /* The closing right paren will not have been consumed, as it is
          the arg list for a constructor call is scanned, so bypass it
          explicitly. */
@@ -3018,8 +3030,8 @@ returned set to TRUE.
         /* No appropriate constructor was found.  Abort the initialization. */
         init_err = TRUE;
       }  /* if */
-    } else if (gcc_mode && curr_token != tok_lbrace && static_lifetime) {
-      /* In GNU C mode, a compound literal is treated as a constant-expression
+    } else if (gnu_mode && curr_token != tok_lbrace && static_lifetime) {
+      /* In GNU modes, a compound literal is treated as a constant-expression
          that can initialize a variable with a static lifetime.  We may also
          arrive here when the initializer is a (possibly parenthesized) string
          literal. */
@@ -4336,12 +4348,12 @@ scan_paren:
                    dik_none for now.  It will be adjusted after the scan. */
                 dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
                 (void)scan_initializer_of_simple_object(
-                                                /*nonconst_allowed=*/TRUE,
-                                                /*static_lifetime=*/FALSE,
-                                                /*force_object_lifetime=*/TRUE,
-                                                /*is_copy_initialization=*/
-                                                                         FALSE,
-                                                init_type, &dip);
+                                            /*nonconst_allowed=*/TRUE,
+                                            /*static_lifetime=*/FALSE,
+                                            /*force_object_lifetime=*/TRUE,
+                                            /*suppress_object_lifetime=*/FALSE,
+                                            /*is_copy_initialization=*/FALSE,
+                                            init_type, &dip);
                 /* If the initializer produced an object lifetime for the full
                    expression, remove it temporarily from the object lifetime
                    tree and restore it in the correct position later. */
