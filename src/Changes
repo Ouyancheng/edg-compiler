@@ -1,11 +1,37 @@
 Version 2.14
 
-2/11/93 Local types as arguments to template functions
+2/11/93  Local types as arguments to template functions
 
 Local types are disallowed as template-based arguments to noninline
 template functions.  While there is no such explicit prohibition in
 the ARM, it seems only logical that there be no way for an
 out-of-line function to have access to a local type.
+
+2/10/93  Friend function with inline definition in template class
+
+Support for inline definition of friend functions declared in a class
+template is now provided; likewise default arguments are allowed.
+However, since a friend declaration is not an implicit template
+declaration, errors will appear during class instantiations if the
+function type signature is invariant.  For example:
+
+  template <class T, T N> class A {
+    static int i;
+    friend void f(int j = 0) { i = j; }
+    static T t;
+    friend void g(T tt = N) { t = tt; }
+  };
+  A<char, 1> c1;
+  A<int, 3> a3;        // Error on redefinition of f, but g is okay --
+                       //   overload set includes g(int) and g(char)
+
+2/10/93  Conversion functions in template classes
+
+Support for conversion functions in template classes has been added:
+
+  template <class T> struct S {
+    operator T();       // Spurious error has been eliminated
+  };
 
 2/10/93 Default arguments in function templates
 
@@ -16,6 +42,28 @@ param_type entries may now have the has_default_arg field set to
 TRUE while the default_arg_expr field is NULL.  Consequently,
 the has_default_arg field should always be used to check for the
 presence of a default argument.
+
+2/9/93  Instantiation of inline member function of template class
+
+A member function of a template class defined within the class
+definition is now instantiated at the point of first reference rather
+than when the template class is instantiated.  This delays errors (and
+may eliminate certain spurious errors) in cases like this:
+
+  template <class T> struct S {
+    void f() { T t; t = 1; }
+  };
+  class A { };
+  void main()
+  {
+    S<A> s;              // No error on instantiation of S<A>
+    s.f()                // Error on instantiation of S<A>::f
+  }
+
+2/8/93  Static member may not be an anonymous union
+
+An anonymous union within a class definition is prohibited from being
+a static member.
 
 2/8/93  Added pragma scope kind
 
