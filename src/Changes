@@ -1,5 +1,12 @@
 Version 3.0
 
+3/25/02  Template destructor not defined with ABI < 2.38
+
+In a copy of the front end configured with ABI_COMPATIBILITY_VERSION < 238,
+in some cases a destructor in a template was not instantiated when
+the destructor was only referenced from the typeinfo variable for
+the class.  Now fixed.
+
 3/25/02  Inlining: address of external routine incorrectly assumed to be
          non-NULL
 

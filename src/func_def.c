@@ -2302,14 +2302,19 @@ in case it's useful.
         cssp = symbol_supplement_for_class(tp);
         if (cssp->destructor != NULL) {
           rp = cssp->destructor->variant.routine.ptr;
-          if (rp->compiler_generated &&
-              !routine_has_been_defined(rp)) {
-            /* The destructor for the current class was generated
-               automatically but has not yet been defined. */
-            if (external_typeinfo_will_be_defined_for_class(tp)) {
-              /* Generate the body of the destructor because its address
-                 will be put into an external typeinfo variable. */
+          if (!routine_has_been_defined(rp) &&
+              external_typeinfo_will_be_defined_for_class(tp)) {
+            /* The destructor for the current class is needed
+               but has not yet been defined. */
+            if (rp->compiler_generated) {
+              /* Generate a destructor. */
               define_special_member_function(rp);
+            } else if (rp->is_template_function &&
+                       !rp->is_specialized) {
+              /* Instantiate a template destructor. */
+              a_symbol_ptr sym = (a_symbol_ptr)(rp->source_corresp.assoc_info);
+              set_instance_required(sym, /*value=*/TRUE,
+                                    /*defer_inline=*/FALSE);
             }  /* if */
           }  /* if */
         }  /* if */
