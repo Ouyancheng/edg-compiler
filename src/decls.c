@@ -591,9 +591,15 @@ can be that both are TRUE.
     (void)get_token();
     if (curr_token == tok_rparen) {
       *may_be_decl = FALSE;
+    } else if (cfront_compatibility_mode &&
+               real_declarator_allowed && abstract_declarator_allowed) {
+      /* Cfront bug.  In a context is which a parameter declaration must be
+         distinguished from an argument expression, cfront seems always to
+         treat "type-name ( ... )" as an expression. */
+      *may_be_decl = FALSE;
     } else {
       prescan_declarator(token_cache_ptr, abstract_declarator_allowed,
-                           real_declarator_allowed, may_be_decl, may_be_expr);
+                         real_declarator_allowed, may_be_decl, may_be_expr);
       if (real_declarator_allowed && abstract_declarator_allowed) {
         /* This may be an arg list and it may be a param list.  If the
            ambiguity was not resolved by looking at the first item (arg or
