@@ -405,8 +405,9 @@ the primary translation unit is preferred.
                  tssp = template_supplement_for_symbol(templ_sym),
                  corresp_tssp = template_supplement_for_symbol(corresp_sym);
             if (tssp->all_instantiations != NULL) {
-              /* The canonical entry is changing: the list of all instantiations
-                 should be reattached to the new canonical entry. */
+              /* The canonical entry is changing: the list of all
+                 instantiations should be reattached to the new canonical
+                 entry. */
               check_assertion(corresp_tssp->all_instantiations == NULL);
 #if DEBUG
               if (db_trace("trans_corresp", templ, iek_template) ||
@@ -418,6 +419,7 @@ the primary translation unit is preferred.
               tssp->all_instantiations = NULL;
             }  /* if */
           }
+          break;
         case iek_variable:
           if (!in_secondary_trans_unit(entity)) {
             a_variable_ptr  var = (a_variable_ptr)entity;
