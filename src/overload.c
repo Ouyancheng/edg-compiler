@@ -4150,11 +4150,19 @@ match, promotion, etc.) for the operand.
       /* A promoted type is required.  See if the operand type is an integral
          type affected by promotion. */
       if (is_integral_type(operand_type)) {
-        if (!types_are_compatible(
-                                operand_type_after_integral_promotion(operand),
-                                operand_type)) {
+        a_type_ptr promoted_type =
+                                operand_type_after_integral_promotion(operand);
+        if (!types_are_compatible(promoted_type, operand_type)) {
           /* The type gets changed by promotion, so the cost is a promotion. */
-          match_level = aml_promotion;
+          if (any_cfront_mode() && is_enum_type(operand_type) &&
+              f_skip_typerefs(operand_type)->variant.integer.int_kind ==
+              f_skip_typerefs(promoted_type)->variant.integer.int_kind) {
+            /* In cfront mode promotion of an enum to the same integral type
+               doesn't count as a promotion. */
+            /* match_level = aml_exact -- already set. */
+          } else {
+            match_level = aml_promotion;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
