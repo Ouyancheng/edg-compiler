@@ -1086,9 +1086,9 @@ extern a_boolean f_get_destructor_name(void);
 #define get_destructor_name()			                      \
   ((curr_token == tok_compl) ? f_get_destructor_name() : FALSE)
 /* Get a C++ operator name, like "operator+". */
-extern a_boolean f_get_opname(void);
-#define get_opname()                                         \
-  ((curr_token == tok_operator) ? f_get_opname() : FALSE)
+extern a_boolean f_get_opname(a_type_ptr class_type);
+#define get_opname(class_type)                                        \
+  ((curr_token == tok_operator) ? f_get_opname(class_type) : FALSE)
 /* Test for ":: new" and ":: delete". */
 extern a_boolean is_global_new_or_delete(void);
 
@@ -1139,7 +1139,7 @@ extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
   /* } */								\
 
 
-/* Return TRUE if the current token might be the start of a C++ qualified
+/* Return TRUE if the current token is the start of a C++ qualified
    name (including a simple identifier). */
 #define is_qualified_name_start()                                        \
   (is_generalized_identifier_start(GID_DEFER_ACCESS_ERRORS))

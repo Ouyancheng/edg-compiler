@@ -6243,6 +6243,8 @@ This routine may only be called in C++ mode.
     if (first_aedp != NULL) issue_qualifier_access_errors(&first_aedp);
     /* Since we're returning a pseudo-token, set pos_curr_token. */
     pos_curr_token = start_position;
+    /* Restore the original error position. */
+    error_position = orig_error_position;
   } else if (is_identifier) {
     /* A possibly qualified identifier. */
     result = TRUE;
@@ -6433,9 +6435,11 @@ a_boolean coalesce_and_lookup_qualified_name
 	       an_identifier_lookup_mode	ilm,
                a_boolean			*err)
 /*
-Coalesces a generalized identifier (see coalasce_generalized_identifier).
+Coalesces a generalized identifier (see coalesce_generalized_identifier).
 If the identifier was qualified (e.g., A::x or ::x) the identifier
 is looked up.  Returns TRUE if identifier is a qualified name.
+The caller must guarantee that is_generalized_identifier_start is TRUE
+(i.e., that the thing being scanned is, in fact, an identifier).
 */
 {
   a_boolean             return_value = FALSE;
@@ -6627,8 +6631,9 @@ The current token is the start of a name, qualified or not.
 Call coalesce_and_lookup_qualified_name and then normal_id_lookup, and return a
 pointer to the symbol found, if any.  options is a bit set of options
 controlling the lookup of the final id of a qualified name or the
-normal identifier.  The caller should guarantee that is_qualified_name()
-is TRUE (specifically, that "::new" or "::delete" is not next).
+normal identifier.  The caller must guarantee that
+is_generalized_identifier_start is TRUE (i.e., that the thing being
+scanned is, in fact, an identifier).
 */
 {
   a_symbol_ptr			symbol;
