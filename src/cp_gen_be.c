@@ -3283,7 +3283,8 @@ and *orig_scope to NULL.
 
   *common_scope = NULL;
   *orig_scope = NULL;
-  if (curr_name_context->assoc_scope->kind == (a_scope_kind)sck_namespace) {
+  if (curr_name_context->assoc_scope->kind == (a_scope_kind)sck_namespace ||
+      curr_name_context->assoc_scope->kind == (a_scope_kind)sck_file) {
     /* See if it's necessary to adjust the current namespace before putting
        out this specialization. */
     /* Find the scope in which the specialization must be put out, which is
