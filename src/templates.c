@@ -11820,41 +11820,43 @@ static void record_string_version_of_template(
 Make the string version of the template.
 */
 {
-  /* Do some initial processing on the body cache to get it into the form
-     required by the template string routines. */
-  if (p_template_body_cache != NULL) {
-    a_cached_token_ptr	first_token;
-    first_token = p_template_body_cache->first_token;
-    /* Skip over any pragmas that precede the first token of the body. */
-    while (first_token != NULL &&
-           first_token->extra_info_kind ==
-                                 (a_token_extra_info_kind)teik_pragma) {
-      first_token = first_token->next;
-    }  /* while */
-    if (first_token != NULL &&
-        ((a_token_kind)first_token->token == tok_colon ||
-         (a_token_kind)first_token->token == tok_try)) {
-      /* There can sometimes be an overlap between the template
-         declaration cache and the template body cache.  Such an
-         overlap does not cause problems for the normal
-         processing, but must be eliminated when template
-         strings are created.  Split the declaration cache at
-         the first token of the body cache and discard the
-         duplicated tokens. */
-      a_token_cache		dummy_cache;
-      a_token_sequence_number	tsn_to_split;
-      tsn_to_split = first_token->token_sequence_number;
-      clear_token_cache(&dummy_cache, /*reusable=*/TRUE);
-      split_token_cache(&decl_state->decl_token_cache, &dummy_cache,
-                        tsn_to_split,
-                        /*include_prev_token=*/FALSE,
-                        /*okay_if_not_found=*/FALSE);
-      discard_token_cache(&dummy_cache);
-    } /* if */
+  if (sym != NULL && !sym->is_error) {
+    /* Do some initial processing on the body cache to get it into the form
+       required by the template string routines. */
+    if (p_template_body_cache != NULL) {
+      a_cached_token_ptr	first_token;
+      first_token = p_template_body_cache->first_token;
+      /* Skip over any pragmas that precede the first token of the body. */
+      while (first_token != NULL &&
+             first_token->extra_info_kind ==
+                                   (a_token_extra_info_kind)teik_pragma) {
+        first_token = first_token->next;
+      }  /* while */
+      if (first_token != NULL &&
+          ((a_token_kind)first_token->token == tok_colon ||
+           (a_token_kind)first_token->token == tok_try)) {
+        /* There can sometimes be an overlap between the template
+           declaration cache and the template body cache.  Such an
+           overlap does not cause problems for the normal
+           processing, but must be eliminated when template
+           strings are created.  Split the declaration cache at
+           the first token of the body cache and discard the
+           duplicated tokens. */
+        a_token_cache		dummy_cache;
+        a_token_sequence_number	tsn_to_split;
+        tsn_to_split = first_token->token_sequence_number;
+        clear_token_cache(&dummy_cache, /*reusable=*/TRUE);
+        split_token_cache(&decl_state->decl_token_cache, &dummy_cache,
+                          tsn_to_split,
+                          /*include_prev_token=*/FALSE,
+                          /*okay_if_not_found=*/FALSE);
+        discard_token_cache(&dummy_cache);
+      } /* if */
+    }  /* if */
+    /* Create the string that represents the template declaration. */
+    select_caches_and_make_template_string(decl_state, sym,
+                                           p_template_body_cache);
   }  /* if */
-  /* Create the string that represents the template declaration. */
-  select_caches_and_make_template_string(decl_state, sym,
-                                         p_template_body_cache);
 }  /* record_string_version_of_template */
 
 #endif /* RECORD_TEMPLATE_STRINGS */
