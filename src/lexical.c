@@ -2915,10 +2915,13 @@ should be used when trying the open.  is_system_include is TRUE
 if the included file name was specified in <...>.  If the open is
 successful, the full name of the file that is opened is returned
 in *full_file_name and the name intended for use in diagnostics
-and other output is returned in *display_name.  If replace_suffix
-is FALSE, the open must be successful and a catastrophic error will
-be issued if it is not; otherwise, a NULL file pointer will be
-returned.
+and other output is returned in *display_name.  replace_suffix is TRUE
+when this routine is used to search for an implicitly included
+template definition file.  When replace_suffix is used, each suffix in
+the implicit_instantiation_file_suffix_list is used to search for a
+template definition file.  When replace_suffix is FALSE, the open must
+be successful and a catastrophic error will be issued if it is not;
+otherwise, a NULL file pointer will be returned.
 */
 {
   a_directory_name_entry_ptr  curr_directory_name_entry;
