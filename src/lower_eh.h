@@ -28,6 +28,16 @@ lower_eh.h -- Declarations related to lower_eh.c (having to do with IL
 #include "lower_il.h"
 #endif /* ifndef LOWER_IL_H */
 
+extern a_type_ptr make_typeinfo_type(void);
+
+extern void define_scope_class_typeinfo_vars(a_scope_ptr scope);
+
+extern a_variable_ptr make_typeinfo_var(a_type_ptr type);
+
+#if ABI_CHANGES_FOR_RTTI
+extern void lower_typeid(an_expr_node_ptr expr);
+#endif /* ABI_CHANGES_FOR_RTTI */
+
 #if GENERATE_EH_TABLES
 /*
 Value used to indicate "no region number" for exception handling regions.
@@ -37,17 +47,7 @@ EXTERN a_cleanup_region_number
 		null_eh_region_number;
 
 
-extern a_type_ptr make_typeinfo_type(void);
-
 extern void type_is_used_in_exception(a_type_ptr type);
-
-extern void define_scope_class_typeinfo_vars(a_scope_ptr scope);
-
-extern a_variable_ptr make_typeinfo_var(a_type_ptr type);
-
-#if ABI_CHANGES_FOR_RTTI
-extern void lower_typeid(an_expr_node_ptr expr);
-#endif /* ABI_CHANGES_FOR_RTTI */
 
 #if DO_FULL_PORTABLE_EH_LOWERING
 extern a_handle_number object_addr_table_index(void);
