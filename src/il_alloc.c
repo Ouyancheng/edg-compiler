@@ -105,10 +105,8 @@ static unsigned long
 static unsigned long
 		num_hidden_names_allocated;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATE_STRINGS
 static unsigned long
 		num_templates_allocated;
-#endif /* RECORD_TEMPLATE_STRINGS */
 #if RECORD_MACROS_IN_IL
 static unsigned long
 		num_macros_allocated;
