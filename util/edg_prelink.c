@@ -2150,7 +2150,9 @@ has changed then write the updated list of instantiations to the file.
       FILE		*f_info;
       /* Open the input file in read mode to read the header information. */
       if (pifp->info_file_name == NULL) {
-        fprintf(stderr, "Input file %s has instantiations but no instantiation information file.\n", pifp->file_name);
+        fprintf(stderr,
+ "Input file %s has instantiations but no instantiation information file.\n",
+                pifp->file_name);
         pl_internal_error("Instantiation information file is missing");
       }  /* if */
       if (move_nonlocal_objects_to_curr_dir && !pifp->is_local_file) {
