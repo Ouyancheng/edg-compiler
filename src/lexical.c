@@ -3540,7 +3540,9 @@ at the next level down.
       pop_primary_include_search_dir(dir_name_of_primary_source_file);
     }  /* if */
   } else {
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
     an_input_stack_entry_ptr  prev_ise = curr_ise;
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     curr_ise = &input_stack[depth_input_stack];
     if (curr_ise->file == NULL) {
 #if DEBUG
