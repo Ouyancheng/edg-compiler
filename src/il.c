@@ -7082,26 +7082,23 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       }  /* if */
       fputc('"', f_debug);
     } else {
-      a_source_position       *pos;
-      a_source_correspondence *scp;
-      a_symbol_ptr            sym;
-      a_boolean               lparen_printed = FALSE;
-      a_boolean               autonomous = FALSE;
-      a_type_ptr              declared_type = NULL;
-      a_boolean               is_secondary_decl = FALSE, print_type = FALSE;
+      a_source_position             *pos;
+      a_source_correspondence       *scp;
+      a_symbol_ptr                  sym;
+      a_boolean                     lparen_printed = FALSE;
+      a_boolean                     autonomous = FALSE;
+      a_type_ptr                    declared_type = NULL;
+      a_boolean                     print_type = FALSE;
+      a_src_seq_secondary_decl_ptr  sssdp = NULL;
 
       if (ssep->entity.ptr == NULL) {
         fputs(" <null entity ptr>", f_debug);
       } else {
         if (kind == (an_il_entry_kind)iek_src_seq_secondary_decl) {
-          a_src_seq_secondary_decl_ptr  sssdp =
-                               (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
-          scp =
+          sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
           scp = &((a_variable_ptr)sssdp->entity.ptr)->source_corresp;
           pos = &sssdp->decl_position;
           if (sssdp->autonomous_tag_decl) autonomous = TRUE;
-          is_secondary_decl = TRUE;
-          declared_type = sssdp->declared_type;
         } else {
           scp = &((a_variable_ptr)ssep->entity.ptr)->source_corresp;
           pos = &scp->decl_position;
@@ -7139,9 +7136,13 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           db_name(scp);
         }  /* if */
         fputc('"', f_debug);
-        if (is_secondary_decl) {
-          if (declared_type == NULL && is_tag_symbol(sym)) {
-            /* Don't report a NULL type -- that's what's expected. */
+        if (sssdp != NULL) {
+          /* Secondary declaration. */
+          declared_type = sssdp->declared_type;
+          if (declared_type == NULL &&
+              sssdp->entity.kind == (an_il_entry_kind)iek_type) {
+            /* Don't report a NULL declared type on the secondary declaration
+               of a type entry -- that's what's expected. */
           } else {
             print_type = TRUE;
           }  /* if */
