@@ -2902,7 +2902,22 @@ there's any possibility of precedence confusion.  Do the output in the
 way described by octl.
 */
 {
-  if (constant->kind == (a_constant_repr_kind)ck_address) {
+  if (constant->kind == (a_constant_repr_kind)ck_address &&
+      /* Suppress this special processing on something like *"abcd", because
+         gcc 2.95.2 issues a warning on storing into "abcd"[0] but not on
+         storing into *"abcd".  The other form is correct; it's avoided
+         only because it draws this warning in one form and not in the
+         other.  (The issue is differences in test suite runs, not
+         the warning per se.) */
+      !(constant->implicit_cast &&
+        constant->variant.address.kind == (an_address_base_kind)abk_constant &&
+        constant->variant.address.variant.constant->kind ==
+                                             (a_constant_repr_kind)ck_string &&
+        constant->variant.address.offset == 0 &&
+        is_pointer_type(constant->type) &&
+        type_pointed_to(constant->type) ==
+                array_element_type(
+                          constant->variant.address.variant.constant->type))) {
     /* An address constant (the usual case).  Drop one level of "&". */
     form_address_constant(constant, /*form_lvalue=*/TRUE, need_parens, octl);
   } else if (constant->kind == (a_constant_repr_kind)ck_template_param &&
