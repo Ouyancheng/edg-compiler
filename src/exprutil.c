@@ -6833,7 +6833,8 @@ make *var point to the IL entry for that variable.  Otherwise, return FALSE.
   *var = NULL;
   if (is_an_lvalue(operand)) {
     if (is_constant_operand(operand) &&
-        con_is_exact_addr_of_variable(&operand->variant.constant, var)) {
+        con_is_exact_addr_of_variable(&operand->variant.constant, var,
+                                      /*array_decay_allowed=*/FALSE)) {
       /* A variable with an exact address (i.e., with static storage
          duration). */
       result = TRUE;
@@ -8820,7 +8821,8 @@ variable.
   if (p_var != NULL) *p_var = NULL;
   if (is_constant_node(node)) {
     a_constant_ptr con = node->variant.constant;
-    if (con_is_exact_addr_of_variable(con, &var)) {
+    if (con_is_exact_addr_of_variable(con, &var,
+                                      /*array_decay_allowed=*/FALSE)) {
       /* The lvalue is the address of a variable. */
     }  /* if */
   } else if (is_variable_address_node(node)) {
@@ -8849,7 +8851,8 @@ variable's value.  Otherwise, return NULL.
   if (is_constant_operand(operand)) {
     a_constant_ptr con = &operand->variant.constant;
     a_variable_ptr var;
-    if (con_is_exact_addr_of_variable(con, &var)) {
+    if (con_is_exact_addr_of_variable(con, &var,
+                                      /*array_decay_allowed=*/FALSE)) {
       /* The lvalue is the exact address of a variable. */
       con_var_value = var_constant_value(var);
     }  /* if */
@@ -9199,7 +9202,8 @@ cases so we don't do it here.
         /* The lvalue address is specified by a constant. */
         a_constant_ptr con = &operand->variant.constant;
         a_variable_ptr variable;
-        if (con_is_exact_addr_of_variable(con, &variable)) {
+        if (con_is_exact_addr_of_variable(con, &variable,
+                                          /*array_decay_allowed=*/FALSE)) {
           /* The constant is the address of a variable. */
           /* See if the variable is constant-valued. */
           a_constant_ptr con_var_value = var_constant_value(variable);

@@ -2374,10 +2374,15 @@ type is to optimize base class casts and virtual function calls.
   a_type_ptr     complete_object_type = NULL;
   a_variable_ptr var;
 
-  if (con_is_exact_addr_of_variable(constant, &var)) {
+  if (con_is_exact_addr_of_variable(constant, &var,
+                                    /*array_decay_allowed=*/TRUE)) {
     /* Unmodified address of a variable.  The variable is the complete
        object and its type is the complete object type. */
     complete_object_type = var->type;
+    if (is_array_type(complete_object_type)) {
+      complete_object_type =
+                           underlying_array_element_type(complete_object_type);
+    }  /* if */
   }  /* if */
   return complete_object_type;
 }  /* con_complete_object_type */
@@ -2476,21 +2481,37 @@ base class casts and virtual function calls.
                  is_pointer_type(first_operand->type)) {
         a_type_ptr target_type = f_skip_typerefs(type_pointed_to(node->type));
         a_type_ptr source_type =
-                                f_skip_typerefs(type_pointed_to(first_operand->
-                                                                type));
+                         f_skip_typerefs(type_pointed_to(first_operand->type));
+        if (is_array_type(source_type)) {
+          /* Allow for array to pointer decay */
+          source_type =
+                   f_skip_typerefs(underlying_array_element_type(source_type));
+          if (is_array_type(target_type)) {
+            /* If array is multidimensional, intermediate casts will occur
+               between array types along the way, so we must allow for the
+               case where the target is an array type, too. */
+            target_type =
+                   f_skip_typerefs(underlying_array_element_type(target_type));
+          }  /* if */
+        }  /* if */
         if (identical_types(target_type, source_type)) {
-          /* Qualification conversion.  Do a recursive call on the first
-             operand to find the complete object.  (Note: this test for
-             eok_cast nodes is more restrictive than the one in
-             ctor_or_dtor_calling_own_pure_virtual.  The reason is that the
-             code there is simply concerned with determining whether a
-             ctor/dtor "this" parameter is used as the implicit "this"
-             argument in a call, while expressions accepted by this code may
-             need to be used actually to construct an implicit "this"
-             argument, and arbitrary casts can prevent that.) */
+          /* This is a qualification conversion or an array-to-pointer decay.
+             Do a recursive call on the first operand to find the complete
+             object.  (Note: this test for eok_cast_nodes is more restrictive
+             than the one in ctor_or_dtor_calling_own_pure_virtual.  The
+             reason is that the code there is simply concerned with
+             determining whether a ctor/dtor "this" parameter is used as the
+             implicit "this" argument in a call, while expressions accepted
+             by this code may need to be used actually to construct an
+             implicit "this" argument, and arbitrary casts can prevent that. */
           complete_object_type = node_complete_object_type(first_operand,
                                                            call_case);
-        }  /* if */
+          if (complete_object_type != NULL &&
+              is_array_type(complete_object_type)) {
+            complete_object_type =
+                           underlying_array_element_type(complete_object_type);
+          }  /* if */
+        }  /* if */    
       } else if (op == (an_expr_operator_kind)eok_padd ||
                  op == (an_expr_operator_kind)eok_padd_subsc ||
                  op == (an_expr_operator_kind)eok_psubtract) {

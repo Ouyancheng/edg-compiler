@@ -12082,7 +12082,8 @@ The type of the operand will be updated if necessary.
   } else if (is_constant_operand(operand)) {
     con = &operand->variant.constant;
     if (is_an_lvalue(operand)) {
-      if (con_is_exact_addr_of_variable(con, &var)) {
+      if (con_is_exact_addr_of_variable(con, &var,
+                                        /*array_decay_allowed=*/FALSE)) {
       }  /* if */
     }  /* if */
   }  /* if */

@@ -3917,10 +3917,13 @@ the indicated constant.
 
 
 a_boolean con_is_exact_addr_of_variable(a_constant_ptr con,
-                                        a_variable_ptr *var)
+                                        a_variable_ptr *var,
+                                        a_boolean      array_decay_allowed)
 /*
 If the indicated constant is the exact address of a variable, set *var
-to the variable and return TRUE.  Otherwise, return FALSE.
+to the variable and return TRUE.  Otherwise, return FALSE.  If
+array_decay_allowed is TRUE, an implicit cast from an array variable to a
+pointer to its first element is ignored in the determination.
 */
 {
   a_boolean is_exact_addr = FALSE;
@@ -3937,7 +3940,10 @@ to the variable and return TRUE.  Otherwise, return FALSE.
   if (con->kind == (a_constant_repr_kind)ck_address &&
       con->variant.address.kind == (an_address_base_kind)abk_variable &&
       con->variant.address.offset == 0 &&
-      !con->implicit_cast) {
+      (!con->implicit_cast ||
+       (array_decay_allowed &&
+        is_pointer_type(con->type) &&
+        is_array_type(con->variant.address.variant.variable->type)))) {
     is_exact_addr = TRUE;
     *var = con->variant.address.variant.variable;
   }  /* if */

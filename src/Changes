@@ -1,5 +1,21 @@
 Version 3.6
 
+11/15/04 Virtual function call optimization
+
+When the optimization is enabled, virtual function calls are converted to
+direct calls in many cases when the complete object type is known (see the
+Changes entry of 7/24/04).  This optimization is now applied when the object
+is an array element.  For example:
+
+  struct Base {
+   virtual void f();
+  };
+  struct Derived: Base {};
+  int main() {
+    Derived t[1];
+    t[0].f();     // Formerly used virtual function call, now calls Base::f()
+  }
+
 11/15/04 Build errors when USER_CONTROL_OF_STRUCT_PACKING is FALSE
 
 Configurations with MICROSOFT_EXTENSIONS_ALLOWED or GNU_EXTENSIONS_ALLOWED set
