@@ -46,6 +46,88 @@ EXTERN a_boolean
 			/* Value currently to be used as the initial value for
 			   il_walk_flag when entries are created. */
 
+#if ORPHAN_PROCESSING_NEEDED
+/*
+List of all IL entry kinds:
+*/
+/* If you change this, also change sizeof_il_entry below. */
+typedef enum /*an_il_entry_kind*/ {
+  iek_none,		/* Skip zero value; it's used as a marker. */
+  iek_source_file,	/* a_source_file */
+  iek_constant,		/* a_constant */
+  iek_param_type,	/* a_param_type */
+  iek_routine_type_supplement,
+			/* a_routine_type_supplement */
+  iek_based_type_list_member,
+			/* a_based_type_list_member */
+  iek_type,		/* a_type */
+  iek_variable,		/* a_variable */
+#ifdef CIL
+  iek_field,		/* a_field */
+#endif /* ifdef CIL */
+  iek_routine,		/* a_routine */
+  iek_label,		/* a_label */
+  iek_expr_node,	/* an_expr_node */
+#ifdef CIL
+  iek_switch_clause,	/* a_switch_clause */
+#endif /* ifdef CIL */
+  iek_block,		/* a_block */
+  iek_statement,	/* a_statement */
+  iek_scope,		/* a_scope */
+  iek_id_name,          /* String giving the name of an identifier. */
+  iek_string_text,	/* Text of a string literal. */
+  iek_other_text,	/* Text of a file name or similar information. */
+#ifdef FIL
+  iek_internal_complex_value,
+			/* an_internal_complex_value */
+  iek_bound_info_entry,	/* a_bound_info_entry */
+  iek_do_loop,		/* a_do_loop */
+  iek_label_list_entry,	/* a_label_list_entry */
+  iek_io_specifier,	/* an_io_specifier */
+  iek_io_list_item,	/* an_io_list_item */
+  iek_namelist_group_member,
+			/* a_namelist_group_member */
+  iek_namelist_group,	/* a_namelist_group */
+  iek_input_output_description,
+			/* an_input_output_description */
+  iek_entry_param,	/* an_entry_param */
+  iek_entry_description,/* an_entry_description */
+#endif /* ifdef FIL */
+#ifdef CIL
+  iek_dynamic_init,	/* a_dynamic_init */
+  iek_access_adjustment,/* an_access_adjustment */
+  iek_overriding_virtual_function,
+			/* an_overriding_virtual_function */
+  iek_derivation_step,  /* a_derivation_step */
+  iek_base_class,	/* a_base_class */
+  iek_class_list_entry, /* a_class_list_entry */
+  iek_class_type_supplement,
+			/* a_class_type_supplement */
+  iek_constructor_init, /* a_constructor_init */
+#endif /* ifdef CIL */
+  iek_last		/* Marks the end of the list. */
+} an_il_entry_kind;
+
+/*
+It is necessary to maintain a list of IL entries that are allocated in
+the file scope memory region but accessed from the function scope
+region.  These lists are walked during IL file writing and reading
+and when displaying the IL to ensure that all IL entries are
+visited.  Note, the first_entry and last_entry point to the first
+byte of the IL entry.  The address of the next entry in the linked list
+precedes the IL entry (entry_ptr - sizeof(char *)).
+*/
+typedef struct an_orphaned_il_entry_list {
+  char *first_entry;	/* Pointer to the first IL entry of a specific
+			   kind in a linked list. */
+  char *last_entry;	/* Pointer to the last IL entry of a specific
+			   kind in a linked list. */
+} an_orphaned_il_entry_list;
+
+EXTERN an_orphaned_il_entry_list
+		 orphaned_file_scope_il_entries[(int)iek_last];
+#endif /* ORPHAN_PROCESSING_NEEDED */
+
 /*
 Macro that generates a unique unsigned long identifier from an IL pointer.
 This is useful for generating names for unnamed symbols, for cross-reference
@@ -348,6 +430,13 @@ extern void db_initializer(a_variable_ptr  var_ptr,
 
 extern unsigned long show_il_space_used(void);
 #endif /* DEBUG */
+#if ORPHAN_PROCESSING_NEEDED
+
+#define next_orphaned_il_entry(ptr) (char *)((char *)(ptr) - sizeof(char *))
+
+extern void add_orphaned_file_scope_il_entry (char             *entry_ptr,
+                                              an_il_entry_kind entry_kind);
+#endif /* ORPHAN_PROCESSING_NEEDED */
 
 extern void il_init(void);
 

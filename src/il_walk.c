@@ -180,42 +180,6 @@ Process the source correspondence field pointed to by ptr.
 #endif /* ifdef CIL */
 
 
-static void add_orphaned_file_scope_il_entry (char             *entry_ptr,
-                                              an_il_entry_kind entry_kind)
-/*
-Link the specified file scope IL entry onto the orphaned_file_scope_il_entries
-linked list for the designated IL entry kind.  Only IL entries in the
-file scope memory region have the necessary additional pointer space 
-allocated immediately preceding the entry.
-*/
-{
-  char **last_entry_ptr;
-
-#if CHECKING
-  if (!in_file_scope(entry_ptr)) {
-    internal_error(
- "add_orphaned_file_scope_il_entry: IL entry not in file scope memory region");
-  }  /* if */
-#endif /* CHECKING */
-  /* Check if this IL entry is already on the orphaned entry list. */
-  last_entry_ptr = &orphaned_file_scope_il_entries[(int)entry_kind].last_entry;
-  if (*(char **)(entry_ptr - sizeof(char *)) == NULL &&
-      entry_ptr != *last_entry_ptr) {
-    /* This entry is not in the existing list; add it to the end of the
-       list. */
-    if (*last_entry_ptr == NULL) {
-      /* This is the first entry on this list */
-      orphaned_file_scope_il_entries[(int)entry_kind].first_entry = 
-                                                               entry_ptr;
-    } else {
-      /* Add to the tail of the existing list. */
-      *(char **)(*last_entry_ptr - sizeof (char *)) = entry_ptr;
-    }  /* if */
-    *last_entry_ptr = entry_ptr;
-  }  /* if */
-}  /* add_orphaned_file_scope_il_entry */
-
-
 static void walk_constant(a_constant_ptr ptr)
 /*
 Process the indicated constant entry.
