@@ -1329,11 +1329,11 @@ common_cfront_mode_settings:
         break;
       case optk_far_data_pointers:
         /* Set size of data pointers in Microsoft 16-bit mode. */
-        implicit_data_pointer_modifiers = (opt_value ? DM_FAR : DM_NEAR);
+        far_data_pointers = opt_value;
         break;
       case optk_far_code_pointers:
         /* Set size of code pointers in Microsoft 16-bit mode. */
-        implicit_code_pointer_modifiers = (opt_value ? DM_FAR : DM_NEAR);
+        far_code_pointers = opt_value;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case optk_wchar_t_is_keyword:

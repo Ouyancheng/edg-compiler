@@ -524,21 +524,21 @@ EXTERN a_calling_convention
 			   considered compatible with this calling
 			   convention. */
 EXTERN a_boolean
-		implicit_data_pointer_modifiers
+		far_data_pointers
 #if VAR_INITIALIZERS
-                                      = DEFAULT_IMPLICIT_DATA_POINTER_MODIFIERS
+                                  = DEFAULT_FAR_DATA_POINTERS
 #endif /* VAR_INITIALIZERS */
-                                                                              ;
-			/* Implicit modifiers (near/far) to be applied to
-			   data pointers in 16-bit Microsoft mode. */
+                                                             ;
+			/* Default size (near/far) to be used for data
+			   pointers in 16-bit Microsoft mode. */
 EXTERN a_boolean
-		implicit_code_pointer_modifiers
+		far_code_pointers
 #if VAR_INITIALIZERS
-                                      = DEFAULT_IMPLICIT_CODE_POINTER_MODIFIERS
+                                  = DEFAULT_FAR_CODE_POINTERS
 #endif /* VAR_INITIALIZERS */
-                                                                              ;
-			/* Implicit modifiers (near/far) to be applied to
-			   code pointers in 16-bit Microsoft mode. */
+                                                             ;
+			/* Default size (near/far) to be used for code
+			   pointers in 16-bit Microsoft mode. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_boolean
