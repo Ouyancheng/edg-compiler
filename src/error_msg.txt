@@ -1,4 +1,4 @@
-##############################################################################
+###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
 # Edison Design Group C++/C Front End                        - | \^/ | -      #
@@ -788,7 +788,7 @@ ec_useless_using_declaration;;"using-declaration ignored -- it refers to the cur
 ec_class_qualified_name_required;;"a class-qualified name is required"
 ec_argument_list_types_add_on;INTERNAL;"argument types are: (%s)"
 ec_operand_types_add_on;INTERNAL;"operand types are: %s"
-ec_using_declaration_ignored;;"using-declaration of %n ignored"
+REMOVED;ec_using_declaration_ignored;;"using-declaration of %n ignored"
 ec_not_an_actual_member;;"%n has no actual member %sq"
 REMOVED;ec_nonstd_global_qualifier_on_friend_decl;;"global-scope qualifier (leading \"::\") on friend declaration is nonstandard"
 ec_mem_attrib_incompatible;;"incompatible memory attributes specified"
