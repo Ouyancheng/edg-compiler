@@ -6624,14 +6624,17 @@ return FALSE and let the caller generate the code normally.
           op != (an_opname_kind)onk_minus_minus) {
         /* Postfix "++" and "--" have a second argument in the function call
            form, but it doesn't appear in the operator syntax. */
-        while (arg != NULL) {
+        while (arg != NULL && !arg->generated_default_arg) {
           /* A function call has an arbitrary number of arguments, some of
              which may not have corresponding parameter declarations (in case
              of ellipsis).  The remaining cases will have a single right
-             operand.  This loop handles all these cases. */
+             operand.  This loop handles all these cases.  We fall out of
+             the loop if we encounter an argument that results from a
+             default argument, because these must not appear in the
+             generated code. */
           gen_argument(arg, param);
           arg = arg->next;
-          if (arg != NULL) {
+          if (arg != NULL && !arg->generated_default_arg) {
             write_tok_str(", ");
           }  /* if */
           if (param != NULL) {
@@ -6824,7 +6827,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         /* Done early to optimize parentheses. */
         gen_expr(operand_1, need_parens);
         goto done_with_operation_after_parens;
-      } else if (op == (an_expr_operator_kind)eok_call) {
+      } else if (op == (an_expr_operator_kind)eok_call ||
+                 op == (an_expr_operator_kind)eok_virtual_call) {
         /* Suppress parentheses around a function call.  They're not needed
            (the function call (...) binds at the highest possible precedence)
            and g++ 3.2 (at least) gets confused by a constructor "call"
