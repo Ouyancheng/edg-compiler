@@ -17,17 +17,11 @@ pragma.h -- Declarations related to the #pragma directives
 #ifndef PRAGMA_H
 #define PRAGMA_H 1
 
-/*
-Forward declaration of a_pending_pragma_ptr.
-*/
-typedef struct a_pending_pragma *a_pending_pragma_ptr;
-
-#ifndef LEXICAL_H
-#include "lexical.h"
-#endif /* ifndef LEXICAL_H */
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
+
+/* Note: a_pending_pragma_ptr is defined in symbol_tbl.h. */
 #ifndef SYMBOL_TBL_H
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
