@@ -4151,21 +4151,23 @@ static a_boolean is_valid_union_field(a_type_ptr        field_type,
                                       a_source_position *pos)
 /*
 Nonstatic data members of a union may not be objects with a constructor,
-a destructor, or a user-defined assignment operator.  Return FALSE if any
-such member functions are present.
+a destructor, or a user-defined assignment operator.  If any such member
+functions are present, then:  in cfront mode issue a warning if there's only
+a user-defined assignment operator; otherwise, issue an error and return
+FALSE .
 */
 {
-  a_boolean                      is_valid = TRUE;
   a_type_ptr                     tp = skip_typerefs(field_type);
   a_class_symbol_supplement_ptr  cssp;
   a_symbol_ptr                   sym;
+  an_error_severity              severity = es_none;
 
   db_enter(4, "is_valid_union_field");
   if (is_array_type(tp)) tp = skip_typerefs(underlying_array_element_type(tp));
   if (is_class_struct_union_type(tp)) {
     cssp = symbol_supplement_for_class(tp);
     if (cssp->constructor != NULL || cssp->destructor != NULL) {
-      is_valid = FALSE;
+      severity = es_error;
     } else if (cssp->assignment_operator != NULL) {
       /* Check for existence of a user defined assignment operator function.
          There may be a compiler-generated assignment operator -- that's okay.
@@ -4173,16 +4175,16 @@ such member functions are present.
       sym = cssp->assignment_operator;
       if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
           !sym->variant.routine.ptr->compiler_generated) {
-        is_valid = FALSE;
+        severity = any_cfront_mode() ? es_warning : es_error;
       }  /* if */
     }  /* if */
-    if (!is_valid) {
-      pos_ty_error(ec_bad_union_field, pos, tp);
+    if (severity != es_none) {
+      pos_ty_diagnostic(severity, ec_bad_union_field, pos, tp);
     }  /* if */
   }  /* if */
 
   db_exit();
-  return is_valid;
+  return (severity != es_error);
 }  /* is_valid_union_field */
 
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
