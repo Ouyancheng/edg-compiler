@@ -4854,7 +4854,7 @@ assignment operator.
   } else {
     /* Exactly one assignment operator function is best. */
     /* Check that the function is accessible and mark it referenced. */
-    reference_to_implicitly_invoked_function(opass_sym);
+    reference_to_implicitly_invoked_function(opass_sym, err_pos);
     opass_routine = opass_sym->variant.routine;
   }  /* if */
   db_exit();
@@ -4862,7 +4862,8 @@ assignment operator.
 }  /* select_assignment_operator */
 
 
-static void make_default_assignment_body(a_scope_ptr  scope)
+static void make_default_assignment_body(a_scope_ptr        scope,
+                                         a_source_position  *err_pos)
 /*
 Create the body for a default assignment operator.  Typically it will
 entail a series of member-wise and base-class-wise assignment operations:
@@ -4948,7 +4949,7 @@ operator routine or do bitwise assignment.
              operator and put out a call to it. */
           rp = select_assignment_operator(bcp->type, const_source_var,
                                           /*volatile_object_required=*/FALSE,
-                                          &error_position, &pass_by_value);
+                                          err_pos, &pass_by_value);
           /* Any assignment operator invoked by this publicly accessible
              compiler-generated assignment operator should itself be publicly
              accessible. (This is not exactly what ARM 12.8 says, but it
@@ -4961,13 +4962,10 @@ operator routine or do bitwise assignment.
             /* Make sure a copy constructor call is added if one is needed. */
             ptp = skip_typerefs(rp->type)->variant.routine.extra_info->
                                                                param_type_list;
-            source_expr = prep_rvalue_arg_expr(source_expr,
-                                               ptp,
-                                               &error_position);
+            source_expr = prep_rvalue_arg_expr(source_expr, ptp, err_pos);
           }  /* if */
           sp = sp->next = make_call_assignment_statement(rp, dest_expr,
-                                                         source_expr,
-                                                         &error_position);
+                                                         source_expr, err_pos);
         }  /* if */
       }  /* if */
       /* Advance to the next base class. */
@@ -5016,7 +5014,7 @@ operator routine or do bitwise assignment.
             bitwise_assign = FALSE;
             rp = select_assignment_operator(tp, const_source_var,
                                             /*volatile_object_required=*/FALSE,
-                                            &error_position, &pass_by_value);
+                                            err_pos, &pass_by_value);
             /* Any assignment operator invoked by this publicly accessible
                compiler-generated assignment operator should itself be publicly
                accessible. (This is not exactly what ARM 12.8 says, but it
@@ -5064,9 +5062,9 @@ operator routine or do bitwise assignment.
               /* Convert the source and destination expressions from
                  pointer-to-array to pointer-to-array-element. */
               cast_node(&source_expr, make_pointer_type(tp),
-                        /*is_implicit_cast=*/TRUE, &error_position);
+                        /*is_implicit_cast=*/TRUE, err_pos);
               cast_node(&dest_expr, make_pointer_type(tp),
-                        /*is_implicit_cast=*/TRUE, &error_position);
+                        /*is_implicit_cast=*/TRUE, err_pos);
               /* Add the subscript to the source_expr. */
               source_expr->next = var_rvalue_expr(temp_var);
               source_expr =
@@ -5085,14 +5083,11 @@ operator routine or do bitwise assignment.
                  needed. */
               ptp = skip_typerefs(rp->type)->variant.routine.extra_info->
                                                                param_type_list;
-              source_expr = prep_rvalue_arg_expr(source_expr,
-                                                 ptp,
-                                                 &error_position);
+              source_expr = prep_rvalue_arg_expr(source_expr, ptp, err_pos);
             }  /* if */
             /* Make the call of the assignment operator function. */
             call_stmt = make_call_assignment_statement(rp, dest_expr,
-                                                       source_expr,
-                                                       &error_position);
+                                                       source_expr, err_pos);
             if (array_type != NULL) {
               /* Array case; the call goes under the do-while. */
               sp->variant.loop_statement = call_stmt;
@@ -5141,16 +5136,17 @@ operator routine or do bitwise assignment.
      base class with a private (which we interpret to *really* mean
      nonpublic) operator=() (ARM 12.8). */
   if (err) {
-    sym_error(ec_missing_user_defined_assignment_for_copy,
-              (a_symbol_ptr)class_type->source_corresp.assoc_info);
+    pos_sy_error(ec_missing_user_defined_assignment_for_copy, err_pos,
+                 (a_symbol_ptr)class_type->source_corresp.assoc_info);
   }  /* if */
   db_exit();
   return;
 }  /* make_default_assignment_body */
 
 
-void define_special_member_function(a_routine_ptr  rout_ptr,
-                                    a_type_ptr     class_type)
+void define_special_member_function(a_routine_ptr      rout_ptr,
+                                    a_type_ptr         class_type,
+                                    a_source_position  *err_pos)
 /*
 Define a compiler generated routine for a member function (constructor or
 destructor).  This entails creating a new memory region, a scope, and an
@@ -5195,7 +5191,7 @@ empty statement block.
     (void)make_default_destructor_body(scope);
   } else {
     /* Assignment operator case. */
-    (void)make_default_assignment_body(scope);
+    (void)make_default_assignment_body(scope, err_pos);
   }  /* if */
   /* End of statement block is unreachable because of the return statement. */
   scope->assoc_block->variant.block.extra_info->end_of_block_reachable = FALSE;
@@ -5209,7 +5205,8 @@ empty statement block.
 }  /* define_special_member_function */
 
 
-void reference_to_implicitly_invoked_function(a_symbol_ptr sym)
+void reference_to_implicitly_invoked_function(a_symbol_ptr       sym,
+                                              a_source_position  *err_pos)
 /*
 sym is points to a symbol for a special member function that is invoked
 implicitly -- e.g., a copy constructor that is called when a class object
@@ -5262,14 +5259,14 @@ destructors, assignment operators, and conversion functions.
         err_code = ec_no_error;
 #endif /* CHECKING */
     }  /* switch */
-    sym_error(err_code, sym);
+    pos_sy_error(err_code, err_pos, sym);
   }  /* if */
   /* Mark the IL entry referenced. */
   rp->source_corresp.referenced = TRUE;
   /* If necessary, create the function body for a compiler generated
      routine. */
   if (rp->compiler_generated && rp->assoc_scope == NULL_region_number) {
-    define_special_member_function(rp, sym->class_of_which_a_member);
+    define_special_member_function(rp, sym->class_of_which_a_member, err_pos);
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
 
@@ -6682,7 +6679,7 @@ next_declaration:
       if (cssp->destructor != NULL) {
         a_routine_ptr  rp = cssp->destructor->variant.routine;
         if (rp->is_virtual && rp->compiler_generated) {
-          define_special_member_function(rp, class_type);
+          define_special_member_function(rp, class_type, &error_position);
         }  /* if */
       }  /* if */
     }  /* if */

@@ -66,10 +66,12 @@ extern void set_class_assoc_operator_new_routine(a_type_ptr class_type);
 extern void set_class_assoc_operator_delete_routine(a_type_ptr class_type);
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 
-extern void define_special_member_function(a_routine_ptr  rout_ptr,
-                                           a_type_ptr     class_type);
+extern void define_special_member_function(a_routine_ptr      rout_ptr,
+                                           a_type_ptr         class_type,
+                                           a_source_position  *pos);
 
-extern void reference_to_implicitly_invoked_function(a_symbol_ptr  sym);
+extern void reference_to_implicitly_invoked_function(a_symbol_ptr       sym,
+                                                     a_source_position  *pos);
 
 extern a_symbol_ptr member_function_redecl_sym(a_symbol_ptr  sym,
                                                a_type_ptr    type);
