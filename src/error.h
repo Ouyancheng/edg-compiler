@@ -342,7 +342,8 @@ typedef enum /*an_error_code*/ {
   ec_no_constructor,
   ec_bad_union_field,
   ec_overloaded_function_types_too_similar,
-  ec_bad_rvalue_array
+  ec_bad_rvalue_array,
+  ec_exp_operator
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

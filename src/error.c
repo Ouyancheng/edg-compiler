@@ -962,6 +962,9 @@ error code.
     case ec_bad_rvalue_array:
       m = "invalid use of non-lvalue array";
       break;
+    case ec_exp_operator:
+      m = "expected an operator";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
