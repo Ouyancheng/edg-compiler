@@ -4889,7 +4889,7 @@ assumed if the return type is omitted.
         sym_error(ec_not_instantiatable_entity, sym);
 	err = TRUE;
       }  /* if */
-      }  /* if */
+    }  /* if */
     /* Get the token after the identifier -- it should be a newline. */
     (void)get_token();
   } else if (is_decl_start(/*expr_context=*/FALSE,
