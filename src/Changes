@@ -1,5 +1,26 @@
 Version 3.5
 
+9/10/04  Microsoft compatibility: Spurious error on friend declaration
+
+In Microsoft mode, a spurious error could be issued on a friend declaration
+in a class template.  The error would occur if a class template contained
+a nested class with the same name as a class template from the enclosing
+namespace scope.  This problem was introduced in version 3.4 and is
+now fixed.
+
+  namespace N {
+    template <class T> struct A { };
+    template <class T> struct B {
+      class A;
+      class C {
+        friend class A;
+        C () {}
+      };
+      struct A { C f() { return C(); } };
+    };
+  }
+  template class N::B<bool>;
+
 9/10/04  Spurious setting of defined_in_friend_decl flag
 
 In Microsoft mode, the IL entry for an in-class specialization of a member

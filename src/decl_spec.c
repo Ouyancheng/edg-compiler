@@ -1211,8 +1211,14 @@ caution when modifying this routine.
          call to coalesce_and_lookup_qualified_name.  If it just a simple
          identifier (e.g., "A") we need look it up and coalesce it here.
          In Microsoft mode, a simple friend declaration that resolves to
-         a template is treated as a friend template declaration. */
-      templ_sym = normal_id_lookup(&locator_for_curr_id, IDL_LINKAGE_LOOKUP);
+         a template is treated as a friend template declaration.  A linkage
+         lookup should not be done for a Microsoft friend declaration as
+         such declarations can refer to class members. */
+      an_id_lookup_options_set	lookup_options = IDL_NO_OPTIONS;
+      if (decl_scope_level == depth_innermost_namespace_scope) {
+        lookup_options = IDL_LINKAGE_LOOKUP;
+      }  /* if */
+      templ_sym = normal_id_lookup(&locator_for_curr_id, lookup_options);
     }  /* if */
     if (templ_sym != NULL) {
       /* Check for an identifier that is a class template name.  A class
