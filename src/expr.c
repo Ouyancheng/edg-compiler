@@ -534,7 +534,8 @@ Syntax:
     change_operand_refs_to_error(&operand_2);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
-        is_class_or_error_operand(operand_1)) {
+        (is_class_or_error_operand(operand_1) ||
+         is_class_or_error_operand(&operand_2))) {
       /* Look for C++ operator overloading cases. */
       check_for_operator_overloading((an_opname_kind)onk_subscript,
                                      /*unary_operator=*/FALSE,
@@ -8395,14 +8396,27 @@ C++ mode.
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
   int                 constant_sign;
+  a_boolean           processed = FALSE;
 
   db_enter(3, "scan_new_array_dimension_expression");
 
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
-  do_operand_transformations(&result, TOPT_NO_OPTIONS);
-  /* Check that expression is integral. */
+  /* Convert from a class type to integral if necessary. */
+  if (C_dialect == C_dialect_cplusplus &&
+      is_class_struct_union_type(result.type)) {
+    try_to_convert_class_operand_to_builtin_type(&result,
+                                                 (a_builtin_type_kind_set)
+                                                                  BTK_INTEGRAL,
+                                                 &processed);
+  }  /* if */
+  if (!processed) {
+    /* Do lvalue --> rvalue and other transformations for the non-overloaded
+       case. */
+    do_operand_transformations(&result, TOPT_NO_OPTIONS);
+  }  /* if */
+  /* Check that the expression is integral. */
   (void)check_integral_operand(&result);
   /* Return a constant or expression depending on what was scanned. */
   *is_constant = TRUE;
