@@ -8596,7 +8596,7 @@ an opening parenthesis).  Flush to the corresponding closing token.
   unsigned long     max_lines;
   a_boolean         done = FALSE;
   a_symbol_header_ptr
-                    prev_sym_header;
+                    prev_sym_header = NULL;
 
   db_enter(3, "flush_until_matching_token");
   /* Save the current position, to see later how much we have flushed. */
@@ -8678,7 +8678,7 @@ to skip tokens for some purpose other than error recovery.
 {
   a_source_position   start_pos;
   a_token_kind        prev_token = tok_error;
-  a_symbol_header_ptr prev_sym_header;
+  a_symbol_header_ptr prev_sym_header = NULL;
 
   db_enter(3, "flush_tokens_with_stop_tokens");
   /* Save the current position, to see later how much we have flushed. */
