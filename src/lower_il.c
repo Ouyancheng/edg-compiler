@@ -4171,12 +4171,15 @@ be local to the current compilation even if the class is externally linked.
   }  /* if */
   /* Change the array size from [] to the proper size.  Note that the type
      was created for this variable and is known not to be shared. */
+  /* The "+1" is to skip the [0] entry, which makes the code to access
+     the table a little cleaner.  It's also necessary for cfront
+     compatibility. */
   vtbl_var->type->variant.array.number_of_elements =
-                                     ctsp->highest_virtual_function_number
+                                     ctsp->highest_virtual_function_number + 1
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
-  /* Skip the [0] entry and add an extra zeroed entry at the end of the table
-     for cfront compatibility. */
-                                     + 2
+  /* Add an extra zeroed entry at the end of the table for full cfront
+     compatibility (although we don't know why the entry is there). */
+                                     + 1
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
                                                                               ;
   set_type_size(vtbl_var->type);
@@ -4199,10 +4202,8 @@ be local to the current compilation even if the class is externally linked.
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
   vtbl_var->init_kind = (an_init_kind)initk_static;
   vtbl_var->initializer.constant = aggr_con;
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
   /* Put out the initialization for the [0] entry (skipped). */
   add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL, aggr_con);
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   /* Put out the body of the table. */
   fill_virtual_function_table(aggr_con, class_type, bcp, &next_entry_number);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
