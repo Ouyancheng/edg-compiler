@@ -5358,14 +5358,19 @@ class/struct/union is actually defined.
     }  /* if */
     tag_sym->variant.class_struct_union.type = class_type;
     if (C_dialect == C_dialect_cplusplus) {
-      /* In C classes have no linkage.  In C++ classes have either internal
-         linkage or, for classes declared at file scope and with other
-         characteristics (see ARM 3.3), C++ external linkage.  For now
-         give the class internal linkage; it may be changed later (see
-         check_class_linkage).  Note that even nameless classes are marked as
-         having linkage; this is useful for dealing with member functions.) */
-      class_type->source_corresp.name_linkage =
+      /* In C classes have no linkage.  In C++ most classes have either
+         internal linkage or, for classes declared at file scope and with
+         other characteristics (see ARM 3.3), C++ external linkage; local
+         classes and classes nested within local classes have no linkage.
+         For now give nonlocal classes internal linkage; it may be changed
+         later (see check_class_linkage).  Note that even nameless classes
+         may be marked as having linkage; this is useful for dealing with
+         member functions.) */
+      if (!is_local_class) {
+        /* Nonlocal class. */
+        class_type->source_corresp.name_linkage =
                                          (a_name_linkage_kind)nlk_internal;
+      }  /* if */
     }  /* if */
   } else {
     /* Using an existing type.  Fetch the type pointer from it. */
