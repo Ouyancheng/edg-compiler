@@ -9342,11 +9342,10 @@ the initializer.
     discard_curr_expr_object_lifetime();
   } else {
     /* Set the dynamic init entry to represent constructor initialization. */
-    *dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_constructor,
-                                   class_type, 
-                                   /*evaluated=*/TRUE,
-                                   /*in_return_by_cctor_expression=*/FALSE,
-                                   &start_position);
+    /* The destructor is not set because we don't know whether the caller wants
+       it (for a ctor-initializer, when exception handling is off, for
+       example, it's not wanted). */
+    *dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
     (*dip)->variant.constructor.ptr = conversion_routine;
     (*dip)->variant.constructor.args = arg_list;
     /* If there's an object lifetime around the initialization, transfer it
