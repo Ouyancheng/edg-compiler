@@ -3210,6 +3210,12 @@ only).
 
   db_enter(3, "statement");
 
+  /* Move cached #pragma declarations (if any) to the current scope stack
+     entry so they can be examined and acted upon in subsequent processing. */
+  select_pragmas_bound_to_curr_decl_or_stmt(
+                                       /*decl_allowed=*/FALSE,
+                                       /*stmt_allowed=*/TRUE,
+                                       /*merge_with_existing_list=*/FALSE);
 rescan_statement:
   get_another_statement = FALSE;
   /* If a lint-style "notreached" comment was detected, suppress the
@@ -3359,7 +3365,13 @@ expr_statement:
       break;
   }  /* switch */
   /* Loop if we just got a label and not an actual statement. */
-  if (get_another_statement) goto rescan_statement;
+  if (get_another_statement) {
+    select_pragmas_bound_to_curr_decl_or_stmt(
+                                       /*decl_allowed=*/FALSE,
+                                       /*stmt_allowed=*/TRUE,
+                                       /*merge_with_existing_list=*/TRUE);
+    goto rescan_statement;
+  }  /* if */
 
   db_exit();
   return !is_declaration;
