@@ -6056,7 +6056,7 @@ is returned nonetheless, but it is not added to the list of overloaded
 function symbols.  In Microsoft mode, it is possible to declare several
 members of the same type, provided they explicitly override different
 virtual functions: The function explicitly overridden by this declaration
-is indicated by overridden function (NULL if no explicit overriding syntax
+is indicated by overridden_function (NULL if no explicit overriding syntax
 was used).
 */
 {
