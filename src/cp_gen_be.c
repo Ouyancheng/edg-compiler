@@ -2569,6 +2569,10 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
     if (expr->variant.init.result_is_addr) {
       temp_type = type_pointed_to(temp_type);
     }  /* if */
+    /* Right now, dik_zero is only used for class types, and rvalues have
+       no type qualifiers. */
+    check_assertion_str(is_immediate_class_type(temp_type),
+                        "gen_temp_init: temp type not class");
     gen_type_name(temp_type);
     gen_dynamic_init(dip,
                      (a_type_ptr)NULL, /* Not a reference, not needed. */
