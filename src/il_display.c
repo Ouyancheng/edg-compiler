@@ -2922,6 +2922,8 @@ Display the indicated base class entry.
   disp_boolean("direct", (a_boolean)ptr->direct);
   disp_boolean("is_virtual", (a_boolean)ptr->is_virtual);
   disp_boolean("ambiguous", (a_boolean)ptr->ambiguous);
+  disp_boolean("shares_virtural_function_info",
+               (a_boolean)ptr->shares_virtural_function_info);
   disp_unsigned_long("offset", (unsigned long)ptr->offset);
   if (ptr->is_virtual) {
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
