@@ -40,10 +40,10 @@ array-->pointer decay in lvalues:
 8/8/95   IL CHANGE: an_access_adjustment ==> a_class_member_using_decl
 
 Certain entities have be renamed now that access-declarations are just a
-deprecated way writing using-declarations within a class definition.  Most
-notably, an_access_adjustment is now a_class_member_using_decl.  Several
-other entities, including fields in an sk_projection symbol and two
-routines, have also been renamed.
+deprecated way writing using-declarations within a class definition:
+an_access_adjustment is now a_class_member_using_decl, and the field
+access_adjustments in a_class_type_supplement is now
+class_member_using_decls.
 
 8/8/95   Bug in access check for overloaded functions with access adjusted
 
