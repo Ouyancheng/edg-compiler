@@ -1,5 +1,13 @@
 Version 2.13
 
+1/19/93 Warning on base class with no default constructor
+
+When a default constructor needs to be generated for a class, its base
+classes (those that require constructor initialization) must also have a
+default constructor.  A warning is now issued on the class declaration
+when this condition is not satisfied, to supplement the error that is
+issued when the default constructor is actually generated.
+
 1/18/93 Fixed bug in assigning access to anonymous union members
 
 The names specified in an anonymous union that appears within a class
