@@ -1,5 +1,14 @@
 Version 2.29
 
+5/9/95   for-init-statement marker in source-sequence list
+
+When GENERATE_SOURCE_SEQUENCE_ENTRIES is TRUE and a for-init-statement
+consists of a declaration, an end-of-construct entry (pointing to the
+stmk_decl statement) is inserted in the source sequence list immediately
+after the source-sequence entry that represents the declaration.  This
+marker is required in case a for statement has both a for-init
+declaration and a condition declaration.
+
 5/9/95   Qualifier problem in generated ANSI/ISO C for reference to array
          of qualified element type
 
