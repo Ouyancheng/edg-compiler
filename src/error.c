@@ -497,9 +497,11 @@ called.
   clear_il_to_str_output_control_block(&octl);
   octl.output_str = put_str_to_curr_output_msg_segment;
   octl.gen_pcc_code = (C_dialect == C_dialect_pcc);
+#if !STANDALONE_UTILITY_PROGRAM
   /* For diagnostics in C99 mode we want to see "_Bool" rather "bool" or the
      type underlying _Bool. */
   octl.render_c99_bool = c99_mode;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* set_up_output_control_block */
 
 
