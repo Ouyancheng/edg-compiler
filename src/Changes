@@ -1,5 +1,49 @@
 Version 2.16
 
+4/5/93  Constructor access in default initialization of static data member
+
+A bug has been fixed that caused a spurious access error when a private
+constructor was called for default initialization of a static data member.
+Here's an example:
+
+  class A {
+  private:
+    A();
+    static A a;
+  };
+  A A::a;                   // Spurious error no longer issued
+
+4/5/93  Default argument bug
+
+The default arguments that appear in a list of member function declarators
+are now processed properly.  There used to be a bug in handling the
+default argument token caches on all but the last function in the list.
+
+  class A {
+    void f(int = 0).        // default arg expression is no longer lost
+         g(int = 1);                  
+  };
+
+4/5/93  Generating body for default assignment operator
+
+A bug existed in generating the body for a default assignment operator in
+a derived class when it needs to call a user-defined assignment operator
+of a base class but the latter takes as an input argument an object of a
+base class of its own.  For example:
+
+  class A { };
+  class B : public A {
+  public:
+    B& operator=(A&);      // Serves as copy assignment operator for B
+  };
+  class C : public B { };
+  C x, y;
+  void f() { x = y; }      // A spurious error used to be reported during
+                           //   generation of C::operator=(C&)
+
+Not only has the spurious error been eliminated, but there was also a
+null-pointer abort that has also been fixed.
+
 4/5/93  IL lowering problem with destructor calls in init of local static
 
 Destructor calls for temporaries needed within the once-only initialization
