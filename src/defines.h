@@ -36,7 +36,9 @@ the release should contain no defines.
 
 /* Options for Sun test version. */
 #define __BSD__ 1
+#ifndef IL_SHOULD_BE_WRITTEN_TO_FILE
 #define IL_SHOULD_BE_WRITTEN_TO_FILE 1
+#endif /* ifndef IL_SHOULD_BE_WRITTEN_TO_FILE */
 #define FIL 1
 #define GENERATE_SOURCE_SEQUENCE_LISTS 1
 #define LONG_LONG_ALLOWED 1
