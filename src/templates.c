@@ -260,9 +260,7 @@ might not be able to if the template itself has not yet been defined.
       /* In the normal case the current token should be end_of_source,
          which was inserted to mark the end of the cached token stream.
          If necessary, keep flushing until end-of-source is found. */
-      while (curr_token != tok_end_of_source) (void)get_token();
-      /* Advance past the end-of-source token. */
-      (void)get_token();
+      flush_past_token_cache_terminator();
       /* Decrement the count of instantiations-in-progress for the current
          class template. */
       --(tssp->pending_instantiations);
@@ -331,14 +329,12 @@ encountered.
   /* In the normal case the current token should be end_of_source,
      which was inserted to mark the end of the cached token stream.
      If necessary, keep flushing until end-of-source is found. */
-  while (curr_token != tok_end_of_source) (void)get_token();
+  flush_past_token_cache_terminator();
   /* Set the flag that indicates that the prototype instantiation has
      been completed. */
   tssp->variant.class_template.prototype_instantiation_complete = TRUE;
   /* Save a pointer to the prototype instantiation. */
   tssp->variant.class_template.prototype_instantiation = instance_sym;
-  /* Advance past the end-of-source token. */
-  (void)get_token();
   db_exit();
 }  /* instantiate_class_template */
 
@@ -430,9 +426,7 @@ Instantiate the body of the template function associated with tip.
   /* In the normal case the current token should be end_of_source, which was
      inserted to mark the end of the cached token stream. If necessary, keep
      flushing until end-of-source is found. */
-  while (curr_token != tok_end_of_source) (void)get_token();
-  /* Advance past the end-of-source token. */
-  (void)get_token();
+  flush_past_token_cache_terminator();
   /* Usually template functions are instantiated "on demand" and the
      referenced flag will already have been set.  But if the
      instantiation mode says to instantiate whether or not there is
@@ -821,298 +815,6 @@ no need to actually instantiate X<int> in the example above.
   db_exit();
   return sym;
 }  /* find_template_class */
-
-
-a_type_ptr copy_type_with_substitution(a_type_ptr          type,
-                                       a_template_arg_ptr  templ_arg_list,
-                                       a_source_position   *source_pos)
-/*
-If "type", a pointer to a type entry, is a template-parameter type, return
-the corresponding real type, based on the template argument list.  If "type"
-contains a template-parameter type, return a copy with the substitution made.
-If it involves no template-parameter type, simply return "type".
-*/
-{
-  a_type_ptr                     new_type, tp, tp2;
-  unsigned long                  i;
-  int                            reusable_param_types;
-  a_template_arg_ptr             tap;
-  a_type_ptr                     new_return_type;
-  a_type_ptr                     this_param_type, new_this_param_type;
-  a_type_ptr                     first_new_type_for_param_types_list;
-  a_param_type_ptr               ptp, new_ptp, prev_ptp;
-  a_class_symbol_supplement_ptr  cssp;
-
-  db_enter(5, "copy_type_with_substitution");
-#if DEBUG
-  if (debug_level >= 5) {
-    fputs("in:  ", f_debug);
-    db_type(type);
-    fputc('\n', f_debug);
-  }  /* if */
-#endif /* DEBUG */
-  tp = type->source_corresp.class_of_which_a_member;
-  if (tp != NULL) {
-    /* Nested type case -- e.g., A<T>::B, where B names a nested class or
-       enumeration.  The substitution is performed on the class-of-which-member
-       rather than on the nested type itself.  Note that the algorithm deals
-       with any nesting depth. */
-    tp = copy_type_with_substitution(tp, templ_arg_list, source_pos);
-    if (tp == type->source_corresp.class_of_which_a_member) {
-      /* No change to the parent class, so this is simply a case of A::B --
-         i.e., the parent class is not a template reference.  Just return the
-         original type. */
-      new_type = type;
-    } else {
-      /* If the original parent type of "type" was A<T>, tp now represents a
-         class with the substitution performed on the template parameter,
-         e.g., A<int>.  If "type" was A<T>::B, we want to return as new_type
-         the corresponding member of the new type, e.g., A<int>::B. */
-      a_symbol_locator  locator;
-      a_symbol_ptr      sym;
-
-      clear_locator(&locator, source_pos);
-      locator.symbol_header =
-                       ((a_symbol_ptr)type->source_corresp.assoc_info)->header;
-      sym = class_qualified_id_lookup(&locator, tp, IDL_NO_OPTIONS);
-#if CHECKING
-      if (sym == NULL || !is_type_symbol(sym)) {
-        internal_error("copy_type_with_substution: can't find corresp member");
-      }  /* if */
-#endif /* CHECKING */
-      new_type = type_symbol_type(sym);
-    }  /* if */
-  } else {
-    switch (type->kind) {
-      case tk_template_param:
-        /* If this template parameter type entry corresponds to the nth
-           parameter, the real type to substitute for it is given in the nth
-           template argument.  Find the template argument that matches this
-           template parameter and return it to the caller. */
-        tap = templ_arg_list;
-        for (i = type->variant.template_param.list_position; i > 1; --i) {
-          tap = tap->next;
-        }  /* for */
-#if CHECKING
-        if (tap->variant.type == NULL) {
-          internal_error("copy_type_with_substitution: NULL ptr in templ arg");
-        }  /* if */
-#endif /* CHECKING */
-        new_type = tap->variant.type;
-        break;
-      case tk_pointer:
-        /* Make a pointer type based on a copy (or reuse, if copying is not
-           required) of the type pointed to. */
-        tp = type->variant.pointer.type;
-        tp = copy_type_with_substitution(tp, templ_arg_list, source_pos);
-        if (type->variant.pointer.is_reference) {
-          new_type = make_reference_type(tp);
-        } else {
-          new_type = make_pointer_type(tp);
-        }  /* if */
-        break;
-      case tk_typeref:
-        /* Make an identically qualified type of a copy (or reuse) of the type
-           that underlies the typeref. */
-        tp = copy_type_with_substitution(skip_typerefs(type), templ_arg_list,
-                                         source_pos);
-        new_type = type_plus_qualifiers_from_second_type(tp, type);
-        break;
-      case tk_ptr_to_member:
-        /* Make a pointer to member type.  The current pointer to member type
-           points to two types, so the new type is based on copies (or reuses)
-           of each. */
-        tp = copy_type_with_substitution(type->variant.ptr_to_member.type,
-                                         templ_arg_list, source_pos);
-        tp2 = copy_type_with_substitution(
-                          type->variant.ptr_to_member.class_of_which_a_member,
-                          templ_arg_list, source_pos);
-        new_type = ptr_to_member_type(tp, tp2);
-        break;
-      case tk_routine:
-        /* We can reuse "type" as long as we can reuse the return type and all
-           its param types.  Otherwise we will need to allocate a new type
-           entry. Go through "type" until we find that a new type was returned
-           from copy_type_with_substitution. */
-        reusable_param_types = 0;
-        first_new_type_for_param_types_list = NULL;
-        new_return_type = copy_type_with_substitution(
-                                        type->variant.routine.return_type,
-                                        templ_arg_list, source_pos);
-        this_param_type =
-                   type->variant.routine.extra_info->implicit_this_param_type;
-        if (this_param_type == NULL) {
-          new_this_param_type = NULL;
-        } else {
-          new_this_param_type = copy_type_with_substitution(
-                                        this_param_type, templ_arg_list,
-                                        source_pos);
-        }  /* if */
-        if (new_return_type != type->variant.routine.return_type ||
-            new_this_param_type != this_param_type) {
-          /* A substitution was made on the return type or the this-param
-             type, so a new routine type will be required. */
-          goto make_new_type;
-        }  /* if */
-        /* Now examine each of the parameters. */
-        for (ptp = type->variant.routine.extra_info->param_type_list;
-             ptp != NULL;
-             ptp = ptp->next) {
-          tp = copy_type_with_substitution(ptp->type, templ_arg_list,
-                                           source_pos);
-          if (tp != ptp->type) {
-            /* A substitution was made, so a new routine type will be required.
-               Remember tp so we can avoid calling copy_type_with_substituion
-               again for this param type entry. */
-            first_new_type_for_param_types_list = tp;
-            goto make_new_type;
-          }  /* if */
-          /* Keep track of the number of param type entries for which reuse of
-             the existing type is okay. */
-          ++reusable_param_types;
-        }  /* for */
-        /* Falling through to here means that no substitutions are required
-           for this type.  Therefore it can simply be reused. */
-        new_type = type;
-        break;
-make_new_type:
-        /* Make a routine type based on "type".  Checking for reusable types
-           has already been done for the return type and possibly for some of
-           the parameter types. */
-        new_type = alloc_type((a_type_kind)tk_routine);
-        /* Fill in the return type.  It has already been determined. */
-        new_type->variant.routine.return_type = new_return_type;
-        /* Clone the routine type supplement, except for the pointers. */
-        *(new_type->variant.routine.extra_info) =
-                                         *(type->variant.routine.extra_info);
-        new_type->variant.routine.extra_info->assoc_routine = NULL;
-        new_type->variant.routine.extra_info->implicit_this_param_type =
-                                                       new_this_param_type;
-        /* Make copies of the entries on type's param types list, making the
-           appropriate substitutions for template parameter type entries. */
-        prev_ptp = NULL;
-        for (ptp = type->variant.routine.extra_info->param_type_list;
-             ptp != NULL;
-             ptp = ptp->next) {
-          if (reusable_param_types > 0) {
-            /* We have already called copy_type_with_substitution for this
-               parameter and we know we can reuse the existing type. */
-            tp = ptp->type;
-            --reusable_param_types;
-          } else if (first_new_type_for_param_types_list != NULL) {
-            /* We have already called copy_type_with_substitution for this
-               parameter and the type returned contained a substitution; we can
-               use that type. */
-            tp = first_new_type_for_param_types_list;
-            first_new_type_for_param_types_list = NULL;
-          } else {
-            /* copy_type_with_substitution has not been called yet. */
-            tp = copy_type_with_substitution(ptp->type, templ_arg_list,
-                                             source_pos);
-          }  /* if */
-          /* Allocate the param type entry and copy default arg info. */
-          new_ptp = alloc_param_type(tp);
-          if (ptp->has_default_arg) {
-            new_ptp->has_default_arg = TRUE;
-            if (!ptp->type_involves_template_param) {
-	      /* Default argument processing for parameters that involve
-		 template parameters is done later. */
-              new_ptp->default_arg_expr= copy_expr_tree(ptp->default_arg_expr);
-            }  /* if */
-          }  /* if */
-          /* Add the new param type entry to the param types list. */
-          if (prev_ptp == NULL) {
-            new_type->variant.routine.extra_info->param_type_list = new_ptp;
-          } else {
-            prev_ptp->next = new_ptp;
-          }  /* if */
-          prev_ptp = new_ptp;
-        }  /* if */
-        set_routine_calling_method_flag(new_type);
-        /* A brand new type has been created -- add it to the file scope types
-           list. */
-        add_to_types_list(new_type, DEPTH_OF_FILE_SCOPE);
-        break;
-      case tk_array:
-        /* Make an array type based on "type", making substitutions as
-           required in the element type.  Note that if the element type doesn't
-           require substitution, we don't create a new type entry. */
-        tp = copy_type_with_substitution(type->variant.array.element_type,
-                                         templ_arg_list, source_pos);
-        if (tp == type->variant.array.element_type) {
-          /* Reuse the current type. */
-          new_type = type;
-        } else {
-          /* Create a new array type. */
-          tp2 = alloc_type((a_type_kind)tk_array);
-          *tp2 = *type;
-          tp2->variant.array.element_type = tp;
-          new_type = tp2;
-          add_to_types_list(new_type, DEPTH_OF_FILE_SCOPE);
-        }  /* if */
-        break;
-      case tk_class:
-      case tk_struct:
-      case tk_union:
-        cssp = symbol_supplement_for_class(type);
-        if (!cssp->is_nonreal_class) {
-          /* Reuse the current type. */
-          new_type = type;
-#if CHECKING
-        } else if (cssp->class_template == NULL) {
-          internal_error(
-                "copy_type_with_substitution: nonreal class with no template");
-#endif /* CHECKING */
-        } else {
-          /* The class is a template. The copy will be an instantiation of it.
-             Build a new template arg list and call find_template_class. */
-          a_template_arg_ptr  new_list, new_tap, prev_new_tap;
-          a_symbol_ptr        sym;
-  
-          tap = type->variant.class_struct_union.extra_info->template_arg_list;
-          prev_new_tap = new_list = NULL;
-          for (; tap != NULL; tap = tap->next) {
-            new_tap = alloc_template_arg(tap->is_type);
-            if (tap->is_type) {
-              new_tap->variant.type =
-                       copy_type_with_substitution(tap->variant.type,
-                                                   templ_arg_list, source_pos);
-            } else {
-#if CHECKING
-              if (tap->variant.constant->kind ==
-                                    (a_constant_repr_kind)ck_template_param) {
-                internal_error("copy_type_with_subst: bad const in templ arg");
-              }  /* if */
-#endif /* CHECKING */
-              new_tap->variant.constant = tap->variant.constant;
-            }  /* if */
-            if (new_list == NULL) {
-              new_list = new_tap;
-            } else {
-              prev_new_tap->next = new_tap;
-            }  /* if */
-            prev_new_tap = new_tap;
-          }  /* for */
-          sym = find_template_class(cssp->class_template, &new_list,
-                                    source_pos);
-          new_type = sym->variant.class_struct_union.type;
-        }  /* if */
-        break;
-      default:;
-        /* No modification required. */
-        new_type = type;
-    }  /* switch */
-  }  /* if */
-#if DEBUG
-  if (debug_level >= 5) {
-    fputs("out: ", f_debug);
-    db_type(new_type);
-    fputc('\n', f_debug);
-  }  /* if */
-#endif /* DEBUG */
-  db_exit();
-  return new_type;
-}  /* copy_type_with_substitution */
 
 
 static a_boolean matches_template_type_for_class_type
@@ -1583,9 +1285,7 @@ of a function template.
     /* In the normal case the current token should be end_of_source,
        which was inserted to mark the end of the cached token stream.
        If necessary, keep flushing until end-of-source is found. */
-    while (curr_token != tok_end_of_source) (void)get_token();
-    /* Get the token that follows the declarator. */
-    (void)get_token();
+    flush_past_token_cache_terminator();
   }  /* if */
 }  /* scan_template_declaration */
 
@@ -1635,13 +1335,6 @@ templ_sym).
   switch_to_file_scope_region(&region_to_switch_back_to);
   sym->variant.routine.ptr = rp = alloc_routine();
   if (rout_type == NULL) {
-#if 0
-    /* If the routine type does not already exist, create one, based on the
-       function template's parameter list (the function parameters, that is,
-       not the template parameters) along with the template argument list. */
-    rout_type = copy_type_with_substitution(templ_rout->type, templ_arg_list,
-                                            source_pos);
-#else /* 0 */
     /* If the routine type does not already exist, create one by
        rescanning the original declaration with the template parameters
        updated to refer to the appropriate template arguments. */
@@ -1672,7 +1365,6 @@ templ_sym).
     pos_curr_token = saved_pos_curr_token;
     /* Pop the template instantiation scope. */
     pop_scope();
-#endif /* 0 */
     is_new_rout_type = TRUE;
   }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
@@ -2808,9 +2500,9 @@ this will never be a class declaration.
 */
 {
   a_stop_token_array  save_stop_token_array;
-  a_token_cache	      temp_token_cache;
 
   db_enter(3, "cache_template_declaration");
+  clear_token_cache(p_token_cache, /*reusable=*/TRUE);
   /* Save the current stop token state, and reinitialize it. */
   copy_stop_tokens(stop_token_array, save_stop_token_array);
   clear_stop_tokens();
@@ -2833,23 +2525,13 @@ this will never be a class declaration.
      assure that we don't scan past the end of the cache in the actual
      scan. */
   terminate_token_cache(p_token_cache);
-  /* Make a copy of the token cache as a nonreusable token cache.
-     Rescan the cached tokens from this cache.  This is done so that
+  /* Rescan a copy of the cached tokens from this cache.  This is done so that
      when the original template declaration is scanned the last token of
      the cache is followed by the token that followed it in the original
      source program with no intervening tok_end_of_source.  This also
      allows the reusable token cache to be discarded if it turns out that
      this is not a function declaration. */
-  clear_token_cache(&temp_token_cache, /*reusable=*/FALSE);
-  rescan_reusable_cache(p_token_cache);
-  while (curr_token != tok_end_of_source) {
-    cache_curr_token(&temp_token_cache);
-    (void)get_token();
-  }  /* while */
-  /* Skip past the end-of-source token. */
-  (void)get_token();
-  /* Rescan the tokens from the temporary cache. */
-  rescan_cached_tokens(&temp_token_cache);
+  rescan_copy_of_cache(p_token_cache);
   db_exit();
 }  /* cache_template_declaration */
 
@@ -2864,6 +2546,76 @@ pointed to by the template symbol supplement.
   list = &curr_default_args;
   prescan_default_function_arg_expr(ptp, list);
 }  /* prescan_function_template_default_arg_expr */
+
+
+void prescan_template_param_decl(a_token_cache	*token_cache)
+/*
+Place the tokens for a template parameter into a token cache.
+*/
+{
+  a_stop_token_array        save_stop_token_array;
+
+  db_enter(3, "prescan_template_param_decl");
+  clear_token_cache(token_cache, /*reusable=*/TRUE);
+  /* Save the current stop token state, and reinitialize it. */
+  copy_stop_tokens(stop_token_array, save_stop_token_array);
+  clear_stop_tokens();
+  /* In the normal case we will scan an expression and encounter a comma
+     or right parenthesis.  If both of these are omitted, terminate the token
+     stream when some likely delimiter is reached. */
+  add_stop_token(tok_comma);
+  add_stop_token(tok_gt);
+  add_stop_token(tok_semicolon);
+  cache_token_stream(token_cache);
+  /* Note that the terminating token (comma, etc.) is not added to
+     the cache. */
+  /* Add an end-of-source token to the end of the token cache.  This assures
+     that we won't scan past the end of the cache in the actual scan. */
+  terminate_token_cache(token_cache);
+  /* Restore the original stop token state. */
+  copy_stop_tokens(save_stop_token_array, stop_token_array);
+  /* Rescan a copy of the tokens that were just cached.  Rescanning a copy
+     ensures that processing of the remainder of the original line will
+     not be affected by the tok_end_of_source that terminates the cache. */
+  rescan_copy_of_cache(token_cache);
+  db_exit();
+}  /* prescan_template_param_decl */
+
+
+void scan_a_template_parameter_declaration(a_symbol_locator *param_locator,
+					   a_type_ptr       *param_type_ptr)
+/*
+Scan the declaration of a single template nontype parameter.
+*/
+{
+  a_decl_flag_set			do_flags;
+  a_decl_flag_set			dso_flags;
+  a_storage_class    			param_storage_class;
+  a_type_ptr 			        bottom_derived_type;
+  a_source_position			param_pos;
+
+  /* Scan the declaration specifiers. */
+  (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
+                         DSI_IS_TEMPLATE_PARAMETER),
+                         &dso_flags, &param_storage_class,
+                         param_type_ptr);
+  if (dso_flags & DSO_DEFINES_SOMETHING) {
+    pos_error(ec_type_definition_not_allowed, &param_pos);
+    *param_type_ptr = error_type();
+  }  /* if */
+  if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+    /* Missing type specifier. */
+    warning(ec_missing_type_specifier);
+  }  /* if */
+  /* Scan the declarator. */
+  declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags,
+             *param_type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
+             param_locator, param_type_ptr, &bottom_derived_type,
+             (a_func_info_block_ptr)NULL);
+  /* Adjust the type if necessary (for example, "array of x"
+     becomes "pointer to x"). */
+  adjust_parameter_type(param_type_ptr);
+}  /* scan_a_template_parameter_declaration */
 
 
 static a_template_param_ptr scan_template_param_list(void)
@@ -2882,6 +2634,8 @@ to represent the template parameters.
   a_template_param_ptr end_of_template_param_list = NULL;
   a_type_ptr           template_param_type;
   int                  template_param_list_pos = 0;
+  a_token_cache        param_cache;
+  a_boolean	       parameter_cache_used = FALSE;
 
   db_enter(3, "scan_template_param_list");
   /* Check for an bypass the "<". */
@@ -2898,11 +2652,16 @@ to represent the template parameters.
   do {
     a_boolean      has_default_arg = FALSE;
     a_boolean	   const_type_involves_template_param = FALSE;
-    a_token_cache  token_cache;
+    a_token_cache  def_arg_cache;
     a_constant_ptr default_arg_constant;
-    add_stop_token(tok_comma);
-    copy_source_position(pos_curr_token, param_pos);
+
     ++template_param_list_pos;
+    copy_source_position(pos_curr_token, param_pos);
+    /* Cache the tokens that comprise the template parameter declaration.
+       If the parameter depends on other template parameters this cache
+       will be saved and rescanned to scan template argument lists. */
+    prescan_template_param_decl(&param_cache);
+    add_stop_token(tok_comma);
     /* Determine whether this is a "type-argument" (a parameter that
        represents a type) or a "arg-declaration" (a parameter that represents
        a constant). */
@@ -2941,39 +2700,12 @@ to represent the template parameters.
 	flush_tokens();
       }  /* if */
     } else if (curr_token != tok_template) {
+      a_type_ptr           param_type_ptr;
+      a_symbol_locator     param_locator;
       /* Not a type-argument, so treat it as an arg-declaration.  If this
          template declaration happens to be of a function rather than a class,
          arg-declarations are not allowed.  That will be detected later. */
-      a_decl_flag_set      do_flags, dso_flags;
-      a_type_ptr           param_type_ptr;
-      a_storage_class      param_storage_class;
-      a_symbol_locator     param_locator;
-      a_type_ptr           bottom_derived_type;
-
-      /* Scan the declaration specifiers. */
-      (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
-                             DSI_IS_TEMPLATE_PARAMETER),
-                             &dso_flags, &param_storage_class,
-                             &param_type_ptr);
-      if (dso_flags & DSO_DEFINES_SOMETHING) {
-        pos_error(ec_type_definition_not_allowed, &param_pos);
-        param_type_ptr = error_type();
-      }  /* if */
-      if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
-        /* Missing type specifier. */
-        warning(ec_missing_type_specifier);
-      }  /* if */
-      /* Scan the declarator. */
-      declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags,
-                 param_type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
-                 &param_locator, &param_type_ptr, &bottom_derived_type,
-                 (a_func_info_block_ptr)NULL);
-#if 0
-/* Is a call to adjust_parameter_type required??? */
-      /* Adjust the type if necessary (for example, "array of x"
-         becomes "pointer to x"). */
-      adjust_parameter_type(&param_type_ptr);
-#endif /* if 0 */
+      scan_a_template_parameter_declaration(&param_locator, &param_type_ptr);
 #if 0
       /* Check here for types for which constants cannot be created?  E.g.,
          the program would not be able to declare a constant class object or
@@ -3004,7 +2736,7 @@ to represent the template parameters.
 	  /* The type of the constant parameter involve a template parameter
 	     type so we can't scan the expression now.  Cache the tokens
 	     that comprise the default argument. */
-	  prescan_default_arg_expr(&token_cache, /*is_template_param=*/TRUE);
+	  prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE);
         } else {
 	  /* The type doesn't involve a template parameter type.  Scan the
 	     default argument expression. */
@@ -3046,13 +2778,15 @@ to represent the template parameters.
     if (const_type_involves_template_param) {
       template_param->
 	    variant.param_constant.type_involves_template_param = TRUE;
+      template_param->token_cache = param_cache;
+      parameter_cache_used = TRUE;
     }  /* if */
     if (has_default_arg) {
       /* Update the default argument information in the template parameter. */
       template_param->variant.param_constant.has_default_arg = TRUE;
       if (const_type_involves_template_param) {
         template_param->
-	    variant.param_constant.default_arg.token_cache = token_cache;
+	    variant.param_constant.default_arg.token_cache = def_arg_cache;
       } else {
         template_param->
             variant.param_constant.default_arg.constant = default_arg_constant;
@@ -3064,6 +2798,8 @@ to represent the template parameters.
     } else {
       end_of_template_param_list->next = template_param;
     }  /* if */
+    /* Discard the parameter token cache if it is not needed for later use. */
+    if (!parameter_cache_used) discard_token_cache(&param_cache);
     end_of_template_param_list = template_param;
     remove_stop_token(tok_comma);
     /* Keep looping on a comma. */
@@ -3163,7 +2899,6 @@ entry is pushed on the scope stack.
   saved_curr_default_args = curr_default_args;
   curr_default_args = NULL;
   *defines_something = FALSE;
-  clear_token_cache(&decl_token_cache, /*reusable=*/TRUE);
   if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
     /* template declarations may appear at file scope only (ARM 14.1). */
     error(ec_nonglobal_template_declaration);

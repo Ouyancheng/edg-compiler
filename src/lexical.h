@@ -988,6 +988,8 @@ extern void cache_token_stream(a_token_cache *cache);
 extern void rescan_cached_tokens(a_token_cache *cache);
 /* Push a reusable cache on to the reusable cache stack. */
 extern void rescan_reusable_cache(a_token_cache *cache);
+/* Rescan a copy of a token cache. */
+extern void rescan_copy_of_cache(a_token_cache *cache);
 
 /*
 Data structure used in deciding where to put extra blanks to separate
@@ -1173,6 +1175,12 @@ extern void flush_until_matching_token(void);
 extern void flush_tokens(void);
 /* Initialize the lexical routines. */
 extern void lexical_init(void);
+/* Flush until the tok_end_of_source terminating a token cache is found. */
+#define flush_past_token_cache_terminator()			\
+  while (curr_token != tok_end_of_source) (void)get_token();	\
+  /* Advance past the end-of-source token. */			\
+  (void)get_token();
+
 #if DEBUG
 /* Show space used in the lexical routines, for debugging purposes. */
 extern unsigned long show_lexical_space_used(void);

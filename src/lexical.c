@@ -788,6 +788,32 @@ tokens have been rescanned.
 }  /* rescan_reusable_cache */
 
 
+void rescan_copy_of_cache(a_token_cache *cache)
+/*
+This routine makes a copy of the cache provided by the caller and rescans
+the tokens from the copy of the cache.  The source cache must be terminated
+by a tok_end_of_source.  The copy of the cache will not include the
+end of source token.  This routine is used to allow a series of tokens
+to be cached into a reusable cache and the rescanned as if part of
+the original source with no need to worry about detection of the the
+tok_end_of_source later.
+*/
+{
+  a_token_cache	      temp_token_cache;
+
+  clear_token_cache(&temp_token_cache, /*reusable=*/FALSE);
+  rescan_reusable_cache(cache);
+  while (curr_token != tok_end_of_source) {
+    cache_curr_token(&temp_token_cache);
+    (void)get_token();
+  }  /* while */
+  /* Skip past the end-of-source token. */
+  (void)get_token();
+  /* Rescan the tokens from the temporary cache. */
+  rescan_cached_tokens(&temp_token_cache);
+}  /* rescan_copy_of_cache */
+
+
 static void free_reusable_cache_entry(a_reusable_cache_entry_ptr rsep)
 /*
 Free a token cache stack entry, i.e., put it on the avail list to be reused.
@@ -4871,8 +4897,55 @@ static void flush_to_end_of_arg_list(void)
 }  /* flush_to_end_of_arg_list */
 
 
+static a_type_ptr rescan_template_constant_parameter
+                                          (a_symbol_ptr		template_sym,
+					   a_template_param_ptr param_ptr,
+					   a_template_arg_ptr   arg_list)
+/*
+Rescan the tokens of a template parameter declaration using the current
+values of any previous parameters so that the declaration is processed
+with the types with which the class is to be instantiated.  This is
+used to get the correct types for template parameters whose types depend
+on other template parameters.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_type_ptr				param_type_ptr;
+  a_symbol_locator   			param_locator;
+  a_source_position  			saved_pos_curr_token;
+  a_source_position  			saved_error_position;
+  a_source_position			param_pos;
+
+  tssp = template_sym->variant.template_info;
+  /* Push the template instantiation scope.  Note that the instance symbol
+     passed to push_scope is NULL because we don't yet know which instance
+     is being instantiated.  Also note that a class type is not being
+     passed for the same reason. */
+  (void)push_scope((a_scope_kind)sck_template_instantiation,
+                   tssp->declaration_scope, (a_type_ptr)NULL,
+                   (a_routine_ptr)NULL, (a_symbol_ptr)NULL, template_sym,
+                   arg_list);
+  /* Rescan the tokens of the function declaration. */
+  saved_pos_curr_token = pos_curr_token;
+  saved_error_position = error_position;
+  rescan_reusable_cache(&param_ptr->token_cache);
+  param_pos = pos_curr_token;
+  /* Scan the declaration specifiers. */
+  scan_a_template_parameter_declaration(&param_locator, &param_type_ptr);
+  error_position = saved_error_position;
+  pos_curr_token = saved_pos_curr_token;
+  /* Skip past any tokens remaining in the cache.  Extra tokens will
+     be present under certain error conditions and when a default argument
+     has been supplied. */
+  flush_past_token_cache_terminator();
+  /* Pop the template instantiation scope. */
+  pop_scope();
+  return param_type_ptr;
+}  /* rescan_template_constant_parameter */
+
+
 a_symbol_ptr coalesce_template_class_reference
-			(a_symbol_ptr		   template_symbol,
+			(a_symbol_ptr		   template_sym,
 			 an_identifier_options_set options,
 			 a_boolean		   *err)
 /*
@@ -4881,7 +4954,7 @@ template argument list.  If an argument list is present, scan the argument
 list and call a routine to lookup or create the symbol and type information
 for an instance of the class template.  The template argument list is
 required unless either the GID_TEMPLATE_ARGS_OPTIONAL flag is set in the
-"options" argument, or the class template pointed to by "template_symbol"
+"options" argument, or the class template pointed to by "template_sym"
 is the same as the class template associated with the innermost instantiation
 scope.   If no errors occur while scanning the argument list, we call
 a routine to lookup the appropriate instance (or generate one if needed).
@@ -4910,7 +4983,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   start_position = pos_curr_token;
   /* Save the current locator. */
   locator_pos = locator_for_curr_id.source_position;
-  if (template_symbol->kind != (a_symbol_kind)sk_class_template) {
+  if (template_sym->kind != (a_symbol_kind)sk_class_template) {
     /* The symbol is not a class template symbol.  If the symbol
        is a type symbol followed by what looks like the beginning
        of a template argument list (i.e., a "<") issue an error
@@ -4920,20 +4993,20 @@ a routine to lookup the appropriate instance (or generate one if needed).
        test is also suppressed when processing the type name in a new
        expression because it may legitimately be followed by a less
        than sign. */
-    if (is_type_symbol(template_symbol) && next_tok == tok_lt &&
+    if (is_type_symbol(template_sym) && next_tok == tok_lt &&
         !(options & GID_IS_NEW_TYPE_NAME)) {
       pos_sy_error(ec_unexpected_template_arg_list, &start_position,
-                   template_symbol);
+                   template_sym);
       add_stop_token(tok_gt);
       flush_to_end_of_arg_list();
       remove_stop_token(tok_gt);
       make_specific_symbol_error_locator(&locator_for_curr_id);
-      new_sym = template_symbol;
+      new_sym = template_sym;
       any_errors = TRUE;
       goto normal_exit;
     } else {
       /* Just return the symbol that was passed in. */
-      new_sym = template_symbol;
+      new_sym = template_sym;
       goto skip_processing;
     }  /* if */
   }  /* if */
@@ -4942,7 +5015,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
         this class template, use the symbol associated with the innermost
         instantiation of this class, otherwise just return the class
         template symbol. */
-    new_sym = template_symbol;
+    new_sym = template_sym;
     if (current_class_symbol_if_class_template(&new_sym)) {
       /* We have the symbol for the current instantiation of the
          class template. */
@@ -4955,7 +5028,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
       } else {
         /* Issue an error and return an error locator. */
         pos_sy_error(ec_missing_template_arg_list, &start_position,
-                     template_symbol);
+                     template_sym);
         make_specific_symbol_error_locator(&locator_for_curr_id);
         new_sym = locator_for_curr_id.specific_symbol;
         any_errors = TRUE;
@@ -4976,7 +5049,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
      is not necessary to distinguish between the type and constant case
      because we can use the type of the formal parameter to make this
      selection. */
-  param_ptr = template_symbol->variant.template_info->parameters;
+  param_ptr = template_sym->variant.template_info->parameters;
   do {
     /* If the current token is a ">" then exit the loop.  This should only be
        possible on the first iteration if we have an empty argument list. */
@@ -5007,10 +5080,12 @@ a routine to lookup the appropriate instance (or generate one if needed).
       }  /* if */
 #endif /* CHECKING */
       /* If the type of a constant involves a template parameter type,
-	 replace the actual argument types given for the parameters. */
+         rescan the declaration of the parameter type to get the type
+         to be used in this argument list. */
       if (param_ptr->variant.param_constant.type_involves_template_param) {
-	constant_type = copy_type_with_substitution(constant_type, arg_list,
-						    &start_position);
+	constant_type = rescan_template_constant_parameter(template_sym,
+							   param_ptr,
+							   arg_list);
       }  /* if */
       constant = fs_constant((a_constant_repr_kind)ck_error);
       scan_template_argument_constant_expression(constant_type, constant);
@@ -5054,12 +5129,13 @@ a routine to lookup the appropriate instance (or generate one if needed).
 	     constant value or a token cache that needs to be scanned. */
 	  if (param_ptr->variant.param_constant.type_involves_template_param) {
             /* If the type of a constant involves a template parameter type,
-               replace the actual argument types given for the parameters. */
+               rescan the declaration of the parameter type to get the type
+               to be used in this argument list. */
             if (param_ptr->variant.param_constant.
 						type_involves_template_param) {
-              constant_type = copy_type_with_substitution(constant_type,
-							  arg_list,
-						          &start_position);
+              constant_type = rescan_template_constant_parameter(template_sym,
+							         param_ptr,
+							         arg_list);
             }  /* if */
 	    rescan_reusable_cache(&param_ptr->variant.param_constant.
 						default_arg.token_cache);
@@ -5080,13 +5156,13 @@ a routine to lookup the appropriate instance (or generate one if needed).
     } else {
       /* The next parameter doesn't have a default value (note that
 	 nontype parameters cannot have defaults).  Issue an error. */
-      sym_error(ec_too_few_template_args, template_symbol);
+      sym_error(ec_too_few_template_args, template_sym);
       any_errors = TRUE;
     }  /* if */
   } else if (curr_token == tok_comma) {
     /* All of the formal parameters have been accounted for and there are
        more actuals -- too many arguments were supplied. */
-    pos_sy_error(ec_too_many_template_args, &pos_curr_token, template_symbol);
+    pos_sy_error(ec_too_many_template_args, &pos_curr_token, template_sym);
     flush_to_end_of_arg_list();
     any_errors = TRUE;
   }  /* if */
@@ -5102,7 +5178,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   if (!any_errors) {
     /* Everything is OK -- find the instance that matches these arguments.
        Create a new instance if needed. */
-    new_sym = find_template_class(template_symbol, &arg_list, &start_position);
+    new_sym = find_template_class(template_sym, &arg_list, &start_position);
   } else {
     /* Free any allocated template arguments. */
     if (arg_list != NULL) free_template_arg_list(arg_list);
@@ -5132,7 +5208,7 @@ normal_exit:
 
 #if DEBUG
   if (debug_level >= 5) {
-    db_symbol(template_symbol, "Template symbol: ", 2);
+    db_symbol(template_sym, "Template symbol: ", 2);
   }  /* if */
   if (debug_level >= 4) {
     db_symbol(new_sym, "Returning: ", 2);
