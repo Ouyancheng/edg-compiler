@@ -521,7 +521,7 @@ used to represent stdin; it must return  NULL.
     if (last_slash == NULL) last_slash = strrchr(file_name, ':');
 #else /* !__VMS__ */
     /* UNIX-like system -- check for last slash. */
-    last_slash = strrchr(file_name, '/');
+    last_slash = strrchr(file_name, DIRECTORY_SEPARATOR);
 #if __MICROSOFT_OS__
     /* MSDOS -- Allow backslash as an alternative to "/", and check for ":"
        of disk name. */
@@ -759,7 +759,7 @@ to allocate the space in the intermediate language memory region.
 #if __VMS__
     need_to_add_slash = FALSE;
 #else /* !__VMS__ */
-    need_to_add_slash = (dir_name[dir_length-1] != '/');
+    need_to_add_slash = (dir_name[dir_length-1] != DIRECTORY_SEPARATOR);
 #if __MICROSOFT_OS__
     /* Under MSDOS, both kinds of slashes need to be checked. */
     need_to_add_slash = need_to_add_slash && (dir_name[dir_length-1] != '\\');
@@ -780,10 +780,10 @@ to allocate the space in the intermediate language memory region.
     if (need_to_add_slash) {
       /* Add the slash following the directory name. */
 #if __MICROSOFT_OS__
-      if (strchr(dir_name, '/') != NULL) {
+      if (strchr(dir_name, DIRECTORY_SEPARATOR) != NULL) {
 	/* The original path uses regular UNIX-style slashes; use one to splice
 	   the file and path to make it look consistent. */
-        temp_file_name[dir_length++] = '/';
+        temp_file_name[dir_length++] = DIRECTORY_SEPARATOR;
       } else {
 	/* The directory name does not have any UNIX-style slashes or has no
 	   slashes at all.  In either case, under MSDOS, use an MSDOS-style
@@ -791,7 +791,7 @@ to allocate the space in the intermediate language memory region.
         temp_file_name[dir_length++] = '\\';
       }  /* if */
 #else /* __MICROSOFT_OS__ */
-      temp_file_name[dir_length++] = '/';
+      temp_file_name[dir_length++] = DIRECTORY_SEPARATOR;
 #endif /* if __MICROSOFT_OS__ */
     }  /* if */
     /* Add the file name to the directory name. */
@@ -860,7 +860,7 @@ place in file_name where the suffix begins.
         *suffix_loc = ch + 1;
         break;
       }  /* if */
-      if (*ch == '/' || ch == file_name) {
+      if (*ch == DIRECTORY_SEPARATOR || ch == file_name) {
         /* file_name has no suffix.  A delimiter character will be added to
            the end of file_name and then the suffix will be appended. */
         suffix_delim_required = TRUE;
@@ -1248,7 +1248,7 @@ file should be a binary file if binary_file is TRUE.
   }  /* if */
   dir_len = strlen(temp_dir);
   /* See if a slash must be added to the directory name. */
-  need_slash = (temp_dir[dir_len-1] != '/');
+  need_slash = (temp_dir[dir_len-1] != DIRECTORY_SEPARATOR);
 #if __MICROSOFT_OS__
   /* Under MS-DOS we don't need to add a slash if the path already ends with
      a backslash. */
@@ -1261,8 +1261,8 @@ file should be a binary file if binary_file is TRUE.
       str_catastrophe(ec_temp_file_dir_name_too_long, temp_dir);
     }  /* if */
     (void)sprintf(buffer, "%s%sedg%lu_%ld", temp_dir, 
-					   need_slash ? "/" : "", seed++,
-                                           (long)getpid());
+                  need_slash ? DIRECTORY_SEPARATOR_STRING : "", seed++,
+                  (long)getpid());
 #if DEBUG
     if (debug_level >= 4) {
       fprintf(f_debug, "Opening temporary file %s\n", buffer);
@@ -1757,6 +1757,21 @@ system that supports chdir.
   return result;
 }  /* is_directory */
 #endif /* ifndef IS_DIRECTORY_DEFINED */
+
+
+a_boolean is_absolute_file_name(char *file_name)
+/*
+Test whether or not a file name is absolute (a full path name).
+*/
+{
+#if __MICROSOFT_OS__
+  return ((file_name)[0] == DIRECTORY_SEPARATOR) ||
+         ((file_name)[0] == '\\') ||
+         (isalpha((unsigned char)(file_name)[0]) && ((file_name)[1] == ':'));
+#else /* !__MICROSOFT_OS__ */
+  return (file_name)[0] == DIRECTORY_SEPARATOR;
+#endif /* __MICROSOFT_OS__ */
+}
 
 
 /* Header comment for get_file_name_from_dir. */

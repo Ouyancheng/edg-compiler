@@ -1,5 +1,12 @@
 Version 2.33
 
+9/16/96 Simplify porting of certain directory manipulation routines
+
+The host_envir.c and host_envir.h have been changed to make
+is_absolute_file_name a function instead of a macro, and to use a new macro
+named DIRECTORY_SEPARATOR.  These changes are intended to simplify porting of
+the front end to systems with different file naming conventions.
+
 9/14/96 Microsoft compatibility: ellipsis in old-style parameter list
 
 In Microsoft C mode a warning is now issued (instead of an error) if an

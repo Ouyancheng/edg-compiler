@@ -1129,14 +1129,20 @@ extern char *gs_directory_of(char *file_name);
 extern char *derived_name(char *file_name,
                           char *suffix);
 #endif /* NEED_DERIVED_NAME */
-/* Test whether or not a file name is absolute (a full path name). */
-#if __MICROSOFT_OS__
-#define is_absolute_file_name(file_name) \
-  (((file_name)[0] == '/') || ((file_name)[0] == '\\') || \
-   (isalpha((unsigned char)(file_name)[0]) && ((file_name)[1] == ':')))
-#else /* !__MICROSOFT_OS__ */
-#define is_absolute_file_name(file_name) ((file_name)[0] == '/')
-#endif /* __MICROSOFT_OS__ */
+
+/*
+The character used to separate components of a path name.  On Microsoft
+operating systems this should be '/'.  Handling of the additional '\'
+character is handled separately.
+*/
+#ifndef DIRECTORY_SEPARATOR
+#define DIRECTORY_SEPARATOR '/'
+#endif /* DIRECTORY_SEPARATOR */
+
+#ifndef DIRECTORY_SEPARATOR_STRING
+#define DIRECTORY_SEPARATOR_STRING "/"
+#endif /* DIRECTORY_SEPARATOR_STRING */
+
 /* Combine a directory name and file name into a full path name. */
 extern char *combine_dir_and_file_name (char *dir_name,
                                         char *file_name,
@@ -1190,6 +1196,8 @@ extern a_boolean is_regular_file(char *file_name);
 
 /* Is the specified file a directory. */
 extern a_boolean is_directory(char *file_name);
+
+extern a_boolean is_absolute_file_name(char *file_name);
 
 /* Open a source file. */
 extern FILE *open_source_file(char          *file_name,
