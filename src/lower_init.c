@@ -90,17 +90,18 @@ should be specified as NULL.
 }  /* make_function_type */
 
 
-static a_routine_ptr make_rout_entry(char            *name,
-                                     a_storage_class rout_storage_class,
-                                     a_type_ptr      return_type,
-                                     a_type_ptr      param_1_type)
+static a_routine_ptr make_rout_entry_no_add(char            *name,
+                                            a_storage_class rout_storage_class,
+                                            a_type_ptr      return_type,
+                                            a_type_ptr      param_1_type)
 /*
 Make a routine entry for a function with the given name, prototyped as
 having a parameter with type param_1_type and returning return_type,
 and having storage class rout_storage_class.  Return a pointer to the
 routine entry created.  The routine entry and its type are allocated
 in the file scope.  If no arguments are desired, param_1_type should
-be specified as NULL.  The name may be NULL.
+be specified as NULL.  The name may be NULL.  The routine entry is
+not added to any routines list; see make_rout_entry for that.
 */
 {
   a_routine_ptr rout;
@@ -125,6 +126,23 @@ be specified as NULL.  The name may be NULL.
                                             (a_name_linkage_kind)nlk_none;
   rout->type = rout_type;
   rout->compiler_generated = TRUE;
+  return rout;
+}  /* make_rout_entry_no_add */
+
+
+static a_routine_ptr make_rout_entry(char            *name,
+                                     a_storage_class rout_storage_class,
+                                     a_type_ptr      return_type,
+                                     a_type_ptr      param_1_type)
+/*
+Make a routine entry by calling make_rout_entry_no_add, then add
+the routine to the file-scope routines list.
+*/
+{
+  a_routine_ptr rout;
+
+  rout = make_rout_entry_no_add(name, rout_storage_class, return_type,
+                                param_1_type);
   /* Add the routine to the file scope list. */
   add_to_routines_list(rout, DEPTH_OF_FILE_SCOPE);
   return rout;
@@ -2824,7 +2842,8 @@ destructors in the IA-64 ABI.
        normal parameter). */
     this_param_type = implicit_this_param_type_of(routine_type);
     /* Additional parameter types, if any, are added below. */
-    new_routine = make_rout_entry(name, routine->storage_class,
+    new_routine = make_rout_entry_no_add(
+                                  name, routine->storage_class,
                                   routine_type->variant.routine.return_type,
                                   this_param_type);
     new_routine->is_inline = routine->is_inline;
@@ -2881,6 +2900,17 @@ destructors in the IA-64 ABI.
     copy_and_lower_param_type_list(routine_type, last_param_type, 
                                    /*do_default_args=*/TRUE,
                                    /*do_lowering=*/FALSE);
+    /* Put the new routine right after the old routine. */
+    if (in_front_end && routine->next == NULL &&
+        curr_translation_unit->file_scope_pointers_block.last_routine ==
+                                                                     routine) {
+      /* Use the add routine to keep the "last" pointer for the file
+         scope up to date. */
+      add_to_routines_list(new_routine, DEPTH_OF_FILE_SCOPE);
+    } else {
+      new_routine->next = routine->next;
+      routine->next = new_routine;
+    }  /* if */
   }  /* if */
   /* Define the routine if appropriate. */
   if (routine->storage_class != (a_storage_class)sc_extern && 
