@@ -3983,10 +3983,7 @@ otherwise it is NULL.  The syntax is:
           if (!is_function_decl) {
             /* Be sure that a parenthesized initializer is allowed. */
             a_type_ptr  tp = skip_typerefs(complete_type);
-            while (is_ptr_or_ref_type(tp)) {
-              tp = skip_typerefs(type_pointed_to(tp));
-            }  /* while */
-            if (!is_scalar_type(tp)) {
+            if (!is_scalar_type(tp) && !is_ptr_or_ref_type(tp)) {
 #if CHECKING
               /* Should have been checked when the input flag was defined. */
               if (!is_class_struct_union_type(tp)) {
