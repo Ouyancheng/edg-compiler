@@ -3400,8 +3400,7 @@ enum a_template_param_type_kind_tag {
 			       typename T::X<1> b;
 			     };
 			   (where, during prototype instantiation, k is
-			   assumed to be a member of T and a constant).
-                          */
+			   assumed to be a member of T and a constant). */
 };
 typedef a_byte a_template_param_type_kind;
 
