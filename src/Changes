@@ -3005,7 +3005,7 @@ options makes it too easy to shoot oneself in the foot.  However, many
 customers have asked for this, and they are the best judges of what's
 right in their product.
 
-7/26/96   Disambiguation problem
+7/26/98   Disambiguation problem
 
 Cases like the following were not disambiguated properly, owing to
 an incomplete implementation of is_expr_start_token.  Now fixed.
