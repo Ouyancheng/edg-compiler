@@ -1898,6 +1898,8 @@ value.  Also clear related variant fields to default values.
 {
   rp->special_kind = special_kind;
   switch (special_kind) {
+    case sfk_conversion:
+      break;
     case sfk_operator:
       rp->variant.opname_kind = (an_opname_kind)onk_none;
       break;
