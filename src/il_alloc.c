@@ -2581,6 +2581,9 @@ to it.
   avail_list_ptr = &scope_stack[scope_depth].source_sequence_avail_list;
   if (*avail_list_ptr != NULL) {
     ssep = *avail_list_ptr;
+#ifdef TRACE_ALLOC
+    trace_alloc_check(ssep);
+#endif /* TRACE_ALLOC */
     *avail_list_ptr = ssep->next;
   } else {
     ssep = (a_source_sequence_entry_ptr)
