@@ -447,8 +447,8 @@ the file scope, do not process it (but record an orphan in the latter case).
     case iek_throw_specification:
       {
         a_throw_specification_ptr ptr = (a_throw_specification_ptr)entry_ptr;
-        walk_ptr(ptr->throw_spec_type_list, a_throw_spec_type_ptr,
-                 iek_throw_spec_type);
+        walk_list(ptr->throw_spec_type_list, a_throw_spec_type_ptr,
+                  iek_throw_spec_type);
       }
       break;
     case iek_throw_spec_type:
