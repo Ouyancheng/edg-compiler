@@ -1338,6 +1338,7 @@ static a_routine_ptr
 		vec_new_eh_routine,
 		array_new_routine,
 		vec_cctor_routine,
+		vec_cctor_eh_routine,
 		vec_delete_routine,
 		array_delete_routine;
 
@@ -1615,18 +1616,21 @@ static an_expr_node_ptr make_vec_cctor_call(
                                           an_expr_node_ptr entity_node,
                                           an_expr_node_ptr source_node,
                                           a_targ_ptrdiff_t array_element_count,
-                                          a_routine_ptr    cctor_routine)
+                                          a_routine_ptr    cctor_routine,
+                                          a_routine_ptr    dtor_routine)
 /*
 Make a call to a runtime routine (__vec_cctor) that will call a copy
 constructor for each element of an array.  entity_node gives the address
 of the array.  source_node gives the source for the copy.
 array_element_count is the number of elements in the array.
 cctor_routine is the copy constructor routine to be called.
-A pointer to the expression created is returned.
+dtor_routine is the destructor to be called if an exception is thrown
+during the operation, or NULL if there isn't one.  A pointer to the
+expression created is returned.
 */
 {
   an_expr_node_ptr call_node, arg_expr_list, num_elem_node, size_elem_node;
-  an_expr_node_ptr func_addr_node;
+  an_expr_node_ptr func_addr_node, dtor_addr_node;
 
   /* Build a constant node for the number of array elements. */
   num_elem_node = num_elem_node_from_count(array_element_count);
@@ -1635,16 +1639,27 @@ A pointer to the expression created is returned.
   /* Build an expression for the address of the copy constructor. */
   func_addr_node = expr_for_pointer_to_routine(cctor_routine);
   /* The call looks like
-       __vec_cctor(entity_node, num_elems, size_elem, cctor_routine,
-                   source_node)
+       __vec_cctor   (entity_node, num_elems, size_elem, cctor_routine,
+                      source_node)
+       __vec_cctor_eh(entity_node, num_elems, size_elem, cctor_routine,
+                      source_node, dtor_routine)
   */
   arg_expr_list = entity_node;
   entity_node->next = num_elem_node;
   num_elem_node->next = size_elem_node;
   size_elem_node->next = func_addr_node;
   func_addr_node->next = source_node;
-  call_node = make_runtime_rout_call("__vec_cctor", &vec_cctor_routine,
-                                     void_type(), arg_expr_list);
+  if (exceptions_enabled && dtor_routine != NULL) {
+    /* __vec_cctor_eh call, with destructor. */
+    dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
+    source_node->next = dtor_addr_node;
+    call_node = make_runtime_rout_call("__vec_cctor_eh", &vec_cctor_eh_routine,
+                                       void_type(), arg_expr_list);
+  } else {
+    /* __vec_cctor call, without destructor. */
+    call_node = make_runtime_rout_call("__vec_cctor", &vec_cctor_routine,
+                                       void_type(), arg_expr_list);
+  }  /* if */
   return call_node;
 }  /* make_vec_cctor_call */
 
@@ -2046,7 +2061,8 @@ in default_version_of_routine).
   if (source_node != NULL) {
     /* Copy constructor case. */
     call_node = make_vec_cctor_call(entity_node, source_node,
-                                    array_element_count, ctor_routine);
+                                    array_element_count, ctor_routine,
+                                    dip->destructor);
   } else {
     /* Normal constructor case. */
     /* Build a constant node for the number of array elements. */
@@ -5681,6 +5697,7 @@ are handled in il_lower_init.)
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(file_scope_init_routine),
       pch_saved_var_array_elem(vec_cctor_routine),
+      pch_saved_var_array_elem(vec_cctor_eh_routine),
       pch_saved_var_array_elem(record_needed_destruction_routine),
       pch_saved_var_array_elem(vec_delete_routine),
       pch_saved_var_array_elem(array_delete_routine),
@@ -5708,7 +5725,7 @@ of the front end.
   processing_file_scope_init_routine = FALSE;
   /* Static variables in lower_init.c: */
   vec_new_routine = vec_new_eh_routine = NULL;
-  array_new_routine = vec_cctor_routine = NULL;
+  array_new_routine = vec_cctor_routine = vec_cctor_eh_routine = NULL;
   vec_delete_routine = array_delete_routine = NULL;
   record_needed_destruction_routine = NULL;
   needed_destruction_type = NULL;

@@ -1,5 +1,14 @@
 Version 2.31
 
+1/17/96   __vec_cctor_eh
+
+The runtime now includes a version of __vec_cctor (the routine used to
+copy an array by calling a copy constructor on each element) called
+__vec_cctor_eh.  When exceptions are enabled, IL lowering generates
+a call to __vec_cctor_eh for such copies, and that runtime routine
+handles the destruction of the already-copied elements if the operation
+is cut short by a throw.
+
 1/16/96   Default initialization using constructor with default argument
           that requires destruction
 
