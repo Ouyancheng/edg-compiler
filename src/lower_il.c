@@ -6387,6 +6387,7 @@ Generate any cleanup actions required preceding the indicated goto statement.
   a_context_ptr        goto_context, outermost_context_being_exited;
   an_insert_location   insert_location;
   a_boolean            any_label_block_cleanup_actions_needed;
+  a_boolean            any_label_block_temp_cleanup_actions_needed;
   a_boolean            any_exited_block_cleanup_actions_needed;
   a_cleanup_action_ptr cap;
   a_label_ptr          label = statement->variant.label;
@@ -6437,6 +6438,7 @@ Generate any cleanup actions required preceding the indicated goto statement.
 end_context_loop:
   /* See if any cleanup code is needed. */
   any_label_block_cleanup_actions_needed = FALSE;
+  any_label_block_temp_cleanup_actions_needed = FALSE;
   any_exited_block_cleanup_actions_needed = FALSE;
   if (outermost_context_being_exited != NULL) {
     /* Some contexts are being exited.  See if any cleanup actions are
@@ -6454,6 +6456,9 @@ end_context_loop:
              A x;
              goto label;  // should destroy x
          }
+       Also look for cases where expression temporaries are present on
+       the cleanup list.  Those must be destroyed even if the branch is
+       forward to the label.
     */
     a_boolean any_cleanup_entries = FALSE;
 
@@ -6473,11 +6478,18 @@ end_context_loop:
       } else if (cap->applies_on_block_exit) {
         /* Some cleanup needed. */
         any_cleanup_entries = TRUE;
+        if (cap->kind == cak_destruction &&
+            cap->variant.object.is_expr_temporary) {
+          /* Make a note of expression temporary destructions needed, since
+             they must get done even if the goto is forward to the label. */
+          any_label_block_temp_cleanup_actions_needed = TRUE;
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
   if (any_exited_block_cleanup_actions_needed ||
-      any_label_block_cleanup_actions_needed) {
+      any_label_block_cleanup_actions_needed ||
+      any_label_block_temp_cleanup_actions_needed) {
     /* Some cleanup actions are needed.  Generate them. */
     /* Turn the goto into a block so code can be inserted in front of it. */
     turn_branch_into_block(statement, &insert_location, &orig_statement);
@@ -6491,6 +6503,17 @@ end_context_loop:
            cap->kind != cak_label || cap->variant.label != label;
            cap = cap->next) {
         gen_one_cleanup_action(cap, &insert_location);
+      }  /* for */
+    } else if (any_label_block_temp_cleanup_actions_needed) {
+      /* Generate cleanup actions corresponding to any expression temporaries
+         in the block, even though the goto is forward to the label. */
+      for (cap = goto_context->cleanup_actions;
+           cap != NULL;
+           cap = cap->next) {
+        if (cap->kind == cak_destruction &&
+            cap->variant.object.is_expr_temporary) {
+          gen_one_cleanup_action(cap, &insert_location);
+        }  /* if */
       }  /* for */
     }  /* if */
   }  /* if */
@@ -6506,6 +6529,7 @@ statement.
   a_cleanup_action_ptr cap, next_cap;
   a_boolean            first = TRUE;
   a_statement_ptr      statement = *label_statement;
+  a_label_ptr          label = statement->variant.label;
   an_insert_location   insert_location;
 
   /* Go through the list of cleanup actions, find the ones for temporaries,
@@ -6514,14 +6538,19 @@ statement.
     next_cap = cap->next;
     if (cap->kind == cak_destruction &&
         cap->variant.object.is_expr_temporary) {
-      /* Found an entry.  If this is the first one, make an insert location
-         by rewriting the label as a block. */
-      if (first) {
-        first = FALSE;
-        turn_branch_into_block(statement, &insert_location, label_statement);
+      /* Found an entry.  */
+      /* Add the cleanup action only if the label is reachable by flowing
+         into it from the preceding code. */
+      if (label->reachable_by_fall_through) {
+        /* If this is the first one, make an insert location by rewriting
+           the label as a block. */
+        if (first) {
+          first = FALSE;
+          turn_branch_into_block(statement, &insert_location, label_statement);
+        }  /* if */
+        /* Generate the cleanup action. */
+        gen_one_cleanup_action(cap, &insert_location);
       }  /* if */
-      /* Generate the cleanup action. */
-      gen_one_cleanup_action(cap, &insert_location);
       /* Remove this entry from the list. */
       remove_cleanup_action(cap);
     }  /* if */
