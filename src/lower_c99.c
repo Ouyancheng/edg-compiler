@@ -656,12 +656,10 @@ Transform the given cast expression into a function call (compatible with C89).
                            imaginary_type(src_type->variant.float_kind), src);
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
-    } else if (is_imaginary_type(src_type)) {
-      /* Nothing to be done (imaginary->imaginary becomes real->real once the
-         imaginary types have been lowered). */
     } else {
-      /* Nothing to be done (real->imaginary becomes real->real once the
-         imaginary types have been lowered). */
+      /* Nothing to be done (imaginary->imaginary becomes real->real once the
+         imaginary types have been lowered, and real->imaginary becomes
+         real->real once the imaginary types have been lowered). */
     }  /* if */
   } else {
     if (is_complex_type(src_type)) {
@@ -688,11 +686,10 @@ Transform the given cast expression into a function call (compatible with C89).
                            imaginary_type(src_type->variant.float_kind), src);
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
-    } else if (is_imaginary_type(src_type)) {
-      /* Nothing to be done (imaginary->real becomes real->real once the
-         imaginary types have been lowered). */
     } else {
-      /* Nothing to be done (real->real). */
+      /* Nothing to be done (imaginary->real becomes real->real once the
+         imaginary types have been lowered, and real->real is already
+         correct). */
     }  /* if */
   }  /* if */
 }  /* lower_c99_complex_cast */
