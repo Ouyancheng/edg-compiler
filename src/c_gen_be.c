@@ -1575,13 +1575,6 @@ Write out attributes that apply to the indicated variable.
     /* Output the alignment attribute. */
     write_alignment_attribute(var->alignment);
   }  /* if */
-#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-  if (var->init_priority != 0) {
-    write_tok_str(" __attribute__((__init_priority__(");
-    write_unsigned_num((a_host_large_unsigned)var->init_priority);
-    write_tok_str(")))");
-  }  /* if */
-#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   write_ELF_visibility_attribute(var->ELF_visibility);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -8085,18 +8078,47 @@ if this routine has a body (dump nothing if it has no body).
          This must precede all attribute specifications. */
       write_asm_name (rout->asm_name);
 #endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
-#if GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C
-      /* gcc has a special way of indicating that a routine should be
-         called at program startup.  If this is an initialization routine,
-         arrange for it to be called. */
-      if (routine_is_init_routine(rout)) {
-        write_tok_str(" __attribute__((__constructor__))");
-      }  /* if */
-#endif /* GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C */
 #if GNU_EXTENSIONS_ALLOWED
       /* Emit attributes associated with the routine. */
       write_routine_attributes(rout);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C
+      /* gcc has a special way of indicating that a routine should be
+         called at program startup.  If this is an initialization routine,
+         arrange for it to be called. */
+      /* Note that this gcc case is done before the other cases below because
+         it gets put out before the closing ";" of the declaration,
+         and the other cases emit pragmas. */
+      if (routine_is_init_routine(rout)) {
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+        if (rout->init_priority != 0) {
+          /* For an initialization routine that contains initializations of
+             variables with init_priority N, put out a variable in a
+             section named .ctors.M, where M is 65535-N, that points
+             to the routine. */
+          write_tok_ch(';');
+          disable_line_wrapping();
+          write_str(" __attribute__((section(\".ctors.");
+          write_unsigned_num((a_host_large_unsigned)
+                                                  (65535-rout->init_priority));
+          write_str("\"))) void *ctors");
+          write_str(rout->source_corresp.name);
+          enable_line_wrapping();
+          write_str(" = ");
+          write_str(rout->source_corresp.name);
+        } else
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+        /* Do not insert code here. */
+        {
+          write_tok_str(" __attribute__((__constructor__))");
+        }  /* if */
+      }  /* if */
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C) */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && !defined(_lint)
+ #error -- GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED is only supported with \
+           output to gcc
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && ... */
+#endif /* GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C */
       write_tok_ch(';');
       if (routine_is_init_routine(rout)) {
 #if SUNPRO_C_IS_C_GEN_BE_TARGET
@@ -8244,7 +8266,7 @@ by IL lowering.
     /* gcc has a special way of indicating that a routine should be
        called at program startup. */
     if (!file_scope_init_routine_called) {
-      write_tok_str(" __attribute__((constructor))");
+      write_tok_str(" __attribute__((__constructor__))");
       file_scope_init_routine_called = TRUE;
     }  /* if */
 #endif /* GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C */

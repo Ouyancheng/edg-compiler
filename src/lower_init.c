@@ -3697,7 +3697,7 @@ aggregate, set *keep_constant to TRUE.
   }  /* for */
 }  /* lower_dynamic_init_aggregate_constant */
 
-#if !USE_INIT_SECTION_IN_GENERATED_C
+#if USE_PATCH_INIT_STARTUP
 
 /*
 Pointer to the struct type for the __linkl structure.  NULL until created.
@@ -3820,14 +3820,18 @@ routine is invoked at program startup.
   switch_back_to_original_region(region_to_switch_back_to);
 }  /* make_code_to_invoke_file_scope_init_routine */
 
-#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* USE_PATCH_INIT_STARTUP */
 
 #if !ONE_INSTANTIATION_PER_OBJECT
 /*ARGSUSED*/ /* <-- needed_bit_number is not used in that case. */
 #endif /* !ONE_INSTANTIATION_PER_OBJECT */
+#if !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+/*ARGSUSED*/ /* <-- init_priority is not used in that case. */
+#endif /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 static a_scope_ptr make_file_scope_init_or_term_routine(
                                  a_type_ptr                  param1_type,
                                  unsigned long               needed_bit_number,
+                                 int                         init_priority,
                                  char                        *prefix,
                                  an_insert_location_ptr      insert_location,
                                  a_memory_region_number      *il_region,
@@ -3851,6 +3855,12 @@ initialization routine is being generated for the instantiation associated
 with the indicated bit number.
 */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+/*
+If init_priority is non-zero, this routine is an initialization routine
+for variables with the GNU init_priority set to that value.
+*/
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 {
   a_routine_ptr   init_rout;
   a_scope_ptr     scope;
@@ -3860,6 +3870,9 @@ with the indicated bit number.
 #if ONE_INSTANTIATION_PER_OBJECT
   char            buffer[50];
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  char            buffer2[50];
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 
   if (prefix == NULL) {
     /* Make an unnamed routine. */
@@ -3867,7 +3880,7 @@ with the indicated bit number.
   } else {
     /* Combine the prefix and an identifier for the current module to make
        a name that is likely to be unique. */
-    char	*module_id;
+    char	*module_id, *end;
     module_id = make_module_id();
     prefix_len = strlen(prefix);
     alloc_length = prefix_len + strlen(module_id) + 1;
@@ -3875,18 +3888,35 @@ with the indicated bit number.
     if (needed_bit_number != 0) {
       /* Add a suffix to distinguish initialization routines for
          specific instantiations. */
-      (void)sprintf(buffer, "_%lu", needed_bit_number);
+      (void)sprintf(buffer, "__%lu", needed_bit_number);
       alloc_length += strlen(buffer);
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+    if (init_priority != 0) {
+      /* Add a suffix to distinguish initialization routines for
+         specific init_priority values. */
+      (void)sprintf(buffer2, "__prio%d", (int)init_priority);
+      alloc_length += strlen(buffer2);
+    }  /* if */
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
     name = alloc_lowered_name_string(alloc_length);
     (void)memcpy(name, prefix, size_t_arg(prefix_len));
-    (void)strcpy(name+prefix_len, module_id);
+    end = name + prefix_len;
+    (void)strcpy(end, module_id);
+    end += strlen(module_id);
 #if ONE_INSTANTIATION_PER_OBJECT
     if (needed_bit_number != 0) {
-      (void)strcpy(name+prefix_len+strlen(module_id), buffer); /*lint !e645*/
+      (void)strcpy(end, buffer); /*lint !e645*/
+      end += strlen(buffer);
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+    if (init_priority != 0) {
+      (void)strcpy(end, buffer2); /*lint !e645*/
+      end += strlen(buffer2);
+    }  /* if */
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   }  /* if */
   /* Make a type and routine entry for the routine. */
   init_rout = make_rout_entry(name,
@@ -3894,6 +3924,9 @@ with the indicated bit number.
                                                                sc_static),
                               void_type(),
                               param1_type);
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  if (init_priority != 0) init_rout->init_priority = init_priority;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   /* Make a memory region, scope, and block for the routine definition. */
   scope = make_routine_definition(init_rout, /*make_return=*/TRUE, il_region);
 #if IA64_ABI
@@ -3920,6 +3953,7 @@ with the indicated bit number.
 
 static a_scope_ptr file_scope_init_insert_location(
                                  unsigned long               needed_bit_number,
+                                 int                         init_priority,
                                  an_insert_location_ptr      insert_location,
                                  a_memory_region_number      *region_number,
                                  a_generated_routine_context *grcontext)
@@ -3931,12 +3965,15 @@ A generated routine context is pushed, with *grcontext used to save the
 old state for later restoration.  If needed_bit_number is non-zero, it
 is the per-instantiation "needed" bit number associated with an instantiation,
 and the routine being generated is the initialization routine for that
-instantiation.
+instantiation.  If init_priority is non-zero, this routine is an
+initialization routine for variables with the GNU init_priority
+set to that value.
 */
 {
   a_scope_ptr scope = make_file_scope_init_or_term_routine(
                                        (a_type_ptr)NULL,
                                        needed_bit_number,
+                                       init_priority,
                                        IL_LOWERING_INIT_ROUTINE_PREFIX,
                                        insert_location,
                                        region_number,
@@ -3971,6 +4008,7 @@ old state for later restoration.
                                        (a_type_ptr)NULL,
 #endif /* !IA64_ABI */
                                        (unsigned long)0,
+                                       0,
                                        (char *)NULL,  /* Unnamed. */
                                        insert_location,
                                        region_number,
@@ -10776,7 +10814,18 @@ destructor scope, and also lower the user code.
   code_pos_for_lowering = saved_code_pos;
 }  /* lower_destructor_code */
 
-#if ONE_INSTANTIATION_PER_OBJECT
+
+/*
+Macro that is TRUE if we need the mechanism for generating multiple
+initialization routines.
+*/
+#if ONE_INSTANTIATION_PER_OBJECT || GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+#define MULTIPLE_INIT_ROUTINES TRUE
+#else /* !(ONE_INSTANTIATION_PER_OBJECT || GNU_INIT_PRIORITY_...) */
+#define MULTIPLE_INIT_ROUTINES FALSE
+#endif /* ONE_INSTANTIATION_PER_OBJECT || GNU_INIT_PRIORITY_... */
+
+#if MULTIPLE_INIT_ROUTINES
 
 /*ARGSUSED*/  /* <-- tblock is not used. */
 static void set_dynamic_init_included_in_slice(
@@ -10804,24 +10853,27 @@ in all dynamic initializations under it.
   traverse_dynamic_init(dip, &tblock);
 }  /* mark_slice_dyn_inits */
 
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
+#endif /* MULTIPLE_INIT_ROUTINES */
 
-#if !ONE_INSTANTIATION_PER_OBJECT
+#if !MULTIPLE_INIT_ROUTINES
 /*ARGSUSED*/ /* residual_destrs is not used in that case. */
-#endif /* !ONE_INSTANTIATION_PER_OBJECT */
+#endif /* !MULTIPLE_INIT_ROUTINES */
 static void b_lower_file_scope_dynamic_inits(
-                                         unsigned long needed_bit_number,
-                                         a_dynamic_init_ptr   *residual_destrs)
+                                        unsigned long        needed_bit_number,
+                                        int                  init_priority,
+                                        a_dynamic_init_ptr   *residual_destrs)
 /*
 Do lowering on the file-scope dynamic initializations list.  Generate
 an initialization routine and make sure it will get called at program
 startup.  If needed_bit_number is non-zero, it is the needed flag bit number
 for an instantiation, and only initializations for that bit number should
-be included in the initialization routine.  Any destructions associated
-with the initializations to be done that remain on the object lifetime
-list after lowering are moved to the residual_destrs list.  This is so
-they can be kept off the object lifetime list now and added back in
-after all initialization routines for instantiations have been generated.
+be included in the initialization routine.  If init_priority is non-zero,
+only variables with the GNU init_priority field equal to that value are
+included.  Any destructions associated with the initializations to be
+done that remain on the object lifetime list after lowering are moved
+to the residual_destrs list.  This is so they can be kept off the object
+lifetime list now and added back in after all initialization routines for
+instantiations have been generated.
 */
 {
   a_dynamic_init_ptr dip, dip_next;
@@ -10833,33 +10885,50 @@ after all initialization routines for instantiations have been generated.
   a_memory_region_number
                      region_number;
   unsigned long      eff_needed_bit_number = needed_bit_number;
-#if ONE_INSTANTIATION_PER_OBJECT
+#if MULTIPLE_INIT_ROUTINES
+  a_boolean          processing_partial_list = FALSE;
   a_dynamic_init_ptr process_list, end_process_list;
   a_dynamic_init_ptr dtor_process_list, end_dtor_process_list;
   a_dynamic_init_ptr delay_list, end_delay_list;
   a_dynamic_init_ptr dtor_delay_list, end_dtor_delay_list;
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
-#if !USE_INIT_SECTION_IN_GENERATED_C
+#endif /* MULTIPLE_INIT_ROUTINES */
+#if USE_PATCH_INIT_STARTUP
   a_routine_ptr      init_rout;
-#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* USE_PATCH_INIT_STARTUP */
 
   dip = file_scope->dynamic_inits;
+#if MULTIPLE_INIT_ROUTINES
 #if ONE_INSTANTIATION_PER_OBJECT
   if (needed_bit_number == 1) eff_needed_bit_number = 0;
-  if (needed_bit_number != 0) {
-    /* We're putting out separate initialization routines for each
-       instantiation.   Split the dynamic initializations list into two
-       lists: one that gets processed on this call (because the variables
-       are assigned to the current slice), and another that does not get
-       processed and goes back on the list after we're done with this call,
-       for processing on a subsequent call. */
+  if (needed_bit_number != 0) processing_partial_list = TRUE;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  if (init_priority != 0) processing_partial_list = TRUE;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  if (processing_partial_list) {
+    /* We're putting out separate initialization routines for different
+       groups of initializations.  Split the dynamic initializations list
+       into two lists: one that gets processed on this call (because the
+       variables are assigned to the current slice), and another that does
+       not get processed and goes back on the list after we're done with
+       this call, for processing on a subsequent call. */
     process_list = end_process_list = NULL;
     delay_list = end_delay_list = NULL;
     for (; dip != NULL; dip = dip_next) {
+      a_boolean in_slice = TRUE;
       dip_next = dip->next;
       dip->next = NULL;
-      if (dip->variable->instantiation_needed_bit_number ==
-                                                       eff_needed_bit_number) {
+      /* Determine whether this variable initialization should be in
+         the current slice. */
+#if ONE_INSTANTIATION_PER_OBJECT
+      if (one_instantiation_per_object &&
+          dip->variable->instantiation_needed_bit_number !=
+                                       eff_needed_bit_number) in_slice = FALSE;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+      if (dip->variable->init_priority != init_priority) in_slice = FALSE;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+      if (in_slice) {
         /* This dynamic initialization gets processed on this call. */
         if (end_process_list == NULL) {
           process_list = dip;
@@ -10924,12 +10993,13 @@ after all initialization routines for instantiations have been generated.
     /* There are some file-scope dynamic initializations.  Generate a routine
        containing them. */
     scope = file_scope_init_insert_location(eff_needed_bit_number,
+                                            init_priority,
                                             &insert_location, &region_number,
                                             &grcontext);
     processing_file_scope_init_routine = TRUE;
-#if !USE_INIT_SECTION_IN_GENERATED_C
+#if USE_PATCH_INIT_STARTUP
     init_rout = scope->variant.routine.ptr;
-#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* USE_PATCH_INIT_STARTUP */
     if (file_scope->lifetime != NULL) {
       begin_object_lifetime(file_scope->lifetime, &insert_location);
     }  /* if */
@@ -10970,12 +11040,17 @@ after all initialization routines for instantiations have been generated.
     /* Generate code to ensure that the initialization routine is called
        at program startup.  If a .init section will be used for
        initialization, skip this stuff. */
-#if !USE_INIT_SECTION_IN_GENERATED_C
+#if USE_PATCH_INIT_STARTUP
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+ #error -- GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED cannot be TRUE if \
+           USE_PATCH_INIT_STARTUP is TRUE
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
     make_code_to_invoke_file_scope_init_routine(init_rout);
-#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* USE_PATCH_INIT_STARTUP */
   }  /* if */
-#if ONE_INSTANTIATION_PER_OBJECT
-  if (needed_bit_number != 0) {
+#if MULTIPLE_INIT_ROUTINES
+  if (processing_partial_list) {
+    /* Put the not-processed initializations back on the list. */
     file_scope->dynamic_inits = delay_list;
     if (file_scope->lifetime != NULL) {
       if (file_scope->lifetime->destructions != NULL) {
@@ -10984,7 +11059,13 @@ after all initialization routines for instantiations have been generated.
            an aggregate.  Save them on a side list so that they will not
            be on the primary list and therefore will not accidentally
            be processed again.  They will be put back on the list after
-           all initialization routines have been generated. */
+           all initialization routines have been generated.  A test case:
+             struct A {
+               A();
+               ~A();
+             };
+             A arr[5] = {A()};
+        */
         a_dynamic_init_ptr last_destr = file_scope->lifetime->destructions;
         while (last_destr->next_in_destruction_list != NULL) {
           last_destr = last_destr->next_in_destruction_list;
@@ -10995,9 +11076,75 @@ after all initialization routines for instantiations have been generated.
       file_scope->lifetime->destructions = dtor_delay_list;
     }  /* if */
   }  /* if */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
+#endif /* MULTIPLE_INIT_ROUTINES */
 }  /* b_lower_file_scope_dynamic_inits */
 
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+
+static int first_init_priority(unsigned long needed_bit_number)
+/*
+Return the first non-zero GNU init_priority value in the list of file-scope
+dynamic initializations.  If there is no non-zero value, return zero.
+If one-instantiation-per-object mode is enabled, ignore entries whose
+needed bit number does not match needed_bit_number.
+*/
+{
+  int                first_priority = 0;
+  a_dynamic_init_ptr dip;
+  unsigned long      eff_needed_bit_number = needed_bit_number;
+
+  if (needed_bit_number == 1) eff_needed_bit_number = 0;
+  /* init_priority is enabled only in g++ mode. */
+  if (gpp_mode) {
+    for (dip = il_header.primary_scope->dynamic_inits;
+         dip != NULL;
+         dip = dip->next) {
+#if ONE_INSTANTIATION_PER_OBJECT
+      if (one_instantiation_per_object &&
+          dip->variable->instantiation_needed_bit_number !=
+                                               eff_needed_bit_number) continue;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+      if (dip->variable->init_priority != 0) {
+        first_priority = dip->variable->init_priority;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return first_priority;
+}  /* first_init_priority */
+
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+
+#if MULTIPLE_INIT_ROUTINES
+
+static void p_lower_file_scope_dynamic_inits(
+                                          unsigned long      needed_bit_number,
+                                          a_dynamic_init_ptr *residual_destrs)
+/*
+Wrapper around b_lower_file_scope_dynamic_inits.  When the GNU init_priority
+attribute is allowed, loop through the initializations and call
+b_lower_file_scope_dynamic_inits to generate a routine for each priority
+level.
+*/
+{
+  int priority = 0;
+
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  /* Note that the last time around processes priority == 0, the
+     variables with no init_priority attribute.  Note also that that
+     call will be more efficient in the case that needed_bit_number
+     is 0, because it will just process everything on the list. */
+  do {
+    priority = first_init_priority(needed_bit_number);
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+    b_lower_file_scope_dynamic_inits(needed_bit_number, priority,
+                                     residual_destrs);
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  } while (priority != 0);
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+}  /* p_lower_file_scope_dynamic_inits */
+
+#endif /* MULTIPLE_INIT_ROUTINES */
 
 void lower_file_scope_dynamic_inits(void)
 /*
@@ -11009,18 +11156,18 @@ code to cause the generated initialization routine to be called at startup.
 
 #if ONE_INSTANTIATION_PER_OBJECT
   if (one_instantiation_per_object) {
-    a_dynamic_init_ptr residual_destrs = NULL;
     /* When generating one instantiation per object, each instantiation gets
        its own initialization file. */
     /* Each instantiation has an associated bit number.  The bit numbers
        are assigned in increments of 2, to leave room for a class
        definition needed bit associated with each instantiation. */
-    unsigned long needed_bit_number;
+    unsigned long      needed_bit_number;
+    a_dynamic_init_ptr residual_destrs = NULL;
     for (needed_bit_number = 1;
          needed_bit_number <
                  (il_header.number_of_external_nonclass_template_entities+1)*2;
          needed_bit_number += 2) {
-      b_lower_file_scope_dynamic_inits(needed_bit_number, &residual_destrs);
+      p_lower_file_scope_dynamic_inits(needed_bit_number, &residual_destrs);
     }  /* for */
     check_assertion_str(file_scope->dynamic_inits == NULL,
                     "lower_file_scope_dynamic_inits: not all entries lowered");
@@ -11032,9 +11179,21 @@ code to cause the generated initialization routine to be called at startup.
     }  /* if */
   } else
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  /* Do not insert code here. */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  /* init_priority is enabled only in g++ mode. */
+  if (gpp_mode) {
+    /* If the GNU init_priority attribute is supported, make multiple
+       passes through the list to generate separate routines for each
+       priority value. */
+    a_dynamic_init_ptr residual_destrs = NULL;
+    p_lower_file_scope_dynamic_inits((unsigned long)0, &residual_destrs);
+    check_assertion(residual_destrs == NULL);
+  } else
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   /* Do not insert code here; this is the "else" of an "if". */
   {
-    b_lower_file_scope_dynamic_inits((unsigned long)0,
+    b_lower_file_scope_dynamic_inits((unsigned long)0, 0,
                                      (a_dynamic_init_ptr *)0);
     file_scope->dynamic_inits = NULL;
   }
@@ -11517,9 +11676,9 @@ Do one-time initialization of static variables declared in lower_init.c.
 #endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
       pch_saved_var_array_elem(dso_handle_var),
 #endif /* IA64_ABI */
-#if !USE_INIT_SECTION_IN_GENERATED_C
+#if USE_PATCH_INIT_STARTUP
       pch_saved_var_array_elem(linkl_type),
-#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* USE_PATCH_INIT_STARTUP */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(guid_type),
       pch_saved_var_array_elem(guid_array_type),
@@ -11570,9 +11729,9 @@ Do one-time initialization of static variables declared in lower_init.c.
 #endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
   register_trans_unit_variable(dso_handle_var);
 #endif /* IA64_ABI */
-#if !USE_INIT_SECTION_IN_GENERATED_C
+#if USE_PATCH_INIT_STARTUP
   register_trans_unit_variable(linkl_type);
-#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* USE_PATCH_INIT_STARTUP */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   register_trans_unit_variable(guid_type);
   register_trans_unit_variable(guid_array_type);
@@ -11626,9 +11785,9 @@ for each translation unit.
 #endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
   dso_handle_var = NULL;
 #endif /* IA64_ABI */
-#if !USE_INIT_SECTION_IN_GENERATED_C
+#if USE_PATCH_INIT_STARTUP
   linkl_type = NULL;
-#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* USE_PATCH_INIT_STARTUP */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   guid_type = NULL;
   guid_array_type = NULL;
