@@ -1239,7 +1239,7 @@ __builtin_constant_p and __builtin_classify_type are processed here.
   /* Now determine the constant result of the pseudo-call by examining the
      (unevaluated) argument expression. */
   check_assertion(rp != NULL && is_gnu_builtin_function(rp));
-  result_type = return_type_of(rp->type);
+  result_type = skip_typerefs(return_type_of(rp->type));
   check_assertion(is_integral_type(result_type));
   switch (rp->variant.builtin_function_kind) {
     case bfk_constant_p:
