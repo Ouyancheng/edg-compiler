@@ -6447,7 +6447,7 @@ because of an error.  This routine is used only in C++ mode.
                                     &candidate_functions,
                                     &matched_except_for_missing_selector);
     }  /* if */
-    if (source_is_class) {
+    if (source_is_class && !type_is_same_or_derived) {
       /* The source type is a class, so conversion functions might be
          applicable. */
       /* If the source type is a template class, instantiate it to make its
@@ -6460,18 +6460,12 @@ because of an error.  This routine is used only in C++ mode.
            class into the destination class, or the source class has template
            conversion functions.  See if there is a conversion function that
            does the job. */
-        if (is_copy_initialization && type_is_same_or_derived) {
-          /* In copy-initialization, if the source type is the same as the
-             destination type, or a derived class thereof, only constructors
-             are supposed to be used.  WP [dcl.init]. */
-        } else {
-          try_conversion_function_match(source_operand, dest_type,
-                                        (a_builtin_type_kind_set)BTK_NONE,
-                                        /*need_lvalue_result=*/FALSE,
-                                        is_copy_initialization,
-                                        is_reference_binding,
-                                        &candidate_functions);
-        }  /* if */
+        try_conversion_function_match(source_operand, dest_type,
+                                      (a_builtin_type_kind_set)BTK_NONE,
+                                      /*need_lvalue_result=*/FALSE,
+                                      is_copy_initialization,
+                                      is_reference_binding,
+                                      &candidate_functions);
       }  /* if */
     }  /* if */
     /* If no functions are viable, check for the possibility of a bitwise
@@ -7674,8 +7668,13 @@ happen only in C++ mode.
     if (conversion_routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor) {
       /* The routine is a constructor (copy or not). */
-      if (skip_typerefs(source_operand->type) == class_type) {
-        /* The conversion routine is a copy constructor. */
+      a_type_qualifier_set qualifiers;
+      if (skip_typerefs(source_operand->type) == class_type &&
+          is_copy_constructor(conversion_routine, class_type, &qualifiers,
+                              /*is_declarative_context=*/FALSE)) {
+        /* The conversion routine is a copy constructor, and the source and
+           destination have the same type (i.e., the source is not a derived
+           class of the destination). */
         /* Look at the top of the expression that is the input to the copy
            constructor, to see if it is something that creates a temporary.
            If it is, the temporary and the copy constructor call can be
