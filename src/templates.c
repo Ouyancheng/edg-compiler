@@ -6389,69 +6389,65 @@ caller.
          template information to reflect this. */
       record_specialization(decl_state, sym, tssp);
     }  /* if */
-    if (!decl_state->is_template_friend ||
-        !decl_state->in_prototype_instantiation) {
-      /* This processing is skipped for template friends during the prototype
-         instantiation. */
-      if (tssp->variant.function.decl_cache.tokens.first_token == NULL) {
-        /* The decl_token_cache is always saved from the initial declaration
-           of the template.  Note that this may be different than the one
-           for which the func_info block is saved.  This is done so that
-           the return type and declarator will be of an appropriate form
-           so that partial instantiations of the function can be done in
-           the context of the original declaration. */
-        set_template_cache_info(&tssp->variant.function.decl_cache,
-                                &decl_state->decl_token_cache,
-                                decl_state->decl_info);
-        decl_state->decl_token_cache_used = TRUE;
+    if (tssp->variant.function.decl_cache.tokens.first_token == NULL) {
+      /* The decl_token_cache is always saved from the initial declaration
+         of the template.  Note that this may be different than the one
+         for which the func_info block is saved.  This is done so that
+         the return type and declarator will be of an appropriate form
+         so that partial instantiations of the function can be done in
+         the context of the original declaration. */
+      set_template_cache_info(&tssp->variant.function.decl_cache,
+                              &decl_state->decl_token_cache,
+                              decl_state->decl_info);
+      decl_state->decl_token_cache_used = TRUE;
+    }  /* if */
+    if (decl_state->defines_something || 
+        tssp->cache.decl_info == NULL) {
+      /* This is either the defining declaration or the initial declaration
+         (or both). */
+      if (func_info != NULL) {
+        /* The func_info block should point to the declaration associated
+           with the definition, if a definition is present.  This is done
+           elsewhere for class members. */
+        tssp->variant.function.func_info = *func_info;
+        /* Copy the func_info block and then null out its param-id
+           pointer so that it won't be freed. */
+        func_info->param_id_list = NULL;
       }  /* if */
-      if (decl_state->defines_something || 
-          tssp->cache.decl_info == NULL) {
-        /* This is either the defining declaration or the initial declaration
-           (or both). */
-        if (func_info != NULL) {
-          /* The func_info block should point to the declaration associated
-             with the definition, if a definition is present.  This is done
-             elsewhere for class members. */
-          tssp->variant.function.func_info = *func_info;
-          /* Copy the func_info block and then null out its param-id
-             pointer so that it won't be freed. */
-          func_info->param_id_list = NULL;
-        }  /* if */
-        /* Save the token cache and associated template declaration
-           information.  This is done for the initial declaration and
-           is done again if the function is defined later. */
-        set_template_cache_info(&tssp->cache,
-                                &local_token_cache,
-                                decl_state->decl_info);
-      } /* if */
-      daefp = curr_default_args;
-      /* Update the template declaration information to refer to
-         the declaration information of the function template. */
-      while (daefp != NULL) {
-        daefp->cache.decl_info = decl_state->decl_info;
-        daefp = daefp->next;
-      }  /* while */
-      /* Link the default argument list from the template supplement
-         onto the end of the list of current default arguments.  The
-         list in the supplement must be for arguments that follow the
-         new list (otherwise it would be an error).  Find the end
-         of the current list and link the existing list to the end. */
-      daefp = curr_default_args;
-      if (daefp != NULL) {
-        while (daefp->next != NULL) {
-          daefp = daefp->next;
-        }  /* if */
-        daefp->next = tssp->variant.function.def_arg_expr_list;
-        tssp->variant.function.def_arg_expr_list = curr_default_args;
-      } /* if */
-      if (decl_state->is_template_friend) {
-        /* This is a template friend declaration, add the current class to
-           the list of friend classes associated with this template. */
-        add_befriending_class_to_function_template(
-                                          tssp, decl_state->class_declared_in);
-      }  /* if */
+      /* Save the token cache and associated template declaration
+         information.  This is done for the initial declaration and
+         is done again if the function is defined later. */
+      set_template_cache_info(&tssp->cache,
+                              &local_token_cache,
+                              decl_state->decl_info);
     } /* if */
+    daefp = curr_default_args;
+    /* Update the template declaration information to refer to
+       the declaration information of the function template. */
+    while (daefp != NULL) {
+      daefp->cache.decl_info = decl_state->decl_info;
+      daefp = daefp->next;
+    }  /* while */
+    /* Link the default argument list from the template supplement
+       onto the end of the list of current default arguments.  The
+       list in the supplement must be for arguments that follow the
+       new list (otherwise it would be an error).  Find the end
+       of the current list and link the existing list to the end. */
+    daefp = curr_default_args;
+    if (daefp != NULL) {
+      while (daefp->next != NULL) {
+        daefp = daefp->next;
+      }  /* if */
+      daefp->next = tssp->variant.function.def_arg_expr_list;
+      tssp->variant.function.def_arg_expr_list = curr_default_args;
+    } /* if */
+    if (decl_state->is_template_friend &&
+       !decl_state->in_prototype_instantiation) {
+      /* This is a template friend declaration, add the current class to
+         the list of friend classes associated with this template. */
+      add_befriending_class_to_function_template(
+                                          tssp, decl_state->class_declared_in);
+    }  /* if */
   } /* if */
   if (err) {
     /* Avoid spurious errors -- skip the check for template params, since
@@ -7133,7 +7129,7 @@ is the position to be used if a diagnostic is issued.
 }  /* check_for_decl_spec_errors */
 
 
-static void full_specialization(void)
+static void full_specialization(a_decl_state_ptr decl_state)
 /*
 One or more empty template parameter clauses ("template <>") have been
 scanned, and this routine handles the specialization of the template instance
@@ -7254,8 +7250,11 @@ that follows.
       if (sym->decl_scope != scope_stack[depth_scope_stack].number &&
           (sym->parent.namespace_ptr == NULL ||
            !namespace_is_enclosed_by_curr_scope(sym))) {
-        pos_sy_error(ec_bad_scope_for_specialization,
-                     &locator.source_position, sym);
+        if (!decl_state->decl_scope_err) {
+          pos_sy_error(ec_bad_scope_for_specialization,
+                       &locator.source_position, sym);
+          decl_state->decl_scope_err = TRUE;
+        }  /* if */
         sym = NULL;
       }  /* if */
     }  /* if */
@@ -7564,7 +7563,7 @@ are either the specialization of a template or a template declaration.
      param-lists must be present). */
   scan_template_param_clauses(&decl_state);
   if (decl_state.is_full_specialization) {
-    full_specialization();
+    full_specialization(&decl_state);
     /* Advance past the semicolon or closing rbrace if required. */
     if (!no_advance_past_final_token && (curr_token == tok_semicolon ||
                                          curr_token == tok_rbrace)) {
