@@ -10213,6 +10213,30 @@ are handled in symbol_tbl_init.)
 }  /* symbol_tbl_one_time_init */
 
 
+void symbol_tbl_trans_unit_init(void)
+/*
+Initialize variables related to the symbol table that are specific to a
+given translation unit.
+*/
+{
+  global_namespace_list_entry = NULL;
+  /* Initialize the predeclared symbol for namespace "std". */
+  symbol_for_namespace_std = NULL;
+  builtin_va_list_type = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  predeclared_size_t_symbol = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Initialize the conversion header list. */
+  conversion_header_list = NULL;
+  /* Global variable declared in symbol_ref.c. */
+  decl_seq_counter = 0;
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+  last_ctor_or_dtor_sym = NULL;
+#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
+  error_class_template_symbol = NULL;
+}  /* symbol_tbl_trans_unit_init */
+
+
 void symbol_tbl_init(void)
 /*
 Initialize static variables related to the symbol table.  This is done as a
@@ -10228,6 +10252,8 @@ of the front end.
   /* Clear the operator name symbol table.  Note that this assumes that
      NULL is a zero bit pattern. */
   memzero((char *)opname_symbol_table, sizeof(opname_symbol_table));
+  /* Initialize the variables specific to a given translation unit. */
+  symbol_tbl_trans_unit_init();
   /* scope_stack is not per-file and should not be reset. */
   depth_scope_stack = NO_SCOPE_DEPTH;
   decl_scope_level = NO_SCOPE_DEPTH;
@@ -10266,21 +10292,6 @@ of the front end.
   unnamed_namespace_symbol_header = NULL;
   anonymous_parent_object_symbol_header = NULL;
   unnamed_field_symbol_header = NULL;
-  global_namespace_list_entry = NULL;
-  /* Initialize the predeclared symbol for namespace "std". */
-  symbol_for_namespace_std = NULL;
-  builtin_va_list_type = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  predeclared_size_t_symbol = NULL;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Initialize the conversion header list. */
-  conversion_header_list = NULL;
-  /* Global variable declared in symbol_ref.c. */
-  decl_seq_counter = 0;
-#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
-  last_ctor_or_dtor_sym = NULL;
-#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
-  error_class_template_symbol = NULL;
 #if DEBUG
   num_symbols_allocated                        = 0;
   num_symbol_headers_allocated                 = 0;

@@ -24,6 +24,7 @@ extern void fe_one_time_init(void);
 extern void fe_init_part_1(void);
 extern void fe_init_for_pch_prefix_scan(void);
 extern void fe_init_part_2(void);
+extern void fe_translation_unit_init(void);
 
 #endif /* ifndef FE_INIT_H */
 

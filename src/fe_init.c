@@ -1007,6 +1007,20 @@ being used).
 }  /* fe_init_part_2 */
 
 
+void fe_translation_unit_init(void)
+/*
+This routine is called to reinitialize variables that are specific to
+a given translation unit, when multiple translation units are being
+compiled (e.g., for export template processing).  This initialization
+is also done implicitly during part 1 of the normal front end
+initialization (i.e., by fe_init_part_1).  For example, symbol_tbl_init
+calls symbol_tbl_trans_unit_init.
+*/
+{
+  symbol_tbl_trans_unit_init();
+}  /* fe_translation_unit_init */
+
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
