@@ -1,5 +1,17 @@
 Version 2.16
 
+3/31/93 Initialization of references to const arrays
+
+The code that deals with initialization of references has been changed
+so that it deals correctly with this case:
+
+  typedef float Mat[3];
+  Mat b;
+  const Mat &a = b;
+
+This case is complicated by the fact that the const on an array type
+goes on the array element type instead of the array type.
+
 3/30/93 fp_negate routine added
 
 A new routine fp_negate has been added to float_pt.c.  Formerly, negation
