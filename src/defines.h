@@ -50,8 +50,13 @@ the release should contain no defines.
 #define RECORD_MACROS_IN_IL 1
 #endif /* ifndef BACK_END_IS_CP_GEN_BE */
 #define ALLOW_NONSTANDARD_ANONYMOUS_UNIONS 1
+/* Use 1 for mmap PCH, 0 for non-mmap PCH. */
+#if 0
 #define USE_FIXED_ADDRESS_FOR_MMAP 1
 #define FIXED_ADDRESS_FOR_MMAP (0xa0000000)
+#else
+#define USE_MMAP_FOR_MEMORY_REGIONS 0
+#endif
 
 #endif /* !defined(OPTIMIZED_VERSION) */
 
@@ -83,6 +88,7 @@ the release should contain no defines.
 #else /* !defined(_WIN32) */
 
 /* Options for UnixWare test version. */
+#define USE_MMAP_FOR_MEMORY_REGIONS 0  /* temporary */
 #define __ANSIC__ 1
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #define INCLUDE_EDG_TEST_PRAGMAS 1
