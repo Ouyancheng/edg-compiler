@@ -1635,14 +1635,9 @@ initialized.  These are addressed in the course of the processing.
                        is_copy_constructor(ctor_rout, class_type,
                                            &const_object_okay,
                                            &volatile_object_okay);
-  /* The position for this operation is the current token (maybe a ":")
-     in the user-defined case, and the declaration position of the routine
-     otherwise. */
-  if (user_defined) {
-    ctor_init_pos = pos_curr_token;
-  } else {
-    ctor_init_pos = ctor_rout->source_corresp.decl_position;
-  }  /* if */
+  /* Use the position from the routine entry as the default error position
+     in this routine. */
+  ctor_init_pos = ctor_rout->source_corresp.decl_position;
   /* The first step is to construct three lists of constructor initializer
      entries, one for virtual base classes that have constructors, one for
      nonvirtual direct base classes that have constructors, and one for
@@ -1747,6 +1742,7 @@ initialized.  These are addressed in the course of the processing.
      to integrate them into the lists. */
   if (user_defined && curr_token == tok_colon) {
     /* User-specified initializers are present.  Bypass the colon. */
+    ctor_init_pos = pos_curr_token;
     (void)get_token();
     add_stop_token(tok_lbrace);
     /* Loop through the comma-separated list of initializers. */
