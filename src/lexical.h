@@ -477,6 +477,16 @@ typedef struct an_input_stack_entry {
 			/* The next physical line number whose file position
 			   should be recorded in file position index table
 			   maintained for diagnostic generation. */
+  unsigned int
+		is_include_file:1;
+			/* TRUE if this file was added to the input stack
+			   as the result of a #include directive.  FALSE
+			   for all other cases including implicitly included
+			   source files. */
+  unsigned int
+	        nested_inclusion:1;
+			/* TRUE if this is a nested inclusion of a file
+			   already on the input stack. */
 } an_input_stack_entry;
 
 /* See lexical.c for the definitions of input_stack, depth_input_stack,
@@ -1156,6 +1166,7 @@ extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
 extern void open_file_and_push_input_stack
                                 (char                       *file_name,
                                  a_directory_name_entry_ptr search_path,
+				 a_boolean		    is_include_file,
 				 a_boolean                  is_system_include);
 extern FILE *open_file_for_input(char                       *file_name,
                                  a_directory_name_entry_ptr search_path,
@@ -1166,6 +1177,7 @@ extern void push_input_stack (FILE      *new_input_file,
                               char      *name_as_written,
                               char      *display_name,
                               char      *full_file_name,
+			      a_boolean	is_include_file,
 			      a_boolean is_system_include);
 
 /* Set the error position to the current token position. */

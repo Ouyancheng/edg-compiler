@@ -664,6 +664,7 @@ Scan and process a #include directive.
     /* Push the name and associated search directory onto the input stack,
        thus starting input from that file. */
     open_file_and_push_input_stack(name_start_pos, search_path,
+                                   /*is_include_file=*/TRUE,
                                    is_system_include);
   }  /* if */
 }  /* proc_include */

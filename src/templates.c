@@ -3595,7 +3595,8 @@ file we simply return.
           /* Push the new file onto the input stack and scan it.  There is
              no "name as written" so a NULL pointer is passed in. */
           push_input_stack(f_source, (char *)NULL, display_name,
-                           full_file_name, is_system_include);
+                           full_file_name, /*is_include_file=*/FALSE,
+                           is_system_include);
           scan_implicitly_included_template_definition_file();
         } else {
           /* The file name returned by open_file_for_input is the same as

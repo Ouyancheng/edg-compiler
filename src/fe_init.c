@@ -920,6 +920,7 @@ Initialize everything that has to do with the front end.
                strcpy(alloc_il((sizeof_t)(strlen(primary_source_file_name)+1)),
                       primary_source_file_name),
                (a_directory_name_entry_ptr)NULL,
+               /*is_include_file=*/FALSE,
                /*is_system_include=*/FALSE);
   /* Read the first line. */
 #if DEBUG

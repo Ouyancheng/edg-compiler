@@ -1838,6 +1838,7 @@ partially_process_line_splice:
 void open_file_and_push_input_stack
                                 (char                       *file_name,
                                  a_directory_name_entry_ptr search_path,
+				 a_boolean		    is_include_file,
 				 a_boolean	            is_system_include)
 /*
 Push the indicated file onto the input stack, so that the next time a line
@@ -1845,6 +1846,8 @@ is read, it will come from that file.  If the file cannot be opened,
 generate a catastrophic error and do not return.  search_path gives the
 list of directories to be tried, in order, or is NULL if there is no
 search path.  file_name must be allocated in IL storage.
+is_include_file is TRUE if the file is being read as the result of a
+#include directive.  It is FALSE for implicitly included files.
 is_system_include is TRUE for files included with the #include <file.h>
 notation and FALSE for all other files.
 */
@@ -1858,7 +1861,7 @@ notation and FALSE for all other files.
                                    &display_name);
   check_assertion(input_file != NULL);
   push_input_stack(input_file, file_name, display_name, full_file_name,
-                   is_system_include);
+                   is_include_file, is_system_include);
   db_exit();
 }  /* open_file_and_push_input_stack */
 
@@ -2049,6 +2052,7 @@ void push_input_stack (FILE      *new_input_file,
                        char      *name_as_written,
                        char      *display_name,
                        char      *full_file_name,
+		       a_boolean is_include_file,
 		       a_boolean is_system_include)
 /*
 Push the indicated file onto the input stack.
@@ -2120,6 +2124,8 @@ Push the indicated file onto the input stack.
   curr_ise->full_name = full_file_name;
   curr_ise->file_name = display_name;
   curr_ise->dir_name = directory_of(full_file_name);
+  curr_ise->is_include_file = is_include_file;
+  curr_ise->nested_inclusion = (times_name_appears != 0);
   /* Create an intermediate file record describing this file.  It is
      useful later in converting sequence numbers into file name/line
      information. */
@@ -2264,6 +2270,7 @@ at the next level down.
     curr_ise = NULL;
     curr_input_stream = NULL;
   } else {
+    an_input_stack_entry_ptr  prev_ise = curr_ise;
     curr_ise = &input_stack[depth_input_stack];
     if (curr_ise->file == NULL) {
 #if DEBUG
@@ -2315,6 +2322,48 @@ at the next level down.
          be ended in the same file in which it began. */
       base_pp_if_stack_depth = curr_ise->base_pp_if_stack_depth;
     }  /* if */
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+    if (list_makefile_dependencies && prev_ise->is_include_file &&
+        !prev_ise->nested_inclusion && !C_mode() && 
+        implicit_template_inclusion_mode) {
+      /* When generating makefile dependency information in C++ mode, and
+         if implicit inclusion is enabled, look for a source file related
+         to the current include file and include it if found.  This may include
+         some files that would not be included in a full compilation
+         that uses implicit inclusion because the preprocessor cannot
+         determine whether or not the include file defined any
+         templates and, if so, whether the templates were used in a
+         way that requires the related source file to be read. */
+      char		*full_file_name;
+      char		*display_name;
+      FILE		*f_source;
+      a_source_file_ptr	sfp = prev_ise->assoc_actual_il_file;
+      f_source = open_file_for_input(sfp->name_as_written,
+                                     sfp->included_by_system_include ?
+                                                         sys_incl_search_path :
+                                                         incl_search_path,
+ 				     /*replace_suffix=*/TRUE,
+				     &full_file_name, &display_name);
+      if (f_source != NULL) {
+        /* A related source file was found.  Make sure that the name of the
+           file found is not the same as the file we started with.  This
+           could occur if the user included a .c file that contains a
+           template declaration. */
+        if (strcmp(full_file_name, sfp->full_name) != 0) {
+#if DEBUG
+          if (debug_level >= 3) {
+            fprintf(f_debug, "  Including text from '%s'\n", full_file_name);
+          }  /* if */
+#endif /* DEBUG */
+          /* Push the new file onto the input stack and scan it.  There is
+             no "name as written" so a NULL pointer is passed in. */
+          push_input_stack(f_source, (char *)NULL, display_name,
+                           full_file_name, /*is_include_file=*/FALSE,
+                           sfp->included_by_system_include);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif  /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   }  /* if */
   db_exit();
 }  /* pop_input_stack */
