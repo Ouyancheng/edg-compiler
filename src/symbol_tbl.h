@@ -697,14 +697,6 @@ EXTERN a_scope_depth
 			   function scope, or NO_SCOPE_DEPTH if there isn't
 			   one. */
 
-/*
-Flag set to weaken the access control checking during the scanning of
-the specifiers and declarator in a file-scope declaration.  This allows
-definitions of class member functions and static data members to avoid
-access errors on accesses to non-public members.
-*/
-EXTERN a_boolean
-		weaken_access_control_for_file_scope_declarator_names;
 
 /*
 Enumeration indicating a kind of reference to a symbol, used in
@@ -754,6 +746,25 @@ extern a_derivation_node_ptr alloc_derivation_node(void);
 
 extern an_access_specifier access_for_symbol(a_symbol_ptr sym_ptr);
 
+extern void member_check_ambiguity_and_verify_access(
+                                              a_symbol_ptr      symbol,
+                                              a_source_position *err_position);
+
+/*
+Check to see if a symbol found is ambiguous or inaccessible.  Ambiguity
+checking precedes access control (ARM, 10.1.1).  Only class members
+can be ambiguous (in fact, only symbols projected into a derived class
+by inheritance can be ambiguous), and only class members are subject
+to access control.  Therefore, return immediately for non-class-members,
+and call a subroutine for class members.
+*/
+#define check_ambiguity_and_verify_access(symbol, err_position)       \
+{ if ((symbol)->class_of_which_a_member != NULL) {                    \
+    member_check_ambiguity_and_verify_access(symbol, err_position);   \
+  }  /* if */                                                         \
+}  /* check_ambiguity_and_verify_access */
+
+
 /*
 Options for normal_id_lookup, represented as a bit set:
 */
@@ -762,6 +773,9 @@ typedef int an_id_lookup_options_set;
 				   union name, or a typedef of one of those. */
 #define IDL_MUST_BE_TAG 0x2	/* The symbol must be a class, struct, union,
 				   or enum (not a typedef of one of those). */
+#define IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL 0x4
+				/* Suppress the check for ambiguity and
+				   the access control check. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
@@ -770,9 +784,20 @@ extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
 extern a_symbol_ptr projection_in_class(a_symbol_ptr orig_sym,
                                         a_type_ptr   class_type);
 
-extern a_symbol_ptr scope_qualified_id_lookup(a_symbol_locator *locator,
-                                              a_scope_number   scope_number,
-                                              a_boolean        must_be_class);
+/*
+Options for scope_qualified_id_lookup, represented as a bit set:
+*/
+typedef int a_qualified_id_lookup_options_set;
+#define QIDL_MUST_BE_CLASS 0x1	/* The symbol must be a class, struct, or
+				   union name, or a typedef of one of those. */
+#define QIDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL 0x2
+				/* Suppress the ambiguity check and access
+				   control. */
+#define QIDL_NO_OPTIONS 0	/* No special options. */
+extern a_symbol_ptr scope_qualified_id_lookup(
+                                a_symbol_locator                  *locator,
+                                a_scope_number                    scope_number,
+                                a_qualified_id_lookup_options_set options);
 
 /* Begin a name scope. */
 extern a_scope_ptr push_scope(a_scope_kind   kind,
