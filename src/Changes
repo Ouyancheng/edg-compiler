@@ -1,5 +1,21 @@
 Version 3.1
 
+9/23/02  Visibility of "using operator="
+
+The front end used to ignore (with a warning) a using-declaration referring
+to an implicitly declared copy assignment operator from a base class.
+Now, such a using-declaration can make the inherited operator visible along
+with the copy assignment operator of the derived class.  For example:
+
+  struct B {};  // Implicit operator=(B const&).
+  struct D: B {
+    using B::operator=;  // Used to be ignored, but no longer.
+  };
+  int main() {
+    B b; D d;
+    d = b;  // Calls B::operator=(B const&).
+  }
+
 9/23/02  Overload resolution, conversion function returning reference
          to derived class
 

@@ -7654,31 +7654,6 @@ cfront compatibility case.
   return found;
 }  /* is_assignment_operator_for_copy */
 
-
-static a_boolean is_copy_assignment_operator_sym(a_symbol_ptr  sym)
-/*
-Return TRUE if sym represents a copy assignment operator.
-*/
-{
-  a_boolean             is_copy_assignment_op = FALSE;
-  a_routine_ptr         rp;
-  a_boolean             is_ref_arg;
-  a_type_qualifier_set  qualifiers_accepted;
-  a_boolean             is_base_class_match;
-
-  if (sym->kind == (a_symbol_kind)sk_member_function) {
-    rp = sym->variant.routine.ptr;
-    if (rp->special_kind == (a_special_function_kind)sfk_operator &&
-        rp->variant.opname_kind == (an_opname_kind)onk_assign &&
-        is_assignment_operator_for_copy(sym, &is_ref_arg,
-                                        &qualifiers_accepted,
-                                        &is_base_class_match)) {
-      is_copy_assignment_op = TRUE;
-    }  /* if */
-  }  /* if */
-  return is_copy_assignment_op;
-}  /* is_copy_assignment_operator_sym */
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 a_symbol_ptr copy_assignment_specialization(
@@ -9992,12 +9967,13 @@ the new declaration.
        Issue an error instead of creating the projection symbol. */
     pos_sy_error(ec_no_access_to_name, &decl_pos, sym);
   } else if (sym->kind == (a_symbol_kind)sk_member_function &&
-             sym->variant.routine.ptr->compiler_generated) {
-    /* Ignore compiler-generated member functions silently. */
-  } else if (is_copy_assignment_operator_sym(sym)) {
-    /* Using-declaration cannot apply to a copy-assignment operator,
-       since they are not inheritable. */
-    pos_sy_warning(ec_using_declaration_ignored, &decl_pos, sym);
+             sym->variant.routine.ptr->compiler_generated &&
+             !(sym->variant.routine.ptr->special_kind ==
+                                      (a_special_function_kind)sfk_operator &&
+               sym->variant.routine.ptr->variant.opname_kind ==
+                                                (an_opname_kind)onk_assign)) {
+    /* Ignore compiler-generated member functions silently (except assignment
+       operators). */
   } else if (*other_sym != NULL &&
              conflicts_with_previous_function_decl(fund_sym, *other_sym,
                                                    &decl_pos)) {
@@ -10257,11 +10233,6 @@ or implicit) controlling the declaration.
       pos_diagnostic(microsoft_mode ? es_warning :
                      strict_ansi_mode ? es_error : es_discretionary_error,
                      ec_no_ctor_or_dtor_using_declaration, &decl_pos);
-      err = TRUE;
-    } else if (is_copy_assignment_operator_sym(declared_sym)) {
-      /* Using-declaration cannot apply to a copy-assignment operator,
-         since they are not inheritable. */
-      pos_sy_warning(ec_using_declaration_ignored, &decl_pos, declared_sym);
       err = TRUE;
     } else if (declared_sym->ambiguous) {
       /* declared_sym must be a projection symbol -- and it is ambiguous. */
