@@ -902,7 +902,7 @@ specification is handled later (see check_exception_specification).
           !microsoft_mode) {
         /* Check the type to be sure it's not an incomplete type or a pointer
            to an incomplete type.  Microsoft compilers do not use the type
-           information at all: We perform no type checkin in that case. */
+           information at all: We perform no type checking in that case. */
         a_type_ptr     tp = estp->type;
         an_error_code  error_code = ec_no_error;
 
