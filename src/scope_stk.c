@@ -1670,7 +1670,7 @@ scopes.
         context_scope = depth_innermost_namespace_scope;
       }  /* if */
     }  /* if */
-     if (parent_nsp != NULL) {
+    if (parent_nsp != NULL) {
       common_depth = find_depth_of_common_scope(parent_nsp);
       common_nsp = scope_stack[common_depth].assoc_namespace;
       if (common_nsp == parent_nsp) {
@@ -1731,8 +1731,8 @@ scopes.
        instantiated. */
     depth_innermost_namespace_scope =
          ssep->depth_innermost_namespace_scope = new_innermost_namespace_scope;
-    check_assertion(scope_stack[instantiation_prev_scope].assoc_namespace ==
-                                                                   parent_nsp);
+    check_assertion(scope_stack[new_innermost_namespace_scope].assoc_namespace
+                                                                == parent_nsp);
     /* Set the active using flags for the newly created context. */
     set_active_using_list_scope_depths(depth_scope_stack,
                                        /*set_value=*/TRUE);
