@@ -1,5 +1,16 @@
 Version 2.23
 
+4/10/94  Qualified array types
+
+In terms of the IL representation, to say in C mode that type T is
+qualified is to say there is a tk_typeref marked with a qualification that
+is "on top of" (i.e., points to the type entry for) T.  In C++ mode,
+however, a type T is also qualified if it is an array type whose
+underlying element type is qualified.  This distinction is now explicit in
+the implementations of macros is_qualified_type, is_const_qualified_type,
+and is_volatile_qualified_type; type_or_element_type_const_qualified has
+been eliminated.
+
 4/8/94   Cross-reference positions on qualified name references
 
 In qualified name references like x::y in an expression, the position
