@@ -5999,7 +5999,6 @@ to an undefined state and free the associated memory region.
   rp->defined_in_friend_decl = FALSE;
   rp->assoc_scope = NULL_region_number;
   rp->type->variant.routine.extra_info->assoc_routine = NULL;
-  il_header.region_scope_entry[n] = NULL;
   /* Free the memory region. */
   free_memory_region(n);
 }  /* clear_function_body */

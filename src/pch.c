@@ -1518,14 +1518,18 @@ file can be written (if needed) and the memory freed (if appropriate).
      memory regions. */
   for (n = FILE_SCOPE_REGION_NUMBER + 1;
        n <= highest_used_region_number; ++n) {
-    a_scope_ptr		sp;
-    sp = il_header.region_scope_entry[n];
-    if (sp->depth_in_scope_stack != NO_SCOPE_DEPTH) {
-      /* The scope is still active and will be processed when it is
-         popped off of the scope stack. */
+    if (mem_region_table[n] == NULL) {
+      /* This memory region has already been freed. */
     } else {
-      /* The scope is no longer active. */
-      check_for_done_with_memory_region(n);
+      a_scope_ptr		sp;
+      sp = il_header.region_scope_entry[n];
+      if (sp->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+        /* The scope is still active and will be processed when it is
+           popped off of the scope stack. */
+      } else {
+        /* The scope is no longer active. */
+        check_for_done_with_memory_region(n);
+      }  /* if */
     }  /* if */
   }  /* for */
   free_unused_pch_memory();

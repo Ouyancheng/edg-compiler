@@ -1,5 +1,12 @@
 Version 2.35
 
+2/13/97 Abort in trim_mem_block when using precompiled header option
+
+The front end could abort when using the precompiled header options.
+The abort occurred in trim_mem_block and was caused by the fact that
+memory regions associated with trivial default constructors would have
+been freed earlier.  This has been corrected.
+
 2/13/97 Instantiations not done in -tused mode when first use is after
         instantiation wrapup has completed
 
