@@ -5205,6 +5205,7 @@ Display the IL for the file scope in human-readable form.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   disp_boolean("gcc_mode", (a_boolean)il_header.gcc_mode);
+  disp_boolean("short_enums", (a_boolean)il_header.short_enums);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   disp_boolean("near_and_far_are_enabled",

@@ -1,5 +1,13 @@
 Version 3.0
 
+3/20/02  GNU C: --short_enums option
+
+The front end now accepts the --short_enums option in GNU C mode.  It
+indicates that all the enumeration types should be treated as if they
+were declared with the "packed" attribute (i.e., the underlying type
+should be the smallest integer type that can accomodate the enumerator
+constants).
+
 3/20/02  GNU C compatibility: parameter names in unprototyped declarations
 
 The front end now accepts parameter names in unprototyped function declarations
