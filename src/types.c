@@ -2315,6 +2315,9 @@ base class casts and virtual function calls.
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
     case enk_result_of_overriding_function:
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if GNU_EXTENSIONS_ALLOWED
+    case enk_statement:
+#endif /* GNU_EXTENSIONS_ALLOWED */
       /* Complete object type is not known. */
       break;
     case enk_variable:
@@ -2415,9 +2418,6 @@ base class casts and virtual function calls.
     case enk_throw:
     case enk_field:
     case enk_condition:
-#if GNU_EXTENSIONS_ALLOWED
-    case enk_statement:  /* Used only in C mode. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str(
                              "node_complete_object_type: bad expression kind");
