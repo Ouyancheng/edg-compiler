@@ -1,5 +1,26 @@
 Version 3.6
 
+4/6/05   Selection of copy operations in generated members for mutable fields
+
+Previously, when the front end generated a copy constructor or a copy
+assignment operator for const-qualified objects, it treated all fields
+as being const also.  For mutable fields this is not correct and could
+lead to spurious errors.  For example:
+
+  struct M {
+    M& operator=(M&);
+  private:
+    M& operator=(M const&);
+  };
+  struct S {
+    mutable M m;  // Previously an error because the copy assignment operator
+  };              // for const M objects is inaccessible.  Now okay.
+  void f(S& dst, const S& src) {
+    dst = src;    // Force the synthesis of copy assignment operator for const
+  }               // objects of type S.
+
+This is now fixed.
+
 4/5/05   GNU C++ compatibility: lookup of dependent names
 
 When the g++ compiler does a lookup in a class with a dependent base class,

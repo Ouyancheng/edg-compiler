@@ -4700,8 +4700,14 @@ scan_paren:
              to volatile and to other qualifiers, if any).  If construction
              by bitwise copy is allowed for this class, bitwise_copy will be
              returned TRUE. */
-          rp = select_copy_constructor(tp,
-                                       required_qualifiers | object_qualifiers,
+          a_type_qualifier_set  eff_qualifiers = required_qualifiers |
+                                                 object_qualifiers;
+          if (cip->kind == (a_constructor_init_kind)cik_field &&
+              cip->variant.field->is_mutable) {
+            /* Ignore constness of enclosing objects for mutable fields. */
+            eff_qualifiers &= ~(a_type_qualifier_set)TQ_CONST;
+          }  /* if */
+          rp = select_copy_constructor(tp, eff_qualifiers,
                                        /*source_is_rvalue=*/FALSE,
                                        &err_pos, object_class_type,
                                        &bitwise_copy,

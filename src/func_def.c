@@ -2081,9 +2081,14 @@ operator routine or do bitwise assignment.
           } else {
             a_statement_ptr call_stmt;
             /* A bitwise copy may not be done.  Find the default assignment
-               operator and put out a call to it. */
+               operator and put out a call to it.  If the field is mutable,
+               ignore the constness of the enclosing object. */
+            a_type_qualifier_set  eff_qualifiers = qualifiers;
+            if (fp->is_mutable) {
+              eff_qualifiers &= ~(a_type_qualifier_set)TQ_CONST;
+            }  /* if */
             bitwise_assign = FALSE;
-            rp = select_copy_assignment_operator(tp, qualifiers,
+            rp = select_copy_assignment_operator(tp, eff_qualifiers,
                                                  &fp->source_corresp.
                                                               decl_position,
                                                  &pass_by_value);
