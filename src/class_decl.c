@@ -3790,34 +3790,37 @@ as the error position.
   a_boolean      is_list = FALSE;
   a_boolean      err;
   
-  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    /* We need to search an overload set. */
-    is_list = TRUE;
-    sym = sym->variant.overloaded_function.symbols;
-  }  /* if */
-  check_assertion(using_sym->kind == (a_symbol_kind)sk_function_template ||
-                  (using_sym->is_class_member ?
-                    using_sym->kind == (a_symbol_kind)sk_member_function :
-                    using_sym->kind == (a_symbol_kind)sk_routine));
-  /* Go through all function declarations in the current scope with the
-     same name.  Ignore projection symbols. */
-  for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-    if (sym->kind == using_sym->kind) {
-      /* Check for a conflict between the type of the previously declared
-         function (sym) and the type for which a projection symbol is about
-         to be created (using_sym). */
-      if (types_of_decl_and_using_decl_conflict(sym, using_sym, &err)) {
-        /* Unless using_sym is a virtual function being overridden by
-           the previous declaration, an error is issued. */
-        if (err) {
-          pos_sy2_error(ec_using_decl_conflicts_with_prev_decl, pos,
-                        using_sym, sym);
-        }  /* if */
-        conflicts = TRUE;
-        break;
-      }  /* if */
+  if (using_sym->kind == (a_symbol_kind)sk_function_template) {
+    /* No need to do a check on function templates. */
+  } else {
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      /* We need to search an overload set. */
+      is_list = TRUE;
+      sym = sym->variant.overloaded_function.symbols;
     }  /* if */
-  }  /* for */
+    check_assertion(using_sym->is_class_member ?
+                      using_sym->kind == (a_symbol_kind)sk_member_function :
+                      using_sym->kind == (a_symbol_kind)sk_routine);
+    /* Go through all function declarations in the current scope with the
+       same name.  Ignore projection symbols. */
+    for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+      if (sym->kind == using_sym->kind) {
+        /* Check for a conflict between the type of the previously declared
+           function (sym) and the type for which a projection symbol is about
+           to be created (using_sym). */
+        if (types_of_decl_and_using_decl_conflict(sym, using_sym, &err)) {
+          /* Unless using_sym is a virtual function being overridden by
+             the previous declaration, an error is issued. */
+          if (err) {
+            pos_sy2_error(ec_using_decl_conflicts_with_prev_decl, pos,
+                          using_sym, sym);
+          }  /* if */
+          conflicts = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
   return conflicts;
 }  /* conflicts_with_previous_function_decl */
 

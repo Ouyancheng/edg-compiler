@@ -6317,10 +6317,11 @@ current scope.
     } else {
       check_assertion(qualifier_namespace_ptr(locator_for_curr_id) != NULL ||
                       locator_for_curr_id.is_global_qualified_name);
-      if (is_function_symbol(sym)) {
-        /* The specified name represents a function (or overload set thereof)
-           so we need to create or add to an overload set in the current
-           scope, too. */
+      if (is_function_symbol(sym) ||
+          sym->kind == (a_symbol_kind)sk_function_template) {
+        /* The specified name represents a function or function template (or
+           overload set thereof) so we need to create or add to an overload
+           set in the current scope, too. */
         if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
           /* Using an overload set. */
           is_list = TRUE;
@@ -6331,11 +6332,16 @@ current scope.
         /* Look for a declaration of the same name in the current scope. */
         (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
         overload_sym = locator.specific_symbol;
-        if (overload_sym != NULL &&
-            !is_function_symbol(fundamental_symbol_of(overload_sym))) {
-          /* There is no function symbol in the current scope with which the
-             new symbol should be overloaded. */
-          overload_sym = NULL;
+        if (overload_sym != NULL) {
+          a_symbol_ptr  fund_sym = fundamental_symbol_of(overload_sym);
+          if (is_function_symbol(fund_sym) ||
+              fund_sym->kind == (a_symbol_kind)sk_function_template) {
+            /* Overloading is okay. */
+          } else {
+            /* There is no function symbol in the current scope with which the
+               new symbol should be overloaded. */
+            overload_sym = NULL;
+          }  /* if */
         }  /* if */
       }  /* if */
       /* Create the new sk_namespace_projection symbol(s). */
