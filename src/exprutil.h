@@ -335,7 +335,9 @@ constant expressions.  See ARM 7.1.6.
 	(is_const_qualified_type((var)->type) && is_integral_type((var)->type))
 
 
-extern void flush_xref_entries_list(void);
+extern void clear_xref_entries_list(an_xref_entry_ptr *old_xref_entries_list);
+
+extern void flush_xref_entries_list(an_xref_entry_ptr old_xref_entries_list);
 
 extern an_xref_entry_ptr xref_entry(a_symbol_ptr            sym_ptr,
                                     a_source_position       *source_position,

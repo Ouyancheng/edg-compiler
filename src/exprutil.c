@@ -190,10 +190,24 @@ Free the cross-reference entry pointed to by xep.
 }  /* free_xref_entry */
 
 
-void flush_xref_entries_list(void)
+void clear_xref_entries_list(an_xref_entry_ptr *old_xref_entries_list)
+/*
+Clear the list of cross-reference entries for the current expression.
+This is done at the start of an expression.  Save the old contents of
+the list in *old_xref_entries_list for restoration at the end of the
+expression.
+*/
+{
+  *old_xref_entries_list = curr_expr_xref_entries;
+  curr_expr_xref_entries = NULL;
+}  /* clear_xref_entries_list */
+
+
+void flush_xref_entries_list(an_xref_entry_ptr old_xref_entries_list)
 /*
 If there are any entries on the list of cross-reference entries for the
-current expression, output them now.
+current expression, output them now.  Restore the current-list pointer
+to old_xref_entries_list.
 */
 {
   an_xref_entry_ptr xep;
@@ -211,6 +225,8 @@ current expression, output them now.
     }  /* if */
     free_xref_entry(xep);
   }  /* while */
+  /* Restore the old xref entries list, if any. */
+  curr_expr_xref_entries = old_xref_entries_list;
 }  /* flush_xref_entries_list */
 
 
