@@ -72,6 +72,7 @@ static an_il_entry_number
             a. set the 3 tracing variable values
             b. remove the stop at the entry of assign_entry_number
         5. continue
+        6. breakpoint in trace_entry_assignment is reached
 
    The contents of the IL entry and its position on the IL tree as shown
    by the stack trace can help to determine the cause of the error.
@@ -93,7 +94,7 @@ static a_memory_region_number
 
 static void trace_entry_assignment(void)
 /*
-This routine is called the IL entry designated by the variables
+This routine is called when the IL entry designated by the variables
 trace_entry_number, trace_memory_region_number and trace_entry_kind is
 assigned its entry number.  It is often useful to set a debugger breakpoint
 on this routine.
