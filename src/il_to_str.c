@@ -462,7 +462,7 @@ way described by octl.
          "double" for "long double" and issue a one-time-only warning. */
       static a_boolean warning_issued = FALSE;
       if (!warning_issued) {
-        warning(ec_double_for_long_double);
+        pos_warning(ec_double_for_long_double, &null_source_position);
         warning_issued = TRUE;
       }  /* if */
       kind = (a_float_kind)fk_double;
