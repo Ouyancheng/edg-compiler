@@ -1,6 +1,6 @@
 Version 2.06
 
-5/5/92   Improve ambiguity checking
+5/6/92   Improve ambiguity checking
 
 This change fixes a bug where a static data member (or a member type or a
 member constant) was considered ambiguous by virtue of belonging to two
