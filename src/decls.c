@@ -1377,19 +1377,6 @@ called by id_linkage.
        (what amounts to the same thing) a friend declaration within a local
        class.  Find the visible declaration of the same name. */
     other_decl = normal_id_lookup(locator, IDL_LINKAGE_LOOKUP);
-    if (other_decl != NULL &&
-        depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
-      if (other_decl->decl_scope >=
-            scope_stack[depth_innermost_namespace_scope].il_scope->number) {
-        /* other_decl represents an declaration at the innermost namespace
-           scope or intervening between the current scope and the innermost
-           namespace scope. */
-      } else {
-        /* The symbol that was found intervenes between the current scope
-           and the innermost namespace scope.  Ignore it. */
-        other_decl = NULL;
-      }  /* if */
-    }  /* if */
   } else {
     /* Not a context in which lookup in enclosing scopes is meaningful.
        Just check for a prior declaration in the current scope. */
@@ -1407,11 +1394,11 @@ called by id_linkage.
     }  /* if */      
   }  /* if */
   /* Clear out the specific symbol pointer of the locator.  It was set by the
-     lookup routine, but it is may not be valid. */
+     lookup routine, but it may not be valid. */
   locator->specific_symbol = NULL;
+  /* We are only interested in variable and function declarations.  If
+     something else was found, we're not interested. */
   if (other_decl != NULL) {
-    /* We are only interested in variable and function declarations.  If
-       something else was found, we're not interested. */
     if (other_decl->kind != (a_symbol_kind)sk_variable &&
         other_decl->kind != (a_symbol_kind)sk_routine &&
         other_decl->kind != (a_symbol_kind)sk_function_template &&
