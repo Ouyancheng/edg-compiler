@@ -17,6 +17,9 @@ This was done to permit the front end to continue compiling files even
 after a compilation that terminated abnormally (e.g., via a
 catastrophic error).
 
+The same was done for the catastrophe_loop variable in diag_message
+(5/29/97).
+
 5/28/97   READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS made default for Microsoft OSs
 
 The default for READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS is now TRUE for

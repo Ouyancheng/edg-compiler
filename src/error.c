@@ -48,6 +48,11 @@ typedef a_const_void_ptr a_bsearch_arg_type;
 #endif /* defined(__SUNPRO_CC) && __BSD__ */
 
 /*
+Static variable set when a catastrophe occurs, to catch catastrophe loops.
+*/
+static a_boolean catastrophe_has_occurred;
+
+/*
 Constants, structures and static variables used to format diagnostic
 messages.
 */
@@ -1109,6 +1114,7 @@ Perform any initializations necessary for error.c functions at the beginning
 of each compilation.
 */
 {
+  catastrophe_has_occurred = FALSE;
   clear_file_index_list();
 }  /* error_init */
 
@@ -2594,18 +2600,16 @@ and doing any required expansions, the diagnostic is written.
 #if CHECKING
   int                i;
 #endif /* CHECKING */
-  /* This variable does not have to be reset by fe_init. */
-  static a_boolean   catastrophe_loop = FALSE;
   if (check_severity(error_code, &error_pos, &severity, diag_kind)) {
     if (severity == es_catastrophe &&
         (diag_kind == dck_standalone || diag_kind == dck_primary)) {
       /* Make sure that if catastrophic error leads to another, we abort
          the compilation instead of looping. */
-      if (catastrophe_loop) {
+      if (catastrophe_has_occurred) {
         fprintf(stderr, "Loop in catastrophic error processing.\n");
         term_compilation(es_catastrophe);
       }  /* if */
-      catastrophe_loop = TRUE;
+      catastrophe_has_occurred = TRUE;
     }  /* if */
     /* Get the error message text (template) and construct the message
        segment list. */
