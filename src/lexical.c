@@ -7775,6 +7775,7 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean            		might_be_qualifier;
   a_token_kind         		qualifier_separator = tok_colon_colon;
   a_boolean                     qualifier_is_type = TRUE;
+  a_boolean                     qualifier_is_enum = FALSE;
   a_boolean			qualifier_type_is_class = FALSE;
   a_namespace_ptr		qualifier_namespace;
   a_token_sequence_number	start_seq_number;
@@ -8049,6 +8050,7 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_type = skip_typerefs(qualifier_type);
           qualifier_is_type = TRUE;
           qualifier_type_is_class = FALSE;
+          qualifier_is_enum = TRUE;
         } else if (qualifier_sym->kind == (a_symbol_kind)sk_type ||
                    qualifier_sym->kind == (a_symbol_kind)sk_enum_tag) {
             /* The class symbol points to a type.  This is the case when
@@ -8164,8 +8166,14 @@ selection operator, in which case it points to the type of the left operand.
               }  /* if */
             }  /* if */
             if (qualifier_is_type) {
-              if (qualifier_type_is_class) {
-                /* Look up the name in the class specified by the qualifier
+              if (qualifier_is_enum) {
+              /* In Microsoft mode, an enumeration can be used as the
+                   qualifier in a qualified name.  Look up the name in the
+                   enumeration. */
+                qualifier_sym = enum_qualified_id_lookup(&locator_for_curr_id,
+							 qualifier_type);
+              } else {
+                  /* Look up the name in the class specified by the qualifier
                    that has been scanned so far. */
                 qualifier_sym = class_qualified_id_lookup
                                          (&locator_for_curr_id, qualifier_type,
@@ -8183,15 +8191,6 @@ selection operator, in which case it points to the type of the left operand.
                     qualifier_sym = NULL;
                   }  /* if */
                 }  /* if */
-              } else {
-                /* In Microsoft mode, an enumeration can be used as the
-                   qualifier in a qualified name.  Look up the name in the
-                   enumeration. */
-                check_assertion_str2(
-                    microsoft_mode && is_enum_type(qualifier_type),
-                    "f_is_generalized_identifier_start", "expected enum type");
-                qualifier_sym = enum_qualified_id_lookup(&locator_for_curr_id,
-							 qualifier_type);
               }  /* if */
             } else {
               /* Look up the name in the namespace that has been scanned so
