@@ -1394,8 +1394,8 @@ scope is that of a class definition.
   /* Check for closing right parenthesis.  We temporarily clear the stop
      token array values for tok_comma and tok_assign, in order to flush past
      either to the right paren. */
-  { int t1 = (int)stop_token_array[(int)tok_comma],
-        t2 = (int)stop_token_array[(int)tok_assign];
+  { a_token_set_array_element t1 = (int)stop_token_array[(int)tok_comma],
+                              t2 = (int)stop_token_array[(int)tok_assign];
     stop_token_array[(int)tok_comma] = 0;
     stop_token_array[(int)tok_assign] = 0;
     (void)required_token(tok_rparen, ec_exp_rparen);

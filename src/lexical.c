@@ -5899,9 +5899,10 @@ These look like qualified names but aren't.
 
 static void flush_to_end_of_arg_list(void)
 /*
+Flush tokens in an argument list.
 */
 {
-  unsigned char save_comma_stop_token_count;
+  a_token_set_array_element save_comma_stop_token_count;
   /* Remove comma from the stop tokens set so that we can flush to the
      end of the argument list. */
   save_comma_stop_token_count = stop_token_array[(int)tok_comma];
