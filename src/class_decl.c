@@ -5848,6 +5848,13 @@ Scan the body of a class definition, including the base classes list.
         a_boolean         is_destructor, is_constructor;
         a_boolean         is_anonymous_union;
 
+        /* Move cached #pragma declarations (if any) to the current scope
+           stack entry so they can be examined and acted upon in subsequent
+           processing. */
+        select_pragmas_bound_to_curr_decl_or_stmt(
+                                       /*decl_allowed=*/TRUE,
+                                       /*stmt_allowed=*/FALSE,
+                                       /*merge_with_existing_list=*/FALSE);
         if (C_dialect == C_dialect_cplusplus) {
           /* An access specification may appear anywhere amid the member
              declarations.  Check for it each time through the loop, and adjust
@@ -6483,6 +6490,12 @@ Scan the body of a class definition, including the base classes list.
                      function body. */
                   check_assertion(rout_sym->variant.routine.ptr->is_inline);
                 }  /* if */
+                /* Since this is a definition, record the current lint
+                   argsused and varargs-count state in the routine type.
+                   That will suppress any warnings about unused parameters
+                   or variable arguments. */
+                set_lint_argsused_and_varargs_state(
+                                        rout_sym->variant.routine.ptr->type);
                 remove_stop_token(tok_comma);
                 /* Cache the tokens comprising the function definition
                    so that they can be rescanned once the entire class
