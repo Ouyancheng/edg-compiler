@@ -1680,8 +1680,8 @@ bcp base if it has a subobject of the same type as the first base.
 }  /* gnu_first_base_conflict */
 
 
-a_boolean gnu_virtual_base_conflict(a_type_ptr        class_type,
-                                    a_base_class_ptr  evbcp)
+static a_boolean gnu_virtual_base_conflict(a_type_ptr        class_type,
+                                           a_base_class_ptr  evbcp)
 /*
 evbcp is an empty virtual base class of class_type that we want to allocate at
 offset zero.  If a direct base allocated at offset zero already contains a
