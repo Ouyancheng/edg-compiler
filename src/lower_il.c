@@ -35,6 +35,7 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 #include "class_decl.h"
 #include "layout.h"
 #include "mem_manage.h"
+#include "cmd_line.h"
 
 
 /*
@@ -2689,13 +2690,15 @@ virtual function table.
     /* Mark the routine as referenced. */
     func_to_call->source_corresp.referenced = TRUE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-    /* If the function is a template function, now marked as referenced,
-       an instantiation is now required somewhere.  Don't do this on the
-       function that was used to decide to put out the virtual function
-       table, since that function forces the virtual function table to be
-       put out, and not the other way around. */
-    if (func_to_call->is_instantiation && func_to_call != first_virtual) {
-      func_to_call->instance_required = TRUE;
+    if (automatic_instantiation_mode) {
+      /* If the function is a template function, now marked as referenced,
+         an instantiation is now required somewhere.  Don't do this on the
+         function that was used to decide to put out the virtual function
+         table, since that function forces the virtual function table to be
+         put out, and not the other way around. */
+      if (func_to_call->is_instantiation && func_to_call != first_virtual) {
+        func_to_call->instance_required = TRUE;
+      }  /* if */
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
@@ -3026,7 +3029,8 @@ class_type if any are needed.
       }  /* for */
     }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (ctsp->template_arg_list != NULL && any_vtbl_ref &&
+    if (automatic_instantiation_mode &&
+        ctsp->template_arg_list != NULL && any_vtbl_ref &&
         first_virtual != NULL && first_virtual->is_instantiation) {
       /* Automatic template instantiation is being done.  The class is a
          template class with virtual functions, and the decision on whether
@@ -3794,7 +3798,8 @@ Do IL lowering of the indicated variable and everything under it.
 #endif /* CHECKING */
     }  /* switch */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (variable->source_corresp.class_of_which_a_member != NULL) {
+    if (automatic_instantiation_mode &&
+        variable->source_corresp.class_of_which_a_member != NULL) {
       /* Static data member. */
       if (variable->instance_required) {
         /* This variable is template-based. */
@@ -3948,19 +3953,21 @@ Do IL lowering of the indicated routine and everything under it.
        C IL. */
     routine->befriending_classes = NULL;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-    /* For automatic instantiation, generate a variable or variables with names
-       that encode instantiation information. */
-    if (routine->instance_required) {
-      /* This routine is template-based. */
-      make_instantiation_info_var("__TIR__", &routine->source_corresp);
-    }  /* if */
-    if (routine->do_not_instantiate) {
-      /* This routine cannot be instantiated. */
-      make_instantiation_info_var("__DNI__", &routine->source_corresp);
-    }  /* if */
-    if (routine->can_be_instantiated) {
-      /* This routine can be instantiated. */
-      make_instantiation_info_var("__CBI__", &routine->source_corresp);
+    if (automatic_instantiation_mode) {
+      /* For automatic instantiation, generate a variable or variables with
+         names that encode instantiation information. */
+      if (routine->instance_required) {
+        /* This routine is template-based. */
+        make_instantiation_info_var("__TIR__", &routine->source_corresp);
+      }  /* if */
+      if (routine->do_not_instantiate) {
+        /* This routine cannot be instantiated. */
+        make_instantiation_info_var("__DNI__", &routine->source_corresp);
+      }  /* if */
+      if (routine->can_be_instantiated) {
+        /* This routine can be instantiated. */
+        make_instantiation_info_var("__CBI__", &routine->source_corresp);
+      }  /* if */
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
