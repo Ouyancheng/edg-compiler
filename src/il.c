@@ -2874,6 +2874,11 @@ members), and does not enter those.
         /* Things that should always be on lists. */
         could_be_orphan = FALSE;
         break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case iek_internal_complex_value:
+        could_be_orphan = TRUE;
+        break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       default:
         could_be_orphan = FALSE;
         break;
