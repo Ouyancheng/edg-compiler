@@ -28,7 +28,7 @@ EDG_CBASE=${EDG_CBASE-/edg/cpfe}
 #
 # Directory where the C++ include files are to be found.
 #
-INCLDIR=$EDG_BASE/include
+INCLDIR=${EDG_INCLDIR-$EDG_BASE/include}
 #
 # Directory where the C include files are to be found.
 #
