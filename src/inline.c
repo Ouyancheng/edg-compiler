@@ -164,7 +164,8 @@ static a_boolean is_constant_valued_expression(an_expr_node_ptr expr,
 Return TRUE if the indicated expression has a constant value over the
 duration of an inlined call.  That includes things like addresses of
 automatic variables.  If the expression is constant valued and the value
-is not null, return *is_non_null TRUE.
+is known to be non-null, return *is_non_null TRUE.  If it cannot be determined
+whether the constant is non-NULL, the safe value is FALSE.
 */
 {
   a_boolean is_constant_valued = FALSE;
@@ -182,7 +183,8 @@ is not null, return *is_non_null TRUE.
                                              (a_constant_repr_kind)ck_string) {
       is_constant_valued = FALSE;
     }  /* if */
-    *is_non_null = !is_false_constant(con);
+    *is_non_null = constant_bool_value_known_at_compile_time(con) &&
+                   !is_false_constant(con);
   } else if (is_variable_address_node(expr)) {
     is_constant_valued = TRUE;
     /* We assume that variables other than extern variables have non-null
@@ -601,6 +603,8 @@ variables.
           is_non_null) {
         operand = operand->next;
         if (is_constant_node(operand) &&
+            constant_bool_value_known_at_compile_time(
+                                                  operand->variant.constant) &&
             is_false_constant(operand->variant.constant)) {
           /* Yes, this is &auto_variable != NULL, which is always 1,
              or the "== 0" case, which is always 0. */
@@ -645,7 +649,8 @@ otherwise, do no copying and return FALSE.
     /* Copy the first operand.  In the process, simplify to a constant if
        possible by substituting for parameter variables. */
     operand = copy_expr_tree_for_inlining(operand);
-    if (!is_constant_node(operand)) {
+    if (!is_constant_node(operand) ||
+        !constant_bool_value_known_at_compile_time(operand->variant.constant)){
       /* The first operand is not constant, so this operation cannot be
          simplified.  Just copy the rest of the operands. */
       operand2 = copy_expr_tree_for_inlining(operand2);
@@ -899,7 +904,9 @@ If not, *failed is set.
         /* See if the tested expression is known.  If so, the "if" can be
            reduced to the "then" or "else" statement. */
         result_is_then = result_is_else = FALSE;
-        if (is_constant_node(stmt_expr)) {
+        if (is_constant_node(stmt_expr) &&
+            constant_bool_value_known_at_compile_time(
+                                                stmt_expr->variant.constant)) {
           if (is_false_constant(stmt_expr->variant.constant)) {
             result_is_else = TRUE;
           } else {

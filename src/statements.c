@@ -2130,9 +2130,12 @@ to the end of the indicated structured statement.
 static a_boolean is_true_constant_expr(an_expr_node_ptr expr)
 /*
 Return TRUE if the indicated expression has a constant value that is true.
+The safe answer, if the truth cannot be discovered, is FALSE.
 */
 {
   a_boolean is_true_constant = (is_constant_node(expr) &&
+                                constant_bool_value_known_at_compile_time(
+                                                     expr->variant.constant) &&
                                 !is_false_constant(expr->variant.constant));
   return is_true_constant;
 }  /* is_true_constant_expr */

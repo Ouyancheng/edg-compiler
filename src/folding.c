@@ -37,6 +37,32 @@ operation overflows.
 #endif /* TARG_NO_ERROR_ON_INTEGER_OVERFLOW */
 
 
+a_boolean constant_bool_value_known_at_compile_time(a_constant_ptr con)
+/*
+con is a constant of a scalar type.  Return TRUE if the bool value it would
+convert to is known at compile time.  (It might not be known if the
+constant is an address that is not known until link time.)
+*/
+{
+  a_boolean known_bool = TRUE;
+
+  if (con->kind == (a_constant_repr_kind)ck_address) {
+    an_address_base_kind kind = con->variant.address.kind;
+    /* Addresses are non-null except possibly for extern variables and
+       routines, which might have zero addresses because of linker magic
+       like weak externals. */
+    if (kind == (an_address_base_kind)abk_variable) {
+      known_bool = (con->variant.address.variant.variable->storage_class !=
+                    (a_storage_class)sc_extern);
+    } else if (kind == (an_address_base_kind)abk_routine) {
+      known_bool = (con->variant.address.variant.routine->storage_class !=
+                    (a_storage_class)sc_extern);
+    }  /* if */
+  }  /* if */
+  return known_bool;
+}  /* constant_bool_value_known_at_compile_time */
+
+
 static void make_template_param_cast_constant(a_constant  *old_constant,
                                               a_constant  *new_constant,
                                               a_type_ptr  new_type)
@@ -1176,6 +1202,12 @@ casts between unrelated classes.
     /* Conversion of any type to bool.  Set the boolean value to FALSE (zero)
        if the source constant is some form of "false".  Otherwise, set it
        to TRUE (1). */
+    if (!constant_bool_value_known_at_compile_time(constant)) {
+      /* The constant's value is not known until link time, so the conversion
+         cannot be folded at this time. */
+      *did_not_fold = TRUE;
+      goto exit;
+    }  /* if */
     set_constant_kind(&new_constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&new_constant.variant.integer_value,
                       (long)!is_false_constant(constant));
@@ -1366,6 +1398,13 @@ operators.  Can also be used to test for a NULL pointer or pointer to member.
 {
   a_boolean is_false = FALSE;
 
+  /* The value of a link-time constant is not known until link time, so
+     one cannot decide whether it is true or false.  Such constants should
+     not get here. */
+  check_assertion_str(constant_bool_value_known_at_compile_time(constant),
+                      "is_false_constant: link-time constant");
+  /* ck_address constants that aren't link-time constants are assumed to
+     be non-NULL.  For example, the address of an auto variable. */
   if (is_zero_constant(constant)) {
     /* Zero integral or floating constant. */
     is_false = TRUE;
@@ -1377,8 +1416,6 @@ operators.  Can also be used to test for a NULL pointer or pointer to member.
     /* Pointer to member constant.  See if null. */
     is_false = pm_constant_is_null(constant);
   }  /* if */
-  /* Note that ck_address constants are always non-NULL and therefore
-     is_false is left FALSE. */
   return is_false;
 }  /* is_false_constant */
 
@@ -1526,17 +1563,28 @@ Do the complement operation on all type of integers.
 
 
 static void do_not(a_constant        *constant,
-		   a_constant        *result)
+		   a_constant        *result,
+                   a_boolean         *did_not_fold)
 /*
 Do the "!" (not) operation on all types of scalars.
 */
 {
-  set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  set_integer_value(&result->variant.integer_value,
-                    (long)is_false_constant(constant));
-
+  *did_not_fold = FALSE;
+  if (!constant_bool_value_known_at_compile_time(constant)) {
+    /* The constant's value is not known until link time, so the conversion
+       cannot be folded at this time. */
+    *did_not_fold = TRUE;
+  } else {
+    set_constant_kind(result, (a_constant_repr_kind)ck_integer);
+    set_integer_value(&result->variant.integer_value,
+                      (long)is_false_constant(constant));
+  }  /* if */
 #if DEBUG
-  db_unary_operation("!", constant, result, ec_no_error);
+  if (*did_not_fold) {
+    fprintf(f_debug, "! did not fold\n");
+  } else {
+    db_unary_operation("!", constant, result, ec_no_error);
+  }  /* if */
 #endif /* DEBUG */
 }  /* do_not */
 
@@ -1612,7 +1660,7 @@ the reason is that the constant is a template parameter constant).
           do_complement(constant, result, &err_code, &err_severity);
           break;
         case eok_not:
-          do_not(constant, result);
+          do_not(constant, result, did_not_fold);
           break;
 #if CHECKING
         default:
@@ -2067,34 +2115,76 @@ Do the bitwise "xor" operation on all types of integers.
 
 static void do_land(a_constant    *constant_1,
 		    a_constant    *constant_2,
-		    a_constant    *result)
+		    a_constant    *result,
+                    a_boolean     *did_not_fold)
 /*
 Do the logical "and" (&&) operation on integers, floats, and pointers.
 */
 {
-  set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  set_integer_value(&result->variant.integer_value,
-                    (long)(!is_false_constant(constant_1) &&
-                           !is_false_constant(constant_2)));
+  int res;
+
+  *did_not_fold = FALSE;
+  /* Fold the operation.  If either constant is a link-time constant, it
+     may not be possible to fold at this time. */
+  if (!constant_bool_value_known_at_compile_time(constant_1)) {
+    *did_not_fold = TRUE;
+  } else if (is_false_constant(constant_1)) {
+    res = 0;
+  } else if (!constant_bool_value_known_at_compile_time(constant_2)) {
+    *did_not_fold = TRUE;
+  } else if (is_false_constant(constant_2)) {
+    res = 0;
+  } else {
+    res = 1;
+  }  /* if */
+  if (!*did_not_fold) {
+    set_constant_kind(result, (a_constant_repr_kind)ck_integer);
+    set_integer_value(&result->variant.integer_value, (long)res);
+  }  /* if */
 #if DEBUG
-  db_binary_operation("&&", constant_1, constant_2, result, ec_no_error);
+  if (*did_not_fold) {
+    fprintf(f_debug, "&& did not fold\n");
+  } else {
+    db_binary_operation("&&", constant_1, constant_2, result, ec_no_error);
+  }  /* if */
 #endif /* DEBUG */
 }  /* do_land */
 
 
 static void do_lor(a_constant    *constant_1,
 		   a_constant    *constant_2,
-		   a_constant    *result)
+		   a_constant    *result,
+                   a_boolean     *did_not_fold)
 /*
 Do the logical "or" (||) operation on integers, floats, and pointers.
 */
 {
-  set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  set_integer_value(&result->variant.integer_value,
-                    (long)(!is_false_constant(constant_1) ||
-                           !is_false_constant(constant_2)));
+  int res;
+
+  *did_not_fold = FALSE;
+  /* Fold the operation.  If either constant is a link-time constant, it
+     may not be possible to fold at this time. */
+  if (!constant_bool_value_known_at_compile_time(constant_1)) {
+    *did_not_fold = TRUE;
+  } else if (!is_false_constant(constant_1)) {
+    res = 1;
+  } else if (!constant_bool_value_known_at_compile_time(constant_2)) {
+    *did_not_fold = TRUE;
+  } else if (!is_false_constant(constant_2)) {
+    res = 1;
+  } else {
+    res = 0;
+  }  /* if */
+  if (!*did_not_fold) {
+    set_constant_kind(result, (a_constant_repr_kind)ck_integer);
+    set_integer_value(&result->variant.integer_value, (long)res);
+  }  /* if */
 #if DEBUG
-  db_binary_operation("||", constant_1, constant_2, result, ec_no_error);
+  if (*did_not_fold) {
+    fprintf(f_debug, "|| did not fold\n");
+  } else {
+    db_binary_operation("||", constant_1, constant_2, result, ec_no_error);
+  }  /* if */
 #endif /* DEBUG */
 }  /* do_lor */
 
@@ -2785,10 +2875,10 @@ as the position for any diagnostics issued.
           do_xor(constant_1, constant_2, result);
           break;
         case eok_land:
-          do_land(constant_1, constant_2, result);
+          do_land(constant_1, constant_2, result, did_not_fold);
           break;
         case eok_lor:
-          do_lor(constant_1, constant_2, result);
+          do_lor(constant_1, constant_2, result, did_not_fold);
           break;
         case eok_fadd:
           do_fadd(constant_1, constant_2, result, &err_code, &err_severity,

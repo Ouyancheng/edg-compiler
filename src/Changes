@@ -1,5 +1,22 @@
 Version 2.33
 
+9/17/96 External symbols not assumed to have non-null addresses
+
+In the presence or weak external symbols and similar linker magic,
+external symbols might have zero addresses.  That might mean that
+a test like the following could yield false:
+
+#pragma weak weak_symbol
+extern void weak_symbol();
+int main () {
+  if (weak_symbol) {  // Could be false
+  }
+}
+
+Various calls of folding routines have been changed to first check for
+symbols that might have zero addresses, so that folding can be suppressed
+in such cases.
+
 9/17/96 Internal error on invalid pseudo-destructor call
 
 An internal error resulted from compiling the following invalid code.

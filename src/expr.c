@@ -7431,9 +7431,12 @@ standard.
       /* See if the first operand is a constant. */
       do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
       operand_1_transformations_done = TRUE;
-      /* Note that pointer to member constants are tested by
-         op_is_false_constant; that's why the is_scalar_type test is needed. */
-      if (is_constant_operand(operand_1) && is_scalar_type(operand_1->type)) {
+      if (is_constant_operand(operand_1) &&
+          /* The type of operand_1 has not been checked yet, so avoid
+             problems. */
+          is_scalar_type(operand_1->type) &&
+          constant_bool_value_known_at_compile_time(
+                                               &operand_1->variant.constant)) {
         operand_1_is_false = op_is_false_constant(operand_1);
         if (save_token == tok_and_and && operand_1_is_false) {
           /* 0 && something -- this always evaluates to a zero/false value. */
@@ -7743,7 +7746,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     /* If the first operand is a constant and if the constant is zero, evaluate
        the third operand only.  If the first operand is constant and is not a
        constant zero, evaluate the second operand only. */
-    operand_1_is_const = is_constant_operand(operand_1);
+    operand_1_is_const = is_constant_operand(operand_1) &&
+                         constant_bool_value_known_at_compile_time(
+                                                 &operand_1->variant.constant);
     if (operand_1_is_const) {
       operand_1_is_false = op_is_false_constant(operand_1);
       if (operand_1_is_false) {

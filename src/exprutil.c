@@ -3202,7 +3202,9 @@ or floating type).
 a_boolean op_is_false_constant(an_operand *operand)
 /*
 Return TRUE if the operand contains a false constant value (a zero of
-integral, floating, pointer, or pointer to member type).
+integral, floating, pointer, or pointer to member type).  Note that
+it may be necessary to call constant_bool_value_known_at_compile_time
+to rule out certain cases before calling this routine.
 */
 {
   a_boolean        is_constant_false = FALSE;
@@ -5636,6 +5638,7 @@ types to get a boolean expression (see process_boolean_controlling_expression).
           if (add_ne_0) {
             /* Add a "!= 0" of the appropriate type on top of the expression
                to standardize it. */
+normalize_expr:
             make_zero_of_proper_type(expr->type, &con);
             zero_node = alloc_node_for_constant(&con);
             /* Build a "!=" node of the right kind, pointing to the original
@@ -5652,6 +5655,13 @@ types to get a boolean expression (see process_boolean_controlling_expression).
         case ok_constant:
           /* The expression is constant.  Make a standard integer 0 or 1
              constant. */
+          if (!constant_bool_value_known_at_compile_time(
+                                                 &operand->variant.constant)) {
+            /* The value of this constant is not known until link time
+               and therefore this has to be left as an expression. */
+            expr = alloc_node_for_constant(&operand->variant.constant);
+            goto normalize_expr;
+          }  /* if */
           make_integer_constant_operand(operand,
                                        (long)(!op_is_false_constant(operand)));
           operand->variant.constant.null_pointer_constant_ruled_out =
