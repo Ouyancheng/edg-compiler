@@ -108,18 +108,6 @@ static char	*template_info_line_type_namess[(int)tilt_last+1] = {
   /* tilt_last */			NULL
 };
 
-/*
-Entry used to record information about a file containing exported
-template definitions.
-*/
-typedef struct an_exported_template_file *an_exported_template_file_ptr;
-typedef struct an_exported_template_file {
-  char		*directory_name;
-			/* Directory containing the file. */
-  char		*source_file_name;
-			/* Name of the source file. */
-} an_exported_template_file;
-
 typedef struct a_template_lookup_entry *a_template_lookup_entry_ptr;
 typedef struct a_template_lookup_entry {
   /* Structure used to represent entries in the hash table of template
@@ -12193,6 +12181,9 @@ may or may not have been set by a previous declaration.  Update it to
 reflect an export keyword present on the current declaration.
 */
 {
+  a_boolean	is_defined;
+
+  is_defined = tssp->cache.tokens.first_token != NULL;
   if (rout_ptr->is_inline) {
     /* An inline function cannot be exported.  Clear the flag if it was
        set earlier. */
@@ -12200,15 +12191,14 @@ reflect an export keyword present on the current declaration.
   } else if (decl_state->export_present) {
     /* Export was specified on this declaration.  Set the flag. */
     if (!tssp->il_template_entry->is_exported &&
-        (tssp->cache.tokens.first_token != NULL &&
-         !decl_state->defines_something)) {
+        (is_defined && !decl_state->defines_something)) {
       /* The export keyword appeared on a declaration after the definition.
          This is not allowed. */
       pos_error(ec_export_after_definition, &decl_state->export_position);
     }  /* if */
     tssp->il_template_entry->is_exported = TRUE;
   }  /* if */
-  if (tssp->il_template_entry->is_exported) {
+  if (tssp->il_template_entry->is_exported && is_defined) {
     /* Add the template to the list of exported templates. */
     add_to_exported_templates_list(sym);
   }  /* if */
@@ -14376,6 +14366,11 @@ This is needed because a routine could be declared and later declared inline.
 		: f_is_static_or_inline_template_entity(tip))
 
 
+/* Forward declaration */
+static a_boolean exported_definition_is_available(
+						a_template_instance_ptr	tip);
+
+
 #if !INSTANTIATION_BY_IMPLICIT_INCLUSION
 /*ARGSUSED*/ /* <-- implicit_inclusion_okay is not used if no implicit
                  inclusion. */
@@ -14409,7 +14404,8 @@ template entities.
       vp = tip->instance_sym->variant.static_data_member.variable;
       specialized = vp->is_specialized;
       specialization_defined = tip->instance_sym->defined;
-      template_def = tip->template_sym->defined;
+      template_def = tip->template_sym->defined ||
+                     exported_definition_is_available(tip);
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
       if (!template_def && !specialized && !tip->suppress_instantiation &&
           implicit_inclusion_okay && implicit_template_inclusion_mode) {
@@ -14429,7 +14425,8 @@ template entities.
       specialization_defined = specialized && tip->instance_sym->defined;
       template_sym = tip->template_sym;
       tssp = template_supplement_for_symbol(template_sym);
-      template_def = cache_for_template(tssp)->tokens.first_token != NULL;
+      template_def = cache_for_template(tssp)->tokens.first_token != NULL ||
+                     exported_definition_is_available(tip);
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
       if (!template_def && !specialized && !tip->suppress_instantiation &&
           implicit_inclusion_okay && implicit_template_inclusion_mode) {
@@ -14535,6 +14532,11 @@ template entities.
     vp = tip->instance_sym->variant.static_data_member.variable;
     specialized = vp->is_specialized;
     template_def = tip->template_sym->defined;
+    if (!template_def && !specialized && export_template_allowed) {
+      /* When exported templates are being used, look for an exported
+         definition of this template */
+      template_def = exported_definition_is_available(tip);
+    }  /* if */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
     if (!template_def && !specialized && !tip->suppress_instantiation &&
         !tip->explicit_do_not_instantiate &&
@@ -14556,6 +14558,11 @@ template entities.
     tssp = template_supplement_for_symbol(template_sym);
     specialized = rp->is_specialized;
     template_def = cache_for_template(tssp)->tokens.first_token != NULL;
+    if (!template_def && !specialized && export_template_allowed) {
+      /* When exported templates are being used, look for an exported
+         definition of this template */
+      template_def = exported_definition_is_available(tip);
+    }  /* if */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
     if (!template_def && !specialized && !tip->suppress_instantiation &&
         !tip->already_instantiated && implicit_template_inclusion_mode &&
@@ -14586,6 +14593,45 @@ previously computed value is returned.
 		: f_entity_can_be_instantiated(tip, implicit_inclusion_okay))
 
 
+static void load_exported_template_file(an_exported_template_file_ptr	etfp)
+/*
+Compile the translation unit described by etfp for the purpose of defining
+the exported templates in that file.
+*/
+{
+  a_translation_unit_ptr	saved_tup = curr_translation_unit;
+
+  /* Compile the specified translation unit. */
+  /* FIXME - need to handle directory name, include search paths, etc. */
+  /* Pop the file scope of the current translation unit. */
+  pop_scope();
+  process_translation_unit(etfp->source_file_name, /*is_primary=*/FALSE);
+  /* Switch back to the previous translation unit. */
+  switch_translation_unit(saved_tup);
+  /* Reactivate the file scope of the original translation unit. */
+  push_file_scope(/*is_reactivation=*/TRUE);
+}  /* load_exported_template_file */
+
+
+static void ensure_exported_template_file_is_loaded(
+						a_template_instance_ptr	tip)
+/*
+We are about to instantiate the template specified by tip, which is an
+instance of an exported template.  If the translation unit containing that
+template has not yet been loaded, load it now.
+*/
+{
+  an_exported_template_file_ptr	etfp;
+
+  etfp = tip->exported_template_file;
+  check_assertion(etfp != NULL);
+  if (etfp->translation_unit == NULL) {
+    /* The translation unit has not been loaded yet.  Load it now. */
+    load_exported_template_file(etfp);
+  }  /* if */
+}  /* ensure_exported_template_file_is_loaded */
+
+
 static void instantiate_entity(a_template_instance_ptr tip)
 /*
 Call the appropriate routine to instantiate the function or static
@@ -14605,6 +14651,11 @@ data member specified by tip.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (tip->exported_template_file != NULL) {
+    /* If the template was defined in an exported template file, make sure
+       that file is loaded as a translation unit. */
+    ensure_exported_template_file_is_loaded(tip);
+  }  /* if */
   if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
     /* Static data member definition. */
     define_template_static_data_member(tip);
@@ -15075,6 +15126,7 @@ to it.
 #endif /* DEBUG */
   etfp->directory_name = NULL;
   etfp->source_file_name = NULL;
+  etfp->translation_unit = NULL;
   return etfp;
 }  /* alloc_exported_template_file */
 
@@ -15163,7 +15215,50 @@ exist.  This is used to find the definition of an exported template.
 
 symbol_found:
   return tlp;
-}  /* find_template */
+}  /* find_exported_template */
+
+
+static a_boolean exported_definition_is_available(
+						a_template_instance_ptr	tip)
+/*
+Determine whether the template, of which tip is an instance, is an
+exported template whose definition is available (i.e., that can be
+instantiated).  If so, make a record of the file in which the exported
+definition was found.  Return TRUE if an exported definition was found,
+FALSE otherwise.
+
+The caller is responsible for making sure that this is not called for
+a specialized instance.
+*/
+{
+  a_boolean				result = FALSE;
+  a_template_symbol_supplement_ptr	tssp;
+
+  tssp = template_supplement_for_symbol(tip->template_sym);
+  if (!export_template_allowed) {
+    /* We are not doing export processing. */
+    result = FALSE;
+  } else if (tip->exported_template_file != NULL) {
+    /* If we already found the exported template file, skip the remaining
+       processing. */
+    result = TRUE;
+  } else if (tssp->il_template_entry->is_exported) {
+    /* The template is exported.  See if a definition is available. */
+    char			*name;
+    a_template_lookup_entry_ptr	tlp;
+    /* Look up the mangled name of the template to see if a definition was
+       found. */
+    name = get_mangled_name_for_symbol(tip->template_sym);
+    tlp = find_exported_template(name, /*add=*/FALSE);
+    if (tlp != NULL) {
+      /* An exported definition was found.  Record information about the file
+         where it was found in the template instance entry. */
+      result = TRUE;
+      tip->exported_template_file = tlp->exported_template_file;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* exported_definition_is_available */
 
 
 static FILE *open_exported_template_file_for_input(
@@ -15224,7 +15319,8 @@ templates defined in the file.
                                            FRONT_END_REGION_NUMBER, name);
     } else if (strncmp(line, "tnm:", 4) == 0) {
       a_template_lookup_entry_ptr	tlp;
-      tlp = find_exported_template(line, /*add=*/TRUE);
+      char				*name = &line[4];
+      tlp = find_exported_template(name, /*add=*/TRUE);
       if (tlp->exported_template_file == NULL) {
         /* Only record the first file that is found that defines the
            template. */
@@ -17326,6 +17422,7 @@ Initializations for template.
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   /* Allocate a buffer used to read the various template files. */
   file_read_buffer = alloc_text_buffer(1024);
+  memzero((char *)template_lookup_table, sizeof(template_lookup_table));
   /* FIXME - temporary */
   find_exported_template_files();
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */

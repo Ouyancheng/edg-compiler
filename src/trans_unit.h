@@ -30,7 +30,6 @@ than one translation unit being used.  Instead, the front end is reinitialized
 and the subsequent files are processed one at a time, each as a primary
 translation unit.
 */
-typedef struct a_translation_unit *a_translation_unit_ptr;
 typedef struct a_translation_unit {
   a_translation_unit_ptr
 		next;

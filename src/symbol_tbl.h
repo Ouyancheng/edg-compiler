@@ -53,6 +53,11 @@ typedef struct a_def_arg_expr_fixup *a_def_arg_expr_fixup_ptr;
    available to symbol_tbl.h without creating recursive reference problems. */
 typedef struct a_pending_pragma *a_pending_pragma_ptr;
 
+/* The pointer to a_translation_unit is declared here even though the struct
+   itself is defined in trans_unit.h.  This allows the pointer to be made
+   available to symbol_tbl.h without creating recursive reference problems. */
+typedef struct a_translation_unit *a_translation_unit_ptr;
+
 /* Some other things declared up front to avoid mutual recursion problems. */
 /*
 A symbol-reference kind is a bit vector whose values are defined in
@@ -1242,6 +1247,24 @@ typedef struct a_template_param {
 } a_template_param;
 
 
+/*
+Entry used to record information about a file containing exported
+template definitions.
+*/
+typedef struct an_exported_template_file *an_exported_template_file_ptr;
+typedef struct an_exported_template_file {
+  char		*directory_name;
+			/* Directory containing the file. */
+  char		*source_file_name;
+			/* Name of the source file. */
+  a_translation_unit_ptr
+		translation_unit;
+			/* If the translation unit for this file has been
+			   loaded, this point to the translation unit entry.
+			   NULL if the translation unit has not been loaded. */
+} an_exported_template_file;
+
+
 typedef struct a_template_instance *a_template_instance_ptr;
 typedef struct a_template_instance {
   /* Information describing an instance of a function template or an
@@ -1292,6 +1315,13 @@ typedef struct a_template_instance {
 			/* For member and nonmember functions, a list of
 			   symbols in the prototype scope, linked on the
 			   next_in_scope field.  NULL if none. */
+  an_exported_template_file_ptr
+		exported_template_file;
+			/* If this is an instance of an exported template,
+			   this points to an entry that describes the file in
+			   which the template definition was found.  This is
+			   set when determining whether it is possible to
+			   generate the instance. */
   a_bit_field	instantiation_required:1;
 			/* TRUE if a routine body or static data member
 			   definition needs to be generated for this instance.
