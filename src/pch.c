@@ -1530,7 +1530,7 @@ write out the precompiled header file.
     /* The state justifies creating a precompiled header. */
     check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
     check_assertion(depth_stmt_stack == -1);
-    /* Be sure there the overhead in generating a precompiled header is
+    /* Be sure that the overhead in generating a precompiled header is
        justified "quantitatively". */
     if (decl_seq_counter < PCH_DECL_SEQ_THRESHOLD) {
       /* There haven't been enough declarations to justify writing out and
