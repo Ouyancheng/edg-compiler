@@ -1,5 +1,19 @@
 Version 3.1
 
+6/14/02  GNU C compatibility: Invalid flexible array members
+
+In GNU C mode, the front end used to accept array fields with unspecified
+bounds (flexible array members) even when those fields were not the last
+field of the enclosing struct.  For example:
+
+  struct {
+    int n;
+    int a[];  // Used to be accepted in GNU C mode; now an error.
+    int b;
+  };
+
+Now an error is issued in such situations.
+
 6/14/02  Microsoft compatibility: Calling convention on out-of-class definition
 
 The front end used to fail to diagnose a mismatch between the calling
