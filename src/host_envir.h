@@ -1132,8 +1132,8 @@ extern char *derived_name(char *file_name,
 
 /*
 The character used to separate components of a path name.  On Microsoft
-operating systems this should be '/'.  Handling of the additional '\'
-character is handled separately.
+operating systems this should be '/'.  The additional '\' character is
+handled separately.
 */
 #ifndef DIRECTORY_SEPARATOR
 #define DIRECTORY_SEPARATOR '/'
