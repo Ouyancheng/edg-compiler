@@ -3209,6 +3209,9 @@ This routine is called during IL walking.
           disp_overriding_virtual_function(
                       (an_overriding_virtual_function_ptr)entry_ptr);
           break;
+        case iek_base_class_derivation:
+          disp_base_class_derivation((a_base_class_derivation_ptr)entry_ptr);
+          break;
         case iek_base_class:
           disp_base_class((a_base_class_ptr)entry_ptr);
           break;
