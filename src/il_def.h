@@ -5439,7 +5439,7 @@ enum an_expr_operator_kind_tag {
 			   of the field.  This is the C++ "->*" operator (for
 			   pointers to DATA members). */
   eok_points_to_static,	/* Static member selection p->m.  The first operand
-			   is a pointer to a class; if is evaluated and
+			   is a pointer to a class; it is evaluated and
 			   discarded.  The second operand is a reference to
 			   a static member, whose value is passed through;
 			   it is an lvalue if
@@ -5447,7 +5447,7 @@ enum an_expr_operator_kind_tag {
 			   C++ only, and eliminated by IL lowering. */
   eok_lvalue_dot_static,
 			/* Static member selection lval.m.  The first operand
-			   is an lvalue for a class; if is evaluated and
+			   is an lvalue for a class; it is evaluated and
 			   discarded.  The second operand is a reference to
 			   a static member, whose value is passed through;
 			   it is an lvalue if
@@ -5455,7 +5455,7 @@ enum an_expr_operator_kind_tag {
 			   C++ only, and eliminated by IL lowering. */
   eok_rvalue_dot_static,
 			/* Static member selection rval.m.  The first operand
-			   is a class rvalue; if is evaluated and discarded.
+			   is a class rvalue; it is evaluated and discarded.
 			   The second operand is a reference to a static
 			   member, whose value is passed through; it is an
 			   lvalue if returns_lvalue_instead_of_usual_rvalue is
