@@ -3328,7 +3328,7 @@ such member functions are present.
     cssp = symbol_supplement_for_class(tp);
     if (cssp->constructor != NULL || cssp->destructor != NULL) {
       is_valid = FALSE;
-    } else {
+    } else if (cssp->assignment_operator != NULL) {
       /* Check for existence of a user defined assignment operator function.
          If there is no compiler-generated assignment operator, then it must
          be user-defined. */
