@@ -2043,6 +2043,9 @@ error code.
     case ec_template_and_instance_linkage_conflict:
       m = "external/internal linkage conflict for %nfd";
       break;
+    case ec_conversion_function_not_usable:
+      m = "%nf will not be called for implicit or explicit conversions";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
