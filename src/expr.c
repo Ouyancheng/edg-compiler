@@ -1118,11 +1118,17 @@ Syntax:
                                     /*check_cast_access=*/
                                        !operand->access_control_error_reported,
                                     bound_function_selector)) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        end_position = operand->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         /* Make an operand for the function bound to the "this" pointer. */
         make_function_designator_operand(func_sym,
                                          (a_boolean)operand->is_qualified_name,
                                          &call_position,
                                          operand->ref_entries_list, operand);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        operand->end_position = end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         /* Note that the function designator will be converted to a pointer
            by the do_operand_transformations call just below. */
       } else {
