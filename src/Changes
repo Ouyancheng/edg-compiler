@@ -1,5 +1,10 @@
 Version 2.21
 
+11/16/93 Member constant types
+
+Member constants (an extension) are no longer restricted to integral
+types but are now permitted to be of any scalar type.
+
 11/15/93 Variable definitions not tentative in C++
 
 IL lowering now changes all variables that have sc_unspecified storage
