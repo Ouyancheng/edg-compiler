@@ -3182,10 +3182,15 @@ typedef struct a_block {
 			   by the front end are not "real" and have this
 			   pointer NULL.  They are also not pointed to as
 			   parents. */
-  a_byte_boolean
-		end_of_block_reachable;
+  unsigned int	end_of_block_reachable:1;
 			/* TRUE if the end of the block is reachable.  The
 			   safe setting is TRUE. */
+  unsigned int	any_initializing_decls_in_parent_block:1;
+			/* TRUE if parent_block is non-NULL and contains
+			   one or more initializing declarations (i.e.,
+			   stmk_init statements) in the portion of the
+			   statement list that precedes the statement that
+			   establishes this block. */
 #endif /* ifdef CIL */
 } a_block;
 

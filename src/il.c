@@ -5936,6 +5936,7 @@ fields to default values.
       bp->assoc_scope      = NULL;
       bp->parent_block     = NULL;
       bp->end_of_block_reachable = TRUE;
+      bp->any_initializing_decls_in_parent_block = FALSE;
       break;
     case stmk_init:
       sp->variant.dynamic_init = NULL;
