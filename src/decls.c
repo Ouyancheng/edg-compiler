@@ -4219,7 +4219,8 @@ class template.
     }  /* if */
     if (sym == NULL) {
       /* Not a redeclaration. */
-      an_error_code error_code;
+      a_scope_stack_entry_ptr	ssep = &scope_stack[effective_decl_level];
+      an_error_code             error_code;
 
       check_default_args(type_ptr);
       if (homonym_symbol != NULL &&
@@ -4241,16 +4242,15 @@ class template.
                                       &overload_symbol);
       } else {
         /* No overloading.  Simply create a new symbol. */
-        a_scope_stack_entry_ptr	ssep = &scope_stack[effective_decl_level];
         sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
                                  effective_decl_level,
                                  /*suppress_redecl_error=*/FALSE);
-        
-        if (ssep->kind == (a_scope_kind)sck_namespace ||
-            ssep->kind == (a_scope_kind)sck_namespace_extension) {
-          set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                                   ssep->il_scope->variant.assoc_namespace);
-        }  /* if */
+      }  /* if */
+      /* Set namespace membership on this template function. */
+      if (ssep->kind == (a_scope_kind)sck_namespace ||
+          ssep->kind == (a_scope_kind)sck_namespace_extension) {
+        set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                                 ssep->il_scope->variant.assoc_namespace);
       }  /* if */
     } else {
       check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
