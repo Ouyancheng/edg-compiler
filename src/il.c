@@ -10244,6 +10244,12 @@ a set of options for the copy.
         expr_copy->variant.throw_info->dynamic_init =
                       copy_dynamic_init(expr->variant.throw_info->dynamic_init,
                                         options);
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+        if (expr->variant.throw_info->expr != NULL) {
+          expr_copy->variant.throw_info->expr =
+                       copy_expr_tree(expr->variant.throw_info->expr, options);
+        }  /* if */
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
       }  /* if */
       break;
     case enk_condition:

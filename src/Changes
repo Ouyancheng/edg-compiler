@@ -1,5 +1,11 @@
 Version 3.1
 
+10/17/02 Expression copy of throw for inlining, not full EH lowering
+
+The routine that copies expression trees did not copy one of the
+fields of the supplement for an enk_throw in the
+!DO_FULL_PORTABLE_EH_LOWERING mode.  The expr field is now copied.
+
 10/17/02 GNU compatibility mode: Undefined inline functions
 
 In GNU C and C++ modes, the front end now issues a warning (instead of an
