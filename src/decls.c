@@ -8600,6 +8600,9 @@ Process a handler declaration:
   a_symbol_ptr       sym;
   a_symbol_locator   locator;
   a_source_position  decl_pos;
+  a_routine_ptr      cctor, dtor;
+  a_param_type_ptr   ptp;
+  a_dynamic_init_ptr dip;
 
   db_enter(3, "handler_declaration");
   /* Push the scope for the handler before processing the exception
@@ -8649,7 +8652,6 @@ Process a handler declaration:
             sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
                                decl_scope_level,
                                /*suppress_redecl_error=*/FALSE);
-            mark_defined(sym, &locator.source_position);
           }  /* if */
         }  /* if */
         if (!exceptions_enabled) {
@@ -8686,7 +8688,40 @@ Process a handler declaration:
         if (sym != NULL) {
           sym->variant.variable.ptr = handler->parameter;
           set_source_corresp(&(handler->parameter->source_corresp), sym);
+          mark_defined(sym, &locator.source_position);
         }  /* if */
+        if (is_class_struct_union_type(type_ptr)) {
+          a_boolean  bitwise_copy;
+          cctor = select_copy_constructor(type_ptr,
+                                          /*const_object_required=*/FALSE,
+                                          /*volatile_object_okay=*/FALSE,
+                                          &decl_pos, type_ptr, &bitwise_copy,
+                                          /*evaluated=*/TRUE);
+          check_assertion((cctor == NULL) == bitwise_copy); 
+          dtor = select_destructor(type_ptr, type_ptr, &decl_pos,
+                                   /*honor_virtual=*/FALSE,
+                                   /*evaluated=*/TRUE);
+        } else {
+          cctor = dtor = NULL;
+        }  /* if */
+        if (cctor != NULL) {
+          ptp = (skip_typerefs(cctor->type))->
+                                   variant.routine.extra_info->param_type_list;
+
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+          dip->variant.constructor.ptr = cctor;
+          /* We need to copy the default arg expressions of the second and
+             subsequent parameters (if any) of the copy constructor.  The
+             first param is ignored even if it is declared to have a default
+             arg. */
+          ptp = ptp->next;
+          dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
+        } else {
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_bitwise_copy);
+        }  /* if */
+        dip->variable = handler->parameter;
+        dip->destructor = dtor;
+        handler->dynamic_init = dip;
       }  /* if */
     }  /* if */
     prev_handler = sp->variant.try_block.handlers;
