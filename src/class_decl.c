@@ -6834,18 +6834,19 @@ by recursive calls.
   a_template_arg_ptr           tap;
 
   db_enter(4, "make_class_externally_linked");
-#if CHECKING
-  if (type->source_corresp.is_local_to_function) {
-    internal_error("make_class_externally_linked: local type");
-  }  /* if */
-#endif /* CHECKING */
   type = skip_typerefs(type);
   switch (type->kind) {
     case tk_class:
     case tk_struct:
     case tk_union:
       /* Class, struct, or union type.  These are handled directly. */
-      if (type->source_corresp.name_linkage ==
+      if (type->source_corresp.is_local_to_function) {
+        /* Local types are ignored, as are types contained within them. */
+#if 0
+        /* It's not clear whether this should be allowed.  If not, an internal
+           error is appropriate here. */
+#endif /* if 0 */
+      } else if (type->source_corresp.name_linkage ==
                                (a_name_linkage_kind)nlk_internal) {
         /* Mark the class as externally linked immediately, to avoid infinite
            recursion if it is self referential. */
