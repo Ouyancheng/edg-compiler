@@ -421,7 +421,7 @@ to bool, and the result type is bool.  A warning is issued.
     b = b ? b : p;
   }
 
-2/4/04   Partial ordering and explicitly specified template arguments
+2/4/05   Partial ordering and explicitly specified template arguments
 
 The original specification of partial ordering of function templates did
 not make any special provisions for function templates in which certain
@@ -442,7 +442,7 @@ addresses a Microsoft compatibility issue.
     f<int>(1);
   }
 
-2/4/04   Microsoft compatibility: __asm directives in template strings
+2/4/05   Microsoft compatibility: __asm directives in template strings
 
 When the front end is configured to create string representations of
 templates, the string for a template containing a Microsoft __asm directive
@@ -460,7 +460,7 @@ compiling the generated C++ code.  Now fixed.
     a.f();
   }
 
-2/3/04   GNU compatibility: infinity used for float values out of range
+2/3/05   GNU compatibility: infinity used for float values out of range
 
 In GNU mode, the front end accepts floating-point constants that are out
 of range and uses the "infinity" value instead.  However, constants that were
