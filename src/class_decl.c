@@ -9358,7 +9358,7 @@ respectively.
   } else if (type_qualified_with_named_address_space(field_type)) {
     pos_error(ec_field_type_cannot_be_qualified_with_named_address_space,
               &locator->source_position);
-    field_type = error_type();
+    field_type = type_without_named_address_space_qualifiers(field_type);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
   } else if (is_incomplete_type(field_type)) {
     /* The member type is incomplete.  This is not necessarily an error:

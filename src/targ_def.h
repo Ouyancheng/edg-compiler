@@ -3559,8 +3559,9 @@ orphan pointers and/or translation unit copy addresses).
 
 /*
 Named address space are identified using small integers of the following
-signed type.  Defined unconditionally because it is used in some function
-signatures.
+signed type (the value -1 is used to indicate "no address space; not even the
+generic one which has id zero").  Defined unconditionally because it is used
+in some function signatures.
 */
 typedef int a_named_address_space_id;
 
@@ -3595,7 +3596,9 @@ typedef struct a_named_address_space_descr {
   char  *name;
 		/* Pointer to null-terminated name.  TR 18037 ("Embedded C")
 		   requires that such address spaces have names in the
-		   implementation namespace. */
+		   implementation namespace: They must start with a double
+		   underscore, or with an underscore followed by an upper-case
+		   letter. */
   a_named_address_space_id
 	parent_id;
 		/* Id of the named address space enclosing this one, or -1

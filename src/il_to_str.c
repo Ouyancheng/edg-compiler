@@ -840,6 +840,7 @@ Do the output in the way described by octl.
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
     if (nas_id != 0) {
+      if (qualifier_put_out) octl->output_str(" ");
       octl->output_str(named_address_spaces[nas_id].name);
       qualifier_put_out = TRUE;
     }  /* if */

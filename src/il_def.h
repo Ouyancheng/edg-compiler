@@ -3025,10 +3025,11 @@ bit set.
 */
 #define named_address_space_from_qualifier_set(tqs)                          \
   (((tqs) >> (int)tqt_lsb_named_address_space) &                             \
-   ((1 << NUM_BITS_FOR_NAMED_ADDRESS_SPACE) - 1))
+   (((a_type_qualifier_set)1 << NUM_BITS_FOR_NAMED_ADDRESS_SPACE) - 1))
 
 #define set_named_address_space_in_qualifier_set(tqs, nas_id)                \
-  ((tqs) |= ((nas_id) << (int)tqt_lsb_named_address_space))
+  ((tqs) |= ((a_type_qualifier_set)(nas_id) <<                               \
+                                          (int)tqt_lsb_named_address_space))
 
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 

@@ -229,8 +229,14 @@ on the underlying element type of an array.
   ((get_type_qualifiers(tp) & TQ_VOLATILE) != 0)
 
 #if NAMED_ADDRESS_SPACES_ALLOWED
+/*
+Return TRUE if the given type is qualified with a named address space (this
+includes array types whose element type is so qualified).
+*/
 #define type_qualified_with_named_address_space(tp)                   \
-  (named_address_space_from_qualifier_set(get_type_qualifiers(tp)) != 0)
+  (named_address_spaces_enabled &&                                    \
+   named_address_space_from_qualifier_set(                            \
+             f_get_type_qualifiers(tp, /*top_level=*/FALSE)) != 0)
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
 /*
@@ -262,7 +268,7 @@ qualifiers).
 #if NAMED_ADDRESS_SPACES_ALLOWED
 #define simple_qualifiers(qualifiers)                                        \
   ((qualifiers) &                                                            \
-   ~(((1 << NUM_BITS_FOR_NAMED_ADDRESS_SPACE) - 1)                           \
+   ~((((a_type_qualifier_set)1 << NUM_BITS_FOR_NAMED_ADDRESS_SPACE) - 1)     \
                                      << (int)tqt_lsb_named_address_space))
 extern a_boolean first_address_space_encloses_second(a_type_qualifier_set  q1,
                                                      a_type_qualifier_set  q2);
@@ -270,6 +276,7 @@ extern a_boolean first_address_space_encloses_second(a_type_qualifier_set  q1,
 || (named_address_space_from_qualifier_set((q1)) !=                          \
                             named_address_space_from_qualifier_set((q2)) &&  \
    !first_address_space_encloses_second((q1), (q2)))
+extern a_type_ptr type_without_named_address_space_qualifiers(a_type_ptr  tp);
 #else /* !NAMED_ADDRESS_SPACES_ALLOWED */
 #define simple_qualifiers(qualifiers)  (qualifiers)
 #define or_disjunct_named_address_spaces(q1, q2)  /* Nothing */

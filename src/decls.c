@@ -4184,15 +4184,14 @@ static void check_named_address_space_constraints(
                                               a_storage_class   storage_class)
 /*
 A variable is being declared with the given type and storage class.  If the 
-type has a top-level named address space qualifier, verify that it has
-static storage duration.  If an error occurs, the given locator is changed
-to an error locator.
+type s qualified with a named address space, verify that it has static storage
+duration.  If an error occurs, the given locator is changed to an error
+locator.
 */
 {
   if (named_address_spaces_enabled) {
     if (!has_static_storage_duration(storage_class) &&
-        named_address_space_from_qualifier_set(
-                              get_top_level_type_qualifiers(type_ptr)) != 0) {
+        type_qualified_with_named_address_space(type_ptr)) {
       /* Only variables with static storage duration can have a named
          address space qualifier (at the top level). */
       pos_error(ec_bad_storage_class_for_named_address_space_variable,

@@ -1030,7 +1030,7 @@ a_boolean first_address_space_encloses_second(a_type_qualifier_set  q1,
                                               a_type_qualifier_set  q2)
 /*
 Return TRUE if and only if the address space embedded in q1 encloses the
-address space embedded in q2.  (An address space is consider to enclose
+address space embedded in q2.  (An address space is considered to enclose
 itself.)
 */
 {
@@ -1048,6 +1048,19 @@ itself.)
   } while (nas_id_2 != -1);
   return result;
 }  /* first_address_space_encloses_second */
+
+
+a_type_ptr type_without_named_address_space_qualifiers(a_type_ptr  tp)
+/*
+Return a type like the given type except it is not qualified with a named
+address space.
+*/
+{
+  a_type_qualifier_set  qualifiers = get_type_qualifiers(tp);
+  a_type_ptr            result = make_unqualified_type(tp);
+
+  return make_qualified_type(result, simple_qualifiers(qualifiers));
+}  /* type_without_named_address_space_qualifiers */
 
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 

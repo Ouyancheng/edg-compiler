@@ -5428,7 +5428,7 @@ static a_boolean process_nontype_identifier(
 The current token is an identifier or (in C++) a global qualification token
 ("::") followed by an identifier.  If the name introduced by this token is
 a type name, it is normally part of the decl-specifier and handled: Those
-cases are handled by the called.  If the name is not a type name, the work
+cases are handled by the caller.  If the name is not a type name, the work
 is mostly done in this routine.  This includes named memory regions (part of
 the specifiers; an Embedded C/TR 18037 extension) and constructors (part of
 the declarator).
@@ -5441,6 +5441,8 @@ if this is a constructor.  If the current token names an address space,
 *named_address_space is set to represent it; otherwise it is set to zero. 
 Unusual syntax errors (e.g., "::" followed by something unexpected) cause
 *err to be set to TRUE.
+If the identifier is not part of the decl-specifiers (i.e., either part
+of a declarator or a syntax error) return TRUE; otherwise return FALSE.
 */
 {
   a_boolean  result = FALSE;
@@ -5513,7 +5515,7 @@ Unusual syntax errors (e.g., "::" followed by something unexpected) cause
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
   if (!result && *basic_type != bt_none && !identifier_names_address_space) {
     /* There's already a basic type, so the identifier should be processed as
-       a declarator.  If it happens to be a type name, it is better to have a
+       a declarator.  If it happens to be a type name, it is better to have an
        invalid-redeclaration error later than a bad-combination-of-types error
        here.  In addition, the following is permitted in C++:
            struct S {...};
