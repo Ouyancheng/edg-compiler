@@ -4474,9 +4474,6 @@ otherwise it is NULL.  The syntax is:
     if (curr_token == tok_lparen) {
       /* Appears to be a function declarator.  But be sure it's not the
          start of a parenthesized initializer (C++ only). */
-      a_source_position  lparen_pos;
-      /* Save the source position of the left paren for possible diagnostic. */
-      copy_source_position(pos_curr_token, lparen_pos);
       /* Advance past the left parenthesis. */
       (void)get_token();
       if (parenthesized_initializer_allowed) {
