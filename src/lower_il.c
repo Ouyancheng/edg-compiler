@@ -3945,105 +3945,71 @@ primary_function is NULL.
 }  /* find_virtual_function */
 
 
-static void define_one_virtual_function_table(a_type_ptr       class_type,
-                                              a_base_class_ptr bcp,
-                                              a_boolean        force_static)
+static void fill_virtual_function_table(
+                                  a_constant_ptr            aggr_con,
+                                  a_type_ptr                class_type,
+                                  a_base_class_ptr          bcp,
+                                  a_virtual_function_number *next_entry_number)
 /*
-Make the definition for the virtual function table for the base class
-indicated by bcp when it appears within a complete object of the class type
-class_type.  If bcp == NULL, make the virtual function table for the class
-itself.  If force_static is TRUE, the virtual function table is forced to
-be local to the current compilation even if the class is externally linked.
+aggr_con is the aggregate constant that initializes a virtual function table.
+Add to it the constants for the entries that define the virtual function
+table for base class bcp when it is contained within a whole object of
+type class_type.  If bcp is NULL, generate the virtual function table for
+class_type itself.  On exit, return in *next_entry_number the next entry
+number after the last one filled.
 */
 {
   an_overriding_virtual_function_ptr override_list;
   a_type_ptr                         class_whose_vtbl_is_being_made;
-  a_class_type_supplement_ptr        class_type_ctsp, ctsp;
-  a_variable_ptr                     vtbl_var;
-  a_constant_ptr                     aggr_con;
+  a_class_type_supplement_ptr        ctsp;
   a_routine_ptr                      primary_function;
   a_virtual_function_number          entry_number, highest_entry_number;
   a_targ_ptrdiff_t                   delta;
   a_routine_ptr                      func_to_call;
-  a_memory_region_number             region_to_switch_back_to;
-  a_boolean                          sharing = FALSE;
-  a_base_class_ptr                   sharing_bcp;
+  a_base_class_ptr                   sharing_bcp, imm_bcp;
 
-  switch_to_file_scope_region(&region_to_switch_back_to);
-  /* See if we are generating a virtual function table for a complete object
-     in a case where the virtual function table is shared with a base class. */
-  class_type_ctsp = class_type->variant.class_struct_union.extra_info;
-  if (bcp == NULL) {
-    sharing_bcp = class_type_ctsp->virtual_function_info_base_class;
-    if (sharing_bcp != NULL) {
-      /* class_type shares a virtual function pointer and (part of) a
-         virtual function table with a base class.  Do the generation
-         of the virtual function table for the shared part by generating
-         the table for the direct base class that is the first step on the
-         way to the base class that contains the shared pointer.  At the end
-         of this routine, any additional routines that appear in class_type
-         will be added at the end of the table. */
-#if CHECKING
-      if (sharing_bcp->offset != 0 ||
-          sharing_bcp->any_virtual_steps_in_derivation) {
-        internal_error("define_one_virtual_function_table: bad vtbl sharing");
-      }  /* if */
-#endif /* CHECKING */
-      sharing = TRUE;
-      bcp = sharing_bcp->derivation->base_class;
-    }  /* if */
-  }  /* if */
+  /* Determine the override list to use. */
   if (bcp == NULL) {
     /* No overrides; we're doing the primary list. */
     override_list = NULL;
     class_whose_vtbl_is_being_made = class_type;
-    ctsp = class_type_ctsp;
-    vtbl_var = ctsp->virtual_function_table_var;
   } else {
     /* Get the list of overriding functions, i.e., functions in the base
        class that are overridden in the class_type. */
     override_list = bcp->overriding_virtual_functions;
     class_whose_vtbl_is_being_made = bcp->type;
-    ctsp = class_whose_vtbl_is_being_made->variant.
-                                                 class_struct_union.extra_info;
-    vtbl_var = bcp->virtual_function_table_var;
   }  /* if */
-  /* Change the array size from [] to the proper size.  Note that the type
-     was created for this variable and is known not to be shared. */
-  /* When generating a shared virtual function table, use the size from
-     class_type and not the size from the direct base class whose vtbl we
-     generate first as the shared part of the table. */
-  /* The "+1" is to skip the [0] entry, for cfront compatibility. */
-  vtbl_var->type->variant.array.number_of_elements =
-       (sharing ? class_type_ctsp : ctsp)->highest_virtual_function_number + 1;
-  set_type_size(vtbl_var->type);
-  if (class_type->source_corresp.name_linkage ==
-                                 (a_name_linkage_kind)nlk_cplusplus_external &&
-      !force_static) {
-    /* For an externally-linked class, change the variable to an external
-       definition. */
-    vtbl_var->storage_class = (a_storage_class)sc_unspecified;
-  } else {
-    /* For an internally-linked class or one with no linkage, or when
-       forced to by the flag force_static, change the storage class to
-       static and the linkage to internal. */
-    vtbl_var->storage_class = (a_storage_class)sc_static;
-    vtbl_var->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+  ctsp = class_whose_vtbl_is_being_made->variant.class_struct_union.extra_info;
+  /* Start generating entries at entry 1. */
+  entry_number = 1;
+  /* See if we are generating a virtual function table in a case where the
+     virtual function table is shared with a base class. */
+  sharing_bcp = ctsp->virtual_function_info_base_class;
+  if (sharing_bcp != NULL) {
+    /* The class_whose_vtbl_is_being_made shares a virtual function pointer
+       and (part of) a virtual function table with a base class. */
+#if CHECKING
+    if (sharing_bcp->offset != 0 ||
+        sharing_bcp->any_virtual_steps_in_derivation) {
+      internal_error("fill_virtual_function_table: bad vtbl sharing");
+    }  /* if */
+#endif /* CHECKING */
+    /* Fill the part of the table that is shared with the immediate base
+       class that is on the path to the base class that contains the shared
+       pointer. */
+    imm_bcp = sharing_bcp->derivation->base_class;
+    fill_virtual_function_table(aggr_con, class_type, imm_bcp, &entry_number);
+    /* Now continue to fill the rest of the table, the unshared part, which
+       contains the functions declared in class_type that do not appear
+       in the base classes with which the virtual function table is
+       shared. */
   }  /* if */
-  /* Start the initialization by creating a ck_aggregate constant and
-     making it the initial value of the variable. */
-  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-  vtbl_var->init_kind = (an_init_kind)initk_static;
-  vtbl_var->initializer.constant = aggr_con;
-  /* Put out the initialization for the [0] entry (skipped). */
-  add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL, aggr_con);
   /* Merge the list of virtual functions under class_whose_vtbl_is_being_made
-     and the overrides to create each entry of the table. */
+     and the overrides from the base class (if any) to create each entry of
+     the table. */
   highest_entry_number = ctsp->highest_virtual_function_number;
   primary_function = NULL;
-  for (entry_number = 1;
-       entry_number <= highest_entry_number;
-       entry_number++) {
+  for (; entry_number <= highest_entry_number; entry_number++) {
     /* Find the virtual function with the number "entry_number". */
     primary_function = find_virtual_function(entry_number,
                                              ctsp, primary_function);
@@ -4081,26 +4047,67 @@ be local to the current compilation even if the class is externally linked.
        next iteration in the common case. */
     primary_function = primary_function->next;
   }  /* for */
-  if (sharing) {
-    /* If we're generating a shared virtual function table, we've now
-       finished with the shared part.  Do any remaining functions at
-       the end of the table (the ones in the derived class that are not
-       shared with or present in the base class). */
-    highest_entry_number = class_type_ctsp->highest_virtual_function_number;
-    for (; entry_number <= highest_entry_number; entry_number++) {
-      /* Find the virtual function with the number "entry_number". */
-      primary_function = find_virtual_function(entry_number,
-                                               class_type_ctsp,
-                                               primary_function);
-      delta = 0;
-      func_to_call = primary_function;
-      /* Create the initializing constants for this entry of the table. */
-      add_vtbl_entry_init(delta, func_to_call, aggr_con);
-      /* The functions are usually in order by number so set up for the
-         next iteration in the common case. */
-      primary_function = primary_function->next;
-    }  /* for */
+  *next_entry_number = entry_number;
+}  /* fill_virtual_function_table */
+
+
+static void define_one_virtual_function_table(a_type_ptr       class_type,
+                                              a_base_class_ptr bcp,
+                                              a_boolean        force_static)
+/*
+Make the definition for the virtual function table for the base class
+indicated by bcp when it appears within a complete object of the class type
+class_type.  If bcp == NULL, make the virtual function table for the class
+itself.  If force_static is TRUE, the virtual function table is forced to
+be local to the current compilation even if the class is externally linked.
+*/
+{
+  a_class_type_supplement_ptr ctsp;
+  a_variable_ptr              vtbl_var;
+  a_constant_ptr              aggr_con;
+  a_virtual_function_number   next_entry_number;
+  a_memory_region_number      region_to_switch_back_to;
+
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  /* Find the appropriate virtual function table variable. */
+  if (bcp == NULL) {
+    /* We're doing the virtual function table for class_type itself. */
+    ctsp = class_type->variant.class_struct_union.extra_info;
+    vtbl_var = ctsp->virtual_function_table_var;
+  } else {
+    /* We're doing the virtual function table for bcp in class_type. */
+    ctsp = bcp->type->variant.class_struct_union.extra_info;
+    vtbl_var = bcp->virtual_function_table_var;
   }  /* if */
+  /* Change the array size from [] to the proper size.  Note that the type
+     was created for this variable and is known not to be shared. */
+  /* The "+1" is to skip the [0] entry, for cfront compatibility. */
+  vtbl_var->type->variant.array.number_of_elements =
+                                     ctsp->highest_virtual_function_number + 1;
+  set_type_size(vtbl_var->type);
+  /* Set the linkage on the virtual function table variable. */
+  if (class_type->source_corresp.name_linkage ==
+                                 (a_name_linkage_kind)nlk_cplusplus_external &&
+      !force_static) {
+    /* For an externally-linked class, change the variable to an external
+       definition. */
+    vtbl_var->storage_class = (a_storage_class)sc_unspecified;
+  } else {
+    /* For an internally-linked class or one with no linkage, or when
+       forced to by the flag force_static, change the storage class to
+       static and the linkage to internal. */
+    vtbl_var->storage_class = (a_storage_class)sc_static;
+    vtbl_var->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+  }  /* if */
+  /* Start the initialization by creating a ck_aggregate constant and
+     making it the initial value of the variable. */
+  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  vtbl_var->init_kind = (an_init_kind)initk_static;
+  vtbl_var->initializer.constant = aggr_con;
+  /* Put out the initialization for the [0] entry (skipped). */
+  add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL, aggr_con);
+  /* Put out the rest of the table. */
+  fill_virtual_function_table(aggr_con, class_type, bcp, &next_entry_number);
   switch_back_to_original_region(region_to_switch_back_to);
 }  /* define_one_virtual_function_table */
 
