@@ -4616,13 +4616,25 @@ p is a pointer to the start of a null-terminated string.
 }  /* dump_asm_function_body */
 
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+/*
+stmt points to a list of statements.  Advance the pointer past any
+statements that are stmk_decl statements.
+*/
+#define advance_past_stmk_decl_statements(stmt)                       \
+{ while ((stmt) != NULL &&                                            \
+         (stmt)->kind == (a_statement_kind)stmk_decl) (stmt) = (stmt)->next; \
+}  /* advance_past_stmk_decl_statements */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 static void dump_switch_statement(a_statement_ptr statement)
 /*
 Generate the code for a switch statement.
 */
 {
-  a_statement_ptr     case_statement, body_statement;
+  a_statement_ptr     case_statement, body_statement, statement_list;
   a_constant_ptr      constant;
   a_switch_clause_ptr switch_clause;
   /* curr_scope is saved here because dump_block_declarations may change it. */
@@ -4660,8 +4672,12 @@ Generate the code for a switch statement.
       dump_block_declarations(body_statement);
     }  /* if */
     /* If there are statements in the body statement, dump them. */
-    if (body_statement->variant.block.statements != NULL) {
-      dump_statement_list(body_statement->variant.block.statements);
+    statement_list = body_statement->variant.block.statements;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    advance_past_stmk_decl_statements(statement_list);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    if (statement_list != NULL) {
+      dump_statement_list(statement_list);
       write_tok_str("break;");
     }  /* if */
     indent -= 4;
@@ -4714,9 +4730,15 @@ position_set:;
     if (switch_clause->implied_break_at_end) {
       set_output_position_for_stmt(&switch_clause->break_position);
       write_tok_str("break;");
-    } else if (switch_clause->statements == NULL) {
-      /* No break and no statements, so put out an empty statement. */
-      write_tok_ch(';');
+    } else {
+      statement_list = switch_clause->statements;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      advance_past_stmk_decl_statements(statement_list);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      if (statement_list == NULL) {
+        /* No break and no statements, so put out an empty statement. */
+        write_tok_ch(';');
+      }  /* if */
     }  /* if */
     /* Outdent for the dependent statements and the case label. */
     indent -= 4;
