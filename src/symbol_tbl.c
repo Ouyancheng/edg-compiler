@@ -626,7 +626,7 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->identifier        = NULL;
   ptr->identifier_length = 0;
   ptr->any_nested_types_on_inactive_list = FALSE;
-  ptr->has_semivisible_nested_type = FALSE;
+  ptr->has_cfront_transitional_nested_type_mangled_name = FALSE;
 
   db_exit();
 
@@ -4741,10 +4741,11 @@ otherwise.
 }  /* check_for_file_scope_type_with_same_name */
 
 
-a_symbol_ptr find_semivisible_nested_type_symbol(a_symbol_ptr sym_to_find)
+a_symbol_ptr find_cfront_transitional_nested_type_symbol
+                                             (a_symbol_ptr sym_to_find)
 /*
 Given a symbol looks through the inactive list for a type symbol
-of the same name whose type has the semivisible flag set.
+of the same name whose type has the transitional name mangling flag set.
 This is used for error generation of the transitional model for nested
 type support.
 */
@@ -4756,7 +4757,7 @@ type support.
     /* Look for class, struct, union, enum, or typedef. */
     if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
       a_type_ptr  sym_type = type_symbol_type(sym);
-      if (sym_type->is_semivisible_nested_type) {
+      if (sym_type->use_cfront_transitional_nested_type_name_mangling) {
         break;
       }  /* if */
     }  /* if */
@@ -4765,11 +4766,11 @@ type support.
 #if CHECKING
   if (sym == NULL) {
     internal_error
-      ("find_semivisible_nested_type_symbol: no semivisible symbol found");
+      ("find_cfront_transitional...: no semivisible symbol found");
   }  /* if */
 #endif /* CHECKING */
   return sym;
-}  /* find_semivisible_nested_type_symbol */
+}  /* find_cfront_transitional_nested_type_symbol */
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
 
@@ -5224,26 +5225,28 @@ End a name scope by popping an entry off the scope stack.
              scope unless a file scope type of the same name is already
              defined.  Subsequent definition of additional nested types with
              the same name is an error.  This code, which simulates the
-             cfront behavior, .sets a flag for the first nested type with
+             cfront behavior, sets a flag for the first nested type with
              a given name and issues errors on subsequent definitions.
              Template classes are excluded from this check since they
              are not supported under cfront 2.1. */
           {
             a_type_ptr   sym_type = type_symbol_type(sym);
-            if (cfront_compatibility_mode) {
-              if (!is_template_class_type(sym_type)) {
-                /* Only do this if the name is not a type name at file
-                   scope. */
-                if (!check_for_file_scope_type_with_same_name(sym)) {
-                  if (!sym->header->has_semivisible_nested_type) {
-                    sym->header->has_semivisible_nested_type = TRUE;
-                    sym_type->is_semivisible_nested_type = TRUE;
-                  } else {
-                    a_symbol_ptr other_sym;
-                    other_sym = find_semivisible_nested_type_symbol(sym);
-                    pos_sy2_error(ec_cfront_multiple_nested_types,
-                                  &sym->decl_position, sym, other_sym);
-                  }  /* if */
+            if (cfront_compatibility_mode &&
+                !is_template_class_type(sym_type)) {
+              /* Only do this if the name is not a type name at file
+                 scope. */
+              if (!check_for_file_scope_type_with_same_name(sym)) {
+                if (!sym->header->
+                    has_cfront_transitional_nested_type_mangled_name) {
+                  sym->header->
+                    has_cfront_transitional_nested_type_mangled_name = TRUE;
+                  sym_type->
+                    use_cfront_transitional_nested_type_name_mangling = TRUE;
+                } else {
+                  a_symbol_ptr other_sym;
+                  other_sym = find_cfront_transitional_nested_type_symbol(sym);
+                  pos_sy2_error(ec_cfront_multiple_nested_types,
+                                &sym->decl_position, sym, other_sym);
                 }  /* if */
               }  /* if */
             }  /* if */
@@ -5253,13 +5256,14 @@ End a name scope by popping an entry off the scope stack.
       }  /* if */
     }  /* if */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-    /* Look for file scope symbols that have the "semivisible" nested type
-       flag set.  This indicates that a file scope symbol with the same
+    /* Look for file scope symbols that have the "cfront transitional" nested
+       type flag set.  This indicates that a file scope symbol with the same
        name was defined after the nested class was seen.  This is an error
        in cfront compatibility mode. */
     if (kind == (a_scope_kind)sck_file && cfront_compatibility_mode) {
-      if (sym->header->has_semivisible_nested_type) {
-        a_symbol_ptr other_sym = find_semivisible_nested_type_symbol(sym);
+      if (sym->header->has_cfront_transitional_nested_type_mangled_name) {
+        a_symbol_ptr other_sym;
+        other_sym = find_cfront_transitional_nested_type_symbol(sym);
         pos_sy2_error(ec_cfront_global_defined_after_nested_type,
                       &sym->decl_position, sym, other_sym);
       }  /* if */
@@ -6056,7 +6060,7 @@ an instance of the class template.
   if (!any_errors) {
     /* Everything is OK -- find the instance that matches these arguments.
        Create a new instance if needed. */
-    new_sym = find_template_class(template_symbol, arg_list, &start_pos);
+    new_sym = find_template_class(template_symbol, &arg_list, &start_pos);
   }  /* if */
   /* When we return to the caller the current identifier should be an 
      identifier and the locator should point to the template class that we

@@ -781,7 +781,8 @@ class_struct_union:
                 tp->size, tp->alignment);
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
         fprintf(f_debug, ", semivisible=%s",
-                tp->is_semivisible_nested_type ? "TRUE" : "FALSE");
+                tp->use_cfront_transitional_nested_type_name_mangling ?
+                "TRUE" : "FALSE");
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
         if (any_virtual_base_classes) {
@@ -3001,7 +3002,7 @@ variant fields to default values.
   pte->size = 0;
   pte->alignment = 1;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-  pte->is_semivisible_nested_type = FALSE;
+  pte->use_cfront_transitional_nested_type_name_mangling = FALSE;
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   set_type_kind(pte, kind);
 }  /* clear_type */
