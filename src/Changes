@@ -1,5 +1,14 @@
 Version 2.30
 
+8/14/95  Overflow checking on conversion of floating constants
+
+store_double in float_pt.c has been modified so that it does a more
+correct check for overflow on a double --> float conversion when
+compiled with an ANSI/ISO C compiler (one with FLT_MAX defined).
+Of course, this just makes it a better portable solution; in general,
+it's a good idea to review the routines in float_pt.c and customize
+them for your environment.
+
 8/13/95  C++-generating back end: bug in computing hidden-name info
 
 The front-end routine that, given a declaration, computes hidden-name
