@@ -4,7 +4,7 @@ Version 2.20
 
 It used to be that, by default, the primary include search directory was
 the directory of the primary source file, except in pcc mode, where it was
-whatever directory of current input file belonged to.  With this change the
+whatever directory the current input file belonged to.  With this change the
 pcc-mode behavior (which is the approach that predominates on UNIX systems)
 has become the default, and the former default behavior is no longer
 supported.  Support has also been added for a stack model, as employed in
