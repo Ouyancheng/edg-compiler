@@ -1,5 +1,20 @@
 Version 3.5
 
+9/20/04  Microsoft compatibility: missing in-class specialization definition
+
+Version 3.4 introduced a regression in the processing of in-class function
+specializations that could cause linker errors and/or prelinker loops
+when microsoft_version is 1200 or below.  Now fixed.
+
+  template <class T> struct A {
+    template <typename U> A<T>& operator=(const U&) { return *this; }
+    template<> A<T>& operator=(const A<T>&) { return *this; }
+  };
+  int main() {
+    A<int> a;
+    a = a;
+  }
+
 9/20/04  Microsoft compatibility: For-init scope
 
 MSVC++ 7.0 and earlier always use a nonstandard for-init scope.  I.e.,

@@ -1278,21 +1278,6 @@ function template specializations.
   /* Reset the routine fixup pointer in the routine to prevent this
      process from being attempted again. */
   rp->routine_fixup = NULL;
-  /* Make sure various flags are set correctly in the routine entry.  This
-     won't have been done before, since decl_routine was called for a
-     declaration, not a definition. */
-  rp->defined = TRUE;
-  ((a_symbol_ptr)rp->source_corresp.assoc_info)->defined = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (rp->is_in_class_specialization) {
-    /* The fixup was for an in-class specialization, not for a friend
-       declaration: Nothing needs to be done. */
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* No not insert code here. */
-  {
-    rp->defined_in_friend_decl = TRUE;
-  }  /* if */
   /* Let get_token know about the cache. */
   rescan_cached_tokens(&rfp->function_body_token_cache);
   /* Scan the function body. */
@@ -1306,6 +1291,23 @@ function template specializations.
      which was inserted to mark the end of the cached token stream.
      If necessary, keep flushing until end-of-source is found. */
   flush_past_token_cache_terminator();
+  /* Make sure various flags are set correctly in the routine entry.  This
+     won't have been done before, since decl_routine was called for a
+     declaration, not a definition.  Note that the defined flag must be
+     set after scan_function_body has been called as in some cases it
+     tests the defined flag to detect duplicate definitions. */
+  rp->defined = TRUE;
+  ((a_symbol_ptr)rp->source_corresp.assoc_info)->defined = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (rp->is_in_class_specialization) {
+    /* The fixup was for an in-class specialization, not for a friend
+       declaration: Nothing needs to be done. */
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* No not insert code here. */
+  {
+    rp->defined_in_friend_decl = TRUE;
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (scope_depth != NO_SCOPE_DEPTH) {
