@@ -2139,7 +2139,7 @@ cases.  Return TRUE if the two types are compatible by these relaxed rules.
 }  /* incompatible_types_are_SVR4_compatible */
 
 
-static a_boolean recover_from_irreconcilable_external_symbol_types(
+static void recover_from_irreconcilable_external_symbol_types(
                                            a_type_ptr             latest_type,
                                            an_extern_symbol_descr *esdp,
                                            a_boolean              *okay)
