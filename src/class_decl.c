@@ -3106,13 +3106,15 @@ of the function, and again overloading is a possibility.
                        &locator->source_position, sym);
           set_to_error_locator(*locator);
         } else {
+          a_routine_ptr  rp = sym->variant.routine.ptr;
+
           record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                     declarator_ssep);
           /* Do throw specification compatibility checking. */
-          check_throw_specification(func_info, sym->variant.routine.ptr);
+          check_throw_specification(func_info, rp);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-          set_rout_src_seq_entry_for_default_arg_decl(sym->variant.routine.ptr,
-                                                      func_info);
+          set_rout_src_seq_entry_for_default_arg_decl(rp, func_info);
+          set_src_seq_secondary_decl_entity_type((char *)rp, function_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
       }  /* if */
