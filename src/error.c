@@ -1683,6 +1683,18 @@ end of the buffer.
       new_buffer = realloc_general(seg_ptr->segment,
                                   (sizeof_t)(seg_ptr->max_length + 1),
                                    new_size);
+      /* Since first_quote and second_quote, if non-NULL, point into the
+         segment that's being replaced, they have to be modified to point
+         into the new chunck of memory. */
+      if (seg_ptr->first_quote != NULL) {
+        seg_ptr->first_quote =
+                  new_buffer + (seg_ptr->first_quote - seg_ptr->segment);
+      }  /* if */
+      if (seg_ptr->second_quote != NULL) {
+        seg_ptr->second_quote =
+                  new_buffer + (seg_ptr->second_quote - seg_ptr->segment);
+      }  /* if */
+      /* Now we can go ahead and reset the segment pointer. */
       seg_ptr->segment    = new_buffer;
       seg_ptr->max_length = new_size - 1;
     }  /* if */
