@@ -1,3 +1,7 @@
+Version 2.25, August 19, 1994
+
+8/12/94  exception.h added
+
 Version 2.22, February 26, 1994
 
 1/27/94  toupper/tolower made inline in C++
