@@ -22,9 +22,86 @@ const_ints.h -- Declarations related to manipulation of target integer
 #include "il.h"
 #endif /* ifndef IL_H */
 
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+
+/* Set the integer value entry *intval to the signed value "value". */
+#define set_integer_value(intval, value)			        \
+  *(intval) = (an_integer_value)(value);
+
+
+/* Set the integer value entry *intval to the unsigned value "value". */
+#define set_unsigned_integer_value(intval, value)		        \
+  *(intval) = (an_integer_value)(value);
+
+
+/* Logical OR two integer values.  The result is returned in the first
+   operand (op_1 = op_1 | op_2). */
+#define or_integer_values(op_1, op_2)					\
+  *(op_1) = *(op_1) | *(op_2);
+
+
+/* Logical AND two integer values.  The result is returned in the first
+   operand (op_1 = op_1 & op_2). */
+#define or_integer_values(op_1, op_2)					\
+  *(op_1) = *(op_1) & *(op_2);
+
+
+/* Logical exclusive OR two integer values.  The result is returned in the
+   first operand (op_1 = op_1 ^ op_2). */
+#define xor_integer_values(op_1, op_2)					\
+  *(op_1) = *(op_1) ^ *(op_2);
+
+
+/* Create a mask in which the "bits" low order bits of the integer value
+   are set to one.  bits must be at least one. */
+#define make_integer_value_mask(mask, bits)				\
+  *(mask) = (an_integer_value)(~0) >> (BITS_IN_AN_INTEGER_VALUE - (bits));
+
+
+/* Sign extend an integer value.  The current value consists of "bits"
+   bits.  The high order bit of the field is the sign bit. */
+#define sign_extend_integer_value(value, bits)				\
+{
+  int			 se_shift_bits = (BITS_IN_AN_INTEGER_VALUE - (bits));
+  a_signed_integer_value se_work;
+
+  se_work = *(value) << se_shift_bits;
+  *(value) = signed_shift_right(se_work, se_shift_bits);
+}
+
+
+/* Complement an integer value.  The result is returned in the
+   operand (op_1 = ~op_1). */
+#define complement_integer_value(op_1)					\
+  *(op_1) = ~*(op_1);
+
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+
+extern void set_integer_value(an_integer_value *intval,
+                              long             value);
 
 extern void set_unsigned_integer_value(an_integer_value *intval,
                                        unsigned long    value);
+
+extern void or_integer_values(an_integer_value *op_1,
+		              an_integer_value *op_2);
+
+extern void and_integer_values(an_integer_value *op_1,
+		               an_integer_value *op_2);
+
+extern void xor_integer_values(an_integer_value *op_1,
+		               an_integer_value *op_2);
+
+extern void make_integer_value_mask(an_integer_value *mask,
+				    int	      	     bits);
+
+extern void sign_extend_integer_value(an_integer_value *value,
+				      int	        bits);
+
+extern void complement_integer_value(an_integer_value *op_1);
+
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+
 
 extern a_boolean int_constant_is_signed(a_constant_ptr constant);
 
@@ -79,9 +156,6 @@ extern void write_integer_constant(FILE       *f_output,
 
 extern void const_ints_init(void);
 
-extern void set_integer_value(an_integer_value *intval,
-                              long             value);
-
 extern int cmp_integer_values(an_integer_value *op_1,
 		  	      a_boolean	        op_1_unsigned,
 			      an_integer_value *op_2,
@@ -104,21 +178,6 @@ extern void subtract_mixed_signed_integer_values(an_integer_value *op_1,
 					         a_boolean	   op_2_signed,
 					         a_boolean	   *err);
 
-extern void or_integer_values(an_integer_value *op_1,
-		              an_integer_value *op_2);
-
-extern void and_integer_values(an_integer_value *op_1,
-		               an_integer_value *op_2);
-
-extern void xor_integer_values(an_integer_value *op_1,
-		               an_integer_value *op_2);
-
-extern void make_integer_value_mask(an_integer_value *mask,
-				    int	      	     bits);
-
-extern void sign_extend_integer_value(an_integer_value *value,
-				      int	        bits);
-
 extern void shift_left_integer_value(an_integer_value *op_1,
 				     int	      op_2,
 				     a_boolean	       *err);
@@ -132,8 +191,6 @@ extern void subtract_integer_values(an_integer_value *op_1,
 			            an_integer_value *op_2,
 			            a_boolean	      is_signed,
 			            a_boolean	      *err);
-
-extern void complement_integer_value(an_integer_value *op_1);
 
 extern void negate_integer_value(an_integer_value *op_1,
 			         a_boolean	    *err);
@@ -165,8 +222,6 @@ extern void get_integer_size_and_alignment(an_integer_kind  ikind,
 
 #if DEBUG
 extern char* db_format_integer_value(an_integer_value  *value);
-
-extern void db_integer_value(an_integer_value *value);
 #endif /* DEBUG */
 
 #endif /* ifndef CONST_INTS_H */
