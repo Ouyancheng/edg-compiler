@@ -2585,15 +2585,17 @@ Flag that is TRUE if the definition of extern inline functions
 should be controlled by the template instantiation mechanism.
 
 When this flag is set, only one out-of-line copy of an extern inline
-function is generated.  This is more standard conforming as it
-ensures that the address of an inline function remains constant
-across translation units.  The disadvantage is that it requires that
-the template instantiation mechanism be employed for inline functions.
-Extern inline functions cannot be lowered when this flag is set.
+function is generated.  In the Cfront-like ABI, this is more standard 
+conforming as it ensures that the address of an inline function 
+remains constant across translation units.  The disadvantage is that 
+it requires that the template instantiation mechanism be employed 
+for inline functions.  In the IA-64 ABI, instantiating extern inline
+functions does not provide any advantage over lowering them, because
+lowering them places them in a COMDAT section and therefore
+guarantees that there is only one copy of the function at runtime.
 
-When this flag is FALSE, multiple copies of extern inline functions
-are generated.  Note that if the function has local static variables,
-multiple copies of the variables are *not* generated.
+INSTANTIATE_EXTERN_INLINE and LOWER_EXTERN_INLINE are mutually
+exclusive.
 */
 #ifndef INSTANTIATE_EXTERN_INLINE
 #define INSTANTIATE_EXTERN_INLINE FALSE
@@ -2606,10 +2608,9 @@ multiple copies of the variables are *not* generated.
 
 /*
 This switch controls whether "extern inline" functions are rewritten as
-normal inline functions.  The transformation involves promoting local static
-variables to external, and rewriting references to the address of an
-extern inline function to use a global variable containing the address
-of the chosen copy.
+normal inline functions (Cfront-like ABI) or put into COMDAT sections
+(IA-64 ABI).  Local static variables are promoted to external so that
+all references to them use the same copy.
 */
 #ifndef LOWER_EXTERN_INLINE
 #if INSTANTIATE_EXTERN_INLINE
