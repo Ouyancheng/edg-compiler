@@ -4388,6 +4388,7 @@ function_lparen:
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode && is_nonstatic_member_function &&
+            !(input_flags & DI_IS_TYPEDEF_DECLARATION) &&
             scope_stack[decl_scope_level].kind ==
                                        (a_scope_kind)sck_class_struct_union) {
           /* Microsoft mode allows for "selective virtual overriders" in which
