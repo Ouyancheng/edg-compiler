@@ -1248,7 +1248,7 @@ state.
             tssp->variant.function.routine = NULL;
             break;
           case sk_static_data_member_template:
-            tssp->variant.static_data_member.definition = NULL;
+            tssp->variant.static_data_member.definitions = NULL;
             break;
         }  /* switch */
       }
@@ -6544,7 +6544,7 @@ Allocate a new static data member definition entry and return a pointer to it.
 }  /* alloc_static_data_member_def */
 
 
-static void add_to_instantiations_required_list(
+void add_to_instantiations_required_list(
                                     a_function_instantiation_entry_ptr fiep,
                                     a_static_data_member_def_ptr       sdmdp)
 /*
@@ -6674,9 +6674,23 @@ which instantiations are required.
       }  /* if */
     } else {
       /* Static data member definition. */
+      a_symbol_ptr  sym;
+      sdmdp = tdp->variant.static_data_member_def;
+      sym = sdmdp->static_data_member_sym;
+      if (sym->defined) {
+        /* Already defined.  No further action required. */
+      } else {
 #if 0
-      /* Not yet implemented. */
+        /* Initialization is not yet implemented. */
+        /* Note that there are recursion possibilities that we need to
+           guard against -- e.g., template <int I> A<I>::s = A<I+1>::s;
+           Also indirect recursion. */
+        /* When there no explicit initializer we'll still need to call
+           def_initializer. */
+#else
+        sym->defined = TRUE;
 #endif /* if 0 */
+      }  /* if */
     }  /* if */
   }  /* for */
   db_exit();
