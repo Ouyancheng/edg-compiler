@@ -312,9 +312,6 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
 #endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* Microsoft type qualifiers. */
-      case tok_cdecl:
-      case tok_fastcall:
-      case tok_stdcall:
       case tok_unaligned:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         break;
@@ -476,8 +473,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
      Note that neither pointer declarators nor qualifiers are allowed in
      in expressions, so their presence means this is a declaration. */
   for (;;) {
-    if (curr_token == tok_star || curr_token == tok_ampersand ||
-        is_microsoft_calling_convention()) {
+    if (curr_token == tok_star || curr_token == tok_ampersand) {
       /* Cache and bypass the "*" or "&". */
       cache_curr_token(token_cache_ptr);
       (void)get_token_and_coalesce_if_identifier(flags);
@@ -491,8 +487,12 @@ part of a declarator is found, may_be_decl is set to FALSE.
       cache_curr_token(token_cache_ptr);
       (void)get_token_and_coalesce_if_identifier(flags);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Look for a Microsoft __based modifier. */
+    } else if (is_microsoft_declarator_keyword()) {
+      /* Keywords allowed in declarators in Microsoft mode, e.g., __cdecl. */
+      cache_curr_token(token_cache_ptr);
+      (void)get_token_and_coalesce_if_identifier(flags);
     } else if (curr_token == tok_based) {
+      /* Microsoft __based modifier. */
       prescan_based_modifier(token_cache_ptr, flags);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
