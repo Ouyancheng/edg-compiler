@@ -547,7 +547,9 @@ class_struct_union:
 	fputs("this: ", f_debug);
         db_abbreviated_type(tp->variant.routine.extra_info->
 						implicit_this_param_type);
-        if (ptp != NULL) fputs("; ", f_debug);
+        if (ptp != NULL || tp->variant.routine.extra_info->has_ellipsis) {
+          fputs("; ", f_debug);
+        }  /* if */
       }  /* if */
       comma_required = FALSE;
       while (ptp != NULL) {
