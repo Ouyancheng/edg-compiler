@@ -575,6 +575,9 @@ Display the indicated source correspondence entry.
     disp_boolean("marked_as_gnu_extension", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (scp->externalized) {
+    disp_boolean("externalized", TRUE);
+  }  /* if */
 #if RECORD_SCOPE_DEPTH_IN_IL
   disp_long("  scope_depth", (long)scp->scope_depth);
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */

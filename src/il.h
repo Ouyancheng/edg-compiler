@@ -180,9 +180,10 @@ extern a_boolean instantiation_needed_flag_is_set(
    function.  This includes "extern inline" functions that are lowered to
    static functions. */
 #if LOWER_EXTERN_INLINE
-/* When lowering "extern inline" all inline functions are treated as static. */
+/* When lowering "extern inline" all inline functions are treated as static,
+   except functions that were originally static and have been externalized. */
 #define treat_as_static_inline(rout)					\
-  ((rout)->is_inline)
+  ((rout)->is_inline && !(rout)->source_corresp.externalized)
 #else /* !LOWER_EXTERN_INLINE */
 /* When not lowering "extern inline" only those declared static are treated
    as static. */

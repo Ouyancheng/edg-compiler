@@ -12769,6 +12769,7 @@ files can reference it.
   (void)strcpy(ptr, module_id);
   scp->name = new_name;
   scp->name_linkage = (a_name_linkage_kind)nlk_external;
+  scp->externalized = TRUE;
   /* Clear the same_name_as_external_entity_in_secondary_trans_unit because
      it should be set only for entities without external linkage. */
   scp->same_name_as_external_entity_in_secondary_trans_unit = FALSE;
@@ -12808,6 +12809,13 @@ instantiations when generating instantiations in separate object files.
       rout->source_corresp.static_used_by_instantiation = TRUE;
     }  /* if */
     if (rout->source_corresp.static_used_by_instantiation
+#if LOWER_EXTERN_INLINE
+        /* Lowered extern inline routines can be duplicated in each
+           slice and each compilation and need not be externalized. */
+        && (!rout->is_inline ||
+            rout->source_corresp.name_linkage ==
+                                             (a_name_linkage_kind)nlk_internal)
+#endif /* LOWER_EXTERN_INLINE */
 #if ONE_INSTANTIATION_PER_OBJECT
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
         && !rout->source_corresp.duplicate_static_in_instantiation_slices

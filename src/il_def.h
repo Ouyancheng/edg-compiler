@@ -1165,6 +1165,11 @@ typedef struct a_source_correspondence {
 			   a similar flag is present in the corresponding
 			   secondary source sequence entry.) */
 #endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_bit_field	externalized:1;
+			/* TRUE if this is a variable or routine that was
+			   originally static and has been made external, e.g.,
+			   so that it can be referenced from multiple
+			   instantiation slices. */
 #endif /* ifdef CIL */
 #if RECORD_SCOPE_DEPTH_IN_IL
   a_scope_depth	scope_depth;
