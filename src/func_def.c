@@ -450,10 +450,6 @@ pointer decay).
   a_variable_ptr    vp;
   a_type_ptr        tp;
   a_symbol_locator  locator;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean         is_real_instantiation = function_instantiation &&
-                   !scope_stack[depth_scope_stack].in_prototype_instantiation;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "decl_parameter");
   /* Choose the type to use, the one in the param-type entry or the one in
@@ -547,14 +543,9 @@ pointer decay).
     sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Since real instantiations of a same template share the same param_id
-       list, new source sequence entries should be created for the
-       corresponding parameters (if source sequence entries are at all
-       generated for instantiations). */
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                               &sym->decl_position,
-                              is_real_instantiation ?
-                                      NULL : param_id->source_sequence_entry);
+                              param_id->source_sequence_entry);
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
     mark_defined(sym, &sym->decl_position);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
