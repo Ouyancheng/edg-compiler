@@ -258,16 +258,8 @@ Construct a string in buffer that represents a qualified name -- called
 from db_symbol.
 */
 {
-  buffer[0] = '\0';
-  if (C_dialect == C_dialect_cplusplus) {
-    a_type_ptr class_type = sym->class_of_which_a_member;
-    /* Put out the class qualifier on a class member. */
-    if (class_type != NULL) {
-      set_up_for_output_to_buffer(buffer);
-      form_class_qualifier(class_type, &octl);
-    }  /* if */
-  }  /* if */
-  (void)sprintf(&buffer[strlen(buffer)], "%s", sym->header->identifier);
+  set_up_for_output_to_buffer(buffer);
+  form_symbol_name(sym, &octl);
   return buffer;
 }  /* str_qualified_name */
 
