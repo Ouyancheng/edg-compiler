@@ -1,5 +1,12 @@
 Version 3.5
 
+8/4/04   Missing operators in is_operator_returning_bool
+
+The function is_operator_returning_bool in il.c was missing the
+complex and fixed-point comparison operators.  As a consequence
+IL lowering would sometimes add an unnecessary comparison against
+zero on top of such operators.
+
 7/29/04  Initialized local variable not seen as constant in template
 
 In some cases, a local variable of integer type declared in a

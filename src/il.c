@@ -11008,6 +11008,18 @@ be added on a tested condition in the IL.
     case eok_ige: case eok_fge: case eok_pge:
     case eok_ile: case eok_fle: case eok_ple:
     case eok_pmne: case eok_pmeq:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case eok_xeq:
+    case eok_xne:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if FIXED_POINT_ALLOWED
+    case eok_fxeq:
+    case eok_fxne:
+    case eok_fxgt:
+    case eok_fxlt:
+    case eok_fxge:
+    case eok_fxle:
+#endif /* FIXED_POINT_ALLOWED */
     case eok_bool_cast:
       returns_bool = TRUE;
       break;
