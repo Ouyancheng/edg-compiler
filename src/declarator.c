@@ -2833,24 +2833,30 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
            int i, const j;
          The type qualifiers are ignored in later versions of the Microsoft
          compiler, but were applied in MSVC++ 2.0. */
-    } else {
 #if NEAR_AND_FAR_ALLOWED
-      if ((pending_qualifiers & ~(TQ_NEAR | TQ_FAR)) != TQ_NONE) {
-        /* A qualifier other than near/far.  These are ignored. */
-        pos_warning(ec_type_qualifier_ignored, &pending_qualifiers_pos);
-        pending_qualifiers &= (TQ_NEAR | TQ_FAR);
-      }  /* if */
-      if (pending_qualifiers != TQ_NONE) {
-        /* Qualifiers like near and far. */
-        if (unbound_qualifiers != NULL) {
-          *unbound_qualifiers = pending_qualifiers;
-        } else {
-          pos_warning(ec_mem_attrib_ignored, &pending_qualifiers_pos);
-        }  /* if */
-      }  /* if */
-#else /* !NEAR_AND_FAR_ALLOWED */
+    } else if ((pending_qualifiers & ~(TQ_NEAR | TQ_FAR)) != TQ_NONE) {
+      /* A qualifier other than near/far.  It are ignored -- strip it out of
+         the bit vector and issue a warning. */
       pos_warning(ec_type_qualifier_ignored, &pending_qualifiers_pos);
+      pending_qualifiers &= (TQ_NEAR | TQ_FAR);
+#else /* !NEAR_AND_FAR_ALLOWED */
+    } else {
+      pos_warning(ec_type_qualifier_ignored, &pending_qualifier_pos);
+      pending_qualifiers = TQ_NONE;
 #endif /* NEAR_AND_FAR_ALLOWED */
+    }  /* if */
+    if (pending_qualifiers != TQ_NONE) {
+      /* If there are still qualifiers (because of MSVC++ 2.0 compatibility
+         and/or because near/far is present), return them to the caller if
+         appropriate, or else issue a warning that they're being ignored. */
+      if (unbound_qualifiers != NULL) {
+        *unbound_qualifiers = pending_qualifiers;
+      } else {
+        /* Can't be returned to the caller, so put out a warning. */
+        pos_warning(near_and_far_enabled() ?
+                      ec_mem_attrib_ignored : ec_type_qualifier_ignored,
+                    &pending_qualifiers_pos);
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
