@@ -2709,7 +2709,8 @@ if the type is not integral).
       }  /* if */
     } else if (is_an_lvalue(operand)) {
       /* An lvalue. */
-      if (node->variant.operation.kind ==
+      if (is_operation_node(node) &&
+          node->variant.operation.kind ==
                                         (an_expr_operator_kind)eok_bit_field) {
         a_type_ptr sel_type = rvalue_type(operand->type);
         promoted_type = type_after_bit_field_integral_promotion(node,
