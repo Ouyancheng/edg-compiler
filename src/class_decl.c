@@ -6312,7 +6312,9 @@ Scan the body of a class definition, including the base classes list.
                                    strict_ansi_error_severity : es_warning,
                                  ec_missing_typedef_name, &pos_curr_token);
                 } else {
-                  pos_error(ec_storage_class_not_allowed, &decl_start_pos);
+                  pos_diagnostic(any_cfront_mode() ? es_warning : es_error,
+                                 ec_storage_class_not_allowed,
+                                 &decl_start_pos);
                 }  /* if */
               }  /* if */
               if (inline_specified) {
