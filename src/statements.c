@@ -4468,7 +4468,7 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
     if (!label_directly_in_switch || curr_reachability.reachable) {
       /* If label_directly_in_switch is FALSE, i.e., when the destination is
          inside a structured statement nested within the switch, we create a
-         goto that is the switch clause and transfers control to the proper
+         goto that is in the switch clause and transfers control to the proper
          point in the nested statement. */
       /* If label_directly_in_switch is TRUE, this is the normal case: the
          clause statements will be attached to the switch clause directly.
@@ -4540,8 +4540,8 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
       char              *entity_ptr;
       an_il_entry_kind  entity_kind;
 
-      if (label_directly_in_switch) {
-        /* When the case clause is "top level", make the new lifetime point
+      if (label == NULL) {
+        /* If we did not create a label, make the new lifetime point
            to the switch clause. */
         entity_kind = (an_il_entry_kind)iek_switch_clause;
         entity_ptr = (char *)scp;

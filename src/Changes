@@ -1,5 +1,25 @@
 Version 2.36
 
+4/7/97    EH cleanup state determination at case label with fall-through
+
+In some cases, the exception handling cleanup state determined at a case
+label that has a fall-through from a previous case label was wrong, with
+the consequence that exception handling cleanup would not be done correctly
+if an exception were thrown at that point.  Now fixed.
+
+  struct A { A(); ~A(); };
+  void f(int i) {
+     A var1;
+     switch (i) {
+      case 5:
+        i = 1;
+      case 2:
+      case 3:
+        A var2;  // Cleanup state wrong during constructor call here
+        break;
+     }
+  }
+
 4/7/97    Incorrect source position information for template function
           definitions
 
