@@ -659,6 +659,7 @@ might not be able to if the template itself has not yet been defined.
       mark_defined(instance_sym, &instance_sym->decl_position);
       /* Scan the base specifiers list, if any, and the body of the class. */
       (void)scan_class_definition(class_type, depth_innermost_namespace_scope,
+                                  depth_innermost_namespace_scope,
                                   /*is_local_class=*/FALSE,
                                   /*delayed_nested_class_def=*/FALSE);
       set_instantiation_required_for_template_class_members(class_type);
@@ -824,6 +825,7 @@ encountered.
 #endif /* CHECKING */
   /* Scan the base specifiers list, if any, and the body of the class. */
   (void)scan_class_definition(prototype_type, depth_innermost_namespace_scope,
+                              depth_innermost_namespace_scope,
                               /*is_local_class=*/FALSE,
                               /*delayed_nested_class_def=*/FALSE);
   /* Process any pragmas that are to be bound to this instance. */
