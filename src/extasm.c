@@ -600,7 +600,8 @@ extended asm statements.
   }  /* for */
   /* Copy the extra register information. */
   (void)memcpy((char*)&regmap[(int)anr_last-1], (char*)extra_reg_names,
-               size_t_arg(sizeof(extra_reg_names)));
+               size_t_arg(sizeof(extra_reg_names) -
+                                                  sizeof(struct name_to_reg)));
   /* name_to_register requires that regmap be sorted. */
   qsort((a_void_ptr)regmap, (qsort_nmemb_type)regmap_size,
         (qsort_nmemb_type)sizeof(struct name_to_reg), compare_n2r);
