@@ -308,7 +308,10 @@ IL lowering has been changed so that string literals in extern inline
 functions are now made external, so that each copy of an extern inline
 function will get the same copy of each such string literal (i.e.,
 if you take the address of the string, it will be the same everywhere).
-This is as required by the C++ standard.
+This is as required by the C++ standard.  This feature is controlled
+by ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS, and note that the default
+for the Cfront-like ABI is FALSE, because the required technique for
+sharing strings in that ABI is unreasonably expensive.
 
 1/6/03   GNU compatibility: Abort on attribute syntax error
 
