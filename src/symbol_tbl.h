@@ -92,6 +92,10 @@ typedef struct a_symbol_locator {
 			   conversion name, of the form "operator <type-name>",
 			   e.g., "operator int".  Cannot be TRUE when
 			   is_operator_name is TRUE. */
+  unsigned int  is_semivisible_nested_class:1;
+			/* TRUE if specific_symbol points to a nested class
+			   that is not actually visible, except as a C++
+			   anachronism (ARM 18.3.5). */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,
@@ -125,6 +129,7 @@ Clear a symbol locator.
   (locator)->is_global_qualified_name = FALSE;                        \
   (locator)->is_operator_name = FALSE;                                \
   (locator)->is_conversion_name = FALSE;                              \
+  (locator)->is_semivisible_nested_class = FALSE;                     \
   (locator)->specific_symbol = NULL;                                  \
   (locator)->variant.conversion_result_type = NULL;                   \
 }  /* clear_locator */
@@ -1024,6 +1029,9 @@ extern void remove_from_inactive_symbols_list(a_symbol_ptr sym_ptr);
 extern a_boolean symbols_may_coexist_in_curr_scope(a_symbol_ptr  old_sym,
                                                    a_symbol_ptr  new_sym,
                                                    a_symbol_ptr  *insert_sym);
+
+extern a_boolean check_class_and_member_name_conflict(a_type_ptr   class_type,
+                                                      a_symbol_ptr member_sym);
 
 extern a_symbol_ptr find_external_symbol(a_symbol_locator     *location,
                                          a_name_linkage_kind  linkage,
