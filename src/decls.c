@@ -5615,6 +5615,14 @@ name lookup.
   add_to_using_directives_list(udp);
   /* Activate it. */
   add_active_using_directive(udp);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (nsp->source_corresp.name != NULL) {
+    /* Not a compiler-generated using directive for an unnamed namespace. */
+    update_source_sequence_list((char *)udp,
+                                (an_il_entry_kind)iek_using_directive,
+                                (a_source_sequence_entry_ptr)NULL);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* make_using_directive */
 
 
