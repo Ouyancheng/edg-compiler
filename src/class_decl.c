@@ -6170,7 +6170,7 @@ because they were used in declaring an external function or variable.
           external = TRUE;
         } else {
           for (rp = class_scope->routines; rp != NULL; rp = rp->next) {
-            if (!rp->is_inline) {
+            if (!rp->is_inline && !rp->pure_virtual) {
               /* At least one noninline member function: external linkage is
                  required. */
               external = TRUE;
