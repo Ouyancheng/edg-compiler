@@ -285,10 +285,12 @@ what was done in the stack entry.
   register a_debug_request_ptr request_ptr;
   register a_debug_stack_entry *stack_ptr;
 
+#if CHECKING
   if (depth_debug_stack >= DEBUG_STACK_SIZE - 1) {
     /* We have run out of stack space, abort. */
     internal_error("debug_enter: stack overflow");
   }  /* if */
+#endif /* CHECKING */
 
   /* Get a new stack entry and increment the stack level. */
   stack_ptr = &debug_stack[depth_debug_stack++];
@@ -354,10 +356,12 @@ was printed on entry.  Remove the entry from the stack.
 {
   a_debug_stack_entry *stack_ptr;
 
+#if CHECKING
   if (depth_debug_stack <= 0) {
     /* We have run off the beginning of the stack; abort. */
     internal_error("debug_exit: stack underflow");
   }  /* if */
+#endif /* CHECKING */
 
   stack_ptr = &debug_stack[--depth_debug_stack];
 
