@@ -1,5 +1,12 @@
 Version 2.14
 
+2/11/93 Local types as arguments to template functions
+
+Local types are disallowed as template-based arguments to noninline
+template functions.  While there is no such explicit prohibition in
+the ARM, it seems only logical that there be no way for an
+out-of-line function to have access to a local type.
+
 2/10/93 Default arguments in function templates
 
 Default arguments are now supported in function templates including
