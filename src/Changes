@@ -1,13 +1,27 @@
 Version 3.0
 
-3/5/01   Qualified void return types in strict C mode
+3/6/02   Abort on attempt to inline C function with old-style declaration
+
+The attempt to inline a call of a function declared with an old-style
+parameter list in C resulted in an abort in
+set_up_variable_remapping_for_inlining.  Now fixed (no inlining is
+done).
+
+  inline void f(n)
+    int n;
+  {}
+  void g() {
+      f();
+  }
+
+3/5/02   Qualified void return types in strict C mode
 
 In strict C mode, the front end now issues an error on declarations of
 functions with a cv-qualified return type.
 
   void const f();  /* Error: void return type cannot be qualified. */
 
-3/4/01   Sun compatibility: default arg. in member of class template
+3/4/02   Sun compatibility: default arg. in member of class template
 
 The Sun compiler allows a default argument to be specified on the
 definition of a member function of a class template that appears outside
