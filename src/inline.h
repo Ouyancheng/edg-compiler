@@ -68,6 +68,15 @@ typedef struct a_variable_remapping_for_inlining {
 			/* Argument expression and the original "next" pointer
 			   thereof.  arg_expr is NULL if this information is
 			   not applicable. */
+  a_variable_ptr
+		orig_temporary;
+			/* If non-NULL, points to a temporary that was the
+			   original remapping indicated in this entry, which
+			   has been superseded temporarily. */
+  a_byte_boolean
+		temporary_used;
+			/* TRUE if this has been used as a vrk_temporary
+			   remapping. */
   a_byte_boolean
 		remapping_used;
 			/* TRUE if this remapping has been used.  That prevents

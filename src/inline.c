@@ -90,6 +90,8 @@ The entry is placed on the variable_remappings_for_inlining global list.
   vrip->kind = vrk_none;
   vrip->arg_expr = NULL;
   vrip->arg_expr_next = NULL;
+  vrip->orig_temporary = NULL;
+  vrip->temporary_used = FALSE;
   vrip->remapping_used = FALSE;
   vrip->local_temporary_okay = FALSE;
   vrip->local_temporary_reused = FALSE;
@@ -168,9 +170,7 @@ variable.
 
   /* Try to reuse an existing local temporary.  Don't do that, though,
      if the variable being remapped has special attributes. */
-  if (expr_temp &&
-      !orig_var->address_taken &&
-      !orig_var->initialization_rewritten_as_assignment) {
+  if (expr_temp && !orig_var->address_taken) {
     vrip->local_temporary_okay = TRUE;
     do {
       temp_var = find_reusable_temporary(orig_var->type, &tlep);
@@ -393,6 +393,7 @@ The code is inserted at *insert_location, and *insert_location is updated.
        var = var->next) {
     /* We don't need the variable if it's not referenced. */
     if (var->source_corresp.referenced) {
+      /* Remap the local variable to a temporary. */
       vrip = alloc_variable_remapping_for_inlining(var);
       temp_var = make_remapping_temporary(
                                vrip, expr_insert,
@@ -412,6 +413,21 @@ The code is inserted at *insert_location, and *insert_location is updated.
 }  /* set_up_variable_remapping_for_inlining */
 
 
+static void restore_mapping_to_temporary(
+                                    a_variable_remapping_for_inlining_ptr vrip)
+/*
+If vrip is a remapping that was originally a vrk_temporary and that has been
+temporarily remapped to something else, restore the original mapping.
+*/
+{
+  if (vrip->kind != vrk_temporary && vrip->orig_temporary != NULL) {
+    vrip->kind = vrk_temporary;
+    vrip->variant.variable = vrip->orig_temporary;
+    vrip->orig_temporary = NULL;
+  }  /* if */
+}  /* restore_mapping_to_temporary */
+
+
 static void finish_variable_remapping_for_inlining(void)
 /*
 We have gotten to the end of the inlining of a function call, and
@@ -425,6 +441,12 @@ calling context scope.
   for (vrip = variable_remappings_for_inlining;
        vrip != NULL;
        vrip = vrip->next) {
+    if (vrip->temporary_used) {
+      /* If a vrk_temporary remapping was temporarily switched to some
+         other remapping, but it was used at some point when it was
+         a vrk_temporary remapping, switch it back. */
+      restore_mapping_to_temporary(vrip);
+    }  /* if */
     if (vrip->kind == vrk_temporary) {
       /* A temporary. */
       a_variable_ptr temp_var = vrip->variant.variable;
@@ -506,6 +528,7 @@ other than a temporary variable.
                         "remap_var_for_inlining: wrong kind of remap");
     new_var = vrip->variant.variable;
     vrip->remapping_used = TRUE;
+    vrip->temporary_used = TRUE;
   } else {
     /* There is no remapping, so return the original variable. */
     new_var = var;
@@ -535,6 +558,7 @@ variables.
         case vrk_temporary:
           /* The variable is remapped to a temporary variable. */
           expr->variant.variable = vrip->variant.variable;
+          vrip->temporary_used = TRUE;
           break;
         case vrk_constant_expr:
           /* The variable is remapped to a constant-valued expression.
@@ -791,6 +815,12 @@ otherwise, do no copying and return FALSE.
            operation here before the subtree under it has been remapped,
            so we can look at the original variable being assigned to. */
         a_boolean is_non_null;
+        vrip = get_var_remapping_for_inlining(var);
+        check_assertion(vrip != NULL);
+        /* If a vrk_temporary remapping was temporarily switched to some
+           other remapping, switch it back. */
+        restore_mapping_to_temporary(vrip);
+        check_assertion(vrip->kind == vrk_temporary);
         /* Copy the source operand with substitution and constant folding
            so we can see if we have a constant. */
         operand2 = copy_expr_tree_for_inlining(operand2);
@@ -798,8 +828,6 @@ otherwise, do no copying and return FALSE.
         if (is_constant_valued_expression(operand2, &is_non_null) &&
             (!var->is_temp_for_constructor_this_inlined_param ||
              is_non_null)) {
-          vrip = get_var_remapping_for_inlining(var);
-          check_assertion(vrip != NULL && vrip->kind == vrk_temporary);
           /* The temporary elimination cannot be done if the temporary has
              already been referenced. */
           if (!vrip->remapping_used) temp_elim_possible = TRUE;
@@ -810,6 +838,11 @@ otherwise, do no copying and return FALSE.
              remapping means that the temporary variable will not be
              added to the scope at the end of the current inline expansion,
              so the temporary disappears completely. */
+          /* Save the original temporary pointer so it can be restored.
+             This comes up if the temporary is reused; it might be used
+             also for another parameter, and might or might not be
+             optimized away in that case. */
+          vrip->orig_temporary = vrip->variant.variable;
           vrip->kind = vrk_constant_expr;
           vrip->variant.expr = operand2;
           /* Eliminate the assignment node by replacing it with a zero
