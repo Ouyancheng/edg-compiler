@@ -1118,7 +1118,7 @@ declaration of this symbol.
                       kind == (a_symbol_kind)sk_type ||
                       kind == (a_symbol_kind)sk_constant);
       /* In C-mode a type declared in a parameter declaration is local to
-         function.  Issue a warning on type declarations, since they will
+         the function.  Issue a warning on type declarations, since they will
          not be visible outside the function declaration.  For example:
              inf f(struct s a;);
              struct s {int b;};
