@@ -75,6 +75,12 @@ EXTERN a_boolean
 			   unit.  FALSE when processing secondary translation
 			   units. */
 
+EXTERN a_boolean
+		translation_unit_needed_only_for_exported_templates;
+			/* TRUE when processing a secondary translation unit
+			   that is needed only for the exported templates
+			   it contains. */
+
 EXTERN a_translation_unit_ptr
 		translation_units;
 			/* Pointer to a list of translation units.  The first

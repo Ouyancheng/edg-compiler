@@ -1106,6 +1106,17 @@ memory or with an IL file.
        processing (to detect some constraint violations) and is never needed
        by the back end. */
     keep_memory = FALSE;
+  } else if (translation_unit_needed_only_for_exported_templates &&
+             rout != NULL && rout->is_template_function &&
+             !rout->is_specialized
+#if MINIMAL_INLINING
+             && (!inlining_enabled || !rout->is_inline)
+#endif /* MINIMAL_INLINING */
+                                                       ) {
+    /* This is a secondary translation unit needed only for its exported
+       templates.  Non-instantiated functions need not be kept. */
+    /* Keep inline functions in case we need to inline from them. */
+    keep_memory = FALSE;
   } else {
 #if !IL_SHOULD_BE_WRITTEN_TO_FILE
     /* The IL is passed to the back end in memory, so it is always kept. */
@@ -1135,6 +1146,10 @@ memory or with an IL file.
          needs it. */
       keep_memory = TRUE;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+    } else if (!is_primary_translation_unit) {
+      /* In a secondary translation unit, hold on to all memory regions
+         for further processing. */
+      keep_memory = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
     } else if (rout != NULL &&
                (!rout->keep_definition_in_il || !rout->definition_needed)) {
@@ -1156,6 +1171,7 @@ memory or with an IL file.
 #endif /* DEBUG */
     if (!keep_memory) {
       /* Write the region to the file and free it. */
+      check_assertion(is_primary_translation_unit);
       write_memory_region(region_number);
     }  /* if */
 #endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */

@@ -297,6 +297,8 @@ One-time initialization for trans_unit variables.
     register_pch_saved_variables(saved_vars);
   }  /* if */
   register_trans_unit_variable(is_primary_translation_unit);
+  register_trans_unit_variable(
+                          translation_unit_needed_only_for_exported_templates);
 }  /* trans_unit_one_time_init */
 
 
@@ -309,6 +311,7 @@ translation unit processing.
   curr_translation_unit = NULL;
   translation_units = NULL;
   translation_units_tail = NULL;
+  translation_unit_needed_only_for_exported_templates = FALSE;
 }  /* trans_unit_init */
 
 
