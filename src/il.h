@@ -271,6 +271,8 @@ extern a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type);
 
 extern a_field_ptr alloc_field(void);
 
+extern a_field_ptr next_initializable_field(a_field_ptr field);
+
 extern a_throw_specification_ptr alloc_throw_specification(void);
 
 extern a_throw_spec_type_ptr alloc_throw_spec_type(void);

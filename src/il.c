@@ -4915,6 +4915,24 @@ to it.
   return fp;
 }  /* alloc_field */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+a_field_ptr next_initializable_field(a_field_ptr field)
+/*
+Given a pointer to a field (or NULL), return a pointer to the first field
+at or after the given field that is initializable.  Unnamed bit fields,
+for example, are not initializable, and are skipped by initialization
+processing.  If there is no next such field, return NULL.
+*/
+{
+  for (; field != NULL; field = field->next) {
+    /* Named fields and non-bit-fields are initializable. */
+    if (field->bit_size == 0 || field->source_corresp.name != NULL) break;
+  }  /* for */
+  return field;
+}  /* next_initializable_field */
+
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_throw_specification_ptr alloc_throw_specification(void)
 /*
