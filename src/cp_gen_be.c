@@ -4379,6 +4379,19 @@ Generate code for the indicated statement.
       break;
     case stmk_asm:
       /* asm statement. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (statement->variant.asm_entry->is_asm_block) {
+        /* In Microsoft mode an asm statement may have the form
+           "__asm { ... }", with a sequence of individual asm statements
+           between the braces.  In other words, it looks just like the body
+           of an asm function. */
+        write_tok_str("__asm {");
+        write_code_string(statement->variant.asm_entry->
+                                       asm_string->variant.string.value);
+        write_tok_ch('}');
+        break;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       write_tok_str("asm(");
       gen_constant(statement->variant.asm_entry->asm_string,
                    /*need_parens=*/FALSE);
@@ -4390,7 +4403,6 @@ Generate code for the indicated statement.
       /* asm function body -- generate "{ ... }". */
       write_tok_ch('{');
       write_code_string(statement->variant.asm_func_body);
-      end_output_line_if_begun();
       write_tok_ch('}');
       break;
 #endif /* ASM_FUNCTION_ALLOWED */
