@@ -2291,7 +2291,7 @@ Clear the pointer stored in "var" if it is used.
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- because when MICROSOFT_EXTENSIONS_ALLOWED if FALSE,
+/*ARGSUSED*/ /* <-- because when MICROSOFT_EXTENSIONS_ALLOWED is FALSE,
                     call_conv, based_var, and based_pos are not used. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void collect_pointer_declarator_extended_qualifiers(
@@ -2305,14 +2305,14 @@ static void collect_pointer_declarator_extended_qualifiers(
 Collect a set of pointer declarator qualifiers provided as an extension
 (e.g., for Microsoft compatibility).  Aside from the standard const/volatile,
 support for near and far may be enabled (e.g., in Microsoft 16-bit mode),
-and Microsoft mode also allows near/far, calling conventions like __cdecl,
-and __based.  Scan all of those, and return information about what was
-scanned in *qualifiers, *call_conv, and *based_var.  If qualifiers are
-scanned, *qual_pos is set to their starting position.  If a __based qualifier
-is scanned, *based_pos is set to its source position.  It's permissible for
-the input to contain no qualifiers. If Microsoft extended decl specifiers,
-introduced by __declspec, are encountered, they are scanned and thrown away
-with a warning.
+and Microsoft mode also allows other modifiers, notably __based and calling
+conventions like __cdecl.  Scan all of those, and return information about
+what was scanned in *qualifiers, *call_conv, and *based_var.  If qualifiers
+are scanned, *qual_pos is set to their starting position.  If a __based
+qualifier is scanned, *based_pos is set to its source position.  It's
+permissible for the input to contain no qualifiers. If Microsoft extended
+decl specifiers, introduced by __declspec, are encountered, they are
+scanned and thrown away with a warning.
 */
 {
   a_type_qualifier_set new_qualifiers, duplicates;
