@@ -68,6 +68,14 @@ compiling with a C++ compiler it is set to ``extern "C"''.
 Determine if this is a WIN32 (e.g., Windows NT or Windows 95) system.
 */
 #ifndef __WIN32__
+#if defined(__WATCOMC__) && defined(__NT__)
+/* Some versions of the Watcom compiler fail to set _WIN32.  Set __WIN32__
+   when running the Watcom compiler on NT. */
+#define __WIN32__ 1
+#endif /* defined(__WATCOMC__) && defined(__NT__) */
+#endif /* ifndef __WIN32__ */
+
+#ifndef __WIN32__
 #ifdef _WIN32
 #define __WIN32__ 1
 #else /* !_WIN32 */

@@ -1,5 +1,11 @@
 Version 2.35
 
+1/27/96 Building the front end on Windows NT using the Watcom compiler
+
+The Watcom compiler does not currently defined the _WIN32 macro.
+As a workaround, basics.h has been modified to set the EDG macro __WIN32__
+when using the Watcom compiler on Windows NT.
+
 1/24/97 Lexical data structure: reserved characters eliminated
 
 The underlying data structure for the lexical routines has been changed
