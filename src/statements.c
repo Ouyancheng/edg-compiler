@@ -4683,6 +4683,8 @@ label_position indicates the source position of the label.
          clause statements will be attached to the switch clause directly.
          Since the clause is reachable, there was a previous switch clause
          that flows into this one, so generate a goto from there. */
+      /* Save reachability information on the flow-in. */
+      prev_reachability = curr_reachability;
       label = alloc_temp_label();
       if (label_directly_in_switch) {
         goto_stmt = add_statement((a_statement_kind)stmk_goto);
@@ -4714,8 +4716,6 @@ label_position indicates the source position of the label.
         goto_cfdp->variant.goto_statement.ptr = goto_stmt;
         add_to_control_flow_descr_list(goto_cfdp);
       }  /* if */
-      /* Save reachability information on the flow-in. */
-      prev_reachability = curr_reachability;
     }  /* if */
     /* Note that it is not appropriate to terminate the previous
        switch clause, if any, by calling term_stmt_clause.  Only a
