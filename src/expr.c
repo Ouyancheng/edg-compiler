@@ -2920,6 +2920,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (C_dialect == C_dialect_cplusplus && !property_ref_case &&
         is_overloadable_type_operand(operand)) {
+      a_boolean allow_one_arg = (allow_anachronisms || microsoft_mode);
       /* Look for C++ operator overloading cases. */
       /* Note that postfix ++/-- use a two-argument function to distinguish
          them from the prefix ++/--, which use a one-argument function.
@@ -2930,13 +2931,13 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
       check_for_operator_overloading(opname_kind,
                                      /*unary_operator=*/FALSE,  /* sic! */
                                      /*must_be_member_function=*/FALSE,
-                                     /*try_conversions=*/!allow_anachronisms,
-                                     /*has_predef_meaning=*/allow_anachronisms,
+                                     /*try_conversions=*/!allow_one_arg,
+                                     /*has_predef_meaning=*/allow_one_arg,
                                      operand, &zero_operand,
                                      &operator_position,
                                      operator_tok_seq_number,
                                      result, &processed);
-      if (!processed && allow_anachronisms) {
+      if (!processed && allow_one_arg) {
         /* Try the anachronism that allows a one-argument function to
            be used for both prefix and postfix ++/--. */
         check_for_operator_overloading(opname_kind,
@@ -2950,7 +2951,8 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                        result, &processed);
         if (processed) {
           if (!is_error_operand(result)) {
-            pos_st_diagnostic(anachronism_error_severity,
+            pos_st_diagnostic(allow_anachronisms ? anachronism_error_severity :
+                                                   es_warning,
                               ec_single_arg_postfix_incr_decr_anachronism,
                               &operator_position,
                               token_names[(int)curr_token]);

@@ -1,5 +1,22 @@
 Version 3.3
 
+7/11/03  Microsoft compatibility: one-argument operator++() for
+         postfix ++
+
+Microsoft mode now allows a one-argument operator++() or operator--()
+to match a postfix use of ++ or --, as an anachronism (the standard
+requires a two-argument function for the postfix operators; the "this"
+parameter counts as one of the arguments in either case).  A warning
+is issued.
+
+  struct A {
+    void operator++() {}
+  };
+  int main() {
+    A a;
+    a++;  // Okay with warning in Microsoft mode
+  }
+
 7/11/03  Error on \x with no following hex digit in string/character literal
 
 The sequence \x in a string or character literal should be followed
