@@ -3044,7 +3044,7 @@ If source sequence lists are being generated, autonomous_primary_tag_decl
 is always set to TRUE for a class created from a template instantiation,
 regardless of the kind of reference that triggers the instantiation.
 
-4/19/94  Parsing "overload" declarations inside a class definition
+4/19/95  Parsing "overload" declarations inside a class definition
 
 A bug has been fixed in parsing a declaration involving the "overload"
 keyword (an anachronism) when it appears inside a class definition.
@@ -4334,7 +4334,7 @@ An error is now issued for a throw of an abstract class type:
     throw r;  // Error
   }
 
-2/5/94   Partial IL lowering of exception handling
+2/5/95   Partial IL lowering of exception handling
 
 Exception handling constructs can now be handled three different ways
 by IL lowering:
