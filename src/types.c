@@ -2121,15 +2121,33 @@ Only callable in C++ mode.  See ARM 13.
 }  /* overload_distinguishable */
 
 
+static void switch_to_file_scope(
+                              a_memory_region_number *region_to_switch_back_to)
 /*
-Memory region to switch back to after file_scope_type copy, if non-zero.
+Switch to the file-scope memory region if not already there.  Set
+region_to_switch_back_to for use later by switch_back_to_original_region.
 */
-static a_memory_region_number
-		region_to_switch_back_to;
+{
+  if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
+    *region_to_switch_back_to = curr_il_region_number;
+    switch_il_region(FILE_SCOPE_REGION_NUMBER);
+  } else {
+    *region_to_switch_back_to = NULL_region_number;
+  }  /* if */
+}  /* switch_to_file_scope */
 
 
-/* Forward declaration required because of mutual recursion: */
-static a_type_ptr file_scope_type(a_type_ptr old_type);
+static void switch_back_to_original_region(
+                               a_memory_region_number region_to_switch_back_to)
+/*
+Switch back to the memory region that was current when switch_to_file_scope
+was called.
+*/
+{
+  if (region_to_switch_back_to != NULL_region_number) {
+    switch_il_region(region_to_switch_back_to);
+  }  /* if */
+}  /* switch_back_to_original_region */
 
 
 static a_param_type_ptr file_scope_param_list(a_param_type_ptr old_param)
@@ -2145,7 +2163,7 @@ to it.
     new_param = alloc_param_type(/*at_file_scope=*/TRUE);
     *new_param = *old_param;
     if (new_param->type != NULL) {
-      new_param->type = file_scope_type(old_param->type);
+      new_param->type = make_file_scope_type(old_param->type);
     }  /* if */
     new_param->next = NULL;
     if (new_param_list == NULL) {
@@ -2160,10 +2178,15 @@ to it.
 }  /* file_scope_param_list */
 
 
-static a_type_ptr file_scope_type(a_type_ptr old_type)
+a_type_ptr make_file_scope_type(a_type_ptr old_type)
 /*
-Routine that does the work for make_file_scope_type.  Returns a version
-of old_type that is entirely accessible in the file scope.
+Make a version of the indicated type that is in the file scope (top-level)
+memory region, and thus is accessible from anywhere.  This is used when
+a type appears inside a function, and is needed globally for type checking
+(like for compatibility of externals).  This routine only copies the parts
+of the type that are not already in the file scope.  In the limiting case,
+if the type is already completely in the file scope, the original pointer
+is returned.
 */
 {
   a_type_ptr              new_type;
@@ -2174,6 +2197,7 @@ of old_type that is entirely accessible in the file scope.
 			  extra_info;
   a_type_kind             kind;
   a_type_ptr              *btaep;
+  a_memory_region_number  region_to_switch_back_to;
 
   /* See if the type entry is already at the file scope, and does not need
      to be copied. */
@@ -2186,20 +2210,17 @@ of old_type that is entirely accessible in the file scope.
     if (new_type != NULL) {
       /* Yes.  Use it. */
     } else {
-      /* The type entry will have to be copied.  Switch to the file scope
-         memory region if not already there. */
-      if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
-        region_to_switch_back_to = curr_il_region_number;
-        switch_il_region(FILE_SCOPE_REGION_NUMBER);
-      }  /* if */
+      /* The type entry will have to be copied. */
       kind = old_type->kind;
 #if DEBUG
       if (debug_level >= 4) {
-        fprintf(f_debug, "file_scope_type: copying type with kind = %d\n",
+        fprintf(f_debug, "make_file_scope_type: copying type with kind = %d\n",
                          (int)kind);
       }  /* if */
 #endif /* DEBUG */
+      switch_to_file_scope(&region_to_switch_back_to);
       new_type = alloc_type(kind);
+      switch_back_to_original_region(region_to_switch_back_to);
       /* Remember the location of the file scope copy in case it's ever again
          needed. */
       *btaep = new_type;
@@ -2222,33 +2243,39 @@ of old_type that is entirely accessible in the file scope.
           break;
         case tk_integer:
           /* Copy an enumerated constant list if there is one. */
+          new_ec_list = end_new_ec_list = NULL;
           if (old_type->variant.integer.enum_type) {
-            new_ec_list = end_new_ec_list = NULL;
+            /* Enum tag. */
             for (old_ec = old_type->variant.integer.enum_constant_list;
                  old_ec != NULL;
                  old_ec = old_ec->next) {
+              switch_to_file_scope(&region_to_switch_back_to);
               new_ec = alloc_unshared_constant(old_ec);
-              new_ec->type = file_scope_type(old_ec->type);
+              switch_back_to_original_region(region_to_switch_back_to);
+              new_ec->type = make_file_scope_type(old_ec->type);
               if (new_ec_list == NULL) {
                 new_ec_list = new_ec;
+                /* Link the type of the constants (int tagged with the enum
+                   type) to the first constant. */
+                new_ec->type->variant.integer.enum_constant_list = new_ec;
               } else {
                 end_new_ec_list->next = new_ec;
               }  /* if */
               end_new_ec_list = new_ec;
             }  /* for */
-            new_type->variant.integer.enum_constant_list = new_ec_list;
             add_to_types_list(new_type, /*at_file_scope=*/TRUE,
                               /*in_old_style_param_decl_list=*/FALSE);
           }  /* if */
+          new_type->variant.integer.enum_constant_list = new_ec_list;
           break;
         case tk_pointer:
         case tk_reference:
           new_type->variant.pointer_type_pointed_to =
-                    file_scope_type(old_type->variant.pointer_type_pointed_to);
+               make_file_scope_type(old_type->variant.pointer_type_pointed_to);
           break;
         case tk_array:
           new_type->variant.array.element_type =
-                         file_scope_type(old_type->variant.array.element_type);
+                    make_file_scope_type(old_type->variant.array.element_type);
           break;
         case tk_class:
         case tk_struct:
@@ -2258,12 +2285,14 @@ of old_type that is entirely accessible in the file scope.
           for (old_field = old_type->variant.class_struct_union.field_list;
                old_field != NULL;
                old_field = old_field->next) {
+            switch_to_file_scope(&region_to_switch_back_to);
             new_field = alloc_field();
+            switch_back_to_original_region(region_to_switch_back_to);
             *new_field = *old_field;
             /* The source correspondence is NOT cleared.  The name is needed
                for IL output.  The copy still corresponds to the source
                construct. */
-            new_field->type = file_scope_type(old_field->type);
+            new_field->type = make_file_scope_type(old_field->type);
             new_field->next = NULL;
             if (new_field_list == NULL) {
               new_field_list = new_field;
@@ -2277,7 +2306,7 @@ of old_type that is entirely accessible in the file scope.
 #if 0
             /* Copy the supplement. */
 #else
-            internal_error("file_scope_type: cannot copy class");
+            internal_error("make_file_scope_type: cannot copy class");
 #endif
           }  /* if */
           /* Add the type to the file scope types list.  This is done after
@@ -2288,7 +2317,7 @@ of old_type that is entirely accessible in the file scope.
           break;
         case tk_routine:
           new_type->variant.routine.return_type =
-                        file_scope_type(old_type->variant.routine.return_type);
+                   make_file_scope_type(old_type->variant.routine.return_type);
           extra_info = new_type->variant.routine.extra_info;
           /* The prototype scope contains only named types, and does not need
              to be copied explicitly (any types from it that are used will
@@ -2303,40 +2332,16 @@ of old_type that is entirely accessible in the file scope.
           break;
         case tk_typeref:
           new_type->variant.typeref.type =
-                               file_scope_type(old_type->variant.typeref.type);
+                          make_file_scope_type(old_type->variant.typeref.type);
           break;
 #if CHECKING
         default:
-          internal_error("file_scope_type: bad type kind");
+          internal_error("make_file_scope_type: bad type kind");
 #endif /* CHECKING */
       }  /* switch */
     }  /* if */
   }  /* if */
   return new_type;
-}  /* file_scope_type */
-
-
-a_type_ptr make_file_scope_type(a_type_ptr type)
-/*
-Make a version of the indicated type that is in the file scope (top-level)
-memory region, and thus is accessible from anywhere.  This is used when
-a type appears inside a function, and is needed globally for type checking
-(like for compatibility of externals).  This routine only copies the parts
-of the type that are not already in the file scope.  In the limiting case,
-if the type is already completely in the file scope, the original pointer
-is returned.
-*/
-{
-  a_type_ptr new_type;
-
-  region_to_switch_back_to = NULL_region_number;
-  new_type = file_scope_type(type);
-  /* Switch back to the original memory region if we switched to the file
-     scope region during the copy. */
-  if (region_to_switch_back_to != NULL_region_number) {
-    switch_il_region(region_to_switch_back_to);
-  }  /* if */
-  return(new_type);
 }  /* make_file_scope_type */
 
 
