@@ -1,5 +1,16 @@
 Version 2.29
 
+3/13/95  Bug in finding user-defined conversion
+
+A bug has been fixed that resulted in a spurious error on the following:
+
+  struct B { };
+  struct D : public B { };
+  struct X {
+    operator const D&();
+  } x;
+  const B &r = x;            // Spurious error is no longer issued.
+
 3/13/95  Const-address-taken references for conversion functions
 
 Const-address-taken references in the cross-reference output (added in
