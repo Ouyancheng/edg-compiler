@@ -1127,7 +1127,8 @@ caution when modifying this routine.
           goto done;
         }  /* if */
       }  /* if */
-      if (tag_sym == NULL && tag_kind == (a_symbol_kind)sk_enum_tag) {
+      if (tag_sym == NULL && tag_kind == (a_symbol_kind)sk_enum_tag &&
+          !is_error_locator(*locator)) {
         /* Since tag_sym was not found, this is either a vacuous declaration
            or a reference to an incomplete (because not yet declared) type.
            In either case this is non-standard for enums.  It is allowed as
@@ -2249,17 +2250,17 @@ to indicate whether an enumeration is actually defined.
           set_to_error_locator(locator);
         }  /* if */
       }  /* if */
+    } else if (is_error_locator(locator) && curr_token != tok_lbrace) {
+      /* There was an error is looking up the tag, and this is not a
+         definition.  For error recovery, return an error type. */
+      *type_ptr = error_type();
+      goto return_point;
     } else if (tag_sym == NULL && class_of_which_a_member &&
                effective_decl_level != decl_scope_level) {
       /* This is a (non-standard) forward declaration of a nonclass that
          appears inside a class definition. */
       class_of_which_a_member = NULL;
       access = (an_access_specifier)as_public;
-    } else if (is_error_locator(locator) && curr_token != tok_lbrace) {
-      /* There was an error is looking up the tag, and this is not a
-         definition.  For error recovery, return an error type. */
-      *type_ptr = error_type();
-      goto return_point;
     }  /* if */
   } else {
     /* No tag identifier present. */
