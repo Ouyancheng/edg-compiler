@@ -6582,6 +6582,9 @@ specific information about the member declaration, respectively.
     update_source_sequence_list((char *)field, (an_il_entry_kind)iek_field,
                                 decl_info->declarator_ssep);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    if (decl_info->is_member_template) {
+      pos_error(ec_bad_member_template_decl, &decl_info->decl_start_pos);
+    }  /* if */
   } else {
     /* Create the field symbol. */
     if (decl_info->is_anonymous_union) {
@@ -8823,11 +8826,9 @@ class (prototype instantiation of a class template).
   a_boolean          skip_semicolon_check;
   a_scope_depth      scope_level;
   a_symbol_ptr       sym;
-  a_source_position  decl_start_pos;
   a_type_ptr         dummy_type;
 
   db_enter(3, "class_member_template_declaration");
-  decl_start_pos = pos_curr_token;
   /* Get the class definition state, which is pointed to from the scope-stack
      entry. */
   scope_level = class_type->variant.class_struct_union.extra_info->
