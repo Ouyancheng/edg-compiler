@@ -4968,12 +4968,13 @@ class reactivations and template instantiations are not real scopes.
          (kind) != (a_scope_kind)sck_template_instantiation))
 
 
-a_scope_ptr push_scope(a_scope_kind   kind,
-		       a_scope_number scope_number_to_reuse,
-                       a_type_ptr     assoc_type,
-                       a_routine_ptr  assoc_routine,
-                       a_function_instantiation_entry_ptr
-                                      assoc_instantiation)
+a_scope_ptr push_scope(a_scope_kind       kind,
+		       a_scope_number     scope_number_to_reuse,
+                       a_type_ptr         assoc_type,
+                       a_routine_ptr      assoc_routine,
+                       a_symbol_ptr       instance_sym,
+                       a_symbol_ptr       template_sym,
+                       a_template_arg_ptr template_arg_list)
 /*
 Begin a new name scope by pushing an entry on the scope stack.  kind indicates
 the kind of scope (file, function, block, function prototype, etc.).  Returns
@@ -4987,9 +4988,13 @@ assoc_type points to an associated type for the cases where that's
 meaningful (function prototype, class, class reactivation, and template
 instantiation (for class templates only) scopes); it must be NULL in other
 cases.  assoc_routine points to a routine for the function scope case; it
-must be NULL in other cases.  assoc_instantiation is used for instantiations
-of function templates and member functions of class templates and points to
-the function instantiation entry associated with the function.
+must be NULL in other cases.  instance_symbol, template_symbol, and
+template_arg_list are non-NULL only when a template instantiation scope is
+being pushed; they represent, respectively, the symbol for the class or
+function being instantiated or the static data member being defined; the
+symbol identifying the template on which the instantiation or definition is
+based; and the template argument list the produces the specific version
+of the template.
 */
 {
   a_scope_stack_entry_ptr ssep;
@@ -5080,9 +5085,9 @@ the function instantiation entry associated with the function.
   ssep->last_scope               = NULL;
   ssep->last_dynamic_init        = NULL;
   ssep->depth_of_previous_instantiation = NULL;
-  ssep->template_sym             = NULL;
-  ssep->template_arg_list        = NULL;
-  ssep->assoc_instantiation      = assoc_instantiation;
+  ssep->instance_sym             = instance_sym;
+  ssep->template_sym             = template_sym;
+  ssep->template_arg_list        = template_arg_list;
   ssep->source_position          = pos_curr_token;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
@@ -5122,56 +5127,24 @@ the function instantiation entry associated with the function.
         inside_local_class = TRUE;
       }  /* if */
     }  /* if */
-    /* If this is a template instantiation we must update the symbols
-       of the template parameters to represent the values of the actual
-       arguments.  This is done by updating the parameter symbols to
-       point to the types or constants that are pointed to by the
-       template argument entries.  The old values do not need to be
-       saved because they can be easily recreated by pop_scope. */
     if (kind == (a_scope_kind)sck_template_instantiation) {
-      a_symbol_ptr                      template_sym;
-      a_template_symbol_supplement_ptr  tssp;
-      a_template_arg_ptr                tap;
-#if CHECKING
-      /* Class instantiations must have an assoc_type that points to a
-         template class.  Function instantiations must have a routine
-         pointer and an instantiation pointer. */
-      if ((assoc_type == NULL && assoc_routine == NULL) ||
-          (assoc_type != NULL && !is_template_class_type(assoc_type)) ||
-          (assoc_routine != NULL && assoc_instantiation == NULL)) {
-        internal_error
-            ("push_scope: invalid arguments for instantiation scope.");
-      }  /* if */
-#endif /* CHECKING */
+      a_template_symbol_supplement_ptr  tssp =
+                                          template_sym->variant.template_info;
+
       /* Save the depth of the innermost instantiation scope. */
       depth_of_innermost_instantiation_scope = depth_scope_stack;
-      if (assoc_routine != NULL) {
-        /* Function instantiation. */
-        tap = assoc_instantiation->arg_list;
-        template_sym = assoc_instantiation->template_sym;
-      } else {
-        /* Class instantiation. */
-        /* Get pointers to the symbol of the class template and the
-           template class. */
-        a_symbol_ptr  instance_sym;
-        instance_sym = (a_symbol_ptr)assoc_type->source_corresp.assoc_info;
-        /* Get a pointer to the first template argument. */
-        tap = assoc_type->variant.class_struct_union.extra_info->
-                                                             template_arg_list;
-        /* Get a pointer back to the class template. */
-        template_sym = instance_sym->variant.class_struct_union.extra_info->
-                                                                class_template;
-      }  /* if */
-      ssep->template_arg_list = tap;
-      ssep->template_sym = template_sym;
-      update_template_param_symbols(template_sym, tap);
+      /* Update the symbols of the template parameters to represent the
+         values of the actual arguments by simply changing each to point to
+         the type or constant specifed by the corresponding template argument.
+         The old values do not need to be saved because they can be easily
+         recreated by pop_scope. */
+      update_template_param_symbols(template_sym, template_arg_list);
       /* Save the value of the innermost instantiation for the current
          class template in the scope stack.  This is used by pop_scope to
          restore the parameter values in the case of a recursive
          instantiation. */
-      tssp = template_sym->variant.template_info;
       ssep->depth_of_previous_instantiation =
-          tssp->innermost_instantiation_scope;
+                                  tssp->innermost_instantiation_scope;
       tssp->innermost_instantiation_scope = depth_scope_stack;
     }  /* if */
   }  /* if */
@@ -6040,8 +6013,8 @@ is called only in C++.
 #endif /* CHECKING */
   /* Push an entry for the scope. */
   (void)push_scope((a_scope_kind)sck_class_reactivation, il_scope->number,
-                   class_type, (a_routine_ptr)NULL,
-                   (a_function_instantiation_entry_ptr)NULL);
+                   class_type, (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
+                   (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
 }  /* push_class_reactivation_scope */
 
 

@@ -1328,26 +1328,27 @@ typedef struct a_scope_stack_entry {
                            template being instantiated and is used
                            to restore the template parameters to the correct
                            state when the scope stack is popped. */
+  a_symbol_ptr  instance_sym;
+                        /* When kind == sck_template_instantiation, contains
+                           a pointer to the symbol for the class or function
+			   being instantiated or the static data member being
+			   defined. */
   a_symbol_ptr  template_sym;
                         /* When kind == sck_template_instantiation, contains
-                           a pointer to the class template or function
-                           template symbol and is used to access the
-                           template parameter list. */
+                           a pointer to the symbol for the class template,
+			   function template, or static data member template
+			   symbol; it is used to access the template parameter
+			   list. */
   a_template_arg_ptr
                 template_arg_list;
                         /* When kind == sck_template_instantiation, contains
                            a pointer to template argument list. */
-  a_function_instantiation_entry_ptr
-		assoc_instantiation;
-			/* When kind == sck_template_instantiation and the
-			   instantiation is for a function template, contains
-			   a pointer to the function instantiation entry
-			   associated with this instantiation. */
   a_source_position
 		source_position;
 			/* The source position when the scope was pushed
 			   onto the stack. */
 } a_scope_stack_entry;
+
 
 EXTERN a_scope_stack_entry_ptr
 		scope_stack /* = NULL */;
@@ -1655,13 +1656,13 @@ extern a_symbol_ptr opname_member_function_symbol(an_opname_kind kind,
 extern a_symbol_ptr opname_function_symbol(an_opname_kind kind);
 
 /* Begin a name scope. */
-extern a_scope_ptr push_scope(a_scope_kind   kind,
-			      a_scope_number scope_number_for_function,
-                              a_type_ptr     assoc_type,
-                              a_routine_ptr  assoc_routine,
-                              a_function_instantiation_entry_ptr
-                                             assoc_intantiation);
-
+extern a_scope_ptr push_scope(a_scope_kind       kind,
+       	                      a_scope_number     scope_number_to_reuse,
+                              a_type_ptr         assoc_type,
+                              a_routine_ptr      assoc_routine,
+                              a_symbol_ptr       instance_symbol,
+                              a_symbol_ptr       template_symbol,
+                              a_template_arg_ptr template_arg_list);
 /* End a name scope. */
 extern void pop_scope(void);
 extern void push_class_reactivation_scope(a_type_ptr class_type);
