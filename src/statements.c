@@ -2407,7 +2407,7 @@ the block statement.
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Don't pop the name scope here if this is the end of the guarded
-       statement of Microsoft __try statement.  It will be done after the
+       statement of a Microsoft __try statement.  It will be done after the
        __except expression, if any, is processed. */
     if (struct_stmt_stack[depth_stmt_stack].kind != ssk_microsoft_try ||
         struct_stmt_stack[depth_stmt_stack].
