@@ -130,7 +130,14 @@ processed; if not, ptr is remapped but the list is not traversed.
 /*
 Process the source correspondence field pointed to by ptr.
 */
+#ifdef CFE
+#define walk_source_corresp(ptr) \
+{ walk_string_ptr((ptr).name, iek_id_name, 0); \
+  remap_ptr((ptr).class_of_which_a_member, a_type_ptr, iek_type) \
+}  /* walk_source_corresp */
+#else /* if !defined(CIL) */
 #define walk_source_corresp(ptr) walk_string_ptr((ptr).name, iek_id_name, 0)
+#endif /* ifdef CIL */
 
 
 static void walk_constant(a_constant_ptr ptr)
@@ -182,6 +189,19 @@ Process the indicated constant entry.
 #endif /* CHECKING */
       }  /* switch */
       break;
+    case ck_ptr_to_member:
+      if (ptr->variant.ptr_to_member.is_function_ptr) {
+        remap_ptr(ptr->variant.ptr_to_member.variant.routine, a_routine_ptr,
+                  iek_routine);
+      } else {
+        remap_ptr(ptr->variant.ptr_to_member.variant.field, a_field_ptr,
+                    iek_field);
+      }  /* if */
+      break;
+    case ck_dynamic_init:
+        walk_ptr(ptr->variant.dynamic_init, a_dynamic_init_ptr,
+                 iek_dynamic_init);
+      break;
 #endif /* ifdef CFE */
     case ck_aggregate:
       walk_list(ptr->variant.aggregate.first_constant, a_constant_ptr,
@@ -189,12 +209,12 @@ Process the indicated constant entry.
       remap_ptr(ptr->variant.aggregate.last_constant, a_constant_ptr,
                 iek_constant);
       break;
-#ifdef FFE
-    case ck_init_position:
-      break;
     case ck_init_repeat:
       walk_ptr(ptr->variant.init_repeat.constant, a_constant_ptr,
                iek_constant);
+      break;
+#ifdef FFE
+    case ck_init_position:
       break;
 #endif /* ifdef FFE */
 #if CHECKING
@@ -244,13 +264,21 @@ Process the indicated type entry.
     case tk_array:
       walk_ptr(ptr->variant.array.element_type, a_type_ptr, iek_type);
       break;
+    case tk_class:
     case tk_struct:
     case tk_union:
       walk_list(ptr->variant.class_struct_union.field_list, a_field_ptr,
                 iek_field);
+      walk_ptr(ptr->variant.class_struct_union.extra_info,
+               a_class_type_supplement_ptr, iek_class_type_supplement);
       break;
     case tk_typeref:
       walk_ptr(ptr->variant.typeref.type, a_type_ptr, iek_type);
+      break;
+    case tk_ptr_to_member:
+      remap_ptr(ptr->variant.ptr_to_member.class_of_which_a_member,
+                a_type_ptr, iek_type);
+      walk_ptr(ptr->variant.ptr_to_member.type, a_type_ptr, iek_type);
       break;
 #endif /* ifdef CFE */
     case tk_routine:
@@ -297,11 +325,47 @@ Process the indicated scope.
 */
 {
   remap_next_ptr(ptr->next, a_scope_ptr, iek_scope);
-  /* "assoc_routine" and "assoc_block" are done after the declarations. */
-  walk_list(ptr->parameters, a_variable_ptr, iek_variable);
+  switch (ptr->kind) {
+    case sck_file:
 #ifdef FFE
-  walk_ptr (ptr->function_result_var, a_variable_ptr, iek_variable);
+    case sck_stmt_function:
+#endif  /* ifdef FFE */
+#ifdef CFE
+    case sck_block:
+      /* No variant field, but see assoc_bloc below. */
+#endif  /* ifdef CFE */
+      /* No pointers */
+      break;
+#ifdef CFE
+    case sck_func_prototype:
+    case sck_class_struct_union:
+      remap_ptr(ptr->variant.assoc_type, a_type_ptr, iek_type);
+      break;
+#endif  /* ifdef CFE */
+    case sck_function:
+      /* "ptr", which points to the routine associated with this scope is
+         done after the declarations. */
+      walk_list(ptr->variant.routine.parameters, a_variable_ptr,
+                iek_variable);
+#ifdef CFE
+      walk_list(ptr->variant.routine.constructor_inits,
+                a_constructor_init_ptr, iek_constructor_init);
+      walk_ptr(ptr->variant.routine.this_param_variable, a_variable_ptr,
+              iek_variable);
+      walk_ptr(ptr->variant.routine.return_value_pointer_variable,
+               a_variable_ptr, iek_variable);
+#endif  /* ifdef CFE */
+#ifdef FFE
+      walk_ptr (ptr->variant.routine.function_result_var, a_variable_ptr,
+                iek_variable);
 #endif /* ifdef FFE */
+      break;
+#if CHECKING
+    default:
+      internal_error("walk_scope: bad scope kind");
+#endif  /* CHECKING */
+  }  /* switch */
+  /* "assoc_block" is done after the declarations. */
   walk_list(ptr->constants, a_constant_ptr, iek_constant);
   walk_list(ptr->types, a_type_ptr, iek_type);
   walk_list(ptr->variables, a_variable_ptr, iek_variable);
@@ -309,12 +373,15 @@ Process the indicated scope.
   walk_list(ptr->routines, a_routine_ptr, iek_routine);
 #ifdef CFE
   walk_list(ptr->scopes, a_scope_ptr, iek_scope);
+  remap_ptr(ptr->dynamic_inits, a_dynamic_init_ptr, iek_dynamic_init);
 #endif /* ifdef CFE */
 #ifdef FFE
   walk_list(ptr->entries, an_entry_description_ptr, iek_entry_description);
   walk_list(ptr->namelist_groups, a_namelist_group_ptr, iek_namelist_group);
 #endif /* ifdef FFE */
-  remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
+  if (ptr->kind == sck_function) {
+    remap_ptr(ptr->variant.routine.ptr, a_routine_ptr, iek_routine);
+  }  /* if */
   walk_ptr(ptr->assoc_block, a_statement_ptr, iek_statement);
 }  /* walk_scope */
 
@@ -413,6 +480,16 @@ and the entry pointer is to an entry in the file scope, just return
         case iek_entry_param:
         case iek_entry_description:
 #endif /* ifdef FFE */
+#ifdef CFE
+        case iek_dynamic_init:
+        case iek_access_adjustment:
+        case iek_overriding_virtual_function:
+        case iek_derivation_step:
+        case iek_base_class:
+        case iek_class_list_entry:
+        case iek_class_type_supplement:
+        case iek_constructor_init:
+#endif /* ifdef CFE */
           /* These entries do not have an il_walk_flag. */
           break;
 #if CHECKING
@@ -469,6 +546,23 @@ and the entry pointer is to an entry in the file scope, just return
         case iek_entry_description:
 				s = "entry description";       break;
 #endif /* ifdef FFE */
+#ifdef CFE
+        case iek_dynamic_init:  s = "dynamic init";            break;
+        case iek_access_adjustment:
+                                s = "access_adjustment";       break;
+        case iek_overriding_virtual_function:
+                                s = "overriding virtual function";
+                                                               break;
+        case iek_derivation_step:
+                                s = "derivation step";         break;
+        case iek_base_class:    s = "base class";              break;
+        case iek_class_list_entry:
+                                s = "class list entry";        break;
+        case iek_class_type_supplement:
+                                s = "class type supplement";   break;
+        case iek_constructor_init:
+                                s = "constructor_init";        break;
+#endif /* ifdef CFE */
         default:                s = "<bad kind>";              break;
       }  /* switch */
       fprintf(f_debug, "Walking IL tree, entry kind = %s\n", s);
@@ -500,9 +594,9 @@ and the entry pointer is to an entry in the file scope, just return
       case iek_param_type:
         {
           a_param_type_ptr ptr = (a_param_type_ptr)entry_ptr;
-          remap_next_ptr(ptr->next, a_param_type_ptr,
-                                       iek_param_type);
+          remap_next_ptr(ptr->next, a_param_type_ptr, iek_param_type);
           walk_ptr(ptr->type, a_type_ptr, iek_type);
+          walk_ptr(ptr->default_arg_expr, an_expr_node_ptr, iek_expr_node);
         }
         break;
       case iek_routine_type_supplement:
@@ -511,6 +605,7 @@ and the entry pointer is to an entry in the file scope, just return
                                       (a_routine_type_supplement_ptr)entry_ptr;
           walk_list(ptr->param_type_list, a_param_type_ptr, iek_param_type);
 #ifdef CFE
+          walk_ptr(ptr->implicit_this_param_type, a_type_ptr, iek_type);
           walk_ptr(ptr->prototype_scope, a_scope_ptr, iek_scope);
 #endif /* ifdef CFE */
           remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
@@ -534,7 +629,24 @@ and the entry pointer is to an entry in the file scope, just return
           walk_source_corresp(ptr->source_corresp);
           remap_next_ptr(ptr->next, a_variable_ptr, iek_variable);
           walk_ptr(ptr->type, a_type_ptr, iek_type);
-          walk_ptr(ptr->initializer, a_constant_ptr, iek_constant);
+          walk_ptr(ptr->assoc_param_type, a_param_type_ptr, iek_param_type);
+          switch (ptr->init_kind) {
+            case initk_none:
+              /* No pointers. */
+              break;
+            case initk_static:
+              walk_ptr(ptr->initializer.constant, a_constant_ptr,
+                       iek_constant);
+              break;
+            case initk_dynamic:
+              walk_ptr(ptr->initializer.dynamic, a_dynamic_init_ptr,
+                       iek_dynamic_init);
+              break;
+#if CHECKING
+            default:
+              internal_error("walk_entry_and_subtree: bad variable init kind");
+#endif  /* CHECKING */
+          }  /* switch */
 #ifdef FFE
           remap_ptr(ptr->base_var, a_variable_ptr, iek_variable);
           remap_ptr(ptr->function_result_var_function, a_routine_ptr,
@@ -561,6 +673,10 @@ and the entry pointer is to an entry in the file scope, just return
           /* assoc_scope points to a different memory region and is not
              walked automatically.  The entry_process_func can arrange
              to call walk_routine_scope_il if it wants to. */
+#ifdef CFE
+          walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
+                    iek_class_list_entry);
+#endif /* ifdef CFE */
 #ifdef FFE
           walk_ptr(ptr->local_routine_scope, a_scope_ptr, iek_scope);
 #endif /* ifdef FFE */
@@ -594,6 +710,9 @@ and the entry pointer is to an entry in the file scope, just return
 #endif /* CHECKING */
           }  /* switch */
 #endif /* ifdef FFE */
+#ifdef CFE
+          remap_ptr(ptr->parent_block, a_statement_ptr, iek_statement);
+#endif /* ifdef CFE */
         }
         break;
       case iek_expr_node:
@@ -634,6 +753,12 @@ and the entry pointer is to an entry in the file scope, just return
                  them. */
               remap_ptr(ptr->variant.field, a_field_ptr, iek_field);
               break;
+            case enk_temp_init:
+              walk_ptr(ptr->variant.temp_init.dynamic_init,
+                       a_dynamic_init_ptr, iek_dynamic_init);
+              walk_ptr(ptr->variant.temp_init.expr, an_expr_node_ptr,
+                       iek_expr_node);
+              break;
 #endif /* ifdef CFE */
 #ifdef FFE
             case enk_stmt_label_value:
@@ -666,6 +791,7 @@ and the entry pointer is to an entry in the file scope, just return
              scopes for the current scope.  Therefore, here we just remap
              the pointer but do not walk the subtree. */
           remap_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
+          remap_ptr(ptr->parent_block, a_statement_ptr, iek_statement);
         }
 #endif /* ifdef CFE */
         break;
@@ -717,8 +843,8 @@ and the entry pointer is to an entry in the file scope, just return
                        a_statement_ptr, iek_statement);
               break;
             case stmk_init:
-              walk_ptr(ptr->variant.init_variable, a_variable_ptr,
-                       iek_variable);
+              remap_ptr(ptr->variant.dynamic_init, a_dynamic_init_ptr,
+                        iek_dynamic_init);
               break;
             case stmk_asm:
               walk_ptr(ptr->variant.asm_string, a_constant_ptr, iek_constant);
@@ -930,6 +1056,155 @@ and the entry pointer is to an entry in the file scope, just return
         }
         break;
 #endif /* ifdef FFE */
+#ifdef CIL
+      case iek_dynamic_init:
+        {
+          a_dynamic_init_ptr ptr = (a_dynamic_init_ptr)entry_ptr;
+          remap_ptr(ptr->next, a_dynamic_init_ptr, iek_dynamic_init);
+          remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
+          remap_ptr(ptr->destructor, a_routine_ptr, iek_routine);
+          switch (ptr->kind) {
+            case dik_none:
+            case dik_member_copy:
+            case dik_base_class_copy:
+              /* No pointers. */
+              break;
+            case dik_constant:
+              walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
+              break;
+            case dik_expression:
+              walk_ptr(ptr->variant.expression, an_expr_node_ptr,
+                       iek_expr_node);
+              break;
+            case dik_constructor:
+              remap_ptr(ptr->variant.constructor.routine, a_routine_ptr,
+                        iek_routine);
+              walk_ptr(ptr->variant.constructor.args, an_expr_node_ptr,
+                       iek_expr_node);
+              break;
+            case dik_nonconstant_aggregate:
+              walk_ptr(ptr->variant.aggregate.aggr_const, a_constant_ptr,
+                       iek_constant);
+              walk_list(ptr->variant.aggregate.dynamic_init_list,
+                        a_dynamic_init_ptr, iek_dynamic_init);
+              break;
+#ifdef CHECKING
+            default:
+              internal_error("walk_entry_and_subtree: bad dynamic init kind");
+#endif /* CHECKING */
+          }  /* switch */
+        }
+        break;
+      case iek_access_adjustment:
+        {
+          an_access_adjustment_ptr ptr = (an_access_adjustment_ptr)entry_ptr;
+          remap_ptr(ptr->next, an_access_adjustment_ptr,
+                    iek_access_adjustment);
+          switch (ptr->kind) {
+            case aak_field:
+              remap_ptr(ptr->variant.field, a_field_ptr, iek_field);
+              break;
+            case aak_variable:
+              remap_ptr(ptr->variant.variable, a_variable_ptr, iek_variable);
+              break;
+            case aak_routine:
+              remap_ptr(ptr->variant.routine, a_routine_ptr, iek_routine);
+              break;
+            case aak_type:
+              remap_ptr(ptr->variant.type, a_type_ptr, iek_type);
+              break;
+            case aak_constant:
+              walk_constant(ptr->variant.constant);
+              break;
+#if CHECKING
+            default:
+              internal_error(
+                   "walk_entry_and_subtree: bad access adjustment kind");
+#endif /* CHECKING */
+          }  /* switch */
+        }
+        break;
+      case iek_overriding_virtual_function:
+        {
+          an_overriding_virtual_function_ptr ptr =
+                   (an_overriding_virtual_function_ptr)entry_ptr;
+          remap_ptr(ptr->next, an_overriding_virtual_function_ptr,
+                    iek_overriding_virtual_function);
+          remap_ptr(ptr->primary_function, a_routine_ptr, iek_routine);
+          remap_ptr(ptr->base_class, a_base_class_ptr, iek_base_class);
+        }
+        break;
+      case iek_derivation_step:
+        {
+          a_derivation_step_ptr ptr = (a_derivation_step_ptr)entry_ptr;
+          remap_ptr(ptr->next, a_derivation_step_ptr, iek_derivation_step);
+          remap_ptr(ptr->base_class, a_base_class_ptr, iek_base_class);
+        }
+        break;
+      case iek_base_class:
+        {
+          a_base_class_ptr ptr = (a_base_class_ptr)entry_ptr;
+          remap_ptr(ptr->next, a_base_class_ptr, iek_base_class);
+          remap_ptr(ptr->type, a_type_ptr, iek_type);
+          walk_list(ptr->derivation, a_derivation_step_ptr,
+                    iek_derivation_step);
+          walk_list(ptr->overriding_virtual_functions,
+                    an_overriding_virtual_function_ptr,
+                    iek_overriding_virtual_function);
+#if DO_IL_LOWERING
+          walk_ptr(ptr->virtual_function_table_var, a_variable_ptr,
+                   iek_variable);
+#endif /* DO_IL_LOWERING */
+        }
+        break;
+      case iek_class_list_entry:
+        {
+          a_class_list_entry_ptr ptr = (a_class_list_entry_ptr)entry_ptr;
+          remap_ptr(ptr->next, a_class_list_entry_ptr, iek_class_list_entry);
+          remap_ptr(ptr->class_type, a_type_ptr, iek_type);
+        }
+        break;
+      case iek_class_type_supplement:
+        {
+          a_class_type_supplement_ptr ptr =
+                          (a_class_type_supplement_ptr)entry_ptr;
+          walk_list(ptr->base_classes, a_base_class_ptr, iek_base_class);
+          walk_list(ptr->access_adjustments, an_access_adjustment_ptr,
+                    iek_access_adjustment);
+          walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
+                    iek_class_list_entry);
+          walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
+#if DO_IL_LOWERING
+          walk_ptr(ptr->virtual_function_table_var, a_variable_ptr,
+                   iek_variable);
+          remap_ptr(ptr->type_as_subobject, a_type_ptr, iek_type);
+#endif /*DO_IL_LOWERING */
+        }
+        break;
+      case iek_constructor_init:
+        {
+          a_constructor_init_ptr ptr = (a_constructor_init_ptr)entry_ptr;
+          remap_ptr(ptr->next, a_constructor_init_ptr,
+                    iek_constructor_init);
+          switch (ptr->kind) {
+            case cik_virtual_base_class:
+            case cik_direct_base_class:
+              remap_ptr(ptr->variant.base_class, a_base_class_ptr,
+                        iek_base_class);
+              break;
+            case cik_field:
+              remap_ptr(ptr->variant.field, a_field_ptr, iek_field);
+              break;
+#if CHECKING
+            default:
+              internal_error(
+                  "walk_entry_and_subtree: bad constructor init kind");
+#endif /* CHECKING */
+          }  /* switch */
+          walk_ptr(ptr->initializer, a_dynamic_init_ptr, iek_dynamic_init);
+        }
+        break;
+#endif /* ifdef CIL */
 #if CHECKING
       case iek_id_name:
       case iek_string_text:
