@@ -865,10 +865,10 @@ Initialize everything that has to do with the front end.
   /* Push the primary source input file onto the input stack.  Make
      a copy of the file name in IL storage. */
   il_header.primary_source_file = NULL;
-  push_input_stack(strcpy(alloc_il(
-                               (sizeof_t)(strlen(primary_source_file_name)+1)),
-                          primary_source_file_name),
-                   (a_directory_name_entry_ptr)NULL);
+  open_file_and_push_input_stack(
+               strcpy(alloc_il((sizeof_t)(strlen(primary_source_file_name)+1)),
+                      primary_source_file_name),
+               (a_directory_name_entry_ptr)NULL);
   /* Read the first line. */
 #if DEBUG
   /* Establish the initial debug level (from the command line, or 0 by

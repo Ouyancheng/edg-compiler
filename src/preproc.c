@@ -656,7 +656,7 @@ Scan and process a #include directive.
     ignore_harmless_trailing_comment();
     /* Push the name and associated search directory onto the input stack,
        thus starting input from that file. */
-    push_input_stack(name_start_pos, search_path);
+    open_file_and_push_input_stack(name_start_pos, search_path);
   }  /* if */
 }  /* proc_include */
 
