@@ -996,6 +996,10 @@ already been done, and this routine does the end_error call.
         reduce_projection_symbol_to_fundamental_symbol(function_sym);
       }  /* if */
       sym_add_diag_info(err_code, function_sym);
+    } else if (cfp->surrogate_function_conv_sym != NULL) {
+      /* Surrogate function. */
+      sym_add_diag_info(ec_surrogate_func_add_on,
+                        cfp->surrogate_function_conv_sym);
     } else {
       /* Built-in operator case. */
       /* Put out something like
@@ -3820,8 +3824,26 @@ and return NULL.  This routine is called only in C++ mode.
       pos_sy_error(ec_ambiguous_name, call_position,
                    overloaded_function_symbol);
     } else {
-      pos_sy_start_error(err_ambiguous, call_position,
-                         overloaded_function_symbol);
+      /* Use a special diagnostic for a call that includes surrogate
+         functions. */
+      a_boolean                use_class_call_message = TRUE;
+      a_candidate_function_ptr cfp;
+      for (cfp = candidate_functions; cfp != NULL; cfp = cfp->next) {
+        if (cfp->surrogate_function_conv_sym != NULL) {
+          use_class_call_message = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+      if (use_class_call_message) {
+        /* Candidate set includes at least one surrogate function. */
+        pos_ty_start_error(ec_ambiguous_class_call, call_position,
+                           type_pointed_to(bound_function_selector->type));
+      } else {
+        /* Normal case (not a class call). */
+        check_assertion(overloaded_function_symbol != NULL);
+        pos_sy_start_error(err_ambiguous, call_position,
+                           overloaded_function_symbol);
+      }  /* if */
       diagnose_overload_ambiguity(candidate_functions, arg_operand_list,
                                   (an_opname_kind)onk_none);
     }  /* if */
