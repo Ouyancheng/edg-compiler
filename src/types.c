@@ -2073,12 +2073,6 @@ for more information.
         case tk_template_param:
           if (type_1->variant.template_param.kind ==
                                     type_2->variant.template_param.kind) {
-            a_template_param_type_descr_ptr	tptdp_1;
-            a_template_param_type_descr_ptr	tptdp_2;
-            /* The tag kinds (if any) associated with the template parameters
-               must match. */
-            tptdp_1 = type_1->variant.template_param.descr;
-            tptdp_2 = type_2->variant.template_param.descr;
             switch (type_1->variant.template_param.kind) {
               case tptk_param:
                  /* Template parameter types are considered to be identical
