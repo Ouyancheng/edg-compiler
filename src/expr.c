@@ -3903,7 +3903,7 @@ specification allow a variable-sized array as the top type.
   a_symbol_ptr      operator_new_symbol, function_symbol, ctor_sym;
   a_routine_ptr     ctor_routine;
   a_boolean         needs_initialization, trapped_left_paren;
-  an_expr_node_ptr  arg_expr_list, init_val_node;
+  an_expr_node_ptr  arg_expr_list, init_arg_expr_list, init_val_node;
   a_constant        sizeof_constant;
   an_arg_operand_ptr
                     arg_operand_list, sizeof_arg_operand;
@@ -4128,7 +4128,6 @@ specification allow a variable-sized array as the top type.
   /* Set ctor_sym non-NULL if the type is a class that has a constructor
      or an array with elements of such a class. */
   ctor_sym = NULL;
-  ctor_routine = NULL;
   if (is_class_struct_union_type(base_new_type)) {
     ctor_sym = symbol_supplement_for_class(base_new_type)->constructor;
   }  /* if */
@@ -4153,7 +4152,7 @@ specification allow a variable-sized array as the top type.
          "new" routine for the class and see whether it is the one that
          was selected.  If so, the "new" call can be folded into the
          constructor call. */
-      if (ctor_routine != NULL) {
+      if (ctor_sym != NULL) {
         a_type_ptr unqual_base_new_type = skip_typerefs(base_new_type);
         set_class_assoc_operator_new_routine(unqual_base_new_type);
         if (unqual_base_new_type->variant.class_struct_union.extra_info->
@@ -4215,6 +4214,7 @@ specification allow a variable-sized array as the top type.
      scan the initializer (if there is one) even if an error was detected
      above. */
   needs_initialization = FALSE;
+  ctor_routine = NULL;
   if (ctor_sym != NULL) {
     /* Class with a constructor.  Initialization is required. */
     if (curr_token == tok_lparen) {
@@ -4230,19 +4230,19 @@ specification allow a variable-sized array as the top type.
       /* No need to add tok_rparen to the stop tokens set: it's done by
          scan_ctor_arguments. */
       /* Scan the constructor arguments. */
-      scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine,
+      scan_ctor_arguments(ctor_sym, &init_arg_expr_list, &ctor_routine,
                           &lparen_pos, base_new_type);
       /* In the array case (an error), throw away the argument list. */
-      if (array_new) arg_expr_list = NULL;
+      if (array_new) init_arg_expr_list = NULL;
     } else {
       /* There is no new-initializer, so a default constructor should exist. */
       ctor_routine = select_default_constructor(base_new_type, &type_position,
 						base_new_type,
                                          curr_expr_is_potentially_evaluated());
-      arg_expr_list = NULL;
+      init_arg_expr_list = NULL;
       if (ctor_routine != NULL) {
         /* Provide default arguments if any. */
-        arg_expr_list = copy_default_arg_expr_list(
+        init_arg_expr_list = copy_default_arg_expr_list(
                 skip_typerefs(ctor_routine->type)->variant.routine.extra_info->
                                                               param_type_list);
       }  /* if */
@@ -4306,7 +4306,7 @@ specification allow a variable-sized array as the top type.
         /* Constructor call. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
         dip->variant.constructor.ptr = ctor_routine;
-        dip->variant.constructor.args = arg_expr_list;
+        dip->variant.constructor.args = init_arg_expr_list;
         if (array_new) {
           /* The entity is an array whose elements have a class type that
              has a default constructor.  Use a dik_nonconstant_aggregate
