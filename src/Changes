@@ -1,5 +1,12 @@
 Version 2.41
 
+12/16/98  Independent configuration support for declaration modifiers
+
+You can now set DECL_MODIFIERS_IN_USE (in lang_feat.h) even when
+MICROSOFT_EXTENSIONS_ALLOWED is configured to FALSE.  This provides a
+hook for adding implementation-defined declaration modifiers; otherwise,
+this change should have no effect.
+
 12/14/98  Template information files and automatic instantiation mode
 
 A bug was introduced in version 2.37 that caused template information
