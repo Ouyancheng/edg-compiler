@@ -2723,7 +2723,7 @@ it is a typedef.
   /* Look for a comma list (a) if the underlying type is an unnamed tag, and
      (b) always in a for-init. */
   if (for_init ||
-      ((is_class_type_kind(kind) || kind == (a_type_kind)tk_enum) &&
+      ((is_class_type_kind(kind) || is_enum_type(unqual_type)) &&
        (!has_name(unqual_type) ||
         /* Include cases where the tag has a name only for linkage purposes. */
         (kind != (a_type_kind)tk_enum &&
