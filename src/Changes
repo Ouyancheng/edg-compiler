@@ -1,5 +1,13 @@
 Version 2.40
 
+10/26/98  Parent namespace set incorrectly for certain qualified friend
+          declarations
+
+If a namespace qualified friend declaration referred to instance of a
+function template, the parent namespace pointer for that instance was
+sometimes set incorrectly.  This could result in name lookup errors
+during the instantiation of the instance.
+
 10/26/98  Base-class access set incorrectly
 
 The access on one of the derivation paths of D::A was set incorrectly in
