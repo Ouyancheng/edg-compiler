@@ -604,8 +604,8 @@ requires cleanup.
       /* Skip processing of this entry if the flag is not set. */
       if (!*flag_addr) continue;
     }  /* if */
-    if ((flags & (RDF_SUBOBJECT_VTABLE |
-                  RDF_BASE_CLASS_SUBOBJECT)) != 0) {
+    if ((flags & RDF_SUBOBJECT_VTABLE) != 0 &&
+        (flags & RDF_BASE_CLASS_SUBOBJECT) != 0) {
       int	region_table_offset = 1;
       /* This is a subobject destruction that has a special vtable pointer
          that is to be used.  The next region table entry contains a handle
