@@ -2108,7 +2108,7 @@ The result is placed in *result.
         if (field_sym->variant.field.anonymous_parent_object != NULL) {
           an_expr_node_ptr orig_node = make_node_from_operand(result);
           adjust_nonstandard_anonymous_object_field_references(orig_node,
-                                                               field);
+                                                               field_sym);
           make_expression_operand(orig_node, result->type, result);
         }  /* if */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */

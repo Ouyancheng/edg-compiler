@@ -618,9 +618,10 @@ extern void adjust_anonymous_union_field_selection(an_expr_node_ptr node,
                                                    a_field_ptr      au_field);
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS || DO_IL_LOWERING */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+typedef struct a_symbol il_a_symbol_dummy_typedef;
 extern void adjust_nonstandard_anonymous_object_field_references(
-                                                       an_expr_node_ptr node,
-                                                       a_field_ptr      field);
+                                                  an_expr_node_ptr node,
+                                                  struct a_symbol  *field_sym);
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 extern an_expr_node_ptr fe_field_lvalue_selection_expr(an_expr_node_ptr node,
