@@ -2663,7 +2663,6 @@ to indicate whether an enumeration is actually defined.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr             attributes;
-  a_type_ptr                   enumerator_types[(int)ik_last];
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_name_reference_ptr         name_ref = NULL;
@@ -2963,21 +2962,10 @@ to indicate whether an enumeration is actually defined.
       /* In C++ the type of an enumerator is the same as that of its
          enumeration, but that won't actually be known until the definition
          is complete.  Set the types in the enum constants later.
-         In GNU C mode, the type of an enumerator can be different for
-         different enumerators of the enumeration. For example, in
-             enum E { x = 0x400, y = 0x4000000000, z = 0x401 }
-         x and z might have type int, while y has type long long. */
+         In GNU C mode, the type of an enumerator is an integer type
+         large enough to represent all the enumerator values.  It won't be
+         known until the definition is complete. */
       enum_con_type = NULL;
-#if GNU_EXTENSIONS_ALLOWED
-      if (gcc_mode) {
-        /* Initialize an array for the different enumerator constant types
-           that might be used in GNU C mode. */
-        int k = 0;
-        for (; k < (int)ik_last; ++k) {
-          enumerator_types[k] = NULL;
-        }  /* for */
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       /* In C the type of the constants is always "int", regardless of
          the type of the enumerated type (see 3.5.2.2).  However, it is
