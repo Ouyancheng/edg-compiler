@@ -903,11 +903,11 @@ static a_boolean symbols_from_same_scope(a_symbol_ptr curr_sym,
 /*
 Returns TRUE if the two symbols are from the same scope.  curr_sym
 represents a lookup set that has been constructed and new_sym is
-a normal (not a synthesized projection symbol) that is being considered
-as an alternative to curr_sym because of the 1.5 namespace rule for
-struct names.  When curr_sym points to a set of overloaded functions,
-the overload set must be inspected to see if all of the members of the
-set are from the same scope.
+a normal symbol (not a synthesized projection symbol) that is being
+considered as an alternative to curr_sym because of the 1.5 namespace
+rule for struct names.  When curr_sym points to a set of overloaded
+functions, the overload set must be inspected to see if all of the
+members of the set are from the same scope.
 */
 {
   a_boolean		result = TRUE;
