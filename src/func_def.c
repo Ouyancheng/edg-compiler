@@ -917,7 +917,7 @@ and for the instantiation of template functions.
           (void)make_vla_dimension(vfp->array_type,
                                    copy_expr_tree(vfp->expr, CE_NO_OPTIONS),
                                    /*in_prototype_scope=*/TRUE,
-				   &vfp->position);
+                                   &vfp->position);
         }  /* if */
       }  /* for */
       free_vla_fixup_list(func_info->vla_fixup_list);
