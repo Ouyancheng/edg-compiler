@@ -1306,6 +1306,7 @@ the scope being pushed.
   ssep->return_value_optimization_possible = FALSE;
   ssep->in_prototype_instantiation = FALSE;
   ssep->in_nonreal_instantiation = FALSE;
+  ssep->in_class_specialization  = FALSE;
   ssep->defer_access_checks      = FALSE;
   ssep->is_try_block             = FALSE;
   ssep->within_try_block         = FALSE;
@@ -1480,6 +1481,16 @@ the scope being pushed.
       if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
         inside_local_class = ssep->inside_local_class = TRUE;
       }  /* if */
+      /* Determine whether this scope represents the specialization of a
+         class. */
+      ssep->in_class_specialization =
+                       assoc_type->variant.class_struct_union.is_specialized;
+ 
+    }  /* if */
+    /* The class specialization flag is also set if the parent scope is
+       a specialization scope (or nested within one). */
+    if (kind != (a_scope_kind)sck_file) {
+      ssep->in_class_specialization |= (ssep-1)->in_class_specialization;
     }  /* if */
     if (kind == (a_scope_kind)sck_template_instantiation) {
       /* Save the depth of the innermost instantiation scope. */

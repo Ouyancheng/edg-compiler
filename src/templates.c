@@ -13404,13 +13404,14 @@ caller.
     cache_function_template_body(decl_state, &local_token_cache,
                                  is_constructor_symbol(sym), decl_pos);
     last_token_number = curr_token_sequence_number;
-    if (decl_state->in_prototype_instantiation) {
+    if (is_nonspecialized_prototype_instantiation_context()) {
       if (sym->is_class_member && decl_state->class_declared_in != NULL &&
           decl_state->defines_something &&
           sym->kind == (a_symbol_kind)sk_function_template) {
         /* This is a member template function definition.  Create a template
            cache segment entry so that the body of this template can
-           be removed from the enclosing template cache. */
+           be removed from the enclosing template cache.  Note that this
+           is not done for members of Microsoft in-class specializations. */
         tssp->cache_segment = alloc_template_cache_segment(sym, tssp);
         tssp->cache_segment->first_token_number = first_token_number;
         tssp->cache_segment->last_token_number = last_token_number;

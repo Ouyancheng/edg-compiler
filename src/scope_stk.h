@@ -247,6 +247,13 @@ typedef struct a_scope_stack_entry {
 			/* TRUE for instantiations based on template dependent
 			   template arguments.  This is only true for certain
 			   default template argument cases. */
+  a_bit_field	in_class_specialization:1;
+			/* TRUE for scopes that are template class explicit
+			   specialization scopes or scopes nested within such
+			   scopes.  This is typically used to identify
+			   contexts within prototype instantiations that
+			   represent explicit instantiations (which must be
+			   handled specially in certain contexts). */
   a_bit_field	defer_access_checks:1;
 			/* TRUE while scanning the decl-specifiers and
 			   declarator of a global or namespace-level
@@ -798,6 +805,16 @@ is_template_dependent_context, but excludes nonreal instantiations.
 #define is_prototype_instantiation_context()				\
   (depth_template_declaration_scope != NO_SCOPE_DEPTH ||		\
    scope_stack[depth_scope_stack].in_prototype_instantiation)
+
+/*
+TRUE if we are in a template prototype instantiation context but not
+in the context of a class specialization.  This excluded Microsoft
+in-class specializations within prototype instantiations.  Note that
+this is FALSE for template declaration contexts.
+*/
+#define is_nonspecialized_prototype_instantiation_context()		\
+   (scope_stack[depth_scope_stack].in_prototype_instantiation &&	\
+   !scope_stack[depth_scope_stack].in_class_specialization)
 
 /*
 TRUE if we are in a template declaration scope or any kind of instantiation

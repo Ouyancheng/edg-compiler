@@ -1,5 +1,41 @@
 Version 3.1
 
+9/5/02   Microsoft compatibility: IL write/read error on nested class in
+         MIcrosoft in-class specialization
+
+An IL write/read error would occur in certain cases when a Microsoft
+in-class specialization contained a nested class containing a template
+declaration.  This has been fixed.
+
+  template <class T1> struct A {
+    template <class T2> struct B {};
+    template <> struct B<int> {
+      struct C {
+        template <class T3> static void f(T3 t3){}
+      };
+    };
+  };
+  int main () {
+    A<int>::B<int>::C::f(1);
+  }
+
+9/5/02   Microsoft compatibility: Failure to instantiate template defined
+         in Microsoft in-class specialization
+
+The front end failed to instantiate a member of a nested class that is
+specialized using a Microsoft-mode in-class specialization.  This has
+been fixed.
+
+  template <class T1> struct A {
+     template <class T2> struct B {};
+     template <> struct B<int> {
+       template <class T3> static void f(T3 t3){}
+     };
+  };
+  int main () {
+    A<int>::B<int>::f(1);  // link error: f not defined
+  }
+
 9/4/02   GNU C compatibility: structs of size zero
 
 The front end already allowed empty structs in GNU C mode, but such structs
