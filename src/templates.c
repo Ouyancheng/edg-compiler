@@ -3523,8 +3523,9 @@ in one-instantiation-per-object mode.
         !routine->is_specialized) ||
        (instantiate_extern_inline &&
         routine->is_inline)) &&
-      !is_member_of_unnamed_namespace(&routine->source_corresp) &&
-      !is_or_contains_unnamed_namespace_type(routine->type)) {
+      (routine->source_corresp.externalized ||
+       (!is_member_of_unnamed_namespace(&routine->source_corresp) &&
+        !is_or_contains_unnamed_namespace_type(routine->type)))) {
     check_assertion(!in_secondary_trans_unit(routine));
     /* Get a "needed bit number" for the routine if it doesn't have one
        already. */
@@ -18404,8 +18405,8 @@ are instantiated using a mechanism like the template instantiation mechanism.
     for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
       if (rlep->routine->storage_class != (a_storage_class)sc_static ||
           any_exported_templates()) {
-        /* In the presence of exported templates, static inlines are made
-           external. */
+        /* In the presence of exported templates, static inlines will be
+           made external, but are still static at this point. */
         set_body_needed_flag_for_inline_function(rlep->routine);
       }  /* if */
     }  /* for */
@@ -18550,10 +18551,9 @@ are instantiated using a mechanism like the template instantiation mechanism.
     a_routine_list_entry_ptr	rlep;
 
     for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
-      if (rlep->routine->storage_class != (a_storage_class)sc_static ||
-          any_exported_templates()) {
+      if (rlep->routine->storage_class != (a_storage_class)sc_static) {
         /* In the presence of exported templates, static inlines are made
-           external. */
+           external so will no longer have a sc_static storage class. */
         create_instantiation_flags_for_inline_function(rlep->routine);
 #if ONE_INSTANTIATION_PER_OBJECT
         /* If we are using one instantiation per object mode, write the
@@ -19523,7 +19523,7 @@ Add the routine to an "instantiation list" of inline functions.
 {
   a_routine_list_entry_ptr	rlep;
 
-  check_assertion(instantiate_extern_inline);
+  check_assertion(instantiate_extern_inline && rout_ptr->is_inline);
   /* All functions are put on the list, even static ones.  Static functions
      will usually be ignored, but may need to be treated as external
      functions when using exported templates. */
