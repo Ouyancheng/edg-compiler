@@ -240,6 +240,12 @@ extern void clear_constant(a_constant           *cp,
 
 extern void set_error_constant(a_constant *cp);
 
+extern void set_routine_address_constant(a_routine_ptr routine,
+                                         a_constant    *con);
+
+extern void set_variable_address_constant(a_variable_ptr variable,
+                                          a_constant    *con);
+
 extern void set_arg_transfer_method_flag(a_param_type_ptr ptp);
 
 extern a_param_type_ptr alloc_param_type(a_type_ptr type);

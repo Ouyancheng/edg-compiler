@@ -2096,6 +2096,34 @@ produced.
 }  /* set_error_constant */
 
 
+void set_routine_address_constant(a_routine_ptr routine,
+                                  a_constant    *con)
+/*
+Fill in the constant "con" as a ck_address constant for the address of
+the indicated routine.
+*/
+{
+  clear_constant(con, (a_constant_repr_kind)ck_address);
+  con->variant.address.kind = (an_address_base_kind)abk_routine;
+  con->variant.address.variant.routine = routine;
+  con->type = make_pointer_type(routine->type);
+}  /* set_routine_address_constant */
+
+
+void set_variable_address_constant(a_variable_ptr variable,
+                                   a_constant    *con)
+/*
+Fill in the constant "con" as a ck_address constant for the address of
+the indicated variable.
+*/
+{
+  clear_constant(con, (a_constant_repr_kind)ck_address);
+  con->variant.address.kind = (an_address_base_kind)abk_variable;
+  con->variant.address.variant.variable = variable;
+  con->type = make_pointer_type(variable->type);
+}  /* set_variable_address_constant */
+
+
 a_constant_ptr alloc_constant(a_constant_repr_kind kind)
 /*
 Allocate a constant entry of the indicated kind, set its fields to default
