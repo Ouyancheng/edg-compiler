@@ -1837,7 +1837,7 @@ diagnostic.
                                        ->prototype_instantiation.type;
   add_to_templates_list(tp, depth_innermost_namespace_scope);
 #if RECORD_TEMPLATE_STRINGS
-  /* This entry has no text representation because its token were not
+  /* This entry has no text representation because its tokens were not
      cached. */
 #endif /* RECORD_TEMPLATE_STRINGS */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
