@@ -1,6 +1,13 @@
 Version 2.28
 
-3/1/95   C generating back end and  variable argument lists on HP/UX and SGI
+3/1/95   File scope variable definitions in the C generating back end
+
+Formerly, the C generating back end would emit two declarations of any
+initialized variables.  This resulted in warnings from the HP C compiler.
+The first declaration has been modified to include a storage class of
+"extern" to eliminate these warnings.
+
+3/1/95   C generating back end and variable argument lists on HP/UX and SGI
 
 When generating old style parameter lists, the C generating back end now
 emits the special va_alist parameter required by HP/UX and SGI.

@@ -4094,8 +4094,16 @@ parameters.
         dump_decl_associated_pragmas(&variable->source_corresp);
       }  /* if */
       set_output_position(&variable->source_corresp.decl_position);
-#if !C_GEN_BE_GENERATES_ANSI_C
       if (init_con != NULL &&
+	  variable->storage_class == (a_storage_class)sc_unspecified &&
+	  dump_vars_without_initializers && !dump_initializers) {
+	/* Initialized file-scope variable definitions with initializers,
+	   will be emitted twice, once as a declaration without an
+	   initializer, and once with the initializer.  On the first
+	   emit an "extern" before the declaration. */
+	write_tok_str("extern ");
+#if !C_GEN_BE_GENERATES_ANSI_C
+      } else if (init_con != NULL &&
           variable->storage_class == (a_storage_class)sc_static &&
           !forced_static &&
           (!dump_vars_without_initializers || !dump_initializers)) {
@@ -4106,12 +4114,10 @@ parameters.
            variable, dump_name must modify the names of static non-external
            variables so that they will not conflict with like-named
            static variables in separately-compiled modules. */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
       } else {
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
         dump_variable_storage_class(variable);
-#if !C_GEN_BE_GENERATES_ANSI_C
       }  /* if */
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
 #if MICROSOFT_KEYWORDS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
       /* Microsoft-specific keywords. */
