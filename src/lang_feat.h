@@ -307,22 +307,25 @@ be modified by a command line option.
 
 /*
 Flag that is TRUE if a stack model is used to manage the include search
-list and FALSE if some other model (by default, a replace-restore model) is
-to be used instead.  The stack model says that when an include file is
-opened, its directory becomes the new primary include search directory by
-being added to the front of the list of directories to search for nested
-include files; the former head of the list is demoted to second place.
-This model is used by Microsoft C compilers.  An alternative model is that
-of pcc, in which the current primary include search directory is removed
-from the search path altogether and the new one takes its place at the head
-of the list; the removed directory is then restored to the head of the list
-when the include file is closed.  This is the approach that predominates on
-UNIX systems.  Note that behavior in this area is left "implementation
-defined" by the ANSI C standard.
+list and FALSE if some other model (by default, a replace-restore model)
+is to be used instead.  This is the default value used to initialize
+global variable STACK_REFERENCED_INCLUDE_DIRECTORIES.
+
+The stack model says that when an include file is opened, its directory
+becomes the new primary include search directory by being added to the
+front of the list of directories to search for nested include files; the
+former head of the list is demoted to second place.  This model is used by
+Microsoft C compilers.  An alternative model is that of pcc, in which the
+current primary include search directory is removed from the search path
+altogether and the new one takes its place at the head of the list; the
+removed directory is then restored to the head of the list when the
+include file is closed.  This is the approach that predominates on UNIX
+systems.  Note that behavior in this area is left "implementation defined"
+by the ANSI C standard.
 */
 #ifndef STACK_REFERENCED_INCLUDE_DIRECTORIES
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define STACK_REFERENCED_INCLUDE_DIRECTORIES TRUE
+#define STACK_REFERENCED_INCLUDE_DIRECTORIES DEFAULT_MICROSOFT_MODE
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define STACK_REFERENCED_INCLUDE_DIRECTORIES FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
