@@ -8514,6 +8514,7 @@ Promote the asm entries on the asm_entries list of the indicated scope
     }  /* if */
 #endif /* DEBUG */
     add_to_asm_entries_list(asm_entry);
+    asm_entry->source_corresp.is_local_to_function = FALSE;
   }  /* for */
   /* Clear the list of asm entries.  Since the scope is for a namespace,
      we know it cannot be on the scope stack now, and therefore we do not
@@ -9735,6 +9736,129 @@ for each memory region.
 }  /* do_class_lowering_wrapup */
 
 
+static void clear_parent_info_on_constants(void)
+/*
+Clear class/namespace membership information from all file-scope constants.
+Also clear the is_local_to_function flag (that's needed for member constants
+that were promoted out of local classes).
+*/
+{
+  a_constant_ptr con;
+
+  for (con = il_header.primary_scope->constants;
+       con != NULL;
+       con = con->next) {
+    clear_parent(con);
+    con->source_corresp.is_local_to_function = FALSE;
+  }  /* for */
+}  /* clear_parent_info_on_constants */
+
+
+static void clear_parent_info_on_variables(void)
+/*
+Clear class/namespace membership information from all file-scope variables.
+Also clear the is_local_to_function flag (that's probably not needed, since
+there are no static data member variables in local classes, but for
+completeness ...).
+*/
+{
+  a_variable_ptr var;
+
+  for (var = il_header.primary_scope->variables;
+       var != NULL;
+       var = var->next) {
+    clear_parent(var);
+    var->source_corresp.is_local_to_function = FALSE;
+  }  /* for */
+}  /* clear_parent_info_on_variables */
+
+
+static void clear_parent_info_on_routines(void)
+/*
+Clear class/namespace membership information from all file-scope routines.
+Also clear the is_local_to_function flag (that's needed for member functions
+that were promoted out of local classes).  This is done late in file
+scope lowering so that class membership information remains in constructors
+and destructors for the use of IL lowering; that information is the easiest
+way to know the associated class for those.
+*/
+{
+  a_routine_ptr rout;
+
+  for (rout = il_header.primary_scope->routines;
+       rout != NULL;
+       rout = rout->next) {
+    clear_parent(rout);
+    rout->source_corresp.is_local_to_function = FALSE;
+  }  /* for */
+}  /* clear_parent_info_on_routines */
+
+
+static void clear_parent_info_on_type_list(a_type_ptr type_list,
+                                           a_boolean  function_local)
+/*
+Clear class/namespace membership information on the types in the indicated
+list.  If function_local is FALSE, also clear the is_local_to_function flag.
+*/
+{
+  a_type_ptr type;
+
+  for (type = type_list; type != NULL; type = type->next) {
+    clear_parent(type);
+    if (!function_local) type->source_corresp.is_local_to_function = FALSE;
+  }  /* for */
+}  /* clear_parent_info_on_type_list */
+
+
+static void clear_parent_info_on_types(void)
+/*
+Clear class/namespace membership information and the is_local_to_function
+flag (where appropriate) on all types (including orphans from function
+and block scopes).  This is done late in file scope lowering so that the
+information is around for the use of IL lowering, e.g., for promotion
+of types out of namespaces via placeholders.
+*/
+{
+  a_scope_orphaned_list_header_ptr solhp;
+
+  /* Note that this routine is called at the end of lowering a memory
+     region, so the IL is flattened here; there are no nested classes
+     and no namespaces. */
+  clear_parent_info_on_type_list(il_header.primary_scope->types,
+                                 /*function_local=*/FALSE);
+  /* Process local types by visiting the types on orphan lists. */
+  for (solhp = il_header.scope_orphaned_list_headers;
+       solhp != NULL;
+       solhp = solhp->next) {
+    clear_parent_info_on_type_list(solhp->orphaned_types,
+                                   /*function_local=*/TRUE);
+  }  /* for */
+}  /* clear_parent_info_on_types */
+
+
+static void clear_parent_information(void)
+/*
+Clear class/namespace membership information and the is_local_to_function
+flag on entities promoted out of classes, namespaces, and functions.
+This must be done very late, because make_typeinfo_name calls the il_to_str
+routines on entities, and the parent information is used to generate
+class/namespace qualifiers.  Note that this is optional: if the back end
+would prefer to see the parent information, this processing can be removed
+(however, it would probably still be best to clear the is_local_to_function
+flag).
+*/
+{
+  /* Clear parent information in constants. */
+  clear_parent_info_on_constants();
+  /* Clear parent information in variables. */
+  clear_parent_info_on_variables();
+  /* Clear parent information in routines. */
+  clear_parent_info_on_routines();
+  /* Clear parent information on types. */
+  clear_parent_info_on_types();
+}  /* clear_parent_information */
+
+
 void lower_il_memory_region(a_memory_region_number region_number)
 /*
 Rewrite the intermediate language in memory region region_number from
@@ -9824,6 +9948,10 @@ C++ to C, so that a C back end can handle it without change.
     define_scope_class_typeinfo_vars(scope);
     /* Do any processing on classes that has to wait until the very end. */
     do_class_lowering_wrapup(scope);
+    /* Clear class/namespace membership information and the
+       is_local_to_function flag on entities promoted out of classes,
+       namespaces, and functions. */
+    if (lowering_file_scope) clear_parent_information();
     /* Pop the file-scope context. */
     pop_context();
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
