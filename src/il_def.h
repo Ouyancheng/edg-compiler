@@ -795,6 +795,7 @@ typedef struct an_instantiation_directive {
 
 
 #ifdef CIL
+typedef union a_parent_class_or_namespace *a_parent_class_or_namespace_ptr;
 typedef union a_parent_class_or_namespace {
   /* This structure is used to indicate class or namespace membership and
      is incorporated into a_source_correspondence, a_symbol, and

@@ -156,9 +156,10 @@ extern a_type_ptr simple_type_specifier_sequence(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern
-a_boolean scan_conversion_operator(a_source_position           *id_pos,
-                                   a_boolean                   is_class_member,
-                                   a_parent_class_or_namespace parent);
+a_boolean scan_conversion_operator(
+			a_source_position		*id_pos,
+                        a_boolean			is_class_member,
+                        a_parent_class_or_namespace_ptr	parent);
 
 extern a_type_ptr type_keyword(void);
 

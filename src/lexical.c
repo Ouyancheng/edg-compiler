@@ -7212,8 +7212,8 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
 }  /* get_destructor_name */
 
 
-static void get_opname(a_boolean                   is_class_member,
-                       a_parent_class_or_namespace parent)
+static void get_opname(a_boolean                   	is_class_member,
+                       a_parent_class_or_namespace_ptr	parent)
 /*
 The current token is the token "operator" at the start of an operator name,
 like "operator+".  Scan the name and build a locator for the operator name
@@ -8594,6 +8594,10 @@ selection operator, in which case it points to the type of the left operand.
     is_qualified_name = TRUE;
     (void)get_token();
   }  /* if */
+  if (curr_token == tok_operator) {
+    get_opname(/*is_class_member=*/FALSE,
+               (a_parent_class_or_namespace*)NULL);
+  }  /* if */
   /* For the next token to be part of the qualifier it must be a class name
      followed by "::".  Templates make it more difficult to detect this
      situation so we accept an identifier followed by either a "::" or a
@@ -9288,12 +9292,7 @@ selection operator, in which case it points to the type of the left operand.
       } else {
         parent.namespace_ptr = qualifier_namespace;
       }  /* if */
-      get_opname(qualifier_is_type, parent);
-      if (locator_for_curr_id.is_operator_name && next_token() == tok_lt) {
-        /* If the operator name is followed by an explicit template argument
-           list, coalesce it now. */
-        (void)coalesce_template_function_reference((a_symbol_ptr)NULL, &err);
-      }  /* if */
+      get_opname(qualifier_is_type, &parent);
     }  /* if */
 wrapup:
     /* The current token must now be the final identifier of the

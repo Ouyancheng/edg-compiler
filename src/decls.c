@@ -5865,9 +5865,10 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-a_boolean scan_conversion_operator(a_source_position           *id_pos,
-                                   a_boolean                   is_class_member,
-                                   a_parent_class_or_namespace parent)
+a_boolean scan_conversion_operator(
+			a_source_position		*id_pos,
+                        a_boolean			is_class_member,
+                        a_parent_class_or_namespace_ptr	parent)
 /*
 The token "operator" has been seen and passed; we are now on the token
 immediately following it.  If it marks the start of a type name we have
@@ -5899,9 +5900,10 @@ is no parent.
      is_type_start, and the class needs to be reactivated before
      is_type_start is called. */
   if (is_class_member) {
-    if (parent.class_type != NULL && !is_incomplete_type(parent.class_type)) {
+    if (parent->class_type != NULL &&
+        !is_incomplete_type(parent->class_type)) {
       a_symbol_ptr	sym;
-      sym = (a_symbol_ptr)parent.class_type->source_corresp.assoc_info;
+      sym = (a_symbol_ptr)parent->class_type->source_corresp.assoc_info;
       /* In valid usage, the class type will always be either a complete
          real class type or a prototype instantiation.  In other cases,
          suppress the reactivation because incomplete and nonreal classes
@@ -5910,12 +5912,12 @@ is no parent.
       if (sym != NULL && 
           (is_real_class_symbol(sym) ||
            is_prototype_instantiation_symbol(sym))) {
-        push_class_reactivation_scope(parent.class_type);
+        push_class_reactivation_scope(parent->class_type);
         class_reactivated = TRUE;
       }  /* if */
     }  /* if */
-  } else if (parent.namespace_ptr != NULL) {
-    push_namespace_reactivation_scope(parent.namespace_ptr);
+  } else if (parent != NULL && parent->namespace_ptr != NULL) {
+    push_namespace_reactivation_scope(parent->namespace_ptr);
     namespace_reactivated = TRUE;
   }  /* if */
   if (is_type_start(/*is_expr_context=*/FALSE)) {
