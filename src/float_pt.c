@@ -1230,16 +1230,21 @@ adjusted to make the implicit bit explicit.
   } else {
     unexpected_condition_str("load_hex_fp_value: bad float kind");
   }  /* if */
-  if (restore_implicit_bit &&
-      (kind != (a_float_kind)fk_long_double ||
-       !long_double_has_no_implicit_bit)) {
-    /* Make explicit the implicit bit of the mantissa. */
-    shift_right_mantissa(mp, 1);
-    mp->parts[0] |= 0x80000000;
+  if (mantissa_is_zero(mp)) {
+    /* Reset the exponent if the value is zero. */
+    *exponent = 0;
+  } else {
+    if (restore_implicit_bit &&
+        (kind != (a_float_kind)fk_long_double ||
+         !long_double_has_no_implicit_bit)) {
+      /* Make explicit the implicit bit of the mantissa. */
+      shift_right_mantissa(mp, 1);
+      mp->parts[0] |= 0x80000000;
+    }  /* if */
+    /* The exponent as indicated needs to be adjusted for the implicit bit.
+       Oddly, this must even be done when long double has no implicit bit. */
+    (*exponent)++;
   }  /* if */
-  /* The exponent as indicated needs to be adjusted for the implicit bit.
-     Oddly, this must even be done when long double has no implicit bit. */
-  (*exponent)++;
 }  /* load_hex_fp_value */
 
 #endif /* FIXED_POINT_ALLOWED */

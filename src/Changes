@@ -1,5 +1,12 @@
 Version 3.5
 
+5/27/04  Embedded C: spurious loss of precision warning
+
+The conversion of a floating-point zero to fixed-point could result in
+a spurious loss of precision warning.  Now fixed.
+
+  unsigned _Fract f = 0.0;
+
 5/27/04  Abort on destructible entity in dead code after break in switch
 
 IL lowering aborted in lower_dynamic_init ("dynamic init has lifetime
