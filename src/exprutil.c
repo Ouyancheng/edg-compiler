@@ -2302,12 +2302,6 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
     *p_node = make_operator_node((an_expr_operator_kind)eok_bool_cast,
                                  new_type, *p_node);
     (*p_node)->variant.operation.compiler_generated = is_implicit_cast;
-    if (c99_mode) {
-      /* Lowering will not be invoked, but we want to nonetheless reduce the
-         cast to a comparison to ensure correct behavior on traditional C
-         compilers. */
-      transform_bool_cast(*p_node);
-    }  /* if */
   } else {
     /* For an ordinary cast, generate the eok_cast node. */
     *p_node = make_operator_node((an_expr_operator_kind)eok_cast, new_type,

@@ -41,6 +41,11 @@ static void lower_c99_dynamic_init(a_dynamic_init_ptr dip);
 static void lower_c99_constant_list(a_constant_ptr constant_list);
 static void lower_c99_statement(a_statement_ptr statement);
 static void lower_c99_cast(an_expr_node_ptr expr);
+static void lower_c99_expr_full(an_expr_node_ptr  expr,
+                                a_statement_ptr   statement);
+
+/* Macro interface to lower_c99_expr_full for the normal case. */
+#define lower_c99_expr(expr) lower_c99_expr_full(expr, (a_statement_ptr)NULL)
 
 /* Pointers to lowered versions of complex types, once allocated. */
 static a_type_ptr lowered_complex_float = NULL;
@@ -120,12 +125,6 @@ static a_routine_ptr  xdivide_routine = NULL;
 static a_routine_ptr  xeq_routine = NULL;
 static a_routine_ptr  xne_routine = NULL;
 
-/* Complex compound assignment routines. */
-static a_routine_ptr  xadd_assign_routine = NULL;
-static a_routine_ptr  xsubtract_assign_routine = NULL;
-static a_routine_ptr  xmultiply_assign_routine = NULL;
-static a_routine_ptr  xdivide_assign_routine = NULL;
-
 /* Complex-to-complex conversion routines. */
 static a_routine_ptr  cast_cfloat_to_cdouble_routine = NULL;
 static a_routine_ptr  cast_cfloat_to_clong_double_routine = NULL;
@@ -202,7 +201,14 @@ of it and lower that cast.
 */
 {
   if (!il_identical_types(node->type, new_type)) {
-    node = add_cast(node, new_type);
+    if (!is_bool_type(new_type)) {
+      /* Normal cast. */
+      node = add_cast(node, new_type);
+    } else {
+      /* Cast to bool. */
+      node = make_operator_node((an_expr_operator_kind)eok_bool_cast,
+                                new_type, node);
+    }  /* if */
     lower_c99_cast(node);
   }  /* if */
   return node;
@@ -443,9 +449,10 @@ static void lower_c99_compound_assignment(an_expr_node_ptr  expr,
                                           char              *rout_name,
                                           a_routine_ptr     *xop_routine)
 /*
-Rewrite a compound assignment x @= y as x' = op@(x", y).  The original
-expression is passed through expr.  The name and IL entry for the called
-routine (op@) are rout_name and xop_routine, respectively.
+Rewrite a compound assignment x @= y as x = op@(x, y).  The original
+expression is given by expr.  If necessary, use a temporary to avoid
+evaluating the left side more than once.  The name and IL entry for the
+called routine (op@) are rout_name and xop_routine, respectively.
 */
 {
   an_expr_node_ptr  lhs = expr->variant.operation.operands, rhs = lhs->next;
@@ -474,8 +481,8 @@ Transform the given complex expression ("z1 += z2") into a simple assignment
 and a function call (compatible with C89).
 */
 {
-  a_type_ptr        op_type = expr->variant.operation.operands->next->type;
-  char              *rout_name;
+  a_type_ptr op_type = expr->variant.operation.operands->next->type;
+  char       *rout_name;
 
   op_type = skip_typerefs(op_type);
   check_assertion(is_complex_type(op_type));
@@ -502,25 +509,25 @@ Transform the given complex expression ("z1 -= z2") into a simple assignment
 and a function call (compatible with C89).
 */
 {
-  a_type_ptr        op_type = expr->variant.operation.operands->next->type;
-  char              *rout_name;
+  a_type_ptr op_type = expr->variant.operation.operands->next->type;
+  char       *rout_name;
 
   op_type = skip_typerefs(op_type);
   check_assertion(is_complex_type(op_type));
   switch (op_type->variant.float_kind) {
     case fk_float:
-      rout_name = "__c99_complex_float_subtract_assign";
+      rout_name = "__c99_complex_float_subtract";
       break;
     case fk_double:
-      rout_name = "__c99_complex_double_subtract_assign";
+      rout_name = "__c99_complex_double_subtract";
       break;
     case fk_long_double:
-      rout_name = "__c99_complex_long_double_subtract_assign";
+      rout_name = "__c99_complex_long_double_subtract";
       break;
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  lower_c99_compound_assignment(expr, rout_name, &xsubtract_assign_routine);
+  lower_c99_compound_assignment(expr, rout_name, &xsubtract_routine);
 }  /* lower_c99_xsubtract_assign */
 
 
@@ -530,25 +537,25 @@ Transform the given complex expression ("z1 *= z2") into a simple assignment
 and a function call (compatible with C89).
 */
 {
-  a_type_ptr        op_type = expr->variant.operation.operands->next->type;
-  char              *rout_name;
+  a_type_ptr op_type = expr->variant.operation.operands->next->type;
+  char       *rout_name;
 
   op_type = skip_typerefs(op_type);
   check_assertion(is_complex_type(op_type));
   switch (op_type->variant.float_kind) {
     case fk_float:
-      rout_name = "__c99_complex_float_multiply_assign";
+      rout_name = "__c99_complex_float_multiply";
       break;
     case fk_double:
-      rout_name = "__c99_complex_double_multiply_assign";
+      rout_name = "__c99_complex_double_multiply";
       break;
     case fk_long_double:
-      rout_name = "__c99_complex_long_double_multiply_assign";
+      rout_name = "__c99_complex_long_double_multiply";
       break;
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  lower_c99_compound_assignment(expr, rout_name, &xmultiply_assign_routine);
+  lower_c99_compound_assignment(expr, rout_name, &xmultiply_routine);
 }  /* lower_c99_xmultiply_assign */
 
 
@@ -558,25 +565,25 @@ Transform the given complex expression ("z1 /= z2") into a simple assignment
 and a function call (compatible with C89).
 */
 {
-  a_type_ptr        op_type = expr->variant.operation.operands->next->type;
-  char              *rout_name;
+  a_type_ptr op_type = expr->variant.operation.operands->next->type;
+  char       *rout_name;
 
   op_type = skip_typerefs(op_type);
   check_assertion(is_complex_type(op_type));
   switch (op_type->variant.float_kind) {
     case fk_float:
-      rout_name = "__c99_complex_float_divide_assign";
+      rout_name = "__c99_complex_float_divide";
       break;
     case fk_double:
-      rout_name = "__c99_complex_double_divide_assign";
+      rout_name = "__c99_complex_double_divide";
       break;
     case fk_long_double:
-      rout_name = "__c99_complex_long_double_divide_assign";
+      rout_name = "__c99_complex_long_double_divide";
       break;
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  lower_c99_compound_assignment(expr, rout_name, &xdivide_assign_routine);
+  lower_c99_compound_assignment(expr, rout_name, &xdivide_routine);
 }  /* lower_c99_xdivide_assign */
 
 
@@ -793,6 +800,17 @@ Transform the given cast expression into a function call (compatible with C89).
         is_nonreal_floating_type(expr->variant.operation.operands->type)) {
       lower_c99_complex_cast(expr);
     }  /* if */
+  } else if (expr->variant.operation.kind ==
+                                        (an_expr_operator_kind)eok_bool_cast) {
+    /* Change a cast to bool to a "!= 0" test. */
+    transform_bool_cast(expr);
+    if (is_operation_node(expr) &&
+        expr->variant.operation.kind == (an_expr_operator_kind)eok_xne) {
+      /* Do further lowering for complex != 0. */
+      /* Lower the complex zero constant. */
+      lower_c99_expr(expr->variant.operation.operands->next);
+      lower_c99_xne(expr);
+    }  /* if */
   }  /* if */
 }  /* lower_c99_cast */
 
@@ -846,10 +864,7 @@ Otherwise, do nothing.
       lower_c99_jmultiply(expr);
       break;
     case eok_cast:
-      if (is_nonreal_floating_type(expr->type) ||
-          is_nonreal_floating_type(expr->variant.operation.operands->type)) {
-        lower_c99_complex_cast(expr);
-      }  /* if */
+      lower_c99_cast(expr);
       break;
     default:
       /* Nothing needs to be done. */
@@ -993,9 +1008,6 @@ constructs.
   lower_c99_dynamic_init(expr->variant.init.dynamic_init);
 }  /* lower_c99_temp_init */
 
-
-/* Macro interface to lower_c99_expr_full for the normal case. */
-#define lower_c99_expr(expr) lower_c99_expr_full(expr, (a_statement_ptr)NULL)
 
 #if !MINIMAL_INLINING
 /*ARGSUSED*/ /* <-- statement is not used in this case. */
@@ -1430,10 +1442,6 @@ are handled in lower_c99_init.)
       pch_saved_var_array_elem(xsubtract_routine),
       pch_saved_var_array_elem(xmultiply_routine),
       pch_saved_var_array_elem(xdivide_routine),
-      pch_saved_var_array_elem(xadd_assign_routine),
-      pch_saved_var_array_elem(xsubtract_assign_routine),
-      pch_saved_var_array_elem(xmultiply_assign_routine),
-      pch_saved_var_array_elem(xdivide_assign_routine),
       pch_saved_var_array_elem(cast_cfloat_to_cdouble_routine),
       pch_saved_var_array_elem(cast_cfloat_to_clong_double_routine),
       pch_saved_var_array_elem(cast_cdouble_to_cfloat_routine),
@@ -1478,10 +1486,6 @@ front end.
   xdivide_routine = NULL;
   xeq_routine = NULL;
   xne_routine = NULL;
-  xadd_assign_routine = NULL;
-  xsubtract_assign_routine = NULL;
-  xmultiply_assign_routine = NULL;
-  xdivide_assign_routine = NULL;
   cast_cfloat_to_cdouble_routine = NULL;
   cast_cfloat_to_clong_double_routine = NULL;
   cast_cdouble_to_cfloat_routine = NULL;
