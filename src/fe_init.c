@@ -179,7 +179,11 @@ Install the keywords in the symbol table.
   /* "asm" is a C++ keyword that is treated as a keyword in C mode, too,
      because, even though not part of the ANSI C language, it is used widely
      in C programs. */
-  enter_keyword((a_token_kind)tok_asm,       "asm");
+  if (C_dialect == C_dialect_ANSI && strict_ansi_mode) {
+    /* Strict ANSI C -- do not enter "asm". */
+  } else {
+    enter_keyword((a_token_kind)tok_asm,       "asm");
+  }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     /* Enter C++ keywords that are not also C keywords. */
     enter_keyword((a_token_kind)tok_catch,     "catch");
