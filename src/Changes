@@ -1,5 +1,11 @@
 Version 2.08
 
+7/9/92   __pure_virtual_called
+
+For compatibility with cfront, slots of virtual function tables that
+refer to pure virtual functions now point to the runtime routine
+__pure_virtual_called.
+
 7/8/92   Virtual base class layout made compatible with cfront
 
 The allocation of the storage for virtual base classes within their
