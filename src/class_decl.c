@@ -4089,28 +4089,32 @@ union as a whole is represented as a variable (assoc_var_object).  Only one
 of assoc_field_object and assoc_var_object is defined.
 */
 {
-  a_symbol_ptr                   sym, next_sym, mf_sym;
+  a_symbol_ptr                   sym, next_sym, mf_sym, apo_sym;
   a_class_symbol_supplement_ptr  cssp;
-  a_class_type_supplement_ptr    ctsp;
   an_access_specifier            access, assoc_object_access;
   a_boolean                      access_error_already_issued = FALSE;
   a_boolean                      member_function_error_already_issued = FALSE;
   a_boolean                      is_overloaded;
   a_type_ptr                     object_type, tp;
+  a_boolean                      reuse_same_symbol;
 
   db_enter(4, "check_anonymous_union_symbols");
   if (assoc_var_object != NULL) {
     object_type = assoc_var_object->type;
-    ctsp = object_type->variant.class_struct_union.extra_info;
-    ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_variable;
+    assoc_var_object->is_anonymous_parent_object = TRUE;
     assoc_object_access = assoc_var_object->source_corresp.access;
+    apo_sym = make_anonymous_parent_object_symbol(
+                           (a_symbol_kind)sk_variable,
+                           &assoc_var_object->source_corresp.decl_position);
   } else {
     object_type = assoc_field_object->type;
-    ctsp = object_type->variant.class_struct_union.extra_info;
-    ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_field;
-    ctsp->anonymous_union_field = assoc_field_object;
+    assoc_field_object->is_anonymous_parent_object = TRUE;
     assoc_object_access = assoc_field_object->source_corresp.access;
+    apo_sym = make_anonymous_parent_object_symbol(
+                           (a_symbol_kind)sk_field,
+                           &assoc_field_object->source_corresp.decl_position);
   }  /* if */
+  reuse_same_symbol = object_type->kind != (a_type_kind)tk_typeref;
   /* The symbols list for the anonymous union will be eliminated.  Its
      field symbols are promoted to the scope of the containing class. */
   cssp = symbol_supplement_for_class(object_type);
@@ -4119,7 +4123,7 @@ of assoc_field_object and assoc_var_object is defined.
   /* Go through each of the symbols on the list. */
   for (; sym != NULL; sym = next_sym) {
     next_sym = sym->next_in_scope;
-    sym->next_in_scope = NULL;
+    if (reuse_same_symbol) sym->next_in_scope = NULL;
     /* Private and protected members are not allowed in an anonymous union
        (ARM 9.5). */
     access = access_for_symbol(sym);
@@ -4132,18 +4136,22 @@ of assoc_field_object and assoc_var_object is defined.
     }  /* if */
     switch (sym->kind) {
       case sk_field:
-        /* Unlink the symbol from the inactive list and link it back into the
-           symbol table in the current scope. */
-        sym->class_of_which_a_member = class_type;
-        /* The fields of an anonymous union within a class take on the access
-           specifier of the anonymous union itself; the fields of a variable
-           anonymous union should be (i.e., should remain) public. */
-        sym->variant.field.ptr->source_corresp.access = assoc_object_access;
-        remove_anonymous_union_member_from_inactive_symbols_list(sym);
-        reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
-        if (assoc_var_object != NULL) {
-          /* Update the IL. */
-          sym->variant.field.anonymous_union_variable = assoc_var_object;
+        if (reuse_same_symbol) {
+          /* Unlink the symbol from the inactive list and link it back into
+             the symbol table in the current scope. */
+          sym->class_of_which_a_member = class_type;
+          /* The members of an anonymous union within a class take on the
+             access specifier of the anonymous union itself; the members
+             of a variable anonymous union should be (i.e., should remain)
+             public. */
+          sym->variant.field.ptr->source_corresp.access = assoc_object_access;
+          remove_anonymous_union_member_from_inactive_symbols_list(sym);
+          reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
+          sym->variant.field.anonymous_parent_object = apo_sym;
+        } else {
+#if 0
+NYI
+#endif /* if 0 */
         }  /* if */
         break;
       case sk_member_function:
@@ -4172,27 +4180,40 @@ of assoc_field_object and assoc_var_object is defined.
       case sk_class_or_struct_tag:
       case sk_union_tag:
       case sk_enum_tag:
-        /* Unlink the symbol from the inactive list and link it back into the
-           symbol table in the current scope. */
-        tp = type_symbol_type(sym);
-        /* Set the parent class in the symbol but not in the IL entry.  The
-           symbol is promoted, but the type remains nested. */
-        sym->class_of_which_a_member = class_type;
-        /* The members of an anonymous union within a class take on the access
-           specifier of the anonymous union itself; the members of a variable
-           anonymous union should be (i.e., should remain) public. */
-        tp->source_corresp.access = assoc_object_access;
-        remove_anonymous_union_member_from_inactive_symbols_list(sym);
-        reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
+        if (reuse_same_symbol) {
+          /* Unlink the symbol from the inactive list and link it back into
+             the symbol table in the current scope. */
+          tp = type_symbol_type(sym);
+          /* Set the parent class in the symbol but not in the IL entry.  The
+             symbol is promoted, but the type remains nested. */
+          sym->class_of_which_a_member = class_type;
+          /* The members of an anonymous union within a class take on the
+             access specifier of the anonymous union itself; the members
+             of a variable anonymous union should be (i.e., should remain)
+             public. */
+          tp->source_corresp.access = assoc_object_access;
+          remove_anonymous_union_member_from_inactive_symbols_list(sym);
+          reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
+        } else {
+#if 0
+NYI
+#endif /* if 0 */
+        }  /* if */
         break;
       case sk_constant:
         /* An enum constant. */
-        /* Set the parent class in the symbol but not in the IL entry.  The
-           symbol is promoted, but the type remains nested. */
-        sym->class_of_which_a_member = class_type;
-        sym->variant.constant->source_corresp.access = assoc_object_access;
-        remove_anonymous_union_member_from_inactive_symbols_list(sym);
-        reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
+        if (reuse_same_symbol) {
+          /* Set the parent class in the symbol but not in the IL entry.  The
+             symbol is promoted, but the type remains nested. */
+          sym->class_of_which_a_member = class_type;
+          sym->variant.constant->source_corresp.access = assoc_object_access;
+          remove_anonymous_union_member_from_inactive_symbols_list(sym);
+          reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
+        } else {
+#if 0
+NYI
+#endif /* if 0 */
+        }  /* if */
         break;
       case sk_static_data_member:
         /* Must be an error, since unions cannot have static data members.
@@ -4206,6 +4227,65 @@ of assoc_field_object and assoc_var_object is defined.
   }  /* for */
   db_exit();
 }  /* check_anonymous_union_symbols */
+
+
+static a_boolean is_anonymous_union_decl(a_type_ptr       member_type,
+                                         a_storage_class  storage_class,
+                                         a_decl_flag_set  dso_flags)
+/*
+*/
+{
+  a_boolean  is_anonymous_union = FALSE;
+
+  if (
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+      C_mode() ||
+#else /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+      !C_mode() &&
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+                   (!(dso_flags & DSO_FRIEND) &&
+                    storage_class != (a_storage_class)sc_typedef)) {
+    /* In C++ mode, we know this is not a friend or typedef declaration.  If
+       the extension is not enabled, we know this isn't C mode. */
+    if (!is_class_struct_union_type(member_type) ||
+        !(skip_typerefs(member_type))->
+                           variant.class_struct_union.originally_unnamed) {
+      /* Definitely not an anonymous union -- either it's the wrong kind of
+         type or it was declared with a tag. */
+    } else if (!C_mode() &&
+               member_type->kind == (a_type_kind)tk_union) {
+      /* A proper C++ anonymous union. */
+      is_anonymous_union = TRUE;
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+      /* The extension to support anonymous-union-like constructs is
+         enabled, but only recognize it if we aren't in strict mode. */
+    } else if (!strict_ansi_mode &&
+               storage_class == (a_storage_class)sc_unspecified) {
+      /* Skip the typedefs but not cv qualifiers. */
+      a_type_ptr  tp = skip_typedefs(member_type);
+
+      if (tp->kind == (a_type_kind)tk_typeref) {
+        /* This must be a cv qualifier on top of what we already know is
+           a class/struct/union type.  Don't treat this as an anonymous-
+           union-like construct. */
+      } else {
+        /* Okay.  But issue a diagnostic that this is an extension. */
+        /* warning(xxx); */
+        is_anonymous_union = TRUE;
+#if 0
+        if (member_type != tp) {
+          /* Now we have to clone the type. */
+          member_type = alloc_type(tp->kind);
+          copy_type(tp, member_type);
+          /* Copy the fields. */
+        }
+#endif /* if 0 */
+      }  /* if */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+    }  /* if */
+  }  /* if */
+  return is_anonymous_union;
+}  /* is_anonymous_union_decl */
 
 
 static void add_error_field(a_type_ptr  class_type,
@@ -5555,7 +5635,18 @@ Scan the body of a class definition, including the base classes list.
           /* There's no declarator following the declaration specifier.  This
              is okay sometimes.  When it is, skip over declarator processing
              to the next declaration. */
-          if (!C_mode()) {
+          /* Check first whether this is an anonymous union declaration. */
+          if (is_anonymous_union_decl(member_type, member_storage_class,
+                                      dso_flags)) {
+            /* A C++ anonymous union -- "union { int i, j; };" */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+            /* It might also be an anonymous-union-like construct in C or
+               C++, namely an unnamed class/struct/union type, possibly
+               represented by a typedef name, whose subfields are to be
+               visible as though they were fields of the current class. */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+            is_anonymous_union = TRUE;
+          } else if (!C_mode()) {
             /* C++ mode. */
             if (local_defines_something && !local_declares_something &&
                 member_type->kind == (a_type_kind)tk_union &&
