@@ -1535,8 +1535,8 @@ error code.
     case ec_class_with_op_delete_but_no_op_new:
       m = "%n has an operator delete() but no operator new()";
       break;
-    case ec_class_with_virtual_func_but_nonvirtual_dtor:
-      m = "%n has virtual functions but its destructor is nonvirtual";
+    case ec_base_class_with_nonvirtual_dtor:
+      m = "destructor for base class %t is not virtual";
       break;
     case ec_no_access_to_constructors:
       m = "%n has no accessible constructors";
@@ -4051,6 +4051,17 @@ Report the indicated warning at the indicated position.
 {
   pos_st_warning(error_code, error_pos, (char *)NULL);
 }  /* pos_warning */
+
+
+void str_warning(an_error_code error_code,
+               char          *error_string)
+/*
+Report the indicated warning (with the indicated fill-in string) at the
+position indicated by error_position.
+*/
+{
+  pos_st_warning(error_code, &error_position, error_string);
+}  /* str_warning */
 
 
 void warning(an_error_code error_code)
