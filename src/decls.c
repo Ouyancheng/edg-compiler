@@ -333,6 +333,10 @@ static void prescan_declarator(a_token_cache  *token_cache_ptr,
     if (curr_token == tok_star || curr_token == tok_ampersand) {
       cache_curr_token(token_cache_ptr);
       (void)get_token();
+      if (curr_token == tok_const || curr_token == tok_volatile) {
+        *may_be_expr = FALSE;
+        goto done;
+      }  /* if */
       /* Keep looping. */
     } else if (is_qualified_name_start() &&
                is_ptr_to_member_declarator_start()) {
@@ -403,8 +407,14 @@ static void prescan_declarator(a_token_cache  *token_cache_ptr,
           if (curr_token != tok_lparen) goto done;
         }  /* if */
       }  /* if */
-    } else {
+    } else if (curr_token == tok_rparen) {
       if (!abstract_declarator_allowed) *may_be_decl = FALSE;
+      goto done;
+    } else {
+      /* The current token doesn't fit into the pattern for a declaration
+         (e.g., it's a constant or an operator), so it's likely to be an
+         expression. */
+      *may_be_decl = FALSE;
       goto done;
     }  /* if */
   }  /* if */
@@ -478,6 +488,7 @@ this is something other than a declaration; otherwise return FALSE.
         curr_token == tok_unsigned)) {
     /* Disambiguation is required.  This could be a cast expression or a
        constructor call. */
+    *may_be_expr = TRUE;
     /* Cache the current token.  Then advance past the left paren and cache
        it, too. */
     cache_curr_token(token_cache_ptr);
@@ -554,14 +565,13 @@ this is something other than a declaration; otherwise return FALSE.
         }  /* if */
       }  /* if */
     }  /* if */
-  } else {
-    *may_be_expr = FALSE;
   }  /* if */
   db_exit();
 }  /* prescan_declaration */
 
 
-a_boolean f_is_decl_not_expr(a_boolean  abstract_declarator_allowed)
+a_boolean f_is_decl_not_expr(a_boolean  abstract_declarator_allowed,
+                             a_boolean  real_declarator_allowed)
 /*
 This routine is called via the macro is_decl_not_expr (in C++ only) to
 distinguish (1) a statement vs. a declaration; (2) casts vs. parenthesized
@@ -583,7 +593,7 @@ for a pointer to class A.
   a_token_cache       token_cache;
   a_stop_token_array  save_stop_token_array;
   a_boolean           may_be_decl = TRUE;
-  a_boolean           may_be_expr = TRUE;
+  a_boolean           may_be_expr = FALSE;
 
   db_enter(3, "f_is_decl_not_expr");
   /* Save the current stop token state, and reinitialize it. */
@@ -596,8 +606,7 @@ for a pointer to class A.
      declaration.  Each token that is encountered is cached away, so that
      that they can be restored for the actual scan. */
   prescan_declaration(&token_cache, abstract_declarator_allowed,
-                      /*real_declarator_allowed=*/!abstract_declarator_allowed,
-                      &may_be_decl, &may_be_expr);
+                      real_declarator_allowed, &may_be_decl, &may_be_expr);
   /* Restore the tokens. */
   rescan_cached_tokens(&token_cache);
   /* Restore the stop token state. */
@@ -4291,7 +4300,8 @@ otherwise it is NULL.  The syntax is:
       (void)get_token();
       if (parenthesized_initializer_allowed && !is_constructor_or_destructor) {
         if (curr_token != tok_rparen && curr_token != tok_ellipsis &&
-            !is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE)) {
+            !is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
+                              /*real_declarator_allowed=*/TRUE)) {
           a_boolean  is_function_decl = FALSE;
           /* This appears to be a parenthesized initializer.  However, it
              might also be a function definition with an old-style parameter
