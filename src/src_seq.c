@@ -24,7 +24,6 @@ src_seq.c -- Support for source sequence list management
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if !STANDALONE_UTILITY_PROGRAM
-#include "pch.h"
 
 #if DEBUG
 
@@ -598,6 +597,8 @@ updating list_ptr and end_of_list_ptr if appropriate.
   return head;
 }  /* unlink_src_seq_entries */
 
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
 /* Macro to call unlink_src_seq_entries.  head and tail are source sequence
    entry pointers that specify a sublist of a list of source sequence
    entries, and scope_stk_ptr points to the scope stack entry to which the
@@ -607,6 +608,8 @@ updating list_ptr and end_of_list_ptr if appropriate.
   f_unlink_src_seq_entries(head, tail,					\
                            &scope_stack_ptr->source_sequence_list,	\
                            &scope_stack_ptr->end_of_source_sequence_list)
+
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 /* Macro to call unlink_src_seq_entries when there is only one entry to
    unlink (not a list).  scope_stack_ptr points to the scope stack entry
@@ -1094,7 +1097,7 @@ member.  For instance,
 
 If the instantiation of X<N> is represented at file scope prior to the
 definition of A, there will be an unresolved name reference (A::N).
-Similarly, the instantiation of A::Y<int> cannot precede the defintion of A.
+Similarly, the instantiation of A::Y<int> cannot precede the definition of A.
 Neither, of course, can the instantiations be inserted after the definition
 of A.  (On the other hand, the problem with putting the instantiations where
 they need to be is that template instantiations are represented in the
@@ -1107,7 +1110,7 @@ C++ compilers do already by default.)
 The algorithm used to determine the insert point in such cases embodies two
 rules (where an "uncompleted class" is a class whose definition has started
 but not yet finished): (1) when the instantiation of a member template
-occurs during the definition the class heirarchy to which it belongs, it
+occurs during the definition the class hierarchy to which it belongs, it
 cannot move out beyond the innermost uncompleted class of which it is a
 member; (2) when the instantiation has template arguments that involve an
 uncompleted class type, the instantiation cannot be moved beyond the
@@ -1321,7 +1324,7 @@ insert_before.
         insert_scope_stack_ptr->il_scope != NULL) {
       db_scope(insert_scope_stack_ptr->il_scope);
     } else {
-      db_scope_kind(insert_scope_stack_ptr->kind);
+      (void)db_scope_kind(insert_scope_stack_ptr->kind);
       fprintf(f_debug, " scope %d", (int)insert_scope_stack_ptr->number);
     }  /* if */
     fputs("\n", f_debug);
