@@ -2358,8 +2358,12 @@ types; just put out the base encoded name.
     /* Templates have their return types included. */
     do_return_type = mangle_as_template;
     if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+#if ABI_COMPATIBILITY_VERSION >= 243
+        routine->special_kind == (a_special_function_kind)sfk_conversion ||
+#endif /* ABI_COMPATIBILITY_VERSION >= 243 */
         routine->special_kind == (a_special_function_kind)sfk_destructor) {
-      /* No return type on constructors or destructors. */
+      /* No return type on constructors, destructors, or conversion
+         functions. */
       do_return_type = FALSE;
     }  /* if */
     /* Output the function type, including the parameter types. */
