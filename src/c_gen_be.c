@@ -2795,7 +2795,7 @@ process_assignment:
         case eok_comma:
 #if CHECKING
 #if !STANDALONE_UTILITY_PROGRAM
-          check_assertion_str(identical_types(operand_2->type, expr->type),
+          check_assertion_str(il_identical_types(operand_2->type, expr->type),
                               "dump_expr: bad type on eok_comma");
 #endif /* !STANDALONE_UTILITY_PROGRAM */
           check_result_not_used_flag(operand_1);
@@ -2815,10 +2815,10 @@ process_assignment:
         case eok_question:
           /* Three operand operator. */
 #if !STANDALONE_UTILITY_PROGRAM
-          check_assertion_str(identical_types(operand_2->type,
-                                              expr->type) &&
-                              identical_types(operand_2->next->type,
-                                              expr->type),
+          check_assertion_str(il_identical_types(operand_2->type,
+                                                 expr->type) &&
+                              il_identical_types(operand_2->next->type,
+                                                 expr->type),
                               "dump_expr: bad type on eok_question");
 #endif /* !STANDALONE_UTILITY_PROGRAM */
           dump_boolean_controlling_expression(operand_1);
@@ -2950,7 +2950,7 @@ done_with_operation:
 #if KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED
     case enk_object_lifetime:
 #if !STANDALONE_UTILITY_PROGRAM
-      check_assertion_str(identical_types(expr->type,
+      check_assertion_str(il_identical_types(expr->type,
                                      expr->variant.object_lifetime.expr->type),
                           "dump_expr: bad type on enk_object_lifetime");
 #endif /* !STANDALONE_UTILITY_PROGRAM */
