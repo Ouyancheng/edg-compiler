@@ -315,7 +315,8 @@ static void gen_lvalue_full(an_expr_node_ptr node,
 #define gen_lvalue(node) gen_lvalue_full(node, /*need_parens=*/TRUE)
 #define gen_lvalue_no_parens(node) gen_lvalue_full(node, /*need_parens=*/FALSE)
 static void gen_initializer_constant(a_constant_ptr constant,
-                                     a_type_ptr     type);
+                                     a_type_ptr     type,
+                                     a_boolean      suppress_braces);
 static void gen_initializer_expr(an_expr_node_ptr expr,
                                  a_type_ptr       type,
                                  a_boolean        need_parens);
@@ -2260,7 +2261,8 @@ give the dynamic initialization entry and type for the compound literal.
     write_tok_ch('{');
   }  /* if */
   if (literal_con != NULL) {
-    gen_initializer_constant(literal_con, literal_type);
+    gen_initializer_constant(literal_con, literal_type,
+                             /*suppress_braces=*/FALSE);
   } else {
     check_assertion(is_scalar &&
                     dip->kind == (a_dynamic_init_kind)dik_expression);
@@ -2453,16 +2455,23 @@ one step instead of class-by-class, return TRUE.
 
 static void gen_designator(a_constant_ptr con,
                            a_field_ptr    *field,
-                           a_boolean      *repeated)
+                           a_constant_ptr *p_eff_con,
+                           a_boolean      *suppress_braces)
 /*
 Generate code for a ck_designator constant, i.e., a designator in a
-designated initializer.  If the designator is for a field, set *field to
-the field.  If the designator is for a repeated initialization, return
-*repeated set to TRUE.
+designated initializer.  If the designator is for a field, set *field
+to the field.  If the designator is for a repeated initialization,
+return *repeated set to TRUE.  *p_eff_con is set to the constant that
+the designator applies to (usually the next constant, but the one
+under a ck_init_repeat for a repeated initialization).
+*suppress_braces is returned TRUE to indicate that *p_eff_con is an
+aggregate constant and braces around it should be suppressed.
 */
 {
-  a_boolean use_old_form = FALSE;
+  a_boolean      use_old_form = FALSE, close = TRUE;
+  a_constant_ptr eff_con;
 
+  *suppress_braces = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode) {
     /* g++, at least up to version 3.3, still accepts only an older
@@ -2470,7 +2479,8 @@ the field.  If the designator is for a repeated initialization, return
     use_old_form = TRUE;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  *repeated = FALSE;
+  eff_con = con->next;
+  check_assertion(eff_con != NULL);
   *field = con->variant.designator.field;
   if (*field != NULL) {
     /* Field designator. */
@@ -2480,34 +2490,52 @@ the field.  If the designator is for a repeated initialization, return
     } else {
       write_tok_ch('.');
       gen_field_name(*field);
-      write_tok_str(" = ");
     }  /* if */
   } else {
     /* Array element designator. */
     write_tok_ch('[');
     write_unsigned_num((unsigned long)con->variant.designator.array_element);
-    if (con->next->kind == (a_constant_repr_kind)ck_init_repeat) {
+    if (eff_con->kind == (a_constant_repr_kind)ck_init_repeat) {
       /* A repeated designator, e.g., "[1 ... 1000] = 0". */
       a_targ_size_t last_elem = con->variant.designator.array_element +
-                                con->next->variant.init_repeat.count - 1;
-      *repeated = TRUE;
+                                eff_con->variant.init_repeat.count - 1;
       write_tok_str(" ... ");
       write_unsigned_num((unsigned long)last_elem);
+      eff_con = eff_con->variant.init_repeat.constant;
     }  /* if */
     write_tok_ch(']');
-    if (!use_old_form) write_tok_str(" = ");
   }  /* if */
+  if (eff_con->kind == (a_constant_repr_kind)ck_aggregate) {
+    /* The presence of braces following an aggregate can make
+       a difference.  Don't put out braces if they were implied
+       in the source. */
+    if (!eff_con->explicit_braces_on_aggregate) {
+      *suppress_braces = TRUE;
+      if (eff_con->variant.aggregate.first_constant != NULL &&
+          eff_con->variant.aggregate.first_constant->kind ==
+                                         (a_constant_repr_kind)ck_designator) {
+        /* Do not close the designator if another one will follow
+           immediately. */
+        close = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!use_old_form && close) write_tok_str(" = ");
+  check_assertion(eff_con->kind != (a_constant_repr_kind)ck_designator);
+  *p_eff_con = eff_con;
 }  /* gen_designator */
 
 
 static void gen_initializer_constant(a_constant_ptr constant,
-                                     a_type_ptr     type)
+                                     a_type_ptr     type,
+                                     a_boolean      suppress_braces)
 /*
 Generate an initializer constant, which differs from a normal constant in
 that it can contain aggregates and dynamic initializations.  type is
 the type of the entity being initialized; it can be NULL if the constant
 is not an aggregate or dynamic initialization, and if the entity being
-initialized is not a reference.
+initialized is not a reference.  If suppress_braces is TRUE, if the
+constant is an aggregate the braces around it are suppressed.
 */
 {
   a_constant_ptr sub_con;
@@ -2517,7 +2545,7 @@ initialized is not a reference.
   if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
     a_boolean      array_case, template_param_case;
     /* Aggregate constant (e.g., "{1, 2, 3}"). */
-    write_tok_ch('{');
+    if (!suppress_braces) write_tok_ch('{');
     /* Figure out the kind of aggregate so we can track the type as we
        work through constants. */
     type = skip_typerefs(type);
@@ -2547,15 +2575,12 @@ initialized is not a reference.
     } else {
       for (; sub_con != NULL;) {
         a_constant_ptr eff_sub_con = sub_con;
+        a_boolean      local_suppress_braces = FALSE;
         if (sub_con->kind == (a_constant_repr_kind)ck_designator) {
           /* Put out the introduction for a designated initializer. */
-          a_boolean repeated;
-          gen_designator(sub_con, &field, &repeated);
+          gen_designator(sub_con, &field, &eff_sub_con,
+                         &local_suppress_braces);
           sub_con = sub_con->next;
-          eff_sub_con = sub_con;
-          check_assertion(sub_con != NULL &&
-                          sub_con->kind!=(a_constant_repr_kind)ck_designator);
-          if (repeated) eff_sub_con = sub_con->variant.init_repeat.constant;
         }  /* if */
         /* Determine the type of the entity initialized by the next
            constant. */
@@ -2568,7 +2593,7 @@ initialized is not a reference.
           sub_type = field->type;
           field = next_initializable_field(field->next);
         }  /* if */
-        gen_initializer_constant(eff_sub_con, sub_type);
+        gen_initializer_constant(eff_sub_con, sub_type, local_suppress_braces);
         sub_con = sub_con->next;
         /* Stop after the last constant. */
         if (sub_con == NULL) break;
@@ -2586,7 +2611,7 @@ initialized is not a reference.
         write_tok_str(", ");
       }  /* for */
     }  /* if */
-    write_tok_ch('}');
+    if (!suppress_braces) write_tok_ch('}');
   } else if (constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
     /* Dynamic initialization for an element of an aggregate. */
     gen_dynamic_init(constant->variant.dynamic_init, type,
@@ -9092,7 +9117,8 @@ Note that the destructor, if any, is implicit and need not be put out.
                           !parenthesized_init,
                           "gen_dynamic_init: aggregate in parens");
       if (parenthesized_init) write_tok_ch('(');
-      gen_initializer_constant(con, init_entity_type);
+      gen_initializer_constant(con, init_entity_type,
+                               /*suppress_braces=*/FALSE);
       if (parenthesized_init) write_tok_ch(')');
       break;
     case dik_nonconstant_aggregate:
@@ -9114,7 +9140,8 @@ Note that the destructor, if any, is implicit and need not be put out.
       check_assertion_str(con->kind == (a_constant_repr_kind)ck_aggregate &&
                           !parenthesized_init,
                           "gen_dynamic_init: bad nonconst aggr");
-      gen_initializer_constant(con, init_entity_type);
+      gen_initializer_constant(con, init_entity_type,
+                               /*suppress_braces=*/FALSE);
       break;
     case dik_expression:
       /* Expression. */
@@ -9245,7 +9272,8 @@ initialization is in a condition declaration if is_condition is TRUE.
     switch (init_kind) {
       case initk_static:
         write_tok_str(" = ");
-        gen_initializer_constant(initializer->constant, var->type);
+        gen_initializer_constant(initializer->constant, var->type,
+                                 /*suppress_braces=*/FALSE);
         break;
       case initk_dynamic:
         /* Put out the initialization, using the "()" form if it was that
