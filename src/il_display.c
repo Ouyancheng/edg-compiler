@@ -401,6 +401,34 @@ Display the indicated access specifier with a name.
 
 #endif /* ifdef CFE */
 
+static void disp_name_linkage(char           *name,
+                              a_name_linkage nlk)
+/*
+Display the indicated field name and name linkage kind.
+*/
+{
+  disp_name("  name_linkage");
+  switch ((a_name_linkage_kind)scp->name_linkage) {
+    case nlk_none:
+      (void)printf("nlk_none\n");
+      break;
+#ifdef CFE
+    case nlk_internal:
+      (void)printf("nlk_internal\n");
+      break;
+    case nlk_cplusplus_external:
+      (void)printf("nlk_cplusplus_external\n");
+      break;
+#endif /* ifdef CFE */
+    case nlk_external:
+      (void)printf("nlk_external\n");
+      break;
+    default:
+      (void)printf("**BAD NAME LINKAGE KIND**\n");
+  }  /* switch */
+}  /* disp_name_linkage */
+
+
 static void disp_source_corresp(a_source_correspondence *scp)
 /*
 Display the indicated source correspondence entry.
@@ -430,25 +458,8 @@ Display the indicated source correspondence entry.
                  (a_boolean)scp->is_local_to_function);
   }  /* if */
   if (scp->name != NULL) {
-    disp_name("  name_linkage");
-    switch ((a_name_linkage_kind)scp->name_linkage) {
-      case nlk_none:
-        (void)printf("nlk_none\n");
-        break;
-#ifdef CFE
-      case nlk_internal:
-        (void)printf("nlk_internal\n");
-        break;
-      case nlk_cplusplus_external:
-        (void)printf("nlk_cplusplus_external\n");
-        break;
-#endif /* ifdef CFE */
-      case nlk_external:
-        (void)printf("nlk_external\n");
-        break;
-      default:
-        (void)printf("**BAD NAME LINKAGE KIND**\n");
-    }  /* switch */
+    disp_name_linkage("  name_linkage",
+                      (a_name_linkage_kind)scp->name_linkage);
   }  /* if */
   if (scp->has_associated_pragma) {
     disp_boolean("  has_associated_pragma",
@@ -726,6 +737,10 @@ Display a_routine_type_supplement.
   }  /* if */
   if (ptr->assoc_routine_is_dtor) {
     disp_boolean("assoc_routine_is_dtor", TRUE);
+  }  /* if */
+  if (ptr->assoc_routine_name_linkage != (a_name_linkage_kind)nlk_none) {
+    disp_name_linkage("assoc_routine_linkage_name",
+                      (a_name_linkage_kind)ptr->assoc_routine_name_linkage)
   }  /* if */
   if (ptr->lint_varargs_count != NOT_LINT_VARARGS) {
     disp_long("lint_varargs_count", (long)ptr->lint_varargs_count);

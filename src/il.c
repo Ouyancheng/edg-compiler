@@ -4170,6 +4170,7 @@ to default values.
       rtsp->assoc_routine_is_ctor    = FALSE;
       rtsp->assoc_routine_is_dtor    = FALSE;
       rtsp->suppress_diagnostic_on_incomplete_return_type = FALSE;
+      rtsp->assoc_routine_name_linkage = (a_name_linkage_kind)nlk_none;
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (a_pragma_kind)pk_none;
 #if MICROSOFT_KEYWORDS_ALLOWED
