@@ -1613,6 +1613,8 @@ a_type_ptr copy_gnu_type_attributes(a_type_ptr  dst,
 Copy any GNU type attributes in type dst to type src.
 */
 {
+  a_type_ptr  result = dst;
+
   src = skip_typerefs(src);
   dst = skip_typerefs(dst);
   if (dst == src) {
@@ -1632,6 +1634,8 @@ Copy any GNU type attributes in type dst to type src.
           }  /* if */
           dst_rtsp->does_not_return = src_rtsp->does_not_return;
           dst_rtsp->is_const = src_rtsp->is_const;
+          /* Update the result since a skip_typerefs was applied to dst. */
+          result = dst;
         }
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
         break;
@@ -1640,7 +1644,7 @@ Copy any GNU type attributes in type dst to type src.
         break;
     }  /* switch */
   }  /* if */
-  return dst;
+  return result;
 }  /* copy_gnu_type_attributes */
 
 
