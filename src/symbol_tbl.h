@@ -2175,7 +2175,7 @@ extern void reference_to_symbol(a_symbol_reference_kind  kind,
   f_mark_defined((sym), (pos), (a_source_sequence_entry_ptr)NULL)
 
 #define mark_declared(sym, pos)                                         \
-  f_mark_defined((sym), (pos), (a_source_sequence_entry_ptr)NULL)
+  f_mark_declared((sym), (pos), (a_source_sequence_entry_ptr)NULL)
 
 #define mark_referenced(sym, err_pos)                                   \
   reference_to_symbol(SRK_REFERENCE, (sym), (err_pos),                  \
