@@ -5455,8 +5455,6 @@ otherwise it is NULL.  The syntax is:
                                        C_dialect == C_dialect_cplusplus);
   derived_type = NULL;
   bottom_derived_type = NULL;
-  add_stop_token(tok_lbracket);
-  add_stop_token(tok_lparen);
   /* The next thing is an identifier, or a parenthesis that begins a
      nested declarator.  For the abstract declarator case, the
      identifier is omitted. */
@@ -5953,8 +5951,6 @@ function_lparen:
     add_to_derived_type_list(new_type_ptr,
                              &derived_type, &bottom_derived_type);
   }  /* while */
-  remove_stop_token(tok_lbracket);
-  remove_stop_token(tok_lparen);
   /* Set the referenced flag on the specifiers type if this is the top-level
      scan of the declarator (i.e., if specifiers_type is non-NULL) -- but
      do this only if a real declarator was scanned.  This enables us to
@@ -7706,11 +7702,7 @@ destructor_name:
            this is an error. */
 something_unexpected:
         if (num_specifiers == 0) {
-          if (is_abstract_or_real_declarator_start()) {
-            error(ec_exp_type_specifier);
-          } else {
-            syntax_error(ec_exp_type_specifier);
-          }  /* if */
+          syntax_error(ec_exp_type_specifier);
           err = TRUE;
           basic_type = bt_error;
         }  /* if */
