@@ -3945,11 +3945,7 @@ on for use in generating cross-reference output describing this declaration.
     /* When the declared_type was created (in declarator), the default args
        were ignored.  If appropriate, copy them from type_ptr to the
        declared_type now (i.e., before composite_type is called). */
-    if (is_friend_decl) {
-      /* The default arg tokens were cached and will be scanned during
-         default arg fixup, once the entire class body has been scanned; at
-         that time the default args in the declared type will be updated. */
-    } else if (!is_function_def && source_sequence_entries_disallowed) {
+    if (!is_function_def && source_sequence_entries_disallowed) {
       /* The declared_type is not used. */
     } else if (func_info->declared_type != NULL &&
                skip_typerefs(func_info->declared_type)->
@@ -4655,6 +4651,11 @@ skip_overloading:;
     /* The defining declaration of the function.  Set a pointer to the
        declared type. */
     set_routine_declared_type(routine_ptr, func_info->declared_type);
+    if (is_friend_decl) {
+      /* If there were any default arguments, they still need to be scanned.
+         Enable the default-arg fixup processing to find the declared type. */
+      func_info->declared_type = routine_ptr->declared_type;
+    }  /* if */
     if (qualifier_namespace_ptr(*locator) != NULL) {
       check_assertion(!is_friend_decl);
       routine_ptr->defined_outside_of_parent = TRUE;

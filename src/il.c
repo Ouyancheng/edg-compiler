@@ -5683,10 +5683,12 @@ from_type to to_type.  This should be called only in C++ mode.
     check_assertion((from_ptp == NULL) == (to_ptp == NULL));
     if (from_ptp == NULL) break;
     if (from_ptp->has_default_arg) {
-      check_assertion(from_ptp->default_arg_expr != NULL);
       to_ptp->has_default_arg = TRUE;
-      to_ptp->default_arg_expr =
+      if (from_ptp->default_arg_expr != NULL) {
+        check_assertion(to_ptp->default_arg_expr == NULL);
+        to_ptp->default_arg_expr =
                         duplicate_default_arg_expr(from_ptp->default_arg_expr);
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
@@ -11618,6 +11620,39 @@ functions have been removed from the IL.
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* for */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Check the default arguments on the declared-type recorded in
+       secondary-decl source sequence entries, too. */
+    { a_source_sequence_entry_ptr   ssep;
+      a_src_seq_secondary_decl_ptr  sssdp;
+      an_il_entry_kind              kind;
+
+      /* Traverse the section of the source-sequence list associated with
+         the body of the class. */
+      ssep = class_type->source_corresp.source_sequence_entry;
+      if (ssep != NULL) {
+        ssep = ssep->next;
+        for (; ssep != NULL; ssep = ssep->next) {
+          check_assertion(ssep != NULL);
+          kind = ssep->entity.kind;
+          if (kind == (an_il_entry_kind)iek_src_seq_end_of_construct) {
+            if (ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr)->
+                                           entity.ptr == (char *)class_type) {
+              /* Last of the source sequence entries belonging to the class
+                 body. */
+              break;
+            }  /* if */
+          } else if (kind == (an_il_entry_kind)iek_src_seq_secondary_decl) {
+            sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+            if (sssdp->entity.kind == (an_il_entry_kind)iek_routine &&
+                sssdp->declared_type != NULL) {
+              eliminate_default_arg_object_lifetimes(sssdp->declared_type);
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 }  /* eliminate_member_function_default_arg_object_lifetimes */
 
@@ -11905,7 +11940,11 @@ dependent on it.  The routine entry itself is dealt with later.
             ssep->entity.kind =
                           (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
             sssdp->decl_position = rp->source_corresp.decl_position;
+            /* Move the declared type pointer from the routine into the
+               source-sequence entry, clearing the routine's pointer (since
+               rp no longer represents a definition). */
             sssdp->declared_type = rp->declared_type;
+            rp->declared_type = NULL;
             sssdp->friend_decl = rp->defined_in_friend_decl;
             if (!C_mode() && sp->src_seq_sublist_list != NULL) {
               /* If any tags were introduced in the parameter declarations for
