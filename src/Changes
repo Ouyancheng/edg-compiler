@@ -1,5 +1,23 @@
 Version 2.23
 
+3/1/94  Static function called from automatically instantiated function
+
+The compiler generated a spurious error when a static template function
+was called from an external template function that was in turn instantiated
+by the automatic instantiation mechanism.  This has been corrected.
+
+  template <class T> static void f(T){}
+  template <class T> void g(T t)
+  {
+    f(t);
+  }
+
+  int main()
+  {
+    int i = 1;
+    g(i);
+  }
+
 3/1/94  Declaring an object of void type
 
 In C++ mode an error is now issued when an extern variable is declared to

@@ -4466,21 +4466,13 @@ specific definition that made it unnecessary.
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (automatic_instantiation_mode) {
-    /* Reset the flag that indicates that we are doing instantiation wrapup
-       processing.  During automatic instantiation processing we once again
-       want entries added to the instantiation required list. */
-    in_instantiation_wrapup = FALSE;
     /* Do processing related to automatic instantiation processing. */
     automatic_instantiation();
-  }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-  if (automatic_instantiation_mode) {
     update_auto_instantiation_flags();
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
+  in_instantiation_wrapup = FALSE;
   db_exit();
 }  /* instantiation_wrapup */
 
