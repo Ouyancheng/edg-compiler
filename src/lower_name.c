@@ -3058,12 +3058,10 @@ IA-64 ABI to distinguish function-local entities with the same name.
       /* This is an enumerator constant.  The constant itself never appears
          to ABI consumers (only its value as a template argument), but for
          the purpose of generating C code, we do need to ensure uniqueness.
-         To that end, use the discriminator of the enum type. */
-      a_type_ptr  enum_type = skip_typerefs(sym->variant.constant->type);
-      check_assertion(is_immediate_enum_type(enum_type));
-      sym = (a_symbol_ptr)enum_type->source_corresp.assoc_info;
-    }  /* if */
-    if (sym->kind == (a_symbol_kind)sk_variable) {
+         To that end, use the declaration sequence number of the
+         enumerator. */
+      discriminator = sym->decl_seq;
+    } else if (sym->kind == (a_symbol_kind)sk_variable) {
       discriminator = sym->variant.variable.discriminator;
     } else if (is_class_struct_union_symbol(sym) &&
                sym->variant.class_struct_union.extra_info != NULL) {
