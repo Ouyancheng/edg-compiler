@@ -8191,6 +8191,11 @@ list and template argument list of a partial specialization are valid.
                      &param_sym->decl_position, param_sym);
         any_errors = TRUE;
         error_on_this_param = TRUE;
+        /* Reset the flag that indicates that this parameter has a template
+           dependent type.  This is done because the routines that handle
+           partial specialization later on are not prepared to handle such
+           cases (because they are errors). */
+        tpp->variant.constant.type_involves_template_param = FALSE;
       }  /* if */
     }  /* if */
     if (!error_on_this_param) {
