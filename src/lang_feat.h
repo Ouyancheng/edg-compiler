@@ -593,8 +593,17 @@ TRUE in default mode because the ATT/USL iostream library depends on it.
 */
 #ifndef DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM
 #define DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM TRUE
-#endif /* DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM */
+#endif /* ifndef DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM */
 
+/*
+Flag that is TRUE if, by default, template specializations may be declared
+using the "old syntax" -- i.e., if the "template <>" syntax is not required.
+It is the initial value of global variable old_specializations_allowed,
+which is also controlled by command line option --[no_]old_specializations.
+*/
+#ifndef DEFAULT_OLD_SPECIALIZATIONS_ALLOWED
+#define DEFAULT_OLD_SPECIALIZATIONS_ALLOWED TRUE
+#endif /* ifndef DEFAULT_OLD_SPECIALIZATIONS_ALLOWED */
 #endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************
