@@ -4373,7 +4373,10 @@ index number of the first entry, or 0 if no entries were created.
             base_class_has_vtbl(sub_bcp) &&
             base_class_has_override_on_virtual_step(sub_bcp)
 #else /* IA64_ABI */
-            needs_virtual_function_table(sub_bcp->type) &&
+            (sub_bcp->type->variant.class_struct_union.
+                                               any_virtual_base_classes ||
+             sub_bcp->type->variant.class_struct_union.
+                           any_virtual_functions_including_in_base_classes) &&
             (sub_bcp->is_virtual || !sub_bcp->shares_virtual_function_info) &&
             (sub_bcp->type->variant.class_struct_union.
                                                    any_virtual_base_classes ||
