@@ -3070,7 +3070,7 @@ IA-64 ABI to distinguish function-local entities with the same name.
       discriminator = sym->variant.class_struct_union.extra_info
                          ->discriminator;
     } else if (sym->kind == (a_symbol_kind)sk_enum_tag) {
-      discriminator = sym->variant.enumeration.discriminator;
+      discriminator = sym->variant.enumeration.extra_info->discriminator;
     } else if (sym->kind == (a_symbol_kind)sk_type) {
       discriminator = sym->variant.type.discriminator;
     }  /* if */

@@ -920,6 +920,33 @@ typedef struct a_class_symbol_supplement {
 } a_class_symbol_supplement;
 
 
+typedef struct an_enum_symbol_supplement *an_enum_symbol_supplement_ptr;
+typedef struct an_enum_symbol_supplement {
+  /* Additional information about an enum type, supplementing the information
+     residing in the type's symbol entry. */
+  a_dependent_type_fixup_ptr
+		dependent_type_fixup_list;
+			/* If the enum type is not yet defined (possible as
+			   an extension in both C and C++ modes), a pointer
+			   to a list of entries identifying arrays that are
+			   dependent on it and require fixup when it is
+			   completed.  Once the enum is defined, the pointer
+			   is cleared. */
+#if IA64_ABI && NEED_NAME_MANGLING
+  a_discriminator
+		discriminator;
+			/* An identifying number used to distinguish multiple
+			   entities with the same name in the same function
+			   in the name mangling for the IA-64 ABI.  Zero if
+			   not needed. */
+  a_routine_ptr
+		enclosing_routine;
+			/* The routine (if any) in which this enum type is
+			   is defined.  NULL, if the type was not defined
+			   in a routine. */
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
+} an_enum_symbol_supplement;
+
 /*
 Data structure used to pass information about function declarations back
 from the scanning of the function declarator.
@@ -2394,22 +2421,10 @@ typedef struct a_symbol {
       a_type_ptr
 		type;
 			/* The type that represents the enumeration. */
-      a_dependent_type_fixup_ptr
-		dependent_type_fixup_list;
-			/* If the enum type is not yet defined (possible as
-			   an extension in both C and C++ modes), a pointer
-			   to a list of entries identifying arrays that are
-			   dependent on it and require fixup when it is
-			   completed.  Once the enum is defined, the pointer
-			   is cleared. */
-#if IA64_ABI && NEED_NAME_MANGLING
-      a_discriminator
-		discriminator;
-			/* An identifying number used to distinguish multiple
-			   entities with the same name in the same function
-			   in the name mangling for the IA-64 ABI.  Zero if
-			   not needed. */
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+      an_enum_symbol_supplement_ptr
+		extra_info;
+			/* Pointer to an entry providing additional info about
+			   an enum type. */
     } enumeration;
     /* When kind == sk_class_or_struct_tag or sk_union_tag: */
     struct {

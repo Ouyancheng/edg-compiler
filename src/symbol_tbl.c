@@ -75,6 +75,7 @@ static unsigned long
 		num_symbol_headers_in_hash_table,
 		num_conversion_headers_allocated,
 		symbol_name_string_space,
+		num_enum_symbol_supplements_allocated,
 		num_class_symbol_supplements_allocated,
 		num_template_symbol_supplements_allocated,
 		num_namespace_symbol_supplements_allocated,
@@ -2471,16 +2472,25 @@ state.
     case sk_type:
       sym_ptr->variant.type.ptr = NULL;
 #if IA64_ABI && NEED_NAME_MANGLING
-      sym_ptr->variant.enumeration.discriminator = 0;
+      sym_ptr->variant.type.discriminator = 0;
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
       sym_ptr->variant.type.is_injected_class_name = FALSE;
       break;
     case sk_enum_tag:
       sym_ptr->variant.enumeration.type = NULL;
-      sym_ptr->variant.enumeration.dependent_type_fixup_list = NULL;
+      { an_enum_symbol_supplement  *essp;
+        essp = (an_enum_symbol_supplement_ptr)alloc_fe(
+                                            sizeof(an_enum_symbol_supplement));
+#if DEBUG
+        num_enum_symbol_supplements_allocated++;
+#endif /* DEBUG */
+        sym_ptr->variant.enumeration.extra_info = essp;
+        essp->dependent_type_fixup_list = NULL;
 #if IA64_ABI && NEED_NAME_MANGLING
-      sym_ptr->variant.enumeration.discriminator = 0;
+        essp->discriminator = 0;
+        essp->enclosing_routine = NULL;
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
+      }
       break;
     case sk_class_or_struct_tag:
     case sk_union_tag:
@@ -10025,7 +10035,8 @@ defined.
   } else {
     /* Use the list associated with the enum type. */
     check_assertion(sym->kind == (a_symbol_kind)sk_enum_tag);
-    start_of_list = &sym->variant.enumeration.dependent_type_fixup_list;
+    start_of_list = &sym->variant.enumeration.extra_info
+                                              ->dependent_type_fixup_list;
   }  /* if */
   if (*start_of_list == NULL) {
     *start_of_list = dtfp;
@@ -10058,7 +10069,8 @@ can be completed for the dependent types, too.
   } else {
     /* Check the list associated with the enum type. */
     check_assertion(sym->kind == (a_symbol_kind)sk_enum_tag);
-    start_of_list = &sym->variant.enumeration.dependent_type_fixup_list;
+    start_of_list = &sym->variant.enumeration.extra_info
+                                              ->dependent_type_fixup_list;
   }  /* if */
   list = *start_of_list;
   if (list != NULL) {
@@ -10675,6 +10687,9 @@ for space tracking purposes.
                 an_extern_symbol_descr);
   db_space_used("extern type fixup", num_extern_type_fixups_allocated,
                 an_extern_type_fixup);
+  db_space_used("enum symbol supplement",
+                num_enum_symbol_supplements_allocated,
+                an_enum_symbol_supplement);
   db_space_used("class symbol supplement",
                 num_class_symbol_supplements_allocated,
                 a_class_symbol_supplement);
@@ -10950,6 +10965,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_access_error_descrs_allocated),
       pch_saved_var_array_elem(num_active_using_directives_allocated),
       pch_saved_var_array_elem(num_generated_entity_blocks_allocated),
+      pch_saved_var_array_elem(num_enum_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_class_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_compares_for_symbols),
       pch_saved_var_array_elem(num_conversion_headers_allocated),
@@ -11098,6 +11114,7 @@ of the front end.
   num_symbol_headers_in_hash_table             = 0;
   num_conversion_headers_allocated             = 0;
   symbol_name_string_space                     = 0;
+  num_enum_symbol_supplements_allocated        = 0;
   num_class_symbol_supplements_allocated       = 0;
   num_template_symbol_supplements_allocated    = 0;
   num_namespace_symbol_supplements_allocated   = 0;

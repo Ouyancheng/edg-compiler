@@ -469,7 +469,7 @@ function-local entities in the IA-64 ABI.
           /* Note that enumerations and class types use the same numbering. */
           if (sep->symbol->kind == (a_symbol_kind)sk_enum_tag) {
             sym->variant.class_struct_union.extra_info->discriminator =
-                             sep->symbol->variant.enumeration.discriminator+1;
+                 sep->symbol->variant.enumeration.extra_info->discriminator+1;
           } else {
             sym->variant.class_struct_union.extra_info->discriminator =
                             sep->symbol->variant.class_struct_union.extra_info
@@ -479,10 +479,10 @@ function-local entities in the IA-64 ABI.
         case sk_enum_tag:
           /* Note that enumerations and class types use the same numbering. */
           if (sep->symbol->kind == (a_symbol_kind)sk_enum_tag) {
-            sym->variant.enumeration.discriminator =
-                            sep->symbol->variant.enumeration.discriminator+1;
+            sym->variant.enumeration.extra_info->discriminator =
+                 sep->symbol->variant.enumeration.extra_info->discriminator+1;
           } else {
-            sym->variant.enumeration.discriminator =
+            sym->variant.enumeration.extra_info->discriminator =
                             sep->symbol->variant.class_struct_union.extra_info
                                        ->discriminator+1;
           }  /* if */
