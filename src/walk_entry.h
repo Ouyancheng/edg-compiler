@@ -1076,9 +1076,12 @@ do_definition_needed_if_class:
                 case eok_dynamic_cast:
                   /* Destination class (pointed to by result type) must be
                      complete.  Watch out for the case where the result type
-                     is "void *". */
-                  optype = type_pointed_to(ptr->type);
-                  definition_needed_if_class(optype);
+                     is "void *", and watch out for prototype instantiation
+                     cases. */
+                  if (is_pointer_type(ptr->type)) {
+                    optype = type_pointed_to(ptr->type);
+                    definition_needed_if_class(optype);
+                  }  /* if */
                   /* Source type must also be complete, but watch out for
                      prototype instantiation cases where the first operand
                      isn't a pointer to class. */
