@@ -1,5 +1,12 @@
 Version 3.5
 
+8/19/04  GNU mode: Empty attributes
+
+In GNU C and C++ modes the front end now accepts empty GNU attributes.
+For example:
+
+  __attribute__((,)) void f();  // Previously an error.  Now okay.
+
 8/19/04  Embedded C: Named address space qualifiers in array declarators
 
 In C99 mode with Embedded C extensions, the front sometimes failed to diagnose

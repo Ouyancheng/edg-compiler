@@ -868,9 +868,13 @@ function returns the address of the last attribute.
 
   /* Keep going until there are no more attributes. */
   do {
-    /* The next token should be the name of an attribute. */
-    if (curr_token != tok_identifier &&
-        curr_token != tok_const && curr_token != tok_volatile) {
+    /* The next token should be the name of an attribute.  A comma or right
+       parenthesis is also accepted and indicates an "empty attribute" (which
+       is convenient when using the preprocessor to disable attributes). */
+    if (curr_token == tok_comma || curr_token == tok_rparen) {
+      /* Empty attribute: Do nothing. */
+    } else if (curr_token != tok_identifier &&
+               curr_token != tok_const && curr_token != tok_volatile) {
       error(ec_exp_attribute_name);
     } else {
       /* Remember the location of the attribute name.  This is the
