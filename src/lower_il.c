@@ -372,6 +372,8 @@ static void prelower_class_type(a_type_ptr class_type);
 static void lower_ptr_to_member_constant(a_constant_ptr constant);
 static an_expr_node_ptr make_base_class_lvalue(an_expr_node_ptr node,
                                                a_base_class_ptr bcp);
+static sizeof_t mangled_basic_class_name(a_type_ptr type,
+                                         char       *store_at);
 static sizeof_t mangled_encoding_for_type(a_type_ptr type,
                                           char       *store_at);
 static void lower_constant(a_constant_ptr constant);
@@ -893,40 +895,24 @@ return 0.
 }  /* related_class_offset */
 
 
-static void add_dummy_field(char          *field_name,
-                            char          *field_prefix,
-                            a_type_ptr    field_type,
-                            a_targ_size_t field_offset,
-                            a_type_ptr    struct_type)
+static void add_field(char          *field_name,
+                      a_type_ptr    field_type,
+                      a_targ_size_t field_offset,
+                      a_type_ptr    struct_type)
 /*
-Make a dummy field with the given type and add it at the right spot in the
-list of fields attached to struct_type.  The field name is formed by
-concatenating field_prefix and field_name.  field_offset gives the byte
-offset required for the field.
+Make a field with the given type and add it at the right spot in the
+list of fields attached to struct_type.  field_name gives the field name
+(already allocated in the IL memory region).  field_offset gives the byte
+offset for the field.
 */
 {
-  sizeof_t      name_length, prefix_length;
-  char          *name_ptr;
   a_field_ptr   prev_field, next_field;
   a_field_ptr   field_ptr;
   a_targ_size_t bit_offset;
 
-  /* Figure out the name for the field.  This is done by combining the
-     field_prefix and the field_name. */
-#if CHECKING
-  if (field_name == NULL) {
-    internal_error("add_dummy_field: NULL field name");
-  }  /* if */
-#endif /* CHECKING */
-  prefix_length = strlen(field_prefix);
-  name_length = strlen(field_name);
-  name_ptr = alloc_il((sizeof_t)(prefix_length + name_length + 1));
-  (void)memcpy(name_ptr, field_prefix, (int)prefix_length);
-  (void)memcpy(name_ptr+prefix_length, field_name, (int)name_length);
-  name_ptr[name_length+prefix_length] = '\0';
   /* Make the field. */
   field_ptr = alloc_field();
-  field_ptr->source_corresp.name = name_ptr;
+  field_ptr->source_corresp.name = field_name;
   field_ptr->source_corresp.class_of_which_a_member = struct_type;
   field_ptr->type = field_type;
   field_ptr->bit_offset = bit_offset = field_offset*TARG_CHAR_BIT;
@@ -939,12 +925,12 @@ offset required for the field.
   if (next_field != NULL && next_field->bit_offset == bit_offset) {
 #if DEBUG
     db_abbreviated_type(struct_type);
-    fprintf(f_debug, ", bit offset = %lu, dummy_field = %s, field = ",
-                     (unsigned long)bit_offset, name_ptr);
+    fprintf(f_debug, ", bit offset = %lu, new field = %s, old field = ",
+                     (unsigned long)bit_offset, field_name);
     db_name(&next_field->source_corresp);
     fputc('\n', f_debug);
 #endif /* DEBUG */
-    internal_error("add_dummy_field: two fields have the same offset");
+    internal_error("add_field: two fields have the same offset");
   }  /* if */
 #endif /* CHECKING */
   /* Insert the field at the right spot. */
@@ -954,7 +940,66 @@ offset required for the field.
     prev_field->next = field_ptr;
   }  /* if */
   field_ptr->next = next_field;
+}  /* add_field */
+
+
+static void add_dummy_field(char          *field_name,
+                            a_type_ptr    field_type,
+                            a_targ_size_t field_offset,
+                            a_type_ptr    struct_type)
+/*
+Make a dummy field with the given type and add it at the right spot in the
+list of fields attached to struct_type.  field_name gives the field name
+(not allocated in the IL memory region, i.e., it must be copied).
+field_offset gives the byte offset for the field.
+*/
+{
+  sizeof_t name_length;
+  char     *name_ptr;
+
+  /* Determine the length of the name. */
+  check_assertion(field_name != NULL);
+  name_length = strlen(field_name);
+  /* Allocate space for the name. */
+  name_ptr = alloc_il(name_length + 1);
+  /* Copy in the name. */
+  (void)strcpy(name_ptr, field_name);
+  /* Create the field. */
+  add_field(name_ptr, field_type, field_offset, struct_type);
 }  /* add_dummy_field */
+
+
+static void add_base_class_dummy_field(a_type_ptr    base_class_type,
+                                       char          *field_prefix,
+                                       a_type_ptr    field_type,
+                                       a_targ_size_t field_offset,
+                                       a_type_ptr    struct_type)
+/*
+Make a dummy field for a base class or pointer thereto, and add it at the
+right spot in the list of fields attached to struct_type.  The field name
+is formed by concatenating field_prefix and the name from base_class_type.
+field_type gives the type for the field.  field_offset gives the byte
+offset for the field.
+*/
+{
+  sizeof_t name_length, prefix_length;
+  char     *name_ptr;
+
+  /* Build the name for the field.  This is done by combining the
+     field_prefix and the (possibly mangled) base class name. */
+  prefix_length = strlen(field_prefix);
+  /* Determine how long the base class name is. */
+  name_length = mangled_basic_class_name(base_class_type, (char *)NULL);
+  /* Allocate space for the whole name. */
+  name_ptr = alloc_il((sizeof_t)(prefix_length + name_length + 1));
+  /* Copy in the prefix. */
+  (void)memcpy(name_ptr, field_prefix, (int)prefix_length);
+  /* Store the base class name. */
+  (void)mangled_basic_class_name(base_class_type, name_ptr+prefix_length);
+  name_ptr[prefix_length+name_length] = '\0';
+  /* Create the field. */
+  add_field(name_ptr, field_type, field_offset, struct_type);
+}  /* add_base_class_dummy_field */
 
 
 static void copy_field(a_field_ptr old_field_ptr,
@@ -5334,8 +5379,9 @@ lowering process, but does not modify the class type.
           if (bcp->direct) {
             /* For a direct non-virtual base class, put out space for an object
                of the base class. */
-            add_dummy_field(bcp->type->source_corresp.name, "__b_",
-                            base_class_type, bcp->offset, class_type);
+            add_base_class_dummy_field(bcp->type, "__b_",
+                                       base_class_type, bcp->offset,
+                                       class_type);
           }  /* if */
         } else {
           /* Virtual base class.  See if a pointer to the base class is
@@ -5347,9 +5393,9 @@ lowering process, but does not modify the class type.
               && bcp->direct
 #endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
                                              ) {
-            add_dummy_field(bcp->type->source_corresp.name, "__p_",
-                            make_pointer_type(base_class_type),
-                            bcp->pointer_offset, class_type);
+            add_base_class_dummy_field(bcp->type, "__p_",
+                                       make_pointer_type(base_class_type),
+                                       bcp->pointer_offset, class_type);
           }  /* if */
         }  /* if */
       }  /* for */
@@ -5358,8 +5404,7 @@ lowering process, but does not modify the class type.
         /* The class has virtual functions, so it needs a virtual function
            table pointer.  Also, the pointer is not shared with a base
            class.  Make a dummy field for a virtual function table pointer. */
-        add_dummy_field("", "__vptr",
-                        make_pointer_type(make_mptr_type()),
+        add_dummy_field("__vptr", make_pointer_type(make_mptr_type()),
                         ctsp->virtual_function_info_offset, class_type);
       }  /* if */
       /* Make a type for the class for use when the class is a subobject.
@@ -5385,8 +5430,9 @@ lowering process, but does not modify the class type.
                  See comment above. */
               if (bcp->complete_subobject) base_class_type = bcp->type;
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-              add_dummy_field(bcp->type->source_corresp.name, "__v_",
-                              base_class_type, bcp->offset, class_type);
+              add_base_class_dummy_field(bcp->type, "__v_",
+                                         base_class_type, bcp->offset,
+                                         class_type);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
             }  /* if */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
