@@ -4191,7 +4191,11 @@ If *need_leading_space is TRUE, precede the attribute with a leading space.
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-  if (var->init_priority != 0) {
+  if (var->init_priority != 0 && !octl->c_generating_back_end) {
+    /* The init_priority is a C++-only attribute; it is ignored with a warning
+       by GNU C compilers.  To avoid the warning, we do not emit it in the
+       C-generating back end.  (IL lowering ensures the initializations are
+       performed in the right order.) */
     form_unsigned_argument_attribute(
               "__init_priority__", (a_host_large_unsigned)var->init_priority,
               need_leading_space, octl);
