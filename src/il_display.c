@@ -1058,13 +1058,15 @@ do_float_complex:
                iek_type);
       if (ptr->variant.array.is_variable_size_array) {
         disp_boolean("is_variable_size_array", TRUE);
-        disp_ptr("element_count_expr",
-                 (char *)ptr->variant.array.variant.element_count_expr,
-                 iek_expr_node);
-      } else if (ptr->variant.array.is_vla) {
-        disp_boolean("is_vla", TRUE);
-        disp_boolean("has_assoc_vla_dimension",
-                     (a_boolean)ptr->variant.array.has_assoc_vla_dimension);
+        if (ptr->variant.array.is_vla) {
+          disp_boolean("is_vla", TRUE);
+          disp_boolean("has_assoc_vla_dimension",
+                       (a_boolean)ptr->variant.array.has_assoc_vla_dimension);
+        } else {
+          disp_ptr("element_count_expr",
+                   (char *)ptr->variant.array.variant.element_count_expr,
+                   iek_expr_node);
+        }  /* if */
       } else {
         disp_unsigned_long("number_of_elements",
                            (unsigned long)ptr->
