@@ -1,5 +1,23 @@
 Version 2.23
 
+5/29/94  address_taken and reference kind for called pointers-to-members
+
+Formerly, if a pointer-to-member-function was used for the right-hand
+expression of a "->*" or ".*" operator, and the result of that operation
+was immediately called, the member function's address_taken flag was
+not set and the reference kind in cross-reference output was simply
+"reference" rather than "address-taken".  That "optimization" proved
+confusing, and has been removed.  The address_taken flag is now always
+set on any use of a pointer-to-member to a non-virtual member function,
+and the reference kind is always "address-taken".
+
+5/20/94  address_taken for static data members
+
+The address_taken flag for static data members is now set exactly like
+the flag for normal variables.  Specifically, it is set when the
+address of the static data member is taken, even if the address does
+not escape from the immediate context where it is used.
+
 5/19/94  address_taken flag on virtual functions
 
 The address_taken flag is now set when the address of a function is
