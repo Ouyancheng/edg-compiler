@@ -9177,9 +9177,12 @@ copy constructor elision is possible; see scan_class_initializer_expression.
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*new_object_lifetime=*/FALSE);
-  /* Do fold constant addressing expressions to constants so that static
-     initialization can be more easily discerned. */
-  expr_stack->fold_constant_addr_exprs = TRUE;
+  if (static_lifetime) {
+    /* In initializations of static variables, fold constant addressing
+       expressions to constants so that constant initialization can be
+       more easily discerned. */
+    expr_stack->fold_constant_addr_exprs = TRUE;
+  }  /* if */
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
