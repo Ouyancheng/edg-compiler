@@ -3102,6 +3102,7 @@ translation unit correspondence pointer if one is found.
                     /* Record the correspondence. */
                     record_trans_unit_corresp(routine,
                                               sub_sym->variant.routine.ptr);
+                    goto done;
                   } else if (routine->source_corresp.name_linkage ==
                                           (a_name_linkage_kind)nlk_external &&
                              corresp_routine->source_corresp.name_linkage ==
@@ -3129,6 +3130,7 @@ translation unit correspondence pointer if one is found.
       }  /* if */
     }  /* for */
   }  /* if */
+done:
   if (checked_trans_unit_corresp_pointer_of(routine) == NULL) {
     /* Mark this routine as visited. */
     set_no_trans_unit_corresp(routine);
@@ -3177,6 +3179,7 @@ translation unit correspondence pointer if one is found.
                     establish_trans_unit_correspondences_for_enum(var->type);
                   }  /* if */
                 }  /* if */
+                goto done;
               }  /* if */
             }
             break;
@@ -3194,6 +3197,7 @@ translation unit correspondence pointer if one is found.
       }  /* if */
     }  /* for */
   }  /* if */
+done:
   if (checked_trans_unit_corresp_pointer_of(var) == NULL) {
     /* Mark this variable as visited. */
     set_no_trans_unit_corresp(var);
