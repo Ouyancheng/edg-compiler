@@ -2877,7 +2877,6 @@ is returned.
   a_routine_type_supplement_ptr
 			  extra_info;
   a_type_kind             kind;
-  a_memory_region_number  region_to_switch_back_to;
   a_based_type_kind       based_type_kind;
   a_boolean               is_const, is_volatile;
 
@@ -2900,9 +2899,9 @@ is returned.
                          (int)kind);
       }  /* if */
 #endif /* DEBUG */
-      switch_to_file_scope_region(&region_to_switch_back_to);
-      new_type = alloc_type(kind);
-      switch_back_to_original_region(region_to_switch_back_to);
+      /* Allocate the type in the file scope.  Put it on the file scope
+         types list so that it will be found on an IL walk. */
+      new_type = fs_type(kind);
       /* Remember the location of the file scope copy in case it's ever again
          needed.  Do this early in case the type refers to itself internally,
          to avoid looping. */
@@ -2929,7 +2928,7 @@ is returned.
 #if CHECKING
           if (old_type->variant.integer.enum_type) {
             internal_error(
-                          "make_file_scope_copy: enum type not at file scope");
+                          "make_file_scope_type: enum type not at file scope");
           }  /* if */
 #endif /* if */
           break;
