@@ -7018,6 +7018,11 @@ C++ mode.
                                              &ctor_arg_conversion,
                                              &failed)) {
           /* A user-defined conversion can be done. */
+          /* Force the result to an rvalue because the cast is not
+             to a reference type (otherwise, when a conversion function
+             that returns a reference is used, the result would be an
+             lvalue). */
+          conversion.result_is_an_lvalue = FALSE;
           /* Except in cfront mode, force a temporary for a cast of a class
              object to the same class type, ignoring cv-qualifiers. */
           user_convert_operand(operand, type_cast_to, &conversion,

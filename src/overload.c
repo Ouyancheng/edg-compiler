@@ -6479,7 +6479,7 @@ accept_function:
     candidate->conversion.class_object_adjustment_required =
                                               class_object_adjustment_required;
     candidate->conversion.std = std_conversion;
-    candidate->conversion.result_is_an_lvalue = need_lvalue_result;
+    candidate->conversion.result_is_an_lvalue = result_is_an_lvalue;
     goto next_function;
 reject_function:
     /* Function was rejected.  Free anything allocated for it. */
@@ -9907,7 +9907,8 @@ happen only in C++ mode.
   }  /* if */
   /* Allocate the dynamic initialization entry. */
   if (dip != NULL) {
-    /* The dynamic initialization entry was already allocated above. */
+    /* The dynamic initialization entry was already allocated above.  This
+       happens for the elision cases. */
   } else if (class_bitwise_copy) {
     /* The operation is a class bitwise copy, so use a dik_expression. */
     prep_class_bitwise_copy_operand(source_operand, dest_type,
