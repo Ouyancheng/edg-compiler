@@ -407,6 +407,7 @@ unit, in case multiple source files are allowed.
 #endif /* CHECKING */
   class_decl_one_time_init();
   def_arg_one_time_init();
+  expr_one_time_init();
   il_one_time_init();
   lexical_one_time_init();
   macro_one_time_init();

@@ -33,6 +33,7 @@ exprutil.c -- Expression scanning utility routines.
 #include "decls.h"
 #include "class_decl.h"
 #include "templates.h"
+#include "pch.h"
 
 /*
 Information on references to symbols, held until the kind of reference to
@@ -4654,6 +4655,36 @@ Display and return the amount of space used for various expression tables.
   return grand_total;
 }  /* show_expr_space_used */
 #endif /* DEBUG */
+
+
+void expr_one_time_init(void)
+/*
+Do one-time initialization of variables related to expression processing.
+(Variables that need to be reinitialized with each new translation unit
+are handled in exprutil_init.)
+*/
+{
+  /* Save variables from exprutil.h, exprutil.c, and overload.h that are
+     needed for precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(avail_ref_entries),
+      pch_saved_var_array_elem(avail_arg_operands),
+      pch_saved_var_array_elem(avail_dynamic_init_dtor_fixups),
+      pch_saved_var_array_elem(avail_arg_match_summaries),
+      pch_saved_var_array_elem(avail_candidate_functions),
+#if DEBUG
+      pch_saved_var_array_elem(num_arg_operands_allocated),
+      pch_saved_var_array_elem(num_ref_entries_allocated),
+      pch_saved_var_array_elem(num_dynamic_init_dtor_fixups_allocated),
+      pch_saved_var_array_elem(num_arg_match_summaries_allocated),
+      pch_saved_var_array_elem(num_candidate_functions_allocated),
+#endif /* DEBUG */
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* expr_one_time_init */
 
 
 void expr_init(void)

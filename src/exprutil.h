@@ -723,6 +723,8 @@ extern void integral_promote_node(an_expr_node_ptr *node);
 extern unsigned long show_expr_space_used(void);
 #endif /* DEBUG */
 
+extern void expr_one_time_init(void);
+
 extern void expr_init(void);
 
 #endif /* ifndef EXPRUTIL_H */
