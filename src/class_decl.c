@@ -1905,14 +1905,18 @@ the base class.
              an unambiguous intermediate step that will provide a
              disambiguator; choose the one furthest along the path (closest
              to bcp itself). */
-          step = bcp->derivation->path;
-          check_assertion(!step->base_class->ambiguous);
-          while (!step->next->base_class->ambiguous) step = step->next;
-          if (step->base_class->type == base_class->type) {
+          if (bcp->derivation->direct) {
             disambiguator = base_class;
           } else {
-            disambiguator = corresponding_base_class(step->base_class,
-                                                     class_type, base_class);
+            step = bcp->derivation->path;
+            check_assertion(!step->base_class->ambiguous);
+            while (!step->next->base_class->ambiguous) step = step->next;
+            if (step->base_class->type == base_class->type) {
+              disambiguator = base_class;
+            } else {
+              disambiguator = corresponding_base_class(step->base_class,
+                                                       class_type, base_class);
+            }  /* if */
           }  /* if */
         }  /* if */
         /* bcp now points to a base class of tp; change it to point to the
