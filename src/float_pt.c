@@ -433,7 +433,8 @@ do nothing.
 }  /* store_host_fp_value */
 
 
-static a_host_fp_value fetch_host_fp_value(
+/* This routine is external so that back ends can use it. */
+a_host_fp_value fetch_host_fp_value(
 				a_float_kind            kind,
 				an_internal_float_value *float_value)
 /*

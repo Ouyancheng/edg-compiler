@@ -22,6 +22,9 @@ float_pt.h -- Declarations for float_pt.c (having to do with manipulation of
 #include "il.h"
 #endif /* ifndef IL_H */
 
+extern a_host_fp_value fetch_host_fp_value(
+				a_float_kind            kind,
+				an_internal_float_value *float_value);
 
 extern void fp_change_kind(an_internal_float_value *old_value,
                            a_float_kind            old_kind,

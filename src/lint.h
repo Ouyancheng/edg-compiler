@@ -63,6 +63,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(755,check_assertion_or_expect_error)*/
 /*lint -esym(755,check_assertion_or_expect_error_str)*/
 /*lint -esym(755,check_assertion_or_expect_error_str2)*/
+/*lint -esym(759, fetch_host_fp_value)*/
+/*lint -esym(765, fetch_host_fp_value)*/
 
 /* Used in the main programs for the standalone c_gen_be, cp_gen_be, and
    il_display: */
