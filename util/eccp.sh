@@ -220,6 +220,11 @@ do
       feoptions=$feoptions" -V";
       shift;
       ;;
+    -x)
+#     Disable support for exception handling.
+      feoptions=$feoptions" -x";
+      shift;
+      ;;
     -v)
 #     Verbose mode; display version of front end.
       feoptions=$feoptions" -v";
