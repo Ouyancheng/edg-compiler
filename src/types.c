@@ -1555,8 +1555,8 @@ Return TRUE if the two given integer types have the same representation
 #endif /* SAME_REPR_INTS_INTERCHANGEABLE_IN_IL */
 
 
-a_boolean identical_array_type_level(a_type_ptr  type_1,
-                                     a_type_ptr  type_2)
+static a_boolean identical_array_type_level(a_type_ptr  type_1,
+                                            a_type_ptr  type_2)
 /*
 Return TRUE if the two array types have identical bounds.
 */
@@ -1966,22 +1966,35 @@ flags is a set of bits indicating options, e.g., is an error type
 considered compatible with any other type.  This routine always checks
 for compatibility of type-qualifiers.  This routine should generally not
 be called directly; it's meant to be called by the macros
-types_are_compatible and types_are_strictly_compatible, which do the
-initial test for exact pointer equality.
+types_are_compatible, types_are_strictly_compatible, and
+types_are_compatible_ignoring_qualifiers, which do an initial test
+for exact pointer equality.
 */
 {
   register a_boolean            compat = FALSE;
   a_routine_type_supplement_ptr rtsp1, rtsp2;
+  a_boolean                     ignore_type_qualifiers = FALSE;
 
   db_enter(5, "f_types_are_compatible");
 
+  /* The TCF_IGNORE_TYPE_QUALIFIERS flag does not get passed down in general,
+     so if it's present remove it from the flags set and keep it off to
+     the side. */
+  if (flags & TCF_IGNORE_TYPE_QUALIFIERS) {
+    ignore_type_qualifiers = TRUE;
+    flags &= ~TCF_IGNORE_TYPE_QUALIFIERS;
+  }  /* if */
   /* Although the macros do the type_1 == type_2 test, repeat it here
      so it's present for the recursive calls. */
   if (type_1 == type_2) {
     compat = TRUE;
   } else {
-    /* Test for a qualifier mismatch before dropping typerefs. */
-    a_boolean qualifier_mismatch = !type_qualifiers_match(type_1, type_2);
+    /* Test for a qualifier mismatch. */
+    a_boolean qualifier_mismatch = FALSE;
+    if (!ignore_type_qualifiers &&
+        !type_qualifiers_match(type_1, type_2)) {
+      qualifier_mismatch = TRUE;
+    }  /* if */
     type_1 = skip_typerefs(type_1);
     type_2 = skip_typerefs(type_2);
     if ((flags & TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) &&
@@ -2045,18 +2058,26 @@ initial test for exact pointer equality.
         case tk_array:
           /* For arrays, if both have sizes the sizes must be the same.  The
              element types must be compatible. */
-          if (f_types_are_compatible(type_1->variant.array.element_type,
-                                     type_2->variant.array.element_type,
-                                     flags)) {
-            if ((!type_1->variant.array.is_variable_size_array &&
-                 type_1->variant.array.variant.number_of_elements == 0) ||
-                (!type_2->variant.array.is_variable_size_array &&
-                 type_2->variant.array.variant.number_of_elements == 0)) {
-              compat = TRUE;
-            } else {
-              compat = identical_array_type_level(type_1, type_2);
+          { a_type_compat_flags_set sub_flags = flags;
+            /* In C++ mode, if ignoring first-level qualifiers, we should
+               ignore qualifiers on the element type, since such a qualifier
+               counts as a first-level qualifier. */
+            if (ignore_type_qualifiers && !C_mode()) {
+              sub_flags |= TCF_IGNORE_TYPE_QUALIFIERS;
             }  /* if */
-          }  /* if */
+            if (f_types_are_compatible(type_1->variant.array.element_type,
+                                       type_2->variant.array.element_type,
+                                       sub_flags)) {
+              if ((!type_1->variant.array.is_variable_size_array &&
+                   type_1->variant.array.variant.number_of_elements == 0) ||
+                  (!type_2->variant.array.is_variable_size_array &&
+                   type_2->variant.array.variant.number_of_elements == 0)) {
+                compat = TRUE;
+              } else {
+                compat = identical_array_type_level(type_1, type_2);
+              }  /* if */
+            }  /* if */
+          }
           break;
         case tk_class:
         case tk_struct:
@@ -2279,7 +2300,12 @@ Return TRUE if source_type and dest_type are compatible types except that
 dest_type may have some additional type qualifiers at some level(s).
 If ignore_qualifiers is TRUE, qualifiers are ignored at all levels,
 which makes this routine something like a types_are_compatible that
-ignores type qualifiers.
+ignores type qualifiers.  This routine is used to deal with pointer
+conversions that add a type qualifier somewhere other than the top
+level, e.g., int ** --> const int **.  Right now, this is a cfront
+compatibility feature.  In the future, the version of this feature
+specified in the Working Paper will be implemented and this routine
+will probably handle it.
 */
 {
   a_boolean same = FALSE;
@@ -2394,8 +2420,10 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     /* Get the type pointed to and drop type qualifiers and typedefs. */
     source_type_pointed_to = type_pointed_to(source_type);
     unqual_source_type_pointed_to = skip_typerefs(source_type_pointed_to);
-    if (types_are_compatible(unqual_source_type_pointed_to,
-                             unqual_dest_type_pointed_to)) {
+    /* The "_ignoring_qualifiers" version is used to get proper handling of
+       pointers to arrays with qualified element types. */
+    if (types_are_compatible_ignoring_qualifiers(unqual_source_type_pointed_to,
+                                                unqual_dest_type_pointed_to)) {
       /* The types pointed to are compatible, ignoring the type qualifiers.
          ANSI C 3.3.6 (pointer - pointer: caller will check that types are
          object types); ANSI C 3.3.8 (relational operators: caller will check

@@ -195,8 +195,6 @@ extern a_type_ptr node_complete_object_type(an_expr_node_ptr node,
 #define il_identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), /*il_identical=*/TRUE))
 /* Compare one level of two array types. */
-extern a_boolean identical_array_type_level(a_type_ptr  type_1,
-                                            a_type_ptr  type_2);
 extern a_boolean f_identical_types(a_type_ptr type_1,
                                    a_type_ptr type_2,
                                    a_boolean  il_identical);
@@ -212,6 +210,9 @@ Bit flags for calls of f_types_are_compatible et al.
 #define TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING 0x1
 			/* An error type is considered compatible with
 			   anything. */
+#define TCF_IGNORE_TYPE_QUALIFIERS 0x2
+			/* Ignore type qualifiers at the first level.  In C++,
+			   this includes qualifiers on array element types. */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 extern a_boolean param_types_are_compatible(a_type_ptr              rout_type1,
@@ -220,11 +221,12 @@ extern a_boolean param_types_are_compatible(a_type_ptr              rout_type1,
 extern a_boolean f_types_are_compatible(a_type_ptr              type_1,
                                         a_type_ptr              type_2,
                                         a_type_compat_flags_set flags);
-/* Two macros to be used in calling f_types_are_compatible, since they short
+/* Three macros to be used in calling f_types_are_compatible, since they short
    circuit some of the processing in common cases.  Use types_are_compatible
    when an error type should be treated as compatible with any type; use
    types_are_strictly_compatible when an error type is incompatible with any
-   type, including an error type. */
+   type, including an error type; use types_are_compatible_ignoring_qualifiers
+   to check compatibility while ignoring first-level qualifiers. */
 #define types_are_compatible(t1, t2) \
 	 ((t1) == (t2) ||            \
           f_types_are_compatible((t1), (t2),                          \
@@ -232,6 +234,11 @@ extern a_boolean f_types_are_compatible(a_type_ptr              type_1,
 #define types_are_strictly_compatible(t1, t2)                             \
          ((t1) == (t2) ? !is_error_type(t1) :                             \
             f_types_are_compatible((t1), (t2), TCF_NO_FLAGS))
+#define types_are_compatible_ignoring_qualifiers(t1, t2)              \
+  ((t1) == (t2) ||                                                    \
+   f_types_are_compatible((t1), (t2),                                 \
+                          TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |   \
+                          TCF_IGNORE_TYPE_QUALIFIERS))
 
 
 extern a_boolean same_type_with_added_qualifiers(a_type_ptr dest_type,
