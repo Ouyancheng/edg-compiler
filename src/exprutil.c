@@ -6985,20 +6985,24 @@ function entry.  This routine is only used in C++ mode.
     if (is_reference_type(return_type)) {
       return_type = type_pointed_to(return_type);
       /* In this case, the return value is an lvalue, and type qualifiers
-         are not dropped. */
+         are not dropped.  But see the comment below. */
     }  /* if */
     if (dest_type != NULL) {
       /* We're looking for a specific type. */
       if (types_are_compatible(skip_typerefs(dest_type),
                                skip_typerefs(return_type))) {
         /* This conversion function returns the type we want, ignoring
-           type qualifiers.  See if the type qualifiers are okay. */
-        if (type_qualifiers_match(dest_type, return_type) ||
-            !any_qualifier_missing(dest_type, return_type)) {
-          /* The type qualifiers on the desired type are the same as or a
-             proper superset of what the conversion function returns.  Okay. */
-          compatible = TRUE;
-        }  /* if */
+           type qualifiers.  That means we can use it.  It's easy to
+           see that we can use it in the case where the type qualifiers
+           are the same or some are added; it's harder to see that for
+           the case where qualifiers are being dropped (which can only
+           happen when the destination is a reference).  In that case,
+           the returned value is an lvalue, but it can be converted to
+           an rvalue which has no type qualifiers.  To put it another way,
+           a conversion function to "const int &" can serve as a conversion
+           function to "int" by converting to a "const int" lvalue and then
+           to an "int" rvalue. */
+        compatible = TRUE;
       } else if (impl_conversion_possible(return_type,
                                           /*source_is_constant=*/FALSE,
                                           (a_constant_ptr)NULL, dest_type,
@@ -8670,15 +8674,28 @@ an rvalue.
     make_function_call(rout_node, conversion_routine->type,
                        (a_boolean)conversion_routine->is_virtual,
                        &orig_operand.position, operand);
-    /* A standard conversion may be required after a conversion function. */
+    /* A standard conversion may be required after a conversion function.
+       Note that we ignore type qualifiers in the check since if a standard
+       conversion is needed the operand will be converted to an rvalue and
+       will therefore lose its qualifiers. */
     do_std_conversion = (dest_type != NULL &&
-                         !types_are_compatible(dest_type, operand->type));
+                         !types_are_compatible(skip_typerefs(dest_type),
+                                               skip_typerefs(operand->type)));
     if (!result_may_be_lvalue || do_std_conversion) {
       /* The caller will not accept an lvalue, or a standard conversion
          must be done, so convert an lvalue to an rvalue.  The operand
          could only be an lvalue if the conversion function returns a
          reference. */
       conv_lvalue_to_rvalue(operand, expression_kind);
+    } else if (is_an_lvalue(operand)) {
+      /* It is okay to return an lvalue, and we have an lvalue that has
+         the right type ignoring any type qualifiers.  See if we are
+         dropping any qualifiers.  If so, we have to convert to an rvalue
+         to drop all the qualifiers; then we can add back in those that
+         are needed. */
+      if (any_qualifier_missing(dest_type, operand->type)) {
+        conv_lvalue_to_rvalue(operand, expression_kind);
+      }  /* if */
     }  /* if */
     if (do_std_conversion) {
       /* Do a necessary standard conversion. */
