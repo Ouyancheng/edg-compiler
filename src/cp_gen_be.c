@@ -512,13 +512,13 @@ hidden names in C, so there's no point in maintaining this information).
          Similar code occurs in versions of the standard library <vector>
          header in the vector<bool> specialization.) */
     } else if (hnp->qualification_needed !=
-        scp->qualification_needed ||
-        hnp->partially_hidden_by_microsoft_injected_class_name !=
-        scp->partially_hidden_by_microsoft_injected_class_name ||
-        (type != NULL &&
-         hnp->elaborated_type_specifier_needed !=
-         type->elaborated_type_specifier_needed) ||
-        injection_entry) {
+               scp->qualification_needed ||
+               hnp->partially_hidden_by_microsoft_injected_class_name !=
+               scp->partially_hidden_by_microsoft_injected_class_name ||
+               (type != NULL &&
+                hnp->elaborated_type_specifier_needed !=
+                type->elaborated_type_specifier_needed) ||
+               injection_entry) {
       /* Create a fixup entry that will cause the flags to be reset to
          their former values at the end of the current name context. */
       alloc_hidden_name_fixup(hnp->entity);
