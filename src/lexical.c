@@ -6065,7 +6065,7 @@ fixed_point_suffix:
         break;
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
       case k_float:
-	if (!hex_floating_point_constants_allowed) {
+	if (is_hex_fp_value && !hex_floating_point_constants_allowed) {
           diagnostic_at_line_pos(strict_ansi_error_severity,
                                  ec_hex_fp_constant, start_of_curr_token);
         }  /* if */
