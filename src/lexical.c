@@ -8089,6 +8089,50 @@ done using the disambiguation routines.
 }  /* scan_unknown_template_arg_list */
 
 
+a_template_ptr scan_template_template_argument(void)
+/*
+Scan the actual argument for a template template parameter.
+*/
+{
+  a_symbol_ptr				sym;
+  a_boolean				err = FALSE;
+  a_template_ptr			result = NULL;
+  a_boolean				any_errors = FALSE;
+  a_template_symbol_supplement_ptr	tssp;
+
+  if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL)) {
+    sym = coalesce_and_lookup_generalized_identifier(
+                                 GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
+    if (err) {
+      /* An error was already diagnosed by the identifier coalescing
+         routines. */
+      any_errors = TRUE;
+    } else if (sym == NULL) {
+      any_errors = TRUE;
+      str_error(ec_undefined_identifier,
+                locator_for_curr_id.symbol_header->identifier);
+    } else if (!is_class_template_symbol(sym)) {
+      any_errors = TRUE;
+      sym_error(ec_sym_not_a_class_template, sym);
+    }  /* if */
+    /* Bypass the identifier token. */
+    (void)get_token();
+  } else {
+    /* Not an identifier. */
+    any_errors = TRUE;
+    syntax_error(ec_exp_identifier);
+  }  /* if */
+  if (any_errors) {
+    /* An error occurred while scanning the argument.  Use a shared error
+       class template as the result. */
+    sym = error_class_template();
+  }  /* if */
+  tssp = sym->variant.template_info;
+  result = tssp->il_template_entry;
+  return result;
+}  /* scan_template_template_argument */
+
+
 static
 a_template_arg_ptr scan_template_argument_list(a_symbol_ptr	template_sym,
 					       a_boolean        *any_errors)
@@ -8111,7 +8155,6 @@ this routine.  Its value is unchanged if no errors are detected.
   a_template_arg_ptr              arg_ptr;
   a_template_arg_ptr              arg_list = NULL;
   a_template_arg_ptr              last_arg = NULL;
-  a_boolean                       is_type_param;
   a_templ_arg_kind		  arg_kind;
 
   param_ptr = template_sym->variant.template_info->cache.decl_info->parameters;
@@ -8126,12 +8169,10 @@ this routine.  Its value is unchanged if no errors are detected.
     if (param_ptr == NULL) break;
     add_stop_token(tok_comma);
     sym = param_ptr->param_symbol;
-    /* Determine whether this argument should be a type or a constant. */
-    is_type_param = (sym->kind == (a_symbol_kind)sk_type);
-    arg_kind = is_type_param ? (a_templ_arg_kind)tak_type
-                             : (a_templ_arg_kind)tak_nontype;
+    /* Determine the template argument kind for this parameter. */
+    arg_kind = templ_arg_kind_for_symbol_kind(sym->kind);
     arg_ptr = alloc_template_arg(arg_kind);
-    if (is_type_param) {
+    if (is_type_templ_arg(arg_ptr)) {
       type_name(&argument_type);
       if (is_or_contains_local_type(argument_type)) {
         /* Be sure the type does not involve any local classes -- only
@@ -8141,10 +8182,8 @@ this routine.  Its value is unchanged if no errors are detected.
         argument_type = error_type();
       }  /* if */
       arg_ptr->variant.type = argument_type;
-    } else {  /* else executed when !is_type_param */
+    } else if (is_nontype_templ_arg(arg_ptr)) {
       a_type_ptr  constant_type = sym->variant.constant->type;
-      check_assertion_str(sym->kind == (a_symbol_kind)sk_constant,
-                          "scan_template_argument_list: constant expected");
       /* If the type of a constant involves a template parameter type,
          rescan the declaration of the parameter type to get the type
          to be used in this argument list. */
@@ -8162,6 +8201,13 @@ this routine.  Its value is unchanged if no errors are detected.
         set_error_constant(constant);
       }  /* if */
       arg_ptr->variant.constant = constant;
+    } else {
+      /* A template template argument. */
+      a_template_ptr	templ;
+      check_assertion_str(sym->kind == (a_symbol_kind)sk_class_template,
+                          "scan_template_argument_list: template expected");
+      templ = scan_template_template_argument();
+      arg_ptr->variant.templ = templ;
     }  /* if */
     /* Link this entry on to the argument list. */
     if (arg_list == NULL) arg_list = arg_ptr;
@@ -8181,12 +8227,10 @@ this routine.  Its value is unchanged if no errors are detected.
          remainder of the parameter list with the defaults. */
       while (param_ptr != NULL) {
         sym = param_ptr->param_symbol;
-        /* Determine whether this argument should be a type or a constant. */
-        is_type_param = (sym->kind == (a_symbol_kind)sk_type);
-        arg_kind = is_type_param ? (a_templ_arg_kind)tak_type
-                                 : (a_templ_arg_kind)tak_nontype;
+        /* Determine the template argument kind for this parameter. */
+        arg_kind = templ_arg_kind_for_symbol_kind(sym->kind);
         arg_ptr = alloc_template_arg(arg_kind);
-	if (is_type_param) {
+	if (is_type_templ_arg(arg_ptr)) {
           if (param_ptr->has_default_arg) {
             /* A type parameter with a default value.  The default can be
 	       either a type or a token cache that needs to be scanned. */
@@ -8197,6 +8241,22 @@ this routine.  Its value is unchanged if no errors are detected.
             /* A type parameter with no default argument.  This occurs only
                in error cases.  Use an error type. */
             arg_ptr->variant.type = error_type();
+          }  /* if */
+        } else if (is_template_templ_arg(arg_ptr)) {
+          /* A template template argument. */
+          if (param_ptr->has_default_arg) {
+            /* A type parameter with a default value.  The default can be
+	       either a type or a token cache that needs to be scanned. */
+            arg_ptr->variant.templ =
+                     rescan_template_template_default_arg(template_sym,
+                                                          param_ptr, arg_list);
+          } else {
+            /* A template template parameter with no default argument.
+               This occurs only in error cases.  Use an error template. */
+            a_symbol_ptr	error_sym;
+            error_sym = error_class_template();
+            arg_ptr->variant.templ =
+                           error_sym->variant.template_info->il_template_entry;
           }  /* if */
 	} else if (param_ptr->has_default_arg) {
           /* A constant parameter.  The default value can be either a

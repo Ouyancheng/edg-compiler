@@ -167,6 +167,10 @@ static a_vla_fixup_ptr
 			/* List of vla fixup entries freed and available for
 			   reuse. */
 
+static a_symbol_ptr
+		error_class_template_symbol;
+			/* Pointer to a shared error class template entry. */
+
 void form_optionally_qualified_symbol_name(
 		a_symbol_ptr				sym,
 		an_il_to_str_output_control_block_ptr	octl,
@@ -937,6 +941,17 @@ do_variable:
 		  put_string("= <token cache>");
 		}  /* if */
 	      }  /* if */
+              break;
+            case sk_class_template:
+              fprintf(f_debug, "%*sparameter template: ", indentation + 4, "");
+              if (tplep->variant.templ != NULL) {
+                a_template_ptr	templ_ptr;
+                templ_ptr = tplep->variant.templ->il_template_entry;
+                db_symbol((a_symbol_ptr)templ_ptr->source_corresp.assoc_info,
+                          "", indentation + 4);
+              } else {
+                fprintf(f_debug, "NULL");
+              }  /* if */
               break;
             default:
               fprintf(f_debug, "<BAD TEMPLATE PARAM SYMBOL KIND>");
@@ -1975,6 +1990,9 @@ and return a pointer to it.
       tssp->variant.class_template.name_linkage =
                                             (a_name_linkage_kind)nlk_none;
       tssp->variant.class_template.not_standalone_nested_class = FALSE;
+      tssp->variant.class_template.template_template_param = FALSE;
+      tssp->variant.class_template.coordinates.position = 0;
+      tssp->variant.class_template.coordinates.depth = NO_NESTING_DEPTH;
 #if CHECKING 
       tssp->variant.class_template.avoid_codecenter_warnings = FALSE;
 #endif /* CHECKING */
@@ -4077,6 +4095,47 @@ but the instance needs to be called "operator int".
   }  /* if */
   return sym;
 }  /* make_template_function_symbol */
+
+
+a_symbol_ptr error_class_template(void)
+/*
+Return a pointer to an error class template.
+*/
+{
+  if (error_class_template_symbol == NULL) {
+    /* Create a class template symbol for this template template parameter. */
+    a_symbol_ptr			sym;
+    a_template_symbol_supplement_ptr	tssp;
+    a_template_ptr			templ_ptr;
+    sym = alloc_symbol((a_symbol_kind)sk_class_template,
+                       (a_symbol_header_ptr)NULL, &null_source_position);
+    sym->is_template_param = TRUE;
+    tssp = sym->variant.template_info;
+    templ_ptr = alloc_template();
+    set_source_corresp(&templ_ptr->source_corresp, sym);
+    templ_ptr->kind = (a_template_kind)templk_template_template_param;
+    tssp->is_nonreal_member = TRUE;
+    tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
+    tssp->il_template_entry = templ_ptr;
+    error_class_template_symbol = sym;
+  }  /* if */
+  return error_class_template_symbol;
+}  /* error_class_template */
+
+
+a_template_symbol_supplement_ptr template_supplement_for_template(
+						a_template_ptr	templ_ptr)
+/*
+Given an IL template entry, return the template symbols supplement.
+*/
+{
+  a_symbol_ptr				sym;
+  a_template_symbol_supplement_ptr	tssp;
+
+  sym = (a_symbol_ptr)templ_ptr->source_corresp.assoc_info;
+  tssp = template_supplement_for_symbol(sym);
+  return tssp;
+}  /* template_supplement_for_template */
 
 
 a_symbol_ptr get_member_function_template_symbol(a_symbol_ptr  rout_sym)
@@ -9236,9 +9295,31 @@ Return TRUE if the indicated symbol is a function-local symbol.
 }  /* is_local_symbol */
 
 
-a_template_param_ptr alloc_template_param
-                                 (a_symbol_ptr sym,
-			          a_boolean    def_arg_involves_template_param)
+void clear_template_param_default_arg_info(
+		a_template_param_ptr	ptr,
+		a_boolean		def_arg_involves_template_param)
+/*
+Clear the default argument fields of a template parameter entry based
+on kind of default argument it has.
+*/
+{
+  if (def_arg_involves_template_param) {
+    ptr->def_arg_involves_template_param = TRUE;
+    clear_template_cache(&ptr->default_arg.cache, /*reusable=*/TRUE);
+  } else {
+    a_symbol_kind	kind = ptr->param_symbol->kind;
+    if (kind == (a_symbol_kind)sk_type) {
+      ptr->default_arg.type = NULL;
+    } else if (kind == (a_symbol_kind)sk_constant) {
+      ptr->default_arg.constant = NULL;
+    } else {
+      ptr->default_arg.templ = NULL;
+    }  /* if */    
+  }  /* if */
+}  /* clear_template_param_default_arg_info */
+
+
+a_template_param_ptr alloc_template_param(a_symbol_ptr sym)
 /*
 Allocate a new template parameter list entry, initialize it,
 and return a pointer to it.
@@ -9262,23 +9343,19 @@ and return a pointer to it.
 #endif /* CHECKING */
   if (sym->kind == (a_symbol_kind)sk_type) {
     ptr->variant.type     = sym->variant.type.ptr;
-  } else {
-    check_assertion(sym->kind == (a_symbol_kind)sk_constant);
+  } else if (sym->kind == (a_symbol_kind)sk_constant) {
     ptr->variant.constant.ptr = sym->variant.constant;
     ptr->variant.constant.type_involves_template_param = FALSE;
 #if CHECKING
     ptr->variant.constant.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
-  }  /* if */
-  if (def_arg_involves_template_param) {
-    clear_template_cache(&ptr->default_arg.cache, /*reusable=*/TRUE);
   } else {
-    if (sym->kind == (a_symbol_kind)sk_type) {
-      ptr->default_arg.type = NULL;
-    } else {
-      ptr->default_arg.constant = NULL;
-    }  /* if */    
+    /* A template template parameter. */
+    check_assertion(sym->kind == (a_symbol_kind)sk_class_template);
+    ptr->variant.templ = sym->variant.template_info;
   }  /* if */
+  clear_template_param_default_arg_info(
+                               ptr, /*def_arg_involves_template_param=*/FALSE);
   db_exit();
   return ptr;
 }  /* alloc_template_param */
@@ -9340,6 +9417,22 @@ Assign the next scope number in sequence, and return it.
   }  /* if */
   return next_scope_number++;
 }  /* take_next_scope_number */
+
+
+a_symbol_ptr f_class_template_for_type(a_type_ptr	type)
+/*
+If "type" is based on a class template, return the class template on which
+it is based; otherwise, return NULL.  This routine is only called for
+types that are known to be template classes.
+*/
+{
+  a_symbol_ptr	result;
+  a_class_symbol_supplement_ptr	cssp;
+
+  cssp = symbol_supplement_for_class(type);
+  result = cssp->class_template;
+  return result;
+}  /* f_class_template_for_type */
 
 
 a_symbol_ptr class_template_for_injected_template_symbol(a_symbol_ptr sym)
@@ -9618,6 +9711,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(symbol_for_namespace_std),
       pch_saved_var_array_elem(builtin_va_list_type),
       pch_saved_var_array_elem(conversion_header_list),
+      pch_saved_var_array_elem(error_class_template_symbol),
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
       pch_saved_var_array_elem(last_ctor_or_dtor_sym),
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
@@ -9727,6 +9821,7 @@ of the front end.
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   last_ctor_or_dtor_sym = NULL;
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
+  error_class_template_symbol = NULL;
 #if DEBUG
   num_symbols_allocated                        = 0;
   num_symbol_headers_allocated                 = 0;

@@ -590,10 +590,15 @@ routine.
          symbol is created for T::A.  Indicate that this template is
          a nonreal class member. */
       a_template_symbol_supplement_ptr	tssp;
+      a_template_ptr			templ_ptr;
       tssp = sym->variant.template_info;
       tssp->is_nonreal_member = TRUE;
       tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
       tssp->variant.class_template.access = (an_access_specifier)as_public;
+      templ_ptr = alloc_template();
+      set_source_corresp(&templ_ptr->source_corresp, sym);
+      templ_ptr->kind = (a_template_kind)templk_class;
+      tssp->il_template_entry = templ_ptr;
       break;
     }
     default:
@@ -3314,12 +3319,9 @@ list pointer in type_list.  *type_list should be NULL on the first call.
                                                              template_arg_list;
           for (; tap != NULL; tap = tap->next) {
             if (is_type_templ_arg(tap)) {
+              /* Note that nontype and template template arguments do not
+                 influence argument dependent lookup. */
               add_to_arg_dependent_lookup_list(tap->variant.type, type_list);
-            } else if (is_template_templ_arg(tap)) {
-              /* A template template argument. */
-              /* FIXME - template template arguments. */
-              unexpected_condition_str2("add_to_arg_dependent_lookup_list:",
-                                        "template template arg not impl");
             } /* if */
           }  /* for */
         }  /* if */

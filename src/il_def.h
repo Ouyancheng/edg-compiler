@@ -1545,6 +1545,11 @@ typedef unsigned long a_template_nesting_depth;
 			   declaration level.  The first level is 1,
 			   the second 2, etc. */
 
+#define NO_NESTING_DEPTH	0
+			/* Depth used to indicate that a template parameter has
+			   no specified depth.  This is used for template
+			   template parameters. */
+
 typedef struct a_template_param_coordinate *a_template_param_coordinate_ptr;
 typedef struct a_template_param_coordinate {
   /* Structure used to identify a template parameter from a template
@@ -7115,8 +7120,11 @@ enum a_template_kind_tag {
 			/* Member function template. */
   templk_static_data_member,
 			/* Static data member template. */
-  templk_member_class
+  templk_member_class,
 			/* A class nested within a class template. */
+  templk_template_template_param
+			/* The template associated with a template template
+			   parameter. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_template_kind;

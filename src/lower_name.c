@@ -1183,8 +1183,6 @@ literals.
       } else if (is_template_templ_arg(tap)) {
         /* A template template argument. */
         /* FIXME - template template arguments. */
-        unexpected_condition_str2("mangled_template_arguments:",
-                                  "template template arg not impl");
       } else {
         check_assertion_str2(!tap->is_array_bound_of_unknown_type,
                              "mangled_template_arguments:",

@@ -3463,8 +3463,9 @@ nonidentical.
             case tpck_param:
               eq = (cp1->variant.template_param.variant.coordinates.position ==
                     cp2->variant.template_param.variant.coordinates.position)
-                && (cp1->variant.template_param.variant.coordinates.depth ==
-                    cp2->variant.template_param.variant.coordinates.depth);
+                && equiv_nesting_depths(
+                        cp1->variant.template_param.variant.coordinates.depth,
+                        cp2->variant.template_param.variant.coordinates.depth);
               break;
             case tpck_expression:
               eq = compare_template_param_constant_expressions(

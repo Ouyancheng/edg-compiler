@@ -900,6 +900,14 @@ extern a_derivation_step_ptr cast_virtual_derivation_path_of(
   ((bcp)->is_virtual || (bcp)->derivation->path->base_class->is_virtual)
 
 
+/* Return TRUE if two template nesting depths should be considered
+   equivalent.  Depths are equivalent if they are the same, or if either
+   of the depths is NO_NESTING_DEPTH. */
+#define equiv_nesting_depths(depth1, depth2)				\
+  ((depth1) == (depth2) ||						\
+   (depth1) == NO_NESTING_DEPTH || (depth2 == NO_NESTING_DEPTH))
+
+
 #if DEBUG
 extern void db_template_arg_list(a_template_arg_ptr tap);
 

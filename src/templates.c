@@ -443,6 +443,11 @@ Free the token caches that were used while processing a template declaration.
 }  /* wrapup_templ_decl_state */
 
 
+/* Forward declaration. */
+static void scan_template_param_clauses(
+				a_tmpl_decl_state_ptr	decl_state,
+				a_boolean		is_template_param);
+
 static a_partial_order_candidate_ptr alloc_partial_order_candidate(void)
 /*
 Allocate a new partial ordering candidate entry, initialize it,
@@ -1396,12 +1401,18 @@ Return the template nesting depth of the specified template parameter.
   if (tpp == NULL) {
     /* This is an error case -- use a depth of zero. */
     depth = 0;
-  } else if (tpp->param_symbol->kind == (a_symbol_kind)sk_type) {
-    depth = tpp->variant.type->
-                         variant.template_param.extra_info->coordinates.depth;
   } else {
-    depth = tpp->variant.constant.ptr->
-                 variant.template_param.variant.coordinates.depth;
+   a_symbol_kind	sym_kind= tpp->param_symbol->kind;
+    if (sym_kind == (a_symbol_kind)sk_type) {
+      depth = tpp->variant.type->
+                         variant.template_param.extra_info->coordinates.depth;
+    } else if (sym_kind == (a_symbol_kind)sk_constant) {
+      depth = tpp->variant.constant.ptr->
+                   variant.template_param.variant.coordinates.depth;
+    } else {
+      /* A template template parameter. */
+      depth = tpp->variant.templ->variant.class_template.coordinates.depth;
+    }  /* if */
   }  /* if */
   return depth;
 }  /* nesting_depth_of_template_param */
@@ -3081,9 +3092,11 @@ the same constant.
       if (!equiv) break;
     } else {
       /* A template template argument. */
-      /* FIXME - template template arguments. */
-      unexpected_condition_str2("equiv_template_arg_lists:",
-                                "template template arg not impl");
+      if (arg1->variant.templ == arg2->variant.templ) {
+        /* Okay. */
+      } else {
+        equiv = FALSE;
+      }  /* if */
     }  /* if */
     /* Advance to the next arguments in step. */
     arg1 = arg1->next;
@@ -3106,7 +3119,7 @@ the same constant.
 static a_boolean template_arg_involves_template_param(a_template_arg_ptr tap)
 /*
 Return TRUE if the template argument entry pointed to by tap contains
-a template parameter (type or constant).
+a template parameter.
 */
 {
   a_boolean  template_param_found;
@@ -3117,9 +3130,16 @@ a template parameter (type or constant).
     template_param_found = (tap->variant.constant->kind ==
                                  (a_constant_repr_kind)ck_template_param);
   } else {
-    /* FIXME - template template arguments. */
-    unexpected_condition_str2("template_arg_involves_template_param:",
-                              "template template arg not impl");
+    /* A template template parameter.  The argument involves a template
+       parameter if it is itself a template parameter, or if it is
+       is a nonreal class member. */
+    a_symbol_ptr			sym;
+    a_template_symbol_supplement_ptr	tssp;
+    sym = (a_symbol_ptr)tap->variant.templ->source_corresp.assoc_info;
+    tssp = template_supplement_for_symbol(sym);
+    template_param_found = tssp->is_nonreal_member ||
+                        (is_class_template_symbol(sym) &&
+                         tssp->variant.class_template.template_template_param);
   }  /* if */
   return template_param_found;
 }  /* template_arg_involves_template_param */
@@ -3185,6 +3205,15 @@ prototype instantiation is considered as a potential match.
   check_assertion(class_template_sym->kind ==
                                             (a_symbol_kind)sk_class_template);
   tssp = class_template_sym->variant.template_info;
+  /* Replace the class template symbol passed in with the one pointed to
+     by the IL template entry.  These will be different when the one
+     passed in is associated with a template template parameter. */
+  check_assertion_str(tssp->il_template_entry != NULL,
+                      "find_template_class: NULL IL template entry");
+  class_template_sym =
+              (a_symbol_ptr)tssp->il_template_entry->source_corresp.assoc_info;
+  check_assertion(class_template_sym != NULL &&
+                 class_template_sym->kind == (a_symbol_kind)sk_class_template);
   if (tssp->is_nonreal_member) eta_options |= ETA_IS_NONREAL_MEMBER;
   if (microsoft_bugs) eta_options |= ETA_MS_IGNORE_QUALIFIERS;
   sym = NULL;
@@ -3274,9 +3303,11 @@ prototype instantiation is considered as a potential match.
     class_type = alloc_type(tssp->variant.class_template.type_kind);
     class_type->variant.class_struct_union.is_template_class = TRUE;
     sym->variant.class_struct_union.type = class_type;
-    if (tssp->is_nonreal_member) {
+    if (tssp->is_nonreal_member ||
+        tssp->variant.class_template.template_template_param) {
       /* Instantiations of a nonreal member template (for example,
-         T::A<int>) are created as nonreal instantiations. */
+         T::A<int>) are created as nonreal instantiations.  Likewise,
+         instantiations of template template parameters are nonreal. */
       sym->variant.class_struct_union.extra_info->is_nonreal_class = TRUE;
     } else if (sym->is_class_member) {
       /* If the enclosing class is nonreal, then any instances of member
@@ -3449,9 +3480,8 @@ another template parameter.
        arguments. */
     for (tpp = templ_param_list, tap = partial_arg_list;
          tpp != NULL && tap != NULL; tpp = tpp->next, tap = tap->next) {
-      a_boolean			is_type_param;
-      is_type_param = tpp->param_symbol->kind == (a_symbol_kind)sk_type;
-      if (is_type_param != is_type_templ_arg(tap)) {
+      a_symbol_kind		sym_kind = tpp->param_symbol->kind;
+      if (templ_arg_kind_for_symbol_kind(sym_kind) != tap->kind) {
         arg_kind_mismatch = TRUE;
         break;
       }  /* if */
@@ -3472,18 +3502,18 @@ another template parameter.
          tpp = tpp->next,
            specified_tap = specified_tap == NULL
                                               ? NULL : specified_tap->next) {
-      a_boolean			is_type_param;
+      a_symbol_kind		sym_kind = tpp->param_symbol->kind;
       a_templ_arg_kind		arg_kind;
-      is_type_param = tpp->param_symbol->kind == (a_symbol_kind)sk_type;
-      arg_kind = is_type_param ? (a_templ_arg_kind)tak_type
-                               : (a_templ_arg_kind)tak_nontype;
+      arg_kind = templ_arg_kind_for_symbol_kind(sym_kind);
       tap = alloc_template_arg(arg_kind);
       if (specified_tap != NULL) {
         /* An argument value was supplied.  Copy it to the newly created
            template argument. */
         tap->explicitly_specified = specified_tap->explicitly_specified;
-        if (is_type_param) {
+        if (is_type_templ_arg(tap)) {
           tap->variant.type = specified_tap->variant.type;
+        } else if (is_template_templ_arg(tap)) {
+          tap->variant.templ = specified_tap->variant.templ;
         } else {
           /* Convert the constant value to the type of the template
              parameter. */
@@ -3581,6 +3611,108 @@ a specified parameter.
   for (; pos > 1; pos--) tpp = tpp->next;
   return tpp;
 }  /* get_template_param_by_list_pos */
+
+
+static a_boolean matches_template_template_param(
+		a_template_ptr				templ,
+		a_template_ptr				templ_templ,
+		a_template_arg_ptr			*templ_arg_list,
+		a_template_param_ptr			templ_param_list)
+/*
+Determine whether the template specified by "templ" matches the template
+template parameter specified by "templ_templ".  Return TRUE if a
+match is found.
+*/
+{
+  a_template_param_ptr			param_list_for_templ;
+  a_template_param_ptr			param_list;
+  a_boolean				match = FALSE;
+  a_template_symbol_supplement_ptr	templ_tssp;
+  a_template_symbol_supplement_ptr	tssp;
+  a_symbol_ptr				sym;
+  a_symbol_ptr				templ_sym;
+
+  /* Get the template parameter list associated with the template. */
+  sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+  templ_sym = (a_symbol_ptr)templ_templ->source_corresp.assoc_info;
+  tssp = sym->variant.template_info;
+  templ_tssp = templ_sym->variant.template_info;
+  param_list_for_templ = templ_tssp->cache.decl_info->parameters;
+  param_list = tssp->cache.decl_info->parameters;
+  if (equiv_template_param_lists(param_list_for_templ, param_list,
+                                 /*issue_errors=*/FALSE,
+                                 (a_source_position*)NULL)) {
+    /* The actual template is compatible with the template template parameter.
+       See if it is compatible with any previously deduced value. */
+    /* Get the template nesting depth as indicated by the first template
+       parameter.  Any template parameters found in templ_type must be at
+       the same level to participate in deduction. */
+    a_template_nesting_depth	depth_of_template;
+    depth_of_template = nesting_depth_of_template_param(templ_param_list);
+    if (depth_of_template ==
+                        templ_tssp->variant.class_template.coordinates.depth) {
+      /* The depths match. */
+      a_template_param_list_pos		list_pos;
+      a_template_ptr			templ_ptr;
+      a_template_arg_ptr		tap;
+      /* Get the template argument that corresponds with this parameter. */
+      list_pos = templ_tssp->variant.class_template.coordinates.position;
+      tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
+                                         list_pos);
+      check_assertion(tap->kind == (a_templ_arg_kind)tak_template);
+      templ_ptr = tssp->il_template_entry;
+      if (tap->variant.templ == NULL) {
+        /* No template has been bound to this template argument yet, so just
+           the current template. */
+        tap->variant.templ = templ_ptr;
+        match = TRUE;
+      } else {
+        /* A template was already bound to this template argument.  We have a
+           match if and only if the new one is the same as the old one. */
+        if (tap->variant.templ == templ_ptr) {
+          /* Okay. */
+          match = TRUE;
+        } else {
+          /* Not a match.  Return FALSE. */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* matches_template_template_param */
+
+
+static a_boolean class_matches_template_template_param(
+		a_type_ptr				type,
+		a_symbol_ptr				sym_for_templ,
+		a_template_arg_ptr			*templ_arg_list,
+		a_template_param_ptr			templ_param_list)
+/*
+Determine whether the type specified by "type" is based on a template
+that matches the template template parameter specified by sym_for_templ.
+*/
+{
+  a_class_symbol_supplement_ptr		cssp;
+  a_symbol_ptr				templ_for_type;
+  a_boolean				match = FALSE;
+
+  /* Get the template entry for the template from which "type" was
+     generated (if any). */
+  cssp = symbol_supplement_for_class(type);
+  templ_for_type = cssp->class_template;
+  /* If there is no template, the type is not template based so this is
+     not a match. */
+  if (templ_for_type != NULL) {
+    a_template_ptr	templ;
+    a_template_ptr	templ_templ;
+    /* "type" is template based. */
+    templ = templ_for_type->variant.template_info->il_template_entry;
+    templ_templ = sym_for_templ->variant.template_info->il_template_entry;
+    match = matches_template_template_param(templ, templ_templ, templ_arg_list,
+                                            templ_param_list);
+  }  /* if */
+  return match;
+}  /* class_matches_template_template_param */
 
 
 static a_boolean is_deducible_constant_param(a_constant_ptr templ_constant)
@@ -3841,7 +3973,10 @@ partial specialization.
   a_boolean	match = FALSE;
 
   do {
-    if (is_type_templ_arg(tap)) {
+    if (tap->kind != templ_tap->kind) {
+      /* The argument kinds do not match */
+      match = FALSE;
+    } else if (is_type_templ_arg(tap)) {
       /* A type template parameter.  See if the types match. */
       match = matches_template_type(tap->variant.type,
                                     templ_tap->variant.type,
@@ -3856,13 +3991,16 @@ partial specialization.
                                         templ_param_list);
     } else {
       /* A template template argument. */
-      /* FIXME - template template arguments. */
-      unexpected_condition_str2("matches_template_arg_list:",
-                                "template template arg not impl");
+      match = matches_template_template_param(tap->variant.templ,
+                                              templ_tap->variant.templ,
+					      templ_arg_list,
+					      templ_param_list);
     }  /* if */
     tap = tap->next;
     templ_tap = templ_tap->next;
-  } while (match && tap != NULL);
+  } while (match && tap != NULL && templ_tap != NULL);
+  /* If either list has arguments remaining, this is not a match. */
+  if ((tap == NULL) != (templ_tap == NULL)) match = FALSE;
   return match;
 }  /* matches_template_arg_list */
 
@@ -3879,6 +4017,11 @@ matches a class type from the parameter list of a template function.
 {
   a_boolean			match = FALSE;
   a_class_symbol_supplement_ptr templ_cssp;
+  a_class_symbol_supplement_ptr cssp;
+  a_symbol_ptr			primary_template;
+  a_symbol_ptr			templ_primary_template;
+  a_symbol_ptr			type_sym;
+
   /* Non-identical class types match if one represents a template
      and the other is an instantiation of that template.  For
      instance:
@@ -3891,9 +4034,13 @@ matches a class type from the parameter list of a template function.
      class template, and that the latter is a nonreal instantiation.
      Then we call matches_template_type on the template arg types. */
   templ_cssp = symbol_supplement_for_class(templ_type);
+  check_assertion(is_immediate_class_type(type));
+  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+  cssp = type_sym->variant.class_struct_union.extra_info;
+  primary_template = primary_template_of(cssp->class_template);
+  templ_primary_template = primary_template_of(templ_cssp->class_template);
   if (templ_cssp->class_template != NULL &&
-      primary_template_of(symbol_supplement_for_class(type)->class_template) ==
-                            primary_template_of(templ_cssp->class_template) &&
+      primary_template == templ_primary_template &&
       templ_cssp->is_nonreal_class) {
     /* The two classes refer to the same template, but templ_type
        is a nonreal instantiation -- i.e., one based on template
@@ -3915,6 +4062,23 @@ matches a class type from the parameter list of a template function.
        needed for binding template parameter values when doing partial
        ordering comparisons. */
     match = TRUE;
+  } else if (templ_primary_template != NULL &&
+             templ_primary_template->variant.template_info->
+                             variant.class_template.template_template_param) {
+    /* A class based on a template template parameter. */
+    if (class_matches_template_template_param(type, templ_primary_template,
+                                              templ_arg_list,
+                                              templ_param_list)) {
+      a_template_arg_ptr  tap, templ_tap;
+      tap = type->variant.class_struct_union.extra_info->
+                                                     template_arg_list;
+      templ_tap = templ_type->variant.class_struct_union.
+                                         extra_info->template_arg_list;
+      if (matches_template_arg_list(tap, templ_tap, templ_arg_list,
+                                    templ_param_list)) {
+        match = TRUE;
+      }  /* if */
+    }  /* if */
   } else if (templ_type->source_corresp.is_class_member) {
     if (nonstandard_qualifier_deduction) {
       /* The parameter type is a class member -- a nested class or enum.  Be
@@ -4413,6 +4577,51 @@ may have been deduced.
 }  /* tentatively_matches_template_type */
 
 
+static a_template_ptr copy_template_with_substitution(
+				a_template_ptr			templ,
+				a_template_arg_ptr		templ_arg_list,
+				a_template_nesting_depth	depth)
+/*
+If "templ" is a template associated with a template template parameter
+return the corresponding actual template template argument (if any).
+Otherwise, return the original template.
+*/
+{
+  a_template_ptr	result = templ;
+  a_symbol_ptr		template_sym;
+
+  /* Get the associated template symbol pointer. */
+  template_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+  if (template_sym->is_template_param) {
+    /* If this template parameter entry corresponds to the nth
+       parameter, the real template to substitute for it is given in the nth
+       template argument.  Find the template argument that matches this
+       template parameter use it. */
+    a_template_param_coordinate_ptr	coordinates;
+    coordinates = &template_sym->variant.template_info->
+                                            variant.class_template.coordinates;
+    if (coordinates->depth != depth) {
+      /* A template parameter from a different nesting depth.  Simply
+         leave this template unsubstituted. */
+    } else {
+      a_template_arg_ptr	tap;
+      tap = get_template_arg_by_list_pos((a_template_param_ptr)NULL,
+                                         &templ_arg_list,
+                                         coordinates->position);
+      if (tap->variant.templ == NULL) {
+        /* No value has been provided for this template parameter yet.
+           Don't do the substitution, but don't consider this to be
+           a copy error either. */
+      } else {
+        /* Use the template specified by this template argument. */
+        result = tap->variant.templ;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* copy_template_with_substitution */
+
+
 static a_symbol_ptr copy_template_class_reference_with_substitution(
 				a_symbol_ptr			template_sym,
 				a_type_ptr			orig_type,
@@ -4438,6 +4647,15 @@ are looked up, if needed.  The symbol of the new instance is returned.
   a_boolean				is_nonreal_template;
   
   template_sym = primary_template_of(template_sym);
+  /* If the template symbol refers to a template template parameter, get
+     the actual template to use from the template argument list. */
+  if (template_sym->is_template_param) {
+    a_template_ptr	new_templ;
+    new_templ = template_sym->variant.template_info->il_template_entry;
+    new_templ = copy_template_with_substitution(new_templ, templ_arg_list,
+                                                depth);
+    template_sym = (a_symbol_ptr)new_templ->source_corresp.assoc_info;
+  }  /* if */
   tssp = template_sym->variant.template_info;
   tap = orig_type->variant.class_struct_union.extra_info->template_arg_list;
   is_nonreal_template = tssp->is_nonreal_member;
@@ -4476,9 +4694,8 @@ are looked up, if needed.  The symbol of the new instance is returned.
                                                    copy_error);
     } else {
       /* A template template argument. */
-      /* FIXME - template template arguments. */
-      unexpected_condition_str2("copy_template_class_reference_with_subst:",
-                                "template template arg not impl");
+      new_tap->variant.templ = copy_template_with_substitution(
+                                    tap->variant.templ, templ_arg_list, depth);
     }  /* if */
     if (new_list == NULL) {
       new_list = new_tap;
@@ -6894,13 +7111,16 @@ lists are equivalent.  If issue_errors is TRUE, errors are issued
 describing any incompatibilities.
 */
 {
-  a_template_param_ptr	new_tpp;
-  a_template_param_ptr	old_tpp;
-  a_boolean		any_errors = FALSE;
-  a_template_param_ptr	prev_new_tpp = NULL;
+  a_template_param_ptr		new_tpp;
+  a_template_param_ptr		old_tpp;
+  a_boolean			any_errors = FALSE;
+  a_template_param_ptr		prev_new_tpp = NULL;
+  a_template_nesting_depth	old_depth;
+  a_template_nesting_depth	new_depth;
 
-  if (nesting_depth_of_template_param(old_list) !=
-                                  nesting_depth_of_template_param(new_list)) {
+  old_depth = nesting_depth_of_template_param(old_list);
+  new_depth = nesting_depth_of_template_param(new_list);
+  if (!equiv_nesting_depths(old_depth, new_depth)) {
     /* The nesting depths do not match -- don't check any further. */
     any_errors = TRUE;
     goto done;
@@ -7540,9 +7760,14 @@ to the newly created list.
     if (param_sym->kind == (a_symbol_kind)sk_type) {
       tap = alloc_template_arg((a_templ_arg_kind)tak_type);
       tap->variant.type = param_sym->variant.type.ptr;
-    } else {
+    } else if (param_sym->kind == (a_symbol_kind)sk_constant) {
       tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
       tap->variant.constant = param_sym->variant.constant;
+    } else {
+      /* A template template parameter. */
+      check_assertion(param_sym->kind == (a_symbol_kind)sk_class_template);
+      tap = alloc_template_arg((a_templ_arg_kind)tak_template);
+      tap->variant.templ = param_sym->variant.template_info->il_template_entry;
     }  /* if */
     if (list_head == NULL) list_head = tap;
     if (list_tail != NULL) list_tail->next = tap;
@@ -7694,9 +7919,13 @@ the type specified by tp.
   if (param_sym->kind == (a_symbol_kind)sk_type) {
     result =
        is_or_contains_specific_template_param(tp, param_sym->variant.type.ptr);
-  } else {
+  } else if (param_sym->kind == (a_symbol_kind)sk_constant) {
     result = type_contains_specific_template_param_constant(
                                               tp, param_sym->variant.constant);
+  } else {
+    /* A template template argument. */
+    result = type_contains_specific_template_template_param(
+                      tp, param_sym->variant.template_info->il_template_entry);
   }  /* if */
   return result;
 }  /* template_param_used_in_type */
@@ -8940,6 +9169,390 @@ whether the nontype parameter is unnamed.
 }  /* scan_a_template_parameter_declaration */
 
 
+static a_symbol_kind determine_template_param_kind(void)
+/*
+Determine the kind of template parameter that is being scanned.
+Return the symbol kind for the parameter symbol to be created for
+this parameter.
+*/
+{
+  a_symbol_kind	result;
+  a_token_kind	next_tok;
+  a_token_kind	second_token;
+  a_token_kind	token_after_id;
+  a_boolean	is_end_of_param;
+
+  /* Determine whether this is a "type-argument" (a parameter that
+     represents a type) or a "parameter-declaration" (a parameter that
+     represents a constant).  A type argument may be specified as "class T"
+     or "typename T", or if the parameter is unnamed, simply "class" or
+     "typename".  "class" and "typename" may also be used at the beginning
+     of the declaration of a nontype parameter.  The parameter is considered
+     to be a type parameter if it is "class" or "typename" followed by an
+     optional simple (i.e., nonqualified) identifier.  A template template
+     parameter begins with they keyword "template".  All other cases are
+     considered to be nontype parameters. */
+  next_tok = next_two_tokens(tok_identifier, &second_token);
+  token_after_id = next_tok == tok_identifier ? second_token : next_tok;
+  is_end_of_param = token_after_id == tok_comma ||
+                    token_after_id == tok_gt ||
+                    token_after_id == tok_assign;
+  if ((curr_token == tok_class || curr_token == tok_typename) &&
+      is_end_of_param) {
+    /* A type parameter. */
+    result = (a_symbol_kind)sk_type;
+  } else if (curr_token == tok_template) {
+    /* A template template parameter. */
+    result = (a_symbol_kind)sk_class_template;
+  } else {
+    /* A nontype parameter. */
+    result = (a_symbol_kind)sk_constant;
+  }  /* if */
+  return result;
+}  /* determine_template_param_kind */
+
+
+static a_symbol_ptr create_template_param_symbol(
+					a_symbol_kind		kind,
+					a_symbol_locator	*locator,
+					a_boolean		is_unnamed)
+/*
+Create the symbol for a template parameter.  Return the symbol.
+*/
+{
+  a_symbol_ptr	sym;
+
+  if (!is_unnamed) {
+    /* Create a symbol of the appropriate name and kind. */
+    sym = enter_symbol(kind, locator, decl_scope_level,
+                       /*suppress_redecl_error=*/FALSE);
+  } else {
+    sym = make_unnamed_template_param_symbol(kind, &pos_curr_token);
+  }  /* if */
+  sym->is_template_param = TRUE;
+  mark_defined(sym, &sym->decl_position);
+  return sym;
+}  /* create_template_param_symbol */
+
+
+static a_template_param_ptr scan_type_template_param(
+		a_tmpl_decl_state_ptr decl_state,
+		a_template_param_list_pos	template_param_list_pos)
+/*
+Scan the declaration of a type template parameter.  Return the template
+parameter entry for the parameter.
+*/
+{
+  a_boolean		is_named;
+  a_symbol_ptr		sym;
+  a_type_ptr		template_param_type;
+  a_template_param_ptr	template_param;
+
+  /* Bypass "class" or "typename". */
+  (void)get_token();
+  is_named = curr_token == tok_identifier;
+  /* Create an sk_type symbol for the parameter. */
+  sym = create_template_param_symbol((a_symbol_kind)sk_type,
+                                     &locator_for_curr_id, !is_named);
+  /* Bypass the identifier. */
+  if (is_named) (void)get_token();
+  /* Allocate a template-param type.  This type is for front-end use
+     only and will not appear in the IL passed on to the back end.  It
+     is therefore not added to any scope types list. */
+  template_param_type = alloc_type((a_type_kind)tk_template_param);
+  template_param_type->variant.template_param.extra_info->
+                            coordinates.depth = decl_state->nesting_depth;
+  template_param_type->variant.template_param.extra_info->
+                           coordinates.position = template_param_list_pos;
+  set_type_size(template_param_type);
+  set_source_corresp(&template_param_type->source_corresp, sym);
+  if (!is_named) {
+    /* Reset the name in the source correspondence entry.  An unnamed
+       type is represented by NULL, not "<unnamed>" as indicated by the
+       symbol header. */
+    template_param_type->source_corresp.name = NULL;
+  }  /* if */
+  /* The type symbol for the template parameter points for now to the
+     template-param type -- "for now", since it will be replaced with
+     an actual type during instantiation of the class or function. */
+  sym->variant.type.ptr = template_param_type;
+  /* Allocate a template parameter and set its fields based on sym. */
+  template_param = alloc_template_param(sym);
+  if (curr_token == tok_assign) {
+    a_token_cache  def_arg_cache;
+    a_boolean	   def_arg_involves_template_param = FALSE;
+    a_type_ptr	   default_arg_type;
+    /* Scan the default value for a type argument. */
+    /* Skip past the equals sign. */
+    (void)get_token();
+    /* Cache the tokens that make up the default argument expression. */
+    prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
+                             /*is_function_template=*/FALSE,
+			     /*is_friend_decl=*/FALSE,
+                             &decl_state->param_list_cache);
+    if (microsoft_mode) {
+      /* The Microsoft compiler doesn't check default arguments until
+         an instantiation is done. */
+      def_arg_involves_template_param = TRUE;
+    } else {
+      rescan_copy_of_cache(&def_arg_cache);
+      type_name(&default_arg_type);
+      if (is_or_contains_template_param(default_arg_type)) {
+        def_arg_involves_template_param = TRUE;
+      }  /* if */
+    }  /* if */
+    template_param->has_default_arg = TRUE;
+    /* Update the default argument information in the template parameter. */
+    if (def_arg_involves_template_param) {
+      /* The default argument involves a template parameter.  This means that
+         the default needs to be rescanned for each instantiation, so the
+         default is saved as a token cache. */
+      clear_template_param_default_arg_info(
+                     template_param, /*def_arg_involves_template_param=*/TRUE);
+      set_template_cache_info(&template_param->default_arg.cache,
+                              &def_arg_cache, decl_state->decl_info);
+    } else {
+      /* The default does not use template parameters.  Simply save the
+         type or constant that is the default. */
+      template_param->default_arg.type = default_arg_type;
+      /* Discard the default argument token cache if it is not needed for
+         later use. */
+      discard_token_cache(&def_arg_cache);
+    }  /* if */
+  }  /* if */
+  return template_param;
+}  /* scan_type_template_param */
+
+
+static a_template_param_ptr scan_nontype_template_param(
+		a_tmpl_decl_state_ptr		decl_state,
+		a_template_param_list_pos	template_param_list_pos,
+		a_token_cache			*param_cache,
+		a_boolean			*param_cache_used)
+/*
+Scan the declaration of a nontype template parameter.  Return the template
+parameter entry for the parameter.  param_cache is the cache containing
+the template parameter declaration.  param_cache_used is set to TRUE if
+a that cache has been saved for rescanning when the type of the nontype
+parameter depends on a template parameter.
+*/
+{
+  a_type_ptr		param_type_ptr;
+  a_symbol_locator	param_locator;
+  a_constant_ptr	param_con;
+  a_boolean		is_unnamed;
+  a_template_param_ptr	template_param;
+  a_symbol_ptr         	sym;
+  a_boolean		const_type_involves_template_param = FALSE;
+  a_constant_ptr	default_arg_constant;
+  a_boolean		def_arg_involves_template_param = FALSE;
+
+  /* Scan the declaration of the type of the nontype parameter. */
+  scan_a_template_parameter_declaration(&param_locator, &param_type_ptr,
+                                        &is_unnamed);
+  /* Create a symbol and bind a template param constant to it. At each
+      point of instantiation an actual constant will be substituted. */
+  sym = create_template_param_symbol((a_symbol_kind)sk_constant,
+                                     &param_locator, is_unnamed);
+  sym->variant.constant = param_con =
+                     fs_constant((a_constant_repr_kind)ck_template_param);
+  param_con->type = param_type_ptr;
+  set_template_param_constant_kind(param_con,
+                               (a_template_param_constant_kind)tpck_param);
+  param_con->variant.template_param.
+                    variant.coordinates.depth = decl_state->nesting_depth;
+  param_con->variant.template_param.
+                    variant.coordinates.position = template_param_list_pos;
+  set_source_corresp(&param_con->source_corresp, sym);
+  if (is_unnamed) {
+    /* Reset the name in the source correspondence entry.  An unnamed
+       type is represented by NULL, not "<unnamed>" as indicated by the
+       symbol header. */
+    param_con->source_corresp.name = NULL;
+  }  /* if */
+  const_type_involves_template_param = 
+				is_or_contains_template_param(param_type_ptr);
+  /* Allocate a template parameter and set its fields based on sym. */
+  template_param = alloc_template_param(sym);
+  if (const_type_involves_template_param) {
+    /* For nontype parameters, the type of the parameter needs
+       to be saved as a token cache if the type uses template
+       parameters. */
+    template_param->variant.constant.type_involves_template_param = TRUE;
+    set_template_cache_info(&template_param->cache, param_cache,
+                            decl_state->decl_info);
+    *param_cache_used = TRUE;
+  }  /* if */
+  if (curr_token == tok_assign) {
+    /* Scan the default value. */
+    a_token_cache  def_arg_cache;
+    template_param->has_default_arg = TRUE;
+    /* Skip past the equals sign. */
+    (void)get_token();
+    /* Cache the tokens that make up the default argument expression. */
+    prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
+                             /*is_function_template=*/FALSE,
+			     /*is_friend_decl=*/FALSE,
+			     &decl_state->param_list_cache);
+    if (const_type_involves_template_param) {
+      /* The type of the constant parameter involves a template parameter
+         type so we can't scan the expression now.  When the type of the
+         constant involves a template parameter we have to save the
+         constant as a token cache, so we also set the flag that indicates
+         that the default argument contains a template parameter. */
+      def_arg_involves_template_param = TRUE;
+    } else {
+      /* The type doesn't involve a template parameter type.  Scan the
+         default argument expression.  Rescan a copy of the cache.
+         This is done so that when the default argument is scanned, the
+         last token of the cache is followed by the token that followed
+         it in the original source program with no intervening
+         tok_end_of_source. */
+      rescan_copy_of_cache(&def_arg_cache);
+      default_arg_constant = fs_constant((a_constant_repr_kind)ck_error);
+      scan_template_argument_constant_expression(param_type_ptr,
+					         default_arg_constant);
+      def_arg_involves_template_param = default_arg_constant->kind ==
+                                      (a_constant_repr_kind)ck_template_param;
+    }  /* if */
+    /* Update the default argument information in the template parameter. */
+    if (def_arg_involves_template_param) {
+      /* The default argument involves a template parameter.  This means that
+         the default needs to be rescanned for each instantiation, so the
+         default is saved as a token cache. */
+      clear_template_param_default_arg_info(
+                     template_param, /*def_arg_involves_template_param=*/TRUE);
+      set_template_cache_info(&template_param->default_arg.cache,
+                              &def_arg_cache, decl_state->decl_info);
+    } else {
+      /* The default does not use template parameters.  Simply save the
+         constant that is the default. */
+      template_param->default_arg.constant = default_arg_constant;
+      /* Discard the default argument token cache. */
+      discard_token_cache(&def_arg_cache);
+    }  /* if */
+  }  /* if */
+  return template_param;
+}  /* scan_nontype_template_param */
+
+
+static void set_decl_state_for_template_param(
+				a_tmpl_decl_state_ptr	curr_state,
+				a_tmpl_decl_state_ptr	new_state)
+/*
+Create a new template declaration state for scanning a template template
+parameter based on the current state.
+*/
+{
+  init_templ_decl_state(new_state);
+  new_state->in_prototype_instantiation =
+                                        curr_state->in_prototype_instantiation;
+  new_state->nesting_depth = 0;
+  new_state->decl_info = curr_state->decl_info;
+  new_state->effective_decl_level = curr_state->effective_decl_level;
+  new_state->enclosing_scope = curr_state->enclosing_scope;
+  new_state->param_list_cache = curr_state->param_list_cache;
+}  /* set_decl_state_for_template_param */
+
+
+static a_template_param_ptr scan_template_template_param(
+		a_tmpl_decl_state_ptr		parent_decl_state,
+		a_template_param_list_pos	template_param_list_pos)
+/*
+Scan the declaration of a template template parameter.  Return the template
+parameter entry for the parameter.
+*/
+{
+  a_template_param_ptr			template_param;
+  a_symbol_ptr				sym;
+  a_template_ptr			templ_ptr;
+  a_template_symbol_supplement_ptr	tssp;
+  a_boolean				is_named;
+  a_tmpl_decl_state			local_decl_state;
+
+  /* Create a new set of declaration state information to be used while
+     scanning the template template parameter. */
+  set_decl_state_for_template_param(parent_decl_state, &local_decl_state);
+  scan_template_param_clauses(&local_decl_state, /*is_template_param=*/TRUE);
+  /* Pop all of the template declaration scopes that were pushed earlier. */
+  for (; local_decl_state.number_of_template_decl_scopes != 0;
+         local_decl_state.number_of_template_decl_scopes--) {
+    pop_scope();
+  }  /* for */
+  /* The current keyword must be "class" followed by an optional identifier.
+     If it is "struct", give an error, but treat it like "class". */
+  if (curr_token != tok_class && curr_token != tok_struct) {
+    error(ec_exp_class);
+  } else {
+     if (curr_token == tok_struct) {
+       error(ec_struct_not_allowed);
+     }  /* if */
+     /* Bypass the "class" or "struct" keyword. */
+     (void)get_token();
+  }  /* if */
+  is_named = curr_token == tok_identifier;
+  /* Create a class template symbol for this template template parameter. */
+  sym = create_template_param_symbol((a_symbol_kind)sk_class_template,
+                                     &locator_for_curr_id,
+                                     !is_named);
+  /* Bypass the identifier. */
+  if (is_named) (void)get_token();
+  tssp = sym->variant.template_info;
+  templ_ptr = alloc_template();
+  set_source_corresp(&templ_ptr->source_corresp, sym);
+  templ_ptr->kind = (a_template_kind)templk_template_template_param;
+  tssp->variant.class_template.template_template_param = TRUE;
+  tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
+  tssp->variant.class_template.coordinates.depth =
+					      parent_decl_state->nesting_depth;
+  tssp->variant.class_template.coordinates.position = template_param_list_pos;
+  tssp->il_template_entry = templ_ptr;
+  set_template_cache_info(&tssp->cache,
+                          (a_token_cache_ptr)NULL,
+                          local_decl_state.decl_info);
+  /* Allocate a template parameter and set its fields based on sym. */
+  template_param = alloc_template_param(sym);
+  if (curr_token == tok_assign) {
+    a_token_cache			def_arg_cache;
+    a_template_ptr			def_arg_templ;
+    a_template_symbol_supplement_ptr	def_arg_tssp;
+    a_symbol_ptr			def_arg_templ_sym;
+    /* Scan the default value for a type argument. */
+    template_param->has_default_arg = TRUE;
+    /* Skip past the equals sign. */
+    (void)get_token();
+    /* Cache the tokens that make up the default argument expression. */
+    prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
+                             /*is_function_template=*/FALSE,
+			     /*is_friend_decl=*/FALSE,
+                             &parent_decl_state->param_list_cache);
+    rescan_copy_of_cache(&def_arg_cache);
+    def_arg_templ = scan_template_template_argument();
+    def_arg_templ_sym = (a_symbol_ptr)def_arg_templ->source_corresp.assoc_info;
+    def_arg_tssp = def_arg_templ_sym->variant.template_info;
+    /* Update the default argument information in the template parameter. */
+    if (def_arg_tssp->is_nonreal_member) {
+      /* If the template that is returned is marked as a nonreal member,
+         then the qualifier must depend on a template parameter.  This
+         means that the default needs to be rescanned for each instantiation,
+         so the default is saved as a token cache. */
+      clear_template_param_default_arg_info(
+                     template_param, /*def_arg_involves_template_param=*/TRUE);
+      set_template_cache_info(&template_param->default_arg.cache,
+                              &def_arg_cache, parent_decl_state->decl_info);
+    } else {
+      /* The default does not use template parameters.  Simply save the
+         type or constant that is the default. */
+      template_param->default_arg.templ = def_arg_templ;
+      /* Discard the default argument token cache if it is not needed for
+         later use. */
+      discard_token_cache(&def_arg_cache);
+    }  /* if */
+  }  /* if */
+  return template_param;
+}  /* scan_template_template_param */
+
+
 static
 a_template_param_ptr scan_template_param_list(a_tmpl_decl_state_ptr decl_state)
 /*
@@ -8950,13 +9563,11 @@ first parameter.  Return a pointer to the linked list that is created
 to represent the template parameters.
 */
 {
-  a_symbol_ptr         		sym;
   a_template_param_ptr 		template_param;
   a_template_param_ptr 		template_param_list = NULL;
   a_template_param_ptr 		end_of_template_param_list = NULL;
-  a_type_ptr           		template_param_type;
   a_token_cache        		param_cache;
-  a_boolean	       		parameter_cache_used = FALSE;
+  a_boolean			param_cache_used = FALSE;
   a_template_param_list_pos	template_param_list_pos = 0;
 
   db_enter(3, "scan_template_param_list");
@@ -8966,19 +9577,7 @@ to represent the template parameters.
   /* Loop through the comma-separated list of template parameter
      declarations. */
   do {
-    a_boolean      has_default_arg = FALSE;
-    a_boolean	   const_type_involves_template_param = FALSE;
-    a_boolean	   def_arg_involves_template_param = FALSE;
-    a_token_cache  def_arg_cache;
-    a_boolean	   def_arg_cache_used = FALSE;
-    a_constant_ptr default_arg_constant;
-    a_type_ptr	   default_arg_type;
-    a_token_kind   next_tok;
-    a_token_kind   second_token;
-    a_boolean	   is_type_param = FALSE;
-    a_boolean	   is_end_of_param;
-    a_token_kind   token_after_id;
-
+    a_symbol_kind  param_kind;
     /* If we've unexpectedly reached the end of the template parameter list,
        issue an error. */
     if (curr_token == tok_gt || curr_token == tok_end_of_source) {
@@ -8991,202 +9590,20 @@ to represent the template parameters.
        will be saved and rescanned to scan template argument lists. */
     prescan_template_param_decl(&param_cache, decl_state);
     add_stop_token(tok_comma);
-    /* Determine whether this is a "type-argument" (a parameter that
-       represents a type) or a "parameter-declaration" (a parameter that
-       represents a constant).  A type argument may be specified as "class T"
-       or "typename T", or if the parameter is unnamed, simply "class" or
-       "typename".  "class" and "typename" may also be used at the beginning
-       of the declaration of a nontype parameter.  The parameter is considered
-       to be a type parameter if it is "class" or "typename" followed by an
-       optional simple (i.e., nonqualified) identifier.  All other cases are
-       considered to be nontype parameters. */
-    next_tok = next_two_tokens(tok_identifier, &second_token);
-    token_after_id = next_tok == tok_identifier ? second_token : next_tok;
-    is_end_of_param = token_after_id == tok_comma ||
-                      token_after_id == tok_gt ||
-                      token_after_id == tok_assign;
-    is_type_param =  (curr_token == tok_class || curr_token == tok_typename) &&
-                     is_end_of_param;
-    if (is_type_param) {
-      a_boolean	is_unnamed = FALSE;
-      /* Bypass "class" or "typename". */
-      (void)get_token();
-      if (curr_token == tok_identifier) {
-        /* Enter a type symbol in the symbol table.  It is made (for now) to
-           point to an error type, to make everything work smoothly during
-           preliminary scanning of the body of the class. */
-        sym = enter_symbol((a_symbol_kind)sk_type, &locator_for_curr_id,
-                           decl_scope_level, /*suppress_redecl_error=*/FALSE);
-      } else {
-        sym = make_unnamed_template_param_symbol((a_symbol_kind)sk_type,
-                                                 &pos_curr_token);
-        is_unnamed = TRUE;
-      }  /* if */
-      /* Allocate a template-param type.  This type is for front-end use
-         only and will not appear in the IL passed on to the back end.  It
-         is therefore not added to any scope types list. */
-      template_param_type = alloc_type((a_type_kind)tk_template_param);
-      template_param_type->variant.template_param.extra_info->
-                                coordinates.depth = decl_state->nesting_depth;
-      template_param_type->variant.template_param.extra_info->
-                               coordinates.position = template_param_list_pos;
-      set_type_size(template_param_type);
-      set_source_corresp(&template_param_type->source_corresp, sym);
-      if (is_unnamed) {
-        /* Reset the name in the source correspondence entry.  An unnamed
-           type is represented by NULL, not "<unnamed>" as indicated by the
-           symbol header. */
-        template_param_type->source_corresp.name = NULL;
-      }  /* if */
-      /* The type symbol for the template parameter points for now to the
-         template-param type -- "for now", since it will be replaced with
-         an actual type during instantiation of the class or function. */
-      sym->variant.type.ptr = template_param_type;
-      sym->is_template_param = TRUE;
-      mark_defined(sym, &sym->decl_position);
-      /* Bypass the identifier. */
-      if (!is_unnamed) (void)get_token();
-      if (curr_token == tok_assign) {
-        /* Scan the default value for a type argument. */
-	has_default_arg = TRUE;
-	/* Skip past the equals sign. */
-        (void)get_token();
-        /* Cache the tokens that make up the default argument expression. */
-        prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
-                                 /*is_function_template=*/FALSE,
-				 /*is_friend_decl=*/FALSE,
-                                 &decl_state->param_list_cache);
-        if (microsoft_mode) {
-          /* The Microsoft compiler doesn't check default arguments until
-             an instantiation is done. */
-          def_arg_involves_template_param = TRUE;
-        } else {
-          rescan_copy_of_cache(&def_arg_cache);
-          type_name(&default_arg_type);
-          if (is_or_contains_template_param(default_arg_type)) {
-            def_arg_involves_template_param = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    } else if (curr_token != tok_template) {
-      a_type_ptr	param_type_ptr;
-      a_symbol_locator	param_locator;
-      a_constant_ptr	param_con;
-      a_boolean		is_unnamed;
-      /* Not a type-argument, so treat it as an arg-declaration.  If this
-         template declaration happens to be of a function rather than a class,
-         arg-declarations are not allowed.  That will be detected later. */
-      scan_a_template_parameter_declaration(&param_locator, &param_type_ptr,
-                                            &is_unnamed);
-      /* Create a symbol and bind a template param constant to it. At each
-         point of instantiation an actual constant will be substituted. */
-      if (!is_unnamed) {
-        sym = enter_symbol((a_symbol_kind)sk_constant, &param_locator,
-                           decl_scope_level, /*suppress_redecl_error=*/FALSE);
-      } else {
-        sym = make_unnamed_template_param_symbol((a_symbol_kind)sk_constant,
-                                                 &pos_curr_token);
-      }  /* if */
-      sym->variant.constant = param_con =
-                         fs_constant((a_constant_repr_kind)ck_template_param);
-      param_con->type = param_type_ptr;
-      set_template_param_constant_kind(param_con,
-                                   (a_template_param_constant_kind)tpck_param);
-      param_con->variant.template_param.
-                        variant.coordinates.depth = decl_state->nesting_depth;
-      param_con->variant.template_param.
-                        variant.coordinates.position = template_param_list_pos;
-      set_source_corresp(&param_con->source_corresp, sym);
-      if (is_unnamed) {
-        /* Reset the name in the source correspondence entry.  An unnamed
-           type is represented by NULL, not "<unnamed>" as indicated by the
-           symbol header. */
-        param_con->source_corresp.name = NULL;
-      }  /* if */
-      const_type_involves_template_param = 
-				is_or_contains_template_param(param_type_ptr);
-      sym->is_template_param = TRUE;
-      mark_defined(sym, &sym->decl_position);
-      if (curr_token == tok_assign) {
-        /* Scan the default value. */
-	has_default_arg = TRUE;
-	/* Skip past the equals sign. */
-        (void)get_token();
-        /* Cache the tokens that make up the default argument expression. */
-        prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
-                                 /*is_function_template=*/FALSE,
-				 /*is_friend_decl=*/FALSE,
-				 &decl_state->param_list_cache);
-        if (const_type_involves_template_param) {
-	  /* The type of the constant parameter involves a template parameter
-	     type so we can't scan the expression now.  When the type of the
-	     constant involves a template parameter we have to save the
-	     constant as a token cache, so we also set the flag that indicates
-	     that the default argument contains a template parameter. */
-          def_arg_involves_template_param = TRUE;
-        } else {
-	  /* The type doesn't involve a template parameter type.  Scan the
-	     default argument expression.  Rescan a copy of the cache.
-             This is done so that when the default argument is scanned, the
-             last token of the cache is followed by the token that followed
-             it in the original source program with no intervening
-             tok_end_of_source. */
-          rescan_copy_of_cache(&def_arg_cache);
-          default_arg_constant = fs_constant((a_constant_repr_kind)ck_error);
-          scan_template_argument_constant_expression(param_type_ptr,
-						     default_arg_constant);
-          def_arg_involves_template_param = default_arg_constant->kind ==
-                                      (a_constant_repr_kind)ck_template_param;
-        }  /* if */
-      }  /* if */
+    /* Determine the kind of template parameter to be scanned. */
+    param_kind = determine_template_param_kind();
+    if (param_kind == (a_symbol_kind)sk_type) {
+      /* A type template parameter. */
+      template_param = scan_type_template_param(decl_state,
+                                                template_param_list_pos);
+    } else if (param_kind == (a_symbol_kind)sk_constant) {
+      template_param = scan_nontype_template_param(
+                             decl_state, template_param_list_pos, &param_cache,
+                             &param_cache_used);
     } else {
-      /* Error case ("template ..."). */
-      syntax_error(ec_template_not_allowed);
-      set_to_error_locator(locator_for_curr_id);
-      locator_for_curr_id.source_position = pos_curr_token;
-      set_err_pos_to_curr_token();
-      /* Enter a dummy param type. */
-      sym = enter_symbol((a_symbol_kind)sk_type, &locator_for_curr_id,
-                         decl_scope_level, /*suppress_redecl_error=*/FALSE);
-      /* Allocate a template parameter type that this type can point to.
-         Because it has no coordinates it can't match any other template
-         parameter.  An error type cannot be used because the code that
-         uses the parameter list does not expect error types. */
-      sym->variant.type.ptr = alloc_type((a_type_kind)tk_template_param);
-      set_type_size(sym->variant.type.ptr);
-    }  /* if */
-    /* Allocate a template parameter and set its fields based on sym. */
-    template_param = alloc_template_param(sym,
-                                          def_arg_involves_template_param);
-    if (const_type_involves_template_param) {
-      /* For nontype parameters, the type of the parameter needs
-         to be saved as a token cache if the type uses template
-         parameters. */
-      template_param->variant.constant.type_involves_template_param = TRUE;
-      set_template_cache_info(&template_param->cache, &param_cache,
-                              decl_state->decl_info);
-      parameter_cache_used = TRUE;
-    }  /* if */
-    if (has_default_arg) {
-      template_param->has_default_arg = TRUE;
-      /* Update the default argument information in the template parameter. */
-      if (def_arg_involves_template_param) {
-        /* The default argument involves a template parameter.  This means that
-	   the default needs to be rescanned for each instantiation, so the
-           default is saved as a token cache. */
-        template_param->def_arg_involves_template_param = TRUE;
-        set_template_cache_info(&template_param->default_arg.cache,
-                                &def_arg_cache, decl_state->decl_info);
-        def_arg_cache_used = TRUE;
-      } else {
-        /* The default does not use template parameters.  Simply save the
-           type or constant that is the default. */
-        if (sym->kind == (a_symbol_kind)sk_constant) {
-          template_param->default_arg.constant = default_arg_constant;
-        } else {
-          template_param->default_arg.type = default_arg_type;
-        }  /* if */
-      }  /* if */
+      /* A template template parameter. */
+      template_param = scan_template_template_param(decl_state,
+                                                    template_param_list_pos);
     }  /* if */
     /* Add the template param to the end of the list. */
     if (template_param_list == NULL) {
@@ -9195,12 +9612,7 @@ to represent the template parameters.
       end_of_template_param_list->next = template_param;
     }  /* if */
     /* Discard the parameter token cache if it is not needed for later use. */
-    if (!parameter_cache_used) discard_token_cache(&param_cache);
-    if (has_default_arg && !def_arg_cache_used) {
-      /* Discard the default argument token cache if it is not needed for
-         later use. */
-      discard_token_cache(&def_arg_cache);
-    }  /* if */
+    if (!param_cache_used) discard_token_cache(&param_cache);
     end_of_template_param_list = template_param;
     /* Make sure we are at the end of a template parameter. */
     if (curr_token != tok_comma && curr_token != tok_gt) {
@@ -9367,6 +9779,60 @@ existing type is simply used.
   }  /* if */
   return tp;
 }  /* rescan_template_type_default_arg */
+
+
+a_template_ptr rescan_template_template_default_arg
+                                     (a_symbol_ptr	   template_sym,
+			              a_template_param_ptr param_ptr,
+				      a_template_arg_ptr   arg_list)
+/*
+Rescan the tokens of a template template parameter default argument using
+the current values of any previous parameters so that the default argument
+is processed with the types with which the class is to be instantiated.
+This is used to get the correct template for template template default
+arguments that depend on other template parameters.  If the default depends
+on a template parameter then the cache is rescanned, otherwise, the
+existing type is simply used. 
+*/
+{
+  a_source_position  			saved_pos_curr_token;
+  a_source_position  			saved_error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position           saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_template_ptr			templ;
+
+  if (param_ptr->def_arg_involves_template_param) {
+    /* Push the template instantiation scope.  Note that the instance symbol
+       passed to push_scope is NULL because we don't yet know which instance
+       is being instantiated.  Also note that a class type is not being
+       passed for the same reason. */
+    a_template_cache_ptr	tcp = &param_ptr->default_arg.cache;
+    push_template_instantiation_scope(tcp->decl_info,
+                                      (a_type_ptr)NULL,
+				      (a_routine_ptr)NULL,
+				      (a_symbol_ptr)NULL,
+				      template_sym, arg_list,
+                                      /*push_stop_tokens=*/TRUE);
+    saved_pos_curr_token = pos_curr_token;
+    saved_error_position = error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    saved_curr_construct_end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    rescan_reusable_cache(&tcp->tokens);
+    templ = delayed_scan_of_template_default_template_arg();
+    error_position = saved_error_position;
+    pos_curr_token = saved_pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* Pop the template instantiation scope. */
+    pop_template_instantiation_scope();
+  } else {
+    templ = param_ptr->default_arg.templ;
+  }  /* if */
+  return templ;
+}  /* rescan_template_template_default_arg */
 
 
 static a_boolean template_param_appears_in_param_list
@@ -9556,8 +10022,6 @@ set, and its source sequence entry, if any, has been put out.)
           err = TRUE;
       }  /* switch */
       if (!err) {
-	/* Give it a name, etc. */
-	set_source_corresp(&il_template_entry->source_corresp, sym);
         /* Set parent information in the IL entry. */
         if (sym->is_class_member) {
           if (!(symbol_supplement_for_class(sym->parent.class_type))->
@@ -10424,8 +10888,12 @@ instantiation, then you don't know what X is.
 }  /* prescan_nonclass_template_declaration */
 
 
-static void scan_template_param_clauses(a_tmpl_decl_state_ptr	decl_state)
+static void scan_template_param_clauses(
+				a_tmpl_decl_state_ptr	decl_state,
+				a_boolean		is_template_param)
 /*
+Note that this routine has a forward declaration.
+
 Scan one or more template parameter lists of the form:
 
 	template < param-list    >
@@ -10434,6 +10902,9 @@ Scan one or more template parameter lists of the form:
 The parameter list can be empty for a specialization declaration.  Once
 a non-empty parameter list has been specified, all subsequent parameter
 lists must by non-empty.
+
+This is used to scan the initial portion of template declarations and
+also for template template parameters (when is_template_param is TRUE).
 */
 {
   a_template_decl_info_ptr	    prev_template_decl_info = NULL;
@@ -10444,7 +10915,9 @@ lists must by non-empty.
      this routine is not called for explicit instantiations, in which
      the template keyword is not followed by a parameter clause. */
   while (curr_token == tok_template) {
-    decl_state->nesting_depth++;
+    /* The template parameter lists of template template parameters do not
+       have nesting depths. */
+    if (!is_template_param) decl_state->nesting_depth++;
     decl_state->number_of_template_param_clauses++;
     /* Bypass "template".  The next token should be "<".  This is done
        before the scope is pushed so that any pragma associated with the
@@ -10480,6 +10953,12 @@ lists must by non-empty.
         /* Record that a template parameter list has been seen.  A
            subsequent missing parameter list is an error. */
         param_list_seen = TRUE;
+      } else if (is_template_param) {
+        /* A template parameter declaration with a missing template
+           parameter list. */
+        error(ec_empty_template_param_list);
+        /* Bypass the ">". */
+        (void)get_token();
       } else {
         /* A specialization declaration.  If a previous "template < >" clause
            contained a template parameter list, all subsequent parameter
@@ -10497,7 +10976,8 @@ lists must by non-empty.
     }  /* if */
   }  /* while */
   decl_state->decl_info = template_decl_info;
-  if (decl_state->is_member_decl && !decl_state->is_template_friend &&
+  if ((is_template_param ||
+       (decl_state->is_member_decl && !decl_state->is_template_friend)) &&
       decl_state->number_of_template_param_clauses > 1) {
     /* A declaration with more than one template parameter clause is only
        valid in a namespace scope definition of a member template or in
@@ -10724,6 +11204,14 @@ any non-empty template parameter lists that were scanned.
       free_pending_pragma_list(decl_state->pragmas_bound_to_template);
     }  /* if */
   }
+  /* If this is a template definition or the initial declaration, update
+     the template symbol supplement to point to the IL entry . */
+  if (tssp != NULL &&
+      (decl_state->defines_something || tssp->il_template_entry == NULL)) {
+    tssp->il_template_entry = decl_state->il_template_entry;
+    check_assertion(sym != NULL);
+    set_source_corresp(&tssp->il_template_entry->source_corresp, sym);
+  }  /* if */
   if (is_class_template) {
     if (!decl_state->decl_scope_err && decl_state->defines_something) {
       a_type_ptr	prototype_type;
@@ -10759,12 +11247,6 @@ any non-empty template parameter lists that were scanned.
                                                 /*keep_default_args=*/TRUE);
   } /* if */
   complete_il_template_entry(decl_state, sym, p_template_body_cache);
-  /* If this is a template definition or the initial declaration, update
-     the template symbol supplement to point to the IL entry . */
-  if (tssp != NULL &&
-      (decl_state->defines_something || tssp->il_template_entry == NULL)) {
-    tssp->il_template_entry = decl_state->il_template_entry;
-  }  /* if */
   if (class_templ_cache_segments != NULL) {
     /* Remove any default arguments that may remain in the cache. */
     (void)extract_member_bodies(&tssp->cache, class_templ_cache_segments,
@@ -11598,7 +12080,7 @@ are either the specialization of a template or a template declaration.
      list looks like "template < param-list >".  The param-list is
      optional (but once a parameter list has been specified, all subsequent
      param-lists must be present). */
-  scan_template_param_clauses(&decl_state);
+  scan_template_param_clauses(&decl_state, /*is_template_param=*/FALSE);
   if (decl_state.is_specialization) {
     /* A specialization declaration is only permitted in a namespace scope. */
     a_scope_stack_entry_ptr ssep = scope_stack_entry_for(orig_depth);

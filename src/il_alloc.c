@@ -369,7 +369,7 @@ ck_template_param constant.
   switch (kind) {
     case tpck_param:
       cp->variant.template_param.variant.coordinates.position = 0;
-      cp->variant.template_param.variant.coordinates.depth = 0;
+      cp->variant.template_param.variant.coordinates.depth = NO_NESTING_DEPTH;
       break;
     case tpck_expression:
       cp->variant.template_param.variant.expr = NULL;
@@ -1055,7 +1055,7 @@ to default values.
         tptsp = alloc_template_param_type_supplement();
         pte->variant.template_param.extra_info = tptsp;
         tptsp->coordinates.position = 0;
-        tptsp->coordinates.depth = 0;
+        tptsp->coordinates.depth = NO_NESTING_DEPTH;
       }
       break;
 #if CHECKING

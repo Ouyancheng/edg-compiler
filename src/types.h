@@ -590,6 +590,9 @@ extern void set_type_involves_deduced_template_param(a_type_ptr  rout_type);
 extern a_boolean is_or_contains_specific_template_param
 						(a_type_ptr  type_ptr,
 						 a_type_ptr  tparam_type);
+extern a_boolean type_contains_specific_template_template_param(
+					a_type_ptr	type_ptr,
+					a_template_ptr	tparam_template);
 extern a_boolean type_contains_specific_template_param_constant(
                                                          a_type_ptr     tp,
                                                          a_constant_ptr cp);

@@ -829,9 +829,9 @@ values needed for the previous call.
         param_symbol->variant.type.ptr = tap->variant.type;
       } else if (is_template_templ_arg(tap)) {
         /* A template template argument. */
-        /* FIXME - template template arguments. */
-        unexpected_condition_str2("update_template_param_symbols:",
-                                  "template template arg not impl");
+        a_template_symbol_supplement_ptr	tssp;
+        tssp = template_supplement_for_template(tap->variant.templ);
+        param_symbol->variant.template_info = tssp;
       } else {
         param_symbol->variant.constant = tap->variant.constant;
       }  /* if */
@@ -863,8 +863,10 @@ declaration is scanned and are used as placeholders between instantiations.
     register a_symbol_ptr  param_symbol = tpp->param_symbol;
     if (param_symbol->kind == (a_symbol_kind)sk_type) {
       param_symbol->variant.type.ptr = tpp->variant.type;
-    } else {
+    } else if (param_symbol->kind == (a_symbol_kind)sk_constant) {
       param_symbol->variant.constant = tpp->variant.constant.ptr;
+    } else {
+      param_symbol->variant.template_info = tpp->variant.templ;
     }  /* if */
     param_symbol->template_param_not_visible = FALSE;
     tpp = tpp->next;

@@ -267,16 +267,12 @@ may be spread between several declarations).
 }  /* delayed_scan_of_default_arg_expr */
 
 
-void delayed_scan_of_template_default_arg_expr(a_type_ptr	type,
-					       a_constant_ptr   constant)
+static void check_for_valid_end_of_template_def_arg(void)
 /*
-Do the delayed scan of the default argument expression for a template
-parameter.  The cache has just been reactivated, so curr_token should
-represent the first token in the cache.
+We have just scanned the default for a template argument.  We
+should now be at the tok_end_of_source that terminates the cache.
 */
 {
-  db_enter(3, "delayed_scan_of_template_default_arg_expr");
-  scan_template_argument_constant_expression(type, constant);
   /* In the normal case the current token should be end_of_source,
      which was inserted to mark the end of the cached token
      stream. */
@@ -288,6 +284,20 @@ represent the first token in the cache.
   /* Advance past the end-of-source token, which was added in
      the prescan routine. */
   (void)get_token();
+}  /* check_for_valid_end_of_template_def_arg */
+
+
+void delayed_scan_of_template_default_arg_expr(a_type_ptr	type,
+					       a_constant_ptr   constant)
+/*
+Do the delayed scan of the default argument expression for a template
+parameter.  The cache has just been reactivated, so curr_token should
+represent the first token in the cache.
+*/
+{
+  db_enter(3, "delayed_scan_of_template_default_arg_expr");
+  scan_template_argument_constant_expression(type, constant);
+  check_for_valid_end_of_template_def_arg();
   db_exit();
 }  /* delayed_scan_of_template_default_arg_expr */
 
@@ -304,20 +314,28 @@ that was scanned.
 
   db_enter(3, "delayed_scan_of_template_default_type_arg");
   type_name(&tp);
-  /* In the normal case the current token should be end_of_source,
-     which was inserted to mark the end of the cached token
-     stream. */
-  if (curr_token != tok_end_of_source) {
-    pos_error(ec_exp_comma, &pos_curr_token);
-    /* If necessary, keep flushing until end-of-source is found. */
-    while (curr_token != tok_end_of_source) (void)get_token();
-  }  /* if */
-  /* Advance past the end-of-source token, which was added in
-     the prescan routine. */
-  (void)get_token();
+  check_for_valid_end_of_template_def_arg();
   db_exit();
   return tp;
 }  /* delayed_scan_of_template_default_type_arg */
+
+
+a_template_ptr delayed_scan_of_template_default_template_arg(void)
+/*
+Do the delayed scan of the default argument expression for a template
+template parameter.  The cache has just been reactivated, so curr_token should
+represent the first token in the cache.  Return a pointer to the template
+that was scanned.
+*/
+{
+  a_template_ptr	templ;
+
+  db_enter(3, "delayed_scan_of_template_default_template_arg");
+  templ = scan_template_template_argument();
+  check_for_valid_end_of_template_def_arg();
+  db_exit();
+  return templ;
+}  /* delayed_scan_of_template_default_template_arg */
 
 
 void def_arg_one_time_init(void)

@@ -2424,8 +2424,8 @@ for more information.
                 tptsp_2 = type_2->variant.template_param.extra_info;
                 identical = (tptsp_1->coordinates.position ==
                              tptsp_2->coordinates.position) &&
-                            (tptsp_1->coordinates.depth ==
-                             tptsp_2->coordinates.depth);
+                            equiv_nesting_depths(tptsp_1->coordinates.depth,
+                                                 tptsp_2->coordinates.depth);
                 break;
               case tptk_member:
                 /* Members types are the same if their names are the same
@@ -5574,6 +5574,12 @@ static a_boolean
 		deduced_contexts_only;
 
 
+/* A pointer to the specific template template parameter to be found by
+   ttt_contains_specific_template_template_param. */
+static a_template_ptr
+		specific_template_template_param;
+
+
 static a_boolean ttt_contains_template_param_constant(
                                        a_type_ptr  type_ptr,
                                        a_boolean   *force_end_of_traversal)
@@ -5645,6 +5651,41 @@ based on the specified template parameter constant.
 }  /* ttt_contains_template_param_constant */
 
 
+static a_boolean ttt_contains_template_template_param(
+                                       a_type_ptr  type_ptr,
+                                       a_boolean   *force_end_of_traversal)
+/*
+Return TRUE if the type specified by type_ptr is a template class type
+with a template argument that is a template template parameter.
+*/
+{
+  a_boolean	found = FALSE;
+
+  if (is_class_struct_union(type_ptr)) {
+    /* Check for template template arguments of a template class. */
+    a_template_arg_ptr  tap;
+    for (tap = type_ptr->variant.class_struct_union.extra_info->
+                                                         template_arg_list;
+         tap != NULL;
+         tap = tap->next) {
+      if (is_template_templ_arg(tap)) {
+        a_symbol_ptr	templ_sym;
+        templ_sym = (a_symbol_ptr)tap->variant.templ->
+                                                     source_corresp.assoc_info;
+        /* Determine whether the template pointed to is a template template
+           parameter. */
+        if (templ_sym->variant.template_info->
+                              variant.class_template.template_template_param) {
+          *force_end_of_traversal = found = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return found;
+}  /* ttt_contains_template_template_param */
+
+
 static a_boolean ttt_is_or_contains_template_param(
                                        a_type_ptr  type_ptr,
                                        a_boolean   *force_end_of_traversal)
@@ -5663,15 +5704,77 @@ it returns TRUE if type_ptr is the specified template parameter type.
         identical_types(type_ptr, specific_template_param_type)) {
       *force_end_of_traversal = found = TRUE;
     }  /* if */
-  } else if (specific_template_param_type == NULL) {
-    /* We are not looking for a specific template param type, so any
-       template constant (e.g., appearing as an array bound) will also
-       serve. */
-    found = ttt_contains_template_param_constant(type_ptr,
-                                                 force_end_of_traversal);
+  } else {
+    if (specific_template_param_type == NULL) {
+      /* We are not looking for a specific template param type, so any
+         template constant (e.g., appearing as an array bound) will also
+         serve. */
+      found = ttt_contains_template_param_constant(type_ptr,
+                                                   force_end_of_traversal);
+      if (!found) {
+        /* Check for a template template parameter used as a template
+           argument. */
+        found = ttt_contains_template_template_param(type_ptr, 
+                                                     force_end_of_traversal);
+      }  /* if */
+    } else {
+      /* We are not looking for a specific type parameter.  Check whether
+         this is a class type that is based on a template template
+         parameter. */
+      a_symbol_ptr	template_sym;
+      template_sym = class_template_for_type(type_ptr);
+      if (template_sym != NULL) {
+        if (template_sym->variant.template_info->
+                              variant.class_template.template_template_param) {
+          *force_end_of_traversal = found = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
   return found;
 }  /* ttt_is_or_contains_template_param */
+
+
+static a_boolean ttt_contains_specific_template_template_param(
+                                       a_type_ptr  type_ptr,
+                                       a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It returns TRUE if the type specified by
+type_ptr is an instance of the template template parameter specified
+by specific_template_template_param.
+*/
+{
+  a_boolean	found = FALSE;
+  a_symbol_ptr	template_sym;
+
+  template_sym = class_template_for_type(type_ptr);
+  if (template_sym != NULL) {
+    a_template_ptr	templ_ptr;
+    templ_ptr = template_sym->variant.template_info->il_template_entry;
+    if (templ_ptr == specific_template_template_param) {
+      *force_end_of_traversal = found = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!found) {
+    if (is_class_struct_union(type_ptr)) {
+      /* Check for template template arguments of a template class. */
+      a_template_arg_ptr  tap;
+      for (tap = type_ptr->variant.class_struct_union.extra_info->
+                                                         template_arg_list;
+           tap != NULL;
+           tap = tap->next) {
+        if (is_template_templ_arg(tap)) {
+          if (tap->variant.templ == specific_template_template_param) {
+            *force_end_of_traversal = found = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return found;
+}  /* ttt_contains_specific_template_template_param */
 
 
 static a_boolean ttt_is_or_contains_deduced_template_param(
@@ -5699,6 +5802,12 @@ from which a template parameter value can be deduced.
        serve. */
     found = ttt_contains_template_param_constant(type_ptr,
                                                  force_end_of_traversal);
+    if (!found) {
+      /* Check for a template template parameter used as a template
+         argument. */
+      found = ttt_contains_template_template_param(type_ptr, 
+                                                   force_end_of_traversal);
+    }  /* if */
   }  /* if */
   return found;
 }  /* ttt_is_or_contains_deduced_template_param */
@@ -6072,9 +6181,18 @@ its parameters?).
                   break;
                 }  /* if */
               } else if (is_template_templ_arg(tap)) {
-                /* FIXME - template template arguments. */
-                unexpected_condition_str2("traverse_type_tree:",
-                                          "template template arg not impl");
+                /* Template template arguments are not themselves processed,
+                   but their parent type may be. */
+                a_template_ptr	templ_ptr = tap->variant.templ;
+                if ((!(flags & TTT_DEDUCED_CONTEXTS_ONLY) ||
+                     nonstandard_qualifier_deduction) &&
+                    !status && templ_ptr->source_corresp.is_class_member) {
+                  /* Check the parent class.  This is only done when
+                     considering nondeduced contexts, or when this is a
+                     deduced context when nonstandard deduction is enabled. */
+                  tp = templ_ptr->source_corresp.parent.class_type;
+                  status = traverse_type_tree(tp, func, flags);
+                }  /* if */      
               } else if (!tap->is_array_bound_of_unknown_type &&
                          !tap->constant_is_an_arg_operand) {
                 /* Nontype template argument.  Check the type of the
@@ -6306,6 +6424,26 @@ containing such a reference to the type.
   return (traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
           ttt_flags));
 }  /* is_or_contains_specific_template_param */
+
+
+a_boolean type_contains_specific_template_template_param(
+					a_type_ptr	type_ptr,
+					a_template_ptr	tparam_template)
+/*
+Return TRUE if the type tree pointed to by type_ptr contains a type
+that is an instance of the template template parameter specified
+by tparam_template.
+*/
+{
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_PARAM_TYPES |
+                                               TTT_TEMPLATE_ARGS);
+
+  specific_template_template_param = tparam_template;
+  return (traverse_type_tree(type_ptr,
+          ttt_contains_specific_template_template_param,
+          ttt_flags));
+}  /* type_contains_specific_template_template_param */
 
 
 a_boolean type_contains_specific_template_param_constant(a_type_ptr     tp,

@@ -1146,10 +1146,16 @@ typedef struct a_template_param {
 			   type tree) a tk_template_param type entry. */
       bitfield_to_avoid_codecenter_warnings()
     } constant;
+    /* When param_symbol->kind = sk_class_template. */
+    a_template_symbol_supplement_ptr
+		templ;
+			/* Template entry for a formal parameter.  A unique
+			   template entry is created for each template
+			   template parameter. */
   } variant;
   union {
     /* When param_symbol->kind = sk_constant and
-       def_arg_involves_template_param are FALSE. */
+       def_arg_involves_template_param is FALSE. */
     a_constant_ptr
 		constant;
 			/* Constant containing the default value
@@ -1157,10 +1163,19 @@ typedef struct a_template_param {
 		           instantiation when the actual argument
 			   corresponding to this parameter is omitted. */
     /* When param_symbol->kind = sk_type and def_arg_involves_template_param
-       is TRUE. */
+       is FALSE. */
     a_type_ptr
 		type;
 			/* Type containing the default value to be used
+			   as the actual argument of an instantiation when
+			   the actual argument corresponding to this parameter
+			   is omitted. */
+    /* When param_symbol->kind = sk_constant and
+       def_arg_involves_template_param
+       is FALSE. */
+    a_template_ptr
+		templ;
+			/* Template that is the default value to be used
 			   as the actual argument of an instantiation when
 			   the actual argument corresponding to this parameter
 			   is omitted. */
@@ -1514,6 +1529,11 @@ typedef struct a_template_symbol_supplement {
 		friend_info;
 			/* Information about default arguments of friend
 			   templates declared in this class template. */
+      a_template_param_coordinate
+			coordinates;
+			/* For a class template associated with a template
+			   template parameter, provides the list position and
+			   nesting depth of the parameter. */
       a_bit_field
 		prototype_instantiation_complete:1;
 			/* TRUE when the prototype instantiation of the
@@ -1538,6 +1558,10 @@ typedef struct a_template_symbol_supplement {
 		access:2;
 			/* If the template is a member of a class, this
                            specifies the access for the member. */
+      a_bit_field
+		template_template_param:1;
+			/* TRUE if this is a class template symbol associated
+			   with a template template parameter. */
       bitfield_to_avoid_codecenter_warnings()
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       a_source_sequence_entry_ptr
@@ -2564,6 +2588,11 @@ a_symbol_ptr make_template_function_symbol(a_symbol_ptr       templ_sym,
                                            a_source_position  *pos,
                                            a_type_ptr         rout_type);
 
+extern a_symbol_ptr error_class_template(void);
+
+extern a_template_symbol_supplement_ptr template_supplement_for_template(
+						a_template_ptr	templ_ptr);
+
 extern a_symbol_ptr get_member_function_template_symbol(a_symbol_ptr rout_sym);
 
 extern a_symbol_ptr make_unnamed_tag_symbol(a_symbol_kind      sym_kind,
@@ -3020,10 +3049,11 @@ extern a_namespace_list_entry_ptr alloc_namespace_list_entry(void);
 extern
 void free_list_of_namespace_list_entries(a_namespace_list_entry_ptr nlep);
 
-extern
-a_template_param_ptr alloc_template_param
-                                (a_symbol_ptr sym,
-                                 a_boolean    def_arg_involves_template_param);
+extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
+
+extern void clear_template_param_default_arg_info(
+		a_template_param_ptr	ptr,
+		a_boolean		def_arg_involves_template_param);
 
 extern a_template_instance_ptr alloc_template_instance(void);
 extern void free_param_id_list(a_param_id_ptr *pidlist);
@@ -3383,6 +3413,14 @@ supplement.
 #define next_instance_sym(sym)						\
   ((sym)->variant.class_struct_union.extra_info->next_in_instantiations_list)
 
+/*
+Given a symbol kind (associated with a template parameter) return the
+template argument kind to be used.
+*/
+#define templ_arg_kind_for_symbol_kind(sym_kind)			\
+  ((a_templ_arg_kind)((sym_kind) == (a_symbol_kind)sk_type ? tak_type :	\
+   ((sym_kind) == (a_symbol_kind)sk_constant ? tak_nontype : tak_template)))
+
 void form_optionally_qualified_symbol_name(
 		a_symbol_ptr				sym,
 		an_il_to_str_output_control_block_ptr	octl,
@@ -3415,6 +3453,17 @@ EXTERN unsigned long
 		num_slow_id_lookups,
 		num_active_using_directives_allocated;
 #endif /* DEBUG */
+
+extern a_symbol_ptr f_class_template_for_type(a_type_ptr	type);
+
+/*
+Interface to f_class_template_for_type that handles all of the
+cases that are not template classes.
+*/
+#define class_template_for_type(type)					\
+  ((is_immediate_class_type(type) &&					\
+   (type)->variant.class_struct_union.is_template_class) ?		\
+   f_class_template_for_type(type) : (a_symbol_ptr)NULL)
 
 extern a_symbol_ptr class_template_for_injected_template_symbol(
 							a_symbol_ptr sym);
