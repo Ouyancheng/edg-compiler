@@ -298,7 +298,7 @@ extern a_type_ptr signed_integer_type(an_integer_kind kind);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_type_ptr microsoft_sized_integer_type(an_integer_kind kind);
 
-extern a_type_ptr microsoft_signed_sized_integer_type(an_integer_kind kind);
+extern a_type_ptr microsoft_sized_signed_integer_type(an_integer_kind kind);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_type_ptr wchar_t_type(void);
