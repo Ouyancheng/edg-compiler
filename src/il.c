@@ -8876,7 +8876,7 @@ others.  Note: this is not a general purpose routine but is rather part of
 the processing that prunes the IL based on settings of the keep_in_il and
 keep_definition_in_il flags.  Among other things, it assumes the list to
 which the entries belong is the file-scope source sequence list.  It also
-may do fix up on entities pointed to by source-sequence entries it removes.
+may do fixup on entities pointed to by source-sequence entries it removes.
 */
 {
   a_type_ptr                   type_ptr = (a_type_ptr)ssep->entity.ptr;
@@ -8940,46 +8940,60 @@ may do fix up on entities pointed to by source-sequence entries it removes.
          enums in the sense that C++ does. */
       if (il_entry_prefix_of(ssep).keep_in_il) {
         /* A struct or enum definition that should be retained in the IL. */
-        a_type_ptr  tp = ss_entry_ptr(ssep, a_type_ptr);
-        check_assertion_str2(ss_entry_kind(ssep) ==
-                                             (an_il_entry_kind)iek_type &&
-                             (is_immediate_class_type(tp) ||
-                              is_immediate_enum_type(tp)),
-                             "drop_tag_def_from_src_seq_list:",
-                             "bad entity kind");
-        /* Link around the entries that have been seen thus far, skip the
-           entries entailed by the struct or enum definition that should be
-           retained, and then resume the processing in the outer loop. */
-        *prev_link_addr = ssep;
-        ssep->prev = prev_ssep;
-        ssep = ssep->next;
-        for (;;) {
-          if (!il_entry_prefix_of(ssep).keep_in_il) {
-            /* An unneeded struct/enum definition embedded within the needed
-               one.  Remove it.  Note that ssep will, upon return from
-               the recursive call, point to the entry immediately following
-               the end-of-construct of the definition being removed. */
-            ssep = drop_tag_def_from_src_seq_list(ssep,
-                                                  /*retain_first=*/FALSE);
-            /* Reset the prev-link state. */
-            prev_ssep = ssep->prev;
-            prev_link_addr = &ssep->prev->next;
-          } else if (ss_entry_kind(ssep) ==
-                         (an_il_entry_kind)iek_src_seq_end_of_construct &&
-                     ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr)->
-                                                entity.ptr == (char *)tp) {
-            /* We've located the end-of-construct entry for the struct/enum
-               definition.  Reset the prev-link state and break out of the
-               loop. */
-            prev_ssep = ssep;
-            prev_link_addr = &ssep->next;
-            tp->autonomous_primary_tag_decl = TRUE;
-            break;
-          } else {
-            /* Keep going. */
-            ssep = ssep->next;
-          }  /* if */
-        }  /* for */
+        a_type_ptr  tp;
+
+        if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_type) {
+          a_type_ptr tp = ss_entry_ptr(ssep, a_type_ptr);
+          check_assertion_str(is_immediate_class_type(tp) ||
+                              is_immediate_enum_type(tp),
+                              "drop_tag_def_from_src_seq_list: bad type kind");
+          /* Link around the entries that have been seen thus far, skip the
+             entries entailed by the struct or enum definition that should be
+             retained, and then resume the processing in the outer loop. */
+          *prev_link_addr = ssep;
+          ssep->prev = prev_ssep;
+          ssep = ssep->next;
+          for (;;) {
+            if (!il_entry_prefix_of(ssep).keep_in_il) {
+              /* An unneeded struct/enum definition embedded within the needed
+                 one.  Remove it.  Note that ssep will, upon return from
+                 the recursive call, point to the entry immediately following
+                 the end-of-construct of the definition being removed. */
+              ssep = drop_tag_def_from_src_seq_list(ssep,
+                                                    /*retain_first=*/FALSE);
+              /* Reset the prev-link state. */
+              prev_ssep = ssep->prev;
+              prev_link_addr = &ssep->prev->next;
+            } else if (ss_entry_kind(ssep) ==
+                           (an_il_entry_kind)iek_src_seq_end_of_construct &&
+                       ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr)->
+                                                  entity.ptr == (char *)tp) {
+              /* We've located the end-of-construct entry for the struct/enum
+                 definition.  Reset the prev-link state and break out of the
+                 loop. */
+              prev_ssep = ssep;
+              prev_link_addr = &ssep->next;
+              tp->autonomous_primary_tag_decl = TRUE;
+              break;
+            } else {
+              /* Keep going. */
+              ssep = ssep->next;
+            }  /* if */
+          }  /* for */
+#if CHECKING
+        } else {
+          /* A secondary-decl source sequence entry, even if it is marked
+             to be kept in the IL, need not be kept here, since its
+             context is being elminated. */
+          check_assertion_str2(ss_entry_kind(ssep) ==
+                                 (an_il_entry_kind)iek_src_seq_secondary_decl,
+                               "drop_tag_def_from_src_seq_list:",
+                               "bad entity kind");
+          sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+          check_assertion(sssdp->entity.kind ==
+                                          (a_byte_il_entry_kind)iek_type);
+#endif /* CHECKING */
+        }  /* if */
       }  /* if */
     } else {
       /* C++ mode.  If this represents a friend function declaration, reset
