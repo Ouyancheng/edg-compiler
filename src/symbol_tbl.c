@@ -1368,6 +1368,7 @@ and return a pointer to it.
   tssp->declaration_scope = NO_SCOPE_NUMBER;
   tssp->pending_instantiations = 0;
   tssp->pragmas_bound_to_template = NULL;
+  tssp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   clear_token_cache(&tssp->token_cache, /*reusable=*/TRUE);
   switch (kind) {
     case sk_class_template:

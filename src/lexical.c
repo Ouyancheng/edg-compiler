@@ -486,6 +486,7 @@ for pp-tokens.
   /* Build an entry for the current token itself. */
   alloc_cached_token(ctp);
   ctp->token = (a_byte_token_kind)curr_token;
+  ctp->token_sequence_number = curr_token_sequence_number;
   if (curr_token == tok_identifier || curr_token == tok_ptr_to_member) {
     /* Identifier -- save information about it. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_identifier;
@@ -845,6 +846,7 @@ an equivalent change.
   ctoken = (a_token_kind)ctp->token;
   pos_curr_token = ctp->source_position;
   error_position = pos_curr_token;
+  curr_token_sequence_number = ctp->token_sequence_number;
   start_of_curr_token = end_of_curr_token = NULL;
   len_of_curr_token = 0;
   if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_identifier) {
@@ -895,6 +897,7 @@ an equivalent change.
   ctoken = (a_token_kind)ctp->token;
   pos_curr_token = ctp->source_position;
   error_position = pos_curr_token;
+  curr_token_sequence_number = ctp->token_sequence_number;
   start_of_curr_token = end_of_curr_token = NULL;
   len_of_curr_token = 0;
   if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_identifier) {
@@ -4037,6 +4040,9 @@ If in_asm_function_body is TRUE, return tok_newline for ends of lines.
       goto return_from_token_scan;
     }  /* if */
   }  /* if */
+  /* A new token is being scanned from the input stream.  Assign a token
+     sequence number to this token. */
+  curr_token_sequence_number = ++last_token_sequence_number_used;
 rescan_token:
   /* Skip over any initial white space blanks and horizontal tabs.
      These are very common, so they're handled inline here.  The
@@ -7000,6 +7006,8 @@ of the front end.
   reusable_cache_stack = NULL;
   dollar_in_id_diagnostic_issued = FALSE;
   any_initial_get_token_tests_needed = FALSE;
+  last_token_sequence_number_used = NO_TOKEN_SEQUENCE_NUMBER;
+  curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
 #if DEBUG
   num_orig_line_modifs_allocated = 0;
   num_source_line_modifs_allocated = 0;

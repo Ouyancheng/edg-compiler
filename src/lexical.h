@@ -145,6 +145,28 @@ EXTERN char	*token_names[(int)tok_last+1]
 #endif /* VAR_INITIALIZERS */
 ;
 
+/*
+A sequence number is assigned to each token fetched from the input.
+This is the type used to represent the sequence number.
+*/
+typedef unsigned long a_token_sequence_number;
+
+a_token_sequence_number
+		curr_token_sequence_number;
+			/* The sequence number associated with the
+			   current token.  A token retains its sequence
+			   number even when saved and restored from a
+			   token cache. */
+
+a_token_sequence_number
+		last_token_sequence_number_used;
+			/* The counter used to assign token sequence
+			   numbers. */
+
+#define NO_TOKEN_SEQUENCE_NUMBER (0)
+			/* The value used to indicate that no sequence number
+			   is present. */
+
 
 /* These includes are placed here so that a_token_kind will be defined
    for general use before including these files. */
@@ -914,6 +936,9 @@ typedef struct a_cached_token {
 		extra_info_kind;
 			/* Indication of the type of extra information about
 			   the token provided below. */
+  a_token_sequence_number
+		token_sequence_number;
+			/* The sequence number associated with this token. */
   union {
     /* When extra_info_kind == teik_normal, no variant fields. */
     /* When extra_info_kind == teik_identifier: */

@@ -981,6 +981,15 @@ typedef struct a_template_symbol_supplement {
 		pragmas_bound_to_template;
 			/* A list of pbk_next_construct pragmas to be bound
 			   to each instance generated from this template. */
+  a_token_sequence_number
+		token_sequence_number;
+			/* This is used for member functions and static
+			   data members to match the declarations of
+			   the prototype instantiation (to which the
+			   template symbol supplement is attached) to
+			   declarations found inside real instantiations.
+			   This field contains the token sequence number
+			   of a certain token within the declaration. */
   union {
     /* When symbol kind = sk_class_template: */
     struct {
