@@ -3412,10 +3412,14 @@ End a name scope by popping an entry off the scope stack.
     end_of_scope_pragma_processing(ssep->pending_pragmas);
   }  /* if */
   if (!C_mode()) {
-    /* If this is the file scope, call a routine to do end-of-scope
-       processing for any namespace scopes that may exist. */
+    /* Special processing if this is the file scope. */
     if (kind == (a_scope_kind)sck_file) {
+      /* Call a routine to do end-of-scope processing for any namespace scopes
+         that may exist. */
       wrapup_namespace_scopes(il_header.primary_scope);
+      /* Go through the fixup list for based-type entries and remove entities
+         as required. */
+      do_based_type_fixup();
     }  /* if */
     /* If the scope specified additional using directives, clear all of the
        active using list flags, and reset them to the values specified
