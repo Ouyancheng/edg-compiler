@@ -366,10 +366,12 @@ static void dump_struct_union_definition(a_type_ptr type);
 static void dump_cast(a_type_ptr type);
 static void dump_declaration_using_type(a_type_ptr              type,
                                         a_source_correspondence *scp);
-static void dump_general_declaration_using_type(a_type_ptr              type,
-                                                a_source_correspondence *scp,
-                                                a_variable_ptr          var,
-                                                char                    *temp);
+static void dump_general_declaration_using_type(
+                                       a_type_ptr              type,
+                                       a_source_correspondence *scp,
+                                       a_variable_ptr          var,
+                                       char                    *temp,
+                                       a_boolean               suppress_const);
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens);
 /* Interfaces to dump_expr for the usual cases. */
@@ -1649,24 +1651,26 @@ qualification.
 }  /* is_immediate_type_qualifier */
 
 
-static void dump_type_qualifier(a_type_ptr type)
+#if !C_GEN_BE_GENERATES_ANSI_C
+/*ARGSUSED*/  /* <-- Because suppress_const is used only when generating
+                 ANSI C. */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+static void dump_type_qualifier(a_type_ptr type,
+                                a_boolean  suppress_const)
 /*
 Print the type qualifier for the top type of the given type (i.e., just
 the first level), followed by a space.  The type must be a tk_typeref
-containing a type qualifier.
+containing a type qualifier.  If suppress_const is TRUE, suppress generation
+of "const" in ANSI C mode.
 */
 {
   check_assertion_str(type->kind == (a_type_kind)tk_typeref,
                       "dump_type_qualifier: bad type kind");
   if (type->variant.typeref.is_const) {
 #if C_GEN_BE_GENERATES_ANSI_C
-#if 0
-    /* Suppress until we can know that IL lowering did not generate an
-       initializing assignment to specific variables. */
-#endif /* 0 */
-    start_comment();
+    if (suppress_const) start_comment();
     write_tok_str("const");
-    end_comment();
+    if (suppress_const) end_comment();
     write_space();
 #else /* !C_GEN_BE_GENERATES_ANSI_C */
     if (annotate) {
@@ -1772,9 +1776,11 @@ function and is invisible now because we're processing the file scope.
   ((type)->kind == (a_type_kind)tk_typeref && is_invisible_local_type(type))
 
 
-static void dump_type_specifier(a_type_ptr type)
+static void dump_type_specifier(a_type_ptr type,
+                                a_boolean  suppress_const)
 /*
-Output a type specifier.
+Output a type specifier.  If suppress_const is TRUE, suppress generation
+of "const" in ANSI C mode.
 */
 {
   switch (type->kind) {
@@ -1812,13 +1818,13 @@ Output a type specifier.
       if (is_immediate_type_qualifier(type)) {
         /* The top type is a type qualifier.  Output it and move on to the
            underlying type. */
-        dump_type_qualifier(type);
-        dump_type_specifier(type->variant.typeref.type);
+        dump_type_qualifier(type, suppress_const);
+        dump_type_specifier(type->variant.typeref.type, suppress_const);
       } else if (!has_name(type) || is_invisible_local_type(type)) {
         /* This is an internally generated typeref, or a function-local
            typedef that is not visible here, so just output the underlying
            type. */
-        dump_type_specifier(type->variant.typeref.type);
+        dump_type_specifier(type->variant.typeref.type, suppress_const);
       } else {
         /* A typedef; output its name. */
         dump_type_name(type);
@@ -1831,11 +1837,13 @@ Output a type specifier.
 
 
 static void dump_pointer_type_qualifiers(a_type_ptr qual_type,
-                                         a_type_ptr type)
+                                         a_type_ptr type,
+                                         a_boolean  suppress_const)
 /*
 Generate type qualifiers, if any, to follow a pointer "*".  qual_type is
 the full pointer type, and type is the unqualified version of that type
-(i.e., the tk_pointer entry).
+(i.e., the tk_pointer entry).  If suppress_const is TRUE, suppress generation
+of "const" in ANSI C mode.
 */
 {
   for (; qual_type != type; qual_type = qual_type->variant.typeref.type) {
@@ -1844,7 +1852,7 @@ the full pointer type, and type is the unqualified version of that type
          skipped. */
     } else {
       /* Put out a type qualifier. */
-      dump_type_qualifier(qual_type);
+      dump_type_qualifier(qual_type, suppress_const);
     }  /* if */
   }  /* for */
 }  /* dump_pointer_type_qualifiers */
@@ -1852,9 +1860,11 @@ the full pointer type, and type is the unqualified version of that type
 
 static void dump_type_first_part(a_type_ptr type,
 				 a_boolean  need_paren,
-				 a_boolean  need_trailing_space)
+				 a_boolean  need_trailing_space,
+                                 a_boolean  suppress_const)
 /*
-Print the first of possibly two parts of a type reference.
+Print the first of possibly two parts of a type reference.  If suppress_const
+is TRUE, suppress generation of top-level "const" in ANSI C mode.
 */
 {
   a_type_kind kind;
@@ -1870,11 +1880,12 @@ Print the first of possibly two parts of a type reference.
     /* Pointer type. */
     dump_type_first_part(type->variant.pointer.type,
                          /*need_paren=*/TRUE,
-                         /*need_trailing_space=*/TRUE);
+                         /*need_trailing_space=*/TRUE,
+                         /*suppress_const=*/FALSE);
     /* Output "*" for pointer. */
     write_tok_ch('*');
     /* Output the type qualifiers on the pointer, if any. */
-    dump_pointer_type_qualifiers(qual_type, type);
+    dump_pointer_type_qualifiers(qual_type, type, suppress_const);
     if (need_paren) write_tok_ch('(');
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
@@ -1882,7 +1893,8 @@ Print the first of possibly two parts of a type reference.
        of the function type.  Just ignore it. */
     dump_type_first_part(type->variant.routine.return_type,
                          /*need_paren=*/TRUE,
-                         /*need_trailing_space=*/TRUE);
+                         /*need_trailing_space=*/TRUE,
+                         /*suppress_const=*/FALSE);
     if (need_paren) write_tok_ch('(');
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
@@ -1890,11 +1902,12 @@ Print the first of possibly two parts of a type reference.
        of the array type.  Just ignore it. */
     dump_type_first_part(type->variant.array.element_type,
                          /*need_paren=*/TRUE,
-                         /*need_trailing_space=*/TRUE);
+                         /*need_trailing_space=*/TRUE,
+                         suppress_const);
     if (need_paren) write_tok_ch('(');
   } else {
     /* No declarator part to process.  Handle the specifier type. */
-    dump_type_specifier(qual_type);
+    dump_type_specifier(qual_type, suppress_const);
     if (need_trailing_space) write_space();
   }  /* if */
 }  /* dump_type_first_part */
@@ -1998,7 +2011,8 @@ is non-NULL, in which case that is the function scope.
                names. */
             dump_general_declaration_using_type(param_var->type,
                                                 &param_var->source_corresp,
-                                                param_var, NO_TEMP);
+                                                param_var, NO_TEMP,
+                                                /*suppress_const=*/FALSE);
             param_var = param_var->next;
           } else
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
@@ -2086,10 +2100,12 @@ out first if anything is generated.
 }  /* dump_type_second_part */
 
 
-static void dump_general_declaration_using_type(a_type_ptr              type,
-                                                a_source_correspondence *scp,
-                                                a_variable_ptr          var,
-                                                char                    *temp)
+static void dump_general_declaration_using_type(
+                                        a_type_ptr              type,
+                                        a_source_correspondence *scp,
+                                        a_variable_ptr          var,
+                                        char                    *temp,
+                                        a_boolean               suppress_const)
 /*
 Output a declaration built around a type.  "type" gives the type.  The
 rest of the arguments specify the name, if any, to be placed in the
@@ -2098,12 +2114,14 @@ correspondence entry for the entity being declared, or NULL if there is
 no name.  If var is non-NULL, it points to a variable being declared (and
 &scp == &var->source_corresp); var is ignored if scp is NULL.  If temp is
 non-NULL, it gives the address of an IL entry from which a temporary name
-is to be generated.
+is to be generated.  If suppress_const is TRUE, suppress generation
+of top-level "const" in ANSI C mode.
 */
 {
   /* Write the specifiers and the first part of the declarator. */
   dump_type_first_part(type, /*need_paren=*/FALSE,
-                       /*need_trailing_space=*/(scp != NULL || temp != NULL));
+                       /*need_trailing_space=*/(scp != NULL || temp != NULL),
+                       suppress_const);
   /* Write the name if there is one. */
   if (scp != NULL) {
     /* Write the name. */
@@ -2130,7 +2148,8 @@ correspondence entry for the entity being declared, or NULL if there is
 no name.
 */
 {
-  dump_general_declaration_using_type(type, scp, NO_VARIABLE, NO_TEMP);
+  dump_general_declaration_using_type(type, scp, NO_VARIABLE, NO_TEMP,
+                                      /*suppress_const=*/FALSE);
 }  /* dump_declaration_using_type */
 
 
@@ -2143,7 +2162,8 @@ Output a reference to a type.  If add_pointer_to is TRUE, add an extra
 {
   /* Write the specifiers and the first part of the declarator. */
   dump_type_first_part(type, /*need_paren=*/FALSE,
-                       /*need_trailing_space=*/FALSE);
+                       /*need_trailing_space=*/FALSE,
+                       /*suppress_const=*/FALSE);
   /* The "name" in the type declarator is null.  For the add_pointer_to
      case, add an extra "*". */
   if (add_pointer_to) write_tok_str("(*)");
@@ -4029,7 +4049,8 @@ out in this way to guarantee their alignment.
     set_output_position(&constant->source_corresp.decl_position);
     write_tok_str("static ");
     dump_general_declaration_using_type(constant->type, NO_NAME,
-                                        NO_VARIABLE, (char *)constant);
+                                        NO_VARIABLE, (char *)constant,
+                                        /*suppress_const=*/FALSE);
     write_tok_str(" = {");
     dump_exploded_wide_string(constant);
     write_tok_str("};");
@@ -4342,7 +4363,7 @@ parameters.
 {
   a_constant_ptr init_con;
   a_type_ptr     var_type = variable->type;
-  a_boolean      is_link;
+  a_boolean      is_link, suppress_const = FALSE;
   char           *name;
 #if !C_GEN_BE_GENERATES_ANSI_C
   a_boolean      forced_static;
@@ -4401,6 +4422,19 @@ parameters.
         dump_variable_storage_class(variable);
 #if !C_GEN_BE_GENERATES_ANSI_C
       }  /* if */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+#if C_GEN_BE_GENERATES_ANSI_C
+      if (variable->initialization_rewritten_as_assignment ||
+          (variable->init_kind == (an_init_kind)initk_dynamic &&
+           init_con == NULL)) {
+        /* When generating ANSI C, "const" will be put out.  However, if
+           the variable's initialization was turned into executable code
+           (either here or in IL lowering), the initialization code is
+           going to have problems assigning to a "const" entity.  For those
+           cases, suppress the "const" from the variable type. */
+        suppress_const = TRUE;
+      }  /* if */
+#else /* !C_GEN_BE_GENERATES_ANSI_C */
       if (is_void_type(var_type)) {
         /* A (extern) variable can have void type in ANSI C, but not in
            pcc C, so change its type to char. */
@@ -4410,7 +4444,8 @@ parameters.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
         dump_general_declaration_using_type(var_type,
                                             &variable->source_corresp,
-                                            variable, NO_TEMP);
+                                            variable, NO_TEMP,
+                                            suppress_const);
 #if !C_GEN_BE_GENERATES_ANSI_C
       }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
@@ -4999,7 +5034,8 @@ its subtree.
         } else {
           /* Declare the temporary. */
           dump_general_declaration_using_type(op1_type, NO_NAME, NO_VARIABLE,
-                                              (char *)node);
+                                              (char *)node,
+                                              /*suppress_const=*/FALSE);
           write_tok_ch(';');
         }  /* if */
       }  /* if */
@@ -5126,7 +5162,8 @@ function.  scope is the associated scope.
     set_output_position(&param_var->source_corresp.decl_position);
     dump_general_declaration_using_type(param_var->type,
                                         &param_var->source_corresp,
-                                        param_var, NO_TEMP);
+                                        param_var, NO_TEMP,
+                                        /*suppress_const=*/FALSE);
     write_tok_ch(';');
   }  /* for */
 }  /* dump_old_style_parameter_decls */
@@ -5144,7 +5181,8 @@ for the definition of the indicated routine.  scope is the associated scope.
   /* The storage class and similar preamble have already been written. */
   /* Write the specifiers and the first part of the declarator. */
   dump_type_first_part(type, /*need_paren=*/FALSE,
-                       /*need_trailing_space=*/TRUE);
+                       /*need_trailing_space=*/TRUE,
+                       /*suppress_const=*/FALSE);
   /* Write the name. */
   dump_routine_name(rout);
   /* Write the second part of the declarator. */

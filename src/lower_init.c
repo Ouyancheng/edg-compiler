@@ -841,9 +841,12 @@ tree.
     } else {
       /* Add an array element selection. */
       /* Do the pointer decay from array to pointer to element. */
+      /* Drop type qualifiers on the pointer type to get rid of "const" which
+         might cause problems (you can't assign to a const). */
       a_type_ptr ptr_elem_type = make_pointer_type(
-                                   array_element_type(
-                                     type_pointed_to(entity_node->type)));
+                                   f_skip_typerefs(
+                                     array_element_type(
+                                       type_pointed_to(entity_node->type))));
       entity_node = add_cast(entity_node, ptr_elem_type);
       if (modifiers->curr_elem != 0) {
         /* Add the subscript if it's non-zero. */
@@ -2591,6 +2594,9 @@ be kept, FALSE if it should be deleted.
       internal_error("lower_dynamic_init: variable mismatch");
     }  /* if */
 #endif /* CHECKING */
+    /* Let the back end know that some initialization code was
+       rewritten as executable code. */
+    variable->initialization_rewritten_as_assignment = TRUE;
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
     if (variable->is_template_static_data_member) {
       /* This is the initialization of a static data member in a template. */

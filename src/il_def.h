@@ -2675,6 +2675,12 @@ typedef struct a_variable {
   unsigned int	is_this_parameter:1;
 			/* TRUE if the variable represents a "this" parameter
 			   (C++ only). */
+#if DO_IL_LOWERING
+  unsigned int  initialization_rewritten_as_assignment:1;
+			/* TRUE if IL lowering has rewritten some part of
+			   the initialization for this variable as assignment
+			   statements or the like. */
+#endif /* DO_IL_LOWERING */
 #endif /* ifdef CIL */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any. */

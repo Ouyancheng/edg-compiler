@@ -1507,6 +1507,9 @@ Display the indicated variable.
   if (ptr->is_this_parameter) {
     disp_boolean("is_this_parameter", TRUE);
   }  /* if */
+  if (ptr->initialization_rewritten_as_assignment) {
+    disp_boolean("initialization_rewritten_as_assignment", TRUE);
+  }  /* if */
 #ifdef FFE
   disp_boolean("by_address", (a_boolean)ptr->by_address);
 #endif /*ifdef FFE */

@@ -4932,6 +4932,7 @@ to it.
   vp->param_used_more_than_once   = FALSE;
   vp->is_handler_param            = FALSE;
   vp->is_this_parameter           = FALSE;
+  vp->initialization_rewritten_as_assignment = FALSE;
 #endif /* ifdef CIL */
 #ifdef FIL
   vp->by_address                  = FALSE;
