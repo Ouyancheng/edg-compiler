@@ -1991,10 +1991,16 @@ void extract_this_class_and_qualifiers(a_type_ptr            this_type,
 /*
 Extract the class to which a member function should belong, and the qualifiers
 that it must have, so that its "this" parameter would have type this_type.
+If this_type is NULL, *this_class is set to NULL, and *qualifiers is set to
+TQ_NONE.
 */
 {
   if (this_type != NULL) {
+#if RESTRICT_ALLOWED
     *qualifiers = get_top_level_type_qualifiers(this_type) & TQ_RESTRICT;
+#else /* !RESTRICT_ALLOWED */
+    *qualifiers = TQ_NONE;
+#endif /* RESTRICT_ALLOWED */
     this_type = type_pointed_to(this_type);
     *qualifiers |= get_top_level_type_qualifiers(this_type);
     *this_class = skip_typerefs(this_type);
@@ -5896,7 +5902,7 @@ its parameters?).
         }  /* if */
         if (!C_mode()) {
           if (flags & TTT_THIS_PARAM_TYPE) {
-            tp = rtsp->this_class; /* FIXME */
+            tp = rtsp->this_class;
             if (tp != NULL && traverse_type_tree(tp, func, flags)) {
               status = TRUE;
               break;
@@ -6517,7 +6523,6 @@ a new tree is built.
       if (func(new_return_type, flags, &tp)) {
         new_return_type = tp;
       }  /* if */
-      /* FIXME  qualifiers? */
       new_this_class = type->variant.routine.extra_info->this_class;
       if (new_this_class != NULL && func(type, flags, &tp)) {
         new_this_class = tp->variant.routine.extra_info->this_class;
@@ -6555,7 +6560,6 @@ make_new_type:
                                        *(type->variant.routine.extra_info);
       new_type->variant.routine.extra_info->assoc_routine = NULL;
       new_type->variant.routine.extra_info->this_class = new_this_class;
-      /* FIXME qualifiers? */
       /* Make copies of the entries on type's param types list, making the
          appropriate modifications. */
       prev_ptp = NULL;

@@ -9721,7 +9721,6 @@ the function is a nonstatic member of class_type.
          the only way a nonstatic member function is distinguished from a
          static member function. */
       rout_type->variant.routine.extra_info->this_class = class_type;
-      /* FIXME: qualifiers? */
     } else if (any_cfront_mode()) {
       /* Just in case this is a copy of the weird cfront-compatibility
          typedef, clear out the implicit this-param pointer in the copied
