@@ -67,7 +67,8 @@ a_symbol_ptr find_addr_of_overloaded_function_match(
                                 a_boolean          *ambiguous)
 /*
 ovl_sym is the symbol from an indefinite function operand representing
-the address of an overloaded function.  is_template_id is TRUE if ovl_sym
+the address of an overloaded function.  (For completeness, ovl_sym
+can be a simple function or a template).  is_template_id is TRUE if ovl_sym
 is followed by an explicit template argument list, in which case
 template_arg_list gives the argument list.  The indefinite function is
 being converted to a destination type dest_type.  If dest_type is a
@@ -131,11 +132,14 @@ cast.
       /* A single function template represents multiple instantiations of
          that template. */
       sym_is_list = FALSE;
+    } else if (ovl_sym->kind == (a_symbol_kind)sk_member_function ||
+               ovl_sym->kind == (a_symbol_kind)sk_routine) {
+      /* A single non-overloaded function. */
+      sym_is_list = FALSE;
     } else {
 #if CHECKING
       if (ovl_sym->kind != (a_symbol_kind)sk_overloaded_function) {
-        internal_error(
-                "find_addr_of_overloaded_function_match: not overloaded func");
+        internal_error("find_addr_of_overloaded_function_match: not function");
       }  /* if */
 #endif /* CHECKING */
       /* A list of overloaded functions. */
@@ -335,6 +339,51 @@ is_ambiguous:
   db_exit();
   return match_sym;
 }  /* find_addr_of_overloaded_function_match */
+
+
+void choose_function_and_make_address_constant(a_symbol_ptr   sym,
+                                               a_type_ptr     guide_type,
+                                               a_constant_ptr constant,
+                                               a_boolean      *err)
+/*
+As part of template argument substitution, select the instance of sym
+that will produce a pointer or pointer to member that matches guide_type.
+If that can be done, return a constant for the address of that
+function in *constant.  Otherwise, return *err TRUE.
+*/
+{
+  a_symbol_ptr       func_sym;
+  an_arg_match_level match_level;
+  a_std_conv_descr   std_conversion;
+  a_boolean          unknown_dependent_function, ambiguous;
+
+  func_sym = find_addr_of_overloaded_function_match(
+                                                   sym,
+                                                   /*is_template_id=*/FALSE,
+                                                   (a_template_arg_ptr)NULL,
+                                                   guide_type,
+                                                   /*is_cast=*/FALSE,
+                                                   &match_level,
+                                                   &std_conversion,
+                                                   &unknown_dependent_function,
+                                                   &ambiguous);
+  if (func_sym == NULL ||
+      /* Conversions are not allowed. */
+      match_level != aml_exact) {
+    *err = TRUE;
+  } else {
+    /* Build a pointer-to-function or pointer-to-member constant. */
+    a_routine_ptr routine = func_sym->variant.routine.ptr;
+    if (routine_type_is_nonstatic_member_function(routine->type)) {
+      /* Nonstatic member function: pointer to member. */
+      set_ptr_to_member_function_constant(routine, constant);
+    } else {
+      /* Static member function: simple pointer to function. */
+      set_routine_address_constant(routine, constant,
+                                   /*set_address_taken_flag=*/TRUE);
+    }  /* if */
+  }  /* if */
+}  /* choose_function_and_make_address_constant */
 
 
 static

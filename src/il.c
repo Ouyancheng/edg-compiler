@@ -2906,6 +2906,51 @@ the indicated constant.
 }  /* set_constant_address_constant */
 
 
+void set_ptr_to_member_function_constant(a_routine_ptr routine,
+                                         a_constant    *con)
+/*
+Fill in the constant "con" as a pointer-to-member constant for the
+nonstatic member function indicated by routine.
+*/
+{
+  a_type_ptr member_class;
+
+  clear_constant(con, (a_constant_repr_kind)ck_ptr_to_member);
+  con->variant.ptr_to_member.is_function_ptr = TRUE;
+  con->variant.ptr_to_member.variant.routine = routine;
+  /* Note that the class of the pointer is always the class in which
+     the member was defined, not any derived class.  See [expr.unary.op]
+     5.3.1p2. */
+  check_assertion(routine->source_corresp.is_class_member);
+  member_class = routine->source_corresp.parent.class_type;
+  con->type = ptr_to_member_type(routine->type, member_class);
+  if (!routine->is_virtual) {
+    /* Force the routine to be instantiated or generated. */
+    if_evaluating_mark_routine_referenced(routine);
+  }  /* if */
+}  /* set_ptr_to_member_function_constant */
+
+
+void set_ptr_to_data_member_constant(a_field_ptr field,
+                                     a_constant  *con)
+/*
+Fill in the constant "con" as a pointer-to-member constant for the
+nonstatic data member indicated by field.
+*/
+{
+  a_type_ptr member_class;
+
+  clear_constant(con, (a_constant_repr_kind)ck_ptr_to_member);
+  con->variant.ptr_to_member.is_function_ptr = FALSE;
+  con->variant.ptr_to_member.variant.field = field;
+  /* Note that the class of the pointer is always the class in which
+     the member was defined, not any derived class.  See [expr.unary.op]
+     5.3.1p2. */
+  member_class = field->source_corresp.parent.class_type;
+  con->type = ptr_to_member_type(field->type, member_class);
+}  /* set_ptr_to_data_member_constant */
+
+
 void copy_constant(a_constant *from,
                    a_constant *to)
 /*
@@ -7292,7 +7337,7 @@ static a_constant_ptr copy_template_param_con(
                                   a_constant_ptr           con,
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_nesting_depth depth,
-                                  a_type_ptr               template_param_type,
+                                  a_type_ptr               guide_type,
                                   a_source_position        *source_pos,
                                   a_boolean                *copy_error,
                                   a_constant_ptr           constant);
@@ -7500,11 +7545,109 @@ return NULL.
 }  /* copy_template_param_expr */
 
 
+static a_constant_ptr copy_template_param_member_con(
+                                  a_constant_ptr           con,
+                                  a_template_arg_ptr       template_arg_list,
+                                  a_template_nesting_depth depth,
+                                  a_type_ptr               guide_type,
+                                  a_boolean                is_address,
+                                  a_source_position        *source_pos,
+                                  a_boolean                *copy_error,
+                                  a_constant_ptr           constant)
+/*
+Copy a ck_template_param/tpck_member constant, replacing any occurrences of
+template parameters at depth "depth" with the corresponding values from
+the template argument list template_arg_list, and return a pointer to
+the copy after substitution.  If there is no allocated instance of the
+constant, set *constant to the constant value and return NULL.
+If guide_type is non-NULL, it is a "guide" type for the constant,
+either the type of the template parameter or the destination type
+of a cast above this constant.  is_address is TRUE if the constant
+produced should be for the address of the member rather than the
+value (i.e., there is a tpck_address constant over this constant).
+source_pos provides the source position for any calls of
+copy_type_with_substitution.  If there is an error in the copying
+(specifically, if there is an error in doing substitution on a type),
+set *copy_error to TRUE.
+*/
+{
+  a_constant_ptr con_copy;
+  a_symbol_ptr   sym, orig_sym;
+  a_type_ptr     parent_type;
+  a_boolean      err = FALSE;
+
+  check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
+                  con->variant.template_param.kind ==
+                                  (a_template_param_constant_kind)tpck_member);
+  /* This occurs for member constants specified in forms such as A<T>::x.
+     Do substitution on the parent type and then look up the name in the
+     updated class to see what the member is. */
+  con_copy = con;
+  orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
+  check_assertion(orig_sym != NULL && con->source_corresp.is_class_member);
+  parent_type = con->source_corresp.parent.class_type;
+  sym = copy_parent_type_with_substitution(orig_sym, parent_type,
+                                           template_arg_list, depth,
+                                           source_pos,
+                                           /*is_type=*/FALSE,
+                                           CTWS_NO_OPTIONS,
+                                           copy_error);
+  if (sym == NULL) {
+    /* The substituted parent class has no member of the specified name. */
+    err = TRUE;
+  } else if (sym->kind == (a_symbol_kind)sk_constant) {
+    con_copy = sym->variant.constant;
+  } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+    a_variable_ptr var = sym->variant.static_data_member.variable;
+    if (!is_address) {
+      /* The value of a static data member is acceptable as a result if
+         the data member can be used as a constant. */
+      con_copy = var_constant_value(var);
+      if (con_copy == NULL) err = TRUE;
+    } else {
+      /* Address of a static data member. */
+      set_variable_address_constant(var, constant,
+                                    /*set_address_taken_flag=*/TRUE);
+      con_copy = NULL;
+    }  /* if */
+  } else if (sym->kind == (a_symbol_kind)sk_field && is_address) {
+    /* The address of a nonstatic data member: pointer to member. */
+    a_field_ptr field = sym->variant.field.ptr;
+    set_ptr_to_data_member_constant(field, constant);
+    con_copy = NULL;
+  } else if ((sym->kind == (a_symbol_kind)sk_member_function ||
+              sym->kind == (a_symbol_kind)sk_function_template ||
+              sym->kind == (a_symbol_kind)sk_overloaded_function) &&
+             guide_type != NULL && is_address) {
+    /* A member function is acceptable as a pointer or pointer-to-member.
+       Choose a function from the overload set based on the guide type. */
+    choose_function_and_make_address_constant(sym, guide_type, constant, &err);
+    con_copy = NULL;
+  } else {
+    err = TRUE;
+  }  /* if */
+  if (!err && guide_type != NULL) {
+    /* The type of the entity must match the guide type.  If it doesn't,
+       deduction fails. */
+    a_type_ptr type = (con_copy != NULL) ? con_copy->type : constant->type;
+    if (!identical_types(guide_type, type)) err = TRUE;
+  }  /* if */    
+  if (err) {
+    /* The constant was specified as something like A<T>::B, but the
+       substituted "A<T>" does not contain a B, or the B found is not
+       a constant. */
+    *copy_error = TRUE;
+    con_copy = alloc_error_constant();
+  }  /* if */
+  return con_copy;
+}  /* copy_template_param_member_con */
+
+
 static a_constant_ptr copy_template_param_con(
                                   a_constant_ptr           con,
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_nesting_depth depth,
-                                  a_type_ptr               template_param_type,
+                                  a_type_ptr               guide_type,
                                   a_source_position        *source_pos,
                                   a_boolean                *copy_error,
                                   a_constant_ptr           constant)
@@ -7514,58 +7657,18 @@ template parameters at depth "depth" with the corresponding values from
 the template argument list template_arg_list, and return a pointer to
 the copy after substitution.  If there is no allocated instance of the
 constant, set *constant to the constant value and return NULL.
-template_param_type, if non-NULL, is the type of the template
-parameter for which con is the actual argument.  source_pos provides
-the source position for any calls of copy_type_with_substitution.  If
-there is an error in the copying (specifically, if there is an error
-in doing substitution on a type), set *copy_error to TRUE.
+If guide_type is non-NULL, it is a "guide" type for the constant,
+either the type of the template parameter or the destination type
+of a cast above this constant.  source_pos provides the source position
+for any calls of copy_type_with_substitution.  If there is an error in
+the copying (specifically, if there is an error in doing substitution
+on a type), set *copy_error to TRUE.
 */
 {
   a_constant_ptr con_copy, other_con;
   a_type_ptr     new_type;
   a_boolean      did_not_fold;
 
-  if (con->kind == (a_constant_repr_kind)ck_template_param &&
-      con->source_corresp.is_class_member) {
-    /* The constant is a member constant.  Do substitution on the parent
-       type.  This occurs for member constants specified in forms such
-       as A<T>::x. */
-    a_symbol_ptr	orig_sym;
-    a_symbol_ptr	sym;
-    a_type_ptr	parent_type;
-    a_boolean		err = FALSE;
-    orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
-    parent_type = con->source_corresp.parent.class_type;
-    check_assertion(orig_sym != NULL);
-    sym = copy_parent_type_with_substitution(orig_sym, parent_type,
-                                             template_arg_list, depth,
-                                             source_pos,
-                                             /*is_type=*/FALSE,
-                                             CTWS_NO_OPTIONS,
-                                             copy_error);
-    if (sym == NULL) {
-      /* The substituted parent class has no member of the specified name. */
-      err = TRUE;
-    } else if (sym->kind == (a_symbol_kind)sk_constant) {
-      con = sym->variant.constant;
-    } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-      /* A static data member can be acceptable as a result if it is
-         an initialized const static data member. */
-      con = var_constant_value(sym->variant.static_data_member.variable);
-      if (con == NULL) err = TRUE;
-    } else {
-      err = TRUE;
-    }  /* if */
-    if (err) {
-      /* The constant was specified as something like A<T>::B, but the
-         substituted "A<T>" does not contain a B, or the B found is not
-         a constant. */
-      *copy_error = TRUE;
-      con = alloc_error_constant();
-    }  /* if */
-  }  /* if */
-  /* Now that the parent type may have been substituted, determine whether
-     any further substitution is needed. */
   con_copy = con;
   if (con->kind == (a_constant_repr_kind)ck_template_param) {
     switch (con->variant.template_param.kind) {
@@ -7587,29 +7690,30 @@ in doing substitution on a type), set *copy_error to TRUE.
           }  /* if */
         }  /* if */
         break;
+      case tpck_member:
+      case tpck_unknown_function:
+        /* A member constant or an unknown function, e.g., for a case
+           like A<T>::x. */
+        con_copy = copy_template_param_member_con(con, template_arg_list,
+                                                  depth, guide_type,
+                                                  /*is_address=*/FALSE,
+                                                  source_pos, copy_error,
+                                                  constant);
+        break;
       case tpck_cast:
         /* The template param constant represents a cast of a constant to
            a template parameter type. */
-        if (template_param_type != NULL &&
-            con->type->kind == (a_type_kind)tk_template_param &&
-            con->type->variant.template_param.kind ==
-                   (a_template_param_type_kind)tptk_unknown) {
-          /* For a cast to a tptk_unknown type, when a template parameter
-             is provided, use that type instead. */
-          new_type = template_param_type;
-        } else {
-          new_type = copy_type_with_substitution(con->type,
-                                                 template_arg_list,
-                                                 depth,
-                                                 source_pos,
-                                                 CTWS_NO_OPTIONS,
-                                                 copy_error);
-        }  /* if */
+        new_type = copy_type_with_substitution(con->type,
+                                               template_arg_list,
+                                               depth,
+                                               source_pos,
+                                               CTWS_NO_OPTIONS,
+                                               copy_error);
         other_con = copy_template_param_con(
                                  con->variant.template_param.variant.constant,
                                  template_arg_list,
                                  depth,
-                                 (a_type_ptr)NULL,
+                                 new_type,
                                  source_pos,
                                  copy_error,
                                  constant);
@@ -7640,33 +7744,17 @@ in doing substitution on a type), set *copy_error to TRUE.
         }  /* if */
         break;
       case tpck_address:
-        /* The template param constant represents the address of a member. */
-        other_con = copy_template_param_con(
+        /* The template param constant represents the address of a member.
+           Process the underlying tpck_member constant as an address, and
+           use the result of that in place of both the tpck_address and
+           the tpck_member. */
+        con_copy = copy_template_param_member_con(
                                  con->variant.template_param.variant.constant,
                                  template_arg_list,
-                                 depth,
-                                 (a_type_ptr)NULL,
-                                 source_pos,
-                                 copy_error,
+                                 depth, guide_type,
+                                 /*is_address=*/TRUE,
+                                 source_pos, copy_error,
                                  constant);
-        if (other_con == con->variant.template_param.variant.constant) {
-          /* No change in the underlying constant. */
-        } else {
-          /* Make an updated tpck_address constant. */
-          new_type = copy_type_with_substitution(con->type,
-                                                 template_arg_list,
-                                                 depth,
-                                                 source_pos,
-                                                 CTWS_NO_OPTIONS,
-                                                 copy_error);
-          if (other_con == NULL) {
-            other_con = alloc_shareable_constant(constant);
-          }  /* if */
-          *constant = *con;
-          constant->variant.template_param.variant.constant = other_con;
-          constant->type = new_type;
-          con_copy = NULL;
-        }  /* if */
         break;
       case tpck_sizeof:
       case tpck_alignof:
@@ -7740,12 +7828,6 @@ in doing substitution on a type), set *copy_error to TRUE.
             con_copy = NULL;
           }  /* if */
         }
-        break;
-      case tpck_member:
-      case tpck_unknown_function:
-        /* If a tpck_member or unknown function remains after the parent
-           substitution done earlier, simply leave it unsubstituted for now.
-           The parent type substitution may be attempted again later. */
         break;
       default:
         unexpected_condition_str("copy_template_param_con: unexpected kind");

@@ -286,6 +286,12 @@ extern void set_variable_address_constant(
 extern void set_constant_address_constant(a_constant_ptr constant,
                                           a_constant    *con);
 
+extern void set_ptr_to_member_function_constant(a_routine_ptr routine,
+                                                a_constant    *con);
+
+extern void set_ptr_to_data_member_constant(a_field_ptr field,
+                                            a_constant  *con);
+
 extern void set_arg_transfer_method_flag(a_param_type_ptr   ptp,
                                          a_source_position  *err_pos);
 

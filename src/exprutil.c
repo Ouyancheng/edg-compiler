@@ -5136,9 +5136,7 @@ is_operand_of_address_of is TRUE.  If the member is a bit field,
 issue an error.  
 */
 {
-  a_constant    constant;
-  a_type_ptr    member_type, member_class;
-  a_routine_ptr rout;
+  a_constant constant;
 
   /* The ARM only allows this when a qualified name is preceded by a "&" (5.3).
      We allow it without "&" or without a qualified name as an extension --
@@ -5173,8 +5171,6 @@ issue an error.
   }  /* if */
   /* No need to instantiate the class; since we have a member of it, it must
      be instantiated already. */
-  /* Build the constant. */
-  clear_constant(&constant, (a_constant_repr_kind)ck_ptr_to_member);
   if (member_sym->kind == (a_symbol_kind)sk_field) {
     /* Pointer to nonstatic data member. */
     a_field_ptr field = member_sym->variant.field.ptr;
@@ -5182,29 +5178,18 @@ issue an error.
       /* Cannot make a pointer-to-member of a bit field. */
       pos_error(ec_address_of_bit_field, position);
     }  /* if */
-    constant.variant.ptr_to_member.is_function_ptr = FALSE;
-    constant.variant.ptr_to_member.variant.field = field;
-    member_type = field->type;
+    set_ptr_to_data_member_constant(field, &constant);
   } else {
+    a_routine_ptr rout;
 #if CHECKING
     if (member_sym->kind != (a_symbol_kind)sk_member_function) {
       internal_error("make_ptr_to_member_constant_operand: bad kind");
     }  /* if */
 #endif /* CHECKING */
     /* Pointer to nonstatic member function. */
-    constant.variant.ptr_to_member.is_function_ptr = TRUE;
-    constant.variant.ptr_to_member.variant.routine = rout =
-                                               member_sym->variant.routine.ptr;
-    member_type = rout->type;
-    if (!rout->is_virtual) {
-      /* Force the routine to be instantiated or generated. */
-      if_evaluating_mark_routine_referenced(rout);
-    }  /* if */
+    rout = member_sym->variant.routine.ptr;
+    set_ptr_to_member_function_constant(rout, &constant);
   }  /* if */
-  /* Note that the class of the pointer is always the class in which
-     the member was defined, not any derived class.  See ARM 5.3. */
-  member_class = member_sym->parent.class_type;
-  constant.type = ptr_to_member_type(member_type, member_class);
   if (is_template_dependent_context() &&
       is_template_dependent_type(constant.type)) {
     /* In a prototype instantiation, a member of the current class is

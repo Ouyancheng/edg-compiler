@@ -435,6 +435,12 @@ extern a_symbol_ptr find_addr_of_overloaded_function_match(
                                 a_boolean          *unknown_dependent_function,
                                 a_boolean          *ambiguous);
 
+extern void choose_function_and_make_address_constant(
+                                               a_symbol_ptr   sym,
+                                               a_type_ptr     guide_type,
+                                               a_constant_ptr constant,
+                                               a_boolean      *err);
+
 extern void selector_match_with_this_param(
                                an_operand           *bound_function_selector,
                                a_boolean            selector_is_object_pointer,

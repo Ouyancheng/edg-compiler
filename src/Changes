@@ -1,5 +1,24 @@
 Version 2.44
 
+6/9/00   &T::x as nontype template argument
+
+A nondeduced nontype template argument that is the address of a member
+of a template-dependent class (e.g., &T::x, &A<T>::x) is now handled
+correctly.  The case where the member turns out to name a set of
+overloaded functions, and the matching function must be selected
+on the basis of context, is also now handled correctly.
+
+  template<class T, void (T::*f)(int)> class C { };
+  template<class T> C<T, &T::output> call(T& obj);
+  struct Test {
+	  void output(int);
+  };
+  void sub()
+  {
+	  Test t;
+	  call(t);
+  }
+
 6/8/00   Spurious error on block scope redeclaration of extern "C" function
          in Microsoft mode
 
