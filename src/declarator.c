@@ -2008,11 +2008,12 @@ unbound qualifiers are just thrown away.
 {
   a_type_ptr     		complete_type = specifiers_type;
   a_boolean      		err = FALSE;
-  a_type_qualifier_set		qualifiers, pending_qualifiers;
+  a_type_qualifier_set		qualifiers;
   a_type_ptr     		class_type;
   a_type_ptr     		rout_type;
   a_variable_ptr		based_var = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  a_type_qualifier_set		pending_qualifiers;
   a_call_conv_descr		ccd;
   a_source_position		based_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2687,6 +2688,10 @@ to FALSE if the entity being declared is not initializable.
 }  /* scan_real_declarator_id */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- because p_left_call_conv et al. are used only in Microsoft
+                     mode. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void r_declarator(a_decl_flag_set             input_flags,
                   a_decl_flag_set             *output_flags,
                   a_type_ptr                  specifiers_type,
