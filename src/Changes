@@ -1,5 +1,37 @@
 Version 2.45
 
+12/6/00  C99 support
+
+We have added support for the 1999 version of the ISO C standard.
+There is now a --c99 command-line option, and also the configuration
+macro DEFAULT_C99_MODE which controls whether the default dialect
+of C is C99 or the old C89.
+
+Some of the C99 features produce new IL constructs that require
+support in the back end.  These features are enabled by the configuration
+macro C99_IL_EXTENSIONS_SUPPORTED.  When this flag is FALSE, the --c99
+command-line option is disabled.
+
+See the section "C99 and the Intermediate Language" in the IL chapter of
+the internal documentation for a summary of the IL issues.
+
+When DO_C99_IL_LOWERING is TRUE, many of the C99 IL extensions are
+lowered to C89 IL, to minimize the back end changes required to support
+C99.  See the section "C99 Lowering" in the IL Lowering chapter of the
+internal documentation for a summary of the issues.  Note that
+lowering of complex/imaginary operations produces runtime routine
+calls, and we have provided a sample implementation of those runtime
+routines in the new runtime library file c99_complex.c.
+
+Note that if you don't need to support C99 at all (e.g., if your
+product supports only C++), you can set C99_IL_EXTENSIONS to FALSE
+and make no changes to your back end.
+
+The existing implementations of designated initializers, compound
+literals, VLAs, restrict, and long long have been integrated into
+the overall C99 changes.  They are still available in older C modes
+as they have been previously.
+
 12/6/00  Abort in do_conversions_on_operands_of_copied_template_expr
 
 Some uses of "&&" and "||" operators in constant expressions in
@@ -41,13 +73,6 @@ expanded.
   #define X(a) Y(a,
   float X(x)1.5);  /* Expands to float x = 1.5; now */
 
-11/22/00 Duplicate const/volatile qualifiers in C99 mode
-
-In C99 const and volatile type qualifiers can be repeated (they are
-idempotent).  The front end emits a warning if they are explicitly
-duplicated.
-
-  const int const cic = 32; /* Error in C89; warning in C99. */
 
 11/21/00 Richer template representation (IL CHANGE)
 
@@ -422,52 +447,6 @@ feature of adding suffixes to such file names.
 
 See the include directory Changes file for more information about the
 header file changes.
-
-10/5/00  C99 support
-
-We are adding support for the 1999 version of the ISO C standard.
-We have added a --c99 command-line option, and also the configuration
-macro DEFAULT_C99_MODE which controls whether the default dialect
-of C is C99 or the old C89.  The following features are enabled in
-C99 mode:
-
--- Variable-length arrays
--- The restrict keyword
--- Intermixed declarations and statements
--- Digraph tokens
--- // end-of-line comments
--- Designated initializers
--- Compound literals
--- Flexible array members (an empty array at the end of a struct)
--- The inline keyword
--- The __generic pseudo-macro, an EDG extension used to implement the
-   type-generic math <tgmath.h> header
--- A trailing comma is allowed on an enum declaration
--- _Pragma operator
--- Predefined pragmas (e.g., FP_CONTRACT)
--- New predefined macros
--- Universal character names
--- va_copy support
--- long long is enabled by default
--- hexadecimal floating-point constants
-
-The following features are disabled:
-
--- implicit int
--- implicit function declarations
-
-Some of the C99 features produce new IL constructs that require
-support in the back end.  These features are enabled by the configuration
-macro C99_IL_EXTENSIONS_SUPPORTED.  When this flag is FALSE, the --c99
-command-line option is disabled.
-
-Regarding inline in C, note that the field suppress_inline_body,
-which formerly was present only when INSTANTIATE_EXTERN_INLINE is
-TRUE, is now present in all cases and is used to indicate C99
-inline definitions.
-
-Some repackaging of cmd_line.c was done to make it easier to add the
---c99 option.
 
 10/5/00  Spurious error on function try block on template constructor
 
