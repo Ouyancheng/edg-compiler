@@ -9630,7 +9630,7 @@ return TRUE and set *sym to point to the associated sk_class_template symbol.
   return flag;
 }  /* is_ss_entry_for_class_template_definition */
 
-#endif RECORD_TEMPLATES_IN_IL
+#endif /* RECORD_TEMPLATES_IN_IL */
 
 static void db_ss_list_for_prototype_instantiation(a_symbol_ptr  sym,
                                                    int           indent)
