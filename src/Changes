@@ -1,5 +1,17 @@
 Version 2.46
 
+5/25/01  C++-generating back end: storage class on for-initialization
+
+The storage class put out by the C++-generating back end on a
+for-initialization is now always the one specified in the source,
+which avoids a problem when the storage class was omitted and
+one entity declared is a function:
+
+  int main() {
+    for (int i, foo();;) {}  // "auto" was put out previously, which
+                             // caused an error on foo
+  }
+
 5/25/01  Generation of __asm instead of asm(...) when MSVC is generated
          code target
 

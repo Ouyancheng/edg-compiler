@@ -7967,6 +7967,13 @@ declaration following this one is such a continuation.
   if (is_specialization) {
     /* A storage class is never allowed on a specialization. */
     storage_class = (a_storage_class)sc_unspecified;
+  } else if (for_init) {
+    /* Use the storage class actually indicated in the source for a
+       for-initialization, to avoid problems like
+         for (int i, foo(); ; ) {}
+       where the second entity declared is a function, for which "auto"
+       would not be valid. */
+    storage_class = var->declared_storage_class;
   } else if (curr_name_context_is_a_class()) {
     /* We're currently inside a class definition.  The storage class doesn't
        have the usual meaning: for example, "static" means a static member.
