@@ -1779,8 +1779,8 @@ initial value of the global variable msvc_is_generated_code_target.
 When generating code to be compiled with the Microsoft compiler,
 this macro specifies the version of the compiler being used.  This effects,
 for example, the static initialization method used by the generated
-code.  The number is the major release number of a Microsoft C/C++
-compiler release.
+code.  The number is the Microsoft version number of a Microsoft C/C++
+compiler release (e.g., 1300 corresponds to MSVC version 7).
 */
 #ifndef MSVC_TARGET_VERSION
 #define MSVC_TARGET_VERSION 1300
