@@ -1420,6 +1420,9 @@ do_struct_union:
       if (ptr->variant.class_struct_union.referenced_by_placeholder_typeref) {
         disp_boolean("referenced_by_placeholder_typeref", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.originally_unnamed) {
+        disp_boolean("originally_unnamed", TRUE);
+      }  /* if */
       break;
     case tk_typeref:
       (void)printf("tk_typeref\n");

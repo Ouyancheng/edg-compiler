@@ -7626,6 +7626,7 @@ skip_tag_scan:
          in the type, so NULL it out after the call to set_source_corresp. */
       set_source_corresp(&(class_type->source_corresp), tag_sym);
       class_type->source_corresp.name = NULL;
+      class_type->variant.class_struct_union.originally_unnamed = TRUE;
     }  /* if */
     tag_sym->variant.class_struct_union.type = class_type;
     if (is_class_definition && is_friend_decl) {

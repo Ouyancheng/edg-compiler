@@ -2526,6 +2526,12 @@ typedef struct a_type {
 			   typeref on a class scope's types list; the type
 			   entry for the associated typeref will have
 			   is_placeholder_for_file_scope_type set to TRUE. */
+      unsigned int
+		originally_unnamed:1;
+			/* TRUE if the class was declared without a tag; in
+			   C++ may be TRUE even when the source-corresp name
+			   pointer is non-NULL, since a name may be acquired
+			   from a typedef name (ARM 7.1.3). */
     } class_struct_union;
     /* When kind == tk_typeref: */
     struct {
