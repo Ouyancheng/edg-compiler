@@ -1,5 +1,19 @@
 Version 2.40
 
+11/20/98  C++-generating back end: static and nonstatic members of enum
+          type erroneously merged into single declaration
+
+A bug in the code that handles declarations that use unnamed types
+caused the C++-generating back to incorrectly merge certain
+declarations (e.g., "e" and "e_ptr" in the following test case) into a
+single declaration.  This has been fixed.
+
+  enum E { val };
+  class A {
+    static const E e;
+    const E* e_ptr;
+  };
+
 11/19/98  Microsoft compatibility: operator new declared as namespace member
 
 In Microsoft compatibility mode a warning is now issued instead of an

@@ -2722,7 +2722,7 @@ it is a typedef.
      (b) always in a for-init. */
   if (for_init ||
       ((is_class_type_kind(kind) || is_enum_type(type)) &&
-       (!has_name(type) ||
+       (!has_name(skip_typerefs(type)) ||
         /* Include cases where the tag has a name only for linkage purposes. */
         (kind != (a_type_kind)tk_enum &&
          type->variant.class_struct_union.originally_unnamed)))) {
