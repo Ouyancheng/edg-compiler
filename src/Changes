@@ -1,5 +1,22 @@
 Version 2.46
 
+12/9/01  Error recovery, constructor that copies own class by value
+
+An error is correctly issued for a constructor that copies its
+own class by value.  However, if an out-of-class definition of
+the constructor appears, and there is also a user-declared
+copy constructor, the error recovery on future copies of the class
+fails and that results in an abort in determine_dynamic_init_for_class_init.
+Now fixed.
+
+  struct Z {
+    Z(Z);    // Error
+    Z f();
+    Z(const Z&);
+  };
+  Z::Z(Z) {} // Error again
+  Z Z::f() { return 0;}  // Abort
+
 12/8/01  Abort on unreachable code at end of destructor
 
 The front end aborted in some cases on a destructor that has unreachable

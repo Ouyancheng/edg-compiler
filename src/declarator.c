@@ -1726,6 +1726,7 @@ declaration.
                 pos_ty_error(ec_bad_constructor_param, &param_type_pos,
                              member_function_parent_type);
                 ptp->type = error_type();
+                ptp->passed_via_copy_constructor = FALSE;
               } else {
                 /* Depending on whether the next parameter has a default
                    argument (see case 2 above), this may be an (illegal)
