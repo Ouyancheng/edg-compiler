@@ -52,6 +52,13 @@ typedef struct a_throw_stack_entry {
 			   entry is no longer needed but cannot be freed
 			   because an entry higher on the stack has not
 			   yet been freed. */
+  an_eh_stack_entry
+		throw_processing_marker;
+			/* An EH stack entry used to indicate that a
+			   throw is being processed.  This is added
+		 	   to the EH stack when the __throw_alloc or
+			   __rethrow is done and is removed when control
+			   is transferred to a handler. */
 } a_throw_stack_entry;
 
 
@@ -728,8 +735,11 @@ a try block with a catch that matches the type of the object thrown.
   void*				object_ptr;
   a_typeinfo_ptr		thrown_typeinfo;
   a_boolean			is_pointer;
-  an_eh_stack_entry		throw_processing_marker;
 
+  /* The top entry of the throw stack should point to the top entry of
+     the EH stack, which should be a throw processing marker. */
+  check_assertion(&curr_throw_stack_entry->throw_processing_marker ==
+                  __curr_eh_stack_entry);
   /* Get the information about the current thrown object from the
      throw stack. */
   thrown_typeinfo = curr_throw_stack_entry->typeinfo;
@@ -741,8 +751,10 @@ a try block with a catch that matches the type of the object thrown.
   }  /* if */
 #endif /* DEBUG */
   /* Get the address of the thrown object. */
-  /* Find the try block that can catch the object being thrown. */
-  ehsep = __curr_eh_stack_entry;
+  /* Find the try block that can catch the object being thrown.  Start
+     looking at the entries on the stack skipping the top entry which is
+     the throw processing marker for the current throw. */
+  ehsep = __curr_eh_stack_entry->next;
   while (ehsep != NULL) {
     an_eh_stack_entry_kind	kind = ehsep->kind;
     if (kind == (an_eh_stack_entry_kind)ehsek_function) {
@@ -788,13 +800,6 @@ a try block with a catch that matches the type of the object thrown.
     ehsep = ehsep->next;
   }  /* while */
 
-  /* Link the throw processing marker onto the throw stack.  This is used
-     to detect throws done by destructors called during cleanup.  This
-     entry will be removed automatically when __curr_eh_stack_entry is set
-     to destinataion_ehsep below. */
-  throw_processing_marker.kind = ehsek_throw_processing_marker;
-  throw_processing_marker.next = __curr_eh_stack_entry;
-  __curr_eh_stack_entry = &throw_processing_marker;
   /* Go through the EH stack again and do any necessary cleanup. */
   ehsep = __curr_eh_stack_entry;
   while (ehsep != destination_ehsep) {
@@ -904,6 +909,13 @@ Push an entry onto the throw stack and initialize its fields.
   tsep->object_address = object_address;
   tsep->is_rethrow = is_rethrow;
   tsep->discard_entry = FALSE;
+  /* Link the throw processing marker onto the throw stack.  This is used
+     to detect throws done by destructors called during cleanup.  This
+     entry will be removed automatically when __curr_eh_stack_entry is set
+     to destinataion stack entry in __throw. */
+  tsep->throw_processing_marker.kind = ehsek_throw_processing_marker;
+  tsep->throw_processing_marker.next = __curr_eh_stack_entry;
+  __curr_eh_stack_entry = &tsep->throw_processing_marker;
 }  /* push_throw_stack */
 
 
