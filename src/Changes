@@ -1,5 +1,20 @@
 Version 2.33
 
+7/16/96 const qualifier on "this" parameter type, with IL lowering
+
+When IL lowering generates a_param_type entry for the "this" parameter,
+it now puts const in the qualifiers field if appropriate.  When the
+C-generating back end is being used, this means the const qualification
+on the generated C for declarations of member functions matches that on
+the definitions.  The code put out was, strictly speaking, valid ANSI/ISO
+C, but some compilers weren't happy with it, and the const difference
+was unintended and unnecessary.
+
+Also, a related bug has been fixed: when "restrict" was specified on a
+function that has an assigment to "this", the restrict qualifier on
+the "this" parameter was inadvertently dropped in the process of dropping
+the const qualifier.
+
 7/16/96 Internal error during deferred access checks of namespace members
 
 An internal error would occur when an inaccessible class member of a class

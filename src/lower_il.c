@@ -4192,6 +4192,30 @@ constructor.  Change it to add an indirection to the type.
 }  /* add_indirection_to_cctor_param_type */
 
 
+static a_boolean drop_const_on_this_param_variable(a_routine_ptr routine)
+/*
+Return TRUE if the top-level "const" on the "this" parameter variable of the
+indicated routine should be dropped.
+*/
+{
+  a_boolean drop_const = FALSE;
+
+  /* If an assignment to "this" will be done in this routine, because it
+     contains a user-written assignment to "this" or because it's a
+     constructor that will do the "new" allocation internally, drop the
+     top-level "const" on the "this" parameter variable type. */
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+  if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
+    drop_const = TRUE;
+  }  /* if */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+#if ASSIGNMENT_TO_THIS_ALLOWED
+  if (routine->assignment_to_this_done) drop_const = TRUE;
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+  return drop_const;
+}  /* drop_const_on_this_param_variable */
+
+
 void lower_type(a_type_ptr type)
 /*
 Do IL lowering of the indicated type and everything under it.
@@ -4320,6 +4344,13 @@ Do IL lowering of the indicated type and everything under it.
             ptp = alloc_param_type(rtsp->implicit_this_param_type);
             /* Force lowering in the loop that follows. */
             mark_as_not_visited(ptp);
+            /* The "this" parameter variable is const even though the
+               const doesn't appear on the interface (see
+               make_implicit_this_param_variable). */
+            if (rtsp->assoc_routine == NULL ||
+                !drop_const_on_this_param_variable(rtsp->assoc_routine)) {
+              ptp->qualifiers = TQ_CONST;
+            }  /* if */
             ptp->next = rtsp->param_type_list;
             rtsp->param_type_list = ptp;
             /* Leave the implicit_this_param_type unchanged; it's helpful
@@ -9863,26 +9894,12 @@ Do IL lowering of the indicated scope and everything under it.
       /* this_param_variable is not cleared.  It's harmless and it's
          helpful to be able to check it when one does not know whether or
          not it has been lowered. */
-#if ASSIGNMENT_TO_THIS_ALLOWED || NEW_CAN_BE_FOLDED_INTO_CTOR
-      /* If an assignment to "this" will be done in this routine, because it
-         contains a user-written assignment to "this" or because it's a
-         constructor that will do the "new" allocation internally, drop the
-         top-level "const" on the "this" parameter variable type. */
-      { a_boolean drop_const = FALSE;
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
-        if (routine->special_kind ==
-            (a_special_function_kind)sfk_constructor) drop_const = TRUE;
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
-#if ASSIGNMENT_TO_THIS_ALLOWED
-        if (routine->assignment_to_this_done) drop_const = TRUE;
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-        if (drop_const) {
-          /* Drop the top-level "const" on the "this" parameter. */
-          param_var->type = rtsp->implicit_this_param_type =
-                                              f_skip_typerefs(param_var->type);
-        }  /* if */
-      }
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED || NEW_CAN_BE_FOLDED_INTO_CTOR */
+      if (drop_const_on_this_param_variable(routine)) {
+        /* Drop the top-level "const" on the "this" parameter because it has
+           to be modifiable.  Do this in a way that preserves "restrict" if
+           that's present. */
+        param_var->type = rtsp->implicit_this_param_type;
+      }  /* if */
     }  /* if */
     lower_variable_list(scope->variant.routine.parameters);
     /* For any parameters that are passed by copy constructor, change the
