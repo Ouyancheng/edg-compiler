@@ -45,7 +45,7 @@ In GNU C mode with gnu_version < 30300 the front end accepts nonstandard
 anonymous unions.  A previous change (see entry of 2/27/03) emulated the
 GNU behavior of accepting a field declaration with the same name as an
 anonymous field declaration.  However, some cases were not covered by that
-that change.  For example:
+change.  For example:
 
   struct A { int f; };
   struct S {
