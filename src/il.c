@@ -2525,7 +2525,7 @@ pointer to it.
 #endif /* DEBUG */
   aap->next    = NULL;
   aap->access  = (an_access_specifier)as_public;
-  aap->kind    = NULL;
+  aap->kind    = kind;
   switch (kind) {
     case aak_field:     aap->variant.field    = NULL;  break;
     case aak_variable:  aap->variant.variable = NULL;  break;
