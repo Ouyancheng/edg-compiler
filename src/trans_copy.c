@@ -2288,6 +2288,7 @@ end_of_routine_list_add:;
       ensure_routine_is_on_inline_list(routine);
     }  /* for */
   }  /* if */
+#if ONE_INSTANTIATION_PER_OBJECT || MAINTAIN_NEEDED_FLAGS
   { a_variable_ptr variable;
     /* Do some processing on variables that must be done for all variables,
        even members of non-merged scopes that aren't seen in the loop above. */
@@ -2314,6 +2315,7 @@ end_of_routine_list_add:;
 #endif /* MAINTAIN_NEEDED_FLAGS */
     }  /* for */
   }
+#endif /* ONE_INSTANTIATION_PER_OBJECT || MAINTAIN_NEEDED_FLAGS */
 }  /* finish_trans_unit_copy */
 
 
