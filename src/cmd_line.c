@@ -37,12 +37,452 @@ cmd_line.c -- Command-line parsing.
 extern long gethostid(void);
 #endif /* HOSTID */
 
+
+
 /*
-The getopt.h include file will provide either the declarations needed
-to use the system getopt routine or, if no system version is available,
-the body of our own version of the getopt routine.
+List of possible option kinds.
 */
-#include "getopt.h"
+typedef enum /*an_option_kind*/ {
+  ok_strict_ansi_error,
+  ok_strict_ansi_warning,
+  ok_preprocess_only_no_line_dirs,
+  ok_preprocess_only_emit_line_dirs,
+  ok_keep_comments_in_pp_output,
+  ok_C_dialect_pcc,
+  ok_list_makefile_dependencies,
+  ok_list_include_files,
+#if DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE
+  ok_write_unlowered_il,
+#endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
+  ok_cplusplus_anachronisms,
+  ok_cfront_2_1_mode,
+  ok_cfront_3_0_mode,
+  ok_front_end_only,
+  ok_use_signed_chars,
+  ok_template_instantiation_mode,
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  ok_automatic_template_instantiation,
+#endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+  ok_implicit_template_inclusion,
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  ok_suppress_virtual_function_table_definition,
+  ok_allow_dollar_in_id_chars,
+  ok_display_compilation_time,
+  ok_display_compiler_version,
+  ok_suppress_warnings,
+  ok_enable_remarks,
+  ok_C_dialect_ANSI,
+  ok_C_dialect_cplusplus,
+  ok_exception_handling,
+  ok_suppress_used_before_set_warnings,
+  ok_include_directory,
+  ok_define_macro,
+  ok_undefine_macro,
+  ok_set_error_limit,
+  ok_generate_raw_listing,
+  ok_generate_cross_reference,
+  ok_stderr_file_name,
+  ok_output_file_name,
+#if BACK_END_IS_C_GEN_BE
+  ok_module_list_for_union_init,
+#endif /* !BACK_END_IS_C_GEN_BE */
+#if DEBUG
+  ok_debug,
+#endif /* DEBUG */
+  ok_last		/* Must be last. */
+} an_option_kind;
+
+
+/*
+Structure used to map keyword and/or letter options into the
+corresponding option kind.  There may be multiple option descriptions
+that map to the same option kind.
+*/
+typedef struct an_option_description *an_option_description_ptr;
+typedef struct an_option_description {
+  an_option_description_ptr
+		next;
+			/* Pointer to the next entry in the linked list. */
+  an_option_kind
+		kind;
+			/* Code that indicates the action to be taken
+			   when this option is used. */
+  char		*keyword;
+			/* The keyword option used to specify this option.
+			   May be NULL if a keyword option may not be used. */
+  sizeof_t	keyword_length;
+			/* Length of the keyword (not including the null
+			   terminator). */
+  char		letter;
+			/* A single character that may be used to specify
+			   this option.  May be the null character if
+			   a single character option may not be used. */
+  a_boolean	value;
+			/* TRUE if the option is used to enable the
+			   option, FALSE if it should disable it. */
+  a_boolean	arg_required;
+			/* TRUE if this option requires that an argument be
+			   specified. */
+} an_option_description;
+
+static an_option_description_ptr
+		option_descriptions;
+			/* Pointer to a linked list of option descriptions. */
+
+static a_byte_boolean
+		option_kind_used[(int)ok_last+1];
+			/* An array indexed by option kind that indicates
+			   whether the option kind has been specified in
+			   the command line.  Initialized to zero by
+			   static initialization. */
+
+
+static void add_option_description(an_option_kind	kind,
+				   char			*keyword,
+				   char			letter,
+				   a_boolean		value,
+				   a_boolean		arg_required)
+/*
+Add an entry to the linked list of option descriptions.
+*/
+{
+  an_option_description_ptr	odp;
+
+#if CHECKING
+  /* Make sure the option keyword and/or letter are not already in use. */
+  for (odp = option_descriptions; odp != NULL; odp = odp->next) {
+    if ((keyword != NULL && strcmp(keyword, odp->keyword) == 0) ||
+        (letter != '\0' && letter == odp->letter)) {
+      unexpected_condition_str2("add_option_description:",
+                                "duplicate option keyword or letter");
+    }  /* if */
+  }  /* for */
+#endif /* CHECKING */
+  /* alloc_general is called (rather than alloc_fe) because the general
+     mem_manage.c routines are not yet initialized. */
+  odp = (an_option_description_ptr)alloc_general
+                                              (sizeof(an_option_description));
+  odp->next = option_descriptions;
+  option_descriptions = odp;
+  odp->kind = kind;
+  odp->keyword = keyword;
+  odp->keyword_length = keyword == NULL ? 0 : strlen(keyword);
+  odp->letter = letter;
+  odp->value = value;
+  odp->arg_required = arg_required;
+}  /* add_option_description */
+
+
+void initialize_option_descriptions(void)
+/*
+Initialize the option information table.
+*/
+{
+  add_option_description(ok_strict_ansi_error, "strict", 'A',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_strict_ansi_warning, "strict_warnings", 'a',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_preprocess_only_no_line_dirs, "no_line_commands",
+                         'P', /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_preprocess_only_emit_line_dirs, "preprocess", 'E',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_keep_comments_in_pp_output, "comments", 'C',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_C_dialect_pcc, "old_c", 'K',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_list_makefile_dependencies, "dependencies", 'M',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_list_include_files, "trace_includes", 'H',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+#if DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE
+  add_option_description(ok_write_unlowered_il, "no_il_lowering", 'N',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+#endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
+  add_option_description(ok_cplusplus_anachronisms, "anachronisms", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_cplusplus_anachronisms, "no_anachronisms", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE);
+  add_option_description(ok_cfront_2_1_mode, "cfront_2.1", 'b',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_cfront_3_0_mode, "cfront_3.0", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_front_end_only, "no_code_gen", 'n',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_use_signed_chars, "signed_chars", 's',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_use_signed_chars, "unsigned_chars", 'u',
+                         /*value=*/FALSE, /*arg_required=*/FALSE);
+  add_option_description(ok_template_instantiation_mode, "instantiate", 't',
+                         /*value=*/TRUE, /*arg_required=*/TRUE);
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  add_option_description(ok_automatic_template_instantiation,
+                         "auto_instantiation", 'T',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_automatic_template_instantiation,
+                         "no_auto_instantiation", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE);
+#endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+  add_option_description(ok_implicit_template_inclusion,
+                         "implicit_include", 'B',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_implicit_template_inclusion,
+                         "no_implicit_include", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE);
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  add_option_description(ok_suppress_virtual_function_table_definition,
+                         "suppress_vtbl", 'V',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_allow_dollar_in_id_chars,
+                         "dollar", '$',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_display_compilation_time, "timing", '#',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_display_compiler_version, "version", 'v',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_suppress_warnings, "no_warnings", 'w',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_enable_remarks, "remarks", 'r',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_C_dialect_ANSI, "c", 'm',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_C_dialect_cplusplus, "c++", 'p',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_exception_handling, "exceptions", 'x',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_exception_handling, "no_exceptions", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE);
+  add_option_description(ok_suppress_used_before_set_warnings,
+                         "no_use_before_set_warnings", 'j',
+                         /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(ok_include_directory, "include_directory", 'I',
+                         /*value=*/TRUE, /*arg_required=*/TRUE);
+  add_option_description(ok_define_macro, "define_macro", 'D',
+                         /*value=*/TRUE, /*arg_required=*/TRUE);
+  add_option_description(ok_undefine_macro, "undefine_macro", 'U',
+                         /*value=*/TRUE, /*arg_required=*/TRUE);
+  add_option_description(ok_set_error_limit, "error_limit", 'e',
+                         /*value=*/TRUE, /*arg_required=*/TRUE);
+  add_option_description(ok_generate_raw_listing, "list", 'L',
+                         /*value=*/TRUE, /*arg_required=*/TRUE);
+  add_option_description(ok_generate_cross_reference, "xref", 'X',
+                         /*value=*/TRUE, /*arg_required=*/TRUE);
+  add_option_description(ok_stderr_file_name, "error_output", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE);
+  add_option_description(ok_output_file_name, "output", 'o',
+                         /*value=*/TRUE, /*arg_required=*/TRUE);
+#if BACK_END_IS_C_GEN_BE
+  add_option_description(ok_module_list_for_union_init, "module_init", 'i',
+                         /*value=*/TRUE, /*arg_required=*/TRUE);
+#endif /* !BACK_END_IS_C_GEN_BE */
+#if DEBUG
+  add_option_description(ok_debug, "db", 'd',
+                         /*value=*/TRUE, /*arg_required=*/TRUE);
+#endif /* DEBUG */
+}  /* initialize_option_descriptions */
+
+
+static an_option_description_ptr look_up_option_description
+					(char		*optchar,
+					 a_boolean	is_keyword_option,
+					 sizeof_t	keyword_length)
+/*
+Go through the linked list of option descriptions and look for one that
+matches the specified option.  If is_keyword_option is TRUE then optchar
+points to the keyword string, otherwise the character that optchar points
+to is the option letter. 
+*/
+{
+  an_option_description_ptr	odp;
+  a_boolean			match = FALSE;
+
+  for (odp = option_descriptions; odp != NULL; odp = odp->next) {
+    if (is_keyword_option) {
+      match = odp->keyword != NULL &&
+              keyword_length == odp->keyword_length &&
+              strncmp(optchar, odp->keyword, keyword_length) == 0;
+    } else {
+      match = odp->letter != '\0' && *optchar == odp->letter;
+    }  /* if */
+    if (match) break;
+  }  /* for */
+  /* Record the fact that this option kind has been used. */
+  if (odp != NULL) option_kind_used[odp->kind] = TRUE;
+  return odp;
+}  /* look_up_option_description */
+
+
+static char	*optarg;
+			/* Returned from get_option -- Pointer to the current
+			   option argument. */
+static int	optind = 1;
+			/* Index of the current option in argv. */
+
+static void invalid_argument_error(int	argc,
+                                   char	**argv)
+/*
+Issue a invalid command line argument diagnostic.
+*/
+{
+  /* Reset optind in the case of an option requiring
+     an argument where the argument is missing. */
+  if (optind >= argc) optind = argc-1;
+  optarg = argv[optind];
+  /* This call terminates the program. */
+  str_command_line_error(ec_cl_invalid_option, optarg);
+}  /* invalid_argument_error */
+
+
+an_option_description_ptr get_option(int     argc,
+                                     char    **argv)
+/*
+Fetch a command-line option.  argc and argv are the count of
+command-line arguments and the array containing the command-line
+argument strings.  This routine accepts both single character options
+and keyword options.  One option is returned on each call.  The option
+is looked up in the options_descriptions list and a pointer to the
+option description structure is returned to the caller.  A NULL
+pointer is returned when the end of the option list is found.  optind
+at that point indicates the argv index of the non-option argument.  If
+an invalid option is used, a command line error will be issued (and
+the compilation will be terminated).
+
+The following option formats are supported:
+
+	-abcxxx		-- turns on the "a" and "b" options and supplies the
+			   argument "xxx" to the "c" option.
+
+	-abc xxx	-- same as above
+
+	--option_a	-- keyword option with no argument
+
+	--option_b xxx	-- keyword option with an argument
+
+	--option_b=xxx	-- keyword option with an argument (not that no
+			   spaces are allowed on either side of the
+			   equals sign.
+*/
+{
+  static char			*optchar = NULL;
+				/* The character position containing the
+				   next option letter to be examined, or NULL
+				   if a new argument should be begun. */
+  a_boolean			is_keyword_option = FALSE;
+  sizeof_t			keyword_length = 0;
+  an_option_description_ptr	odp = NULL;
+  char				*after_keyword;
+
+  /* See if a new argument must be begun (i.e., there is not
+     part of an existing option to finish). */
+  while (optchar == NULL || *optchar == '\0') {
+    /* Here, optchar points to the next option character.  See if the
+       current option letter list has been exhausted. */
+    if (optchar != NULL && *optchar == '\0') {
+      /* Start the next argument. */
+      optind++;
+    } /* if */
+    if (optind >= argc) {
+      /* No more arguments. */
+      goto end_of_routine;
+    } else {
+      optchar = argv[optind];
+      /* Save the initial character of the option specification. */
+      if (*optchar != '-') {
+        /* The argument string does not begin with a "-" or "+". */
+        goto end_of_routine;
+      } else if (*(optchar+1) == '-') {
+        /* Either the beginning of a keyword option, or "--", which marks the
+           end of the options. */
+        if (*(optchar+2) == '\0') {
+          /* The argument is "--", which marks the end of the options.
+             Swallow this argument. */
+          optind++;
+          goto end_of_routine;
+        } else {
+          /* The beginning of a keyword option (e.g., --exceptions).
+             Update optchar to point to the keyword after the "--". */
+          is_keyword_option = TRUE;
+          optchar += 2;
+          /* Find the end of the keyword.  The keyword ends either at
+             the end of the current command line argument or when an
+             equals sign is found.  The equals sign separates the
+             keyword from its argument. */
+          after_keyword = optchar;
+          while (*after_keyword != '\0' && *after_keyword != '=') {
+            after_keyword++;
+          }  /* while */
+          keyword_length = after_keyword - optchar;
+        }  /* if */
+      } else if (*(optchar+1) == '\0') {
+        /* The argument is "-", which is used to indicate stdin as a
+           file name.  Return without swallowing this argument. */
+        goto end_of_routine;
+      } else {
+        /* We have the start of a new option.  Advance past the "-". */
+        optchar++;
+      }  /* if */
+    }  /* if */
+  }  /* while */
+  /* See if the option letter or keyword is valid. */
+  odp = look_up_option_description(optchar, is_keyword_option,
+                                   keyword_length);
+  /* See if the option letter appears in the string of legal options. */
+  if (odp == NULL) invalid_argument_error(argc, argv);
+  /* See if the option takes an argument. */
+  if (odp->arg_required) {
+    if (is_keyword_option) {
+      /* Keyword options may be specified as either:
+
+		--keyword=argument        (with no spaces)
+         or     --keyword argument
+      */
+      if (*after_keyword == '=') {
+        /* Set the option pointer to the character after the "=". */
+        optarg = after_keyword + 1;
+        if (*optarg == '\0') invalid_argument_error(argc, argv);
+      } else {
+        /* Use the next argument as the option value, as in "--output xxx". */
+        optind++;
+        /* If there are no more arguments, the option is missing. */
+        if (optind >= argc) invalid_argument_error(argc, argv);
+        optarg = argv[optind];
+      }  /* if */
+    } else {
+      /* Not a keyword option, the argument may immediately following the
+         letter or may be in the next argv element. */
+      if (*(optchar+1) == '\0') {
+        /* The option letter is the last thing in the argument, so use the
+           next argument as the option value, as in "-I xxx". */
+        optind++;
+        /* If there are no more arguments, the option is missing. */
+        if (optind >= argc) invalid_argument_error(argc, argv);
+        optarg = argv[optind];
+      } else {
+        /* The option argument is the remainder of the current argument,
+           as in "-Ixxx". */
+        optarg = optchar+1;
+      }  /* if */
+    }  /* if */
+    /* In any case, take no more characters of the current argument. */
+    optchar = NULL;
+    optind++;
+  } else {
+    /* The option does not take an argument. */
+    optarg = NULL;
+    if (is_keyword_option) {
+      /* Skip to the next element of argv. */
+      optchar = NULL;
+      optind++;
+    } else {
+      /* Skip to the next character of the current element of argv. */
+      optchar++;
+    }  /* if */
+  }  /* if */
+end_of_routine:
+  return odp;
+}  /* get_option */
+
 
 static void add_to_def_undef_list(char *str,
                                   a_def_undef_string_ptr *du_list)
@@ -106,15 +546,20 @@ void proc_command_line(int argc, char *argv[])
 Process the arguments on the command line that invoked the compiler.
 */
 {
-  int       optchar;
-  char      *ofile_name = NULL;
-  a_boolean cannot_open, bad_name;
-  char	    *instantiation_mode_string = NULL;
+  an_option_description_ptr	odp;
+  char 			        *ofile_name = NULL;
+  a_boolean			cannot_open;
+  a_boolean			bad_name;
+  char			        *instantiation_mode_string = NULL;
 
   /* Set a current position indicating we are looking at the command line. */
   pos_curr_token.seq = 0;
   pos_curr_token.column = SP_COL_CMD_LINE;
   set_err_pos_to_curr_token();
+
+  /* Initialize the table of option descriptions used by the options
+     processing routine. */
+  initialize_option_descriptions();
 
 #ifdef HOSTID
   /* Check that this code is running on an acceptable CPU. */
@@ -135,88 +580,105 @@ Process the arguments on the command line that invoked the compiler.
   /* Start with empty include file search paths.  Entries may be added
      because of command line options, and others will be added as defaults. */
   incl_search_path = end_incl_search_path = sys_incl_search_path = NULL;
-  /* Suppress getopt's error on non-recognized option. */
-  opterr = 0;
   /* Scan the command-line options. */
-#define COMMAND_LIST "ABCEHKMNOPTabnsuvwxrmpjV$#I:D:U:e:L:X:S:o:i:d:t:"
-  while ((optchar = getopt(argc, argv, COMMAND_LIST)) != EOF) {
-    switch (optchar) {
-      case 'A':
-      case 'a':
+  while ((odp = get_option(argc, argv)) != NULL) {
+    an_option_kind	kind = odp->kind;
+    a_boolean		opt_value = odp->value;
+    switch (kind) {
+      case ok_strict_ansi_error:
+      case ok_strict_ansi_warning:
         /* Warn on non-ANSI features, disable features that conflict
            with ANSI.  Note that "ANSI" means ANSI C or ANSI C++, depending
-           on the C_dialect setting.  'A' issues errors for violations,
-	   'a' issues warnings. */
+           on the C_dialect setting. */
+        check_assertion(opt_value == TRUE);
         strict_ansi_mode = TRUE;
-        strict_ansi_error_severity = (optchar == 'A') ? es_error : es_warning;
+        strict_ansi_error_severity =
+                      (kind == ok_strict_ansi_error) ? es_error : es_warning;
         break;
-      case 'E':
+      case ok_preprocess_only_emit_line_dirs:
         /* Do preprocessing only, output to stdout, with #line information. */
+        check_assertion(opt_value == TRUE);
         do_preprocessing_only = TRUE;
         generate_pp_output = TRUE;
         gen_line_info_in_pp_output = TRUE;
         break;
-      case 'P':
+      case ok_preprocess_only_no_line_dirs:
         /* Do preprocessing only, output to stdout (driver remaps to .i file),
            without #line information. */
+        check_assertion(opt_value == TRUE);
         do_preprocessing_only = TRUE;
         generate_pp_output = TRUE;
         gen_line_info_in_pp_output = FALSE;
         break;
-      case 'C':
+      case ok_keep_comments_in_pp_output:
         /* Keep comments in preprocessing output. */
+        check_assertion(opt_value == TRUE);
         keep_comments_in_pp_output = TRUE;
         break;
-      case 'K':
+      case ok_C_dialect_pcc:
         /* Compile K&R/pcc dialect of C. */
+        check_assertion(opt_value == TRUE);
         C_dialect = C_dialect_pcc;
         break;
-      case 'M':
+      case ok_list_makefile_dependencies:
         /* Generate makefile dependency lines for #include files encountered,
            but do not compile. */
+        check_assertion(opt_value == TRUE);
         do_preprocessing_only = TRUE;
         generate_pp_output = FALSE;
         list_included_files = FALSE;
         list_makefile_dependencies = TRUE;
         error_threshold = es_error;
         break;
-      case 'H':
+      case ok_list_include_files:
         /* Generate on stdout a list of the names of the #include files
            processed, but do not compile. */
+        check_assertion(opt_value == TRUE);
         do_preprocessing_only = TRUE;
         generate_pp_output = FALSE;
         list_included_files = TRUE;
         list_makefile_dependencies = FALSE;
         error_threshold = es_error;
         break;
-      case 'N':
 #if DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE
+      case ok_write_unlowered_il:
 	/* Suppress IL lowering and write an unlowered IL file. */
+        check_assertion(opt_value == TRUE);
 	suppress_il_lowering = TRUE;
         suppress_back_end = TRUE;
         /* Note that suppress_il_file_write is not set. */
 	break;
-#else /* !(DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE) */
-	optarg = "-N";
-        goto unknown_option;
-#define DID_GOTO_UNKNOWN_OPTION
 #endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
-      case 'O':
-        /* Allow anachronisms. Toggle the value (use the non-default value)
-           of the flag that specifies whether anachronisms should be
-           accepted. */
-        allow_anachronisms = !DEFAULT_ALLOW_ANACHRONISMS;
+      case ok_cplusplus_anachronisms:
+        /* Enable or disable acceptance of anachronisms. */
+        allow_anachronisms = opt_value;
         break;
-      case 'b':
-        /* cfront compatibility mode. */
+      case ok_cfront_2_1_mode:
+        /* cfront 2.1 compatibility mode.  If both 2.1 and 3.0 modes are
+           selected, only the most recent applies. */
+        check_assertion(opt_value == TRUE);
         cfront_compatibility_mode = TRUE;
+        cfront_2_1_mode = TRUE;
+        cfront_3_0_mode = FALSE;
         /* This option implies C++ dialect. */
         C_dialect = C_dialect_cplusplus;
         allow_anachronisms = TRUE;
         break;
-      case 'n':
+      case ok_cfront_3_0_mode:
+        /* cfront 3.0 compatibility mode.  If both 2.1 and 3.0 modes are
+           selected, only the most recent applies. */
+        check_assertion(opt_value == TRUE);
+        cfront_compatibility_mode = TRUE;
+        cfront_3_0_mode = TRUE;
+        cfront_2_1_mode = FALSE;
+        /* This option implies C++ dialect. */
+        C_dialect = C_dialect_cplusplus;
+        allow_anachronisms = TRUE;
+        break;
+      case ok_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
            end. */
+        check_assertion(opt_value == TRUE);
         suppress_back_end = TRUE;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
         suppress_il_file_write = TRUE;
@@ -225,11 +687,11 @@ Process the arguments on the command line that invoked the compiler.
 	suppress_il_lowering = TRUE;
 #endif /* DO_IL_LOWERING */
         break;
-      case 's':
-        /* Use signed chars. */
-        targ_has_signed_chars = TRUE;
+      case ok_use_signed_chars:
+        /* Use signed or unsigned chars. */
+        targ_has_signed_chars = opt_value;
         break;
-      case 't':
+      case ok_template_instantiation_mode:
         /* Template instantiation mode. */
         instantiation_mode_string = optarg;
         /* Determine the template instantiation mode to be used. */
@@ -248,49 +710,38 @@ Process the arguments on the command line that invoked the compiler.
           }  /* if */
         }  /* if */
         break;
-      case 'T':
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
+      case ok_automatic_template_instantiation:
         /* Enable or disable automatic instantiation processing. */
-        automatic_instantiation_mode = !DEFAULT_AUTOMATIC_INSTANTIATION_MODE;
+        automatic_instantiation_mode = opt_value;
         break;
-#else /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
-	optarg = "-T";
-        goto unknown_option;
-#define DID_GOTO_UNKNOWN_OPTION
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-      case 'B':
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
+      case ok_implicit_template_inclusion:
         /* Enable or disable implicit inclusion of template definition source
            files. */
-        implicit_template_inclusion_mode =
-				 !DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE;
+        implicit_template_inclusion_mode = opt_value;
         break;
-#else /* !INSTANTIATION_BY_IMPLICIT_INCLUSION */
-	optarg = "-B";
-        goto unknown_option;
-#define DID_GOTO_UNKNOWN_OPTION
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-      case 'u':
-        /* Use unsigned chars. */
-        targ_has_signed_chars = FALSE;
-        break;
-      case 'V':
+      case ok_suppress_virtual_function_table_definition:
         /* Suppress generation of a virtual function table if unable to
 	   determine absolute means to avoid duplicate virtual function 
 	   table entries in separate compilations. */
+        check_assertion(opt_value == TRUE);
 	suppress_virtual_function_table_definition = TRUE;
 	break;
-      case '$':
-        /* Toggle the value (use the non-default value) of the flag that
-           determines whether dollar signs are accepted in identifiers. */
-        allow_dollar_in_id_chars = !DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS; 
+      case ok_allow_dollar_in_id_chars:
+        /* Determines whether dollar signs are accepted in identifiers. */
+        allow_dollar_in_id_chars = opt_value;
         break;
-      case '#':
+      case ok_display_compilation_time:
         /* Generate compilation timing information. */
+        check_assertion(opt_value == TRUE);
         display_compilation_time = TRUE;
         break;
-      case 'v':
+      case ok_display_compiler_version:
         /* Print out compiler version. */
+        check_assertion(opt_value == TRUE);
         fprintf(stderr, "Edison Design Group C/C++ Front End, version %s\n",
                          VERSION_NUMBER);
         fprintf(stderr, "Copyright 1988-1994 Edison Design Group Inc.\n");
@@ -299,32 +750,36 @@ Process the arguments on the command line that invoked the compiler.
 #endif /* ifdef DEMO_VERSION_ID */
         fputc('\n', stderr);
         break;
-      case 'w':
+      case ok_suppress_warnings:
         /* Suppress warnings. */
+        check_assertion(opt_value == TRUE);
         error_threshold = es_error;
         break;
-      case 'r':
+      case ok_enable_remarks:
         /* Enable remarks. */
+        check_assertion(opt_value == TRUE);
         error_threshold = es_remark;
         break;
-      case 'm':
+      case ok_C_dialect_ANSI:
         /* Compile ANSI C. */
+        check_assertion(opt_value == TRUE);
         C_dialect = C_dialect_ANSI;
         break;
-      case 'p':
+      case ok_C_dialect_cplusplus:
         /* Compile C++. */
+        check_assertion(opt_value == TRUE);
         C_dialect = C_dialect_cplusplus;
         break;
-      case 'x':
-        /* Toggle the value (use the non-default value) of the flag that
-           determines whether support for exceptions is disabled. */
-        exceptions_enabled = !DEFAULT_EXCEPTIONS_ENABLED;
+      case ok_exception_handling:
+        /* Enables or disables support for exceptions. */
+        exceptions_enabled = opt_value;
         break;
-      case 'j':
+      case ok_suppress_used_before_set_warnings:
         /* Suppress used-before-set warnings. */
+        check_assertion(opt_value == TRUE);
         suppress_used_before_set_warnings = TRUE;
         break;
-      case 'I':
+      case ok_include_directory:
         /* Include file directory, add to list. */
         if (*optarg == '-') {
           /* Directory name was probably omitted; next option was taken
@@ -333,17 +788,17 @@ Process the arguments on the command line that invoked the compiler.
         }  /* if */
         add_to_include_search_path(optarg);
         break;
-      case 'D':
+      case ok_define_macro:
         /* Define a macro symbol.  Just save the string for later
            processing. */
         add_to_def_undef_list(optarg, &defs_from_cmd_line);
         break;
-      case 'U':
+      case ok_undefine_macro:
         /* Undefine a macro symbol.  Just save the string for later
            processing. */
         add_to_def_undef_list(optarg, &undefs_from_cmd_line);
         break;
-      case 'e':
+      case ok_set_error_limit:
         /* Set error limit (numbers of errors at which to give up on
            compilation). */
         error_limit = scan_optarg_number(optarg);
@@ -351,7 +806,7 @@ Process the arguments on the command line that invoked the compiler.
           str_command_line_error(ec_cl_invalid_error_limit, optarg);
         }  /* if */
         break;
-      case 'L':
+      case ok_generate_raw_listing:
         /* Generate a file of raw listing information (source lines,
            file/line information, and indications of which lines are which,
            to be read later by a program that will generate an
@@ -367,7 +822,7 @@ Process the arguments on the command line that invoked the compiler.
                                  optarg);
         }  /* if */
         break;
-      case 'X':
+      case ok_generate_cross_reference:
         /* Generate a file of cross-reference information (locations and
 	   kinds of references to symbols) */
         f_xref_info = open_output_file(optarg, /*binary_file=*/FALSE,
@@ -381,7 +836,7 @@ Process the arguments on the command line that invoked the compiler.
                                  optarg);
         }  /* if */
         break;
-      case 'S':
+      case ok_stderr_file_name:
         /* Redirect stderr to a file.  This is useful on systems where
            redirection is not well supported. */
         reopen_error_output_file(optarg, &cannot_open, &bad_name);
@@ -393,11 +848,11 @@ Process the arguments on the command line that invoked the compiler.
                                  optarg);
         }  /* if */
         break;
-      case 'o':
+      case ok_output_file_name:
         /* Specify output file for preprocessing output or IL. */
         ofile_name = optarg;
         break;
-      case 'i':
+      case ok_module_list_for_union_init:
 #if BACK_END_IS_C_GEN_BE
         /* Save a string of comma-separated module names that will be linked
            with this one.  This is used by c_gen_be to generate calls
@@ -411,7 +866,7 @@ Process the arguments on the command line that invoked the compiler.
         goto unknown_option;
 #define DID_GOTO_UNKNOWN_OPTION
 #endif /* BACK_END_IS_C_GEN_BE */
-      case 'd':
+      case ok_debug:
 #if DEBUG
         /* Set debug level. */
         if (proc_debug_option(optarg)) {
@@ -425,40 +880,33 @@ Process the arguments on the command line that invoked the compiler.
 #define DID_GOTO_UNKNOWN_OPTION
 #endif /* DEBUG */
       default:
-        /* Get the option out in the case of an option requiring
-           an argument where the argument is missing. */
-        if (optind >= argc) optind = argc-1;
-        optarg = argv[optind];
-#ifdef DID_GOTO_UNKNOWN_OPTION
-unknown_option:
-#endif /* ifdef DID_GOTO_UNKNOWN_OPTION */
-        str_command_line_error(ec_cl_invalid_option, optarg);
+        /* It should not be possible to get here. */
+        unexpected_condition();
     }  /* switch */
   }  /* while */
   /* Check for the use of C++ options when the dialect being compiled
      is not C++. */
   if (C_dialect != C_dialect_cplusplus) {
-    if (allow_anachronisms != DEFAULT_ALLOW_ANACHRONISMS) {
+    if (option_kind_used[ok_cplusplus_anachronisms]) {
       command_line_error(ec_cl_anachronism_option_only_in_cplusplus);
     }  /* if */
-    if (suppress_virtual_function_table_definition) {
+    if (option_kind_used[ok_suppress_virtual_function_table_definition]) {
       command_line_error(ec_cl_vtbl_option_only_in_cplusplus);
     }  /* if */
-    if (instantiation_mode_string != NULL) {
+    if (option_kind_used[ok_template_instantiation_mode]) {
       command_line_error(ec_cl_instantiation_option_only_in_cplusplus);
     }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (automatic_instantiation_mode != DEFAULT_AUTOMATIC_INSTANTIATION_MODE) {
+    if (option_kind_used[ok_automatic_template_instantiation]) {
       command_line_error(ec_cl_auto_instantiation_option_only_in_cplusplus);
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-    if (implicit_template_inclusion_mode !=
-                                    DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE) {
+    if (option_kind_used[ok_implicit_template_inclusion]) {
       command_line_error(ec_cl_implicit_inclusion_option_only_in_cplusplus);
     }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-    if (exceptions_enabled != DEFAULT_EXCEPTIONS_ENABLED) {
+    if (option_kind_used[ok_exception_handling]) {
       command_line_error(ec_cl_exceptions_option_only_in_cplusplus);
     }  /* if */
   }  /* if */
@@ -468,18 +916,21 @@ unknown_option:
       command_line_error(ec_cl_strict_ansi_incompatible_with_pcc);
     }  /* if */
     /* Strict ANSI mode is incompatible with cfront compatibility mode. */
-    if (cfront_compatibility_mode) {
+    if (any_cfront_mode()) {
       command_line_error(ec_cl_strict_ansi_incompatible_with_cfront);
     }  /* if */
     /* Strict ANSI mode is incompatible with allowing anachronisms.  Don't
        give an error if allow anachronisms is the default -- quietly
        set the flag to not allow anachronisms. */
     if (allow_anachronisms) {
-#if DEFAULT_ALLOW_ANACHRONISMS
-      allow_anachronisms = FALSE;
-#else /* DEFAULT_ALLOW_ANACHRONISMS */
-      command_line_error(ec_cl_strict_ansi_incompatible_with_anachronisms);
-#endif /* DEFAULT_ALLOW_ANACHRONISMS */
+      if (option_kind_used[ok_cplusplus_anachronisms]) {
+        /* Anachronisms were enabled by a command line option. */
+        command_line_error(ec_cl_strict_ansi_incompatible_with_anachronisms);
+      } else {
+        /* Anachronisms enabled by default.  Silently disable them in
+           strict mode. */
+        allow_anachronisms = FALSE;
+      }  /* if */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the
        error threshold was set at a higher level. */
@@ -504,7 +955,7 @@ unknown_option:
   anachronism_error_severity = allow_anachronisms ? es_warning : es_error;
   /* Choose the style of preprocessing. */
   pcc_preprocessing_mode = (C_dialect == C_dialect_pcc);
-  if (cfront_compatibility_mode) {
+  if (any_cfront_mode()) {
 #if OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
     /* When configured that way, use old-style preprocessing for cfront
        compatibility mode. */

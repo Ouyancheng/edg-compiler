@@ -131,6 +131,10 @@ loptions=
 Loptions=
 lfiles=
 #
+# Options to be passed to the underlying C compiler
+#
+c_to_obj_options=
+#
 # Were any library or object files specified on the command line?
 #
 any_l_or_o_files=0
@@ -143,18 +147,13 @@ any_c_files=0
 #
 feoptions=$defines
 #
-# Symbolic debug output for cc.
+# Keep the generated C file
 #
-ccsdb=
 keep_int_file=0
 #
 # Should we link using the purify command?
 #
 link_using_purify=0
-#
-# Generate position independent code
-#
-ccpic=
 #
 # Flag indicating that C is being compiled instead of C++
 #
@@ -176,6 +175,10 @@ strip_line_dirs=0
 #
 suppress_c_to_object_diagnostics=0
 #
+# Show commands as they are executed
+#
+driver_debug=0
+#
 # Go through every argument, identify it, and add it a list if appropriate.
 #
 while [ -n "$1" ]
@@ -184,57 +187,36 @@ do
   curr_param=$1
   used_two_params=0
   case $1 in
+###############################################################################
+# Options used by the driver
+###############################################################################
+    --driver_debug)
+#     Show commands as they are executed.
+      driver_debug=1
+      ;;
+    -O | --optimize)
+#     Generate optimized code
+      c_to_obj_options=$c_to_obj_options" -O";
+      ;;
     -O)
-#     Allow anachronisms
-      feoptions=$feoptions" -O";
+#     Generate optimized code (e.g., -O2)
+      c_to_obj_options=$c_to_obj_options" $1";
       ;;
-    -b)
-#     cfront compatibility
-      feoptions=$feoptions" -b";
+    --optimize=*)
+#     Generate optimized code (e.g., --optimize=2)
+      arg=`expr $1 : '.*=\(.*\)'`    # Get the string after the =
+      c_to_obj_options=$c_to_obj_options" -O$arg";
       ;;
-    -d)
-#     Debug information.
-      shift;
-      feoptions=$feoptions" -d"$1;
-      used_two_params=1
-      ;;
-    -d*)
-      feoptions=$feoptions" "$1;
-      ;;
-    -e)
-#     Set error limit.
-      shift;
-      feoptions=$feoptions" -e"$1;
-      used_two_params=1
-      ;;
-    -e*)
-      feoptions=$feoptions" "$1;
-      ;;
-    -S)
+    -S | --cpfe_only)
 #     Run front end only.
       fe_only=1;
       ;;
-    -n)
-#     Run front end only, suppress output of .int.c file.
-      fe_only=1;
-      feoptions=$feoptions" -n";
-      ;;
-    -N)
-#     Suppress IL lowering.  This will ultimately suppress output of a .int.c
-#     file.
-      fe_only=1;
-      feoptions=$feoptions" -N";
-      ;;
-    -C)
-#     Keep comments in preprocessing output.
-      feoptions=$feoptions" -C";
-      ;;
-    -c)
+    -c | --compile)
 #     Run front end and cc producing a .o file.
       cc_only=1;
       add_to_instantiation_command=0
       ;;
-    -command)
+    -command | --command)
 #     The command name to be used in the .ii file in place of what is
 #     found in argument 0.
       shift
@@ -242,125 +224,19 @@ do
       used_two_params=1
       add_to_instantiation_command=0
       ;;
-    -o)
+    -o | --output)
 #     Explicitly name the executable.
       shift;
       used_two_params=1
       executable=$1;
       add_to_instantiation_command=0
       ;;
-    -w)
-#     Suppress warnings.
-      feoptions=$feoptions" -w";
+    --output=*)
+#     Explicitly name the executable.
+      executable=`expr $1 : '.*=\(.*\)'`    # Get the string after the =
+      add_to_instantiation_command=0
       ;;
-    -r)
-#     Enable remarks.
-      feoptions=$feoptions" -r";
-      ;;
-    -A|-a)
-#     Strict ANSI mode.
-      feoptions=$feoptions" $1";
-      ;;
-    -K)
-#     cpp compatible mode.
-      feoptions=$feoptions" -K";
-      cmode=1;
-      ;;
-    -s)
-#     Signed chars.
-      feoptions=$feoptions" -s";
-      ;;
-    -u)
-#     Unsigned chars.
-      feoptions=$feoptions" -u";
-      ;;
-    -V)
-#     Suppress virtual table definition if no non-inline, pure virtual
-#     function exists.
-      feoptions=$feoptions" -V";
-      ;;
-    -x)
-#     Disable support for exception handling.
-      feoptions=$feoptions" -x";
-      ;;
-    -v)
-#     Verbose mode; display version of front end.
-      feoptions=$feoptions" -v";
-      ;;
-    -E)
-#     Preprocessor only.
-      fe_only=1;
-      preprocessor_only=1
-      feoptions=$feoptions" -E";
-      ;;
-    -P)
-#     Preprocessor only.
-      fe_only=1;
-      preprocessor_only=1
-      feoptions=$feoptions" -P";
-      ;;
-    -M)
-#     Generate makefile dependency lines.
-      fe_only=1;
-      preprocessor_only=1
-      feoptions=$feoptions" -M";
-      ;;
-    -H)
-#     Generate names of include files used.
-      fe_only=1;
-      preprocessor_only=1
-      feoptions=$feoptions" -H";
-      ;;
-    -I)
-#     Collect a list of -I options.
-      shift;
-      feoptions=$feoptions" -I"$1;
-      used_two_params=1
-      ;;
-    -I*)
-      feoptions=$feoptions" "$1;
-      ;;
-    -h)
-#     Suppress standard include directory.
-      std_incl=0;
-      ;;
-    -X)
-#     Collect a list of -X options.
-      shift;
-      feoptions=$feoptions" -X"$1;
-      used_two_params=1
-      ;;
-    -X*)
-      feoptions=$feoptions" "$1;
-      ;;
-    -i)
-#     Collect a list of -i options.
-      shift;
-      feoptions=$feoptions" -i"$1;
-      used_two_params=1
-      ;;
-    -i*)
-      feoptions=$feoptions" "$1;
-      ;;
-    -D)
-#     Collect a list of -D options.
-      shift;
-      feoptions=$feoptions" -D"$1;
-      used_two_params=1
-      ;;
-    -D*)
-      feoptions=$feoptions" "$1;
-      ;;
-    -U)
-#     Collect a list of -U options.
-      shift;
-      feoptions=$feoptions" -U"$1;
-      used_two_params=1
-      ;;
-    -U*)
-      feoptions=$feoptions" "$1;
-      ;;
-    -L)
+    -L | --library_directory)
 #     Collect a list of -L options to pass to the linker.
       shift;
       Loptions=$Loptions" -L"$1;
@@ -370,84 +246,71 @@ do
 #     Collect a list of -L options to pass to the linker.
       Loptions=$Loptions" "$1
       ;;
-    -m)
-#     Process C instead of C++.
-      feoptions=$feoptions" "$1;
-      cmode=1;
+    --library_directory=*)
+#     Collect a list of -L options to pass to the linker.
+      arg=`expr $1 : '.*=\(.*\)'`    # Get the string after the =
+      Loptions=$Loptions" "-L$arg
       ;;
     -l*)
 #     Collect a list of -l options to pass to the linker.
       loptions=$loptions" "$1
       ;;
-    -gn)
-#     Enable debugging but don't keep the .int.c file.
-      ccsdb=-g;
-      ;;
     -g*)
-      ccsdb=-g;
+#     Generate debugging information
+      c_to_obj_options="$c_to_obj_options $1"
+      ;;
+    --debug)
+#     Generate debugging information
+      c_to_obj_options="$c_to_obj_options -g"
+      ;;
+    --debug=*)
+#     Generate debugging information
+      arg=`expr $1 : '.*=\(.*\)'`    # Get the string after the =
+      c_to_obj_options="$c_to_obj_options -g$arg"
+      ;;
+    -h | --no_standard_includes)
+#     Suppress standard include directory.
+      std_incl=0
+      ;;
+    -k | --keep_gen_c)
+#     Keep generated C file
       keep_int_file=1;
       ;;
-    -munch)
+    -munch | --munch)
 #     Use "munch" for handling static constructors and destructors
       patch_mode=0
       ;;
-    -patch)
+    -patch | --patch)
 #     Use "patch" for handling static constructors and destructors
       patch_mode=1
       ;;
-    -pic)
+    -pic | --pic)
 #     Generate position independent code
-      ccpic=-pic
+      c_to_obj_options="$c_to_obj_options -pic"
       ;;
     -target)
 #     SunOS 4.n option, as in "-target sun4" -- ignored.
       shift;
       used_two_params=1
       ;;
-    -t)
-#     Template instantiation mode
-      shift;
-      feoptions=$feoptions" "$1;
-      instantiation_mode_specified=1
-      used_two_params=1
-      ;;
-    -t*)
-#     Template instantiation mode
-      feoptions=$feoptions" "$1;
-      instantiation_mode_specified=1
-      ;;
-    -T)
-#     Suppress automatic template instantiation processing
-      feoptions=$feoptions" "$1;
-      ;;
-    -B)
-#     Enable or disable implicit inclusion of template instantiation
-#     source files (depending on how the front end is configured)
-      feoptions=$feoptions" "$1;
-      ;;
     -Bstatic)
 #     Pass through to linker.
       loptions=$loptions" "$1
       ;;
-    -purify)
+    -purify | --purify)
 #     Link using the purify command
       link_using_purify=1
       ;;
-    -strip_line_dirs)
+    -strip_line_dirs | --strip_line_dirs)
 #     Remove #line directives from generated C
       strip_line_dirs=1
       ;;
-    -suppress_c_to_obj_diagnostics)
+    -suppress_c_to_obj_diagnostics | --suppress_c_to_obj_diagnostics)
 #     Suppress diagnostics from the underlying C compiler
       suppress_c_to_object_diagnostics=1
       ;;
     -sun*)
 #     SunOS 4.n option, as in "-sun4" -- ignored.
-      ;;
-    -*)
-      echo "eccp: unknown option: $1";
-      error=1;
-      add_to_instantiation_command=0
       ;;
     *\.a)
 #     Collect a list of library archive names (.a) files.
@@ -472,6 +335,113 @@ do
 #     Collect a list of .o files.
       ofiles=$ofiles" "$1;
       any_l_or_o_files=1
+      add_to_instantiation_command=0
+      ;;
+###############################################################################
+# Options passed to the front end that take no arguments
+###############################################################################
+    -a |--strict_warnings | \
+    -b | --cfront_2.1 | \
+         --cfront_3.0 | \
+    -j | --no_use_before_set_warnings | \
+    -m | --c | \
+    -p | --c++ | \
+    -r | --remarks | \
+    -s | --signed_chars | \
+    -u | --unsigned_chars | \
+    -v | --version | \
+    -w | --no_warnings | \
+    -x | --exceptions | \
+         --no_exceptions | \
+    -A | --strict | \
+    -B | --implicit_include | \
+         --no_implicit_include | \
+    -C | --comments | \
+    -K | --old_c | \
+    -T | --auto_instantiation | \
+         --no_auto_instantiation | \
+    -V | --suppress_vtbl | \
+         --anachronisms | \
+         --no_anachronisms | \
+    -# | --timing)
+      feoptions=$feoptions" $1"
+#     Check for C or C++ mode
+      case $curr_param in
+        -m | --c | -K | --old_c)
+         cmode=1
+         ;;
+        -p | --c++)
+         cmode=0
+         ;;
+      esac
+      ;;
+###############################################################################
+# Front end options with no arguments that suppress code generation.
+###############################################################################
+    -n | --no_code_gen | \
+    -N | --no_il_lowering)
+      feoptions=$feoptions" $1";
+      fe_only=1
+      ;;
+###############################################################################
+# Front end options with the argument specified in the following argument.
+# For example, -d 5 or --db 5 look like two arguments to the shell.
+###############################################################################
+    -d | --db | \
+    -e | --error_limit | \
+    -i | --module_init | \
+    -t | --instantiate | \
+    -D | --define_macro | \
+    -I | --include_directory | \
+    -U | --undefine_macro | \
+    -X | --xref | \
+         --list | \
+         --error_output)
+      feoptions=$feoptions" $1 $2"
+      shift
+      used_two_params=1
+#     See if an instantiation mode was specified
+      case $curr_param in
+        -t | --instantiate)
+          instantiation_mode_specified=1
+      esac
+      ;;
+###############################################################################
+# Front end options with the argument included as part of the option argument.
+# For example, -d5 or --db=5 look like a single argument to the shell.
+###############################################################################
+    -d* | --db=* | \
+    -e* | --error_limit=* | \
+    -i* | --module_init=* | \
+    -t* | --instantiate=* | \
+    -D* | --define_macro=* | \
+    -I* | --include_directory=* | \
+    -U* | --undefine_macro=* | \
+    -X* | --xref=* | \
+          --list=* | \
+          --error_output=*)
+      feoptions=$feoptions" $1"
+#     See if an instantiation mode was specified
+      case $curr_param in
+        -t* | --instantiate=*)
+          instantiation_mode_specified=1
+      esac
+      ;;
+###############################################################################
+# Preprocessing options
+###############################################################################
+    -E | --preprocess | \
+    -H | --trace_includes | \
+    -M | --dependencies | \
+    -P | --no_line_commands)
+      fe_only=1;
+      preprocessor_only=1
+      feoptions=$feoptions" $1";
+      ;;
+###############################################################################
+    -*)
+      echo "eccp: unknown option: $1";
+      error=1;
       add_to_instantiation_command=0
       ;;
     *)
@@ -575,12 +545,11 @@ do
   then
     echo $cfile: 1>$2
   fi
-  if [ -z "$CPFE" ]
-  then
-    cpfe $feoptions $cfile
-  else
-    $CPFE $feoptions $cfile
+  command="${CPFE} $feoptions $cfile"
+  if [ $driver_debug -ne 0 ] ; then
+    echo $command
   fi
+  eval $command
   status=$?
   #
   # If we are doing automatic instantiation and if the program involves
@@ -625,7 +594,11 @@ do
         sed -e "s/#line.*//" $basefile.int.c >/tmp/$$sld
         mv -f /tmp/$$sld $basefile.int.c
       fi
-      $cc_command $ccsdb $ccpic -c $basefile.int.c >$cc_tmp_file 2>&1
+      command="$cc_command $c_to_obj_options -c $basefile.int.c"
+      if [ $driver_debug -ne 0 ] ; then
+        echo $command
+      fi
+      eval $command >$cc_tmp_file 2>&1
       status=$?
 #
 #     Display any diagnostics generated by the C compiler
@@ -680,16 +653,22 @@ then
 #     a way to generate will cause linker errors to be issued later.
 #
       if [ $automatic_instantiation -ne 0 ] ; then
-        $EDG_PRELINK $EDG_PRELINK_DEFAULT_OPTIONS $EDG_DEFAULT_LIB_PATHS \
+        command="$EDG_PRELINK $EDG_PRELINK_DEFAULT_OPTIONS \
+                     $EDG_DEFAULT_LIB_PATHS \
 		     $Loptions -L$LIBDIR \
 		     $loptions $ofiles $lfiles \
-                     $instantiation_libraries
+                     $instantiation_libraries"
+        if [ $driver_debug -ne 0 ] ; then
+          echo $command
+        fi
+        eval $command
       fi
 #     Save the link command in a variable so it can be done again in the
 #     "munch" step below.
 #     Note:  -lC is missing from this command and is supplied later using
 #     the variable link_command_suffix.
-      link_command="$cc_command $ccsdb $Loptions -L$LIBDIR -o $executable \
+      link_command="$cc_command $c_to_obj_options $Loptions -L$LIBDIR \
+                       -o $executable \
                        $ofiles $lfiles $loptions -lstd$EDG_LIB_SUFFIX \
 		       $EDG_C_TO_OBJ_LIBRARIES"
       link_command_suffix=" -lC$EDG_LIB_SUFFIX"
@@ -700,6 +679,9 @@ then
 #     Link the executable.  The linker output is saved to a file and then
 #     fed through edg_decode to demangle the names.
 #
+      if [ $driver_debug -ne 0 ] ; then
+        echo $link_command $link_command_suffix
+      fi
       link_error_file=$TMPDIR/eccperr$$
       $link_command $link_command_suffix >$link_error_file 2>&1
       status=$?
@@ -710,7 +692,11 @@ then
         if [ $patch_mode = 1 ] ; then
 #         Do "patch" processing.
           chmod 664 $executable
-          $PATCH $executable
+          command="$PATCH $executable"
+          if [ $driver_debug -ne 0 ] ; then
+            echo $command
+          fi
+          eval $command
           status=$?
           if [ $status = 0 ]
           then
@@ -724,15 +710,28 @@ then
 #            3. Re-link with object of C file
 #
           tmpfile=$TMPDIR/$$edgm
-          nm $EDG_MUNCH_NM_OPTIONS $executable | $MUNCH >$tmpfile.c
-          (cd $TMPDIR; $cc_command -c $tmpfile.c)
+          command="nm $EDG_MUNCH_NM_OPTIONS $executable | $MUNCH >$tmpfile.c"
+          if [ $driver_debug -ne 0 ] ; then
+            echo $command
+          fi
+          eval $command
+          command="$cc_command $c_to_obj_options -c $tmpfile.c"
+          if [ $driver_debug -ne 0 ] ; then
+            echo $command
+          fi
+          eval $command
+          (cd $TMPDIR; eval $command)
           status=$?
           if [ $status -ne 0 ] ; then
             echo "eccp: compilation of file generated by munch failed"
             exit $status
           fi
 #         Do the link again.
-          $link_command $tmpfile.o $link_command_suffix >$link_error_file 2>&1
+          command="$link_command $tmpfile.o $link_command_suffix"
+          if [ $driver_debug -ne 0 ] ; then
+            echo $command
+          fi
+          eval $command >$link_error_file 2>&1
           status=$?
           $EDG_DECODE <$link_error_file 1>&2
           rm -f $tmpfile.c $tmpfile.o

@@ -1,5 +1,41 @@
 Version 2.24
 
+6/10/94 Changes in command line option handling
+
+A number of changes have been made in the processing of command
+line arguments.
+
+1. The front end now supports keyword options such as --exceptions.
+
+2. A few of the single letter options whose use did not match common
+   practice have been eliminated.  Specifically, -O (anachronisms)
+   and -S (error output file) are no longer recognized by the
+   front end.  The keyword equivalents --anachronisms (or --no_anachronisms)
+   and --error_output must be used instead.
+
+3. The single letter options that select the opposite of some default value
+   have been modified to select a given behavior regardless of the default
+   value.  The affected options are -x (exception handling), -T
+   (automatic instantiation), and -B (implicit inclusion).  -O (anachronisms)
+   also worked this way, but as described above, -O has been eliminated
+   altogether.
+
+   -x now always turns exceptions on and is equivalent to --exceptions.
+   --no_exceptions may be used to disable exceptions if exceptions are
+   enabled by default.
+
+   -T now always turns automatic instantiation on and is equivalent to
+   --auto_instantiation.  --no_auto_instantiation may be used to disable
+   automatic instantiation if it is enabled by default.
+
+   -B now always turns implicit inclusion on and is equivalent to
+   --implicit_include.  --no_implicit_include may be used to disable
+   implicit inclusion if it is enabled by default.
+
+6/10/94 Change in default for support of anachronisms
+
+When compiling C++ code, anachronisms are now disabled by default.
+
 6/8/94  IL CHANGE: originally_unnamed field in class types
 
 originally_unnamed in class types now indicates types that were

@@ -54,9 +54,23 @@ EXTERN a_boolean
 			   features used, disable features that conflict
 			   with ANSI C (i.e., asm). */
 EXTERN a_boolean
-                cfront_compatibility_mode /* = FALSE */;
-                        /* -b option:  accept language features supported
+                cfront_2_1_mode /* = FALSE */;
+                        /*  accept language features supported
                             by cfront release 2.1. */
+EXTERN a_boolean
+                cfront_3_0_mode /* = FALSE */;
+                        /*  accept language features supported
+                            by cfront release 3.0. */
+EXTERN a_boolean
+                cfront_compatibility_mode /* = FALSE */;
+                        /*  accept language features supported
+                            by cfront release 2.1. */
+
+/*
+Macro that is TRUE if any cfront mode has been selected.
+*/
+#define any_cfront_mode() (cfront_2_1_mode || cfront_3_0_mode)
+
 EXTERN a_boolean
 		pcc_preprocessing_mode /* = FALSE */;
 			/* TRUE if old-style (Reiser cpp) preprocessing

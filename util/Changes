@@ -1,4 +1,25 @@
-Version 2.23
+Version 2.24
+
+6/10/94 Changes in command line handling
+
+The eccp script has been changed to accommodate the same command line
+changes that were made in the front end.
+
+In addition to the changes described for the front end, eccp now uses
+the -O option to specify that the C compiler used to compile the
+generated code should be invoked with optimization requested.
+
+The -g option no longer causes the .int.c file to be retained.
+A separate option (-k or --keep_gen_c) is now available to
+request that the .int.c file be preserved.
+
+The -gn option (which was equivalent to the new -g --keep_int_c) has been
+eliminated.
+
+The --driver_debug option has been added to display, for debugging
+purposes, the commands executed by the driver.
+-------------------------------------------------------------------------------
+Version 2.23, May 25, 1994
 
 4/11/94 edg_prelink displays identifiers in demangled form
 
