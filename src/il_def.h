@@ -2073,10 +2073,6 @@ enum a_type_qualifier_tag {
   tqt_near,		/* near */
   tqt_far,		/* far */
 #endif /* NEAR_AND_FAR_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  tqt_inline,           /* Microsoft issues a warning and otherwise ignores
-                           "inline" used as a type qualifier. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tqt_last		/* Must be last. */
 };
 
@@ -2103,11 +2099,6 @@ Definitions of the bits in bit sets of type a_type_qualifier_set.
 #define TQ_FAR		(1 << (int)tqt_far)
 			/* This bit is set to represent far. */
 #endif /* NEAR_AND_FAR_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#define TQ_INLINE	(1 << (int)tqt_inline)
-			/* This bit is set to represent inline used as a
-			   qualifier. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 The last type qualifier tag value is used as the number of bits required

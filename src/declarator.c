@@ -120,12 +120,6 @@ token is a qualifier).
                         &dummy_storage_class, &dummy_type_ptr,
                         &qualifiers, &dummy_decl_modifiers,
                         &local_decl_pos_block);
-  check_assertion(qualifiers != TQ_NONE);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (qualifiers & TQ_INLINE) {
-    warning(ec_inline_qualifier_ignored);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     check_assertion(local_decl_pos_block.specifiers_range.end.seq != 0);
@@ -1816,16 +1810,11 @@ issue an error if a default argument expression is encountered.
          to member function are permitted.  Also, in microsoft mode the
          keyword "inline" is always accepted as a qualifier (a warning that
          it is ignored will have been issued earlier). */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode && qualifiers == TQ_INLINE && !restrict_qualified) {
+      if (microsoft_mode && qualifiers == TQ_NONE && !restrict_qualified) {
         /* No diagnostic and no need to adjust the type of this or *this. */
-        qualifiers = qualifiers & ~TQ_INLINE;
-      } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Do not insert code here. */
-      if (locator != NULL && locator->is_operator_name &&
-          (is_new_operator(locator->variant.opname) ||
-           is_delete_operator(locator->variant.opname))) {
+      } else if (locator != NULL && locator->is_operator_name &&
+                 (is_new_operator(locator->variant.opname) ||
+                  is_delete_operator(locator->variant.opname))) {
         /* Operator new and delete can never be qualified. */
         qualifier_err = TRUE;
       } else if (member_function_parent_type == NULL) {
@@ -1858,22 +1847,17 @@ issue an error if a default argument expression is encountered.
         }  /* if */
         this_param_type = member_function_parent_type;
       } else {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        this_param_type = make_qualified_type(member_function_parent_type,
-                                              qualifiers & ~TQ_INLINE);
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
         this_param_type = make_qualified_type(member_function_parent_type,
                                               qualifiers);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       if (qualifier_err) {
         pos_error(ec_function_qualifier_not_allowed, &qualifier_pos);
       }  /* if */
     }  /* if */
     if (is_nonstatic_member_function &&
-        qualifiers == TQ_NONE && !qualifier_err) {
+        qualifiers == TQ_NONE && !restrict_qualified && !qualifier_err) {
       /* This is a nonstatic member function declared within the definition
-         of the class indicated. */
+         of the class indicated, but without significant qualifiers. */
       this_param_type = member_function_parent_type;
 #if RESTRICT_ALLOWED
       restrict_qualified = FALSE;

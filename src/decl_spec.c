@@ -4575,6 +4575,11 @@ Returns TRUE if there is an error in the specifiers.
 	  /* Only one "inline" specifier at at time. */
 	  error(ec_dupl_decl_specifier);
 	  err = TRUE;
+   } else if (input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) {
+     /* The keyword "inline" was seen as a qualifier.  This is only
+           possible in Microsoft mode and that qualifier is ignored. */
+     check_assertion(microsoft_mode);
+     warning(ec_inline_qualifier_ignored);
 	} else {
           decl_specifiers_seen |= DS_INLINE;
 	  *output_flags |= DSO_INLINE;
@@ -5291,9 +5296,6 @@ no_get_token:
         /* Keep looping. */
       } else {
         /* Did we see tok_inline used as a qualifier? */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (decl_specifiers_seen & DS_INLINE) { *qualifiers |= TQ_INLINE; }
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         goto exit_loop;
       }  /* if */
     } else if (defines_something &&
