@@ -2831,6 +2831,13 @@ the current class (class_type).
     clep->class_type = class_type;
     clep->next = ctsp->befriending_classes;
     ctsp->befriending_classes = clep;
+    /* Now add the friend_class_type to the friends list for the current
+       class. */
+    ctsp = class_type->variant.class_struct_union.extra_info;
+    clep = alloc_list_entry_for_class();
+    clep->class_type = friend_class_type;
+    clep->next = ctsp->friend_classes;
+    ctsp->friend_classes = clep;
   }  /* if */
 }  /* decl_friend_class */
 
@@ -2938,14 +2945,16 @@ into account.  For nonmember functions, this could be the initial declaration
 of the function, and again overloading is a possibility.
 */
 {
-  a_symbol_ptr            sym, ext_sym;
-  an_id_linkage_kind      linkage;
-  a_type_ptr              old_type;
-  a_class_list_entry_ptr  clep;
-  a_boolean               is_overloaded_function;
-  a_boolean               is_function_def_with_body;
-  a_boolean               is_main_function = FALSE;
-  a_storage_class         storage_class;
+  a_symbol_ptr                 sym, ext_sym;
+  an_id_linkage_kind           linkage;
+  a_type_ptr                   old_type;
+  a_class_list_entry_ptr       clep;
+  a_boolean                    is_overloaded_function;
+  a_boolean                    is_function_def_with_body;
+  a_boolean                    is_main_function = FALSE;
+  a_storage_class              storage_class;
+  a_class_type_supplement_ptr  ctsp;
+  a_routine_list_entry_ptr     rlep;
 
   db_enter(3, "decl_friend_function");
   if (!is_error_locator(*locator)) {
@@ -3040,6 +3049,12 @@ of the function, and again overloading is a possibility.
       clep->class_type = class_type;
       clep->next = sym->variant.routine.ptr->befriending_classes;
       sym->variant.routine.ptr->befriending_classes = clep;
+      /* Now add the routine to the friends list for the current class. */
+      ctsp = class_type->variant.class_struct_union.extra_info;
+      rlep = alloc_list_entry_for_routine();
+      rlep->routine = sym->variant.routine.ptr;
+      rlep->next = ctsp->friend_routines;
+      ctsp->friend_routines = rlep;
     }  /* if */
   }  /* if */
   db_exit();
