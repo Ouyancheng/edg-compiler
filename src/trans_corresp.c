@@ -2153,15 +2153,16 @@ static a_boolean microsoft_compatible_friend_linkage(a_routine_ptr  rp1,
 /*
 In Microsoft mode, a routine only declared in a friend declaration should
 be treated as having "unknown" linkage instead of the standard "external"
-linkage.  Two matching friend function declaration are therefore always
+linkage.  Two matching friend function declarations are therefore always
 compatible if one was the only declaration of that function in that
 translation unit.
 */
 {
   a_boolean  result = FALSE;
 
-  if ((rp1->declared_only_as_friend && !rp1->defined_in_friend_decl) ||
-      (rp2->declared_only_as_friend && !rp2->defined_in_friend_decl)) {
+  if (microsoft_mode &&
+      ((rp1->declared_only_as_friend && !rp1->defined_in_friend_decl) ||
+       (rp2->declared_only_as_friend && !rp2->defined_in_friend_decl))) {
     result = TRUE;
   }  /* if */
   return result;
