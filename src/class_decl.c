@@ -6228,7 +6228,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                    (and despite the ARM's silence on the issue), they are
                    disallowed.  Our approach does not involve promoting the
                    names to the current scope, so some error recovery problems
-`                  are bound to show up. */
+                   are bound to show up. */
                 pos_error(ec_static_data_member_anon_union, &decl_start_pos);
               } else if (is_union_type(class_type)) {
                 /* Unions are not allowed to have static data members. */
