@@ -42,9 +42,13 @@ typedef struct a_routine_fixup {
 			/* Next in a linked list of routine fixup blocks,
 			   each of which is associated with a particular
 			   member function of a given class. */
-  a_routine_ptr routine;
-			/* Pointer to the routine entry to which the fixup
-			   applies. */
+  a_symbol_ptr  symbol;
+			/* Pointer to a symbol entry with which the fixup
+			   is associated.  Usually, it is a member function
+			   symbol, but it can be any member symbol with an
+			   associated routine type for which default args
+			   have been specified (a typedef or data member of
+			   type ptr-to-routine). */
   a_func_info_block
 		func_info;
 			/* Information saved by declarator processing for
@@ -105,7 +109,7 @@ initialize it.
   }  /* if */
   /* Clear the entity. */
   rfp->next = NULL;
-  rfp->routine = NULL;
+  rfp->symbol = NULL;
   rfp->def_arg_expr_fixup_list = NULL;
   clear_func_info(&rfp->func_info);
   /* We don't know whether this cache will be reused or not.  Make it
@@ -141,6 +145,8 @@ with the indicated scope stack entry.
 
   check_assertion(ssep->il_scope->kind ==
                                    (a_scope_kind)sck_class_struct_union);
+  check_assertion(rfp->symbol != NULL);
+  
   if (ssep->last_routine_fixup == NULL) {
     (symbol_supplement_for_class(ssep->assoc_type))->routine_fixup_list = rfp;
   } else {
@@ -310,9 +316,10 @@ routine recursively for each nested class.
       daefp = rfp->def_arg_expr_fixup_list;
       if (daefp != NULL) {
         /* There is at least one default argument associated with this
-           function. */
-        sym = (a_symbol_ptr)rfp->routine->source_corresp.assoc_info;
-        is_friend = (sym->class_of_which_a_member != class_type);
+           function type. */
+        sym = rfp->symbol;
+        is_friend = (is_function_symbol(sym) &&
+                     sym->class_of_which_a_member != class_type);
         if ((is_real_template_instantiation && !is_friend) ||
             (is_nonreal_template_instantiation && is_friend)) {
           /* The token cache should be discarded for friend declarations in
@@ -325,10 +332,18 @@ routine recursively for each nested class.
             /* Scan the default arguments associated with the template for this
                function. */
             /* Get the template symbol from the instance pointer. */
-            sym = sym->variant.routine.instance_ptr->template_sym;
-            tssp = sym->variant.routine.instance_ptr->template_info;
-            delayed_scan_for_function_template_default_args
-                        (tssp->variant.function.routine, rfp->routine, tssp);
+            if (sym->kind == (a_symbol_kind)sk_member_function) {
+              tssp = sym->variant.routine.instance_ptr->template_sym->
+                               variant.routine.instance_ptr->template_info;
+              delayed_scan_for_function_template_default_args(
+                                              tssp->variant.function.routine,
+                                              sym->variant.routine.ptr, tssp);
+            } else {
+#if 0
+/* Not yet implemented. */
+#endif /* if 0 */
+              internal_error("delayed_scan_fixup_for_class: not a routine");
+            }  /* if */
           }  /* if */
         } else if (is_nonreal_template_instantiation) {
           a_def_arg_expr_fixup_ptr    daefp_end;
@@ -385,7 +400,7 @@ routine recursively for each nested class.
        function bodies. */
     for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
       if (rfp->function_body_token_cache.first_token != NULL) {
-        sym = (a_symbol_ptr)rfp->routine->source_corresp.assoc_info;
+        sym = rfp->symbol;
         is_friend = (sym->class_of_which_a_member != class_type);
         if ((is_real_template_instantiation && !is_friend) ||
             (is_nonreal_template_instantiation && is_friend)) {
@@ -429,7 +444,7 @@ routine recursively for each nested class.
           /* Let get_token know about the cache. */
           rescan_cached_tokens(&rfp->function_body_token_cache);
           /* Scan the function body. */
-          scan_function_body(rfp->routine, &rfp->func_info,
+          scan_function_body(rfp->symbol->variant.routine.ptr, &rfp->func_info,
                              (SFB_NO_CLASS_REACTIVATION |
                               SFB_NEW_STRUCT_STMT_STACK_REQUIRED));
           /* scan_function_body does not scan past the right brace. */
@@ -3922,6 +3937,14 @@ table.
       }  /* if */
     }  /* if */
   }  /* if */
+  /* Check for the case in which the type is or contains a routine type for
+     which default arguments have been specified. */
+  if (curr_routine_fixup != NULL &&
+      curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
+    /* Update the symbol pointer in the fixup entry -- it's needed when the
+       default args are scanned (once the entire class has been scanned). */
+    curr_routine_fixup->symbol = sym;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3) db_symbol(sym, "", 4);
 #endif /* DEBUG */
@@ -4702,6 +4725,14 @@ class, struct, or union.
         }  /* if */
       }  /* if */
     }  /* if */
+  }  /* if */
+  /* Check for the case in which the type is or contains a routine type for
+     which default arguments have been specified. */
+  if (curr_routine_fixup != NULL &&
+      curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
+    /* Update the symbol pointer in the fixup entry -- it's needed when the
+       default args are scanned (once the entire class has been scanned). */
+    curr_routine_fixup->symbol = member_sym;
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
@@ -6371,7 +6402,10 @@ Scan the body of a class definition, including the base classes list.
               }  /* if */
             }  /* if */
             if (curr_routine_fixup != NULL) {
-              curr_routine_fixup->routine = rout_sym->variant.routine.ptr;
+              /* Update the symbol pointer in the fixup entry -- it's needed
+                 when the default args are scanned (once the entire class has
+                 been scanned). */
+              curr_routine_fixup->symbol = rout_sym;
               curr_routine_fixup->func_info = func_info;
             } else {
               done_with_func_info(func_info);
@@ -6484,6 +6518,13 @@ Scan the body of a class definition, including the base classes list.
             typedef_sym_ptr->variant.type->source_corresp.access = access;
             typedef_sym_ptr->variant.type->
                           source_corresp.class_of_which_a_member = class_type;
+            if (curr_routine_fixup != NULL &&
+                curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
+              /* Update the symbol pointer in the fixup entry -- it's needed
+                 when the default args are scanned (once the entire class has
+                 been scanned). */
+              curr_routine_fixup->symbol = typedef_sym_ptr;
+            }  /* if */
           } else if (curr_token == tok_assign &&
                      is_scalar_type(local_type) &&
                      is_const_qualified_type(local_type) &&
