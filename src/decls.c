@@ -6643,9 +6643,13 @@ to indicate whether an enumeration is actually defined.
       /* An unnamed enum type.  mark_defined can't be called to put out a
          source sequence entry for it, but we need one anyway, so call
          the subroutine directly. */
-      update_source_sequence_list((char *)enum_type,
-                                  (an_il_entry_kind)iek_type, &pos_curr_token,
-                                  (a_source_sequence_entry_ptr)NULL);
+      if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
+          depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+        update_source_sequence_list((char *)enum_type,
+                                    (an_il_entry_kind)iek_type,
+                                    &pos_curr_token,
+                                    (a_source_sequence_entry_ptr)NULL);
+      }  /* if */
 #endif  /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
     /* When an enumeration is defined within a class definition, its access
