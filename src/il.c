@@ -3475,19 +3475,14 @@ to it.
 a_routine_ptr alloc_routine(void)
 /*
 Allocate a routine entry, clear it to default values, and return a pointer
-to it.
+to it.  The entry is allocated in the file scope memory region.
 */
 {
   a_routine_ptr rp;
 
   db_enter(5, "alloc_routine");
 
-  /* Even though at the moment routines always end up at the file scope level,
-     we do not call alloc_il here.  It wouldn't hurt, but it's not 
-     necessary, since the caller handles the switch of memory regions.
-     And, this approach makes it possible to allocate routines differently
-     if the rules change in the future. */
-  rp = (a_routine_ptr)alloc_cil(sizeof(a_routine));
+  rp = (a_routine_ptr)alloc_il(sizeof(a_routine));
 #if DEBUG
   num_routines_allocated++;
 #endif /* DEBUG */
