@@ -5,6 +5,20 @@ Version 2.40
 The fix for protected member access checking done recently (see Changes
 entry of 7/3/98) introduced a recursion loop in some cases.  Now fixed.
 
+10/2/98   Abort in #pragma pack support
+
+When USER_CONTROL_OF_STRUCT_PACKING is TRUE, there was a null-pointer
+abort in popping an unnamed entry from the #pragma pack stack (see
+Changes entry of 4/5/95).  Now fixed.  For example:
+
+  #pragma pack (push, begin)
+  #pragma pack (push, 4)
+  struct S {
+    char x;
+    long y;
+  };
+  #pragma pack (pop, begin)         // Abort here has been fixed
+
 10/2/98   stat() declaration no longer included in host_envir.h by default
 
 Formerly, a declaration of stat() has been provided in host_envir.h
