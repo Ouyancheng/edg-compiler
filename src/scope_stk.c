@@ -3821,9 +3821,10 @@ NULL.
           /* No diagnostic on inline non-member functions defined in a header
              file. */
 #if GNU_EXTENSIONS_ALLOWED
-        } else if (rout_ptr->has_gnu_unused_attribute) {
+        } else if (rout_ptr->has_gnu_unused_attribute ||
+                   rout_ptr->has_gnu_used_attribute) {
           /* Do not diagnose an unused function that carries the "unused"
-             attribute. */
+             or "used" attributes. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if ASM_FUNCTION_ALLOWED
         } else if (storage_class == (a_storage_class)sc_asm) {
