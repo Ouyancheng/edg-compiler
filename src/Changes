@@ -1266,7 +1266,7 @@ done by g++.  [9/16/02] Compound literals and designated initializers.
 parenthesized initializers.  [9/24/02] Nonstandard anonymous unions.
 [9/24/02] Member typedefs are accepted in elaborated type specifiers.
 [10/9/02] Guiding declarations are disabled. [10/16/02] String literals
-are const.
+are const. [10/18/02] Namespace std is predeclared.
 
 8/5/02   Final name mangling not done on some promoted local static
          variables

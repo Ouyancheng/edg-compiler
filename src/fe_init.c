@@ -1177,9 +1177,12 @@ when it is a secondary file.
       /* Predeclare namespace "std" and create a symbol for it.  Note that
          the symbol is not actually added to the symbol table until namespace
          "std" is explicitly declared (unless the --ignore_std option is
-         used). */
+         used or we are in g++ mode). */
       make_symbol_for_namespace_std();
-      if (ignore_std_namespace) {
+      if (ignore_std_namespace || gpp_mode) {
+        /* In --ignore_std mode, enter "std" so it can be used as a
+           synonym for the global namespace.  In g++ mode, "std" is
+           predeclared. */
         clear_locator(&locator_for_curr_id, &null_source_position);
         enter_symbol_for_namespace_std(&locator_for_curr_id);
       }  /* if */
