@@ -1197,7 +1197,7 @@ and the entry pointer is to an entry in the file scope, just return
               remap_ptr(ptr->variant.type, a_type_ptr, iek_type);
               break;
             case aak_constant:
-              walk_constant(ptr->variant.constant);
+              remap_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
               break;
 #if CHECKING
             default:
