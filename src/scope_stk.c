@@ -447,7 +447,6 @@ function-local entities in the IA-64 ABI.
   for (; sep != NULL; sep = sep->next) {
     if (sep->symbol->header == header && sep->symbol->kind == sym->kind) {
       /* A previous declaration does collide with the new one. */
-      a_discriminator  discriminator;
       if (sym->kind == (a_symbol_kind)sk_variable) {
         sym->variant.variable.discriminator =
            sep->symbol->variant.variable.discriminator+1;
