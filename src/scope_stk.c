@@ -216,7 +216,8 @@ Dump decl-pos information for the specified symbol (for debugging).
         if (sym->kind == (a_symbol_kind)sk_variable ||
             sym->kind == (a_symbol_kind)sk_static_data_member) {
           a_variable_ptr  vp = sym->variant.variable.ptr;
-          if (vp->init_kind != (an_init_kind)initk_none) {
+          if (vp->initializer_range.start.seq != 0 ||
+              vp->initializer_range.end.seq != 0) {
             fprintf(f_debug,
                     "    initializer range: %4lu/%-3lu -- %4lu/%-3lu\n",
                     vp->initializer_range.start.seq,
