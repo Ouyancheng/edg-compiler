@@ -225,7 +225,7 @@ extern void decl_spec_one_time_init(void);
                            Microsoft mode (and only under restricted
                            circumstances). */
 #define DSO_TYPENAME		((a_decl_flag_set)0x8000)
-			/* This bit is set if and only if the keyord typename
+			/* This bit is set if and only if the keyword typename
 			   introduced an elaborated type specifier (i.e.,
 			   DSO_ELABORATED_TYPE_SPECIFIER must also be set). */
 #define DSO_LAST DSO_LINKAGE_SPEC_DECL
