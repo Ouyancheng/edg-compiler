@@ -3259,6 +3259,7 @@ Write out attributes that apply to the indicated routine.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 }  /* write_routine_attributes */
 
+#if GCC_IS_GENERATED_CODE_TARGET
 
 static void write_asm_name(char *asm_name)
 /*
@@ -3288,6 +3289,7 @@ Write out the register assigned to a variable.
   write_tok_str("\")");
 }  /* write_var_reg_name */
 
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void gen_function_declarator_with_scope(a_type_ptr   type,
@@ -9942,9 +9944,11 @@ TRUE if the declaration following this one is such a continuation.
     /* A declaration of the routine. */
     /* For a pure virtual function, add "= 0". */
     if (rout->pure_virtual) write_tok_str(" = 0");
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET
     /* Emit any user-specified assembly symbol for this variable. */
     write_asm_name (rout->asm_name);
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
+#if GNU_EXTENSIONS_ALLOWED
     /* Emit attributes associated with the routine. */
     write_routine_attributes(rout);
 #endif /* GNU_EXTENSIONS_ALLOWED */

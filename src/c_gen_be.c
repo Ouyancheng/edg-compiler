@@ -1636,6 +1636,7 @@ Write out attributes that apply to the indicated routine.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 }  /* write_routine_attributes */
 
+#if GCC_IS_GENERATED_CODE_TARGET
 
 static void write_asm_name(char *asm_name)
 /*
@@ -1665,6 +1666,7 @@ Write out the register assigned to a variable.
   write_tok_str("\")");
 }  /* write_var_reg_name */
 
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static char *tag_kind(a_type_kind kind)
@@ -7802,11 +7804,11 @@ if this routine has a body (dump nothing if it has no body).
     if (!is_definition) {
       /* A declaration of the routine. */
       dump_declaration_using_type(rout->type, &rout->source_corresp);
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET
       /* Emit any user-specified assembly symbol for this variable.
          This must precede all attribute specifications. */
       write_asm_name (rout->asm_name);
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
 #if GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C
       /* gcc has a special way of indicating that a routine should be
          called at program startup.  If this is an initialization routine,
