@@ -1114,7 +1114,7 @@ appended, so if a null suffix is to be permitted, it must be included
 in the suffix list ("::" in the list indicates a null suffix).
 */
 #ifndef DEFAULT_INCLUDE_FILE_SUFFIX_LIST
-#define DEFAULT_INCLUDE_FILE_SUFFIX_LIST "h:hpp::"
+#define DEFAULT_INCLUDE_FILE_SUFFIX_LIST "::h:hpp"
 #endif /* DEFAULT_INCLUDE_FILE_SUFFIX_LIST */
 
 /*
