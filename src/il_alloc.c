@@ -2485,7 +2485,7 @@ Display and return the amount of space used for various IL tables.
                 a_base_class_derivation);
   db_space_used("base class", num_base_classes_allocated, a_base_class);
   db_space_used("template args", num_template_args_allocated, a_template_arg);
-  db_space_used("templ param type supplements",
+  db_space_used("templ param supplement",
                 num_template_param_type_supplements_allocated,
                 a_template_param_type_supplement);
   db_space_used("type", num_types_allocated, a_type);
