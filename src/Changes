@@ -1,5 +1,34 @@
 Version 2.24
 
+6/6/94  Warning on partial or failed virtual function overriding
+
+There are two "suspicious" cases involving function declarations in a
+derived class when the name of the function is the same as that of a
+virtual function in a base class.
+
+(1) When the base class virtual function is overloaded and the overload
+    set is only partially overridden by declarations in the derived class,
+    a warning is issued; e.g.,
+
+      class A {
+        virtual void f();
+        virtual void f(int);
+      };
+      class B : public A {
+        void f();                    // Warning -- partial override
+      };
+
+(2) When the base class virtual function is not overridden by a declaration
+    in the derived class but another function declaration with the same
+    name appears in the derived class, a warning is issued; e.g.,
+
+      class A {
+        virtual void f(int);
+      };
+      class B : public A {
+        void f(unsigned int);       // Warning -- was an override intended?
+      };
+
 6/6/94  Overload resolution, built-in operators, and typedefs
 
 A bug in overload resolution has been fixed.  Typedefs of a pointer type
