@@ -118,7 +118,7 @@ typedef struct a_source_file {
 		related_file_implicit_include_done;
 			/* For a header file this is TRUE if an attempt has
 			   been made to implicitly include the
-			   source file (e.g., .c file) that corresonds to this
+			   source file (e.g., .c file) that corresponds to this
 			   header file. This is set to TRUE
 			   even if the attempt failed (e.g., the file does not
 			   exist. */
