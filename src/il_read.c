@@ -23,6 +23,10 @@ il_read.c -- Read the intermediate language.
    program (which has to read an IL file). */
 #if BACK_END_SHOULD_BE_CALLED || STANDALONE_UTILITY_PROGRAM
 
+#if !ORPHAN_PROCESSING_NEEDED
+??=error -- ORPHAN_PROCESSING_NEEDED must be set if IL reading is needed.
+#endif /* !ORPHAN_PROCESSING_NEEDED */
+
 #if __ANSIC__
 #include <stdlib.h>
 #else
@@ -44,7 +48,7 @@ extern char *malloc(unsigned size);
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
 #if __CENTERLINE__
-extern int centerline_untype (void *, unsigned int);
+extern int centerline_untype(void *, unsigned int);
 #endif /* __CENTERLINE__ */
 
 
@@ -65,11 +69,25 @@ static an_il_entry_number
 			   The "fs_" array is for the file scope, the other is
 			   for a function scope. */
 #if CHECKING && DEBUG
-static a_byte_boolean *
-		entry_read_array[(int)iek_last];
+static a_byte	*entry_read_array[(int)iek_last];
 			/* Array of pointers, for each IL entry kind,
 			   pointing to a boolean array denoting which
 			   entries of that kind have been read. */
+
+/*
+Macro to set an element of the entry_read_array to 1.  kind is the entry
+kind, index is the entry number.
+*/
+#define set_entry_read_array(kind, index)                             \
+ (entry_read_array[kind][(index) / CHAR_BIT] |= (1 << ((index) % CHAR_BIT)))
+/*
+Macro to extract an element of the entry_read_array.  kind is the entry kind,
+index is the entry number.
+*/
+#define get_entry_read_array(kind, index)                             \
+ ((entry_read_array[kind][(index) / CHAR_BIT] & (1 << ((index) % CHAR_BIT))) \
+  != 0)
+
 #endif /* CHECKING && DEBUG */
 #else /* !ALTERNATE_IL_FILE_FORMAT */
 
@@ -119,7 +137,7 @@ Interface to fread.  Read "size" bytes from f_il_input and put them at
 "*ptr".  If the read is unsuccessful, generate a catastrophic error.
 */
 {
-  if (fread(ptr, (int)size, 1, f_il_input) != 1) {
+  if (fread(ptr, size_t_arg(size), 1, f_il_input) != 1) {
     catastrophe(ec_bad_il_file);
   }  /* if */
 #if __CENTERLINE__
@@ -129,36 +147,34 @@ Interface to fread.  Read "size" bytes from f_il_input and put them at
 
 
 #if ALTERNATE_IL_FILE_FORMAT
-static char *remap_entry_number_to_ptr(an_il_entry_number entry_number,
-                                       an_il_entry_kind   entry_kind)
+static char *remap_entry_number_to_ptr(an_encoded_entry_number encoded_number,
+                                       an_il_entry_kind        entry_kind)
 /*
-Return a pointer to the IL entry of kind entry_kind whose entry number is
-entry_number.
+Return a pointer to the IL entry of kind entry_kind whose encoded entry
+number is encoded_number.
 */
 {
   char               *ptr;
   char               **entry_array_base_array_ptr;
-#if ORPHAN_PROCESSING_NEEDED
   a_boolean	     is_in_file_scope;
-#endif /* ORPHAN_PROCESSING_NEEDED */
+  an_il_entry_number entry_number;
 #if CHECKING
   an_il_entry_number *entry_count_array_ptr;
 #endif /* CHECKING */
+  sizeof_t           gross_entry_size;
 
-  if (entry_number == 0) {
-    /* A zero entry number means a NULL pointer. */
+  if (encoded_number == 0) {
+    /* A zero encoded entry number means a NULL pointer. */
     ptr = NULL;
   } else {
-    /* Function-scope entry numbers have the top bit turned on. */
-    if ((entry_number & FUNC_ENTRY_NUMBER_TAG) == 0) {
+    /* Function-scope entry numbers have a tag bit turned on. */
+    if ((encoded_number & FUNC_ENTRY_NUMBER_BIT) == 0) {
       /* This is a file-scope entry number. */
 #if CHECKING
       entry_count_array_ptr = fs_entry_count_array;
 #endif /* CHECKING */
       entry_array_base_array_ptr = fs_entry_array_base_array;
-#if ORPHAN_PROCESSING_NEEDED
       is_in_file_scope = TRUE;
-#endif /* ORPHAN_PROCESSING_NEEDED */
     } else {
       /* This is a function-scope entry number. */
 #if CHECKING
@@ -169,32 +185,36 @@ entry_number.
       entry_count_array_ptr = entry_count_array;
 #endif /* CHECKING */
       entry_array_base_array_ptr = entry_array_base_array;
-      entry_number ^= FUNC_ENTRY_NUMBER_TAG;
-#if ORPHAN_PROCESSING_NEEDED
       is_in_file_scope = FALSE;
-#endif /* ORPHAN_PROCESSING_NEEDED */
     }  /* if */
+    entry_number = encoded_number & ~FUNC_ENTRY_NUMBER_BIT;
 #if CHECKING
     if (entry_number > entry_count_array_ptr[(int)entry_kind]) {
       internal_error("remap_entry_number_to_ptr: bad entry number");
     }  /* if */
 #endif /* CHECKING */
+    /* Determine the size of an entry of this kind including the prefix
+       and (if in file scope) the orphan pointer. */
+    if (is_string_entry_kind(entry_kind)) {
+      /* For string entries the "entry number" is really a byte offset, and
+         the "entry size" is 1.  Things like space for the prefix have
+         been accounted for in the entry numbers/byte offsets assigned. */
+      gross_entry_size = 1;
+    } else {
+      /* Non-string entry. */
+      gross_entry_size = sizeof_il_entry[(int)entry_kind] +
+                         SPACE_FOR_IL_ENTRY_PREFIX;
+      if (is_in_file_scope) {
+        /* File-scope entries are preceded by an orphan list pointer. */
+        gross_entry_size += SPACE_FOR_FS_ORPHAN_POINTER;
+      }  /* if */
+    }  /* if */
     /* Compute the entry address by multiplying the entry number minus one
        by the size of the entry, and adding the base address of the array of
        entries of that kind.  sizeof_il_entry returns 1 for the size of
        string entries, so that works right. */
     ptr = entry_array_base_array_ptr[(int)entry_kind] +
-                           (entry_number-1) * sizeof_il_entry[(int)entry_kind];
-#if ORPHAN_PROCESSING_NEEDED
-    /* If this pointer references an entry other than a string kind in
-       the file scope, the additional space for the orphan IL lists pointer
-       that precedes the IL entry must be added onto the displacement into
-       the area for each entry kind.  Also the pointer for this entry
-       must be incremented over the orphan pointer. */
-    if (is_in_file_scope && !is_string_entry_kind(entry_kind)) {
-      ptr += entry_number * SPACE_FOR_FS_ORPHAN_POINTER;
-    }  /* if */
-#endif /* ORPHAN_PROCESSING_NEEDED */
+                                           (entry_number-1) * gross_entry_size;
   }  /* if */
   return (ptr);
 }  /* remap_entry_number_to_ptr */
@@ -296,12 +316,6 @@ necessary to make it directly accessible in memory.
 #if CHECKING
   an_il_entry_number        count_of_entries_read[(int)iek_last];
   an_il_entry_number        trimmed_entry_number;
-#if DEBUG
-  int			    index,
-			    entry_count;
-  a_byte_boolean	    *bool_ptr;
-
-#endif /* DEBUG */
 #endif /* CHECKING */
 #else /* !ALTERNATE_IL_FILE_FORMAT */
   a_mem_block_header_ptr    old_hdr, hdr;
@@ -340,12 +354,8 @@ necessary to make it directly accessible in memory.
        for each entry----|entry kind
                          |entry number
                          |entry length, only for string entries
-  */
-#if ORPHAN_PROCESSING_NEEDED
-  /*                  or |orphaned IL entry link (file scope only)
-  */
-#endif /* ORPHAN_PROCESSING_NEEDED */
-  /*                     |the entry itself
+                         |orphaned IL entry link (file scope only)
+                         |the entry itself
        zero entry kind, indicating the end of the list of entries
   */
   /* Read the array of entry counts.  Use either the file-scope array or
@@ -368,28 +378,39 @@ necessary to make it directly accessible in memory.
   for (byte_entry_kind = 1+(int)iek_none;
        byte_entry_kind < (int)iek_last;
        byte_entry_kind++) {
-    sizeof_t     size_of_entry = sizeof_il_entry[byte_entry_kind];
-#if ORPHAN_PROCESSING_NEEDED
-    /* Allow orphan IL entry list pointer on all but string IL entries. */
-    if (reading_file_scope_il &&
-        !is_string_entry_kind((an_il_entry_kind)byte_entry_kind)) {
-      size_of_entry += SPACE_FOR_FS_ORPHAN_POINTER;
+    sizeof_t gross_entry_size;
+    if (is_string_entry_kind((an_il_entry_kind)byte_entry_kind)) {
+      /* For string entries the "entry number" is really a byte offset, and
+         the "entry size" is 1.  Things like space for the prefix have
+         been accounted for in the entry numbers/byte offsets assigned. */
+      gross_entry_size = 1;
+    } else {
+      /* Non-string entry. */    
+      /* Include space for the prefix for each entry. */
+      gross_entry_size = sizeof_il_entry[byte_entry_kind] +
+                         SPACE_FOR_IL_ENTRY_PREFIX;
+      /* For non-string entries, add in the size of the orphan pointer. */
+      if (reading_file_scope_il) {
+        gross_entry_size += SPACE_FOR_FS_ORPHAN_POINTER;
+      }  /* if */
     }  /* if */
-#endif /* ORPHAN_PROCESSING_NEEDED */
     entry_array_base_array_ptr[byte_entry_kind] =
              alloc_in_region(region_number,
                              (sizeof_t)(entry_count_array_ptr[byte_entry_kind]*
-                                        size_of_entry));
+                                        gross_entry_size));
 #if CHECKING && DEBUG
     /* Allocate a boolean array to track reading each IL entry of this kind
        into this region. */
     {
-      entry_count = entry_count_array_ptr[byte_entry_kind] +1;
-      entry_read_array[byte_entry_kind] = (a_byte_boolean *)
-             alloc_in_region(region_number,
-                             (sizeof_t)(entry_count * sizeof(a_byte_boolean)));
-      for (index=0; index < entry_count; index++) {
-	entry_read_array[byte_entry_kind][index] = FALSE;
+      sizeof_t index, byte_count;
+      /* Allocate one bit per entry. */
+      byte_count = (entry_count_array_ptr[byte_entry_kind] / CHAR_BIT) + 1;
+      entry_read_array[byte_entry_kind] = (a_byte *)
+                                    alloc_in_region(region_number, byte_count);
+      /* Clear the array to zero, indicating that no entries have been
+         read. */
+      for (index = 0; index < byte_count; index++) {
+        entry_read_array[byte_entry_kind][index] = 0;
       }  /* for */
     }
 #endif /* CHECKING && DEBUG */
@@ -398,11 +419,9 @@ necessary to make it directly accessible in memory.
      file-scope IL. */
   if (reading_file_scope_il) {
     remap_il_header_pointers(remap_ptr_to_ptr);
-#if ORPHAN_PROCESSING_NEEDED
     /* Also remap the entry numbers in the orphaned file scope IL entry
        table. */
     remap_orphaned_file_scope_entry_array_ptrs(remap_ptr_to_ptr);
-#endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
   /* Remember the location of the primary scope entry.  It's the LAST scope
      entry, because local scopes (prototype scopes, block scopes) get processed
@@ -439,15 +458,14 @@ necessary to make it directly accessible in memory.
     if (byte_entry_kind <= (int)iek_none || byte_entry_kind >= (int)iek_last) {
       internal_error("read_memory_region: bad entry kind");
     }  /* if */
-    /* Remove the top bit from a function scope entry number in order
+    /* Remove the tag bit from a function scope entry number in order
        to check it. */
-    trimmed_entry_number = entry_number;
-    if (!reading_file_scope_il) {
-      if ((entry_number & FUNC_ENTRY_NUMBER_TAG) == 0) {
-        internal_error("read_memory_region: top bit off in func entry number");
-      }  /* if */
-      trimmed_entry_number ^= FUNC_ENTRY_NUMBER_TAG;
+    if (reading_file_scope_il != 
+        ((entry_number & FUNC_ENTRY_NUMBER_BIT) == 0)) {
+      internal_error(
+                   "read_memory_region: func scope bit wrong in entry number");
     }  /* if */
+    trimmed_entry_number = entry_number & ~FUNC_ENTRY_NUMBER_BIT;
     if (trimmed_entry_number <= 0 ||
         trimmed_entry_number > entry_count_array_ptr[byte_entry_kind]) {
       internal_error("read_memory_region: bad entry number");
@@ -456,6 +474,9 @@ necessary to make it directly accessible in memory.
     /* Determine the address of the entry within the array of entries of
        that kind. */
     entry_ptr = remap_entry_number_to_ptr(entry_number, entry_kind);
+    /* Set the entry prefix appropriately. */
+    clear_il_entry_prefix(&il_entry_prefix_of(entry_ptr),
+                          reading_file_scope_il);
     /* If this is a string entry, read the length.  Otherwise, compute the
        length from the entry kind. */
     if (is_string_entry_kind(entry_kind)) {
@@ -467,17 +488,27 @@ necessary to make it directly accessible in memory.
       }  /* if */
 #endif /* DEBUG */
 #if CHECKING
-      /* Count the entries read to see if we get all of them.  String entries
-         are counted by character. */
-      count_of_entries_read[byte_entry_kind] += entry_length;
+      { sizeof_t gross_entry_size;
+        /* Count the entries read to see if we get all of them.  String
+           entries are counted by character.  Include the space for
+           the prefix. */
+        gross_entry_size = entry_length + SPACE_FOR_IL_ENTRY_PREFIX;
+        /* Except on the last entry, add space for alignment. */
+        if ((trimmed_entry_number + entry_length) <=
+                                      entry_count_array_ptr[byte_entry_kind]) {
+          do_host_alignment(gross_entry_size);
+        }  /* if */
+        count_of_entries_read[byte_entry_kind] += gross_entry_size;
 #if DEBUG
-      /* Mark the string entry for the length of the string as having
-         been read. */
-      {
-        bool_ptr = entry_read_array[byte_entry_kind] + trimmed_entry_number;
-        for (index = 0; index < entry_length; index++) {
-          *(bool_ptr++) = TRUE;
-        }  /* for */
+        { sizeof_t count, index;
+          /* Record the space for the string entry as having been read.
+             Also mark the space for the prefix (preceding the entry) and
+             any space for alignment (following the entry). */
+          index = trimmed_entry_number - SPACE_FOR_IL_ENTRY_PREFIX;
+          for (count = 0; count < gross_entry_size; count++, index++) {
+            set_entry_read_array(byte_entry_kind, index);
+          }  /* for */
+        }  /* if */
       }
 #endif /* DEBUG */
 #endif /* CHECKING */
@@ -489,12 +520,11 @@ necessary to make it directly accessible in memory.
       count_of_entries_read[byte_entry_kind]++;
 #if DEBUG
       /* Mark this entry as having been read. */
-      entry_read_array[byte_entry_kind][trimmed_entry_number] = TRUE;
+      set_entry_read_array(byte_entry_kind, trimmed_entry_number);
 #endif /* DEBUG */
 #endif /* CHECKING */
-#if ORPHAN_PROCESSING_NEEDED
       /* If reading the file scope, read in the orphaned IL entry pointer
-         into the area immediately preceding the entry. */
+         into the area preceding the entry. */
       if (reading_file_scope_il) {
         char               *orphan_ptr;
         an_il_entry_number orphan_number;
@@ -505,7 +535,6 @@ necessary to make it directly accessible in memory.
                                        remap_entry_number_to_ptr(orphan_number,
                                                                  entry_kind);
       }  /* if */
-#endif /* ORPHAN_PROCESSING_NEEDED */
     }  /* if */
     /* Read the entry into the right spot. */
     fread_with_check(entry_ptr, entry_length);
@@ -523,8 +552,10 @@ necessary to make it directly accessible in memory.
          byte_entry_kind++) {
       if (count_of_entries_read[byte_entry_kind] !=
           entry_count_array_ptr[byte_entry_kind]) {
+        /* Not all expected entries were read. */
 #if DEBUG
-        char *s;
+        char     *s;
+        sizeof_t entry_count, index;
 
         if (!errors) {
           (void)fprintf(f_debug,
@@ -533,25 +564,25 @@ necessary to make it directly accessible in memory.
         }  /* if */
         s = retrieve_il_entry_kind_name((an_il_entry_kind)byte_entry_kind);
         (void)fprintf(f_debug,
-                 "     entry kind =%3ld (%s),   written =%4ld,   read =%4ld\n",
+                 "     entry kind =%3ld (%s), written = %ld, read = %ld\n",
                       (long)byte_entry_kind, s,
                       (long)entry_count_array_ptr[byte_entry_kind],
                       (long)count_of_entries_read[byte_entry_kind]);
         entry_count = entry_count_array_ptr[byte_entry_kind];
-        bool_ptr = entry_read_array[byte_entry_kind] + 1;
-        if is_string_entry_kind((an_il_entry_kind)byte_entry_kind) {
+        if (is_string_entry_kind((an_il_entry_kind)byte_entry_kind)) {
           /* A form of string entry. */
           index = 1;
           while (index <= entry_count) {
-            if (*(bool_ptr++) == FALSE) {
+            if (get_entry_read_array(byte_entry_kind, index) == FALSE) {
               /* Have found the beginning of a missing string. */
               (void)fprintf(f_debug, "        missing entry = %ld",
                            (long)index);
-              /* Skip over the missing bytes of the string.  Note,
+              /* Skip over the missing bytes of the string.  Note that
                  missing back to back strings will appear in the debug
                  output as a single large string. */
               for (index++;
-                   index <= entry_count && *(bool_ptr++) == FALSE;
+                   index <= entry_count &&
+                         get_entry_read_array(byte_entry_kind, index) == FALSE;
                    index++) {
               }  /* for */
               (void)fprintf(f_debug, " - %ld\n", (long)index-1);
@@ -560,7 +591,7 @@ necessary to make it directly accessible in memory.
           } /* while */
         } else {
           for (index = 1; index <= entry_count; index++) {
-            if (*(bool_ptr++) == FALSE) {
+            if (get_entry_read_array(byte_entry_kind, index) == FALSE) {
               (void)fprintf(f_debug, "        missing entry = %ld\n",
                             (long)index);
             }  /* if */
@@ -647,21 +678,13 @@ necessary to make it directly accessible in memory.
   /* Walk the IL tree for the region and update all pointers,
      changing their old addresses to new addresses. */
   if (reading_file_scope_il) {
-#if ORPHAN_PROCESSING_NEEDED
-    /* The memory region is the file scope region, first remap the pointers
-       in the orphaned file scope IL entry table. */
+    /* The memory region is the file scope region. */
+    /* Remap the pointers in the orphaned file scope IL entry table. */
     remap_orphaned_file_scope_entry_array_ptrs(ptr_remap_function);
-#endif /* ORPHAN_PROCESSING_NEEDED */
-    /* The memory region is the file scope region, so start at il_header. */
+    /* Walk the file scope IL tree. */
     walk_file_scope_il((an_entry_process_function_ptr)NULL,
                        (a_string_entry_process_function_ptr)NULL,
                        ptr_remap_function);
-#if ORPHAN_PROCESSING_NEEDED
-    /* Remap the "next" pointers in orphaned file scope IL entries for
-       local types and local static variables of functions scope blocks. */
-    remap_orphaned_il_list_next_pointers(ptr_remap_function);
-#endif /* ORPHAN_PROCESSING_NEEDED */
-
     /* Save the remap list for this region as the file-scope remap list. */
     fs_block_remap_list = block_remap_list;
   } else {
@@ -698,13 +721,7 @@ build the in-memory version.
        file offset to the file index table
        file offset to the start of the file scope region
        il_header
-  */
-#if ORPHAN_PROCESSING_NEEDED
-  /*
-       orphaned_file_scope_il_entries[]
-  */
-#endif /* ORPHAN_PROCESSING_NEEDED */
-  /*
+       orphaned_file_scope_il_entries array
        for each region---|region number
                          |information on the region (see read_memory_region)
        NULL_region_number (0) -- indicating no more regions
@@ -737,12 +754,10 @@ build the in-memory version.
      in standalone utility programs. */
   int_kind_is_signed[(int)ik_char] = il_header.plain_chars_are_signed;
 #endif /* ifdef CIL */
-#if ORPHAN_PROCESSING_NEEDED
-  /* Read the orphaned_file_scope_il_entries[]. */
+  /* Read the orphaned_file_scope_il_entries array. */
   fread_with_check((char *)orphaned_file_scope_il_entries,
                    sizeof(orphaned_file_scope_il_entries));
-#endif /* ORPHAN_PROCESSING_NEEDED */
-  /* Allocate index tables of the right size for that number of regions. */
+  /* Allocate index tables of the right size for the number of regions. */
   size_of_mem_region_table = highest_used_region_number+1;
   mem_region_table = (a_mem_block_header_ptr *)
                            local_malloc((sizeof_t)(size_of_mem_region_table*

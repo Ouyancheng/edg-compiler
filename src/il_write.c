@@ -19,10 +19,15 @@ il_write.c -- Write the intermediate language to a file.
 /* Everything in this file has to do with writing the IL file. */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 
+#if !ORPHAN_PROCESSING_NEEDED
+??=error -- ORPHAN_PROCESSING_NEEDED must be set if IL writing is needed.
+#endif /* !ORPHAN_PROCESSING_NEEDED */
+
 #include "il_file.h"
 #include "il_walk.h"
 #include "il_write.h"
 #include "il.h"
+#include "mem_manage.h"
 #include "error.h"
 #include "version.h"
 
@@ -41,29 +46,28 @@ static an_il_entry_number
 			   of that kind.  Used to track the number of entries
 			   and also to assign entry numbers.  Each table
 			   type has entry numbers starting from 1. */
-typedef char	*a_char_ptr;
-			/* Useful to indicate "char *" as a type in calling
-			   chg_pointer. */
-#define ENTRY_WRITTEN_TAG (((unsigned long)LONG_MAX>>1)+1)
-			/* Bit turned on in the entry numbers preceding
-			   IL entries to indicate that the IL entry has
-			   been written to the IL file. */
+#if CHECKING
+static an_il_entry_number
+		max_entry_number;
+			/* Maximum allowed entry number, used for overflow
+			   checking. */
+#endif /* CHECKING */
 #if CHECKING && DEBUG
 #if __CENTERLINE__
-/* Centerline debugging variables used to locate a missing (unwritten) IL entry
+/* CenterLine debugging variables used to locate a missing (unwritten) IL entry
    by entry kind and entry number within that kind in a specific memory
-   region.  By setting the variables 	centerline_memory_region_number,
-   centerline_il_entry_kind and centerline_il_entry_number after loading
-   il_write.c into the Centerline environment, Centerline will stop
+   region.  By setting the variables centerline_memory_region_number,
+   centerline_entry_kind, and centerline_entry_number after loading
+   il_write.c into the CodeCenter environment, CodeCenter will stop
    (centerline_stop()) when the entry number is assigned for the specified
    IL entry.
 
         1. load il_write.c
-        2. stop in assign_entry_number
+        2. set stop in assign_entry_number
         3. run the test compilation
-        4. when Centerline stops in assign_entry_number:
-            a. set the 3 Centerline variable values
-            b. remove the stop at the entry of assign_entry_number()
+        4. when CodeCenter stops in assign_entry_number:
+            a. set the 3 centerline variable values
+            b. remove the stop at the entry of assign_entry_number
         5. continue
 
    The contents of the IL entry and its position on the IL tree as shown
@@ -73,14 +77,14 @@ a_memory_region_number
 		centerline_memory_region_number;
 			/* Memory region of the omitted IL entry. */
 an_il_entry_kind
-		centerline_il_entry_kind;
+		centerline_entry_kind;
 			/* IL entry kind of the omitted IL entry. */
 an_il_entry_number
-		centerline_il_entry_number;
+		centerline_entry_number;
 			/* IL entry number of the omitted IL entry. */
 a_memory_region_number
-		_centerline_region_number;
-			/* Hidden variable used by write_memory_region()
+		centerline_region_being_written;
+			/* Variable used by write_memory_region()
 			   to record the memory region number currently
 			   being written. */
 #endif /* __CENTERLINE__ */
@@ -108,95 +112,44 @@ triggering an internal error.
                 (unsigned long)entry_ptr);
 #if __CENTERLINE__
   (void)fprintf(f_debug, "         memory region = %4ld\n",
-                _centerline_region_number);
+                centerline_region_being_written);
 #endif /* __CENTERLINE__ */
 }  /* display_il_entry_kind_and_ptr */
 
 #endif /* CHECKING && DEBUG */
 
-static an_il_entry_number *assign_entry_number(
-                                       char               *entry_ptr,
-                                       an_il_entry_kind   entry_kind,
-                                       a_boolean          is_string_entry,
-                                       sizeof_t           entry_length,
-                                       an_il_entry_number *p_entry_number)
+static an_il_entry_prefix *assign_entry_number(
+                                       char                    *entry_ptr,
+                                       an_il_entry_kind        entry_kind,
+                                       a_boolean               is_string_entry,
+                                       sizeof_t                entry_length,
+                                       an_encoded_entry_number *encoded_number)
 /*
 Assign an entry number to the entry pointed to entry_ptr if it does
-not already have one.  Return a pointer to the entry number location,
-and also the entry number in *p_entry_number.  The entry is of kind
-entry_kind, and if it is a string, has length as given by entry_length.
+not already have one.  Return a pointer to the entry prefix.
+The entry is of kind entry_kind, and if it is a string, has length as
+given by entry_length.  Return in *encoded_number the entry number in
+encoded form.
 */
 {
-  an_il_entry_number *count_ptr;
+  an_il_entry_number *count_ptr, entry_number;
   a_boolean          is_file_scope_entry;
-  an_il_entry_number *enp;
+  an_il_entry_prefix *epp;
   int                num_entries = 1;
-  char               *temp_entry_ptr;
 
-  /* Determine the address of the entry number preceding the entry. */
-  temp_entry_ptr = entry_ptr;
-#if ORPHAN_PROCESSING_NEEDED
-  /* If the IL entry is in the file-scope region, the additional pointer
-     for the orphaned IL entry list must be accommodated.  This pointer is
-     between the IL entry number and the beginning of the IL entry. */
-  if (in_file_scope(entry_ptr)) {
-    temp_entry_ptr = (char *)&fs_orphan_pointer_of(temp_entry_ptr);
-  }  /* if */
-#endif /* ORPHAN_PROCESSING_NEEDED */
-  enp = &il_entry_number_of(temp_entry_ptr);
-
-  /* String entries can be referenced from several places, possibly in
-     different regions.  A string entry is written in the same region
-     as the entry that references it, because there are file-scope strings
-     pointed to from function-scope entries, and there's no way to link
-     the strings into the file scope so that they will be found on an IL
-     walk of the file scope.  Therefore, such strings must be given an
-     entry number in the function-scope region.  However, if there are
-     references from several regions, that may mean that several different
-     entry numbers will have to be assigned. */
-  if (is_string_entry) {
-    num_entries = entry_length;
-    /* If the entry is a string entry and has an assigned entry number, ... */
-    if (*enp != 0) {
-      if (writing_file_scope_il) {
-        /* We're writing the file scope, so an entry number in a function
-           scope is out of date. */
-        if ((*enp & FUNC_ENTRY_NUMBER_TAG) != 0) *enp = 0;
-      } else {
-        /* We're writing a function scope. */
-#if CHECKING
-        /* An entry number in the file scope is impossible (we should only
-           assign such a number while writing the file scope, and we only do
-           that after all the function scopes have been written). */
-        if ((*enp & FUNC_ENTRY_NUMBER_TAG) == 0) {
-#if DEBUG
-          display_il_entry_kind_and_ptr(entry_ptr, entry_kind);
-#endif /* DEBUG */
-          internal_error("assign_entry_number: file-scope num in func scope");
-        }  /* if */
-#endif /* CHECKING */
-        /* If the entry has already been written, assume that it was assigned
-           and written in a previous function scope.  This assumes that a
-           string entry will not be referenced twice within one function scope
-           (note that multiple references within the file scope ARE possible,
-           like in a_source_file references to file names). */
-        if ((*enp & ENTRY_WRITTEN_TAG) != 0) *enp = 0;
-      }  /* if */
-    }  /* if */
 #ifdef FFE
-  } else if (entry_kind == iek_bound_info_entry) {
+  if (entry_kind == iek_bound_info_entry) {
     /* Bound information entries are allocated as a variable-length array
        of fixed-length entries.  The entire array is preceded by the space
-       in which to store the entry number, but the entries are contiguous. */
+       in which to store the entry prefix, but the entries are contiguous. */
     if (array_bound_walk_index != 0) {
       /* This is an entry after the first.  Find the space preceding the
          array by using the current index number, provided by the il_walk
          routines. */
-      enp = &il_entry_number_of((a_bound_info_entry_ptr)entry_ptr -
+      epp = &il_entry_prefix_of((a_bound_info_entry_ptr)entry_ptr -
                                                        array_bound_walk_index);
-      /* Return the right entry number, but do not change *enp; it's
-         supposed to keep the entry number of the first entry in the array. */
-      *p_entry_number = (*enp + array_bound_walk_index) & ~ENTRY_WRITTEN_TAG;
+      /* Return the right entry number. */
+      entry_number = epp->entry_number + array_bound_walk_index;
       goto end_of_routine;
     }  /* if */
     /* The first entry.  The processing is fairly normal, except that
@@ -204,22 +157,73 @@ entry_kind, and if it is a string, has length as given by entry_length.
        entries in the array, so we can use consecutive entry numbers
        for them.  That ensures they're contiguous when read back in. */
     num_entries = num_walk_array_bounds;
+  }  /* if */
 #endif /* ifdef FFE */
+  /* Determine the address of the entry prefix preceding the entry. */
+  epp = &il_entry_prefix_of(entry_ptr);
+  /* String entries can be referenced from several places, possibly in
+     different regions.  In particular, there can be file-scope strings
+     referenced from function-scope entries.  In those cases, even if
+     we put the string on the orphan list (which we don't), we would
+     not have the length of the string entry (at least for iek_string_text)
+     when we process the orphan.  To deal with this problem, strings are
+     always considered honorary members of the memory region from which they
+     are referenced, which means multiple copies may be written out, and
+     a string that exists in one copy before the IL write may exist in
+     multiple copies (in different memory regions) after the IL read. */
+  if (is_string_entry && epp->entry_number != 0) {
+    a_boolean out_of_date = FALSE;
+    /* A string entry with an already-assigned entry number.  See if the
+       entry number should be cleared and reassigned. */
+    if (writing_file_scope_il) {
+      /* We're writing the file scope, so an entry number in a function
+         scope is out of date. */
+      if (!epp->file_scope) out_of_date = TRUE;
+    } else {
+      /* We're writing a function scope. */
+#if CHECKING
+      /* An entry number in the file scope is impossible (we should only
+         assign such a number while writing the file scope, and we only do
+         that after all the function scopes have been written). */
+      if (epp->file_scope) {
+#if DEBUG
+        display_il_entry_kind_and_ptr(entry_ptr, entry_kind);
+#endif /* DEBUG */
+        internal_error("assign_entry_number: file-scope num in func scope");
+      }  /* if */
+#endif /* CHECKING */
+      /* If the entry has already been written, assume that it was assigned
+         and written in a previous function scope.  This assumes that a
+         string entry will not be referenced twice within one function scope
+         (note that multiple references within the file scope ARE possible,
+         like in a_source_file references to file names). */
+      /* This is the reason for the existence of the entry_written flag. */
+      if (epp->entry_written) out_of_date = TRUE;
+    }  /* if */
+    if (out_of_date) {
+      /* The entry number is out of date.  Clear it. */
+      epp->entry_number = 0;
+      epp->entry_written = FALSE;
+    }  /* if */
   }  /* if */
   /* Only assign a number if the entry does not already have one.  A zero
      means the entry number has not been assigned yet. */
-  if (*enp == 0) {
+  if (epp->entry_number == 0) {
     /* Use the next available number from the array of entry counts.  Use
        the file-scope array if the entry is in the file scope, the
        function-scope array otherwise.  Note that we can encounter a 
        file-scope entry while scanning a function scope, but not the
        other way around.  Special case: a string entry is considered to
        be in the region of the entry that points to it (see comment above). */
-    if (writing_file_scope_il) {
+    if (is_string_entry) {
+      /* A string entry is considered to be in the region of the entry
+         that points to it. */
+      is_file_scope_entry = writing_file_scope_il;
+    } else if (writing_file_scope_il) {
       /* Writing the file scope, so only file-scope items should appear. */
       is_file_scope_entry = TRUE;
 #if CHECKING
-      if (!in_file_scope(entry_ptr)) {
+      if (!epp->file_scope) {
 #if DEBUG
         display_il_entry_kind_and_ptr(entry_ptr, entry_kind);
 #endif /* DEBUG */
@@ -230,51 +234,51 @@ entry_kind, and if it is a string, has length as given by entry_length.
     } else {
       /* Writing a function scope, so both file-scope and function-scope
          items may appear. */
-      if (is_string_entry) {
-        /* A string entry is considered to be in the region of the entry
-           that points to it, i.e., a function scope region in this case. */
-        is_file_scope_entry = FALSE;
-      } else {
-        is_file_scope_entry = in_file_scope(entry_ptr);
-      }  /* if */
+      is_file_scope_entry = epp->file_scope;
     }  /* if */
     count_ptr = &(is_file_scope_entry ?
                 fs_entry_numbers_array : entry_numbers_array)[(int)entry_kind];
-    /* Use the next entry number for this entry. */
-    *enp = *count_ptr + 1;
-    /* For function-scope entries, turn on the bit in the number that
-       distinguishes function entry numbers from file-scope numbers. */
-    if (!is_file_scope_entry) {
-      *enp |= FUNC_ENTRY_NUMBER_TAG;
+    if (is_string_entry) {
+      /* For string cases, the entry numbers are byte offsets (+1) into a
+         conceptual string area.  The entry is preceded by the prefix.
+         It must be suitably aligned, so the current position is adjusted
+         upward if necessary to ensure alignment. */
+      /* Note that if we were to write the file on one system and read
+         it on another system with a different alignment requirement we
+         might have a problem. */
+      do_host_alignment(*count_ptr);
+      *count_ptr += SPACE_FOR_IL_ENTRY_PREFIX;
+      num_entries = entry_length;
+      /* Note that no orphan pointer is allocated for strings. */
     }  /* if */
-    /* Increment the table entry by 1, or by length for string entries. */
+    /* Check for overflow of the entry number field.  In practice, the
+       field is probably close to a 32-bit field, and this should not happen
+       even for very large programns. */
+    if (*count_ptr > max_entry_number - num_entries) {
+      catastrophe(ec_program_too_large);
+    }  /* if */
+    /* Use the next entry number for this entry. */
+    epp->entry_number = *count_ptr + 1;
+    epp->file_scope = is_file_scope_entry;
+    /* Increment the table entry by the right number of logical entries. */
     *count_ptr += num_entries;
   }  /* if */
-  *p_entry_number = *enp;
+  entry_number = epp->entry_number;
 #ifdef FFE
 end_of_routine:
 #endif /* ifdef FFE */
+  /* Return the encoded form of the entry number in *encoded_number. */
+  *encoded_number = entry_number;
+  if (!epp->file_scope) *encoded_number |= FUNC_ENTRY_NUMBER_BIT;
 #if __CENTERLINE__ && CHECKING && DEBUG
-  if (entry_kind == centerline_il_entry_kind &&
-      ((*p_entry_number) & ~ENTRY_WRITTEN_TAG & ~FUNC_ENTRY_NUMBER_TAG) ==
-                   centerline_il_entry_number) {
-    /* Correct IL entry kind and IL entry number.  Check if correct
-       memory region. */
-    if ((*p_entry_number & FUNC_ENTRY_NUMBER_TAG) != 0 ) {
-      /* Currently writing a function scope memory region. */
-      if ( _centerline_region_number == centerline_memory_region_number ) {
-        centerline_stop();
-      }  /* if */
-    } else {
-      /* Currently writing the file scope memory region.  Check if that
-         is the desired stop point. */
-      if (centerline_memory_region_number == FILE_SCOPE_REGION_NUMBER) {
-        centerline_stop();
-      }  /* if */
-    }  /* if */
+  /* Stop if the entry being examined is the one we're looking for. */
+  if (entry_kind == centerline_entry_kind &&
+      entry_number == centerline_entry_number &&
+      centerline_region_being_written == centerline_memory_region_number) {
+    centerline_stop();
   }  /* if */
 #endif /* __CENTERLINE__ && CHECKING && DEBUG */
-  return (enp);
+  return epp;
 }  /* assign_entry_number */
 
 
@@ -282,32 +286,23 @@ static char *remap_ptr_to_entry_number(char             *entry_ptr,
                                        an_il_entry_kind entry_kind)
 /*
 Convert entry_ptr, a pointer to an IL entry of type entry_kind, to the
-corresponding entry number, and return that number cast to "char *".
+corresponding encoded entry number, and return that number cast to "char *".
 */
 {
-  an_il_entry_number *enp, entry_number;
-  char               *temp_entry_ptr;
+  an_encoded_entry_number encoded_number;
+  an_il_entry_prefix      *epp;
 
   if (entry_ptr == NULL) {
-    /* A NULL pointer is represented by a zero entry number. */
-    entry_number = 0;
+    /* A NULL pointer is represented by a zero encoded entry number. */
+    encoded_number = 0;
   } else {
-    /* Find the entry number preceding the entry. */
-    temp_entry_ptr = entry_ptr;
-#if ORPHAN_PROCESSING_NEEDED
-    /* If the entry_ptr points into the file scope memory region, the
-       orphaned IL entry pointer must be skipped over. */
-    if (in_file_scope(entry_ptr)) {
-      temp_entry_ptr = (char *)&fs_orphan_pointer_of(temp_entry_ptr);
-    }  /* if */    
-#endif /* ORPHAN_PROCESSING_NEEDED */
-    enp = &il_entry_number_of(temp_entry_ptr);
+    /* Find the entry prefix preceding the entry. */
+    epp = &il_entry_prefix_of(entry_ptr);
     /* Test for entry number already assigned.  This test is mostly for
        speed, since most entries will have numbers assigned by the
-       time we get here.  The only case where an entry number would not have
-       been assigned is for a non-string entry in the file scope that is
-       referenced from an entry in a function scope. */
-    if (*enp == 0) {
+       time we get here. */
+    if (epp->entry_number == 0) {
+      /* The entry number has not been assigned yet. */
 #if CHECKING
       if (is_string_entry_kind(entry_kind)) {
         /* All string entries should have entry numbers already.  See
@@ -330,20 +325,22 @@ corresponding entry number, and return that number cast to "char *".
 #endif /* ifdef FFE */
       }  /* if */
 #endif /* CHECKING */
+      /* Assign an entry number. */
       (void)assign_entry_number(entry_ptr, entry_kind,
                                 /*is_string_entry=*/FALSE,(sizeof_t)0,
-                                &entry_number);
+                                &encoded_number);
     } else {
       /* The entry already has an entry number. */
-      entry_number = *enp;
+      /* Construct the encoded form of the entry number. */
+      encoded_number = epp->entry_number;
+      if (!epp->file_scope) encoded_number |= FUNC_ENTRY_NUMBER_BIT;
     }  /* if */
-    /* Drop the "entry written" tag if it's set. */
-    entry_number &= ~ENTRY_WRITTEN_TAG;
   }  /* if */
+  /* Return the encoded entry number converted to "char *". */
   /* For CodeCenter -- suppress warning about bad pointer.  Version 3.0
      warning number. */
   /*SUPPRESS 80*/
-  return ((char *)entry_number);
+  return ((char *)encoded_number);
 }  /* remap_ptr_to_entry_number */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
@@ -376,11 +373,9 @@ Write the initial information to the IL file, if there is one.
     (void)fwrite((char *)&zero_file_position, sizeof(zero_file_position), 1,
                  f_il_output);
     (void)fwrite((char *)&il_header, sizeof(il_header), 1, f_il_output);
-#if ORPHAN_PROCESSING_NEEDED
-    /* Leave space for the orphaned_file_scope_il_entries[]. */
+    /* Leave space for the orphaned_file_scope_il_entries array. */
     (void)fwrite((char *)orphaned_file_scope_il_entries,
                  sizeof(orphaned_file_scope_il_entries), 1, f_il_output);
-#endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
 #if ALTERNATE_IL_FILE_FORMAT
   /* Clear the array giving the count of entries of each kind for the
@@ -406,6 +401,29 @@ Write the initial information to the IL file, if there is one.
       }  /* if */
     }  /* if */
   }
+  /* Verify that BITS_IN_ENTRY_NUMBER is set correctly. */
+  { int num_bits = BITS_IN_ENTRY_NUMBER;
+    if (num_bits > sizeof(an_il_entry_number)*CHAR_BIT || num_bits <= 0) {
+      internal_error("start_il_file: BITS_IN_ENTRY_NUMBER is set wrong");
+    }  /* if */
+    /* Compute the maximum valid entry number. */
+    if (num_bits == sizeof(an_il_entry_number)*CHAR_BIT) {
+      /* The entry number field is the same size as an_il_entry_number. */
+      max_entry_number = ~0;  /* All "1" bits. */
+    } else {
+      /* The entry number field is smaller than an_il_entry_number. */
+      /* Make a bit mask of length BITS_IN_ENTRY_NUMBER. */
+      max_entry_number = ((an_il_entry_number)1 << BITS_IN_ENTRY_NUMBER) - 1;
+    }  /* if */
+  }
+  /* Make sure the entry_number field in the prefix can contain the maximum
+     value computed. */
+  { an_il_entry_prefix dummy_prefix;
+    dummy_prefix.entry_number = max_entry_number;
+    if (dummy_prefix.entry_number != max_entry_number) {
+      internal_error("start_il_file: prefix entry_number is defined wrong");
+    }  /* if */
+  }
 #endif /* CHECKING */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 }  /* start_il_file */
@@ -429,21 +447,12 @@ Finish writing the IL file, if there is one.
          file offset to the file index table
          file offset to the start of the file scope region
          il_header
-    */
-#if ORPHAN_PROCESSING_NEEDED
-    /*   orphaned_file_scope_il_entries[]
-    */
-#endif /* ORPHAN_PROCESSING_NEEDED */
-    /* and that zeroes were written in all but the first item
-       when the file was begun (see start_il_file).  il_header was
-       written again by write_memory_region when the file-scope memory
-       region was written.
-    */
-#if ORPHAN_PROCESSING_NEEDED
-    /* The orphaned_file_scope_il_entries[] was also written again by
+         orphaned_file_scope_il_entries array
+       and that zeroes were written in all but the first item
+       when the file was begun (see start_il_file).  il_header and
+       the orphaned_file_scope_il_entries array were written again by
        write_memory_region when the file-scope memory region was written.
     */
-#endif /* ORPHAN_PROCESSING_NEEDED */	
     /* Write a zero region number that indicates the end of the list
        of regions. */
     (void)fwrite((char *)&end_flag, sizeof(end_flag), 1, f_il_output);
@@ -534,19 +543,20 @@ its length.
 */
 {
   a_byte             byte_entry_kind;
-  an_il_entry_number entry_number, *enp;
+  an_il_entry_number entry_number;
+  an_il_entry_prefix *epp;
   a_boolean          is_string_entry = is_string_entry_kind(entry_kind);
   char               entry_copy[MAX_SIZEOF_IL_ENTRY];
 
   /* Give this entry an entry number if it does not have one yet.  The entry
      number is stored just ahead of the entry. */
-  enp = assign_entry_number(entry_ptr, entry_kind, is_string_entry,
+  epp = assign_entry_number(entry_ptr, entry_kind, is_string_entry,
                             entry_length, &entry_number);
 
   /* Check the "already written" flag in the entry number.  For strings,
      that's okay, since the same string can be pointed to from different
      places.  For non-string entries, it indicates an internal error. */
-  if ((entry_number & ENTRY_WRITTEN_TAG) != 0) {
+  if (epp->entry_written) {
 #if CHECKING
     if (!is_string_entry) {
 #if DEBUG
@@ -571,7 +581,7 @@ its length.
      so we have to copy, change the pointers in place, then copy back.
      We can't just change the copy. */
   if (!is_string_entry) {
-    memcpy(entry_copy, entry_ptr, (int)entry_length);
+    (void)memcpy(entry_copy, entry_ptr, size_t_arg(entry_length));
     remap_pointers_in_il_entry(entry_ptr, entry_kind,
                                remap_ptr_to_entry_number);
   }  /* if */
@@ -582,14 +592,11 @@ its length.
   /* Write the entry number. */
   (void)fwrite((char *)&entry_number, sizeof(entry_number), 1, f_il_output);
   /* For strings, write the length. */
-#if ORPHAN_PROCESSING_NEEDED
-  /* For non-string entries in the file scope memory region, write the
-     orphaned file scope IL entry chain pointer. */
-#endif /* ORPHAN_PROCESSING_NEEDED */
   if (is_string_entry) {
     (void)fwrite((char *)&entry_length, sizeof(entry_length), 1, f_il_output);
-#if ORPHAN_PROCESSING_NEEDED
   } else {
+    /* For non-string entries in the file scope memory region, write the
+       orphaned file scope IL entry chain pointer. */
     if (writing_file_scope_il) {
       /* Must remap the orphaned file scope IL entry chain pointer.  Use
          a local copy of the pointer. */
@@ -598,22 +605,19 @@ its length.
 
       (void)fwrite((char *)&orphan_ptr, sizeof(orphan_ptr), 1, f_il_output);
     }  /* if */
-#endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
   /* Write the entry itself. */
-  /* The (int) cast is for lint on non-ANSI systems.  Under ANSI C, fwrite is
-     prototyped and the value will be cast back to size_t, so it's harmless. */
-  if (fwrite(entry_ptr, (int)entry_length, 1, f_il_output) != 1) {
+  if (fwrite(entry_ptr, size_t_arg(entry_length), 1, f_il_output) != 1) {
     /* Error on write.  This check supplements the check done when the
        file is closed. */
     str_catastrophe(ec_file_write_error, "intermediate language");
   }  /* if */
   if (!is_string_entry) {
     /* Restore the original pointers. */
-    memcpy(entry_ptr, entry_copy, (int)entry_length);
+    (void)memcpy(entry_ptr, entry_copy, size_t_arg(entry_length));
   }  /* if */
   /* Set the "entry written" flag. */
-  *enp |= ENTRY_WRITTEN_TAG;
+  epp->entry_written = TRUE;
 end_of_routine:;
 }  /* write_entry */
 
@@ -636,10 +640,10 @@ Write the indicated memory region to the file f_il_output.
 {
   char            il_header_copy[sizeof(il_header)];
   a_file_position end_pos;
-#if ALTERNATE_IL_FILE_FORMAT && ORPHAN_PROCESSING_NEEDED
+#if ALTERNATE_IL_FILE_FORMAT
   char		  orphaned_file_scope_il_entries_copy
                              [sizeof(orphaned_file_scope_il_entries)];
-#endif /* ALTERNATE_IL_FILE_FORMAT && ORPHAN_PROCESSING_NEEDED */
+#endif /* ALTERNATE_IL_FILE_FORMAT */
 
   db_enter(2, "write_memory_region");
   /* Check that the file should in fact be created, which is indicated
@@ -662,12 +666,8 @@ Write the indicated memory region to the file f_il_output.
          for each entry ----|entry type
                             |entry number
                             |entry length (only for string entries)
-    */
-#if ORPHAN_PROCESSING_NEEDED
-    /*                   or |orphaned IL entry link (file scope only)
-    */
-#endif /* ORPHAN_PROCESSING_NEEDED */
-    /*                      |the entry itself
+                            |orphaned IL entry link (file scope only)
+                            |the entry itself
          zero byte indicating the end of the list.
     */
 #else /* !ALTERNATE_IL_FILE_FORMAT */
@@ -696,7 +696,7 @@ Write the indicated memory region to the file f_il_output.
 #if ALTERNATE_IL_FILE_FORMAT
     /* Alternate file format. */
 #if CHECKING && DEBUG && __CENTERLINE__
-    _centerline_region_number = region_number;
+    centerline_region_being_written = region_number;
 #endif /* CHECKING && DEBUG && __CENTERLINE__ */
     { a_file_position  count_array_pos;
       int              int_entry_kind;
@@ -758,7 +758,6 @@ Write the indicated memory region to the file f_il_output.
     { sizeof_t               total_bytes;
       a_mem_block_header_ptr hdr;
 
-#if ORPHAN_PROCESSING_NEEDED
       /* For all memory regions, walk the IL tree for the region to catch
          all orphaned file scope IL entry references. */
       if (writing_file_scope_il) {
@@ -773,7 +772,6 @@ Write the indicated memory region to the file f_il_output.
                               (a_string_entry_process_function_ptr)NULL,
                               (a_remap_function_ptr)NULL);
       }  /* if */
-#endif /* ORPHAN_PROCESSING_NEEDED */
       /* Determine the total size of all the blocks.  This includes the 
          headers as well as the block contents.  Note that we write out only
          to next_avail_in_block, not to after_end_of_block, since that's
@@ -809,25 +807,16 @@ Write the indicated memory region to the file f_il_output.
          must be done now rather than in finish_il_file because the
          file-scope storage may get freed and we may need to be
          able to check addresses in il_header to see if they're valid
-         file-scope addresses.
-      */
-#if ORPHAN_PROCESSING_NEEDED
-      /* Also the orphaned_file_scope_il_entries array must be written now
-         for the same reason.
-      */
-#endif /* ORPHAN_PROCESSING_NEEDED */
+         file-scope addresses.  The orphaned_file_scope_il_entries
+         array must be written now for the same reason. */
      /*  Recall that the beginning of the file looks like:
            magic string that identifies an IL file (already written properly)
            number of regions (written as 0)
            file offset to the file index table (written as 0)
            file offset to the start of the file scope region (written as 0)
            il_header (written as 0)
+           orphaned_file_scope_il_entries array (written as 0)
       */
-#if ORPHAN_PROCESSING_NEEDED
-      /* and
-           orphaned_file_scope_il_entries[]
-      */
-#endif /* ORPHAN_PROCESSING_NEEDED */
       /* Save the current (end of file) position. */
       end_pos = ftell(f_il_output);
       /* Seek to where the il_header was written. */
@@ -839,7 +828,7 @@ Write the indicated memory region to the file f_il_output.
         str_catastrophe(ec_file_write_error, "intermediate language");
       }  /* if */
       /* Save il_header; it gets modified, written, then restored. */
-      memcpy(il_header_copy, (char *)&il_header, sizeof(il_header));
+      (void)memcpy(il_header_copy, (char *)&il_header, sizeof(il_header));
 #if ALTERNATE_IL_FILE_FORMAT
       /* In the alternate form, the pointers in the header must be remapped to
          entry numbers. */
@@ -850,14 +839,13 @@ Write the indicated memory region to the file f_il_output.
       il_header.region_scope_entry = NULL;
       (void)fwrite((char *)&il_header, sizeof(il_header), 1, f_il_output);
       /* Restore il_header. */
-      memcpy((char *)&il_header, il_header_copy, sizeof(il_header));
-#if ORPHAN_PROCESSING_NEEDED
+      (void)memcpy((char *)&il_header, il_header_copy, sizeof(il_header));
 #if ALTERNATE_IL_FILE_FORMAT
       /* Save a copy of the orphaned IL entry array; it gets modified,
          written, then restored. */
-      memcpy(orphaned_file_scope_il_entries_copy,
-             (char *)orphaned_file_scope_il_entries,
-             sizeof(orphaned_file_scope_il_entries));
+      (void)memcpy(orphaned_file_scope_il_entries_copy,
+                   (char *)orphaned_file_scope_il_entries,
+                   sizeof(orphaned_file_scope_il_entries));
       /* The pointers in the orphaned IL entry table must be remapped to
          entry_numbers. */
       remap_orphaned_file_scope_entry_array_ptrs(
@@ -869,11 +857,10 @@ Write the indicated memory region to the file f_il_output.
                    sizeof(orphaned_file_scope_il_entries), 1, f_il_output);
 #if ALTERNATE_IL_FILE_FORMAT
       /* Restore the orphaned IL entry table. */
-      memcpy((char *)orphaned_file_scope_il_entries,
-             orphaned_file_scope_il_entries_copy,
-             sizeof(orphaned_file_scope_il_entries));
+      (void)memcpy((char *)orphaned_file_scope_il_entries,
+                   orphaned_file_scope_il_entries_copy,
+                   sizeof(orphaned_file_scope_il_entries));
 #endif /* ALTERNATE_IL_FILE_FORMAT */
-#endif /* ORPHAN_PROCESSING_NEEDED */
       /* Restore the position at the end of the file.  SEEK_END is not
          used because ANSI doesn't guarantee it for binary files. */
       if (fseek(f_il_output, end_pos, SEEK_SET) != 0) {
