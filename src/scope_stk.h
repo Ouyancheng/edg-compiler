@@ -840,13 +840,6 @@ EXTERN a_scope_depth
 			   access checking cannot be deferred in this scope. */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-#if 0
-EXTERN a_scope_depth
-		depth_innermost_ss_list_scope;
-			/* Depth of the innermost scope on the scope stack
-			   with a source sequence list (= DEPTH_OF_FILE_SCOPE
-			   or depth_innermost_function_scope). */
-#endif /* if 0 */
 EXTERN a_boolean
 		source_sequence_entries_disallowed;
 			/* TRUE if the current scope establishes or belongs to
