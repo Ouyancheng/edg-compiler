@@ -214,6 +214,14 @@ typedef int a_decl_flag_set;
 			/* If this bit is set decl_specifiers has seen a "~"
 			   and determined that specifiers preceding it, if any,
 			   are consistent with a destructor declaration.  */
+#define DI_NONSTATIC_MEMBER 0x20
+			/* If this bit is set the declarator is for a class
+			   member declared within a class definition without
+			   a "static" type specifier.  If the name turns out
+			   to be a function name, it will thus be that of
+			   a nonstatic member function.  This is of importance
+			   to function_declarator in creating the implicit
+			   this param type entry for such functions. */
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */
 #define DO_NO_OUTPUT_FLAGS 0x0
