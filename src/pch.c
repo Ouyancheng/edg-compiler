@@ -338,8 +338,7 @@ directory name is being used, a pointer to the original name is returned.
 */
 {
   char				*result;
-  static a_file_name_buffer	buffer; /*lint !e727*/
-                                        /* Statically initialized. */
+  static a_file_name_buffer	buffer; /* Statically initialized. */
 
   if (pch_dir_name == NULL || is_absolute_file_name(file_name)) {
     result = file_name;
@@ -348,7 +347,7 @@ directory name is being used, a pointer to the original name is returned.
     /* Make sure the file name is big enough for the file name,
        directory, and any added slashes, etc. */
     name_size = strlen(file_name) + strlen(pch_dir_name) + 10;
-    ensure_file_name_buffer_space(buffer, name_size);
+    ensure_file_name_buffer_space(buffer, name_size); /*lint !e727*/
     result = combine_dir_and_file_name(pch_dir_name, file_name,
                                        buffer.name,
                                        (int)buffer.size);
