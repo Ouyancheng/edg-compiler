@@ -5347,8 +5347,9 @@ bound (i.e., one declared with "[*]").
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-a_boolean ttt_is_variably_modified_type(a_type_ptr  type_ptr,
-                                        a_boolean   *force_end_of_traversal)
+static a_boolean ttt_is_variably_modified_type(
+                                       a_type_ptr  type_ptr,
+                                       a_boolean   *force_end_of_traversal)
 /*
 Return TRUE if type_ptr is a VLA or a typedef type that has been marked as
 referring to a variably modified type.
