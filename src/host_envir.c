@@ -1550,7 +1550,7 @@ execution of the front end (for example, SIGINT).
 #ifdef SIGXFSZ
   /* On SVR4 systems, ignore the signal sent when the file size limit
      is exceeded.  Note that the write operation will still fail, so the
-     error be reported where the file is written. */
+     error will be reported where the file is written. */
   (void)signal(SIGXFSZ, SIG_IGN);
 #endif /* SIGXFSZ */
 #if __MICROSOFT_OS__
