@@ -2465,7 +2465,7 @@ overriding of which orep is a part.
   a_symbol_header_ptr  header = orep->overridden_sym->header;
 
   for (; udecl != NULL; udecl = udecl->next) {
-    if (udecl->entity.kind == (an_il_entry_kind)iek_routine) {
+    if (udecl->entity.kind == (a_byte_il_entry_kind)iek_routine) {
       a_routine_ptr  routine = (a_routine_ptr)udecl->entity.ptr;
 
       if (((a_symbol_ptr)routine->source_corresp.assoc_info)->header ==
