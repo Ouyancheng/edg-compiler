@@ -1,5 +1,17 @@
 Version 2.34
 
+12/17/96 Spurious error on declaration and definition of member class
+         template within a class template
+
+An error was issued if a member class template was declared and then
+later defined within another class template.  This has been fixed.
+
+  template <class T> struct A {
+    template <class T2> struct B;
+    template <class T2> struct B {};
+  };
+  A<int> ai;
+
 12/17/96 Default initialization of const variable
 
 A bug has been fixed that was introduced in version 2.33.  Except in -A
