@@ -1,5 +1,19 @@
 Version 2.44
 
+12/20/99 Internal error on preprocessing directive in template default argument
+
+An internal error would result if a default argument in a template function
+or member function of a class template was immediately followed by a
+preprocessing directive.  This has been fixed.
+
+  template <class T> struct A {
+    A(int
+#if 1
+          = 0
+#endif
+          );
+  };
+
 12/18/99 Front end does not compile when ADDR_OF_BIT_FIELD_ALLOWED is set
 
 When ADDR_OF_BIT_FIELD_ALLOWED is set to TRUE, exprutil.c did not compile
