@@ -4233,11 +4233,14 @@ e.g., because it's externally defined.
     if (rout->is_trivial_default_constructor) {
       /* Trivial constructors have no bodies so are never needed. */
       is_needed = FALSE;
-    } else if (rout->is_inline) {
+    } else if (rout->is_inline &&
+               !(c99_mode && !rout->suppress_inline_body)) {
       /* An exception is "extern inline" functions, which are not regarded
          as referenced from elsewhere.  Each compilation unit has its own
          copy, and this copy is needed only if it is referenced in this
-         compilation unit. */
+         compilation unit.  In C99 mode, however, an out-of-line copy that
+         can be referenced from somewhere else may have been generated (if
+         there was also a non-inline declaration of the function). */
       is_needed = FALSE;
     } else if (rout->is_template_function &&
                !rout->is_specialized &&
