@@ -320,6 +320,11 @@ address taken, and if not issue an error.
          for those variables. */
       var->address_taken = TRUE;
     }  /* if */
+  } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+    /* For simple interpretation of address_taken, set address_taken
+        on static data members here.  This can be removed.  See comments
+        above. */
+    sym->variant.static_data_member.variable->address_taken = TRUE;
   }  /* if */
 }  /* f_check_address_taken_ref */
 
