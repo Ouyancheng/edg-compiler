@@ -14123,6 +14123,9 @@ emitted in this translation unit.
     /* The routine has a body. */
     body_can_be_generated = TRUE;
   } else if (rout_ptr->compiler_generated &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+             (rout_ptr->decl_modifiers & DM_DLLIMPORT) == 0 &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
              !rout_ptr->is_trivial_default_constructor) {
     /* A compiler generated routine, but not a trivial default constructor. */
     body_can_be_generated = TRUE;
