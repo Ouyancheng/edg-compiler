@@ -5318,8 +5318,16 @@ list and template argument list of a partial specialization are valid.
                      variant.class_struct_union.extra_info->template_arg_list;
     for (tap = templ_arg_list; tap != NULL; tap = tap->next) {
       if (!tap->is_type) {
-        if (is_or_contains_template_param(tap->variant.constant->type)) {
+        a_constant_ptr	cp = tap->variant.constant;
+        if (is_or_contains_template_param(cp->type)) {
           error(ec_partial_spec_arg_depends_on_templ_param);
+        } else if (cp->kind == (a_constant_repr_kind)ck_template_param &&
+                   cp->variant.template_param.kind !=
+                                 (a_template_param_constant_kind)tpck_param) {
+          /* A nontype argument that involves a template parameter is
+             only supposed to be a single nontype parameter.  If we have
+             something other than a tpck_param, issue an error. */
+          error(ec_partial_spec_nontype_expr);
         }  /* if */
       }  /* if */
     }  /* for */

@@ -901,6 +901,7 @@ ec_cast_not_integral_or_enum;;"type of cast must be integral or enum"
 ec_cast_not_arithmetic_or_enum_or_pointer;;"type of cast must be arithmetic, enum, or pointer"
 ec_expr_not_object_pointer;;"expression must be a pointer to a complete object type"
 ec_member_partial_spec_not_in_class;;"a partial specialization of a member class template must be declared in the class of which it is a member"
+ec_partial_spec_nontype_expr;;"a partial specialization nontype argument must be the name of a nontype parameter or a constant"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
