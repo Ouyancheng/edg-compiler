@@ -4145,13 +4145,11 @@ static void dump_asm_entry(an_asm_entry_ptr aep)
 Generate C for an asm statement or declaration.
 */
 {
-  check_assertion_str(!aep->is_asm_func_body,
-                      "dump_asm_decl: not an asm declaration");
   /* Dump any pragmas associated with the entry. */
   dump_decl_associated_pragmas(&aep->source_corresp);
   set_output_position(&aep->source_corresp.decl_position);
   write_tok_str("asm(");
-  dump_constant(aep->variant.asm_string);
+  dump_constant(aep->asm_string);
   write_tok_str(");");
 }  /* dump_asm_entry */
 
@@ -4316,12 +4314,13 @@ Dump out the contents of a block (but not the surrounding { and }).
 
 #if ASM_FUNCTION_ALLOWED
 
-static void dump_asm_function_body(an_asm_entry_ptr  aep)
+static void dump_asm_function_body(char *p)
 /*
 Generate an asm function body, including the opening and closing braces.
+p is a pointer to the start of a null-terminated string.
 */
 {
-  char *p = aep->variant.asm_func_body, *eol;
+  char *eol;
 
   write_space();
   write_tok_ch('{');
@@ -4714,16 +4713,14 @@ Generate C for a statement.
       break;
     case stmk_asm:
       /* asm statement. */
-#if ASM_FUNCTION_ALLOWED
-      /* ... or asm function. */
-      if (statement->variant.asm_entry->is_asm_func_body) {
-        /* Generate "{ ... }". */
-        dump_asm_function_body(statement->variant.asm_entry);
-        break;
-      }  /* if */
-#endif /* ASM_FUNCTION_ALLOWED */
       dump_asm_entry(statement->variant.asm_entry);
       break;
+#if ASM_FUNCTION_ALLOWED
+    case stmk_asm_func_body:
+      /* asm function body -- generate "{ ... }". */
+      dump_asm_function_body(statement->variant.asm_func_body);
+      break;
+#endif /* ASM_FUNCTION_ALLOWED */
 #if !DO_FULL_PORTABLE_EH_LOWERING
     /* This code is here as a debugging aid.  Normally, this statement is
        not seen by the C-generating back end. */
@@ -4880,6 +4877,9 @@ its subtree.
       case stmk_label:
       case stmk_return:
       case stmk_asm:
+#if ASM_FUNCTION_ALLOWED
+      case stmk_asm_func_body:
+#endif /* ASM_FUNCTION_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       case stmk_decl:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

@@ -4013,20 +4013,6 @@ for #undef.
 }  /* gen_macro */
 
 #endif /* RECORD_MACROS_IN_IL */
-#if ASM_FUNCTION_ALLOWED
-
-static void gen_asm_function_body(an_asm_entry_ptr  aep)
-/*
-Generate an asm function body.
-*/
-{
-  write_tok_ch('{');
-  write_code_string(aep->variant.asm_func_body);
-  end_output_line_if_begun();
-  write_tok_ch('}');
-}  /* gen_asm_function_body */
-
-#endif /* ASM_FUNCTION_ALLOWED */
 
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       top_statement_of_switch)
@@ -4402,19 +4388,21 @@ Generate code for the indicated statement.
       break;
     case stmk_asm:
       /* asm statement. */
-#if ASM_FUNCTION_ALLOWED
-      if (statement->variant.asm_entry->is_asm_func_body) {
-        /* Generate "{ ... }". */
-        gen_asm_function_body(statement->variant.asm_entry);
-        break;
-      }  /* if */
-#endif /* ASM_FUNCTION_ALLOWED */
       write_tok_str("asm(");
-      gen_constant(statement->variant.asm_entry->variant.asm_string,
+      gen_constant(statement->variant.asm_entry->asm_string,
                    /*need_parens=*/FALSE);
       write_tok_ch(')');
       write_tok_ch(';');
       break;
+#if ASM_FUNCTION_ALLOWED
+    case stmk_asm_func_body:
+      /* asm function body -- generate "{ ... }". */
+      write_tok_ch('{');
+      write_code_string(statement->variant.asm_func_body);
+      end_output_line_if_begun();
+      write_tok_ch('}');
+      break;
+#endif /* ASM_FUNCTION_ALLOWED */
     case stmk_decl:
       /* Statement that marks the location of declarations. */
       /* Avoid problems with vestigial stmk_decls that point to nothing. */
@@ -5194,15 +5182,13 @@ one associated with the asm.
   an_asm_entry_ptr asm_entry = ss_entry_ptr(curr_source_sequence_entry,
                                             an_asm_entry_ptr);
 
-  check_assertion_str(!asm_entry->is_asm_func_body,
-                      "gen_asm_decl: not an asm declaration");
   /* Advance past the source sequence entry for the variable. */
   adv_curr_source_sequence_entry();
   /* Position the output file to the declaration position. */
   set_decl_position(&asm_entry->source_corresp,
                     (a_src_seq_secondary_decl_ptr)NULL);
   write_tok_str("asm(");
-  gen_constant(asm_entry->variant.asm_string, /*need_parens=*/FALSE);
+  gen_constant(asm_entry->asm_string, /*need_parens=*/FALSE);
   write_tok_ch(')');
   write_tok_ch(';');
   write_space();

@@ -4267,9 +4267,7 @@ Do IL lowering of the indicated asm entry and everything under it.
   if (!visited_yet(asm_entry)) {
     mark_as_visited(asm_entry);
     lower_source_correspondence(&asm_entry->source_corresp);
-    if (!asm_entry->is_asm_func_body) {
-      lower_constant(asm_entry->variant.asm_string);
-    }  /* if */
+    lower_constant(asm_entry->asm_string);
   }  /* if */
 }  /* lower_asm_entry */
 
@@ -7016,6 +7014,9 @@ Do IL lowering of the indicated statement and everything under it.
         lower_normal_expr(statement->expr);
         break;
       case stmk_asm:
+#if ASM_FUNCTION_ALLOWED
+      case stmk_asm_func_body:
+#endif /* ASM_FUNCTION_ALLOWED */
         /* No processing required. */
         break;
       case stmk_goto:

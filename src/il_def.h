@@ -3682,8 +3682,7 @@ typedef struct a_routine {
 
 typedef struct an_asm_entry *an_asm_entry_ptr;
 typedef struct an_asm_entry {
-  /* Description of an asm declaration or (if ASM_FUNCTION_ALLOWED is TRUE)
-     the body of an asm function. */
+  /* Description of an asm declaration. */
   /* The source_corresp field must be first. */
   a_source_correspondence
 		source_corresp;
@@ -3694,27 +3693,11 @@ typedef struct an_asm_entry {
 			/* Pointer to the next asm entry declared in the same
 			   scope, NULL if this asm entry is the last in the
 			   scope. */
-  a_byte_boolean
-		is_asm_func_body;
-			/* TRUE if this represents the body of an asm
-			   function (only if ASM_FUNCTION_ALLOWED is TRUE). */
-  union {
-    /* When is_asm_func_body == FALSE: */
-    a_constant_ptr
+  a_constant_ptr
 		asm_string;
 			/* Constant containing a string representing an asm
 			   definition argument (an uninterpreted line of
 			   assembly language). */
-    /* When is_asm_func_body == TRUE: */
-    char	*asm_func_body;
-			/* Null-terminated string representing the body of
-			   an asm function (zero or more uninterpreted lines
-			   of assembly language).  Note: this is a literal
-			   copy from the source program, with all whitespace,
-			   no translation of unprintable characters, etc.,
-			   except that it does not include comments unless
-			   INCLUDE_ASM_FUNCTION_COMMENTS is TRUE. */
-  } variant;
 } an_asm_entry;
 
 
@@ -4490,6 +4473,9 @@ enum a_statement_kind_tag {
   stmk_init,		/* Do a dynamic initialization. */
   stmk_asm,		/* "asm" statement (or declaration) or the body of
 			   an asm function. */
+#if ASM_FUNCTION_ALLOWED
+  stmk_asm_func_body,	/* Body of an asm function. */
+#endif /* ASM_FUNCTION_ALLOWED */
   stmk_try_block,	/* Try block (C++ only). */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   stmk_decl,		/* One or more consecutive declarations within a
@@ -5089,11 +5075,15 @@ typedef struct a_statement {
                            of the "asm" statement, i.e., an assembly-language
                            line. */
 #if ASM_FUNCTION_ALLOWED
-			/* Also used to represent the uninterpreted body of an
-			   asm function, in which case the current statement
-			   is pointed to by the assoc_block field of an
-			   sck_function scope entry associated with a routine
-			   of storage class sc_asm. */
+    /* When kind == stmk_asm_func_body: */
+    char	*asm_func_body;
+			/* Null-terminated string representing the body of
+			   an asm function (zero or more uninterpreted lines
+			   of assembly language).  Note: this is a literal
+			   copy from the source program, with all whitespace,
+			   no translation of unprintable characters, etc.,
+			   except that it does not include comments unless
+			   INCLUDE_ASM_FUNCTION_COMMENTS is TRUE. */
 #endif /* ASM_FUNCTION_ALLOWED */
     /* When kind == stmk_try_block: */
     a_try_supplement_ptr
@@ -5675,11 +5665,11 @@ typedef struct a_scope {
 			   of statements.  NULL if none.  Used only when
 			   kind == sck_function or sck_block. */
 #if ASM_FUNCTION_ALLOWED
-			/* Also used to point to the stmk_asm statement that
-			   represents the uninterpreted body of an asm
-			   function.  Used in this way only when kind ==
-			   sck_function and the associated routine has a
-			   storage class of sc_asm. */
+			/* Also used to point to the stmk_asm_func_body
+			   statement that represents the uninterpreted body
+			   of an asm function.  Used in this way only when
+			   kind == sck_function and the associated routine
+			   has a storage class of sc_asm. */
 #endif /* ASM_FUNCTION_ALLOWED */
   an_object_lifetime_ptr
 		lifetime;

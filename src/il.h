@@ -349,7 +349,7 @@ extern void remove_from_routines_list(a_routine_ptr rout_ptr);
 extern void add_to_routines_list(a_routine_ptr rout_ptr,
                                  a_boolean    at_file_scope);
 
-extern an_asm_entry_ptr alloc_asm_entry(a_boolean  is_asm_func_body);
+extern an_asm_entry_ptr alloc_asm_entry(void);
 
 #if ASM_FUNCTION_ALLOWED
 extern char *alloc_asm_function_body(sizeof_t  len);

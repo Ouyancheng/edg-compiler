@@ -212,9 +212,8 @@ stmk_asm statement is returned to the caller.
   char             *body;
 
   db_enter(3, "scan_asm_function_body");
-  stmt = alloc_statement((a_statement_kind)stmk_asm);
+  stmt = alloc_statement((a_statement_kind)stmk_asm_func_body);
   set_stmt_source_position(stmt->position, pos_curr_token);
-  stmt->variant.asm_entry = alloc_asm_entry(/*is_asm_func_body=*/TRUE);
   /* Initialize static variables used for building the string. */
   pos_in_asm_func_body_buffer = 0;
   prev_stop_char = NULL;
@@ -247,7 +246,7 @@ stmk_asm statement is returned to the caller.
                size_t_arg(pos_in_asm_func_body_buffer));
   /* Add a null terminator. */
   body[pos_in_asm_func_body_buffer] = '\0';
-  stmt->variant.asm_entry->variant.asm_func_body = body;
+  stmt->variant.asm_func_body = body;
 #if DEBUG
   if (debug_level >= 3) {
     fprintf(f_debug, "asm function body: %s\n", body);

@@ -2196,6 +2196,14 @@ do_label:
       (void)printf("stmk_asm\n");
       disp_ptr("asm_entry", (char *)ptr->variant.asm_entry, iek_asm_entry);
       break;
+#if ASM_FUNCTION_ALLOWED
+    case stmk_asm_func_body:
+      /* Statement representing an function body. */
+      (void)printf("stmk_asm_func_body\n");
+      disp_string_ptr("asm_func_body", ptr->variant.asm_func_body,
+                      iek_other_text, (sizeof_t)0);
+      break;
+#endif /* ASM_FUNCTION_ALLOWED */
     case stmk_try_block:
       /* Try block. */
       (void)printf("stmk_try_block\n");
@@ -3076,12 +3084,7 @@ Display the indicated asm entry.
 {
   disp_source_corresp(&ptr->source_corresp);
   disp_ptr("next", (char *)ptr->next, iek_asm_entry);
-  if (ptr->is_asm_func_body) {
-    disp_string_ptr("asm_func_body", ptr->variant.asm_func_body,
-                    iek_other_text, (sizeof_t)0);
-  } else {
-    disp_ptr("asm_string", (char *)ptr->variant.asm_string, iek_constant);
-  }  /* if */
+  disp_ptr("asm_string", (char *)ptr->asm_string, iek_constant);
 }  /* disp_asm_entry */
 
 #endif /* CFE */

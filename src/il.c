@@ -1402,6 +1402,9 @@ Dump a statement kind, for debug purposes.
     case stmk_switch:          s = "switch";            break;
     case stmk_init:            s = "init";              break;
     case stmk_asm:             s = "asm";               break;
+#if ASM_FUNCTION_ALLOWED
+    case stmk_asm_func_body:   s = "asm-func-body";     break;
+#endif /* ASM_FUNCTION_ALLOWED */
     case stmk_try_block:       s = "try-block";         break;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:            s = "decl";              break;
@@ -5945,7 +5948,7 @@ for the file scope if at_file_scope is TRUE.
 }  /* add_to_routines_list */
 
 
-an_asm_entry_ptr alloc_asm_entry(a_boolean  is_asm_func_body)
+an_asm_entry_ptr alloc_asm_entry(void)
 /*
 Allocate an asm entry, clear it to default values, and return a pointer
 to it.
@@ -5960,13 +5963,7 @@ to it.
 #endif /* DEBUG */
   set_default_source_corresp(ap->source_corresp);
   ap->next = NULL;
-  if (is_asm_func_body) {
-    ap->is_asm_func_body = TRUE;
-    ap->variant.asm_func_body = NULL;
-  } else {
-    ap->is_asm_func_body = FALSE;
-    ap->variant.asm_string = NULL;
-  }  /* if */
+  ap->asm_string = NULL;
   db_exit();
   return ap;
 }  /* alloc_asm_entry */
@@ -7258,6 +7255,11 @@ fields to default values.
     case stmk_asm:
       sp->variant.asm_entry = NULL;
       break;
+#if ASM_FUNCTION_ALLOWED
+    case stmk_asm_func_body:
+      sp->variant.asm_func_body = NULL;
+      break;
+#endif /* ASM_FUNCTION_ALLOWED */
     case stmk_try_block:
       sp->variant.try_block = tsp =
                   (a_try_supplement_ptr)alloc_cil(sizeof(a_try_supplement));

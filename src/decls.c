@@ -4675,8 +4675,8 @@ where declarations and executable statements may not be mingled, an asm
   /* Update the IL. */
   if (asm_decl_allowed) {
     /* Allocate and set the asm-entry. */
-    ap = alloc_asm_entry(/*is_asm_func_body=*/FALSE);
-    ap->variant.asm_string = alloc_unshared_constant(&asm_string);
+    ap = alloc_asm_entry();
+    ap->asm_string = alloc_unshared_constant(&asm_string);
     copy_source_position(asm_pos, ap->source_corresp.decl_position);
     if (!is_asm_statement) {
       /* Add the asm entry to the list for the current scope.  This is only
