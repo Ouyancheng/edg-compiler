@@ -1056,8 +1056,11 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         a_hidden_name_ptr ptr = (a_hidden_name_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_hidden_name_ptr, iek_hidden_name);
-        remap_ptr(ptr->entity.ptr, a_char_ptr,
-                  (an_il_entry_kind)ptr->entity.kind);
+        /* Need walk_ptr because the hidden entities can end up being
+           un-"needed"; the keep_in_il walk needs to mark those to
+           be retained. */
+        walk_ptr(ptr->entity.ptr, a_char_ptr,
+                 (an_il_entry_kind)ptr->entity.kind);
       }
       break;
 #endif /* !NEEDED_FLAG_WALK */
@@ -1570,7 +1573,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_class_list_entry_ptr ptr = (a_class_list_entry_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_class_list_entry_ptr,
                        iek_class_list_entry);
-        remap_ptr(ptr->class_type, a_type_ptr, iek_type);
+        /* Need walk_ptr because the referenced entity can end up being
+           un-"needed"; the keep_in_il walk needs to mark it to be retained. */
+        walk_ptr(ptr->class_type, a_type_ptr, iek_type);
       }
       break;
     case iek_routine_list_entry:
@@ -1578,7 +1583,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_routine_list_entry_ptr ptr = (a_routine_list_entry_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_routine_list_entry_ptr,
                        iek_routine_list_entry);
-        remap_ptr(ptr->routine, a_routine_ptr, iek_routine);
+        /* Need walk_ptr because the referenced entity can end up being
+           un-"needed"; the keep_in_il walk needs to mark it to be retained. */
+        walk_ptr(ptr->routine, a_routine_ptr, iek_routine);
       }
       break;
     case iek_class_type_supplement:
