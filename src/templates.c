@@ -1580,11 +1580,12 @@ static a_boolean function_template_declaration(a_symbol_ptr  *sym)
   (void)decl_specifiers((DSI_IS_TEMPLATE_DECLARATION |
                          DSI_INLINE_ALLOWED |
                          DSI_TYPE_SPECIFIER_ALLOWED |
+                         DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                          DSI_STORAGE_CLASS_SPECIFIER_ALLOWED),
                          &dso_flags, &storage_class, &type);
-  declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, type, (a_type_ptr)NULL,
-             &locator, &type, &bottom_derived_type, &func_info,
-             &dim_expr_ptr);
+  declarator(DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED,
+             &do_flags, type, (a_type_ptr)NULL, &locator, &type,
+             &bottom_derived_type, &func_info, &dim_expr_ptr);
   if (is_error_locator(locator) || !is_function_type(type)) {
     err = TRUE;
     discard_token_cache(&local_token_cache);
