@@ -484,6 +484,8 @@ caution when modifying this routine.
                     *effective_decl_level = depth_innermost_namespace_scope;
                   }  /* if */
                 case sck_file:
+                case sck_namespace:
+                case sck_namespace_extension:
                 case sck_function:
                 case sck_block:
                   done = TRUE;
@@ -915,28 +917,36 @@ skip_tag_scan:
       class_type->variant.class_struct_union.originally_unnamed = TRUE;
     }  /* if */
     tag_sym->variant.class_struct_union.type = class_type;
-    if (is_class_definition && is_friend_decl) {
-      /* Issuing the diagnostic was deferred till now. */
-      pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
-      err = TRUE;
-    } else if (C_dialect == C_dialect_cplusplus) {
-      /* If this is the declaration of a nested class, set the parent class
-         pointer in the tag symbol. */
-      if (scope_stack[decl_scope_level].kind ==
-                                (a_scope_kind)sck_class_struct_union) {
-        /* A new class name is being declared within a class scope. */
-        if (is_class_definition ||
-            (vacuous_decl_allowed && curr_token == tok_semicolon)) {
-          /* Either a definition or a vacuous declaration -- the latter
-             introduces a name into the current scope. */
-          set_class_membership(tag_sym, &class_type->source_corresp,
-                               scope_stack[decl_scope_level].assoc_type);
-          class_type->source_corresp.access = ssep->current_access;
-        }  /* if */
-      } else if (!is_local_class) {
-        set_namespace_membership(tag_sym, &class_type->source_corresp,
-                                 (a_namespace_ptr)NULL);
+    if (C_dialect == C_dialect_cplusplus) {
+      if (is_class_definition && is_friend_decl) {
+        /* Issuing the diagnostic was deferred till now. */
+        pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
+        err = TRUE;
       }  /* if */
+      /* Set parent class or namespace pointers, if appropriate. */
+      switch (scope_stack[effective_decl_level].kind) {
+        case sck_class_struct_union:
+          /* A new class name is being declared within a class scope. */
+          if (is_class_definition ||
+              (vacuous_decl_allowed && curr_token == tok_semicolon)) {
+            /* Either a definition or a vacuous declaration -- the latter
+               introduces a name into the current scope. */
+            set_class_membership(tag_sym, &class_type->source_corresp,
+                                 scope_stack[decl_scope_level].assoc_type);
+            class_type->source_corresp.access = ssep->current_access;
+          }  /* if */
+          break;
+        case sck_namespace:
+        case sck_namespace_extension:
+          /* A class is being declared within a namespace.  This includes
+             friend declarations injected into a namespace from a class
+             scope. */
+          set_namespace_membership(tag_sym, &class_type->source_corresp,
+                                   scope_stack[effective_decl_level].
+                                       il_scope->variant.assoc_namespace);
+          break;
+        default:;
+      }  /* switch */
       /* In C classes have no linkage, as do local classes in C++; otherwise
          classes have "C++-external" name linkage.  (Note: in cfront mode
          classes may also have internal linkage -- see ARM 3.3.)  Note that
