@@ -2073,6 +2073,9 @@ Copy a constant entry from "from" to "to".
 */
 {
   *to = *from;
+  /* *from might be a shared constant, an enum constant, etc., so clear
+     the "next" field. */
+  to->next = NULL;
 }  /* copy_constant */
 
 
@@ -2088,9 +2091,6 @@ value.  Several fields are cleared or adjusted.
 
   ucp = alloc_constant(cp->kind);
   copy_constant(cp, ucp);
-  /* Clear the "next" field; it might have come from a shared version
-     of the constant. */
-  ucp->next = NULL;
   /* Clear the source correspondence information.  This version of the
      constant isn't the one directly associated with the source entity,
      if any. */
