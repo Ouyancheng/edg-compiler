@@ -627,6 +627,7 @@ check_abbreviation()
 --suppress_vtbl
 --svr4
 --sys_include
+--time_limit
 --timing
 --trace_includes
 --typename
@@ -1103,6 +1104,7 @@ process_option()
          --pending_instantiations | \
          --preinclude | \
          --sys_include | \
+         --time_limit | \
          --incl_suffixes | \
          --pack_alignment)
       feoptions=$feoptions" $curr_arg $curr_param"
@@ -1164,6 +1166,7 @@ process_option()
           --pending_instantiations=* | \
           --preinclude=* | \
           --sys_include=* | \
+          --time_limit=* | \
           --incl_suffixes=* | \
           --definition_list_file=* | \
           --pack_alignment=*)
