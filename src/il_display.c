@@ -133,7 +133,8 @@ Print the string at string_ptr, whose length is string_length.
         if (ch == '"' || ch == '\\') putchar('\\');
         putchar(ch);
       } else {
-        (void)printf("\\%03o", (unsigned int)ch);
+        (void)printf("\\%03o",
+                     (unsigned int)(ch&((1<<TARG_HOST_STRING_CHAR_BIT)-1)));
       }  /* if */
     }  /* for */
     putchar('"');
