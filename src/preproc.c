@@ -907,7 +907,7 @@ Scan and process a #pragma directive.
          list.  If any pragma need to be added in where the pragma is
          not specified by an identifier following the #pragma keyword,
          this code will need to be modified. */
-      pkdp = pragma_descriptions;
+      pkdp = pragma_kind_descriptions;
       while (pkdp != NULL) {
         if (curr_id_matches_pragma_id(pkdp->kind)) break;
         pkdp = pkdp->next;
