@@ -1,5 +1,11 @@
 Version 3.6
 
+11/12/04 GNU compatibility: Abort when gnu_version too large
+
+When specifying a value larger than 999999 for the --gnu_version command-line
+option, the front end aborted with an internal error in macro.c.  This is now
+fixed (a command-line error is issued).
+
 11/12/04 Microsoft compatibility: disambiguation of functional notation casts
 
 The C++ standard requires that the type in a functional notation cast be
