@@ -1,5 +1,15 @@
 Version 2.42
 
+3/24/99  Added "!= 0" expression nodes marked as compiler-generated
+
+Comparisons against zero added to normalize a boolean test are now
+marked as compiler generated (i.e., the compiler_generated field
+in the expression node is TRUE).  This is done only when bool is
+not a keyword.  Comparisons added by IL lowering are not marked.
+
+  int i;
+  if (i) {}  // IL is "if (i != 0) {}"; "!=" node is marked as generated
+
 3/23/99  Abort eliminated in full_specialization
 
 If an explicit function template specification that provided a

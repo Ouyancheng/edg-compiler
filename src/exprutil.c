@@ -6302,6 +6302,7 @@ it, and return a pointer to the possibly-modified expression.
     expr = make_operator_node(which_binary_operator(tok_ne, expr->type),
                               integer_type((an_integer_kind)ik_int),
                               expr);
+    expr->variant.operation.compiler_generated = TRUE;
   }  /* if */
   return expr;
 }  /* normalize_boolean_controlling_expr */
