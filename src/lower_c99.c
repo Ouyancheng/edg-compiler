@@ -1126,8 +1126,7 @@ Transform the given complex cast expression into a function call
                                          src);
     } else {
       /* Convert float or integral to complex. */
-      check_assertion(is_floating_type(src_type) ||
-                      is_integral_type(src_type));
+      check_assertion(is_arithmetic_or_enum_type(src_type));
       /* Create a new complex value x + 0.0*__I__. */
       switch (dst_type->variant.float_kind) {
         case fk_float:
@@ -1182,6 +1181,9 @@ Transform the given complex cast expression into a function call
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
     } else if (is_real_floating_type(src_type) ||
+#if FIXED_POINT_ALLOWED
+               is_fixed_point_type(src_type) ||
+#endif /* FIXED_POINT_ALLOWED */
                is_integral_type(src_type)) {
       /* A real or integral value converted to an imaginary type is
          always zero.  Use a comma operator to preserve side-effects of
@@ -1197,8 +1199,7 @@ Transform the given complex cast expression into a function call
       check_assertion(is_imaginary_type(src_type));
     }  /* if */
   } else {
-    check_assertion(is_floating_type(dst_type) ||
-                    is_integral_type(dst_type));
+    check_assertion(is_arithmetic_or_enum_type(dst_type));
     if (is_complex_type(src_type)) {
       /* Converting a complex value to a real type.  This amounts to keeping
          the real part of the given value. */

@@ -1,5 +1,18 @@
 Version 3.5
 
+7/23/04  Embedded C: Internal error when lowering conversions between complex
+         and fixed-point types
+
+Various conversions between complex and fixed-point types could trigger an
+internal error when they were lowered.  For example:
+
+  void f() {
+    _Complex float x = 1.0;
+    _Accum a = x;  // Triggered an internal error.
+  }
+
+This is now fixed.
+
 7/23/04  Embedded C: Named-register storage classes and named address spaces
 
 The front end now issues an error when a variable is declared both with a
