@@ -1198,7 +1198,7 @@ a_boolean f_related_class_pointers(a_type_ptr       type_1,
                                    a_base_class_ptr *bcp)
 /*
 type_1 and type_2 are pointer types.  Check to see if they are pointers to
-related class types, and return TRUE if so.  If they are, set *downcard_cast
+related class types, and return TRUE if so.  If they are, set *baseward_cast
 if type_1 --> type_2 is a baseward cast, and set *bcp to point to the base
 class entry that shows the relationship.  Called from the macro
 related_class_pointers.
@@ -1235,7 +1235,7 @@ a_boolean f_rel_member_pointers(a_type_ptr       type_1,
 /*
 type_1 and type_2 are pointer to member types.  Check to see if they are
 pointers to related class types, and return TRUE if so.  If they are,
-set *downcard_cast if type_1 --> type_2 is a baseward cast, and set *bcp
+set *baseward_cast if type_1 --> type_2 is a baseward cast, and set *bcp
 to point to the base class entry that shows the relationship.  Note that
 the member types are not compared.  Called from the macro
 related_member_pointers.
