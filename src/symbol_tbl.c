@@ -5232,8 +5232,8 @@ and global namespaces.
       /* If the new va_list symbol is to be created in the std namespace,
          push the namespace now. */
       if (va_list_in_std_namespace) {
-        push_namespace_scope((a_scope_kind)sck_namespace_extension,
-                             std_namespace);
+        (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
+                                   std_namespace);
         scope_depth = depth_scope_stack;
         /* Make sure the symbol for the "std" namespace is actually in the
            symbol table. */
