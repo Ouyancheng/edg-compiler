@@ -278,6 +278,8 @@ typedef enum /* an_nm_format_kind */ {
 		/* HP/UX. */
         nmfk_CLIX,
 		/* Clipper (Intergraph). */
+        nmfk_gnu,
+		/* GNU binutils format. */
 	nmfk_lst
 } an_nm_format_kind;
 
@@ -1065,8 +1067,8 @@ static a_boolean pl_scan_default_nm_line(char	**name1,
 					 char	**symbol_name)
 /*
 Read the output of the nm command.  This routine is written to accept
-the output of the nm command on SunOS and may have to be modified
-for other systems.
+the output of the nm command on SunOS, SGI and the Gnu binutils nm
+command, and may have to be modified for other systems.
 
 Default nm output is expected to look like:
 
@@ -1134,6 +1136,30 @@ X.o:    00000030 D __vtbl__1B__X_C
 X.o:    00000048 D __vtbl__1A
 X.o:    00000000 U _gp_disp
 
+Gnu binutils nm output is expected to look like:
+
+s.o:00000004 C ___CBI__f__Fi
+s.o:00000004 C ___TIR__f__Fi
+s.o:         U ___main
+s.o:         U __main
+s.o:         U f(int)
+s.o:00000000 T _main
+/usr/lib/libbsd.a(daemon.o):         U _chdir
+/usr/lib/libbsd.a(daemon.o):         U _close
+/usr/lib/libbsd.a(daemon.o):00000010 T _daemon
+/usr/lib/libbsd.a(daemon.o):         U _dup2
+/usr/lib/libbsd.a(daemon.o):         U _exit
+/usr/lib/libbsd.a(daemon.o):         U _fork
+/usr/lib/libbsd.a(daemon.o):         U _open
+/usr/lib/libbsd.a(daemon.o):         U _setsid
+/usr/lib/libbsd.a(logwtmp.o):         U _close
+/usr/lib/libbsd.a(logwtmp.o):         U _fstat
+/usr/lib/libbsd.a(logwtmp.o):         U _ftruncate
+/usr/lib/libbsd.a(logwtmp.o):00000010 T _logwtmp
+/usr/lib/libbsd.a(logwtmp.o):         U _open
+/usr/lib/libbsd.a(logwtmp.o):         U _strncpy
+/usr/lib/libbsd.a(logwtmp.o):         U _time
+/usr/lib/libbsd.a(logwtmp.o):         U _write
 
 Returns TRUE if the line contains symbol information; returns FALSE
 if the line is a blank line, or a header line that should not be
@@ -1160,20 +1186,46 @@ processed further.
        archive header that should be ignored. */
     result = FALSE;
   } else {
-    /* Replace the first colon with a NULL. */
-    *pos = '\0';
-    *name1 = pl_input_line;
-    rest_of_line = pos + 1;
-    pos = strchr(rest_of_line, ':');
-    if (pos == NULL) {
-      /* No second name exists. */
-      *name2 = NULL;
-    } else {
-      /* Replace the second colon with a NULL to terminate the file
-         name. */
+    if (nm_format == nmfk_gnu) {
+      char	*paren_pos;
+      /* Gnu nm output. */
+      /* Replace the first colon with a NULL. */
       *pos = '\0';
-      *name2 = rest_of_line;
       rest_of_line = pos + 1;
+      paren_pos = strchr(pl_input_line, '(');
+      if (paren_pos == NULL) {
+        /* Just a simple file name (i.e., not an archive member). */
+        *name1 = pl_input_line;
+        *name2 = NULL;
+      } else {
+        char	*end_of_name2;
+        /* A line of the form "archive(member): ..." */
+        *name1 = pl_input_line;
+        /* Terminate the archive name string. */
+        *paren_pos = '\0';
+        /* Get a pointer to the start of "member". */
+        *name2 = paren_pos + 1;
+        end_of_name2 = strchr(*name2, ')');
+        /* Terminate the second file name. */
+        *end_of_name2 = '\0';
+      }  /* if */
+    } else {
+      /* Non-Gnu format. */
+      /* Replace the first colon with a NULL. */
+      *pos = '\0';
+      *name1 = pl_input_line;
+      rest_of_line = pos + 1;
+      pos = strchr(rest_of_line, ':');
+      if (pos == NULL) {
+        /* No second name exists. */
+        *name2 = NULL;
+      } else {
+        /* Replace the second colon with a NULL to terminate the file
+           name. */
+        *pos = '\0';
+        *name2 = rest_of_line;
+        rest_of_line = pos + 1;
+      }  /* if */
     }  /* if */
     pos = rest_of_line;
     if (nm_format == nmfk_SGI) {
@@ -1786,6 +1838,8 @@ the file is flagged as requiring recompilation.
   for (pifp = pl_input_files; pifp != NULL; pifp = pifp->next) {
     /* Only process the specified kind of files (local or nonlocal). */
     if (pifp->is_local_file != do_local_files) continue;
+    /* Skip files with no object file information. */
+    if (pifp->objects == NULL) continue;
     if (!pifp->is_archive) {
       a_pl_symbol_ptr	psp;
       a_pl_symbol_ptr	prev_psp;
@@ -2362,6 +2416,8 @@ int main(int argc, char *argv[])
           nm_format = nmfk_HPUX;
         } else if (strcmp(optarg, "CLIX") == 0) {
           nm_format = nmfk_CLIX;
+        } else if (strcmp(optarg, "gnu") == 0) {
+          nm_format = nmfk_gnu;
         } else {
           pl_error(pl_ec_invalid_nm_format_option, (char *)NULL);
         }  /* if */

@@ -1,5 +1,10 @@
 Version 2.27
 
+11/4/94  Added support for Gnu binutils nm output to the prelinker
+
+The prelinker now accepts the nm output from the Gnu binutils
+nm command.  The -fgnu option is used to select this format.
+
 10/24/94 Handling of nonlocal files by the prelinker
 
 The prelinker and the eccp script now provide several different
