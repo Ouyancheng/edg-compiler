@@ -6281,6 +6281,102 @@ create_final_list:
 }  /* select_best_candidate_functions */
 
 
+a_symbol_ptr select_overloaded_function(
+                           a_symbol_ptr             overloaded_function_symbol,
+                           a_boolean                have_selector,
+                           an_operand               *bound_function_selector,
+                           an_arg_operand_ptr       arg_operand_list,
+                           an_error_code            err_none_applies,
+                           an_error_code            err_ambiguous,
+                           a_source_position        *call_position,
+                           an_arg_match_summary_ptr *arg_match_list)
+/*
+Determine which of the functions under overloaded_function_symbol should
+be called given an argument list arg_operand_list.  The symbol may be an
+overloaded function, a simple member or nonmember function, or a projection
+symbol for one of those.  If have_selector is TRUE, *bound_function_selector
+is a selector object.  (Note that, for constructor calls,
+bound_function_selector can be NULL when have_selector is TRUE; we have a
+selector, but it's not available.  That's okay for constructors, because
+they cannot be const- or volatile-qualified, and the selector expression
+is only needed for that discrimination.)  call_position is the source
+position of the call.  If an error of some sort is detected, issue an
+error at that position and return NULL.  err_none_applies is the error
+code to use when no function applies, and err_ambiguous is the error code
+to use when more than one function applies.  If there is no error,
+an argument match list is returned in *arg_match_list (the caller must
+free this) and the symbol selected is returned.  This routine is called
+only in C++ mode.
+*/
+{
+  a_candidate_function_ptr candidate_functions;
+  a_symbol_ptr             function_symbol;
+  a_boolean                matched_except_for_missing_selector = FALSE;
+  a_boolean                undecidable_because_of_error;
+
+  db_enter(4, "select_overloaded_function");
+  /* candidate_functions will contain the list of viable functions. */
+  candidate_functions = NULL;
+  /* Evaluate all matches in the function set. */
+  try_overloaded_function_match(overloaded_function_symbol,
+                                arg_operand_list,
+                                have_selector,
+                                bound_function_selector,
+                                /*selector_is_object_pointer=*/TRUE,
+                                /*try_user_conversions=*/TRUE,
+                                &candidate_functions,
+                                &matched_except_for_missing_selector);
+  /* The candidate_functions list now contains all the viable functions.
+     Find the best one(s). */
+  select_best_candidate_functions(&candidate_functions, call_position,
+                                  &undecidable_because_of_error);
+  function_symbol = NULL;
+  *arg_match_list = NULL;
+  if (undecidable_because_of_error) {
+    /* There was some previous error, so do not put out an error message. */
+  } else if (candidate_functions == NULL) {
+    /* None of the functions applies. */
+    if (matched_except_for_missing_selector) {
+      /* At least one of the functions would have matched if we had had a
+         selector expression, so issue a different error message. */
+      /* A nonstatic member function is used someplace where there is no
+         "this" available, e.g., outside of a member function. */
+      pos_error(ec_member_ref_requires_object, call_position);
+    } else {
+      /* Normal case. */
+      pos_sy_error(err_none_applies, call_position,
+                   overloaded_function_symbol);
+    }  /* if */
+  } else if (candidate_functions->next != NULL) {
+    /* More than one function applies and is a best match -- ambiguity. */
+#if DEBUG
+    if (debug_level >= 4) {
+      db_candidate_function_list(candidate_functions);
+    }  /* if */
+#endif /* DEBUG */
+    pos_sy_start_error(err_ambiguous, call_position,
+                       overloaded_function_symbol);
+    diagnose_overload_ambiguity(candidate_functions, (an_opname_kind)onk_none);
+  } else {
+    /* Exactly one function applies and is best. */
+    function_symbol = candidate_functions->function_symbol;
+    *arg_match_list = candidate_functions->arg_matches;
+    /* Prevent freeing of the arg_match_list when the candidate_functions
+       list is freed. */
+    candidate_functions->arg_matches = NULL;
+#if DEBUG
+    if (debug_level >= 4) {
+      db_symbol(function_symbol, "select_overloaded_function: selected ", 2); 
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+  /* Free the candidate functions list. */
+  free_candidate_function_list(candidate_functions);
+  db_exit();
+  return function_symbol;
+}  /* select_overloaded_function */
+
+
 void issue_warning_from_arg_match_summary(an_arg_match_summary_ptr amsp,
                                           a_source_position        *err_pos)
 /*
@@ -6292,58 +6388,6 @@ Issue any suggested warning recorded in an argument match summary.
     pos_warning(amsp->warning_suggested, err_pos);
   }  /* if */
 }  /* issue_warning_from_arg_match_summary */
-
-
-static an_expr_node_ptr node_for_arg_of_overloaded_function_call(
-                                      an_arg_operand_ptr       arg_operand,
-                                      an_arg_match_summary_ptr arg_match,
-                                      a_param_type_ptr         param,
-                                      an_expression_kind       expression_kind)
-/*
-arg_operand represents an argument to an overloaded function call (including
-operator cases); the call has now been resolved to a specific function.
-arg_match indicates how well the actual argument matches the formal parameter,
-which is described by param.  Cast the argument value to the proper type,
-convert it to expression form, and return a pointer to the expression.
-expression_kind indicates the current expression kind.  arg_operand can
-be NULL to indicate that we've run out of actual arguments (default argument
-values will be used).  param can be NULL to indicate that we've run out
-of parameters (remaining arguments will be processed under an ellipsis).
-*/
-{
-  an_expr_node_ptr arg;
-
-  if (arg_operand == NULL) {
-    /* Match uses a default argument value.  Get it from the parameter type
-       entry. */
-#if CHECKING
-    if (param == NULL) {
-      internal_error(
-    "node_for_arg_of_overloaded_function_call: missing param for default arg");
-    }  /* if */
-#endif /* CHECKING */
-    arg = param->default_arg_expr;
-#if CHECKING
-    if (arg == NULL) {
-      internal_error(
-              "node_for_arg_of_overloaded_function_call: missing default arg");
-    }  /* if */
-#endif /* CHECKING */
-    arg = copy_expr_tree(arg, /*clone_temps=*/TRUE);
-  } else {
-    /* Actual argument is present (normal case). */
-    /* Issue any warning about the conversion detected while evaluating the
-       alternatives. */
-    issue_warning_from_arg_match_summary(arg_match,
-                                         &arg_operand->operand.position);
-    /* Cast the argument to the right type. */
-    prep_possible_ellipsis_argument_operand(&arg_operand->operand, param,
-                                            ec_incompatible_param,
-                                            expression_kind);
-    arg = make_node_from_operand(&arg_operand->operand);
-  }  /* if */
-  return arg;
-}  /* node_for_arg_of_overloaded_function_call */
 
 
 static a_type_ptr operand_complete_object_type(an_operand *operand)
@@ -6397,7 +6441,6 @@ function, but that case does not come here).
 #endif /* CHECKING */
   return con->variant.address.variant.routine;
 }  /* function_from_virtual_function_operand */
-  
 
 
 void bind_member_function_operand_to_selector(
@@ -6633,100 +6676,119 @@ overloaded_function_catch_up.
 }  /* check_protected_member_access_catch_up */
 
 
-a_symbol_ptr select_overloaded_function(
-                           a_symbol_ptr             overloaded_function_symbol,
-                           a_boolean                have_selector,
-                           an_operand               *bound_function_selector,
-                           an_arg_operand_ptr       arg_operand_list,
-                           an_error_code            err_none_applies,
-                           an_error_code            err_ambiguous,
-                           a_source_position        *call_position,
-                           an_arg_match_summary_ptr *arg_match_list)
+static void process_resolved_overloaded_function(
+                                 a_symbol_ptr       function_symbol,
+                                 a_symbol_ptr       overloaded_function_symbol,
+                                 a_boolean          have_selector,
+                                 an_operand         *bound_function_selector,
+                                 a_boolean          is_qualified_name,
+                                 an_expression_kind expression_kind,
+                                 a_source_position  *call_position,
+                                 an_operand         *function_operand)
 /*
-Determine which of the functions under overloaded_function_symbol should
-be called given an argument list arg_operand_list.  The symbol may be an
-overloaded function, a simple member or nonmember function, or a projection
-symbol for one of those.  If have_selector is TRUE, *bound_function_selector
-is a selector object.  (Note that, for constructor calls,
-bound_function_selector can be NULL when have_selector is TRUE; we have a
-selector, but it's not available.  That's okay for constructors, because
-they cannot be const- or volatile-qualified, and the selector expression
-is only needed for that discrimination.)  call_position is the source
-position of the call.  If an error of some sort is detected, issue an
-error at that position and return NULL.  err_none_applies is the error
-code to use when no function applies, and err_ambiguous is the error code
-to use when more than one function applies.  If there is no error,
-an argument match list is returned in *arg_match_list (the caller must
-free this) and the symbol selected is returned.  This routine is called
-only in C++ mode.
+Overload resolution has been done, and it has been decided that, of the
+functions in overloaded_function_symbol (which may be a projection symbol
+and/or just a simple function), function_symbol is the specific function to
+be called (and not a projection symbol).  Create a function designator
+operand for the function in *function_operand.  The function was named with
+a qualified name if is_qualified_name is TRUE.  The reference has an
+associated selector object if have_selector is TRUE; if that case,
+bound_function_selector gives the object, and function_operand is bound to
+that object.  call_position gives the source position of the call.
+expression_kind indicates the kind of the current expression.
+*/
+{                                 
+  a_boolean access_error_reported;
+
+  /* Do whatever would have been done to the function had we known
+     originally which specific function was intended. */
+  overloaded_function_catch_up(function_symbol,
+                               overloaded_function_symbol,
+                               is_qualified_name,
+                               call_position,
+                               function_operand,
+                               &access_error_reported,
+                               expression_kind);
+  /* Check whether or not a selector is needed. */
+  if (routine_type_is_nonstatic_member_function(
+                                       routine_symbol_type(function_symbol))) {
+    /* The function needs a selector. */
+#if CHECKING
+    if (!have_selector) {
+      internal_error("process_resolved_overloaded_function: missing selector");
+    }  /* if */
+#endif /* CHECKING */
+    /* Do the ARM 11.5 access checking for the type of selector used
+       to access a protected member. */
+    if (!access_error_reported) {
+      check_protected_member_access_catch_up(function_symbol,
+                                             bound_function_selector,
+                                             call_position);
+    }  /* if */
+    /* Bind the function to the selector. */
+    bind_member_function_operand_to_selector(function_operand,
+                                             bound_function_selector);
+  } else {
+    /* The routine does not need a selector. */
+    if (have_selector) {
+      /* Discard the selector provided. */
+      discard_operand(bound_function_selector);
+      have_selector = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* process_resolved_overloaded_function */
+
+
+static an_expr_node_ptr node_for_arg_of_overloaded_function_call(
+                                      an_arg_operand_ptr       arg_operand,
+                                      an_arg_match_summary_ptr arg_match,
+                                      a_param_type_ptr         param,
+                                      an_expression_kind       expression_kind)
+/*
+arg_operand represents an argument to an overloaded function call (including
+operator cases); the call has now been resolved to a specific function.
+arg_match indicates how well the actual argument matches the formal parameter,
+which is described by param.  Cast the argument value to the proper type,
+convert it to expression form, and return a pointer to the expression.
+expression_kind indicates the current expression kind.  arg_operand can
+be NULL to indicate that we've run out of actual arguments (default argument
+values will be used).  param can be NULL to indicate that we've run out
+of parameters (remaining arguments will be processed under an ellipsis).
 */
 {
-  a_candidate_function_ptr candidate_functions;
-  a_symbol_ptr             function_symbol;
-  a_boolean                matched_except_for_missing_selector = FALSE;
-  a_boolean                undecidable_because_of_error;
+  an_expr_node_ptr arg;
 
-  db_enter(4, "select_overloaded_function");
-  /* candidate_functions will contain the list of viable functions. */
-  candidate_functions = NULL;
-  /* Evaluate all matches in the function set. */
-  try_overloaded_function_match(overloaded_function_symbol,
-                                arg_operand_list,
-                                have_selector,
-                                bound_function_selector,
-                                /*selector_is_object_pointer=*/TRUE,
-                                /*try_user_conversions=*/TRUE,
-                                &candidate_functions,
-                                &matched_except_for_missing_selector);
-  /* The candidate_functions list now contains all the viable functions.
-     Find the best one(s). */
-  select_best_candidate_functions(&candidate_functions, call_position,
-                                  &undecidable_because_of_error);
-  function_symbol = NULL;
-  *arg_match_list = NULL;
-  if (undecidable_because_of_error) {
-    /* There was some previous error, so do not put out an error message. */
-  } else if (candidate_functions == NULL) {
-    /* None of the functions applies. */
-    if (matched_except_for_missing_selector) {
-      /* At least one of the functions would have matched if we had had a
-         selector expression, so issue a different error message. */
-      /* A nonstatic member function is used someplace where there is no
-         "this" available, e.g., outside of a member function. */
-      pos_error(ec_member_ref_requires_object, call_position);
-    } else {
-      /* Normal case. */
-      pos_sy_error(err_none_applies, call_position,
-                   overloaded_function_symbol);
+  if (arg_operand == NULL) {
+    /* Match uses a default argument value.  Get it from the parameter type
+       entry. */
+#if CHECKING
+    if (param == NULL) {
+      internal_error(
+    "node_for_arg_of_overloaded_function_call: missing param for default arg");
     }  /* if */
-  } else if (candidate_functions->next != NULL) {
-    /* More than one function applies and is a best match -- ambiguity. */
-#if DEBUG
-    if (debug_level >= 4) {
-      db_candidate_function_list(candidate_functions);
+#endif /* CHECKING */
+    arg = param->default_arg_expr;
+#if CHECKING
+    if (arg == NULL) {
+      internal_error(
+              "node_for_arg_of_overloaded_function_call: missing default arg");
     }  /* if */
-#endif /* DEBUG */
-    pos_sy_start_error(err_ambiguous, call_position,
-                       overloaded_function_symbol);
-    diagnose_overload_ambiguity(candidate_functions, (an_opname_kind)onk_none);
+#endif /* CHECKING */
+    arg = copy_expr_tree(arg, /*clone_temps=*/TRUE);
   } else {
-    /* Exactly one function applies and is best. */
-    function_symbol = candidate_functions->function_symbol;
-    *arg_match_list = candidate_functions->arg_matches;
-    /* Prevent freeing of the arg_match_list when the candidate_functions
-       list is freed. */
-    candidate_functions->arg_matches = NULL;
-#if DEBUG
-    if (debug_level >= 4) {
-      db_symbol(function_symbol, "select_overloaded_function: selected ", 2); 
-    }  /* if */
-#endif /* DEBUG */
+    /* Actual argument is present (normal case). */
+    /* Issue any warning about the conversion detected while evaluating the
+       alternatives. */
+    issue_warning_from_arg_match_summary(arg_match,
+                                         &arg_operand->operand.position);
+    /* Cast the argument to the right type. */
+    prep_possible_ellipsis_argument_operand(&arg_operand->operand, param,
+                                            ec_incompatible_param,
+                                            expression_kind);
+    arg = make_node_from_operand(&arg_operand->operand);
   }  /* if */
-  /* Free the candidate functions list. */
-  free_candidate_function_list(candidate_functions);
-  db_exit();
-  return function_symbol;
-}  /* select_overloaded_function */
+  return arg;
+}  /* node_for_arg_of_overloaded_function_call */
 
 
 a_symbol_ptr select_and_prepare_to_call_overloaded_function(
@@ -6769,7 +6831,6 @@ C++ mode.
 {
   an_arg_operand_ptr       arg_operand;
   an_arg_match_summary_ptr arg_match_list, arg_match;
-  a_boolean                access_error_reported;
   an_expr_node_ptr         arg, prev_arg;
   a_symbol_ptr             function_symbol;
   a_type_ptr               routine_type;
@@ -6798,50 +6859,25 @@ C++ mode.
        an operand for the function.  In that case, the caller will have to
        check the access to the function. */
     if (function_operand != NULL) {
-      overloaded_function_catch_up(function_symbol,
-                                   overloaded_function_symbol,
-                                   is_qualified_name,
-                                   call_position,
-                                   function_operand,
-                                   &access_error_reported,
-                                   expression_kind);
-      /* Check whether or not a selector is needed. */
-      if (routine_type_is_nonstatic_member_function(routine_type)) {
-        /* The function needs a selector. */
-#if CHECKING
-        if (!have_selector) {
-          internal_error(
-           "select_and_prepare_to_call_overloaded_function: missing selector");
-        }  /* if */
-#endif /* CHECKING */
-        /* Do the ARM 11.5 access checking for the type of selector used
-           to access a protected member. */
-        if (!access_error_reported) {
-          check_protected_member_access_catch_up(function_symbol,
-                                                 bound_function_selector,
-                                                 call_position);
-        }  /* if */
-        /* Bind the function to the selector. */
-        bind_member_function_operand_to_selector(function_operand,
-                                                 bound_function_selector);
-        /* Issue any warning about the "this" parameter detected while
-           evaluating the alternatives. */
-        issue_warning_from_arg_match_summary(
-                                           arg_match,
-                                           &bound_function_selector->position);
-      } else {
-        /* The routine does not need a selector. */
-        if (have_selector) {
-          /* Discard the selector provided. */
-          discard_operand(bound_function_selector);
-          have_selector = FALSE;
-        }  /* if */
-      }  /* if */
+      process_resolved_overloaded_function(function_symbol,
+                                           overloaded_function_symbol,
+                                           have_selector,
+                                           bound_function_selector,
+                                           is_qualified_name,
+                                           expression_kind,
+                                           call_position,
+                                           function_operand);
     }  /* if */
     /* Build an expression-form argument list.  Convert the arguments on
        the argument list to the right types. */
-    /* Skip the match entry for the selector, if any. */
-    if (have_selector) arg_match = arg_match->next;
+    if (have_selector) {
+      /* Issue any warning about the "this" parameter detected while
+         evaluating the alternatives. */
+      issue_warning_from_arg_match_summary(arg_match,
+                                           &bound_function_selector->position);
+      /* Move past the match entry for the selector. */
+      arg_match = arg_match->next;
+    }  /* if */
     prev_arg = NULL;
     for (arg_operand = arg_operand_list,
            param = routine_type->variant.routine.extra_info->param_type_list;
@@ -7792,7 +7828,7 @@ functions could still apply).
   a_symbol_ptr             nonmember_functions_symbol;
   a_symbol_ptr             member_functions_symbol;
   a_symbol_ptr             function_symbol;
-  a_boolean                operand_1_is_class, access_error_reported;
+  a_boolean                operand_1_is_class;
   an_operand               function_operand;
   a_candidate_function_ptr candidate_functions;
   an_arg_match_summary_ptr arg_match;
@@ -8012,27 +8048,17 @@ functions could still apply).
             /* Do the things that would have been done to the symbol but
                weren't because the specific symbol was not known, and build an
                operand for the function. */
-            overloaded_function_catch_up(function_symbol,
-                                         member_is_best_match ?
+            process_resolved_overloaded_function(function_symbol,
+                                                 member_is_best_match ?
                                                     member_functions_symbol :
                                                     nonmember_functions_symbol,
-                                         /*is_qualified_name=*/FALSE,
-                                         operator_position,
-                                         &function_operand,
-                                         &access_error_reported,
-                                         expression_kind);
-            if (member_is_best_match) {
-              /* Do the ARM 11.5 access checking for the type of selector used
-                 to access a protected member. */
-              if (!access_error_reported) {
-                check_protected_member_access_catch_up(function_symbol,
-                                                       bound_function_selector,
-                                                       operator_position);
-              }  /* if */
-              /* Bind the function operand to the selector. */
-              bind_member_function_operand_to_selector(&function_operand,
-                                                      bound_function_selector);
-            }  /* if */
+                                                 /*have_selector=*/
+                                                          member_is_best_match,
+                                                 bound_function_selector,
+                                                 /*is_qualified_name=*/FALSE,
+                                                 expression_kind,
+                                                 operator_position,
+                                                 &function_operand);
             /* Make the call node and an operand for it. */
             assemble_function_call(&function_operand, bound_function_selector,
                                    arg_expr_list, result);
