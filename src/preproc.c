@@ -235,8 +235,8 @@ end of the directive.
      previous error. */
   if (curr_token != tok_newline) {
     if (!some_error_in_curr_directive) {
-      pos_error(ec_extra_text_in_pp_directive, &pos_curr_token);
-      some_error_in_curr_directive = TRUE;
+      pos_diagnostic(es_discretionary_error, ec_extra_text_in_pp_directive,
+                     &pos_curr_token);
     }  /* if */
     flush_to_newline();
   }  /* if */

@@ -1,5 +1,14 @@
 Version 2.37
 
+9/18/97   Diagnostic on extra text at end of preprocessing directive is
+          now a discretionary error
+
+The diagnostic produced when there is extra text after the expected end
+of a preprocessing directive is now a discretionary error, and therefore
+can be reduced to a warning.  Note that for many preprocessing directives
+(e.g., #endif), the extra text has already been considered harmless, and
+a diagnostic on those is issued only in strict mode.
+
 9/17/97   C-generating back end: references to parameters in functions
           for covariant virtual functions
 
