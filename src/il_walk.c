@@ -21,12 +21,12 @@ il_walk.c -- Routines to walk the intermediate language tree.
    format a character string based on the IL entry kind must be compiled.
 */
 #include "il_walk.h"
+#include "il.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || NEED_IL_DISPLAY */
 
 /* None of this is needed if not writing IL to a file. */
 #if IL_WALK_NEEDED
 
-#include "il.h"
 #include "error.h"
 #include "mem_manage.h"
 
@@ -134,6 +134,7 @@ processed; if not, ptr is remapped but the list is not traversed.
   }  /* if */ \
 }  /* walk_list */
 
+#if ORPHAN_PROCESSING_NEEDED
 /*
 Macro to remap an orphan IL entry pointer from an "old" value to a "new"
 value.  This macro is similar to remap_ptr, but all pointers are processed
@@ -145,7 +146,6 @@ pointed to.
     (ptr) = (char *)remap_func((char *)(ptr), (entry_kind)); \
   } \
 }
-
 
 /*
 Process a list of identical type orphaned file scope IL entries linked
@@ -162,6 +162,7 @@ ptr_type is the type of the pointer and entry_kind is the kind of entries.
     walk_style((ptr_type)(*orph_ptr), ptr_type, entry_kind) \
   }  /* for */ \
 }  /* walk_orphan_list */
+#endif /* ORPHAN_PROCESSING_NEEDED */
 
 /*
 Process the source correspondence field pointed to by ptr.
@@ -457,11 +458,13 @@ and the entry pointer is to an entry in the file scope, just return
       /* If we are walking through a function scope, and the entry here is
          in the file scope, just return. */
       if (!walking_file_scope && in_file_scope(entry_ptr)) {
+#if ORPHAN_PROCESSING_NEEDED
         /* Add non-string file scope IL entries referenced at a
            function scope to the orphaned IL entries lists. */
         if (!is_string_entry_kind(entry_kind)) {
           add_orphaned_file_scope_il_entry(entry_ptr, entry_kind);
         }
+#endif /* ORPHAN_PROCESSING_NEEDED */
         goto end_of_routine;
       }  /* if */
       /* See if this entry has been reached already, and if so, don't process
@@ -1336,6 +1339,7 @@ walking.
   }  /* if */
 }  /* walk_string_entry */
 
+#if ORPHAN_PROCESSING_NEEDED
 
 /*
 Local macro to ease stepping through the orphaned_file_scopes_il_entries
@@ -1394,12 +1398,12 @@ entry linked on the orphaned list may, in turn, be the head of a list.
                          iek_bound_info_entry);
   walk_orphan_list_first(walk_ptr, a_do_loop_ptr, iek_do_loop);
   walk_orphan_list_first(walk_list, a_label_list_entry_ptr,
-                         aiek_label_list_entry);
+                         iek_label_list_entry);
   walk_orphan_list_first(walk_list, an_io_specifier_ptr, iek_io_specifier);
   walk_orphan_list_first(walk_list, an_io_list_item_ptr, iek_io_list_item);
   walk_orphan_list_first(walk_list, a_namelist_group_member_ptr,
                          iek_namelist_group_member);
-  walk_orphan_list_first(walk_list, a_name_list_group_ptr,
+  walk_orphan_list_first(walk_list, a_namelist_group_ptr,
                          iek_namelist_group);
   walk_orphan_list_first(walk_ptr, an_input_output_description_ptr,
                          iek_input_output_description);
@@ -1429,6 +1433,7 @@ entry linked on the orphaned list may, in turn, be the head of a list.
 
 #undef walk_orphan_list_first
 
+#endif /* ORPHAN_PROCESSING_NEEDED */
 
 void walk_file_scope_il(
              an_entry_process_function_ptr       entry_process_function,
@@ -1473,9 +1478,11 @@ That is what the remap function does.
   walk_string_ptr(il_header.time_of_compilation, iek_other_text, 0);
   /* region_scope_entry should not be walked. */
 
+#if ORPHAN_PROCESSING_NEEDED
   /* Walk through the orphaned IL entries referenced from 
      function scopes, but in the file scope memory region. */
   walk_orphaned_file_scope_il_entries();
+#endif /* ORPHAN_PROCESSING_NEEDED */
   db_exit();
 }  /* walk_file_scope_il */
 
@@ -1590,6 +1597,7 @@ Remap the pointers in il_header by running them through remap_function.
 }  /* remap_il_header_pointers. */
 
 
+#if ORPHAN_PROCESSING_NEEDED
 /*
 Macros to facilitate remapping the pointers to IL entries in the orphaned
 file-scope IL entry table.
@@ -1698,6 +1706,7 @@ them through remap_function.
 
 #undef remap_orphan_list_first
 #undef remap_orphan_list_last
+#endif /* ORPHAN_PROCESSING_NEEDED */
 
 #endif /* IL_WALK_NEEDED */
                      

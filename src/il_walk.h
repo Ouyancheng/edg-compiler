@@ -139,8 +139,10 @@ extern void remap_pointers_in_il_entry(char                 *entry_ptr,
 
 extern void remap_il_header_pointers(a_remap_function_ptr remap_function);
 
+#if ORPHAN_PROCESSING_NEEDED
 extern void remap_orphaned_file_scope_entry_array_ptrs(
                                        a_remap_function_ptr remap_function);
+#endif /* ORPHAN_PROCESSING_NEEDED */
 #endif /* IL_WALK_NEEDED */
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || NEED_IL_DISPLAY
