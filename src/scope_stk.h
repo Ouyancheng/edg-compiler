@@ -221,6 +221,9 @@ typedef struct a_scope_stack_entry {
 			/* TRUE for template instantiation scopes if an
 			   instantiation scope for an enclosing template class
 			   was pushed. */
+  a_bit_field	is_for_init_block:1;
+			/* TRUE if the scope is pushed for a C++ for-init
+			   declaration (sck_block only). */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be
@@ -697,6 +700,8 @@ extern a_scope_ptr push_scope(a_scope_kind       kind,
        	                      a_scope_number     scope_number_to_reuse,
                               a_type_ptr         assoc_type,
                               a_routine_ptr      assoc_routine);
+
+extern a_scope_ptr push_for_init_scope(void);
 
 extern a_scope_ptr push_namespace_scope(a_scope_kind    kind,
                                         a_namespace_ptr assoc_namespace);

@@ -880,6 +880,7 @@ instantiation scope (the template parameters to be used, etc.).
   ssep->namespace_pushed         = FALSE;
   ssep->reactivated_class_being_defined = FALSE;
   ssep->parent_instantiation_pushed = FALSE;
+  ssep->is_for_init_block        = FALSE;
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;
   ssep->assoc_routine            = assoc_routine;
@@ -1299,6 +1300,24 @@ instantiation scopes.
                           (a_template_decl_info_ptr)NULL);
   return scope;
 }  /* push_scope */
+
+
+a_scope_ptr push_for_init_scope(void)
+/*
+Push a block scope for a for-init declaration and return a pointer to the IL
+scope.
+*/
+{
+  a_scope_stack_entry_ptr  ssep;
+  a_scope_ptr              sp;
+
+  (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
+                   (a_type_ptr)NULL, (a_routine_ptr)NULL);
+  ssep = &scope_stack[depth_scope_stack];
+  ssep->is_for_init_block = TRUE;
+  sp = ensure_il_scope_exists(ssep);
+  return sp;
+}  /* push_for_init_scope */
 
 
 a_scope_ptr push_namespace_scope(a_scope_kind    kind,
