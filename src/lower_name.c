@@ -2469,8 +2469,7 @@ given by tap.
     }  /* if */
     fill_in_length(&length_reservation, mctl);
 #else /* IA64_ABI */
-    if (!add_substitution((char *)temp,
-                          (an_il_entry_kind)iek_template, mctl)) {
+    if (!add_substitution((char *)temp, iek_template, mctl)) {
       a_boolean need_nested_name_close = FALSE;
       /* Add a parent qualifier if needed. */
       mangled_ia64_parent_qualifier(scp, iek_template,
@@ -2737,9 +2736,7 @@ should be put out.
       a_template_ptr tmpl = class_template_of(type);
       check_assertion(tmpl != NULL);
       /* Create a substitution entry for the template.  */
-      (void)add_substitution((char *)tmpl,
-                             (an_il_entry_kind)iek_template,
-                             mctl);
+      (void)add_substitution((char *)tmpl, iek_template, mctl);
     }  /* if */
 #endif /* IA64_ABI */
     /* Always start with the name of the class, which applies even in the
@@ -3020,18 +3017,14 @@ supplies the usual nesting_level == 1.
     a_boolean  is_specialization;
     a_boolean  is_template_specialization;
 #if IA64_ABI
-    if (add_substitution_if_available((char *)type,
-                                      (an_il_entry_kind)iek_type,
-                                      mctl)) {
+    if (add_substitution_if_available((char *)type, iek_type, mctl)) {
       goto done;
     } else {
       a_template_ptr              tmpl;
       a_class_type_supplement_ptr ctsp;
       tmpl = class_template_of(type);
       if (tmpl != NULL &&
-          add_substitution_if_available(tmpl, 
-                                        (an_il_entry_kind)iek_template, 
-                                        mctl)) {
+          add_substitution_if_available(tmpl, iek_template, mctl)) {
         ctsp = type->variant.class_struct_union.extra_info;
         mangled_template_arguments(ctsp->template_arg_list,
                                    /*partial_spec=*/FALSE,
@@ -3079,17 +3072,16 @@ supplies the usual nesting_level == 1.
                            is_specialization,
                            mctl);
 #if IA64_ABI
-  new_substitution:
+new_substitution:
     /* Add a substitution for this type. */
-    alloc_substitution((char *)type, (an_il_entry_kind)iek_type, mctl);
+    alloc_substitution((char *)type, iek_type, mctl);
 #endif /* IA64_ABI */
   } else {
     /* Namespace name. */
     a_namespace_ptr nsp = scp->parent.namespace_ptr;
     char            *name;
 #if IA64_ABI
-    if (add_substitution((char *)nsp,
-                         (an_il_entry_kind)iek_namespace, mctl)) {
+    if (add_substitution_if_available((char *)nsp, iek_namespace, mctl)) {
       goto done;
     } else if (more_levels) {
       /* This level is nested inside something else.  Do a recursive call to
@@ -3107,6 +3099,10 @@ supplies the usual nesting_level == 1.
     /* Put out the namespace name preceded by the length of the name, e.g.,
        "NNN" --> "3NNN". */
     mangled_name_with_length(name, mctl);
+#if IA64_ABI
+    /* Add a substitution for this namespace. */
+    alloc_substitution((char *)nsp, iek_namespace, mctl);
+#endif /* IA64_ABI */
   }  /* if */
 #if IA64_ABI
 done:;
@@ -3203,9 +3199,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
   if (is_immediate_class_type(type)) {
     tmpl = class_template_of(type);
     if (tmpl != NULL && 
-        add_substitution_if_available(tmpl, 
-                                      (an_il_entry_kind)iek_template, 
-                                      mctl)) {
+        add_substitution_if_available(tmpl, iek_template, mctl)) {
       ctsp = type->variant.class_struct_union.extra_info;
       mangled_template_arguments(ctsp->template_arg_list,
                                  /*partial_spec=*/FALSE,
@@ -3306,7 +3300,7 @@ Add to the mangled name the encoding for the type "type".
 
 #if IA64_ABI
   /* If the type has appeared previously, use a substitution for it. */
-  if (add_substitution_if_available(type, (an_il_entry_kind)iek_type, mctl)) {
+  if (add_substitution_if_available(type, iek_type, mctl)) {
     goto end_of_routine;
   }  /* if */
 #endif /* IA64_ABI */
@@ -3335,7 +3329,7 @@ Add to the mangled name the encoding for the type "type".
     mangled_encoding_for_type_qualifiers(qualifiers, mctl);
   }  /* if */
 #if IA64_ABI
-  if (add_substitution_if_available(type, (an_il_entry_kind)iek_type, mctl)) {
+  if (add_substitution_if_available(type, iek_type, mctl)) {
     goto add_substitution_for_qualified_type;
   }  /* if */
 #endif /* IA64_ABI */
@@ -3597,13 +3591,12 @@ have_whole_mangled_name:;
   /* Create a substitution for the unqualified type. */
   if (!is_integral_type(type) && !is_floating_type(type) && 
       !is_void_type(type)) {
-    alloc_substitution((char *)type, (an_il_entry_kind)iek_type, mctl);
+    alloc_substitution((char *)type, iek_type, mctl);
   }  /* if */
 add_substitution_for_qualified_type:
   /* Create a substitution for the original type, if it was qualified. */
   if (qualifiers != TQ_NONE) {
-    alloc_substitution((char *)qualified_type,
-                       (an_il_entry_kind)iek_type, mctl);
+    alloc_substitution((char *)qualified_type, iek_type, mctl);
   }  /* if */
 end_of_routine:;
 #endif /* IA64_ABI */
@@ -4094,7 +4087,7 @@ name appears.
       routine_type = skip_typerefs(routine_type);
 #if IA64_ABI
       if (add_substitution((char *)tssp->il_template_entry,
-                           (an_il_entry_kind)iek_template, mctl)) {
+                           iek_template, mctl)) {
         goto mangle_template;
       }  /* if */
 #endif /* IA64_ABI */
