@@ -34,6 +34,9 @@ templates.c -- Support for C++ templates.
 #if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if DO_IL_LOWERING && AUTOMATIC_TEMPLATE_INSTANTIATION
+#include "lower_il.h"
+#endif /* DO_IL_LOWERING && AUTOMATIC_TEMPLATE_INSTANTIATION */
 #ifdef lint
 /* Include the definition of an_arg_operand to suppress lint errors. */
 #include "exprutil.h"
@@ -10336,6 +10339,12 @@ is set by update_instantiation_required_flag.
 */
 {
   a_template_instance_ptr	tip;
+#if DO_IL_LOWERING
+  a_boolean			instantiation_info_vars_needed =
+				    (!suppress_instantiation_flags &&
+				     il_lowering_needed());
+  a_source_correspondence	*scp;
+#endif /* DO_IL_LOWERING */
 
   db_enter(3, "update_auto_instantiation_flags");
   /* Make a pass through all of the instantiations to set the
@@ -10379,6 +10388,27 @@ is set by update_instantiation_required_flag.
       routine->do_not_instantiate = tip->explicit_do_not_instantiate;
       routine->instance_required = tip->instantiation_required;
     }  /* if */
+#if DO_IL_LOWERING
+    if (instantiation_info_vars_needed) {
+      /* For automatic instantiation, generate a variable or variables with
+         names that encode instantiation information.  Note that this is
+         done only if IL lowering is done. */
+      scp = is_static_data_member ?
+                &variable->source_corresp : &routine->source_corresp;
+      if (tip->instantiation_required) {
+        /* This routine or variable is template-based. */
+        make_instantiation_info_var("__TIR__", scp);
+      }  /* if */
+      if (tip->explicit_do_not_instantiate) {
+        /* This routine or variable cannot be instantiated. */
+        make_instantiation_info_var("__DNI__", scp);
+      }  /* if */
+      if (can_instantiate) {
+        /* This routine or variable can be instantiated. */
+        make_instantiation_info_var("__CBI__", scp);
+      }  /* if */
+    }  /* if */
+#endif /* DO_IL_LOWERING */
   }  /* for */
   db_exit();
 }  /* update_auto_instantiation_flags */

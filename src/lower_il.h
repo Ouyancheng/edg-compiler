@@ -600,6 +600,12 @@ extern a_variable_ptr make_global_var_with_prefixed_name(
                                       a_source_correspondence *source_corresp);
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE || LOWER_EXTERN_INLINE */
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+extern void make_instantiation_info_var(
+                                    char                    *prefix,
+                                    a_source_correspondence *source_corresp);
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
 extern void add_temporary_to_scope(a_variable_ptr temp,
                                    a_scope_ptr    scope);
 

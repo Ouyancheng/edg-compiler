@@ -3778,6 +3778,14 @@ End a name scope by popping an entry off the scope stack.
     check_for_done_with_all_function_memory_regions();
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  if (kind == (a_scope_kind)sck_file) {
+    /* Set the IL flags used to pass automatic instantiation information
+       to the link-time instantiation processor. */
+    update_auto_instantiation_flags();
+  }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
   /* The IL scope, if any, is no longer on the stack.  This must occur
      after IL lowering and before check_for_done_with_memory_region. */
   if (il_scope != NULL) {

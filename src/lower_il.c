@@ -1398,9 +1398,8 @@ about potential template instantiations.
 #endif /* ifdef MAKE_GLOBAL_VAR_WITH_PREFIXED_NAME_LINKAGE */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 
-static void make_instantiation_info_var(
-                                       char                    *prefix,
-                                       a_source_correspondence *source_corresp)
+void make_instantiation_info_var(char                    *prefix,
+                                 a_source_correspondence *source_corresp)
 /*
 Create a variable whose name records information on instantiation of some
 entity.  Such variables are used as part of the automatic instantiation scheme.
@@ -1411,8 +1410,18 @@ the information about that entity; it consists of the indicated prefix
 by the mangled name of the entity.  The variable has type char (arbitrarily).
 */
 {
-  (void)make_global_var_with_prefixed_name(prefix, (an_integer_kind)ik_char,
+  a_variable_ptr  var;
+
+  var = make_global_var_with_prefixed_name(prefix, (an_integer_kind)ik_char,
                                            source_corresp);
+#if MAINTAIN_NEEDED_FLAGS
+  /* Since this routine is always called after normal needed flag processing
+     (since the determination of which instantiation info variables to put
+     out is dependent on what is needed), update the needed and keep-in-IL
+     flags now. */
+  mark_as_needed((char *)var, (an_il_entry_kind)iek_variable);
+  mark_to_keep_in_il((char *)var, (an_il_entry_kind)iek_variable);
+#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* make_instantiation_info_var */
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
@@ -4891,24 +4900,6 @@ Do IL lowering of the indicated variable and everything under it.
     }  /* if */
     /* Lower the initializer if any. */
     lower_initializer(variable->init_kind, &variable->initializer);
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (automatic_instantiation_mode && !suppress_instantiation_flags &&
-        variable->source_corresp.is_class_member) {
-      /* Static data member. */
-      if (variable->instance_required) {
-        /* This variable is template-based. */
-        make_instantiation_info_var("__TIR__", &variable->source_corresp);
-      }  /* if */
-      if (variable->do_not_instantiate) {
-        /* This variable cannot be instantiated. */
-        make_instantiation_info_var("__DNI__", &variable->source_corresp);
-      }  /* if */
-      if (variable->can_be_instantiated) {
-        /* This variable can be instantiated. */
-        make_instantiation_info_var("__CBI__", &variable->source_corresp);
-      }  /* if */
-    }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
 }  /* lower_variable */
 
@@ -4989,24 +4980,6 @@ not include the function scope memory region, if any.
       routine->storage_class = (a_storage_class)sc_static;
     } /* if */
 #endif /* LOWER_EXTERN_INLINE */
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (automatic_instantiation_mode && !suppress_instantiation_flags) {
-      /* For automatic instantiation, generate a variable or variables with
-         names that encode instantiation information. */
-      if (routine->instance_required) {
-        /* This routine is template-based. */
-        make_instantiation_info_var("__TIR__", &routine->source_corresp);
-      }  /* if */
-      if (routine->do_not_instantiate) {
-        /* This routine cannot be instantiated. */
-        make_instantiation_info_var("__DNI__", &routine->source_corresp);
-      }  /* if */
-      if (routine->can_be_instantiated) {
-        /* This routine can be instantiated. */
-        make_instantiation_info_var("__CBI__", &routine->source_corresp);
-      }  /* if */
-    }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
     if (routine->overriding_function_for_covariant_return_type != NULL &&
         routine->overriding_function_for_covariant_return_type->assoc_scope !=

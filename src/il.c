@@ -11044,6 +11044,20 @@ eliminated, if appropriate.
         prev_vp->next = vp->next;
       }  /* if */
       vp->next = NULL;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+      /* If the instantiation_required flag was set, clear it now. */
+      if (vp->is_template_static_data_member && !vp->is_specialized) {
+        a_symbol_ptr             sym;
+        a_template_instance_ptr  tip;
+
+        sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
+        if (sym != NULL) {
+          tip = sym->variant.static_data_member.instance_ptr;
+          check_assertion(tip != NULL);
+          tip->instantiation_required = FALSE;
+        }  /* if */
+      }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
     } else {
       prev_vp = vp;
     }  /* if */
@@ -11124,6 +11138,20 @@ eliminated, if appropriate.
         prev_rp->next = rp->next;
       }  /* if */
       rp->next = NULL;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+      /* If the instantiation_required flag was set, clear it now. */
+      if (rp->is_template_function && !rp->is_specialized) {
+        a_symbol_ptr             sym;
+        a_template_instance_ptr  tip;
+
+        sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+        if (sym != NULL) {
+          tip = sym->variant.routine.instance_ptr;
+          check_assertion(tip != NULL);
+          tip->instantiation_required = FALSE;
+        }  /* if */
+      }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
     } else {
       prev_rp = rp;
     }  /* if */
