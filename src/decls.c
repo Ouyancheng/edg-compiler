@@ -2838,9 +2838,7 @@ value reflecting the linkage of the original symbol.
         *linkage = idl_external;
       }  /* if */
     } else {
-      /* The lookup failed.  This can only be because an appropriate instance
-         of an overload set could not be found. */
-      check_assertion(is_function_symbol(locator->specific_symbol));
+      /* The lookup failed. */
       pos_sy_error(locator->specific_symbol->kind ==
                                    (a_symbol_kind)sk_overloaded_function ?
                       ec_overloaded_function_incompatible_type :
